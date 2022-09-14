@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "common/matrix.h"
 #include "common/vector.h"
 
 #include "drivers/sensor.h"

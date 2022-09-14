@@ -119,27 +119,26 @@ void secondaryImuProcess(void) {
     secondaryImuState.eulerAngles.raw[2] += secondaryImuState.magDeclination;
 
     //TODO this way of rotating a vector makes no sense, something simpler have to be developed
-    const fpVector3_t v = {
+    fpVector3_t sec_imu_angles_vector = {
         .x = secondaryImuState.eulerAngles.raw[0],
         .y = secondaryImuState.eulerAngles.raw[1],
         .z = secondaryImuState.eulerAngles.raw[2],
     };
-
-    fpVector3_t rotated;
 
     fp_angles_t imuAngles = {
         .angles.roll = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->rollDeciDegrees),
         .angles.pitch = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->pitchDeciDegrees),
         .angles.yaw = DECIDEGREES_TO_RADIANS(secondaryImuConfig()->yawDeciDegrees),
     };
-    fpMat3_t rotationMatrix;
-    rotationMatrixFromAngles(&rotationMatrix, &imuAngles);
-    rotationMatrixRotateVector(&rotated, &v, &rotationMatrix);
-    rotated.z = ((int32_t)(rotated.z + secondaryImuConfig()->yawDeciDegrees)) % 3600;
 
-    secondaryImuState.eulerAngles.values.roll = rotated.x;
-    secondaryImuState.eulerAngles.values.pitch = rotated.y;
-    secondaryImuState.eulerAngles.values.yaw = rotated.z;
+    fpMat3_t rotationMatrix;
+    matrixFromEuler(imuAngles.angles.roll, imuAngles.angles.pitch, imuAngles.angles.yaw, &rotationMatrix);
+    matrixMulTranspose(&sec_imu_angles_vector, rotationMatrix);
+    sec_imu_angles_vector.z = ((int32_t)(sec_imu_angles_vector.z + secondaryImuConfig()->yawDeciDegrees)) % 3600;
+
+    secondaryImuState.eulerAngles.values.roll = sec_imu_angles_vector.x;
+    secondaryImuState.eulerAngles.values.pitch = sec_imu_angles_vector.y;
+    secondaryImuState.eulerAngles.values.yaw = sec_imu_angles_vector.z;
 
     DEBUG_SET(DEBUG_IMU2, 0, secondaryImuState.eulerAngles.values.roll);
     DEBUG_SET(DEBUG_IMU2, 1, secondaryImuState.eulerAngles.values.pitch);

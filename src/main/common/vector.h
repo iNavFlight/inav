@@ -30,34 +30,16 @@ typedef union {
 } fpVector3_t;
 
 typedef struct {
-    float m[3][3];
-} fpMat3_t;
-
-typedef struct {
     fpVector3_t axis;
     float angle;
 } fpAxisAngle_t;
 
-void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles);
-void rotationMatrixFromAxisAngle(fpMat3_t * rmat, const fpAxisAngle_t * a);
 
 static inline void vectorZero(fpVector3_t * v)
 {
     v->x = 0.0f;
     v->y = 0.0f;
     v->z = 0.0f;
-}
-
-static inline fpVector3_t * rotationMatrixRotateVector(fpVector3_t * result, const fpVector3_t * a, const fpMat3_t * rmat)
-{
-    fpVector3_t r;
-
-    r.x = rmat->m[0][0] * a->x + rmat->m[1][0] * a->y + rmat->m[2][0] * a->z;
-    r.y = rmat->m[0][1] * a->x + rmat->m[1][1] * a->y + rmat->m[2][1] * a->z;
-    r.z = rmat->m[0][2] * a->x + rmat->m[1][2] * a->y + rmat->m[2][2] * a->z;
-
-    *result = r;
-    return result;
 }
 
 static inline float vectorNormSquared(const fpVector3_t * v)

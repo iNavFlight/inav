@@ -25,6 +25,7 @@
 FILE_COMPILE_FOR_SPEED
 
 #include "common/maths.h"
+#include "common/matrix.h"
 #include "common/vector.h"
 #include "common/axis.h"
 
@@ -69,7 +70,7 @@ void initBoardAlignment(void)
         rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
         rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
 
-        rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
+        matrixFromEuler(rotationAngles.angles.roll, rotationAngles.angles.pitch, rotationAngles.angles.yaw, &boardRotMatrix);
     }
 }
 
@@ -94,7 +95,7 @@ void applyBoardAlignment(int32_t *vec)
     }
 
     fpVector3_t fpVec = { .v = { vec[X], vec[Y], vec[Z] } };
-    rotationMatrixRotateVector(&fpVec, &fpVec, &boardRotMatrix);
+    matrixMulTranspose(&fpVec, boardRotMatrix);
 
     vec[X] = lrintf(fpVec.x);
     vec[Y] = lrintf(fpVec.y);

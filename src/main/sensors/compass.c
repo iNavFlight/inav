@@ -81,7 +81,8 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
 );
 
 static uint8_t magUpdatedAtLeastOnce = 0;
-timeUs_t last_update_usec;
+static float range_scale = 1.0f;
+static timeUs_t last_update_usec;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -99,6 +100,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_QMC5883
         if (qmc5883Detect(dev)) {
             magHardware = MAG_QMC5883;
+            range_scale = 1000.0f / 3000.0f;
             break;
         }
 #endif
@@ -112,6 +114,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_HMC5883
         if (hmc5883lDetect(dev)) {
             magHardware = MAG_HMC5883;
+            range_scale = (1.0f / 1090) * 1000;
             break;
         }
 #endif
@@ -138,6 +141,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_AK8963
         if (ak8963Detect(dev)) {
             magHardware = MAG_AK8963;
+            range_scale = 10.0f;
             break;
         }
 #endif
@@ -151,6 +155,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_MAG3110
         if (mag3110detect(dev)) {
             magHardware = MAG_MAG3110;
+            range_scale = (1.0f / 10000 / 0.0001f * 1000);
             break;
         }
 #endif
@@ -164,6 +169,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_IST8310
         if (ist8310Detect(dev)) {
             magHardware = MAG_IST8310;
+            range_scale = 3.0f;
             break;
         }
 #endif
@@ -177,6 +183,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_IST8308
         if (ist8308Detect(dev)) {
             magHardware = MAG_IST8308;
+            range_scale = 1.515f;
             break;
         }
 #endif
@@ -199,6 +206,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_LIS3MDL
         if (lis3mdlDetect(dev)) {
             magHardware = MAG_LIS3MDL;
+            range_scale = 1000.0f / 6842.0f;
             break;
         }
 #endif
@@ -227,6 +235,7 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_RM3100
         if (rm3100MagDetect(dev)) {
             magHardware = MAG_RM3100;
+            range_scale = (1.0f / 75.0f) * 10.0f;;
             break;
         }
 #endif
@@ -322,7 +331,7 @@ bool compassInit(void)
              .angles.pitch = DECIDEGREES_TO_RADIANS(compassConfig()->pitchDeciDegrees),
              .angles.yaw = DECIDEGREES_TO_RADIANS(compassConfig()->yawDeciDegrees),
         };
-        rotationMatrixFromAngles(&mag.dev.magAlign.externalRotation, &compassAngles);
+        matrixFromEuler(compassAngles.angles.roll, compassAngles.angles.pitch, compassAngles.angles.yaw, &mag.dev.magAlign.externalRotation);
     } else {
         mag.dev.magAlign.useExternal = false;
         if (compassConfig()->mag_align != ALIGN_DEFAULT) {
@@ -460,19 +469,17 @@ void compassUpdate(timeUs_t currentTimeUs)
     }
 
     if (mag.dev.magAlign.useExternal) {
-        const fpVector3_t v = {
+        fpVector3_t mag_vector = {
             .x = mag.magADC[X],
             .y = mag.magADC[Y],
             .z = mag.magADC[Z],
          };
 
-        fpVector3_t rotated;
+        matrixMulTranspose(&mag_vector, mag.dev.magAlign.externalRotation);;
 
-        rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
-
-         mag.magADC[X] = rotated.x;
-         mag.magADC[Y] = rotated.y;
-         mag.magADC[Z] = rotated.z;
+         mag.magADC[X] = mag_vector.x;
+         mag.magADC[Y] = mag_vector.y;
+         mag.magADC[Z] = mag_vector.z;
 
     } else {
         // On-board compass
@@ -484,8 +491,16 @@ void compassUpdate(timeUs_t currentTimeUs)
     magUpdatedAtLeastOnce = 1;
 }
 
-timeUs_t compassLastUpdate(void) {
+timeUs_t compassLastUpdate(void) 
+{
     return last_update_usec;
+}
+
+void getMagField(fpVector3_t *v) 
+{
+    v->x = (float)mag.magADC[X] * range_scale;
+    v->y = (float)mag.magADC[Y] * range_scale;
+    v->z = (float)mag.magADC[Z] * range_scale;
 }
 
 #endif

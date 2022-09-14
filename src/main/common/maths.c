@@ -224,67 +224,6 @@ float scaleRangef(float x, float srcMin, float srcMax, float destMin, float dest
     return ((a / b) + destMin);
 }
 
-// Build rMat from Tait–Bryan angles (convention X1, Y2, Z3)
-void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles)
-{
-    float cosx, sinx, cosy, siny, cosz, sinz;
-    float coszcosx, sinzcosx, coszsinx, sinzsinx;
-
-    cosx = cos_approx(angles->angles.roll);
-    sinx = sin_approx(angles->angles.roll);
-    cosy = cos_approx(angles->angles.pitch);
-    siny = sin_approx(angles->angles.pitch);
-    cosz = cos_approx(angles->angles.yaw);
-    sinz = sin_approx(angles->angles.yaw);
-
-    coszcosx = cosz * cosx;
-    sinzcosx = sinz * cosx;
-    coszsinx = sinx * cosz;
-    sinzsinx = sinx * sinz;
-
-    rmat->m[0][X] = cosz * cosy;
-    rmat->m[0][Y] = -cosy * sinz;
-    rmat->m[0][Z] = siny;
-    rmat->m[1][X] = sinzcosx + (coszsinx * siny);
-    rmat->m[1][Y] = coszcosx - (sinzsinx * siny);
-    rmat->m[1][Z] = -sinx * cosy;
-    rmat->m[2][X] = (sinzsinx) - (coszcosx * siny);
-    rmat->m[2][Y] = (coszsinx) + (sinzcosx * siny);
-    rmat->m[2][Z] = cosy * cosx;
-}
-
-void rotationMatrixFromAxisAngle(fpMat3_t * rmat, const fpAxisAngle_t * a)
-{
-    const float sang = sin_approx(a->angle);
-    const float cang = cos_approx(a->angle);
-    const float C = 1.0f - cang;
-
-    const float xC  = a->axis.x * C;
-    const float yC  = a->axis.y * C;
-    const float zC  = a->axis.z * C;
-    const float xxC = a->axis.x * xC;
-    const float yyC = a->axis.y * yC;
-    const float zzC = a->axis.z * zC;
-    const float xyC = a->axis.x * yC;
-    const float yzC = a->axis.y * zC;
-    const float zxC = a->axis.z * xC;
-    const float xs  = a->axis.x * sang;
-    const float ys  = a->axis.y * sang;
-    const float zs  = a->axis.z * sang;
-
-    rmat->m[0][X] = xxC + cang;
-    rmat->m[0][Y] = xyC - zs;
-    rmat->m[0][Z] = zxC + ys;
-
-    rmat->m[1][X] = zxC + ys;
-    rmat->m[1][Y] = yyC + cang;
-    rmat->m[1][Z] = yzC - xs;
-
-    rmat->m[2][X] = zxC - ys;
-    rmat->m[2][Y] = yzC + xs;
-    rmat->m[2][Z] = zzC + cang;
-}
-
 // Quick median filter implementation
 // (c) N. Devillard - 1998
 // http://ndevilla.free.fr/median/median.pdf

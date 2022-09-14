@@ -26,6 +26,7 @@
 
 extern "C" {
     #include "common/maths.h"
+    #include "common/matrix.h"
     #include "common/vector.h"
 }
 
@@ -129,11 +130,11 @@ void expectVectorsAreEqual(fpVector3_t *a, fpVector3_t *b)
 TEST(MathsUnittest, TestRotateVectorWithNoAngle)
 {
     fpVector3_t vector = { 1.0f, 0.0f, 0.0f};
-    fp_angles_t euler_angles = {.raw={0.0f, 0.0f, 0.0f}};
+    fp_angles_t euler_angles = {.raw = {0.0f, 0.0f, 0.0f}};
 
     fpMat3_t rmat;
-    rotationMatrixFromAngles(&rmat, &euler_angles);
-    rotationMatrixRotateVector(&vector, &vector, &rmat);
+    matrixFromEuler(euler_angles.angles.roll, euler_angles.angles.pitch, euler_angles.angles.yaw, &rmat);
+    matrixMulTranspose(&vector, rmat);
 
     fpVector3_t expected_result = { 1.0f, 0.0f, 0.0f};
     expectVectorsAreEqual(&vector, &expected_result);
@@ -146,8 +147,8 @@ TEST(MathsUnittest, TestRotateVectorAroundAxis)
     fp_angles_t euler_angles = {.raw={90.0f, 0.0f, 0.0f}};
 
     fpMat3_t rmat;
-    rotationMatrixFromAngles(&rmat, &euler_angles);
-    rotationMatrixRotateVector(&vector, &vector, &rmat);
+    matrixFromEuler(euler_angles.angles.roll, euler_angles.angles.pitch, euler_angles.angles.yaw, &rmat);
+    matrixMulTranspose(&vector, rmat);
 
     fpVector3_t expected_result = { 1.0f, 0.0f, 0.0f};
     expectVectorsAreEqual(&vector, &expected_result);

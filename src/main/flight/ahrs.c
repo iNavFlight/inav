@@ -33,7 +33,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/filter.h"
 #include "common/log.h"
 #include "common/maths.h"
-#include "common/vector.h"
 #include "common/quaternion.h"
 
 #include "config/feature.h"
@@ -66,7 +65,7 @@ FILE_COMPILE_FOR_SPEED
 #define RP_KP_MIN 0.05f
 #define YAW_KP_MIN 0.05f
 
-// These are experimentally derived from the simulator with large drift levels (Not Configurable)
+// These are experimentally derived from the simulator with large drift levels (Please do not change these values)
 #define DCM_KI_ACC 0.0087f
 #define DCM_KI_MAG 0.01f
 
@@ -94,6 +93,7 @@ STATIC_FASTRAM fpVector3_t _last_velocity;
 STATIC_FASTRAM fpVector3_t _wind;
 STATIC_FASTRAM fpVector3_t _last_fuse;
 STATIC_FASTRAM fpVector3_t _last_vel;
+STATIC_FASTRAM fpVector3_t last_raw_gyro;
 
 STATIC_FASTRAM flightLogEvent_IMUError_t ahrsErrorEvent;
 STATIC_FASTRAM flightLogEvent_IMUError_t prev_ahrsErrorEvent;
@@ -154,19 +154,7 @@ void ahrsInit(void)
 
     ahrsSetMagneticDeclination(deg + min / 60.0f);
     
-    // Matrix identity
-    // A
-    rotationMatrix.m[0][0] = 1.0f;
-    rotationMatrix.m[0][1] = 0.0f;
-    rotationMatrix.m[0][2] = 0.0f;
-    // B
-    rotationMatrix.m[1][0] = 0.0f;
-    rotationMatrix.m[1][1] = 1.0f;
-    rotationMatrix.m[1][2] = 0.0f;
-    // C
-    rotationMatrix.m[2][0] = 0.0f;
-    rotationMatrix.m[2][1] = 0.0f;
-    rotationMatrix.m[2][2] = 1.0f;
+    matrixIdentity(&rotationMatrix);
 
     ahrsReset(false);
 
@@ -210,94 +198,6 @@ static void resetGyroDrift(void)
     _omega_I_sum_time = 0.0f;
 }
 
-static bool rotationMatrixIsNAN(void) {
-
-    bool isNaN = false;
-
-    for (uint8_t i = 0; i < 3; i++) {
-        for (uint8_t ii = 0; ii < 3; ii++) {
-            if (isnan(rotationMatrix.m[i][ii])) {
-                isNaN = true;
-                break;
-            }
-        }
-    }
-
-    return isNaN;
-}
-
-// Create a rotation matrix given some euler angles
-static void matrixFromEuler(float roll, float pitch, float yaw)
-{
-    const float cp = cos_approx(pitch);
-    const float sp = sin_approx(pitch);
-    const float sr = sin_approx(roll);
-    const float cr = cos_approx(roll);
-    const float sy = sin_approx(yaw);
-    const float cy = cos_approx(yaw);
-
-    rotationMatrix.m[0][0] = cp * cy;
-    rotationMatrix.m[0][1] = (sr * sp * cy) - (cr * sy);
-    rotationMatrix.m[0][2] = (cr * sp * cy) + (sr * sy);
-
-    rotationMatrix.m[1][0] = cp * sy;
-    rotationMatrix.m[1][1] = (sr * sp * sy) + (cr * cy);
-    rotationMatrix.m[1][2] = (cr * sp * sy) - (sr * cy);
-
-    rotationMatrix.m[2][0] = -sp;
-    rotationMatrix.m[2][1] = sr * cp;
-    rotationMatrix.m[2][2] = cr * cp;
-}
-
-// Apply an additional rotation from a Body-Frame gyro vector to a rotation matrix.
-static void dcmMatrixRotate(const fpVector3_t gyro)
-{
-    const fpMat3_t rotationMatrix2 = { .m = { { rotationMatrix.m[0][0], rotationMatrix.m[0][1], rotationMatrix.m[0][2] },
-                                              { rotationMatrix.m[1][0], rotationMatrix.m[1][1], rotationMatrix.m[1][2] },
-                                              { rotationMatrix.m[2][0], rotationMatrix.m[2][1], rotationMatrix.m[2][2] } } };
-
-    rotationMatrix.m[0][0] += rotationMatrix2.m[0][1] * gyro.z - rotationMatrix2.m[0][2] * gyro.y;
-    rotationMatrix.m[0][1] += rotationMatrix2.m[0][2] * gyro.x - rotationMatrix2.m[0][0] * gyro.z;
-    rotationMatrix.m[0][2] += rotationMatrix2.m[0][0] * gyro.y - rotationMatrix2.m[0][1] * gyro.x;
-
-    rotationMatrix.m[1][0] += rotationMatrix2.m[1][1] * gyro.z - rotationMatrix2.m[1][2] * gyro.y;
-    rotationMatrix.m[1][1] += rotationMatrix2.m[1][2] * gyro.x - rotationMatrix2.m[1][0] * gyro.z;
-    rotationMatrix.m[1][2] += rotationMatrix2.m[1][0] * gyro.y - rotationMatrix2.m[1][1] * gyro.x;
-
-    rotationMatrix.m[2][0] += rotationMatrix2.m[2][1] * gyro.z - rotationMatrix2.m[2][2] * gyro.y;
-    rotationMatrix.m[2][1] += rotationMatrix2.m[2][2] * gyro.x - rotationMatrix2.m[2][0] * gyro.z;
-    rotationMatrix.m[2][2] += rotationMatrix2.m[2][0] * gyro.y - rotationMatrix2.m[2][1] * gyro.x;
-}
-
-// Multiplication of transpose by a vector
-static void multiplicationTranspose(fpVector3_t *v)
-{
-    const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
-
-    v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[1][0] * v2.y + rotationMatrix.m[2][0] * v2.z;
-    v->y = rotationMatrix.m[0][1] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[2][1] * v2.z;
-    v->z = rotationMatrix.m[0][2] * v2.x + rotationMatrix.m[1][2] * v2.y + rotationMatrix.m[2][2] * v2.z;                
-}
-
-// Multiplication by a vector, extracting only the XY components
-static void multiplicationXY(fpVector3_t *v) 
-{
-    const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
-
-    v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
-    v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z; 
-}
-
-// Multiplication by a vector
-static void multiplicationXYZ(fpVector3_t *v) 
-{
-    const fpVector3_t v2 = { .v = { v->x, v->y, v->z } };
-
-    v->x = rotationMatrix.m[0][0] * v2.x + rotationMatrix.m[0][1] * v2.y + rotationMatrix.m[0][2] * v2.z;
-    v->y = rotationMatrix.m[1][0] * v2.x + rotationMatrix.m[1][1] * v2.y + rotationMatrix.m[1][2] * v2.z;
-    v->z = rotationMatrix.m[2][0] * v2.x + rotationMatrix.m[2][1] * v2.y + rotationMatrix.m[2][2] * v2.z;
-}
-
 // Update the DCM matrix using only the gyros
 static void matrixUpdate(float deltaTime)
 {
@@ -305,18 +205,29 @@ static void matrixUpdate(float deltaTime)
     // and including the P terms would give positive feedback into the proportionalGain() calculation, which can lead to a very large P value.
 
     fpVector3_t allOmegaSum;
+    fpVector3_t delta_angle;
 
     if (deltaTime > 0.0f) {
-        _omega.x = imuMeasuredRotationBF.x;
+        /*_omega.x = imuMeasuredRotationBF.x;
         _omega.y = imuMeasuredRotationBF.y;
         _omega.z = imuMeasuredRotationBF.z;
+        */
+
+       delta_angle.x = (imuMeasuredRotationBF.x + last_raw_gyro.x) * 0.5f;
+       delta_angle.y = (imuMeasuredRotationBF.y + last_raw_gyro.y) * 0.5f;
+       delta_angle.z = (imuMeasuredRotationBF.z + last_raw_gyro.z) * 0.5f;
+
+        _omega.x = delta_angle.x;
+        _omega.y = delta_angle.y;
+        _omega.z = delta_angle.z;
+
         _omega.x += _omega_I.x;
         _omega.y += _omega_I.y;
         _omega.z += _omega_I.z;
         allOmegaSum.x = (_omega.x + _omega_P.x + _omega_yaw_P.x) * deltaTime;
         allOmegaSum.y = (_omega.y + _omega_P.y + _omega_yaw_P.y) * deltaTime;
         allOmegaSum.z = (_omega.z + _omega_P.z + _omega_yaw_P.z) * deltaTime;
-        dcmMatrixRotate(allOmegaSum);
+        matrixRotate(allOmegaSum, &rotationMatrix);
     }
 }
 
@@ -339,7 +250,7 @@ void ahrsReset(bool recover_eulers)
 
 
     if (recover_eulers && !isnan(_roll) && !isnan(_pitch) && !isnan(_yaw)) {
-        matrixFromEuler(_roll, _pitch, _yaw);
+        matrixFromEuler(_roll, _pitch, _yaw, &rotationMatrix);
     } else {
         // Normalise the acceleration vector
         if (calc_length_pythagorean_3D(imuMeasuredAccelBF.x, imuMeasuredAccelBF.y, imuMeasuredAccelBF.z) > 500.0f) {
@@ -352,7 +263,7 @@ void ahrsReset(bool recover_eulers)
             _roll = 0.0f;
             _pitch = 0.0f;
         }
-        matrixFromEuler(_roll, _pitch, 0.0f);
+        matrixFromEuler(_roll, _pitch, 0.0f, &rotationMatrix);
     }
 
     // Pre-calculate some trig for CPU purposes
@@ -449,7 +360,7 @@ static void normalize(void)
 // Check the DCM matrix for pathological values
 static void checkMatrix(void)
 {
-    if (rotationMatrixIsNAN()) {
+    if (rotationMatrixIsNAN(rotationMatrix)) {
         LOG_E(AHRS, "AHRS Matrix is NaN. Reseting the AHRS");
         ahrsErrorEvent.errorCode = 1;
         ahrsReset(true);
@@ -464,7 +375,7 @@ static void checkMatrix(void)
         LOG_E(AHRS, "AHRS invalid Matrix. Forcing a new normalization");
         ahrsErrorEvent.errorCode = 2;
 
-        if (rotationMatrixIsNAN() || fabsf(rotationMatrix.m[2][0]) > 10.0f) {
+        if (rotationMatrixIsNAN(rotationMatrix) || fabsf(rotationMatrix.m[2][0]) > 10.0f) {
             LOG_E(AHRS, "AHRS Matrix normalisation error. Reset to last known good value");
             ahrsErrorEvent.errorCode = 3;
             ahrsReset(true);
@@ -487,15 +398,6 @@ static void updateLogError(void)
 #endif
 }
 
-void getMagField(fpVector3_t *v) {
-
-    const float range_scale = 1000.0f / 3000.0f; // Scale for QMC5883
-
-    v->x = (float)mag.magADC[X] * range_scale;
-    v->y = (float)mag.magADC[Y] * range_scale;
-    v->z = (float)mag.magADC[Z] * range_scale;
-}
-
 // Produce a yaw error value. The returned value is proportional to sin() of the current heading error in Earth-Frame
 static float yawErrorCompass(void)
 {
@@ -504,7 +406,7 @@ static float yawErrorCompass(void)
     getMagField(&magField);
 
     // Get the mag vector in the Earth-Frame
-    multiplicationXY(&magField);
+    matrixMulXY(&magField, rotationMatrix);
     
     const float magFieldLength = calc_length_pythagorean_2D(magField.x, magField.y);
     
@@ -588,6 +490,7 @@ float wrap_PI(const float radian)
     if (res > M_PIf) {
         res -= 2.0f * M_PIf;
     }
+
     return res;
 }
 
@@ -667,7 +570,7 @@ static void driftCorrectionYaw(void)
             // We force an additional compass read() here. This has the effect of throwing away the first compass value, which can be bad
             if (!have_initial_yaw) {
                 const float heading = calculateHeading();
-                matrixFromEuler(_roll, _pitch, heading);
+                matrixFromEuler(_roll, _pitch, heading, &rotationMatrix);
                 _omega_yaw_P.x = 0.0f;
                 _omega_yaw_P.y = 0.0f;
                 _omega_yaw_P.z = 0.0f;
@@ -702,7 +605,7 @@ static void driftCorrectionYaw(void)
 
             if (!have_initial_yaw || yaw_deltaTime > 20 || (gpsSol.groundSpeed >= GPS_SPEED_MIN * 3 && fabsf(yaw_error_rad) >= 1.047f)) {
                 // Reset DCM matrix based on current yaw
-                matrixFromEuler(_roll, _pitch, gps_course_rad);
+                matrixFromEuler(_roll, _pitch, gps_course_rad, &rotationMatrix);
                 // Force reset of heading hold target
                 resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
                 _omega_yaw_P.x = 0.0f;
@@ -832,7 +735,7 @@ static void driftCorrection(float deltaTime)
         }
 
         velocity.x = gpsSol.velNED[X];
-        velocity.y = gpsSol.velNED[Y];
+        velocity.y = -gpsSol.velNED[Y];
         velocity.z = -gpsSol.velNED[Z];
 
         last_correction_time = gpsStats.lastFixTime;
@@ -850,7 +753,7 @@ static void driftCorrection(float deltaTime)
         fpVector3_t airspeed = { .v = { velocity.x - _wind.x, velocity.y - _wind.y, velocity.z - _wind.z } };
 
         // Rotate vector to Body-Frame
-        multiplicationTranspose(&airspeed);
+        matrixMulTranspose(&airspeed, rotationMatrix);
 
         // Take positive component in X direction. This mimics a pitot tube
         _last_airspeed = MAX(airspeed.x, 0.0f);
@@ -878,7 +781,7 @@ static void driftCorrection(float deltaTime)
     const float gps_gain = (float)ahrsConfig()->dcm_gps_gain / 10.0f;
     
     const bool should_correct_centrifugal = STATE(FIXED_WING_LEGACY) ? true : ARMING_FLAG(ARMED);
-/*
+
     if (should_correct_centrifugal && (_have_gps_lock || fly_forward)) {
         const float vel_scale = gps_gain * ra_scale;
         const fpVector3_t vel_delta = { .v = { (velocity.x - _last_velocity.x) * vel_scale, (velocity.y - _last_velocity.y) * vel_scale, (velocity.z - _last_velocity.z) * vel_scale } };
@@ -894,12 +797,12 @@ static void driftCorrection(float deltaTime)
             return;
         }
         using_gps_corrections = true;
-    }*/
+    }
 
     // Calculate the error term in Earth-Frame.
     fpVector3_t error;
     fpVector3_t GA_b;
-
+    
     _ra_sum.x *= ra_scale;
     _ra_sum.y *= ra_scale;
     _ra_sum.z *= ra_scale;
@@ -946,7 +849,7 @@ static void driftCorrection(float deltaTime)
         error.z = 0.0f;
     } else {
         // Convert the error term to Body-Frame
-        multiplicationTranspose(&error);
+        matrixMulTranspose(&error, rotationMatrix);
     }
 
     if (isnan(error.x) || isnan(error.y) || isnan(error.z) ||
@@ -959,7 +862,7 @@ static void driftCorrection(float deltaTime)
     
     // Base the P gain on the spin rate
     const float spin_rate = calc_length_pythagorean_3D(_omega.x, _omega.y, _omega.z);
-    
+
     float kP_Acc = (float)ahrsConfig()->dcm_kp_acc / 100.0f;
 
     // Sanity check kP_Acc value
@@ -1086,7 +989,7 @@ static void dcmUpdate(float deltaTime)
     useHITLOutAngles = ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0);
 
     if (useHITLOutAngles) {
-        matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll) * 0.5f, DECIDEGREES_TO_RADIANS(attitude.values.pitch) * 0.5f, DECIDEGREES_TO_RADIANS(attitude.values.yaw) * 0.5f);
+        matrixFromEuler(DECIDEGREES_TO_RADIANS(attitude.values.roll) * 0.5f, DECIDEGREES_TO_RADIANS(attitude.values.pitch) * 0.5f, DECIDEGREES_TO_RADIANS(attitude.values.yaw) * 0.5f, &rotationMatrix);
     }
 #endif
 
@@ -1146,7 +1049,7 @@ void ahrsUpdate(timeUs_t currentTimeUs)
     }
 #endif
 
-    // Calculate the AHRS Delta Time
+    // Calculate the AHRS Delta-Time
     static timeUs_t previousTime;
     const float deltaTime = US2S(currentTimeUs - previousTime);
     previousTime = currentTimeUs;
@@ -1185,6 +1088,10 @@ void ahrsUpdate(timeUs_t currentTimeUs)
         acc.accADCf[Y] = 0.0f;
         acc.accADCf[Z] = 0.0f;
     }
+
+    last_raw_gyro.x = imuMeasuredRotationBF.x;
+    last_raw_gyro.y = imuMeasuredRotationBF.y;
+    last_raw_gyro.z = imuMeasuredRotationBF.z;
 }
 
 // Update our wind speed estimate
@@ -1192,7 +1099,7 @@ void ahrsUpdateWindEstimator(void)
 {
     const fpVector3_t velocity = { .v = { _last_velocity.x, _last_velocity.y, _last_velocity.z } };
 
-    const fpVector3_t fuselageDirection = { .v = { rotationMatrix.m[0][0], -rotationMatrix.m[1][0], -rotationMatrix.m[2][0] } };
+    const fpVector3_t fuselageDirection = { .v = { rotationMatrix.m[0][0], rotationMatrix.m[1][0], rotationMatrix.m[2][0] } };
 
     const fpVector3_t fuselageDirectionDiff = { .v = { fuselageDirection.x - _last_fuse.x, fuselageDirection.y - _last_fuse.y, fuselageDirection.z - _last_fuse.z } };
 
@@ -1322,13 +1229,13 @@ void ahrsTransformVectorEarthToBody(fpVector3_t *v)
     // HACK: This is needed to correctly transform from NEU (navigation) to NED (sensor frame)
     v->y = -v->y;
 
-    multiplicationTranspose(v);
+    matrixMulTranspose(v, rotationMatrix);
 }
 
 // Convert body-frame to earth-frame
 void ahrsTransformVectorBodyToEarth(fpVector3_t *v)
 {
-    multiplicationXYZ(v);
+    vectorRowTimesMat(v, rotationMatrix);
 
     // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
     v->y = -v->y;
