@@ -27,26 +27,25 @@
 #include "fc/runtime_config.h"
 #include "navigation/navigation.h"
 
-#define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
+#define MIN_POSITION_UPDATE_RATE_HZ         5       // minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
 #define NAV_VEL_Z_ERROR_CUT_HZ              5.0f
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
+#define LAND_DETECTOR_ACCEL_LPF_CUTOFF      1.0f    // frequency cutoff of land detector accelerometer filter
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
 
+#define MC_CHECK_ACCEL_MOVING               300.0f  // cm/s
+#define MC_LAND_DETECTOR_ACCEL_MAX          100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // uS
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
-
-#define MC_CHECK_ACCEL_MOVING               300.0f  // cm/s
-
-#define LAND_DETECTOR_ACCEL_MAX             100.0f  // cm/s
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 

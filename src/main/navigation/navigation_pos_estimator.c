@@ -460,8 +460,9 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelNEU.y = 0.0f;
             posEstimator.imu.accelNEU.z = 0.0f;
         }
-
-        accel_ef_length = pt1FilterApply4(&accel_ef_lpf, calc_length_pythagorean_3D(posEstimator.imu.accelNEU.x, posEstimator.imu.accelNEU.y, posEstimator.imu.accelNEU.z), 1.0f, dt);
+        
+        const float acc_ef_length = calc_length_pythagorean_3D(posEstimator.imu.accelNEU.x, posEstimator.imu.accelNEU.y, posEstimator.imu.accelNEU.z);
+        accel_ef_length = pt1FilterApply4(&accel_ef_lpf, acc_ef_length, LAND_DETECTOR_ACCEL_LPF_CUTOFF, dt);
 
         /* Update blackbox values */
         navAccNEU[X] = posEstimator.imu.accelNEU.x;

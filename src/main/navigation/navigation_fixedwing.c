@@ -635,13 +635,13 @@ bool isFixedWingLandingDetected(void)
     // Check horizontal and vertical volocities are low (cm/s)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && posControl.actualState.velXY < 100.0f;
 
-    // check that the airframe is not accelerating (not falling or braking after fast forward flight)
-    bool accel_stationary = get_accel_ef_length() <= LAND_DETECTOR_ACCEL_MAX;
+    // Check angular rates are low (degs/s)
+    bool gyroCondition = averageAbsGyroRates() < 2.0f;
 
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
-    DEBUG_SET(DEBUG_LANDING, 3, accel_stationary);
+    DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
-    if (velCondition && accel_stationary){
+    if (velCondition && gyroCondition){
         DEBUG_SET(DEBUG_LANDING, 4, 2);
         DEBUG_SET(DEBUG_LANDING, 5, fixAxisCheck);
         if (!fixAxisCheck) {        // capture roll and pitch angles to be used as datums to check for absolute change

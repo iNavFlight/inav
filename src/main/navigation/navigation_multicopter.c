@@ -741,7 +741,7 @@ bool isMulticopterLandingDetected(void)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING;
     
     // check that the airframe is not accelerating (not falling or braking after fast forward flight)
-    bool accel_stationary = get_accel_ef_length() <= LAND_DETECTOR_ACCEL_MAX;
+    bool accel_stationary = get_accel_ef_length() <= MC_LAND_DETECTOR_ACCEL_MAX;
 
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
     DEBUG_SET(DEBUG_LANDING, 3, accel_stationary);

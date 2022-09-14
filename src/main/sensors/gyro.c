@@ -566,3 +566,8 @@ void gyroUpdateDynamicLpf(float cutoffFreq) {
         }
     }
 }
+
+float averageAbsGyroRates(void)
+{
+    return (fabsf(gyro.gyroADCf[ROLL]) + fabsf(gyro.gyroADCf[PITCH]) + fabsf(gyro.gyroADCf[YAW])) / 3.0f;
+}
