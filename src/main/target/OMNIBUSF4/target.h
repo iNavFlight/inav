@@ -86,6 +86,13 @@
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
   #define USE_IMU_MPU6500
   #define IMU_MPU6500_ALIGN       IMU_MPU6000_ALIGN
+
+  //BMI270
+  #define USE_IMU_BMI270
+  #define IMU_BMI270_ALIGN        IMU_MPU6000_ALIGN
+  #define BMI270_SPI_BUS          MPU6000_SPI_BUS
+  #define BMI270_CS_PIN           MPU6000_CS_PIN
+  #define BMI270_EXTI_PIN         GYRO_INT_EXTI
 #endif
 
 #define USE_MAG
@@ -99,7 +106,6 @@
 #define USE_MAG_AK8975
 
 #define TEMPERATURE_I2C_BUS     I2C_EXT_BUS
-#define BNO055_I2C_BUS          I2C_EXT_BUS
 
 #define USE_BARO
 
@@ -191,6 +197,10 @@
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 #endif
 
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_UART           SERIAL_PORT_USART1
+
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
@@ -258,7 +268,6 @@
   #define WS2811_PIN                   PA1
 #endif
 
-#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
 

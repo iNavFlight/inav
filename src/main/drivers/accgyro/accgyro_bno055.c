@@ -28,7 +28,6 @@
 #include "drivers/time.h"
 #include "build/debug.h"
 #include "common/vector.h"
-#include "drivers/accgyro/accgyro_bno055.h"
 
 #ifdef USE_IMU_BNO055
 

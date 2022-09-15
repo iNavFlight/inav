@@ -18,6 +18,11 @@
 * SBUS pin is connected to UART2
 * SmartPort telemetry can be setup with `SoftwareSerial` feature turned on, SmartPort configured in SoftwareSerial1 and receiver connected to UART2 TX pad
 
+### Alternate targets
+
+#### MATEKF045SE_PINIO
+`MATEKF045SE_PINIO` replaces UART 6 (TX) with a pad that can be used for PINIO
+
 ## Where to buy:
 
 * [Banggood](https://inavflight.com/shop/p/MATEKF405WING)

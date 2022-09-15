@@ -63,7 +63,6 @@
 typedef struct {
     bool                isDriverBased;
     portMode_t          portMode;           // Port mode RX/TX (only for serial based)
-    bool                hasCompass;         // Has a compass (NAZA)
     void                (*restart)(void);   // Restart protocol driver thread
     void                (*protocol)(void);  // Process protocol driver thread
 } gpsProviderDescriptor_t;
@@ -76,51 +75,37 @@ gpsSolutionData_t gpsSol;
 // Map gpsBaudRate_e index to baudRate_e
 baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400 };
 
-static gpsProviderDescriptor_t  gpsProviders[GPS_PROVIDER_COUNT] = {
+static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
 #ifdef USE_GPS_PROTO_NMEA
-    { false, MODE_RX, false, &gpsRestartNMEA_MTK, &gpsHandleNMEA },
+    { false, MODE_RX, gpsRestartNMEA, &gpsHandleNMEA },
 #else
-    { false, 0, false,  NULL, NULL },
+    { false, 0, NULL, NULL },
 #endif
 
     /* UBLOX binary */
 #ifdef USE_GPS_PROTO_UBLOX
-    { false, MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
+    { false, MODE_RXTX, &gpsRestartUBLOX, &gpsHandleUBLOX },
 #else
-    { false, 0, false,  NULL, NULL },
-#endif
-
-    /* NAZA GPS module */
-#ifdef USE_GPS_PROTO_NAZA
-    { false, MODE_RX, true, &gpsRestartNAZA, &gpsHandleNAZA },
-#else
-    { false, 0, false,  NULL, NULL },
+    { false, 0, NULL, NULL },
 #endif
 
     /* UBLOX7PLUS binary */
 #ifdef USE_GPS_PROTO_UBLOX
-    { false, MODE_RXTX, false, &gpsRestartUBLOX, &gpsHandleUBLOX },
+    { false, MODE_RXTX, &gpsRestartUBLOX, &gpsHandleUBLOX },
 #else
-    { false, 0, false,  NULL, NULL },
-#endif
-
-    /* MTK GPS */
-#ifdef USE_GPS_PROTO_MTK
-    { false, MODE_RXTX, false, &gpsRestartNMEA_MTK, &gpsHandleMTK },
-#else
-    { false, 0, false,  NULL, NULL },
+    { false, 0,  NULL, NULL },
 #endif
 
     /* MSP GPS */
 #ifdef USE_GPS_PROTO_MSP
-    { true, 0, false, &gpsRestartMSP, &gpsHandleMSP },
+    { true, 0, &gpsRestartMSP, &gpsHandleMSP },
 #else
-    { false, 0, false,  NULL, NULL },
+    { false, 0, NULL, NULL },
 #endif
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
@@ -359,6 +344,14 @@ bool gpsUpdate(void)
         return false;
     }
 
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        gpsUpdateTime();
+        gpsSetState(GPS_RUNNING);
+        sensorsSet(SENSOR_GPS);
+        return gpsSol.flags.hasNewData;
+    }
+#endif
 #ifdef USE_FAKE_GPS
     return gpsFakeGPSUpdate();
 #else
@@ -445,36 +438,6 @@ void updateGpsIndicator(timeUs_t currentTimeUs)
         GPSLEDTime = currentTimeUs + 150000;
         LED1_TOGGLE;
     }
-}
-
-/* Support for built-in magnetometer accessible via the native GPS protocol (i.e. NAZA) */
-bool gpsMagInit(magDev_t *magDev)
-{
-    UNUSED(magDev);
-    return true;
-}
-
-bool gpsMagRead(magDev_t *magDev)
-{
-    magDev->magADCRaw[X] = gpsSol.magData[0];
-    magDev->magADCRaw[Y] = gpsSol.magData[1];
-    magDev->magADCRaw[Z] = gpsSol.magData[2];
-    return gpsSol.flags.validMag;
-}
-
-bool gpsMagDetect(magDev_t *mag)
-{
-    if (!(feature(FEATURE_GPS) && gpsProviders[gpsState.gpsConfig->provider].hasCompass)) {
-        return false;
-    }
-
-    if (!gpsProviders[gpsState.gpsConfig->provider].protocol || !findSerialPortConfig(FUNCTION_GPS)) {
-        return false;
-    }
-
-    mag->init = gpsMagInit;
-    mag->read = gpsMagRead;
-    return true;
 }
 
 bool isGPSHealthy(void)

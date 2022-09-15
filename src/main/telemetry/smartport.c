@@ -551,7 +551,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
             case FSSP_DATAID_ASPD       :
 #ifdef USE_PITOT
                 if (sensors(SENSOR_PITOT)) {
-                    smartPortSendPackage(id, pitot.airSpeed * 0.194384449f); // cm/s to knots*1
+                    smartPortSendPackage(id, getAirspeedEstimate() * 0.194384449f); // cm/s to knots*1
                     *clearToSend = false;
                 }
 #endif

@@ -19,8 +19,17 @@
 
 #define USE_TARGET_CONFIG
 
+#ifdef MAMBAF722_2022B
+
+#define TARGET_BOARD_IDENTIFIER         "M72B"
+#define USBD_PRODUCT_STRING             "MAMBAF722_2022B"
+
+#else
+
 #define TARGET_BOARD_IDENTIFIER         "M72A"
 #define USBD_PRODUCT_STRING             "MAMBAF722_2022A"
+
+#endif
 
 // ******** Board LEDs  **********************
 #define LED0                            PC15
@@ -53,6 +62,16 @@
 #define BMI270_SPI_BUS                  BUS_SPI1
 #define BMI270_CS_PIN                   SPI1_NSS_PIN
 #define BMI270_EXTI_PIN                 GYRO_INT_EXTI
+
+#ifdef MAMBAF722_2022B
+
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         SPI1_NSS_PIN
+#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
+
+#endif
 
 #define USE_I2C
 
@@ -158,7 +177,6 @@
 #define WS2811_PIN                      PB3
 
 // ******* FEATURES ********
-#define DEFAULT_RX_FEATURE              FEATURE_RX_SERIAL
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SERIALRX_PROVIDER               SERIALRX_SBUS
 
@@ -181,7 +199,6 @@
 #define RANGEFINDER_I2C_BUS         DEFAULT_I2C_BUS
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
-#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
 
 // *************** PINIO ***************************
 #define USE_PINIO

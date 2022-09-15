@@ -46,13 +46,6 @@
 
 #if defined(USE_IRLOCK)
 
-enum {
-    DEBUG_IRLOCK_DETECTED,
-    DEBUG_IRLOCK_MEAS_VALID,
-    DEBUG_IRLOCK_POS_X,
-    DEBUG_IRLOCK_POS_Y
-};
-
 static irlockDev_t irlockDev;
 static bool irlockDetected = false;
 static bool measurementValid = false;
@@ -62,7 +55,6 @@ static timeMs_t lastUpdateMs = 0;
 void irlockInit(void)
 {
     irlockDetected = irlockDetect(&irlockDev);
-    DEBUG_SET(DEBUG_IRLOCK, DEBUG_IRLOCK_DETECTED, irlockDetected);
 }
 
 bool irlockHasBeenDetected(void)
@@ -78,14 +70,6 @@ void irlockUpdate(void)
 {
     if (irlockDetected && irlockDev.read(&irlockDev, &irlockData)) lastUpdateMs = millis();
     measurementValid = millis() - lastUpdateMs < IRLOCK_TIMEOUT;
-
-    if (debugMode == DEBUG_IRLOCK) {
-        float distX, distY;
-        bool valid = irlockGetPosition(&distX, &distY);
-        debug[DEBUG_IRLOCK_MEAS_VALID] = valid;
-        debug[DEBUG_IRLOCK_POS_X] = lrintf(distX * 100);
-        debug[DEBUG_IRLOCK_POS_Y] = lrintf(distY * 100);
-    }
 }
 
 #define X_TO_DISTANCE_FACTOR -0.0029387573f

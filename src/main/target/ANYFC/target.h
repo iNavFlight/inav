@@ -52,7 +52,6 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -100,8 +99,6 @@
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
 //#define USE_I2C_PULLUP
-
-//#define HIL
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC0
