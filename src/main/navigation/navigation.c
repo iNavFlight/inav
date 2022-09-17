@@ -3073,8 +3073,8 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     }
     // WP #1 - #60 - common waypoints - pre-programmed mission
     else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {
-        if (wpNumber <= posControl.waypointCount) {
-            *wpData = posControl.waypointList[wpNumber + posControl.startWpIndex - 1];
+        if (wpNumber <= getWaypointCount()) {
+            *wpData = posControl.waypointList[wpNumber - 1 + (ARMING_FLAG(ARMED) ? posControl.startWpIndex : 0)];
             if(wpData->action == NAV_WP_ACTION_JUMP) {
                 wpData->p1 += 1; // make WP # (vice index)
             }
@@ -3169,7 +3169,13 @@ bool isWaypointListValid(void)
 
 int getWaypointCount(void)
 {
-    return posControl.waypointCount;
+    uint8_t waypointCount = posControl.waypointCount;
+#ifdef USE_MULTI_MISSION
+    if (!ARMING_FLAG(ARMED) && posControl.totalMultiMissionWpCount) {
+        waypointCount = posControl.totalMultiMissionWpCount;
+    }
+#endif
+    return waypointCount;
 }
 #ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment)
@@ -3214,9 +3220,7 @@ void loadSelectedMultiMission(uint8_t missionIndex)
 
 bool updateWpMissionChange(void)
 {
-    /* Function only called when ARMED.
-     * Note: On disarm posControl.startWpIndex set to 0, posControl.waypointCount set to totalMultiMissionWpCount.
-     * posControl.startWpIndex and posControl.waypointCount reset for flight on arming */
+    /* Function only called when ARMED */
 
     if (posControl.multiMissionCount <= 1 || posControl.wpPlannerActiveWPIndex || FLIGHT_MODE(NAV_WP_MODE)) {
         return true;
@@ -3224,13 +3228,11 @@ bool updateWpMissionChange(void)
 
     uint8_t setMissionIndex = navConfig()->general.waypoint_multi_mission_index;
     if (!(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION) || isAdjustmentFunctionSelected(ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX))) {
-        /* reload mission if mission index changed or posControl.startWpIndex not aligned with mission index > 1
-         * (posControl.startWpIndex may have been set to 0 on previous disarm) */
-        if (posControl.loadedMultiMissionIndex != setMissionIndex || (setMissionIndex > 1 && posControl.startWpIndex == 0)) {
+        /* reload mission if mission index changed */
+        if (posControl.loadedMultiMissionIndex != setMissionIndex) {
             loadSelectedMultiMission(setMissionIndex);
         }
-        /* align waypointCount with loadedMissionWpCount on arming
-         * (waypointCount is set to totalMultiMissionWpCount when disarmed) */
+        /* align waypointCount with loadedMissionWpCount on arming */
         if (posControl.waypointCount != posControl.loadedMissionWpCount) {
             posControl.waypointCount = posControl.loadedMissionWpCount;
         }
@@ -3282,8 +3284,6 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
     if (navConfig()->general.waypoint_multi_mission_index > posControl.multiMissionCount) {
         navConfigMutable()->general.waypoint_multi_mission_index = 1;
     }
-    posControl.multiMissionCount = 0;
-    posControl.loadedMissionWpCount = 0;
 #endif
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
         setWaypoint(i + 1, nonVolatileWaypointList(i));
@@ -3515,13 +3515,6 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.activeRthTBPointIndex = -1;
         posControl.flags.rthTrackbackActive = false;
         posControl.rthTBWrapAroundCounter = -1;
-        // Reset active WP count and posControl.startWpIndex
-#ifdef USE_MULTI_MISSION
-        if (posControl.startWpIndex || posControl.waypointCount < posControl.totalMultiMissionWpCount) {
-            posControl.waypointCount = posControl.totalMultiMissionWpCount;
-            posControl.startWpIndex = 0;
-        }
-#endif
 
         return;
     }
@@ -3877,7 +3870,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         for (uint8_t wp = posControl.startWpIndex; wp < wpCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
                 if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 >= wpCount ||
-                posControl.waypointList[wp].p1 == (wp - posControl.startWpIndex + 1) || posControl.waypointList[wp].p1 == (wp - posControl.startWpIndex - 1) || posControl.waypointList[wp].p2 < -1) {
+                (posControl.waypointList[wp].p1 > (wp - posControl.startWpIndex - 2) && posControl.waypointList[wp].p1 < (wp - posControl.startWpIndex + 2)) || posControl.waypointList[wp].p2 < -1) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
 
