@@ -31,6 +31,9 @@ void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+#ifdef MATEKF722PX_PINIO    
+    pinioBoxConfigMutable()->permanentId[2] = BOX_PERMANENT_ID_USER3;
+#endif
 
     serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_FRSKY_OSD;
 }

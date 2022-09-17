@@ -115,9 +115,11 @@
 #define UART4_TX_PIN            PA0
 #define UART4_RX_PIN            PA1
 
+#ifndef MATEKF722PX_PINIO
 #define USE_UART5
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
+#endif
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
@@ -153,6 +155,10 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PA15 // Power switch
 #define PINIO2_PIN                  PB3  // Camera switch
+
+#ifdef MATEKF722PX_PINIO
+#define PINIO3_PIN                  PC12 // UART 5 TX - USER 3 PINIO
+#endif
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
