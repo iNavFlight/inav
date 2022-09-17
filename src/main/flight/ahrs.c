@@ -1076,15 +1076,9 @@ static void dcmUpdate(float deltaTime)
 
 void ahrsUpdate(timeUs_t currentTimeUs)
 {
-#ifdef HIL
-    if (sensors(SENSOR_ACC) && !hilActive) {
-        accUpdate();
-    }
-#else
     if (sensors(SENSOR_ACC)) {
         accUpdate();
     }
-#endif
 
     // Calculate the AHRS Delta-Time
     static timeUs_t previousTime;
@@ -1092,34 +1086,10 @@ void ahrsUpdate(timeUs_t currentTimeUs)
     previousTime = currentTimeUs;
     
     if (sensors(SENSOR_ACC)) {
-#ifdef HIL
-        if (!hilActive) {
-            accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in Body-Frame in cm/s/s
-            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in Body-Frame in rad/s
-            imuCheckVibrationLevels();
-            dcmUpdate(deltaTime);
-        }
-        else {
-            /* Set attitude */
-            attitude.values.roll = hilToFC.rollAngle;
-            attitude.values.pitch = hilToFC.pitchAngle;
-            attitude.values.yaw = hilToFC.yawAngle;
-
-            /* Compute matrix rotation for future use */
-            matrixFromEuler(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
-
-            /* Fake accADC readings */
-            accADCf[X] = hilToFC.bodyAccel[X] / GRAVITY_CMSS;
-            accADCf[Y] = hilToFC.bodyAccel[Y] / GRAVITY_CMSS;
-            accADCf[Z] = hilToFC.bodyAccel[Z] / GRAVITY_CMSS;
-            imuUpdateMeasuredAcceleration();
-        }
-#else
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);     // Calculate accel in Body-Frame in cm/s/s
         gyroGetMeasuredRotationRate(&imuMeasuredRotationBF); // Calculate gyro rate in Body-Frame in rad/s
         imuCheckVibrationLevels();
         dcmUpdate(deltaTime);
-#endif
     } else {
         acc.accADCf[X] = 0.0f;
         acc.accADCf[Y] = 0.0f;
