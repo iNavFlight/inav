@@ -220,14 +220,10 @@ static void matrixUpdate(float deltaTime)
 {
     // Note that we do not include the P terms in omega. This is  because the spin_rate is calculated from calc_length_pythagorean_3D(omega.x, omega.y, omega.z), 
     // and including the P terms would give positive feedback into the proportionalGain() calculation, which can lead to a very large P value.
-
-    omega.x = 0.0f;
-    omega.y = 0.0f;
-    omega.z = 0.0f;
-
-    delta_angle.x = (imuMeasuredRotationBF.x + last_omega.x) * 0.5f * deltaTime;
-    delta_angle.y = (imuMeasuredRotationBF.y + last_omega.y) * 0.5f * deltaTime;
-    delta_angle.z = (imuMeasuredRotationBF.z + last_omega.z) * 0.5f * deltaTime;
+    
+    delta_angle.x = (imuMeasuredRotationBF.x + last_omega.x) * 0.5f;
+    delta_angle.y = (imuMeasuredRotationBF.y + last_omega.y) * 0.5f;
+    delta_angle.z = (imuMeasuredRotationBF.z + last_omega.z) * 0.5f;
 
     // Compute coning correction
     fpVector3_t delta_coning = { .v = { delta_angle.x + last_delta_angle.x * (1.0f / 6.0f), 
@@ -242,9 +238,9 @@ static void matrixUpdate(float deltaTime)
 
     if (deltaTime > 0.0f) {
         // Integrate delta angle accumulator. The angles and coning corrections are accumulated separately.
-        omega.x = (delta_angle.x + delta_coning.x) / deltaTime;
-        omega.y = (delta_angle.y + delta_coning.y) / deltaTime;
-        omega.z = (delta_angle.z + delta_coning.z) / deltaTime;
+        omega.x = (delta_angle.x + delta_coning.x);
+        omega.y = (delta_angle.y + delta_coning.y);
+        omega.z = (delta_angle.z + delta_coning.z);
         omega.x += omega_I.x;
         omega.y += omega_I.y;
         omega.z += omega_I.z;
@@ -669,8 +665,8 @@ static void driftCorrectionYaw(void)
     // Convert the error vector to Body-Frame
     const float error_z = rotationMatrix.m[2][2] * yaw_error;
 
-    // The spin rate changes the P gain, and disables the integration at higher rates
-    const float spin_rate = calc_length_pythagorean_3D(omega.x, omega.y, omega.z);
+    // The spin rate changes the P gain, and disables the integration at higher rates (get the value in rad/s/s)
+    const float spin_rate = calc_length_pythagorean_3D(omega.x * RAD, omega.y * RAD, omega.z * RAD);
     
     float kP_Mag = (float)ahrsConfig()->dcm_kp_mag / 100.0f;
 
@@ -901,8 +897,8 @@ static void driftCorrection(float deltaTime)
         return;
     }
     
-    // Base the P gain on the spin rate
-    const float spin_rate = calc_length_pythagorean_3D(omega.x, omega.y, omega.z);
+    // Base the P gain on the spin rate (get the value in rad/s/s)
+    const float spin_rate = calc_length_pythagorean_3D(omega.x * RAD, omega.y * RAD, omega.z * RAD);
 
     float kP_Acc = (float)ahrsConfig()->dcm_kp_acc / 100.0f;
 
