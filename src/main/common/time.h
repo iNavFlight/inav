@@ -117,3 +117,5 @@ bool rtcSet(rtcTime_t *t);
 bool rtcGetDateTime(dateTime_t *dt);
 bool rtcGetDateTimeLocal(dateTime_t *dt);
 bool rtcSetDateTime(dateTime_t *dt);
+
+rtcTime_t dateTimeToRtcTime(const dateTime_t *dt);
