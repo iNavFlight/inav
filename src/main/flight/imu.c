@@ -573,6 +573,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     float courseOverGround = 0;
     bool useMag = false;
     bool useCOG = false;
+    bool centrifugal_force_compensated=false;
 
 #if defined(USE_GPS)
     if (STATE(FIXED_WING_LEGACY)) {
@@ -606,14 +607,6 @@ static void imuCalculateEstimatedAttitude(float dT)
             useMag = true;
         }
     }
-#else
-    // In absence of GPS MAG is the only option
-    if (canUseMAG) {
-        useMag = true;
-    }
-#endif
-    bool centrifugal_force_compensation=false;
-#if defined(USE_GPS)
     //centrifugal force compensation using gps
     fpVector3_t vEstcentrifugal_accBF={ .v = { 0.0f, 0.0f, 0.0f } };// cm/s/s
     if (isGPSHeadingValid()){
@@ -622,15 +615,19 @@ static void imuCalculateEstimatedAttitude(float dT)
         imuCalculateGPSacceleration(&vGPSacc);
         // Calculate estimated centrifugal accleration vector in body frame
         quaternionRotateVector(&vEstcentrifugal_accBF, &vGPSacc, &orientation);    // EF -> BF
-        centrifugal_force_compensation=true;
+        centrifugal_force_compensated=true;
     }
     vectorAdd(&compansatedAccelBF,&imuMeasuredAccelBF,&vEstcentrifugal_accBF);
 #else
+    // In absence of GPS MAG is the only option
+    if (canUseMAG) {
+        useMag = true;
+    }
     compansatedAccelBF = imuMeasuredAccelBF
 #endif
 
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness();
-    accWeight=accWeight*imuCalculateAccelerometerWeightRateIgnore(dT,centrifugal_force_compensation);
+    accWeight=accWeight*imuCalculateAccelerometerWeightRateIgnore(dT,centrifugal_force_compensated);
     const bool useAcc = (accWeight > 0.001f);
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
