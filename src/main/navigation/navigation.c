@@ -3158,7 +3158,6 @@ void resetWaypointList(void)
     posControl.waypointListValid = false;
     posControl.geoWaypointCount = 0;
     posControl.startWpIndex = 0;
-    posControl.loadedMissionWpCount = 0;
 #ifdef USE_MULTI_MISSION
     posControl.totalMultiMissionWpCount = 0;
     posControl.loadedMultiMissionIndex = 0;
@@ -3181,6 +3180,7 @@ int getWaypointCount(void)
 #endif
     return waypointCount;
 }
+
 #ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment)
 {
@@ -3192,7 +3192,7 @@ void selectMultiMissionIndex(int8_t increment)
 void loadSelectedMultiMission(uint8_t missionIndex)
 {
     uint8_t missionCount = 1;
-    posControl.loadedMissionWpCount = 0;
+    posControl.waypointCount = 0;
     posControl.geoWaypointCount = 0;
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
@@ -3204,13 +3204,13 @@ void loadSelectedMultiMission(uint8_t missionIndex)
                 posControl.geoWaypointCount++;
             }
             // mission start WP
-            if (posControl.loadedMissionWpCount == 0) {
-                posControl.loadedMissionWpCount = 1;   // start marker only, value unimportant (but not 0)
+            if (posControl.waypointCount == 0) {
+                posControl.waypointCount = 1;   // start marker only, value unimportant (but not 0)
                 posControl.startWpIndex = i;
             }
             // mission end WP
             if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
-                posControl.loadedMissionWpCount = i - posControl.startWpIndex + 1;
+                posControl.waypointCount = i - posControl.startWpIndex + 1;
                 break;
             }
         } else if (posControl.waypointList[i].flag == NAV_WP_FLAG_LAST) {
@@ -3226,7 +3226,7 @@ bool updateWpMissionChange(void)
 {
     /* Function only called when ARMED */
 
-    if (posControl.multiMissionCount <= 1 || posControl.wpPlannerActiveWPIndex || FLIGHT_MODE(NAV_WP_MODE)) {
+    if (posControl.multiMissionCount < 2 || posControl.wpPlannerActiveWPIndex || FLIGHT_MODE(NAV_WP_MODE)) {
         return true;
     }
 
@@ -3235,10 +3235,6 @@ bool updateWpMissionChange(void)
         /* reload mission if mission index changed */
         if (posControl.loadedMultiMissionIndex != setMissionIndex) {
             loadSelectedMultiMission(setMissionIndex);
-        }
-        /* align waypointCount with loadedMissionWpCount on arming */
-        if (posControl.waypointCount != posControl.loadedMissionWpCount) {
-            posControl.waypointCount = posControl.loadedMissionWpCount;
         }
         return true;
     }
@@ -3302,14 +3298,13 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded)
 
     /* Mission sanity check failed - reset the list
      * Also reset if no selected mission loaded (shouldn't happen) */
-    if (!posControl.waypointListValid || !posControl.loadedMissionWpCount) {
+    if (!posControl.waypointListValid || !posControl.waypointCount) {
 #else
         // check this is the last waypoint
         if (nonVolatileWaypointList(i)->flag == NAV_WP_FLAG_LAST) {
             break;
         }
     }
-    posControl.loadedMissionWpCount = posControl.waypointCount;
 
     // Mission sanity check failed - reset the list
     if (!posControl.waypointListValid) {
@@ -3869,11 +3864,10 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
          * Can't jump beyond WP list
          * Only jump to geo-referenced WP types
          */
-    uint8_t wpCount = posControl.loadedMissionWpCount;
-    if (wpCount) {
-        for (uint8_t wp = posControl.startWpIndex; wp < wpCount + posControl.startWpIndex; wp++){
+    if (posControl.waypointCount) {
+        for (uint8_t wp = posControl.startWpIndex; wp < posControl.waypointCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 >= wpCount ||
+                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
                 (posControl.waypointList[wp].p1 > (wp - posControl.startWpIndex - 2) && posControl.waypointList[wp].p1 < (wp - posControl.startWpIndex + 2)) || posControl.waypointList[wp].p2 < -1) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }

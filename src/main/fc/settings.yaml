@@ -2441,7 +2441,7 @@ groups:
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_wp_multi_mission_index
-        description: "Index of mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
+        description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1
         field: general.waypoint_multi_mission_index
         condition: USE_MULTI_MISSION
