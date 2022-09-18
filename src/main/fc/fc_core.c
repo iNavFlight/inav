@@ -389,7 +389,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(float dT)
+static void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
@@ -436,8 +436,6 @@ void annexCode(float dT)
             rcCommand[PITCH] = rcCommand_PITCH;
         }
     }
-
-    updateArmingStatus();
 }
 
 void disarm(disarmReason_t disarmReason)
@@ -880,7 +878,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode(dT);
+    processPilotAndFailSafeActions(dT);
+
+    updateArmingStatus();
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew, currentTimeUs);
@@ -923,13 +923,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     // Calculate stabilisation
     pidController(dT);
-
-#ifdef HIL
-    if (hilActive) {
-        hilUpdateControlState();
-        motorControlEnable = false;
-    }
-#endif
 
     mixTable();
 

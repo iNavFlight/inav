@@ -302,8 +302,6 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
-    flight/hil.c
-    flight/hil.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
