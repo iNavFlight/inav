@@ -80,7 +80,8 @@ void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
-timeUs_t compassLastUpdate(void);
-void getMagField(fpVector3_t *v);
 
 #endif
+
+timeUs_t compassLastUpdate(void);
+void getMagField(fpVector3_t *v);

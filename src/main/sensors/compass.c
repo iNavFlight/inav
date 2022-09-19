@@ -491,6 +491,8 @@ void compassUpdate(timeUs_t currentTimeUs)
     magUpdatedAtLeastOnce = 1;
 }
 
+#endif
+
 timeUs_t compassLastUpdate(void) 
 {
     return last_update_usec;
@@ -502,5 +504,3 @@ void getMagField(fpVector3_t *v)
     v->y = (float)mag.magADC[Y] * range_scale;
     v->z = (float)mag.magADC[Z] * range_scale;
 }
-
-#endif
