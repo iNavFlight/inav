@@ -108,6 +108,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
     .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
+    .osdNotifySettingsSaved = 0,
 #ifdef USE_DEV_TOOLS
     .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
 #endif
@@ -355,6 +356,20 @@ void saveConfigAndNotify(void)
     writeEEPROM();
     readEEPROM();
     beeperConfirmationBeeps(1);
+    systemConfigMutable()->osdNotifySettingsSaved = 1;
+}
+
+bool showSavedOnOSD(void) {
+    if (systemConfigMutable()->osdNotifySettingsSaved > 0) {
+        if (systemConfigMutable()->osdNotifySettingsSaved == 10) {
+            systemConfigMutable()->osdNotifySettingsSaved = 0;
+        } else {
+            systemConfigMutable()->osdNotifySettingsSaved++;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 uint8_t getConfigProfile(void)

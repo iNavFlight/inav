@@ -252,8 +252,8 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         return;
     }
 
+    // Disable stick commands when in CLI mode. Ideally, they should also be disabled when configurator is connected
     if (cliMode) {
-        // Disable stick commands when in CLI mode.
         return;
     }
 
