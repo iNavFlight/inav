@@ -80,8 +80,13 @@ void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
-
-#endif
-
 timeUs_t compassLastUpdate(void);
 void getMagField(fpVector3_t *v);
+
+#else //Fix NOX target problem with AHRS
+
+bool compassIsCalibrationComplete(void);
+timeUs_t compassLastUpdate(void);
+void getMagField(fpVector3_t *v);
+
+#endif

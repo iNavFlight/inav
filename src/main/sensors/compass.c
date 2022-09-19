@@ -491,8 +491,6 @@ void compassUpdate(timeUs_t currentTimeUs)
     magUpdatedAtLeastOnce = 1;
 }
 
-#endif
-
 timeUs_t compassLastUpdate(void) 
 {
     return last_update_usec;
@@ -504,3 +502,24 @@ void getMagField(fpVector3_t *v)
     v->y = (float)mag.magADC[Y] * range_scale;
     v->z = (float)mag.magADC[Z] * range_scale;
 }
+
+#else //Fix NOX target problem with AHRS
+
+bool compassIsCalibrationComplete(void)
+{
+    return false;
+}
+
+timeUs_t compassLastUpdate(void) 
+{
+    return 0;
+}
+
+void getMagField(fpVector3_t *v) 
+{
+    v->x = 0.0f;
+    v->y = 0.0f;
+    v->z = 0.0f;
+}
+
+#endif
