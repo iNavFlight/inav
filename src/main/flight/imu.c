@@ -52,7 +52,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 
 #include "io/gps.h"
-
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
@@ -79,7 +78,7 @@ FILE_COMPILE_FOR_SPEED
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
 //centrifugal force compensated using gps
-FASTRAM fpVector3_t compansatedAccelBF;// cm/s/s
+FASTRAM fpVector3_t compansatedGravityBF;// cm/s/s
 
 STATIC_FASTRAM float smallAngleCosZ;
 
@@ -492,7 +491,7 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 static float imuCalculateAccelerometerWeightNearness(void)
 {
     fpVector3_t accBFNorm;
-    vectorScale(&accBFNorm,&compansatedAccelBF,1.0f/GRAVITY_CMSS);
+    vectorScale(&accBFNorm,&compansatedGravityBF,1.0f/GRAVITY_CMSS);
     const float accMagnitudeSq = vectorNormSquared(&accBFNorm);
 
     const float accWeight_Nearness = bellCurve(fast_fsqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
@@ -539,31 +538,50 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float dT,const bool
     return  accWeight_RateIgnore;
 }
 
-static void imuCalculateGPSacceleration(fpVector3_t * accEF)
-{
+static void imuCalculateGPSacceleration(fpVector3_t * vEstcentrifugalAccelBF)
+{   
+    static int logcount=0;//debug
+    logcount++;
     static fpVector3_t lastGPSvel;
     static rtcTime_t lastGPStime = 0;
-    const rtcTime_t currentGPStime = dateTimeToRtcTime(&gpsSol.time);
+    static bool lastGPSHeartbeat;
+    
     const fpVector3_t currentGPSvel = { .v = { gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]} };//cm/s gps speed
+    const rtcTime_t currentGPStime = dateTimeToRtcTime(&gpsSol.time);
+    
+
     if(lastGPStime==0){
         //initilize
         lastGPStime=currentGPStime;
         lastGPSvel=currentGPSvel;
         return;
     }
-    rtcTime_t time_delta_ms=currentGPStime-lastGPStime;
-    if(time_delta_ms>0){
-        //on new gps frame, update accEF
-        accEF->x=(currentGPSvel.x-lastGPSvel.x)/(time_delta_ms/1000.0f);
-        accEF->y=(currentGPSvel.y-lastGPSvel.y)/(time_delta_ms/1000.0f);
-        accEF->z=(currentGPSvel.z-lastGPSvel.z)/(time_delta_ms/1000.0f);
+    if(lastGPSHeartbeat!=gpsSol.flags.gpsHeartbeat){
+        //on new gps frame, update accEF and estimate centrifugal accleration
+        rtcTime_t time_delta_ms=currentGPStime-lastGPStime;
+        fpVector3_t vGPSacc={ .v = { 0.0f, 0.0f, 0.0f } };
+        vGPSacc.x=-(currentGPSvel.x-lastGPSvel.x)/(time_delta_ms/1000.0f);//the x axis of accerometer is pointing backward
+        vGPSacc.y=(currentGPSvel.y-lastGPSvel.y)/(time_delta_ms/1000.0f);
+        vGPSacc.z=(currentGPSvel.z-lastGPSvel.z)/(time_delta_ms/1000.0f);
+        // Calculate estimated centrifugal accleration vector in body frame
+        quaternionRotateVector(vEstcentrifugalAccelBF, &vGPSacc, &orientation);    // EF -> BF
+        // vEstcentrifugalAccelBF->x=-vEstcentrifugalAccelBF->x;
+        // LOG_I(IMU, "currentGPStime:%d",currentGPStime);
+        // LOG_I(IMU, "time_delta_ms:%d",time_delta_ms);
+        // LOG_I(IMU, "last gps data vel:%f,%f,%f",lastGPSvel.x,lastGPSvel.y,lastGPSvel.z);
+        // LOG_I(IMU, "new gps data vel:%f,%f,%f",currentGPSvel.x,currentGPSvel.y,currentGPSvel.z);
+        // LOG_I(IMU, "new gps data acc:%f,%f,%f",vGPSacc.x,vGPSacc.y,vGPSacc.z);
+        // LOG_I(IMU, "new gps data vEstcentrifugalAccelBF:%f,%f,%f",vEstcentrifugalAccelBF->x,vEstcentrifugalAccelBF->y,vEstcentrifugalAccelBF->z);
+        lastGPStime=currentGPStime;
+        lastGPSvel=currentGPSvel;
     }
-    lastGPStime=currentGPStime;
-    lastGPSvel=currentGPSvel;
+    lastGPSHeartbeat=gpsSol.flags.gpsHeartbeat;
 }
 
 static void imuCalculateEstimatedAttitude(float dT)
 {
+    static int logcount=0;//debug
+    logcount++;
 #if defined(USE_MAG)
     const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
 #else
@@ -608,24 +626,30 @@ static void imuCalculateEstimatedAttitude(float dT)
         }
     }
     //centrifugal force compensation using gps
-    fpVector3_t vEstcentrifugal_accBF={ .v = { 0.0f, 0.0f, 0.0f } };// cm/s/s
-    if (isGPSHeadingValid()){
-        static fpVector3_t vGPSacc={ .v = { 0.0f, 0.0f, 0.0f } };
-        //estimate centrifugal accleration
-        imuCalculateGPSacceleration(&vGPSacc);
-        // Calculate estimated centrifugal accleration vector in body frame
-        quaternionRotateVector(&vEstcentrifugal_accBF, &vGPSacc, &orientation);    // EF -> BF
+    static fpVector3_t vEstcentrifugalAccelBF={ .v = { 0.0f, 0.0f, 0.0f } };// cm/s/s
+    if (isGPSHeadingValid()&&gpsSol.flags.validTime){
+        imuCalculateGPSacceleration(&vEstcentrifugalAccelBF);
         centrifugal_force_compensated=true;
     }
-    vectorAdd(&compansatedAccelBF,&imuMeasuredAccelBF,&vEstcentrifugal_accBF);
+    else {
+        vEstcentrifugalAccelBF.x=0.0f;
+        vEstcentrifugalAccelBF.y=0.0f;
+        vEstcentrifugalAccelBF.z=0.0f;
+    }
+    vectorAdd(&compansatedGravityBF,&imuMeasuredAccelBF,&vEstcentrifugalAccelBF);
 #else
     // In absence of GPS MAG is the only option
     if (canUseMAG) {
         useMag = true;
     }
-    compansatedAccelBF = imuMeasuredAccelBF
+    compansatedGravityBF = imuMeasuredAccelBF
 #endif
-
+    // if(logcount%1000==0){
+    //     LOG_I(IMU, "imuMeasuredAccelBF:%f,%f,%f",imuMeasuredAccelBF.x,imuMeasuredAccelBF.y,imuMeasuredAccelBF.z);
+    //     LOG_I(IMU, "vEstcentrifugalAccelBF:%f,%f,%f",vEstcentrifugalAccelBF.x,vEstcentrifugalAccelBF.y,vEstcentrifugalAccelBF.z);
+    //     LOG_I(IMU, "compansatedGravityBF:%f,%f,%f",compansatedGravityBF.x,compansatedGravityBF.y,compansatedGravityBF.z);
+    //     LOG_I(IMU, "orientation:%f,%f,%f,%f",orientation.q0,orientation.q1,orientation.q2,orientation.q3);
+    // }
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness();
     accWeight=accWeight*imuCalculateAccelerometerWeightRateIgnore(dT,centrifugal_force_compensated);
     const bool useAcc = (accWeight > 0.001f);
@@ -633,7 +657,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     fpVector3_t measuredMagBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
-                            useAcc ? &compansatedAccelBF : NULL,
+                            useAcc ? &compansatedGravityBF : NULL,
                             useMag ? &measuredMagBF : NULL,
                             useCOG, courseOverGround,
                             accWeight,

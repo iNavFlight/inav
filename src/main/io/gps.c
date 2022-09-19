@@ -251,6 +251,7 @@ void gpsInit(void)
 }
 
 #ifdef USE_FAKE_GPS
+#include "common/time.h"
 static bool gpsFakeGPSUpdate(void)
 {
 #define FAKE_GPS_INITIAL_LAT 509102311
@@ -269,8 +270,19 @@ static bool gpsFakeGPSUpdate(void)
 
     timeMs_t now = millis();
     uint32_t delta = now - gpsState.lastMessageMs;
+
+    gpsSol.time.year = 1983;
+    gpsSol.time.month = 1;
+    gpsSol.time.day = 1;
+    gpsSol.time.hours = 3;
+    gpsSol.time.minutes = 15;
+    gpsSol.time.seconds = 42;
+    gpsSol.flags.validTime = 1;
+    gpsUpdateTime();
+    
     if (delta > 100) {
         int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_SPEED;
+        speed=speed*sin_approx((now%1000)/1000.f*M_PIf)*2.0f+speed*2.0f;
         int32_t cmDelta = speed * (delta / 1000.0f);
         int32_t latCmDelta = cmDelta * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         int32_t lonCmDelta = cmDelta * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
@@ -294,15 +306,9 @@ static bool gpsFakeGPSUpdate(void)
         gpsSol.flags.validVelNE = 1;
         gpsSol.flags.validVelD = 1;
         gpsSol.flags.validEPE = 1;
-        gpsSol.flags.validTime = 1;
         gpsSol.eph = 100;
         gpsSol.epv = 100;
-        gpsSol.time.year = 1983;
-        gpsSol.time.month = 1;
-        gpsSol.time.day = 1;
-        gpsSol.time.hours = 3;
-        gpsSol.time.minutes = 15;
-        gpsSol.time.seconds = 42;
+        rtcGetDateTime(&gpsSol.time);
 
         ENABLE_STATE(GPS_FIX);
         sensorsSet(SENSOR_GPS);
@@ -310,7 +316,7 @@ static bool gpsFakeGPSUpdate(void)
         onNewGPSData();
 
         gpsSetProtocolTimeout(GPS_TIMEOUT);
-
+        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
         gpsSetState(GPS_RUNNING);
         return true;
     }
