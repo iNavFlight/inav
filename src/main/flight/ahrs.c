@@ -52,7 +52,6 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/settings.h"
 
 #include "flight/ahrs.h"
-#include "flight/hil.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 
@@ -773,7 +772,7 @@ static void driftCorrection(float deltaTime)
 
         velocity.x = gpsSol.velNED[X];
         velocity.y = -gpsSol.velNED[Y];
-        velocity.z = -gpsSol.velNED[Z];
+        velocity.z = gpsSol.velNED[Z];
 
         last_correction_time = gpsStats.lastFixTime;
 
@@ -1015,7 +1014,7 @@ static void dcmUpdate(float deltaTime)
         ra_deltaTime = 0.0f;
         return;
     }
-    
+
     if (!gyroIsCalibrationComplete()) {
         resetGyroDrift();
     }
