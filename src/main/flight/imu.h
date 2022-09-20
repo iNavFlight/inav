@@ -26,7 +26,7 @@
 
 extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
 extern fpVector3_t imuMeasuredRotationBF;       // rad/s
-extern fpVector3_t compansatedAccelBF;         // cm/s/s
+extern fpVector3_t compansatedGravityBF;         // cm/s/s
 
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];

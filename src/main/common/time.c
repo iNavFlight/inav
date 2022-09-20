@@ -61,7 +61,7 @@ PG_RESET_TEMPLATE(timeConfig_t, timeConfig,
     .tz_automatic_dst = SETTING_TZ_AUTOMATIC_DST_DEFAULT,
 );
 
-rtcTime_t dateTimeToRtcTime(const dateTime_t *dt)
+static rtcTime_t dateTimeToRtcTime(const dateTime_t *dt)
 {
     unsigned int second = dt->seconds;  // 0-59
     unsigned int minute = dt->minutes;  // 0-59
