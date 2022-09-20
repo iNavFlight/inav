@@ -2441,11 +2441,11 @@ groups:
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_wp_multi_mission_index
-        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
+        description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1
         field: general.waypoint_multi_mission_index
         condition: USE_MULTI_MISSION
-        min: 0
+        min: 1
         max: 9
       - name: nav_fw_wp_tracking_accuracy
         description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."
