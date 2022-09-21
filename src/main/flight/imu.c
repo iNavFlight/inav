@@ -52,6 +52,9 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
+#if defined(USE_WIND_ESTIMATOR)
+#include "flight/wind_estimator.h"
+#endif
 
 #include "io/gps.h"
 #include "sensors/acceleration.h"
@@ -356,8 +359,17 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // (Rxx; Ryx) - measured (estimated) heading vector (EF)
             // (-cos(COG), sin(COG)) - reference heading vector (EF)
 
-            // Compute heading vector in EF from scalar CoG
+            // Compute heading vector in EF from scalar CoG,x axis of accelerometer is point backwards.
             fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
+#if defined(USE_WIND_ESTIMATOR)
+            // remove wind elements in vCoG for better heading estimation
+            if(isEstimatedWindSpeedValid()){
+                vectorScale(&vCoG, &vCoG, gpsSol.groundSpeed);
+                vCoG.x+=getEstimatedWindSpeed(X);
+                vCoG.y-=getEstimatedWindSpeed(Y);
+                vectorNormalize(&vCoG,&vCoG);
+            }
+#endif
 
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
