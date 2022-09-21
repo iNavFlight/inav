@@ -352,6 +352,15 @@ typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
+/* A reminder that P3 is a bitfield */
+typedef enum {
+    NAV_WP_ALTMODE = (1<<0),
+    NAV_WP_USER1 = (1<<1),
+    NAV_WP_USER2 = (1<<2),
+    NAV_WP_USER3 = (1<<3),
+    NAV_WP_USER4 = (1<<4)
+} navWaypointP3Flags_e;
+
 typedef struct {
     int32_t lat;
     int32_t lon;
@@ -515,7 +524,6 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
 #ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment);
-void setMultiMissionOnArm(void);
 #endif
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);

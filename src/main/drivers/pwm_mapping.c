@@ -230,6 +230,9 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
+    uint8_t motorCount = getMotorCount();
+    uint8_t motorIdx = 0;
+
     for (int idx = 0; idx < timerHardwareCount; idx++) {
 
         timerHardware_t *timHw = &timerHardware[idx];
@@ -247,6 +250,13 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
         // Determine if timer belongs to motor/servo
         if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER) {
             // Multicopter
+
+            // Make sure first motorCount outputs get assigned to motor
+            if ((timHw->usageFlags & TIM_USE_MC_MOTOR) && (motorIdx < motorCount)) {
+                timHw->usageFlags = timHw->usageFlags & ~TIM_USE_MC_SERVO;
+                motorIdx += 1;
+            }
+
             // We enable mapping to servos if mixer is actually using them
             if (isMixerUsingServos && timHw->usageFlags & TIM_USE_MC_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;

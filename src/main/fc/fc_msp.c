@@ -73,7 +73,6 @@
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/hil.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
@@ -401,15 +400,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteData(dst, buildTime, BUILD_TIME_LENGTH);
         sbufWriteData(dst, shortGitRevision, GIT_SHORT_REVISION_LENGTH);
         break;
-
-#ifdef HIL
-    case MSP_HIL_STATE:
-        sbufWriteU16(dst, hilToSIM.pidCommand[ROLL]);
-        sbufWriteU16(dst, hilToSIM.pidCommand[PITCH]);
-        sbufWriteU16(dst, hilToSIM.pidCommand[YAW]);
-        sbufWriteU16(dst, hilToSIM.pidCommand[THROTTLE]);
-        break;
-#endif
 
     case MSP_SENSOR_STATUS:
         sbufWriteU8(dst, isHardwareHealthy() ? 1 : 0);
@@ -1581,7 +1571,7 @@ static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
     const uint8_t msp_wp_no = sbufReadU8(src);    // get the wp number
     navWaypoint_t msp_wp;
     getWaypoint(msp_wp_no, &msp_wp);
-    sbufWriteU8(dst, msp_wp_no);   // wp_no
+    sbufWriteU8(dst, msp_wp_no);      // wp_no
     sbufWriteU8(dst, msp_wp.action);  // action (WAYPOINT)
     sbufWriteU32(dst, msp_wp.lat);    // lat
     sbufWriteU32(dst, msp_wp.lon);    // lon
@@ -3223,7 +3213,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 		int processedRows = 16;
 
-		while (bytesCount < 80) //whole response should be less 155 bytes at worst. 
+		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
 		{
 			bool blink1;
 			uint16_t lastChar;
@@ -3290,14 +3280,14 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			else if (count > 2 || cmd !=0 )
 			{
 				cmd |= count;  //long command for blink/bank switch and symbol repeat
-				sbufWriteU8(dst, 0); 
+				sbufWriteU8(dst, 0);
 				sbufWriteU8(dst, cmd);
 				sbufWriteU8(dst, lastChar & 0xff);
 				bytesCount += 3;
 			}
 			else if (count == 2)  //cmd == 0 here
 			{
-				sbufWriteU8(dst, lastChar & 0xff);  
+				sbufWriteU8(dst, lastChar & 0xff);
 				sbufWriteU8(dst, lastChar & 0xff);
 				bytesCount+=2;
 			}
@@ -3430,6 +3420,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_BARO
 				baroStartCalibration();
 #endif			
+
 #ifdef USE_MAG
 				if (compassConfig()->mag_hardware != MAG_NONE) {
 					sensorsSet(SENSOR_MAG);
@@ -3540,8 +3531,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			simulatorData.debugIndex = 0;
 		}
 
-		tmp_u8 = simulatorData.debugIndex | 
-			((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) | 
+		tmp_u8 = simulatorData.debugIndex |
+			((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) |
 			(ARMING_FLAG(ARMED) ? 64 : 0) |
 			(!feature(FEATURE_OSD) ? 32: 0) |
 			(!isOSDTypeSupportedBySimulator() ? 16 : 0);

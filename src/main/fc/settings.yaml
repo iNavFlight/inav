@@ -927,10 +927,11 @@ groups:
         description: "What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
         default_value: "DROP"
         table: failsafe_procedure
-      - name: failsafe_mission
-        description: "If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode"
-        default_value: ON
-        type: bool
+      - name: failsafe_mission_delay
+        description: "Applies if failsafe occurs when a WP mission is in progress. Sets the time delay in seconds between failsafe occurring and the selected failsafe procedure activating. If set to -1 the failsafe procedure won't activate at all and the mission will continue until the end."
+        default_value: 0
+        min: -1
+        max: 600
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t
@@ -2440,11 +2441,11 @@ groups:
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_wp_multi_mission_index
-        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
+        description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1
         field: general.waypoint_multi_mission_index
         condition: USE_MULTI_MISSION
-        min: 0
+        min: 1
         max: 9
       - name: nav_fw_wp_tracking_accuracy
         description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."

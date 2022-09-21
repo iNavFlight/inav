@@ -902,13 +902,13 @@ What failsafe procedure to initiate in Stage 2 when craft is closer to home than
 
 ---
 
-### failsafe_mission
+### failsafe_mission_delay
 
-If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode
+Applies if failsafe occurs when a WP mission is in progress. Sets the time delay in seconds between failsafe occurring and the selected failsafe procedure activating. If set to -1 the failsafe procedure won't activate at all and the mission will continue until the end.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON | OFF | ON |
+| 0 | -1 | 600 |
 
 ---
 
@@ -3944,11 +3944,11 @@ Sets restart behaviour for a WP mission when interrupted mid mission. START from
 
 ### nav_wp_multi_mission_index
 
-Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field.
+Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 9 |
+| 1 | 1 | 9 |
 
 ---
 
