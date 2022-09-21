@@ -573,9 +573,9 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
     {
         // on new gps frame, update accEF and estimate centrifugal accleration
         fpVector3_t vGPSacc = {.v = {0.0f, 0.0f, 0.0f}};
-        vGPSacc.x = -(currentGPSvel.x - lastGPSvel.x) / (time_delta_ms / 1000.0f); // the x axis of accerometer is pointing backward
-        vGPSacc.y = (currentGPSvel.y - lastGPSvel.y) / (time_delta_ms / 1000.0f);
-        vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (time_delta_ms / 1000.0f);
+        vGPSacc.x = -(currentGPSvel.x - lastGPSvel.x) / (MS2S(time_delta_ms)); // the x axis of accerometer is pointing backward
+        vGPSacc.y = (currentGPSvel.y - lastGPSvel.y) / (MS2S(time_delta_ms));
+        vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
         // Calculate estimated centrifugal accleration vector in body frame
         quaternionRotateVector(vEstcentrifugalAccelBF, &vGPSacc, &orientation); // EF -> BF
         lastGPSNewDataTime = currenttime;
@@ -586,8 +586,6 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
 
 static void imuCalculateEstimatedAttitude(float dT)
 {
-    static int logcount=0;//debug
-    logcount++;
 #if defined(USE_MAG)
     const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
 #else
@@ -597,7 +595,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     float courseOverGround = 0;
     bool useMag = false;
     bool useCOG = false;
-    bool centrifugal_force_compensated=false;
+    bool centrifugal_force_compensated = false;
 
 #if defined(USE_GPS)
     if (STATE(FIXED_WING_LEGACY)) {
@@ -631,18 +629,20 @@ static void imuCalculateEstimatedAttitude(float dT)
             useMag = true;
         }
     }
-    //centrifugal force compensation using gps
-    static fpVector3_t vEstcentrifugalAccelBF={ .v = { 0.0f, 0.0f, 0.0f } };// cm/s/s
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6){
+    // centrifugal force compensation using gps
+    static fpVector3_t vEstcentrifugalAccelBF = {.v = {0.0f, 0.0f, 0.0f}}; // cm/s/s
+    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6)
+    {
         imuCalculateGPSacceleration(&vEstcentrifugalAccelBF);
-        centrifugal_force_compensated=true;
+        centrifugal_force_compensated = true;
     }
-    else {
-        vEstcentrifugalAccelBF.x=0.0f;
-        vEstcentrifugalAccelBF.y=0.0f;
-        vEstcentrifugalAccelBF.z=0.0f;
+    else
+    {
+        vEstcentrifugalAccelBF.x = 0.0f;
+        vEstcentrifugalAccelBF.y = 0.0f;
+        vEstcentrifugalAccelBF.z = 0.0f;
     }
-    vectorAdd(&compansatedGravityBF,&imuMeasuredAccelBF,&vEstcentrifugalAccelBF);
+    vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF);
 #else
     // In absence of GPS MAG is the only option
     if (canUseMAG) {
