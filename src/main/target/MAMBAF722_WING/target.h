@@ -172,5 +172,5 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PC2
-#define PINIO2_PIN                  PC0
+#define PINIO1_PIN                  PC0
+#define PINIO2_PIN                  PC2
