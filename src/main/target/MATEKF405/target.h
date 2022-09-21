@@ -183,7 +183,7 @@
 #define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP
-#define WS2811_PIN                      PA15 // S5 pad for iNav
+#define WS2811_PIN                      PA15 // S5 pad for INAV
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2

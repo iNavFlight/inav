@@ -1924,7 +1924,7 @@ _// TODO_
 
 ### inav_use_gps_velned
 
-Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance.
+Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2824,7 +2824,7 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ### nav_disarm_on_landing
 
-If set to ON, iNav disarms the FC after landing
+If set to ON, INAV disarms the FC after landing
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5934,7 +5934,7 @@ VTX RF power level to use. The exact number of mw depends on the VTX hardware.
 
 ### vtx_smartaudio_alternate_softserial_method
 
-Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier.
+Enable the alternate softserial method. This is the method used in INAV 3.0 and ealier.
 
 | Default | Min | Max |
 | --- | --- | --- |

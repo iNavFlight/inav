@@ -324,7 +324,7 @@ static void saProcessResponse(uint8_t *buf, int len)
             //zero is indeed a valid power level to set the vtx to, but it activates pit mode.
             //crucially, after sending 0 dbm, the vtx does NOT report its power level to be 0 dbm.
             //instead, it reports whatever value was set previously and it reports to be in pit mode.
-            //for this reason, zero shouldn't be used as a normal power level in iNav.
+            //for this reason, zero shouldn't be used as a normal power level in INAV.
             for (int8_t i = 0; i < saPowerCount; i++ ) {
                 saPowerTable[i].dbi = buf[9 + i + 1]; //+ 1 to skip the first power level, as mentioned above
                 saPowerTable[i].mW = saDbiToMw(saPowerTable[i].dbi);

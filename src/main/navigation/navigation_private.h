@@ -96,9 +96,9 @@ typedef struct navigationFlags_s {
     bool isAdjustingHeading;
 
     // Behaviour modifiers
-    bool isGCSAssistedNavigationEnabled;    // Does iNav accept WP#255 - follow-me etc.
+    bool isGCSAssistedNavigationEnabled;    // Does INAV accept WP#255 - follow-me etc.
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
-    bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
+    bool isTerrainFollowEnabled;            // Does INAV use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     // Failsafe actions
     bool forcedRTHActivated;

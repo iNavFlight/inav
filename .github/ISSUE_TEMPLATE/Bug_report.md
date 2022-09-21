@@ -9,9 +9,9 @@ assignees: ''
 
 **PLEASE MAKE SURE YOU READ AND UNDERSTAND THE SOCIAL MEDIA SUPPORT CHANNELS. QUESTIONS ABOUT FLASHING, CONFIGURING, PILOTING MAY BE CLOSED WITHOUT FURTHER INTERACTION.**
 
-* [Telegram channel](https://t.me/INAVFlight)
-* [Facebook group](https://www.facebook.com/groups/INAVOfficial)
-* [RC Groups thread](https://www.rcgroups.com/forums/showthread.php?2495732-Cleanflight-iNav-%28navigation-rewrite%29-project)
+* [INAV Discord Server](https://discord.gg/peg2hhbYwN)
+* [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
+* [INAV Official on Telegram](https://t.me/INAVFlight)
 
 **Please double-check that nobody reported the issue before by using search in this bug tracker.**
 
