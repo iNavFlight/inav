@@ -292,8 +292,8 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
     }
 #ifdef USE_SIMULATOR
 	if (ARMING_FLAG(SIMULATOR_MODE)) {
-		if (simulatorData.flags & SIMU_SIMULATE_BATTERY) {
-            vbat = ((uint16_t)simulatorData.vbat)*10;
+		if (SIMULATOR_HAS_OPTION(HITL_SIMULATE_BATTERY)) {
+            vbat = ((uint16_t)simulatorData.vbat) * 10;
             batteryFullVoltage = 1260;
 			batteryWarningVoltage = 1020;
 			batteryCriticalVoltage = 960;

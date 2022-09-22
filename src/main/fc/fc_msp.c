@@ -3384,19 +3384,23 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
     case MSP2_INAV_SAFEHOME:
-         *ret = mspFcSafeHomeOutCommand(dst, src);
-         break;
+        *ret = mspFcSafeHomeOutCommand(dst, src);
+        break;
 
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
-		tmp_u8 = sbufReadU8(src); //MSP_SIMULATOR version
-		if (tmp_u8 != 2) break;
+		tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
+        
+        // Check the MSP version of simulator
+		if (tmp_u8 != SIMULATOR_MSP_VERSION) {
+            break;
+        }
 
 		simulatorData.flags = sbufReadU8(src);
 
-        if ((simulatorData.flags & SIMU_ENABLE) == 0) {
+        if (!SIMULATOR_HAS_OPTION(HITL_ENABLE)) {
 
-			if (ARMING_FLAG(SIMULATOR_MODE)) { // just once
+			if (ARMING_FLAG(SIMULATOR_MODE)) { // Just once
 				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
 
 #ifdef USE_BARO
@@ -3406,19 +3410,19 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_STATE(COMPASS_CALIBRATED);
 				compassInit();
 #endif
-				simulatorData.flags = 0;
-				//review: many states were affected. reboot?
+				simulatorData.flags = HITL_RESET_FLAGS;
+                // Review: Many states were affected. Reboot?
 
-				disarm(DISARM_SWITCH);  //disarm to prevent motor output!!!
+				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
 			}
-		}
-		else if (!areSensorsCalibrating()) {
-			if (!ARMING_FLAG(SIMULATOR_MODE)) { // just once
+		} else if (!areSensorsCalibrating()) {
+			if (!ARMING_FLAG(SIMULATOR_MODE)) { // Just once
 #ifdef USE_BARO
 				baroStartCalibration();
-#endif
+#endif			
+
 #ifdef USE_MAG
-				if (compassConfig()->mag_hardware != MAG_NONE){
+				if (compassConfig()->mag_hardware != MAG_NONE) {
 					sensorsSet(SENSOR_MAG);
 					ENABLE_STATE(COMPASS_CALIBRATED);
 					DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
@@ -3433,7 +3437,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 			if (dataSize >= 14) {
 
-				if (feature(FEATURE_GPS) && ((simulatorData.flags & SIMU_HAS_NEW_GPS_DATA)!=0) ) {
+				if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
 					gpsSol.fixType = sbufReadU8(src);
 					gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
 					gpsSol.flags.hasNewData = true;
@@ -3458,80 +3462,69 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 						gpsSol.epv = 100;
 
 						ENABLE_STATE(GPS_FIX);
-
-						// Feed data to navigation
-						gpsProcessNewSolutionData();
+					} else {
+						sbufAdvance(src, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
 					}
-					else {
-						sbufAdvance(src, 4 + 4 + 4 + 2 + 2 + 2 * 3);
-						// Feed data to navigation
-						gpsProcessNewSolutionData();
-					}
-				}
-				else {
-					sbufAdvance(src, 1 + 1 + 4 + 4 + 4 + 2 + 2 + 2 * 3);
+                    // Feed data to navigation
+					gpsProcessNewSolutionData();
+				} else {
+					sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
 				}
 
-				if ((simulatorData.flags & SIMU_USE_SENSORS) == 0) {
+				if (!SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
 					attitude.values.roll = (int16_t)sbufReadU16(src);
 					attitude.values.pitch = (int16_t)sbufReadU16(src);
 					attitude.values.yaw = (int16_t)sbufReadU16(src);
+				} else {
+					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
-				else
-				{
-					sbufAdvance(src, 2*3);
-				}
-
-				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;// acceleration in 1G units
+                
+                // Get the acceleration in 1G units
+				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 				acc.accADCf[Z] = ((int16_t)sbufReadU16(src)) / 1000.0f;
-				acc.accVibeSq[X] = 0;
-				acc.accVibeSq[Y] = 0;
-				acc.accVibeSq[Z] = 0;
-
+				acc.accVibeSq[X] = 0.0f;
+				acc.accVibeSq[Y] = 0.0f;
+				acc.accVibeSq[Z] = 0.0f;
+                
+                // Get the angular velocity in DPS
 				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
 
-				if (sensors(SENSOR_BARO))
-				{
+				if (sensors(SENSOR_BARO)) {
 					baro.baroPressure = (int32_t)sbufReadU32(src);
-					baro.baroTemperature = 2500;
-				}
-				else {
-					sbufAdvance(src,4);
+					baro.baroTemperature = DEGREES_TO_CENTIDEGREES(SIMULATOR_BARO_TEMP);
+				} else {
+					sbufAdvance(src, sizeof(uint32_t));
 				}
 
-				if (sensors(SENSOR_MAG))
-				{
-					mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  //16000/20 = 800uT
+				if (sensors(SENSOR_MAG)) {
+					mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  // 16000 / 20 = 800uT
 					mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;
 					mag.magADC[Z] = ((int16_t)sbufReadU16(src)) / 20;
-				}
-				else {
-					sbufAdvance(src, 2*3);
+				} else {
+					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
-                if (simulatorData.flags & SIMU_EXT_BATTERY_VOLTAGE) {
-                     simulatorData.vbat = sbufReadU8(src);
-                }
-                else {
-                     simulatorData.vbat = 126;
+                if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
+                    simulatorData.vbat = sbufReadU8(src);
+                } else {
+                    simulatorData.vbat = (uint8_t)(SIMULATOR_FULL_BATTERY * 10.0f);
                 }
 
-                if (simulatorData.flags & SIMU_AIRSPEED) {
-                     simulatorData.airSpeed = sbufReadU16(src);
+                if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+                    simulatorData.airSpeed = sbufReadU16(src);   
 			    }
-			}
-			else {
+			} else {
 				DISABLE_STATE(GPS_FIX);
 			}
 		}
 
-		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_ROLL);
-		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_PITCH);
-		sbufWriteU16(dst, (uint16_t)simulatorData.INPUT_STABILIZED_YAW);
-		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.INPUT_STABILIZED_THROTTLE : -500));
+		sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_ROLL]);
+		sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_PITCH]);
+		sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_YAW]);
+		sbufWriteU16(dst, (uint16_t)(ARMING_FLAG(ARMED) ? simulatorData.input[INPUT_STABILIZED_THROTTLE] : -500));
 
 		simulatorData.debugIndex++;
 		if (simulatorData.debugIndex == 8) {
@@ -3542,8 +3535,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) |
 			(ARMING_FLAG(ARMED) ? 64 : 0) |
 			(!feature(FEATURE_OSD) ? 32: 0) |
-			(!isOSDTypeSupportedBySimulator() ? 16: 0);
-		sbufWriteU8(dst, tmp_u8 );
+			(!isOSDTypeSupportedBySimulator() ? 16 : 0);
+
+		sbufWriteU8(dst, tmp_u8);
 		sbufWriteU32(dst, debug[simulatorData.debugIndex]);
 
 		sbufWriteU16(dst, attitude.values.roll);
