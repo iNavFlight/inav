@@ -948,7 +948,7 @@ float pidHeadingHold(float dT)
             - output
             - that gives about 2 seconds to correct any error, no matter how big. Of course, usually more because of inertia.
         That was making him quite "soft" for small changes and rapid for big ones that started to appear
-        when iNav introduced real RTH and WAYPOINT that might require rapid heading changes.
+        when INAV introduced real RTH and WAYPOINT that might require rapid heading changes.
 
         New approach uses modified principle:
             - manual yaw rate is not used. MAG_HOLD is decoupled from manual input settings

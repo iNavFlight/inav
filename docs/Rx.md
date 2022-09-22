@@ -47,7 +47,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
+As of INAV 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal INAV RSSI (0-1023 range). In order to use this feature, the following is necessary:
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
