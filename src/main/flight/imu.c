@@ -642,7 +642,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
 
 bool isImuReady(void)
 {
-    return sensors(SENSOR_ACC) && gyroIsCalibrationComplete();
+    return sensors(SENSOR_ACC) && STATE(ACCELEROMETER_CALIBRATED) && gyroIsCalibrationComplete();
 }
 
 bool isImuHeadingValid(void)
