@@ -96,8 +96,10 @@ FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclinatio
 FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
-STATIC_FASTRAM pt1Filter_t rotRateFilter;
-
+STATIC_FASTRAM pt1Filter_t rotRateFilterX;
+STATIC_FASTRAM pt1Filter_t rotRateFilterY;
+STATIC_FASTRAM pt1Filter_t rotRateFilterZ;
+STATIC_FASTRAM fpVector3_t imuMeasuredRotationBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
 STATIC_FASTRAM bool gpsHeadingInitialized;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
@@ -173,7 +175,9 @@ void imuInit(void)
     imuComputeRotationMatrix();
 
     // Initialize rotation rate filter
-    pt1FilterReset(&rotRateFilter, 0);
+    pt1FilterReset(&rotRateFilterX, 0);
+    pt1FilterReset(&rotRateFilterY, 0);
+    pt1FilterReset(&rotRateFilterZ, 0);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -536,19 +540,21 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float dT, const boo
 
     if (ARMING_FLAG(ARMED) && STATE(FIXED_WING_LEGACY) && imuConfig()->acc_ignore_rate)
     {
-        const float rotRateMagnitude = calc_length_pythagorean_2D(imuMeasuredRotationBF.y, imuMeasuredRotationBF.z);
-        float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, rotRateMagnitude, IMU_CENTRIFUGAL_LPF, dT);
-        rotRateMagnitudeFiltered = centrifugal_force_compensation ? rotRateMagnitudeFiltered * CENTRIFUGAL_SOLPE_MULTIPLIER : rotRateMagnitudeFiltered;
+        imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBFFiltered.x, IMU_CENTRIFUGAL_LPF, dT);
+        imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBFFiltered.y, IMU_CENTRIFUGAL_LPF, dT);
+        imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBFFiltered.z, IMU_CENTRIFUGAL_LPF, dT);
+        float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
+        rotRateMagnitude = centrifugal_force_compensation ? rotRateMagnitude * CENTRIFUGAL_SOLPE_MULTIPLIER : rotRateMagnitude;
         if (imuConfig()->acc_ignore_slope)
         {
             const float rateSlopeMin = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate - imuConfig()->acc_ignore_slope));
             const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate + imuConfig()->acc_ignore_slope));
 
-            accWeight_RateIgnore = scaleRangef(constrainf(rotRateMagnitudeFiltered, rateSlopeMin, rateSlopeMax), rateSlopeMin, rateSlopeMax, 1.0f, 0.0f);
+            accWeight_RateIgnore = scaleRangef(constrainf(rotRateMagnitude, rateSlopeMin, rateSlopeMax), rateSlopeMin, rateSlopeMax, 1.0f, 0.0f);
         }
         else
         {
-            if (rotRateMagnitudeFiltered > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate))
+            if (rotRateMagnitude > DEGREES_TO_RADIANS(imuConfig()->acc_ignore_rate))
             {
                 accWeight_RateIgnore = 0.0f;
             }
