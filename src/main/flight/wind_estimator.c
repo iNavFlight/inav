@@ -101,9 +101,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     groundVelocity[Z] = gpsSol.velNED[Z];
 
     // Fuselage direction in earth frame
-    fuselageDirection[X] = rMat[0][0];
-    fuselageDirection[Y] = -rMat[1][0];
-    fuselageDirection[Z] = -rMat[2][0];
+    fuselageDirection[X] = HeadVecEFFiltered.x;
+    fuselageDirection[Y] = -HeadVecEFFiltered.y;
+    fuselageDirection[Z] = -HeadVecEFFiltered.z;
 
     timeDelta_t timeDelta = cmpTimeUs(currentTimeUs, lastUpdateUs);
     // scrap our data and start over if we're taking too long to get a direction change

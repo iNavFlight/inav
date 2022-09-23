@@ -78,8 +78,8 @@ FILE_COMPILE_FOR_SPEED
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_NEARNESS            0.2    // 33% or G error soft-accepted (0.8-1.2G)
-#define IMU_CENTRIFUGAL_LPF         3       // Hz
-#define CENTRIFUGAL_SOLPE_MULTIPLIER         0.35   //when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slpe will be multiplied by this value
+#define IMU_ROTATION_LPF         3       // Hz
+#define CENTRIFUGAL_SOLPE_MULTIPLIER         0.30   //when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slpe will be multiplied by this value
 
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -99,8 +99,12 @@ STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
 STATIC_FASTRAM pt1Filter_t rotRateFilterX;
 STATIC_FASTRAM pt1Filter_t rotRateFilterY;
 STATIC_FASTRAM pt1Filter_t rotRateFilterZ;
-STATIC_FASTRAM fpVector3_t imuMeasuredRotationBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
-STATIC_FASTRAM bool gpsHeadingInitialized;
+FASTRAM fpVector3_t imuMeasuredRotationBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
+STATIC_FASTRAM pt1Filter_t HeadVecEFFilterX;
+STATIC_FASTRAM pt1Filter_t HeadVecEFFilterY;
+STATIC_FASTRAM pt1Filter_t HeadVecEFFilterZ;
+FASTRAM fpVector3_t HeadVecEFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
+FASTRAM bool gpsHeadingInitialized;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
@@ -178,6 +182,10 @@ void imuInit(void)
     pt1FilterReset(&rotRateFilterX, 0);
     pt1FilterReset(&rotRateFilterY, 0);
     pt1FilterReset(&rotRateFilterZ, 0);
+    // Initialize Heading vector filter
+    pt1FilterReset(&HeadVecEFFilterX, 0);
+    pt1FilterReset(&HeadVecEFFilterY, 0);
+    pt1FilterReset(&HeadVecEFFilterZ, 0);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -517,7 +525,7 @@ static float imuCalculateAccelerometerWeightNearness(void)
     return accWeight_Nearness;
 }
 
-static float imuCalculateAccelerometerWeightRateIgnore(const float dT, const bool centrifugal_force_compensation)
+static float imuCalculateAccelerometerWeightRateIgnore(const bool centrifugal_force_compensation)
 {
     // Experiment: if rotation rate on a FIXED_WING_LEGACY is higher than a threshold - centrifugal force messes up too much and we
     // should not use measured accel for AHRS comp
@@ -560,11 +568,14 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float dT, const boo
     return accWeight_RateIgnore;
 }
 
-static void GetLongturnRotationRate(float dT)
+static void imuCalculateFilteredRotation(float dT)
 {
-    imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBFFiltered.x, IMU_CENTRIFUGAL_LPF, dT);
-    imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBFFiltered.y, IMU_CENTRIFUGAL_LPF, dT);
-    imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBFFiltered.z, IMU_CENTRIFUGAL_LPF, dT);
+    imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBF.x, IMU_ROTATION_LPF, dT);
+    imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBF.y, IMU_ROTATION_LPF, dT);
+    imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBF.z, IMU_ROTATION_LPF, dT);
+    HeadVecEFFiltered.x = pt1FilterApply4(&HeadVecEFFilterX, rMat[0][0], IMU_ROTATION_LPF, dT);
+    HeadVecEFFiltered.y = pt1FilterApply4(&HeadVecEFFilterY, rMat[1][0], IMU_ROTATION_LPF, dT);
+    HeadVecEFFiltered.z = pt1FilterApply4(&HeadVecEFFilterZ, rMat[2][0], IMU_ROTATION_LPF, dT);
 }
 
 static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
@@ -605,7 +616,6 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useMag = false;
     bool useCOG = false;
     bool centrifugal_force_compensated = false;
-    GetLongturnRotationRate(dT);
 #if defined(USE_GPS)
     if (STATE(FIXED_WING_LEGACY)) {
         bool canUseCOG = isGPSHeadingValid();
@@ -660,7 +670,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     compansatedGravityBF = imuMeasuredAccelBF
 #endif
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness();
-    accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(dT, centrifugal_force_compensated);
+    accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(centrifugal_force_compensated);
     const bool useAcc = (accWeight > 0.001f);
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
@@ -671,7 +681,7 @@ static void imuCalculateEstimatedAttitude(float dT)
                             useCOG, courseOverGround,
                             accWeight,
                             magWeight);
-
+    imuCalculateFilteredRotation(dT);
     imuUpdateEulerAngles();
 }
 
