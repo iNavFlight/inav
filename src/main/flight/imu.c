@@ -513,7 +513,6 @@ static float imuCalculateAccelerometerWeightNearness(void)
     fpVector3_t accBFNorm;
     vectorScale(&accBFNorm, &compansatedGravityBF, 1.0f / GRAVITY_CMSS);
     const float accMagnitudeSq = vectorNormSquared(&accBFNorm);
-
     const float accWeight_Nearness = bellCurve(fast_fsqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
     return accWeight_Nearness;
 }
@@ -538,11 +537,8 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float dT, const boo
     // Default - don't apply rate/ignore scaling
     float accWeight_RateIgnore = 1.0f;
 
-    if (ARMING_FLAG(ARMED) && STATE(FIXED_WING_LEGACY) && imuConfig()->acc_ignore_rate)
+    if (ARMING_FLAG(ARMED) && imuConfig()->acc_ignore_rate)
     {
-        imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBFFiltered.x, IMU_CENTRIFUGAL_LPF, dT);
-        imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBFFiltered.y, IMU_CENTRIFUGAL_LPF, dT);
-        imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBFFiltered.z, IMU_CENTRIFUGAL_LPF, dT);
         float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
         rotRateMagnitude = centrifugal_force_compensation ? rotRateMagnitude * CENTRIFUGAL_SOLPE_MULTIPLIER : rotRateMagnitude;
         if (imuConfig()->acc_ignore_slope)
@@ -562,6 +558,13 @@ static float imuCalculateAccelerometerWeightRateIgnore(const float dT, const boo
     }
 
     return accWeight_RateIgnore;
+}
+
+static void GetLongturnRotationRate(float dT)
+{
+    imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBFFiltered.x, IMU_CENTRIFUGAL_LPF, dT);
+    imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBFFiltered.y, IMU_CENTRIFUGAL_LPF, dT);
+    imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBFFiltered.z, IMU_CENTRIFUGAL_LPF, dT);
 }
 
 static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
@@ -602,7 +605,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useMag = false;
     bool useCOG = false;
     bool centrifugal_force_compensated = false;
-
+    GetLongturnRotationRate(dT);
 #if defined(USE_GPS)
     if (STATE(FIXED_WING_LEGACY)) {
         bool canUseCOG = isGPSHeadingValid();
