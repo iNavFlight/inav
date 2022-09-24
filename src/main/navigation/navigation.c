@@ -2774,39 +2774,33 @@ void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distanc
 void updateLandingStatus(void)
 {
     if (STATE(AIRPLANE) && !navConfig()->general.flags.disarm_on_landing) {
-        return;     // no point using this with a fixed wing if not set to disarm
+        return;     // No point using this with a fixed wing if not set to disarm
     }
-
-    static bool landingDetectorIsActive;
-
-    DEBUG_SET(DEBUG_LANDING, 0, landingDetectorIsActive);
-    DEBUG_SET(DEBUG_LANDING, 1, STATE(LANDING_DETECTED));
 
     if (!ARMING_FLAG(ARMED)) {
         resetLandingDetector();
-        landingDetectorIsActive = false;
         if (!IS_RC_MODE_ACTIVE(BOXARM)) {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
         }
         return;
     }
 
-    if (!landingDetectorIsActive) {
-        if (isFlightDetected()) {
-            landingDetectorIsActive = true;
-            resetLandingDetector();
-        }
-    } else if (STATE(LANDING_DETECTED)) {
-        pidResetErrorAccumulators();
-        if (navConfig()->general.flags.disarm_on_landing) {
-            ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
-            disarm(DISARM_LANDING);
-        } else if (!navigationIsFlyingAutonomousMode()) {
-            // for multirotor only - reactivate landing detector without disarm when throttle raised toward hover throttle
-            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
-        }
+    if (isFlightDetected()) {
+        resetLandingDetector();
     } else if (isLandingDetected()) {
         ENABLE_STATE(LANDING_DETECTED);
+    } 
+    
+    // Trigger disarm-on-land if configured
+    bool disarm_on_land_configured = navConfig()->general.flags.disarm_on_landing;
+    const bool mode_disarms_on_land = FLIGHT_MODE(ANGLE_MODE) || !FLIGHT_MODE(HORIZON_MODE) || !FLIGHT_MODE(TURTLE_MODE);
+
+    if (STATE(LANDING_DETECTED)) {
+        pidResetErrorAccumulators();
+        if (ARMING_FLAG(ARMED) && disarm_on_land_configured && mode_disarms_on_land) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
+            disarm(DISARM_LANDING);
+        }
     }
 }
 
