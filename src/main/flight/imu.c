@@ -115,7 +115,9 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .dcm_ki_mag = SETTING_IMU_DCM_KI_MAG_DEFAULT,               // 0.00 * 10000
     .small_angle = SETTING_SMALL_ANGLE_DEFAULT,
     .acc_ignore_rate = SETTING_IMU_ACC_IGNORE_RATE_DEFAULT,
-    .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT
+    .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT,
+    .gps_yaw_windcomp = 1,
+    .gps_inertia_comp_z =1
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -376,7 +378,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
 #if defined(USE_WIND_ESTIMATOR)
             // remove wind elements in vCoG for better heading estimation
-            if (isEstimatedWindSpeedValid())
+            if (isEstimatedWindSpeedValid() && imuConfig()->gps_yaw_windcomp)
             {
                 vectorScale(&vCoG, &vCoG, gpsSol.groundSpeed);
                 vCoG.x += getEstimatedWindSpeed(X);
@@ -595,7 +597,10 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
         fpVector3_t vGPSacc = {.v = {0.0f, 0.0f, 0.0f}};
         vGPSacc.x = -(currentGPSvel.x - lastGPSvel.x) / (MS2S(time_delta_ms)); // the x axis of accerometer is pointing backward
         vGPSacc.y = (currentGPSvel.y - lastGPSvel.y) / (MS2S(time_delta_ms));
-        vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
+        if (imuConfig()->gps_inertia_comp_z)
+        {
+            vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
+        }
         // Calculate estimated centrifugal accleration vector in body frame
         quaternionRotateVector(vEstcentrifugalAccelBF, &vGPSacc, &orientation); // EF -> BF
         lastGPSNewDataTime = currenttime;

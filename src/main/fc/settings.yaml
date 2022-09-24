@@ -1528,6 +1528,16 @@ groups:
         field: acc_ignore_slope
         min: 0
         max: 5
+      - name: imu_gps_yaw_windcomp
+        description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
+        default_value: ON
+        field: gps_yaw_windcomp
+        type: bool
+      - name: imu_gps_inertia_comp_z
+        description: "Inertia/Centrifugal force compensation using speed changes on z axis or not"
+        default_value: ON
+        field: gps_inertia_comp_z
+        type: bool
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

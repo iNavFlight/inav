@@ -52,6 +52,8 @@ typedef struct imuConfig_s {
     uint8_t small_angle;
     uint8_t acc_ignore_rate;
     uint8_t acc_ignore_slope;
+    uint8_t gps_yaw_windcomp;
+    uint8_t gps_inertia_comp_z;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);

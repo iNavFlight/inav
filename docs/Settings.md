@@ -1792,6 +1792,28 @@ Half-width of the interval to gradually reduce accelerometer weight. Centered at
 
 ---
 
+### imu_gps_yaw_windcomp
+
+Wind compensation in heading estimation from gps groundcourse(fixed wing only)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### imu_gps_inertia_comp_z
+
+Inertia/Centrifugal force compensation using speed changes on z axis or not
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+
+
 ### imu_dcm_ki
 
 Inertial Measurement Unit KI Gain for accelerometer measurements
