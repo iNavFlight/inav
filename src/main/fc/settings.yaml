@@ -1533,11 +1533,6 @@ groups:
         default_value: ON
         field: gps_yaw_windcomp
         type: bool
-      - name: imu_gps_inertia_comp_z
-        description: "Inertia/Centrifugal force compensation using speed changes on z axis or not"
-        default_value: ON
-        field: gps_inertia_comp_z
-        type: bool
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

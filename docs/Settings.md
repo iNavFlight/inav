@@ -1802,18 +1802,6 @@ Wind compensation in heading estimation from gps groundcourse(fixed wing only)
 
 ---
 
-### imu_gps_inertia_comp_z
-
-Inertia/Centrifugal force compensation using speed changes on z axis or not
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
-
-
 ### imu_dcm_ki
 
 Inertial Measurement Unit KI Gain for accelerometer measurements

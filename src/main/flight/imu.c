@@ -116,8 +116,7 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .small_angle = SETTING_SMALL_ANGLE_DEFAULT,
     .acc_ignore_rate = SETTING_IMU_ACC_IGNORE_RATE_DEFAULT,
     .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT,
-    .gps_yaw_windcomp = 1,
-    .gps_inertia_comp_z =1
+    .gps_yaw_windcomp = 1
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -411,7 +410,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 fpVector3_t vTmp;
 
                 // integral error scaled by Ki
-                vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_mag * dt);
+                vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_mag * magWScaler * dt);
                 vectorAdd(&vGyroDriftEstimate, &vGyroDriftEstimate, &vTmp);
             }
         }
@@ -441,7 +440,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 fpVector3_t vTmp;
 
                 // integral error scaled by Ki
-                vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_acc * dt);
+                vectorScale(&vTmp, &vErr, imuRuntimeConfig.dcm_ki_acc * accWScaler * dt);
                 vectorAdd(&vGyroDriftEstimate, &vGyroDriftEstimate, &vTmp);
             }
         }
@@ -597,10 +596,7 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
         fpVector3_t vGPSacc = {.v = {0.0f, 0.0f, 0.0f}};
         vGPSacc.x = -(currentGPSvel.x - lastGPSvel.x) / (MS2S(time_delta_ms)); // the x axis of accerometer is pointing backward
         vGPSacc.y = (currentGPSvel.y - lastGPSvel.y) / (MS2S(time_delta_ms));
-        if (imuConfig()->gps_inertia_comp_z)
-        {
-            vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
-        }
+        vGPSacc.z = (currentGPSvel.z - lastGPSvel.z) / (MS2S(time_delta_ms));
         // Calculate estimated centrifugal accleration vector in body frame
         quaternionRotateVector(vEstcentrifugalAccelBF, &vGPSacc, &orientation); // EF -> BF
         lastGPSNewDataTime = currenttime;
