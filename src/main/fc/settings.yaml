@@ -2277,7 +2277,7 @@ groups:
         type: bool
         default_value: OFF
       - name: inav_allow_dead_reckoning
-        description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
+        description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
         field: allow_dead_reckoning
         type: bool
