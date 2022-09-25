@@ -9,7 +9,7 @@ There are 2 basic types of receivers:
 
 ## PPM Receivers
 
-**Only supported in inav 3.x and below**
+**Only supported in INAV 3.x and below**
 
 PPM is sometimes known as PPM SUM or CPPM.
 
@@ -154,7 +154,7 @@ It is possible to use IBUS RX and IBUS telemetry on only one port of the hardwar
 
 ### SRXL2
 
-SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in inav 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
+SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in INAV 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
 
 #### Wiring
 
@@ -162,7 +162,7 @@ Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the F
 
 #### Configuration
 
-Selection of SXRL2 is provided in the inav 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
+Selection of SXRL2 is provided in the INAV 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
 
 ```
 feature TELEMETRY
