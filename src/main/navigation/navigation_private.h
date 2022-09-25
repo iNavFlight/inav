@@ -46,6 +46,8 @@
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // uS
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
+#define MC_LAND_DETECTOR_TRIGGER            1000    // ms
+#define MC_LAND_AIRMODE_DETECTOR_TRIGGER    3000    // ms
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
