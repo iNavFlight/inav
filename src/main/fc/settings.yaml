@@ -1521,7 +1521,7 @@ groups:
         default_value: 0
         field: acc_ignore_rate
         min: 0
-        max: 20
+        max: 30
       - name: imu_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
         default_value: 0

@@ -1778,7 +1778,7 @@ Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 20 |
+| 0 | 0 | 30 |
 
 ---
 
