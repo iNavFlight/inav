@@ -28,6 +28,7 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 * `<operand B type>` - See `Operands` paragraph
 * `<operand B value>` - See `Operands` paragraph
 * `<flags>` - See `Flags` paragraph
+* `<code group>` - Allows the grouping of code lines, to ease readability
 
 ### Operations
 
@@ -201,13 +202,13 @@ All flags are reseted on ARM and DISARM event.
 
 ### Dynamic THROTTLE scale
 
-`logic 0 1 0 23 0 50 0 0 0`
+`logic 0 1 0 23 0 50 0 0 0 0`
 
 Limits the THROTTLE output to 50% when Logic Condition `0` evaluates as `true`
 
 ### Set VTX power level via Smart Audio
 
-`logic 0 1 0 25 0 3 0 0 0`
+`logic 0 1 0 25 0 3 0 0 0 0`
 
 Sets VTX power level to `3` when Logic Condition `0` evaluates as `true`
 
@@ -216,27 +217,27 @@ Sets VTX power level to `3` when Logic Condition `0` evaluates as `true`
 Solves the problem from [https://github.com/iNavFlight/inav/issues/4439](https://github.com/iNavFlight/inav/issues/4439)
 
 ```
-logic 0 1 0 26 0 0 0 0 0
-logic 1 1 0 27 0 0 0 0 0
+logic 0 1 0 26 0 0 0 0 0 0
+logic 1 1 0 27 0 0 0 0 0 0
 ```
 
 Inverts ROLL and PITCH input when Logic Condition `0` evaluates as `true`. Moving Pitch stick up will cause pitch down (up for rear facing camera). Moving Roll stick right will cause roll left of a quad (right in rear facing camera)
 
 ### Cut motors but keep other throttle bindings active
 
-`logic 0 1 0 29 0 1000 0 0 0`
+`logic 0 1 0 29 0 1000 0 0 0 0`
 
 Sets throttle output to `0%` when Logic Condition `0` evaluates as `true`
 
 ### Set throttle to 50% and keep other throttle bindings active
 
-`logic 0 1 0 29 0 1500 0 0 0`
+`logic 0 1 0 29 0 1500 0 0 0 0`
 
 Sets throttle output to about `50%` when Logic Condition `0` evaluates as `true`
 
 ### Set throttle control to different RC channel
 
-`logic 0 1 0 29 1 7 0 0 0`
+`logic 0 1 0 29 1 7 0 0 0 0`
 
 If Logic Condition `0` evaluates as `true`, motor throttle control is bound to RC channel 7 instead of throttle channel
 
@@ -245,10 +246,10 @@ If Logic Condition `0` evaluates as `true`, motor throttle control is bound to R
 Set VTX channel with a POT on the radio assigned to RC channel 6
 
 ```
-logic 0 1 -1 15 1 6 0 1000 0
-logic 1 1 -1 37 4 0 0 7 0
-logic 2 1 -1 14 4 1 0 1 0
-logic 3 1 -1 31 4 2 0 0 0
+logic 0 1 -1 15 1 6 0 1000 0 0
+logic 1 1 -1 37 4 0 0 7 0 0
+logic 2 1 -1 14 4 1 0 1 0 0
+logic 3 1 -1 31 4 2 0 0 0 0
 ```
 
 Steps:
@@ -262,10 +263,10 @@ Steps:
 Set VTX power with a POT on the radio assigned to RC channel 6. In this example we scale POT to 4 power level `[1:4]`
 
 ```
-logic 0 1 -1 15 1 6 0 1000 0
-logic 1 1 -1 37 4 0 0 3 0
-logic 2 1 -1 14 4 1 0 1 0
-logic 3 1 -1 25 4 2 0 0 0
+logic 0 1 -1 15 1 6 0 1000 0 0
+logic 1 1 -1 37 4 0 0 3 0 0
+logic 2 1 -1 14 4 1 0 1 0 0
+logic 3 1 -1 25 4 2 0 0 0 0
 ```
 
 Steps:

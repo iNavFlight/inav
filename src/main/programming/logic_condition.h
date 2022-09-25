@@ -180,6 +180,7 @@ typedef struct logicCondition_s {
     int8_t activatorId;
     logicOperation_e operation;
     uint8_t flags;
+    uint8_t codeGroup;
 } logicCondition_t;
 
 PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);

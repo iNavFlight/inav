@@ -538,6 +538,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, logicConditions(i)->operandB.type);
             sbufWriteU32(dst, logicConditions(i)->operandB.value);
             sbufWriteU8(dst, logicConditions(i)->flags);
+            sbufWriteU8(dst, logicConditions(i)->codeGroup);
         }
         break;
     case MSP2_INAV_LOGIC_CONDITIONS_STATUS:
@@ -1997,7 +1998,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_LOGIC_CONDITIONS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == 15) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
+        if ((dataSize == 16) && (tmp_u8 < MAX_LOGIC_CONDITIONS)) {
             logicConditionsMutable(tmp_u8)->enabled = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->activatorId = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operation = sbufReadU8(src);
@@ -2006,6 +2007,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             logicConditionsMutable(tmp_u8)->operandB.type = sbufReadU8(src);
             logicConditionsMutable(tmp_u8)->operandB.value = sbufReadU32(src);
             logicConditionsMutable(tmp_u8)->flags = sbufReadU8(src);
+            logicConditionsMutable(tmp_u8)->codeGroup = sbufReadU8(src);
         } else
             return MSP_RESULT_ERROR;
         break;
