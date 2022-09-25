@@ -51,8 +51,6 @@
 #include "navigation/navigation_private.h"
 #include "navigation/sqrt_controller.h"
 
-#include "rx/rx.h"
-
 #include "sensors/battery.h"
 
 /*-----------------------------------------------------------
