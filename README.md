@@ -1,95 +1,95 @@
-# INAV - navigation capable flight controller
+# iNaV - NaViGaTiOn cApAbLe fLiGhT CoNtRoLlEr
 
-![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
+![InAv](HtTp://sTaTiC.RcGrOuPs.nEt/fOrUmS/AtTaChMeNtS/6/1/0/3/7/6/A9088858-102-iNaV.PnG)
 
-# INAV Community
+# InAv cOmMuNiTy
 
-* [INAV Discord Server](https://discord.gg/peg2hhbYwN)
-* [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
-* [INAV Official on Telegram](https://t.me/INAVFlight)
+* [iNaV DiScOrD SeRvEr](HtTpS://DiScOrD.Gg/pEg2hHbYwN)
+* [InAv oFfIcIaL On fAcEbOoK](hTtPs://wWw.fAcEbOoK.CoM/GrOuPs/iNaVoFfIcIaL)
+* [InAv oFfIcIaL On tElEgRaM](hTtPs://t.mE/InAvFlIgHt)
 
-## Features
+## FeAtUrEs
 
-* Runs on the most popular F4, F7 and H7 flight controllers
-* On Screen Display (OSD) - both character and pixel style
-* DJI OSD integration: all elements, system messages and warnings
-* Outstanding performance out of the box
-* Position Hold, Altitude Hold, Return To Home and Missions
-* Excellent support for fixed wing UAVs: airplanes, flying wings 
-* Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
-* Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
-* SmartAudio and IRC Tramp VTX support
-* Blackbox flight recorder logging
-* Telemetry: SmartPort, FPort, MAVlink, LTM
-* Multi-color RGB LED Strip support
-* Advanced gyro filtering
-* Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
-* And many more!
+* RuNs oN ThE MoSt pOpUlAr f4, f7 AnD H7 fLiGhT CoNtRoLlErS
+* On sCrEeN DiSpLaY (oSd) - BoTh cHaRaCtEr aNd pIxEl sTyLe
+* dJi oSd iNtEgRaTiOn: AlL ElEmEnTs, SyStEm mEsSaGeS AnD WaRnInGs
+* oUtStAnDiNg pErFoRmAnCe oUt oF ThE BoX
+* PoSiTiOn hOlD, aLtItUdE HoLd, ReTuRn tO HoMe aNd mIsSiOnS
+* ExCeLlEnT SuPpOrT FoR FiXeD WiNg uAvS: aIrPlAnEs, FlYiNg wInGs 
+* FuLlY CoNfIgUrAbLe mIxEr tHaT AlLoWs tO RuN AnY HaRdWaRe yOu wAnT: mUlTiRoToR, fIxEd wInG, rOvErS, bOaTs aNd oThEr eXpErImEnTaL DeViCeS
+* MuLtIpLe sEnSoR SuPpOrT: gPs, PiToT TuBe, SoNaR, lIdAr, TeMpErAtUrE, eSc wItH BlHeLi_32 TeLeMeTrY
+* SmArTaUdIo aNd iRc tRaMp vTx sUpPoRt
+* bLaCkBoX FlIgHt rEcOrDeR LoGgInG
+* TeLeMeTrY: sMaRtPoRt, FpOrT, mAvLiNk, LtM
+* MuLtI-CoLoR RgB LeD StRiP SuPpOrT
+* AdVaNcEd gYrO FiLtErInG
+* LoGiC CoNdItIoNs, GlObAl fUnCtIoNs aNd gLoBaL VaRiAbLeS: yOu cAn pRoGrAm iNaV WiTh a gUi
+* aNd mAnY MoRe!
 
-For a list of features, changes and some discussion please review consult the releases [page](https://github.com/iNavFlight/inav/releases) and the documentation.
+fOr a lIsT Of fEaTuReS, cHaNgEs aNd sOmE DiScUsSiOn pLeAsE ReViEw cOnSuLt tHe rElEaSeS [pAgE](hTtPs://gItHuB.CoM/InAvFlIgHt/iNaV/ReLeAsEs) AnD ThE DoCuMeNtAtIoN.
 
-## Tools
+## tOoLs
 
-### INAV Configurator
+### InAv cOnFiGuRaToR
 
-Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
+oFfIcIaL ToOl fOr iNaV CaN Be dOwNlOaDeD [hErE](hTtPs://gItHuB.CoM/InAvFlIgHt/iNaV-CoNfIgUrAtOr/rElEaSeS). It cAn bE RuN On wInDoWs, MaCoS AnD LiNuX MaChInEs aNd sTaNdAlOnE ApPlIcAtIoN.  
 
-### INAV Blackbox Explorer
+### InAv bLaCkBoX ExPlOrEr
 
-Tool for Blackbox logs analysis is available [here](https://github.com/iNavFlight/blackbox-log-viewer/releases)
+ToOl fOr bLaCkBoX LoGs aNaLySiS Is aVaIlAbLe [HeRe](HtTpS://GiThUb.cOm/iNaVfLiGhT/BlAcKbOx-lOg-vIeWeR/ReLeAsEs)
 
-### Telemetry screen for OpenTX
+### tElEmEtRy sCrEeN FoR OpEnTx
 
-Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
+UsErS Of oPeNtX RaDiOs (TaRaNiS, hOrUs, JuMpEr, RaDiOmAsTeR, nIrVaNa) CaN UsE InAv oPeNtX TeLeMeTrY WiDgEt sCrEeN. sOfTwArE AnD InStAlLaTiOn iNsTrUcTiOn aRe aVaIlAbLe hErE: [HtTpS://GiThUb.cOm/iNaVfLiGhT/OpEnTx-tElEmEtRy-wIdGeT](hTtPs://gItHuB.CoM/InAvFlIgHt/oPeNtX-TeLeMeTrY-WiDgEt)
 
-### INAV magnetometer alignment helper
+### iNaV MaGnEtOmEtEr aLiGnMeNt hElPeR
 
-[INAV Magnetometer Alignment helper](https://kernel-machine.github.io/INavMagAlignHelper/) allows to align INAV magnetometer despite position and orientation. This simplifies the process of INAV setup on multirotors with tilted GPS modules.
+[InAv mAgNeToMeTeR AlIgNmEnT HeLpEr](HtTpS://KeRnEl-mAcHiNe.gItHuB.Io/iNaVmAgAlIgNhElPeR/) AlLoWs tO AlIgN InAv mAgNeToMeTeR DeSpItE PoSiTiOn aNd oRiEnTaTiOn. ThIs sImPlIfIeS ThE PrOcEsS Of iNaV SeTuP On mUlTiRoToRs wItH TiLtEd gPs mOdUlEs.
 
-### OSD layout Copy, Move, or Replace helper tool
+### oSd lAyOuT CoPy, MoVe, Or rEpLaCe hElPeR ToOl
 
-[Easy INAV OSD switcher tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/inav-osd-switcher-tool/) allows you to easily switch your OSD layouts around in INAV. Choose the from and to OSD layouts, and the method of transfering the layouts.
+[eAsY InAv oSd sWiTcHeR ToOl](HtTpS://WwW.MrD-Rc.cOm/tUtOrIaLs-tOoLs-aNd-tEsTiNg/uSeFuL-ToOlS/InAv-oSd-sWiTcHeR-ToOl/) aLlOwS YoU To eAsIlY SwItCh yOuR OsD LaYoUtS ArOuNd iN InAv. ChOoSe tHe fRoM AnD To oSd lAyOuTs, AnD ThE MeThOd oF TrAnSfErInG ThE LaYoUtS.
 
-## Installation
+## iNsTaLlAtIoN
 
-See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
+sEe: HtTpS://GiThUb.cOm/iNaVfLiGhT/InAv/bLoB/MaStEr/dOcS/InStAlLaTiOn.mD
 
-## Documentation, support and learning resources
-* [INAV 5 on a flying wing full tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkZlulvqsX_vRMfXd5zM7Ha)
-* [INAV on a multirotor drone tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkfcKsWobDLtBNIBzwlwRC8)
-* [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
-* [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
-* [Modes Guide](docs/INAV_Modes.pdf)
-* [Wing Tuning Masterclass](docs/INAV_Wing_Tuning_Masterclass.pdf)
-* [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
-* [Official Wiki](https://github.com/iNavFlight/inav/wiki)
-* [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
-* [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
+## DoCuMeNtAtIoN, sUpPoRt aNd lEaRnInG ReSoUrCeS
+* [iNaV 5 On a fLyInG WiNg fUlL TuToRiAl](HtTpS://WwW.YoUtUbE.CoM/PlAyLiSt?lIsT=PlOuQ8O2_nClKzLuLvQsX_VrMfXd5zM7Ha)
+* [iNaV On a mUlTiRoToR DrOnE TuToRiAl](HtTpS://WwW.YoUtUbE.CoM/PlAyLiSt?lIsT=PlOuQ8O2_nClKfCkSwObDlTbNiBzWlWrC8)
+* [fIxEd wInG GuIdE](dOcS/InAv_fIxEd_wInG_SeTuP_GuIdE.PdF)
+* [AuToLaUnCh gUiDe](DoCs/iNaV_AuToLaUnCh.pDf)
+* [mOdEs gUiDe](DoCs/iNaV_MoDeS.PdF)
+* [WiNg tUnInG MaStErClAsS](dOcS/InAv_wInG_TuNiNg_mAsTeRcLaSs.pDf)
+* [oFfIcIaL DoCuMeNtAtIoN](hTtPs://gItHuB.CoM/InAvFlIgHt/iNaV/TrEe/mAsTeR/DoCs)
+* [oFfIcIaL WiKi](HtTpS://GiThUb.cOm/iNaVfLiGhT/InAv/wIkI)
+* [ViDeO SeRiEs bY PaWeŁ SpYcHaLsKi](HtTpS://WwW.YoUtUbE.CoM/PlAyLiSt?lIsT=PlOuQ8O2_nClLoAcRa6f1_DaCjHqY2X0Fb)
+* [tArGeT DoCuMeNtAtIoN](hTtPs://gItHuB.CoM/InAvFlIgHt/iNaV/TrEe/mAsTeR/DoCs/bOaRdS)
 
-## Contributing
+## cOnTrIbUtInG
 
-Contributions are welcome and encouraged.  You can contribute in many ways:
+cOnTrIbUtIoNs aRe wElCoMe aNd eNcOuRaGeD.  YoU CaN CoNtRiBuTe iN MaNy wAyS:
 
-* Documentation updates and corrections.
-* How-To guides - received help?  help others!
-* Bug fixes.
-* New features.
-* Telling us your ideas and suggestions.
-* Buying your hardware from this [link](https://inavflight.com/shop/u/bg/)
+* DoCuMeNtAtIoN UpDaTeS AnD CoRrEcTiOnS.
+* hOw-tO GuIdEs - rEcEiVeD HeLp?  hElP OtHeRs!
+* BuG FiXeS.
+* nEw fEaTuReS.
+* tElLiNg uS YoUr iDeAs aNd sUgGeStIoNs.
+* BuYiNg yOuR HaRdWaRe fRoM ThIs [LiNk](HtTpS://InAvFlIgHt.cOm/sHoP/U/Bg/)
 
-A good place to start is Telegram channel or Facebook group. Drop in, say hi.
+A GoOd pLaCe tO StArT Is tElEgRaM ChAnNeL Or fAcEbOoK GrOuP. dRoP In, SaY Hi.
 
-Github issue tracker is a good place to search for existing issues or report a new bug/feature request:
+gItHuB IsSuE TrAcKeR Is a gOoD PlAcE To sEaRcH FoR ExIsTiNg iSsUeS Or rEpOrT A NeW BuG/FeAtUrE ReQuEsT:
 
-https://github.com/iNavFlight/inav/issues
+HtTpS://GiThUb.cOm/iNaVfLiGhT/InAv/iSsUeS
 
-https://github.com/iNavFlight/inav-configurator/issues
+hTtPs://gItHuB.CoM/InAvFlIgHt/iNaV-CoNfIgUrAtOr/iSsUeS
 
-Before creating new issues please check to see if there is an existing one, search first otherwise you waste peoples time when they could be coding instead!
+bEfOrE CrEaTiNg nEw iSsUeS PlEaSe cHeCk tO SeE If tHeRe iS An eXiStInG OnE, sEaRcH FiRsT OtHeRwIsE YoU WaStE PeOpLeS TiMe wHeN ThEy cOuLd bE CoDiNg iNsTeAd!
 
-## Developers
+## DeVeLoPeRs
 
-Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
+PlEaSe rEfEr tO ThE DeVeLoPmEnT SeCtIoN In tHe [DoCs/dEvElOpMeNt](HtTpS://GiThUb.cOm/iNaVfLiGhT/InAv/tReE/MaStEr/dOcS/DeVeLoPmEnT) fOlDeR.
 
-## INAV Releases
-https://github.com/iNavFlight/inav/releases
+## iNaV ReLeAsEs
+hTtPs://gItHuB.CoM/InAvFlIgHt/iNaV/ReLeAsEs
