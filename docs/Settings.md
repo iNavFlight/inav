@@ -1788,7 +1788,7 @@ Half-width of the interval to gradually reduce accelerometer weight. Centered at
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 5 |
+| 0 | 0 | 10 |
 
 ---
 

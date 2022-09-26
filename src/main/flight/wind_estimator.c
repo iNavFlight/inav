@@ -161,9 +161,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
         if (windLength < prevWindLength + 2000) {
             // TODO: Better filtering
-            estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
-            estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
-            estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
+            estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
+            estimatedWind[Y] = estimatedWind[Y] * 0.98f + wind[Y] * 0.02f;
+            estimatedWind[Z] = estimatedWind[Z] * 0.98f + wind[Z] * 0.02f;
         }
 
         lastUpdateUs = currentTimeUs;

@@ -449,6 +449,11 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         vectorScale(&vErr, &vErr, imuRuntimeConfig.dcm_kp_acc * accWScaler);
         vectorAdd(&vRotation, &vRotation, &vErr);
     }
+    // Anti wind-up
+    float i_limit = DEGREES_TO_RADIANS(2.0f) * (imuRuntimeConfig.dcm_kp_acc + imuRuntimeConfig.dcm_kp_mag) / 2.0f;
+    vGyroDriftEstimate.x = constrainf(vGyroDriftEstimate.x, -i_limit, i_limit);
+    vGyroDriftEstimate.y = constrainf(vGyroDriftEstimate.y, -i_limit, i_limit);
+    vGyroDriftEstimate.z = constrainf(vGyroDriftEstimate.z, -i_limit, i_limit);
 
     // Apply gyro drift correction
     vectorAdd(&vRotation, &vRotation, &vGyroDriftEstimate);
