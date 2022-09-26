@@ -50,12 +50,12 @@ Also you have to specify criuse airspeed of the plane.
 
 The get cruise airspeed, make test flight. Enable ground speed display on OSD. Flight in CRUISE mode in two opposite directions. Take average speed.
 
-Cruise airspeed is specified in m/s.
+Cruise airspeed is specified in cm/s.
 
 To convert km/h to m/s, multiply by 27.77.
 
 
-Example: 100 km/h = 100 * 27.77 = 2777 m/s
+Example: 100 km/h = 100 * 27.77 = 2777 cm/s
 
 ```set fw_reference_airspeed=2777```
 
