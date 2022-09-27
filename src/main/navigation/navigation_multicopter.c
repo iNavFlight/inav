@@ -737,11 +737,13 @@ bool isMulticopterLandingDetected(void)
         return posControl.flags.resetLandingDetector = false;
     }
 
+    const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
+
     // check vertical and horizontal velocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING &&
-                        posControl.actualState.velXY < MC_LAND_CHECK_VEL_XY_MOVING;
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (MC_LAND_CHECK_VEL_Z_MOVING * sensitivity) &&
+                        posControl.actualState.velXY < (MC_LAND_CHECK_VEL_XY_MOVING * sensitivity);
     // check gyro rates are low (degs/s)
-    bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    bool gyroCondition = averageAbsGyroRates() < (4.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
     DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 

@@ -263,6 +263,7 @@ typedef struct navConfig_s {
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
         uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
         uint16_t waypoint_enforce_altitude;         // Forces waypoint altitude to be achieved
+        uint8_t  land_detect_sensitivity;           // Sensitivity of landing detector
     } general;
 
     struct {

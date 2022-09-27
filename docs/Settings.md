@@ -3342,6 +3342,16 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 
 ---
 
+### nav_land_detect_sensitivity
+
+Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 15 |
+
+---
+
 ### nav_land_maxalt_vspd
 
 Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]

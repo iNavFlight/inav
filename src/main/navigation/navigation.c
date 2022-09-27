@@ -152,6 +152,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_altitude = SETTING_NAV_MAX_ALTITUDE_DEFAULT,
         .rth_trackback_distance = SETTING_NAV_RTH_TRACKBACK_DISTANCE_DEFAULT,                   // Max distance allowed for RTH trackback
         .waypoint_enforce_altitude = SETTING_NAV_WP_ENFORCE_ALTITUDE_DEFAULT,                   // Forces set wp altitude to be achieved
+        .land_detect_sensitivity = SETTING_NAV_LAND_DETECT_SENSITIVITY_DEFAULT,                 // Changes sensitivity of landing detection
     },
 
     // MC-specific
