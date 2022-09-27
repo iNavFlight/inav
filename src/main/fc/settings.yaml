@@ -2653,10 +2653,10 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
-      - name: nav_mc_auto_disarm_delay
-        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)"
+      - name: nav_auto_disarm_delay
+        description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 2000
-        field: mc.auto_disarm_delay
+        field: general.auto_disarm_delay
         min: 100
         max: 10000
       - name: nav_mc_braking_speed_threshold
@@ -2732,12 +2732,6 @@ groups:
         default_value: ON
         field: mc.slowDownForTurning
         type: bool
-      - name: nav_fw_auto_disarm_delay
-        description: "Delay before plane disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
-        field: fw.auto_disarm_delay
-        min: 100
-        max: 10000
       - name: nav_fw_bank_angle
         description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
         default_value: 35
