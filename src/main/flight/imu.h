@@ -53,6 +53,7 @@ typedef struct imuConfig_s {
     uint8_t acc_ignore_rate;
     uint8_t acc_ignore_slope;
     uint8_t gps_yaw_windcomp;
+    uint8_t inertia_comp_method;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
@@ -63,7 +64,14 @@ typedef struct imuRuntimeConfig_s {
     float dcm_kp_mag;
     float dcm_ki_mag;
     uint8_t small_angle;
+    uint8_t inertia_comp_method;
 } imuRuntimeConfig_t;
+
+typedef enum {
+    COMPMETHOD_VELNED = 0,
+    COMPMETHOD_TURNRATE,
+} imu_inertia_comp_method_e;
+
 
 void imuConfigure(void);
 

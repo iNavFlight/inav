@@ -60,6 +60,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
@@ -79,8 +80,6 @@ FILE_COMPILE_FOR_SPEED
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_NEARNESS            0.2    // 33% or G error soft-accepted (0.8-1.2G)
 #define IMU_ROTATION_LPF         3       // Hz
-#define CENTRIFUGAL_SOLPE_MULTIPLIER         0.30   //when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slpe will be multiplied by this value
-
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
 //centrifugal force compensated using gps
@@ -96,14 +95,20 @@ FASTRAM attitudeEulerAngles_t attitude;             // absolute angle inclinatio
 FASTRAM float rMat[3][3];
 
 STATIC_FASTRAM imuRuntimeConfig_t imuRuntimeConfig;
+
 STATIC_FASTRAM pt1Filter_t rotRateFilterX;
 STATIC_FASTRAM pt1Filter_t rotRateFilterY;
 STATIC_FASTRAM pt1Filter_t rotRateFilterZ;
 FASTRAM fpVector3_t imuMeasuredRotationBFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
+
 STATIC_FASTRAM pt1Filter_t HeadVecEFFilterX;
 STATIC_FASTRAM pt1Filter_t HeadVecEFFilterY;
 STATIC_FASTRAM pt1Filter_t HeadVecEFFilterZ;
 FASTRAM fpVector3_t HeadVecEFFiltered = {.v = {0.0f, 0.0f, 0.0f}};
+
+STATIC_FASTRAM float GPS3DspeedFiltered=0.0f;
+STATIC_FASTRAM pt1Filter_t GPS3DspeedFilter;
+
 FASTRAM bool gpsHeadingInitialized;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
@@ -116,7 +121,8 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .small_angle = SETTING_SMALL_ANGLE_DEFAULT,
     .acc_ignore_rate = SETTING_IMU_ACC_IGNORE_RATE_DEFAULT,
     .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT,
-    .gps_yaw_windcomp = 1
+    .gps_yaw_windcomp = 1,
+    .inertia_comp_method = COMPMETHOD_VELNED
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -152,6 +158,11 @@ void imuConfigure(void)
     imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
     imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag / 10000.0f;
     imuRuntimeConfig.small_angle = imuConfig()->small_angle;
+    imuRuntimeConfig.inertia_comp_method = imuConfig()->inertia_comp_method;
+    if (!STATE(AIRPLANE))
+    {
+        imuRuntimeConfig.inertia_comp_method=COMPMETHOD_VELNED;
+    }
 }
 
 void imuInit(void)
@@ -187,6 +198,8 @@ void imuInit(void)
     pt1FilterReset(&HeadVecEFFilterX, 0);
     pt1FilterReset(&HeadVecEFFilterY, 0);
     pt1FilterReset(&HeadVecEFFilterZ, 0);
+    // Initialize 3d speed filter
+    pt1FilterReset(&GPS3DspeedFilter, 0);
 }
 
 void imuSetMagneticDeclination(float declinationDeg)
@@ -311,6 +324,11 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
         blackboxLogEvent(FLIGHT_LOG_EVENT_IMU_FAILURE, (flightLogEventData_t*)&imuErrorEvent);
     }
 #endif
+}
+
+bool isGPStrustworthy(void)
+{
+    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6;
 }
 
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
@@ -531,7 +549,7 @@ static float imuCalculateAccelerometerWeightNearness(void)
     return accWeight_Nearness;
 }
 
-static float imuCalculateAccelerometerWeightRateIgnore(const bool centrifugal_force_compensation)
+static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_slope_multipiler)
 {
     // Experiment: if rotation rate on a FIXED_WING_LEGACY is higher than a threshold - centrifugal force messes up too much and we
     // should not use measured accel for AHRS comp
@@ -554,7 +572,7 @@ static float imuCalculateAccelerometerWeightRateIgnore(const bool centrifugal_fo
     if (ARMING_FLAG(ARMED) && imuConfig()->acc_ignore_rate)
     {
         float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
-        rotRateMagnitude = centrifugal_force_compensation ? rotRateMagnitude * CENTRIFUGAL_SOLPE_MULTIPLIER : rotRateMagnitude;
+        rotRateMagnitude = rotRateMagnitude / (acc_ignore_slope_multipiler + 0.001f);
         if (imuConfig()->acc_ignore_slope)
         {
             const float rateSlopeMin = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate - imuConfig()->acc_ignore_slope));
@@ -574,17 +592,22 @@ static float imuCalculateAccelerometerWeightRateIgnore(const bool centrifugal_fo
     return accWeight_RateIgnore;
 }
 
-static void imuCalculateFilteredRotation(float dT)
+static void imuCalculateFilters(float dT)
 {
+    //flitering
     imuMeasuredRotationBFFiltered.x = pt1FilterApply4(&rotRateFilterX, imuMeasuredRotationBF.x, IMU_ROTATION_LPF, dT);
     imuMeasuredRotationBFFiltered.y = pt1FilterApply4(&rotRateFilterY, imuMeasuredRotationBF.y, IMU_ROTATION_LPF, dT);
     imuMeasuredRotationBFFiltered.z = pt1FilterApply4(&rotRateFilterZ, imuMeasuredRotationBF.z, IMU_ROTATION_LPF, dT);
     HeadVecEFFiltered.x = pt1FilterApply4(&HeadVecEFFilterX, rMat[0][0], IMU_ROTATION_LPF, dT);
     HeadVecEFFiltered.y = pt1FilterApply4(&HeadVecEFFilterY, rMat[1][0], IMU_ROTATION_LPF, dT);
     HeadVecEFFiltered.z = pt1FilterApply4(&HeadVecEFFilterZ, rMat[2][0], IMU_ROTATION_LPF, dT);
+
+    //anti aliasing
+    float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X],gpsSol.velNED[Y],gpsSol.velNED[Z]);
+    GPS3DspeedFiltered = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
 }
 
-static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
+static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF, float *acc_ignore_slope_multipiler)
 {
     static rtcTime_t lastGPSNewDataTime = 0;
     static bool lastGPSHeartbeat;
@@ -608,6 +631,38 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF)
         lastGPSvel = currentGPSvel;
     }
     lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
+    *acc_ignore_slope_multipiler = 4;
+}
+
+static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF, float dT, float *acc_ignore_slope_multipiler)
+{   
+    //fixed wing only
+    static float lastspeed = -1.0f;
+    float currentspeed = -1.0f;
+    if (isGPStrustworthy()){
+        //first speed choice is gps
+        currentspeed = GPS3DspeedFiltered;
+        *acc_ignore_slope_multipiler = 4.0f;
+    }
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy() && currentspeed < 0)
+    {
+        // second choice is pitot
+		currentspeed = getAirspeedEstimate();
+        *acc_ignore_slope_multipiler = 2.0f;
+    }
+#endif
+    if (currentspeed < 0)
+    {
+        //third choice is fixedWingReferenceAirspeed
+        currentspeed = pidProfile()->fixedWingReferenceAirspeed;
+        *acc_ignore_slope_multipiler = 1.0f;
+    }
+    float speed_change = lastspeed > 0 ? currentspeed - lastspeed : 0;
+    vEstcentrifugalAccelBF->x = -speed_change/dT;
+    vEstcentrifugalAccelBF->y = -currentspeed*imuMeasuredRotationBFFiltered.z;
+    vEstcentrifugalAccelBF->z = currentspeed*imuMeasuredRotationBFFiltered.y;
+    lastspeed = currentspeed;
 }
 
 static void imuCalculateEstimatedAttitude(float dT)
@@ -621,7 +676,6 @@ static void imuCalculateEstimatedAttitude(float dT)
     float courseOverGround = 0;
     bool useMag = false;
     bool useCOG = false;
-    bool centrifugal_force_compensated = false;
 #if defined(USE_GPS)
     if (STATE(FIXED_WING_LEGACY)) {
         bool canUseCOG = isGPSHeadingValid();
@@ -654,12 +708,19 @@ static void imuCalculateEstimatedAttitude(float dT)
             useMag = true;
         }
     }
-    // centrifugal force compensation using gps
+    
+    imuCalculateFilters(dT);
+
+    // centrifugal force compensation 
+    float acc_ignore_slope_multipiler = 1.0f;//when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slope will be multiplied by this value
     static fpVector3_t vEstcentrifugalAccelBF = {.v = {0.0f, 0.0f, 0.0f}}; // cm/s/s
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6)
+    if (imuConfig()->inertia_comp_method == COMPMETHOD_VELNED && isGPStrustworthy())
     {
-        imuCalculateGPSacceleration(&vEstcentrifugalAccelBF);
-        centrifugal_force_compensated = true;
+        imuCalculateGPSacceleration(&vEstcentrifugalAccelBF,&acc_ignore_slope_multipiler);
+    }
+    else if (STATE(AIRPLANE))
+    {
+        imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF,dT,&acc_ignore_slope_multipiler);
     }
     else
     {
@@ -676,7 +737,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     compansatedGravityBF = imuMeasuredAccelBF
 #endif
     float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness();
-    accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(centrifugal_force_compensated);
+    accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
 
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
@@ -687,7 +748,6 @@ static void imuCalculateEstimatedAttitude(float dT)
                             useCOG, courseOverGround,
                             accWeight,
                             magWeight);
-    imuCalculateFilteredRotation(dT);
     imuUpdateEulerAngles();
 }
 

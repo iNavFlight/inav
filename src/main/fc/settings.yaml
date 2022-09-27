@@ -43,6 +43,9 @@ tables:
   - name: voltage_sensor
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
+  - name: imu_inertia_comp_method
+    values: ["VELNED", "TURNRATE"]
+    enum: imu_inertia_comp_method_e
   - name: gps_provider
     values: ["NMEA", "UBLOX", "UBLOX7", "MSP"]
     enum: gpsProvider_e
@@ -1533,6 +1536,11 @@ groups:
         default_value: ON
         field: gps_yaw_windcomp
         type: bool
+      - name: imu_inertia_comp_method
+        description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
+        default_value: VELNED
+        field: inertia_comp_method
+        table: imu_inertia_comp_method
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

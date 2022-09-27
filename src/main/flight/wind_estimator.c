@@ -159,7 +159,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
         float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
 
-        if (windLength < prevWindLength + 2000) {
+        if (windLength < prevWindLength + 4000) {
             // TODO: Better filtering
             estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
             estimatedWind[Y] = estimatedWind[Y] * 0.98f + wind[Y] * 0.02f;
