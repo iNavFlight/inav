@@ -550,7 +550,7 @@ static bool useCompass(void)
 
     // If the current yaw differs from the GPS yaw by more than 45 degrees and the estimated wind speed is less than 80% of the ground speed, then switch to GPS navigation. 
     // This will help prevent flyaways with very bad compass offsets
-    const float error = RADIANS_TO_DEGREES(wrap_PI(DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse)) - _yaw));
+    const float error = RADIANS_TO_DEGREES(wrap_PI(-DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse)) - _yaw));
     if (error > 45.0f && calc_length_pythagorean_3D(_wind.x, _wind.y, _wind.z) < gpsSol.groundSpeed * 0.8f) {
         if (millis() - last_consistent_heading > 2000) {
             // Start using the GPS for heading if the compass has been inconsistent with the GPS for 2 seconds
@@ -623,7 +623,7 @@ static void driftCorrectionYaw(void)
         if (gpsStats.lastFixTime != gps_last_update && gpsSol.groundSpeed >= GPS_SPEED_MIN) {
             yaw_deltaTime = MS2S(gpsStats.lastFixTime - gps_last_update);
             gps_last_update = gpsStats.lastFixTime;
-            const float gps_course_rad = DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse));
+            const float gps_course_rad = -DEGREES_TO_RADIANS(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse));
             const float yaw_error_rad = wrap_PI(gps_course_rad - _yaw);
             yaw_error = sin_approx(yaw_error_rad);
             new_value = true;
@@ -1047,7 +1047,7 @@ static void dcmUpdate(float deltaTime)
     // Calculate the euler angles and DCM matrix which will be used for high level navigation control. 
     _roll = atan2_approx(rotationMatrix.m[2][1], rotationMatrix.m[2][2]);
     _pitch = -asin_approx(rotationMatrix.m[2][0]);
-    _yaw = -atan2_approx(rotationMatrix.m[1][0], rotationMatrix.m[0][0]);
+    _yaw = atan2_approx(-rotationMatrix.m[1][0], rotationMatrix.m[0][0]);
 
     // Pre-calculate some trig for CPU purposes
     cos_yaw = cos_approx(_yaw);
