@@ -720,80 +720,73 @@ bool isMulticopterFlying(void)
 /*-----------------------------------------------------------
  * Multicopter land detector
  *-----------------------------------------------------------*/
-static bool getLandThrottleMinimalThrust(const timeMs_t currentTimeMs) 
-{
-    bool isAtMinimalThrust = false;
-    static int32_t landingThrSum;
-    static int32_t landingThrSamples;
-    static timeMs_t ThrThrustPrevTimeMs;
-
-    if (ThrThrustPrevTimeMs == 0) {
-        landingThrSum = 0;
-        landingThrSamples = 0;
-        ThrThrustPrevTimeMs = currentTimeMs;
-        return false;
-    }
-
-    // Non autonomous and emergency landing
-    if (!(navGetCurrentStateFlags() & NAV_CTL_LAND)) {
-        return true;
-    }
-
-    if (landingThrSamples == 0) {
-        if (currentTimeMs - ThrThrustPrevTimeMs < (MILLIS_PER_SECOND * MC_LAND_THR_STABILISE_DELAY)) { // Wait for 1 second so throttle has stabilized.
-            return false;
-        } else {
-            ThrThrustPrevTimeMs = currentTimeMs;
-        }
-    }
-
-    landingThrSamples += 1;
-    landingThrSum += rcCommandAdjustedThrottle;
-    isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
-
-    return isAtMinimalThrust;
-}
-
 bool isMulticopterLandingDetected(void)
 {
-    bool throttle_thrust_at_min = false;
-    bool possibleLandingDetected = false;
+    DEBUG_SET(DEBUG_LANDING, 4, 0);
+    static timeUs_t landingDetectorStartedAt;
     const bool throttleIsLow = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
     uint16_t land_trigger_ms = MC_LAND_DETECTOR_TRIGGER;
-    const timeMs_t currentTimeMs = millis();
-    static timeMs_t landingDetectorPrevTimeMs;
 
-    // Prevent landing detection if WP mission allowed during Failsafe (except landing states)
+    /* Basic condition to start looking for landing
+    *  Prevent landing detection if WP mission allowed during Failsafe (except landing states) */
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
                           || (!navigationIsFlyingAutonomousMode() && throttleIsLow);
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
-        landingDetectorPrevTimeMs = 0;
-        posControl.flags.resetLandingDetector = false;
-        return false;
+        landingDetectorStartedAt = 0;
+        return posControl.flags.resetLandingDetector = false;
     }
 
-    throttle_thrust_at_min = getLandThrottleMinimalThrust(currentTimeMs);
-    
-    if (STATE(AIRMODE_ACTIVE) && !FLIGHT_MODE(ANGLE_MODE)) {
-        land_trigger_ms = MC_LAND_AIRMODE_DETECTOR_TRIGGER;
-        throttle_thrust_at_min = true;
-    }
-
-    // Check vertical and horizontal velocities are low (cm/s)
+    // check vertical and horizontal velocities are low (cm/s)
     bool descent_rate_low = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING;
     
-    // Check that the airframe is not accelerating (not falling or braking after fast forward flight)
+    // check that the airframe is not accelerating (not falling or braking after fast forward flight)
     bool accel_stationary = get_accel_ef_length() <= MC_LAND_DETECTOR_ACCEL_MAX;
 
-    if (descent_rate_low && accel_stationary && throttle_thrust_at_min) {
-        possibleLandingDetected = true;
-    }
-    
-    if (landingDetectorPrevTimeMs == 0) {
-        landingDetectorPrevTimeMs = currentTimeMs;
-        return false;
+    DEBUG_SET(DEBUG_LANDING, 2, descent_rate_low);
+    DEBUG_SET(DEBUG_LANDING, 3, accel_stationary);
+
+    bool possibleLandingDetected = false;
+    const timeUs_t currentTimeUs = micros();
+
+    if (navGetCurrentStateFlags() & NAV_CTL_LAND) {
+        // We have likely landed if throttle is 40 units below average descend throttle
+        // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
+        // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
+        DEBUG_SET(DEBUG_LANDING, 4, 1);
+
+        static int32_t landingThrSum;
+        static int32_t landingThrSamples;
+        bool isAtMinimalThrust = false;
+
+        if (!landingDetectorStartedAt) {
+            landingThrSum = landingThrSamples = 0;
+            landingDetectorStartedAt = currentTimeUs;
+        }
+        if (!landingThrSamples) {
+            if (currentTimeUs - landingDetectorStartedAt < (USECS_PER_SEC * MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
+                return false;
+            } else {
+                landingDetectorStartedAt = currentTimeUs;
+            }
+        }
+        landingThrSamples += 1;
+        landingThrSum += rcCommandAdjustedThrottle;
+        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
+
+        possibleLandingDetected = isAtMinimalThrust && descent_rate_low;
+
+        DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedThrottle);
+        DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
+    } else {    // non autonomous and emergency landing
+        DEBUG_SET(DEBUG_LANDING, 4, 2);
+        if (landingDetectorStartedAt) {
+            possibleLandingDetected = descent_rate_low && accel_stationary;
+        } else {
+            landingDetectorStartedAt = currentTimeUs;
+            return false;
+        }
     }
 
     // If we have surface sensor (for example sonar) - use it to detect touchdown
@@ -804,11 +797,17 @@ bool isMulticopterLandingDetected(void)
         possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + MC_LAND_SAFE_SURFACE));
     }
 
+    DEBUG_SET(DEBUG_LANDING, 5, possibleLandingDetected);
+    
+    if (STATE(AIRMODE_ACTIVE) && !FLIGHT_MODE(ANGLE_MODE)) {
+        land_trigger_ms = MC_LAND_AIRMODE_DETECTOR_TRIGGER;
+    }
+
     if (possibleLandingDetected) {
-        const timeMs_t safetyTimeDelay = land_trigger_ms + navConfig()->mc.auto_disarm_delay;  // Check conditions stable + optional extra delay
-        return (currentTimeMs - landingDetectorPrevTimeMs > safetyTimeDelay);
+        timeUs_t safetyTimeDelay = MS2US(land_trigger_ms + navConfig()->mc.auto_disarm_delay);  // check conditions stable + optional extra delay
+        return (currentTimeUs - landingDetectorStartedAt > safetyTimeDelay);
     } else {
-        landingDetectorPrevTimeMs = currentTimeMs;
+        landingDetectorStartedAt = currentTimeUs;
         return false;
     }
 }

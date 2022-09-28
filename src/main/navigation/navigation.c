@@ -2773,13 +2773,14 @@ void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distanc
  *-----------------------------------------------------------*/
 void updateLandingStatus(void)
 {
-    const bool disarm_on_land_configured = navConfig()->general.flags.disarm_on_landing;
-
-    if (STATE(AIRPLANE) && !disarm_on_land_configured) {
+    if (STATE(AIRPLANE) && !navConfig()->general.flags.disarm_on_landing) {
         return;     // no point using this with a fixed wing if not set to disarm
     }
 
-    static bool landingDetectorIsActive = false;
+    static bool landingDetectorIsActive;
+
+    DEBUG_SET(DEBUG_LANDING, 0, landingDetectorIsActive);
+    DEBUG_SET(DEBUG_LANDING, 1, STATE(LANDING_DETECTED));
 
     if (!ARMING_FLAG(ARMED)) {
         resetLandingDetector();
@@ -2789,7 +2790,7 @@ void updateLandingStatus(void)
         }
         return;
     }
-    
+
     if (!landingDetectorIsActive) {
         if (isFlightDetected()) {
             landingDetectorIsActive = true;
@@ -2797,7 +2798,7 @@ void updateLandingStatus(void)
         }
     } else if (STATE(LANDING_DETECTED)) {
         pidResetErrorAccumulators();
-        if (disarm_on_land_configured) {
+        if (navConfig()->general.flags.disarm_on_landing) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
             disarm(DISARM_LANDING);
         } else if (!navigationIsFlyingAutonomousMode()) {
