@@ -158,11 +158,6 @@ void imuConfigure(void)
     imuRuntimeConfig.dcm_kp_mag = imuConfig()->dcm_kp_mag / 10000.0f;
     imuRuntimeConfig.dcm_ki_mag = imuConfig()->dcm_ki_mag / 10000.0f;
     imuRuntimeConfig.small_angle = imuConfig()->small_angle;
-    imuRuntimeConfig.inertia_comp_method = imuConfig()->inertia_comp_method;
-    if (!STATE(AIRPLANE))
-    {
-        imuRuntimeConfig.inertia_comp_method=COMPMETHOD_VELNED;
-    }
 }
 
 void imuInit(void)
@@ -326,7 +321,7 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 #endif
 }
 
-bool isGPStrustworthy(void)
+bool isGPSTrustworthy(void)
 {
     return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6;
 }
@@ -638,8 +633,8 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
 {   
     //fixed wing only
     static float lastspeed = -1.0f;
-    float currentspeed = -1.0f;
-    if (isGPStrustworthy()){
+    float currentspeed;
+    if (isGPSTrustworthy()){
         //first speed choice is gps
         currentspeed = GPS3DspeedFiltered;
         *acc_ignore_slope_multipiler = 4.0f;
@@ -708,27 +703,50 @@ static void imuCalculateEstimatedAttitude(float dT)
             useMag = true;
         }
     }
-    
-    imuCalculateFilters(dT);
 
-    // centrifugal force compensation 
-    float acc_ignore_slope_multipiler = 1.0f;//when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slope will be multiplied by this value
-    static fpVector3_t vEstcentrifugalAccelBF = {.v = {0.0f, 0.0f, 0.0f}}; // cm/s/s
-    if (imuConfig()->inertia_comp_method == COMPMETHOD_VELNED && isGPStrustworthy())
+    imuCalculateFilters(dT);
+    // centrifugal force compensation
+    static fpVector3_t vEstcentrifugalAccelBF_velned;
+    static fpVector3_t vEstcentrifugalAccelBF_turnrate;
+    float acc_ignore_slope_multipiler = 1.0f; // when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slope will be multiplied by this value
+    if (isGPSTrustworthy())
     {
-        imuCalculateGPSacceleration(&vEstcentrifugalAccelBF,&acc_ignore_slope_multipiler);
+        imuCalculateGPSacceleration(&vEstcentrifugalAccelBF_velned, &acc_ignore_slope_multipiler);
+    }
+    if (STATE(AIRPLANE))
+    {
+        imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
+    }
+    if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE))
+    {
+        fpVector3_t compansatedGravityBF_velned;
+        vectorAdd(&compansatedGravityBF_velned, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
+        float velned_magnitude = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_velned)) - GRAVITY_CMSS);
+
+        fpVector3_t compansatedGravityBF_turnrate;
+        vectorAdd(&compansatedGravityBF_turnrate, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
+        float turnrate_magnitude = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_turnrate)) - GRAVITY_CMSS);
+        if (velned_magnitude > turnrate_magnitude)
+        {
+            compansatedGravityBF = compansatedGravityBF_turnrate;
+        }
+        else
+        {
+            compansatedGravityBF = compansatedGravityBF_velned;
+        }
+    }
+    else if (imuConfig()->inertia_comp_method == COMPMETHOD_VELNED && isGPSTrustworthy())
+    {
+        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
     }
     else if (STATE(AIRPLANE))
     {
-        imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF,dT,&acc_ignore_slope_multipiler);
+        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
     }
     else
     {
-        vEstcentrifugalAccelBF.x = 0.0f;
-        vEstcentrifugalAccelBF.y = 0.0f;
-        vEstcentrifugalAccelBF.z = 0.0f;
+        compansatedGravityBF = imuMeasuredAccelBF;
     }
-    vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF);
 #else
     // In absence of GPS MAG is the only option
     if (canUseMAG) {

@@ -64,14 +64,14 @@ typedef struct imuRuntimeConfig_s {
     float dcm_kp_mag;
     float dcm_ki_mag;
     uint8_t small_angle;
-    uint8_t inertia_comp_method;
 } imuRuntimeConfig_t;
 
-typedef enum {
+typedef enum
+{
     COMPMETHOD_VELNED = 0,
     COMPMETHOD_TURNRATE,
+    COMPMETHOD_ADAPTIVE
 } imu_inertia_comp_method_e;
-
 
 void imuConfigure(void);
 

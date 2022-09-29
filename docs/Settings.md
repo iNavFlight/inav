@@ -1842,6 +1842,16 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 ---
 
+### imu_inertia_comp_method
+
+Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| VELNED |  | --- |
+
+---
+
 ### inav_allow_dead_reckoning
 
 Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation
