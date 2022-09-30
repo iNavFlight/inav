@@ -265,7 +265,7 @@ static void updateArmingStatus(void)
 
         /* CHECK: */
         if (
-            sensors(SENSOR_ACC) && 
+            sensors(SENSOR_ACC) &&
             !STATE(ACCELEROMETER_CALIBRATED) &&
             // Require ACC calibration only if any of the setting might require it
             (
@@ -523,9 +523,6 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
-#ifdef USE_MULTI_MISSION
-    setMultiMissionOnArm();
-#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT

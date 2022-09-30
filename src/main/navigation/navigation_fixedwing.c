@@ -695,13 +695,15 @@ bool isFixedWingLandingDetected(void)
     static timeMs_t fwLandingTimerStartAt;
     static int16_t fwLandSetRollDatum;
     static int16_t fwLandSetPitchDatum;
+    const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
 
     timeMs_t currentTimeMs = millis();
 
-    // Check horizontal and vertical volocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && posControl.actualState.velXY < 100.0f;
+    // Check horizontal and vertical velocities are low (cm/s)
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
+                        posControl.actualState.velXY < (100.0f * sensitivity);
     // Check angular rates are low (degs/s)
-    bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
     DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
@@ -714,13 +716,14 @@ bool isFixedWingLandingDetected(void)
             fixAxisCheck = true;
             fwLandingTimerStartAt = currentTimeMs;
         } else {
-            bool isRollAxisStatic = ABS(fwLandSetRollDatum - attitude.values.roll) < 5;
-            bool isPitchAxisStatic = ABS(fwLandSetPitchDatum - attitude.values.pitch) < 5;
+            const uint8_t angleLimit = 5 * sensitivity;
+            bool isRollAxisStatic = ABS(fwLandSetRollDatum - attitude.values.roll) < angleLimit;
+            bool isPitchAxisStatic = ABS(fwLandSetPitchDatum - attitude.values.pitch) < angleLimit;
             DEBUG_SET(DEBUG_LANDING, 6, isRollAxisStatic);
             DEBUG_SET(DEBUG_LANDING, 7, isPitchAxisStatic);
             if (isRollAxisStatic && isPitchAxisStatic) {
                 // Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
-                timeMs_t safetyTimeDelay = 2000 + navConfig()->fw.auto_disarm_delay;
+                timeMs_t safetyTimeDelay = 2000 + navConfig()->general.auto_disarm_delay;
                 return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay; // check conditions stable for 2s + optional extra delay
             } else {
                 fixAxisCheck = false;

@@ -280,7 +280,7 @@ uint32_t baroUpdate(void)
                 baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             }
 #else
-                baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
+            baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
 #endif
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;

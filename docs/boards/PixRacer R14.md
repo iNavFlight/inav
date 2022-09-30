@@ -31,7 +31,7 @@ Then follow this : https://pixhawk.org/dev/bootloader_update
 
 ### Interface and Ports
 
-Total UARTS Recognized by iNav -> 8
+Total UARTS Recognized by INAV -> 8
 
 #### USART1
 * Location : Top
