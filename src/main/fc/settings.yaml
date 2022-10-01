@@ -1537,7 +1537,7 @@ groups:
         field: gps_yaw_windcomp
         type: bool
       - name: imu_inertia_comp_method
-        description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two."
+        description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
         default_value: VELNED
         field: inertia_comp_method
         table: imu_inertia_comp_method

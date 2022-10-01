@@ -1792,16 +1792,6 @@ Half-width of the interval to gradually reduce accelerometer weight. Centered at
 
 ---
 
-### imu_gps_yaw_windcomp
-
-Wind compensation in heading estimation from gps groundcourse(fixed wing only)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
 ### imu_dcm_ki
 
 Inertial Measurement Unit KI Gain for accelerometer measurements
@@ -1842,13 +1832,23 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 ---
 
-### imu_inertia_comp_method
+### imu_gps_yaw_windcomp
 
-Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two.
+Wind compensation in heading estimation from gps groundcourse(fixed wing only)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| VELNED |  | --- |
+| ON | OFF | ON |
+
+---
+
+### imu_inertia_comp_method
+
+Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop
+
+| Default | Min | Max |
+| --- | --- | --- |
+| VELNED |  |  |
 
 ---
 
