@@ -142,8 +142,13 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
-void validateNavConfig(void)
-{
+#define SAVESTATE_NONE 0
+#define SAVESTATE_SAVEONLY 1
+#define SAVESTATE_SAVEANDNOTIFY 2
+
+static uint8_t saveState = SAVESTATE_NONE;
+
+void validateNavConfig(void) {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
     navConfigMutable()->general.land_slowdown_minalt = MIN(navConfig()->general.land_slowdown_minalt, navConfig()->general.land_slowdown_maxalt - 100);
 }
@@ -159,7 +164,6 @@ __attribute__((weak)) void targetConfiguration(void)
 {
     __NOP();
 }
-
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
@@ -177,8 +181,7 @@ uint32_t getGyroLooptime(void) {
     return gyro.targetLooptime;
 }
 
-void validateAndFixConfig(void)
-{
+void validateAndFixConfig(void) {
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
@@ -248,15 +251,13 @@ void validateAndFixConfig(void)
     }
 }
 
-void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch)
-{
+void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch) {
     updateBoardAlignment(roll, pitch);
     saveConfigAndNotify();
 }
 
 // Default settings
-void createDefaultConfig(void)
-{
+void createDefaultConfig(void) {
     // Radio
 #ifdef RX_CHANNELS_TAER
     parseRcChannels("TAER1234");
@@ -275,8 +276,7 @@ void createDefaultConfig(void)
     targetConfiguration();
 }
 
-void resetConfigs(void)
-{
+void resetConfigs(void) {
     pgResetAll(MAX_PROFILE_COUNT);
     pgActivateProfile(0);
 
@@ -288,8 +288,7 @@ void resetConfigs(void)
 #endif
 }
 
-static void activateConfig(void)
-{
+static void activateConfig(void) {
     activateControlRateConfig();
     activateBatteryProfile();
 
@@ -309,8 +308,7 @@ static void activateConfig(void)
     navigationUsePIDs();
 }
 
-void readEEPROM(void)
-{
+void readEEPROM(void) {
     suspendRxSignal();
 
     // Sanity check, read flash
@@ -327,43 +325,56 @@ void readEEPROM(void)
     resumeRxSignal();
 }
 
-void writeEEPROM(void)
-{
+void processSaveConfigAndNotify(void) {
+    writeEEPROM();
+    readEEPROM();
+    beeperConfirmationBeeps(1);
+    osdShowEEPROMSavedNotification();
+}
+
+void writeEEPROM(void) {
     suspendRxSignal();
-
     writeConfigToEEPROM();
-
     resumeRxSignal();
 }
 
-void resetEEPROM(void)
-{
+void resetEEPROM(void) {
     resetConfigs();
     writeEEPROM();
 }
 
-void ensureEEPROMContainsValidData(void)
-{
+void ensureEEPROMContainsValidData(void) {
     if (isEEPROMContentValid()) {
         return;
     }
     resetEEPROM();
 }
 
-void saveConfigAndNotify(void)
-{
-    writeEEPROM();
-    readEEPROM();
-    beeperConfirmationBeeps(1);
+void saveConfigAndNotify(void) {
+    osdStartedSaveProcess();
+    saveState = SAVESTATE_SAVEANDNOTIFY;
 }
 
-uint8_t getConfigProfile(void)
-{
+void processDelayedSave(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
+
+    switch (saveState) {
+        case SAVESTATE_SAVEANDNOTIFY:
+            processSaveConfigAndNotify();
+            saveState = SAVESTATE_NONE;
+            break;
+        case SAVESTATE_SAVEONLY:
+            writeEEPROM();
+            saveState = SAVESTATE_NONE;
+            break;
+    }
+}
+
+uint8_t getConfigProfile(void) {
     return systemConfig()->current_profile_index;
 }
 
-bool setConfigProfile(uint8_t profileIndex)
-{
+bool setConfigProfile(uint8_t profileIndex) {
     bool ret = true; // return true if current_profile_index has changed
     if (systemConfig()->current_profile_index == profileIndex) {
         ret =  false;
@@ -378,8 +389,7 @@ bool setConfigProfile(uint8_t profileIndex)
     return ret;
 }
 
-void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
-{
+void setConfigProfileAndWriteEEPROM(uint8_t profileIndex) {
     if (setConfigProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
         writeEEPROM();
@@ -388,13 +398,11 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
-uint8_t getConfigBatteryProfile(void)
-{
+uint8_t getConfigBatteryProfile(void) {
     return systemConfig()->current_battery_profile_index;
 }
 
-bool setConfigBatteryProfile(uint8_t profileIndex)
-{
+bool setConfigBatteryProfile(uint8_t profileIndex) {
     bool ret = true; // return true if current_battery_profile_index has changed
     if (systemConfig()->current_battery_profile_index == profileIndex) {
         ret =  false;
@@ -407,8 +415,7 @@ bool setConfigBatteryProfile(uint8_t profileIndex)
     return ret;
 }
 
-void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
-{
+void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex) {
     if (setConfigBatteryProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
         writeEEPROM();
@@ -427,42 +434,34 @@ void setGravityCalibrationAndWriteEEPROM(float getGravity) {
     gyroConfigMutable()->gravity_cmss_cal = getGravity;
 }
 
-void beeperOffSet(uint32_t mask)
-{
+void beeperOffSet(uint32_t mask) {
     beeperConfigMutable()->beeper_off_flags |= mask;
 }
 
-void beeperOffSetAll(uint8_t beeperCount)
-{
+void beeperOffSetAll(uint8_t beeperCount) {
     beeperConfigMutable()->beeper_off_flags = (1 << beeperCount) -1;
 }
 
-void beeperOffClear(uint32_t mask)
-{
+void beeperOffClear(uint32_t mask) {
     beeperConfigMutable()->beeper_off_flags &= ~(mask);
 }
 
-void beeperOffClearAll(void)
-{
+void beeperOffClearAll(void) {
     beeperConfigMutable()->beeper_off_flags = 0;
 }
 
-uint32_t getBeeperOffMask(void)
-{
+uint32_t getBeeperOffMask(void) {
     return beeperConfig()->beeper_off_flags;
 }
 
-void setBeeperOffMask(uint32_t mask)
-{
+void setBeeperOffMask(uint32_t mask) {
     beeperConfigMutable()->beeper_off_flags = mask;
 }
 
-uint32_t getPreferredBeeperOffMask(void)
-{
+uint32_t getPreferredBeeperOffMask(void) {
     return beeperConfig()->preferred_beeper_off_flags;
 }
 
-void setPreferredBeeperOffMask(uint32_t mask)
-{
+void setPreferredBeeperOffMask(uint32_t mask) {
     beeperConfigMutable()->preferred_beeper_off_flags = mask;
 }

@@ -319,6 +319,8 @@ void fcTasksInit(void)
 {
     schedulerInit();
 
+    setTaskEnabled(TASK_SAVE_SETTINGS, true);
+
     rescheduleTask(TASK_PID, getLooptime());
     setTaskEnabled(TASK_PID, true);
 
@@ -408,6 +410,12 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "SYSTEM",
         .taskFunc = taskSystem,
         .desiredPeriod = TASK_PERIOD_HZ(10),              // run every 100 ms, 10Hz
+        .staticPriority = TASK_PRIORITY_HIGH,
+    },
+    [TASK_SAVE_SETTINGS] = {
+        .taskName       = "SAVE",
+        .taskFunc       = processDelayedSave,
+        .desiredPeriod  = TASK_PERIOD_HZ(10),
         .staticPriority = TASK_PRIORITY_HIGH,
     },
     [TASK_PID] = {
