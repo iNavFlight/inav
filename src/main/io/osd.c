@@ -4522,9 +4522,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
-        if (showSavedOnOSD()) {
-            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
-        }
 
 #ifdef USE_DEV_TOOLS
         if (systemConfig()->groundTestMode) {
