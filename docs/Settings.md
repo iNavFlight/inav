@@ -2774,7 +2774,7 @@ Protocol that is used to send motor updates to ESCs. Possible values - STANDARD,
 
 ### motor_pwm_rate
 
-Output frequency (in Hz) for motor pins.  Applies only to brushed motors.
+Output frequency (in Hz) for motor pins.  Applies only to brushed motors. 
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4824,7 +4824,7 @@ IMPERIAL, METRIC, UK
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HD`, and 'DJIWTF'
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HD` and 'DJIWTF'
 
 | Default | Min | Max |
 | --- | --- | --- |
