@@ -392,8 +392,8 @@ displayPort_t* mspOsdDisplayPortInit(void)
 {
     if (mspOsdSerialInit()) {
         init();
-        displayInit(&osdDisplayPort, &mspOsdVTable);
-        return &osdDisplayPort;
+        displayInit(&mspOsdDisplayPort, &mspOsdVTable);
+        return &mspOsdDisplayPort;
     }
     return NULL;
 }
