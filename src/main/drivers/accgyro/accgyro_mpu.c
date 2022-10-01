@@ -45,12 +45,14 @@
 // Check busDevice scratchpad memory size
 STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
+#define int16_val(v, idx) ((int16_t)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
+
 static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
     { GYRO_LPF_256HZ,   8000,   { MPU_DLPF_256HZ,   0  } },
     { GYRO_LPF_256HZ,   4000,   { MPU_DLPF_256HZ,   1  } },
     { GYRO_LPF_256HZ,   2000,   { MPU_DLPF_256HZ,   3  } },
     { GYRO_LPF_256HZ,   1000,   { MPU_DLPF_256HZ,   7  } },
-    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11  } },
+    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11 } },
     { GYRO_LPF_256HZ,    500,   { MPU_DLPF_256HZ,   15 } },
 
     { GYRO_LPF_188HZ,   1000,   { MPU_DLPF_188HZ,   0  } },
@@ -83,9 +85,9 @@ bool mpuGyroRead(gyroDev_t *gyro)
         return false;
     }
 
-    gyro->gyroADCRaw[X] = (int16_t)((data[0] << 8) | data[1]);
-    gyro->gyroADCRaw[Y] = (int16_t)((data[2] << 8) | data[3]);
-    gyro->gyroADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
+    gyro->gyroADCRaw[X] = int16_val(data, 0);
+    gyro->gyroADCRaw[Y] = int16_val(data, 1);
+    gyro->gyroADCRaw[Z] = int16_val(data, 2);
 
     return true;
 }
@@ -102,9 +104,9 @@ bool mpuGyroReadScratchpad(gyroDev_t *gyro)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(busDev);
 
     if (mpuUpdateSensorContext(busDev, ctx)) {
-        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[0] << 8) | ctx->gyroRaw[1]);
-        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[2] << 8) | ctx->gyroRaw[3]);
-        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[4] << 8) | ctx->gyroRaw[5]);
+        gyro->gyroADCRaw[X] = int16_val(ctx->gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = int16_val(ctx->gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = int16_val(ctx->gyroRaw, 2);
         return true;
     }
 
@@ -116,9 +118,9 @@ bool mpuAccReadScratchpad(accDev_t *acc)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[0] << 8) | ctx->accRaw[1]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[2] << 8) | ctx->accRaw[3]);
-        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[4] << 8) | ctx->accRaw[5]);
+        acc->ADCRaw[X] = int16_val(ctx->accRaw, 0);
+        acc->ADCRaw[Y] = int16_val(ctx->accRaw, 1);
+        acc->ADCRaw[Z] = int16_val(ctx->accRaw, 2);
         return true;
     }
 
@@ -131,7 +133,7 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 
     if (ctx->lastReadStatus) {
         // Convert to degC*10: degC = raw / 340 + 36.53
-        *data = (int16_t)((ctx->tempRaw[0] << 8) | ctx->tempRaw[1]) / 34 + 365;
+        *data = int16_val(data, 0) / 34 + 365;
         return true;
     }
 
