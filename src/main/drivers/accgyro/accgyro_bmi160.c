@@ -35,7 +35,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -123,8 +122,7 @@ static const gyroFilterAndRateConfig_t gyroConfigs[] = {
 static void bmi160AccAndGyroInit(gyroDev_t *gyro)
 {
     uint8_t value;
-    gyroIntExtiInit(gyro);
-
+    
     busSetSpeed(gyro->busDev, BUS_SPEED_INITIALIZATION);
 
     // Normal power mode, can take up to 80+3.8ms

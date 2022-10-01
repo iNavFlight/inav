@@ -72,7 +72,6 @@
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
@@ -249,9 +248,7 @@ void init(void)
 
     ledInit(false);
 
-#ifdef USE_EXTI
     EXTIInit();
-#endif
 
 #ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
