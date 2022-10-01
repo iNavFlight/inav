@@ -158,6 +158,7 @@
 
 #ifdef MATEKF722PX_PINIO
 #define PINIO3_PIN                  PC12 // UART 5 TX - USER 3 PINIO
+#define PINIO4_PIN                  PD2  // UART 5 RX - USER 4 PINIO
 #endif
 
 // *************** LEDSTRIP ************************
