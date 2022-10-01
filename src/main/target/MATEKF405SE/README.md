@@ -16,4 +16,4 @@
 * 4x BEC + current sensor
 
 ### MATEKF405SE_PINIO
-Replaces UART 6 Tx with USER 1 for PINIO
+Replaces UART 6 Tx with USER 1 for PINIO and UART 6 Rx with USER 2 for PINIO
