@@ -111,6 +111,11 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
 #endif
+
+#ifdef USE_DJIWTF_OSD
+    // Capture DJI messages to determine if VTX is connected
+    djiWtfOsdSerialProcess(mspFcProcessCommand);
+#endif
 }
 
 void taskUpdateBattery(timeUs_t currentTimeUs)

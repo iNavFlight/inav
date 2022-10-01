@@ -169,6 +169,8 @@ displayPort_t *cmsDisplayPortGetCurrent(void)
 //   21 cols x 8 rows
 // HD
 //   50 cols x 18 rows
+// DJIWTF
+//   60 cols x 22 rows
 //
 
 #define NORMAL_SCREEN_MIN_COLS 18      // Less is a small screen

@@ -116,6 +116,7 @@ FILE_COMPILE_FOR_SPEED
 
 #define VIDEO_BUFFER_CHARS_PAL    480
 #define VIDEO_BUFFER_CHARS_HD     900
+#define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_TC 0.2
 
@@ -220,7 +221,12 @@ bool osdDisplayIsPAL(void)
 
 bool osdDisplayIsHD(void)
 {
-    return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_HD;
+    if (displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_HD
+        || displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_DJIWTF)
+    {
+        return true;
+    }
+    return false;
 }
 
 /**
