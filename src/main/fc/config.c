@@ -363,10 +363,26 @@ void ensureEEPROMContainsValidData(void)
     resetEEPROM();
 }
 
+/*
+ * Used to save the EEPROM and notify the user with beeps and OSD notifications.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned at the start of the next loop.
+ */
 void saveConfigAndNotify(void)
 {
     osdStartedSaveProcess();
     saveState = SAVESTATE_SAVEANDNOTIFY;
+}
+
+/*
+ * Used to save the EEPROM without notifications. Can be used instead of writeEEPROM() if no reboot is called after the write.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned at the start of the next loop.
+ * If any save with notifications are requested, notifications are shown.
+ */
+void saveConfig(void)
+{
+    if (saveState != SAVESTATE_SAVEANDNOTIFY) {
+        saveState = SAVESTATE_SAVEONLY;
+    }
 }
 
 void processDelayedSave(timeUs_t currentTimeUs)
