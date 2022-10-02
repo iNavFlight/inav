@@ -28,7 +28,7 @@ extern "C" {
     #include "fc/runtime_config.h"
 
     #include "io/gps.h"
-
+    #include "flight/pid.h"
     #include "flight/imu.h"
 }
 
@@ -99,6 +99,8 @@ mag_t mag;
 gpsSolutionData_t gpsSol;
 
 compassConfig_t compassConfig_System;
+
+pidProfile_t* pidProfile_ProfileCurrent;
 
 uint8_t detectedSensors[] = { GYRO_NONE, ACC_NONE };
 
