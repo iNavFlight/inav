@@ -37,6 +37,7 @@
 
 #include "drivers/time.h"
 
+#include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
@@ -251,7 +252,12 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         return;
     }
 
-    // actions during not armed
+    // Disable stick commands when in CLI mode. Ideally, they should also be disabled when configurator is connected
+    if (cliMode) {
+        return;
+    }
+
+    // actions during not armed and not in CLI
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {

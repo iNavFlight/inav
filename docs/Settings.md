@@ -338,7 +338,7 @@ Internal (configurator) hint. Should not be changed manually
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 4 |
+| 0 | 0 | 99 |
 
 ---
 
