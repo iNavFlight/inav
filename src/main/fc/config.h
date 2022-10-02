@@ -122,7 +122,7 @@ void resetEEPROM(void);
 void readEEPROM(void);
 void writeEEPROM(void);
 void ensureEEPROMContainsValidData(void);
-void processDelayedSave(timeUs_t currentTimeUs);
+void processDelayedSave(void);
 
 void saveConfig(void);
 void saveConfigAndNotify(void);

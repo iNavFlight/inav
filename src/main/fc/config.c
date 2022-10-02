@@ -385,10 +385,8 @@ void saveConfig(void)
     }
 }
 
-void processDelayedSave(timeUs_t currentTimeUs)
+void processDelayedSave(void)
 {
-    UNUSED(currentTimeUs);
-
     switch (saveState) {
         case SAVESTATE_SAVEANDNOTIFY:
             processSaveConfigAndNotify();

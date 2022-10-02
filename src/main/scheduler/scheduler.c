@@ -34,6 +34,8 @@ FILE_COMPILE_FOR_SPEED
 
 #include "drivers/time.h"
 
+#include "fc/config.h"
+
 STATIC_FASTRAM cfTask_t *currentTask = NULL;
 
 STATIC_FASTRAM uint32_t totalWaitingTasks;
@@ -129,6 +131,9 @@ void taskSystem(timeUs_t currentTimeUs)
         totalWaitingTasksSamples = 0;
         totalWaitingTasks = 0;
     }
+
+    // Check for saves that need processing
+    processDelayedSave();
 }
 
 #define TASK_MOVING_SUM_COUNT           32
