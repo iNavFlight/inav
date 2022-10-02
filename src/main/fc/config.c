@@ -365,7 +365,7 @@ void ensureEEPROMContainsValidData(void)
 
 /*
  * Used to save the EEPROM and notify the user with beeps and OSD notifications.
- * This consolidates all save calls in the loop in to a single save operation. This save is actioned at the start of the next loop.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
  */
 void saveConfigAndNotify(void)
 {
@@ -375,7 +375,7 @@ void saveConfigAndNotify(void)
 
 /*
  * Used to save the EEPROM without notifications. Can be used instead of writeEEPROM() if no reboot is called after the write.
- * This consolidates all save calls in the loop in to a single save operation. This save is actioned at the start of the next loop.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
  * If any save with notifications are requested, notifications are shown.
  */
 void saveConfig(void)
@@ -387,15 +387,12 @@ void saveConfig(void)
 
 void processDelayedSave(void)
 {
-    switch (saveState) {
-        case SAVESTATE_SAVEANDNOTIFY:
-            processSaveConfigAndNotify();
-            saveState = SAVESTATE_NONE;
-            break;
-        case SAVESTATE_SAVEONLY:
-            writeEEPROM();
-            saveState = SAVESTATE_NONE;
-            break;
+    if (saveState == SAVESTATE_SAVEANDNOTIFY) {
+        processSaveConfigAndNotify();
+        saveState = SAVESTATE_NONE;
+    } else if (saveState == SAVESTATE_SAVEONLY) {
+        writeEEPROM();
+        saveState = SAVESTATE_NONE;
     }
 }
 
