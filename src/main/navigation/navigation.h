@@ -263,11 +263,12 @@ typedef struct navConfig_s {
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
         uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
         uint16_t waypoint_enforce_altitude;         // Forces waypoint altitude to be achieved
+        uint8_t  land_detect_sensitivity;           // Sensitivity of landing detector
+        uint16_t auto_disarm_delay;                 // safety time delay for landing detector
     } general;
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
-        uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
 
 #ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
@@ -314,7 +315,6 @@ typedef struct navConfig_s {
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
-        uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
         uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
         uint8_t  wp_turn_smoothing;          // WP mission turn smoothing options
@@ -351,6 +351,15 @@ typedef enum {
     NAV_WP_FLAG_HOME = 0x48,
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
+
+/* A reminder that P3 is a bitfield */
+typedef enum {
+    NAV_WP_ALTMODE = (1<<0),
+    NAV_WP_USER1 = (1<<1),
+    NAV_WP_USER2 = (1<<2),
+    NAV_WP_USER3 = (1<<3),
+    NAV_WP_USER4 = (1<<4)
+} navWaypointP3Flags_e;
 
 typedef struct {
     int32_t lat;
@@ -515,7 +524,6 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
 #ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment);
-void setMultiMissionOnArm(void);
 #endif
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);

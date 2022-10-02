@@ -927,10 +927,11 @@ groups:
         description: "What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
         default_value: "DROP"
         table: failsafe_procedure
-      - name: failsafe_mission
-        description: "If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode"
-        default_value: ON
-        type: bool
+      - name: failsafe_mission_delay
+        description: "Applies if failsafe occurs when a WP mission is in progress. Sets the time delay in seconds between failsafe occurring and the selected failsafe procedure activating. If set to -1 the failsafe procedure won't activate at all and the mission will continue until the end."
+        default_value: 0
+        min: -1
+        max: 600
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t
@@ -1562,7 +1563,7 @@ groups:
         field: appliedDefaults
         type: uint8_t
         min: 0
-        max: 4
+        max: 99
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -2267,7 +2268,7 @@ groups:
         min: 0
         max: 255
       - name: inav_use_gps_velned
-        description: "Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance."
+        description: "Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance."
         default_value: ON
         field: use_gps_velned
         type: bool
@@ -2387,10 +2388,16 @@ groups:
     headers: ["navigation/navigation.h"]
     members:
       - name: nav_disarm_on_landing
-        description: "If set to ON, iNav disarms the FC after landing"
+        description: "If set to ON, INAV disarms the FC after landing"
         default_value: OFF
         field: general.flags.disarm_on_landing
         type: bool
+      - name: nav_land_detect_sensitivity
+        description: "Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases."
+        default_value: 5
+        field: general.land_detect_sensitivity
+        min: 1
+        max: 15
       - name: nav_use_midthr_for_althold
         description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
         default_value: OFF
@@ -2440,11 +2447,11 @@ groups:
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_wp_multi_mission_index
-        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
+        description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1
         field: general.waypoint_multi_mission_index
         condition: USE_MULTI_MISSION
-        min: 0
+        min: 1
         max: 9
       - name: nav_fw_wp_tracking_accuracy
         description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."
@@ -2646,10 +2653,10 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
-      - name: nav_mc_auto_disarm_delay
-        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)"
+      - name: nav_auto_disarm_delay
+        description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 2000
-        field: mc.auto_disarm_delay
+        field: general.auto_disarm_delay
         min: 100
         max: 10000
       - name: nav_mc_braking_speed_threshold
@@ -2725,12 +2732,6 @@ groups:
         default_value: ON
         field: mc.slowDownForTurning
         type: bool
-      - name: nav_fw_auto_disarm_delay
-        description: "Delay before plane disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
-        field: fw.auto_disarm_delay
-        min: 100
-        max: 10000
       - name: nav_fw_bank_angle
         description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
         default_value: 35
@@ -3720,7 +3721,7 @@ groups:
         field: smartAudioEarlyAkkWorkaroundEnable
         type: bool
       - name: vtx_smartaudio_alternate_softserial_method
-        description: "Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier."
+        description: "Enable the alternate softserial method. This is the method used in INAV 3.0 and ealier."
         default_value: ON
         field: smartAudioAltSoftSerialMethod
         type: bool

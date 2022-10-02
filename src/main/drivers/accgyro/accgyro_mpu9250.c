@@ -26,7 +26,6 @@
 
 #include "drivers/system.h"
 #include "drivers/time.h"
-#include "drivers/exti.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -71,8 +70,6 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
-    gyroIntExtiInit(gyro);
-
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
     busWrite(dev, MPU_RA_PWR_MGMT_1, MPU9250_BIT_RESET);
@@ -98,15 +95,6 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
 
     busWrite(dev, MPU_RA_SMPLRT_DIV, config->gyroConfigValues[1]);
     delay(100);
-
-    // Data ready interrupt configuration
-    busWrite(dev, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 1 << 4 | 0 << 3 | 0 << 2 | 1 << 1 | 0 << 0);  // INT_ANYRD_2CLEAR, BYPASS_EN
-    delay(15);
-
-#ifdef USE_MPU_DATA_READY_SIGNAL
-    busWrite(dev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
-    delay(15);
-#endif
 
     busSetSpeed(dev, BUS_SPEED_FAST);
 }

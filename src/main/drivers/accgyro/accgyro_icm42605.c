@@ -29,7 +29,6 @@
 
 #include "drivers/system.h"
 #include "drivers/time.h"
-#include "drivers/exti.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -156,8 +155,6 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
                                                                 &icm42605GyroConfigs[0], ARRAYLEN(icm42605GyroConfigs));
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
-    gyroIntExtiInit(gyro);
-
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
     busWrite(dev, ICM42605_RA_PWR_MGMT0, ICM42605_PWR_MGMT0_TEMP_DISABLE_OFF | ICM42605_PWR_MGMT0_ACCEL_MODE_LN | ICM42605_PWR_MGMT0_GYRO_MODE_LN);
@@ -180,7 +177,6 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM42605_RA_INT_CONFIG0, ICM42605_UI_DRDY_INT_CLEAR_ON_SBR);
     delay(100);
 
-#ifdef USE_MPU_DATA_READY_SIGNAL
     uint8_t intConfig1Value;
 
     busWrite(dev, ICM42605_RA_INT_SOURCE0, ICM42605_UI_DRDY_INT1_EN_ENABLED);
@@ -193,7 +189,6 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 
     busWrite(dev, ICM42605_RA_INT_CONFIG1, intConfig1Value);
     delay(15);
-#endif
 
     busSetSpeed(dev, BUS_SPEED_FAST);
 }

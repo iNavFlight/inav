@@ -114,7 +114,7 @@
 #define USE_OSD
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
-#define USE_HDZERO_OSD
+#define USE_MSP_OSD
 #define USE_SMARTPORT_MASTER
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
@@ -185,12 +185,11 @@
 #define USE_WIND_ESTIMATOR
 
 #define USE_SIMULATOR
+#define USE_PITOT_VIRTUAL
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
-
 #define USE_VTX_FFPV
-#define USE_PITOT_VIRTUAL
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE

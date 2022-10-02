@@ -235,7 +235,7 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t 
             case FILTER_PT1:
                 *applyFn = (filterApplyFnPtr)pt1FilterApply;
                 for (int axis = 0; axis < 3; axis++) {
-                    pt1FilterInit(&state[axis].pt1, cutoff, looptime * 1e-6f);
+                    pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
                 }
                 break;
             case FILTER_BIQUAD:

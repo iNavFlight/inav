@@ -47,7 +47,6 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
-#include "flight/hil.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -194,7 +193,7 @@ void imuTransformVectorEarthToBody(fpVector3_t * v)
     quaternionRotateVector(v, v, &orientation);
 }
 
-#if defined(USE_GPS) || defined(HIL)
+#if defined(USE_GPS)
 STATIC_UNIT_TESTED void imuComputeQuaternionFromRPY(int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
 {
     if (initialRoll > 1800) initialRoll -= 3600;
@@ -329,8 +328,8 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
 #ifdef USE_SIMULATOR
             if (ARMING_FLAG(SIMULATOR_MODE)) {
-                    imuSetMagneticDeclination(0);
-                }
+                imuSetMagneticDeclination(0);
+            }
 #endif
 
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
@@ -462,7 +461,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE) && ((simulatorData.flags & SIMU_USE_SENSORS) == 0)) {
+	if (ARMING_FLAG(SIMULATOR_MODE) && !SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
 		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
 		imuComputeRotationMatrix();
 	}
@@ -600,37 +599,12 @@ static void imuCalculateEstimatedAttitude(float dT)
     imuUpdateEulerAngles();
 }
 
-#ifdef HIL
-void imuHILUpdate(void)
-{
-    /* Set attitude */
-    attitude.values.roll = hilToFC.rollAngle;
-    attitude.values.pitch = hilToFC.pitchAngle;
-    attitude.values.yaw = hilToFC.yawAngle;
-
-    /* Compute rotation quaternion for future use */
-    imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
-
-    /* Fake accADC readings */
-    accADCf[X] = hilToFC.bodyAccel[X] / GRAVITY_CMSS;
-    accADCf[Y] = hilToFC.bodyAccel[Y] / GRAVITY_CMSS;
-    accADCf[Z] = hilToFC.bodyAccel[Z] / GRAVITY_CMSS;
-}
-#endif
-
 void imuUpdateAccelerometer(void)
 {
-#ifdef HIL
-    if (sensors(SENSOR_ACC) && !hilActive) {
-        accUpdate();
-        isAccelUpdatedAtLeastOnce = true;
-    }
-#else
     if (sensors(SENSOR_ACC)) {
         accUpdate();
         isAccelUpdatedAtLeastOnce = true;
     }
-#endif
 }
 
 void imuCheckVibrationLevels(void)
@@ -655,23 +629,10 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
     previousIMUUpdateTimeUs = currentTimeUs;
 
     if (sensors(SENSOR_ACC) && isAccelUpdatedAtLeastOnce) {
-#ifdef HIL
-        if (!hilActive) {
-            gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
-            accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
-            imuCheckVibrationLevels();
-            imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
-        }
-        else {
-            imuHILUpdate();
-            imuUpdateMeasuredAcceleration();
-        }
-#else
         gyroGetMeasuredRotationRate(&imuMeasuredRotationBF);    // Calculate gyro rate in body frame in rad/s
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
         imuCheckVibrationLevels();
         imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
-#endif
     } else {
         acc.accADCf[X] = 0.0f;
         acc.accADCf[Y] = 0.0f;
@@ -681,7 +642,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
 
 bool isImuReady(void)
 {
-    return sensors(SENSOR_ACC) && gyroIsCalibrationComplete();
+    return sensors(SENSOR_ACC) && STATE(ACCELEROMETER_CALIBRATED) && gyroIsCalibrationComplete();
 }
 
 bool isImuHeadingValid(void)

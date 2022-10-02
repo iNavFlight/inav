@@ -307,7 +307,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThreadNMEA)
     // No configuration is done for pure NMEA modules
 
     // GPS setup done, reset timeout
-    gpsSetProtocolTimeout(GPS_TIMEOUT);
+    gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
