@@ -43,7 +43,6 @@
 
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define GYRO_INT_EXTI           PC4
 #define IMU_MPU6000_ALIGN       CW0_DEG
 
 #else
@@ -55,14 +54,11 @@
 
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
-#define GYRO_INT_EXTI           PC9
-
 #define IMU_MPU6000_ALIGN       CW180_DEG
 
 #endif
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 #define USE_IMU_MPU6000
 
 // *************** I2C/Baro/Mag *********************

@@ -36,8 +36,7 @@
 
 // *************** IMU generic ***********************
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 
 // *************** SPI1 ****************
@@ -82,13 +81,10 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI4
 #define MPU6000_CS_PIN          PE4
-#define MPU6000_EXTI_PIN        PE1
-
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2

@@ -44,7 +44,7 @@ Due to differences on the board (I2C - see below), there are two firmware varian
 ### I2C
 
 The F405-AIO, STD, CTR boards expose dedicated I2C pads.
-The F405-OSD does not expose I2C. For iNav there is a software I2C provision using the USART3 pads, as:
+The F405-OSD does not expose I2C. For INAV there is a software I2C provision using the USART3 pads, as:
 
 * SDA => RX3, SCL => TX3
 * Do not assign any serial function to USART3

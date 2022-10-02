@@ -40,7 +40,7 @@
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
-#define MC_LAND_CHECK_VEL_Z_MOVING          25.0f   // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // uS
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
@@ -96,9 +96,9 @@ typedef struct navigationFlags_s {
     bool isAdjustingHeading;
 
     // Behaviour modifiers
-    bool isGCSAssistedNavigationEnabled;    // Does iNav accept WP#255 - follow-me etc.
+    bool isGCSAssistedNavigationEnabled;    // Does INAV accept WP#255 - follow-me etc.
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
-    bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
+    bool isTerrainFollowEnabled;            // Does INAV use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     // Failsafe actions
     bool forcedRTHActivated;
@@ -382,7 +382,8 @@ typedef struct {
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
-    int8_t                      waypointCount;
+    int8_t                      waypointCount;              // number of WPs in loaded mission
+    int8_t                      startWpIndex;               // index of first waypoint in mission
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
 
@@ -393,8 +394,7 @@ typedef struct {
     /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
-    int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
-    int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
+    int8_t                      totalMultiMissionWpCount;   // total number of waypoints in all multi missions
 #endif
     navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;

@@ -48,7 +48,7 @@ Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use IN
 
 ### OSD layout Copy, Move, or Replace helper tool
 
-[Easy INAV OSD switcher tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/inav-osd-switcher-tool/) allows you to easily switch your OSD layouts around in iNav. Choose the from and to OSD layouts, and the method of transfering the layouts.
+[Easy INAV OSD switcher tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/inav-osd-switcher-tool/) allows you to easily switch your OSD layouts around in INAV. Choose the from and to OSD layouts, and the method of transfering the layouts.
 
 ## Installation
 
