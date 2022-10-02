@@ -546,12 +546,7 @@ void init(void)
 #endif
 #ifdef USE_MSP_OSD
         if (!osdDisplayPort) {
-            osdDisplayPort = mspOsdDisplayPortInit();
-        }
-#endif
-#ifdef USE_DJIWTF_OSD
-        if (!osdDisplayPort) {
-            osdDisplayPort = djiWtfOsdDisplayPortInit();
+            osdDisplayPort = mspOsdDisplayPortInit(osdConfig()->video_system);
         }
 #endif
 #if defined(USE_MAX7456)

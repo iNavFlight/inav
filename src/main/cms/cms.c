@@ -167,7 +167,7 @@ displayPort_t *cmsDisplayPortGetCurrent(void)
 //   30 cols x 13 rows
 // HoTT Telemetry Screen
 //   21 cols x 8 rows
-// HD
+// HDZERO
 //   50 cols x 18 rows
 // DJIWTF
 //   60 cols x 22 rows

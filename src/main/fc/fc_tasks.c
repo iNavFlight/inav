@@ -112,12 +112,7 @@ void taskHandleSerial(timeUs_t currentTimeUs)
     mspOsdSerialProcess(mspFcProcessCommand);
 #endif
 
-#ifdef USE_DJIWTF_OSD
-    // Capture DJI messages to determine if VTX is connected
-    djiWtfOsdSerialProcess(mspFcProcessCommand);
-#endif
 }
-
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;
