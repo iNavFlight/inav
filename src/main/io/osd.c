@@ -2522,6 +2522,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_R, elemAttr);
             } else {
                 panServoTimeOffCentre = 0;
+                
+                if (osdConfig()->pan_servo_indicator_show_degrees) {
+                    tfp_sprintf(buff, "%3d%c", panOffset, SYM_DEGREES);
+                    displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
+                }
                 displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_CENTRED);
             }
 
