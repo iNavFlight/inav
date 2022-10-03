@@ -145,9 +145,9 @@ void gpsProcessNewSolutionData(void)
     }
     else {
         /* When no fix available - reset flags as well */
-        gpsSol.flags.validVelNE = 0;
-        gpsSol.flags.validVelD = 0;
-        gpsSol.flags.validEPE = 0;
+        gpsSol.flags.validVelNE = false;
+        gpsSol.flags.validVelNE = false;
+        gpsSol.flags.validEPE = false;
         DISABLE_STATE(GPS_FIX);
     }
 
@@ -180,11 +180,11 @@ static void gpsResetSolution(void)
 
     gpsSol.fixType = GPS_NO_FIX;
 
-    gpsSol.flags.validVelNE = 0;
-    gpsSol.flags.validVelD = 0;
-    gpsSol.flags.validMag = 0;
-    gpsSol.flags.validEPE = 0;
-    gpsSol.flags.validTime = 0;
+    gpsSol.flags.validVelNE = false;
+    gpsSol.flags.validVelNE = false;
+    gpsSol.flags.validMag = false;
+    gpsSol.flags.validEPE = false;
+    gpsSol.flags.validTime = false;
 }
 
 void gpsPreInit(void)
@@ -292,10 +292,10 @@ static bool gpsFakeGPSUpdate(void)
         gpsSol.velNED[X] = speed * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         gpsSol.velNED[Y] = speed * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         gpsSol.velNED[Z] = 0;
-        gpsSol.flags.validVelNE = 1;
-        gpsSol.flags.validVelD = 1;
-        gpsSol.flags.validEPE = 1;
-        gpsSol.flags.validTime = 1;
+        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validEPE = true;
+        gpsSol.flags.validTime = true;
         gpsSol.eph = 100;
         gpsSol.epv = 100;
         gpsSol.time.year = 1983;

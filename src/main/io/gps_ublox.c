@@ -609,7 +609,7 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
         gpsSol.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
         gpsSol.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
-        gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validEPE = true;
         if (next_fix_type != GPS_NO_FIX)
             gpsSol.fixType = next_fix_type;
         _new_position = true;
@@ -632,8 +632,8 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.velNED[X] = _buffer.velned.ned_north;
         gpsSol.velNED[Y] = _buffer.velned.ned_east;
         gpsSol.velNED[Z] = _buffer.velned.ned_down;
-        gpsSol.flags.validVelNE = 1;
-        gpsSol.flags.validVelD = 1;
+        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validVelNE = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
@@ -646,9 +646,9 @@ static bool gpsParceFrameUBLOX(void)
             gpsSol.time.seconds = _buffer.timeutc.sec;
             gpsSol.time.millis = _buffer.timeutc.nano / (1000*1000);
 
-            gpsSol.flags.validTime = 1;
+            gpsSol.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = 0;
+            gpsSol.flags.validTime = false;
         }
         break;
     case MSG_PVT:
@@ -666,9 +666,9 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
         gpsSol.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
         gpsSol.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
-        gpsSol.flags.validVelNE = 1;
-        gpsSol.flags.validVelD = 1;
-        gpsSol.flags.validEPE = 1;
+        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validEPE = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
             gpsSol.time.year = _buffer.pvt.year;
@@ -679,9 +679,9 @@ static bool gpsParceFrameUBLOX(void)
             gpsSol.time.seconds = _buffer.pvt.sec;
             gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
 
-            gpsSol.flags.validTime = 1;
+            gpsSol.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = 0;
+            gpsSol.flags.validTime = false;
         }
 
         _new_position = true;
