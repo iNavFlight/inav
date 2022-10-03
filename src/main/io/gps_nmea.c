@@ -220,7 +220,7 @@ static bool gpsNewFrameNMEA(char c)
 
                         // NMEA does not report VELNED
                         gpsSol.flags.validVelNE = false;
-                        gpsSol.flags.validVelNE = false;
+                        gpsSol.flags.validVelD = false;
                         break;
                     case FRAME_RMC:
                         gpsSol.groundSpeed = gps_Msg.speed;
@@ -277,7 +277,7 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNMEA(newChar)) {
                 gpsSol.flags.validVelNE = false;
-                gpsSol.flags.validVelNE = false;
+                gpsSol.flags.validVelD = false;
                 ptSemaphoreSignal(semNewDataReady);
                 break;
             }

@@ -95,7 +95,7 @@ void mspGPSReceiveNewData(const uint8_t * bufferPtr)
     gpsSol.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
     gpsSol.hdop = gpsConstrainHDOP(pkt->hdop);
     gpsSol.flags.validVelNE = true;
-    gpsSol.flags.validVelNE = true;
+    gpsSol.flags.validVelD = true;
     gpsSol.flags.validEPE = true;
 
     gpsSol.time.year   = pkt->year;

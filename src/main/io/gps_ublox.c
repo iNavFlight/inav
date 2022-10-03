@@ -633,7 +633,7 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.velNED[Y] = _buffer.velned.ned_east;
         gpsSol.velNED[Z] = _buffer.velned.ned_down;
         gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validVelD = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
@@ -667,7 +667,7 @@ static bool gpsParceFrameUBLOX(void)
         gpsSol.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
         gpsSol.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
         gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validVelD = true;
         gpsSol.flags.validEPE = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
