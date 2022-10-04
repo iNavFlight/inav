@@ -3,6 +3,7 @@
 
 extern "C" {
 #include "common/bitarray.h"
+#include "common/utils.h"
 }
 
 #include "gtest/gtest.h"
