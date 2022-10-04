@@ -261,7 +261,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     // Configure timer DMA
     if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
-        memset(port->dmaBuffer, 0, sizeof(port->dmaBuffer));
+        ZERO_FARRAY(port->dmaBuffer);
         port->configured = true;
     }
 

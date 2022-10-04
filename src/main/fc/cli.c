@@ -4059,7 +4059,7 @@ void cliProcess(void)
                 bufferIndex = 0;
             }
 
-            memset(cliBuffer, 0, sizeof(cliBuffer));
+            ZERO_FARRAY(cliBuffer);
 
             // 'exit' will reset this flag, so we don't need to print prompt again
             if (!cliMode)
