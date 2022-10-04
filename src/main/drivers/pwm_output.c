@@ -130,7 +130,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 static pwmOutputPort_t *pwmOutAllocatePort(void)
 {
     if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
-        LOG_E(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
+        LOG_ERROR(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
 

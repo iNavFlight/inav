@@ -62,7 +62,7 @@ const gyroFilterAndRateConfig_t * chooseGyroConfig(uint8_t desiredLpf, uint16_t 
         }
     }
 
-    LOG_V(GYRO, "GYRO CONFIG { %d, %d } -> { %d, %d}; regs 0x%02X, 0x%02X",
+    LOG_VERBOSE(GYRO, "GYRO CONFIG { %d, %d } -> { %d, %d}; regs 0x%02X, 0x%02X",
                 desiredLpf, desiredRateHz,
                 candidate->gyroLpf, candidate->gyroRateHz,
                 candidate->gyroConfigValues[0], candidate->gyroConfigValues[1]);

@@ -80,7 +80,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
     const int timerIndex = lookupTimerIndex(timHw->tim);
     
     if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
-        LOG_E(TIMER, "Can't find hardware timer definition");
+        LOG_ERROR(TIMER, "Can't find hardware timer definition");
         return NULL;
     }
 
@@ -90,7 +90,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
         
         // Check for OOM
         if (timerCtx[timerIndex] == NULL) {
-            LOG_E(TIMER, "Can't allocate TCH object");
+            LOG_ERROR(TIMER, "Can't allocate TCH object");
             return NULL;
         }
 

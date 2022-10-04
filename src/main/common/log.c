@@ -96,7 +96,7 @@ void logInit(void)
         }
     }
     // Initialization done
-    LOG_I(SYSTEM, "%s/%s %s %s / %s (%s)",
+    LOG_INFO(SYSTEM, "%s/%s %s %s / %s (%s)",
         FC_FIRMWARE_NAME,
         targetName,
         FC_VERSION_STRING,
