@@ -2474,9 +2474,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             } else {
                 DISABLE_STATE(GPS_FIX);
             }
-            gpsSol.flags.validVelNE = 0;
-            gpsSol.flags.validVelD = 0;
-            gpsSol.flags.validEPE = 0;
+            gpsSol.flags.validVelNE = false;
+            gpsSol.flags.validVelD = false;
+            gpsSol.flags.validEPE = false;
             gpsSol.numSat = sbufReadU8(src);
             gpsSol.llh.lat = sbufReadU32(src);
             gpsSol.llh.lon = sbufReadU32(src);
@@ -3444,9 +3444,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					gpsSol.numSat = sbufReadU8(src);
 
 					if (gpsSol.fixType != GPS_NO_FIX) {
-						gpsSol.flags.validVelNE = 1;
-						gpsSol.flags.validVelD = 1;
-						gpsSol.flags.validEPE = 1;
+						gpsSol.flags.validVelNE = true;
+						gpsSol.flags.validVelD = true;
+						gpsSol.flags.validEPE = true;
 
 						gpsSol.llh.lat = sbufReadU32(src);
 						gpsSol.llh.lon = sbufReadU32(src);

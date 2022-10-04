@@ -212,15 +212,15 @@ static bool gpsNewFrameNMEA(char c)
                             gpsSol.hdop = gpsConstrainHDOP(gps_Msg.hdop);
                             gpsSol.eph = gpsConstrainEPE(gps_Msg.hdop * GPS_HDOP_TO_EPH_MULTIPLIER);
                             gpsSol.epv = gpsConstrainEPE(gps_Msg.hdop * GPS_HDOP_TO_EPH_MULTIPLIER);
-                            gpsSol.flags.validEPE = 0;
+                            gpsSol.flags.validEPE = false;
                         }
                         else {
                             gpsSol.fixType = GPS_NO_FIX;
                         }
 
                         // NMEA does not report VELNED
-                        gpsSol.flags.validVelNE = 0;
-                        gpsSol.flags.validVelD = 0;
+                        gpsSol.flags.validVelNE = false;
+                        gpsSol.flags.validVelD = false;
                         break;
                     case FRAME_RMC:
                         gpsSol.groundSpeed = gps_Msg.speed;
@@ -235,10 +235,10 @@ static bool gpsNewFrameNMEA(char c)
                             gpsSol.time.minutes = (gps_Msg.time / 10000) % 100;
                             gpsSol.time.seconds = (gps_Msg.time / 100) % 100;
                             gpsSol.time.millis = (gps_Msg.time & 100) * 10;
-                            gpsSol.flags.validTime = 1;
+                            gpsSol.flags.validTime = true;
                         }
                         else {
-                            gpsSol.flags.validTime = 0;
+                            gpsSol.flags.validTime = false;
                         }
 
                         break;
@@ -276,8 +276,8 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNMEA(newChar)) {
-                gpsSol.flags.validVelNE = 0;
-                gpsSol.flags.validVelD = 0;
+                gpsSol.flags.validVelNE = false;
+                gpsSol.flags.validVelD = false;
                 ptSemaphoreSignal(semNewDataReady);
                 break;
             }
