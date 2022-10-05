@@ -1903,10 +1903,10 @@ static void cliServoMix(char *cmdline)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
-static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions, int32_t showLC)
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions, int16_t showLC)
 {
     const char *format = "logic %d %d %d %d %d %d %d %d %d";
-    for (uint16_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         if (showLC == -1 || showLC == i) {
             const logicCondition_t logic = logicConditions[i];
 
