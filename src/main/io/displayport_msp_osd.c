@@ -54,9 +54,13 @@ FILE_COMPILE_FOR_SPEED
 #define MSP_WRITE_STRING 3
 #define MSP_DRAW_SCREEN 4
 #define MSP_SET_OPTIONS 5
-#define OPT_SD     0
-#define OPT_HDZERO 1
-#define OPT_DJIWTF 2
+
+typedef enum {          // defines are from hdzero code
+    SD_3016,
+    HD_5018,
+    HD_3016,
+    HD_6022            // added to support DJI wtfos 60x22 grid
+} resolutionType_e;
 
 #define DRAW_FREQ_DENOM 4 // 60Hz
 #define TX_BUFFER_SIZE 1024
@@ -77,6 +81,9 @@ static timeMs_t vtxHeartbeat;
 // HDZERO screen size
 #define HDZERO_COLS 50
 #define HDZERO_ROWS 18
+// Avatar screen size
+#define AVATAR_COLS 54
+#define AVATAR_ROWS 20
 // DJIWTF screen size
 #define DJI_COLS 60
 #define DJI_ROWS 22
@@ -131,13 +138,13 @@ static int setHdMode(displayPort_t *displayPort)
     switch(osdVideoSystem)
     {
     case VIDEO_SYSTEM_DJIWTF:
-        subSubcmd = OPT_DJIWTF;
+        subSubcmd = HD_6022;
         break;
     case VIDEO_SYSTEM_HDZERO:
-        subSubcmd = OPT_HDZERO;
+        subSubcmd = HD_5018;
         break;
     default:
-        subSubcmd = OPT_SD;
+        subSubcmd = SD_3016;
         break;
     }
 
