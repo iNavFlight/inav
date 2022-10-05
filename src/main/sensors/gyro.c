@@ -365,7 +365,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         setGyroCalibrationAndWriteEEPROM(dev->gyroZero);
 #endif
 
-        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
         dev->gyroZero[X] = 0;

@@ -317,7 +317,7 @@ int32_t baroCalculateAltitude(void)
         if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
             zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            LOG_D(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
+            LOG_DEBUG(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
         }
 
         baro.BaroAlt = 0;
