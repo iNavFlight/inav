@@ -130,8 +130,6 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 
             .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
 
-            .fwMinThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
-
             .nav = {
 
                 .mc = {
