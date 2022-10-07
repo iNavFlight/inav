@@ -1903,26 +1903,39 @@ static void cliServoMix(char *cmdline)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
-static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions, int16_t showLC)
 {
     const char *format = "logic %d %d %d %d %d %d %d %d %d";
-    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-        const logicCondition_t logic = logicConditions[i];
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        if (showLC == -1 || showLC == i) {
+            const logicCondition_t logic = logicConditions[i];
 
-        bool equalsDefault = false;
-        if (defaultLogicConditions) {
-            logicCondition_t defaultValue = defaultLogicConditions[i];
-            equalsDefault =
-                logic.enabled == defaultValue.enabled &&
-                logic.activatorId == defaultValue.activatorId &&
-                logic.operation == defaultValue.operation &&
-                logic.operandA.type == defaultValue.operandA.type &&
-                logic.operandA.value == defaultValue.operandA.value &&
-                logic.operandB.type == defaultValue.operandB.type &&
-                logic.operandB.value == defaultValue.operandB.value &&
-                logic.flags == defaultValue.flags;
+            bool equalsDefault = false;
+            if (defaultLogicConditions) {
+                logicCondition_t defaultValue = defaultLogicConditions[i];
+                equalsDefault =
+                    logic.enabled == defaultValue.enabled &&
+                    logic.activatorId == defaultValue.activatorId &&
+                    logic.operation == defaultValue.operation &&
+                    logic.operandA.type == defaultValue.operandA.type &&
+                    logic.operandA.value == defaultValue.operandA.value &&
+                    logic.operandB.type == defaultValue.operandB.type &&
+                    logic.operandB.value == defaultValue.operandB.value &&
+                    logic.flags == defaultValue.flags;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                    i,
+                    logic.enabled,
+                    logic.activatorId,
+                    logic.operation,
+                    logic.operandA.type,
+                    logic.operandA.value,
+                    logic.operandB.type,
+                    logic.operandB.value,
+                    logic.flags
+                );
+            }
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
                 logic.activatorId,
@@ -1934,27 +1947,20 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
                 logic.flags
             );
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format,
-            i,
-            logic.enabled,
-            logic.activatorId,
-            logic.operation,
-            logic.operandA.type,
-            logic.operandA.value,
-            logic.operandB.type,
-            logic.operandB.value,
-            logic.flags
-        );
     }
 }
 
-static void cliLogic(char *cmdline) {
+static void processCliLogic(char *cmdline, int16_t lcIndex) {
     char * saveptr;
     int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
-        printLogic(DUMP_MASTER, logicConditions(0), NULL);
+        if (!commandBatchActive) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, -1);
+        } else if (lcIndex >= 0) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, lcIndex);
+        }
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         pgResetCopy(logicConditionsMutable(0), PG_LOGIC_CONDITIONS);
     } else {
@@ -2003,11 +2009,15 @@ static void cliLogic(char *cmdline) {
             logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
             logicConditionsMutable(i)->flags = args[FLAGS];
 
-            cliLogic("");
+            processCliLogic("", i);
         } else {
             cliShowParseError();
         }
     }
+}
+
+static void cliLogic(char *cmdline) {
+    processCliLogic(cmdline, -1);
 }
 
 static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
@@ -3708,7 +3718,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
 
         cliPrintHashLine("global vars");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
