@@ -214,6 +214,7 @@ static bool m25p16_readIdentification(void)
             return false;
     }
 
+    geometry.flashType = FLASH_TYPE_NOR;
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
 

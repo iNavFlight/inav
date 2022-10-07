@@ -39,7 +39,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
@@ -118,19 +117,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
         FALLTHROUGH;
-
-#ifdef USE_IMU_MPU6050
-    case ACC_MPU6050: // MPU6050
-        if (mpu6050AccDetect(dev)) {
-            accHardware = ACC_MPU6050;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6000
     case ACC_MPU6000:
@@ -517,6 +503,13 @@ float accGetMeasuredMaxG(void)
 
 void accUpdate(void)
 {
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        //output: acc.accADCf
+        //unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
+        return;
+    }
+#endif
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
@@ -627,7 +620,7 @@ void accInitFilters(void)
             accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 accSoftLpfFilter[axis] = &accFilter[axis].pt1;
-                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime * 1e-6f);
+                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, US2S(acc.accTargetLooptime));
             }
             break;
         case FILTER_BIQUAD:
@@ -641,7 +634,7 @@ void accInitFilters(void)
 
     }
 
-    const float accDt = acc.accTargetLooptime * 1e-6f;
+    const float accDt = US2S(acc.accTargetLooptime);
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         pt1FilterInit(&accVibeFloorFilter[axis], ACC_VIBE_FLOOR_FILT_HZ, accDt);
         pt1FilterInit(&accVibeFilter[axis], ACC_VIBE_FILT_HZ, accDt);

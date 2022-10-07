@@ -80,7 +80,7 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
 );
 
-static uint8_t magUpdatedAtLeastOnce = 0;
+static bool magUpdatedAtLeastOnce = false;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -356,6 +356,12 @@ bool compassIsCalibrationComplete(void)
 
 void compassUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		magUpdatedAtLeastOnce = true;
+		return;
+	}
+#endif
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -473,6 +479,6 @@ void compassUpdate(timeUs_t currentTimeUs)
         applyBoardAlignment(mag.magADC);
     }
 
-    magUpdatedAtLeastOnce = 1;
+    magUpdatedAtLeastOnce = true;
 }
 #endif

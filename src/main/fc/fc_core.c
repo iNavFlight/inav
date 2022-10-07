@@ -265,7 +265,7 @@ static void updateArmingStatus(void)
 
         /* CHECK: */
         if (
-            sensors(SENSOR_ACC) && 
+            sensors(SENSOR_ACC) &&
             !STATE(ACCELEROMETER_CALIBRATED) &&
             // Require ACC calibration only if any of the setting might require it
             (
@@ -389,7 +389,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(float dT)
+static void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
@@ -436,8 +436,6 @@ void annexCode(float dT)
             rcCommand[PITCH] = rcCommand_PITCH;
         }
     }
-
-    updateArmingStatus();
 }
 
 void disarm(disarmReason_t disarmReason)
@@ -525,9 +523,6 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
-#ifdef USE_MULTI_MISSION
-    setMultiMissionOnArm();
-#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -883,10 +878,12 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode(dT);
+    processPilotAndFailSafeActions(dT);
+
+    updateArmingStatus();
 
     if (rxConfig()->rcFilterFrequency) {
-        rcInterpolationApply(isRXDataNew);
+        rcInterpolationApply(isRXDataNew, currentTimeUs);
     }
 
     if (isRXDataNew) {
@@ -927,13 +924,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // Calculate stabilisation
     pidController(dT);
 
-#ifdef HIL
-    if (hilActive) {
-        hilUpdateControlState();
-        motorControlEnable = false;
-    }
-#endif
-
     mixTable();
 
     if (isMixerUsingServos()) {
@@ -942,6 +932,18 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
+
+#ifdef USE_SMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+	    if (isServoOutputEnabled()) {
+	        writeServos();
+	    }
+
+	    if (motorControlEnable) {
+	        writeMotors();
+	    }
+	}
+#else
     if (isServoOutputEnabled()) {
         writeServos();
     }
@@ -949,6 +951,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (motorControlEnable) {
         writeMotors();
     }
+#endif
 
     // Check if landed, FW and MR
     if (STATE(ALTITUDE_CONTROL)) {

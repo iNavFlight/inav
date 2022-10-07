@@ -28,7 +28,6 @@
 #include "drivers/time.h"
 #include "drivers/bus.h"
 #include "drivers/nvic.h"
-#include "drivers/exti.h"
 #include "drivers/io.h"
 
 #include "drivers/barometer/barometer_bmp085.h"

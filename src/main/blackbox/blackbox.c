@@ -54,6 +54,7 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/rc_smoothing.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -433,6 +434,7 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
+    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
 };
 
 typedef enum BlackboxState {
@@ -550,6 +552,7 @@ typedef struct blackboxSlowState_s {
     uint32_t escRPM;
     int8_t escTemperature;
 #endif
+    uint16_t rxUpdateRate;
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -1284,6 +1287,8 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
+    blackboxWriteUnsignedVB(slowHistory.rxUpdateRate);
+
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1341,6 +1346,8 @@ static void loadSlowState(blackboxSlowState_t *slow)
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
 #endif
+
+    slow->rxUpdateRate = getRcUpdateFrequency();
 }
 
 /**
@@ -1620,7 +1627,7 @@ static void loadMainState(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_PITOT
-    blackboxCurrent->airSpeed = pitot.airSpeed;
+    blackboxCurrent->airSpeed = getAirspeedEstimate();
 #endif
 
 #ifdef USE_RANGEFINDER

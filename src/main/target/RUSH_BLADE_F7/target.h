@@ -34,10 +34,6 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI           PA4
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PC4

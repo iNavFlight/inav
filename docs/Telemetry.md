@@ -212,7 +212,7 @@ The INAV implementation of LTM implements the following frames:
 * S-FRAME: Status (voltage, current+, RSSI, airspeed+, status). Item suffixed '+' not implemented in INAV.
 * O-FRAME: Origin (home position, lat, long, altitude, fix)
 
-In addition, in  iNav:
+In addition, in INAV:
 
 * N-FRAME: Navigation information (GPS mode, Nav mode, Nav action, Waypoint number, Nav Error, Nav Flags).
 * X-FRAME: Extra information. Currently HDOP is reported.

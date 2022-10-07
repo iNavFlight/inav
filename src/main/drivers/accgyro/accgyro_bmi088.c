@@ -35,7 +35,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -86,8 +85,6 @@
 
 static void bmi088GyroInit(gyroDev_t *gyro)
 {
-    gyroIntExtiInit(gyro);
-
     busSetSpeed(gyro->busDev, BUS_SPEED_INITIALIZATION);
 
     // Soft reset

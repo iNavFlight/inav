@@ -51,7 +51,6 @@
 #include "drivers/bus.h"
 #include "drivers/dma.h"
 #include "drivers/exti.h"
-#include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
@@ -73,7 +72,6 @@
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
@@ -107,7 +105,7 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
-#include "io/displayport_hdzero_osd.h"
+#include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -188,7 +186,7 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
-#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+#if defined(USE_FLASHFS)
     bool flashDeviceInitialized = false;
 #endif
 
@@ -250,9 +248,7 @@ void init(void)
 
     ledInit(false);
 
-#ifdef USE_EXTI
     EXTIInit();
-#endif
 
 #ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
@@ -381,13 +377,10 @@ void init(void)
         // it to identify the log files *before* starting the USB device to
         // prevent timeouts of the mass storage device.
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
-#ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            /*m25p16_init(0);*/
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
             emfat_init_files();
         }
 #endif
@@ -551,9 +544,9 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
-#ifdef USE_HDZERO_OSD
+#ifdef USE_MSP_OSD
         if (!osdDisplayPort) {
-            osdDisplayPort = hdzeroOsdDisplayPortInit();
+            osdDisplayPort = mspOsdDisplayPortInit();
         }
 #endif
 #if defined(USE_MAX7456)
@@ -615,12 +608,13 @@ void init(void)
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
-#ifdef USE_FLASH_M25P16
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
-            flashfsInit();
+            if (flashDeviceInitialized) {
+                // do not initialize flashfs if no flash was found
+                flashfsInit();
+            }
             break;
 #endif
 

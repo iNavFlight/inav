@@ -15,9 +15,17 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
 
-#include "drivers/sensor.h"
+#include "fc/fc_msp_box.h"
+#include "io/piniobox.h"
+#include "sensors/boardalignment.h"
 
-bool mpu6050AccDetect(accDev_t *acc);
-bool mpu6050GyroDetect(gyroDev_t *gyro);
+void targetConfiguration(void)
+{
+    boardAlignmentMutable()->yawDeciDegrees = -900;
+
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1; 
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+}

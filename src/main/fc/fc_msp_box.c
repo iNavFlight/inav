@@ -86,7 +86,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXBRAKING,          .boxName = "MC BRAKING",        .permanentId = 46 },
     { .boxId = BOXUSER1,            .boxName = "USER1",             .permanentId = BOX_PERMANENT_ID_USER1 },
     { .boxId = BOXUSER2,            .boxName = "USER2",             .permanentId = BOX_PERMANENT_ID_USER2 },
-    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 49 },
+    { .boxId = BOXUSER3,            .boxName = "USER3",             .permanentId = BOX_PERMANENT_ID_USER3 },
     { .boxId = BOXMSPRCOVERRIDE,    .boxName = "MSP RC OVERRIDE",   .permanentId = 50 },
     { .boxId = BOXPREARM,           .boxName = "PREARM",            .permanentId = 51 },
     { .boxId = BOXTURTLE,           .boxName = "TURTLE",            .permanentId = 52 },
@@ -94,6 +94,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL",        .permanentId = 54 },
     { .boxId = BOXPLANWPMISSION,    .boxName = "WP PLANNER",        .permanentId = 55 },
     { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
+    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 57 },
+    { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 58 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -226,6 +228,9 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXHOMERESET);
             ADD_ACTIVE_BOX(BOXGCSNAV);
             ADD_ACTIVE_BOX(BOXPLANWPMISSION);
+#ifdef USE_MULTI_MISSION
+            ADD_ACTIVE_BOX(BOXCHANGEMISSION);
+#endif
         }
 
         if (STATE(AIRPLANE)) {
@@ -313,6 +318,7 @@ void initActiveBoxIds(void)
     // USER modes are only used for PINIO at the moment
     ADD_ACTIVE_BOX(BOXUSER1);
     ADD_ACTIVE_BOX(BOXUSER2);
+    ADD_ACTIVE_BOX(BOXUSER3);
 #endif
 
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
@@ -344,7 +350,7 @@ void initActiveBoxIds(void)
 void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 {
     uint8_t activeBoxes[CHECKBOX_ITEM_COUNT];
-    memset(activeBoxes, 0, sizeof(activeBoxes));
+    ZERO_FARRAY(activeBoxes);
 
     // Serialize the flags in the order we delivered them, ignoring BOXNAMES and BOXINDEXES
     // Requires new Multiwii protocol version to fix
@@ -390,6 +396,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXBRAKING)),         BOXBRAKING);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),           BOXUSER1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),           BOXUSER2);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER3)),           BOXUSER3);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),    BOXLOITERDIRCHN);
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
@@ -397,6 +404,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)),       BOXAUTOLEVEL);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)),   BOXPLANWPMISSION);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSOARING)),         BOXSOARING);
+#ifdef USE_MULTI_MISSION
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)),   BOXCHANGEMISSION);
+#endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

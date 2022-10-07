@@ -30,9 +30,9 @@
 
 FILE_COMPILE_FOR_SPEED
 
-//#define HDZERO_STATS
+//#define MSP_DISPLAYPORT_STATS
 
-#if defined(USE_OSD) && defined(USE_HDZERO_OSD)
+#if defined(USE_OSD) && defined(USE_MSP_OSD)
 
 #include "common/utils.h"
 #include "common/printf.h"
@@ -46,7 +46,7 @@ FILE_COMPILE_FOR_SPEED
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
 
-#include "displayport_hdzero_osd.h"
+#include "displayport_msp_osd.h"
 
 #define FONT_VERSION 3
 
@@ -59,8 +59,8 @@ FILE_COMPILE_FOR_SPEED
 #define VTX_TIMEOUT 1000 // 1 second timer
 
 static mspProcessCommandFnPtr mspProcessCommand;
-static mspPort_t hdZeroMspPort;
-static displayPort_t hdZeroOsdDisplayPort;
+static mspPort_t mspPort;
+static displayPort_t mspOsdDisplayPort;
 static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
 
@@ -75,7 +75,7 @@ static bool screenCleared;
 
 extern uint8_t cliMode;
 
-#ifdef HDZERO_STATS
+#ifdef MSP_DISPLAYPORT_STATS
 static uint32_t dataSent;
 static uint8_t resetCount;
 #endif
@@ -87,10 +87,10 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
     int sent = 0;
 
     if (!cliMode && vtxActive) {
-        sent = mspSerialPushPort(cmd, subcmd, len, &hdZeroMspPort, MSP_V1);
+        sent = mspSerialPushPort(cmd, subcmd, len, &mspPort, MSP_V1);
     }
 
-#ifdef HDZERO_STATS
+#ifdef MSP_DISPLAYPORT_STATS
     dataSent += sent;
 #endif
 
@@ -111,7 +111,7 @@ static int setHdMode(displayPort_t *displayPort)
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
-static void hdZeroInit(void)
+static void init(void)
 {
     memset(screen, SYM_BLANK, sizeof(screen));
     BITARRAY_CLR_ALL(fontPage);
@@ -122,7 +122,7 @@ static int clearScreen(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { MSP_CLEAR_SCREEN };
 
-    hdZeroInit();
+    init();
     setHdMode(displayPort);
     screenCleared = true;
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
@@ -183,7 +183,7 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     return 0;
 }
 
-#ifdef HDZERO_STATS
+#ifdef MSP_DISPLAYPORT_STATS
 static void printStats(displayPort_t *displayPort, uint32_t updates)
 {
     static timeMs_t lastTime;
@@ -195,7 +195,7 @@ static void printStats(displayPort_t *displayPort, uint32_t updates)
         maxUpdates = updates; // updates sent per displayWrite
     }
 
-    uint32_t bufferUsed = TX_BUFFER_SIZE - serialTxBytesFree(hdZeroMspPort.port);
+    uint32_t bufferUsed = TX_BUFFER_SIZE - serialTxBytesFree(mspPort.port);
     if (bufferUsed > maxBufferUsed) {
         maxBufferUsed = bufferUsed; // serial buffer used after displayWrite
     }
@@ -212,7 +212,7 @@ static void printStats(displayPort_t *displayPort, uint32_t updates)
 
 
     tfp_sprintf(lineBuffer, "R:%2d %4ld %5ld(%5ld) U:%2ld(%2ld) B:%3ld(%4ld,%4ld)", resetCount, (millis()-vtxHeartbeat),
-            dataSent, maxDataSent, updates, maxUpdates, bufferUsed, maxBufferUsed, hdZeroMspPort.port->txBufferSize);
+            dataSent, maxDataSent, updates, maxUpdates, bufferUsed, maxBufferUsed, mspPort.port->txBufferSize);
     writeString(displayPort, 0, 17, lineBuffer, 0);
 }
 #endif
@@ -264,13 +264,13 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
         }
 
-#ifdef HDZERO_STATS
+#ifdef MSP_DISPLAYPORT_STATS
         printStats(displayPort, updateCount);
 #endif
         checkVtxPresent();
 
         if (vtxReset) {
-#ifdef HDZERO_STATS
+#ifdef MSP_DISPLAYPORT_STATS
             resetCount++;
 #endif
             clearScreen(displayPort);
@@ -344,7 +344,7 @@ static int release(displayPort_t *displayPort)
     return 0;
 }
 
-static const displayPortVTable_t hdzeroOsdVTable = {
+static const displayPortVTable_t mspOsdVTable = {
     .grab = grab,
     .release = release,
     .clearScreen = clearScreen,
@@ -362,14 +362,14 @@ static const displayPortVTable_t hdzeroOsdVTable = {
     .isReady = isReady,
 };
 
-bool hdzeroOsdSerialInit(void)
+bool mspOsdSerialInit(void)
 {
     static volatile uint8_t txBuffer[TX_BUFFER_SIZE];
-    memset(&hdZeroMspPort, 0, sizeof(mspPort_t));
+    memset(&mspPort, 0, sizeof(mspPort_t));
 
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HDZERO_OSD);
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_OSD);
     if (portConfig) {
-        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_HDZERO_OSD, NULL, NULL,
+        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_MSP_OSD, NULL, NULL,
                 baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (port) {
@@ -379,7 +379,7 @@ bool hdzeroOsdSerialInit(void)
             port->txBufferTail = 0;
             port->txBufferHead = 0;
 
-            resetMspPort(&hdZeroMspPort, port);
+            resetMspPort(&mspPort, port);
 
             return true;
         }
@@ -388,12 +388,12 @@ bool hdzeroOsdSerialInit(void)
     return false;
 }
 
-displayPort_t* hdzeroOsdDisplayPortInit(void)
+displayPort_t* mspOsdDisplayPortInit(void)
 {
-    if (hdzeroOsdSerialInit()) {
-        hdZeroInit();
-        displayInit(&hdZeroOsdDisplayPort, &hdzeroOsdVTable);
-        return &hdZeroOsdDisplayPort;
+    if (mspOsdSerialInit()) {
+        init();
+        displayInit(&mspOsdDisplayPort, &mspOsdVTable);
+        return &mspOsdDisplayPort;
     }
     return NULL;
 }
@@ -403,7 +403,7 @@ displayPort_t* hdzeroOsdDisplayPortInit(void)
  * VTX sends an MSP command every 125ms or so.
  * VTX will have be marked as not ready if no commands received within VTX_TIMEOUT.
  */
-static mspResult_e hdZeroProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+static mspResult_e processMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
     if (vtxSeen && !vtxActive) {
         vtxReset = true;
@@ -416,12 +416,12 @@ static mspResult_e hdZeroProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply,
     return mspProcessCommand(cmd, reply, mspPostProcessFn);
 }
 
-void hdzeroOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
+void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
 {
-    if (hdZeroMspPort.port) {
+    if (mspPort.port) {
         mspProcessCommand = mspProcessCommandFn;
-        mspSerialProcessOnePort(&hdZeroMspPort, MSP_SKIP_NON_MSP_DATA, hdZeroProcessMspCommand);
+        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, processMspCommand);
     }
 }
 
-#endif // USE_HDZERO_OSD
+#endif // USE_MSP_OSD
