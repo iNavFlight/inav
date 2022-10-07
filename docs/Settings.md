@@ -3552,6 +3552,16 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 ---
 
+### nav_mc_pos_acc_filter_smooth_lpf_hz
+
+Lowpass filter cutoff frequency for position controller acceleration filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 40 |
+
+---
+
 ### nav_mc_pos_deceleration_time
 
 Used for stoping distance calculation. Stop position is computed as _speed_ * _nav_mc_pos_deceleration_time_ from the place where sticks are released. Braking mode overrides this setting
@@ -3569,6 +3579,26 @@ Expo for PosHold control
 | Default | Min | Max |
 | --- | --- | --- |
 | 10 | 0 | 255 |
+
+---
+
+### nav_mc_pos_moving_lpf_hz
+
+Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This is the LPF cutoff when moving at max. speed
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 10 |
+
+---
+
+### nav_mc_pos_stationary_lpf_hz
+
+Minimum acceleration LPF cutoff [Hz] for speed-2-acceleration controller. This is the LPF cutoff when stationary or requesting stationary position
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 40 |
 
 ---
 
@@ -3599,36 +3629,6 @@ D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 0 | 255 |
-
----
-
-### nav_mc_vel_xy_dterm_attenuation
-
-Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 90 | 0 | 100 |
-
----
-
-### nav_mc_vel_xy_dterm_attenuation_end
-
-A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 60 | 0 | 100 |
-
----
-
-### nav_mc_vel_xy_dterm_attenuation_start
-
-A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 100 |
 
 ---
 

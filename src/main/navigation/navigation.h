@@ -280,7 +280,9 @@ typedef struct navConfig_s {
         uint16_t braking_boost_disengage_speed; // Below this speed braking boost will disengage
         uint8_t  braking_bank_angle;            // Max angle [deg] that MR is allowed duing braking boost phase
 #endif
-
+        float pos_moving_lpf_hz;
+        float pos_stationary_lpf_hz;
+        float pos_acc_filter_smooth_lpf_hz;
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;             // Slow down during WP missions when changing heading on next waypoint

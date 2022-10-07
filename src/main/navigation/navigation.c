@@ -99,7 +99,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 3);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -170,7 +170,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_boost_disengage_speed = SETTING_NAV_MC_BRAKING_BOOST_DISENGAGE_SPEED_DEFAULT,   // Disable boost at 1m/s
         .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                        // Max braking angle
 #endif
-
+        .pos_moving_lpf_hz = SETTING_NAV_MC_POS_MOVING_LPF_HZ_DEFAULT,
+        .pos_stationary_lpf_hz = SETTING_NAV_MC_POS_ACC_FILTER_SMOOTH_LPF_HZ_DEFAULT,
+        .pos_acc_filter_smooth_lpf_hz = SETTING_NAV_MC_POS_ACC_FILTER_SMOOTH_LPF_HZ_DEFAULT,
         .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,          // posDecelerationTime * 100
         .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                           // posResponseExpo * 100
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,
@@ -4041,13 +4043,6 @@ void navigationUsePIDs(void)
                                                0.0f
         );
     }
-
-    /*
-     * Set coefficients used in MC VEL_XY
-     */
-    multicopterPosXyCoefficients.dTermAttenuation = pidProfile()->navVelXyDtermAttenuation / 100.0f;
-    multicopterPosXyCoefficients.dTermAttenuationStart = pidProfile()->navVelXyDtermAttenuationStart / 100.0f;
-    multicopterPosXyCoefficients.dTermAttenuationEnd = pidProfile()->navVelXyDtermAttenuationEnd / 100.0f;
 
 #ifdef USE_MR_BRAKING_MODE
     multicopterPosXyCoefficients.breakingBoostFactor = (float) navConfig()->mc.braking_boost_factor / 100.0f;
