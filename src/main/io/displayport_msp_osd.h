@@ -29,5 +29,5 @@
 
 typedef struct displayPort_s displayPort_t;
 
-displayPort_t *hdzeroOsdDisplayPortInit(void);
-void hdzeroOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
+displayPort_t *mspOsdDisplayPortInit(void);
+void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);

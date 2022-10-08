@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav is free software. You can redistribute
+ * INAV is free software. You can redistribute
  * this software and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav is distributed in the hope that it
+ * INAV is distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -80,7 +80,7 @@ static bool flashDeviceInit(void)
 {
     bool detected = false;
 
-    for (uint32_t idx = 0; idx <= sizeof(flashDrivers) / sizeof(flashDrivers[0]); idx++)
+    for (uint32_t idx = 0; idx <= ARRAYLEN(flashDrivers); idx++)
     {
         detected = flashDrivers[idx].init(0);
         if (detected)

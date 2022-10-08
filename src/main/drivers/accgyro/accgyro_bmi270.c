@@ -34,7 +34,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -197,8 +196,6 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * busDev = gyro->busDev;
 
-    gyroIntExtiInit(gyro);
-
     // Perform a soft reset to set all configuration to default
     // Delay 100ms before continuing configuration
     busWrite(busDev, BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
@@ -234,10 +231,8 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
     delay(1);
 
     // Configure the gyro data ready interrupt
-#ifdef USE_MPU_DATA_READY_SIGNAL
     busWrite(busDev, BMI270_REG_INT_MAP_DATA, BMI270_INT_MAP_DATA_DRDY_INT1);
     delay(1);
-#endif
 
     // Configure the behavior of the INT1 pin
     busWrite(busDev, BMI270_REG_INT1_IO_CTRL, BMI270_INT1_IO_CTRL_ACTIVE_HIGH | BMI270_INT1_IO_CTRL_OUTPUT_EN);

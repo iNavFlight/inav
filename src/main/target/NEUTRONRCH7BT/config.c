@@ -15,28 +15,21 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
 
-#ifdef HIL
+#include "platform.h"
 
-typedef struct {
-    int16_t     rollAngle;  // deg * 10
-    int16_t     pitchAngle; // deg * 10
-    int16_t     yawAngle;   // deg * 10
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
 
-    int32_t     baroAlt;    // cm above launch
+#include "io/piniobox.h"
+#include "io/serial.h"
 
-    int16_t     bodyAccel[3];   // cm/s/s   // forward, right, up
-} hilIncomingStateData_t;
-
-typedef struct {
-    int16_t     pidCommand[4];
-} hilOutgoingStateData_t;
-
-extern bool hilActive;
-extern hilIncomingStateData_t hilToFC;
-extern hilOutgoingStateData_t hilToSIM;
-
-void hilUpdateControlState(void);
-
-#endif
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_MSP;
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    pinioBoxConfigMutable()->permanentId[2] = BOX_PERMANENT_ID_USER3;
+    // compassConfigMutable()->mag_align = XXX;
+}
