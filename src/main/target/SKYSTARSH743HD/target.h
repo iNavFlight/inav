@@ -19,7 +19,7 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "SSH7"
-#define USBD_PRODUCT_STRING     "SKYSTARSH743"
+#define USBD_PRODUCT_STRING     "SKYSTARSH743HD"
 
 #define USE_TARGET_CONFIG
 
@@ -28,7 +28,6 @@
 
 #define BEEPER                  PB3
 #define BEEPER_INVERTED
-//#define BEEPER_PWM_FREQUENCY    2500
 
 // ************* DEVICES-SPI : IMU/OSD/FLASH***********
 
@@ -153,10 +152,6 @@
 #define UART8_TX_PIN            PE1
 #define UART8_RX_PIN            PE0
 
-//#define USE_SOFTSERIAL1
-//#define SOFTSERIAL_1_TX_PIN      PC6  //TX6 pad
-//#define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
-
 #define SERIAL_PORT_COUNT       9
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
@@ -173,8 +168,6 @@
 #define ADC_CHANNEL_2_PIN           PC1  //ADC123 CURR1
 #define ADC_CHANNEL_3_PIN           PC3  //ADC12  RSSI
 #define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
-//#define ADC_CHANNEL_5_PIN           PA4  //ADC12  VB2
-//#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
