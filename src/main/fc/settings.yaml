@@ -1520,14 +1520,14 @@ groups:
         min: 0
         max: 180
       - name: imu_acc_ignore_rate
-        description: "Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes"
-        default_value: 0
+        description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
+        default_value: 15
         field: acc_ignore_rate
         min: 0
         max: 30
       - name: imu_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
-        default_value: 0
+        default_value: 5
         field: acc_ignore_slope
         min: 0
         max: 10

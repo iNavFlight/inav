@@ -78,7 +78,7 @@ FILE_COMPILE_FOR_SPEED
 // http://gentlenav.googlecode.com/files/fastRotations.pdf
 
 #define SPIN_RATE_LIMIT             20
-#define MAX_ACC_NEARNESS            0.2    // 33% or G error soft-accepted (0.8-1.2G)
+#define MAX_ACC_NEARNESS            0.2    // 20% or G error soft-accepted (0.8-1.2G)
 #define IMU_ROTATION_LPF         3       // Hz
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;

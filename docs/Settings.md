@@ -1774,11 +1774,11 @@ If set to ON, Secondary IMU data will be used for Angle, Horizon and all other m
 
 ### imu_acc_ignore_rate
 
-Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes
+Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 30 |
+| 15 | 0 | 30 |
 
 ---
 
@@ -1788,7 +1788,7 @@ Half-width of the interval to gradually reduce accelerometer weight. Centered at
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 10 |
+| 5 | 0 | 10 |
 
 ---
 
