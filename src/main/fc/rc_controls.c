@@ -37,6 +37,7 @@
 
 #include "drivers/time.h"
 
+#include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
@@ -103,9 +104,9 @@ bool areSticksDeflected(void)
     return (ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[YAW]) > rcControlsConfig()->control_deadband);
 }
 
-bool isRollPitchStickDeflected(void)
+bool isRollPitchStickDeflected(uint8_t deadband)
 {
-    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband);
+    return (ABS(rcCommand[ROLL]) > deadband) || (ABS(rcCommand[PITCH]) > deadband);
 }
 
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
@@ -251,7 +252,12 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         return;
     }
 
-    // actions during not armed
+    // Disable stick commands when in CLI mode. Ideally, they should also be disabled when configurator is connected
+    if (cliMode) {
+        return;
+    }
+
+    // actions during not armed and not in CLI
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {

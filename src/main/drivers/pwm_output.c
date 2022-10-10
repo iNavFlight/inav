@@ -130,7 +130,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 static pwmOutputPort_t *pwmOutAllocatePort(void)
 {
     if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
-        LOG_E(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
+        LOG_ERROR(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
 
@@ -261,7 +261,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     // Configure timer DMA
     if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
-        memset(port->dmaBuffer, 0, sizeof(port->dmaBuffer));
+        ZERO_FARRAY(port->dmaBuffer);
         port->configured = true;
     }
 
@@ -464,10 +464,40 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-            motorConfigDigitalUpdateInterval(motorConfig()->motorPwmRate);
+            motorConfigDigitalUpdateInterval(getEscUpdateFrequency());
             motorWritePtr = pwmWriteDigital;
             break;
 #endif
+    }
+}
+
+/**
+ * This function return the PWM frequency based on ESC protocol. We allow customer rates only for Brushed motors
+ */ 
+uint32_t getEscUpdateFrequency(void) {
+    switch (initMotorProtocol) {
+        case PWM_TYPE_BRUSHED:
+            return motorConfig()->motorPwmRate;
+
+        case PWM_TYPE_STANDARD:
+            return 400;
+
+        case PWM_TYPE_MULTISHOT:
+            return 2000;
+
+        case PWM_TYPE_DSHOT150:
+            return 4000;
+
+        case PWM_TYPE_DSHOT300:
+            return 8000;
+
+        case PWM_TYPE_DSHOT600:
+            return 16000;
+
+        case PWM_TYPE_ONESHOT125:
+        default:
+            return 1000;
+
     }
 }
 
@@ -475,15 +505,15 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
 {
     switch (initMotorProtocol) {
     case PWM_TYPE_BRUSHED:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, getEscUpdateFrequency(), enableOutput);
         break;
 
     case PWM_TYPE_ONESHOT125:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, getEscUpdateFrequency(), enableOutput);
         break;
 
     case PWM_TYPE_MULTISHOT:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, getEscUpdateFrequency(), enableOutput);
         break;
 
 #ifdef USE_DSHOT
@@ -495,7 +525,7 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
 #endif
 
     case PWM_TYPE_STANDARD:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, motorConfig()->motorPwmRate, enableOutput);
+        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, getEscUpdateFrequency(), enableOutput);
         break;
 
     default:

@@ -346,7 +346,7 @@ static void sendSMS(void)
     uint16_t avgSpeed = lrintf(10 * calculateAverageSpeed());
     uint32_t now = millis();
 
-    memset(pluscode_url, 0, sizeof(pluscode_url));
+    ZERO_FARRAY(pluscode_url);
 
     if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
         groundSpeed = gpsSol.groundSpeed / 100;

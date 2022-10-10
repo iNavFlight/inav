@@ -57,6 +57,9 @@ To perform the restore simply paste the saved commands in the Configurator CLI t
 
 After restoring it's always a good idea to `dump` or `diff` the settings once again and compare the output with previous one to verify if everything is set as it should be.
 
+## Flight Controller opereration while connected to the CLI
+
+While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0 onwards).
 
 ## CLI Command Reference
 
@@ -76,7 +79,6 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `dfu` | DFU mode on reboot |
 | `diff` | List configuration changes from default |
 | `dump` | Dump configuration |
-| `eleres_bind` |  |
 | `exit` |  |
 | `feature` | List or enable <val> or disable <-val> |
 | `flash_erase` | Erase flash chip |
@@ -154,7 +156,7 @@ A shorter form is also supported to enable and disable a single function using `
 | SERVO_SERIAL          | 22            | 4194304 |
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
 | IMU2                  | 24            | 16777216 |
-| HDZERO                | 25            | 33554432 |
+| MSP_DISPLAYPORT       | 25            | 33554432 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 

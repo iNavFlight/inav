@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav is free software. You can redistribute this software
+ * INAV is free software. You can redistribute this software
  * and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav is distributed in the hope that they will be
+ * INAV is distributed in the hope that they will be
  * useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -139,7 +139,7 @@ static bool dataBackendInit(void)
         return false;
     }
 
-#elif defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+#elif defined(USE_FLASHFS)
     if (!flashInit()) {
         return false;
     }
@@ -440,7 +440,10 @@ flashFailed:
 bool dataflashChipEraseUpdatePartition(void)
 {
     flashPartition_t *flashDataPartition = flashPartitionFindByType(FLASH_PARTITION_TYPE_UPDATE_FIRMWARE);
-    if (!flashDataPartition) return false;
+
+    if (!flashDataPartition) {
+        return false;
+    }
 
     const flashGeometry_t *flashGeometry = flashGetGeometry();
 

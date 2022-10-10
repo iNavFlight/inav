@@ -328,11 +328,11 @@ bool pidInitFilters(void)
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, refreshRate * 1e-6f);
+        pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, US2S(refreshRate));
     }
 
 #ifdef USE_ANTIGRAVITY
-    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
+    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
 #endif
 
 #ifdef USE_D_BOOST
@@ -343,7 +343,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
+            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, US2S(refreshRate)));
         }
     }
 
@@ -379,7 +379,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, currentControlRateProfile->throttle.fixedWingTauMs * 1e-3f, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlRateProfile->throttle.fixedWingTauMs), US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
@@ -948,7 +948,7 @@ float pidHeadingHold(float dT)
             - output
             - that gives about 2 seconds to correct any error, no matter how big. Of course, usually more because of inertia.
         That was making him quite "soft" for small changes and rapid for big ones that started to appear
-        when iNav introduced real RTH and WAYPOINT that might require rapid heading changes.
+        when INAV introduced real RTH and WAYPOINT that might require rapid heading changes.
 
         New approach uses modified principle:
             - manual yaw rate is not used. MAG_HOLD is decoupled from manual input settings
@@ -997,15 +997,13 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
             //      yaw_rate = tan(roll_angle) * Gravity / forward_vel
 
 #if defined(USE_PITOT)
-            float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) ?
-                    pitot.airSpeed :
-                    pidProfile()->fixedWingReferenceAirspeed;
+            float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) ? getAirspeedEstimate() : pidProfile()->fixedWingReferenceAirspeed;
 #else
             float airspeedForCoordinatedTurn = pidProfile()->fixedWingReferenceAirspeed;
 #endif
 
             // Constrain to somewhat sane limits - 10km/h - 216km/h
-            airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300, 6000);
+            airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300.0f, 6000.0f);
 
             // Calculate rate of turn in Earth frame according to FAA's Pilot's Handbook of Aeronautical Knowledge
             bankAngleTarget = constrainf(bankAngleTarget, -DEGREES_TO_RADIANS(60), DEGREES_TO_RADIANS(60));
@@ -1042,8 +1040,8 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
 static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAngle)
 {
     static uint8_t lastFpvCamAngleDegrees = 0;
-    static float cosCameraAngle = 1.0;
-    static float sinCameraAngle = 0.0;
+    static float cosCameraAngle = 1.0f;
+    static float sinCameraAngle = 0.0f;
 
     if (lastFpvCamAngleDegrees != fpvCameraAngle) {
         lastFpvCamAngleDegrees = fpvCameraAngle;
@@ -1133,12 +1131,8 @@ void FAST_CODE pidController(float dT)
 #endif
 
 #ifdef USE_SMITH_PREDICTOR
-        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis, pidState[axis].gyroRate);
         pidState[axis].gyroRate = applySmithPredictor(axis, &pidState[axis].smithPredictor, pidState[axis].gyroRate);
-        DEBUG_SET(DEBUG_SMITH_PREDICTOR, axis + 3, pidState[axis].gyroRate);
 #endif
-
-        DEBUG_SET(DEBUG_PID_MEASUREMENT, axis, pidState[axis].gyroRate);
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
@@ -1326,7 +1320,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     if (
         !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
         areSticksDeflected() ||
-        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) ||
+        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) ||
         FLIGHT_MODE(SOARING_MODE) ||
         navigationIsControllingAltitude()
     ) {

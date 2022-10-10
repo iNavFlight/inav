@@ -34,10 +34,6 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI           PC4
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
 #define MPU6000_CS_PIN          PB2
@@ -67,7 +63,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER

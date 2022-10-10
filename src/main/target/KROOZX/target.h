@@ -31,11 +31,6 @@
 #define MPU6000_CS_PIN          PB2
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-// MPU6000 interrupts
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI            PA4
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG_FLIP
 

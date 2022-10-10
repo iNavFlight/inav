@@ -21,6 +21,7 @@
 typedef enum {
     ARMED                                           = (1 << 2),
     WAS_EVER_ARMED                                  = (1 << 3),
+    SIMULATOR_MODE                                  = (1 << 4),
 
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),
@@ -163,6 +164,36 @@ typedef enum {
 } flightModeForTelemetry_e;
 
 flightModeForTelemetry_e getFlightModeForTelemetry(void);
+
+#ifdef USE_SIMULATOR
+
+#define SIMULATOR_MSP_VERSION  2     // Simulator MSP version
+#define SIMULATOR_BARO_TEMP    25    // °C
+#define SIMULATOR_FULL_BATTERY 12.6f // Volts
+#define SIMULATOR_HAS_OPTION(flag) ((simulatorData.flags & flag) != 0)
+
+typedef enum {
+    HITL_RESET_FLAGS            = (0 << 0),
+	HITL_ENABLE					= (1 << 0),
+	HITL_SIMULATE_BATTERY		= (1 << 1),
+	HITL_MUTE_BEEPER			= (1 << 2),
+	HITL_USE_IMU			    = (1 << 3), // Use the Acc and Gyro data provided by XPlane to calculate Attitude (i.e. 100% of the calculations made by AHRS from iNav)
+	HITL_HAS_NEW_GPS_DATA		= (1 << 4),
+	HITL_EXT_BATTERY_VOLTAGE	= (1 << 5), // Extend MSP_SIMULATOR format 2
+    HITL_AIRSPEED               = (1 << 6) 
+} simulatorFlags_t;
+
+typedef struct {
+	simulatorFlags_t flags;
+	uint8_t debugIndex;
+    uint8_t vbat;      // 126 -> 12.6V
+	uint16_t airSpeed; // cm/s
+    int16_t input[4];
+} simulatorData_t;
+
+extern simulatorData_t simulatorData;
+
+#endif
 
 uint32_t enableFlightMode(flightModeFlags_e mask);
 uint32_t disableFlightMode(flightModeFlags_e mask);

@@ -96,7 +96,7 @@ void gyroDataAnalyseStateInit(
         
         for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
             state->centerFrequency[axis][i] = state->maxFrequency;
-            pt1FilterInit(&state->detectedFrequencyFilter[axis][i], DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs * 1e-6f);
+            pt1FilterInit(&state->detectedFrequencyFilter[axis][i], DYN_NOTCH_SMOOTH_FREQ_HZ, US2S(filterUpdateUs));
         }
 
     }
@@ -147,7 +147,8 @@ static float computeParabolaMean(gyroAnalyseState_t *state, uint8_t peakBinIndex
     // Estimate true peak position aka. preciseBin (fit parabola y(x) over y0, y1 and y2, solve dy/dx=0 for x)
     const float denom = 2.0f * (y0 - 2 * y1 + y2);
     if (denom != 0.0f) {
-        preciseBin += (y0 - y2) / denom;
+        //Cap precise bin to prevent off values if parabola is not fitted correctly
+        preciseBin += constrainf((y0 - y2) / denom, -0.5f, 0.5f);
     }
 
     return preciseBin;
