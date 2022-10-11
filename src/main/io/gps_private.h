@@ -23,7 +23,7 @@
 
 #define GPS_HDOP_TO_EPH_MULTIPLIER      2   // empirical value
 
-// GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 2000 ms)
+// GPS timeout for wrong baud rate/disconnection/etc in milliseconds (default 1000 ms)
 #define GPS_TIMEOUT             (1000)
 #define GPS_SHORT_TIMEOUT       (500)
 #define GPS_BAUD_CHANGE_DELAY   (100)
@@ -53,6 +53,7 @@ typedef struct {
     timeMs_t        lastLastMessageMs;
     timeMs_t        lastMessageMs;
     timeMs_t        timeoutMs;
+    timeMs_t        baseTimeoutMs;
 } gpsReceiverData_t;
 
 extern gpsReceiverData_t gpsState;

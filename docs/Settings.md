@@ -338,7 +338,7 @@ Internal (configurator) hint. Should not be changed manually
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 4 |
+| 0 | 0 | 99 |
 
 ---
 
@@ -902,13 +902,13 @@ What failsafe procedure to initiate in Stage 2 when craft is closer to home than
 
 ---
 
-### failsafe_mission
+### failsafe_mission_delay
 
-If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode
+Applies if failsafe occurs when a WP mission is in progress. Sets the time delay in seconds between failsafe occurring and the selected failsafe procedure activating. If set to -1 the failsafe procedure won't activate at all and the mission will continue until the end.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON | OFF | ON |
+| 0 | -1 | 600 |
 
 ---
 
@@ -1924,7 +1924,7 @@ _// TODO_
 
 ### inav_use_gps_velned
 
-Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance.
+Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2812,6 +2812,16 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 
 ---
 
+### nav_auto_disarm_delay
+
+Delay before craft disarms when `nav_disarm_on_landing` is set (ms)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 | 100 | 10000 |
+
+---
+
 ### nav_auto_speed
 
 Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]
@@ -2824,7 +2834,7 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ### nav_disarm_on_landing
 
-If set to ON, iNav disarms the FC after landing
+If set to ON, INAV disarms the FC after landing
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2859,16 +2869,6 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
-
----
-
-### nav_fw_auto_disarm_delay
-
-Delay before plane disarms when `nav_disarm_on_landing` is set (ms)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2000 | 100 | 10000 |
 
 ---
 
@@ -3342,6 +3342,16 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 
 ---
 
+### nav_land_detect_sensitivity
+
+Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 15 |
+
+---
+
 ### nav_land_maxalt_vspd
 
 Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]
@@ -3429,16 +3439,6 @@ Max allowed above the ground altitude for terrain following mode
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 |  | 1000 |
-
----
-
-### nav_mc_auto_disarm_delay
-
-Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2000 | 100 | 10000 |
 
 ---
 
@@ -3944,11 +3944,11 @@ Sets restart behaviour for a WP mission when interrupted mid mission. START from
 
 ### nav_wp_multi_mission_index
 
-Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field.
+Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 9 |
+| 1 | 1 | 9 |
 
 ---
 
@@ -5934,7 +5934,7 @@ VTX RF power level to use. The exact number of mw depends on the VTX hardware.
 
 ### vtx_smartaudio_alternate_softserial_method
 
-Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier.
+Enable the alternate softserial method. This is the method used in INAV 3.0 and ealier.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -61,7 +61,7 @@ void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength
         predictor->samples = (delay * 1000) / looptime;
         predictor->idx = 0;
         predictor->smithPredictorStrength = strength;
-        pt1FilterInit(&predictor->smithPredictorFilter, filterLpfHz, looptime * 1e-6f);
+        pt1FilterInit(&predictor->smithPredictorFilter, filterLpfHz, US2S(looptime));
     } else {
         predictor->enabled = false;
     }

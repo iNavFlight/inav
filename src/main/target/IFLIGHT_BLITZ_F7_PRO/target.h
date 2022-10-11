@@ -30,9 +30,6 @@
 #define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
 // *************** Gyro & ACC **********************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -45,13 +42,11 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA15
-#define MPU6000_EXTI_PIN        PA8
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW0_DEG_FLIP
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA15
-#define BMI270_EXTI_PIN         PA8
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
