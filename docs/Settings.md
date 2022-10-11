@@ -1834,7 +1834,7 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 ### inav_allow_dead_reckoning
 
-Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation
+Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6001,4 +6001,3 @@ Defines rotation rate on YAW axis that UAV will try to archive on max. stick def
 | 20 | 1 | 180 |
 
 ---
-
