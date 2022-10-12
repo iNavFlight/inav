@@ -40,6 +40,8 @@
 
 #include "io/gps.h"
 
+
+#define WINDESTIMATOR_TIMEOUT       60 //60s
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
@@ -49,8 +51,6 @@ static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
 bool isEstimatedWindSpeedValid(void)
 {
-    // TODO: Add a timeout. Estimated wind should expire if
-    // if we can't update it for an extended time.
     return hasValidWindEstimate;
 }
 
@@ -78,6 +78,12 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
 void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
+    static timeUs_t lastValidWindEstimate = 0;
+
+    if (US2MS(currentTimeUs - lastValidWindEstimate) > WINDESTIMATOR_TIMEOUT)
+    {
+        hasValidWindEstimate = false;
+    }
 
     if (!STATE(FIXED_WING_LEGACY) ||
         !isGPSHeadingValid() ||
@@ -167,6 +173,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         }
 
         lastUpdateUs = currentTimeUs;
+        lastValidWindEstimate = currentTimeUs;
         hasValidWindEstimate = true;
     }
 }
