@@ -80,7 +80,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     static timeUs_t lastUpdateUs = 0;
     static timeUs_t lastValidWindEstimate = 0;
 
-    if (US2MS(currentTimeUs - lastValidWindEstimate) > WINDESTIMATOR_TIMEOUT)
+    if (US2S(currentTimeUs - lastValidWindEstimate) > WINDESTIMATOR_TIMEOUT)
     {
         hasValidWindEstimate = false;
     }
