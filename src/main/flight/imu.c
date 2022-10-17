@@ -114,10 +114,10 @@ FASTRAM bool gpsHeadingInitialized;
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
-    .dcm_kp_acc = SETTING_IMU_DCM_KP_DEFAULT,                   // 0.25 * 10000
+    .dcm_kp_acc = SETTING_IMU_DCM_KP_DEFAULT,                   // 0.20 * 10000
     .dcm_ki_acc = SETTING_IMU_DCM_KI_DEFAULT,                   // 0.005 * 10000
-    .dcm_kp_mag = SETTING_IMU_DCM_KP_MAG_DEFAULT,               // 1.00 * 10000
-    .dcm_ki_mag = SETTING_IMU_DCM_KI_MAG_DEFAULT,               // 0.00 * 10000
+    .dcm_kp_mag = SETTING_IMU_DCM_KP_MAG_DEFAULT,               // 0.20 * 10000
+    .dcm_ki_mag = SETTING_IMU_DCM_KI_MAG_DEFAULT,               // 0.005 * 10000
     .small_angle = SETTING_SMALL_ANGLE_DEFAULT,
     .acc_ignore_rate = SETTING_IMU_ACC_IGNORE_RATE_DEFAULT,
     .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT,

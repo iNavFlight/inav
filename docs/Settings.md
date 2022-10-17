@@ -1808,7 +1808,7 @@ Inertial Measurement Unit KI Gain for compass measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 |  | 65535 |
+| 50 |  | 65535 |
 
 ---
 
@@ -1818,7 +1818,7 @@ Inertial Measurement Unit KP Gain for accelerometer measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1000 |  | 65535 |
+| 2000 |  | 65535 |
 
 ---
 
@@ -1828,7 +1828,7 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5000 |  | 65535 |
+| 2000 |  | 65535 |
 
 ---
 

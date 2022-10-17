@@ -1496,7 +1496,7 @@ groups:
     members:
       - name: imu_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
-        default_value: 1000
+        default_value: 2000
         field: dcm_kp_acc
         max: UINT16_MAX
       - name: imu_dcm_ki
@@ -1506,12 +1506,12 @@ groups:
         max: UINT16_MAX
       - name: imu_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
-        default_value: 5000
+        default_value: 2000
         field: dcm_kp_mag
         max: UINT16_MAX
       - name: imu_dcm_ki_mag
         description: "Inertial Measurement Unit KI Gain for compass measurements"
-        default_value: 0
+        default_value: 50
         field: dcm_ki_mag
         max: UINT16_MAX
       - name: small_angle
