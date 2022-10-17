@@ -164,6 +164,7 @@
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC6 // USER 1
+#define PINIO2_PIN                  PC7 // USER 2
 #endif
 
 // ***************  OTHERS *************************
