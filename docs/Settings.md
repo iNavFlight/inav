@@ -338,7 +338,7 @@ Internal (configurator) hint. Should not be changed manually
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 4 |
+| 0 | 0 | 99 |
 
 ---
 
@@ -2812,6 +2812,16 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 
 ---
 
+### nav_auto_disarm_delay
+
+Delay before craft disarms when `nav_disarm_on_landing` is set (ms)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 | 100 | 10000 |
+
+---
+
 ### nav_auto_speed
 
 Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]
@@ -2859,16 +2869,6 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
-
----
-
-### nav_fw_auto_disarm_delay
-
-Delay before plane disarms when `nav_disarm_on_landing` is set (ms)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2000 | 100 | 10000 |
 
 ---
 
@@ -3342,6 +3342,16 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 
 ---
 
+### nav_land_detect_sensitivity
+
+Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 15 |
+
+---
+
 ### nav_land_maxalt_vspd
 
 Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing phase. [cm/s]
@@ -3429,16 +3439,6 @@ Max allowed above the ground altitude for terrain following mode
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 |  | 1000 |
-
----
-
-### nav_mc_auto_disarm_delay
-
-Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2000 | 100 | 10000 |
 
 ---
 

@@ -19,17 +19,8 @@
 
 #define USE_TARGET_CONFIG
 
-#ifdef MAMBAF722_2022B
-
-#define TARGET_BOARD_IDENTIFIER         "M72B"
-#define USBD_PRODUCT_STRING             "MAMBAF722_2022B"
-
-#else
-
-#define TARGET_BOARD_IDENTIFIER         "M72A"
-#define USBD_PRODUCT_STRING             "MAMBAF722_2022A"
-
-#endif
+#define TARGET_BOARD_IDENTIFIER         "M72W"
+#define USBD_PRODUCT_STRING             "MAMBAF722_WING"
 
 // ******** Board LEDs  **********************
 #define LED0                            PC15
@@ -39,32 +30,16 @@
 #define BEEPER                          PB2
 #define BEEPER_INVERTED
 
-//MPU6000
-#define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN               CW180_DEG
-#define MPU6000_CS_PIN                  SPI1_NSS_PIN
-#define MPU6000_SPI_BUS                 BUS_SPI1
-
-//MPU6500
-#define USE_IMU_MPU6500
-#define IMU_MPU6500_ALIGN               CW180_DEG
-#define MPU6500_CS_PIN                  SPI1_NSS_PIN
-#define MPU6500_SPI_BUS                 BUS_SPI1
-
-//BMI270
-#define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN                CW180_DEG
-#define BMI270_SPI_BUS                  BUS_SPI1
-#define BMI270_CS_PIN                   SPI1_NSS_PIN
-
-#ifdef MAMBAF722_2022B
+// ******* GYRO and ACC ********
+#define USE_EXTI
+#define GYRO_INT_EXTI                   PC4
+#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW270_DEG
+#define IMU_ICM42605_ALIGN      CW90_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
-
-#endif
+#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
 
 #define USE_I2C
 
@@ -170,6 +145,7 @@
 #define WS2811_PIN                      PB3
 
 // ******* FEATURES ********
+#define DEFAULT_RX_FEATURE              FEATURE_RX_SERIAL
 #define SERIALRX_UART                   SERIAL_PORT_USART1
 #define SERIALRX_PROVIDER               SERIALRX_SBUS
 
@@ -196,5 +172,5 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PC0   // VTX power switcher
-#define PINIO2_PIN                  PC2   // WiFi Switcher
+#define PINIO1_PIN                  PC0
+#define PINIO2_PIN                  PC2

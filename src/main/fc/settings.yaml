@@ -1563,7 +1563,7 @@ groups:
         field: appliedDefaults
         type: uint8_t
         min: 0
-        max: 4
+        max: 99
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -2392,6 +2392,12 @@ groups:
         default_value: OFF
         field: general.flags.disarm_on_landing
         type: bool
+      - name: nav_land_detect_sensitivity
+        description: "Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases."
+        default_value: 5
+        field: general.land_detect_sensitivity
+        min: 1
+        max: 15
       - name: nav_use_midthr_for_althold
         description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
         default_value: OFF
@@ -2647,10 +2653,10 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
-      - name: nav_mc_auto_disarm_delay
-        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)"
+      - name: nav_auto_disarm_delay
+        description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 2000
-        field: mc.auto_disarm_delay
+        field: general.auto_disarm_delay
         min: 100
         max: 10000
       - name: nav_mc_braking_speed_threshold
@@ -2726,12 +2732,6 @@ groups:
         default_value: ON
         field: mc.slowDownForTurning
         type: bool
-      - name: nav_fw_auto_disarm_delay
-        description: "Delay before plane disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
-        field: fw.auto_disarm_delay
-        min: 100
-        max: 10000
       - name: nav_fw_bank_angle
         description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
         default_value: 35

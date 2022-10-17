@@ -63,19 +63,11 @@
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
 
-/*
- * Gyroscope
- */
-#define USE_EXTI
-#define GYRO_INT_EXTI                   PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 //BMI270
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN                CW180_DEG
 #define BMI270_SPI_BUS                  BUS_SPI1
 #define BMI270_CS_PIN                   PA4
-#define BMI270_EXTI_PIN                 GYRO_INT_EXTI
 
 /*
  * Magnetometer

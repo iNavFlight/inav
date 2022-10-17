@@ -3634,7 +3634,7 @@ static void osdCompleteAsyncInitialization(void)
     uint8_t y = 1;
     displayFontMetadata_t metadata;
     bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
-    LOG_D(OSD, "Font metadata version %s: %u (%u chars)",
+    LOG_DEBUG(OSD, "Font metadata version %s: %u (%u chars)",
         fontHasMetadata ? "Y" : "N", metadata.version, metadata.charCount);
 
     if (fontHasMetadata && metadata.charCount > 256) {
@@ -4528,6 +4528,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
+
 #ifdef USE_DEV_TOOLS
         if (systemConfig()->groundTestMode) {
             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_GRD_TEST_MODE);

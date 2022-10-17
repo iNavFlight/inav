@@ -350,7 +350,7 @@ void initActiveBoxIds(void)
 void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 {
     uint8_t activeBoxes[CHECKBOX_ITEM_COUNT];
-    memset(activeBoxes, 0, sizeof(activeBoxes));
+    ZERO_FARRAY(activeBoxes);
 
     // Serialize the flags in the order we delivered them, ignoring BOXNAMES and BOXINDEXES
     // Requires new Multiwii protocol version to fix
