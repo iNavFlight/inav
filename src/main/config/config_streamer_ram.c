@@ -41,7 +41,7 @@ int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer
     }
 
     if (c->address == (uintptr_t)&eepromData[0]) {
-        memset(eepromData, 0, sizeof(eepromData));
+        ZERO_FARRAY(eepromData);
     }
 
     config_streamer_buffer_align_type_t *destAddr = (config_streamer_buffer_align_type_t *)c->address;

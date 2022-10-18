@@ -328,11 +328,11 @@ bool pidInitFilters(void)
     }
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
-        pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, refreshRate * 1e-6f);
+        pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, US2S(refreshRate));
     }
 
 #ifdef USE_ANTIGRAVITY
-    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
+    pt1FilterInit(&antigravityThrottleLpf, pidProfile()->antigravityCutoff, US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
 #endif
 
 #ifdef USE_D_BOOST
@@ -343,7 +343,7 @@ bool pidInitFilters(void)
 
     if (pidProfile()->controlDerivativeLpfHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, refreshRate * 1e-6f));
+            pt3FilterInit(&pidState[axis].rateTargetFilter, pt3FilterGain(pidProfile()->controlDerivativeLpfHz, US2S(refreshRate)));
         }
     }
 
@@ -379,7 +379,7 @@ bool pidInitFilters(void)
 void pidResetTPAFilter(void)
 {
     if (usedPidControllerType == PID_TYPE_PIFF && currentControlRateProfile->throttle.fixedWingTauMs > 0) {
-        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlRateProfile->throttle.fixedWingTauMs), TASK_PERIOD_HZ(TASK_AUX_RATE_HZ) * 1e-6f);
+        pt1FilterInitRC(&fixedWingTpaFilter, MS2S(currentControlRateProfile->throttle.fixedWingTauMs), US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)));
         pt1FilterReset(&fixedWingTpaFilter, getThrottleIdleValue());
     }
 }
@@ -948,7 +948,7 @@ float pidHeadingHold(float dT)
             - output
             - that gives about 2 seconds to correct any error, no matter how big. Of course, usually more because of inertia.
         That was making him quite "soft" for small changes and rapid for big ones that started to appear
-        when iNav introduced real RTH and WAYPOINT that might require rapid heading changes.
+        when INAV introduced real RTH and WAYPOINT that might require rapid heading changes.
 
         New approach uses modified principle:
             - manual yaw rate is not used. MAG_HOLD is decoupled from manual input settings

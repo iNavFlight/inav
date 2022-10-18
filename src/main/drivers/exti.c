@@ -4,8 +4,6 @@
 
 #include "platform.h"
 
-#ifdef USE_EXTI
-
 #include "build/assert.h"
 
 #include "drivers/exti.h"
@@ -200,5 +198,3 @@ _EXTI_IRQ_HANDLER(EXTI3_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI4_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI9_5_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI15_10_IRQHandler);
-
-#endif // USE_EXTI

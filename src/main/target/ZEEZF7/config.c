@@ -25,7 +25,7 @@
 
 void targetConfiguration(void)
 {
-#ifndef ZEEZF7V2
+#ifdef ZEEZF7
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1; // VTX power switcher
     //pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 #endif

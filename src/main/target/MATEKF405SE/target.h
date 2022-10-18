@@ -42,12 +42,7 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
-
-// *************** I2C/Baro/Mag *********************
+// *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB8
@@ -169,6 +164,7 @@
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC6 // USER 1
+#define PINIO2_PIN                  PC7 // USER 2
 #endif
 
 // ***************  OTHERS *************************

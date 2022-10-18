@@ -230,6 +230,9 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
+    uint8_t motorCount = getMotorCount();
+    uint8_t motorIdx = 0;
+
     for (int idx = 0; idx < timerHardwareCount; idx++) {
 
         timerHardware_t *timHw = &timerHardware[idx];
@@ -240,13 +243,20 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
 
         // Check for known conflicts (i.e. UART, LEDSTRIP, Rangefinder and ADC)
         if (checkPwmTimerConflicts(timHw)) {
-            LOG_W(PWM, "Timer output %d skipped", idx);
+            LOG_WARNING(PWM, "Timer output %d skipped", idx);
             continue;
         }
 
         // Determine if timer belongs to motor/servo
         if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER) {
             // Multicopter
+
+            // Make sure first motorCount outputs get assigned to motor
+            if ((timHw->usageFlags & TIM_USE_MC_MOTOR) && (motorIdx < motorCount)) {
+                timHw->usageFlags = timHw->usageFlags & ~TIM_USE_MC_SERVO;
+                motorIdx += 1;
+            }
+
             // We enable mapping to servos if mixer is actually using them
             if (isMixerUsingServos && timHw->usageFlags & TIM_USE_MC_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
@@ -295,7 +305,7 @@ static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
     // Check if too many motors
     if (motorCount > MAX_MOTORS) {
         pwmInitError = PWM_INIT_ERROR_TOO_MANY_MOTORS;
-        LOG_E(PWM, "Too many motors. Mixer requested %d, max %d", motorCount, MAX_MOTORS);
+        LOG_ERROR(PWM, "Too many motors. Mixer requested %d, max %d", motorCount, MAX_MOTORS);
         return;
     }
 
@@ -304,14 +314,14 @@ static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
 
     // Now if we need to configure individual motor outputs - do that
     if (!motorsUseHardwareTimers()) {
-        LOG_I(PWM, "Skipped timer init for motors");
+        LOG_INFO(PWM, "Skipped timer init for motors");
         return;
     }
 
     // If mixer requests more motors than we have timer outputs - throw an error
     if (motorCount > timOutputs->maxTimMotorCount) {
         pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS;
-        LOG_E(PWM, "Not enough motor outputs. Mixer requested %d, outputs %d", motorCount, timOutputs->maxTimMotorCount);
+        LOG_ERROR(PWM, "Not enough motor outputs. Mixer requested %d, outputs %d", motorCount, timOutputs->maxTimMotorCount);
         return;
     }
 
@@ -320,7 +330,7 @@ static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
         const timerHardware_t *timHw = timOutputs->timMotors[idx];
         if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
             pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-            LOG_E(PWM, "Timer allocation failed for motor %d", idx);
+            LOG_ERROR(PWM, "Timer allocation failed for motor %d", idx);
             return;
         }
     }
@@ -331,14 +341,14 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
     const int servoCount = getServoCount();
 
     if (!isMixerUsingServos()) {
-        LOG_I(PWM, "Mixer does not use servos");
+        LOG_INFO(PWM, "Mixer does not use servos");
         return;
     }
 
     // Check if too many servos
     if (servoCount > MAX_SERVOS) {
         pwmInitError = PWM_INIT_ERROR_TOO_MANY_SERVOS;
-        LOG_E(PWM, "Too many servos. Mixer requested %d, max %d", servoCount, MAX_SERVOS);
+        LOG_ERROR(PWM, "Too many servos. Mixer requested %d, max %d", servoCount, MAX_SERVOS);
         return;
     }
 
@@ -348,14 +358,14 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
     // Check if we need to init timer output for servos
     if (!servosUseHardwareTimers()) {
         // External PWM servo driver
-        LOG_I(PWM, "Skipped timer init for servos - using external servo driver");
+        LOG_INFO(PWM, "Skipped timer init for servos - using external servo driver");
         return;
     }
 
     // If mixer requests more servos than we have timer outputs - throw an error
     if (servoCount > timOutputs->maxTimServoCount) {
         pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS;
-        LOG_E(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs->maxTimServoCount);
+        LOG_ERROR(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs->maxTimServoCount);
         return;
     }
 
@@ -365,7 +375,7 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
 
         if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
             pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
-            LOG_E(PWM, "Timer allocation failed for servo %d", idx);
+            LOG_ERROR(PWM, "Timer allocation failed for servo %d", idx);
             return;
         }
     }

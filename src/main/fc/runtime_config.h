@@ -166,29 +166,33 @@ typedef enum {
 flightModeForTelemetry_e getFlightModeForTelemetry(void);
 
 #ifdef USE_SIMULATOR
+
+#define SIMULATOR_MSP_VERSION  2     // Simulator MSP version
+#define SIMULATOR_BARO_TEMP    25    // °C
+#define SIMULATOR_FULL_BATTERY 12.6f // Volts
+#define SIMULATOR_HAS_OPTION(flag) ((simulatorData.flags & flag) != 0)
+
 typedef enum {
-	SIMU_ENABLE					= (1 << 0),
-	SIMU_SIMULATE_BATTERY		= (1 << 1),
-	SIMU_MUTE_BEEPER			= (1 << 2),
-	SIMU_USE_SENSORS			= (1 << 3),
-	SIMU_HAS_NEW_GPS_DATA		= (1 << 4),
-	SIMU_EXT_BATTERY_VOLTAGE	= (1 << 5),//extend MSP_SIMULATOR format 2
-    SIMU_AIRSPEED               = (1 << 6) 
+    HITL_RESET_FLAGS            = (0 << 0),
+	HITL_ENABLE					= (1 << 0),
+	HITL_SIMULATE_BATTERY		= (1 << 1),
+	HITL_MUTE_BEEPER			= (1 << 2),
+	HITL_USE_IMU			    = (1 << 3), // Use the Acc and Gyro data provided by XPlane to calculate Attitude (i.e. 100% of the calculations made by AHRS from INAV)
+	HITL_HAS_NEW_GPS_DATA		= (1 << 4),
+	HITL_EXT_BATTERY_VOLTAGE	= (1 << 5), // Extend MSP_SIMULATOR format 2
+    HITL_AIRSPEED               = (1 << 6) 
 } simulatorFlags_t;
 
 typedef struct {
 	simulatorFlags_t flags;
 	uint8_t debugIndex;
-    uint8_t vbat;  //126 ->12.6V
-	uint16_t airSpeed;  //cm/s
-
-	int16_t INPUT_STABILIZED_ROLL;
-	int16_t INPUT_STABILIZED_PITCH;
-	int16_t INPUT_STABILIZED_YAW;
-	int16_t INPUT_STABILIZED_THROTTLE;
+    uint8_t vbat;      // 126 -> 12.6V
+	uint16_t airSpeed; // cm/s
+    int16_t input[4];
 } simulatorData_t;
 
 extern simulatorData_t simulatorData;
+
 #endif
 
 uint32_t enableFlightMode(flightModeFlags_e mask);

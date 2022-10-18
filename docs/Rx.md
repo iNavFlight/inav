@@ -9,7 +9,7 @@ There are 2 basic types of receivers:
 
 ## PPM Receivers
 
-**Only supported in inav 3.x and below**
+**Only supported in INAV 3.x and below**
 
 PPM is sometimes known as PPM SUM or CPPM.
 
@@ -47,7 +47,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
+As of INAV 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal INAV RSSI (0-1023 range). In order to use this feature, the following is necessary:
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
@@ -154,7 +154,7 @@ It is possible to use IBUS RX and IBUS telemetry on only one port of the hardwar
 
 ### SRXL2
 
-SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in inav 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
+SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in INAV 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
 
 #### Wiring
 
@@ -162,7 +162,7 @@ Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the F
 
 #### Configuration
 
-Selection of SXRL2 is provided in the inav 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
+Selection of SXRL2 is provided in the INAV 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
 
 ```
 feature TELEMETRY

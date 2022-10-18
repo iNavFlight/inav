@@ -156,7 +156,7 @@ A shorter form is also supported to enable and disable a single function using `
 | SERVO_SERIAL          | 22            | 4194304 |
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
 | IMU2                  | 24            | 16777216 |
-| HDZERO                | 25            | 33554432 |
+| MSP_DISPLAYPORT       | 25            | 33554432 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 

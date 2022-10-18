@@ -66,7 +66,7 @@
 #include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
-#include "io/displayport_hdzero_osd.h"
+#include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
@@ -107,12 +107,12 @@ void taskHandleSerial(timeUs_t currentTimeUs)
     djiOsdSerialProcess();
 #endif
 
-#ifdef USE_HDZERO_OSD
-	// Capture HDZero messages to determine if VTX is connected
-    hdzeroOsdSerialProcess(mspFcProcessCommand);
+#ifdef USE_MSP_OSD
+	// Capture MSP Displayport messages to determine if VTX is connected
+    mspOsdSerialProcess(mspFcProcessCommand);
 #endif
-}
 
+}
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;

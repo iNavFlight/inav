@@ -302,8 +302,6 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
-    flight/hil.c
-    flight/hil.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
@@ -484,8 +482,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
-    io/displayport_hdzero_osd.c
-    io/displayport_hdzero_osd.h
+    io/displayport_msp_osd.c
+    io/displayport_msp_osd.h
     io/displayport_srxl.c
     io/displayport_srxl.h
     io/displayport_hott.c
