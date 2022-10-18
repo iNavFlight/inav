@@ -546,7 +546,7 @@ void init(void)
 #endif
 #ifdef USE_MSP_OSD
         if (!osdDisplayPort) {
-            osdDisplayPort = mspOsdDisplayPortInit();
+            osdDisplayPort = mspOsdDisplayPortInit(osdConfig()->video_system);
         }
 #endif
 #if defined(USE_MAX7456)
