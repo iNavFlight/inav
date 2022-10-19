@@ -30,8 +30,6 @@
 
 FILE_COMPILE_FOR_SPEED
 
-//#define MSP_DISPLAYPORT_STATS
-
 #if defined(USE_OSD) && defined(USE_MSP_OSD)
 
 #include "common/utils.h"
@@ -60,19 +58,15 @@ FILE_COMPILE_FOR_SPEED
 #define MSP_WRITE_STRING 3
 #define MSP_DRAW_SCREEN 4
 #define MSP_SET_OPTIONS 5
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
-#define DRAW_FREQ_DENOM 4 // approx. 60Hz
-=======
 
 typedef enum {          // defines are from hdzero code
     SD_3016,
     HD_5018,
-    HD_3016,
+    HD_3016,           // Special HDZERO mode that just sends the centre 30x16 of the 50x18 canvas to the VRX
     HD_6022            // added to support DJI wtfos 60x22 grid
 } resolutionType_e;
 
 #define DRAW_FREQ_DENOM 4 // 60Hz
->>>>>>> master:src/main/io/displayport_msp_osd.c
 #define TX_BUFFER_SIZE 1024
 #define VTX_TIMEOUT 1000 // 1 second timer
 
@@ -82,14 +76,6 @@ static displayPort_t mspOsdDisplayPort;
 static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
 
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
-// Screen modes
-static uint8_t osdMode;
-#define HD_5018 1
-#define HD_3016 2 // Special mode that just sends the centre 30x16 of the 50x18 canvas to the VRX.
-#define ROWS 18
-#define COLS 50
-=======
 // PAL screen size
 #define PAL_COLS 30
 #define PAL_ROWS 16
@@ -105,28 +91,24 @@ static uint8_t osdMode;
 // DJIWTF screen size
 #define DJI_COLS 60
 #define DJI_ROWS 22
+
 // set COLS and ROWS to largest size available
 #define COLS DJI_COLS
 #define ROWS DJI_ROWS
+
 // set screen size
->>>>>>> master:src/main/io/displayport_msp_osd.c
 #define SCREENSIZE (ROWS*COLS)
+
+static uint8_t currentOsdMode; // HDZero screen mode can change across layouts
 
 static uint8_t screen[SCREENSIZE];
 static BITARRAY_DECLARE(fontPage, SCREENSIZE); // font page for each character on the screen
 static BITARRAY_DECLARE(dirty, SCREENSIZE); // change status for each character on the screen
 static bool screenCleared;
-static uint8_t screenRows;
-static uint8_t screenCols;
+static uint8_t screenRows, screenCols;
 static videoSystem_e osdVideoSystem;
 
 extern uint8_t cliMode;
-
-#ifdef MSP_DISPLAYPORT_STATS
-static uint32_t dataSent;
-static timeMs_t maxVtxAbsence;
-static uint8_t resetCount;
-#endif
 
 static void checkVtxPresent(void)
 {
@@ -146,19 +128,11 @@ static int output(displayPort_t *displayPort, uint8_t cmd, uint8_t *subcmd, int 
         sent = mspSerialPushPort(cmd, subcmd, len, &mspPort, MSP_V1);
     }
 
-#ifdef MSP_DISPLAYPORT_STATS
-    dataSent += sent;
-#endif
-
     return sent;
 }
 
-static int chk = 0;
-
-static uint8_t determineOsdMode(void)
+static uint8_t determineHDZeroOsdMode(void)
 {
-    chk++;
-
     if (cmsInMenu) {
         return HD_5018;
     }
@@ -183,35 +157,16 @@ static uint8_t determineOsdMode(void)
 
 static int setDisplayMode(displayPort_t *displayPort)
 {
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
-    osdMode = determineOsdMode();
-
-    uint8_t subcmd[] = { MSP_SET_OPTIONS, 0,  osdMode }; // font selection, mode (SD/HD)
-=======
-    uint8_t subSubcmd = 0;
-
-    switch(osdVideoSystem)
-    {
-    case VIDEO_SYSTEM_DJIWTF:
-        subSubcmd = HD_6022;
-        break;
-    case VIDEO_SYSTEM_HDZERO:
-        subSubcmd = HD_5018;
-        break;
-    default:
-        subSubcmd = SD_3016;
-        break;
+    if (osdVideoSystem == VIDEO_SYSTEM_HDZERO) {
+        currentOsdMode = determineHDZeroOsdMode(); // Can change between layouts
     }
 
-    checkVtxPresent();
-    uint8_t subcmd[] = { MSP_SET_OPTIONS, 0, subSubcmd }; // font selection, mode (SD/HD)
->>>>>>> master:src/main/io/displayport_msp_osd.c
+    uint8_t subcmd[] = { MSP_SET_OPTIONS, 0, currentOsdMode }; // Font selection, mode (SD/HD)
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static void init(void)
 {
-    osdMode = HD_5018;
     memset(screen, SYM_BLANK, sizeof(screen));
     BITARRAY_CLR_ALL(fontPage);
     BITARRAY_CLR_ALL(dirty);
@@ -221,23 +176,17 @@ static int clearScreen(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { MSP_CLEAR_SCREEN };
 
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
-    if (!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) { // OSD off
+    if (!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) { // OSD is off
         output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
         subcmd[0] = MSP_DRAW_SCREEN;
         vtxReset = true;
     }
     else {
-        hdZeroInit();
+        init();
         setDisplayMode(displayPort);
         screenCleared = true;
     }
 
-=======
-    init();
-    setHdMode(displayPort);
-    screenCleared = true;
->>>>>>> master:src/main/io/displayport_msp_osd.c
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
@@ -245,7 +194,7 @@ static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
 {
     UNUSED(displayPort);
 
-    uint16_t pos = (row * screenCols) + col;
+    uint16_t pos = (row * COLS) + col;
     if (pos >= SCREENSIZE) {
         return false;
     }
@@ -281,7 +230,7 @@ static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
     UNUSED(displayPort);
     UNUSED(attr);
 
-    return setChar((row * screenCols) + col, c);
+    return setChar((row * COLS) + col, c);
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
@@ -289,60 +238,12 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     UNUSED(displayPort);
     UNUSED(attr);
 
-    uint16_t pos = (row * screenCols) + col;
+    uint16_t pos = (row * COLS) + col;
     while (*string) {
         setChar(pos++, *string++);
     }
     return 0;
 }
-
-#ifdef MSP_DISPLAYPORT_STATS
-static void printStats(displayPort_t *displayPort, uint32_t updates)
-{
-    static timeMs_t lastTime;
-    static uint32_t maxDataSent, maxBufferUsed, maxUpdates;
-    timeMs_t currentTime = millis();
-    char lineBuffer[31];
-
-    if (updates > maxUpdates) {
-        maxUpdates = updates; // updates sent per displayWrite
-    }
-
-    uint32_t bufferUsed = TX_BUFFER_SIZE - serialTxBytesFree(mspPort.port);
-    if (bufferUsed > maxBufferUsed) {
-        maxBufferUsed = bufferUsed; // serial buffer used after displayWrite
-    }
-
-    tfp_sprintf(lineBuffer, "CHECKS: %d", chk);
-    writeString(displayPort, 10, ((osdMode == HD_5018) ? 15 : 14), lineBuffer, 0);
-
-    tfp_sprintf(lineBuffer, "RES:%2d HB:%4ld DAT:%5ld %5ld",
-        resetCount, maxVtxAbsence, dataSent, maxDataSent);
-    writeString(displayPort, 10, ((osdMode == HD_5018) ? 16 : 15), lineBuffer, 0);
-
-    tfp_sprintf(lineBuffer, "UPD:%2ld %2ld BUF:%3ld %4ld %4ld %2s",
-            updates, maxUpdates, bufferUsed, maxBufferUsed, hdZeroMspPort.port->txBufferSize,
-            (osdMode == HD_5018) ? "HD" : "SD");
-    writeString(displayPort, 10, ((osdMode == HD_5018) ? 17 : 16), lineBuffer, 0);
-
-    uint32_t diff = (currentTime - lastTime);
-    if (diff > 1000) { // Data sampled in 1 second
-        if (dataSent > maxDataSent) {
-            maxDataSent = dataSent; // bps (max 11520 allowed)
-        }
-        dataSent = 0;
-        lastTime = currentTime;
-    }
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
-=======
-
-
-    tfp_sprintf(lineBuffer, "R:%2d %4ld %5ld(%5ld) U:%2ld(%2ld) B:%3ld(%4ld,%4ld)", resetCount, (millis()-vtxHeartbeat),
-            dataSent, maxDataSent, updates, maxUpdates, bufferUsed, maxBufferUsed, mspPort.port->txBufferSize);
-    writeString(displayPort, 0, 17, lineBuffer, 0);
->>>>>>> master:src/main/io/displayport_msp_osd.c
-}
-#endif
 
 /**
  * Write only changed characters to the VTX
@@ -351,43 +252,10 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
 
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) {
         return 0;
     }
-=======
-    if ((counter++ % DRAW_FREQ_DENOM) == 0) {
-        uint8_t subcmd[COLS + 4];
-        uint8_t updateCount = 0;
-        subcmd[0] = MSP_WRITE_STRING;
 
-        int next = BITARRAY_FIND_FIRST_SET(dirty, 0);
-        while (next >= 0) {
-            // Look for sequential dirty characters on the same line for the same font page
-            int pos = next;
-            uint8_t row = pos / screenCols;
-            uint8_t col = pos % screenCols;
-            int endOfLine = row * screenCols + screenCols;
-            bool page = bitArrayGet(fontPage, pos);
-
-            uint8_t len = 4;
-            do {
-                bitArrayClr(dirty, pos);
-                subcmd[len++] = screen[pos++];
-
-                if (bitArrayGet(dirty, pos)) {
-                    next = pos;
-                }
-            } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page);
-
-            subcmd[1] = row;
-            subcmd[2] = col;
-            subcmd[3] = page;
-            output(displayPort, MSP_DISPLAYPORT, subcmd, len);
-            updateCount++;
-            next = BITARRAY_FIND_FIRST_SET(dirty, pos);
-        }
->>>>>>> master:src/main/io/displayport_msp_osd.c
 
     uint8_t subcmd[COLS + 4];
     uint8_t updateCount = 0;
@@ -399,7 +267,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         int pos = next;
         uint8_t row = pos / COLS;
         uint8_t col = pos % COLS;
-        int endOfLine = row * COLS + COLS;
+        int endOfLine = row * COLS + screenCols;
         bool page = bitArrayGet(fontPage, pos);
 
         uint8_t len = 4;
@@ -425,29 +293,11 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             screenCleared = false;
         }
 
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
         subcmd[0] = MSP_DRAW_SCREEN;
         output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
     }
 
-#ifdef HDZERO_STATS
-    printStats(displayPort, updateCount);
-=======
-#ifdef MSP_DISPLAYPORT_STATS
-        printStats(displayPort, updateCount);
->>>>>>> master:src/main/io/displayport_msp_osd.c
-#endif
-
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
     if (vtxReset) {
-#ifdef HDZERO_STATS
-        resetCount++;
-=======
-        if (vtxReset) {
-#ifdef MSP_DISPLAYPORT_STATS
-            resetCount++;
->>>>>>> master:src/main/io/displayport_msp_osd.c
-#endif
         clearScreen(displayPort);
         vtxReset = false;
     }
@@ -457,14 +307,8 @@ return 0;
 
 static void resync(displayPort_t *displayPort)
 {
-<<<<<<< HEAD:src/main/io/displayport_hdzero_osd.c
-    displayPort->rows = ROWS;
-    displayPort->cols = COLS;
-=======
     displayPort->rows = screenRows;
     displayPort->cols = screenCols;
-    setHdMode(displayPort);
->>>>>>> master:src/main/io/displayport_msp_osd.c
 }
 
 static int screenSize(const displayPort_t *displayPort)
@@ -569,31 +413,35 @@ bool mspOsdSerialInit(void)
 displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
 {
     if (mspOsdSerialInit()) {
-        init();
-        displayInit(&mspOsdDisplayPort, &mspOsdVTable);
-        osdVideoSystem = videoSystem;
-        switch (videoSystem)
-        {
+        switch(videoSystem) {
         case VIDEO_SYSTEM_AUTO:
         case VIDEO_SYSTEM_PAL:
+            currentOsdMode = SD_3016;
             screenRows = PAL_ROWS;
             screenCols = PAL_COLS;
             break;
         case VIDEO_SYSTEM_NTSC:
+            currentOsdMode = SD_3016;
             screenRows = NTSC_ROWS;
             screenCols = NTSC_COLS;
             break;
         case VIDEO_SYSTEM_HDZERO:
+            currentOsdMode = HD_5018;
             screenRows = HDZERO_ROWS;
             screenCols = HDZERO_COLS;
             break;
         case VIDEO_SYSTEM_DJIWTF:
+            currentOsdMode = HD_6022;
             screenRows = DJI_ROWS;
             screenCols = DJI_COLS;
             break;
         default:
             break;
         }
+
+        osdVideoSystem = videoSystem;
+        init();
+        displayInit(&mspOsdDisplayPort, &mspOsdVTable);
 
         return &mspOsdDisplayPort;
     }
@@ -610,15 +458,7 @@ static mspResult_e processMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPo
     if ((vtxSeen && !vtxActive) || (cmd->cmd == MSP_EEPROM_WRITE)) {
         vtxReset = true;
     }
-#ifdef HDZERO_STATS
-    if (vtxSeen) {
-        timeMs_t vtxAbsence = millis() - vtxHeartbeat;
-        if (maxVtxAbsence < vtxAbsence)
-        {
-            maxVtxAbsence = vtxAbsence;
-        }
-    }
-#endif
+
     vtxSeen = vtxActive = true;
     vtxHeartbeat = millis();
 
