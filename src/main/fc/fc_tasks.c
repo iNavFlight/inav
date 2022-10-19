@@ -111,8 +111,8 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
 #endif
-}
 
+}
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;

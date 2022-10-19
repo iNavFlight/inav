@@ -272,6 +272,7 @@ static bool gpsFakeGPSUpdate(void)
     uint32_t delta = now - gpsState.lastMessageMs;
     if (delta > 100) {
         int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_SPEED;
+        speed = speed * sin_approx((now % 1000) / 1000.f * M_PIf) * +speed;
         int32_t cmDelta = speed * (delta / 1000.0f);
         int32_t latCmDelta = cmDelta * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         int32_t lonCmDelta = cmDelta * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
@@ -313,6 +314,7 @@ static bool gpsFakeGPSUpdate(void)
         gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
         gpsSetState(GPS_RUNNING);
+        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
         return true;
     }
     return false;

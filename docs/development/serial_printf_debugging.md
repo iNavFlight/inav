@@ -2,7 +2,7 @@
 
 ## Overview
 
-inav offers a function to use serial `printf` style debugging.
+INAV offers a function to use serial `printf` style debugging.
 
 This provides a simple and intuitive debugging facility. This facility is only available after the serial sub-system has been initialised, which should be adequate for all but the most hard-core debugging requirements.
 
@@ -44,7 +44,7 @@ Log levels are defined in `src/main/common/log.h`, at the time of writing these 
 
 These are used at both compile time and run time.
 
-At compile time, a maximum level may be defined. As of inav 2.3, for F3 targets the maximum level is ERROR, for F4/F7 the maximum level is DEBUG.
+At compile time, a maximum level may be defined. As of INAV 2.3, for F3 targets the maximum level is ERROR, for F4/F7 the maximum level is DEBUG.
 
 At run time, the level defines the level that will be displayed, so for a F4 or F7 target that has compile time suport for all log levels, if the CLI sets
 ```
@@ -98,7 +98,7 @@ Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messa
 
 * msp-tool https://github.com/fiam/msp-tool
 * mwp https://github.com/stronnag/mwptools
-* inav Configurator
+* INAV Configurator
 
 For example, with the final lines of `src/main/fc/fc_init.c` set to:
 

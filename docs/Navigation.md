@@ -23,7 +23,7 @@ Throttle tilt compensation attempts to maintain constant vertical thrust when co
 ## NAV POSHOLD mode - position hold
 
 Position hold requires GPS, accelerometer and compass sensors. Flight modes that require a compass (POSHOLD, RTH) are locked until compass is properly calibrated.
-When activated, this mode will attempt to keep copter where it is (based on GPS coordinates). From inav 2.0, POSHOLD is a full 3D position hold. Heading hold in this mode is assumed and activated automatically.
+When activated, this mode will attempt to keep copter where it is (based on GPS coordinates). From INAV 2.0, POSHOLD is a full 3D position hold. Heading hold in this mode is assumed and activated automatically.
 
 ### CLI parameters affecting POSHOLD mode:
 * *nav_user_control_mode* - can be set to "0" (GPS_ATTI) or "1" (GPS_CRUISE), controls how firmware will respond to roll/pitch stick movement. When in GPS_ATTI mode, right stick controls attitude, when it is released, new position is recorded and held. When in GPS_CRUISE mode right stick controls velocity and firmware calculates required attitude on its own.
@@ -59,11 +59,11 @@ NAV WP allows the craft to autonomously navigate a set route defined by waypoint
 
 `wp load` - Load list of waypoints from EEPROM to FC.
 
-`wp <n> <action> <lat> <lon> <alt> <p1> <p2> <p3> <flag>` - Set parameters of waypoint with index `<n>`. Note that prior to inav 2.5, the `p2` and `p3` parameters were not required. From 2.5, inav will accept either version but always saves and lists the later full version.
+`wp <n> <action> <lat> <lon> <alt> <p1> <p2> <p3> <flag>` - Set parameters of waypoint with index `<n>`. Note that prior to INAV 2.5, the `p2` and `p3` parameters were not required. From 2.5, INAV will accept either version but always saves and lists the later full version.
 
 Parameters:
 
-  * `<action>` - The action to be taken at the WP. The following are enumerations are available in inav 2.6 and later:
+  * `<action>` - The action to be taken at the WP. The following are enumerations are available in INAV 2.6 and later:
       *  0 - Unused / Unassigned
       *  1 - WAYPOINT
       *  3 - POSHOLD_TIME

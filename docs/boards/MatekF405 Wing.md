@@ -21,7 +21,7 @@
 ### Alternate targets
 
 #### MATEKF045SE_PINIO
-`MATEKF045SE_PINIO` replaces UART 6 (TX) with a pad that can be used for PINIO
+`MATEKF045SE_PINIO` replaces UART 6 with a PINIO interface. TX6 for PINIO USER 1 and RX6 for PINIO USER 2
 
 ## Where to buy:
 

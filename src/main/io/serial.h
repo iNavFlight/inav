@@ -56,7 +56,7 @@ typedef enum {
     FUNCTION_SERVO_SERIAL               = (1 << 22), // 4194304
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
     FUNCTION_IMU2                       = (1 << 24), // 16777216
-	FUNCTION_MSP_OSD                 = (1 << 25), // 33554432
+    FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
 } serialPortFunction_e;
 
 typedef enum {

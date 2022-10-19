@@ -34,6 +34,7 @@ void targetConfiguration(void)
 {  
 #ifdef MATEKF405SE_PINIO
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 #endif
 
     serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
