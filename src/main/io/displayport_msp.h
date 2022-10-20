@@ -20,5 +20,11 @@
 #include "config/parameter_group.h"
 #include "drivers/display.h"
 
+// MSP Display Port commands
+#define MSP_DP_RELEASE      1
+#define MSP_DP_CLEAR_SCREEN 2
+#define MSP_DP_WRITE_STRING 3
+#define MSP_DP_DRAW_SCREEN  4
+
 struct displayPort_s;
 struct displayPort_s *displayPortMspInit(void);

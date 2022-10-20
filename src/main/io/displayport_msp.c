@@ -38,6 +38,8 @@
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
 
+#define MSP_OSD_MAX_STRING_LENGTH 30 
+
 static displayPort_t mspDisplayPort;
 
 extern uint8_t cliMode;
@@ -70,21 +72,21 @@ static int grab(displayPort_t *displayPort)
 
 static int release(displayPort_t *displayPort)
 {
-    uint8_t subcmd[] = { 1 };
+    uint8_t subcmd[] = { MSP_DP_RELEASE };
 
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static int clearScreen(displayPort_t *displayPort)
 {
-    uint8_t subcmd[] = { 2 };
+    uint8_t subcmd[] = { MSP_DP_CLEAR_SCREEN };
 
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static int drawScreen(displayPort_t *displayPort)
 {
-    uint8_t subcmd[] = { 4 };
+    uint8_t subcmd[] = { MSP_DP_DRAW_SCREEN };
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
@@ -96,7 +98,7 @@ static int screenSize(const displayPort_t *displayPort)
 static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
 {
     UNUSED(attr);
-#define MSP_OSD_MAX_STRING_LENGTH 30 // FIXME move this
+    
     uint8_t buf[MSP_OSD_MAX_STRING_LENGTH + 4];
 
     int len = strlen(string);
@@ -104,7 +106,7 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
         len = MSP_OSD_MAX_STRING_LENGTH;
     }
 
-    buf[0] = 3;
+    buf[0] = MSP_DP_WRITE_STRING;
     buf[1] = row;
     buf[2] = col;
     buf[3] = 0;
