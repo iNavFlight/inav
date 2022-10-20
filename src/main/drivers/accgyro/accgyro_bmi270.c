@@ -23,13 +23,14 @@
 
 #include "platform.h"
 
-#if defined(USE_IMU_BMI270)
+// #if defined(USE_IMU_BMI270)
 
 #include "build/debug.h"
 
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/log.h"
 
 #include "drivers/system.h"
 #include "drivers/time.h"
@@ -131,8 +132,8 @@ typedef struct __attribute__ ((__packed__)) bmi270ContextData_s {
 STATIC_ASSERT(sizeof(bmi270ContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
 static const gyroFilterAndRateConfig_t gyroConfigs[] = {
-    { GYRO_LPF_256HZ,   3200,   { BMI270_BWP_NORM | BMI270_ODR_3200} },
-    { GYRO_LPF_256HZ,   1600,   { BMI270_BWP_NORM | BMI270_ODR_1600} },
+    { GYRO_LPF_256HZ,   3200,   { BMI270_BWP_OSR4 | BMI270_ODR_3200} },
+    { GYRO_LPF_256HZ,   1600,   { BMI270_BWP_OSR2 | BMI270_ODR_1600} },
     { GYRO_LPF_256HZ,    800,   { BMI270_BWP_NORM | BMI270_ODR_800 } },
 
     { GYRO_LPF_188HZ,    800,   { BMI270_BWP_OSR2 | BMI270_ODR_800 } },
@@ -192,6 +193,55 @@ static void bmi270UploadConfig(busDevice_t * busDev)
     delay(1);
 }
 
+#define GYR_CRT_CONF 0x69
+#define G_TRIG_1 0x33
+#define GYR_GAIN_STATUS 0x38
+static void bmi270PerformCRT(gyroDev_t *gyro)
+{   
+    uint8_t value;
+    //BMI270 Datasheet page 75
+    LOG_WARNING(SYSTEM, "bmi270PerformCRT");
+    busDevice_t * busDev = gyro->busDev;
+    LOG_WARNING(SYSTEM, "dev->busType:%d",busDev->busType);
+    busRead(busDev,BMI270_REG_CHIP_ID,&value);
+    LOG_WARNING(SYSTEM, "BMI270_REG_CHIP_ID:%d",value);
+
+    uint8_t id[2];
+    busReadBuf(busDev, BMI270_REG_CHIP_ID, &id[0], 2);
+    LOG_WARNING(SYSTEM, "BMI270_REG_CHIP_ID:%d",(int)id[1]);
+
+    // Configure the device for performance mode
+    busWrite(busDev, BMI270_REG_PWR_CONF, BMI270_PWR_CONF_HP);
+    delay(1);
+
+    // Enable the accelerometer
+    busWrite(busDev, BMI270_REG_PWR_CTRL, BMI270_PWR_CTRL_ACC_EN);
+    delay(1);
+
+    LOG_WARNING(SYSTEM, "Make the device stationary, ready to perform CRT");
+    delay(2000);
+    busWrite(busDev, GYR_CRT_CONF, 0b00000100);
+    delay(1);
+    busWrite(busDev, G_TRIG_1, 0b00000001);
+    delay(1);
+    busWrite(busDev, BMI270_REG_CMD, 0x02);
+    LOG_WARNING(SYSTEM, "perform CRT");
+    delay(1);
+
+    uint8_t result;
+    busRead(busDev,GYR_CRT_CONF,&result);
+    LOG_WARNING(SYSTEM, "CRT status:%d",result);
+    delay(1);
+    while((result & 0b00000100)>0){
+        LOG_WARNING(SYSTEM, "CRT running");
+        delay(1000);
+        busRead(busDev,GYR_CRT_CONF,&result);
+    }
+    busRead(busDev,GYR_GAIN_STATUS,&result);
+    LOG_WARNING(SYSTEM, "CRT result:%d",result);
+    delay(1000);
+}
+
 static void bmi270AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * busDev = gyro->busDev;
@@ -200,7 +250,7 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
     // Delay 100ms before continuing configuration
     busWrite(busDev, BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
     delay(100);
-
+    
     // Use standard bus speed
     busSetSpeed(busDev, BUS_SPEED_STANDARD);
 
@@ -208,6 +258,8 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
     bmi270EnableSPI(busDev);
 
     bmi270UploadConfig(busDev);
+
+    bmi270PerformCRT(gyro);
 
     // Configure the accelerometer
     busWrite(busDev, BMI270_REG_ACC_CONF, BMI270_ODR_1600 | BMI270_BWP_OSR4 | BMI270_ACC_CONF_HP);
@@ -348,4 +400,4 @@ bool bmi270GyroDetect(gyroDev_t *gyro)
     gyro->gyroAlign = gyro->busDev->param;
     return true;
 }
-#endif // USE_IMU_BMI270
+// #endif // USE_IMU_BMI270
