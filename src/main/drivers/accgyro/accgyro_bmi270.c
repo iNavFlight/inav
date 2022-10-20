@@ -194,21 +194,20 @@ static void bmi270UploadConfig(busDevice_t * busDev)
 }
 
 #define GYR_CRT_CONF 0x69
-#define G_TRIG_1 0x33
+#define FEAT_PAGE 0x2F
+#define G_TRIG_1 0x32
 #define GYR_GAIN_STATUS 0x38
 static void bmi270PerformCRT(gyroDev_t *gyro)
 {   
-    uint8_t value;
     //BMI270 Datasheet page 75
+    uint8_t result[2];
+    delay(3000);
     LOG_WARNING(SYSTEM, "bmi270PerformCRT");
     busDevice_t * busDev = gyro->busDev;
     LOG_WARNING(SYSTEM, "dev->busType:%d",busDev->busType);
-    busRead(busDev,BMI270_REG_CHIP_ID,&value);
-    LOG_WARNING(SYSTEM, "BMI270_REG_CHIP_ID:%d",value);
 
-    uint8_t id[2];
-    busReadBuf(busDev, BMI270_REG_CHIP_ID, &id[0], 2);
-    LOG_WARNING(SYSTEM, "BMI270_REG_CHIP_ID:%d",(int)id[1]);
+    busReadBuf(busDev, BMI270_REG_CHIP_ID, &result[0], 2);
+    LOG_WARNING(SYSTEM, "BMI270_REG_CHIP_ID:%d",result[1]);
 
     // Configure the device for performance mode
     busWrite(busDev, BMI270_REG_PWR_CONF, BMI270_PWR_CONF_HP);
@@ -220,25 +219,50 @@ static void bmi270PerformCRT(gyroDev_t *gyro)
 
     LOG_WARNING(SYSTEM, "Make the device stationary, ready to perform CRT");
     delay(2000);
+
     busWrite(busDev, GYR_CRT_CONF, 0b00000100);
     delay(1);
-    busWrite(busDev, G_TRIG_1, 0b00000001);
+    busReadBuf(busDev,GYR_CRT_CONF,&result[0],2);
+    LOG_WARNING(SYSTEM, "CRT status:%d",result[1]);
+    
+    busWrite(busDev, FEAT_PAGE, 0b00000001);
+    delay(100);
+    busReadBuf(busDev,FEAT_PAGE,&result[0],2);
+    LOG_WARNING(SYSTEM, "FEAT_PAGE status:%d",result[1]);
+    // busWrite(busDev, G_TRIG_1, 0b00001000);
+    // delay(1);
+    busWrite(busDev, G_TRIG_1+1, 0b00000001);
     delay(1);
+    // uint8_t write_buf[2];
+    // write_buf[0]=0b00010001;
+    // write_buf[1]=0b00000001;
+    // write_buf[2]=0b00010001;
+    // busWriteBuf(busDev, G_TRIG_1, &write_buf[0],2);
+    // delay(1);
+    //seems like page swtiching have issues
+    busReadBuf(busDev,0x32,&result[0],2);
+    LOG_WARNING(SYSTEM, "G_TRIG_1 status:%d",result[1]);
+    busReadBuf(busDev,0x33,&result[0],2);
+    LOG_WARNING(SYSTEM, "G_TRIG_1+1 status:%d",result[1]);
+    busReadBuf(busDev,0x34,&result[0],2);
+    LOG_WARNING(SYSTEM, "G_TRIG_1+2 status:%d",result[1]);
+    busReadBuf(busDev,0x35,&result[0],2);
+    LOG_WARNING(SYSTEM, "G_TRIG_1+3 status:%d",result[1]);
+
     busWrite(busDev, BMI270_REG_CMD, 0x02);
     LOG_WARNING(SYSTEM, "perform CRT");
     delay(1);
 
-    uint8_t result;
-    busRead(busDev,GYR_CRT_CONF,&result);
-    LOG_WARNING(SYSTEM, "CRT status:%d",result);
+    busReadBuf(busDev,GYR_CRT_CONF,&result[0],2);
+    LOG_WARNING(SYSTEM, "CRT status:%d",result[1]);
     delay(1);
-    while((result & 0b00000100)>0){
-        LOG_WARNING(SYSTEM, "CRT running");
+    while((result[1] & 0b00000100)>0){
         delay(1000);
-        busRead(busDev,GYR_CRT_CONF,&result);
+        busReadBuf(busDev,GYR_CRT_CONF,&result[0],2);
+        LOG_WARNING(SYSTEM, "CRT running:%d",result[1]);
     }
-    busRead(busDev,GYR_GAIN_STATUS,&result);
-    LOG_WARNING(SYSTEM, "CRT result:%d",result);
+    busReadBuf(busDev,GYR_GAIN_STATUS,&result[0],2);
+    LOG_WARNING(SYSTEM, "CRT result:%d",result[1]);
     delay(1000);
 }
 
