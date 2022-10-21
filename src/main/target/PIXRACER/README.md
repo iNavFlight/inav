@@ -1,4 +1,4 @@
-# Pixracer
+# PixRacer
 
 * Target owner: @DigitalEntity
 * The PixRacer is the first autopilot of the new FMUv4 Pixhawk generation. It has Wifi built-in, comes with upgraded sensors and more flash.
@@ -23,6 +23,7 @@
 
 ## Warnings
 
+
 * PixRacers native Flight controller (PX4 & ArduPilot) motor layout is different to INAV
-  * Either Swap your ESC PWM cables to match INAV
-  * Or make a custom mix
+* Either Swap your ESC PWM cables to match INAV
+* Or make a custom mix

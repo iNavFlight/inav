@@ -43,6 +43,9 @@ tables:
   - name: voltage_sensor
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
+  - name: imu_inertia_comp_method
+    values: ["VELNED", "TURNRATE","ADAPTIVE"]
+    enum: imu_inertia_comp_method_e
   - name: gps_provider
     values: ["NMEA", "UBLOX", "UBLOX7", "MSP"]
     enum: gpsProvider_e
@@ -72,7 +75,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC", "HD"]
+    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -1493,7 +1496,7 @@ groups:
     members:
       - name: imu_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
-        default_value: 1000
+        default_value: 2000
         field: dcm_kp_acc
         max: UINT16_MAX
       - name: imu_dcm_ki
@@ -1503,12 +1506,12 @@ groups:
         max: UINT16_MAX
       - name: imu_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
-        default_value: 5000
+        default_value: 2000
         field: dcm_kp_mag
         max: UINT16_MAX
       - name: imu_dcm_ki_mag
         description: "Inertial Measurement Unit KI Gain for compass measurements"
-        default_value: 0
+        default_value: 50
         field: dcm_ki_mag
         max: UINT16_MAX
       - name: small_angle
@@ -1517,17 +1520,27 @@ groups:
         min: 0
         max: 180
       - name: imu_acc_ignore_rate
-        description: "Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes"
-        default_value: 0
+        description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
+        default_value: 15
         field: acc_ignore_rate
         min: 0
-        max: 20
+        max: 30
       - name: imu_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
-        default_value: 0
+        default_value: 5
         field: acc_ignore_slope
         min: 0
-        max: 5
+        max: 10
+      - name: imu_gps_yaw_windcomp
+        description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
+        default_value: ON
+        field: gps_yaw_windcomp
+        type: bool
+      - name: imu_inertia_comp_method
+        description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
+        default_value: VELNED
+        field: inertia_comp_method
+        table: imu_inertia_comp_method
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t
@@ -2277,7 +2290,7 @@ groups:
         type: bool
         default_value: OFF
       - name: inav_allow_dead_reckoning
-        description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
+        description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
         field: allow_dead_reckoning
         type: bool
@@ -3096,7 +3109,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO` and 'DJIWTF'"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
