@@ -86,7 +86,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/secondary_imu.h"
 #include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"

@@ -87,7 +87,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rth_estimator.h"
-#include "flight/secondary_imu.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
 
@@ -1117,28 +1116,12 @@ uint16_t osdGetRemainingGlideTime(void) {
 
 static bool osdIsHeadingValid(void)
 {
-#ifdef USE_SECONDARY_IMU
-    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
-        return true;
-    } else {
-        return isImuHeadingValid();
-    }
-#else
     return isImuHeadingValid();
-#endif
 }
 
 int16_t osdGetHeading(void)
 {
-#ifdef USE_SECONDARY_IMU
-    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
-        return secondaryImuState.eulerAngles.values.yaw;
-    } else {
-        return attitude.values.yaw;
-    }
-#else
     return attitude.values.yaw;
-#endif
 }
 
 int16_t osdPanServoHomeDirectionOffset(void)
@@ -2265,21 +2248,9 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            float rollAngle;
-            float pitchAngle;
+            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
-#ifdef USE_SECONDARY_IMU
-            if (secondaryImuState.active && secondaryImuConfig()->useForOsdAHI) {
-                rollAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
-            } else {
-                rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
-            }
-#else
-            rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
-#endif
             pitchAngle -= osdConfig()->ahi_camera_uptilt_comp ? DEGREES_TO_RADIANS(osdConfig()->camera_uptilt) : 0;
             pitchAngle += DEGREES_TO_RADIANS(getFixedWingLevelTrim());
             if (osdConfig()->ahi_reverse_roll) {

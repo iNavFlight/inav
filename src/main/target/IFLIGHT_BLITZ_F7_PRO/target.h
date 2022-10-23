@@ -148,5 +148,3 @@
 #define MAX_PWM_OUTPUT_PORTS    8
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-
-#define BNO055_I2C_BUS          BUS_I2C2

@@ -84,7 +84,6 @@ bool cliMode = false;
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -3086,55 +3085,6 @@ static void cliBatch(char *cmdline)
 }
 #endif
 
-#ifdef USE_SECONDARY_IMU
-
-static void printImu2Status(void)
-{
-    cliPrintLinef("Secondary IMU active: %d", secondaryImuState.active);
-    cliPrintLine("Calibration status:");
-    cliPrintLinef("Sys: %d", secondaryImuState.calibrationStatus.sys);
-    cliPrintLinef("Gyro: %d", secondaryImuState.calibrationStatus.gyr);
-    cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
-    cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
-    cliPrintLine("Calibration gains:");
-
-    cliPrintLinef(
-        "Gyro: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetGyro[X],
-        secondaryImuConfig()->calibrationOffsetGyro[Y],
-        secondaryImuConfig()->calibrationOffsetGyro[Z]
-    );
-    cliPrintLinef(
-        "Acc: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetAcc[X],
-        secondaryImuConfig()->calibrationOffsetAcc[Y],
-        secondaryImuConfig()->calibrationOffsetAcc[Z]
-    );
-    cliPrintLinef(
-        "Mag: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetMag[X],
-        secondaryImuConfig()->calibrationOffsetMag[Y],
-        secondaryImuConfig()->calibrationOffsetMag[Z]
-    );
-    cliPrintLinef(
-        "Radius: %d %d",
-        secondaryImuConfig()->calibrationRadiusAcc,
-        secondaryImuConfig()->calibrationRadiusMag
-    );
-}
-
-static void cliImu2(char *cmdline)
-{
-    if (sl_strcasecmp(cmdline, "fetch") == 0) {
-        secondaryImuFetchCalibration();
-        printImu2Status();
-    } else {
-        printImu2Status();
-    }
-}
-
-#endif
-
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3361,19 +3311,14 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s, IMU2=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
-        hardwareSensorStatusNames[getHwGPSStatus()],
-#ifdef USE_SECONDARY_IMU
-        hardwareSensorStatusNames[getHwSecondaryImuStatus()]
-#else
-        hardwareSensorStatusNames[0]
-#endif
+        hardwareSensorStatusNames[getHwGPSStatus()]
     );
 
 #ifdef USE_ESC_SENSOR
@@ -3918,9 +3863,6 @@ const clicmd_t cmdTable[] = {
         "[<index>]", cliBatteryProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
-#ifdef USE_SECONDARY_IMU
-    CLI_COMMAND_DEF("imu2", "Secondary IMU", NULL, cliImu2),
-#endif
 #if defined(USE_SAFE_HOME)
     CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
 #endif
