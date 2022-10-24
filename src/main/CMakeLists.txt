@@ -531,8 +531,6 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_flow.c
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
-    navigation/sqrt_controller.c
-    navigation/sqrt_controller.h
 
     sensors/barometer.c
     sensors/barometer.h

@@ -49,7 +49,6 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
-#include "navigation/sqrt_controller.h"
 
 #include "sensors/battery.h"
 
@@ -61,28 +60,20 @@ static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
-static sqrt_controller_t alt_hold_sqrt_controller;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float targetVel = sqrtControllerApply(
-        &alt_hold_sqrt_controller,
-        posControl.desiredState.pos.z,
-        navGetCurrentActualPositionAndVelocity()->pos.z,
-        US2S(deltaMicros)
-    );
+    const float altitudeError = posControl.desiredState.pos.z - navGetCurrentActualPositionAndVelocity()->pos.z;
+    float targetVel = altitudeError * posControl.pids.pos[Z].param.kP;
 
     // hard limit desired target velocity to max_climb_rate
-    float vel_max_z = 0.0f;
-
     if (posControl.flags.isAdjustingAltitude) {
-        vel_max_z = navConfig()->general.max_manual_climb_rate;
-    } else {
-        vel_max_z = navConfig()->general.max_auto_climb_rate;
+        targetVel = constrainf(targetVel, -navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate);
     }
-
-    targetVel = constrainf(targetVel, -vel_max_z, vel_max_z);
+    else {
+        targetVel = constrainf(targetVel, -navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
+    }
 
     posControl.pids.pos[Z].output_constrained = targetVel;
 
@@ -206,9 +197,6 @@ void setupMulticopterAltitudeController(void)
 void resetMulticopterAltitudeController(void)
 {
     const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
-    float nav_speed_up = 0.0f;
-    float nav_speed_down = 0.0f;
-    float nav_accel_z = 0.0f;
 
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
@@ -220,25 +208,6 @@ void resetMulticopterAltitudeController(void)
     pt1FilterReset(&altholdThrottleFilterState, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].error_filter_state, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
-
-    if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-        const float maxSpeed = getActiveWaypointSpeed();
-        nav_speed_up = maxSpeed;
-        nav_accel_z = maxSpeed;
-        nav_speed_down = navConfig()->general.max_auto_climb_rate;
-    } else {
-        nav_speed_up = navConfig()->general.max_manual_speed;
-        nav_accel_z = navConfig()->general.max_manual_speed;
-        nav_speed_down = navConfig()->general.max_manual_climb_rate;
-    }
-
-    sqrtControllerInit(
-        &alt_hold_sqrt_controller,
-        posControl.pids.pos[Z].param.kP,
-        -fabsf(nav_speed_down),
-        nav_speed_up,
-        nav_accel_z
-    );
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
