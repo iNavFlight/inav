@@ -14,13 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include <stdbool.h>
+#include <stdint.h>
 #include <platform.h>
 
+#include "drivers/bus.h"
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
+#include "drivers/pinio.h"
+#include "drivers/sensor.h"
+
+BUSDEV_REGISTER_SPI_TAG(busdev_bmi270,   DEVHW_BMI270,  BMI270_SPI_BUS,   BMI270_CS_PIN,   BMI270_EXTI_PIN,   0,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_icm42688,  DEVHW_ICM42605, ICM42605_SPI_BUS,  ICM42605_CS_PIN,  ICM42605_EXTI_PIN,  0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,  DEVHW_MPU6000, MPU6000_SPI_BUS,  MPU6000_CS_PIN,  MPU6000_EXTI_PIN,  0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+
 
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM, 0, 0),  // PPM
@@ -32,11 +39,11 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO, 0, 0),  // S5  
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO, 0, 0),  // S6 
     
-    DEF_TIM(TIM4,  CH1, PB8, TIM_USE_LED, 0, 0),  // LED STRIP(2,6)
+    DEF_TIM(TIM4, CH1, PB8, TIM_USE_LED, 0, 0),  // LED STRIP(2,6)
     
-    DEF_TIM(TIM5,  CH1, PA0, TIM_USE_PWM, 0, 0),  // PWM1
-    DEF_TIM(TIM5,  CH2, PA1, TIM_USE_PWM, 0, 0),  // PWM2
-    DEF_TIM(TIM9,  CH1, PA2, TIM_USE_PWM, 0, 0),  // PWM3
+    DEF_TIM(TIM5, CH1, PA0, TIM_USE_PWM, 0, 0),  // PWM1
+    DEF_TIM(TIM5, CH2, PA1, TIM_USE_PWM, 0, 0),  // PWM2
+    DEF_TIM(TIM9, CH1, PA2, TIM_USE_PWM, 0, 0),  // PWM3
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

@@ -89,7 +89,6 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `gpspassthrough` | Passthrough gps to serial |
 | `gvar` | Configure global variables |
 | `help` | Displays CLI help and command parameters / options |
-| `imu2` | Secondary IMU |
 | `led` | Configure leds |
 | `logic` | Configure logic conditions |
 | `map` | Configure rc channel order |
@@ -155,7 +154,7 @@ A shorter form is also supported to enable and disable a single function using `
 | DJI_HD_OSD            | 21            | 2097152 |
 | SERVO_SERIAL          | 22            | 4194304 |
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
-| IMU2                  | 24            | 16777216 |
+| UNUSED                | 24            | 16777216 |
 | MSP_DISPLAYPORT       | 25            | 33554432 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.

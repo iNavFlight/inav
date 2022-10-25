@@ -76,7 +76,6 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -411,11 +410,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
         sbufWriteU8(dst, getHwOpticalFlowStatus());
-#ifdef USE_SECONDARY_IMU
-        sbufWriteU8(dst, getHwSecondaryImuStatus());
-#else
-        sbufWriteU8(dst, 0);
-#endif
         break;
 
     case MSP_ACTIVEBOXES:

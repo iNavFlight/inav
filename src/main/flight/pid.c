@@ -46,7 +46,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/rpm_filter.h"
-#include "flight/secondary_imu.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
 
@@ -624,23 +623,7 @@ static float computePidLevelTarget(flight_dynamics_index_t axis) {
 
 static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynamics_index_t axis, float horizonRateMagnitude, float dT)
 {
-    
-#ifdef USE_SECONDARY_IMU
-    float actual;
-    if (secondaryImuState.active && secondaryImuConfig()->useForStabilized) {
-        if (axis == FD_ROLL) {
-            actual = secondaryImuState.eulerAngles.values.roll;
-        } else {
-            actual = secondaryImuState.eulerAngles.values.pitch;
-        }
-    } else {
-        actual = attitude.raw[axis];
-    }
-
-    float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - actual);
-#else
     float angleErrorDeg = DECIDEGREES_TO_DEGREES(angleTarget - attitude.raw[axis]);
-#endif
 
     // Soaring mode deadband inactive if pitch/roll stick not centered to allow RC stick adjustment
     if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {

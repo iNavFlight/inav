@@ -105,8 +105,8 @@ typedef struct __attribute__ ((__packed__)) bmi160ContextData_s {
 STATIC_ASSERT(sizeof(bmi160ContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
 static const gyroFilterAndRateConfig_t gyroConfigs[] = {
-    { GYRO_LPF_256HZ,   3200,   { BMI160_BWP_NORMAL | BMI160_ODR_3200_Hz} },
-    { GYRO_LPF_256HZ,   1600,   { BMI160_BWP_NORMAL | BMI160_ODR_1600_Hz} },
+    { GYRO_LPF_256HZ,   3200,   { BMI160_BWP_OSR4 | BMI160_ODR_3200_Hz} },
+    { GYRO_LPF_256HZ,   1600,   { BMI160_BWP_OSR2 | BMI160_ODR_1600_Hz} },
     { GYRO_LPF_256HZ,    800,   { BMI160_BWP_NORMAL | BMI160_ODR_800_Hz } },
 
     { GYRO_LPF_188HZ,    800,   { BMI160_BWP_OSR2   | BMI160_ODR_800_Hz } },  // ODR = 800 Hz, LPF = 128 Hz

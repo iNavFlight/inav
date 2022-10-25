@@ -9,9 +9,6 @@ tables:
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
     enum: rangefinderType_e
-  - name: secondary_imu_hardware
-    values: ["NONE", "BNO055_SERIAL"]
-    enum: secondaryImuType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
     enum: magSensor_e
@@ -93,7 +90,7 @@ tables:
   - name: debug_modes
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
-      "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
+      "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
   - name: aux_operator
     values: ["OR", "AND"]
@@ -482,98 +479,6 @@ groups:
         field: opflow_align
         type: uint8_t
         table: alignment
-
-  - name: PG_SECONDARY_IMU
-    type: secondaryImuConfig_t
-    headers: ["flight/secondary_imu.h"]
-    condition: USE_SECONDARY_IMU
-    members:
-      - name: imu2_hardware
-        description: "Selection of a Secondary IMU hardware type. NONE disables this functionality"
-        default_value: "NONE"
-        field: hardwareType
-        table: secondary_imu_hardware
-      - name: imu2_use_for_osd_heading
-        description: "If set to ON, Secondary IMU data will be used for Analog OSD heading"
-        default_value: OFF
-        field: useForOsdHeading
-        type: bool
-      - name: imu2_use_for_osd_ahi
-        description: "If set to ON, Secondary IMU data will be used for Analog OSD Artificial Horizon"
-        field: useForOsdAHI
-        default_value: OFF
-        type: bool
-      - name: imu2_use_for_stabilized
-        description: "If set to ON, Secondary IMU data will be used for Angle, Horizon and all other modes that control attitude (PosHold, WP, RTH)"
-        field: useForStabilized
-        default_value: OFF
-        type: bool
-      - name: imu2_align_roll
-        description: "Roll alignment for Secondary IMU. 1/10 of a degree"
-        field: rollDeciDegrees
-        default_value: 0
-        min: -1800
-        max: 3600
-      - name: imu2_align_pitch
-        description: "Pitch alignment for Secondary IMU. 1/10 of a degree"
-        field: pitchDeciDegrees
-        default_value: 0
-        min: -1800
-        max: 3600
-      - name: imu2_align_yaw
-        description: "Yaw alignment for Secondary IMU. 1/10 of a degree"
-        field: yawDeciDegrees
-        default_value: 0
-        min: -1800
-        max: 3600
-      - name: imu2_gain_acc_x
-        description: "Secondary IMU ACC calibration data"
-        field: calibrationOffsetAcc[X]
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_acc_y
-        field: calibrationOffsetAcc[Y]
-        description: "Secondary IMU ACC calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_acc_z
-        field: calibrationOffsetAcc[Z]
-        description: "Secondary IMU ACC calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_mag_x
-        field: calibrationOffsetMag[X]
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_mag_y
-        field: calibrationOffsetMag[Y]
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_mag_z
-        field: calibrationOffsetMag[Z]
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_radius_acc
-        field: calibrationRadiusAcc
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_radius_mag
-        field: calibrationRadiusMag
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
 
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
