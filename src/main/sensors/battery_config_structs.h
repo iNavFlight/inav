@@ -111,7 +111,8 @@ typedef struct batteryProfile_s {
     struct {
 
         struct {
-            uint16_t hover_throttle;        // multicopter hover throttle
+            bool thr_hover_learn_enabled;  // Enable/Disabled hover thrust learning 
+            uint16_t hover_throttle;       // multicopter hover throttle
         } mc;
 
         struct {

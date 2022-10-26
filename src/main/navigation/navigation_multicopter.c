@@ -57,11 +57,15 @@
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 
+static sqrt_controller_t alt_hold_sqrt_controller;
+static pt1Filter_t altholdThrottleFilterState;
+
+static bool prepareForTakeoffOnReset = false;
+
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
-static pt1Filter_t altholdThrottleFilterState;
-static bool prepareForTakeoffOnReset = false;
-static sqrt_controller_t alt_hold_sqrt_controller;
+
+static timeMs_t previousThrHoverTime;
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
@@ -877,19 +881,52 @@ static void applyMulticopterHeadingController(void)
     updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(posControl.desiredState.yaw));
 }
 
+static void UpdateThrottleHover(void)
+{
+    // If not enabled then exit
+    if (!currentBatteryProfile->nav.mc.thr_hover_learn_enabled) {
+        return;
+    }
+
+    timeMs_t timeNow = millis();
+
+    // If not armed then exit
+    if (!ARMING_FLAG(ARMED)) {
+        previousThrHoverTime = timeNow;
+        return;
+    }
+
+    // Get throttle output
+    const float throttle = throttleStickMixedValue();
+
+    // Called at 100hz
+    if (timeNow - previousThrHoverTime >= 10) {
+        previousThrHoverTime = timeNow;
+        // Calc average throttle if we are in a level hover
+        if (throttle > 1000.0f && fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 60 && ABS(attitude.values.roll) < 5 && ABS(attitude.values.pitch) < 5) {
+            // We have chosen to constrain the hover throttle to be within the range reachable by the third order expo polynomial.
+            currentBatteryProfileMutable->nav.mc.hover_throttle = constrainf(currentBatteryProfileMutable->nav.mc.hover_throttle + (0.01f / (0.01f + THROTTLE_HOVER_TC)) * (throttle - currentBatteryProfileMutable->nav.mc.hover_throttle), 1250.0f, 1680.0f);
+        }
+    }
+}
+
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
     if (navStateFlags & NAV_CTL_EMERG) {
         applyMulticopterEmergencyLandingController(currentTimeUs);
     }
     else {
-        if (navStateFlags & NAV_CTL_ALT)
+        if (navStateFlags & NAV_CTL_ALT) {
+            UpdateThrottleHover();
             applyMulticopterAltitudeController(currentTimeUs);
+        }
 
-        if (navStateFlags & NAV_CTL_POS)
+        if (navStateFlags & NAV_CTL_POS) {
             applyMulticopterPositionController(currentTimeUs);
+        }
 
-        if (navStateFlags & NAV_CTL_YAW)
+        if (navStateFlags & NAV_CTL_YAW) {
             applyMulticopterHeadingController();
+        }
     }
 }

@@ -3462,6 +3462,16 @@ P gain of altitude PID controller (Multirotor)
 
 ---
 
+### nav_mc_thr_hover_learn
+
+Enable/Disable automatic learning of hover throttle.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### nav_mc_vel_xy_d
 
 D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target.

@@ -27,12 +27,13 @@
 #include "fc/runtime_config.h"
 #include "navigation/navigation.h"
 
-#define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
+#define MIN_POSITION_UPDATE_RATE_HZ         5       // minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DTERM_CUT_HZ                    10.0f
 #define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
 #define NAV_VEL_Z_ERROR_CUT_HZ              5.0f
+#define THROTTLE_HOVER_TC                   10.0f   // time constant used to update estimated hover throttle
 #define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
 
 #define INAV_SURFACE_MAX_DISTANCE           40
