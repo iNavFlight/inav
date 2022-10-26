@@ -76,9 +76,7 @@
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PB7
 
-#define USE_UART2
-#define UART2_TX_PIN            PA2
-#define UART2_RX_PIN            PA3
+
 
 #define USE_UART3
 #define UART3_TX_PIN            PB10
@@ -92,11 +90,23 @@
 #define UART5_TX_PIN            PC12  
 #define UART5_RX_PIN            PD2  
 
+#ifdef FOXEERF722V4_X8
+//X8 variant without UART2 and UART6
+#define SERIAL_PORT_COUNT       5
+#else
+//Standard variant
+#define SERIAL_PORT_COUNT       7
+
+#define USE_UART2
+#define UART2_TX_PIN            PA2
+#define UART2_RX_PIN            PA3
+
 #define USE_UART6
 #define UART6_TX_PIN            PC6 
 #define UART6_RX_PIN            PC7
 
-#define SERIAL_PORT_COUNT       7
+#endif
+
 
 /*** BARO & MAG ***/
 #define USE_BARO
