@@ -901,9 +901,6 @@ static void updateThrottleHover(void)
             // We have chosen to constrain the hover throttle to be within the range reachable by the third order expo polynomial.
             currentBatteryProfileMutable->nav.mc.hover_throttle = constrainf(currentBatteryProfileMutable->nav.mc.hover_throttle + (0.01f / (0.01f + THROTTLE_HOVER_TC)) * (throttle - currentBatteryProfileMutable->nav.mc.hover_throttle), 1250.0f, 1680.0f);
         }
-        DEBUG_SET(DEBUG_CRUISE, 0, currentBatteryProfileMutable->nav.mc.hover_throttle);
-        DEBUG_SET(DEBUG_CRUISE, 1, attitude.values.roll);
-        DEBUG_SET(DEBUG_CRUISE, 2, attitude.values.pitch);
     }
 }
 
