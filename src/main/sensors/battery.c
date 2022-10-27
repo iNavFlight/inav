@@ -94,7 +94,7 @@ static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) draw
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 2);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -135,6 +135,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             .nav = {
 
                 .mc = {
+                    .thr_hover_learn_enabled = SETTING_NAV_MC_THR_HOVER_LEARN,
                     .hover_throttle = SETTING_NAV_MC_HOVER_THR_DEFAULT,
                 },
 

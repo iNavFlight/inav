@@ -881,7 +881,7 @@ static void applyMulticopterHeadingController(void)
     updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(posControl.desiredState.yaw));
 }
 
-static void UpdateThrottleHover(void)
+static void updateThrottleHover(void)
 {
     // If not enabled then exit
     if (!currentBatteryProfile->nav.mc.thr_hover_learn_enabled) {
@@ -890,12 +890,6 @@ static void UpdateThrottleHover(void)
 
     timeMs_t timeNow = millis();
 
-    // If not armed then exit
-    if (!ARMING_FLAG(ARMED)) {
-        previousThrHoverTime = timeNow;
-        return;
-    }
-
     // Get throttle output
     const float throttle = throttleStickMixedValue();
 
@@ -903,10 +897,39 @@ static void UpdateThrottleHover(void)
     if (timeNow - previousThrHoverTime >= 10) {
         previousThrHoverTime = timeNow;
         // Calc average throttle if we are in a level hover
-        if (throttle > 1000.0f && fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 60 && ABS(attitude.values.roll) < 5 && ABS(attitude.values.pitch) < 5) {
+        if (throttle > 1000.0f && fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 60 && ABS(attitude.values.roll) < 50 && ABS(attitude.values.pitch) < 50) {
             // We have chosen to constrain the hover throttle to be within the range reachable by the third order expo polynomial.
             currentBatteryProfileMutable->nav.mc.hover_throttle = constrainf(currentBatteryProfileMutable->nav.mc.hover_throttle + (0.01f / (0.01f + THROTTLE_HOVER_TC)) * (throttle - currentBatteryProfileMutable->nav.mc.hover_throttle), 1250.0f, 1680.0f);
         }
+        DEBUG_SET(DEBUG_CRUISE, 0, currentBatteryProfileMutable->nav.mc.hover_throttle);
+        DEBUG_SET(DEBUG_CRUISE, 1, attitude.values.roll);
+        DEBUG_SET(DEBUG_CRUISE, 2, attitude.values.pitch);
+    }
+}
+
+void saveMultirotorThrottleHoverOnDisarm(void) 
+{
+    // If not enabled then exit
+    if (!currentBatteryProfile->nav.mc.thr_hover_learn_enabled) {
+        return;
+    }
+    
+    // If not Multirotor enabled then exit
+    if (!STATE(MULTIROTOR)) {
+        return;
+    }
+
+    static uint16_t prevHoverThrottle;
+    
+    // Firs initialization
+    if (prevHoverThrottle == 0) {
+        prevHoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
+    }
+
+    // Save hover throttle
+    if (prevHoverThrottle != currentBatteryProfile->nav.mc.hover_throttle) {
+        prevHoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
+        setConfigBatteryProfileAndWriteEEPROM(getConfigBatteryProfile());
     }
 }
 
@@ -917,7 +940,7 @@ void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlag
     }
     else {
         if (navStateFlags & NAV_CTL_ALT) {
-            UpdateThrottleHover();
+            updateThrottleHover();
             applyMulticopterAltitudeController(currentTimeUs);
         }
 

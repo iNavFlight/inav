@@ -397,7 +397,7 @@ bool setConfigBatteryProfile(uint8_t profileIndex)
 {
     bool ret = true; // return true if current_battery_profile_index has changed
     if (systemConfig()->current_battery_profile_index == profileIndex) {
-        ret =  false;
+        ret = false;
     }
     if (profileIndex >= MAX_BATTERY_PROFILE_COUNT) {// sanity check
         profileIndex = 0;
