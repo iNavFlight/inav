@@ -904,7 +904,7 @@ static void updateThrottleHover(void)
     }
 }
 
-void saveMultirotorThrottleHoverOnDisarm(void) 
+void saveMultirotorThrottleHoverOnDisarm(void)
 {
     // If not enabled then exit
     if (!currentBatteryProfile->nav.mc.thr_hover_learn_enabled) {
@@ -918,7 +918,7 @@ void saveMultirotorThrottleHoverOnDisarm(void)
 
     static uint16_t prevHoverThrottle;
     
-    // Firs initialization
+    // First initialization
     if (prevHoverThrottle == 0) {
         prevHoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
     }
