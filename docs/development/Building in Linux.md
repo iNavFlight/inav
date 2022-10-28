@@ -1,17 +1,17 @@
 # Generic Linux development tools
 ## Overview
 
-This article endeavours to provide a generic guide for compiling inav on Linux for inav 2.6 and later.
+This article endeavours to provide a generic guide for compiling INAV on Linux for INAV 2.6 and later.
 
-inav requires a reasonably modern `gcc-arm-none-eabi` cross-compiler. Different Linux distros will provide different versions of the cross-compiler. This will range from obsolete versions (e.g. Debian, Ubuntu LTS) to the latest stable release (Arch Linux).
+INAV requires a reasonably modern `gcc-arm-none-eabi` cross-compiler. Different Linux distros will provide different versions of the cross-compiler. This will range from obsolete versions (e.g. Debian, Ubuntu LTS) to the latest stable release (Arch Linux).
 
-In order to provide a uniform and reasonably modern cross compiler, inav provides for the installation of a "known good / working" cross compiler, as well as a mechanism to override this if your distro provides a more modern option (e.g Arch Linux). In general, from a security perspective, Linux distros discourage the installation of software from sources other than the official distribution repositories and  'approved' sources (Ubuntu PPA, Arch AUR). The inav approach of providing a recommended compiler is however both sound and justified:
+In order to provide a uniform and reasonably modern cross compiler, INAV provides for the installation of a "known good / working" cross compiler, as well as a mechanism to override this if your distro provides a more modern option (e.g Arch Linux). In general, from a security perspective, Linux distros discourage the installation of software from sources other than the official distribution repositories and  'approved' sources (Ubuntu PPA, Arch AUR). The INAV approach of providing a recommended compiler is however both sound and justified:
 
 * The cross-compiler is installed from a reputable source (ARM, the company that makes the CPUs used in our flight controllers)
-* Disto cross-compilers are often older than the recommended inav compiler
-* The installed cross-compiler is only used to build inav and it not obviously / generally available outside of the inav build environment.
+* Disto cross-compilers are often older than the recommended INAV compiler
+* The installed cross-compiler is only used to build INAV and it not obviously / generally available outside of the INAV build environment.
 
-There are a however some specific cases for using the distro cross-compiler in preference to that installed by inav:
+There are a however some specific cases for using the distro cross-compiler in preference to that installed by INAV:
 
 * You are using a distro that installs a more modern compiler (Arch)
 * You are using a host platform for which ARM does not provide a compiler (e.g. Linux ia32).
@@ -20,13 +20,13 @@ There are a however some specific cases for using the distro cross-compiler in p
 
 In addition to a cross-compiler, it is necessary to install some other tools:
 
-* `git`  : clone and manage the inav code repository
+* `git`  : clone and manage the INAV code repository
 * `cmake` : generate the build environment
 * `make` : run the firmware compilation
 * `ruby` : build some generated source files from JSON definitions
 * `gcc` : native compiler used to generate settings and run tests
 
-Note that inav requires `cmake` version 3.13 or later; any distro that provides `cmake` 3.13 will also provide adequate versions of the other tools.
+Note that INAV requires `cmake` version 3.13 or later; any distro that provides `cmake` 3.13 will also provide adequate versions of the other tools.
 
 Note also that Ubuntu 18.04 LTS does NOT provide a modern enough `cmake`; it is recommended that you upgrade to Ubuntu 20.04 LTS which does.
 
@@ -67,7 +67,7 @@ The `git clone` creates an `inav` directory; we can enter this directory, config
 
 ## Build tooling
 
-For 2.6 and later, inav uses `cmake` as its primary build tool. `cmake` simplifies various platform and hardware dependencies required to cross compile multiple targets. `cmake` still uses GNU `make` to invoke the actual compiler. It is necessary to configure the build environment with `cmake` before we can build any firmware.
+For 2.6 and later, INAV uses `cmake` as its primary build tool. `cmake` simplifies various platform and hardware dependencies required to cross compile multiple targets. `cmake` still uses GNU `make` to invoke the actual compiler. It is necessary to configure the build environment with `cmake` before we can build any firmware.
 
 ## Using `cmake`
 
@@ -82,7 +82,7 @@ cmake ..
 # note the "..", this is required as it tells cmake where to find its ruleset
 ```
 
-`cmake` will check for the presence of an inav-embedded cross-compiler; if this cross-compiler is not found it will attempt to download the vendor (ARM) GCC cross-compiler.
+`cmake` will check for the presence of an INAV-embedded cross-compiler; if this cross-compiler is not found it will attempt to download the vendor (ARM) GCC cross-compiler.
 
 Note. If you want to use your own cross-compiler, either because you're running a distro (e.g. Arch Linux) that ships a more recent cross-compiler, or you're on a platform for which ARM doesn't provide a cross-compiler (e.g. 32bit Linux), the you should run the `cmake` command as:
 
@@ -94,7 +94,7 @@ cmake -DCOMPILER_VERSION_CHECK=OFF ..
 
 ## Bulding the firmware
 
-Once `cmake` has generated the `build/Makefile`, this `Makfile` (with `make`) is used to build the firmware, again from the `build` directory. It is not necessary to re-run `cmake` unless the inav cmake configuration is changed (i.e. a new release) or you wish to swap between the ARM SDK compiler and a distro or other external compiler.
+Once `cmake` has generated the `build/Makefile`, this `Makfile` (with `make`) is used to build the firmware, again from the `build` directory. It is not necessary to re-run `cmake` unless the INAV cmake configuration is changed (i.e. a new release) or you wish to swap between the ARM SDK compiler and a distro or other external compiler.
 
 The generated `Makefile` uses different a target selection mechanism from the older (pre 2.6) top level `Makefile`; you can generate a list of targets with `make help` (or, as the list is extremely long), pipe this into a pager, e.g. `make help | less`.
 
@@ -142,7 +142,7 @@ It is unlikely that the typical user will need to employ these options, other th
 
 ## Building with ninja
 
-`cmake` is not a build system, rather it generates build files for a build manager. The examples above use `make` as the build manager; this has been the legacy way of building inav. It is also possible to use other build systems; one popular cross-platform tool is [ninja](https://ninja-build.org/) which is both lightweight and executes parallel builds by default.
+`cmake` is not a build system, rather it generates build files for a build manager. The examples above use `make` as the build manager; this has been the legacy way of building INAV. It is also possible to use other build systems; one popular cross-platform tool is [ninja](https://ninja-build.org/) which is both lightweight and executes parallel builds by default.
 
 * Install `ninja` from the distro tool (apt, dnf, pacman as appropriate)
 * Configure `cmake` to use `ninja` as the build system
@@ -163,8 +163,8 @@ It is unlikely that the typical user will need to employ these options, other th
 
 In order to update your local firmware build:
 
-* Navigate to the local inav repository
-* Use the following steps to pull the latest changes and rebuild your local version of inav firmware from the `build` directory:
+* Navigate to the local INAV repository
+* Use the following steps to pull the latest changes and rebuild your local version of INAV firmware from the `build` directory:
 
 ```
 $ cd inav

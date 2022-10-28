@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- XSchema for MW / iNav missions
-     This file is part of inav
+<!-- XSchema for MW / INAV missions
+     This file is part of INAV
      usage  e.g. xmllint -​-noout -​-schema mw-mission.xsd example.mission
      Updated 2021-11-12 for 'meta' substitution.
 -->

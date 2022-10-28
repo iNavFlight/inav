@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV.
+ * This file is part of INAV Project.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -21,13 +21,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
-#pragma once
 
-#include "common/vector.h"
+#include <stdbool.h>
+#include <stdint.h>
 
+#include "platform.h"
 
-bool bno055Init(bno055CalibrationData_t calibrationData, bool setCalibration);
-fpVector3_t bno055GetEurlerAngles(void);
-void bno055FetchEulerAngles(int16_t * buffer);
-bno055CalibStat_t bno055GetCalibStat(void);
-bno055CalibrationData_t bno055GetCalibrationData(void);
+#include "fc/fc_msp_box.h"
+#include "io/serial.h"
+
+void targetConfiguration(void)
+{
+
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART2)].functionMask = FUNCTION_RX_SERIAL;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_MSP;
+    // serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_ESCSERIAL;
+}

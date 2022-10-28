@@ -87,7 +87,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rth_estimator.h"
-#include "flight/secondary_imu.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
 
@@ -115,7 +114,8 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 #define VIDEO_BUFFER_CHARS_PAL    480
-#define VIDEO_BUFFER_CHARS_HD     900
+#define VIDEO_BUFFER_CHARS_HDZERO 900
+#define VIDEO_BUFFER_CHARS_DJIWTF 1320
 
 #define GFORCE_FILTER_TC 0.2
 
@@ -220,7 +220,11 @@ bool osdDisplayIsPAL(void)
 
 bool osdDisplayIsHD(void)
 {
-    return displayScreenSize(osdDisplayPort) == VIDEO_BUFFER_CHARS_HD;
+    if (displayScreenSize(osdDisplayPort) >= VIDEO_BUFFER_CHARS_HDZERO)
+    {
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -846,6 +850,8 @@ static const char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
+        case SIMULATOR_MODE:
+            FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;
     }
@@ -1090,30 +1096,32 @@ static inline int32_t osdGetAltitudeMsl(void)
     return getEstimatedActualPosition(Z)+GPS_home.alt;
 }
 
+uint16_t osdGetRemainingGlideTime(void) {
+    float value = getEstimatedActualVelocity(Z);
+    static pt1Filter_t glideTimeFilterState;
+    const  timeMs_t curTimeMs = millis();
+    static timeMs_t glideTimeUpdatedMs;
+
+    value = pt1FilterApply4(&glideTimeFilterState, isnormal(value) ? value : 0, 0.5, MS2S(curTimeMs - glideTimeUpdatedMs));
+    glideTimeUpdatedMs = curTimeMs;
+
+    if (value < 0) {
+        value = osdGetAltitude() / abs((int)value);
+    } else {
+        value = 0;
+    }
+
+    return (uint16_t)round(value);
+}
+
 static bool osdIsHeadingValid(void)
 {
-#ifdef USE_SECONDARY_IMU
-    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
-        return true;
-    } else {
-        return isImuHeadingValid();
-    }
-#else
     return isImuHeadingValid();
-#endif
 }
 
 int16_t osdGetHeading(void)
 {
-#ifdef USE_SECONDARY_IMU
-    if (secondaryImuState.active && secondaryImuConfig()->useForOsdHeading) {
-        return secondaryImuState.eulerAngles.values.yaw;
-    } else {
-        return attitude.values.yaw;
-    }
-#else
     return attitude.values.yaw;
-#endif
 }
 
 int16_t osdPanServoHomeDirectionOffset(void)
@@ -1496,7 +1504,7 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
 
     if (waypointIndex != lastWaypointIndex) {
         lastWaypointIndex = geoWaypointIndex = waypointIndex;
-        for (uint8_t i = 0; i <= waypointIndex; i++) {
+        for (uint8_t i = posControl.startWpIndex; i <= waypointIndex; i++) {
             if (posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI ||
                 posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD ||
                 posControl.waypointList[i].action == NAV_WP_ACTION_JUMP) {
@@ -1505,7 +1513,7 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
         }
     }
 
-    return geoWaypointIndex + 1;
+    return geoWaypointIndex - posControl.startWpIndex + 1;
 }
 
 void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
@@ -2200,7 +2208,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 for (int i = osdConfig()->hud_wp_disp - 1; i >= 0 ; i--) { // Display in reverse order so the next WP is always written on top
                     j = posControl.activeWaypointIndex + i;
-                    if (j > posControl.waypointCount - 1) { // limit to max WP index for mission
+                    if (j > posControl.startWpIndex + posControl.waypointCount - 1) { // limit to max WP index for mission
                         break;
                     }
                     if (posControl.waypointList[j].lat != 0 && posControl.waypointList[j].lon != 0) {
@@ -2240,21 +2248,9 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_ARTIFICIAL_HORIZON:
         {
-            float rollAngle;
-            float pitchAngle;
+            float rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
+            float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
-#ifdef USE_SECONDARY_IMU
-            if (secondaryImuState.active && secondaryImuConfig()->useForOsdAHI) {
-                rollAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(secondaryImuState.eulerAngles.values.pitch);
-            } else {
-                rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-                pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
-            }
-#else
-            rollAngle = DECIDEGREES_TO_RADIANS(attitude.values.roll);
-            pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
-#endif
             pitchAngle -= osdConfig()->ahi_camera_uptilt_comp ? DEGREES_TO_RADIANS(osdConfig()->camera_uptilt) : 0;
             pitchAngle += DEGREES_TO_RADIANS(getFixedWingLevelTrim());
             if (osdConfig()->ahi_reverse_roll) {
@@ -2311,6 +2307,93 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(buff, value, 0, 1, 0, 3);
             buff[3] = sym;
             buff[4] = '\0';
+            break;
+        }
+    case OSD_CLIMB_EFFICIENCY:
+        {
+            // amperage is in centi amps (10mA), vertical speed is in cms/s. We want
+            // Ah/dist only to show when vertical speed > 1m/s.
+            static pt1Filter_t veFilterState;
+            static timeUs_t vEfficiencyUpdated = 0;
+            int32_t value = 0;
+            timeUs_t currentTimeUs = micros();
+            timeDelta_t vEfficiencyTimeDelta = cmpTimeUs(currentTimeUs, vEfficiencyUpdated);
+            if (getEstimatedActualVelocity(Z) > 0) {
+                if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+                                                            // Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
+                    value = pt1FilterApply4(&veFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), 1, US2S(vEfficiencyTimeDelta));
+
+                    vEfficiencyUpdated = currentTimeUs;
+                } else {
+                    value = veFilterState.state;
+                }
+            }
+            bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_GA:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    // mAh/foot
+                    if (efficiencyValid) {
+                        osdFormatCentiNumber(buff, (value * METERS_PER_FOOT), 1, 2, 2, 3);
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_FT_0, SYM_AH_V_FT_1);
+                    } else {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_AH_V_FT_0;
+                        buff[4] = SYM_AH_V_FT_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+                case OSD_UNIT_METRIC_MPH:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    // mAh/metre
+                    if (efficiencyValid) {
+                        osdFormatCentiNumber(buff, value, 1, 2, 2, 3);
+                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_M_0, SYM_AH_V_M_1);
+                    } else {
+                        buff[0] = buff[1] = buff[2] = '-';
+                        buff[3] = SYM_AH_V_M_0;
+                        buff[4] = SYM_AH_V_M_1;
+                        buff[5] = '\0';
+                    }
+                    break;
+            }
+            break;
+        }
+    case OSD_GLIDE_TIME_REMAINING:
+        {
+            uint16_t glideTime = osdGetRemainingGlideTime();
+            buff[0] = SYM_GLIDE_MINS;
+            if (glideTime > 0) {
+                // Maximum value we can show in minutes is 99 minutes and 59 seconds. It is extremely unlikely that glide
+                // time will be longer than 99 minutes. If it is, it will show 99:^^
+                if (glideTime > (99 * 60) + 59) {
+                    tfp_sprintf(buff + 1, "%02d:", (int)(glideTime / 60));
+                    buff[4] = SYM_DIRECTION;
+                    buff[5] = SYM_DIRECTION;
+                } else {
+                    tfp_sprintf(buff + 1, "%02d:%02d", (int)(glideTime / 60), (int)(glideTime % 60));
+                }
+            } else {
+               tfp_sprintf(buff + 1, "%s", "--:--");
+            }
+            buff[6] = '\0';
+            break;
+        }
+    case OSD_GLIDE_RANGE:
+        {
+            uint16_t glideSeconds = osdGetRemainingGlideTime();
+            buff[0] = SYM_GLIDE_DIST;
+            if (glideSeconds > 0) {
+                uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
+                osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0);
+            } else {
+                tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
+                buff[5] = '\0';
+            }
             break;
         }
 #endif
@@ -2525,11 +2608,12 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef USE_PITOT
+            const float airspeed_estimate = getAirspeedEstimate();
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, pitot.airSpeed, false, false);
+            osdFormatVelocityStr(buff + 1, airspeed_estimate, false, false);
 
-            if ((osdConfig()->airspeed_alarm_min != 0 && pitot.airSpeed < osdConfig()->airspeed_alarm_min) ||
-                (osdConfig()->airspeed_alarm_max != 0 && pitot.airSpeed > osdConfig()->airspeed_alarm_max)) {
+            if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||
+                (osdConfig()->airspeed_alarm_max != 0 && airspeed_estimate > osdConfig()->airspeed_alarm_max)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
         #else
@@ -3033,9 +3117,17 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_NAV_FW_CONTROL_SMOOTHNESS:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
-        return true;
-
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "CTL S", 0, navConfig()->fw.control_smoothness, 1, 0, ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS);
+            return true;
+        }
+#ifdef USE_MULTI_MISSION
+    case OSD_NAV_WP_MULTI_MISSION_INDEX:
+        {
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "WP NO", 0, navConfig()->general.waypoint_multi_mission_index, 1, 0, ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX);
+            return true;
+        }
+#endif
     case OSD_MISSION:
         {
             if (IS_RC_MODE_ACTIVE(BOXPLANWPMISSION)) {
@@ -3059,22 +3151,20 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 #ifdef USE_MULTI_MISSION
             else {
-                if (ARMING_FLAG(ARMED)){
+                if (ARMING_FLAG(ARMED) && !(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION) && posControl.multiMissionCount > 1)){
                     // Limit field size when Armed, only show selected mission
                     tfp_sprintf(buff, "M%u       ", posControl.loadedMultiMissionIndex);
-                } else if (posControl.multiMissionCount && navConfig()->general.waypoint_multi_mission_index){
+                } else if (posControl.multiMissionCount) {
                     if (navConfig()->general.waypoint_multi_mission_index != posControl.loadedMultiMissionIndex) {
                         tfp_sprintf(buff, "M%u/%u>LOAD", navConfig()->general.waypoint_multi_mission_index, posControl.multiMissionCount);
                     } else {
-                        // wpCount source for selected mission changes after Arming (until next mission load)
-                        int8_t wpCount = posControl.loadedMultiMissionWPCount ? posControl.loadedMultiMissionWPCount : posControl.waypointCount;
-                        if (posControl.waypointListValid && wpCount > 0) {
-                            tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, wpCount);
+                        if (posControl.waypointListValid && posControl.waypointCount > 0) {
+                            tfp_sprintf(buff, "M%u/%u>%2uWP", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
                         } else {
                             tfp_sprintf(buff, "M0/%u> 0WP", posControl.multiMissionCount);
                         }
                     }
-                } else {    // multi_mission_index 0 - show active WP count
+                } else {    // no multi mission loaded - show active WP count from other source
                     tfp_sprintf(buff, "WP CNT>%2u", posControl.waypointCount);
                 }
             }
@@ -3520,7 +3610,7 @@ static void osdCompleteAsyncInitialization(void)
     uint8_t y = 1;
     displayFontMetadata_t metadata;
     bool fontHasMetadata = displayGetFontMetadata(&metadata, osdDisplayPort);
-    LOG_D(OSD, "Font metadata version %s: %u (%u chars)",
+    LOG_DEBUG(OSD, "Font metadata version %s: %u (%u chars)",
         fontHasMetadata ? "Y" : "N", metadata.version, metadata.charCount);
 
     if (fontHasMetadata && metadata.charCount > 256) {
@@ -3670,14 +3760,16 @@ static void osdUpdateStats(void)
 
     if (feature(FEATURE_GPS)) {
         value = osdGet3DSpeed();
+        const float airspeed_estimate = getAirspeedEstimate();
+
         if (stats.max_3D_speed < value)
             stats.max_3D_speed = value;
 
         if (stats.max_speed < gpsSol.groundSpeed)
             stats.max_speed = gpsSol.groundSpeed;
 
-        if (stats.max_air_speed < pitot.airSpeed)
-            stats.max_air_speed = pitot.airSpeed;
+        if (stats.max_air_speed < airspeed_estimate)
+            stats.max_air_speed = airspeed_estimate;
 
         if (stats.max_distance < GPS_distanceToHome)
             stats.max_distance = GPS_distanceToHome;
@@ -4296,7 +4388,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
                 }
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
-                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
+                    messages[messageCount++] = STATE(LANDING_DETECTED) ? OSD_MESSAGE_STR(OSD_MSG_WP_LANDED) : OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
                 } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                     // Countdown display for remaining Waypoints
                     char buf[6];
@@ -4304,7 +4396,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
-                    if (navConfig()->general.flags.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
+                    if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ADJUSTING_WP_ALT);
                     } else {
                         // WP hold time countdown in seconds
@@ -4412,6 +4504,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
+
 #ifdef USE_DEV_TOOLS
         if (systemConfig()->groundTestMode) {
             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_GRD_TEST_MODE);

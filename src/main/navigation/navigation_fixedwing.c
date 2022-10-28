@@ -73,6 +73,7 @@ static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
 static int8_t loiterDirYaw = 1;
+bool needToCalculateCircularLoiter;
 
 // Calculates the cutoff frequency for smoothing out roll/pitch commands
 // control_smoothness valid range from 0 to 9
@@ -274,20 +275,56 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     float trackingDistance = trackingPeriod * MAX(posControl.actualState.velXY, 100.0f);
 
     uint32_t navLoiterRadius = getLoiterRadius(navConfig()->fw.loiter_radius);
+    fpVector3_t loiterCenterPos = posControl.desiredState.pos;
+    int8_t loiterTurnDirection = loiterDirection();
 
-    // If angular visibility of a waypoint is less than 30deg, don't calculate circular loiter, go straight to the target
+    // Detemine if a circular loiter is required.
+    // For waypoints only use circular loiter when angular visibility is > 30 degs, otherwise head straight toward target
     #define TAN_15DEG    0.26795f
-    bool needToCalculateCircularLoiter = isNavHoldPositionActive() &&
-                                            (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
-                                            (distanceToActualTarget > 50.0f);
+    needToCalculateCircularLoiter = isNavHoldPositionActive() &&
+                                     (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
+                                     (distanceToActualTarget > 50.0f);
 
-    // Calculate virtual position for straight movement
+    /* WP turn smoothing option - switches to loiter path around waypoint using navLoiterRadius.
+     * Loiter centered on point inside turn at required distance from waypoint and
+     * on a bearing midway between current and next waypoint course bearings.
+     * Works for turns > 30 degs and < 120 degs.
+     * 2 options, 1 = pass through WP, 2 = cut inside turn missing WP */
+    int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
+    posControl.flags.wpTurnSmoothingActive = false;
+    if (waypointTurnAngle > 3000 && waypointTurnAngle < 12000 && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
+        // turnFactor adjusts start of loiter based on turn angle
+        float turnFactor = 0.0f;
+        if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_ON) {     // passes through WP
+            turnFactor = waypointTurnAngle / 6000.0f;
+        } else {
+            turnFactor = tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f));    // cut inside turn missing WP
+        }
+        constrainf(turnFactor, 0.5f, 2.0f);
+        if (posControl.wpDistance < navLoiterRadius * turnFactor) {
+            int32_t loiterCenterBearing = wrap_36000(((wrap_18000(posControl.activeWaypoint.nextTurnAngle - 18000)) / 2) + posControl.activeWaypoint.yaw + 18000);
+            float distToTurnCentre = navLoiterRadius;
+            if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_CUT) {
+                distToTurnCentre = navLoiterRadius / cos_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f));
+            }
+            loiterCenterPos.x = posControl.activeWaypoint.pos.x + distToTurnCentre * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
+            loiterCenterPos.y = posControl.activeWaypoint.pos.y + distToTurnCentre * sin_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
+
+            posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+            posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
+
+            // turn direction to next waypoint
+            loiterTurnDirection = posControl.activeWaypoint.nextTurnAngle > 0 ? 1 : -1;  // 1 = right
+
+            needToCalculateCircularLoiter = posControl.flags.wpTurnSmoothingActive = true;
+        }
+    }
+
+    // We are closing in on a waypoint, calculate circular loiter if required
     if (needToCalculateCircularLoiter) {
-        // We are closing in on a waypoint, calculate circular loiter
-        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterDirection() * 45.0f);
-
-        float loiterTargetX = posControl.desiredState.pos.x + navLoiterRadius * cos_approx(loiterAngle);
-        float loiterTargetY = posControl.desiredState.pos.y + navLoiterRadius * sin_approx(loiterAngle);
+        float loiterAngle = atan2_approx(-posErrorY, -posErrorX) + DEGREES_TO_RADIANS(loiterTurnDirection * 45.0f);
+        float loiterTargetX = loiterCenterPos.x + navLoiterRadius * cos_approx(loiterAngle);
+        float loiterTargetY = loiterCenterPos.y + navLoiterRadius * sin_approx(loiterAngle);
 
         // We have temporary loiter target. Recalculate distance and position error
         posErrorX = loiterTargetX - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -356,6 +393,33 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     // We have virtual position target, calculate heading error
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
+
+    /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
+    if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
+        // only apply course tracking correction if target bearing error < 90 degs or when close to waypoint (within 10m)
+        if (ABS(wrap_18000(virtualTargetBearing - posControl.actualState.yaw)) < 9000 || posControl.wpDistance < 1000.0f) {
+            // courseVirtualCorrection initially used to determine current position relative to course line for later use
+            int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
+            float distToCourseLine = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
+
+            // bias between reducing distance to course line and aligning with course heading adjusted by waypoint_tracking_accuracy
+            // initial courseCorrectionFactor based on distance to course line
+            float courseCorrectionFactor = constrainf(distToCourseLine / (1000.0f * navConfig()->fw.wp_tracking_accuracy), 0.0f, 1.0f);
+            courseCorrectionFactor = courseVirtualCorrection < 0 ? -courseCorrectionFactor : courseCorrectionFactor;
+
+            // course heading alignment factor
+            int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw);
+            float courseHeadingFactor = constrainf(sq(courseHeadingError / 18000.0f), 0.0f, 1.0f);
+            courseHeadingFactor = courseHeadingError < 0 ? -courseHeadingFactor : courseHeadingFactor;
+
+            // final courseCorrectionFactor combining distance and heading factors
+            courseCorrectionFactor = constrainf(courseCorrectionFactor - courseHeadingFactor, -1.0f, 1.0f);
+
+            // final courseVirtualCorrection using max 80 deg heading adjustment toward course line
+            courseVirtualCorrection = DEGREES_TO_CENTIDEGREES(navConfig()->fw.wp_tracking_max_angle) * courseCorrectionFactor;
+            virtualTargetBearing = wrap_36000(posControl.activeWaypoint.yaw - courseVirtualCorrection);
+        }
+    }
 
     /*
      * Calculate NAV heading error
@@ -571,9 +635,11 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
      * Then altitude is below landing slowdown min. altitude, enable final approach procedure
      * TODO refactor conditions in this metod if logic is proven to be correct
      */
-    if (navStateFlags & NAV_CTL_LAND) {
-        if ( ((posControl.flags.estAltStatus >= EST_USABLE) && (navGetCurrentActualPositionAndVelocity()->pos.z <= navConfig()->general.land_slowdown_minalt)) ||
-             ((posControl.flags.estAglStatus == EST_TRUSTED) && (posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) ) {
+    if (navStateFlags & NAV_CTL_LAND || STATE(LANDING_DETECTED)) {
+        int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;
+
+        if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
+           (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
 
             // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
             rcCommand[THROTTLE] = getThrottleIdleValue();
@@ -596,12 +662,12 @@ bool isFixedWingAutoThrottleManuallyIncreased()
 
 bool isFixedWingFlying(void)
 {
-    float airspeed = 0;
+    float airspeed = 0.0f;
 #ifdef USE_PITOT
-    airspeed = pitot.airSpeed;
+    airspeed = getAirspeedEstimate();
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
-    bool velCondition = posControl.actualState.velXY > 250 || airspeed > 250;
+    bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
     return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;
@@ -629,13 +695,15 @@ bool isFixedWingLandingDetected(void)
     static timeMs_t fwLandingTimerStartAt;
     static int16_t fwLandSetRollDatum;
     static int16_t fwLandSetPitchDatum;
+    const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
 
     timeMs_t currentTimeMs = millis();
 
-    // Check horizontal and vertical volocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < 50.0f && posControl.actualState.velXY < 100.0f;
+    // Check horizontal and vertical velocities are low (cm/s)
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
+                        posControl.actualState.velXY < (100.0f * sensitivity);
     // Check angular rates are low (degs/s)
-    bool gyroCondition = averageAbsGyroRates() < 2.0f;
+    bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
     DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
@@ -648,13 +716,14 @@ bool isFixedWingLandingDetected(void)
             fixAxisCheck = true;
             fwLandingTimerStartAt = currentTimeMs;
         } else {
-            bool isRollAxisStatic = ABS(fwLandSetRollDatum - attitude.values.roll) < 5;
-            bool isPitchAxisStatic = ABS(fwLandSetPitchDatum - attitude.values.pitch) < 5;
+            const uint8_t angleLimit = 5 * sensitivity;
+            bool isRollAxisStatic = ABS(fwLandSetRollDatum - attitude.values.roll) < angleLimit;
+            bool isPitchAxisStatic = ABS(fwLandSetPitchDatum - attitude.values.pitch) < angleLimit;
             DEBUG_SET(DEBUG_LANDING, 6, isRollAxisStatic);
             DEBUG_SET(DEBUG_LANDING, 7, isPitchAxisStatic);
             if (isRollAxisStatic && isPitchAxisStatic) {
                 // Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
-                timeMs_t safetyTimeDelay = 2000 + navConfig()->fw.auto_disarm_delay;
+                timeMs_t safetyTimeDelay = 2000 + navConfig()->general.auto_disarm_delay;
                 return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay; // check conditions stable for 2s + optional extra delay
             } else {
                 fixAxisCheck = false;

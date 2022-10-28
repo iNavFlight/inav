@@ -235,7 +235,7 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t 
             case FILTER_PT1:
                 *applyFn = (filterApplyFnPtr)pt1FilterApply;
                 for (int axis = 0; axis < 3; axis++) {
-                    pt1FilterInit(&state[axis].pt1, cutoff, looptime * 1e-6f);
+                    pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
                 }
                 break;
             case FILTER_BIQUAD:
@@ -365,7 +365,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         setGyroCalibrationAndWriteEEPROM(dev->gyroZero);
 #endif
 
-        LOG_D(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
         dev->gyroZero[X] = 0;
@@ -499,6 +499,13 @@ void FAST_CODE NOINLINE gyroFilter()
 
 void FAST_CODE NOINLINE gyroUpdate()
 {
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        //output: gyro.gyroADCf[axis]
+        //unused: dev->gyroADCRaw[], dev->gyroZero[];
+        return;
+    }
+#endif
     if (!gyro.initialized) {
         return;
     }

@@ -32,7 +32,6 @@
 #include "drivers/time.h"
 #include "drivers/nvic.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 #include "drivers/light_led.h"
 
