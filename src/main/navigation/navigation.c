@@ -2644,7 +2644,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  static void updateRthTrackback(bool forceSaveTrackPoint)
 {
     static bool suspendTracking = false;
-    if (!(isNavHoldPositionActive() && STATE(AIRPLANE)) && suspendTracking) {
+    if (!FLIGHT_MODE(NAV_POSHOLD_MODE) && suspendTracking) {
         suspendTracking = false;
     }
 
@@ -2698,8 +2698,8 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
                 previousTBTripDist = posControl.totalTripDistance;
             }
 
-            // Suspend tracking during loiter on fixed wing saving trackpoint when loiter enabled
-            if (distanceIncrement && isNavHoldPositionActive() && STATE(AIRPLANE)) {
+            // Suspend tracking during loiter on fixed wing. Save trackpoint when loiter enabled.
+            if (distanceCounter && FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE)) {
                 saveTrackpoint = suspendTracking = true;
             }
         }
