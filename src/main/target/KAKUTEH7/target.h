@@ -47,7 +47,7 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#ifdef KAKUTEH7MINI
+#if defined(KAKUTEH7MINI)
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -56,7 +56,18 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
+#elif defined(KAKUTEH7V2)
+
+#define USE_FLASHFS
+#define USE_FLASH_W25N01G
+#define W25N01G_SPI_BUS BUS_SPI1
+#define W25N01G_CS_PIN  PA4
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+
 #else
+
+//Regular Kakute H7
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI
@@ -82,13 +93,19 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-
+//MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI4
 #define MPU6000_CS_PIN          PE4
 #define MPU6000_EXTI_PIN        PE1
 
+//BMI270
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN                CW0_DEG
+#define BMI270_SPI_BUS                  BUS_SPI4
+#define BMI270_CS_PIN                   PE4
+#define BMI270_EXTI_PIN                 PE1
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
@@ -175,6 +192,13 @@
 #ifdef KAKUTEH7MINI
 #define PINIO1_PIN                  PB11
 #define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
+
+#elif defined(KAKUTEH7V2)
+
+#define PINIO1_PIN                  PE13
+#define PINIO2_PIN                  PB11
+#define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
+
 #else
 #define PINIO1_PIN                  PE13
 #endif

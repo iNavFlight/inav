@@ -30,10 +30,14 @@ void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 
+#ifdef KAKUTEH7V2
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+#endif
+
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].msp_baudrateIndex = BAUD_115200;
 
-#ifdef KAKUTEH7
+#if defined(KAKUTEH7MINI) || defined(KAKUTEH7V2)
     //No BT on H7 Mini, do not reserve port
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART2)].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART2)].msp_baudrateIndex = BAUD_115200;
