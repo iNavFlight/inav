@@ -580,11 +580,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // alt Altitude in 1E3 meters (millimeters) above MSL
         gpsSol.llh.alt * 10,
         // relative_alt Altitude above ground in meters, expressed as * 1000 (millimeters)
-#if defined(USE_NAV)
         getEstimatedActualPosition(Z) * 10,
-#else
-        gpsSol.llh.alt * 10,
-#endif
         // [cm/s] Ground X Speed (Latitude, positive north)
         getEstimatedActualVelocity(X),
         // [cm/s] Ground Y Speed (Longitude, positive east)
@@ -649,21 +645,13 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_PITOT)
     if (sensors(SENSOR_PITOT)) {
-        mavAirSpeed = pitot.airSpeed / 100.0f;
+        mavAirSpeed = getAirspeedEstimate() / 100.0f;
     }
 #endif
 
     // select best source for altitude
-#if defined(USE_NAV)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
-#elif defined(USE_GPS)
-    if (sensors(SENSOR_GPS)) {
-        // No surface or baro, just display altitude above MLS
-        mavAltitude = gpsSol.llh.alt;
-    }
-#endif
-
 
     int16_t thr = rxGetChannelValue(THROTTLE);
     if (navigationIsControllingThrottle()) {
@@ -1117,7 +1105,13 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed) {
+        if (!incomingRequestServed || 
+            (
+                 (rxConfig()->receiverType == RX_TYPE_SERIAL) && 
+                 (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
+                 !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
+            )
+        ) {
             processMAVLinkTelemetry(currentTimeUs);
         }
         lastMavlinkMessage = currentTimeUs;

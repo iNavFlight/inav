@@ -40,11 +40,6 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
-
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_2
@@ -56,6 +51,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
@@ -72,9 +68,6 @@
 
 #define PITOT_I2C_BUS           BUS_I2C2
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define PCA9685_I2C_BUS         BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
-
 
 // *************** SPI2 RM3100 **************************
 #define USE_SPI_DEVICE_2

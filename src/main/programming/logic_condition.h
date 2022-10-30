@@ -26,7 +26,7 @@
 #include "config/parameter_group.h"
 #include "common/time.h"
 
-#define MAX_LOGIC_CONDITIONS 32
+#define MAX_LOGIC_CONDITIONS 64
 
 typedef enum {
     LOGIC_CONDITION_TRUE                        = 0,
@@ -71,7 +71,12 @@ typedef enum {
     LOGIC_CONDITION_SET_HEADING_TARGET          = 39,
     LOGIC_CONDITION_MODULUS                     = 40,
     LOGIC_CONDITION_LOITER_OVERRIDE             = 41,
-    LOGIC_CONDITION_LAST                        = 42,
+    LOGIC_CONDITION_SET_PROFILE                 = 42,
+    LOGIC_CONDITION_MIN                         = 43,
+    LOGIC_CONDITION_MAX                         = 44,
+    LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
+    LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
+    LOGIC_CONDITION_LAST                        = 47,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -121,8 +126,12 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
     LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
-    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS                            // 35
-
+    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 35
+    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 36
+    LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS,                              // 37
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 38
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 40
 } logicFlightOperands_e;
 
 typedef enum {
@@ -138,6 +147,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1,                              // 9
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2,                              // 10
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD,                        // 11
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3,                              // 12
 } logicFlightModeOperands_e;
 
 typedef enum {
@@ -151,6 +161,7 @@ typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_OSD_LAYOUT = (1 << 7),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL = (1 << 8),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS = (1 << 9),
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS = (1 << 10),
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
@@ -158,16 +169,16 @@ typedef enum {
 } logicConditionFlags_e;
 
 typedef struct logicOperand_s {
-    logicOperandType_e type;
     int32_t value;
+    logicOperandType_e type;
 } logicOperand_t;
 
 typedef struct logicCondition_s {
+    logicOperand_t operandA;
+    logicOperand_t operandB;
     uint8_t enabled;
     int8_t activatorId;
     logicOperation_e operation;
-    logicOperand_t operandA;
-    logicOperand_t operandB;
     uint8_t flags;
 } logicCondition_t;
 
@@ -179,9 +190,16 @@ typedef struct logicConditionState_s {
 } logicConditionState_t;
 
 typedef struct rcChannelOverride_s {
-    uint8_t active;
     int value;
+    uint8_t active;
 } rcChannelOverride_t;
+
+typedef struct flightAxisOverride_s {
+    int angleTarget;
+    int rateTarget;
+    uint8_t rateTargetActive;
+    uint8_t angleTargetActive;
+} flightAxisOverride_t;
 
 extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 extern uint64_t logicConditionsGlobalFlags;
@@ -202,3 +220,7 @@ float getThrottleScale(float globalThrottleScale);
 int16_t getRcCommandOverride(int16_t command[], uint8_t axis);
 int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue);
 uint32_t getLoiterRadius(uint32_t loiterRadius);
+float getFlightAxisAngleOverride(uint8_t axis, float angle);
+float getFlightAxisRateOverride(uint8_t axis, float rate);
+bool isFlightAxisAngleOverrideActive(uint8_t axis);
+bool isFlightAxisRateOverrideActive(uint8_t axis);

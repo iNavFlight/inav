@@ -40,6 +40,8 @@
 
 #include "io/gps.h"
 
+
+#define WINDESTIMATOR_TIMEOUT       60 //60s
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
@@ -49,8 +51,6 @@ static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
 bool isEstimatedWindSpeedValid(void)
 {
-    // TODO: Add a timeout. Estimated wind should expire if
-    // if we can't update it for an extended time.
     return hasValidWindEstimate;
 }
 
@@ -72,12 +72,18 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
         }
         *angle = RADIANS_TO_CENTIDEGREES(horizontalWindAngle);
     }
-    return fast_fsqrtf(sq(xWindSpeed) + sq(yWindSpeed));
+    return calc_length_pythagorean_2D(xWindSpeed, yWindSpeed);
 }
 
 void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
+    static timeUs_t lastValidWindEstimate = 0;
+
+    if (US2S(currentTimeUs - lastValidWindEstimate) > WINDESTIMATOR_TIMEOUT)
+    {
+        hasValidWindEstimate = false;
+    }
 
     if (!STATE(FIXED_WING_LEGACY) ||
         !isGPSHeadingValid() ||
@@ -101,9 +107,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     groundVelocity[Z] = gpsSol.velNED[Z];
 
     // Fuselage direction in earth frame
-    fuselageDirection[X] = rMat[0][0];
-    fuselageDirection[Y] = rMat[1][0];
-    fuselageDirection[Z] = rMat[2][0];
+    fuselageDirection[X] = HeadVecEFFiltered.x;
+    fuselageDirection[Y] = -HeadVecEFFiltered.y;
+    fuselageDirection[Z] = -HeadVecEFFiltered.z;
 
     timeDelta_t timeDelta = cmpTimeUs(currentTimeUs, lastUpdateUs);
     // scrap our data and start over if we're taking too long to get a direction change
@@ -121,6 +127,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     fuselageDirectionDiff[Z] = fuselageDirection[Z] - lastFuselageDirection[Z];
 
     float diffLengthSq = sq(fuselageDirectionDiff[X]) + sq(fuselageDirectionDiff[Y]) + sq(fuselageDirectionDiff[Z]);
+    
     // Very small changes in attitude will result in a denominator
     // very close to zero which will introduce too much error in the
     // estimation.
@@ -130,10 +137,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         // when turning, use the attitude response to estimate wind speed
         groundVelocityDiff[X] = groundVelocity[X] - lastGroundVelocity[X];
         groundVelocityDiff[Y] = groundVelocity[Y] - lastGroundVelocity[Y];
-        groundVelocityDiff[Z] = groundVelocity[X] - lastGroundVelocity[Z];
+        groundVelocityDiff[Z] = groundVelocity[Z] - lastGroundVelocity[Z];
 
         // estimate airspeed it using equation 6
-        float V = (fast_fsqrtf(sq(groundVelocityDiff[0]) + sq(groundVelocityDiff[1]) + sq(groundVelocityDiff[2]))) / fast_fsqrtf(diffLengthSq);
+        float V = (calc_length_pythagorean_3D(groundVelocityDiff[X], groundVelocityDiff[Y], groundVelocityDiff[Z])) / fast_fsqrtf(diffLengthSq);
 
         fuselageDirectionSum[X] = fuselageDirection[X] + lastFuselageDirection[X];
         fuselageDirectionSum[Y] = fuselageDirection[Y] + lastFuselageDirection[Y];
@@ -146,7 +153,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         memcpy(lastFuselageDirection, fuselageDirection, sizeof(lastFuselageDirection));
         memcpy(lastGroundVelocity, groundVelocity, sizeof(lastGroundVelocity));
 
-        float theta = atan2f(groundVelocityDiff[1], groundVelocityDiff[0]) - atan2f(fuselageDirectionDiff[1], fuselageDirectionDiff[0]);// equation 9
+        float theta = atan2f(groundVelocityDiff[Y], groundVelocityDiff[X]) - atan2f(fuselageDirectionDiff[Y], fuselageDirectionDiff[X]);// equation 9
         float sintheta = sinf(theta);
         float costheta = cosf(theta);
 
@@ -155,16 +162,18 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;// equation 11
         wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;// equation 12
 
-        float prevWindLength = fast_fsqrtf(sq(estimatedWind[X]) + sq(estimatedWind[Y]) + sq(estimatedWind[Z]));
-        float windLength = fast_fsqrtf(sq(wind[X]) + sq(wind[Y]) + sq(wind[Z]));
+        float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
+        float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
 
-        if (windLength < prevWindLength + 2000) {
+        if (windLength < prevWindLength + 4000) {
             // TODO: Better filtering
-            estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
-            estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
-            estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
+            estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
+            estimatedWind[Y] = estimatedWind[Y] * 0.98f + wind[Y] * 0.02f;
+            estimatedWind[Z] = estimatedWind[Z] * 0.98f + wind[Z] * 0.02f;
         }
+
         lastUpdateUs = currentTimeUs;
+        lastValidWindEstimate = currentTimeUs;
         hasValidWindEstimate = true;
     }
 }

@@ -18,7 +18,7 @@
 /*
  * Cleanflight (or Baseflight): original
  * jflyper: Mono-timer and single-wire half-duplex
- * jflyper: Ported to iNav
+ * jflyper: Ported to INAV
  */
 
 #include <stdbool.h>
@@ -381,7 +381,9 @@ void processTxState(softSerial_t *softSerial)
             serialOutputPortActivate(softSerial);
         }
 
-        return;
+        if ((softSerial->port.options & SERIAL_SHORTSTOP) == 0) {
+            return;
+        }
     }
 
     if (softSerial->bitsLeftToTransmit) {
@@ -390,7 +392,10 @@ void processTxState(softSerial_t *softSerial)
 
         setTxSignal(softSerial, mask);
         softSerial->bitsLeftToTransmit--;
-        return;
+
+        if (((softSerial->port.options & SERIAL_SHORTSTOP) == 0) || softSerial->bitsLeftToTransmit) {
+            return;
+        }
     }
 
     softSerial->isTransmittingData = false;
@@ -572,7 +577,7 @@ uint32_t softSerialTxBytesFree(const serialPort_t *instance)
 
     softSerial_t *s = (softSerial_t *)instance;
 
-    uint8_t bytesUsed = (s->port.txBufferHead - s->port.txBufferTail) & (s->port.txBufferSize - 1);
+    uint32_t bytesUsed = (s->port.txBufferHead - s->port.txBufferTail) & (s->port.txBufferSize - 1);
 
     return (s->port.txBufferSize - 1) - bytesUsed;
 }

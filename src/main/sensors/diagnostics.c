@@ -24,7 +24,6 @@
 #include "sensors/rangefinder.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/opflow.h"
-#include "flight/secondary_imu.h"
 
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -63,6 +62,11 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
 
 hardwareSensorStatus_e getHwCompassStatus(void)
 {
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE) && sensors(SENSOR_MAG)) {
+		return HW_SENSOR_OK;
+	}
+#endif
 #if defined(USE_MAG)
     if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         if (compassIsHealthy()) {
@@ -227,7 +231,6 @@ bool isHardwareHealthy(void)
     const hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
     const hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
     const hardwareSensorStatus_e opflowStatus = getHwOpticalFlowStatus();
-    const hardwareSensorStatus_e imu2Status = getHwSecondaryImuStatus();
 
     // Sensor is considered failing if it's either unavailable (selected but not detected) or unhealthy (returning invalid readings)
     if (gyroStatus == HW_SENSOR_UNAVAILABLE || gyroStatus == HW_SENSOR_UNHEALTHY)
@@ -252,9 +255,6 @@ bool isHardwareHealthy(void)
         return false;
 
     if (opflowStatus == HW_SENSOR_UNAVAILABLE || opflowStatus == HW_SENSOR_UNHEALTHY)
-        return false;
-
-    if (imu2Status == HW_SENSOR_UNAVAILABLE || opflowStatus == HW_SENSOR_UNHEALTHY)
         return false;
 
     return true;

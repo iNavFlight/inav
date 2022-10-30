@@ -64,20 +64,25 @@ static void virtualPitotCalculate(pitotDev_t *pitot, float *pressure, float *tem
     UNUSED(pitot);
     float airSpeed = 0.0f;
     if (pitotIsCalibrationComplete()) {
-        if (isEstimatedWindSpeedValid()) {
+        if (isEstimatedWindSpeedValid() && STATE(GPS_FIX)) {
             uint16_t windHeading; //centidegrees
             float windSpeed = getEstimatedHorizontalWindSpeed(&windHeading); //cm/s
             float horizontalWindSpeed = windSpeed * cos_approx(CENTIDEGREES_TO_RADIANS(windHeading - posControl.actualState.yaw)); //yaw int32_t centidegrees
             airSpeed = posControl.actualState.velXY - horizontalWindSpeed; //float cm/s or gpsSol.groundSpeed int16_t cm/s
-        } else {
+            airSpeed = calc_length_pythagorean_2D(airSpeed,getEstimatedActualVelocity(Z)+getEstimatedWindSpeed(Z));
+        } 
+        else if (STATE(GPS_FIX))
+        {
+            airSpeed = calc_length_pythagorean_3D(gpsSol.velNED[X],gpsSol.velNED[Y],gpsSol.velNED[Z]);
+        }
+        else {
             airSpeed = pidProfile()->fixedWingReferenceAirspeed; //float cm/s
         }
     }
     if (pressure)
-        //*pressure = sq(airSpeed / 100) * AIR_DENSITY_SEA_LEVEL_15C / 2 + P0;
-        *pressure = sq(airSpeed) * AIR_DENSITY_SEA_LEVEL_15C / 20000.0f + P0;
+        *pressure = sq(airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
     if (temperature)
-        *temperature = 288.15f;     // Temperature at standard sea level (288.15 K)
+        *temperature = SSL_AIR_TEMPERATURE; // Temperature at standard sea level
 }
 
 bool virtualPitotDetect(pitotDev_t *pitot)

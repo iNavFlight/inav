@@ -42,6 +42,7 @@
 #include "fc/settings.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -289,6 +290,18 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_FW_TPA_TIME_CONSTANT,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 5 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_FW_LEVEL_TRIM,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
     }
 };
 
@@ -326,24 +339,6 @@ static void blackboxLogInflightAdjustmentEvent(adjustmentFunction_e adjustmentFu
     }
 #endif
 }
-
-#if 0
-static void blackboxLogInflightAdjustmentEventFloat(adjustmentFunction_e adjustmentFunction, float newFloatValue)
-{
-#ifndef USE_BLACKBOX
-    UNUSED(adjustmentFunction);
-    UNUSED(newFloatValue);
-#else
-    if (feature(FEATURE_BLACKBOX)) {
-        flightLogEvent_inflightAdjustment_t eventData;
-        eventData.adjustmentFunction = adjustmentFunction;
-        eventData.newFloatValue = newFloatValue;
-        eventData.floatFlag = true;
-        blackboxLogEvent(FLIGHT_LOG_EVENT_INFLIGHT_ADJUSTMENT, (flightLogEventData_t*)&eventData);
-    }
-#endif
-}
-#endif
 
 static void applyAdjustmentU8(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta, int low, int high)
 {
@@ -597,9 +592,28 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_TPA_BREAKPOINT:
             applyAdjustmentU16(ADJUSTMENT_TPA_BREAKPOINT, &controlRateConfig->throttle.pa_breakpoint, delta, PWM_RANGE_MIN, PWM_RANGE_MAX);
             break;
+        case ADJUSTMENT_FW_TPA_TIME_CONSTANT:
+            applyAdjustmentU16(ADJUSTMENT_FW_TPA_TIME_CONSTANT, &controlRateConfig->throttle.fixedWingTauMs, delta, SETTING_FW_TPA_TIME_CONSTANT_MIN, SETTING_FW_TPA_TIME_CONSTANT_MAX);
+            break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             applyAdjustmentU8(ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS, &navConfigMutable()->fw.control_smoothness, delta, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MIN, SETTING_NAV_FW_CONTROL_SMOOTHNESS_MAX);
             break;
+        case ADJUSTMENT_FW_LEVEL_TRIM:
+        {
+            float newValue = pidProfileMutable()->fixedWingLevelTrim + (delta / 10.0f);
+            if (newValue > SETTING_FW_LEVEL_PITCH_TRIM_MAX) {newValue = (float)SETTING_FW_LEVEL_PITCH_TRIM_MAX;}
+            else if (newValue < SETTING_FW_LEVEL_PITCH_TRIM_MIN) {newValue = (float)SETTING_FW_LEVEL_PITCH_TRIM_MIN;}
+            pidProfileMutable()->fixedWingLevelTrim = newValue;
+            blackboxLogInflightAdjustmentEvent(ADJUSTMENT_FW_LEVEL_TRIM, (int)(newValue * 10.0f));
+            break;
+        }
+#ifdef USE_MULTI_MISSION
+        case ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX:
+            if (posControl.multiMissionCount && !FLIGHT_MODE(NAV_WP_MODE)) {
+                applyAdjustmentU8(ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX, &navConfigMutable()->general.waypoint_multi_mission_index, delta, SETTING_NAV_WP_MULTI_MISSION_INDEX_MIN, posControl.multiMissionCount);
+            }
+            break;
+#endif
         default:
             break;
     };

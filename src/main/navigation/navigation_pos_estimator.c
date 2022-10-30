@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-#if defined(USE_NAV)
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -40,7 +38,6 @@
 #include "fc/settings.h"
 
 #include "flight/imu.h"
-#include "flight/secondary_imu.h"
 
 #include "io/gps.h"
 
@@ -51,6 +48,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
+#include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/opflow.h"
 
@@ -164,7 +162,7 @@ static bool detectGPSGlitch(timeUs_t currentTimeUs)
         predictedGpsPosition.y = lastKnownGoodPosition.y + lastKnownGoodVelocity.y * dT;
 
         /* New pos is within predefined radius of predicted pos, radius is expanded exponentially */
-        gpsDistance = fast_fsqrtf(sq(predictedGpsPosition.x - lastKnownGoodPosition.x) + sq(predictedGpsPosition.y - lastKnownGoodPosition.y));
+        gpsDistance = calc_length_pythagorean_2D(predictedGpsPosition.x - lastKnownGoodPosition.x, predictedGpsPosition.y - lastKnownGoodPosition.y);
         if (gpsDistance <= (INAV_GPS_GLITCH_RADIUS + 0.5f * INAV_GPS_GLITCH_ACCEL * dT * dT)) {
             isGlitching = false;
         }
@@ -216,11 +214,8 @@ void onNewGPSData(void)
         if(STATE(GPS_FIX_HOME)){
             static bool magDeclinationSet = false;
             if (positionEstimationConfig()->automatic_mag_declination && !magDeclinationSet) {
-                const float declination = geoCalculateMagDeclination(&newLLH); 
+                const float declination = geoCalculateMagDeclination(&newLLH);
                 imuSetMagneticDeclination(declination);
-#ifdef USE_SECONDARY_IMU
-                secondaryImuSetMagneticDeclination(declination);
-#endif
                 magDeclinationSet = true;
             }
         }
@@ -342,7 +337,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
  */
 void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
 {
-    posEstimator.pitot.airspeed = pitot.airSpeed;
+    posEstimator.pitot.airspeed = getAirspeedEstimate();
     posEstimator.pitot.lastUpdateTime = currentTimeUs;
 }
 #endif
@@ -353,11 +348,19 @@ void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
  */
 static void restartGravityCalibration(void)
 {
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        return;
+    }
+
     zeroCalibrationStartS(&posEstimator.imu.gravityCalibration, CALIBRATING_GRAVITY_TIME_MS, positionEstimationConfig()->gravity_calibration_tolerance, false);
 }
 
 static bool gravityCalibrationComplete(void)
-{
+{ 
+    if (!gyroConfig()->init_gyro_cal_enabled) {
+        return true;
+    }
+    
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
 
@@ -393,9 +396,9 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
     posEstimator.imu.lastUpdateTime = currentTimeUs;
 
     if (!isImuReady()) {
-        posEstimator.imu.accelNEU.x = 0;
-        posEstimator.imu.accelNEU.y = 0;
-        posEstimator.imu.accelNEU.z = 0;
+        posEstimator.imu.accelNEU.x = 0.0f;
+        posEstimator.imu.accelNEU.y = 0.0f;
+        posEstimator.imu.accelNEU.z = 0.0f;
 
         restartGravityCalibration();
     }
@@ -424,23 +427,34 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         posEstimator.imu.accelNEU.z = accelBF.z;
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
-        if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
-            zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
+        if (gyroConfig()->init_gyro_cal_enabled) {
+            if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
+                zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
 
-            if (gravityCalibrationComplete()) {
-                zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
-                LOG_D(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
+                if (gravityCalibrationComplete()) {
+                    zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
+                    setGravityCalibrationAndWriteEEPROM(posEstimator.imu.calibratedGravityCMSS);
+                    LOG_DEBUG(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
+                }
             }
+        } else {
+            posEstimator.imu.gravityCalibration.params.state = ZERO_CALIBRATION_DONE;
+            posEstimator.imu.calibratedGravityCMSS = gyroConfig()->gravity_cmss_cal;
         }
 
         /* If calibration is incomplete - report zero acceleration */
         if (gravityCalibrationComplete()) {
+#ifdef USE_SIMULATOR
+            if (ARMING_FLAG(SIMULATOR_MODE)) {
+                posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
+            }
+#endif
             posEstimator.imu.accelNEU.z -= posEstimator.imu.calibratedGravityCMSS;
         }
         else {
-            posEstimator.imu.accelNEU.x = 0;
-            posEstimator.imu.accelNEU.y = 0;
-            posEstimator.imu.accelNEU.z = 0;
+            posEstimator.imu.accelNEU.x = 0.0f;
+            posEstimator.imu.accelNEU.y = 0.0f;
+            posEstimator.imu.accelNEU.z = 0.0f;
         }
 
         /* Update blackbox values */
@@ -638,7 +652,7 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             const float gpsPosYResidual = posEstimator.gps.pos.y - posEstimator.est.pos.y;
             const float gpsVelXResidual = posEstimator.gps.vel.x - posEstimator.est.vel.x;
             const float gpsVelYResidual = posEstimator.gps.vel.y - posEstimator.est.vel.y;
-            const float gpsPosResidualMag = fast_fsqrtf(sq(gpsPosXResidual) + sq(gpsPosYResidual));
+            const float gpsPosResidualMag = calc_length_pythagorean_2D(gpsPosXResidual, gpsPosYResidual);
 
             //const float gpsWeightScaler = scaleRangef(bellCurve(gpsPosResidualMag, INAV_GPS_ACCEPTANCE_EPE), 0.0f, 1.0f, 0.1f, 1.0f);
             const float gpsWeightScaler = 1.0f;
@@ -796,6 +810,14 @@ bool isGPSGlitchDetected(void)
 }
 #endif
 
+float getEstimatedAglPosition(void) {
+    return posEstimator.est.aglAlt;
+}
+
+bool isEstimatedAglTrusted(void) {
+    return (posEstimator.est.aglQual == SURFACE_QUAL_HIGH) ? true : false;
+}
+
 /**
  * Initialize position estimator
  *  Should be called once before any update occurs
@@ -861,5 +883,3 @@ bool navIsCalibrationComplete(void)
 {
     return gravityCalibrationComplete();
 }
-
-#endif

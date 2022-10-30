@@ -23,13 +23,12 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/sensor.h"
+#include "flight/dynamic_gyro_notch.h"
+#include "flight/secondary_dynamic_gyro_notch.h"
 
 typedef enum {
     GYRO_NONE = 0,
     GYRO_AUTODETECT,
-    GYRO_MPU6050,
-    GYRO_MPU3050,
-    GYRO_L3GD20,
     GYRO_MPU6000,
     GYRO_MPU6500,
     GYRO_MPU9250,
@@ -41,16 +40,28 @@ typedef enum {
     GYRO_FAKE
 } gyroSensor_e;
 
+typedef enum {
+    DYNAMIC_NOTCH_MODE_2D = 0,
+    DYNAMIC_NOTCH_MODE_R,
+    DYNAMIC_NOTCH_MODE_P,
+    DYNAMIC_NOTCH_MODE_Y,
+    DYNAMIC_NOTCH_MODE_RP,
+    DYNAMIC_NOTCH_MODE_RY,
+    DYNAMIC_NOTCH_MODE_PY,
+    DYNAMIC_NOTCH_MODE_3D
+} dynamicGyroNotchMode_e;
+
 typedef struct gyro_s {
     bool initialized;
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
+    float gyroRaw[XYZ_AXIS_COUNT];
 } gyro_t;
 
 extern gyro_t gyro;
+extern dynamicGyroNotchState_t dynamicGyroNotchState;
 
 typedef struct gyroConfig_s {
-    sensor_align_e gyro_align;              // gyro alignment
     uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
@@ -59,8 +70,6 @@ typedef struct gyroConfig_s {
 #ifdef USE_DUAL_GYRO
     uint8_t  gyro_to_use;
 #endif
-    uint16_t gyro_notch_hz;
-    uint16_t gyro_notch_cutoff;
     uint16_t gyro_main_lpf_hz;
     uint8_t gyro_main_lpf_type;
     uint8_t useDynamicLpf;
@@ -71,11 +80,16 @@ typedef struct gyroConfig_s {
     uint16_t dynamicGyroNotchQ;
     uint16_t dynamicGyroNotchMinHz;
     uint8_t dynamicGyroNotchEnabled;
+    uint8_t dynamicGyroNotchMode;
+    uint16_t dynamicGyroNotch3dQ;
 #endif
 #ifdef USE_GYRO_KALMAN
     uint16_t kalman_q;
     uint8_t kalmanEnabled;
 #endif
+    bool init_gyro_cal_enabled;
+    int16_t gyro_zero_cal[XYZ_AXIS_COUNT];
+    float gravity_cmss_cal;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
@@ -90,3 +104,4 @@ bool gyroReadTemperature(void);
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 void gyroUpdateDynamicLpf(float cutoffFreq);
+float averageAbsGyroRates(void);

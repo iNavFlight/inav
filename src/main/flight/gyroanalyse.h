@@ -25,21 +25,26 @@
 #include "arm_math.h"
 #include "common/filter.h"
 
+/*
+ * Current code works only with 64 window size. Changing it do a different size would require
+ * adapting the gyroDataAnalyseUpdate in STEP_ARM_CFFT_F32 step
+ */
 #define FFT_WINDOW_SIZE 64
+
+typedef struct peak_s {
+    int bin;
+    float value;
+} peak_t;
 
 typedef struct gyroAnalyseState_s {
     // accumulator for oversampled data => no aliasing and less noise
-    uint8_t sampleCount;
-    uint8_t maxSampleCount;
-    float maxSampleCountRcp;
-    float oversampledGyroAccumulator[XYZ_AXIS_COUNT];
+    float currentSample[XYZ_AXIS_COUNT];
 
     // downsampled gyro data circular buffer for frequency analysis
     uint8_t circularBufferIdx;
     float downsampledGyroData[XYZ_AXIS_COUNT][FFT_WINDOW_SIZE];
 
     // update state machine step information
-    uint8_t updateTicks;
     uint8_t updateStep;
     uint8_t updateAxis;
 
@@ -47,12 +52,15 @@ typedef struct gyroAnalyseState_s {
     float fftData[FFT_WINDOW_SIZE];
     float rfftData[FFT_WINDOW_SIZE];
 
-    biquadFilter_t detectedFrequencyFilter[XYZ_AXIS_COUNT];
-    uint16_t centerFreq[XYZ_AXIS_COUNT];
-    uint16_t prevCenterFreq[XYZ_AXIS_COUNT];
+    pt1Filter_t detectedFrequencyFilter[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+    float centerFrequency[XYZ_AXIS_COUNT][DYN_NOTCH_PEAK_COUNT];
+    
+    peak_t peaks[DYN_NOTCH_PEAK_COUNT];
+
     bool filterUpdateExecute;
     uint8_t filterUpdateAxis;
     uint16_t filterUpdateFrequency;
+
     uint16_t fftSamplingRateHz;
     uint8_t fftStartBin;
     float fftResolution;

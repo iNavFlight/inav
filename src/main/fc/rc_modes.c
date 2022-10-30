@@ -39,9 +39,7 @@
 #include "rx/rx.h"
 
 static uint8_t specifiedConditionCountPerMode[CHECKBOX_ITEM_COUNT];
-#ifdef USE_NAV
 static bool isUsingNAVModes = false;
-#endif
 
 boxBitmask_t rcModeActivationMask; // one bit per mode defined in boxId_e
 
@@ -84,7 +82,7 @@ static void processAirmodeMultirotor(void) {
              */
             DISABLE_STATE(AIRMODE_ACTIVE);
         } else if (
-            !STATE(AIRMODE_ACTIVE) && 
+            !STATE(AIRMODE_ACTIVE) &&
             rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
             (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
         ) {
@@ -119,13 +117,10 @@ void processAirmode(void) {
 
 }
 
-#if defined(USE_NAV)
 bool isUsingNavigationModes(void)
 {
     return isUsingNAVModes;
 }
-#endif
-
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId)
 {
@@ -208,19 +203,9 @@ void updateUsedModeActivationConditionFlags(void)
         }
     }
 
-#ifdef USE_NAV
     isUsingNAVModes = isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
                         isModeActivationConditionPresent(BOXNAVRTH) ||
                         isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
                         isModeActivationConditionPresent(BOXNAVCRUISE) ||
                         isModeActivationConditionPresent(BOXNAVWP);
-#endif
-}
-
-void configureModeActivationCondition(int macIndex, boxId_e modeId, uint8_t auxChannelIndex, uint16_t startPwm, uint16_t endPwm)
-{
-    modeActivationConditionsMutable(macIndex)->modeId = modeId;
-    modeActivationConditionsMutable(macIndex)->auxChannelIndex = auxChannelIndex;
-    modeActivationConditionsMutable(macIndex)->range.startStep = CHANNEL_VALUE_TO_STEP(startPwm);
-    modeActivationConditionsMutable(macIndex)->range.endStep = CHANNEL_VALUE_TO_STEP(endPwm);
 }

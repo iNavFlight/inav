@@ -25,7 +25,7 @@
 #define TIM_EN      TIMER_OUTPUT_ENABLED
 #define TIM_EN_N    TIMER_OUTPUT_ENABLED | TIMER_OUTPUT_N_CHANNEL
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM12, CH1, PB14, TIM_USE_PWM | TIM_USE_PPM,   0, 0 ), // S1_IN
     DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM,                 0, 0 ), // S2_IN
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PWM,                 0, 0 ), // S3_IN DMA2_ST2 DMA2_ST2

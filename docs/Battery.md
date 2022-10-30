@@ -195,7 +195,25 @@ Note that in this example even though your warning capacity (`battery_capacity_w
 
 ## Battery profiles
 
-Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Battery profiles store the following settings (see above for an explanation of each setting): `bat_cells`, `vbat_cell_detect_voltage`, `vbat_max_cell_voltage`, `vbat_warning_cell_voltage`, `vbat_min_cell_voltage`, `battery_capacity_unit`, `battery_capacity`, `battery_capacity_warning`, `battery_capacity_critical`
+Up to 3 battery profiles are supported. You can select the battery profile from the GUI, OSD menu, [stick commands](Controls.md) and CLI command `battery_profile n`. Battery profiles store the following settings (see above for an explanation of each setting): 
+- `bat_cells`
+- `vbat_cell_detect_voltage`
+- `vbat_max_cell_voltage`
+- `vbat_warning_cell_voltage`
+- `vbat_min_cell_voltage`
+- `battery_capacity_unit`
+- `battery_capacity`
+- `battery_capacity_warning`
+- `battery_capacity_critical`
+- `throttle_idle`
+- `fw_min_throttle_down_pitch`
+- `nav_fw_cruise_thr`
+- `nav_fw_min_thr`
+- `nav_fw_pitch2thr`
+- `nav_fw_launch_thr`
+- `nav_fw_launch_idle_thr`
+- `failsafe_throttle`
+- `nav_mc_hover_thr`
 
 To enable the automatic battery profile switching based on battery voltage enable the `BAT_PROF_AUTOSWITCH` feature. For a profile to be automatically selected the number of cells of the battery needs to be specified (>0).
 
@@ -224,7 +242,7 @@ set vbat_min_cell_voltage = 250
 
 #### Simple example with automatic profile switching
 
-In this example we want to use two different batteries for the same aircraft and automatically switch between them when the battery is plugged in. The first battery is a Li-Po 2200mAh 3S and the second battery is a LiPo 1500mAh 4S. Since the iNav defaults for the cell detection voltage and max voltage are adequate for standard LiPo batteries they will not be modified. The warning and minimum voltage are not modified either in this example but you can set them to the value you like. Since we are using battery capacities only the warning voltage (kept at default in this example) will be used and only for triggering the battery voltage indicator blinking in the OSD.
+In this example we want to use two different batteries for the same aircraft and automatically switch between them when the battery is plugged in. The first battery is a Li-Po 2200mAh 3S and the second battery is a LiPo 1500mAh 4S. Since the INAV defaults for the cell detection voltage and max voltage are adequate for standard LiPo batteries they will not be modified. The warning and minimum voltage are not modified either in this example but you can set them to the value you like. Since we are using battery capacities only the warning voltage (kept at default in this example) will be used and only for triggering the battery voltage indicator blinking in the OSD.
 
 ```
 feature BAT_PROF_AUTOSWITCH

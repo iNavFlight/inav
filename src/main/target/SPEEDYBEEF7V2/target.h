@@ -72,10 +72,6 @@
 #define MPU6000_CS_PIN           PA4
 #define MPU6000_SPI_BUS     BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI         PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_BEEPER
 #define BEEPER              PB2
 #define BEEPER_INVERTED
@@ -136,6 +132,17 @@
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
+
+// *************** LED *****************************
+#define USE_LED_STRIP
+#define WS2811_PIN PB0
+
+// ********** Optiical Flow adn Lidar **************
+#define USE_RANGEFINDER
+#define USE_RANGEFINDER_MSP
+#define USE_OPFLOW
+#define USE_OPFLOW_MSP
+
 
 
 #define DEFAULT_FEATURES            (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD | FEATURE_BLACKBOX)

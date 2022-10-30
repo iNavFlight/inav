@@ -9,6 +9,8 @@ There are 2 basic types of receivers:
 
 ## PPM Receivers
 
+**Only supported in INAV 3.x and below**
+
 PPM is sometimes known as PPM SUM or CPPM.
 
 12 channels via a single input pin, not as accurate or jitter free as methods that use serial communications, but readily available.
@@ -45,7 +47,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:obj/inav_2.2.2_SPRACINGF3EVO.hex
+As of INAV 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal INAV RSSI (0-1023 range). In order to use this feature, the following is necessary:
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
@@ -59,7 +61,7 @@ This pseudo-RSSI should work on all makes of Spektrum satellite RX; it is tested
 16 channels via serial currently supported.  See below how to set up your transmitter.
 
 * You probably need an inverter between the receiver output and the flight controller. However, some flight controllers have this built in and doesn't need one.
-* Some OpenLRS receivers produce obj/inav_2.2.2_SPRACINGF3EVO.hexa non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
+* Some OpenLRS receivers produce a non-inverted SBUS signal. It is possible to switch SBUS inversion off using CLI command `set sbus_inversion = OFF` when using an F3 based flight controller.
 * Softserial ports cannot be used with SBUS because it runs at too high of a bitrate (1Mbps).  Refer to the chapter specific to your board to determine which port(s) may be used.
 * You will need to configure the channel mapping in the GUI (Receiver tab) or CLI (`map` command). Note that channels above 8 are mapped "straight", with no remapping.
 
@@ -113,22 +115,6 @@ set serialrx_inverted = ON
 set serialrx_halfduplex = ON
 ```
 
-### XBUS
-
-The firmware currently supports the MODE B version of the XBus protocol.
-Make sure to set your TX to use "MODE B" for XBUS in the TX menus!
-See here for info on JR's XBUS protocol: http://www.jrpropo.com/english/propo/XBus/
-
-These receivers are reported working:
-
-XG14 14ch DMSS System w/RG731BX XBus Receiver
-http://www.jramericas.com/233794/JRP00631/
-
-There exist a remote receiver made for small BNF-models like the Align T-Rex 150 helicopter. The code also supports using the Align DMSS RJ01 receiver directly with the INAV software.
-To use this receiver you must power it with 3V from the hardware, and then connect the serial line as other serial RX receivers.
-In order for this receiver to work, you need to specify the XBUS_MODE_B_RJ01 for serialrx_provider. Note that you need to set your radio mode for XBUS "MODE B" also for this receiver to work.
-Receiver name: Align DMSS RJ01 (HER15001)
-
 ### SUMD
 
 16 channels via serial currently supported.
@@ -140,12 +126,6 @@ http://www.graupner.de/en/products/33512/product.aspx
 
 Graupner receiver GR-12SH+ HoTT
 http://www.graupner.de/en/products/870ade17-ace8-427f-943b-657040579906/33565/product.aspx
-
-### SUMH
-
-8 channels via serial currently supported.
-
-SUMH is a legacy Graupner protocol.  Graupner have issued a firmware updates for many recivers that lets them use SUMD instead.
 
 ### IBUS
 
@@ -170,11 +150,11 @@ The flash is avaliable here: https://github.com/benb0jangles/FlySky-i6-Mod-
 ```
 After flash "10ch Timer Mod i6 Updater", it is passible to get RSSI signal on selected Aux channel from FS-i6 Err sensor.
 
-It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.obj/inav_2.2.2_SPRACINGF3EVO.hex
+It is possible to use IBUS RX and IBUS telemetry on only one port of the hardware UART. More information in Telemetry.md.
 
 ### SRXL2
 
-SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in inav 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
+SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in INAV 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
 
 #### Wiring
 
@@ -182,7 +162,7 @@ Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the F
 
 #### Configuration
 
-Selection of SXRL2 is provided in the inav 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
+Selection of SXRL2 is provided in the INAV 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
 
 ```
 feature TELEMETRY
@@ -268,20 +248,9 @@ Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
 
 # get serialrx
 serialrx_provider = SBUS
-Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, SUMH, XB-B, XB-B-RJ01, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
+Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
 
 ```
-
-### PPM/PWM input filtering.
-
-Hardware input filtering can be enabled if you are experiencing interference on the signal sent via your PWM/PPM RX.
-
-Use the `input_filtering_mode` CLI setting to select a mode.
-
-| Value | Meaning   |
-| ----- | --------- |
-| 0     | Disabled  |
-| 1     | Enabled   |
 
 ## Receiver configuration.
 

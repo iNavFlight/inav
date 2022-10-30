@@ -45,10 +45,6 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PC10
@@ -133,7 +129,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
-#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
@@ -179,5 +174,3 @@
 #define USE_ESC_SENSOR
 
 #define MAX_PWM_OUTPUT_PORTS       6
-
-#define PCA9685_I2C_BUS             DEFAULT_I2C_BUS

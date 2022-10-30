@@ -435,7 +435,11 @@ typedef struct afatfs_t {
     } initState;
 #endif
 
+#ifdef STM32H7
+    uint8_t *cache;
+#else
     uint8_t cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS];
+#endif
     afatfsCacheBlockDescriptor_t cacheDescriptor[AFATFS_NUM_CACHE_SECTORS];
     uint32_t cacheTimer;
 
@@ -480,6 +484,10 @@ typedef struct afatfs_t {
     uint32_t rootDirectoryCluster; // Present on FAT32 and set to zero for FAT16
     uint32_t rootDirectorySectors; // Zero on FAT32, for FAT16 the number of sectors that the root directory occupies
 } afatfs_t;
+
+#ifdef STM32H7
+static uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
+#endif
 
 static afatfs_t afatfs;
 
@@ -3159,7 +3167,7 @@ uint32_t afatfs_fwriteSync(afatfsFilePtr_t file, uint8_t *data, uint32_t length)
     while (true) {
         uint32_t leftToWrite = length - written;
         uint32_t justWritten = afatfs_fwrite(file, data + written, leftToWrite);
-        /*if (justWritten != leftToWrite) LOG_E(SYSTEM, "%ld -> %ld", length, written);*/
+        /*if (justWritten != leftToWrite) LOG_ERROR(SYSTEM, "%ld -> %ld", length, written);*/
         written += justWritten;
 
         if (written < length) {
@@ -3616,6 +3624,9 @@ afatfsError_e afatfs_getLastError(void)
 
 void afatfs_init(void)
 {
+#ifdef STM32H7
+    afatfs.cache = afatfs_cache;
+#endif
     afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_INITIALIZATION;
     afatfs.initPhase = AFATFS_INITIALIZATION_READ_MBR;
     afatfs.lastClusterAllocated = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;

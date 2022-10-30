@@ -167,9 +167,14 @@ displayPort_t *cmsDisplayPortGetCurrent(void)
 //   30 cols x 13 rows
 // HoTT Telemetry Screen
 //   21 cols x 8 rows
+// HDZERO
+//   50 cols x 18 rows
+// DJIWTF
+//   60 cols x 22 rows
 //
 
 #define NORMAL_SCREEN_MIN_COLS 18      // Less is a small screen
+#define NORMAL_SCREEN_MAX_COLS 30      // More is a big screen
 static bool smallScreen;
 static uint8_t leftMenuColumn;
 static uint8_t rightMenuColumn;
@@ -797,9 +802,14 @@ void cmsMenuOpen(void)
     } else {
         smallScreen = false;
         linesPerMenuItem = 1;
-        leftMenuColumn = 2;
-        rightMenuColumn = pCurrentDisplay->cols - 2;
         maxMenuItems = pCurrentDisplay->rows - 2;
+        if (pCurrentDisplay->cols > NORMAL_SCREEN_MAX_COLS) {
+            leftMenuColumn = 7;
+            rightMenuColumn = pCurrentDisplay->cols - 7;
+        } else {
+            leftMenuColumn = 2;
+            rightMenuColumn = pCurrentDisplay->cols - 2;
+        }
     }
 
     if (pCurrentDisplay->useFullscreen) {

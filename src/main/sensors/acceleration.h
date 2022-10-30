@@ -33,18 +33,16 @@
 
 // Type of accelerometer used/detected
 typedef enum {
-    ACC_NONE        = 0,
-    ACC_AUTODETECT  = 1,
-    ACC_MPU6050     = 2,
-    ACC_LSM303DLHC  = 3,
-    ACC_MPU6000     = 4,
-    ACC_MPU6500     = 5,
-    ACC_MPU9250     = 6,
-    ACC_BMI160      = 7,
-    ACC_ICM20689    = 8,
-    ACC_BMI088      = 9,
-    ACC_ICM42605    = 10,
-    ACC_BMI270      = 11,
+    ACC_NONE = 0,
+    ACC_AUTODETECT,
+    ACC_MPU6000,
+    ACC_MPU6500,
+    ACC_MPU9250,
+    ACC_BMI160,
+    ACC_ICM20689,
+    ACC_BMI088,
+    ACC_ICM42605,
+    ACC_BMI270,
     ACC_FAKE,
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;
@@ -68,7 +66,6 @@ typedef struct acc_s {
 extern acc_t acc;
 
 typedef struct accelerometerConfig_s {
-    sensor_align_e acc_align;               // acc alignment
     uint8_t acc_hardware;                   // Which acc hardware to use on boards with more than one device
     uint16_t acc_lpf_hz;                    // cutoff frequency for the low pass filter used on the acc z-axis for althold in Hz
     flightDynamicsTrims_t accZero;          // Accelerometer offset

@@ -22,7 +22,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM5,   CH1, PA0,  TIM_USE_PWM | TIM_USE_PPM,   0, 0 ), // PPM IN
     DEF_TIM(TIM5,   CH2, PA1,  TIM_USE_PWM,                 0, 0 ),
     DEF_TIM(TIM3,   CH3, PB0,  TIM_USE_PWM,                 0, 0 ),

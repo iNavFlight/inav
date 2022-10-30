@@ -95,8 +95,8 @@ typedef struct rcControlsConfig_s {
 PG_DECLARE(rcControlsConfig_t, rcControlsConfig);
 
 typedef struct armingConfig_s {
-    uint8_t fixed_wing_auto_arm;            // Auto-arm fixed wing aircraft on throttle up and never disarm
-    uint8_t disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
+    bool fixed_wing_auto_arm;            // Auto-arm fixed wing aircraft on throttle up and never disarm
+    bool disarm_kill_switch;             // allow disarm via AUX switch regardless of throttle value
     uint16_t switchDisarmDelayMs;           // additional delay between ARM box going off and actual disarm
     uint16_t prearmTimeoutMs;               // duration for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout.
 } armingConfig_t;
@@ -108,8 +108,9 @@ bool checkStickPosition(stickPositions_e stickPos);
 
 bool areSticksInApModePosition(uint16_t ap_mode);
 bool areSticksDeflected(void);
-bool isRollPitchStickDeflected(void);
+bool isRollPitchStickDeflected(uint8_t deadband);
 throttleStatus_e calculateThrottleStatus(throttleStatusType_e type);
+int16_t throttleStickMixedValue(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(throttleStatus_e throttleStatus);
 

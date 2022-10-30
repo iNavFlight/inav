@@ -24,78 +24,58 @@
 
 /** IMU **/
 #if !defined(USE_TARGET_IMU_HARDWARE_DESCRIPTORS)
-    #if !defined(GYRO_INT_EXTI)
-    #define GYRO_INT_EXTI NONE
-    #endif
 
     #if !defined(MPU_ADDRESS)
     #define MPU_ADDRESS 0x68
     #endif
 
-    #if defined(USE_IMU_L3GD20)
-        #if defined(GYRO_L3GD20_ALIGN)
-            #define GYRO_0_ALIGN    GYRO_L3GD20_ALIGN
-        #else
-            #define GYRO_0_ALIGN    ALIGN_DEFAULT
-        #endif
-        BUSDEV_REGISTER_SPI(busdev_l3gd20,      DEVHW_L3GD20,       L3GD20_SPI_BUS,     L3GD20_CS_PIN,      NONE,           DEVFLAGS_NONE,  IMU_L3GD20_ALIGN);
-    #endif
-
-    #if defined(USE_IMU_LSM303DLHC)
-        BUSDEV_REGISTER_I2C(busdev_lsm303,      DEVHW_LSM303DLHC,   LSM303DLHC_I2C_BUS, 0x19,               NONE,           DEVFLAGS_NONE,  IMU_LSM303DLHC_ALIGN);
-    #endif
-
     #if defined(USE_IMU_MPU6000)
-        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
-    #endif
-
-    #if defined(USE_IMU_MPU6050)
-        BUSDEV_REGISTER_I2C(busdev_mpu6050,     DEVHW_MPU6050,      MPU6050_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6050_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
 
     #if defined(USE_IMU_MPU6500)
         #if defined(MPU6500_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #elif defined(MPU6500_I2C_BUS)
-        BUSDEV_REGISTER_I2C(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+        BUSDEV_REGISTER_I2C(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #endif
     #endif
 
     #if defined(USE_IMU_MPU9250)
         #if defined(MPU9250_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #elif defined(MPU9250_I2C_BUS)
-        BUSDEV_REGISTER_I2C(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_I2C_BUS,    MPU_ADDRESS,        GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
+        BUSDEV_REGISTER_I2C(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #endif
     #endif
 
     #if defined(USE_IMU_ICM20689)
-        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
     #endif
 
     #if defined(USE_IMU_ICM42605)
-        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
     #endif
 
     #if defined(USE_IMU_BMI160)
         #if defined(BMI160_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_bmi160,      DEVHW_BMI160,       BMI160_SPI_BUS,     BMI160_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
         #elif defined(BMI160_I2C_BUS)
-        BUSDEV_REGISTER_I2C(busdev_bmi160,      DEVHW_BMI160,       BMI160_I2C_BUS,     0x68,               GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
+        BUSDEV_REGISTER_I2C(busdev_bmi160,      DEVHW_BMI160,       BMI160_I2C_BUS,     0x68,               NONE,  DEVFLAGS_NONE,  IMU_BMI160_ALIGN);
         #endif
     #endif
 
     #if defined(USE_IMU_BMI088)
         #if defined(BMI088_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_bmi088_gyro, DEVHW_BMI088_GYRO,  BMI088_SPI_BUS,     BMI088_GYRO_CS_PIN, GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
-        BUSDEV_REGISTER_SPI(busdev_bmi088_acc,  DEVHW_BMI088_ACC,   BMI088_SPI_BUS,     BMI088_ACC_CS_PIN,  GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_bmi088_gyro, DEVHW_BMI088_GYRO,  BMI088_SPI_BUS,     BMI088_GYRO_CS_PIN, NONE,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_bmi088_acc,  DEVHW_BMI088_ACC,   BMI088_SPI_BUS,     BMI088_ACC_CS_PIN,  NONE,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
         #elif defined(BMI088_I2C_BUS)
-        BUSDEV_REGISTER_I2C(busdev_bmi088,      DEVHW_BMI088,       BMI088_I2C_BUS,     0x68,               GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
+        BUSDEV_REGISTER_I2C(busdev_bmi088,      DEVHW_BMI088,       BMI088_I2C_BUS,     0x68,               NONE,  DEVFLAGS_NONE,  IMU_BMI088_ALIGN);
         #endif
     #endif
 
     #if defined(USE_IMU_BMI270)
-        BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      GYRO_INT_EXTI,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
+        BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
     #endif
 #endif
 
@@ -116,7 +96,10 @@
     #if !defined(BMP280_I2C_BUS)
         #define BMP280_I2C_BUS BARO_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_bmp280,      DEVHW_BMP280,       BMP280_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE,      0);
+    #if !defined(BMP280_I2C_ADDR)
+        #define BMP280_I2C_ADDR (0x76)
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_bmp280,      DEVHW_BMP280,       BMP280_I2C_BUS,     BMP280_I2C_ADDR,	NONE,           DEVFLAGS_NONE,      0);
     #endif
 #endif
 
@@ -177,6 +160,16 @@
     #endif
 #endif
 
+#if defined(USE_BARO_B2SMPB)
+    #if defined(B2SMPB_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_SPI_BUS,     B2SMPB_CS_PIN,       NONE,           DEVFLAGS_NONE, 0);
+    #elif defined(B2SMPB_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(B2SMPB_I2C_BUS)
+        #define B2SMPB_I2C_BUS BARO_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_I2C_BUS,      0x70,                NONE,           DEVFLAGS_NONE, 0);
+    #endif
+#endif
 
 /** COMPASS SENSORS **/
 #if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)
@@ -373,6 +366,10 @@
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
 #endif
 
+#if defined(USE_FLASH_W25N01G)
+    BUSDEV_REGISTER_SPI(busdev_w25n01g,     DEVHW_W25N01G,      W25N01G_SPI_BUS,    W25N01G_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
+#endif
+
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)
     BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0,  0);
 #endif
@@ -389,15 +386,6 @@
         #define UG2864_I2C_BUS BUS_I2C1
     #endif
     BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE,  0);
-#endif
-
-#if defined(USE_PWM_SERVO_DRIVER)
-    #if defined(USE_PWM_DRIVER_PCA9685) && defined(USE_I2C)
-        #if !defined(PCA9685_I2C_BUS)
-            #define PCA9685_I2C_BUS BUS_I2C1
-        #endif
-        BUSDEV_REGISTER_I2C(busdev_pca9685,      DEVHW_PCA9685,       PCA9685_I2C_BUS,     0x40,               NONE,           DEVFLAGS_NONE,  0);
-    #endif
 #endif
 
 #if defined(USE_IRLOCK) && defined(USE_I2C)
@@ -424,13 +412,6 @@
     #endif
 
     BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
-#endif
-
-#ifdef USE_IMU_BNO055
-#ifndef BNO055_I2C_BUS
-    #define BNO055_I2C_BUS BUS_I2C1
-#endif
-    BUSDEV_REGISTER_I2C(busdev_bno055,      DEVHW_BNO055,       BNO055_I2C_BUS,     0x29,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

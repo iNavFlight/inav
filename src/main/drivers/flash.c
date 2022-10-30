@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav is free software. You can redistribute
+ * INAV is free software. You can redistribute
  * this software and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav is distributed in the hope that it
+ * INAV is distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -30,6 +30,7 @@
 
 #include "flash.h"
 #include "flash_m25p16.h"
+#include "flash_w25n01g.h"
 
 #include "common/time.h"
 
@@ -37,108 +38,110 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 
-static flashPartitionTable_t flashPartitionTable;
-static int flashPartitions = 0;
-
+static flashDriver_t flashDrivers[] = {
 
 #ifdef USE_SPI
-static bool flashSpiInit(void)
-{
+
 #ifdef USE_FLASH_M25P16
-    return m25p16_init(0);
+    {
+        .init = m25p16_init,
+        .isReady = m25p16_isReady,
+        .waitForReady = m25p16_waitForReady,
+        .eraseSector = m25p16_eraseSector,
+        .eraseCompletely = m25p16_eraseCompletely,
+        .pageProgram = m25p16_pageProgram,
+        .readBytes = m25p16_readBytes,
+        .getGeometry = m25p16_getGeometry,
+        .flush = NULL
+    },
 #endif
-    return false;
-}
-#endif // USE_SPI
 
-bool flashDeviceInit(void)
+#ifdef USE_FLASH_W25N01G
+    {
+        .init = w25n01g_init,
+        .isReady = w25n01g_isReady,
+        .waitForReady = w25n01g_waitForReady,
+        .eraseSector = w25n01g_eraseSector,
+        .eraseCompletely = w25n01g_eraseCompletely,
+        .pageProgram = w25n01g_pageProgram,
+        .readBytes = w25n01g_readBytes,
+        .getGeometry = w25n01g_getGeometry,
+        .flush = w25n01g_flush
+    },
+#endif
+
+#endif
+
+};
+
+static flashDriver_t *flash;
+
+static bool flashDeviceInit(void)
 {
-#ifdef USE_SPI
-    return flashSpiInit();
-#endif
+    bool detected = false;
 
-    return false;
+    for (uint32_t idx = 0; idx <= ARRAYLEN(flashDrivers); idx++)
+    {
+        detected = flashDrivers[idx].init(0);
+        if (detected)
+        {
+            flash = &flashDrivers[idx];
+            break;
+        }
+    }
+    return detected;
 }
 
 bool flashIsReady(void)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_isReady();
-#endif
-    return false;
+    // prevent the machine cycle from crashing if there is no external flash memory
+    if (flash == NULL) {
+        return false;
+    }
+
+    return flash->isReady();
 }
 
 bool flashWaitForReady(timeMs_t timeoutMillis)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_waitForReady(timeoutMillis);
-#endif
-    return false;
+    return flash->waitForReady(timeoutMillis);
 }
 
 void flashEraseSector(uint32_t address)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_eraseSector(address);
-#endif
+    flash->eraseSector(address);
 }
 
 void flashEraseCompletely(void)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_eraseCompletely();
-#endif
+    flash->eraseCompletely();
 }
-
-#if 0
-void flashPageProgramBegin(uint32_t address)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramBegin(address);
-#endif
-}
-
-void flashPageProgramContinue(const uint8_t *data, int length)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramContinue(data, length);
-#endif
-}
-
-void flashPageProgramFinish(void)
-{
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgramFinish();
-#endif
-}
-#endif
 
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_pageProgram(address, data, length);
-#endif
+    return flash->pageProgram(address, data, length);
 }
 
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_readBytes(address, buffer, length);
-#endif
-    return 0;
+    return flash->readBytes(address, buffer, length);
 }
 
 void flashFlush(void)
 {
+    flash->flush();
 }
 
 const flashGeometry_t *flashGetGeometry(void)
 {
-#ifdef USE_FLASH_M25P16
-    return m25p16_getGeometry();
-#endif
+    static flashGeometry_t fgNone = {0};
 
-    return NULL;
+    // prevent the machine cycle from crashing if there is no external flash memory
+    if (flash == NULL) {
+        return &fgNone;
+    }
+
+    return flash->getGeometry();
 }
 
 /*
@@ -153,6 +156,9 @@ const flashGeometry_t *flashGetGeometry(void)
  * XXX There is existing blackbox/flash FS code the relies on this!!!
  * XXX This restriction can and will be fixed by creating a set of flash operation functions that take partition as an additional parameter.
  */
+
+static flashPartitionTable_t flashPartitionTable;
+static int flashPartitions = 0;
 
 static __attribute__((unused)) void createPartition(flashPartitionType_e type, uint32_t size, flashSector_t *endSector)
 {
@@ -271,11 +277,13 @@ const char *flashPartitionGetTypeName(flashPartitionType_e type)
 
 bool flashInit(void)
 {
-    memset(&flashPartitionTable, 0x00, sizeof(flashPartitionTable));
+    memset(&flashPartitionTable, 0, sizeof(flashPartitionTable));
 
     bool haveFlash = flashDeviceInit();
 
-    flashConfigurePartitions();
+    if (haveFlash) {
+        flashConfigurePartitions();
+    }
 
     return haveFlash;
 }

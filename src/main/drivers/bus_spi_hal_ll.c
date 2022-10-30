@@ -88,28 +88,115 @@ static const uint32_t spiDivisorMapSlow[] = {
 };
 #endif
 
-static spiDevice_t spiHardwareMap[] = {
+#if defined(STM32H7)
+static spiDevice_t spiHardwareMap[SPIDEV_COUNT] = {
 #ifdef USE_SPI_DEVICE_1
-    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
+#if defined(SPI1_SCK_AF) || defined(SPI1_MISO_AF) || defined(SPI1_MOSI_AF)
+#if !defined(SPI1_SCK_AF) || !defined(SPI1_MISO_AF) || !defined(SPI1_MOSI_AF)
+#error SPI1: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = SPI1_SCK_AF, .misoAF = SPI1_MISO_AF, .mosiAF = SPI1_MOSI_AF, .divisorMap = spiDivisorMapFast },
+#else
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = GPIO_AF5_SPI1, .misoAF = GPIO_AF5_SPI1, .mosiAF = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
+#endif
 #else
     { .dev = NULL },    // No SPI1
 #endif
+
 #ifdef USE_SPI_DEVICE_2
-    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_AF5_SPI2, .divisorMap = spiDivisorMapSlow },
+#if defined(SPI2_SCK_AF) || defined(SPI2_MISO_AF) || defined(SPI2_MOSI_AF)
+#if !defined(SPI2_SCK_AF) || !defined(SPI2_MISO_AF) || !defined(SPI2_MOSI_AF)
+#error SPI2: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1L(SPI2), .sckAF = SPI2_SCK_AF, .misoAF = SPI2_MISO_AF, .mosiAF = SPI2_MOSI_AF, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1L(SPI2), .sckAF = GPIO_AF5_SPI2, .misoAF = GPIO_AF5_SPI2, .mosiAF = GPIO_AF5_SPI2, .divisorMap = spiDivisorMapSlow },
+#endif
 #else
     { .dev = NULL },    // No SPI2
 #endif
+
 #ifdef USE_SPI_DEVICE_3
-    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_AF6_SPI3, .divisorMap = spiDivisorMapSlow },
+#if defined(SPI3_SCK_AF) || defined(SPI3_MISO_AF) || defined(SPI3_MOSI_AF)
+#if !defined(SPI3_SCK_AF) || !defined(SPI3_MISO_AF) || !defined(SPI3_MOSI_AF)
+#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1L(SPI3), .sckAF = SPI3_SCK_AF, .misoAF = SPI3_MISO_AF, .mosiAF = SPI3_MOSI_AF, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1L(SPI3), .sckAF = GPIO_AF6_SPI3, .misoAF = GPIO_AF6_SPI3, .mosiAF = GPIO_AF6_SPI3, .divisorMap = spiDivisorMapSlow },
+#endif
 #else
     { .dev = NULL },    // No SPI3
 #endif
+
 #ifdef USE_SPI_DEVICE_4
-    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .af = GPIO_AF5_SPI4, .divisorMap = spiDivisorMapSlow }
+#if defined(SPI4_SCK_AF) || defined(SPI4_MISO_AF) || defined(SPI4_MOSI_AF)
+#if !defined(SPI4_SCK_AF) || !defined(SPI4_MISO_AF) || !defined(SPI4_MOSI_AF)
+#error SPI4: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = SPI4_SCK_AF, .misoAF = SPI4_MISO_AF, .mosiAF = SPI4_MOSI_AF, .divisorMap = spiDivisorMapSlow }
+#else
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = GPIO_AF5_SPI4, .misoAF = GPIO_AF5_SPI4, .mosiAF = GPIO_AF5_SPI4, .divisorMap = spiDivisorMapSlow }
+#endif
 #else
     { .dev = NULL }     // No SPI4
 #endif
 };
+#else
+static spiDevice_t spiHardwareMap[] = {
+#ifdef USE_SPI_DEVICE_1
+#if defined(SPI1_SCK_AF) || defined(SPI1_MISO_AF) || defined(SPI1_MOSI_AF)
+#if !defined(SPI1_SCK_AF) || !defined(SPI1_MISO_AF) || !defined(SPI1_MOSI_AF)
+#error SPI1: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = SPI1_SCK_AF, .misoAF = SPI1_MISO_AF, .mosiAF = SPI1_MOSI_AF, .divisorMap = spiDivisorMapFast },
+#else
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = GPIO_AF5_SPI1, .misoAF = GPIO_AF5_SPI1, .mosiAF = GPIO_AF5_SPI1, .divisorMap = spiDivisorMapFast },
+#endif
+#else
+    { .dev = NULL },    // No SPI1
+#endif
+
+#ifdef USE_SPI_DEVICE_2
+#if defined(SPI2_SCK_AF) || defined(SPI2_MISO_AF) || defined(SPI2_MOSI_AF)
+#if !defined(SPI2_SCK_AF) || !defined(SPI2_MISO_AF) || !defined(SPI2_MOSI_AF)
+#error SPI2: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .sckAF = SPI2_SCK_AF, .misoAF = SPI2_MISO_AF, .mosiAF = SPI2_MOSI_AF, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .sckAF = GPIO_AF5_SPI2, .misoAF = GPIO_AF5_SPI2, .mosiAF = GPIO_AF5_SPI2, .divisorMap = spiDivisorMapSlow },
+#endif
+#else
+    { .dev = NULL },    // No SPI2
+#endif
+
+#ifdef USE_SPI_DEVICE_3
+#if defined(SPI3_SCK_AF) || defined(SPI3_MISO_AF) || defined(SPI3_MOSI_AF)
+#if !defined(SPI3_SCK_AF) || !defined(SPI3_MISO_AF) || !defined(SPI3_MOSI_AF)
+#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .sckAF = SPI3_SCK_AF, .misoAF = SPI3_MISO_AF, .mosiAF = SPI3_MOSI_AF, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .sckAF = GPIO_AF6_SPI3, .misoAF = GPIO_AF6_SPI3, .mosiAF = GPIO_AF6_SPI3, .divisorMap = spiDivisorMapSlow },
+#endif
+#else
+    { .dev = NULL },    // No SPI3
+#endif
+
+#ifdef USE_SPI_DEVICE_4
+#if defined(SPI4_SCK_AF) || defined(SPI4_MISO_AF) || defined(SPI4_MOSI_AF)
+#if !defined(SPI4_SCK_AF) || !defined(SPI4_MISO_AF) || !defined(SPI4_MOSI_AF)
+#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = SPI4_SCK_AF, .misoAF = SPI4_MISO_AF, .mosiAF = SPI4_MOSI_AF, .divisorMap = spiDivisorMapSlow }
+#else
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = GPIO_AF5_SPI4, .misoAF = GPIO_AF5_SPI4, .mosiAF = GPIO_AF5_SPI4, .divisorMap = spiDivisorMapSlow }
+#endif
+#else
+    { .dev = NULL }     // No SPI4
+#endif
+};
+#endif
 
 SPIDevice spiDeviceByInstance(SPI_TypeDef *instance)
 {
@@ -159,12 +246,13 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
     IOInit(IOGetByTag(spi->mosi), OWNER_SPI, RESOURCE_SPI_MOSI, device + 1);
 
     if (leadingEdge) {
-        IOConfigGPIOAF(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG_LOW, spi->af);
+        IOConfigGPIOAF(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG_LOW, spi->sckAF);
     } else {
-        IOConfigGPIOAF(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG_HIGH, spi->af);
+        IOConfigGPIOAF(IOGetByTag(spi->sck), SPI_IO_AF_SCK_CFG_HIGH, spi->sckAF);
     }
-    IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG, spi->af);
-    IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->af);
+    IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG, spi->misoAF);
+
+    IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->mosiAF);
 
     if (spi->nss) {
         IOInit(IOGetByTag(spi->nss),  OWNER_SPI, RESOURCE_SPI_CS,  device + 1);
@@ -187,12 +275,21 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
         .CRCPoly = 7,
         .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
     };
+
+#if defined(STM32H7)
+    // Prevent glitching when SPI is disabled
+    LL_SPI_EnableGPIOControl(spi->dev);
+
+    LL_SPI_SetFIFOThreshold(spi->dev, LL_SPI_FIFO_TH_01DATA);
+    LL_SPI_Init(spi->dev, &init);
+#else
     LL_SPI_SetRxFIFOThreshold(spi->dev, SPI_RXFIFO_THRESHOLD_QF);
 
     LL_SPI_Init(spi->dev, &init);
     LL_SPI_Enable(spi->dev);
 
     SET_BIT(spi->dev->CR2, SPI_RXFIFO_THRESHOLD);
+#endif
 
     if (spi->nss) {
         IOHi(IOGetByTag(spi->nss));
@@ -204,26 +301,11 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
 
 uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t txByte)
 {
-    uint16_t spiTimeout = 1000;
-
-    while (!LL_SPI_IsActiveFlag_TXE(instance)) {
-        if ((spiTimeout--) == 0) {
-            spiTimeoutUserCallback(instance);
-            return 0xFF;
-        }
+    uint8_t value = 0xFF;
+    if (!spiTransfer(instance, &value, &txByte, 1)) {
+        return 0xFF;
     }
-
-    LL_SPI_TransmitData8(instance, txByte);
-
-    spiTimeout = 1000;
-    while (!LL_SPI_IsActiveFlag_RXNE(instance)) {
-        if ((spiTimeout--) == 0) {
-            spiTimeoutUserCallback(instance);
-            return 0xFF;
-        }
-    }
-
-    return (uint8_t)LL_SPI_ReceiveData8(instance);
+    return value;
 }
 
 /**
@@ -231,11 +313,49 @@ uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t txByte)
  */
 bool spiIsBusBusy(SPI_TypeDef *instance)
 {
+#if defined(STM32H7)
+    UNUSED(instance);
+    // H7 doesnt really have a busy flag. its should be done when the transfer is.
+    return false;
+#else
     return (LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY) || LL_SPI_IsActiveFlag_BSY(instance);
+#endif
 }
 
 bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len)
 {
+#if defined(STM32H7)
+    LL_SPI_SetTransferSize(instance, len);
+    LL_SPI_Enable(instance);
+    LL_SPI_StartMasterTransfer(instance);
+    while (len) {
+        int spiTimeout = 1000;
+        while(!LL_SPI_IsActiveFlag_TXP(instance)) {
+            if ((spiTimeout--) == 0) {
+                spiTimeoutUserCallback(instance);
+                return false;
+            }
+        }
+        uint8_t b = txData ? *(txData++) : 0xFF;
+        LL_SPI_TransmitData8(instance, b);
+
+        spiTimeout = 1000;
+        while (!LL_SPI_IsActiveFlag_RXP(instance)) {
+            if ((spiTimeout--) == 0) {
+                spiTimeoutUserCallback(instance);
+                return false;
+            }
+        }
+        b = LL_SPI_ReceiveData8(instance);
+        if (rxData) {
+            *(rxData++) = b;
+        }
+        --len;
+    }
+    while (!LL_SPI_IsActiveFlag_EOT(instance));
+    LL_SPI_ClearFlag_TXTF(instance);
+    LL_SPI_Disable(instance);
+#else
     SET_BIT(instance->CR2, SPI_RXFIFO_THRESHOLD);
 
     while (len) {
@@ -262,6 +382,7 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
         }
         --len;
     }
+#endif
 
     return true;
 }

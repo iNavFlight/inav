@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common/axis.h"
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/adc.h"
@@ -29,6 +30,7 @@
 #define MAX_NAME_LENGTH 16
 
 #define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
+
 typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,
     FEATURE_VBAT = 1 << 1,
@@ -68,6 +70,9 @@ typedef struct systemConfig_s {
     uint8_t current_profile_index;
     uint8_t current_battery_profile_index;
     uint8_t debug_mode;
+#ifdef USE_DEV_TOOLS
+    bool groundTestMode;                    // Disables motor ouput, sets heading trusted on FW (for dev use)
+#endif
 #ifdef USE_I2C
     uint8_t i2c_speed;
 #endif
@@ -129,6 +134,9 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex);
 uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
+
+void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGravityCalibrationAndWriteEEPROM(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

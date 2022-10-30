@@ -14,7 +14,7 @@ Download and install Vagrant for you OS from here:
 https://www.vagrantup.com/downloads.html
 ```
 
-## Cloning iNav repository
+## Cloning INAV repository
 Using git (The preferred way!)
 ```
 git clone https://github.com/iNavFlight/inav.git
@@ -28,7 +28,7 @@ and extract it to folder of your choosing.
 
 ## Running the virtual machine
 Open up a terminal or command line interface (In windows search for CMD.exe and run it as administrator!)
-Navigate in to the directory of your cloned/unzipped iNav repository. (Where the "Vagrantfile" is located.) and start the virtual machine.
+Navigate in to the directory of your cloned/unzipped INAV repository. (Where the "Vagrantfile" is located.) and start the virtual machine.
 ```
 vagrant up
 ```

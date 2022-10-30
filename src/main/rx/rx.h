@@ -54,37 +54,33 @@
 #define PPM_RCVR_TIMEOUT            0
 
 typedef enum {
-    RX_FRAME_PENDING = 0,                       // No new data available from receiver
-    RX_FRAME_COMPLETE = (1 << 0),               // There is new data available
-    RX_FRAME_FAILSAFE = (1 << 1),               // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
+    RX_FRAME_PENDING             = 0,         // No new data available from receiver
+    RX_FRAME_COMPLETE            = (1 << 0),  // There is new data available
+    RX_FRAME_FAILSAFE            = (1 << 1),  // Receiver detected loss of RC link. Only valid when RX_FRAME_COMPLETE is set as well
     RX_FRAME_PROCESSING_REQUIRED = (1 << 2),
-    RX_FRAME_DROPPED = (1 << 3),                // Receiver detected dropped frame. Not loss of link yet.
+    RX_FRAME_DROPPED             = (1 << 3),  // Receiver detected dropped frame. Not loss of link yet.
 } rxFrameState_e;
 
 typedef enum {
-    RX_TYPE_NONE        = 0,
-    RX_TYPE_SERIAL      = 1,
-    RX_TYPE_MSP         = 2,
-    RX_TYPE_SPI         = 3
+    RX_TYPE_NONE = 0,
+    RX_TYPE_SERIAL,
+    RX_TYPE_MSP
 } rxReceiverType_e;
 
 typedef enum {
     SERIALRX_SPEKTRUM1024 = 0,
-    SERIALRX_SPEKTRUM2048 = 1,
-    SERIALRX_SBUS = 2,
-    SERIALRX_SUMD = 3,
-    SERIALRX_SUMH = 4,
-    SERIALRX_XBUS_MODE_B = 5,
-    SERIALRX_XBUS_MODE_B_RJ01 = 6,
-    SERIALRX_IBUS = 7,
-    SERIALRX_JETIEXBUS = 8,
-    SERIALRX_CRSF = 9,
-    SERIALRX_FPORT = 10,
-    SERIALRX_SBUS_FAST = 11,
-    SERIALRX_FPORT2 = 12,
-    SERIALRX_SRXL2 = 13,
-    SERIALRX_GHST = 14,
-    SERIALRX_MAVLINK = 15,
+    SERIALRX_SPEKTRUM2048,
+    SERIALRX_SBUS,
+    SERIALRX_SUMD,
+    SERIALRX_IBUS,
+    SERIALRX_JETIEXBUS,
+    SERIALRX_CRSF,
+    SERIALRX_FPORT,
+    SERIALRX_SBUS_FAST,
+    SERIALRX_FPORT2,
+    SERIALRX_SRXL2,
+    SERIALRX_GHST,
+    SERIALRX_MAVLINK,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
@@ -115,11 +111,6 @@ typedef struct rxConfig_s {
     uint8_t serialrx_provider;              // Type of UART-based receiver (rxSerialReceiverType_e enum). Only used if receiverType is RX_TYPE_SERIAL
     uint8_t serialrx_inverted;              // Flip the default inversion of the protocol - e.g. sbus (Futaba, FrSKY) is inverted if this is false, uninverted if it's true. Support for uninverted OpenLRS (and modified FrSKY) receivers.
     uint8_t halfDuplex;                     // allow rx to operate in half duplex mode. From tristate_e.
-#ifdef USE_RX_SPI
-    uint8_t rx_spi_protocol;                // type of SPI receiver protocol (rx_spi_protocol_e enum). Only used if receiverType is RX_TYPE_SPI
-    uint32_t rx_spi_id;
-    uint8_t rx_spi_rf_channel_count;
-#endif
 #ifdef USE_SPEKTRUM_BIND
     uint8_t spektrum_sat_bind;              // number of bind pulses for Spektrum satellite receivers
     uint8_t spektrum_sat_bind_autoreset;    // whenever we will reset (exit) binding mode after hard reboot
@@ -133,6 +124,8 @@ typedef struct rxConfig_s {
     uint16_t rx_min_usec;
     uint16_t rx_max_usec;
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
+    uint8_t autoSmooth;                     // auto smooth rx input (0 = off, 1 = on)
+    uint8_t autoSmoothFactor;               // auto smooth rx input factor (1 = no smoothing, 100 = lots of smoothing)
     uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
 #ifdef USE_SERIALRX_SRXL2
@@ -143,7 +136,7 @@ typedef struct rxConfig_s {
 
 PG_DECLARE(rxConfig_t, rxConfig);
 
-#define REMAPPABLE_CHANNEL_COUNT (sizeof(((rxConfig_t *)0)->rcmap) / sizeof(((rxConfig_t *)0)->rcmap[0]))
+#define REMAPPABLE_CHANNEL_COUNT ARRAYLEN(((rxConfig_t *)0)->rcmap)
 
 typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
@@ -160,7 +153,6 @@ typedef struct rxLinkQualityTracker_s {
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
-    timeUs_t rxRefreshRate;
     timeUs_t rxSignalTimeout;
     rcReadRawDataFnPtr rcReadRawFn;
     rcFrameStatusFnPtr rcFrameStatusFn;
@@ -186,12 +178,12 @@ typedef enum {
 } rssiSource_e;
 
 typedef struct rxLinkStatistics_s {
-    int16_t     uplinkRSSI;     // RSSI value in dBm
-    uint8_t     uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
-    int8_t      uplinkSNR;      // The SNR of the uplink in dB
-    uint8_t     rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
-    uint16_t    uplinkTXPower;  // power in mW
-    uint8_t     activeAnt;
+    int16_t uplinkRSSI;     // RSSI value in dBm
+    uint8_t uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
+    int8_t uplinkSNR;       // The SNR of the uplink in dB
+    uint8_t rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t uplinkTXPower; // power in mW
+    uint8_t activeAntenna;
 } rxLinkStatistics_t;
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
@@ -223,9 +215,7 @@ void resetAllRxChannelRangeConfigurations(void);
 void suspendRxSignal(void);
 void resumeRxSignal(void);
 
-uint16_t rxGetRefreshRate(void);
-
 // Processed RC channel value. These values might include
 // filtering and some extra processing like value holding
-// during failsafe. 
+// during failsafe.
 int16_t rxGetChannelValue(unsigned channelNumber);

@@ -1,18 +1,18 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav is free software: you can redistribute it and/or modify
+ * INAV is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * iNav is distributed in the hope that it will be useful,
+ * INAV is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with iNav.  If not, see <http://www.gnu.org/licenses/>.
+ * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdbool.h>
@@ -30,7 +30,7 @@
 #define IRLOCK_FRAME_SYNC ((uint32_t)(IRLOCK_OBJECT_SYNC | (IRLOCK_OBJECT_SYNC << 16)))
 
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 
 static bool irlockHealthy = false;
 

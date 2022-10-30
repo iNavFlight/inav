@@ -53,7 +53,7 @@ PG_RESET_TEMPLATE(osdCommonConfig_t, osdCommonConfig,
     .speedSource = SETTING_OSD_SPEED_SOURCE_DEFAULT
 );
 
-int osdGetSpeedFromSelectedSource(void) {
+int16_t osdGetSpeedFromSelectedSource(void) {
     int speed = 0;
     switch (osdCommonConfig()->speedSource) {
         case OSD_SPEED_SOURCE_GROUND:
@@ -64,7 +64,7 @@ int osdGetSpeedFromSelectedSource(void) {
             break;
         case OSD_SPEED_SOURCE_AIR:
             #ifdef USE_PITOT
-            speed = pitot.airSpeed;
+            speed = (int16_t)getAirspeedEstimate();
             #endif
             break;
     }
@@ -195,6 +195,6 @@ int16_t osdGet3DSpeed(void)
 {
     int16_t vert_speed = getEstimatedActualVelocity(Z);
     int16_t hor_speed = gpsSol.groundSpeed;
-    return (int16_t)fast_fsqrtf(sq(hor_speed) + sq(vert_speed));
+    return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
 }
 #endif

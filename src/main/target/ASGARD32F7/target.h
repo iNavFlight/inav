@@ -35,10 +35,6 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// #define USE_EXTI
-// #define GYRO_INT_EXTI            PC8
-// #define USE_MPU_DATA_READY_SIGNAL        // Not connected on FireworksV2
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PA4
@@ -165,6 +161,4 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define PCA9685_I2C_BUS         BUS_I2C2
 #define PITOT_I2C_BUS           BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2

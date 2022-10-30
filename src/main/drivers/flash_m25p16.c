@@ -56,6 +56,8 @@
 #define JEDEC_ID_SPANSION_S25FL116     0x014015
 #define JEDEC_ID_EON_W25Q64            0x1C3017
 #define JEDEC_ID_CYPRESS_S25FL128L     0x016018
+#define JEDEC_ID_WINBOND_W25Q128_2     0xEF7018
+
 
 // The timeout we expect between being able to issue page program instructions
 #define DEFAULT_TIMEOUT_MILLIS       6
@@ -190,7 +192,8 @@ static bool m25p16_readIdentification(void)
 
         case JEDEC_ID_MICRON_N25Q128:
         case JEDEC_ID_WINBOND_W25Q128:
-	case JEDEC_ID_CYPRESS_S25FL128L:
+	    case JEDEC_ID_CYPRESS_S25FL128L:
+        case JEDEC_ID_WINBOND_W25Q128_2:
             geometry.sectors = 256;
             geometry.pagesPerSector = 256;
             break;
@@ -211,6 +214,7 @@ static bool m25p16_readIdentification(void)
             return false;
     }
 
+    geometry.flashType = FLASH_TYPE_NOR;
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
 

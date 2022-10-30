@@ -29,7 +29,7 @@
 #error "Unnecessary USE_ACC and/or USE_GYRO"
 #endif
 
-#if defined (USE_GYRO_MPU6000) || defined (USE_ACC_MPU6000) || defined (USE_GYRO_MPU6050) || defined (USE_ACC_MPU6050)
+#if defined (USE_GYRO_MPU6000) || defined (USE_ACC_MPU6000)
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
 #endif
 
@@ -45,13 +45,8 @@
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
 #endif
 
-#if defined (USE_ACC_LSM303DLHC) || defined (USE_ACC_BMI160)
+#if defined (USE_ACC_BMI160)
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
-#endif
-
-// Make sure IMU alignments are migrated to IMU_xxx_ALIGN
-#if defined (GYRO_MPU6050_ALIGN) || defined (ACC_MPU6050_ALIGN)
-#error "Replace GYRO_MPU6050_ALIGN and ACC_MPU6050_ALIGN with IMU_MPU6050_ALIGN"
 #endif
 
 #if defined (GYRO_MPU6000_ALIGN) || defined (ACC_MPU6000_ALIGN)
@@ -73,16 +68,3 @@
 #if defined (GYRO_ICM20689_ALIGN) || defined (ACC_ICM20689_ALIGN)
 #error "Replace GYRO_ICM20689_ALIGN and ACC_ICM20689_ALIGN with IMU_ICM20689_ALIGN"
 #endif
-
-#if defined (GYRO_MPU3050_ALIGN)
-#error "Replace GYRO_MPU3050_ALIGN with IMU_MPU3050_ALIGN"
-#endif
-
-#if defined (GYRO_L3GD20_ALIGN)
-#error "Replace GYRO_L3GD20_ALIGN with IMU_L3GD20_ALIGN"
-#endif
-
-#if defined (ACC_LSM303DLHC_ALIGN)
-#error "Replace ACC_LSM303DLHC_ALIGN with IMU_LSM303DLHC_ALIGN"
-#endif
-

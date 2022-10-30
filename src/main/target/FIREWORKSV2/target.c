@@ -43,7 +43,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_1_mpu6500,   DEVHW_MPU6500,  IMU_1_SPI_BUS,  IMU_
 BUSDEV_REGISTER_SPI_TAG(busdev_2_mpu6000,   DEVHW_MPU6000,  IMU_2_SPI_BUS,  IMU_2_CS_PIN,   NONE,   1,  DEVFLAGS_NONE,  IMU_2_ALIGN);
 BUSDEV_REGISTER_SPI_TAG(busdev_2_mpu6500,   DEVHW_MPU6500,  IMU_2_SPI_BUS,  IMU_2_CS_PIN,   NONE,   1,  DEVFLAGS_NONE,  IMU_2_ALIGN);
 
-const timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,                           0, 0), // PPM
 
     // Motor output 1: use different set of timers for MC and FW
@@ -73,7 +73,6 @@ void validateAndFixTargetConfig(void)
     if (mixerConfig()->platformType != PLATFORM_MULTIROTOR && mixerConfig()->platformType != PLATFORM_TRICOPTER) {
         if (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150) {
             motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
-            motorConfigMutable()->motorPwmRate = MIN(motorConfig()->motorPwmRate, 490);
         }
     }
 }

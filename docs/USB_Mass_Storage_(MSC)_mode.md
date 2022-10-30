@@ -1,6 +1,6 @@
 ## Overview
 
-iNav (after 2.3.0) offers USB MSC (mass storage device class) SD card and internal flash access, meaning you can mount the FC (SD card / internal flash) as an OS file system via USB to read BB logs (and delete them from an SD card).
+INAV (after 2.3.0) offers USB MSC (mass storage device class) SD card and internal flash access, meaning you can mount the FC (SD card / internal flash) as an OS file system via USB to read BB logs (and delete them from an SD card).
 
 When MSC mode is used with **internal flash** there are a few differences compared to **SD card** as it's a virtual file system:
 
@@ -62,7 +62,7 @@ $ md5sum /tmp/{msc,sdc}logs/LOG00035.TXT
 7cd259777ba4f29ecbde2f76882b1840  /tmp/msclogs/LOG00035.TXT
 7cd259777ba4f29ecbde2f76882b1840  /tmp/sdclogs/LOG00035.TXT
 ```
-You should also be able to run blackbox utilities (e.g. the iNav specific `blackbox_decode`) without errors on the files, e.g.
+You should also be able to run blackbox utilities (e.g. the INAV specific `blackbox_decode`) without errors on the files, e.g.
 
 ```
 $ blackbox_decode --stdout --merge-gps > /dev/null /tmp/msclogs/LOG00035.TXT

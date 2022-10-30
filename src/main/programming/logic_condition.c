@@ -34,6 +34,8 @@
 #include "common/utils.h"
 #include "rx/rx.h"
 #include "common/maths.h"
+#include "fc/config.h"
+#include "fc/cli.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -41,6 +43,7 @@
 #include "navigation/navigation.h"
 #include "sensors/battery.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/rangefinder.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
 #include "drivers/io_port_expander.h"
@@ -53,11 +56,12 @@
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 2);
+PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
 EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
 EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
 EXTENDED_FASTRAM rcChannelOverride_t rcChannelOverrides[MAX_SUPPORTED_RC_CHANNEL_COUNT];
+EXTENDED_FASTRAM flightAxisOverride_t flightAxisOverride[XYZ_AXIS_COUNT];
 
 void pgResetFn_logicConditions(logicCondition_t *instance)
 {
@@ -302,6 +306,14 @@ static int logicConditionCompute(
             temporaryValue = (operandB == 0) ? 500 : operandB;
             return tan_approx(DEGREES_TO_RADIANS(operandA)) * temporaryValue; 
         break;
+
+        case LOGIC_CONDITION_MIN:
+            return (operandA < operandB) ? operandA : operandB;
+        break;
+
+        case LOGIC_CONDITION_MAX:
+            return (operandA > operandB) ? operandA : operandB;
+        break;
     
         case LOGIC_CONDITION_MAP_INPUT:
             return scaleRange(constrain(operandA, 0, operandB), 0, operandB, 0, 1000);
@@ -333,11 +345,63 @@ static int logicConditionCompute(
             }
             break;
 
+        case LOGIC_CONDITION_SET_PROFILE:
+            operandA--;
+            if ( getConfigProfile() != operandA  && (operandA >= 0 && operandA < MAX_PROFILE_COUNT)) {
+                bool profileChanged = false;
+                if (setConfigProfile(operandA)) {
+                    pidInit();
+                    pidInitFilters();
+                    schedulePidGainsUpdate();
+                    profileChanged = true;
+                }
+                return profileChanged;
+            } else {
+                return false;
+            }
+            break;
+
         case LOGIC_CONDITION_LOITER_OVERRIDE:
             logicConditionValuesByType[LOGIC_CONDITION_LOITER_OVERRIDE] = constrain(operandA, 0, 100000);
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS);
             return true;
             break;
+
+        case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
+            if (operandA >= 0 && operandA <= 2) {
+
+                flightAxisOverride[operandA].angleTargetActive = true;
+                int target = DEGREES_TO_DECIDEGREES(operandB);
+                if (operandA == 0) {
+                    //ROLL
+                    target = constrain(target, -pidProfile()->max_angle_inclination[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
+                } else if (operandA == 1) {
+                    //PITCH
+                    target = constrain(target, -pidProfile()->max_angle_inclination[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
+                } else if (operandA == 2) {
+                    //YAW
+                    target = (constrain(target, 0, 3600));
+                }
+                flightAxisOverride[operandA].angleTarget = target;
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS);
+
+                return true;
+            } else {
+                return false;
+            }
+            break;
+
+        case LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE:
+            if (operandA >= 0 && operandA <= 2) {
+                flightAxisOverride[operandA].rateTargetActive = true;
+                flightAxisOverride[operandA].rateTarget = constrain(operandB, -2000, 2000);
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS);
+                return true;
+            } else {
+                return false;
+            }
+            break;    
+        
         default:
             return false;
             break; 
@@ -348,7 +412,7 @@ void logicConditionProcess(uint8_t i) {
 
     const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
 
-    if (logicConditions(i)->enabled && activatorValue) {
+    if (logicConditions(i)->enabled && activatorValue && !cliMode) {
         
         /*
          * Process condition only when latch flag is not set
@@ -405,6 +469,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_CELL_VOLTAGE: // V / 10
             return getBatteryAverageCellVoltage();
             break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS:
+            return getBatteryCellCount();
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_CURRENT: // Amp / 100
             return getAmperage();
             break;
@@ -436,7 +505,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
         #else
             return false;
         #endif
@@ -519,7 +588,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
-            return constrain(fast_fsqrtf(sq(GPS_distanceToHome) + sq(getEstimatedActualPosition(Z)/100)), 0, INT16_MAX);
+            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT16_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
@@ -538,8 +607,24 @@ static int logicConditionGetFlightOperandValue(int operand) {
         #endif
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
+            return getConfigProfile() + 1;
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
             return getLoiterRadius(navConfig()->fw.loiter_radius);
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS:
+            return isEstimatedAglTrusted();
+            break;
+    
+        case LOGIC_CONDITION_OPERAND_FLIGHT_AGL:
+            return getEstimatedAglPosition();
+            break;    
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW:
+            return rangefinderGetLatestRawAltitude();
+            break; 
 
         default:
             return 0;
@@ -597,6 +682,10 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2:
             return IS_RC_MODE_ACTIVE(BOXUSER2);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3:
+            return IS_RC_MODE_ACTIVE(BOXUSER3);
             break;
 
         default:
@@ -675,6 +764,11 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
         rcChannelOverrides[i].active = false;
     }
 
+    for (uint8_t i = 0; i < XYZ_AXIS_COUNT; i++) {
+        flightAxisOverride[i].rateTargetActive = false;
+        flightAxisOverride[i].angleTargetActive = false;
+    }
+
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionProcess(i);
     }
@@ -740,4 +834,36 @@ uint32_t getLoiterRadius(uint32_t loiterRadius) {
 #else
     return loiterRadius;
 #endif
+}
+
+float getFlightAxisAngleOverride(uint8_t axis, float angle) {
+    if (flightAxisOverride[axis].angleTargetActive) {
+        return flightAxisOverride[axis].angleTarget;
+    } else {
+        return angle;
+    }
+}
+
+float getFlightAxisRateOverride(uint8_t axis, float rate) {
+    if (flightAxisOverride[axis].rateTargetActive) {
+        return flightAxisOverride[axis].rateTarget;
+    } else {
+        return rate;
+    }
+}
+
+bool isFlightAxisAngleOverrideActive(uint8_t axis) {
+    if (flightAxisOverride[axis].angleTargetActive) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool isFlightAxisRateOverrideActive(uint8_t axis) {
+    if (flightAxisOverride[axis].rateTargetActive) {
+        return true;
+    } else {
+        return false;
+    }
 }

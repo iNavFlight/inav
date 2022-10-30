@@ -32,11 +32,6 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
-// MPU6000 interrupts
-#define USE_EXTI
-#define GYRO_INT_EXTI           PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
@@ -54,7 +49,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
@@ -144,5 +138,3 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

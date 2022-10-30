@@ -1,0 +1,2 @@
+target_stm32h743xi(KAKUTEH7)
+target_stm32h743xi(KAKUTEH7MINI)

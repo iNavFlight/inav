@@ -51,9 +51,7 @@
 #include "drivers/bus.h"
 #include "drivers/dma.h"
 #include "drivers/exti.h"
-#include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
-#include "drivers/io_pca9685.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
@@ -74,14 +72,13 @@
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
-#include "drivers/io_pca9685.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
 #include "msc/emfat_file.h"
 #endif
 #include "drivers/sdcard/sdcard.h"
+#include "drivers/sdio.h"
 #include "drivers/io_port_expander.h"
 
 #include "fc/cli.h"
@@ -99,7 +96,6 @@
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -108,11 +104,11 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
+#include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
-#include "io/pwmdriver_i2c.h"
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
@@ -189,7 +185,7 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
-#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+#if defined(USE_FLASHFS)
     bool flashDeviceInitialized = false;
 #endif
 
@@ -251,9 +247,7 @@ void init(void)
 
     ledInit(false);
 
-#ifdef USE_EXTI
     EXTIInit();
-#endif
 
 #ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
@@ -367,6 +361,11 @@ void init(void)
     updateHardwareRevision();
 #endif
 
+#if defined(USE_SDCARD_SDIO) && defined(STM32H7)
+    sdioPinConfigure();
+    SDIO_GPIO_Init();
+#endif
+
 #ifdef USE_USB_MSC
     /* MSC mode will start after init, but will not allow scheduler to run,
      * so there is no bottleneck in reading and writing data
@@ -377,13 +376,10 @@ void init(void)
         // it to identify the log files *before* starting the USB device to
         // prevent timeouts of the mass storage device.
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
-#ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            /*m25p16_init(0);*/
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
             emfat_init_files();
         }
 #endif
@@ -547,6 +543,11 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
+#ifdef USE_MSP_OSD
+        if (!osdDisplayPort) {
+            osdDisplayPort = mspOsdDisplayPortInit(osdConfig()->video_system);
+        }
+#endif
 #if defined(USE_MAX7456)
         // If there is a max7456 chip for the OSD and we have no
         // external OSD initialized, use it.
@@ -575,9 +576,7 @@ void init(void)
 #endif
 
 
-#ifdef USE_NAV
     navigationInit();
-#endif
 
 #ifdef USE_LED_STRIP
     ledStripInit();
@@ -608,12 +607,13 @@ void init(void)
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
-#ifdef USE_FLASH_M25P16
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
-            flashfsInit();
+            if (flashDeviceInitialized) {
+                // do not initialize flashfs if no flash was found
+                flashfsInit();
+            }
             break;
 #endif
 
@@ -676,9 +676,6 @@ void init(void)
     latchActiveFeatures();
     motorControlEnable = true;
 
-#ifdef USE_SECONDARY_IMU
-    secondaryImuInit();
-#endif
     fcTasksInit();
 
 #ifdef USE_OSD

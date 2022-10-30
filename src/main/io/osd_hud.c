@@ -128,6 +128,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     uint8_t center_y;
     bool poi_is_oos = 0;
     char buff[3];
+    int altc = 0;
 
     uint8_t minX = osdConfig()->hud_margin_h + 2;
     uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 3;
@@ -176,11 +177,11 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         }
 
         if (error_x > 0 ) {
-            d = SYM_HUD_ARROWS_R3 - constrain ((180 - error_x) / 45, 0, 2);
+            d = SYM_HUD_ARROWS_R3 - constrain((180 - error_x) / 45, 0, 2);
             osdHudWrite(poi_x + 2, poi_y, d, 1);
         }
         else {
-            d = SYM_HUD_ARROWS_L3 - constrain ((180 + error_x) / 45, 0, 2);
+            d = SYM_HUD_ARROWS_L3 - constrain((180 + error_x) / 45, 0, 2);
             osdHudWrite(poi_x - 2, poi_y, d, 1);
         }
     }
@@ -201,11 +202,49 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     // Distance
 
-    if ((osd_unit_e)osdConfig()->units == OSD_UNIT_IMPERIAL) {
-        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
-    }
-    else {
-        osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3);
+    if (poiType > 0 && 
+        ((millis() / 1000) % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time) < (osdConfig()->hud_radar_alt_difference_display_time % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time)))
+       ) { // For Radar and WPs, display the difference in altitude, then distance. Time is pilot defined
+        altc = constrain(poiAltitude, -99 , 99);
+
+        switch ((osd_unit_e)osdConfig()->units) {
+            case OSD_UNIT_UK:
+                FALLTHROUGH;
+            case OSD_UNIT_GA:
+                FALLTHROUGH;
+            case OSD_UNIT_IMPERIAL:
+                // Convert to feet
+                altc = constrain(CENTIMETERS_TO_FEET(poiAltitude * 100), -99, 99);
+                break;
+            default:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC_MPH:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC:
+                // Already in metres
+                break;
+        }
+
+        tfp_sprintf(buff, "%3d", altc);
+        buff[0] = (poiAltitude >= 0) ? SYM_DIRECTION : SYM_DIRECTION+4;
+    } else { // Display the distance by default 
+        switch ((osd_unit_e)osdConfig()->units) {
+            case OSD_UNIT_UK:
+                FALLTHROUGH;
+            case OSD_UNIT_IMPERIAL:
+                osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
+                break;
+            case OSD_UNIT_GA:
+                osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 3, 3);
+                break;
+            default:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC_MPH:
+                FALLTHROUGH;
+            case OSD_UNIT_METRIC:
+                osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3);
+                break;
+        }
     }
 
     osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 1);
@@ -323,40 +362,6 @@ void osdHudDrawHoming(uint8_t px, uint8_t py)
     displayWriteChar(osdGetDisplayPort(), px + 2, py, crh_r);
     displayWriteChar(osdGetDisplayPort(), px, py - 1, crh_u);
     displayWriteChar(osdGetDisplayPort(), px, py + 1, crh_d);
-}
-
-
-/*
- * Draw extra datas for a radar POI
- */
-void osdHudDrawExtras(uint8_t poi_id)
-{
-    char buftmp[6];
-
-    uint8_t minX = osdConfig()->hud_margin_h + 1;
-    uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 2;
-    uint8_t lineY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 1;
-
-    displayWriteChar(osdGetDisplayPort(), minX + 1, lineY, 65 + poi_id);
-    displayWriteChar(osdGetDisplayPort(), minX + 2, lineY, SYM_HUD_SIGNAL_0 + radar_pois[poi_id].lq);
-
-    if (radar_pois[poi_id].altitude < 0) {
-        osdFormatAltitudeSymbol(buftmp, -radar_pois[poi_id].altitude * 100);
-        displayWriteChar(osdGetDisplayPort(), minX + 8, lineY, SYM_HUD_ARROWS_D2);
-    }
-    else {
-        osdFormatAltitudeSymbol(buftmp, radar_pois[poi_id].altitude * 100);
-        displayWriteChar(osdGetDisplayPort(), minX + 8, lineY, SYM_HUD_ARROWS_U2);
-    }
-
-    displayWrite(osdGetDisplayPort(), minX + 4, lineY, buftmp);
-
-    osdFormatVelocityStr(buftmp, radar_pois[poi_id].speed, false, false);
-    displayWrite(osdGetDisplayPort(), maxX - 9, lineY, buftmp);
-
-    tfp_sprintf(buftmp, "%3d%c", radar_pois[poi_id].heading, SYM_HEADING);
-    displayWrite(osdGetDisplayPort(), maxX - 4, lineY, buftmp);
-
 }
 
 #endif // USE_OSD

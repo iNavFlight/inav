@@ -101,9 +101,6 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
 float NOINLINE gyroKalmanUpdate(uint8_t axis, float input)
 {
     updateAxisVariance(&kalmanFilterStateRate[axis], input);
-
-    DEBUG_SET(DEBUG_KALMAN_GAIN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
-
     return kalman_process(&kalmanFilterStateRate[axis], input);
 }
 

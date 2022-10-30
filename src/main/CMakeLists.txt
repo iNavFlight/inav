@@ -84,26 +84,14 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_icm20689.h
     drivers/accgyro/accgyro_icm42605.c
     drivers/accgyro/accgyro_icm42605.h
-    drivers/accgyro/accgyro_l3gd20.c
-    drivers/accgyro/accgyro_l3gd20.h
-    drivers/accgyro/accgyro_lsm303dlhc.c
-    drivers/accgyro/accgyro_lsm303dlhc.h
     drivers/accgyro/accgyro_mpu.c
     drivers/accgyro/accgyro_mpu.h
-    drivers/accgyro/accgyro_mpu3050.c
-    drivers/accgyro/accgyro_mpu3050.h
     drivers/accgyro/accgyro_mpu6000.c
     drivers/accgyro/accgyro_mpu6000.h
-    drivers/accgyro/accgyro_mpu6050.c
-    drivers/accgyro/accgyro_mpu6050.h
     drivers/accgyro/accgyro_mpu6500.c
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055.c
-    drivers/accgyro/accgyro_bno055.h
-    drivers/accgyro/accgyro_bno055_serial.c
-    drivers/accgyro/accgyro_bno055_serial.h
 
     drivers/adc.c
     drivers/adc.h
@@ -127,6 +115,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_spl06.h
     drivers/barometer/barometer_msp.c
     drivers/barometer/barometer_msp.h
+    drivers/barometer/barometer_2smpb_02b.c
+    drivers/barometer/barometer_2smpb_02b.h
 
     drivers/buf_writer.c
     drivers/buf_writer.h
@@ -182,10 +172,10 @@ main_sources(COMMON_SRC
     drivers/flash.h
     drivers/flash_m25p16.c
     drivers/flash_m25p16.h
+    drivers/flash_w25n01g.c
+    drivers/flash_w25n01g.h
     drivers/io.c
     drivers/io.h
-    drivers/io_pca9685.c
-    drivers/io_pca9685.h
     drivers/io_pcf8574.c
     drivers/io_pcf8574.h
     drivers/io_port_expander.c
@@ -246,8 +236,6 @@ main_sources(COMMON_SRC
     drivers/resource.h
     drivers/rcc.c
     drivers/rcc.h
-    drivers/rx_spi.c
-    drivers/rx_spi.h
     drivers/serial.c
     drivers/serial.h
     drivers/sound_beeper.c
@@ -312,8 +300,6 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
-    flight/hil.c
-    flight/hil.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
@@ -341,10 +327,10 @@ main_sources(COMMON_SRC
     flight/rpm_filter.h
     flight/dynamic_gyro_notch.c
     flight/dynamic_gyro_notch.h
+    flight/secondary_dynamic_gyro_notch.c
+    flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
-    flight/secondary_imu.c
-    flight/secondary_imu.h
 
     io/beeper.c
     io/beeper.h
@@ -358,8 +344,6 @@ main_sources(COMMON_SRC
     io/lights.h
     io/piniobox.c
     io/piniobox.h
-    io/pwmdriver_i2c.c
-    io/pwmdriver_i2c.h
     io/serial.c
     io/serial.h
     io/serial_4way.c
@@ -389,8 +373,6 @@ main_sources(COMMON_SRC
 
     rx/crsf.c
     rx/crsf.h
-    rx/eleres.c
-    rx/eleres.h
     rx/fport.c
     rx/fport.h
     rx/fport2.c
@@ -412,8 +394,6 @@ main_sources(COMMON_SRC
     rx/frsky_crc.h
     rx/rx.c
     rx/rx.h
-    rx/rx_spi.c
-    rx/rx_spi.h
     rx/sbus.c
     rx/sbus.h
     rx/sbus_channels.c
@@ -424,10 +404,6 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
-    rx/sumh.c
-    rx/sumh.h
-    rx/xbus.c
-    rx/xbus.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -502,6 +478,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
+    io/displayport_msp_osd.c
+    io/displayport_msp_osd.h
     io/displayport_srxl.c
     io/displayport_srxl.h
     io/displayport_hott.c
@@ -512,7 +490,6 @@ main_sources(COMMON_SRC
     io/gps.h
     io/gps_ublox.c
     io/gps_nmea.c
-    io/gps_naza.c
     io/gps_msp.c
     io/gps_private.h
     io/ledstrip.c
@@ -554,6 +531,8 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_flow.c
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
+    navigation/sqrt_controller.c
+    navigation/sqrt_controller.h
 
     sensors/barometer.c
     sensors/barometer.h

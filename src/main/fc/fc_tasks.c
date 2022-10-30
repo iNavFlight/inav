@@ -49,7 +49,6 @@
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
-#include "flight/secondary_imu.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
 
@@ -61,19 +60,17 @@
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
-#include "io/pwmdriver_i2c.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/osd_dji_hd.h"
+#include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
 
 #include "msp/msp_serial.h"
 
 #include "rx/rx.h"
-#include "rx/eleres.h"
-#include "rx/rx_spi.h"
 
 #include "scheduler/scheduler.h"
 
@@ -108,8 +105,13 @@ void taskHandleSerial(timeUs_t currentTimeUs)
     // DJI OSD uses a special flavour of MSP (subset of Betaflight 4.1.1 MSP) - process as part of serial task
     djiOsdSerialProcess();
 #endif
-}
 
+#ifdef USE_MSP_OSD
+	// Capture MSP Displayport messages to determine if VTX is connected
+    mspOsdSerialProcess(mspFcProcessCommand);
+#endif
+
+}
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;
@@ -225,7 +227,7 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 }
 #endif
 
-#if defined(USE_NAV) && defined(USE_IRLOCK)
+#if defined(USE_IRLOCK)
 void taskUpdateIrlock(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -288,9 +290,6 @@ void taskSyncServoDriver(timeUs_t currentTimeUs)
     sbusServoSendUpdate();
 #endif
 
-#ifdef USE_PWM_SERVO_DRIVER
-    pwmDriverSync();
-#endif
 }
 
 #ifdef USE_OSD
@@ -306,7 +305,13 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 {
     updatePIDCoefficients();
     dynamicLpfGyroTask();
+#ifdef USE_SIMULATOR
+    if (!ARMING_FLAG(SIMULATOR_MODE)) {
+        updateFixedWingLevelTrim(currentTimeUs);
+    }
+#else
     updateFixedWingLevelTrim(currentTimeUs);
+#endif
 }
 
 void fcTasksInit(void)
@@ -362,8 +367,8 @@ void fcTasksInit(void)
 #ifdef STACK_CHECK
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
-#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
-    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SERVO_DRIVER) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
+#if defined(USE_SERVO_SBUS)
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -391,9 +396,6 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
-#endif
-#ifdef USE_SECONDARY_IMU
-    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
 }
 
@@ -459,7 +461,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "RX",
         .checkFunc = taskUpdateRxCheck,
         .taskFunc = taskUpdateRxMain,
-        .desiredPeriod = TASK_PERIOD_HZ(50),      // If event-based scheduling doesn't work, fallback to periodic scheduling
+        .desiredPeriod = TASK_PERIOD_HZ(10),      // If event-based scheduling doesn't work, fallback to periodic scheduling
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
@@ -553,7 +555,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#if defined(USE_PWM_SERVO_DRIVER) || defined(USE_SERVO_SBUS)
+#if defined(USE_SERVO_SBUS)
     [TASK_PWMDRIVER] = {
         .taskName = "SERVOS",
         .taskFunc = taskSyncServoDriver,
@@ -619,14 +621,6 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PROGRAMMING_FRAMEWORK] = {
         .taskName = "PROGRAMMING",
         .taskFunc = programmingFrameworkUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
-        .staticPriority = TASK_PRIORITY_IDLE,
-    },
-#endif
-#ifdef USE_SECONDARY_IMU
-    [TASK_SECONDARY_IMU] = {
-        .taskName = "IMU2",
-        .taskFunc = taskSecondaryImu,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

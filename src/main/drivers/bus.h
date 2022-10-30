@@ -75,16 +75,8 @@ typedef enum {
 typedef enum {
     DEVHW_NONE = 0,
 
-    /* Dedicated ACC chips */
-    DEVHW_LSM303DLHC,
-
-    /* Dedicated GYRO chips */
-    DEVHW_L3GD20,
-
     /* Combined ACC/GYRO chips */
-    DEVHW_MPU3050,
     DEVHW_MPU6000,
-    DEVHW_MPU6050,
     DEVHW_MPU6500,
     DEVHW_BMI160,
     DEVHW_BMI088_GYRO,
@@ -105,6 +97,7 @@ typedef enum {
     DEVHW_SPL06,
     DEVHW_BMP388,
     DEVHW_DPS310,
+    DEVHW_B2SMPB,
 
     /* Compass chips */
     DEVHW_HMC5883,
@@ -145,13 +138,12 @@ typedef enum {
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
-    DEVHW_PCA9685,      // PWM output device
     DEVHW_M25P16,       // SPI NOR flash
+    DEVHW_W25N01G,      // SPI 128MB flash
     DEVHW_UG2864,       // I2C OLED display
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
     DEVHW_PCF8574,      // 8-bit I/O expander
-    DEVHW_BNO055,       // BNO055 IMU
 } devHardwareType_e;
 
 typedef enum {

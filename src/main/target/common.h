@@ -29,11 +29,7 @@
 #define NOINLINE
 #endif
 
-#if defined(STM32F3)
-#define DYNAMIC_HEAP_SIZE   1024
-#else
 #define DYNAMIC_HEAP_SIZE   2048
-#endif
 
 #define I2C1_OVERCLOCK false
 #define I2C2_OVERCLOCK false
@@ -46,15 +42,9 @@
 #define USE_SERIALRX_FPORT
 #define USE_SERIALRX_FPORT2
 
-#define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
+//#define USE_DEV_TOOLS           // tools for dev use only. Undefine for release builds.
 
-#if defined(STM32F3)
-#define USE_UNDERCLOCK
-//save flash for F3 targets
-#define CLI_MINIMAL_VERBOSITY
-#define SKIP_CLI_COMMAND_HELP
-#define SKIP_CLI_RESOURCES
-#endif
+#define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
 #if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
@@ -66,7 +56,6 @@
 #define USE_GPS
 #define USE_GPS_PROTO_UBLOX
 #define USE_GPS_PROTO_MSP
-#define USE_NAV
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
@@ -76,8 +65,6 @@
 #else
 #define SCHEDULER_DELAY_LIMIT           100
 #endif
-
-#if (MCU_FLASH_SIZE > 256)
 
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
@@ -92,9 +79,6 @@
 #define USE_SMITH_PREDICTOR
 #define USE_RATE_DYNAMICS
 #define USE_EXTENDED_CMS_MENUS
-
-// NAZA GPS support for F4+ only
-#define USE_GPS_PROTO_NAZA
 
 // Allow default rangefinders
 #define USE_RANGEFINDER
@@ -130,6 +114,7 @@
 #define USE_OSD
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
+#define USE_MSP_OSD
 #define USE_SMARTPORT_MASTER
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
@@ -142,7 +127,6 @@
 #define USE_I2C_IO_EXPANDER
 
 #define USE_GPS_PROTO_NMEA
-#define USE_GPS_PROTO_MTK
 
 #define USE_TELEMETRY_SIM
 #define USE_TELEMETRY_MAVLINK
@@ -161,16 +145,8 @@
 #define USE_SERIALRX_GHST
 #define USE_TELEMETRY_GHST
 
-#define USE_SECONDARY_IMU
-#define USE_IMU_BNO055
-
 #define USE_POWER_LIMITS
 
-#else // MCU_FLASH_SIZE < 256
-#define LOG_LEVEL_MAXIMUM LOG_LEVEL_ERROR
-#endif
-
-#if (MCU_FLASH_SIZE > 128)
 #define NAV_FIXED_WING_LANDING
 #define USE_SAFE_HOME
 #define USE_AUTOTUNE_FIXED_WING
@@ -178,7 +154,6 @@
 #define USE_STATS
 #define USE_CMS
 #define CMS_MENU_OSD
-#define NAV_GPS_GLITCH_DETECTION
 #define NAV_NON_VOLATILE_WAYPOINT_STORAGE
 #define USE_TELEMETRY_IBUS
 #define USE_TELEMETRY_SMARTPORT
@@ -191,39 +166,28 @@
 #define USE_SERIAL_PASSTHROUGH
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
+#define USE_MULTI_MISSION
 
 //Enable VTX control
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
 
-#ifndef STM32F3 //F3 series does not have enoug RAM to support logic conditions
 #define USE_PROGRAMMING_FRAMEWORK
 #define USE_CLI_BATCH
-#endif
 
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
-#else // MCU_FLASH_SIZE < 128
-
-#define SKIP_TASK_STATISTICS
-
-#endif
+#define USE_SIMULATOR
+#define USE_PITOT_VIRTUAL
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
-
 #define USE_VTX_FFPV
-#define USE_PITOT_VIRTUAL
-#define USE_PWM_DRIVER_PCA9685
-#define USE_PWM_SERVO_DRIVER
-
 #define USE_SERIALRX_SUMD
-#define USE_SERIALRX_SUMH
-#define USE_SERIALRX_XBUS
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
 

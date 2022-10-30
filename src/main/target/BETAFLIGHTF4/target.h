@@ -33,12 +33,6 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 
-
-// MPU6000 interrupts
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_BARO
 #define USE_BARO_BMP280
 
@@ -128,7 +122,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C2
@@ -170,8 +163,6 @@
 #define TARGET_IO_PORTD BIT(2)
 
 #define MAX_PWM_OUTPUT_PORTS 4
-
-#define PCA9685_I2C_BUS         BUS_I2C2
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR

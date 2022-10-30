@@ -42,7 +42,7 @@ typedef struct failsafeConfig_s {
     uint16_t failsafe_stick_motion_threshold;
     uint16_t failsafe_min_distance;             // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
     uint8_t failsafe_min_distance_procedure;    // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
-    bool failsafe_mission;                      // Enable failsafe in WP mode or not
+    int16_t failsafe_mission_delay;             // Time delay before Failsafe triggered when WP mission in progress (s)
 } failsafeConfig_t;
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
@@ -70,7 +70,6 @@ typedef enum {
      * Note that this phase is only used when
      * failsafe_procedure = NONE.
      */
-#if defined(USE_NAV)
     FAILSAFE_RETURN_TO_HOME,
     /* Failsafe is executing RTH. This phase is the first one
      * enabled when failsafe_procedure = RTH if an RTH is
@@ -79,10 +78,10 @@ typedef enum {
      * sensors are not working at the moment). If RTH can't
      * be started, this phase will transition to FAILSAFE_LANDING.
      */
-#endif
     FAILSAFE_LANDING,
-    /* Pergorms NAV Emergency Landing if USE_NAV defined.
-     * Otherwise Failsafe mode performs a simplified landing procedure.
+    /* Performs NAV Emergency Landing using controlled descent rate if
+     * altitude sensors available.
+     * Otherwise Emergency Landing performs a simplified landing procedure.
      * This is done by setting throttle and roll/pitch/yaw controls
      * to a pre-configured values that will allow aircraft
      * to reach ground in somewhat safe "controlled crash" way.
@@ -123,7 +122,6 @@ typedef enum {
     FAILSAFE_PROCEDURE_NONE
 } failsafeProcedure_e;
 
-#if defined(USE_NAV)
 typedef enum {
     RTH_IDLE = 0,               // RTH is waiting
     RTH_IN_PROGRESS,            // RTH is active
@@ -135,7 +133,6 @@ typedef enum {
     EMERG_LAND_IN_PROGRESS,     // Emergency landing is active
     EMERG_LAND_HAS_LANDED       // Emergency landing is active and has landed.
 } emergLandState_e;
-#endif
 
 typedef struct failsafeState_s {
     int16_t events;
@@ -151,6 +148,7 @@ typedef struct failsafeState_s {
     timeMs_t landingShouldBeFinishedAt;
     timeMs_t receivingRxDataPeriod;         // period for the required period of valid rxData
     timeMs_t receivingRxDataPeriodPreset;   // preset for the required period of valid rxData
+    timeMs_t wpModeDelayedFailsafeStart;    // waypoint mission delayed failsafe timer start time
     failsafeProcedure_e activeProcedure;
     failsafePhase_e phase;
     failsafeRxLinkState_e rxLinkState;

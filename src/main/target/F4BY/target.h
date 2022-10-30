@@ -27,12 +27,6 @@
 #define BEEPER                  PE5
 #define BEEPER_INVERTED
 
-
-// MPU6000 interrupts
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI            PB0
-#define USE_EXTI
-
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define ICM20689_CS_PIN         PA4
@@ -55,7 +49,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
@@ -148,5 +141,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         0xffff
-
-#define PCA9685_I2C_BUS         BUS_I2C2

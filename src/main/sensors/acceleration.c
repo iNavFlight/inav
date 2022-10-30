@@ -38,14 +38,10 @@ FILE_COMPILE_FOR_SPEED
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
-#include "drivers/accgyro/accgyro_mpu3050.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
-#include "drivers/accgyro/accgyro_mpu6050.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
 #include "drivers/accgyro/accgyro_mpu9250.h"
 
-#include "drivers/accgyro/accgyro_lsm303dlhc.h"
-#include "drivers/accgyro/accgyro_l3gd20.h"
 #include "drivers/accgyro/accgyro_bmi088.h"
 #include "drivers/accgyro/accgyro_bmi160.h"
 #include "drivers/accgyro/accgyro_bmi270.h"
@@ -87,12 +83,11 @@ static EXTENDED_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 5);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
     RESET_CONFIG_2(accelerometerConfig_t, instance,
-        .acc_align = SETTING_ALIGN_ACC_DEFAULT,
         .acc_hardware = SETTING_ACC_HARDWARE_DEFAULT,
         .acc_lpf_hz = SETTING_ACC_LPF_HZ_DEFAULT,
         .acc_notch_hz = SETTING_ACC_NOTCH_HZ_DEFAULT,
@@ -122,32 +117,6 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
     switch (accHardwareToUse) {
     case ACC_AUTODETECT:
         FALLTHROUGH;
-
-#ifdef USE_IMU_LSM303DLHC
-    case ACC_LSM303DLHC:
-        if (lsm303dlhcAccDetect(dev)) {
-            accHardware = ACC_LSM303DLHC;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
-#ifdef USE_IMU_MPU6050
-    case ACC_MPU6050: // MPU6050
-        if (mpu6050AccDetect(dev)) {
-            accHardware = ACC_MPU6050;
-            break;
-        }
-        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-        if (accHardwareToUse != ACC_AUTODETECT) {
-            break;
-        }
-        FALLTHROUGH;
-#endif
 
 #ifdef USE_IMU_MPU6000
     case ACC_MPU6000:
@@ -307,11 +276,6 @@ bool accInit(uint32_t targetLooptime)
         acc.extremes[axis].max = -100;
     }
 
-    // At this poinrt acc.dev.accAlign was set up by the driver from the busDev record
-    // If configuration says different - override
-    if (accelerometerConfig()->acc_align != ALIGN_DEFAULT) {
-        acc.dev.accAlign = accelerometerConfig()->acc_align;
-    }
     return true;
 }
 
@@ -539,6 +503,13 @@ float accGetMeasuredMaxG(void)
 
 void accUpdate(void)
 {
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        //output: acc.accADCf
+        //unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
+        return;
+    }
+#endif
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
@@ -600,7 +571,7 @@ void updateAccExtremes(void)
         if (acc.accADCf[axis] > acc.extremes[axis].max) acc.extremes[axis].max = acc.accADCf[axis];
     }
 
-    float gforce = fast_fsqrtf(sq(acc.accADCf[0]) + sq(acc.accADCf[1]) + sq(acc.accADCf[2]));
+    float gforce = calc_length_pythagorean_3D(acc.accADCf[X], acc.accADCf[Y], acc.accADCf[Z]);
     if (gforce > acc.maxG) acc.maxG = gforce;
 }
 
@@ -649,7 +620,7 @@ void accInitFilters(void)
             accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 accSoftLpfFilter[axis] = &accFilter[axis].pt1;
-                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, acc.accTargetLooptime * 1e-6f);
+                pt1FilterInit(accSoftLpfFilter[axis], accelerometerConfig()->acc_lpf_hz, US2S(acc.accTargetLooptime));
             }
             break;
         case FILTER_BIQUAD:
@@ -663,7 +634,7 @@ void accInitFilters(void)
 
     }
 
-    const float accDt = acc.accTargetLooptime * 1e-6f;
+    const float accDt = US2S(acc.accTargetLooptime);
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         pt1FilterInit(&accVibeFloorFilter[axis], ACC_VIBE_FLOOR_FILT_HZ, accDt);
         pt1FilterInit(&accVibeFilter[axis], ACC_VIBE_FILT_HZ, accDt);

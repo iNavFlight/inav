@@ -66,6 +66,14 @@
 #define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6)
 #define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845)
 
+#define C_TO_KELVIN(temp) (temp + 273.15f)
+
+// Standard Sea Level values
+// Ref:https://en.wikipedia.org/wiki/Standard_sea_level
+#define SSL_AIR_DENSITY         1.225f // kg/m^3
+#define SSL_AIR_PRESSURE 101325.01576f // Pascal
+#define SSL_AIR_TEMPERATURE    288.15f // K
+
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
 #define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
     ( __extension__ ({                                      \
@@ -181,3 +189,5 @@ void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
 
 float bellCurve(const float x, const float curveWidth);
 float fast_fsqrtf(const double value);
+float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
+float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);

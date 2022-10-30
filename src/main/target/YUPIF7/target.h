@@ -28,12 +28,6 @@
 #define BEEPER_INVERTED
 #define BEEPER_PWM_FREQUENCY    3150
 
-// Gyro interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI           PC4
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 // ICM 20689
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN      CW90_DEG
@@ -45,7 +39,6 @@
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

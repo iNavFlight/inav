@@ -123,7 +123,7 @@ uint32_t dmaGetChannelByTag(dmaTag_t tag)
 
 DMA_t dmaGetByRef(const DMA_Stream_TypeDef* ref)
 {
-    for (unsigned i = 0; i < (sizeof(dmaDescriptors) / sizeof(dmaDescriptors[0])); i++) {
+    for (unsigned i = 0; i < ARRAYLEN(dmaDescriptors); i++) {
         if (ref == dmaDescriptors[i].ref) {
             return &dmaDescriptors[i];
         }
