@@ -54,6 +54,10 @@
 #define M25P16_CS_PIN           PA4
 #define M25P16_SPI_BUS          BUS_SPI1
 
+#define USE_FLASH_W25N01G
+#define W25N01G_SPI_BUS BUS_SPI1
+#define W25N01G_CS_PIN  PA4
+
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #elif defined(KAKUTEH7V2)
@@ -102,10 +106,15 @@
 
 //BMI270
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN                CW0_DEG
 #define BMI270_SPI_BUS                  BUS_SPI4
 #define BMI270_CS_PIN                   PE4
 #define BMI270_EXTI_PIN                 PE1
+
+#ifdef KAKUTEH7MINI
+#define IMU_BMI270_ALIGN                CW270_DEG
+#else
+#define IMU_BMI270_ALIGN                CW0_DEG
+#endif
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
