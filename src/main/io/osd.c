@@ -3217,7 +3217,7 @@ static bool osdDrawSingleElement(uint8_t item)
     return true;
 }
 
-static uint8_t osdIncElementIndex(uint8_t elementIndex)
+uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
 
@@ -3637,7 +3637,7 @@ static void osdCompleteAsyncInitialization(void)
 
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-    uint8_t xPos = osdDisplayIsHD() ? 7 : 5;
+    uint8_t xPos = osdDisplayIsHD() ? 15 : 5;
     displayWrite(osdDisplayPort, xPos, y++, string_buffer);
 #ifdef USE_CMS
     displayWrite(osdDisplayPort, xPos+2, y++,  CMS_STARTUP_HELP_TEXT1);
@@ -3647,8 +3647,8 @@ static void osdCompleteAsyncInitialization(void)
 #ifdef USE_STATS
 
 
-    uint8_t statNameX = osdDisplayIsHD() ? 7 : 4;
-    uint8_t statValueX = osdDisplayIsHD() ? 27 : 24;
+    uint8_t statNameX = osdDisplayIsHD() ? 14 : 4;
+    uint8_t statValueX = osdDisplayIsHD() ? 34 : 24;
 
     if (statsConfig()->stats_enabled) {
         displayWrite(osdDisplayPort, statNameX, ++y, "ODOMETER:");
@@ -3809,8 +3809,8 @@ static void osdShowStatsPage1(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
-    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
@@ -3884,8 +3884,8 @@ static void osdShowStatsPage1(void)
 static void osdShowStatsPage2(void)
 {
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
-    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
