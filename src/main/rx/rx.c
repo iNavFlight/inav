@@ -166,7 +166,8 @@ static uint16_t nullReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t 
 {
     UNUSED(rxRuntimeConfig);
     UNUSED(channel);
-    return PPM_RCVR_TIMEOUT;
+
+    return 0;
 }
 
 static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
@@ -474,7 +475,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         uint16_t sample = (*rxRuntimeConfig.rcReadRawFn)(&rxRuntimeConfig, rawChannel);
 
         // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != PPM_RCVR_TIMEOUT) {
+        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
             sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
             sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
         }
