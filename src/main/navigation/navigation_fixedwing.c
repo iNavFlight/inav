@@ -400,12 +400,12 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
         float distToCourseLine = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
 
-        // tracking only active when target bearing error < 90 degs, close to waypoint (within 10m) and > 2m from course line
+        // tracking only active when certain distance and heading conditions are met
         if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.yaw)) < 9000 || posControl.wpDistance < 1000.0f) && distToCourseLine > 200) {
             int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw);
 
-            // captureFactor adjusts distance/heading sensitivity balance when approaching course line.
-            // Approach distance threashold based on speed and an assumed 1 second response time.
+            // captureFactor adjusts distance/heading sensitivity balance when closing in on course line.
+            // Closing distance threashold based on speed and an assumed 1 second response time.
             float captureFactor = distToCourseLine < posControl.actualState.velXY ? constrainf(2.0f - ABS(courseHeadingError) / 500.0f, 0.0f, 2.0f) : 1.0f;
 
             // bias between reducing distance to course line and aligning with course heading adjusted by waypoint_tracking_accuracy
