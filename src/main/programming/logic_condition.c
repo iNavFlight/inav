@@ -56,7 +56,7 @@
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 3);
+PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
 EXTENDED_FASTRAM uint64_t logicConditionsGlobalFlags;
 EXTENDED_FASTRAM int logicConditionValuesByType[LOGIC_CONDITION_LAST];
@@ -505,7 +505,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
         #else
             return false;
         #endif
@@ -682,6 +682,10 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2:
             return IS_RC_MODE_ACTIVE(BOXUSER2);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3:
+            return IS_RC_MODE_ACTIVE(BOXUSER3);
             break;
 
         default:

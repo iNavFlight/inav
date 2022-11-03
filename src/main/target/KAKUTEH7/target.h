@@ -36,8 +36,7 @@
 
 // *************** IMU generic ***********************
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 
 // *************** SPI1 ****************
@@ -102,18 +101,16 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI4
 #define MPU6000_CS_PIN          PE4
-#define MPU6000_EXTI_PIN        PE1
 
 //BMI270
 #define USE_IMU_BMI270
-#define BMI270_SPI_BUS                  BUS_SPI4
-#define BMI270_CS_PIN                   PE4
-#define BMI270_EXTI_PIN                 PE1
+#define BMI270_SPI_BUS          BUS_SPI4
+#define BMI270_CS_PIN           PE4
 
 #ifdef KAKUTEH7MINI
-#define IMU_BMI270_ALIGN                CW270_DEG
+#define IMU_BMI270_ALIGN        CW270_DEG
 #else
-#define IMU_BMI270_ALIGN                CW0_DEG
+#define IMU_BMI270_ALIGN        CW0_DEG
 #endif
 
 #define USE_MAX7456
@@ -144,7 +141,6 @@
 #define USE_MAG_VCM5883
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER

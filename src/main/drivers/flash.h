@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav is free software. You can redistribute
+ * INAV is free software. You can redistribute
  * this software and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav is distributed in the hope that it
+ * INAV is distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -61,11 +61,6 @@ bool flashIsReady(void);
 bool flashWaitForReady(timeMs_t timeoutMillis);
 void flashEraseSector(uint32_t address);
 void flashEraseCompletely(void);
-#if 0
-void flashPageProgramBegin(uint32_t address);
-void flashPageProgramContinue(const uint8_t *data, int length);
-void flashPageProgramFinish(void);
-#endif
 uint32_t flashPageProgram(uint32_t address, const uint8_t *data, int length);
 int flashReadBytes(uint32_t address, uint8_t *buffer, int length);
 void flashFlush(void);

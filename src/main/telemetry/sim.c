@@ -125,14 +125,6 @@ static char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
 static char* modeDescriptions[] = { "MAN", "ACR", "AIR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "CRS", "LAU", "FS" };
 static const char gpsFixIndicators[] = { '!', '*', ' ' };
 
-
-// XXX UNUSED
-#if 0
-static bool isGroundStationNumberDefined(void) {
-    return telemetryConfig()->simGroundStationNumber[0] != '\0';
-}
-#endif
-
 static bool checkGroundStationNumber(uint8_t* rv)
 {
     int i;
@@ -354,7 +346,7 @@ static void sendSMS(void)
     uint16_t avgSpeed = lrintf(10 * calculateAverageSpeed());
     uint32_t now = millis();
 
-    memset(pluscode_url, 0, sizeof(pluscode_url));
+    ZERO_FARRAY(pluscode_url);
 
     if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
         groundSpeed = gpsSol.groundSpeed / 100;
@@ -464,16 +456,6 @@ void handleSimTelemetry()
         break;
     }
 }
-
-// XXX UNUSED
-#if 0
-static void freeSimTelemetryPort(void)
-{
-    closeSerialPort(simPort);
-    simPort = NULL;
-    simEnabled = false;
-}
-#endif
 
 void initSimTelemetry(void)
 {

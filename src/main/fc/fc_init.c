@@ -72,7 +72,6 @@
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
@@ -97,7 +96,6 @@
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -106,7 +104,7 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
-#include "io/displayport_hdzero_osd.h"
+#include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -249,9 +247,7 @@ void init(void)
 
     ledInit(false);
 
-#ifdef USE_EXTI
     EXTIInit();
-#endif
 
 #ifdef USE_SPEKTRUM_BIND
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
@@ -547,9 +543,9 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
-#ifdef USE_HDZERO_OSD
+#ifdef USE_MSP_OSD
         if (!osdDisplayPort) {
-            osdDisplayPort = hdzeroOsdDisplayPortInit();
+            osdDisplayPort = mspOsdDisplayPortInit(osdConfig()->video_system);
         }
 #endif
 #if defined(USE_MAX7456)
@@ -680,9 +676,6 @@ void init(void)
     latchActiveFeatures();
     motorControlEnable = true;
 
-#ifdef USE_SECONDARY_IMU
-    secondaryImuInit();
-#endif
     fcTasksInit();
 
 #ifdef USE_OSD

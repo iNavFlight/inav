@@ -31,6 +31,7 @@
 #include "drivers/time.h"
 
 #include "fc/settings.h"
+#include "fc/runtime_config.h"
 
 #define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
 
@@ -176,6 +177,18 @@ int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
     if (instance->maxChar == 0) {
         displayUpdateMaxChar(instance);
     }
+
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		//some FCs do not power max7456 from USB power 
+		//driver can not read font metadata 
+		//chip assumed to not support second bank of font
+		//artifical horizon, variometer and home direction are not drawn ( display.c: displayUpdateMaxChar())
+		//return dummy metadata to let all OSD elements to work in simulator mode
+		instance->maxChar = 512;
+	}
+#endif
+
     if (c > instance->maxChar) {
         return -1;
     }

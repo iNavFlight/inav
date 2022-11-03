@@ -76,9 +76,7 @@
 #define DEF_TIM_OUTPUT__CH3N                    (TIMER_OUTPUT_N_CHANNEL)
 #define DEF_TIM_OUTPUT__CH4N                    (TIMER_OUTPUT_N_CHANNEL)
 
-#if defined(STM32F3)
-    #include "timer_def_stm32f3xx.h"
-#elif defined(STM32F4)
+#if defined(STM32F4)
     #include "timer_def_stm32f4xx.h"
 #elif defined(STM32F7)
     #include "timer_def_stm32f7xx.h"

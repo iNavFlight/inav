@@ -30,12 +30,6 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// MPU interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC14
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
@@ -63,7 +57,6 @@
 #define AK8963_SPI_BUS          BUS_SPI3
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1

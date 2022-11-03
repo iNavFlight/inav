@@ -40,7 +40,7 @@ FILE_COMPILE_FOR_SIZE
 EXTENDED_FASTRAM programmingPidState_t programmingPidState[MAX_PROGRAMMING_PID_COUNT];
 static bool pidsInitiated = false;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(programmingPid_t, MAX_PROGRAMMING_PID_COUNT, programmingPids, PG_PROGRAMMING_PID, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(programmingPid_t, MAX_PROGRAMMING_PID_COUNT, programmingPids, PG_PROGRAMMING_PID, 2);
 
 void pgResetFn_programmingPids(programmingPid_t *instance)
 {

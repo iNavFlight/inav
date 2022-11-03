@@ -84,7 +84,6 @@ bool cliMode = false;
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -101,7 +100,6 @@ bool cliMode = false;
 
 #include "rx/rx.h"
 #include "rx/spektrum.h"
-#include "rx/eleres.h"
 #include "rx/srxl2.h"
 
 #include "scheduler/scheduler.h"
@@ -125,10 +123,6 @@ bool cliMode = false;
 #include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
-
-#if MCU_FLASH_SIZE > 128
-#define PLAY_SOUND
-#endif
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -164,13 +158,26 @@ static const char * const featureNames[] = {
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", NULL
+    "NAV_ACC",
+    "NAV_POS",
+    "NAV_PID",
+    "MAG",
+    "ACC",
+    "ATTI",
+    "RC_DATA",
+    "RC_COMMAND",
+    "MOTORS",
+    "GYRO_RAW",
+    "PEAKS_R",
+    "PEAKS_P",
+    "PEAKS_Y",
+    NULL
 };
 #endif
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -1895,26 +1902,39 @@ static void cliServoMix(char *cmdline)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
-static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions, int16_t showLC)
 {
     const char *format = "logic %d %d %d %d %d %d %d %d %d";
-    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-        const logicCondition_t logic = logicConditions[i];
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        if (showLC == -1 || showLC == i) {
+            const logicCondition_t logic = logicConditions[i];
 
-        bool equalsDefault = false;
-        if (defaultLogicConditions) {
-            logicCondition_t defaultValue = defaultLogicConditions[i];
-            equalsDefault =
-                logic.enabled == defaultValue.enabled &&
-                logic.activatorId == defaultValue.activatorId &&
-                logic.operation == defaultValue.operation &&
-                logic.operandA.type == defaultValue.operandA.type &&
-                logic.operandA.value == defaultValue.operandA.value &&
-                logic.operandB.type == defaultValue.operandB.type &&
-                logic.operandB.value == defaultValue.operandB.value &&
-                logic.flags == defaultValue.flags;
+            bool equalsDefault = false;
+            if (defaultLogicConditions) {
+                logicCondition_t defaultValue = defaultLogicConditions[i];
+                equalsDefault =
+                    logic.enabled == defaultValue.enabled &&
+                    logic.activatorId == defaultValue.activatorId &&
+                    logic.operation == defaultValue.operation &&
+                    logic.operandA.type == defaultValue.operandA.type &&
+                    logic.operandA.value == defaultValue.operandA.value &&
+                    logic.operandB.type == defaultValue.operandB.type &&
+                    logic.operandB.value == defaultValue.operandB.value &&
+                    logic.flags == defaultValue.flags;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                    i,
+                    logic.enabled,
+                    logic.activatorId,
+                    logic.operation,
+                    logic.operandA.type,
+                    logic.operandA.value,
+                    logic.operandB.type,
+                    logic.operandB.value,
+                    logic.flags
+                );
+            }
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
                 logic.activatorId,
@@ -1926,27 +1946,20 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
                 logic.flags
             );
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format,
-            i,
-            logic.enabled,
-            logic.activatorId,
-            logic.operation,
-            logic.operandA.type,
-            logic.operandA.value,
-            logic.operandB.type,
-            logic.operandB.value,
-            logic.flags
-        );
     }
 }
 
-static void cliLogic(char *cmdline) {
+static void processCliLogic(char *cmdline, int16_t lcIndex) {
     char * saveptr;
     int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
-        printLogic(DUMP_MASTER, logicConditions(0), NULL);
+        if (!commandBatchActive) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, -1);
+        } else if (lcIndex >= 0) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, lcIndex);
+        }
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         pgResetCopy(logicConditionsMutable(0), PG_LOGIC_CONDITIONS);
     } else {
@@ -1995,11 +2008,15 @@ static void cliLogic(char *cmdline) {
             logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
             logicConditionsMutable(i)->flags = args[FLAGS];
 
-            cliLogic("");
+            processCliLogic("", i);
         } else {
             cliShowParseError();
         }
     }
+}
+
+static void cliLogic(char *cmdline) {
+    processCliLogic(cmdline, -1);
 }
 
 static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
@@ -2790,35 +2807,39 @@ static void printMap(uint8_t dumpMask, const rxConfig_t *rxConfig, const rxConfi
 static void cliMap(char *cmdline)
 {
     uint32_t len;
-    char out[5];
+    char out[MAX_MAPPABLE_RX_INPUTS + 1];
 
     len = strlen(cmdline);
 
-    if (len == 4) {
+    if (len == MAX_MAPPABLE_RX_INPUTS) {
         // uppercase it
-        for (uint32_t i = 0; i < 4; i++)
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
-        for (uint32_t i = 0; i < 4; i++) {
-            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i]))
+        }
+        for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
+            if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i])) {
                 continue;
+            }
             cliShowParseError();
             return;
         }
         parseRcChannels(cmdline);
-    } else if (len != 0)
+    } else if (len != 0) {
         cliShowParseError();
+    }
     cliPrint("Map: ");
     uint32_t i;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++){
         out[rxConfig()->rcmap[i]] = rcChannelLetters[i];
+    }
     out[i] = '\0';
     cliPrintLinef("%s", out);
 }
 
 static const char *checkCommand(const char *cmdLine, const char *command)
 {
-    if (!sl_strncasecmp(cmdLine, command, strlen(command))   // command names match
-        && !sl_isalnum((unsigned)cmdLine[strlen(command)])) {   // next characted in bufffer is not alphanumeric (command is correctly terminated)
+    if (!sl_strncasecmp(cmdLine, command, strlen(command))    // command names match
+        && !sl_isalnum((unsigned)cmdLine[strlen(command)])) { // next characted in bufffer is not alphanumeric (command is correctly terminated)
         return cmdLine + strlen(command) + 1;
     } else {
         return 0;
@@ -2848,27 +2869,7 @@ static void cliDfu(char *cmdline)
     cliRebootEx(true);
 }
 
-#ifdef USE_RX_ELERES
-static void cliEleresBind(char *cmdline)
-{
-    UNUSED(cmdline);
-
-    if (!(rxConfig()->receiverType == RX_TYPE_SPI && rxConfig()->rx_spi_protocol == RFM22_ELERES)) {
-        cliPrintLine("Eleres not active. Please enable feature ELERES and restart IMU");
-        return;
-    }
-
-    cliPrintLine("Waiting for correct bind signature....");
-    bufWriterFlush(cliWriter);
-    if (eleresBind()) {
-        cliPrintLine("Bind timeout!");
-    } else {
-        cliPrintLine("Bind OK!\r\nPlease restart your transmitter.");
-    }
-}
-#endif // USE_RX_ELERES
-
-#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+#if defined (USE_SERIALRX_SRXL2)
 void cliRxBind(char *cmdline){
     UNUSED(cmdline);
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
@@ -2884,16 +2885,6 @@ void cliRxBind(char *cmdline){
 #endif
         }
     }
-#if defined(USE_RX_SPI)
-    else if (rxConfig()->receiverType == RX_TYPE_SPI) {
-        switch (rxConfig()->rx_spi_protocol) {
-        default:
-            cliPrint("Not supported.");
-            break;
-        }
-
-    }
-#endif
 }
 #endif
 
@@ -2970,7 +2961,6 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
-#ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
     int i;
@@ -3003,7 +2993,6 @@ static void cliPlaySound(char *cmdline)
     cliPrintLinef("Playing sound %d: %s", i, name);
     beeper(beeperModeForTableIndex(i));
 }
-#endif
 
 static void cliProfile(char *cmdline)
 {
@@ -3094,55 +3083,6 @@ static void cliBatch(char *cmdline)
         cliPrintErrorLinef("Invalid option");
     }
 }
-#endif
-
-#ifdef USE_SECONDARY_IMU
-
-static void printImu2Status(void)
-{
-    cliPrintLinef("Secondary IMU active: %d", secondaryImuState.active);
-    cliPrintLine("Calibration status:");
-    cliPrintLinef("Sys: %d", secondaryImuState.calibrationStatus.sys);
-    cliPrintLinef("Gyro: %d", secondaryImuState.calibrationStatus.gyr);
-    cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
-    cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
-    cliPrintLine("Calibration gains:");
-
-    cliPrintLinef(
-        "Gyro: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetGyro[X],
-        secondaryImuConfig()->calibrationOffsetGyro[Y],
-        secondaryImuConfig()->calibrationOffsetGyro[Z]
-    );
-    cliPrintLinef(
-        "Acc: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetAcc[X],
-        secondaryImuConfig()->calibrationOffsetAcc[Y],
-        secondaryImuConfig()->calibrationOffsetAcc[Z]
-    );
-    cliPrintLinef(
-        "Mag: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetMag[X],
-        secondaryImuConfig()->calibrationOffsetMag[Y],
-        secondaryImuConfig()->calibrationOffsetMag[Z]
-    );
-    cliPrintLinef(
-        "Radius: %d %d",
-        secondaryImuConfig()->calibrationRadiusAcc,
-        secondaryImuConfig()->calibrationRadiusMag
-    );
-}
-
-static void cliImu2(char *cmdline)
-{
-    if (sl_strcasecmp(cmdline, "fetch") == 0) {
-        secondaryImuFetchCalibration();
-        printImu2Status();
-    } else {
-        printImu2Status();
-    }
-}
-
 #endif
 
 static void cliSave(char *cmdline)
@@ -3371,19 +3311,14 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s, IMU2=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
-        hardwareSensorStatusNames[getHwGPSStatus()],
-#ifdef USE_SECONDARY_IMU
-        hardwareSensorStatusNames[getHwSecondaryImuStatus()]
-#else
-        hardwareSensorStatusNames[0]
-#endif
+        hardwareSensorStatusNames[getHwGPSStatus()]
     );
 
 #ifdef USE_ESC_SENSOR
@@ -3493,7 +3428,6 @@ static void cliStatus(char *cmdline)
     }
 }
 
-#ifndef SKIP_TASK_STATISTICS
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3522,7 +3456,6 @@ static void cliTasks(char *cmdline)
     cliPrintLinef("Task check function %13d %7d %25d", (uint32_t)checkFuncInfo.maxExecutionTime, (uint32_t)checkFuncInfo.averageExecutionTime, (uint32_t)checkFuncInfo.totalExecutionTime / 1000);
     cliPrintLinef("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
 }
-#endif
 
 static void cliVersion(char *cmdline)
 {
@@ -3555,7 +3488,6 @@ static void cliMemory(char *cmdline)
     }
 }
 
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
 static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3574,7 +3506,6 @@ static void cliResource(char *cmdline)
         }
     }
 }
-#endif
 
 static void backupConfigs(void)
 {
@@ -3732,7 +3663,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
 
         cliPrintHashLine("global vars");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
@@ -3873,7 +3804,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("beeper", "turn on/off beeper", "list\r\n"
             "\t<+|->[name]", cliBeeper),
 #endif
-#if defined(USE_RX_SPI) || defined (USE_SERIALRX_SRXL2)
+#if defined (USE_SERIALRX_SRXL2)
     CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)
@@ -3925,20 +3856,13 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
-#ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
-#endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
-#endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
-#ifdef USE_SECONDARY_IMU
-    CLI_COMMAND_DEF("imu2", "Secondary IMU", NULL, cliImu2),
-#endif
 #if defined(USE_SAFE_HOME)
     CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
 #endif
@@ -3969,9 +3893,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
-#ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
-#endif
 #ifdef USE_TEMPERATURE_SENSOR
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
@@ -4089,7 +4011,7 @@ void cliProcess(void)
                 bufferIndex = 0;
             }
 
-            memset(cliBuffer, 0, sizeof(cliBuffer));
+            ZERO_FARRAY(cliBuffer);
 
             // 'exit' will reset this flag, so we don't need to print prompt again
             if (!cliMode)

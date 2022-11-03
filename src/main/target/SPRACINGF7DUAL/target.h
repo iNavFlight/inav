@@ -36,13 +36,6 @@
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
-#define USE_EXTI
-#define GYRO_1_EXTI_PIN         PC13
-#define GYRO_2_EXTI_PIN         PC14
-
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define USE_IMU_MPU6500
@@ -61,8 +54,6 @@
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
-
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG

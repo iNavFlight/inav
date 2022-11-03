@@ -4,7 +4,7 @@
 
 When armed, the aircraft is ready to fly and the motors will spin when throttle is applied.  With multirotors, the motors will spin at a slow speed when armed (this feature may be disabled by setting MOTOR_STOP, but for safety reasons, that is not recommended).
 
-Arming and disarming is done using a switch, set up on the modes page.  (NOTE: Stick arming was removed in iNav 2.2)
+Arming and disarming is done using a switch, set up on the modes page.  (NOTE: Stick arming was removed in INAV 2.2)
 
 **YAW STICK ARMING OVERRIDE:**
 Arming is disabled when Nav modes are configured and no GPS lock is available or if a WP mission is loaded but the first WP is farther than the `nav_wp_safe_distance` setting. This Arming block can be bypassed if need be by setting `nav_extra_arming_safety` to `ALLOW_BYPASS` and moving the Yaw stick to the high position when the Arm switch is used. This bypasses GPS Arm blocking pre INAV 4.0.0 and both GPS and "First WP too far" Arm blocking from INAV 4.0.0.
@@ -80,7 +80,7 @@ For tricopters, you may want to retain the ability to yaw while on the ground, s
 
 ## Throttle settings and their interaction
 
-*Terminology. After iNav 2.3, the setting `min_throttle` was replaced with `throttle_idle` which is more appropriate to modern hardware. In this document `min_throttle` may be taken as either the older `min_throttle` value, or the throttle value calculated  from the modern `throttle_idle` setting. The way that `throttle_idle` generates a throttle value is described in `Cli.md`.*
+*Terminology. After INAV 2.3, the setting `min_throttle` was replaced with `throttle_idle` which is more appropriate to modern hardware. In this document `min_throttle` may be taken as either the older `min_throttle` value, or the throttle value calculated  from the modern `throttle_idle` setting. The way that `throttle_idle` generates a throttle value is described in `Cli.md`.*
 
 `min_command` -
 With motor stop enabled this is the command sent to the esc's when the throttle is below min_check or disarmed. With motor stop disabled, this is the command sent only when the copter is disarmed. This must be set well below motors spinning for safety.

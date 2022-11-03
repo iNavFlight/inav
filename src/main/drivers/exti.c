@@ -4,8 +4,6 @@
 
 #include "platform.h"
 
-#ifdef USE_EXTI
-
 #include "build/assert.h"
 
 #include "drivers/exti.h"
@@ -34,16 +32,6 @@ static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
     EXTI9_5_IRQn,
     EXTI15_10_IRQn
 };
-#elif defined(STM32F3)
-static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
-    EXTI0_IRQn,
-    EXTI1_IRQn,
-    EXTI2_TS_IRQn,
-    EXTI3_IRQn,
-    EXTI4_IRQn,
-    EXTI9_5_IRQn,
-    EXTI15_10_IRQn
-};
 #else
 # warning "Unknown CPU"
 #endif
@@ -60,7 +48,7 @@ static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
 
 void EXTIInit(void)
 {
-#if defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F4)
     /* Enable SYSCFG clock otherwise the EXTI irq handlers are not called */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 #endif
@@ -119,9 +107,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_Typ
     int group = extiGroups[chIdx];
 
     rec->handler = cb;
-#if defined(STM32F303xC)
-    SYSCFG_EXTILineConfig(IO_EXTI_PortSourceGPIO(io), IO_EXTI_PinSource(io));
-#elif defined(STM32F4)
+#if defined(STM32F4)
     SYSCFG_EXTILineConfig(IO_EXTI_PortSourceGPIO(io), IO_EXTI_PinSource(io));
 #else
 # warning "Unknown CPU"
@@ -173,15 +159,6 @@ void EXTIEnable(IO_t io, bool enable)
         EXTI_REG_IMR |= extiLine;
     else
         EXTI_REG_IMR &= ~extiLine;
-#elif defined(STM32F303xC)
-    int extiLine = IO_EXTI_Line(io);
-    if (extiLine < 0)
-        return;
-    // assume extiLine < 32 (valid for all EXTI pins)
-    if (enable)
-        EXTI_REG_IMR |= 1 << extiLine;
-    else
-        EXTI_REG_IMR &= ~(1 << extiLine);
 #else
 # error "Unsupported target"
 #endif
@@ -212,7 +189,7 @@ _EXTI_IRQ_HANDLER(EXTI0_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI1_IRQHandler);
 #if defined(STM32F7) || defined(STM32H7)
 _EXTI_IRQ_HANDLER(EXTI2_IRQHandler);
-#elif defined(STM32F3) || defined(STM32F4)
+#elif defined(STM32F4)
 _EXTI_IRQ_HANDLER(EXTI2_TS_IRQHandler);
 #else
 # warning "Unknown CPU"
@@ -221,5 +198,3 @@ _EXTI_IRQ_HANDLER(EXTI3_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI4_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI9_5_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI15_10_IRQHandler);
-
-#endif // USE_EXTI

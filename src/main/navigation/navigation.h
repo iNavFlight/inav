@@ -119,9 +119,8 @@ typedef enum {
 } navRTHAllowLanding_e;
 
 typedef enum {
-    NAV_EXTRA_ARMING_SAFETY_OFF = 0,
-    NAV_EXTRA_ARMING_SAFETY_ON = 1,
-    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 2, // Allow disabling by holding THR+YAW low
+    NAV_EXTRA_ARMING_SAFETY_ON = 0,
+    NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 1, // Allow disabling by holding THR + YAW high
 } navExtraArmingSafety_e;
 
 typedef enum {
@@ -163,6 +162,18 @@ typedef enum {
     WP_MISSION_RESUME,
     WP_MISSION_SWITCH,
 } navMissionRestart_e;
+
+typedef enum {
+    RTH_TRACKBACK_OFF,
+    RTH_TRACKBACK_ON,
+    RTH_TRACKBACK_FS,
+} rthTrackbackMode_e;
+
+typedef enum {
+    WP_TURN_SMOOTHING_OFF,
+    WP_TURN_SMOOTHING_ON,
+    WP_TURN_SMOOTHING_CUT,
+} wpFwTurnSmoothing_e;
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
@@ -222,7 +233,7 @@ typedef struct navConfig_s {
             uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
             uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
             uint8_t waypoint_mission_restart;   // Waypoint mission restart action
-            uint8_t waypoint_enforce_altitude;  // Forces waypoint altitude to be achieved
+            uint8_t rth_trackback_mode;         // Useage mode setting for RTH trackback
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
@@ -250,11 +261,14 @@ typedef struct navConfig_s {
         uint16_t max_terrain_follow_altitude;       // Max altitude to be used in SURFACE TRACKING mode
         uint16_t safehome_max_distance;             // Max distance that a safehome is from the arming point
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
+        uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
+        uint16_t waypoint_enforce_altitude;         // Forces waypoint altitude to be achieved
+        uint8_t  land_detect_sensitivity;           // Sensitivity of landing detector
+        uint16_t auto_disarm_delay;                 // safety time delay for landing detector
     } general;
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
-        uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
 
 #ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
@@ -294,13 +308,16 @@ typedef struct navConfig_s {
         uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
+        bool     launch_manual_throttle;     // Allows launch with manual throttle control
         uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
         uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
-        uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
+        uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
+        uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
+        uint8_t  wp_turn_smoothing;          // WP mission turn smoothing options
     } fw;
 } navConfig_t;
 
@@ -335,12 +352,21 @@ typedef enum {
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
 
+/* A reminder that P3 is a bitfield */
+typedef enum {
+    NAV_WP_ALTMODE = (1<<0),
+    NAV_WP_USER1 = (1<<1),
+    NAV_WP_USER2 = (1<<2),
+    NAV_WP_USER3 = (1<<3),
+    NAV_WP_USER4 = (1<<4)
+} navWaypointP3Flags_e;
+
 typedef struct {
-    uint8_t action;
     int32_t lat;
     int32_t lon;
     int32_t alt;
     int16_t p1, p2, p3;
+    uint8_t action;
     uint8_t flag;
 } navWaypoint_t;
 
@@ -367,7 +393,8 @@ extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 
 typedef struct {
     fpVector3_t pos;
-    int32_t     yaw;             // deg * 100
+    int32_t     yaw;                // centidegrees
+    int32_t     nextTurnAngle;      // centidegrees
 } navWaypointPosition_t;
 
 typedef struct navDestinationPath_s {
@@ -497,7 +524,6 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
 #ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment);
-void setMultiMissionOnArm(void);
 #endif
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);
