@@ -31,10 +31,6 @@
 
 
 // ******* GYRO and ACC ********
-#define USE_EXTI
-#define GYRO_INT_EXTI                   PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN               CW0_DEG
 #define MPU6500_SPI_BUS                 BUS_SPI1

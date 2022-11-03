@@ -47,9 +47,6 @@
 #define USE_SPI
 
 #ifdef ZEEZF7V3
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI                   PC13
 
 #define USE_SPI_DEVICE_3
 
@@ -64,7 +61,6 @@
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI3
 #define ICM42605_CS_PIN         SPI3_NSS_PIN
-#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
 
 // *************** SPI3 IMU0 BMI270 **************
 #define USE_IMU_BMI270
@@ -72,7 +68,6 @@
 #define IMU_BMI270_ALIGN      CW270_DEG
 #define BMI270_SPI_BUS        BUS_SPI3
 #define BMI270_CS_PIN         SPI3_NSS_PIN
-#define BMI270_EXTI_PIN       GYRO_INT_EXTI
 #endif
 
 #ifdef ZEEZF7V2
@@ -84,11 +79,7 @@
 
 #define MPU6000_CS_PIN          SPI1_NSS_PIN
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define GYRO_INT_EXTI           PC4
 #define IMU_MPU6000_ALIGN       CW0_DEG
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 #define USE_IMU_MPU6000
 #endif
 
@@ -102,12 +93,8 @@
 
 #define MPU6000_CS_PIN          SPI2_NSS_PIN
 #define MPU6000_SPI_BUS         BUS_SPI2
-#define GYRO_INT_EXTI           PC9
 
 #define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 #define USE_IMU_MPU6000
 #endif
 
@@ -175,10 +162,6 @@
 #define USE_SDCARD_SPI
 #endif
 
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define USE_FLASH_W25N01G
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #endif
 
 #ifdef ZEEZF7
@@ -194,11 +177,12 @@
 #define W25N01G_SPI_BUS         BUS_SPI1
 #define W25N01G_CS_PIN          SPI1_NSS_PIN
 
+#endif
+
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define USE_FLASH_W25N01G
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#endif
 
 // *************** OSD *****************************
 #define USE_MAX7456
