@@ -165,7 +165,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
         float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
 
-        //is this really needed? The reason it is there might be above equation was wrong in early implementations
+        //is this really needed? The reason it is here might be above equation was wrong in early implementations
         if (windLength < prevWindLength + 4000) {
             // TODO: Better filtering
             estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
