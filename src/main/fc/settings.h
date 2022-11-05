@@ -15,7 +15,7 @@ typedef struct lookupTableEntry_s {
 
 #define SETTING_TYPE_OFFSET 0
 #define SETTING_SECTION_OFFSET 4
-#define SETTING_MODE_OFFSET 6
+#define SETTING_MODE_OFFSET 7
 
 typedef enum {
     // value type, bits 0-3
@@ -29,15 +29,16 @@ typedef enum {
 } setting_type_e;
 
 typedef enum {
-    // value section, bits 4-5
+    // value section, bits 4-6
     MASTER_VALUE = (0 << SETTING_SECTION_OFFSET),
     PROFILE_VALUE = (1 << SETTING_SECTION_OFFSET),
     CONTROL_RATE_VALUE = (2 << SETTING_SECTION_OFFSET), // 0x20
     BATTERY_CONFIG_VALUE = (3 << SETTING_SECTION_OFFSET),
+    MIXER_CONFIG_VALUE = (4 << SETTING_SECTION_OFFSET),
 } setting_section_e;
 
 typedef enum {
-    // value mode, bits 6-7
+    // value mode, bits 7
     MODE_DIRECT = (0 << SETTING_MODE_OFFSET),
     MODE_LOOKUP = (1 << SETTING_MODE_OFFSET), // 0x40
 } setting_mode_e;

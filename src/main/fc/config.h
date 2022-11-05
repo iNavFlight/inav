@@ -69,6 +69,7 @@ typedef enum {
 typedef struct systemConfig_s {
     uint8_t current_profile_index;
     uint8_t current_battery_profile_index;
+    uint8_t current_mixer_profile_index;
     uint8_t debug_mode;
 #ifdef USE_DEV_TOOLS
     bool groundTestMode;                    // Disables motor ouput, sets heading trusted on FW (for dev use)
@@ -134,6 +135,10 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex);
 uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
+
+uint8_t getConfigMixerProfile(void);
+bool setConfigMixerProfile(uint8_t profileIndex);
+void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex);
 
 void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
 void setGravityCalibrationAndWriteEEPROM(float getGravity);

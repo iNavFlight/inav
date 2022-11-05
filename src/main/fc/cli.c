@@ -3049,6 +3049,33 @@ static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
 }
 
+static void cliMixerProfile(char *cmdline)
+{
+    // CLI profile index is 1-based
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("mixer_profile %d", getConfigMixerProfile() + 1);
+        return;
+    } else {
+        const int i = fastA2I(cmdline) - 1;
+        if (i >= 0 && i < MAX_PROFILE_COUNT) {
+            setConfigMixerProfileAndWriteEEPROM(i);
+            cliMixerProfile("");
+        }
+    }
+}
+
+static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
+{
+    if (profileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    setConfigMixerProfile(profileIndex);
+    cliPrintHashLine("mixer_profile");
+    cliPrintLinef("mixer_profile %d\r\n", getConfigMixerProfile() + 1);
+    dumpAllValues(MIXER_CONFIG_VALUE, dumpMask);
+}
+
 #ifdef USE_CLI_BATCH
 static void cliPrintCommandBatchWarning(const char *warning)
 {
@@ -3861,6 +3888,8 @@ const clicmd_t cmdTable[] = {
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
+    CLI_COMMAND_DEF("mixer_profile", "change mixer profile",
+        "[<index>]", cliMixerProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
 #if defined(USE_SAFE_HOME)

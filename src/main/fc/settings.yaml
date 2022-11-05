@@ -206,6 +206,7 @@ constants:
 
   MAX_CONTROL_RATE_PROFILE_COUNT: 3
   MAX_BATTERY_PROFILE_COUNT: 3
+  MAX_MIXER_PROFILE_COUNT: 2
 
 
 groups:
@@ -1145,8 +1146,8 @@ groups:
         field: powerLimits.burstPowerFalldownTime
         max: 3000
 
-  - name: PG_MIXER_CONFIG
-    type: mixerConfig_t
+  - name: PG_MIXER_PROFILE
+    type: mixerProfile_t
     members:
       - name: motor_direction_inverted
         description: "Use if you need to inverse yaw motor direction."

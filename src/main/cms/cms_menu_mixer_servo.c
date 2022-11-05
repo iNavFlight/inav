@@ -40,6 +40,7 @@
 
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/config.h"
 
 static uint8_t currentMotorMixerIndex = 0;
 static uint8_t tmpcurrentMotorMixerIndex = 1;
