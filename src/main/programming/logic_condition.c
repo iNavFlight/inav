@@ -50,6 +50,10 @@
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
+#include "flight/mixer.h"
+#include "flight/servos.h"
+#include "drivers/pwm_mapping.h"
+
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
@@ -361,6 +365,28 @@ static int logicConditionCompute(
             }
             break;
 
+        case LOGIC_CONDITION_SET_MIXER_PROFILE:
+            operandA--;
+            if ( getConfigMixerProfile() != operandA  && (operandA >= 0 && operandA < MAX_MIXER_PROFILE_COUNT)) {
+                bool mixerprofileChanged = false;
+                if (setConfigMixerProfile(operandA)) {
+                    stopMotors();
+                    stopPwmAllMotors();
+                    servosInit();
+                    mixerUpdateStateFlags();
+                    mixerInit();
+                    pwmMotorAndServoInit();
+                    if (!STATE(ALTITUDE_CONTROL)) {
+                        featureClear(FEATURE_AIRMODE);
+                    }
+                    mixerprofileChanged = true;
+                }
+                return mixerprofileChanged;
+            } else {
+                return false;
+            }
+            break;
+
         case LOGIC_CONDITION_LOITER_OVERRIDE:
             logicConditionValuesByType[LOGIC_CONDITION_LOITER_OVERRIDE] = constrain(operandA, 0, 100000);
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS);
@@ -609,6 +635,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
             return getConfigProfile() + 1;
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE: // int
+            return getConfigMixerProfile() + 1;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:

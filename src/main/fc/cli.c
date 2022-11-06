@@ -3057,7 +3057,7 @@ static void cliMixerProfile(char *cmdline)
         return;
     } else {
         const int i = fastA2I(cmdline) - 1;
-        if (i >= 0 && i < MAX_PROFILE_COUNT) {
+        if (i >= 0 && i < MAX_MIXER_PROFILE_COUNT) {
             setConfigMixerProfileAndWriteEEPROM(i);
             cliMixerProfile("");
         }

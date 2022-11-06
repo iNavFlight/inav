@@ -240,7 +240,7 @@ static uint16_t getValueOffset(const setting_t *value)
     case BATTERY_CONFIG_VALUE:
         return value->offset + sizeof(batteryProfile_t) * getConfigBatteryProfile();
 	case MIXER_CONFIG_VALUE:
-        return value->offset + sizeof(batteryProfile_t) * getConfigBatteryProfile();
+        return value->offset + sizeof(mixerProfile_t) * getConfigMixerProfile();
     }
     return 0;
 }

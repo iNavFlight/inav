@@ -76,7 +76,8 @@ typedef enum {
     LOGIC_CONDITION_MAX                         = 44,
     LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
     LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
-    LOGIC_CONDITION_LAST                        = 47,
+    LOGIC_CONDITION_SET_MIXER_PROFILE           = 47,
+    LOGIC_CONDITION_LAST                        = 48,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -132,6 +133,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 38
     LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 39
     LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 40
+    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE, //int              // 41
 } logicFlightOperands_e;
 
 typedef enum {
