@@ -18,6 +18,7 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "drivers/timer.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 
@@ -61,6 +62,13 @@ typedef enum {
     PWM_INIT_ERROR_TIMER_INIT_FAILED,
 } pwmInitError_e;
 
+typedef struct {
+    int maxTimMotorCount;
+    int maxTimServoCount;
+    const timerHardware_t * timMotors[MAX_PWM_OUTPUT_PORTS];
+    const timerHardware_t * timServos[MAX_PWM_OUTPUT_PORTS];
+} timMotorServoHardware_t;
+
 typedef struct rangefinderIOConfig_s {
     ioTag_t triggerTag;
     ioTag_t echoTag;
@@ -71,6 +79,7 @@ typedef struct {
     bool isDSHOT;
 } motorProtocolProperties_t;
 
+void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
 bool pwmMotorAndServoInit(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);

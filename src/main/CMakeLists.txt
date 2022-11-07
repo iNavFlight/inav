@@ -310,6 +310,8 @@ main_sources(COMMON_SRC
     flight/rate_dynamics.h
     flight/mixer.c
     flight/mixer.h
+    flight/output_profile.c
+    flight/output_profile.h
     flight/pid.c
     flight/pid.h
     flight/pid_autotune.c

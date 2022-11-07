@@ -615,6 +615,9 @@ void FAST_CODE mixTable()
             if (currentMotorStatus != MOTOR_RUNNING) {
                 motor[i] = motorValueWhenStopped;
             }
+            if (currentMixer[i].throttle <= -1.0f) {
+                motor[i] = motorZeroCommand;
+            }
 #ifdef USE_DEV_TOOLS
             if (systemConfig()->groundTestMode) {
                 motor[i] = motorZeroCommand;

@@ -14,11 +14,11 @@ typedef struct lookupTableEntry_s {
 } lookupTableEntry_t;
 
 #define SETTING_TYPE_OFFSET 0
-#define SETTING_SECTION_OFFSET 4
-#define SETTING_MODE_OFFSET 7
+#define SETTING_SECTION_OFFSET 3
+#define SETTING_MODE_OFFSET 6
 
 typedef enum {
-    // value type, bits 0-3
+    // value type, bits 0-2
     VAR_UINT8 = (0 << SETTING_TYPE_OFFSET),
     VAR_INT8 = (1 << SETTING_TYPE_OFFSET),
     VAR_UINT16 = (2 << SETTING_TYPE_OFFSET),
@@ -29,22 +29,26 @@ typedef enum {
 } setting_type_e;
 
 typedef enum {
-    // value section, bits 4-6
+    // value section, bits 3-5
     MASTER_VALUE = (0 << SETTING_SECTION_OFFSET),
     PROFILE_VALUE = (1 << SETTING_SECTION_OFFSET),
-    CONTROL_RATE_VALUE = (2 << SETTING_SECTION_OFFSET), // 0x20
+    CONTROL_RATE_VALUE = (2 << SETTING_SECTION_OFFSET),
     BATTERY_CONFIG_VALUE = (3 << SETTING_SECTION_OFFSET),
     MIXER_CONFIG_VALUE = (4 << SETTING_SECTION_OFFSET),
 } setting_section_e;
 
 typedef enum {
-    // value mode, bits 7
+    // value mode, bits 6-7
     MODE_DIRECT = (0 << SETTING_MODE_OFFSET),
     MODE_LOOKUP = (1 << SETTING_MODE_OFFSET), // 0x40
 } setting_mode_e;
 
-#define SETTING_TYPE_MASK (0x0F)
-#define SETTING_SECTION_MASK (0x30)
+// #define SETTING_TYPE_MASK (0x0F)
+// #define SETTING_SECTION_MASK (0x30)
+// #define SETTING_MODE_MASK (0xC0)
+
+#define SETTING_TYPE_MASK (0x07)
+#define SETTING_SECTION_MASK (0x38)
 #define SETTING_MODE_MASK (0xC0)
 
 typedef struct settingMinMaxConfig_s {
