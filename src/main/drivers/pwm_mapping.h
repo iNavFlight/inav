@@ -19,7 +19,7 @@
 
 #include "drivers/io_types.h"
 #include "drivers/timer.h"
-#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/servos.h"
 
 #if defined(TARGET_MOTOR_COUNT)
@@ -79,8 +79,9 @@ typedef struct {
     bool isDSHOT;
 } motorProtocolProperties_t;
 
-void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
+void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos);
 bool pwmMotorAndServoInit(void);
+bool pwmMotorAndServoHotInit(timMotorServoHardware_t* timOutputs);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);

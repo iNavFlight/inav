@@ -310,8 +310,6 @@ main_sources(COMMON_SRC
     flight/rate_dynamics.h
     flight/mixer.c
     flight/mixer.h
-    flight/output_profile.c
-    flight/output_profile.h
     flight/pid.c
     flight/pid.h
     flight/pid_autotune.c
@@ -321,6 +319,8 @@ main_sources(COMMON_SRC
     flight/rth_estimator.h
     flight/servos.c
     flight/servos.h
+    flight/mixer_profile.c
+    flight/mixer_profile.h
     flight/wind_estimator.c
     flight/wind_estimator.h
     flight/gyroanalyse.c

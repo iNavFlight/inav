@@ -81,7 +81,8 @@ bool cliMode = false;
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/mixer.h"
+// #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -282,7 +283,8 @@ typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
     DUMP_BATTERY_PROFILE = (1 << 2),
-    DUMP_RATES = (1 << 3),
+    // DUMP_RATES = (1 << 3),
+    DUMP_MIXER_PROFILE = (1 << 3),
     DUMP_ALL = (1 << 4),
     DO_DIFF = (1 << 5),
     SHOW_DEFAULTS = (1 << 6),
@@ -3567,6 +3569,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = DUMP_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "battery_profile"))) {
         dumpMask = DUMP_BATTERY_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "mixer_profile"))) {
+        dumpMask = DUMP_MIXER_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -3712,6 +3716,9 @@ static void printConfig(const char *cmdline, bool doDiff)
             for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
                 cliDumpBatteryProfile(ii, dumpMask);
             }
+            for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
+                cliDumpMixerProfile(ii, dumpMask);
+            }
             setConfigProfile(currentProfileIndexSave);
             setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
@@ -3726,6 +3733,7 @@ static void printConfig(const char *cmdline, bool doDiff)
             // dump just the current profiles
             cliDumpProfile(getConfigProfile(), dumpMask);
             cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+            cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
         }
     }
 
@@ -3735,6 +3743,10 @@ static void printConfig(const char *cmdline, bool doDiff)
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
         cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+    }
+
+    if (dumpMask & DUMP_MIXER_PROFILE) {
+        cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
     }
 
     if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {

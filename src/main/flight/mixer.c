@@ -83,24 +83,24 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .deadband_high = SETTING_3D_DEADBAND_HIGH_DEFAULT,
     .neutral = SETTING_3D_NEUTRAL_DEFAULT
 );
-PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
+// PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
 
-void pgResetFn_mixerProfiles(mixerProfile_t *instance)
-{
-    for (int i = 0; i < MAX_MIXER_PROFILE_COUNT; i++) {
-        RESET_CONFIG(mixerProfile_t, &instance[i],
-            .motorDirectionInverted = SETTING_MOTOR_DIRECTION_INVERTED_DEFAULT,
-            .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
-            .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
-            .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
-            .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
-        );
-        motorMixer_t tmp_mixer = {.throttle=0,.roll=0,.pitch=0,.yaw=0};
-        for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++) {
-            instance->MotorMixer[j] = tmp_mixer;
-        }
-    }
-}
+// void pgResetFn_mixerProfiles(mixerProfile_t *instance)
+// {
+//     for (int i = 0; i < MAX_MIXER_PROFILE_COUNT; i++) {
+//         RESET_CONFIG(mixerProfile_t, &instance[i],
+//             .motorDirectionInverted = SETTING_MOTOR_DIRECTION_INVERTED_DEFAULT,
+//             .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
+//             .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
+//             .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
+//             .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
+//         );
+//         motorMixer_t tmp_mixer = {.throttle=0,.roll=0,.pitch=0,.yaw=0};
+//         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++) {
+//             instance->MotorMixer[j] = tmp_mixer;
+//         }
+//     }
+// }
 
 // PG_REGISTER_WITH_RESET_TEMPLATE(mixerConfig_t, mixerConfig, PG_MIXER_PROFILE, 5);
 
@@ -121,8 +121,6 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
 );
-
-PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
 
@@ -438,7 +436,6 @@ void FAST_CODE writeMotors(void)
         // We don't define USE_DSHOT
         motorValue = motor[i];
 #endif
-
         pwmWriteMotor(i, motorValue);
     }
 }

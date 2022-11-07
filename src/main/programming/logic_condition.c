@@ -50,6 +50,7 @@
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "drivers/pwm_mapping.h"
@@ -369,16 +370,7 @@ static int logicConditionCompute(
             operandA--;
             if ( getConfigMixerProfile() != operandA  && (operandA >= 0 && operandA < MAX_MIXER_PROFILE_COUNT)) {
                 bool mixerprofileChanged = false;
-                if (setConfigMixerProfile(operandA)) {
-                    stopMotors();
-                    stopPwmAllMotors();
-                    servosInit();
-                    mixerUpdateStateFlags();
-                    mixerInit();
-                    pwmMotorAndServoInit();
-                    if (!STATE(ALTITUDE_CONTROL)) {
-                        featureClear(FEATURE_AIRMODE);
-                    }
+                if (OutputProfileHotSwitch(operandA)) {
                     mixerprofileChanged = true;
                 }
                 return mixerprofileChanged;

@@ -1148,33 +1148,35 @@ groups:
 
   - name: PG_MIXER_PROFILE
     type: mixerProfile_t
+    headers: ["flight/mixer.h","flight/mixer_profile.h"]
+    value_type: MIXER_CONFIG_VALUE
     members:
       - name: motor_direction_inverted
         description: "Use if you need to inverse yaw motor direction."
         default_value: OFF
-        field: motorDirectionInverted
+        field: mixer_config.motorDirectionInverted
         type: bool
       - name: platform_type
         description: "Defines UAV platform type. Allowed values: \"MULTIROTOR\", \"AIRPLANE\", \"HELICOPTER\", \"TRICOPTER\", \"ROVER\", \"BOAT\". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented"
         default_value: "MULTIROTOR"
-        field: platformType
+        field: mixer_config.platformType
         type: uint8_t
         table: platform_type
       - name: has_flaps
         description: "Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is used, **FLAPERON** flight mode will be available for the pilot"
         default_value: OFF
-        field: hasFlaps
+        field: mixer_config.hasFlaps
         type: bool
       - name: model_preview_type
         description: "ID of mixer preset applied in a Configurator. **Do not modify manually**. Used only for backup/restore reasons."
         default_value: -1
-        field: appliedMixerPreset
+        field: mixer_config.appliedMixerPreset
         min: -1
         max: INT16_MAX
       - name: output_mode
         description: "Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors"
         default_value: "AUTO"
-        field: outputMode
+        field: mixer_config.outputMode
         table: output_mode
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG

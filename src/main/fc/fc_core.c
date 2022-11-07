@@ -82,6 +82,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "telemetry/telemetry.h"
 
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/pid.h"

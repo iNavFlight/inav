@@ -144,7 +144,7 @@ TEST_F(ChannelForwardingTest, TestForwardAuxChannelsToServosWithLessRemainingSer
 
 class BasicMixerIntegrationTest : public ::testing::Test {
 protected:
-    mixerProfile_t mixerConfig;
+    mixerConfig_t mixerConfig;
     rxConfig_t rxConfig;
     escAndServoConfig_t escAndServoConfig;
     servoParam_t servoConf[MAX_SUPPORTED_SERVOS];

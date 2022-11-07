@@ -30,6 +30,7 @@
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 
 #include "io/osd.h"
 

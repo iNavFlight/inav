@@ -381,11 +381,19 @@ bool pwmMotorAndServoInit(void)
 
     // Build temporary timer mappings for motor and servo
     pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
-    resetAllocatedOutputPortCount();
     // At this point we have built tables of timers suitable for motor and servo mappings
     // Now we can actually initialize them according to motor/servo count from mixer
     pwmInitMotors(&timOutputs);
     pwmInitServos(&timOutputs);
+
+    return (pwmInitError == PWM_INIT_ERROR_NONE);
+}
+
+bool pwmMotorAndServoHotInit(timMotorServoHardware_t* timOutputs)
+{
+    resetAllocatedOutputPortCount();
+    pwmInitMotors(timOutputs);
+    pwmInitServos(timOutputs);
 
     return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
