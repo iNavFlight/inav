@@ -830,8 +830,17 @@ static void applyLarsonScannerLayer(bool updateNow, timeUs_t *timer)
 // blink twice, then wait ; either always or just when landing
 static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
 {
-    const uint16_t blinkPattern = 0x8005; // 0b1000000000000101;
+    uint16_t blinkPattern = 0x8005; // 0b1000000000000101;
     static uint16_t blinkMask;
+
+    const ledStripConfig_t *stringConfig = ledStripConfig();
+    uint8_t bgColor = LED_SCOLOR_BLINKBACKGROUND;
+
+    if (stringConfig->reverseBlink) {
+	blinkPattern = ~blinkPattern;
+	bgColor = COLOR_WHITE;
+    }
+
 
     if (updateNow) {
         blinkMask = blinkMask >> 1;
@@ -842,15 +851,16 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
     }
 
     bool ledOn = (blinkMask & 1);  // b_b_____...
+
     if (!ledOn) {
         for (int i = 0; i < ledCounts.count; ++i) {
             const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_BLINK) ||
                     (ledGetOverlayBit(ledConfig, LED_OVERLAY_LANDING_FLASH) && scaledThrottle < 55 && scaledThrottle > 10)) {
-                setLedHsv(i, getSC(LED_SCOLOR_BLINKBACKGROUND));
+                setLedHsv(i, getSC(bgColor));
             }
-        }
+	}
     }
 }
 
