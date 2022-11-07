@@ -775,7 +775,7 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
     static navigationTimer_t posPublishTimer;
 
     /* IMU operates in decidegrees while INAV operates in deg*100
-     * Use GPS course over ground for fixed wing nav "heading" when valid */
+     * Use GPS course over ground for fixed wing navigation yaw/heading when possible */
     int16_t yawValue = isGPSHeadingValid() && STATE(AIRPLANE) ? gpsSol.groundCourse : attitude.values.yaw;
     updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(yawValue));
 
