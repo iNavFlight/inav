@@ -3001,6 +3001,10 @@ groups:
         description: ""
         default_value: OFF
         type: bool
+      - name: ledstrip_reverse_blink
+        description: "Blink white and keep led color when not blinking."
+        default_value: OFF
+        type: bool
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t

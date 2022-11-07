@@ -159,8 +159,7 @@ typedef struct ledStripConfig_s {
     modeColorIndexes_t modeColors[LED_MODE_COUNT];
     specialColorIndexes_t specialColors;
     uint8_t ledstrip_visual_beeper; // suppress LEDLOW mode if beeper is on
-    uint8_t reverseBlink; // Blink pattern will have color as background an blink white
-			  // Ideally would be an overlay, but that requirs increasing the size of ledConfig_t
+    uint8_t ledstrip_reverse_blink; // Blink pattern will have color as background and blink white
 } ledStripConfig_t;
 
 PG_DECLARE(ledStripConfig_t, ledStripConfig);

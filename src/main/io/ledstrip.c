@@ -836,7 +836,7 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
     const ledStripConfig_t *stringConfig = ledStripConfig();
     uint8_t bgColor = LED_SCOLOR_BLINKBACKGROUND;
 
-    if (stringConfig->reverseBlink) {
+    if (stringConfig->ledstrip_reverse_blink) {
 	blinkPattern = ~blinkPattern;
 	bgColor = COLOR_WHITE;
     }
