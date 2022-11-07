@@ -138,6 +138,7 @@ static const specialColorIndexes_t defaultSpecialColors[] = {
        [LED_SCOLOR_GPSNOSATS]       = COLOR_RED,
        [LED_SCOLOR_GPSNOLOCK]       = COLOR_ORANGE,
        [LED_SCOLOR_GPSLOCKED]       = COLOR_GREEN,
+       [LED_SCOLOR_REVERSE_BLINK]   = COLOR_WHITE,
     }}
 };
 
@@ -838,7 +839,7 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
 
     if (stringConfig->ledstrip_reverse_blink) {
 	blinkPattern = ~blinkPattern;
-	bgColor = COLOR_WHITE;
+	bgColor = LED_SCOLOR_REVERSE_BLINK;
     }
 
 
