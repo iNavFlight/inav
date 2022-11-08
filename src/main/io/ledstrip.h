@@ -38,11 +38,8 @@
 #define LED_DIRECTION_BITCNT            6
 #define LED_PARAMS_BITCNT               4
 
-
 #define LED_MOV_FUNCTION(func) ((func) << LED_FUNCTION_OFFSET)
 #define LED_MOV_OVERLAY(overlay) ((overlay) << LED_OVERLAY_OFFSET)
-
-#define LED_OVERLAY_BITCNT              7
 
 #define LED_FLAG_OVERLAY_MASK ((1 << LED_OVERLAY_BITCNT) - 1)
 
