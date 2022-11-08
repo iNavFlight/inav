@@ -21,6 +21,5 @@ PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 #define mixerConfigMutable() ((mixerConfig_t *) mixerConfig())
 #define primaryMotorMixer(_index) (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->MotorMixers)[_index])
 #define primaryMotorMixerMutable(_index) ((motorMixer_t *)primaryMotorMixer(_index))
-extern motorMixer_t primaryMotorMixer_CopyArray[12];
 
 bool OutputProfileHotSwitch(int profile_index);

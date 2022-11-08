@@ -220,10 +220,12 @@ static void timerHardwareOverride(timerHardware_t * timer) {
 
 void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
 {
+    LOG_INFO(PWM, "pwmBuildTimerOutputList");
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
     uint8_t motorCount = getMotorCount();
+    LOG_INFO(PWM, "motorCount %d", motorCount);
     uint8_t motorIdx = 0;
 
     for (int idx = 0; idx < timerHardwareCount; idx++) {
@@ -257,6 +259,10 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             else if (timHw->usageFlags & TIM_USE_MC_MOTOR) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
+            else if (timHw->usageFlags & TIM_USE_MC_SERVO){
+                type = MAP_TO_SERVO_OUTPUT;
+            }
+
         } else {
             // Fixed wing or HELI (one/two motors and a lot of servos
             if (timHw->usageFlags & TIM_USE_FW_SERVO) {

@@ -41,7 +41,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
     }
 }
 
-PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
+// PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
 int min_ab(int a,int b)
 {
@@ -50,60 +50,55 @@ int min_ab(int a,int b)
 
 bool OutputProfileHotSwitch(int profile_index)
 {   
+#ifdef ENABLE_MIXER_PROFILE_HOTSWAP
     // does not work with timerHardwareOverride
     LOG_INFO(PWM, "OutputProfileHotSwitch");
 
-    LOG_INFO(PWM, "stop all motors");
-    stopMotors();
-    // LOG_INFO(PWM, "stop all pwm motors");
-    // stopPwmAllMotors();
-
     //store current output for check
-    LOG_INFO(PWM, "get old_timOutputs");
-    // delay(1000); // give time to print
+    uint8_t old_platform_type=mixerConfig()->platformType;
     timMotorServoHardware_t old_timOutputs;
-    LOG_INFO(PWM, "get pwmBuildTimerOutputList");
-    // delay(1000); // give time to print
     pwmBuildTimerOutputList(&old_timOutputs, isMixerUsingServos());
-    // delay(1000); // give time to print
     if (!setConfigMixerProfile(profile_index)){
         return false;
     }
-    // delay(1000); // give time to print
-    LOG_INFO(PWM, "servosInit");
-    // delay(1000); // give time to print
+    stopMotors();
+    // delay(3000); //check motor stop
     servosInit();
-    LOG_INFO(PWM, "mixerUpdateStateFlags");
-    // delay(1000); // give time to print
     mixerUpdateStateFlags();
-    LOG_INFO(PWM, "mixerInit");
-    // delay(1000); // give time to print
     mixerInit();
 
-    LOG_INFO(PWM, "get timOutputs");
-    // delay(1000); // give time to print
-    timMotorServoHardware_t timOutputs;
-    pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
-    LOG_INFO(PWM, "check changes");
-    // delay(1000); // give time to print, stuck here
-    bool motor_output_type_not_changed = old_timOutputs.maxTimMotorCount == timOutputs.maxTimMotorCount;
-    bool servo_output_type_not_changed = old_timOutputs.maxTimServoCount == timOutputs.maxTimServoCount;
-    for (int i; i < min_ab(old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount); i++)
+    // timMotorServoHardware_t timOutputs;
+    // pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
+    // bool motor_output_type_not_changed = old_timOutputs.maxTimMotorCount == timOutputs.maxTimMotorCount;
+    // bool servo_output_type_not_changed = old_timOutputs.maxTimServoCount == timOutputs.maxTimServoCount;
+    // LOG_INFO(PWM, "motor_output_type_not_changed:%d,%d,%d",motor_output_type_not_changed,old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount);
+    // for (int i; i < min_ab(old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount); i++)
+    // {
+    //     LOG_INFO(PWM, "motor_output_type_not_changed:%d,%d",i,motor_output_type_not_changed);
+    //     motor_output_type_not_changed &= old_timOutputs.timMotors[i]->tag==timOutputs.timMotors[i]->tag;
+    // }
+    // LOG_INFO(PWM, "motor_output_type_not_changed:%d",motor_output_type_not_changed);
+
+    // LOG_INFO(PWM, "servo_output_type_not_changed:%d,%d,%d",servo_output_type_not_changed,old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount);
+    // for (int i; i < min_ab(old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount); i++)
+    // {
+    //     LOG_INFO(PWM, "servo_output_type_not_changed:%d,%d",i,servo_output_type_not_changed);
+    //     servo_output_type_not_changed &= old_timOutputs.timServos[i]->tag==timOutputs.timServos[i]->tag;
+    // }
+    // LOG_INFO(PWM, "servo_output_type_not_changed:%d",servo_output_type_not_changed);
+
+    // if(!motor_output_type_not_changed || !servo_output_type_not_changed){
+    //     LOG_INFO(PWM, "pwmMotorAndServoHotInit");
+    //     pwmMotorAndServoHotInit(&timOutputs);
+    // }
+    if(old_platform_type!=mixerConfig()->platformType)
     {
-        motor_output_type_not_changed &= old_timOutputs.timMotors[i]->tag==timOutputs.timMotors[i]->tag;
-    }
-    for (int i; i < min_ab(old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount); i++)
-    {
-        servo_output_type_not_changed &= old_timOutputs.timServos[i]->tag==timOutputs.timServos[i]->tag;
-    }
-    if(!motor_output_type_not_changed || !servo_output_type_not_changed){
-        LOG_INFO(PWM, "pwmMotorAndServoHotInit");
-        // delay(1000); // give time to print
-        pwmMotorAndServoHotInit(&timOutputs);
-    }
-    if (!STATE(ALTITUDE_CONTROL)) {
-        featureClear(FEATURE_AIRMODE);
+        
     }
     return true;
+#else
+    profile_index=0; //prevent compilier warning: parameter 'profile_index' set but not used
+    return (bool) profile_index;
+#endif
 }
 

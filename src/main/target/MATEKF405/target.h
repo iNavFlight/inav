@@ -195,3 +195,7 @@
 #define USE_ESC_SENSOR
 
 #define MAX_PWM_OUTPUT_PORTS       6
+
+#ifdef MATEKF405VTOL
+#define ENABLE_MIXER_PROFILE_HOTSWAP
+#endif

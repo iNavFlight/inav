@@ -142,6 +142,7 @@ void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
 void processContinuousServoAutotrim(const float dT);
 void stopMotors(void);
+void stopAndDisableMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
