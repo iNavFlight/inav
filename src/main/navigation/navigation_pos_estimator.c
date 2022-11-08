@@ -36,6 +36,7 @@
 
 #include "fc/config.h"
 #include "fc/settings.h"
+#include "fc/rc_modes.h"
 
 #include "flight/imu.h"
 
@@ -320,12 +321,13 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
         posEstimator.baro.lastUpdateTime = currentTimeUs;
 
         if (baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
-            pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
+            posEstimator.baro.alt = pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
         }
     }
     else {
         posEstimator.baro.alt = 0;
         posEstimator.baro.lastUpdateTime = 0;
+        posEstimator.baro.epv = positionEstimationConfig()->max_eph_epv;
     }
 }
 #endif
@@ -553,7 +555,9 @@ static void estimationPredict(estimationContext_t * ctx)
 }
 
 static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
-{
+{   
+    bool correctionCalculated = false;
+
     if (ctx->newFlags & EST_BARO_VALID) {
         timeUs_t currentTimeUs = micros();
 
@@ -598,9 +602,12 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->accBiasCorr.z -= baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p);
         }
 
-        return true;
+        correctionCalculated = true;
+    } else {
+        pt1FilterInit(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ, 0.0f);
     }
-    else if ((STATE(FIXED_WING_LEGACY) || positionEstimationConfig()->use_gps_no_baro) && (ctx->newFlags & EST_GPS_Z_VALID)) {
+    
+    if ((STATE(FIXED_WING_LEGACY) || positionEstimationConfig()->use_gps_no_baro) && (ctx->newFlags & EST_GPS_Z_VALID)) {
         // If baro is not available - use GPS Z for correction on a plane
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
@@ -621,9 +628,10 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->accBiasCorr.z -= gpsAltResudual * sq(positionEstimationConfig()->w_z_gps_p);
         }
 
-        return true;
+        correctionCalculated = true;
     }
 
+    // DEBUG_ALTITUDE will be always available
     DEBUG_SET(DEBUG_ALTITUDE, 0, posEstimator.est.pos.z);       // Position estimate
     DEBUG_SET(DEBUG_ALTITUDE, 2, posEstimator.baro.alt);        // Baro altitude
     DEBUG_SET(DEBUG_ALTITUDE, 4, posEstimator.gps.pos.z);       // GPS altitude
@@ -633,7 +641,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_ALTITUDE, 5, posEstimator.gps.vel.z);       // GPS vertical speed
     DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
 
-    return false;
+    return correctionCalculated;
 }
 
 static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
@@ -800,6 +808,23 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
         //Update Blackbox states
         navEPH = posEstimator.est.eph;
         navEPV = posEstimator.est.epv;
+
+        DEBUG_SET(DEBUG_POS_EST, 0, (int32_t) posEstimator.est.pos.x*1000.0F);                // Position estimate X
+        DEBUG_SET(DEBUG_POS_EST, 1, (int32_t) posEstimator.est.pos.y*1000.0F);                // Position estimate Y
+        if (IS_RC_MODE_ACTIVE(BOXSURFACE) && posEstimator.est.aglQual!=SURFACE_QUAL_LOW){
+            // SURFACE (following) MODE
+            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posControl.actualState.agl.pos.z*1000.0F);  // Position estimate Z
+            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posControl.actualState.agl.vel.z*1000.0F);  // Speed estimate VZ
+        } else {
+            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posEstimator.est.pos.z*1000.0F);            // Position estimate Z
+            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posEstimator.est.vel.z*1000.0F);            // Speed estimate VZ
+        }
+        DEBUG_SET(DEBUG_POS_EST, 3, (int32_t) posEstimator.est.vel.x*1000.0F);                // Speed estimate VX
+        DEBUG_SET(DEBUG_POS_EST, 4, (int32_t) posEstimator.est.vel.y*1000.0F);                // Speed estimate VY
+        DEBUG_SET(DEBUG_POS_EST, 6, (int32_t) attitude.values.yaw);                           // Yaw estimate (4 bytes still available here)
+        DEBUG_SET(DEBUG_POS_EST, 7, (int32_t) (posEstimator.flags & 0b1111111)<<20 |          // navPositionEstimationFlags fit into 8bits
+                                              (MIN(navEPH, 1000) & 0x3FF)<<10 | 
+                                              (MIN(navEPV, 1000) & 0x3FF));                   // Horizontal and vertical uncertainties (max value = 1000, fit into 20bits)
     }
 }
 

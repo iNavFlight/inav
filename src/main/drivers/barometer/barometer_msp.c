@@ -39,6 +39,10 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_msp.h"
 
+#include "sensors/sensors.h"
+#include "sensors/barometer.h"
+#include "fc/runtime_config.h"
+
 #include "msp/msp_protocol_v2_sensor_msg.h"
 
 #define MSP_BARO_TIMEOUT_MS      250     // Less than 4Hz updates is considered a failure
@@ -46,6 +50,8 @@
 static int32_t mspBaroPressure;
 static int32_t mspBaroTemperature;
 static timeMs_t mspBaroLastUpdateMs;
+
+static bool mspBaroStarted = false;
 
 static bool mspBaroStartGet(baroDev_t * baro)
 {
@@ -57,7 +63,9 @@ static bool mspBaroCalculate(baroDev_t * baro, int32_t *pressure, int32_t *tempe
 {
     UNUSED(baro);
 
-    if ((millis() - mspBaroLastUpdateMs) > MSP_BARO_TIMEOUT_MS) {
+    if (((millis() - mspBaroLastUpdateMs) > MSP_BARO_TIMEOUT_MS)) {
+        sensorsClear(SENSOR_BARO);
+        mspBaroStarted = false;
         return false;
     }
 
@@ -77,12 +85,19 @@ void mspBaroReceiveNewData(uint8_t * bufferPtr)
     mspBaroPressure = pkt->pressurePa;
     mspBaroTemperature = pkt->temp;
     mspBaroLastUpdateMs = millis();
+    
+    if (mspBaroStarted == false){
+        baroStartCalibration();
+        mspBaroStarted = true;
+        sensorsSet(SENSOR_BARO);
+    }
 }
 
 bool mspBaroDetect(baroDev_t *baro)
 {
     mspBaroPressure = 101325;    // pressure in Pa (0m MSL)
     mspBaroTemperature = 2500;   // temperature in 0.01 C = 25 deg
+    mspBaroLastUpdateMs = 0;
 
     // these are dummy as temperature is measured as part of pressure
     baro->ut_delay = 10000;
