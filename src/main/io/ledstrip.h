@@ -31,6 +31,14 @@
 #define LED_FUNCTION_OFFSET             8
 #define LED_OVERLAY_OFFSET             12
 
+#define LED_POS_BITCNT                  8
+#define LED_FUNCTION_BITCNT             4
+#define LED_OVERLAY_BITCNT              7
+#define LED_COLOR_BITCNT                4
+#define LED_DIRECTION_BITCNT            6
+#define LED_PARAMS_BITCNT               4
+
+
 #define LED_MOV_FUNCTION(func) ((func) << LED_FUNCTION_OFFSET)
 #define LED_MOV_OVERLAY(overlay) ((overlay) << LED_OVERLAY_OFFSET)
 
@@ -126,14 +134,6 @@ typedef struct specialColorIndexes_s {
     uint8_t color[LED_SPECIAL_COLOR_COUNT];
 } specialColorIndexes_t;
 
-#define LED_FUNCTION_OFFSET             8
-
-#define LED_POS_BITCNT                  8
-#define LED_FUNCTION_BITCNT             4
-#define LED_OVERLAY_BITCNT              7
-#define LED_COLOR_BITCNT                4
-#define LED_DIRECTION_BITCNT            6
-#define LED_PARAMS_BITCNT               4
 
 typedef struct ledConfig_s {
     uint16_t led_position  : 8;
