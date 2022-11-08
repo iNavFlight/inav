@@ -139,7 +139,6 @@ typedef struct ledConfig_s {
     uint16_t led_color     : 4;
     uint16_t led_direction : 6;
     uint16_t led_params    : 4;
-
 } __attribute__((packed)) ledConfig_t;
 
 typedef struct ledCounts_s {
