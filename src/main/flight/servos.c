@@ -591,6 +591,14 @@ bool isServoOutputEnabled(void)
 
 void setServoOutputEnabled(bool flag)
 {
+    int servoIndex = 0;
+    
+    if (!flag) {
+        for (int i = minServoIndex; i <= maxServoIndex; i++) {
+            pwmWriteServo(servoIndex++, servoParams(i)->middle);
+        }
+    }
+
     servoOutputEnabled = flag;
 }
 
