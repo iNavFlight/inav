@@ -848,8 +848,7 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
         if (ledOn) {
-            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_STROBE) ||
-                    (ledGetOverlayBit(ledConfig, LED_OVERLAY_LANDING_FLASH) && scaledThrottle < 55 && scaledThrottle > 10)) {
+            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_STROBE)) {
                 setLedHsv(i, getSC(LED_SCOLOR_STROBE));
             }
         } else {
