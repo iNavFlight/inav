@@ -138,6 +138,7 @@ static const specialColorIndexes_t defaultSpecialColors[] = {
        [LED_SCOLOR_GPSNOSATS]       = COLOR_RED,
        [LED_SCOLOR_GPSNOLOCK]       = COLOR_ORANGE,
        [LED_SCOLOR_GPSLOCKED]       = COLOR_GREEN,
+       [LED_SCOLOR_STROBE]          = COLOR_WHITE,
     }}
 };
 
@@ -185,10 +186,11 @@ STATIC_UNIT_TESTED void updateLedCount(void)
 {
     int count = 0, countRing = 0, countScanner= 0;
 
+    const ledConfig_t configNotSet = {};
     for (int ledIndex = 0; ledIndex < LED_MAX_STRIP_LENGTH; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
 
-        if (!(*ledConfig))
+        if (!memcmp(ledConfig, &configNotSet, sizeof(ledConfig_t)))
             break;
 
         count++;
@@ -221,7 +223,7 @@ static const hsvColor_t* getSC(ledSpecialColorIds_e index)
 
 static const char directionCodes[LED_DIRECTION_COUNT] = { 'N', 'E', 'S', 'W', 'U', 'D' };
 static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R', 'H' };
-static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W' };
+static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W', 'N' };
 
 #define CHUNK_BUFFER_SIZE 11
 
@@ -305,7 +307,7 @@ bool parseLedStripConfig(int ledIndex, const char *config)
         }
     }
 
-    *ledConfig = DEFINE_LED(x, y, color, direction_flags, baseFunction, overlay_flags, 0);
+    DEFINE_LED(ledConfig, x, y, color, direction_flags, baseFunction, overlay_flags, 0);
 
     reevaluateLedConfig();
 
@@ -502,7 +504,7 @@ static void applyLedHsv(uint32_t mask, uint32_t ledOperation, const hsvColor_t *
 {
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
-        if ((*ledConfig & mask) == ledOperation)
+        if ((*((uint32_t *)ledConfig) & mask) == ledOperation)
             setLedHsv(ledIndex, color);
     }
 }
@@ -842,10 +844,15 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
     }
 
     bool ledOn = (blinkMask & 1);  // b_b_____...
-    if (!ledOn) {
-        for (int i = 0; i < ledCounts.count; ++i) {
-            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
+    for (int i = 0; i < ledCounts.count; ++i) {
+        const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
+        if (ledOn) {
+            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_STROBE) ||
+                    (ledGetOverlayBit(ledConfig, LED_OVERLAY_LANDING_FLASH) && scaledThrottle < 55 && scaledThrottle > 10)) {
+                setLedHsv(i, getSC(LED_SCOLOR_BLINKBACKGROUND));
+            }
+        } else {
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_BLINK) ||
                     (ledGetOverlayBit(ledConfig, LED_OVERLAY_LANDING_FLASH) && scaledThrottle < 55 && scaledThrottle > 10)) {
                 setLedHsv(i, getSC(LED_SCOLOR_BLINKBACKGROUND));

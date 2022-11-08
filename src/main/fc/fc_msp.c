@@ -1051,7 +1051,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_LED_STRIP_CONFIG:
         for (int i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
             const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
-            sbufWriteU32(dst, *ledConfig);
+            sbufWriteDataSafe(dst, ledConfig, sizeof(ledConfig_t));
         }
         break;
 
@@ -2677,13 +2677,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_LED_STRIP_CONFIG:
-        if (dataSize == 5) {
+        if (dataSize == (1 + sizeof(ledConfig_t))) {
             tmp_u8 = sbufReadU8(src);
-            if (tmp_u8 >= LED_MAX_STRIP_LENGTH || dataSize != (1 + 4)) {
+            if (tmp_u8 >= LED_MAX_STRIP_LENGTH) {
                 return MSP_RESULT_ERROR;
             }
             ledConfig_t *ledConfig = &ledStripConfigMutable()->ledConfigs[tmp_u8];
-            *ledConfig = sbufReadU32(src);
+            sbufReadDataSafe(src, ledConfig, sizeof(ledConfig_t));
             reevaluateLedConfig();
         } else
             return MSP_RESULT_ERROR;
