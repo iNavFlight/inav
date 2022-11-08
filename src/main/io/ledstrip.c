@@ -223,7 +223,7 @@ static const hsvColor_t* getSC(ledSpecialColorIds_e index)
 
 static const char directionCodes[LED_DIRECTION_COUNT] = { 'N', 'E', 'S', 'W', 'U', 'D' };
 static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R', 'H' };
-static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W', 'N' };
+static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W', 'E' };
 
 #define CHUNK_BUFFER_SIZE 11
 
@@ -850,7 +850,7 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
         if (ledOn) {
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_STROBE) ||
                     (ledGetOverlayBit(ledConfig, LED_OVERLAY_LANDING_FLASH) && scaledThrottle < 55 && scaledThrottle > 10)) {
-                setLedHsv(i, getSC(LED_SCOLOR_BLINKBACKGROUND));
+                setLedHsv(i, getSC(LED_SCOLOR_STROBE));
             }
         } else {
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_BLINK) ||
