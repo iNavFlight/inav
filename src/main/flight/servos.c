@@ -595,7 +595,11 @@ void setServoOutputEnabled(bool flag)
     
     if (!flag) {
         for (int i = minServoIndex; i <= maxServoIndex; i++) {
-            pwmWriteServo(servoIndex++, servoParams(i)->middle);
+            if (mixerConfig()->platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
+                pwmWriteServo(servoIndex++, 0);
+            } else {
+                pwmWriteServo(servoIndex++, servoParams(i)->middle);
+            }
         }
     }
 
