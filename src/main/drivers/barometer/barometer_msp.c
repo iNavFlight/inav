@@ -86,7 +86,9 @@ void mspBaroReceiveNewData(uint8_t * bufferPtr)
     mspBaroTemperature = pkt->temp;
     mspBaroLastUpdateMs = millis();
     
-    if (mspBaroStarted == false){
+    // This should only happen after a reset (!ARMING_FLAG(WAS_EVER_ARMED)) to avoid 
+    // getting calibrations mid-air or on a surface that is above the home position
+    if (mspBaroStarted == false && !ARMING_FLAG(WAS_EVER_ARMED)){
         baroStartCalibration();
         mspBaroStarted = true;
         sensorsSet(SENSOR_BARO);
