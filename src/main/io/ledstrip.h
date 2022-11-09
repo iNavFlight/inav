@@ -131,14 +131,13 @@ typedef struct specialColorIndexes_s {
     uint8_t color[LED_SPECIAL_COLOR_COUNT];
 } specialColorIndexes_t;
 
-
 typedef struct ledConfig_s {
-    uint16_t led_position  : 8;
-    uint16_t led_function  : 4;
-    uint16_t led_overlay   : 7;
-    uint16_t led_color     : 4;
-    uint16_t led_direction : 6;
-    uint16_t led_params    : 4;
+    uint16_t led_position  : LED_POS_BITCNT;
+    uint16_t led_function  : LED_FUNCTION_BITCNT;
+    uint16_t led_overlay   : LED_OVERLAY_BITCNT;
+    uint16_t led_color     : LED_COLOR_BITCNT;
+    uint16_t led_direction : LED_DIRECTION_BITCNT;
+    uint16_t led_params    : LED_PARAMS_BITCNT;
 } __attribute__((packed)) ledConfig_t;
 
 typedef struct ledCounts_s {
