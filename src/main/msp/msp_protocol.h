@@ -58,8 +58,8 @@
 
 #define MSP_PROTOCOL_VERSION                0   // Same version over MSPv1 & MSPv2 - message format didn't change and it backward compatible
 
-#define API_VERSION_MAJOR                   3   // increment when major changes are made
-#define API_VERSION_MINOR                   0   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
+#define API_VERSION_MAJOR                   2   // increment when major changes are made
+#define API_VERSION_MINOR                   5   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
 
 #define API_VERSION_LENGTH                  2
 
@@ -145,8 +145,10 @@
 #define MSP_LED_COLORS                  46
 #define MSP_SET_LED_COLORS              47
 
-#define MSP_LED_STRIP_CONFIG            48
-#define MSP_SET_LED_STRIP_CONFIG        49
+#define MSP_LED_STRIP_CONFIG            48 // Deprecated
+#define MSP_SET_LED_STRIP_CONFIG        49 // Deprecated
+#define MSP_LED_STRIP_CONFIG_EX         248
+#define MSP_SET_LED_STRIP_CONFIG_EX     249
 
 #define MSP_RSSI_CONFIG                 50
 #define MSP_SET_RSSI_CONFIG             51

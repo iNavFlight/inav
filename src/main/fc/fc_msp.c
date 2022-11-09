@@ -1051,9 +1051,30 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_LED_STRIP_CONFIG:
         for (int i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
             const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
+
+            uint32_t legacyLedConfig = ledConfig->led_position;
+            int shiftCount = LED_POS_BITCNT;
+            legacyLedConfig |= ledConfig->led_function << shiftCount;
+            shiftCount += LED_FUNCTION_BITCNT;
+            legacyLedConfig |= (ledConfig->led_overlay & 0x3F) << (shiftCount);
+            shiftCount += LED_OVERLAY_BITCNT - 1; 
+            legacyLedConfig |= (ledConfig->led_color) << (shiftCount);
+            shiftCount += LED_COLOR_BITCNT;
+            legacyLedConfig |= (ledConfig->led_direction) << (shiftCount);
+            shiftCount += LED_DIRECTION_BITCNT;
+            legacyLedConfig |= (ledConfig->led_params) << (shiftCount);
+
+            sbufWriteU32(dst, legacyLedConfig);
+        }
+        break;
+
+    case MSP_LED_STRIP_CONFIG_EX:
+        for (int i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
+            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
             sbufWriteDataSafe(dst, ledConfig, sizeof(ledConfig_t));
         }
         break;
+
 
     case MSP_LED_STRIP_MODECOLOR:
         for (int i = 0; i < LED_MODE_COUNT; i++) {
@@ -2677,6 +2698,28 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_LED_STRIP_CONFIG:
+        if (dataSize == (1 + sizeof(uint32_t))) {
+            tmp_u8 = sbufReadU8(src);
+            if (tmp_u8 >= LED_MAX_STRIP_LENGTH) {
+                return MSP_RESULT_ERROR;
+            }
+            ledConfig_t *ledConfig = &ledStripConfigMutable()->ledConfigs[tmp_u8];
+
+            uint32_t legacyConfig = sbufReadU32(src);
+
+            ledConfig->led_position = legacyConfig & 0xFF;
+            ledConfig->led_function = (legacyConfig >> 8) & 0xF;
+            ledConfig->led_overlay = (legacyConfig >> 12) & 0x3F;
+            ledConfig->led_color = (legacyConfig >> 18) & 0xF; 
+            ledConfig->led_direction = (legacyConfig >> 22) & 0x3F;
+            ledConfig->led_params = (legacyConfig >> 28) & 0xF;
+
+            reevaluateLedConfig();
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP_SET_LED_STRIP_CONFIG_EX:
         if (dataSize == (1 + sizeof(ledConfig_t))) {
             tmp_u8 = sbufReadU8(src);
             if (tmp_u8 >= LED_MAX_STRIP_LENGTH) {
