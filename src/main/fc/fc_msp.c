@@ -1053,15 +1053,15 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
             uint32_t legacyLedConfig = ledConfig->led_position;
-            int shiftCount = LED_POS_BITCNT;
+            int shiftCount = 8;
             legacyLedConfig |= ledConfig->led_function << shiftCount;
-            shiftCount += LED_FUNCTION_BITCNT;
+            shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_overlay & 0x3F) << (shiftCount);
-            shiftCount += LED_OVERLAY_BITCNT - 1; 
+            shiftCount += 6; 
             legacyLedConfig |= (ledConfig->led_color) << (shiftCount);
-            shiftCount += LED_COLOR_BITCNT;
+            shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_direction) << (shiftCount);
-            shiftCount += LED_DIRECTION_BITCNT;
+            shiftCount += 6;
             legacyLedConfig |= (ledConfig->led_params) << (shiftCount);
 
             sbufWriteU32(dst, legacyLedConfig);

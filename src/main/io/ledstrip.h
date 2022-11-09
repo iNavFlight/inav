@@ -29,14 +29,14 @@
 #define LED_SPECIAL_COLOR_COUNT         9
 
 #define LED_FUNCTION_OFFSET             8
-#define LED_OVERLAY_OFFSET             12
+#define LED_OVERLAY_OFFSET             16
 
 #define LED_POS_BITCNT                  8
-#define LED_FUNCTION_BITCNT             4
-#define LED_OVERLAY_BITCNT              7
+#define LED_FUNCTION_BITCNT             8
+#define LED_OVERLAY_BITCNT              8
 #define LED_COLOR_BITCNT                4
 #define LED_DIRECTION_BITCNT            6
-#define LED_PARAMS_BITCNT               4
+#define LED_PARAMS_BITCNT               6
 
 #define LED_FLAG_OVERLAY_MASK ((1 << LED_OVERLAY_BITCNT) - 1)
 
