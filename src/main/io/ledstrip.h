@@ -159,12 +159,12 @@ typedef struct ledStripConfig_s {
 PG_DECLARE(ledStripConfig_t, ledStripConfig);
 
 #define DEFINE_LED(ledConfigPtr, x, y, col, dir, func, ol, params) { \
-  ledConfig->led_position = CALCULATE_LED_XY(x, y); \
-  ledConfig->led_color = (col); \
-  ledConfig->led_direction = (dir); \
-  ledConfig->led_function = (func); \
-  ledConfig->led_overlay = (ol); \
-  ledConfig->led_params = (params); }
+  ledConfigPtr->led_position = CALCULATE_LED_XY(x, y); \
+  ledConfigPtr->led_color = (col); \
+  ledConfigPtr->led_direction = (dir); \
+  ledConfigPtr->led_function = (func); \
+  ledConfigPtr->led_overlay = (ol); \
+  ledConfigPtr->led_params = (params); }
 
 static inline uint8_t ledGetXY(const ledConfig_t *lcfg)         { return (lcfg->led_position); }
 static inline uint8_t ledGetX(const ledConfig_t *lcfg)          { return ((lcfg->led_position >> (LED_X_BIT_OFFSET)) & LED_XY_MASK); }
