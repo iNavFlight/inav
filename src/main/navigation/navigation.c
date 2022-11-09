@@ -3516,7 +3516,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.rthTBWrapAroundCounter = -1;
         
         saveMultirotorThrottleHoverOnDisarm();
-
+        
         return;
     }
 

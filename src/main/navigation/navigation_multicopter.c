@@ -911,22 +911,22 @@ void saveMultirotorThrottleHoverOnDisarm(void)
         return;
     }
     
+    static uint16_t prevHoverThrottle = 0;
+
     // If not Multirotor enabled then exit
     if (!STATE(MULTIROTOR)) {
         return;
     }
 
-    static uint16_t prevHoverThrottle;
-    
     // First initialization
     if (prevHoverThrottle == 0) {
         prevHoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
     }
 
-    // Save hover throttle
-    if (prevHoverThrottle != currentBatteryProfile->nav.mc.hover_throttle) {
-        prevHoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
-        setConfigBatteryProfileAndWriteEEPROM(getConfigBatteryProfile());
+    // Compare with the previous value and save a new value if necessary
+    if (prevHoverThrottle != currentBatteryProfileMutable->nav.mc.hover_throttle) {
+        saveConfigAndNotify();
+        prevHoverThrottle = 0;
     }
 }
 
