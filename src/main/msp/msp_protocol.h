@@ -145,10 +145,8 @@
 #define MSP_LED_COLORS                  46
 #define MSP_SET_LED_COLORS              47
 
-#define MSP_LED_STRIP_CONFIG            48 // Deprecated
-#define MSP_SET_LED_STRIP_CONFIG        49 // Deprecated
-#define MSP_LED_STRIP_CONFIG_EX         248
-#define MSP_SET_LED_STRIP_CONFIG_EX     249
+#define MSP_LED_STRIP_CONFIG            48
+#define MSP_SET_LED_STRIP_CONFIG        49
 
 #define MSP_RSSI_CONFIG                 50
 #define MSP_SET_RSSI_CONFIG             51
