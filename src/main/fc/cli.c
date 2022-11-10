@@ -1040,7 +1040,7 @@ static void cliAdjustmentRange(char *cmdline)
 }
 
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
-{
+{   
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
     char buf1[FTOA_BUFFER_SIZE];
@@ -3077,12 +3077,8 @@ static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
     cliPrintLinef("mixer_profile %d\r\n", getConfigMixerProfile() + 1);
     dumpAllValues(MIXER_CONFIG_VALUE, dumpMask);
     cliPrintHashLine("mixer");
-    cliPrintHashLine("dumpMask");
-    char buf0[FTOA_BUFFER_SIZE];
-    itoa(dumpMask,buf0,2);
-    cliPrintHashLine(buf0);
-    cliDumpPrintLinef(dumpMask, primaryMotorMixer(0)->throttle == 0.0f, "\r\nmmix reset\r\n");
-    printMotorMix(dumpMask, primaryMotorMixer(0), NULL);
+    cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray()[0].throttle == 0.0f, "\r\nmmix reset\r\n");
+    printMotorMix(dumpMask, primaryMotorMixer_CopyArray(), primaryMotorMixer(0));
 }
 
 #ifdef USE_CLI_BATCH

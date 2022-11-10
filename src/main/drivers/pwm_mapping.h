@@ -81,7 +81,7 @@ typedef struct {
 
 void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos);
 bool pwmMotorAndServoInit(void);
-bool pwmMotorAndServoHotInit(timMotorServoHardware_t* timOutputs);
+// bool pwmMotorAndServoHotInit(timMotorServoHardware_t* timOutputs);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);

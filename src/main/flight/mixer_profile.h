@@ -22,4 +22,9 @@ PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 #define primaryMotorMixer(_index) (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->MotorMixers)[_index])
 #define primaryMotorMixerMutable(_index) ((motorMixer_t *)primaryMotorMixer(_index))
 
+static inline const mixerProfile_t* mixerProfiles_CopyArray_macro(int _index) { return &mixerProfiles_CopyArray[_index]; }
+#define primaryMotorMixer_CopyArray() (mixerProfiles_CopyArray_macro(systemConfig()->current_mixer_profile_index)->MotorMixers)
+
+#define mixerConfigByIndex(index) (&(mixerProfiles(index)->mixer_config))
+
 bool OutputProfileHotSwitch(int profile_index);

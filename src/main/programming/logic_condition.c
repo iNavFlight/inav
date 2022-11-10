@@ -369,10 +369,7 @@ static int logicConditionCompute(
         case LOGIC_CONDITION_SET_MIXER_PROFILE:
             operandA--;
             if ( getConfigMixerProfile() != operandA  && (operandA >= 0 && operandA < MAX_MIXER_PROFILE_COUNT)) {
-                bool mixerprofileChanged = false;
-                if (OutputProfileHotSwitch(operandA)) {
-                    mixerprofileChanged = true;
-                }
+                bool mixerprofileChanged = OutputProfileHotSwitch(operandA);
                 return mixerprofileChanged;
             } else {
                 return false;
