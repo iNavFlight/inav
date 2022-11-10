@@ -88,3 +88,4 @@
 
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
+
