@@ -19,11 +19,15 @@ PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 
 #define mixerConfig() (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->mixer_config))
 #define mixerConfigMutable() ((mixerConfig_t *) mixerConfig())
+
 #define primaryMotorMixer(_index) (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->MotorMixers)[_index])
 #define primaryMotorMixerMutable(_index) ((motorMixer_t *)primaryMotorMixer(_index))
+#define customServoMixers(_index) (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->ServoMixers)[_index])
+#define customServoMixersMutable(_index) ((servoMixer_t *)customServoMixers(_index))
 
-static inline const mixerProfile_t* mixerProfiles_CopyArray_macro(int _index) { return &mixerProfiles_CopyArray[_index]; }
-#define primaryMotorMixer_CopyArray() (mixerProfiles_CopyArray_macro(systemConfig()->current_mixer_profile_index)->MotorMixers)
+static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index) { return &mixerProfiles_CopyArray[_index]; }
+#define primaryMotorMixer_CopyArray() (mixerProfiles_CopyArray_by_index(systemConfig()->current_mixer_profile_index)->MotorMixers)
+#define customServoMixers_CopyArray() (mixerProfiles_CopyArray_by_index(systemConfig()->current_mixer_profile_index)->ServoMixers)
 
 #define mixerConfigByIndex(index) (&(mixerProfiles(index)->mixer_config))
 

@@ -37,9 +37,24 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                 .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
             }
         );
-        motorMixer_t tmp_mixer = {.throttle=0,.roll=0,.pitch=0,.yaw=0};
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++) {
-            instance->MotorMixers[j] = tmp_mixer;
+            RESET_CONFIG(motorMixer_t, &instance[i].MotorMixers[j],
+                .throttle=0,
+                .roll=0,
+                .pitch=0,
+                .yaw=0
+            );
+        }
+        for (int j = 0; j < MAX_SERVO_RULES; j++) {
+            RESET_CONFIG(servoMixer_t, &instance[i].ServoMixers[j],
+            .targetChannel = 0,
+            .inputSource = 0,
+            .rate = 0,
+            .speed = 0
+#ifdef USE_PROGRAMMING_FRAMEWORK
+            ,.conditionId = -1
+#endif
+            );
         }
     }
 }
@@ -79,7 +94,7 @@ bool OutputProfileHotSwitch(int profile_index)
         return false;
     }
     // stopMotors();
-    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);//stop motors
+    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);//stop motors with out delay
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
@@ -99,7 +114,7 @@ int min_ab(int a,int b)
     return a > b ? b : a;
 }
 
-void checkOutputMapping(int profile_index)
+void checkOutputMapping(int profile_index)//debug purpose
 {
     timMotorServoHardware_t old_timOutputs;
     pwmBuildTimerOutputList(&old_timOutputs, isMixerUsingServos());

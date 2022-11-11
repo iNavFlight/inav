@@ -3079,6 +3079,9 @@ static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
     cliPrintHashLine("mixer");
     cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray()[0].throttle == 0.0f, "\r\nmmix reset\r\n");
     printMotorMix(dumpMask, primaryMotorMixer_CopyArray(), primaryMotorMixer(0));
+    cliPrintHashLine("servo mixer");
+    cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray()[0].rate == 0, "smix reset\r\n");
+    printServoMix(dumpMask, customServoMixers_CopyArray(), customServoMixers(0));
 }
 
 #ifdef USE_CLI_BATCH
@@ -3619,7 +3622,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         }
 
-        cliPrintHashLine("resources");
+        // cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
         // cliPrintHashLine("mixer");
@@ -3628,9 +3631,9 @@ static void printConfig(const char *cmdline, bool doDiff)
         // printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
-        cliPrintHashLine("servo mixer");
-        cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
-        printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
+        // cliPrintHashLine("servo mixer");
+        // cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
+        // printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters
         cliPrintHashLine("servo");
