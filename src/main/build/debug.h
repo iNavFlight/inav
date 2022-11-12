@@ -71,6 +71,5 @@ typedef enum {
     DEBUG_AUTOTUNE,
     DEBUG_RATE_DYNAMICS,
     DEBUG_LANDING,
-    DEBUG_POS_EST,
     DEBUG_COUNT
 } debugType_e;

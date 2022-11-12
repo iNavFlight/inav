@@ -36,7 +36,6 @@
 
 #include "fc/config.h"
 #include "fc/settings.h"
-#include "fc/rc_modes.h"
 
 #include "flight/imu.h"
 
@@ -809,22 +808,7 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
         navEPH = posEstimator.est.eph;
         navEPV = posEstimator.est.epv;
 
-        DEBUG_SET(DEBUG_POS_EST, 0, (int32_t) posEstimator.est.pos.x*1000.0F);                // Position estimate X
-        DEBUG_SET(DEBUG_POS_EST, 1, (int32_t) posEstimator.est.pos.y*1000.0F);                // Position estimate Y
-        if (IS_RC_MODE_ACTIVE(BOXSURFACE) && posEstimator.est.aglQual!=SURFACE_QUAL_LOW){
-            // SURFACE (following) MODE
-            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posControl.actualState.agl.pos.z*1000.0F);  // Position estimate Z
-            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posControl.actualState.agl.vel.z*1000.0F);  // Speed estimate VZ
-        } else {
-            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posEstimator.est.pos.z*1000.0F);            // Position estimate Z
-            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posEstimator.est.vel.z*1000.0F);            // Speed estimate VZ
-        }
-        DEBUG_SET(DEBUG_POS_EST, 3, (int32_t) posEstimator.est.vel.x*1000.0F);                // Speed estimate VX
-        DEBUG_SET(DEBUG_POS_EST, 4, (int32_t) posEstimator.est.vel.y*1000.0F);                // Speed estimate VY
-        DEBUG_SET(DEBUG_POS_EST, 6, (int32_t) attitude.values.yaw);                           // Yaw estimate (4 bytes still available here)
-        DEBUG_SET(DEBUG_POS_EST, 7, (int32_t) (posEstimator.flags & 0b1111111)<<20 |          // navPositionEstimationFlags fit into 8bits
-                                              (MIN(navEPH, 1000) & 0x3FF)<<10 | 
-                                              (MIN(navEPV, 1000) & 0x3FF));                   // Horizontal and vertical uncertainties (max value = 1000, fit into 20bits)
+
     }
 }
 
