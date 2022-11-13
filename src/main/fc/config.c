@@ -321,6 +321,7 @@ void readEEPROM(void)
 
     setConfigProfile(getConfigProfile());
     setConfigBatteryProfile(getConfigBatteryProfile());
+    setConfigMixerProfile(getConfigMixerProfile());
 
     validateAndFixConfig();
     activateConfig();

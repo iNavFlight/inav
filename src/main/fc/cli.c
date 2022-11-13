@@ -1864,7 +1864,8 @@ static void cliServoMix(char *cmdline)
         printServoMix(DUMP_MASTER, customServoMixers(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
-        pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
+        // pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
+        Reset_servoMixers(customServoMixersMutable(0));
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
@@ -3589,12 +3590,14 @@ static void printConfig(const char *cmdline, bool doDiff)
 
     const int currentProfileIndexSave = getConfigProfile();
     const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+    const int currentMixerProfileIndexSave = getConfigMixerProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
     setConfigProfile(currentProfileIndexSave);
     setConfigBatteryProfile(currentBatteryProfileIndexSave);
+    setConfigMixerProfile(currentMixerProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -3622,8 +3625,8 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         }
 
-        // cliPrintHashLine("resources");
-        //printResource(dumpMask, &defaultConfig);
+        cliPrintHashLine("resources");
+        // printResource(dumpMask, &defaultConfig);
 
         // cliPrintHashLine("mixer");
         // cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
@@ -3716,6 +3719,7 @@ static void printConfig(const char *cmdline, bool doDiff)
             // dump all profiles
             const int currentProfileIndexSave = getConfigProfile();
             const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            const int currentMixerProfileIndexSave = getConfigMixerProfile();
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
@@ -3727,10 +3731,11 @@ static void printConfig(const char *cmdline, bool doDiff)
             }
             setConfigProfile(currentProfileIndexSave);
             setConfigBatteryProfile(currentBatteryProfileIndexSave);
+            setConfigMixerProfile(currentMixerProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
-            cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
+            cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
 
 #ifdef USE_CLI_BATCH
             batchModeEnabled = false;

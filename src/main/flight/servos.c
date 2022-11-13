@@ -87,6 +87,22 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
 //     }
 // }
 
+void Reset_servoMixers(servoMixer_t *instance)
+{
+    for (int i = 0; i < MAX_SERVO_RULES; i++)
+    {
+        RESET_CONFIG(servoMixer_t, &instance[i],
+            .targetChannel = 0,
+            .inputSource = 0,
+            .rate = 0,
+            .speed = 0
+#ifdef USE_PROGRAMMING_FRAMEWORK
+            ,.conditionId = -1
+#endif
+        );       
+    }
+}
+
 PG_REGISTER_ARRAY_WITH_RESET_FN(servoParam_t, MAX_SUPPORTED_SERVOS, servoParams, PG_SERVO_PARAMS, 3);
 
 void pgResetFn_servoParams(servoParam_t *instance)

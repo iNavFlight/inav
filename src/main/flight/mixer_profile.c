@@ -62,12 +62,12 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 // PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
 bool OutputProfileHotSwitch(int profile_index)
-{   
+{
     // does not work with timerHardwareOverride
     LOG_INFO(PWM, "OutputProfileHotSwitch");
 
     //do not allow switching between multi rotor and non multi rotor
-#ifdef ENABLE_MCFW_MIXER_PROFILE_HOTSWAP
+#ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
     bool MCFW_hotswap_unavailable = false;
 #else
     bool MCFW_hotswap_unavailable = true;
@@ -88,6 +88,7 @@ bool OutputProfileHotSwitch(int profile_index)
         LOG_INFO(PWM, "navModesEnabled");
         return false;
     }
+    //TODO add check of each motor/servo is mapped before and after the switch
     
     if (!setConfigMixerProfile(profile_index)){
         LOG_INFO(PWM, "failed to set config");
@@ -104,7 +105,7 @@ bool OutputProfileHotSwitch(int profile_index)
         pidInit();
         pidInitFilters();
         schedulePidGainsUpdate();
-        navigationInit();
+        // navigationInit(); //may need to initilize FW_HEADING_USE_YAW on rover or boat
     }
     return true;
 }

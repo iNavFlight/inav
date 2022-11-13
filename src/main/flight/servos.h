@@ -151,6 +151,7 @@ typedef struct servoMetadata_s {
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
+void Reset_servoMixers(servoMixer_t* instance);
 bool isServoOutputEnabled(void);
 void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);

@@ -25,6 +25,18 @@
 #include "drivers/timer_def_stm32f4xx.h"
 
 timerHardware_t timerHardware[] = {
+#ifdef MATEKF405TE_SD_VTOL
+//using d-shot on motors seems to have problems on s3,maybe dma related,maybe my board problem
+    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S1 D(2,7,7) UP217
+    DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S2 D(2,2,0) UP217
+    DEF_TIM(TIM1,  CH3N, PB15, TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S3 D(2,6,0) UP256
+    DEF_TIM(TIM1,  CH1,  PA8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 1), // S4 D(2,1,6) UP256
+
+    DEF_TIM(TIM2,  CH4,  PB11, TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S5 D(1,7,3) UP173
+    DEF_TIM(TIM2,  CH3,  PB10, TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S6 D(1,1,3) UP173
+    DEF_TIM(TIM2,  CH2,  PB3,  TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S7 D(1,6,3) UP173
+    DEF_TIM(TIM2,  CH1,  PA15, TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S8 D(1,5,3) UP173
+#else
     DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S1 D(2,7,7) UP217
     DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S2 D(2,2,0) UP217
     DEF_TIM(TIM1,  CH3N, PB15, TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   0, 0), // S3 D(2,6,0) UP256
@@ -34,7 +46,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2,  CH3,  PB10, TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   0, 0), // S6 D(1,1,3) UP173
     DEF_TIM(TIM2,  CH2,  PB3,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   0, 0), // S7 D(1,6,3) UP173
     DEF_TIM(TIM2,  CH1,  PA15, TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   0, 0), // S8 D(1,5,3) UP173
-
+#endif
     DEF_TIM(TIM12, CH1,  PB14, TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S9  DMA NONE
     DEF_TIM(TIM13, CH1,  PA6,  TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S10 DMA NONE
     DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S11 D(1,0,2)
