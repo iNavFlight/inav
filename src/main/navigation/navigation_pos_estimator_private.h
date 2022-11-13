@@ -44,6 +44,7 @@
 #define INAV_BARO_TIMEOUT_MS                200     // Baro timeout
 #define INAV_SURFACE_TIMEOUT_MS             400     // Surface timeout    (missed 3 readings in a row)
 #define INAV_FLOW_TIMEOUT_MS                200
+#define INAV_GPS_COG_MAX_UPDATE_TIME_MS     200     // max allowed GPS update period when using GPS ground course directly for FW Nav
 
 #define CALIBRATING_GRAVITY_TIME_MS         2000
 
@@ -125,6 +126,9 @@ typedef struct {
 
     // FLOW
     float                   flowCoordinates[2];
+
+    // COURSE
+    int16_t     cog;    // course over ground (decidegrees)
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {

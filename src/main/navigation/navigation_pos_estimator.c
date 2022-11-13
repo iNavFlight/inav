@@ -121,6 +121,18 @@ static bool shouldResetReferenceAltitude(void)
     return false;
 }
 
+static bool navIsHeadingUsable(void)
+{
+    if (sensors(SENSOR_GPS)) {
+        // If we have GPS - we need true IMU north (valid heading)
+        return isImuHeadingValid();
+    }
+    else {
+        // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
+        return isImuHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
+    }
+}
+
 #if defined(USE_GPS)
 /* Why is this here: Because GPS will be sending at quiet a nailed rate (if not overloaded by junk tasks at the brink of its specs)
  * but we might read out with timejitter because Irq might be off by a few us so we do a +-10% margin around the time between GPS
@@ -293,6 +305,25 @@ void onNewGPSData(void)
     }
     else {
         posEstimator.gps.lastUpdateTime = 0;
+    }
+}
+
+void updatePositionEstimator_gpsGroundCourseTopic(void)
+{
+    if (STATE(GPS_FIX) && navIsHeadingUsable()) {
+        static float lastPositionX = 0;
+        static float lastPositionY = 0;
+
+        if(gpsStats.lastMessageDt <= INAV_GPS_COG_MAX_UPDATE_TIME_MS) {  // use GPS ground course directly if GPS update frequency at least 5Hz
+            posEstimator.est.cog = gpsSol.groundCourse;
+        } else {
+            float deltaPosX = posEstimator.est.pos.x - lastPositionX;
+            float deltaPosY = posEstimator.est.pos.y - lastPositionY;
+            uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaPosY, deltaPosX)));
+            posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
+        }
+        lastPositionX = posEstimator.est.pos.x;
+        lastPositionY = posEstimator.est.pos.y;
     }
 }
 #endif
@@ -472,18 +503,6 @@ float updateEPE(const float oldEPE, const float dt, const float newEPE, const fl
 static bool navIsAccelerationUsable(void)
 {
     return true;
-}
-
-static bool navIsHeadingUsable(void)
-{
-    if (sensors(SENSOR_GPS)) {
-        // If we have GPS - we need true IMU north (valid heading)
-        return isImuHeadingValid();
-    }
-    else {
-        // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
-        return isImuHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
-    }
 }
 
 static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
@@ -775,8 +794,8 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
     static navigationTimer_t posPublishTimer;
 
     /* IMU operates in decidegrees while INAV operates in deg*100
-     * Use GPS course over ground for fixed wing navigation yaw/heading when possible */
-    int16_t yawValue = isGPSHeadingValid() && STATE(AIRPLANE) ? gpsSol.groundCourse : attitude.values.yaw;
+     * Use course over ground for fixed wing navigation yaw/"heading" */
+    int16_t yawValue = isGPSHeadingValid() && STATE(AIRPLANE) ? posEstimator.est.cog : attitude.values.yaw;
     updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(yawValue));
 
     /* Position and velocity are published with INAV_POSITION_PUBLISH_RATE_HZ */
