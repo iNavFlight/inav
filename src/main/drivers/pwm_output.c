@@ -113,10 +113,6 @@ static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
 static currentExecutingCommand_t currentExecutingCommand;
 #endif
 
-void resetAllocatedOutputPortCount(void){
-    allocatedOutputPortCount = 0;
-}
-
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
     p->tch = tch;

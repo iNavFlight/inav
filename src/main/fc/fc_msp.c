@@ -3132,7 +3132,6 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, MAX_MIXER_PROFILE_COUNT);
         break;
     }
-    
 
     // If the setting uses a table, send each possible string (null terminated)
     if (SETTING_MODE(setting) == MODE_LOOKUP) {

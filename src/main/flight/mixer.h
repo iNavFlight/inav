@@ -25,7 +25,6 @@
 #define MAX_SUPPORTED_MOTORS 12
 #endif
 
-
 // Digital protocol has fixed values
 #define DSHOT_DISARM_COMMAND      0
 #define DSHOT_MIN_THROTTLE       48
@@ -63,8 +62,6 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
-// PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
-
 typedef struct mixerConfig_s {
     int8_t motorDirectionInverted;
     uint8_t platformType;
@@ -72,22 +69,6 @@ typedef struct mixerConfig_s {
     int16_t appliedMixerPreset;
     uint8_t outputMode;
 } mixerConfig_t;
-
-// typedef struct mixerProfile_s {
-//     int8_t motorDirectionInverted;
-//     uint8_t platformType;
-//     bool hasFlaps;
-//     int16_t appliedMixerPreset;
-//     uint8_t outputMode;
-//     motorMixer_t MotorMixer[MAX_SUPPORTED_MOTORS];
-// } mixerProfile_t;
-
-// PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
-// #define mixerConfig() mixerProfiles(systemConfig()->current_mixer_profile_index)
-// #define mixerConfigMutable() ((mixerProfile_t *)mixerConfig())
-// #define primaryMotorMixer(_index) (&((mixerConfig()->MotorMixer)[_index]))
-// #define primaryMotorMixerMutable(_index) ((motorMixer_t *)primaryMotorMixer(_index))
-// extern motorMixer_t primaryMotorMixer_CopyArray[12];
 
 typedef struct reversibleMotorsConfig_s {
     uint16_t deadband_low;                // min 3d value
@@ -142,7 +123,6 @@ void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
 void processContinuousServoAutotrim(const float dT);
 void stopMotors(void);
-void stopAndDisableMotors(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);

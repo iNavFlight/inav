@@ -26,7 +26,7 @@
 
 timerHardware_t timerHardware[] = {
 #ifdef MATEKF405TE_SD_VTOL
-//using d-shot on motors seems to have problems on s3,maybe dma related,maybe my board problem
+//With INAV firmware, DSHOT can not work on S3, S5,S7 because of DMA clash,  pls use ONESHOT or MULTISHOT and calibrate ESC PWM range.<-copied from matek website
     DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S1 D(2,7,7) UP217
     DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S2 D(2,2,0) UP217
     DEF_TIM(TIM1,  CH3N, PB15, TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S3 D(2,6,0) UP256

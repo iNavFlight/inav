@@ -59,13 +59,54 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
     }
 }
 
-// PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
+static int computeMotorCountByMixerProfileIndex(int index)
+{
+    int motorCount = 0;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        // check if done
+        if (mixerMotorMixersByIndex(index)[i]->throttle == 0.0f) {
+            break;
+        }
+        motorCount++;
+    }
+    return motorCount;
+}
+
+static int computeServoCountByMixerProfileIndex(int index)
+{
+    int servoRuleCount = 0;
+    int minServoIndex = 255;
+    int maxServoIndex = 0;
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        // check if done
+        if (mixerServoMixersByIndex(index)[i]->rate == 0)
+            break;
+
+        if (mixerServoMixersByIndex(index)[i]->targetChannel < minServoIndex) {
+            minServoIndex = mixerServoMixersByIndex(index)[i]->targetChannel;
+        }
+
+        if (mixerServoMixersByIndex(index)[i]->targetChannel > maxServoIndex) {
+            maxServoIndex = mixerServoMixersByIndex(index)[i]->targetChannel;
+        }
+        servoRuleCount++;
+    }
+    if (servoRuleCount) {
+        return 1 + maxServoIndex - minServoIndex;
+    }
+    else {
+        return 0;
+    }
+}
 
 bool OutputProfileHotSwitch(int profile_index)
 {
     // does not work with timerHardwareOverride
     LOG_INFO(PWM, "OutputProfileHotSwitch");
-
+    if (profile_index >= MAX_MIXER_PROFILE_COUNT) {// sanity check
+        LOG_INFO(PWM, "invalid profile index");
+        return false;
+    }
     //do not allow switching between multi rotor and non multi rotor
 #ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
     bool MCFW_hotswap_unavailable = false;
@@ -88,8 +129,12 @@ bool OutputProfileHotSwitch(int profile_index)
         LOG_INFO(PWM, "navModesEnabled");
         return false;
     }
-    //TODO add check of each motor/servo is mapped before and after the switch
-    
+    //do not allow switching if motor or servos counts has changed
+    if ((getMotorCount() != computeMotorCountByMixerProfileIndex(profile_index)) || (getServoCount() != computeServoCountByMixerProfileIndex(profile_index)))
+    {
+        LOG_INFO(PWM, "motor/servo count will change");
+        return false;
+    }
     if (!setConfigMixerProfile(profile_index)){
         LOG_INFO(PWM, "failed to set config");
         return false;
@@ -110,47 +155,47 @@ bool OutputProfileHotSwitch(int profile_index)
     return true;
 }
 
-int min_ab(int a,int b)
-{
-    return a > b ? b : a;
-}
+// static int min_ab(int a,int b)
+// {
+//     return a > b ? b : a;
+// }
 
-void checkOutputMapping(int profile_index)//debug purpose
-{
-    timMotorServoHardware_t old_timOutputs;
-    pwmBuildTimerOutputList(&old_timOutputs, isMixerUsingServos());
-    stopMotors();
-    delay(1000); //check motor stop
-    if (!setConfigMixerProfile(profile_index)){
-        LOG_INFO(PWM, "failed to set config");
-        return;
-    }
-    servosInit();
-    mixerUpdateStateFlags();
-    mixerInit();
-    timMotorServoHardware_t timOutputs;
-    pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
-    bool motor_output_type_not_changed = old_timOutputs.maxTimMotorCount == timOutputs.maxTimMotorCount;
-    bool servo_output_type_not_changed = old_timOutputs.maxTimServoCount == timOutputs.maxTimServoCount;
-    LOG_INFO(PWM, "maxTimMotorCount:%d,%d",old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount);
-    for (int i; i < min_ab(old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount); i++)
-    {
-        LOG_INFO(PWM, "motor_output_type_not_changed:%d,%d",i,motor_output_type_not_changed);
-        motor_output_type_not_changed &= old_timOutputs.timMotors[i]->tag==timOutputs.timMotors[i]->tag;
-    }
-    LOG_INFO(PWM, "motor_output_type_not_changed:%d",motor_output_type_not_changed);
+// void checkOutputMapping(int profile_index)//debug purpose
+// {
+//     timMotorServoHardware_t old_timOutputs;
+//     pwmBuildTimerOutputList(&old_timOutputs, isMixerUsingServos());
+//     stopMotors();
+//     delay(1000); //check motor stop
+//     if (!setConfigMixerProfile(profile_index)){
+//         LOG_INFO(PWM, "failed to set config");
+//         return;
+//     }
+//     servosInit();
+//     mixerUpdateStateFlags();
+//     mixerInit();
+//     timMotorServoHardware_t timOutputs;
+//     pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
+//     bool motor_output_type_not_changed = old_timOutputs.maxTimMotorCount == timOutputs.maxTimMotorCount;
+//     bool servo_output_type_not_changed = old_timOutputs.maxTimServoCount == timOutputs.maxTimServoCount;
+//     LOG_INFO(PWM, "maxTimMotorCount:%d,%d",old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount);
+//     for (int i; i < min_ab(old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount); i++)
+//     {
+//         LOG_INFO(PWM, "motor_output_type_not_changed:%d,%d",i,motor_output_type_not_changed);
+//         motor_output_type_not_changed &= old_timOutputs.timMotors[i]->tag==timOutputs.timMotors[i]->tag;
+//     }
+//     LOG_INFO(PWM, "motor_output_type_not_changed:%d",motor_output_type_not_changed);
 
-    LOG_INFO(PWM, "maxTimServoCount:%d,%d",old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount);
-    for (int i; i < min_ab(old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount); i++)
-    {
-        LOG_INFO(PWM, "servo_output_type_not_changed:%d,%d",i,servo_output_type_not_changed);
-        servo_output_type_not_changed &= old_timOutputs.timServos[i]->tag==timOutputs.timServos[i]->tag;
-    }
-    LOG_INFO(PWM, "servo_output_type_not_changed:%d",servo_output_type_not_changed);
+//     LOG_INFO(PWM, "maxTimServoCount:%d,%d",old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount);
+//     for (int i; i < min_ab(old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount); i++)
+//     {
+//         LOG_INFO(PWM, "servo_output_type_not_changed:%d,%d",i,servo_output_type_not_changed);
+//         servo_output_type_not_changed &= old_timOutputs.timServos[i]->tag==timOutputs.timServos[i]->tag;
+//     }
+//     LOG_INFO(PWM, "servo_output_type_not_changed:%d",servo_output_type_not_changed);
 
-    if(!motor_output_type_not_changed || !servo_output_type_not_changed){
-        LOG_INFO(PWM, "pwm output mapping has changed");
-    }
-}
+//     if(!motor_output_type_not_changed || !servo_output_type_not_changed){
+//         LOG_INFO(PWM, "pwm output mapping has changed");
+//     }
+// }
 
 

@@ -81,7 +81,6 @@ bool cliMode = false;
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-// #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
@@ -283,7 +282,6 @@ typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
     DUMP_BATTERY_PROFILE = (1 << 2),
-    // DUMP_RATES = (1 << 3),
     DUMP_MIXER_PROFILE = (1 << 3),
     DUMP_ALL = (1 << 4),
     DO_DIFF = (1 << 5),
@@ -1864,7 +1862,6 @@ static void cliServoMix(char *cmdline)
         printServoMix(DUMP_MASTER, customServoMixers(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
-        // pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
         Reset_servoMixers(customServoMixersMutable(0));
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
@@ -3626,17 +3623,6 @@ static void printConfig(const char *cmdline, bool doDiff)
         }
 
         cliPrintHashLine("resources");
-        // printResource(dumpMask, &defaultConfig);
-
-        // cliPrintHashLine("mixer");
-        // cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
-
-        // printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
-
-        // print custom servo mixer if exists
-        // cliPrintHashLine("servo mixer");
-        // cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
-        // printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters
         cliPrintHashLine("servo");
@@ -3720,44 +3706,45 @@ static void printConfig(const char *cmdline, bool doDiff)
             const int currentProfileIndexSave = getConfigProfile();
             const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
             const int currentMixerProfileIndexSave = getConfigMixerProfile();
+            for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
+                cliDumpMixerProfile(ii, dumpMask);
+            }
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
             for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
                 cliDumpBatteryProfile(ii, dumpMask);
             }
-            for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
-                cliDumpMixerProfile(ii, dumpMask);
-            }
             setConfigProfile(currentProfileIndexSave);
             setConfigBatteryProfile(currentBatteryProfileIndexSave);
             setConfigMixerProfile(currentMixerProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
-            cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
+            cliPrintLinef("profile %d", currentProfileIndexSave + 1);
+            cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
 #ifdef USE_CLI_BATCH
             batchModeEnabled = false;
 #endif
         } else {
             // dump just the current profiles
+            cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
             cliDumpProfile(getConfigProfile(), dumpMask);
             cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
-            cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
         }
     }
 
+    if (dumpMask & DUMP_MIXER_PROFILE) {
+        cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
+    }
+    
     if (dumpMask & DUMP_PROFILE) {
         cliDumpProfile(getConfigProfile(), dumpMask);
     }
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
         cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
-    }
-
-    if (dumpMask & DUMP_MIXER_PROFILE) {
-        cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
     }
 
     if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {

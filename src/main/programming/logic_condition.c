@@ -46,14 +46,10 @@
 #include "sensors/rangefinder.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "flight/mixer_profile.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
-
-#include "flight/mixer_profile.h"
-#include "flight/mixer.h"
-#include "flight/servos.h"
-#include "drivers/pwm_mapping.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
