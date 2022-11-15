@@ -62,9 +62,10 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 static int computeMotorCountByMixerProfileIndex(int index)
 {
     int motorCount = 0;
+    const motorMixer_t* temp_motormixers=mixerMotorMixersByIndex(index)[0];
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         // check if done
-        if (mixerMotorMixersByIndex(index)[i]->throttle == 0.0f) {
+        if (temp_motormixers[i].throttle == 0.0f) {
             break;
         }
         motorCount++;
@@ -77,18 +78,24 @@ static int computeServoCountByMixerProfileIndex(int index)
     int servoRuleCount = 0;
     int minServoIndex = 255;
     int maxServoIndex = 0;
+
+    const servoMixer_t* temp_servomixers=mixerServoMixersByIndex(index)[0];
     for (int i = 0; i < MAX_SERVO_RULES; i++) {
-        // check if done
-        if (mixerServoMixersByIndex(index)[i]->rate == 0)
+        // mixerServoMixersByIndex(index)[i]->targetChannel will occour problem after i=1
+        // LOG_INFO(PWM, "i:%d, targetChannel:%d, inputSource:%d, rate:%d",i,mixerServoMixersByIndex(index)[i]->targetChannel,mixerServoMixersByIndex(index)[i]->inputSource,mixerServoMixersByIndex(index)[i]->rate);
+        // LOG_INFO(PWM, "i:%d, targetChannel:%d, inputSource:%d, rate:%d",i,mixerProfiles_SystemArray[index].ServoMixers[i].targetChannel,mixerProfiles_SystemArray[index].ServoMixers[i].inputSource,mixerProfiles_SystemArray[index].ServoMixers[i].rate);
+        // LOG_INFO(PWM, "i:%d, targetChannel:%d, inputSource:%d, rate:%d",i,temp_servomixers[i].targetChannel,temp_servomixers[i].inputSource,temp_servomixers[i].rate);
+        if (temp_servomixers[i].rate == 0)
             break;
 
-        if (mixerServoMixersByIndex(index)[i]->targetChannel < minServoIndex) {
-            minServoIndex = mixerServoMixersByIndex(index)[i]->targetChannel;
+        if (temp_servomixers[i].targetChannel < minServoIndex) {
+            minServoIndex = temp_servomixers[i].targetChannel;
         }
 
-        if (mixerServoMixersByIndex(index)[i]->targetChannel > maxServoIndex) {
-            maxServoIndex = mixerServoMixersByIndex(index)[i]->targetChannel;
+        if (temp_servomixers[i].targetChannel > maxServoIndex) {
+            maxServoIndex = temp_servomixers[i].targetChannel;
         }
+        // LOG_INFO(PWM, "i:%d, minServoIndex:%d, maxServoIndex:%d",i,minServoIndex,maxServoIndex);
         servoRuleCount++;
     }
     if (servoRuleCount) {
@@ -103,8 +110,13 @@ bool OutputProfileHotSwitch(int profile_index)
 {
     // does not work with timerHardwareOverride
     LOG_INFO(PWM, "OutputProfileHotSwitch");
-    if (profile_index >= MAX_MIXER_PROFILE_COUNT) {// sanity check
-        LOG_INFO(PWM, "invalid profile index");
+    if (profile_index < 0 || profile_index >= MAX_MIXER_PROFILE_COUNT)
+    { // sanity check
+        LOG_INFO(PWM, "invalid mixer profile index");
+        return false;
+    }
+    if (getConfigMixerProfile() == profile_index)
+    {
         return false;
     }
     //do not allow switching between multi rotor and non multi rotor
@@ -120,33 +132,36 @@ bool OutputProfileHotSwitch(int profile_index)
     bool is_mcfw_switching = old_platform_type_mc ^ new_platform_type_mc;
     if (MCFW_hotswap_unavailable && is_mcfw_switching)
     {
-        LOG_INFO(PWM, "MCFW_hotswap_unavailable");
+        LOG_INFO(PWM, "mixer MCFW_hotswap_unavailable");
         return false;
     }
 
     //do not allow switching in navigation mode
     if (ARMING_FLAG(ARMED) && navigationInAnyMode()){
-        LOG_INFO(PWM, "navModesEnabled");
+        LOG_INFO(PWM, "mixer switch navModesEnabled");
         return false;
     }
     //do not allow switching if motor or servos counts has changed
     if ((getMotorCount() != computeMotorCountByMixerProfileIndex(profile_index)) || (getServoCount() != computeServoCountByMixerProfileIndex(profile_index)))
     {
-        LOG_INFO(PWM, "motor/servo count will change");
+        LOG_INFO(PWM, "mixer switch motor/servo count will change");
+        // LOG_INFO(PWM, "old motor/servo count:%d,%d",getMotorCount(),getServoCount());
+        // LOG_INFO(PWM, "new motor/servo count:%d,%d",computeMotorCountByMixerProfileIndex(profile_index),computeServoCountByMixerProfileIndex(profile_index));
         return false;
     }
     if (!setConfigMixerProfile(profile_index)){
-        LOG_INFO(PWM, "failed to set config");
+        LOG_INFO(PWM, "mixer switch failed to set config");
         return false;
     }
     // stopMotors();
-    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);//stop motors with out delay
+    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);//stop motors without delay
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
 
     if(old_platform_type!=mixerConfig()->platformType)
-    {
+    {   
+        LOG_INFO(PWM, "mixer switch pidInit");
         pidInit();
         pidInitFilters();
         schedulePidGainsUpdate();
