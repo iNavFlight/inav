@@ -2640,10 +2640,17 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * Reverts to normal RTH heading direct to home when end of track reached.
  * Trackpoints logged with precedence for course/altitude changes. Distance based changes
  * only logged if no course/altitude changes logged over an extended distance.
+ * Tracking suspended during fixed wing loiter (PosHold and WP Mode timed hold).
  * --------------------------------------------------------------------------------- */
  static void updateRthTrackback(bool forceSaveTrackPoint)
 {
-    if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED)) {
+    static bool suspendTracking = false;
+    bool fwLoiterIsActive = STATE(AIRPLANE) && (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED || FLIGHT_MODE(NAV_POSHOLD_MODE));
+    if (!fwLoiterIsActive && suspendTracking) {
+        suspendTracking = false;
+    }
+
+    if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED || suspendTracking)) {
         return;
     }
 
@@ -2691,6 +2698,11 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
                 // if no reliable course revert to basic distance logging based on direct distance from last point - set to 20m
                 saveTrackpoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]) > METERS_TO_CENTIMETERS(20);
                 previousTBTripDist = posControl.totalTripDistance;
+            }
+
+            // Suspend tracking during loiter on fixed wing. Save trackpoint at start of loiter.
+            if (distanceCounter && fwLoiterIsActive) {
+                saveTrackpoint = suspendTracking = true;
             }
         }
 
