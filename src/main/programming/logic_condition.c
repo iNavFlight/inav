@@ -688,6 +688,10 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return IS_RC_MODE_ACTIVE(BOXUSER3);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER4:
+            return IS_RC_MODE_ACTIVE(BOXUSER4);
+            break;
+
         default:
             return 0;
             break;
