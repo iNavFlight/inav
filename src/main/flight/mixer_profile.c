@@ -186,13 +186,17 @@ bool OutputProfileHotSwitch(int profile_index)
     mixerUpdateStateFlags();
     mixerInit();
 
-    if(old_platform_type!=mixerConfig()->platformType && CheckIfPidInitNeededInSwitch())
-    {   
-        LOG_INFO(PWM, "mixer switch pidInit");
-        pidInit();
-        pidInitFilters();
-        schedulePidGainsUpdate();
-        // navigationInit(); //may need to initilize FW_HEADING_USE_YAW on rover or boat
+    if(old_platform_type!=mixerConfig()->platformType)
+    {
+        navigationYawControlInit();
+        if (CheckIfPidInitNeededInSwitch())
+        {
+            LOG_INFO(PWM, "mixer switch pidInit");
+            pidInit();
+            pidInitFilters();
+            schedulePidGainsUpdate();
+            navigationUsePIDs();
+        }
     }
     return true;
 }

@@ -4108,6 +4108,18 @@ void navigationUsePIDs(void)
     );
 }
 
+void navigationYawControlInit(void){
+    if (
+        mixerConfig()->platformType == PLATFORM_BOAT ||
+        mixerConfig()->platformType == PLATFORM_ROVER ||
+        navConfig()->fw.useFwNavYawControl
+    ) {
+        ENABLE_STATE(FW_HEADING_USE_YAW);
+    } else {
+        DISABLE_STATE(FW_HEADING_USE_YAW);
+    }
+}
+
 void navigationInit(void)
 {
     /* Initial state */
@@ -4141,16 +4153,8 @@ void navigationInit(void)
 
     /* Use system config */
     navigationUsePIDs();
-
-    if (
-        mixerConfig()->platformType == PLATFORM_BOAT ||
-        mixerConfig()->platformType == PLATFORM_ROVER ||
-        navConfig()->fw.useFwNavYawControl
-    ) {
-        ENABLE_STATE(FW_HEADING_USE_YAW);
-    } else {
-        DISABLE_STATE(FW_HEADING_USE_YAW);
-    }
+    navigationYawControlInit();
+    
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
     /* configure WP missions at boot */
 #ifdef USE_MULTI_MISSION
