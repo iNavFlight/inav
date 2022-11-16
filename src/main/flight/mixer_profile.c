@@ -15,13 +15,15 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
-#include "common/log.h"
-
+#include "programming/logic_condition.h"
 #include "navigation/navigation.h"
+
+#include "common/log.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
 
@@ -106,6 +108,29 @@ static int computeServoCountByMixerProfileIndex(int index)
     }
 }
 
+//pid init will be done by the following pid profile change
+static bool CheckIfPidInitNeededInSwitch(void)
+{
+    static bool ret = true;
+    if (!ret)
+    {
+        return false;
+    }
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++)
+    {
+        const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+        const logicOperand_t *operandA = &(logicConditions(i)->operandA);
+        if (logicConditions(i)->enabled && activatorValue && logicConditions(i)->operation == LOGIC_CONDITION_SET_PROFILE &&
+            operandA->type == LOGIC_CONDITION_OPERAND_TYPE_FLIGHT && operandA->value == LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE &&
+            logicConditions(i)->flags == 0)
+        {
+            ret = false;
+            return false;
+        }
+    }
+    return true;
+}
+
 bool OutputProfileHotSwitch(int profile_index)
 {
     // does not work with timerHardwareOverride
@@ -117,6 +142,14 @@ bool OutputProfileHotSwitch(int profile_index)
     }
     if (getConfigMixerProfile() == profile_index)
     {
+        return false;
+    }
+    if (areSensorsCalibrating()) {//it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D
+        return false;
+    }
+    //do not allow switching in navigation mode
+    if (ARMING_FLAG(ARMED) && navigationInAnyMode()){
+        LOG_INFO(PWM, "mixer switch failed, navModesEnabled");
         return false;
     }
     //do not allow switching between multi rotor and non multi rotor
@@ -135,16 +168,10 @@ bool OutputProfileHotSwitch(int profile_index)
         LOG_INFO(PWM, "mixer MCFW_hotswap_unavailable");
         return false;
     }
-
-    //do not allow switching in navigation mode
-    if (ARMING_FLAG(ARMED) && navigationInAnyMode()){
-        LOG_INFO(PWM, "mixer switch navModesEnabled");
-        return false;
-    }
     //do not allow switching if motor or servos counts has changed
     if ((getMotorCount() != computeMotorCountByMixerProfileIndex(profile_index)) || (getServoCount() != computeServoCountByMixerProfileIndex(profile_index)))
     {
-        LOG_INFO(PWM, "mixer switch motor/servo count will change");
+        LOG_INFO(PWM, "mixer switch failed, motor/servo count will change");
         // LOG_INFO(PWM, "old motor/servo count:%d,%d",getMotorCount(),getServoCount());
         // LOG_INFO(PWM, "new motor/servo count:%d,%d",computeMotorCountByMixerProfileIndex(profile_index),computeServoCountByMixerProfileIndex(profile_index));
         return false;
@@ -159,7 +186,7 @@ bool OutputProfileHotSwitch(int profile_index)
     mixerUpdateStateFlags();
     mixerInit();
 
-    if(old_platform_type!=mixerConfig()->platformType)
+    if(old_platform_type!=mixerConfig()->platformType && CheckIfPidInitNeededInSwitch())
     {   
         LOG_INFO(PWM, "mixer switch pidInit");
         pidInit();
