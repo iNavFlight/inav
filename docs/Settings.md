@@ -1518,7 +1518,7 @@ Gyro scale apply for axis X, 10000 is 100% no scaling
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10000 | 7500 | 12500 |
+| 0 | -2500 | 2500 |
 
 ---
 
@@ -1528,7 +1528,7 @@ Gyro scale apply for axis Y, 10000 is 100% no scaling
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10000 | 7500 | 12500 |
+| 0 | -2500 | 2500 |
 
 ---
 
@@ -1538,7 +1538,7 @@ Gyro scale apply for axis Z, 10000 is 100% no scaling
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10000 | 7500 | 12500 |
+| 0 | -2500 | 2500 |
 
 ---
 

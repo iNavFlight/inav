@@ -87,7 +87,7 @@ STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
 STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
-FASTRAM float runtime_gyro_scale[XYZ_AXIS_COUNT];
+FASTRAM float runtime_gyro_scale[XYZ_AXIS_COUNT] = {1.0f, 1.0f, 1.0f};
 
 #ifdef USE_DYNAMIC_FILTERS
 
@@ -313,9 +313,9 @@ bool gyroInit(void)
     );
 #endif
     // calculate custom scale
-    runtime_gyro_scale[X]=gyroConfig()->gyro_scale_cal[X] / 10000.0f;
-    runtime_gyro_scale[Y]=gyroConfig()->gyro_scale_cal[Y] / 10000.0f;
-    runtime_gyro_scale[Z]=gyroConfig()->gyro_scale_cal[Z] / 10000.0f;
+    runtime_gyro_scale[X] = (gyroConfig()->gyro_scale_cal[X]) / 10000.0f + 1.0f;
+    runtime_gyro_scale[Y] = (gyroConfig()->gyro_scale_cal[Y]) / 10000.0f + 1.0f;
+    runtime_gyro_scale[Z] = (gyroConfig()->gyro_scale_cal[Z]) / 10000.0f + 1.0f;
     return true;
 }
 
