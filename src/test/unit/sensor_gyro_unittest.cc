@@ -20,7 +20,6 @@
 
 #include <limits.h>
 #include <algorithm>
-#include <iostream>
 
 extern "C" {
     #include <platform.h>

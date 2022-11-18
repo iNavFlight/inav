@@ -1514,7 +1514,7 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 
 ### gyro_scale_x
 
-Gyro scale apply for axis X, 10000 is 100% no scaling
+Gyro scale apply for axis X, 0 is 100% no scaling, 1000 is 110% scaling
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1524,7 +1524,7 @@ Gyro scale apply for axis X, 10000 is 100% no scaling
 
 ### gyro_scale_y
 
-Gyro scale apply for axis Y, 10000 is 100% no scaling
+Gyro scale apply for axis Y, 0 is 100% no scaling, 500 is 105% scaling
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1534,7 +1534,7 @@ Gyro scale apply for axis Y, 10000 is 100% no scaling
 
 ### gyro_scale_z
 
-Gyro scale apply for axis Z, 10000 is 100% no scaling
+Gyro scale apply for axis Z, 0 is 100% no scaling, -1000 is 90% scaling
 
 | Default | Min | Max |
 | --- | --- | --- |
