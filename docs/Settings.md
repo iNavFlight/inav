@@ -3902,6 +3902,16 @@ Max pitch, in degrees, for OSD artificial horizon
 
 ---
 
+### osd_ahi_pitch_interval
+
+Draws AHI at increments of the set pitch interval over the full pitch range. AHI line is drawn with ends offset when pitch first exceeds interval with offset increasing with increasing pitch. Offset direction changes between climb and dive. Set to 0 to disable (Not for pixel OSD)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30 |
+
+---
+
 ### osd_ahi_reverse_roll
 
 Switches the artificial horizon in the OSD to instead be a bank indicator, by reversing the direction of its movement.
