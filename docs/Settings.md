@@ -3908,7 +3908,7 @@ Draws AHI at increments of the set pitch interval over the full pitch range. AHI
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 30 |
+| 0 | 0 | 30 |
 
 ---
 
