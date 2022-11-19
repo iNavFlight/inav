@@ -75,6 +75,7 @@ static mspPort_t mspPort;
 static displayPort_t mspOsdDisplayPort;
 static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
+static timeMs_t sendPFrame = 0;
 
 // PAL screen size
 #define PAL_COLS 30
@@ -297,6 +298,11 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
     }
 
+    if (osdConfig()->msp_displayport_pframe_interval > 0 && millis() > sendPFrame) {
+        BITARRAY_SET_ALL(dirty);
+        sendPFrame = millis() + (osdConfig()->msp_displayport_pframe_interval * 1000);
+    }
+
     if (vtxReset) {
         clearScreen(displayPort);
         vtxReset = false;
@@ -434,6 +440,11 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             currentOsdMode = HD_6022;
             screenRows = DJI_ROWS;
             screenCols = DJI_COLS;
+            break;
+        case VIDEO_SYSTEM_AVATAR:
+            currentOsdMode = HD_5018;
+            screenRows = AVATAR_ROWS;
+            screenCols = AVATAR_COLS;
             break;
         default:
             break;
