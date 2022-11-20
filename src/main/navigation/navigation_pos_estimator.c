@@ -308,22 +308,19 @@ void onNewGPSData(void)
     }
 }
 
-void updatePositionEstimator_gpsGroundCourseTopic(void)
+void updatePositionEstimator_gpsGroundCourseTopic(timeUs_t currentTimeUs)
 {
     if (STATE(GPS_FIX) && navIsHeadingUsable()) {
-        static float lastPositionX = 0;
-        static float lastPositionY = 0;
+        static timeUs_t lastUpdateTimeUs = 0;
 
-        if(gpsStats.lastMessageDt <= INAV_GPS_COG_MAX_UPDATE_TIME_MS) {  // use GPS ground course directly if GPS update frequency at least 5Hz
+        if(gpsStats.lastMessageDt <= INAV_GPS_COG_MAX_UPDATE_TIME_MS) {  // use GPS ground course directly if GPS update rate at least 5Hz
             posEstimator.est.cog = gpsSol.groundCourse;
         } else {
-            float deltaPosX = posEstimator.est.pos.x - lastPositionX;
-            float deltaPosY = posEstimator.est.pos.y - lastPositionY;
-            uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(deltaPosY, deltaPosX)));
+            const float dt = US2S(currentTimeUs - lastUpdateTimeUs);
+            uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(posEstimator.est.vel.y * dt, posEstimator.est.vel.x * dt)));
             posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
         }
-        lastPositionX = posEstimator.est.pos.x;
-        lastPositionY = posEstimator.est.pos.y;
+        lastUpdateTimeUs = currentTimeUs;
     }
 }
 #endif

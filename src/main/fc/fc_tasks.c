@@ -163,7 +163,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
 
     if (sensors(SENSOR_GPS)) {
         updateGpsIndicator(currentTimeUs);
-        updatePositionEstimator_gpsGroundCourseTopic();
+        updatePositionEstimator_gpsGroundCourseTopic(currentTimeUs);
     }
 }
 #endif
