@@ -1178,6 +1178,11 @@ groups:
         default_value: "AUTO"
         field: mixer_config.outputMode
         table: output_mode
+      - name: motorstop_feature
+        description: "If enabled, motor will stop when throttle is low"
+        default_value: OFF
+        field: mixer_config.motorstopFeature
+        type: bool
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t

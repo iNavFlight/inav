@@ -68,6 +68,7 @@ typedef struct mixerConfig_s {
     bool hasFlaps;
     int16_t appliedMixerPreset;
     uint8_t outputMode;
+    bool motorstopFeature;
 } mixerConfig_t;
 
 typedef struct reversibleMotorsConfig_s {
@@ -106,6 +107,7 @@ extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern int mixerThrottleCommand;
 
+bool ifMotorstopFeatureEnabled(void);
 int getThrottleIdleValue(void);
 int16_t getThrottlePercent(void);
 uint8_t getMotorCount(void);

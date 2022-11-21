@@ -49,6 +49,7 @@
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -209,7 +210,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
     bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
     emergencyArmingUpdate(armingSwitchIsActive);
 
-    if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
+    if (STATE(AIRPLANE) && ifMotorstopFeatureEnabled() && armingConfig()->fixed_wing_auto_arm) {
         // Auto arm on throttle when using fixedwing and motorstop
         if (throttleStatus != THROTTLE_LOW) {
             tryArm();
