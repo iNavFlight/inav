@@ -121,18 +121,6 @@ static bool shouldResetReferenceAltitude(void)
     return false;
 }
 
-static bool navIsHeadingUsable(void)
-{
-    if (sensors(SENSOR_GPS)) {
-        // If we have GPS - we need true IMU north (valid heading)
-        return isImuHeadingValid();
-    }
-    else {
-        // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
-        return isImuHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
-    }
-}
-
 #if defined(USE_GPS)
 /* Why is this here: Because GPS will be sending at quiet a nailed rate (if not overloaded by junk tasks at the brink of its specs)
  * but we might read out with timejitter because Irq might be off by a few us so we do a +-10% margin around the time between GPS
@@ -305,22 +293,6 @@ void onNewGPSData(void)
     }
     else {
         posEstimator.gps.lastUpdateTime = 0;
-    }
-}
-
-void updatePositionEstimator_gpsGroundCourseTopic(timeUs_t currentTimeUs)
-{
-    if (STATE(GPS_FIX) && navIsHeadingUsable()) {
-        static timeUs_t lastUpdateTimeUs = 0;
-
-        if(gpsStats.lastMessageDt <= INAV_GPS_COG_MAX_UPDATE_TIME_MS) {  // use GPS ground course directly if GPS update rate at least 5Hz
-            posEstimator.est.cog = gpsSol.groundCourse;
-        } else {
-            const float dt = US2S(currentTimeUs - lastUpdateTimeUs);
-            uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(posEstimator.est.vel.y * dt, posEstimator.est.vel.x * dt)));
-            posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
-        }
-        lastUpdateTimeUs = currentTimeUs;
     }
 }
 #endif
@@ -500,6 +472,18 @@ float updateEPE(const float oldEPE, const float dt, const float newEPE, const fl
 static bool navIsAccelerationUsable(void)
 {
     return true;
+}
+
+static bool navIsHeadingUsable(void)
+{
+    if (sensors(SENSOR_GPS)) {
+        // If we have GPS - we need true IMU north (valid heading)
+        return isImuHeadingValid();
+    }
+    else {
+        // If we don't have GPS - we may use whatever we have, other sensors are operating in body frame
+        return isImuHeadingValid() || positionEstimationConfig()->allow_dead_reckoning;
+    }
 }
 
 static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
@@ -702,6 +686,20 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
     return false;
 }
 
+static void estimationCalculateGroundCourse(timeUs_t currentTimeUs)
+{
+    if (STATE(GPS_FIX) && navIsHeadingUsable()) {
+        static timeUs_t lastUpdateTimeUs = 0;
+
+        if (currentTimeUs - lastUpdateTimeUs >= HZ2US(INAV_COG_UPDATE_RATE_HZ)) {   // limit update rate
+            const float dt = US2S(currentTimeUs - lastUpdateTimeUs);
+            uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(posEstimator.est.vel.y * dt, posEstimator.est.vel.x * dt)));
+            posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
+            lastUpdateTimeUs = currentTimeUs;
+        }
+    }
+}
+
 /**
  * Calculate next estimate using IMU and apply corrections from reference sensors (GPS, BARO etc)
  *  Function is called at main loop rate
@@ -773,6 +771,9 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
             posEstimator.imu.accelBias.z += ctx.accBiasCorr.z * positionEstimationConfig()->w_acc_bias * ctx.dt;
         }
     }
+
+    /* Update ground course */
+    estimationCalculateGroundCourse(currentTimeUs);
 
     /* Update uncertainty */
     posEstimator.est.eph = ctx.newEPH;

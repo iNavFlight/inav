@@ -39,12 +39,12 @@
 
 #define INAV_POSITION_PUBLISH_RATE_HZ       50      // Publish position updates at this rate
 #define INAV_PITOT_UPDATE_RATE              10
+#define INAV_COG_UPDATE_RATE_HZ             20      // ground course update rate
 
 #define INAV_GPS_TIMEOUT_MS                 1500    // GPS timeout
 #define INAV_BARO_TIMEOUT_MS                200     // Baro timeout
 #define INAV_SURFACE_TIMEOUT_MS             400     // Surface timeout    (missed 3 readings in a row)
 #define INAV_FLOW_TIMEOUT_MS                200
-#define INAV_GPS_COG_MAX_UPDATE_TIME_MS     200     // max allowed GPS update period when using GPS ground course directly for FW Nav
 
 #define CALIBRATING_GRAVITY_TIME_MS         2000
 
