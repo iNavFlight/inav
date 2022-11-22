@@ -442,6 +442,27 @@ void logicConditionProcess(uint8_t i) {
     }
 }
 
+static int logicConditionGetWaypointOperandValue(int operand) {
+
+    switch (operand) {
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_IS_WP: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_INDEX:
+            return NAV_Status.activeWpNumber;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_ACTION:
+            return NAV_Status.activeWpAction;
+            break;
+
+        default:
+            return 0;
+            break;
+    }
+}
+
 static int logicConditionGetFlightOperandValue(int operand) {
 
     switch (operand) {
@@ -555,10 +576,6 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return (navGetCurrentStateFlags() & NAV_AUTO_RTH) ? 1 : 0;
             break; 
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP: // 0/1
-            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
-            break; 
-
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
             return (navGetCurrentStateFlags() & NAV_CTL_LAND) ? 1 : 0;
             break;
@@ -577,14 +594,6 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
             return axisPID[PITCH];
-            break;
-
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX:
-            return NAV_Status.activeWpNumber;
-            break;
-
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
-            return NAV_Status.activeWpAction;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
@@ -738,6 +747,10 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
             if (operand >= 0 && operand < MAX_PROGRAMMING_PID_COUNT) {
                 retVal = programmingPidGetOutput(operand);
             }
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS:
+            retVal = logicConditionGetWaypointOperandValue(operand);
             break;
 
         default:

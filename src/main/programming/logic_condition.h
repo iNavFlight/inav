@@ -87,6 +87,7 @@ typedef enum logicOperandType_s {
     LOGIC_CONDITION_OPERAND_TYPE_LC,    // Result of different LC and LC operand
     LOGIC_CONDITION_OPERAND_TYPE_GVAR,  // Value from a global variable
     LOGIC_CONDITION_OPERAND_TYPE_PID,  // Value from a Programming PID
+    LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS,
     LOGIC_CONDITION_OPERAND_TYPE_LAST
 } logicOperandType_e;
 
@@ -114,24 +115,21 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_IS_POSITION_CONTROL, // 0/1              // 20
     LOGIC_CONDITION_OPERAND_FLIGHT_IS_EMERGENCY_LANDING, // 0/1             // 21
     LOGIC_CONDITION_OPERAND_FLIGHT_IS_RTH, // 0/1                           // 22
-    LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP, // 0/1                            // 23
-    LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING, // 0/1                       // 24
-    LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE, // 0/1                      // 25
-    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL,                         // 26
-    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 27
-    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 28
-    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX,                          // 29
-    LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION,                         // 30
-    LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 31
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 32
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 33
-    LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 34
-    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 35
-    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 36
-    LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS,                              // 37
-    LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 38
-    LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 39
-    LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 40
+    LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING, // 0/1                       // 23 - was 24
+    LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE, // 0/1                      // 24 - was 25
+    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_ROLL,                         // 25 - was 26
+    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 26 - was 27
+    LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 27 - was 28
+    LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 28 - was 31
+    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 29 - was 32
+    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 39 - was 33
+    LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 31 - was 34
+    LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 32 - was 35
+    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 33 - was 36
+    LOGIC_CONDITION_OPERAND_FLIGHT_BATT_CELLS,                              // 34 - was 37
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 35 - was 38
+    LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 36 - was 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 37 - was 40
 } logicFlightOperands_e;
 
 typedef enum {
@@ -150,6 +148,12 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3,                              // 12
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER4,                              // 13
 } logicFlightModeOperands_e;
+
+typedef enum {
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_IS_WP, // 0/1                            // 1
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_INDEX,                          // 2
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_ACTION,                         // 3
+} logicWaypointOperands_e;
 
 typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY = (1 << 0),
