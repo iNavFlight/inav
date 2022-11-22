@@ -356,11 +356,11 @@ static void restartGravityCalibration(void)
 }
 
 static bool gravityCalibrationComplete(void)
-{ 
+{
     if (!gyroConfig()->init_gyro_cal_enabled) {
         return true;
     }
-    
+
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
 
@@ -686,6 +686,20 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
     return false;
 }
 
+static void estimationCalculateGroundCourse(timeUs_t currentTimeUs)
+{
+    if (STATE(GPS_FIX) && navIsHeadingUsable()) {
+        static timeUs_t lastUpdateTimeUs = 0;
+
+        if (currentTimeUs - lastUpdateTimeUs >= HZ2US(INAV_COG_UPDATE_RATE_HZ)) {   // limit update rate
+            const float dt = US2S(currentTimeUs - lastUpdateTimeUs);
+            uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(posEstimator.est.vel.y * dt, posEstimator.est.vel.x * dt)));
+            posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
+            lastUpdateTimeUs = currentTimeUs;
+        }
+    }
+}
+
 /**
  * Calculate next estimate using IMU and apply corrections from reference sensors (GPS, BARO etc)
  *  Function is called at main loop rate
@@ -758,6 +772,9 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         }
     }
 
+    /* Update ground course */
+    estimationCalculateGroundCourse(currentTimeUs);
+
     /* Update uncertainty */
     posEstimator.est.eph = ctx.newEPH;
     posEstimator.est.epv = ctx.newEPV;
@@ -774,8 +791,10 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 {
     static navigationTimer_t posPublishTimer;
 
-    /* IMU operates in decidegrees while INAV operates in deg*100 */
-    updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw));
+    /* IMU operates in decidegrees while INAV operates in deg*100
+     * Use course over ground for fixed wing navigation yaw/"heading" */
+    int16_t yawValue = isGPSHeadingValid() && STATE(AIRPLANE) ? posEstimator.est.cog : attitude.values.yaw;
+    updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(yawValue));
 
     /* Position and velocity are published with INAV_POSITION_PUBLISH_RATE_HZ */
     if (updateTimer(&posPublishTimer, HZ2US(INAV_POSITION_PUBLISH_RATE_HZ), currentTimeUs)) {
