@@ -150,9 +150,10 @@ typedef enum {
 } logicFlightModeOperands_e;
 
 typedef enum {
-    LOGIC_CONDITION_OPERAND_WAYPOINTS_IS_WP, // 0/1                            // 1
-    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_INDEX,                          // 2
-    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_ACTION,                         // 3
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_IS_WP, // 0/1                         // 1
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_INDEX,                       // 2
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_ACTION,                      // 3
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE,                    // 4
 } logicWaypointOperands_e;
 
 typedef enum {

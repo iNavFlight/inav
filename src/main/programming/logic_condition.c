@@ -457,6 +457,24 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             return NAV_Status.activeWpAction;
             break;
 
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE:
+            {
+                uint32_t distance = 0;
+                if ((navGetCurrentStateFlags() & NAV_AUTO_WP)) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpNumber].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpNumber].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpNumber].alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(posControl.waypointList[NAV_Status.activeWpNumber].p3));
+
+                    distance = calculateDistanceToDestination(&poi);
+                }
+
+                return distance;
+            }
+            break;
+
         default:
             return 0;
             break;
