@@ -119,37 +119,21 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 20            | IS_POSITION_CONTROL           | boolean `0`/`1` |
 | 21            | IS_EMERGENCY_LANDING          | boolean `0`/`1` |
 | 22            | IS_RTH                        | boolean `0`/`1` |
-| 23            | IS_WP                         | boolean `0`/`1` |
-| 24            | IS_LANDING                    | boolean `0`/`1` |
-| 25            | IS_FAILSAFE                   | boolean `0`/`1` |
-| 26            | STABILIZED_ROLL               | Roll PID controller output `[-500:500]` |
-| 27            | STABILIZED_PITCH              | Pitch PID controller output `[-500:500]` |
-| 28            | STABILIZED_YAW                | Yaw PID controller output `[-500:500]` |
-| 29            | ACTIVE_WAYPOINT_INDEX         | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
-| 30            | ACTIVE_WAYPOINT_ACTION        | See ACTIVE_WAYPOINT_ACTION paragraph |
-| 31            | 3D HOME_DISTANCE              | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
-| 32            | CROSSFIRE LQ                  | Crossfire Link quality as returned by the CRSF protocol | 
-| 33            | CROSSFIRE SNR                 | Crossfire SNR as returned by the CRSF protocol |
-| 34            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
-| 35            | LOITER_RADIUS                 | The current loiter radius in cm. |
-| 36            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
-| 37            | BATT_CELLS                    | Number of battery cells detected |
-| 38            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
-| 39            | AGL                           | integer Above The Groud Altitude in `cm` |
-| 40            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
-
-#### ACTIVE_WAYPOINT_ACTION
-
-| Action        | Value |
-|---------------|-------|
-| WAYPOINT      | 1     |
-| HOLD_TIME     | 3     |
-| RTH           | 4     |
-| SET_POI       | 5     |
-| JUMP          | 6     |
-| SET_HEAD      | 7     |
-| LAND          | 8     |
-
+| 23            | IS_LANDING                    | boolean `0`/`1` |
+| 24            | IS_FAILSAFE                   | boolean `0`/`1` |
+| 25            | STABILIZED_ROLL               | Roll PID controller output `[-500:500]` |
+| 26            | STABILIZED_PITCH              | Pitch PID controller output `[-500:500]` |
+| 27            | STABILIZED_YAW                | Yaw PID controller output `[-500:500]` |
+| 28            | 3D HOME_DISTANCE              | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
+| 29            | CROSSFIRE LQ                  | Crossfire Link quality as returned by the CRSF protocol | 
+| 30            | CROSSFIRE SNR                 | Crossfire SNR as returned by the CRSF protocol |
+| 31            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
+| 32            | LOITER_RADIUS                 | The current loiter radius in cm. |
+| 33            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
+| 34            | BATT_CELLS                    | Number of battery cells detected |
+| 35            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
+| 36            | AGL                           | integer Above The Groud Altitude in `cm` |
+| 37            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
 
 #### FLIGHT_MODE
 
@@ -167,6 +151,32 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 9             | USER1     |  |
 | 10            | USER2     |  |
 
+#### WAYPOINTS
+
+| Operand Value | Name                          | Notes |
+|---------------|-------------------------------|-------|
+| 0             | Is WP                         | boolean `0`/`1` |
+| 1             | Current Waypoint Index        | Current waypoint leg. Indexed from `1`. To verify WP is in progress, use `Is WP` |
+| 2             | Current Waypoint Action       | Action active in current leg. See ACTIVE_WAYPOINT_ACTION table |
+| 3             | Distance to next Waypoint     | Distance to next WP in metres |
+| 4             | Distance from Waypoint        | Distance from the last WP in metres |
+| 5             | User Action 1                 | User Action 1 is active on this waypoint leg [boolean `0`/`1`] |
+| 6             | User Action 2                 | User Action 2 is active on this waypoint leg [boolean `0`/`1`] |
+| 7             | User Action 3                 | User Action 3 is active on this waypoint leg [boolean `0`/`1`] |
+| 8             | User Action 4                 | User Action 4 is active on this waypoint leg [boolean `0`/`1`] |
+
+
+#### ACTIVE_WAYPOINT_ACTION
+
+| Action        | Value |
+|---------------|-------|
+| WAYPOINT      | 1     |
+| HOLD_TIME     | 3     |
+| RTH           | 4     |
+| SET_POI       | 5     |
+| JUMP          | 6     |
+| SET_HEAD      | 7     |
+| LAND          | 8     |
     
 ### Flags
 
