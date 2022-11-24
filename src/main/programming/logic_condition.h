@@ -76,7 +76,8 @@ typedef enum {
     LOGIC_CONDITION_MAX                         = 44,
     LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
     LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
-    LOGIC_CONDITION_LAST                        = 47,
+    LOGIC_CONDITION_EDGE                        = 47,
+    LOGIC_CONDITION_LAST                        = 48,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -188,6 +189,7 @@ PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);
 typedef struct logicConditionState_s {
     int value;
     uint8_t flags;
+    timeMs_t timeout;
 } logicConditionState_t;
 
 typedef struct rcChannelOverride_s {

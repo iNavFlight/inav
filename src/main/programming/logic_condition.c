@@ -89,7 +89,8 @@ static int logicConditionCompute(
     int32_t currentVaue,
     logicOperation_e operation,
     int32_t operandA,
-    int32_t operandB
+    int32_t operandB,
+    timeMs_t *timeout
 ) {
     int temporaryValue;
     vtxDeviceCapability_t vtxDeviceCapability;
@@ -160,6 +161,12 @@ static int logicConditionCompute(
 
             //When both operands are not met, keep current value 
             return currentVaue;
+            break;
+
+        case LOGIC_CONDITION_EDGE:
+            if (operandA && timeout == 0) {
+                
+            }
             break;
 
         case LOGIC_CONDITION_GVAR_SET:
@@ -425,7 +432,8 @@ void logicConditionProcess(uint8_t i) {
                 logicConditionStates[i].value, 
                 logicConditions(i)->operation, 
                 operandAValue, 
-                operandBValue
+                operandBValue,
+                &logicConditionStates[i].timeout,
             );
         
             logicConditionStates[i].value = newValue;
@@ -786,6 +794,7 @@ void logicConditionReset(void) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionStates[i].value = 0;
         logicConditionStates[i].flags = 0;
+        logicConditionStates[i].timeout = 0;
     }
 }
 
