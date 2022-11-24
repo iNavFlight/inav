@@ -167,7 +167,8 @@ typedef enum {
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
-    LOGIC_CONDITION_FLAG_LATCH      = 1 << 0,
+    LOGIC_CONDITION_FLAG_LATCH          = 1 << 0,
+    LOGIC_CONDITION_FLAG_EDGE_SATISFIED = 1 << 1,
 } logicConditionFlags_e;
 
 typedef struct logicOperand_s {

@@ -80,6 +80,8 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 44            | MAX                           | Finds the highest value of `Operand A` and `Operand B` |
 | 45			| FLIGHT_AXIS_ANGLE_OVERRIDE	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
 | 46			| FLIGHT_AXIS_RATE_OVERRIDE	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
+| 47            | EDGE                          | `Operand A` is activation operator [`boolean`], `Operand B` is the time for the edge to stay active [ms]. After activation, operator will return `true` until the time in Operand B is reached |
+
 ### Operands
 
 | Operand Type  | Name                  | Notes |

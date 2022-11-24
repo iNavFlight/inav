@@ -90,7 +90,7 @@ static int logicConditionCompute(
     logicOperation_e operation,
     int32_t operandA,
     int32_t operandB,
-    timeMs_t *timeout
+    uint8_t lcIndex
 ) {
     int temporaryValue;
     vtxDeviceCapability_t vtxDeviceCapability;
@@ -164,9 +164,26 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_EDGE:
-            if (operandA && timeout == 0) {
-                
+            if (operandA && logicConditionStates[lcIndex].timeout == 0 && !(logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_EDGE_SATISFIED)) {
+                if (operandB < 100) {
+                    logicConditionStates[lcIndex].timeout = millis() + 100;
+                } else {
+                    logicConditionStates[lcIndex].timeout = millis() + operandB;
+                }
+                logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_EDGE_SATISFIED;
+                return true;
+            } else if (logicConditionStates[lcIndex].timeout > 0) {
+                if (logicConditionStates[lcIndex].timeout < millis()) {
+                    logicConditionStates[lcIndex].timeout = 0;
+                } else {
+                    return true;
+                }
             }
+
+            if (!operandA) {
+                logicConditionStates[lcIndex].flags &= ~LOGIC_CONDITION_FLAG_EDGE_SATISFIED;
+            }
+            return false;
             break;
 
         case LOGIC_CONDITION_GVAR_SET:
@@ -433,7 +450,7 @@ void logicConditionProcess(uint8_t i) {
                 logicConditions(i)->operation, 
                 operandAValue, 
                 operandBValue,
-                &logicConditionStates[i].timeout,
+                i
             );
         
             logicConditionStates[i].value = newValue;
