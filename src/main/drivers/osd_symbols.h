@@ -172,8 +172,8 @@
 #define SYM_AH_V_M_0                0xD8  // 216 mAh/v-m left
 #define SYM_AH_V_M_1                0xD9  // 217 mAh/v-m right
 
-#define SYM_LOGO_START              0x101 // 257 to 280, INAV logo
-#define SYM_LOGO_WIDTH              6
+#define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
+#define SYM_LOGO_WIDTH              10
 #define SYM_LOGO_HEIGHT             4
 
 #define SYM_AH_LEFT                 0x12C // 300 Arrow left
