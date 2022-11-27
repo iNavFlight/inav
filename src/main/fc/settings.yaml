@@ -2354,7 +2354,7 @@ groups:
         field: general.waypoint_enforce_altitude
         min: 0
         max: 2000
-      - name: nav_wp_safe_distance
+      - name: nav_wp_max_safe_distance
         description: "First waypoint in the mission should be closer than this value [m]. A value of 0 disables this check."
         default_value: 100
         field: general.waypoint_safe_distance
