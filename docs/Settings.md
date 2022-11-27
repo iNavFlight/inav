@@ -3834,11 +3834,11 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 
 ### nav_wp_safe_distance
 
-First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check.
+First waypoint in the mission should be closer than this value [m]. A value of 0 disables this check.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10000 |  | 65000 |
+| 100 |  | 1500 |
 
 ---
 

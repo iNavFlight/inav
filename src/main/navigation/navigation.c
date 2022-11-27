@@ -127,7 +127,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         // General navigation parameters
         .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                            // 5 sec
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                                       // 2m diameter
-        .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,                         // centimeters - first waypoint should be closer than this
+        .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,                         // Metres - first waypoint should be closer than this
 #ifdef USE_MULTI_MISSION
         .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,             // mission index selected from multi mission WP entry
 #endif
@@ -3869,7 +3869,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 
     // Don't allow arming if first waypoint is farther than configured safe distance
     if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
-        if (distanceToFirstWP() > navConfig()->general.waypoint_safe_distance && !checkStickPosition(YAW_HI)) {
+        if (distanceToFirstWP() > METERS_TO_CENTIMETERS(navConfig()->general.waypoint_safe_distance) && !checkStickPosition(YAW_HI)) {
             return NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR;
         }
     }

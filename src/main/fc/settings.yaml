@@ -2355,10 +2355,10 @@ groups:
         min: 0
         max: 2000
       - name: nav_wp_safe_distance
-        description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
-        default_value: 10000
+        description: "First waypoint in the mission should be closer than this value [m]. A value of 0 disables this check."
+        default_value: 100
         field: general.waypoint_safe_distance
-        max: 65000
+        max: 1500
       - name: nav_wp_mission_restart
         description: "Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint."
         default_value: "RESUME"
