@@ -394,6 +394,10 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     // We have virtual position target, calculate heading error
     int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
 
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+        virtualTargetBearing = posControl.desiredState.yaw;
+    }
+
     /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
     if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         // courseVirtualCorrection initially used to determine current position relative to course line for later use
