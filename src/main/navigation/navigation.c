@@ -99,7 +99,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 3);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -127,7 +127,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         // General navigation parameters
         .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                            // 5 sec
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                                       // 2m diameter
-        .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,                         // centimeters - first waypoint should be closer than this
+        .waypoint_safe_distance = SETTING_NAV_WP_MAX_SAFE_DISTANCE_DEFAULT,                         // Metres - first waypoint should be closer than this
 #ifdef USE_MULTI_MISSION
         .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,             // mission index selected from multi mission WP entry
 #endif
@@ -185,7 +185,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .control_smoothness = SETTING_NAV_FW_CONTROL_SMOOTHNESS_DEFAULT,
         .pitch_to_throttle_smooth = SETTING_NAV_FW_PITCH2THR_SMOOTHING_DEFAULT,
         .pitch_to_throttle_thresh = SETTING_NAV_FW_PITCH2THR_THRESHOLD_DEFAULT,
+        .minThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
         .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                  // 75m
+        .loiter_direction = SETTING_FW_LOITER_DIRECTION_DEFAULT,
 
         //Fixed wing landing
         .land_dive_angle = SETTING_NAV_FW_LAND_DIVE_ANGLE_DEFAULT,              // 2 degrees dive by default
@@ -3869,7 +3871,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 
     // Don't allow arming if first waypoint is farther than configured safe distance
     if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
-        if (distanceToFirstWP() > navConfig()->general.waypoint_safe_distance && !checkStickPosition(YAW_HI)) {
+        if (distanceToFirstWP() > METERS_TO_CENTIMETERS(navConfig()->general.waypoint_safe_distance) && !checkStickPosition(YAW_HI)) {
             return NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR;
         }
     }

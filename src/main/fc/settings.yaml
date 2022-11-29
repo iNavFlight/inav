@@ -1048,12 +1048,6 @@ groups:
         default_value: 1000
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
-      - name: fw_min_throttle_down_pitch
-        description: "Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees)"
-        default_value: 0
-        field: fwMinThrottleDownPitchAngle
-        min: 0
-        max: 450
       - name: nav_mc_hover_thr
         description: "Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering."
         default_value: 1500
@@ -1833,11 +1827,6 @@ groups:
         field: fixedWingItermThrowLimit
         min: FW_ITERM_THROW_LIMIT_MIN
         max: FW_ITERM_THROW_LIMIT_MAX
-      - name: fw_loiter_direction
-        description: "Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick."
-        default_value: "RIGHT"
-        field: loiter_direction
-        table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
         default_value: 1500
@@ -2354,11 +2343,12 @@ groups:
         field: general.waypoint_enforce_altitude
         min: 0
         max: 2000
-      - name: nav_wp_safe_distance
-        description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
-        default_value: 10000
+      - name: nav_wp_max_safe_distance
+        description: "First waypoint in the mission should be closer than this value [m]. A value of 0 disables this check."
+        default_value: 100
         field: general.waypoint_safe_distance
-        max: 65000
+        min: 0
+        max: 1500
       - name: nav_wp_mission_restart
         description: "Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint."
         default_value: "RESUME"
@@ -2674,6 +2664,12 @@ groups:
         field: fw.pitch_to_throttle_smooth
         min: 0
         max: 9
+      - name: fw_min_throttle_down_pitch
+        description: "Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees)"
+        default_value: 0
+        field: fw.minThrottleDownPitchAngle
+        min: 0
+        max: 450
       - name: nav_fw_pitch2thr_threshold
         description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
         default_value: 50
@@ -2686,6 +2682,11 @@ groups:
         field: fw.loiter_radius
         min: 0
         max: 30000
+      - name: fw_loiter_direction
+        description: "Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick."
+        default_value: "RIGHT"
+        field: fw.loiter_direction
+        table: direction
       - name: nav_fw_cruise_speed
         description: "Speed for the plane/wing at cruise throttle used for remaining flight time/distance estimation in cm/s"
         default_value: 0
