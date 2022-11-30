@@ -55,6 +55,7 @@ typedef uint32_t timeUs_t;
 #define US2MS(us)   ((us) * 1e-3f)
 #define MS2US(ms)   ((ms) * 1000)
 #define MS2S(ms)    ((ms) * 1e-3f)
+#define S2MS(s)     ((s) * MILLISECS_PER_SEC)
 #define HZ2S(hz)    US2S(HZ2US(hz))
 
 // Use this function only to get small deltas (difference overflows at ~35 minutes)

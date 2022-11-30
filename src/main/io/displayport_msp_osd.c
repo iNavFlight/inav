@@ -300,7 +300,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 
     if (osdConfig()->msp_displayport_pframe_interval > 0 && millis() > sendPFrame) {
         BITARRAY_SET_ALL(dirty);
-        sendPFrame = millis() + (osdConfig()->msp_displayport_pframe_interval * 1000);
+        sendPFrame = millis() + (S2MS(osdConfig()->msp_displayport_pframe_interval));
     }
 
     if (vtxReset) {
