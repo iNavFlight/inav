@@ -176,14 +176,14 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 
 void setupMulticopterAltitudeController(void)
 {
-    const bool lowThrottle = throttleStickIsLow();
+    const bool throttleIsLow = throttleStickIsLow();
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
         altHoldThrottleRCZero = rcLookupThrottleMid();
     }
     else {
         // If throttle is LOW - use Thr Mid anyway
-        if (lowThrottle) {
+        if (throttleIsLow) {
             altHoldThrottleRCZero = rcLookupThrottleMid();
         }
         else {
@@ -198,7 +198,7 @@ void setupMulticopterAltitudeController(void)
 
     // Force AH controller to initialize althold integral for pending takeoff on reset
     // Signal for that is low throttle _and_ low actual altitude
-    if (lowThrottle && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
+    if (throttleIsLow && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
         prepareForTakeoffOnReset = true;
     }
 }

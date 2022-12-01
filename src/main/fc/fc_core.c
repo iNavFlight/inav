@@ -630,13 +630,13 @@ void processRx(timeUs_t currentTimeUs)
 
     failsafeUpdateState();
 
-    const bool lowThrottle = throttleStickIsLow();
+    const bool throttleIsLow = throttleStickIsLow();
 
     // When armed and motors aren't spinning, do beeps periodically
     if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
         static bool armedBeeperOn = false;
 
-        if (lowThrottle) {
+        if (throttleIsLow) {
             beeper(BEEPER_ARMED);
             armedBeeperOn = true;
         } else if (armedBeeperOn) {
@@ -645,7 +645,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-    processRcStickPositions();
+    processRcStickPositions(throttleIsLow);
     processAirmode();
     updateActivatedModes();
 
@@ -759,7 +759,7 @@ void processRx(timeUs_t currentTimeUs)
         pidResetErrorAccumulators();
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
-        if (lowThrottle) {
+        if (throttleIsLow) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                  if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
                      ENABLE_STATE(ANTI_WINDUP);
@@ -778,7 +778,7 @@ void processRx(timeUs_t currentTimeUs)
          }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
-        if (lowThrottle) {
+        if (throttleIsLow) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                  if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
                      ENABLE_STATE(ANTI_WINDUP);
@@ -802,7 +802,7 @@ void processRx(timeUs_t currentTimeUs)
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
          DISABLE_STATE(ANTI_WINDUP);
          //This case applies only to MR when Airmode management is throttle threshold activated
-         if (lowThrottle && !STATE(AIRMODE_ACTIVE)) {
+         if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
              pidResetErrorAccumulators();
          }
      }
