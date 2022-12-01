@@ -105,6 +105,11 @@ static int logicConditionCompute(
             return operandA == operandB;
             break;
 
+        case LOGIC_CONDITION_APPROX_EQUAL:
+            uint16_t offest = operandA / 100;
+            return ((operandB >= (operandA - offest)) && (operandB <= (operandA + offest)));
+            break;
+
         case LOGIC_CONDITION_GREATER_THAN:
             return operandA > operandB;
             break;
@@ -164,13 +169,13 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_EDGE:
-            if (operandA && logicConditionStates[lcIndex].timeout == 0 && !(logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_EDGE_SATISFIED)) {
+            if (operandA && logicConditionStates[lcIndex].timeout == 0 && !(logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED)) {
                 if (operandB < 100) {
                     logicConditionStates[lcIndex].timeout = millis() + 100;
                 } else {
                     logicConditionStates[lcIndex].timeout = millis() + operandB;
                 }
-                logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_EDGE_SATISFIED;
+                logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
                 return true;
             } else if (logicConditionStates[lcIndex].timeout > 0) {
                 if (logicConditionStates[lcIndex].timeout < millis()) {
@@ -181,8 +186,41 @@ static int logicConditionCompute(
             }
 
             if (!operandA) {
-                logicConditionStates[lcIndex].flags &= ~LOGIC_CONDITION_FLAG_EDGE_SATISFIED;
+                logicConditionStates[lcIndex].flags &= ~LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
             }
+            return false;
+            break;
+
+        case LOGIC_CONDITION_DELAY:
+            if (operandA) {
+                if (logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED) {
+                    return true;
+                } else if (logicConditionStates[lcIndex].timeout > millis()) {
+                    logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
+                    return true;
+                } else if (logicConditionStates[lcIndex].timeout == 0) {
+                    logicConditionStates[lcIndex].timeout = millis() + operandB;
+                }
+            } else {
+                logicConditionStates[lcIndex].timeout = 0;
+                logicConditionStates[lcIndex].flags &= ~LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
+            }
+
+            return false;
+            break;
+
+        case LOGIC_CONDITION_TIMER:
+            if (logicConditionStates[lcIndex].timeout > millis() && currentVaue) {
+                logicConditionStates[lcIndex].timeout  millis() + operandB;
+                return false;
+            } else if ((logicConditionStates[lcIndex].timeout == 0) || (logicConditionStates[lcIndex].timeout > millis() && currentVaue)) {
+                logicConditionStates[lcIndex].timeout  millis() + operandA;
+                return true;
+            }
+            return currentVaue;
+            break;
+
+        case LOGIC_CONDITION_DELTA:
             return false;
             break;
 

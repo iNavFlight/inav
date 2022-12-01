@@ -77,7 +77,11 @@ typedef enum {
     LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
     LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
     LOGIC_CONDITION_EDGE                        = 47,
-    LOGIC_CONDITION_LAST                        = 48,
+    LOGIC_CONDITION_DELAY                       = 48,
+    LOGIC_CONDITION_TIMER                       = 49,
+    LOGIC_CONDITION_DELTA                       = 50,
+    LOGIC_CONDITION_APPROX_EQUAL                = 51,
+    LOGIC_CONDITION_LAST                        = 52,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -167,8 +171,8 @@ typedef enum {
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
-    LOGIC_CONDITION_FLAG_LATCH          = 1 << 0,
-    LOGIC_CONDITION_FLAG_EDGE_SATISFIED = 1 << 1,
+    LOGIC_CONDITION_FLAG_LATCH              = 1 << 0,
+    LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED  = 1 << 1,
 } logicConditionFlags_e;
 
 typedef struct logicOperand_s {
