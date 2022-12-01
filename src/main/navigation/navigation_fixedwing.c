@@ -685,12 +685,11 @@ bool isFixedWingLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
     static bool fixAxisCheck = false;
-    const bool throttleIsLow = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 
     // Basic condition to start looking for landing
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || FLIGHT_MODE(FAILSAFE_MODE)
-                          || (!navigationIsControllingThrottle() && throttleIsLow);
+                          || (!navigationIsControllingThrottle() && throttleStickIsLow());
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
         return fixAxisCheck = posControl.flags.resetLandingDetector = false;
