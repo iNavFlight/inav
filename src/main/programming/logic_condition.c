@@ -86,7 +86,7 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
 static int logicConditionCompute(
-    int32_t currentVaue,
+    int32_t currentValue,
     logicOperation_e operation,
     int32_t operandA,
     int32_t operandB,
@@ -106,8 +106,10 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_APPROX_EQUAL:
-            uint16_t offest = operandA / 100;
-            return ((operandB >= (operandA - offest)) && (operandB <= (operandA + offest)));
+            {
+                uint16_t offest = operandA / 100;
+                return ((operandB >= (operandA - offest)) && (operandB <= (operandA + offest)));
+            }
             break;
 
         case LOGIC_CONDITION_GREATER_THAN:
@@ -165,13 +167,13 @@ static int logicConditionCompute(
             }
 
             //When both operands are not met, keep current value 
-            return currentVaue;
+            return currentValue;
             break;
 
         case LOGIC_CONDITION_EDGE:
             if (operandA && logicConditionStates[lcIndex].timeout == 0 && !(logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED)) {
                 if (operandB < 100) {
-                    logicConditionStates[lcIndex].timeout = millis() + 100;
+                    logicConditionStates[lcIndex].timeout = millis();
                 } else {
                     logicConditionStates[lcIndex].timeout = millis() + operandB;
                 }
@@ -193,13 +195,13 @@ static int logicConditionCompute(
 
         case LOGIC_CONDITION_DELAY:
             if (operandA) {
-                if (logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED) {
-                    return true;
-                } else if (logicConditionStates[lcIndex].timeout > millis()) {
+                if (logicConditionStates[lcIndex].timeout == 0) {
+                    logicConditionStates[lcIndex].timeout = millis() + operandB;
+                } else if (millis() > logicConditionStates[lcIndex].timeout ) {
                     logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
                     return true;
-                } else if (logicConditionStates[lcIndex].timeout == 0) {
-                    logicConditionStates[lcIndex].timeout = millis() + operandB;
+                } else if (logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED) {
+                    return true;
                 }
             } else {
                 logicConditionStates[lcIndex].timeout = 0;
@@ -210,18 +212,22 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_TIMER:
-            if (logicConditionStates[lcIndex].timeout > millis() && currentVaue) {
-                logicConditionStates[lcIndex].timeout  millis() + operandB;
-                return false;
-            } else if ((logicConditionStates[lcIndex].timeout == 0) || (logicConditionStates[lcIndex].timeout > millis() && currentVaue)) {
-                logicConditionStates[lcIndex].timeout  millis() + operandA;
+            if ((logicConditionStates[lcIndex].timeout == 0) || (millis() > logicConditionStates[lcIndex].timeout && !currentValue)) {
+                logicConditionStates[lcIndex].timeout = millis() + operandA;
                 return true;
+            } else if (millis() > logicConditionStates[lcIndex].timeout && currentValue) {
+                logicConditionStates[lcIndex].timeout = millis() + operandB;
+                return false;
             }
-            return currentVaue;
+            return currentValue;
             break;
 
         case LOGIC_CONDITION_DELTA:
-            return false;
+            {
+                int difference = logicConditionStates[lcIndex].lastValue - operandA;
+                logicConditionStates[lcIndex].lastValue = operandA;
+                return ABS(difference) >= operandB;
+            }
             break;
 
         case LOGIC_CONDITION_GVAR_SET:
@@ -848,6 +854,7 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
 void logicConditionReset(void) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionStates[i].value = 0;
+        logicConditionStates[i].lastValue = 0;
         logicConditionStates[i].flags = 0;
         logicConditionStates[i].timeout = 0;
     }

@@ -193,6 +193,7 @@ PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);
 
 typedef struct logicConditionState_s {
     int value;
+    int32_t lastValue;
     uint8_t flags;
     timeMs_t timeout;
 } logicConditionState_t;
