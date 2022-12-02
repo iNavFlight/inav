@@ -3802,6 +3802,16 @@ If set to ON, waypoints will be automatically loaded from EEPROM to the FC durin
 
 ---
 
+### nav_wp_max_safe_distance
+
+First waypoint in the mission should be closer than this value [m]. A value of 0 disables this check.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 1500 |
+
+---
+
 ### nav_wp_mission_restart
 
 Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint.
@@ -3829,16 +3839,6 @@ Waypoint radius [cm]. Waypoint would be considered reached if machine is within 
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 10 | 10000 |
-
----
-
-### nav_wp_safe_distance
-
-First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10000 |  | 65000 |
 
 ---
 
@@ -3899,6 +3899,16 @@ Max pitch, in degrees, for OSD artificial horizon
 | Default | Min | Max |
 | --- | --- | --- |
 | 20 | 10 | 90 |
+
+---
+
+### osd_ahi_pitch_interval
+
+Draws AHI at increments of the set pitch interval over the full pitch range. AHI line is drawn with ends offset when pitch first exceeds interval with offset increasing with increasing pitch. Offset direction changes between climb and dive. Set to 0 to disable (Not for pixel OSD)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30 |
 
 ---
 
