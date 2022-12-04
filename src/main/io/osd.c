@@ -1779,6 +1779,19 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GROUND_COURSE:
+        {
+            buff[0] = SYM_GROUND_COURSE;
+            if (osdIsHeadingValid()) {
+                tfp_sprintf(&buff[1], "%3d", (int16_t)CENTIDEGREES_TO_DEGREES(posControl.actualState.cog));
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
+            break;
+        }
+
     case OSD_COURSE_HOLD_ERROR:
         {
             if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -1822,6 +1835,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
             buff[5] = SYM_DEGREES;
             buff[6] = '\0';
+            break;
+        }
+
+    case OSD_CROSS_TRACK_ERROR:
+        {
+            if (isWaypointNavTrackingActive()) {
+                buff[0] = SYM_TRACK_ERROR;
+                osdFormatDistanceSymbol(buff + 1, navigationGetCrossTrackError(), 0);
+            } else {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
+                return true;
+            }
             break;
         }
 
@@ -3436,8 +3461,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdLayoutsConfig->item_pos[0][OSD_HEADING] = OSD_POS(12, 2);
+    osdLayoutsConfig->item_pos[0][OSD_GROUND_COURSE] = OSD_POS(12, 3);
     osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ERROR] = OSD_POS(12, 2);
     osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ADJUSTMENT] = OSD_POS(12, 2);
+    osdLayoutsConfig->item_pos[0][OSD_CROSS_TRACK_ERROR] = OSD_POS(12, 3);
     osdLayoutsConfig->item_pos[0][OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdLayoutsConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(2, 3) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | OSD_VISIBLE_FLAG;

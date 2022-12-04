@@ -2119,7 +2119,7 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
 /*-----------------------------------------------------------
  * Processes an update to estimated heading
  *-----------------------------------------------------------*/
-void updateActualHeading(bool headingValid, int32_t newHeading)
+void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse)
 {
     /* Update heading. Check if we're acquiring a valid heading for the
      * first time and update home heading accordingly.
@@ -2150,7 +2150,9 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
         }
         posControl.rthState.homeFlags |= NAV_HOME_VALID_HEADING;
     }
+    /* Use course over ground for fixed wing nav "heading" when valid - FIXME use heading and cog as specifically required for FW and MR */
     posControl.actualState.yaw = newHeading;
+    posControl.actualState.cog = newGroundCourse;       // currently only used for OSD display
     posControl.flags.estHeadingStatus = newEstHeading;
 
     /* Precompute sin/cos of yaw angle */
