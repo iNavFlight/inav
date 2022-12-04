@@ -1930,20 +1930,20 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 #endif
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
-                buff[0] = SYM_FLY_M;
+                buff[0] = SYM_FLIGHT_MINS_REMAINING;
                 strcpy(buff + 1, "--:--");
 #if defined(USE_ADC) && defined(USE_GPS)
                 updatedTimestamp = 0;
 #endif
             } else if (timeSeconds == -2) {
                 // Wind is too strong to come back with cruise throttle
-                buff[0] = SYM_FLY_M;
+                buff[0] = SYM_FLIGHT_MINS_REMAINING;
                 buff[1] = buff[2] = buff[4] = buff[5] = SYM_WIND_HORIZONTAL;
                 buff[3] = ':';
                 buff[6] = '\0';
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else {
-                osdFormatTime(buff, timeSeconds, SYM_FLY_M, SYM_FLY_H);
+                osdFormatTime(buff, timeSeconds, SYM_FLIGHT_MINS_REMAINING, SYM_FLIGHT_HOURS_REMAINING);
                 if (timeSeconds == 0)
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
@@ -1964,7 +1964,8 @@ static bool osdDrawSingleElement(uint8_t item)
             updatedTimestamp = currentTimeUs;
         }
 #endif
-        buff[0] = SYM_TRIP_DIST;
+        //buff[0] = SYM_TRIP_DIST;
+        displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_FLIGHT_DIST_REMAINING);
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
             buff[4] = SYM_BLANK;
             buff[5] = '\0';
