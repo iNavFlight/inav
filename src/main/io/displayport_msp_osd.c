@@ -75,7 +75,7 @@ static mspPort_t mspPort;
 static displayPort_t mspOsdDisplayPort;
 static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
-static timeMs_t sendPFrame = 0;
+static timeMs_t sendPFrameMs = 0;
 
 // PAL screen size
 #define PAL_COLS 30
@@ -257,6 +257,8 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         return 0;
     }
 
+    bool sendPFrame = (osdConfig()->msp_displayport_pframe_interval > 0 && millis() > sendPFrameMs);
+
     uint8_t subcmd[COLS + 4];
     uint8_t updateCount = 0;
     subcmd[0] = MSP_DP_WRITE_STRING;
@@ -272,7 +274,9 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 
         uint8_t len = 4;
         do {
-            bitArrayClr(dirty, pos);
+            if (!sendPFrame) { // Only clear if not sending the PFram next time. This will capture characters which have just turned blank
+                bitArrayClr(dirty, pos);
+            }
             subcmd[len++] = screen[pos++];
 
             if (bitArrayGet(dirty, pos)) {
@@ -297,9 +301,15 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
     }
 
-    if (osdConfig()->msp_displayport_pframe_interval > 0 && millis() > sendPFrame) {
-        BITARRAY_SET_ALL(dirty);
-        sendPFrame = millis() + (S2MS(osdConfig()->msp_displayport_pframe_interval));
+    if (sendPFrame) {
+        // Only dirty the character if not blank
+        for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
+            if (screen[pos] != SYM_BLANK) {
+                bitArraySet(dirty, pos);
+            }
+        }
+        // BITARRAY_SET_ALL(dirty); // Old method making everything dirty, even blanks.
+        sendPFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_pframe_interval));
     }
 
     if (vtxReset) {
