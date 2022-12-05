@@ -54,10 +54,10 @@ FILE_COMPILE_FOR_SPEED
 
 #define FONT_VERSION 3
 
-#define MSP_CLEAR_SCREEN 2
-#define MSP_WRITE_STRING 3
-#define MSP_DRAW_SCREEN 4
-#define MSP_SET_OPTIONS 5
+#define MSP_DP_CLEAR_SCREEN 2
+#define MSP_DP_WRITE_STRING 3
+#define MSP_DP_DRAW_SCREEN 4
+#define MSP_DP_OPTIONS 5
 
 typedef enum {          // defines are from hdzero code
     SD_3016,
@@ -162,7 +162,7 @@ static int setDisplayMode(displayPort_t *displayPort)
         currentOsdMode = determineHDZeroOsdMode(); // Can change between layouts
     }
 
-    uint8_t subcmd[] = { MSP_SET_OPTIONS, 0, currentOsdMode }; // Font selection, mode (SD/HD)
+    uint8_t subcmd[] = { MSP_DP_OPTIONS, 0, currentOsdMode }; // Font selection, mode (SD/HD)
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
@@ -175,11 +175,11 @@ static void init(void)
 
 static int clearScreen(displayPort_t *displayPort)
 {
-    uint8_t subcmd[] = { MSP_CLEAR_SCREEN };
+    uint8_t subcmd[] = { MSP_DP_CLEAR_SCREEN };
 
     if (!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) { // OSD is off
         output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
-        subcmd[0] = MSP_DRAW_SCREEN;
+        subcmd[0] = MSP_DP_DRAW_SCREEN;
         vtxReset = true;
     }
     else {
@@ -253,14 +253,13 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
 
-    if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) {
+    if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz
         return 0;
     }
 
-
     uint8_t subcmd[COLS + 4];
     uint8_t updateCount = 0;
-    subcmd[0] = MSP_WRITE_STRING;
+    subcmd[0] = MSP_DP_WRITE_STRING;
 
     int next = BITARRAY_FIND_FIRST_SET(dirty, 0);
     while (next >= 0) {
@@ -294,7 +293,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             screenCleared = false;
         }
 
-        subcmd[0] = MSP_DRAW_SCREEN;
+        subcmd[0] = MSP_DP_DRAW_SCREEN;
         output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
     }
 
