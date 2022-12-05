@@ -1841,7 +1841,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CROSS_TRACK_ERROR:
         {
             if (isWaypointNavTrackingActive()) {
-                buff[0] = SYM_TRACK_ERROR;
+                buff[0] = SYM_CROSS_TRACK_ERROR;
                 osdFormatDistanceSymbol(buff + 1, navigationGetCrossTrackError(), 0);
             } else {
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
