@@ -91,7 +91,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
