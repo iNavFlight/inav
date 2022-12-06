@@ -25,12 +25,6 @@
 #define BEEPER                  PA4
 #define BEEPER_INVERTED
 
-/*** IMU sensors ***/
-#define USE_EXTI
-
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 // MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG
@@ -115,8 +109,6 @@
 #define USE_MAG_IST8310
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
-
-#define BNO055_I2C_BUS          BUS_I2C1
 
 /*** ADC ***/
 #define USE_ADC

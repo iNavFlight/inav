@@ -645,7 +645,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_PITOT)
     if (sensors(SENSOR_PITOT)) {
-        mavAirSpeed = pitot.airSpeed / 100.0f;
+        mavAirSpeed = getAirspeedEstimate() / 100.0f;
     }
 #endif
 
@@ -1105,7 +1105,13 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed) {
+        if (!incomingRequestServed || 
+            (
+                 (rxConfig()->receiverType == RX_TYPE_SERIAL) && 
+                 (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
+                 !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
+            )
+        ) {
             processMAVLinkTelemetry(currentTimeUs);
         }
         lastMavlinkMessage = currentTimeUs;

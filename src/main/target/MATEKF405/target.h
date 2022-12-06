@@ -41,10 +41,6 @@
 #define MPU6000_CS_PIN          PC2
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC3
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW180_DEG
 
@@ -162,8 +158,6 @@
 
 #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
 
-#define BNO055_I2C_BUS              DEFAULT_I2C_BUS
-
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
 #define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
@@ -185,7 +179,7 @@
 #define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP
-#define WS2811_PIN                      PA15 // S5 pad for iNav
+#define WS2811_PIN                      PA15 // S5 pad for INAV
 
 #define USE_SPEKTRUM_BIND
 #define BIND_PIN                PA3 //  RX2

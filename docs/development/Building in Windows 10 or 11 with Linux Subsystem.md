@@ -32,9 +32,9 @@ Install python and python-yaml to allow updates to settings.md
 
 To run  `cmake` in the latest version you will need to update from Ubuntu `18_04` to `20_04`. The fastest way to do it is to uninstall current version and install `20_04` for Microsoft Store [https://www.microsoft.com/store/productId/9N6SVWS3RX71](https://www.microsoft.com/store/productId/9N6SVWS3RX71) 
 
-## Downloading the iNav repository (example):
+## Downloading the INAV repository (example):
 
-Mount MS windows C drive and clone iNav
+Mount MS windows C drive and clone INAV
 1.   `cd /mnt/c`
 1.   `git clone https://github.com/iNavFlight/inav.git`
 

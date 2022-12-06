@@ -74,6 +74,9 @@ typedef enum {
     BOXAUTOLEVEL     = 45,
     BOXPLANWPMISSION = 46,
     BOXSOARING       = 47,
+    BOXUSER3         = 48,
+    BOXUSER4         = 49,
+    BOXCHANGEMISSION = 50,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -133,4 +136,3 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 
 void updateActivatedModes(void);
 void updateUsedModeActivationConditionFlags(void);
-void configureModeActivationCondition(int macIndex, boxId_e modeId, uint8_t auxChannelIndex, uint16_t startPwm, uint16_t endPwm);

@@ -131,7 +131,6 @@ void taskSystem(timeUs_t currentTimeUs)
     }
 }
 
-#ifndef SKIP_TASK_STATISTICS
 #define TASK_MOVING_SUM_COUNT           32
 FASTRAM timeUs_t checkFuncMaxExecutionTime;
 FASTRAM timeUs_t checkFuncTotalExecutionTime;
@@ -155,7 +154,6 @@ void getTaskInfo(cfTaskId_e taskId, cfTaskInfo_t * taskInfo)
     taskInfo->averageExecutionTime = cfTasks[taskId].movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
     taskInfo->latestDeltaTime = cfTasks[taskId].taskLatestDeltaTime;
 }
-#endif
 
 void rescheduleTask(cfTaskId_e taskId, timeDelta_t newPeriodUs)
 {
@@ -193,9 +191,6 @@ timeDelta_t getTaskDeltaTime(cfTaskId_e taskId)
 
 void schedulerResetTaskStatistics(cfTaskId_e taskId)
 {
-#ifdef SKIP_TASK_STATISTICS
-    UNUSED(taskId);
-#else
     if (taskId == TASK_SELF) {
         currentTask->movingSumExecutionTime = 0;
         currentTask->totalExecutionTime = 0;
@@ -203,9 +198,7 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId)
     } else if (taskId < TASK_COUNT) {
         cfTasks[taskId].movingSumExecutionTime = 0;
         cfTasks[taskId].totalExecutionTime = 0;
-        cfTasks[taskId].totalExecutionTime = 0;
     }
-#endif
 }
 
 void schedulerInit(void)
@@ -237,13 +230,11 @@ void FAST_CODE NOINLINE scheduler(void)
                 task->dynamicPriority = 1 + task->staticPriority * task->taskAgeCycles;
                 waitingTasks++;
             } else if (task->checkFunc(currentTimeBeforeCheckFuncCallUs, currentTimeBeforeCheckFuncCallUs - task->lastExecutedAt)) {
-#ifndef SKIP_TASK_STATISTICS
                 const timeUs_t checkFuncExecutionTime = micros() - currentTimeBeforeCheckFuncCallUs;
                 checkFuncMovingSumExecutionTime -= checkFuncMovingSumExecutionTime / TASK_MOVING_SUM_COUNT;
                 checkFuncMovingSumExecutionTime += checkFuncExecutionTime;
                 checkFuncTotalExecutionTime += checkFuncExecutionTime;   // time consumed by scheduler + task
                 checkFuncMaxExecutionTime = MAX(checkFuncMaxExecutionTime, checkFuncExecutionTime);
-#endif
                 task->lastSignaledAt = currentTimeBeforeCheckFuncCallUs;
                 task->taskAgeCycles = 1;
                 task->dynamicPriority = 1 + task->staticPriority;
@@ -289,32 +280,20 @@ void FAST_CODE NOINLINE scheduler(void)
         // Execute task
         const timeUs_t currentTimeBeforeTaskCall = micros();
         selectedTask->taskFunc(currentTimeBeforeTaskCall);
-
-#ifndef SKIP_TASK_STATISTICS
         const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
-#endif
-#if defined(SCHEDULER_DEBUG)
-        DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs - taskExecutionTime); // time spent in scheduler
-#endif
     } 
     
     if (!selectedTask || forcedRealTimeTask) {
         // Execute system real-time callbacks and account for them to SYSTEM account
         const timeUs_t currentTimeBeforeTaskCall = micros();
         taskRunRealtimeCallbacks(currentTimeBeforeTaskCall);
-
-#ifndef SKIP_TASK_STATISTICS
         selectedTask = &cfTasks[TASK_SYSTEM];
         const timeUs_t taskExecutionTime = micros() - currentTimeBeforeTaskCall;
         selectedTask->movingSumExecutionTime += taskExecutionTime - selectedTask->movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
         selectedTask->totalExecutionTime += taskExecutionTime;   // time consumed by scheduler + task
         selectedTask->maxExecutionTime = MAX(selectedTask->maxExecutionTime, taskExecutionTime);
-#endif
-#if defined(SCHEDULER_DEBUG)
-        DEBUG_SET(DEBUG_SCHEDULER, 2, micros() - currentTimeUs);
-#endif
     }
 }

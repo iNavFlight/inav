@@ -537,6 +537,8 @@ static char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
+        case SIMULATOR_MODE:
+            FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;
     }
@@ -689,7 +691,7 @@ void osdDJIFormatVelocityStr(char* buff)
         case OSD_SPEED_SOURCE_AIR:
             strcpy(sourceBuf, "AIR");
 #ifdef USE_PITOT
-            vel = pitot.airSpeed;
+            vel = getAirspeedEstimate();
 #endif
             break;
     }
@@ -951,7 +953,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            tfp_sprintf(buff, "MTDPA %4d", currentBatteryProfileMutable->fwMinThrottleDownPitchAngle);
+            tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
             tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
@@ -962,6 +964,11 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
             break;
+#ifdef USE_MULTI_MISSION
+        case ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX:
+            tfp_sprintf(buff, "WPI %3d", navConfigMutable()->general.waypoint_multi_mission_index);
+            break;
+#endif
         default:
             tfp_sprintf(buff, "UNSUPPORTED");
             break;

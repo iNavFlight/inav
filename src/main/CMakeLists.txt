@@ -88,16 +88,10 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu.h
     drivers/accgyro/accgyro_mpu6000.c
     drivers/accgyro/accgyro_mpu6000.h
-    drivers/accgyro/accgyro_mpu6050.c
-    drivers/accgyro/accgyro_mpu6050.h
     drivers/accgyro/accgyro_mpu6500.c
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055.c
-    drivers/accgyro/accgyro_bno055.h
-    drivers/accgyro/accgyro_bno055_serial.c
-    drivers/accgyro/accgyro_bno055_serial.h
 
     drivers/adc.c
     drivers/adc.h
@@ -242,8 +236,6 @@ main_sources(COMMON_SRC
     drivers/resource.h
     drivers/rcc.c
     drivers/rcc.h
-    drivers/rx_spi.c
-    drivers/rx_spi.h
     drivers/serial.c
     drivers/serial.h
     drivers/sound_beeper.c
@@ -308,8 +300,6 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
-    flight/hil.c
-    flight/hil.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
@@ -337,10 +327,10 @@ main_sources(COMMON_SRC
     flight/rpm_filter.h
     flight/dynamic_gyro_notch.c
     flight/dynamic_gyro_notch.h
+    flight/secondary_dynamic_gyro_notch.c
+    flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
-    flight/secondary_imu.c
-    flight/secondary_imu.h
 
     io/beeper.c
     io/beeper.h
@@ -383,8 +373,6 @@ main_sources(COMMON_SRC
 
     rx/crsf.c
     rx/crsf.h
-    rx/eleres.c
-    rx/eleres.h
     rx/fport.c
     rx/fport.h
     rx/fport2.c
@@ -406,8 +394,6 @@ main_sources(COMMON_SRC
     rx/frsky_crc.h
     rx/rx.c
     rx/rx.h
-    rx/rx_spi.c
-    rx/rx_spi.h
     rx/sbus.c
     rx/sbus.h
     rx/sbus_channels.c
@@ -418,10 +404,6 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
-    rx/sumh.c
-    rx/sumh.h
-    rx/xbus.c
-    rx/xbus.h
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -496,8 +478,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
-    io/displayport_hdzero_osd.c
-    io/displayport_hdzero_osd.h
+    io/displayport_msp_osd.c
+    io/displayport_msp_osd.h
     io/displayport_srxl.c
     io/displayport_srxl.h
     io/displayport_hott.c
@@ -508,7 +490,6 @@ main_sources(COMMON_SRC
     io/gps.h
     io/gps_ublox.c
     io/gps_nmea.c
-    io/gps_naza.c
     io/gps_msp.c
     io/gps_private.h
     io/ledstrip.c

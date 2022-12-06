@@ -1,18 +1,18 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav is free software: you can redistribute it and/or modify
+ * INAV is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * iNav is distributed in the hope that it will be useful,
+ * INAV is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with iNav.  If not, see <http://www.gnu.org/licenses/>.
+ * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #pragma once
@@ -37,10 +37,6 @@
 
 #define BMI270_CS_PIN           PA4
 #define BMI270_SPI_BUS          BUS_SPI1
-
-#define USE_EXTI
-#define GYRO_INT_EXTI           PC4
-#define USE_MPU_DATA_READY_SIGNAL
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW90_DEG_FLIP
@@ -127,8 +123,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     DEFAULT_I2C_BUS
-
-#define BNO055_I2C_BUS          DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP

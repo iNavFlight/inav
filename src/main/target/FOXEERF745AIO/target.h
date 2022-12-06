@@ -37,7 +37,6 @@
 #define IMU_ICM42605_ALIGN      CW90_DEG
 #define ICM42605_SPI_BUS        BUS_SPI3
 #define ICM42605_CS_PIN         PA15
-#define ICM42605_EXTI_PIN       PD0
 
 #else
 
@@ -46,7 +45,6 @@
 #define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS         BUS_SPI3
-#define MPU6000_EXTI_PIN        PD0
 
 #endif
 

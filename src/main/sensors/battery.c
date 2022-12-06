@@ -94,7 +94,7 @@ static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) draw
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 2);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -129,8 +129,6 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             },
 
             .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
-
-            .fwMinThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
 
             .nav = {
 
@@ -290,11 +288,20 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             vbat = 0;
             break;
     }
-
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE)) {
+		if (SIMULATOR_HAS_OPTION(HITL_SIMULATE_BATTERY)) {
+            vbat = ((uint16_t)simulatorData.vbat) * 10;
+            batteryFullVoltage = 1260;
+			batteryWarningVoltage = 1020;
+			batteryCriticalVoltage = 960;
+		}
+	}
+#endif
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
     } else {
-        vbat = pt1FilterApply4(&vbatFilterState, vbat, VBATT_LPF_FREQ, timeDelta * 1e-6f);
+        vbat = pt1FilterApply4(&vbatFilterState, vbat, VBATT_LPF_FREQ, US2S(timeDelta));
     }
 }
 
@@ -534,7 +541,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
     switch (batteryMetersConfig()->current.type) {
         case CURRENT_SENSOR_ADC:
             {
-                amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, US2S(timeDelta));
                 break;
             }
         case CURRENT_SENSOR_VIRTUAL:
@@ -560,7 +567,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
             {
                 escSensorData_t * escSensor = escSensorGetData();
                 if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
-                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, US2S(timeDelta));
                 }
                 else {
                     amperage = 0;

@@ -38,7 +38,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
-#include "drivers/accgyro/accgyro_bno055.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -87,7 +86,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/secondary_imu.h"
 #include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
@@ -265,7 +263,26 @@ static void updateArmingStatus(void)
 #endif
 
         /* CHECK: */
-        if (sensors(SENSOR_ACC) && !STATE(ACCELEROMETER_CALIBRATED)) {
+        if (
+            sensors(SENSOR_ACC) &&
+            !STATE(ACCELEROMETER_CALIBRATED) &&
+            // Require ACC calibration only if any of the setting might require it
+            (
+                isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
+                isModeActivationConditionPresent(BOXNAVRTH) ||
+                isModeActivationConditionPresent(BOXNAVWP) ||
+                isModeActivationConditionPresent(BOXANGLE) ||
+                isModeActivationConditionPresent(BOXHORIZON) ||
+                isModeActivationConditionPresent(BOXNAVALTHOLD) ||
+                isModeActivationConditionPresent(BOXHEADINGHOLD) ||
+                isModeActivationConditionPresent(BOXNAVLAUNCH) ||
+                isModeActivationConditionPresent(BOXTURNASSIST) ||
+                isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
+                isModeActivationConditionPresent(BOXSOARING) ||
+                failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT
+
+            )
+        ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
         else {
@@ -371,7 +388,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(float dT)
+static void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
@@ -418,8 +435,6 @@ void annexCode(float dT)
             rcCommand[PITCH] = rcCommand_PITCH;
         }
     }
-
-    updateArmingStatus();
 }
 
 void disarm(disarmReason_t disarmReason)
@@ -507,9 +522,6 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
-#ifdef USE_MULTI_MISSION
-    setMultiMissionOnArm();
-#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -865,10 +877,12 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode(dT);
+    processPilotAndFailSafeActions(dT);
+
+    updateArmingStatus();
 
     if (rxConfig()->rcFilterFrequency) {
-        rcInterpolationApply(isRXDataNew);
+        rcInterpolationApply(isRXDataNew, currentTimeUs);
     }
 
     if (isRXDataNew) {
@@ -909,13 +923,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     // Calculate stabilisation
     pidController(dT);
 
-#ifdef HIL
-    if (hilActive) {
-        hilUpdateControlState();
-        motorControlEnable = false;
-    }
-#endif
-
     mixTable();
 
     if (isMixerUsingServos()) {
@@ -924,6 +931,18 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
+
+#ifdef USE_SMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+	    if (isServoOutputEnabled()) {
+	        writeServos();
+	    }
+
+	    if (motorControlEnable) {
+	        writeMotors();
+	    }
+	}
+#else
     if (isServoOutputEnabled()) {
         writeServos();
     }
@@ -931,6 +950,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (motorControlEnable) {
         writeMotors();
     }
+#endif
 
     // Check if landed, FW and MR
     if (STATE(ALTITUDE_CONTROL)) {

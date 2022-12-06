@@ -76,7 +76,12 @@ typedef enum {
     LOGIC_CONDITION_MAX                         = 44,
     LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE  = 45,
     LOGIC_CONDITION_FLIGHT_AXIS_RATE_OVERRIDE   = 46,
-    LOGIC_CONDITION_LAST                        = 47,
+    LOGIC_CONDITION_EDGE                        = 47,
+    LOGIC_CONDITION_DELAY                       = 48,
+    LOGIC_CONDITION_TIMER                       = 49,
+    LOGIC_CONDITION_DELTA                       = 50,
+    LOGIC_CONDITION_APPROX_EQUAL                = 51,
+    LOGIC_CONDITION_LAST                        = 52,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -147,6 +152,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1,                              // 9
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER2,                              // 10
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD,                        // 11
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3,                              // 12
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER4,                              // 13
 } logicFlightModeOperands_e;
 
 typedef enum {
@@ -164,20 +171,21 @@ typedef enum {
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
-    LOGIC_CONDITION_FLAG_LATCH      = 1 << 0,
+    LOGIC_CONDITION_FLAG_LATCH              = 1 << 0,
+    LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED  = 1 << 1,
 } logicConditionFlags_e;
 
 typedef struct logicOperand_s {
-    logicOperandType_e type;
     int32_t value;
+    logicOperandType_e type;
 } logicOperand_t;
 
 typedef struct logicCondition_s {
+    logicOperand_t operandA;
+    logicOperand_t operandB;
     uint8_t enabled;
     int8_t activatorId;
     logicOperation_e operation;
-    logicOperand_t operandA;
-    logicOperand_t operandB;
     uint8_t flags;
 } logicCondition_t;
 
@@ -185,19 +193,21 @@ PG_DECLARE_ARRAY(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions);
 
 typedef struct logicConditionState_s {
     int value;
+    int32_t lastValue;
     uint8_t flags;
+    timeMs_t timeout;
 } logicConditionState_t;
 
 typedef struct rcChannelOverride_s {
-    uint8_t active;
     int value;
+    uint8_t active;
 } rcChannelOverride_t;
 
 typedef struct flightAxisOverride_s {
-    uint8_t rateTargetActive;
-    uint8_t angleTargetActive;
     int angleTarget;
     int rateTarget;
+    uint8_t rateTargetActive;
+    uint8_t angleTargetActive;
 } flightAxisOverride_t;
 
 extern int logicConditionValuesByType[LOGIC_CONDITION_LAST];

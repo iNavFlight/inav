@@ -27,10 +27,6 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// *************** IMU generic ***********************
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
 // *************** Gyro & ACC **********************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -43,13 +39,11 @@
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PA4
-#define MPU6000_EXTI_PIN        PC4
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW0_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
-#define BMI270_EXTI_PIN         PC4
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
@@ -150,10 +144,10 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS         BUS_I2C1
 
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD)
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD | FEATURE_LED_STRIP)
 
 #define USE_LED_STRIP
-#define WS2811_PIN              PA8  // TIM2_CH1
+#define WS2811_PIN              PA8
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -165,5 +159,3 @@
 #define MAX_PWM_OUTPUT_PORTS    8
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-
-#define BNO055_I2C_BUS          BUS_I2C1

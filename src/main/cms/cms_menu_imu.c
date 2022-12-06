@@ -248,12 +248,14 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
 
-    OTHER_PIDFF_ENTRY("POS  P", &cmsx_pidPosXY.P),
-    OTHER_PIDFF_ENTRY("POS  I", &cmsx_pidPosXY.I),
+    OTHER_PIDFF_ENTRY("POS P", &cmsx_pidPosXY.P),
+    OTHER_PIDFF_ENTRY("POS I", &cmsx_pidPosXY.I),
+    OTHER_PIDFF_ENTRY("POS D", &cmsx_pidPosXY.D),
 
-    OTHER_PIDFF_ENTRY("POSR P", &cmsx_pidVelXY.P),
-    OTHER_PIDFF_ENTRY("POSR I", &cmsx_pidVelXY.I),
-    OTHER_PIDFF_ENTRY("POSR D", &cmsx_pidVelXY.D),
+    OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelXY.P),
+    OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelXY.I),
+    OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelXY.D),
+    OTHER_PIDFF_ENTRY("VEL FF", &cmsx_pidVelXY.FF),
 
     OSD_BACK_AND_END_ENTRY,
 };
@@ -303,11 +305,6 @@ static const CMS_Menu cmsx_menuManualRateProfile = {
 static const OSD_Entry cmsx_menuRateProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- RATE --", profileIndexString),
-
-#if 0
-    { "RC RATE",     OME_FLOAT,  NULL, &(OSD_FLOAT_t){ &rateProfile.rcRate8,    0, 255, 1, 10 }, 0 },
-    { "RC YAW RATE", OME_FLOAT,  NULL, &(OSD_FLOAT_t){ &rateProfile.rcYawRate8, 0, 255, 1, 10 }, 0 },
-#endif
 
     OSD_SETTING_ENTRY_TYPE("ROLL RATE", SETTING_ROLL_RATE, CMS_DATA_TYPE_ANGULAR_RATE),
     OSD_SETTING_ENTRY_TYPE("PITCH RATE", SETTING_PITCH_RATE, CMS_DATA_TYPE_ANGULAR_RATE),
@@ -441,7 +438,7 @@ static const OSD_Entry cmsx_menuMechanicsEntries[] =
     OSD_SETTING_ENTRY("ITERM RELAX", SETTING_MC_ITERM_RELAX),
     OSD_SETTING_ENTRY("ITERM CUTOFF", SETTING_MC_ITERM_RELAX_CUTOFF),
     OSD_SETTING_ENTRY("CD LPF", SETTING_MC_CD_LPF_HZ),
- 
+
     OSD_BACK_AND_END_ENTRY,
 };
 

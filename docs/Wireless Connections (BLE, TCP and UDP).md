@@ -1,6 +1,6 @@
 # Wireless connections
 
-From iNav 5 onwards, the Configurator supports wireless connections via Bluetooth Low Energy (BLE) and Wifi (UDP and TCP).
+From INAV 5 onwards, the Configurator supports wireless connections via Bluetooth Low Energy (BLE) and Wifi (UDP and TCP).
 
 ## BLE
 
@@ -13,7 +13,7 @@ The following adapters are supported:
 Flightcontrollers with BLE should also work, if you have an adapter/FC that doesn't work, open an issue here on Github and we will add it.
 
 ### Configuring the BLE modules
-Activate MSP in iNav on a free UART port and set the Bluetooth module to the appropriate baud rate.
+Activate MSP in INAV on a free UART port and set the Bluetooth module to the appropriate baud rate.
 
 Example for a HM-10 module:
 
@@ -22,7 +22,7 @@ Standard baud rate is 115200 baud, CR+LF
 
 ```
 AT+BAUD4
-AT+NAMEiNav
+AT+NAMEINAV
 ```
 
 The baud rate values: 
@@ -46,8 +46,8 @@ Allows connections via Wifi.
 
 Hardware:
 - DIY, ESP8266 based:
-  This project can be used to make iNav Wifi enabled: https://github.com/Scavanger/MSPWifiBridge 
+  This project can be used to make INAV Wifi enabled: https://github.com/Scavanger/MSPWifiBridge 
   A small ESP01S module should still fit anywhere.
 
 - ExpressLRS Wifi:
-  Should work (via TCP, port 5761), but untested due to lack of hardware from the developer. CLI and presets do not work here, problem in ELRS, not in iNav.
+  Should work (via TCP, port 5761), but untested due to lack of hardware from the developer. CLI and presets do not work here, problem in ELRS, not in INAV.

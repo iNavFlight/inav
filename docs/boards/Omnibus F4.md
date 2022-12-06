@@ -194,9 +194,24 @@ SmartPort / FPort is possible without a hardware inverter by using one of the OM
 * [Omnibus F4 Pro](https://inavflight.com/shop/p/OMNIBUSF4PRO)
 * [Omnibus F4 Nano V6](https://inavflight.com/shop/s/bg/1320256)
 
+## Powering servos and FC (fixed wing)
+These boards have a set of diodes which allow you to power servos
+and the flight controller in three different ways, without back EMF
+from the servos damaging the electronics. Most commonly an ESC 
+connected to the servo rail provides 5V power for the servos.
+
+If your opto-isolated ESC doesn't provide 5V and you have servos, 
+connect a 5 BEC to the servo rail (any of the servo outputs 1-4).
+
+The BEC can also power the board electronics, through a protective diode.
+
+Do NOT bridge any other 5V pad to the servo rail, or connect servos 
+to any other 5V pad on the board. The back EMF from a a servo can 
+destroy the chips on the board.
+
 # Wiring diagrams for Omnibus F4 Pro
 
-Following diagrams applies to _Pro_ version with integrated current meter and JST connectors only
+Following diagrams apply to _Pro_ version with integrated current meter and JST connectors only
 
 ## Board layout
 
