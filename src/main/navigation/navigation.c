@@ -3846,8 +3846,7 @@ bool navigationPositionEstimateIsHealthy(void)
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 {
     const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
-    const bool navLaunchComboModesEnabled = isNavLaunchEnabled() && (IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE));
-
+    
     if (usedBypass) {
         *usedBypass = false;
     }
@@ -3865,7 +3864,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     }
 
     // Don't allow arming if any of NAV modes is active
-    if (!ARMING_FLAG(ARMED) && navBoxModesEnabled && !navLaunchComboModesEnabled) {
+    if (!ARMING_FLAG(ARMED) && navBoxModesEnabled) {
         return NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE;
     }
 
