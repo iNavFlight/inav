@@ -2911,12 +2911,14 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
 
             if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
-                /* Only update target altitude when actual altitude within 5m of target in required direction of change
-                 * otherwise hold target altitude and wait for actual altitude to catch up */
-
-                float targetAlt = posControl.desiredState.pos.z + desiredClimbRate * timeDelta;
-                if ((desiredClimbRate > 0 && targetAlt < altitudeToUse + 500) || (desiredClimbRate < 0 && targetAlt > altitudeToUse - 500)) {
-                    posControl.desiredState.pos.z = targetAlt;
+                static bool targetHoldActive = false;
+                // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
+                if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
+                    posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
+                    targetHoldActive = false;
+                } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
+                    posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
+                    targetHoldActive = true;
                 }
             }
         }
