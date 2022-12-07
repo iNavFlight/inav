@@ -2910,9 +2910,16 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
 
-            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ)) {
-                posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
-                posControl.desiredState.pos.z = constrainf(posControl.desiredState.pos.z, altitudeToUse - 500, altitudeToUse + 500);    // FIXME: calculate sanity limits in a smarter way
+            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
+                static bool targetHoldActive = false;
+                // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
+                if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
+                    posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
+                    targetHoldActive = false;
+                } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
+                    posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
+                    targetHoldActive = true;
+                }
             }
         }
         else {
