@@ -369,7 +369,7 @@ typedef struct osdConfig_s {
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
-    uint8_t msp_displayport_pframe_interval;
+    uint8_t msp_displayport_fullframe_interval;
 
     // Preferences
     uint8_t main_voltage_decimals;

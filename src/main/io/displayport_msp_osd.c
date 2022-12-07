@@ -75,7 +75,8 @@ static mspPort_t mspPort;
 static displayPort_t mspOsdDisplayPort;
 static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
-static timeMs_t sendPFrameMs = 0;
+static timeMs_t sendFullFrameMs = 0;
+static timeMs_t sendSubFrameMs = 0;
 
 // PAL screen size
 #define PAL_COLS 30
@@ -257,7 +258,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         return 0;
     }
 
-    bool sendPFrame = (osdConfig()->msp_displayport_pframe_interval > 0 && millis() > sendPFrameMs);
+    bool sendUpdateFrame = (osdConfig()->msp_displayport_fullframe_interval > 0 && (millis() > sendSubFrameMs || millis() > sendFullFrameMs));
 
     uint8_t subcmd[COLS + 4];
     uint8_t updateCount = 0;
@@ -274,7 +275,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 
         uint8_t len = 4;
         do {
-            if (!sendPFrame) { // Only clear if not sending the PFram next time. This will capture characters which have just turned blank
+            if (!sendUpdateFrame) { // Only clear if not sending the PFram next time. This will capture characters which have just turned blank
                 bitArrayClr(dirty, pos);
             }
             subcmd[len++] = screen[pos++];
@@ -301,15 +302,22 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         output(displayPort, MSP_DISPLAYPORT, subcmd, 1);
     }
 
-    if (sendPFrame) {
-        // Only dirty the character if not blank
-        for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
-            if (screen[pos] != SYM_BLANK) {
-                bitArraySet(dirty, pos);
+    if (sendUpdateFrame) {
+        if (millis() > sendFullFrameMs) {
+            // dirty all characters, even blanks
+            BITARRAY_SET_ALL(dirty);
+
+            sendFullFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval));
+            sendSubFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval) / 5);
+        } else {
+            // Only dirty the character if not blank
+            for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
+                if (screen[pos] != SYM_BLANK) {
+                    bitArraySet(dirty, pos);
+                }
             }
+            sendSubFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval) / 5);
         }
-        // BITARRAY_SET_ALL(dirty); // Old method making everything dirty, even blanks.
-        sendPFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_pframe_interval));
     }
 
     if (vtxReset) {

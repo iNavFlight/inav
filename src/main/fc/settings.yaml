@@ -3025,13 +3025,13 @@ groups:
         field: row_shiftdown
         min: 0
         max: 1
-      - name: osd_msp_displayport_pframe_interval
+      - name: osd_msp_displayport_fullframe_interval
         description: "P Frame interval for MSP DisplayPort [seconds] 0 = disabled"
         default_value: 10
         min: 0
         max: 30
         type: uint8_t
-        field: msp_displayport_pframe_interval
+        field: msp_displayport_fullframe_interval
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
