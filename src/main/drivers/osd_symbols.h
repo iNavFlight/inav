@@ -174,8 +174,8 @@
 #define SYM_FLIGHT_MINS_REMAINING   0xDA  // 216 Flight time (mins) remaining
 #define SYM_FLIGHT_HOURS_REMAINING  0xDB  // 217 Flight time (hours) remaining
 
-#define SYM_LOGO_START              0x101 // 257 to 280, INAV logo
-#define SYM_LOGO_WIDTH              6
+#define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
+#define SYM_LOGO_WIDTH              10
 #define SYM_LOGO_HEIGHT             4
 
 #define SYM_AH_LEFT                 0x12C // 300 Arrow left
