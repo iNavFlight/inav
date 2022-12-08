@@ -2119,7 +2119,7 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
 /*-----------------------------------------------------------
  * Processes an update to estimated heading
  *-----------------------------------------------------------*/
-void updateActualHeading(bool headingValid, int32_t newHeading)
+void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse)
 {
     /* Update heading. Check if we're acquiring a valid heading for the
      * first time and update home heading accordingly.
@@ -2150,7 +2150,9 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
         }
         posControl.rthState.homeFlags |= NAV_HOME_VALID_HEADING;
     }
+    /* Use course over ground for fixed wing nav "heading" when valid - TODO use heading and cog as specifically required for FW and MR */
     posControl.actualState.yaw = newHeading;
+    posControl.actualState.cog = newGroundCourse;       // currently only used for OSD display
     posControl.flags.estHeadingStatus = newEstHeading;
 
     /* Precompute sin/cos of yaw angle */
@@ -2910,9 +2912,16 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
 
-            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ)) {
-                posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
-                posControl.desiredState.pos.z = constrainf(posControl.desiredState.pos.z, altitudeToUse - 500, altitudeToUse + 500);    // FIXME: calculate sanity limits in a smarter way
+            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
+                static bool targetHoldActive = false;
+                // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
+                if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
+                    posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
+                    targetHoldActive = false;
+                } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
+                    posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
+                    targetHoldActive = true;
+                }
             }
         }
         else {
@@ -4327,8 +4336,7 @@ bool isNavLaunchEnabled(void)
 bool abortLaunchAllowed(void)
 {
     // allow NAV_LAUNCH_MODE to be aborted if throttle is low or throttle stick position is < launch idle throttle setting
-    throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-    return throttleStatus == THROTTLE_LOW || throttleStickMixedValue() < currentBatteryProfile->nav.fw.launch_idle_throttle;
+    return throttleStickIsLow() || throttleStickMixedValue() < currentBatteryProfile->nav.fw.launch_idle_throttle;
 }
 
 int32_t navigationGetHomeHeading(void)

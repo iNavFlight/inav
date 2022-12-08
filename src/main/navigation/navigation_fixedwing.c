@@ -72,6 +72,7 @@ static bool isYawAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
 static int32_t navHeadingError;
+static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
 bool needToCalculateCircularLoiter;
 
@@ -398,19 +399,19 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         // courseVirtualCorrection initially used to determine current position relative to course line for later use
         int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
-        float distToCourseLine = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
+        navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
 
         // tracking only active when certain distance and heading conditions are met
-        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.yaw)) < 9000 || posControl.wpDistance < 1000.0f) && distToCourseLine > 200) {
+        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.yaw)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200) {
             int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.yaw - posControl.actualState.yaw);
 
             // captureFactor adjusts distance/heading sensitivity balance when closing in on course line.
             // Closing distance threashold based on speed and an assumed 1 second response time.
-            float captureFactor = distToCourseLine < posControl.actualState.velXY ? constrainf(2.0f - ABS(courseHeadingError) / 500.0f, 0.0f, 2.0f) : 1.0f;
+            float captureFactor = navCrossTrackError < posControl.actualState.velXY ? constrainf(2.0f - ABS(courseHeadingError) / 500.0f, 0.0f, 2.0f) : 1.0f;
 
             // bias between reducing distance to course line and aligning with course heading adjusted by waypoint_tracking_accuracy
             // initial courseCorrectionFactor based on distance to course line
-            float courseCorrectionFactor = constrainf(captureFactor * distToCourseLine / (1000.0f * navConfig()->fw.wp_tracking_accuracy), 0.0f, 1.0f);
+            float courseCorrectionFactor = constrainf(captureFactor * navCrossTrackError / (1000.0f * navConfig()->fw.wp_tracking_accuracy), 0.0f, 1.0f);
             courseCorrectionFactor = courseVirtualCorrection < 0 ? -courseCorrectionFactor : courseCorrectionFactor;
 
             // course heading alignment factor
@@ -685,12 +686,11 @@ bool isFixedWingLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
     static bool fixAxisCheck = false;
-    const bool throttleIsLow = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 
     // Basic condition to start looking for landing
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || FLIGHT_MODE(FAILSAFE_MODE)
-                          || (!navigationIsControllingThrottle() && throttleIsLow);
+                          || (!navigationIsControllingThrottle() && throttleStickIsLow());
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
         return fixAxisCheck = posControl.flags.resetLandingDetector = false;
@@ -824,4 +824,9 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
 int32_t navigationGetHeadingError(void)
 {
     return navHeadingError;
+}
+
+float navigationGetCrossTrackError(void)
+{
+    return navCrossTrackError;
 }
