@@ -2227,7 +2227,7 @@ bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3
 static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
 {
     // Only for WP Mode not Trackback. Ignore non geo waypoints except RTH and JUMP.
-    if (FLIGHT_MODE(NAV_WP_MODE) && !isLastMissionWaypoint()) {
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP && !isLastMissionWaypoint()) {
         navWaypointActions_e nextWpAction = posControl.waypointList[posControl.activeWaypointIndex + 1].action;
 
         if (!(nextWpAction == NAV_WP_ACTION_SET_POI || nextWpAction == NAV_WP_ACTION_SET_HEAD)) {
