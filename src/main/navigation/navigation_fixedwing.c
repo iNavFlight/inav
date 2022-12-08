@@ -399,7 +399,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         // courseVirtualCorrection initially used to determine current position relative to course line for later use
         int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.yaw - virtualTargetBearing);
-        float navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
+        navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
 
         // tracking only active when certain distance and heading conditions are met
         if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.yaw)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200) {
