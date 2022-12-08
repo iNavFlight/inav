@@ -795,7 +795,7 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
     /* IMU operates in decidegrees while INAV operates in deg*100
      * Use course over ground for fixed wing navigation yaw/"heading" */
     int16_t yawValue = isGPSHeadingValid() && STATE(AIRPLANE) ? posEstimator.est.cog : attitude.values.yaw;
-    updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(yawValue));
+    updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(yawValue), DECIDEGREES_TO_CENTIDEGREES(posEstimator.est.cog));
 
     /* Position and velocity are published with INAV_POSITION_PUBLISH_RATE_HZ */
     if (updateTimer(&posPublishTimer, HZ2US(INAV_POSITION_PUBLISH_RATE_HZ), currentTimeUs)) {
