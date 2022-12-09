@@ -21,10 +21,16 @@
 #include "drivers/display.h"
 
 // MSP Display Port commands
-#define MSP_DP_RELEASE      1
-#define MSP_DP_CLEAR_SCREEN 2
-#define MSP_DP_WRITE_STRING 3
-#define MSP_DP_DRAW_SCREEN  4
+typedef enum {
+    MSP_DP_HEARTBEAT = 0,       // Ensure display is not released, and prevent 'disconnected' status
+    MSP_DP_RELEASE = 1,         // Release the display after clearing and updating
+    MSP_DP_CLEAR_SCREEN = 2,    // Clear the display
+    MSP_DP_WRITE_STRING = 3,    // Write a string at given coordinates
+    MSP_DP_DRAW_SCREEN = 4,     // Trigger a screen draw
+    MSP_DP_OPTIONS = 5,         // Not used by Betaflight. Reserved by Ardupilot and INAV
+    MSP_DP_SYS = 6,             // Display system element displayportSystemElement_e at given coordinates
+    MSP_DP_COUNT,
+} displayportMspCommand_e;
 
 struct displayPort_s;
 struct displayPort_s *displayPortMspInit(void);

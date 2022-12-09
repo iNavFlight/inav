@@ -46,6 +46,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/rc_modes.h"
 
 #include "io/osd.h"
+#include "io/displayport_msp.h"
 
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
@@ -53,11 +54,6 @@ FILE_COMPILE_FOR_SPEED
 #include "displayport_msp_osd.h"
 
 #define FONT_VERSION 3
-
-#define MSP_DP_CLEAR_SCREEN 2
-#define MSP_DP_WRITE_STRING 3
-#define MSP_DP_DRAW_SCREEN 4
-#define MSP_DP_OPTIONS 5
 
 typedef enum {          // defines are from hdzero code
     SD_3016,
@@ -69,13 +65,13 @@ typedef enum {          // defines are from hdzero code
 #define DRAW_FREQ_DENOM 4 // 60Hz
 #define TX_BUFFER_SIZE 1024
 #define VTX_TIMEOUT 1000 // 1 second timer
+#define FULL_FRAME_SEND_DENOM 5
 
 static mspProcessCommandFnPtr mspProcessCommand;
 static mspPort_t mspPort;
 static displayPort_t mspOsdDisplayPort;
 static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
-static timeMs_t sendFullFrameMs = 0;
 static timeMs_t sendSubFrameMs = 0;
 
 // PAL screen size
@@ -88,7 +84,7 @@ static timeMs_t sendSubFrameMs = 0;
 #define HDZERO_COLS 50
 #define HDZERO_ROWS 18
 // Avatar screen size
-#define AVATAR_COLS 54
+#define AVATAR_COLS 53
 #define AVATAR_ROWS 20
 // DJIWTF screen size
 #define DJI_COLS 60
@@ -104,8 +100,9 @@ static timeMs_t sendSubFrameMs = 0;
 static uint8_t currentOsdMode; // HDZero screen mode can change across layouts
 
 static uint8_t screen[SCREENSIZE];
-static BITARRAY_DECLARE(fontPage, SCREENSIZE); // font page for each character on the screen
-static BITARRAY_DECLARE(dirty, SCREENSIZE); // change status for each character on the screen
+static BITARRAY_DECLARE(fontPage, SCREENSIZE);  // font page for each character on the screen
+static BITARRAY_DECLARE(dirty, SCREENSIZE);     // change status for each character on the screen
+static BITARRAY_DECLARE(blinkChar, SCREENSIZE); // Does the character blink?
 static bool screenCleared;
 static uint8_t screenRows, screenCols;
 static videoSystem_e osdVideoSystem;
@@ -172,6 +169,7 @@ static void init(void)
     memset(screen, SYM_BLANK, sizeof(screen));
     BITARRAY_CLR_ALL(fontPage);
     BITARRAY_CLR_ALL(dirty);
+    BITARRAY_CLR_ALL(blinkChar);
 }
 
 static int clearScreen(displayPort_t *displayPort)
@@ -213,14 +211,15 @@ static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
     return true;
 }
 
-static int setChar(const uint16_t pos, const uint16_t c)
+static int setChar(const uint16_t pos, const uint16_t c, textAttributes_t attr)
 {
     if (pos < SCREENSIZE) {
         uint8_t ch = c & 0xFF;
         bool page = (c >> 8);
-        if (screen[pos] != ch || bitArrayGet(fontPage, pos) !=  page) {
+        if (screen[pos] != ch || bitArrayGet(fontPage, pos) != page) {
             screen[pos] = ch;
             (page) ? bitArraySet(fontPage, pos) : bitArrayClr(fontPage, pos);
+            (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) ? bitArraySet(blinkChar, pos) : bitArrayClr(blinkChar, pos);
             bitArraySet(dirty, pos);
         }
     }
@@ -230,19 +229,17 @@ static int setChar(const uint16_t pos, const uint16_t c)
 static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint16_t c, textAttributes_t attr)
 {
     UNUSED(displayPort);
-    UNUSED(attr);
 
-    return setChar((row * COLS) + col, c);
+    return setChar((row * COLS) + col, c, attr);
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
 {
     UNUSED(displayPort);
-    UNUSED(attr);
 
     uint16_t pos = (row * COLS) + col;
     while (*string) {
-        setChar(pos++, *string++);
+        setChar(pos++, *string++, attr);
     }
     return 0;
 }
@@ -253,12 +250,13 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
 static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
+    static uint8_t fullFrameCounter = 0;
 
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz
         return 0;
     }
 
-    bool sendUpdateFrame = (osdConfig()->msp_displayport_fullframe_interval > 0 && (millis() > sendSubFrameMs || millis() > sendFullFrameMs));
+    bool sendUpdateFrame = (osdConfig()->msp_displayport_fullframe_interval > 0 && (millis() > sendSubFrameMs));
 
     uint8_t subcmd[COLS + 4];
     uint8_t updateCount = 0;
@@ -270,8 +268,10 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         int pos = next;
         uint8_t row = pos / COLS;
         uint8_t col = pos % COLS;
+        uint8_t attributes = 0;
         int endOfLine = row * COLS + screenCols;
         bool page = bitArrayGet(fontPage, pos);
+        bool blink = bitArrayGet(blinkChar, pos);
 
         uint8_t len = 4;
         do {
@@ -283,11 +283,16 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
             }
-        } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page);
+        } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page && bitArrayGet(blinkChar, next) == blink);
+
+        attributes |= (page | 0) << DISPLAYPORT_MSP_ATTR_FONT;
+        if (blink) {
+            attributes |= DISPLAYPORT_MSP_ATTR_BLINK;
+        }
 
         subcmd[1] = row;
         subcmd[2] = col;
-        subcmd[3] = page;
+        subcmd[3] = attributes;
         output(displayPort, MSP_DISPLAYPORT, subcmd, len);
         updateCount++;
         next = BITARRAY_FIND_FIRST_SET(dirty, pos);
@@ -303,12 +308,9 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
     }
 
     if (sendUpdateFrame) {
-        if (millis() > sendFullFrameMs) {
+        if (fullFrameCounter++ % FULL_FRAME_SEND_DENOM) {
             // dirty all characters, even blanks
             BITARRAY_SET_ALL(dirty);
-
-            sendFullFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval));
-            sendSubFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval) / 5);
         } else {
             // Only dirty the character if not blank
             for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
@@ -316,8 +318,9 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
                     bitArraySet(dirty, pos);
                 }
             }
-            sendSubFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval) / 5);
         }
+            
+        sendSubFrameMs = millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval) / FULL_FRAME_SEND_DENOM);
     }
 
     if (vtxReset) {
@@ -371,16 +374,21 @@ static bool isReady(displayPort_t *displayPort)
     return vtxActive;
 }
 
-static int grab(displayPort_t *displayPort)
+static int heartbeat(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
+    uint8_t subcmd[] = { MSP_DP_HEARTBEAT };
+
+    // heartbeat is used to:
+    // a) ensure display is not released by MW OSD software
+    // b) prevent OSD Slave boards from displaying a 'disconnected' status.
+    output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
+
     return 0;
 }
 
-static int heartbeat(displayPort_t *displayPort)
+static int grab(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    return heartbeat(displayPort);
 }
 
 static int release(displayPort_t *displayPort)

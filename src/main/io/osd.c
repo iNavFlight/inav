@@ -143,7 +143,7 @@ FILE_COMPILE_FOR_SPEED
 
 #define OSD_CHR_IS_NUM(c) (c >= '0' && c <= '9')
 
-#define OSD_CENTER_LEN(x) ((osdDisplayPort->cols - x) / 2)
+#define OSD_CENTER_LEN(x) floor((osdDisplayPort->cols - x) / 2)
 #define OSD_CENTER_S(s) OSD_CENTER_LEN(strlen(s))
 
 #define OSD_MIN_FONT_VERSION 3
@@ -1005,7 +1005,7 @@ static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *at
 
 void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 {
-    *x = osdDisplayPort->cols / 2;
+    *x = floor(osdDisplayPort->cols / 2);
     *y = osdDisplayPort->rows / 2;
     *y -= osdConfig()->horizon_offset; // positive horizon_offset moves the HUD up, negative moves down
 }
