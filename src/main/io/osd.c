@@ -1779,6 +1779,19 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_GROUND_COURSE:
+        {
+            buff[0] = SYM_GROUND_COURSE;
+            if (osdIsHeadingValid()) {
+                tfp_sprintf(&buff[1], "%3d", (int16_t)CENTIDEGREES_TO_DEGREES(posControl.actualState.cog));
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
+            break;
+        }
+
     case OSD_COURSE_HOLD_ERROR:
         {
             if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -1822,6 +1835,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
             buff[5] = SYM_DEGREES;
             buff[6] = '\0';
+            break;
+        }
+
+    case OSD_CROSS_TRACK_ERROR:
+        {
+            if (isWaypointNavTrackingActive()) {
+                buff[0] = SYM_CROSS_TRACK_ERROR;
+                osdFormatDistanceSymbol(buff + 1, navigationGetCrossTrackError(), 0);
+            } else {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
+                return true;
+            }
             break;
         }
 
@@ -1930,20 +1955,20 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 #endif
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
-                buff[0] = SYM_FLY_M;
+                buff[0] = SYM_FLIGHT_MINS_REMAINING;
                 strcpy(buff + 1, "--:--");
 #if defined(USE_ADC) && defined(USE_GPS)
                 updatedTimestamp = 0;
 #endif
             } else if (timeSeconds == -2) {
                 // Wind is too strong to come back with cruise throttle
-                buff[0] = SYM_FLY_M;
+                buff[0] = SYM_FLIGHT_MINS_REMAINING;
                 buff[1] = buff[2] = buff[4] = buff[5] = SYM_WIND_HORIZONTAL;
                 buff[3] = ':';
                 buff[6] = '\0';
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else {
-                osdFormatTime(buff, timeSeconds, SYM_FLY_M, SYM_FLY_H);
+                osdFormatTime(buff, timeSeconds, SYM_FLIGHT_MINS_REMAINING, SYM_FLIGHT_HOURS_REMAINING);
                 if (timeSeconds == 0)
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
@@ -1964,7 +1989,8 @@ static bool osdDrawSingleElement(uint8_t item)
             updatedTimestamp = currentTimeUs;
         }
 #endif
-        buff[0] = SYM_TRIP_DIST;
+        //buff[0] = SYM_TRIP_DIST;
+        displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_FLIGHT_DIST_REMAINING);
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
             buff[4] = SYM_BLANK;
             buff[5] = '\0';
@@ -2540,7 +2566,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "0TP", 0, (float)currentBatteryProfile->fwMinThrottleDownPitchAngle / 10, 3, 1, ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "0TP", 0, (float)navConfig()->fw.minThrottleDownPitchAngle / 10, 3, 1, ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE);
         return true;
 
     case OSD_FW_ALT_PID_OUTPUTS:
@@ -3217,7 +3243,7 @@ static bool osdDrawSingleElement(uint8_t item)
     return true;
 }
 
-static uint8_t osdIncElementIndex(uint8_t elementIndex)
+uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
 
@@ -3373,6 +3399,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .left_sidebar_scroll_step = SETTING_OSD_LEFT_SIDEBAR_SCROLL_STEP_DEFAULT,
     .right_sidebar_scroll_step = SETTING_OSD_RIGHT_SIDEBAR_SCROLL_STEP_DEFAULT,
     .sidebar_height = SETTING_OSD_SIDEBAR_HEIGHT_DEFAULT,
+    .ahi_pitch_interval = SETTING_OSD_AHI_PITCH_INTERVAL_DEFAULT,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
@@ -3434,8 +3461,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
     osdLayoutsConfig->item_pos[0][OSD_HEADING] = OSD_POS(12, 2);
+    osdLayoutsConfig->item_pos[0][OSD_GROUND_COURSE] = OSD_POS(12, 3);
     osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ERROR] = OSD_POS(12, 2);
     osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ADJUSTMENT] = OSD_POS(12, 2);
+    osdLayoutsConfig->item_pos[0][OSD_CROSS_TRACK_ERROR] = OSD_POS(12, 3);
     osdLayoutsConfig->item_pos[0][OSD_HEADING_GRAPH] = OSD_POS(18, 2);
     osdLayoutsConfig->item_pos[0][OSD_CURRENT_DRAW] = OSD_POS(2, 3) | OSD_VISIBLE_FLAG;
     osdLayoutsConfig->item_pos[0][OSD_MAH_DRAWN] = OSD_POS(1, 4) | OSD_VISIBLE_FLAG;
@@ -3637,7 +3666,7 @@ static void osdCompleteAsyncInitialization(void)
 
     char string_buffer[30];
     tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-    uint8_t xPos = osdDisplayIsHD() ? 7 : 5;
+    uint8_t xPos = osdDisplayIsHD() ? 15 : 5;
     displayWrite(osdDisplayPort, xPos, y++, string_buffer);
 #ifdef USE_CMS
     displayWrite(osdDisplayPort, xPos+2, y++,  CMS_STARTUP_HELP_TEXT1);
@@ -3647,8 +3676,8 @@ static void osdCompleteAsyncInitialization(void)
 #ifdef USE_STATS
 
 
-    uint8_t statNameX = osdDisplayIsHD() ? 7 : 4;
-    uint8_t statValueX = osdDisplayIsHD() ? 27 : 24;
+    uint8_t statNameX = osdDisplayIsHD() ? 14 : 4;
+    uint8_t statValueX = osdDisplayIsHD() ? 34 : 24;
 
     if (statsConfig()->stats_enabled) {
         displayWrite(osdDisplayPort, statNameX, ++y, "ODOMETER:");
@@ -3809,8 +3838,8 @@ static void osdShowStatsPage1(void)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
-    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
     char buff[10];
     statsPagesCheck = 1;
 
@@ -3884,8 +3913,8 @@ static void osdShowStatsPage1(void)
 static void osdShowStatsPage2(void)
 {
     uint8_t top = 1;    /* first fully visible line */
-    const uint8_t statNameX = osdDisplayIsHD() ? 7 : 1;
-    const uint8_t statValuesX = osdDisplayIsHD() ? 33 : 20;
+    const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
+    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
     char buff[10];
     statsPagesCheck = 1;
 

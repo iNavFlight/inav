@@ -99,7 +99,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 3);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -127,7 +127,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         // General navigation parameters
         .pos_failure_timeout = SETTING_NAV_POSITION_TIMEOUT_DEFAULT,                            // 5 sec
         .waypoint_radius = SETTING_NAV_WP_RADIUS_DEFAULT,                                       // 2m diameter
-        .waypoint_safe_distance = SETTING_NAV_WP_SAFE_DISTANCE_DEFAULT,                         // centimeters - first waypoint should be closer than this
+        .waypoint_safe_distance = SETTING_NAV_WP_MAX_SAFE_DISTANCE_DEFAULT,                         // Metres - first waypoint should be closer than this
 #ifdef USE_MULTI_MISSION
         .waypoint_multi_mission_index = SETTING_NAV_WP_MULTI_MISSION_INDEX_DEFAULT,             // mission index selected from multi mission WP entry
 #endif
@@ -185,7 +185,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .control_smoothness = SETTING_NAV_FW_CONTROL_SMOOTHNESS_DEFAULT,
         .pitch_to_throttle_smooth = SETTING_NAV_FW_PITCH2THR_SMOOTHING_DEFAULT,
         .pitch_to_throttle_thresh = SETTING_NAV_FW_PITCH2THR_THRESHOLD_DEFAULT,
+        .minThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
         .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                          // 75m
+        .loiter_direction = SETTING_FW_LOITER_DIRECTION_DEFAULT,
 
         //Fixed wing landing
         .land_dive_angle = SETTING_NAV_FW_LAND_DIVE_ANGLE_DEFAULT,                      // 2 degrees dive by default
@@ -198,7 +200,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_motor_timer = SETTING_NAV_FW_LAUNCH_MOTOR_DELAY_DEFAULT,                // ms
         .launch_idle_motor_timer = SETTING_NAV_FW_LAUNCH_IDLE_MOTOR_DELAY_DEFAULT,      // ms
         .launch_wiggle_wake_idle = SETTING_NAV_FW_LAUNCH_WIGGLE_TO_WAKE_IDLE_DEFAULT,   // uint8_t
-        .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,          // ms, time to gredually increase throttle from idle to launch
+        .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,          // ms, time to greaually increase throttle from idle to launch
         .launch_end_time = SETTING_NAV_FW_LAUNCH_END_TIME_DEFAULT,                      // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
         .launch_min_time = SETTING_NAV_FW_LAUNCH_MIN_TIME_DEFAULT,                      // ms, min time in launch mode
         .launch_timeout = SETTING_NAV_FW_LAUNCH_TIMEOUT_DEFAULT,                        // ms, timeout for launch procedure
@@ -2118,7 +2120,7 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
 /*-----------------------------------------------------------
  * Processes an update to estimated heading
  *-----------------------------------------------------------*/
-void updateActualHeading(bool headingValid, int32_t newHeading)
+void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse)
 {
     /* Update heading. Check if we're acquiring a valid heading for the
      * first time and update home heading accordingly.
@@ -2149,7 +2151,9 @@ void updateActualHeading(bool headingValid, int32_t newHeading)
         }
         posControl.rthState.homeFlags |= NAV_HOME_VALID_HEADING;
     }
+    /* Use course over ground for fixed wing nav "heading" when valid - TODO use heading and cog as specifically required for FW and MR */
     posControl.actualState.yaw = newHeading;
+    posControl.actualState.cog = newGroundCourse;       // currently only used for OSD display
     posControl.flags.estHeadingStatus = newEstHeading;
 
     /* Precompute sin/cos of yaw angle */
@@ -2224,7 +2228,7 @@ bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3
 static bool getLocalPosNextWaypoint(fpVector3_t * nextWpPos)
 {
     // Only for WP Mode not Trackback. Ignore non geo waypoints except RTH and JUMP.
-    if (FLIGHT_MODE(NAV_WP_MODE) && !isLastMissionWaypoint()) {
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP && !isLastMissionWaypoint()) {
         navWaypointActions_e nextWpAction = posControl.waypointList[posControl.activeWaypointIndex + 1].action;
 
         if (!(nextWpAction == NAV_WP_ACTION_SET_POI || nextWpAction == NAV_WP_ACTION_SET_HEAD)) {
@@ -2264,6 +2268,11 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
     }
 
     if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) {
+        // If WP turn smoothing CUT option used WP is reached when start of turn is initiated
+        if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_CUT && posControl.flags.wpTurnSmoothingActive) {
+            posControl.flags.wpTurnSmoothingActive = false;
+            return true;
+        }
         // Check if waypoint was missed based on bearing to WP exceeding 100 degrees relative to waypoint Yaw
         // Same method for turn smoothing option but relative bearing set at 60 degrees
         uint16_t relativeBearing = posControl.flags.wpTurnSmoothingActive ? 6000 : 10000;
@@ -2641,10 +2650,17 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * Reverts to normal RTH heading direct to home when end of track reached.
  * Trackpoints logged with precedence for course/altitude changes. Distance based changes
  * only logged if no course/altitude changes logged over an extended distance.
+ * Tracking suspended during fixed wing loiter (PosHold and WP Mode timed hold).
  * --------------------------------------------------------------------------------- */
  static void updateRthTrackback(bool forceSaveTrackPoint)
 {
-    if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED)) {
+    static bool suspendTracking = false;
+    bool fwLoiterIsActive = STATE(AIRPLANE) && (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED || FLIGHT_MODE(NAV_POSHOLD_MODE));
+    if (!fwLoiterIsActive && suspendTracking) {
+        suspendTracking = false;
+    }
+
+    if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED || suspendTracking)) {
         return;
     }
 
@@ -2692,6 +2708,11 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
                 // if no reliable course revert to basic distance logging based on direct distance from last point - set to 20m
                 saveTrackpoint = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.activeRthTBPointIndex]) > METERS_TO_CENTIMETERS(20);
                 previousTBTripDist = posControl.totalTripDistance;
+            }
+
+            // Suspend tracking during loiter on fixed wing. Save trackpoint at start of loiter.
+            if (distanceCounter && fwLoiterIsActive) {
+                saveTrackpoint = suspendTracking = true;
             }
         }
 
@@ -2892,9 +2913,16 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
 
-            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ)) {
-                posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
-                posControl.desiredState.pos.z = constrainf(posControl.desiredState.pos.z, altitudeToUse - 500, altitudeToUse + 500);    // FIXME: calculate sanity limits in a smarter way
+            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
+                static bool targetHoldActive = false;
+                // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
+                if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
+                    posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
+                    targetHoldActive = false;
+                } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
+                    posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
+                    targetHoldActive = true;
+                }
             }
         }
         else {
@@ -3853,7 +3881,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
 
     // Don't allow arming if first waypoint is farther than configured safe distance
     if ((posControl.waypointCount > 0) && (navConfig()->general.waypoint_safe_distance != 0)) {
-        if (distanceToFirstWP() > navConfig()->general.waypoint_safe_distance && !checkStickPosition(YAW_HI)) {
+        if (distanceToFirstWP() > METERS_TO_CENTIMETERS(navConfig()->general.waypoint_safe_distance) && !checkStickPosition(YAW_HI)) {
             return NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR;
         }
     }
@@ -4309,8 +4337,7 @@ bool isNavLaunchEnabled(void)
 bool abortLaunchAllowed(void)
 {
     // allow NAV_LAUNCH_MODE to be aborted if throttle is low or throttle stick position is < launch idle throttle setting
-    throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
-    return throttleStatus == THROTTLE_LOW || throttleStickMixedValue() < currentBatteryProfile->nav.fw.launch_idle_throttle;
+    return throttleStickIsLow() || throttleStickMixedValue() < currentBatteryProfile->nav.fw.launch_idle_throttle;
 }
 
 int32_t navigationGetHomeHeading(void)

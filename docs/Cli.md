@@ -111,7 +111,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `servo` | Configure servos |
 | `set` | Change setting with name=value or blank or * for list |
 | `smix` | Custom servo mixer |
-| `status` | Show status |
+| `status` | Show status. Error codes can be looked up [here](https://github.com/iNavFlight/inav/wiki/%22Something%22-is-disabled----Reasons) |
 | `tasks` | Show task stats |
 | `temp_sensor` | List or configure temperature sensor(s). See [temperature sensors documentation](Temperature-sensors.md) for more information. |
 | `version` | Show version |
