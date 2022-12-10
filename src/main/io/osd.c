@@ -3247,25 +3247,35 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
 
-    if (elementIndex == OSD_ARTIFICIAL_HORIZON)
-        ++elementIndex;
-
-#ifndef USE_TEMPERATURE_SENSOR
-    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE)
-        elementIndex = OSD_ALTITUDE_MSL;
-#endif
-
-    if (!sensors(SENSOR_ACC)) {
-        if (elementIndex == OSD_CROSSHAIRS) {
-            elementIndex = OSD_ONTIME;
-        }
+    if (elementIndex == OSD_ARTIFICIAL_HORIZON) {   // always drawn last so skip
+        elementIndex++;
     }
 
-    if (!feature(FEATURE_VBAT)) {
+#ifndef USE_TEMPERATURE_SENSOR
+    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE) {
+        elementIndex = OSD_ALTITUDE_MSL;
+    }
+#endif
+
+    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))) {
+        if (elementIndex == OSD_POWER) {
+            elementIndex = OSD_GPS_LON;
+        }
         if (elementIndex == OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE) {
             elementIndex = OSD_LEVEL_PIDS;
         }
+#ifdef USE_POWER_LIMITS
+        if (elementIndex == OSD_PLIMIT_REMAINING_BURST_TIME) {
+            elementIndex = OSD_GLIDESLOPE;
+        }
+#endif
     }
+
+#ifndef USE_POWER_LIMITS
+    if (elementIndex == OSD_PLIMIT_REMAINING_BURST_TIME) {
+        elementIndex = OSD_GLIDESLOPE;
+    }
+#endif
 
     if (!feature(FEATURE_CURRENT_METER)) {
         if (elementIndex == OSD_CURRENT_DRAW) {
@@ -3277,43 +3287,59 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH) {
             elementIndex = OSD_HOME_HEADING_ERROR;
         }
-        if (elementIndex == OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE) {
-            elementIndex = OSD_LEVEL_PIDS;
-        }
-    }
-
-    if (!feature(FEATURE_GPS)) {
-        if (elementIndex == OSD_GPS_SPEED) {
-            elementIndex = OSD_ALTITUDE;
-        }
-        if (elementIndex == OSD_GPS_LON) {
-            elementIndex = OSD_VARIO;
-        }
-        if (elementIndex == OSD_GPS_HDOP) {
-            elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
-        }
-        if (elementIndex == OSD_TRIP_DIST) {
-            elementIndex = OSD_ATTITUDE_PITCH;
-        }
-        if (elementIndex == OSD_WIND_SPEED_HORIZONTAL) {
-            elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
-        }
-        if (elementIndex == OSD_3D_SPEED) {
-            elementIndex++;
+        if (elementIndex == OSD_CLIMB_EFFICIENCY) {
+            elementIndex = OSD_NAV_WP_MULTI_MISSION_INDEX;
         }
     }
 
     if (!STATE(ESC_SENSOR_ENABLED)) {
         if (elementIndex == OSD_ESC_RPM) {
-            elementIndex++;
+            elementIndex = OSD_AZIMUTH;
         }
     }
 
-#ifndef USE_POWER_LIMITS
-    if (elementIndex == OSD_NAV_FW_CONTROL_SMOOTHNESS) {
-        elementIndex = OSD_ITEM_COUNT;
+    if (!feature(FEATURE_GPS)) {
+        if (elementIndex == OSD_GPS_HDOP || elementIndex == OSD_TRIP_DIST || elementIndex == OSD_3D_SPEED || elementIndex == OSD_MISSION ||
+            elementIndex == OSD_AZIMUTH) {
+            elementIndex++;
+        }
+        if (elementIndex == OSD_HEADING_GRAPH && !sensors(SENSOR_MAG)) {
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_WH_DRAWN : OSD_ATTITUDE_PITCH;
+        }
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
+            elementIndex = OSD_ATTITUDE_PITCH;
+        }
+        if (elementIndex == OSD_GPS_SPEED) {
+            elementIndex = OSD_ALTITUDE;
+        }
+        if (elementIndex == OSD_GPS_LON) {
+            elementIndex = sensors(SENSOR_MAG) ? OSD_HEADING : OSD_VARIO;
+        }
+        if (elementIndex == OSD_MAP_NORTH || elementIndex == OSD_HOME_HEADING_ERROR) {
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE : OSD_LEVEL_PIDS;
+        }
+        if (elementIndex == OSD_PLUS_CODE) {
+            elementIndex = OSD_GFORCE;
+        }
+        if (elementIndex == OSD_GLIDESLOPE) {
+            elementIndex = OSD_AIR_MAX_SPEED;
+        }
+        if (elementIndex == OSD_GLIDE_RANGE) {
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_CLIMB_EFFICIENCY : OSD_ITEM_COUNT;
+        }
+        if (elementIndex == OSD_NAV_WP_MULTI_MISSION_INDEX) {
+            elementIndex = OSD_ITEM_COUNT;
+        }
     }
-#endif
+
+    if (!sensors(SENSOR_ACC)) {
+        if (elementIndex == OSD_CROSSHAIRS) {
+            elementIndex = OSD_ONTIME;
+        }
+        if (elementIndex == OSD_GFORCE) {
+            elementIndex = OSD_RC_SOURCE;
+        }
+    }
 
     if (elementIndex == OSD_ITEM_COUNT) {
         elementIndex = 0;
