@@ -30,9 +30,9 @@ Without GPS fix, plane has nose heading from magnetometer only.
 
 To navigate without GPS fix, we make the following assumptions:
 - plane is flying in the direction where nose is pointing
-- plane is flying with constant speed, specified in settings
+- (if pitot tube is not installed) plane is flying with constant airspeed, specified in settings
 
-It is posible to roughtly estimate position using these assumptions. To increase heading accuracy, plane will use information about wind direction and speed, estimated before GPS fix was lost. To increase speed estimation accuracy, plane will use pitot tube (if available).
+It is posible to roughtly estimate position using theese assumptions. To increase accuracy, plane will use information about wind direction and speed, estimated before GPS fix was lost. To increase groundspeed estimation accuracy, plane will use pitot tube data(if available).
 
 From estimated heading direction and speed, plane is able to **roughtly** estimate it's position.
 
