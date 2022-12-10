@@ -42,7 +42,7 @@ typedef struct failsafeConfig_s {
     uint16_t failsafe_stick_motion_threshold;
     uint16_t failsafe_min_distance;             // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
     uint8_t failsafe_min_distance_procedure;    // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
-    bool failsafe_mission;                      // Enable failsafe in WP mode or not
+    int16_t failsafe_mission_delay;             // Time delay before Failsafe triggered when WP mission in progress (s)
 } failsafeConfig_t;
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);
@@ -148,6 +148,7 @@ typedef struct failsafeState_s {
     timeMs_t landingShouldBeFinishedAt;
     timeMs_t receivingRxDataPeriod;         // period for the required period of valid rxData
     timeMs_t receivingRxDataPeriodPreset;   // preset for the required period of valid rxData
+    timeMs_t wpModeDelayedFailsafeStart;    // waypoint mission delayed failsafe timer start time
     failsafeProcedure_e activeProcedure;
     failsafePhase_e phase;
     failsafeRxLinkState_e rxLinkState;

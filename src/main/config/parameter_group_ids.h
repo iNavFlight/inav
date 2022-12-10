@@ -23,9 +23,9 @@
 #define PG_MOTOR_MIXER 4
 #define PG_BLACKBOX_CONFIG 5
 #define PG_MOTOR_CONFIG 6
-//#define PG_SENSOR_SELECTION_CONFIG 7 -- NOT USED in iNav
-//#define PG_SENSOR_ALIGNMENT_CONFIG 8 -- NOT USED in iNav
-//#define PG_SENSOR_TRIMS 9 -- NOT USED in iNav
+//#define PG_SENSOR_SELECTION_CONFIG 7 -- NOT USED in INAV
+//#define PG_SENSOR_ALIGNMENT_CONFIG 8 -- NOT USED in INAV
+//#define PG_SENSOR_TRIMS 9 -- NOT USED in INAV
 #define PG_GYRO_CONFIG 10
 #define PG_BATTERY_PROFILES 11
 #define PG_CONTROL_RATE_PROFILES 12
@@ -85,7 +85,7 @@
 // cleanflight v2 specific parameter group ids start at 256
 #define PG_VTX_SETTINGS_CONFIG 259
 
-// iNav specific parameter group ids start at 1000
+// INAV specific parameter group ids start at 1000
 #define PG_INAV_START 1000
 #define PG_PITOTMETER_CONFIG 1000
 #define PG_POSITION_ESTIMATION_CONFIG 1001
@@ -116,7 +116,7 @@
 #define PG_SAFE_HOME_CONFIG 1026
 #define PG_DJI_OSD_CONFIG 1027
 #define PG_PROGRAMMING_PID 1028
-#define PG_SECONDARY_IMU 1029
+#define PG_UNUSED_1 1029
 #define PG_POWER_LIMITS_CONFIG 1030
 #define PG_OSD_COMMON_CONFIG 1031
 #define PG_INAV_END 1031

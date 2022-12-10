@@ -92,8 +92,6 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
-    drivers/accgyro/accgyro_bno055_serial.c
-    drivers/accgyro/accgyro_bno055_serial.h
 
     drivers/adc.c
     drivers/adc.h
@@ -302,8 +300,6 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
-    flight/hil.c
-    flight/hil.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
@@ -335,8 +331,6 @@ main_sources(COMMON_SRC
     flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
-    flight/secondary_imu.c
-    flight/secondary_imu.h
 
     io/beeper.c
     io/beeper.h
@@ -484,8 +478,8 @@ main_sources(COMMON_SRC
     io/displayport_msp.h
     io/displayport_oled.c
     io/displayport_oled.h
-    io/displayport_hdzero_osd.c
-    io/displayport_hdzero_osd.h
+    io/displayport_msp_osd.c
+    io/displayport_msp_osd.h
     io/displayport_srxl.c
     io/displayport_srxl.h
     io/displayport_hott.c

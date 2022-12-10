@@ -86,7 +86,6 @@ FILE_COMPILE_FOR_SPEED
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
-#include "flight/secondary_imu.h"
 #include "flight/rate_dynamics.h"
 
 #include "flight/failsafe.h"
@@ -213,10 +212,10 @@ static void updateArmingStatus(void)
         /* CHECK: Throttle */
         if (!armingConfig()->fixed_wing_auto_arm) {
             // Don't want this check if fixed_wing_auto_arm is in use - machine arms on throttle > LOW
-            if (calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) != THROTTLE_LOW) {
-                ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
-            } else {
+            if (throttleStickIsLow()) {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+            } else {
+                ENABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
             }
         }
 
@@ -265,7 +264,7 @@ static void updateArmingStatus(void)
 
         /* CHECK: */
         if (
-            sensors(SENSOR_ACC) && 
+            sensors(SENSOR_ACC) &&
             !STATE(ACCELEROMETER_CALIBRATED) &&
             // Require ACC calibration only if any of the setting might require it
             (
@@ -389,7 +388,7 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
 }
 
-void annexCode(float dT)
+static void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
@@ -436,8 +435,6 @@ void annexCode(float dT)
             rcCommand[PITCH] = rcCommand_PITCH;
         }
     }
-
-    updateArmingStatus();
 }
 
 void disarm(disarmReason_t disarmReason)
@@ -525,9 +522,6 @@ void releaseSharedTelemetryPorts(void) {
 
 void tryArm(void)
 {
-#ifdef USE_MULTI_MISSION
-    setMultiMissionOnArm();
-#endif
     updateArmingStatus();
 
 #ifdef USE_DSHOT
@@ -636,13 +630,13 @@ void processRx(timeUs_t currentTimeUs)
 
     failsafeUpdateState();
 
-    const throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
+    const bool throttleIsLow = throttleStickIsLow();
 
     // When armed and motors aren't spinning, do beeps periodically
     if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
         static bool armedBeeperOn = false;
 
-        if (throttleStatus == THROTTLE_LOW) {
+        if (throttleIsLow) {
             beeper(BEEPER_ARMED);
             armedBeeperOn = true;
         } else if (armedBeeperOn) {
@@ -651,7 +645,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 
-    processRcStickPositions(throttleStatus);
+    processRcStickPositions(throttleIsLow);
     processAirmode();
     updateActivatedModes();
 
@@ -765,7 +759,7 @@ void processRx(timeUs_t currentTimeUs)
         pidResetErrorAccumulators();
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
-        if (throttleStatus == THROTTLE_LOW) {
+        if (throttleIsLow) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                  if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
                      ENABLE_STATE(ANTI_WINDUP);
@@ -784,7 +778,7 @@ void processRx(timeUs_t currentTimeUs)
          }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
-        if (throttleStatus == THROTTLE_LOW) {
+        if (throttleIsLow) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                  if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
                      ENABLE_STATE(ANTI_WINDUP);
@@ -808,7 +802,7 @@ void processRx(timeUs_t currentTimeUs)
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
          DISABLE_STATE(ANTI_WINDUP);
          //This case applies only to MR when Airmode management is throttle threshold activated
-         if (throttleStatus == THROTTLE_LOW && !STATE(AIRMODE_ACTIVE)) {
+         if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
              pidResetErrorAccumulators();
          }
      }
@@ -883,7 +877,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
 
-    annexCode(dT);
+    processPilotAndFailSafeActions(dT);
+
+    updateArmingStatus();
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew, currentTimeUs);
@@ -926,13 +922,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     // Calculate stabilisation
     pidController(dT);
-
-#ifdef HIL
-    if (hilActive) {
-        hilUpdateControlState();
-        motorControlEnable = false;
-    }
-#endif
 
     mixTable();
 

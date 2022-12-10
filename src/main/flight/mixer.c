@@ -626,11 +626,8 @@ motorStatus_e getMotorStatus(void)
     }
 
     const bool fixedWingOrAirmodeNotActive = STATE(FIXED_WING_LEGACY) || !STATE(AIRMODE_ACTIVE);
-    const bool throttleStickLow =
-        (calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW);
 
-    if (throttleStickLow && fixedWingOrAirmodeNotActive) {
-
+    if (throttleStickIsLow() && fixedWingOrAirmodeNotActive) {
         if ((navConfig()->general.flags.nav_overrides_motor_stop == NOMS_OFF_ALWAYS) && failsafeIsActive()) {
             // If we are in failsafe and user was holding stick low before it was triggered and nav_overrides_motor_stop is set to OFF_ALWAYS
             // and either on a plane or on a quad with inactive airmode - stop motor
@@ -652,7 +649,6 @@ motorStatus_e getMotorStatus(void)
                     return MOTOR_STOPPED_USER;
             }
         }
-
     }
 
     return MOTOR_RUNNING;

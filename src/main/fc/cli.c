@@ -84,7 +84,6 @@ bool cliMode = false;
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -1903,26 +1902,39 @@ static void cliServoMix(char *cmdline)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
-static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions, int16_t showLC)
 {
     const char *format = "logic %d %d %d %d %d %d %d %d %d";
-    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-        const logicCondition_t logic = logicConditions[i];
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        if (showLC == -1 || showLC == i) {
+            const logicCondition_t logic = logicConditions[i];
 
-        bool equalsDefault = false;
-        if (defaultLogicConditions) {
-            logicCondition_t defaultValue = defaultLogicConditions[i];
-            equalsDefault =
-                logic.enabled == defaultValue.enabled &&
-                logic.activatorId == defaultValue.activatorId &&
-                logic.operation == defaultValue.operation &&
-                logic.operandA.type == defaultValue.operandA.type &&
-                logic.operandA.value == defaultValue.operandA.value &&
-                logic.operandB.type == defaultValue.operandB.type &&
-                logic.operandB.value == defaultValue.operandB.value &&
-                logic.flags == defaultValue.flags;
+            bool equalsDefault = false;
+            if (defaultLogicConditions) {
+                logicCondition_t defaultValue = defaultLogicConditions[i];
+                equalsDefault =
+                    logic.enabled == defaultValue.enabled &&
+                    logic.activatorId == defaultValue.activatorId &&
+                    logic.operation == defaultValue.operation &&
+                    logic.operandA.type == defaultValue.operandA.type &&
+                    logic.operandA.value == defaultValue.operandA.value &&
+                    logic.operandB.type == defaultValue.operandB.type &&
+                    logic.operandB.value == defaultValue.operandB.value &&
+                    logic.flags == defaultValue.flags;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                    i,
+                    logic.enabled,
+                    logic.activatorId,
+                    logic.operation,
+                    logic.operandA.type,
+                    logic.operandA.value,
+                    logic.operandB.type,
+                    logic.operandB.value,
+                    logic.flags
+                );
+            }
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
                 logic.activatorId,
@@ -1934,27 +1946,20 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
                 logic.flags
             );
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format,
-            i,
-            logic.enabled,
-            logic.activatorId,
-            logic.operation,
-            logic.operandA.type,
-            logic.operandA.value,
-            logic.operandB.type,
-            logic.operandB.value,
-            logic.flags
-        );
     }
 }
 
-static void cliLogic(char *cmdline) {
+static void processCliLogic(char *cmdline, int16_t lcIndex) {
     char * saveptr;
     int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
-        printLogic(DUMP_MASTER, logicConditions(0), NULL);
+        if (!commandBatchActive) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, -1);
+        } else if (lcIndex >= 0) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, lcIndex);
+        }
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         pgResetCopy(logicConditionsMutable(0), PG_LOGIC_CONDITIONS);
     } else {
@@ -2003,11 +2008,15 @@ static void cliLogic(char *cmdline) {
             logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
             logicConditionsMutable(i)->flags = args[FLAGS];
 
-            cliLogic("");
+            processCliLogic("", i);
         } else {
             cliShowParseError();
         }
     }
+}
+
+static void cliLogic(char *cmdline) {
+    processCliLogic(cmdline, -1);
 }
 
 static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
@@ -3076,55 +3085,6 @@ static void cliBatch(char *cmdline)
 }
 #endif
 
-#ifdef USE_SECONDARY_IMU
-
-static void printImu2Status(void)
-{
-    cliPrintLinef("Secondary IMU active: %d", secondaryImuState.active);
-    cliPrintLine("Calibration status:");
-    cliPrintLinef("Sys: %d", secondaryImuState.calibrationStatus.sys);
-    cliPrintLinef("Gyro: %d", secondaryImuState.calibrationStatus.gyr);
-    cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
-    cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
-    cliPrintLine("Calibration gains:");
-
-    cliPrintLinef(
-        "Gyro: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetGyro[X],
-        secondaryImuConfig()->calibrationOffsetGyro[Y],
-        secondaryImuConfig()->calibrationOffsetGyro[Z]
-    );
-    cliPrintLinef(
-        "Acc: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetAcc[X],
-        secondaryImuConfig()->calibrationOffsetAcc[Y],
-        secondaryImuConfig()->calibrationOffsetAcc[Z]
-    );
-    cliPrintLinef(
-        "Mag: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetMag[X],
-        secondaryImuConfig()->calibrationOffsetMag[Y],
-        secondaryImuConfig()->calibrationOffsetMag[Z]
-    );
-    cliPrintLinef(
-        "Radius: %d %d",
-        secondaryImuConfig()->calibrationRadiusAcc,
-        secondaryImuConfig()->calibrationRadiusMag
-    );
-}
-
-static void cliImu2(char *cmdline)
-{
-    if (sl_strcasecmp(cmdline, "fetch") == 0) {
-        secondaryImuFetchCalibration();
-        printImu2Status();
-    } else {
-        printImu2Status();
-    }
-}
-
-#endif
-
 static void cliSave(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3351,19 +3311,14 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s, IMU2=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
-        hardwareSensorStatusNames[getHwGPSStatus()],
-#ifdef USE_SECONDARY_IMU
-        hardwareSensorStatusNames[getHwSecondaryImuStatus()]
-#else
-        hardwareSensorStatusNames[0]
-#endif
+        hardwareSensorStatusNames[getHwGPSStatus()]
     );
 
 #ifdef USE_ESC_SENSOR
@@ -3639,7 +3594,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
-        cliPrintHashLine("servo mix");
+        cliPrintHashLine("servo mixer");
         cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
@@ -3650,16 +3605,6 @@ static void printConfig(const char *cmdline, bool doDiff)
 #if defined(USE_SAFE_HOME)
         cliPrintHashLine("safehome");
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
-#endif
-#ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
-
-        cliPrintHashLine("gvar");
-        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
-
-        cliPrintHashLine("pid");
-        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 
         cliPrintHashLine("feature");
@@ -3716,6 +3661,17 @@ static void printConfig(const char *cmdline, bool doDiff)
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        cliPrintHashLine("logic");
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
+
+        cliPrintHashLine("global vars");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("programmable pid controllers");
+        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
+#endif
+
         cliPrintHashLine("master");
         dumpAllValues(MASTER_VALUE, dumpMask);
 
@@ -3736,7 +3692,6 @@ static void printConfig(const char *cmdline, bool doDiff)
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
-            cliPrintHashLine("save configuration\r\nsave");
 #ifdef USE_CLI_BATCH
             batchModeEnabled = false;
 #endif
@@ -3753,6 +3708,10 @@ static void printConfig(const char *cmdline, bool doDiff)
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
         cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+    }
+
+    if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {
+        cliPrintHashLine("save configuration\r\nsave");
     }
 
 #ifdef USE_CLI_BATCH
@@ -3904,9 +3863,6 @@ const clicmd_t cmdTable[] = {
         "[<index>]", cliBatteryProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
-#ifdef USE_SECONDARY_IMU
-    CLI_COMMAND_DEF("imu2", "Secondary IMU", NULL, cliImu2),
-#endif
 #if defined(USE_SAFE_HOME)
     CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
 #endif
@@ -4055,7 +4011,7 @@ void cliProcess(void)
                 bufferIndex = 0;
             }
 
-            memset(cliBuffer, 0, sizeof(cliBuffer));
+            ZERO_FARRAY(cliBuffer);
 
             // 'exit' will reset this flag, so we don't need to print prompt again
             if (!cliMode)

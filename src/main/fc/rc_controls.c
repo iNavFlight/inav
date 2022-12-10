@@ -37,6 +37,7 @@
 
 #include "drivers/time.h"
 
+#include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
@@ -110,20 +111,23 @@ bool isRollPitchStickDeflected(uint8_t deadband)
 
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
-    int value;
-    if (type == THROTTLE_STATUS_TYPE_RC) {
-        value = rxGetChannelValue(THROTTLE);
-    } else {
+    int value = rxGetChannelValue(THROTTLE);    // THROTTLE_STATUS_TYPE_RC
+    if (type == THROTTLE_STATUS_TYPE_COMMAND) {
         value = rcCommand[THROTTLE];
     }
 
     const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
-    if (feature(FEATURE_REVERSIBLE_MOTORS) && (value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
+    bool midThrottle = value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband);
+    if ((feature(FEATURE_REVERSIBLE_MOTORS) && midThrottle) || (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))) {
         return THROTTLE_LOW;
-    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))
-        return THROTTLE_LOW;
+    }
 
     return THROTTLE_HIGH;
+}
+
+bool throttleStickIsLow(void)
+{
+    return calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 }
 
 int16_t throttleStickMixedValue(void)
@@ -180,7 +184,7 @@ static void updateRcStickPositions(void)
     rcStickPositions = tmp;
 }
 
-void processRcStickPositions(throttleStatus_e throttleStatus)
+void processRcStickPositions(bool isThrottleLow)
 {
     static timeMs_t lastTickTimeMs = 0;
     static uint8_t rcDelayCommand;      // this indicates the number of time (multiple of RC measurement at 50Hz) the sticks must be maintained to run or switch off motors
@@ -210,7 +214,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
         // Auto arm on throttle when using fixedwing and motorstop
-        if (throttleStatus != THROTTLE_LOW) {
+        if (!isThrottleLow) {
             tryArm();
             return;
         }
@@ -226,7 +230,7 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
             if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
                 const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
                 if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
-                    if (armingConfig()->disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
+                    if (armingConfig()->disarm_kill_switch || isThrottleLow) {
                         disarm(DISARM_SWITCH);
                     }
                 }
@@ -251,7 +255,12 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
         return;
     }
 
-    // actions during not armed
+    // Disable stick commands when in CLI mode. Ideally, they should also be disabled when configurator is connected
+    if (cliMode) {
+        return;
+    }
+
+    // actions during not armed and not in CLI
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {

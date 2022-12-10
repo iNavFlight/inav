@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav
+ * This file is part of INAV
  *
- * iNav free software. You can redistribute
+ * INAV free software. You can redistribute
  * this software and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav distributed in the hope that it
+ * INAV distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -105,8 +105,6 @@ typedef struct batteryProfile_s {
     } motor;
 
     uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
-
-    uint16_t fwMinThrottleDownPitchAngle;
 
     struct {
 

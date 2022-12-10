@@ -70,6 +70,8 @@
 #include "flight/pid.h"
 #include "flight/mixer.h"
 
+#include "programming/logic_condition.h"
+
 typedef struct {
     bool                isDriverBased;
     portMode_t          portMode;           // Port mode RX/TX (only for serial based)
@@ -168,7 +170,7 @@ void updateEstimatedGPSFix(void) {
 	static int32_t last_lon = 0;
 	static int32_t last_alt = 0;
 
-	if (IS_RC_MODE_ACTIVE(BOXGPSOFF))
+	if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX))
 	{
 		gpsSol.fixType = GPS_NO_FIX;
 		gpsSol.hdop = 9999;
@@ -266,9 +268,9 @@ void gpsProcessNewSolutionData(void)
     }
     else {
         /* When no fix available - reset flags as well */
-        gpsSol.flags.validVelNE = 0;
-        gpsSol.flags.validVelD = 0;
-        gpsSol.flags.validEPE = 0;
+        gpsSol.flags.validVelNE = false;
+        gpsSol.flags.validVelD = false;
+        gpsSol.flags.validEPE = false;
         DISABLE_STATE(GPS_FIX);
     }
 
@@ -284,7 +286,7 @@ void gpsProcessNewSolutionData(void)
     gpsUpdateTime();
 
     // Update timeout
-    gpsSetProtocolTimeout(GPS_TIMEOUT);
+    gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
     // Update statistics
     gpsStats.lastMessageDt = gpsState.lastMessageMs - gpsState.lastLastMessageMs;
@@ -303,17 +305,18 @@ static void gpsResetSolution(void)
 
     gpsSol.fixType = GPS_NO_FIX;
 
-    gpsSol.flags.validVelNE = 0;
-    gpsSol.flags.validVelD = 0;
-    gpsSol.flags.validMag = 0;
-    gpsSol.flags.validEPE = 0;
-    gpsSol.flags.validTime = 0;
+    gpsSol.flags.validVelNE = false;
+    gpsSol.flags.validVelD = false;
+    gpsSol.flags.validMag = false;
+    gpsSol.flags.validEPE = false;
+    gpsSol.flags.validTime = false;
 }
 
 void gpsPreInit(void)
 {
     // Make sure gpsProvider is known when gpsMagDetect is called
     gpsState.gpsConfig = gpsConfig();
+    gpsState.baseTimeoutMs = (gpsState.gpsConfig->provider == GPS_NMEA) ? GPS_TIMEOUT*2 : GPS_TIMEOUT;
 }
 
 void gpsInit(void)
@@ -326,7 +329,7 @@ void gpsInit(void)
 
     // Reset solution, timeout and prepare to start
     gpsResetSolution();
-    gpsSetProtocolTimeout(GPS_TIMEOUT);
+    gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
     gpsSetState(GPS_UNKNOWN);
 
     // If given GPS provider has protocol() function not defined - we can't use it
@@ -394,6 +397,7 @@ static bool gpsFakeGPSUpdate(void)
     uint32_t delta = now - gpsState.lastMessageMs;
     if (delta > 100) {
         int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_SPEED;
+        speed = speed * sin_approx((now % 1000) / 1000.f * M_PIf) * +speed;
         int32_t cmDelta = speed * (delta / 1000.0f);
         int32_t latCmDelta = cmDelta * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         int32_t lonCmDelta = cmDelta * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
@@ -414,10 +418,10 @@ static bool gpsFakeGPSUpdate(void)
         gpsSol.velNED[X] = speed * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         gpsSol.velNED[Y] = speed * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
         gpsSol.velNED[Z] = 0;
-        gpsSol.flags.validVelNE = 1;
-        gpsSol.flags.validVelD = 1;
-        gpsSol.flags.validEPE = 1;
-        gpsSol.flags.validTime = 1;
+        gpsSol.flags.validVelNE = true;
+        gpsSol.flags.validVelD = true;
+        gpsSol.flags.validEPE = true;
+        gpsSol.flags.validTime = true;
         gpsSol.eph = 100;
         gpsSol.epv = 100;
         gpsSol.time.year = 1983;
@@ -432,9 +436,10 @@ static bool gpsFakeGPSUpdate(void)
         gpsUpdateTime();
         onNewGPSData();
 
-        gpsSetProtocolTimeout(GPS_TIMEOUT);
+        gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
 
         gpsSetState(GPS_RUNNING);
+        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
         return true;
     }
     return false;
@@ -498,7 +503,7 @@ bool gpsUpdate(void)
             gpsProviders[gpsState.gpsConfig->provider].restart();
 
             // Switch to GPS_RUNNING state (mind the timeout)
-            gpsSetProtocolTimeout(GPS_TIMEOUT);
+            gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
             gpsSetState(GPS_RUNNING);
         }
         break;
@@ -508,7 +513,7 @@ bool gpsUpdate(void)
         gpsProviders[gpsState.gpsConfig->provider].protocol();
 
         // Check for GPS timeout
-        if ((millis() - gpsState.lastMessageMs) > GPS_TIMEOUT) {
+        if ((millis() - gpsState.lastMessageMs) > gpsState.baseTimeoutMs) {
             sensorsClear(SENSOR_GPS);
             DISABLE_STATE(GPS_FIX);
             gpsSol.fixType = GPS_NO_FIX;

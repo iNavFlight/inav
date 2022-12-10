@@ -265,11 +265,12 @@ typedef struct navConfig_s {
         uint16_t max_altitude;                      // Max altitude when in AltHold mode (not Surface Following)
         uint16_t rth_trackback_distance;            // RTH trackback maximum distance [m]
         uint16_t waypoint_enforce_altitude;         // Forces waypoint altitude to be achieved
+        uint8_t  land_detect_sensitivity;           // Sensitivity of landing detector
+        uint16_t auto_disarm_delay;                 // safety time delay for landing detector
     } general;
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
-        uint16_t auto_disarm_delay;             // multicopter safety delay for landing detector
 
 #ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
@@ -292,11 +293,13 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
-        uint8_t control_smoothness;          // The amount of smoothing to apply to controls for navigation
+        uint8_t  control_smoothness;         // The amount of smoothing to apply to controls for navigation
         uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
+        uint16_t minThrottleDownPitchAngle;  // Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
-        int8_t land_dive_angle;
+        uint8_t  loiter_direction;           // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+        int8_t   land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
@@ -316,7 +319,6 @@ typedef struct navConfig_s {
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
         uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
-        uint16_t auto_disarm_delay;          // fixed wing disarm delay for landing detector
         uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
         uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
         uint8_t  wp_turn_smoothing;          // WP mission turn smoothing options
@@ -353,6 +355,15 @@ typedef enum {
     NAV_WP_FLAG_HOME = 0x48,
     NAV_WP_FLAG_LAST = 0xA5
 } navWaypointFlags_e;
+
+/* A reminder that P3 is a bitfield */
+typedef enum {
+    NAV_WP_ALTMODE = (1<<0),
+    NAV_WP_USER1 = (1<<1),
+    NAV_WP_USER2 = (1<<2),
+    NAV_WP_USER3 = (1<<3),
+    NAV_WP_USER4 = (1<<4)
+} navWaypointP3Flags_e;
 
 typedef struct {
     int32_t lat;
@@ -517,7 +528,6 @@ bool loadNonVolatileWaypointList(bool clearIfLoaded);
 bool saveNonVolatileWaypointList(void);
 #ifdef USE_MULTI_MISSION
 void selectMultiMissionIndex(int8_t increment);
-void setMultiMissionOnArm(void);
 #endif
 float getFinalRTHAltitude(void);
 int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs);
@@ -601,6 +611,7 @@ void updateLandingStatus(void);
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
 int32_t navigationGetHeadingError(void);
+float navigationGetCrossTrackError(void);
 int32_t getCruiseHeadingAdjustment(void);
 bool isAdjustingPosition(void);
 bool isAdjustingHeading(void);

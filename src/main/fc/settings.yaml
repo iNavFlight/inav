@@ -9,9 +9,6 @@ tables:
   - name: rangefinder_hardware
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
     enum: rangefinderType_e
-  - name: secondary_imu_hardware
-    values: ["NONE", "BNO055_SERIAL"]
-    enum: secondaryImuType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
     enum: magSensor_e
@@ -43,6 +40,9 @@ tables:
   - name: voltage_sensor
     values: ["NONE", "ADC", "ESC"]
     enum: voltageSensor_e
+  - name: imu_inertia_comp_method
+    values: ["VELNED", "TURNRATE","ADAPTIVE"]
+    enum: imu_inertia_comp_method_e
   - name: gps_provider
     values: ["NMEA", "UBLOX", "UBLOX7", "MSP"]
     enum: gpsProvider_e
@@ -72,7 +72,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC", "HD"]
+    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -90,8 +90,8 @@ tables:
   - name: debug_modes
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
-      "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "IMU2", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
+      "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -480,98 +480,6 @@ groups:
         type: uint8_t
         table: alignment
 
-  - name: PG_SECONDARY_IMU
-    type: secondaryImuConfig_t
-    headers: ["flight/secondary_imu.h"]
-    condition: USE_SECONDARY_IMU
-    members:
-      - name: imu2_hardware
-        description: "Selection of a Secondary IMU hardware type. NONE disables this functionality"
-        default_value: "NONE"
-        field: hardwareType
-        table: secondary_imu_hardware
-      - name: imu2_use_for_osd_heading
-        description: "If set to ON, Secondary IMU data will be used for Analog OSD heading"
-        default_value: OFF
-        field: useForOsdHeading
-        type: bool
-      - name: imu2_use_for_osd_ahi
-        description: "If set to ON, Secondary IMU data will be used for Analog OSD Artificial Horizon"
-        field: useForOsdAHI
-        default_value: OFF
-        type: bool
-      - name: imu2_use_for_stabilized
-        description: "If set to ON, Secondary IMU data will be used for Angle, Horizon and all other modes that control attitude (PosHold, WP, RTH)"
-        field: useForStabilized
-        default_value: OFF
-        type: bool
-      - name: imu2_align_roll
-        description: "Roll alignment for Secondary IMU. 1/10 of a degree"
-        field: rollDeciDegrees
-        default_value: 0
-        min: -1800
-        max: 3600
-      - name: imu2_align_pitch
-        description: "Pitch alignment for Secondary IMU. 1/10 of a degree"
-        field: pitchDeciDegrees
-        default_value: 0
-        min: -1800
-        max: 3600
-      - name: imu2_align_yaw
-        description: "Yaw alignment for Secondary IMU. 1/10 of a degree"
-        field: yawDeciDegrees
-        default_value: 0
-        min: -1800
-        max: 3600
-      - name: imu2_gain_acc_x
-        description: "Secondary IMU ACC calibration data"
-        field: calibrationOffsetAcc[X]
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_acc_y
-        field: calibrationOffsetAcc[Y]
-        description: "Secondary IMU ACC calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_acc_z
-        field: calibrationOffsetAcc[Z]
-        description: "Secondary IMU ACC calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_mag_x
-        field: calibrationOffsetMag[X]
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_mag_y
-        field: calibrationOffsetMag[Y]
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_gain_mag_z
-        field: calibrationOffsetMag[Z]
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_radius_acc
-        field: calibrationRadiusAcc
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-      - name: imu2_radius_mag
-        field: calibrationRadiusMag
-        description: "Secondary IMU MAG calibration data"
-        default_value: 0
-        min: INT16_MIN
-        max: INT16_MAX
-
   - name: PG_COMPASS_CONFIG
     type: compassConfig_t
     headers: ["sensors/compass.h"]
@@ -927,10 +835,11 @@ groups:
         description: "What failsafe procedure to initiate in Stage 2 when craft is closer to home than failsafe_min_distance. See [Failsafe documentation](Failsafe.md#failsafe_throttle)."
         default_value: "DROP"
         table: failsafe_procedure
-      - name: failsafe_mission
-        description: "If set to `OFF` the failsafe procedure won't be triggered and the mission will continue if the FC is in WP (automatic mission) mode"
-        default_value: ON
-        type: bool
+      - name: failsafe_mission_delay
+        description: "Applies if failsafe occurs when a WP mission is in progress. Sets the time delay in seconds between failsafe occurring and the selected failsafe procedure activating. If set to -1 the failsafe procedure won't activate at all and the mission will continue until the end."
+        default_value: 0
+        min: -1
+        max: 600
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t
@@ -1139,12 +1048,6 @@ groups:
         default_value: 1000
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
-      - name: fw_min_throttle_down_pitch
-        description: "Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees)"
-        default_value: 0
-        field: fwMinThrottleDownPitchAngle
-        min: 0
-        max: 450
       - name: nav_mc_hover_thr
         description: "Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering."
         default_value: 1500
@@ -1492,7 +1395,7 @@ groups:
     members:
       - name: imu_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
-        default_value: 1000
+        default_value: 2000
         field: dcm_kp_acc
         max: UINT16_MAX
       - name: imu_dcm_ki
@@ -1502,12 +1405,12 @@ groups:
         max: UINT16_MAX
       - name: imu_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
-        default_value: 5000
+        default_value: 2000
         field: dcm_kp_mag
         max: UINT16_MAX
       - name: imu_dcm_ki_mag
         description: "Inertial Measurement Unit KI Gain for compass measurements"
-        default_value: 0
+        default_value: 50
         field: dcm_ki_mag
         max: UINT16_MAX
       - name: small_angle
@@ -1516,17 +1419,27 @@ groups:
         min: 0
         max: 180
       - name: imu_acc_ignore_rate
-        description: "Total gyro rotation rate threshold [deg/s] to consider accelerometer trustworthy on airplanes"
-        default_value: 0
+        description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
+        default_value: 15
         field: acc_ignore_rate
         min: 0
-        max: 20
+        max: 30
       - name: imu_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
-        default_value: 0
+        default_value: 5
         field: acc_ignore_slope
         min: 0
-        max: 5
+        max: 10
+      - name: imu_gps_yaw_windcomp
+        description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
+        default_value: ON
+        field: gps_yaw_windcomp
+        type: bool
+      - name: imu_inertia_comp_method
+        description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
+        default_value: VELNED
+        field: inertia_comp_method
+        table: imu_inertia_comp_method
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t
@@ -1562,7 +1475,7 @@ groups:
         field: appliedDefaults
         type: uint8_t
         min: 0
-        max: 4
+        max: 99
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -1914,11 +1827,6 @@ groups:
         field: fixedWingItermThrowLimit
         min: FW_ITERM_THROW_LIMIT_MIN
         max: FW_ITERM_THROW_LIMIT_MAX
-      - name: fw_loiter_direction
-        description: "Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick."
-        default_value: "RIGHT"
-        field: loiter_direction
-        table: direction
       - name: fw_reference_airspeed
         description: "Reference airspeed. Set this to airspeed at which PIDs were tuned. Usually should be set to cruise airspeed. Also used for coordinated turn calculation if airspeed sensor is not present."
         default_value: 1500
@@ -2267,7 +2175,7 @@ groups:
         min: 0
         max: 255
       - name: inav_use_gps_velned
-        description: "Defined if iNav should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF iNav will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance."
+        description: "Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance."
         default_value: ON
         field: use_gps_velned
         type: bool
@@ -2276,7 +2184,7 @@ groups:
         type: bool
         default_value: OFF
       - name: inav_allow_dead_reckoning
-        description: "Defines if inav will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
+        description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
         field: allow_dead_reckoning
         type: bool
@@ -2392,10 +2300,16 @@ groups:
     headers: ["navigation/navigation.h"]
     members:
       - name: nav_disarm_on_landing
-        description: "If set to ON, iNav disarms the FC after landing"
+        description: "If set to ON, INAV disarms the FC after landing"
         default_value: OFF
         field: general.flags.disarm_on_landing
         type: bool
+      - name: nav_land_detect_sensitivity
+        description: "Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases."
+        default_value: 5
+        field: general.land_detect_sensitivity
+        min: 1
+        max: 15
       - name: nav_use_midthr_for_althold
         description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
         default_value: OFF
@@ -2434,22 +2348,23 @@ groups:
         field: general.waypoint_enforce_altitude
         min: 0
         max: 2000
-      - name: nav_wp_safe_distance
-        description: "First waypoint in the mission should be closer than this value [cm]. A value of 0 disables this check."
-        default_value: 10000
+      - name: nav_wp_max_safe_distance
+        description: "First waypoint in the mission should be closer than this value [m]. A value of 0 disables this check."
+        default_value: 100
         field: general.waypoint_safe_distance
-        max: 65000
+        min: 0
+        max: 1500
       - name: nav_wp_mission_restart
         description: "Sets restart behaviour for a WP mission when interrupted mid mission. START from first WP, RESUME from last active WP or SWITCH between START and RESUME each time WP Mode is reselected ON. SWITCH effectively allows resuming once only from a previous mid mission waypoint after which the mission will restart from the first waypoint."
         default_value: "RESUME"
         field: general.flags.waypoint_mission_restart
         table: nav_wp_mission_restart
       - name: nav_wp_multi_mission_index
-        description: "Index of mission selected from multi mission WP entry loaded in flight controller. 1 is the first useable WP mission in the entry. Limited to a maximum of 9 missions. Set index to 0 to display current active WP count in OSD Mission field."
+        description: "Index of active mission selected from multi mission WP entry loaded in flight controller. Limited to a maximum of 9 missions."
         default_value: 1
         field: general.waypoint_multi_mission_index
         condition: USE_MULTI_MISSION
-        min: 0
+        min: 1
         max: 9
       - name: nav_fw_wp_tracking_accuracy
         description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."
@@ -2651,10 +2566,10 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
-      - name: nav_mc_auto_disarm_delay
-        description: "Delay before multi-rotor disarms when `nav_disarm_on_landing` is set (ms)"
+      - name: nav_auto_disarm_delay
+        description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 2000
-        field: mc.auto_disarm_delay
+        field: general.auto_disarm_delay
         min: 100
         max: 10000
       - name: nav_mc_braking_speed_threshold
@@ -2730,12 +2645,6 @@ groups:
         default_value: ON
         field: mc.slowDownForTurning
         type: bool
-      - name: nav_fw_auto_disarm_delay
-        description: "Delay before plane disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
-        field: fw.auto_disarm_delay
-        min: 100
-        max: 10000
       - name: nav_fw_bank_angle
         description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
         default_value: 35
@@ -2760,6 +2669,12 @@ groups:
         field: fw.pitch_to_throttle_smooth
         min: 0
         max: 9
+      - name: fw_min_throttle_down_pitch
+        description: "Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle (decidegrees)"
+        default_value: 0
+        field: fw.minThrottleDownPitchAngle
+        min: 0
+        max: 450
       - name: nav_fw_pitch2thr_threshold
         description: "Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]"
         default_value: 50
@@ -2772,6 +2687,11 @@ groups:
         field: fw.loiter_radius
         min: 0
         max: 30000
+      - name: fw_loiter_direction
+        description: "Direction of loitering: center point on right wing (clockwise - default), or center point on left wing (counterclockwise). If equal YAW then can be changed in flight using a yaw stick."
+        default_value: "RIGHT"
+        field: fw.loiter_direction
+        table: direction
       - name: nav_fw_cruise_speed
         description: "Speed for the plane/wing at cruise throttle used for remaining flight time/distance estimation in cm/s"
         default_value: 0
@@ -3100,7 +3020,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, and `HD`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO` and 'DJIWTF'"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3508,6 +3428,13 @@ groups:
         default_value: 3
         description: Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
 
+      - name: osd_ahi_pitch_interval
+        field: ahi_pitch_interval
+        min: 0
+        max: 30
+        default_value: 0
+        description: Draws AHI at increments of the set pitch interval over the full pitch range. AHI line is drawn with ends offset when pitch first exceeds interval with offset increasing with increasing pitch. Offset direction changes between climb and dive. Set to 0 to disable (Not for pixel OSD)
+
       - name: osd_home_position_arm_screen
         type: bool
         default_value: ON
@@ -3725,7 +3652,7 @@ groups:
         field: smartAudioEarlyAkkWorkaroundEnable
         type: bool
       - name: vtx_smartaudio_alternate_softserial_method
-        description: "Enable the alternate softserial method. This is the method used in iNav 3.0 and ealier."
+        description: "Enable the alternate softserial method. This is the method used in INAV 3.0 and ealier."
         default_value: ON
         field: smartAudioAltSoftSerialMethod
         type: bool

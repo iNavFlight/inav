@@ -27,10 +27,6 @@
 #define BEEPER                  PB4
 #define BEEPER_INVERTED
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_CS_PIN          SPI1_NSS_PIN

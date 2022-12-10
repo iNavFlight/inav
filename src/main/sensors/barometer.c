@@ -50,8 +50,6 @@
 #include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
-#include "flight/hil.h"
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -282,7 +280,7 @@ uint32_t baroUpdate(void)
                 baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             }
 #else
-                baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
+            baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
 #endif
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
@@ -319,18 +317,12 @@ int32_t baroCalculateAltitude(void)
         if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
             zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            LOG_D(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
+            LOG_DEBUG(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
         }
 
         baro.BaroAlt = 0;
     }
     else {
-#ifdef HIL
-        if (hilActive) {
-            baro.BaroAlt = hilToFC.baroAlt;
-            return baro.BaroAlt;
-        }
-#endif
         // calculates height from ground via baro readings
         baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
    }

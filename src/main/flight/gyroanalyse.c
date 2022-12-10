@@ -96,7 +96,7 @@ void gyroDataAnalyseStateInit(
         
         for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
             state->centerFrequency[axis][i] = state->maxFrequency;
-            pt1FilterInit(&state->detectedFrequencyFilter[axis][i], DYN_NOTCH_SMOOTH_FREQ_HZ, filterUpdateUs * 1e-6f);
+            pt1FilterInit(&state->detectedFrequencyFilter[axis][i], DYN_NOTCH_SMOOTH_FREQ_HZ, US2S(filterUpdateUs));
         }
 
     }

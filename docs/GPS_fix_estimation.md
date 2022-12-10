@@ -71,9 +71,9 @@ Example: 100 km/h = 100 * 27.77 = 2777 m/s
 
 # Disabling GPS sensor from RC controller
 
-![](Screenshots/gps_off_box.png) 
+![](Screenshots/programming_disable_gps_sensor_fix.png) 
 
-For testing purpoces, it is now possible to disable GPS sensor from RC controller:
+For testing purpoces, it is possible to disable GPS sensor fix from RC controller in programming tab:
 
 *GPS can be disabled only after 1) initial GPS fix is acquired 2) in ARMED mode.*
 

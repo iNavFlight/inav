@@ -94,6 +94,7 @@
 #define OSD_MSG_RTH_TRACKBACK       "RTH BACK TRACKING"
 #define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
 #define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
+#define OSD_MSG_WP_LANDED           "WP END>LANDED"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
 #define OSD_MSG_ADJUSTING_WP_ALT    "ADJUSTING WP ALTITUDE"
 #define OSD_MSG_MISSION_PLANNER     "(WP MISSION PLANNER)"
@@ -264,6 +265,9 @@ typedef enum {
     OSD_GLIDE_TIME_REMAINING,
     OSD_GLIDE_RANGE,
     OSD_CLIMB_EFFICIENCY,
+    OSD_NAV_WP_MULTI_MISSION_INDEX,
+    OSD_GROUND_COURSE,      // 140
+    OSD_CROSS_TRACK_ERROR,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -425,6 +429,7 @@ typedef struct osdConfig_s {
     uint8_t esc_rpm_precision;                  // Number of characters used for the RPM numbers.
     uint16_t system_msg_display_time;           // system message display time for multiple messages (ms)
     uint8_t mAh_used_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
+    uint8_t ahi_pitch_interval;                 // redraws AHI at set pitch interval (Not pixel OSD)
     char    osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 0.
     uint8_t osd_switch_indicator0_channel;     // RC Channel to use for switch indicator 0.
     char    osd_switch_indicator1_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 1.
@@ -455,6 +460,7 @@ void osdOverrideLayout(int layout, timeMs_t duration);
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);
 bool osdItemIsFixed(osd_items_e item);
+uint8_t osdIncElementIndex(uint8_t elementIndex);
 
 displayPort_t *osdGetDisplayPort(void);
 displayCanvas_t *osdGetDisplayPortCanvas(void);

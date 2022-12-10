@@ -177,7 +177,7 @@ static void performPitotCalibrationCycle(void)
 
     if (zeroCalibrationIsCompleteS(&pitot.zeroCalibration)) {
         zeroCalibrationGetZeroS(&pitot.zeroCalibration, &pitot.pressureZero);
-        LOG_D(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
+        LOG_DEBUG(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
     }
 }
 
@@ -190,7 +190,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0);
+    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
         // Start measurement
@@ -207,7 +207,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
 #ifdef USE_SIMULATOR
-    	if (simulatorData.flags & SIMU_AIRSPEED) {
+    	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
         	pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
     	}
 #endif
@@ -215,7 +215,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
         // Filter pressure
         currentTimeUs = micros();
-        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, (currentTimeUs - pitot.lastMeasurementUs) * 1e-6f);
+        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
         pitot.lastMeasurementUs = currentTimeUs;
         ptDelayUs(pitot.dev.delay);
 
@@ -235,7 +235,7 @@ STATIC_PROTOTHREAD(pitotThread)
             pitot.airSpeed = 0.0f;
         }
 #ifdef USE_SIMULATOR
-    	if (simulatorData.flags & SIMU_AIRSPEED) {
+    	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
         	pitot.airSpeed = simulatorData.airSpeed;
     	}
 #endif
