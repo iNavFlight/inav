@@ -460,7 +460,7 @@ static int logicConditionGetWaypointOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE:
             {
                 uint32_t distance = 0;
-                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
+                if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpNumber > 0) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
                     wp.lat = posControl.waypointList[NAV_Status.activeWpNumber-1].lat;
@@ -494,19 +494,19 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
         
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER1;
+            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER1 : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER2;
+            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER2 : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER3;
+            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER3 : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER4;
+            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER4 : 0;
             break;
 
         default:
