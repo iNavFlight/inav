@@ -1762,23 +1762,6 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
-    case OSD_HEADING:
-        {
-            buff[0] = SYM_HEADING;
-            if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                if (h < 0) {
-                    h += 360;
-                }
-                tfp_sprintf(&buff[1], "%3d", h);
-            } else {
-                buff[1] = buff[2] = buff[3] = '-';
-            }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
-            break;
-        }
-
     case OSD_GROUND_COURSE:
         {
             buff[0] = SYM_GROUND_COURSE;
@@ -2701,6 +2684,23 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_HEADING:
+        {
+            buff[0] = SYM_HEADING;
+            if (osdIsHeadingValid()) {
+                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                if (h < 0) {
+                    h += 360;
+                }
+                tfp_sprintf(&buff[1], "%3d", h);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
+            break;
+        }
+
     case OSD_HEADING_GRAPH:
         {
             if (osdIsHeadingValid()) {
@@ -3315,7 +3315,7 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_GPS_LON) {
             elementIndex = sensors(SENSOR_MAG) ? OSD_HEADING : OSD_VARIO;
         }
-        if (elementIndex == OSD_MAP_NORTH || elementIndex == OSD_HOME_HEADING_ERROR) {
+        if (elementIndex == OSD_MAP_NORTH) {
             elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE : OSD_LEVEL_PIDS;
         }
         if (elementIndex == OSD_PLUS_CODE) {
@@ -3350,18 +3350,18 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
-    // Prevent infinite loop when no elements are enabled
+    // Flag for end of loop, also prevents infinite loop when no elements are enabled
     uint8_t index = elementIndex;
     do {
         elementIndex = osdIncElementIndex(elementIndex);
-    } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
     // Draw artificial horizon + tracking telemtry last
-		osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-		if (osdConfig()->telemetry>0){
-		  osdDisplayTelemetry();
-		}
+    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+    if (osdConfig()->telemetry>0){
+        osdDisplayTelemetry();
     }
+}
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
