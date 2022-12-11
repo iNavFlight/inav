@@ -494,19 +494,19 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
         
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber].p3 == NAV_WP_USER1;
+            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER1;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber].p3 == NAV_WP_USER2;
+            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER2;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber].p3 == NAV_WP_USER3;
+            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER3;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
-            return posControl.waypointList[NAV_Status.activeWpNumber].p3 == NAV_WP_USER4;
+            return posControl.waypointList[NAV_Status.activeWpNumber+1].p3 == NAV_WP_USER4;
             break;
 
         default:
