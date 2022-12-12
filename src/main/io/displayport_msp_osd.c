@@ -284,7 +284,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 
         subcmd[1] = row;
         subcmd[2] = col;
-        subcmd[3] = page;
+        subcmd[3] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? 0 : page;
         output(displayPort, MSP_DISPLAYPORT, subcmd, len);
         updateCount++;
         next = BITARRAY_FIND_FIRST_SET(dirty, pos);
@@ -417,6 +417,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
     if (mspOsdSerialInit()) {
         switch(videoSystem) {
         case VIDEO_SYSTEM_AUTO:
+        case VIDEO_SYSTEM_BFCOMPAT:
         case VIDEO_SYSTEM_PAL:
             currentOsdMode = SD_3016;
             screenRows = PAL_ROWS;
