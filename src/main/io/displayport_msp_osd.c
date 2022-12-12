@@ -352,15 +352,15 @@ static bool isReady(displayPort_t *displayPort)
     return vtxActive;
 }
 
-static int grab(displayPort_t *displayPort)
-{
-    return heartbeat(displayPort);
-}
-
 static int heartbeat(displayPort_t *displayPort)
 {
     uint8_t subcmd[] = { MSP_HEARTBEAT };
     return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
+}
+
+static int grab(displayPort_t *displayPort)
+{
+    return heartbeat(displayPort);
 }
 
 static int release(displayPort_t *displayPort)
