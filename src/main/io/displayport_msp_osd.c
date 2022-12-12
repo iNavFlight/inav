@@ -52,6 +52,8 @@ FILE_COMPILE_FOR_SPEED
 
 #include "displayport_msp_osd.h"
 
+#include "displayport_msp_bf_compat.h"
+
 #define FONT_VERSION 3
 
 #define MSP_CLEAR_SCREEN 2
@@ -273,7 +275,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len++] = screen[pos++];
+            subcmd[len++] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? get_bf_character(screen[pos++], page): screen[pos++];
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
