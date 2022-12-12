@@ -18,7 +18,7 @@
 #pragma once
 #include "common/color.h"
 
-#define WS2811_LED_STRIP_LENGTH 32
+#define WS2811_LED_STRIP_LENGTH 96
 #define WS2811_BITS_PER_LED 24
 #define WS2811_DELAY_BUFFER_LENGTH 42 // for 50us delay
 
