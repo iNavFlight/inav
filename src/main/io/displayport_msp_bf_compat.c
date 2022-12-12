@@ -457,10 +457,28 @@ uint8_t get_bf_character(uint8_t ch, uint8_t page)
         return BF_SYM_AH_DECORATION_COUNT;
 */
     case SYM_AH_CH_LEFT:
-        return BF_SYM_AH_LEFT;
+    case SYM_AH_CH_TYPE3:
+    case SYM_AH_CH_TYPE4:
+    case SYM_AH_CH_TYPE5:
+    case SYM_AH_CH_TYPE6:
+    case SYM_AH_CH_TYPE7:
+    case SYM_AH_CH_TYPE8:
+    case SYM_AH_CH_AIRCRAFT1:
+        return BF_SYM_AH_CENTER_LINE;
 
     case SYM_AH_CH_RIGHT:
-        return BF_SYM_AH_RIGHT;
+    case (SYM_AH_CH_TYPE3+2):
+    case (SYM_AH_CH_TYPE4+2):
+    case (SYM_AH_CH_TYPE5+2):
+    case (SYM_AH_CH_TYPE6+2):
+    case (SYM_AH_CH_TYPE7+2):
+    case (SYM_AH_CH_TYPE8+2):
+    case SYM_AH_CH_AIRCRAFT3:
+        return BF_SYM_AH_CENTER_LINE_RIGHT;
+    
+    case SYM_AH_CH_AIRCRAFT0:
+    case SYM_AH_CH_AIRCRAFT4:
+        return ' ';
 
     case SYM_ARROW_UP:
         return BF_SYM_ARROW_NORTH;
@@ -576,6 +594,13 @@ uint8_t get_bf_character(uint8_t ch, uint8_t page)
 */
 
     case SYM_AH_CH_CENTER:
+    case (SYM_AH_CH_TYPE3+1):
+    case (SYM_AH_CH_TYPE4+1):
+    case (SYM_AH_CH_TYPE5+1):
+    case (SYM_AH_CH_TYPE6+1):
+    case (SYM_AH_CH_TYPE7+1):
+    case (SYM_AH_CH_TYPE8+1):
+    case SYM_AH_CH_AIRCRAFT2:
         return BF_SYM_AH_CENTER;
 /*
     case SYM_FLIGHT_DIST_REMAINING:
