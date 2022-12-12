@@ -203,6 +203,7 @@
 #define PINIO1_PIN                  PE13
 #define PINIO2_PIN                  PB11
 #define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
+#define PINIO2_FLAGS				PINIO_FLAGS_INVERTED
 
 #else
 #define PINIO1_PIN                  PE13
