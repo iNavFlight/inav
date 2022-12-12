@@ -27,13 +27,13 @@
 
 uint8_t get_bf_character(uint8_t ch, uint8_t page)
 {
-    if(ch >= 0x20 && ch <= 0x5F) // ASCII range
-    {
-        return ch;
-    }
 
     uint16_t ech = ch | (page << 8);
 
+    if(ech >= 0x20 && ech <= 0x5F) // ASCII range
+    {
+        return ch;
+    }
 
     switch (ech)
     {
@@ -509,10 +509,35 @@ uint8_t get_bf_character(uint8_t ch, uint8_t page)
 
     case SYM_ARROW_16:
         return BF_SYM_ARROW_16;
-/*
-    case SYM_AH_H_START:
-        return BF_SYM_AH_H_START;
 
+    case SYM_AH_H_START:
+        return BF_SYM_AH_BAR9_0;
+
+    case (SYM_AH_H_START+1):
+        return BF_SYM_AH_BAR9_1;
+
+    case (SYM_AH_H_START+2):
+        return BF_SYM_AH_BAR9_2;
+
+    case (SYM_AH_H_START+3):
+        return BF_SYM_AH_BAR9_3;
+
+    case (SYM_AH_H_START+4):
+        return BF_SYM_AH_BAR9_4;
+
+    case (SYM_AH_H_START+5):
+        return BF_SYM_AH_BAR9_5;
+
+    case (SYM_AH_H_START+6):
+        return BF_SYM_AH_BAR9_6;
+
+    case (SYM_AH_H_START+7):
+        return BF_SYM_AH_BAR9_7;
+
+    case (SYM_AH_H_START+8):
+        return BF_SYM_AH_BAR9_8;
+
+/*
     case SYM_AH_V_START:
         return BF_SYM_AH_V_START;
 
