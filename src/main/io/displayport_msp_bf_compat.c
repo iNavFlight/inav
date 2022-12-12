@@ -455,13 +455,13 @@ uint8_t get_bf_character(uint8_t ch, uint8_t page)
 
     case SYM_AH_DECORATION_COUNT:
         return BF_SYM_AH_DECORATION_COUNT;
-
+*/
     case SYM_AH_CH_LEFT:
-        return BF_SYM_AH_CH_LEFT;
+        return BF_SYM_AH_LEFT;
 
     case SYM_AH_CH_RIGHT:
-        return BF_SYM_AH_CH_RIGHT;
-*/
+        return BF_SYM_AH_RIGHT;
+
     case SYM_ARROW_UP:
         return BF_SYM_ARROW_NORTH;
 
@@ -573,10 +573,11 @@ uint8_t get_bf_character(uint8_t ch, uint8_t page)
 
     case SYM_HOME_DIST:
         return BF_SYM_HOME_DIST;
+*/
 
     case SYM_AH_CH_CENTER:
-        return BF_SYM_AH_CH_CENTER;
-
+        return BF_SYM_AH_CENTER;
+/*
     case SYM_FLIGHT_DIST_REMAINING:
         return BF_SYM_FLIGHT_DIST_REMAINING;
 
