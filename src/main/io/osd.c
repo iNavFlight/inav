@@ -298,15 +298,13 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     // Now write the digits.
     ui2a(integerPart, 10, 0, ptr);
     ptr += digits;
-    if (explicitDecimal)
-    {
-        *ptr = '.';
-        ptr++;
-    }
 
     if (decimals > 0) {
-        if (!explicitDecimal)
+        if (explicitDecimal)
         {
+            *ptr = '.';
+            ptr++;
+        } else {
             *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
         }
         dec = ptr;
