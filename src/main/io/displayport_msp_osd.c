@@ -56,10 +56,12 @@ FILE_COMPILE_FOR_SPEED
 
 #define FONT_VERSION 3
 
+#define MSP_HEARTBEAT    0
+#define MSP_RELEASE      1
 #define MSP_CLEAR_SCREEN 2
 #define MSP_WRITE_STRING 3
-#define MSP_DRAW_SCREEN 4
-#define MSP_SET_OPTIONS 5
+#define MSP_DRAW_SCREEN  4
+#define MSP_SET_OPTIONS  5
 
 typedef enum {          // defines are from hdzero code
     SD_3016,
@@ -352,20 +354,19 @@ static bool isReady(displayPort_t *displayPort)
 
 static int grab(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    return heartbeat(displayPort);
 }
 
 static int heartbeat(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    uint8_t subcmd[] = { MSP_HEARTBEAT };
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static int release(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    uint8_t subcmd[] = { MSP_RELEASE };
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static const displayPortVTable_t mspOsdVTable = {
