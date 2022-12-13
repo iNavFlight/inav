@@ -1,4 +1,4 @@
-# Betaflight 4.3 compatible MSP DisplayPort OSD (DJI O3 Canvas Mode)
+# Betaflight 4.3 compatible MSP DisplayPort OSD (DJI O3 "Canvas Mode")
 
 INAV 6.0 includes a special mode for MSP DisplayPort that supports incomplete implementations of MSP DisplayPort that only support BetaFlight, like the DJI O3 Air Unit.
 
@@ -40,3 +40,7 @@ Maybe. If a future version of BetaFlight includes more Glyphs that can be mapped
 ### Can you replace glyph `X` with text `x description`?
 
 While it might technically be possible to replace some glyphs with text in multiple cells, it will introduce a lot of complexity in the OSD rendering and configuration for something we hope is a temporary workaround.
+
+### Does DJI support Canvas Mode?
+
+Actually, no. What DJI calls Canvas Mode is actually MSP DisplayPort and is a character based OSD.
