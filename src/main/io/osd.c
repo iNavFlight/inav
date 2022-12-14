@@ -270,8 +270,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
         millis = ((centivalue % (100 * scale)) * 10) / scale;
         digits = digitCount(integerPart);
         remaining = length - digits;
-        if (explicitDecimal)
-        {
+        if (explicitDecimal) {
             remaining--;
         }
     }
