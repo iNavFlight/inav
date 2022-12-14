@@ -494,19 +494,19 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
         
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER1 : 0;
+            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER2 : 0;
+            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER3 : 0;
+            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER4 : 0;
+            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
             break;
 
         default:
