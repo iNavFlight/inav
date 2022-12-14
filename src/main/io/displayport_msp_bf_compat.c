@@ -25,7 +25,7 @@
 #include "io/bf_osd_symbols.h"
 #include "drivers/osd_symbols.h"
 
-uint8_t get_bf_character(uint8_t ch, uint8_t page)
+uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 {
     uint16_t ech = ch | (page << 8);
 
