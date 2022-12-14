@@ -169,3 +169,5 @@ wp 12 0 0 0 0 0 0 0 0
 ...
 wp 59 0 0 0 0 0 0 0 0
 ```
+### Changing Mission-Index in flight
+The MISSION CHANGE mode allows to switch between multiple stored missions in flight. With mode active the required mission index can be selected by cycling through missions using the WP mode switch. Selected mission is loaded when mission change mode is switched off. Mission index can also be changed through addition of a new Mission Index adjustment function which should be useful for DJI users unable to use the normal OSD mission related fields.
