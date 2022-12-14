@@ -460,12 +460,12 @@ static int logicConditionGetWaypointOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE:
             {
                 uint32_t distance = 0;
-                if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpNumber > 0) {
+                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
-                    wp.lat = posControl.waypointList[NAV_Status.activeWpNumber-1].lat;
-                    wp.lon = posControl.waypointList[NAV_Status.activeWpNumber-1].lon;
-                    wp.alt = posControl.waypointList[NAV_Status.activeWpNumber-1].alt;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex].alt;
                     geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
 
                     distance = calculateDistanceToDestination(&poi) / 100;
@@ -478,12 +478,12 @@ static int logicConditionGetWaypointOperandValue(int operand) {
         case LOGIC_CONDTIION_OPERAND_WAYPOINTS_DISTANCE_FROM_WAYPOINT:
             {
                 uint32_t distance = 0;
-                if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpNumber > 1) {
+                if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpIndex > 0) {
                     fpVector3_t poi;
                     gpsLocation_t wp;
-                    wp.lat = posControl.waypointList[NAV_Status.activeWpNumber-2].lat;
-                    wp.lon = posControl.waypointList[NAV_Status.activeWpNumber-2].lon;
-                    wp.alt = posControl.waypointList[NAV_Status.activeWpNumber-2].alt;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex-1].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex-1].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex-1].alt;
                     geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
 
                     distance = calculateDistanceToDestination(&poi) / 100;
@@ -494,19 +494,19 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             break;
         
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
-            return (NAV_Status.activeWpNumber > 0) ? ((posControl.waypointList[NAV_Status.activeWpNumber-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
             break;
 
         default:
