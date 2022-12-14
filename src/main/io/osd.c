@@ -257,8 +257,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
 
     int digits = digitCount(integerPart);
     int remaining = length - digits;
-    if (explicitDecimal)
-    {
+    if (explicitDecimal) {
         remaining--;
     }
 
@@ -300,8 +299,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     ptr += digits;
 
     if (decimals > 0) {
-        if (explicitDecimal)
-        {
+        if (explicitDecimal) {
             *ptr = '.';
             ptr++;
         } else {
@@ -734,8 +732,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
     STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
     int decimalDigits;
-    if(osdConfig()->video_system != VIDEO_SYSTEM_BFCOMPAT)
-    {
+    if (osdConfig()->video_system != VIDEO_SYSTEM_BFCOMPAT) {
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
         // Embbed the decimal separator
         buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
@@ -3004,7 +3001,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 if (h < 0) {
                     h += 360;
                 }
-                if(h >= 180)
+                if (h >= 180)
                     h = h - 180;
                 else
                     h = h + 180;

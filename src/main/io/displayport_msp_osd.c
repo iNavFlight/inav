@@ -277,7 +277,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len++] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? get_bf_character(screen[pos++], page): screen[pos++];
+            subcmd[len++] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? getBfCharacter(screen[pos++], page): screen[pos++];
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;

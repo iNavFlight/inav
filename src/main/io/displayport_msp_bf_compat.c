@@ -27,16 +27,13 @@
 
 uint8_t get_bf_character(uint8_t ch, uint8_t page)
 {
-
     uint16_t ech = ch | (page << 8);
 
-    if(ech >= 0x20 && ech <= 0x5F) // ASCII range
-    {
+    if (ech >= 0x20 && ech <= 0x5F) { // ASCII range
         return ch;
     }
 
-    switch (ech)
-    {
+    switch (ech) {
     case SYM_RSSI:
         return BF_SYM_RSSI;
 

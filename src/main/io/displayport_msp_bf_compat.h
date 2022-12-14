@@ -25,9 +25,9 @@
 #ifdef USE_MSP_DISPLAYPORT
 
 #ifndef DISABLE_MSP_BF_COMPAT
-uint8_t get_bf_character(uint8_t ch, uint8_t page);
+uint8_t getBfCharacter(uint8_t ch, uint8_t page);
 #else
-#define get_bf_character(x, page) (x)
+#define getBfCharacter(x, page) (x)
 #endif
 
 #endif
