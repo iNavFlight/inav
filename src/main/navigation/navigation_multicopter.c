@@ -852,6 +852,14 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
     // Update throttle controller
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
+
+    // Hold position if possible
+    if ((posControl.flags.estPosStatus >= EST_USABLE)) {
+        applyMulticopterPositionController(currentTimeUs);
+    } else {
+        rcCommand[ROLL] = 0;
+        rcCommand[PITCH] = 0;
+    }
 }
 
 /*-----------------------------------------------------------
