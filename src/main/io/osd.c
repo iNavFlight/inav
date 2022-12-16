@@ -241,6 +241,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     int decimals = maxDecimals;
     bool negative = false;
     bool scaled = false;
+    bool explicitDecimal = osdConfig()->video_system == VIDEO_SYSTEM_BFCOMPAT;
 
     buff[length] = '\0';
 
@@ -256,6 +257,9 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
 
     int digits = digitCount(integerPart);
     int remaining = length - digits;
+    if (explicitDecimal) {
+        remaining--;
+    }
 
     if (remaining < 0 && scale > 0) {
         // Reduce by scale
@@ -266,6 +270,9 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
         millis = ((centivalue % (100 * scale)) * 10) / scale;
         digits = digitCount(integerPart);
         remaining = length - digits;
+        if (explicitDecimal) {
+            remaining--;
+        }
     }
 
     // 3 decimals at most
@@ -289,8 +296,14 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     // Now write the digits.
     ui2a(integerPart, 10, 0, ptr);
     ptr += digits;
+
     if (decimals > 0) {
-        *(ptr-1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        if (explicitDecimal) {
+            *ptr = '.';
+            ptr++;
+        } else {
+            *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        }
         dec = ptr;
         int factor = 3; // we're getting the decimal part in millis first
         while (decimals < factor) {
@@ -304,7 +317,9 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
             ptr++;
         }
         ui2a(millis, 10, 0, ptr);
-        *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
+        if (!explicitDecimal) {
+            *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
+        }
     }
     return scaled;
 }
@@ -715,10 +730,15 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     // We can show up to 7 digits in decimalPart.
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
     STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
-    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
-    // Embbed the decimal separator
-    buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
-    buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    int decimalDigits;
+    if (osdConfig()->video_system != VIDEO_SYSTEM_BFCOMPAT) {
+        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
+        // Embbed the decimal separator
+        buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    } else {
+        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%06d", (int)decimalPart);
+    }
     // Fill up to coordinateLength with zeros
     int total = 1 + integerDigits + decimalDigits;
     while(total < coordinateLength) {
@@ -2980,7 +3000,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 if (h < 0) {
                     h += 360;
                 }
-                if(h >= 180)
+                if (h >= 180)
                     h = h - 180;
                 else
                     h = h + 180;
