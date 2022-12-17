@@ -459,7 +459,9 @@ disarmReason_t getDisarmReason(void)
 
 bool emergencyArmingUpdate(bool armingSwitchIsOn)
 {
-    if (ARMING_FLAG(ARMED)) return false;
+    if (ARMING_FLAG(ARMED)) {
+        return false;
+    }
 
     static timeMs_t timeout = 0;
     static int8_t counter = 0;
@@ -468,8 +470,8 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
 
     if (timeout && currentTimeMs > timeout) {
         timeout += EMERGENCY_ARMING_COUNTER_STEP_MS;
-        counter--;
-        if (counter <= 0) {
+        counter -= counter ? 1 : 0;
+        if (!counter) {
             timeout = 0;
         }
     }
@@ -483,7 +485,6 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
     } else {
         toggle = true;
     }
-    constrain(counter, 0, EMERGENCY_ARMING_MIN_ARM_COUNT + 2);
 
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
@@ -502,15 +503,14 @@ void tryArm(void)
 {
     updateArmingStatus();
 
+    if (ARMING_FLAG(ARMED)) {
+        return;
+    }
+
 #ifdef USE_DSHOT
-    if (
-            STATE(MULTIROTOR) &&
-            IS_RC_MODE_ACTIVE(BOXTURTLE) &&
-            emergencyArmingCanOverrideArmingDisabled() &&
-            isMotorProtocolDshot() &&
-            !ARMING_FLAG(ARMED) &&
-            !FLIGHT_MODE(TURTLE_MODE)
-            ) {
+    if (STATE(MULTIROTOR) && IS_RC_MODE_ACTIVE(BOXTURTLE) && !FLIGHT_MODE(TURTLE_MODE) &&
+        emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
+        ) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         enableFlightMode(TURTLE_MODE);
@@ -525,10 +525,6 @@ void tryArm(void)
 #else
     if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
 #endif
-        if (ARMING_FLAG(ARMED)) {
-            return;
-        }
-
         // If nav_extra_arming_safety was bypassed we always
         // allow bypassing it even without the sticks set
         // in the correct position to allow re-arming quickly
