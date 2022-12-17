@@ -195,10 +195,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
 {
     sendDataHead(ID_RPM);
     if (ARMING_FLAG(ARMED)) {
-        uint16_t throttleForRPM = rcCommand[THROTTLE] / BLADE_NUMBER_DIVIDER;
-        if (throttleStickIsLow() && feature(FEATURE_MOTOR_STOP)) {
-            throttleForRPM = 0;
-        }
+        uint16_t throttleForRPM = getThrottlePercent() / BLADE_NUMBER_DIVIDER;
         serialize16(throttleForRPM);
     } else {
         serialize16((currentBatteryProfile->capacity.value / BLADE_NUMBER_DIVIDER));

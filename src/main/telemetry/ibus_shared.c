@@ -146,7 +146,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         if (!temp_valid || (temperature < -400)) temperature = -400; // Minimum reported temperature is -40°C
         return sendIbusMeasurement2(address, (uint16_t)(temperature  + IBUS_TEMPERATURE_OFFSET));
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_RPM) {
-        return sendIbusMeasurement2(address, (uint16_t) (rcCommand[THROTTLE]));
+        return sendIbusMeasurement2(address, (uint16_t)getThrottlePercent() );
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_EXTERNAL_VOLTAGE) { //VBAT
         if (telemetryConfig()->report_cell_voltage) {
             return sendIbusMeasurement2(address, getBatteryAverageCellVoltage());
