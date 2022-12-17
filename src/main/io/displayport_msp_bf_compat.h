@@ -27,7 +27,6 @@
 #ifndef DISABLE_MSP_BF_COMPAT
 #include "osd.h"
 uint8_t getBfCharacter(uint8_t ch, uint8_t page);
-
 #define isBfCompatible(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT)
 #else
 #define getBfCharacter(x, page) (x)
