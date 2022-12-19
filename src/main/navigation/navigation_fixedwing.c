@@ -266,6 +266,10 @@ static int8_t loiterDirection(void) {
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+        return;
+    }
+
     float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
     float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
@@ -391,11 +395,11 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     static bool errorIsDecreasing;
     static bool forceTurnDirection = false;
 
-    // We have virtual position target, calculate heading error
-    int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
-
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
         virtualTargetBearing = posControl.desiredState.yaw;
+    } else {
+        // We have virtual position target, calculate heading error
+        int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
     }
 
     /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */

@@ -255,7 +255,6 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint);
 static void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t * pos);
 void calculateInitialHoldPosition(fpVector3_t * pos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t distance);
-void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance);
 static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypointYaw);
 bool isWaypointAltitudeReached(void);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
@@ -2796,13 +2795,6 @@ void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t yaw, int32_t dista
     farAwayPos->x = navGetCurrentActualPositionAndVelocity()->pos.x + distance * cos_approx(CENTIDEGREES_TO_RADIANS(yaw));
     farAwayPos->y = navGetCurrentActualPositionAndVelocity()->pos.y + distance * sin_approx(CENTIDEGREES_TO_RADIANS(yaw));
     farAwayPos->z = navGetCurrentActualPositionAndVelocity()->pos.z;
-}
-
-void calculateNewCruiseTarget(fpVector3_t * origin, int32_t yaw, int32_t distance)
-{
-    origin->x = origin->x + distance * cos_approx(CENTIDEGREES_TO_RADIANS(yaw));
-    origin->y = origin->y + distance * sin_approx(CENTIDEGREES_TO_RADIANS(yaw));
-    origin->z = origin->z;
 }
 
 /*-----------------------------------------------------------
