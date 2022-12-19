@@ -3629,8 +3629,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         const bool canActivatePosHold    = canActivatePosHoldMode();
         const bool canActivateNavigation = canActivateNavigationModes();
         const bool isExecutingRTH        = navGetStateFlags(posControl.navState) & NAV_AUTO_RTH;
+#ifdef USE_SAFE_HOME
         checkSafeHomeState(isExecutingRTH || posControl.flags.forcedRTHActivated);
-
+#endif
         // deactivate rth trackback if RTH not active
         if (posControl.flags.rthTrackbackActive) {
             posControl.flags.rthTrackbackActive = isExecutingRTH;
@@ -4218,7 +4219,9 @@ void activateForcedRTH(void)
 {
     abortFixedWingLaunch();
     posControl.flags.forcedRTHActivated = true;
+#ifdef USE_SAFE_HOME
     checkSafeHomeState(true);
+#endif
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
 }
 
@@ -4227,7 +4230,9 @@ void abortForcedRTH(void)
     // Disable failsafe RTH and make sure we back out of navigation mode to IDLE
     // If any navigation mode was active prior to RTH it will be re-enabled with next RX update
     posControl.flags.forcedRTHActivated = false;
+#ifdef USE_SAFE_HOME
     checkSafeHomeState(false);
+#endif
     navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
 }
 
