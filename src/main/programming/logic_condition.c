@@ -457,6 +457,16 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             return NAV_Status.activeWpAction;
             break;
 
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_NEXT_WAYPOINT_ACTION:
+            {
+                uint8_t wpIndex = posControl.activeWaypointIndex + 1;
+                if ((wpIndex > 0) && (wpIndex < NAV_MAX_WAYPOINTS)) {
+                    return posControl.waypointList[wpIndex].action;
+                }
+                return false;
+            }
+            break;
+
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE:
             {
                 uint32_t distance = 0;
@@ -507,6 +517,22 @@ static int logicConditionGetWaypointOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
             return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION_NEXT_WP:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
             break;
 
         default:
