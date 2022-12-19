@@ -394,12 +394,13 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     static int32_t previousHeadingError;
     static bool errorIsDecreasing;
     static bool forceTurnDirection = false;
+    int32_t virtualTargetBearing;
 
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
         virtualTargetBearing = posControl.desiredState.yaw;
     } else {
         // We have virtual position target, calculate heading error
-        int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
+        virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
     }
 
     /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
