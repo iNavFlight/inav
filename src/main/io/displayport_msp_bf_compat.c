@@ -242,34 +242,36 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_AIR:
         return BF_SYM_AIR;
+*/
 
     case SYM_FTS:
-        return BF_SYM_FTS;
-
+        return BF_SYM_FTPS;
+/*
     case SYM_100FTM:
         return BF_SYM_100FTM;
-
+*/
     case SYM_MS:
-        return BF_SYM_MS;
+        return BF_SYM_MPS;
 
     case SYM_KMH:
-        return BF_SYM_KMH;
-*/
+        return BF_SYM_KPH;
+
     case SYM_MPH:
         return BF_SYM_MPH;
 /*
     case SYM_KT:
-        return BF_SYM_KT;
+        return BF_SYM_KT
 
     case SYM_MAH_MI_0:
         return BF_SYM_MAH_MI_0;
 
     case SYM_MAH_MI_1:
         return BF_SYM_MAH_MI_1;
-
+*/
     case SYM_THR:
         return BF_SYM_THR;
 
+/*
     case SYM_TEMP_F:
         return BF_SYM_TEMP_F;
 
