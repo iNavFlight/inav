@@ -569,10 +569,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_VARIO_DOWN_2A:
         return BF_SYM_VARIO_DOWN_2A;
-
+*/
     case SYM_ALT:
-        return BF_SYM_ALT;
-
+        return BF_SYM_ALTITUDE;
+/*
     case SYM_HUD_SIGNAL_0:
         return BF_SYM_HUD_SIGNAL_0;
 
