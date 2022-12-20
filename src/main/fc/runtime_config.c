@@ -36,7 +36,7 @@ const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
     "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
-    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER"
+    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER", "LANDED"
 };
 #endif
 
@@ -178,8 +178,8 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 }
 
 #ifdef USE_SIMULATOR
-simulatorData_t simulatorData = { 
-	flags: 0, 
+simulatorData_t simulatorData = {
+	flags: 0,
 	debugIndex: 0
 };
 #endif
