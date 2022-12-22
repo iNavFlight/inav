@@ -131,7 +131,7 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 
     if (ctx->lastReadStatus) {
         // Convert to degC*10: degC = raw / 340 + 36.53
-        *data = int16_val(data, 0) / 34 + 365;
+        *data = int16_val(ctx->tempRaw, 0) / 34 + 365;
         return true;
     }
 

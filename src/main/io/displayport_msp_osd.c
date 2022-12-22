@@ -53,6 +53,8 @@ FILE_COMPILE_FOR_SPEED
 
 #include "displayport_msp_osd.h"
 
+#include "displayport_msp_bf_compat.h"
+
 #define FONT_VERSION 3
 
 typedef enum {          // defines are from hdzero code
@@ -278,14 +280,17 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             if (!sendUpdateFrame) { // Only clear if not sending the PFram next time. This will capture characters which have just turned blank
                 bitArrayClr(dirty, pos);
             }
-            subcmd[len++] = screen[pos++];
+            subcmd[len++] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? getBfCharacter(screen[pos++], page): screen[pos++];
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
             }
         } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page && bitArrayGet(blinkChar, next) == blink);
 
-        attributes |= (page | 0) << DISPLAYPORT_MSP_ATTR_FONT;
+        if (osdVideoSystem != VIDEO_SYSTEM_BFCOMPAT) {
+            attributes |= (page | 0) << DISPLAYPORT_MSP_ATTR_FONT;
+        }
+
         if (blink) {
             attributes |= DISPLAYPORT_MSP_ATTR_BLINK;
         }
@@ -381,9 +386,7 @@ static int heartbeat(displayPort_t *displayPort)
     // heartbeat is used to:
     // a) ensure display is not released by MW OSD software
     // b) prevent OSD Slave boards from displaying a 'disconnected' status.
-    output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
-
-    return 0;
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static int grab(displayPort_t *displayPort)
@@ -393,8 +396,8 @@ static int grab(displayPort_t *displayPort)
 
 static int release(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    uint8_t subcmd[] = { MSP_DP_RELEASE };
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static const displayPortVTable_t mspOsdVTable = {
@@ -446,6 +449,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
     if (mspOsdSerialInit()) {
         switch(videoSystem) {
         case VIDEO_SYSTEM_AUTO:
+        case VIDEO_SYSTEM_BFCOMPAT:
         case VIDEO_SYSTEM_PAL:
             currentOsdMode = SD_3016;
             screenRows = PAL_ROWS;
