@@ -3612,7 +3612,7 @@ static bool isManualEmergencyLandingActivated(void)
     timeMs_t currentTimeMs = millis();
 
     if (timeout && currentTimeMs > timeout) {
-        timeout += 500;
+        timeout += 1000;
         counter -= counter ? 1 : 0;
         if (!counter) {
             timeout = 0;
@@ -3620,7 +3620,7 @@ static bool isManualEmergencyLandingActivated(void)
     }
     if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD)) {
         if (!timeout) {
-            timeout = currentTimeMs + 2000;
+            timeout = currentTimeMs + 3000;
         }
         counter += toggle;
         toggle = false;
