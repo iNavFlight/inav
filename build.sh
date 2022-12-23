@@ -21,19 +21,29 @@ fi
 
 if [ -z "$(docker images -q inav-build)" ]; then
   echo -e "*** Building image\n"
-  docker build -t inav-build .
+  docker build -t inav-build --build-arg USER_ID="$(id -u)" --build-arg GROUP_ID="$(id -g)" .
   echo -ne "\n"
 fi
 
 if [ ! -d ./build ]; then
   echo -e "*** Creating build directory\n"
-  mkdir ./build
+  mkdir ./build && chmod 777 ./build
+fi
+
+if [ ! -d ./downloads ]; then
+  echo -e "*** Creating downloads directory\n"
+  mkdir ./downloads && chmod 777 ./downloads
+fi
+
+if [ ! -d ./tools ]; then
+  echo -e "*** Creating tools directory\n"
+  mkdir ./tools && chmod 777 ./tools
 fi
 
 echo -e "*** Building targets [$@]\n"
 docker run --rm -it -v "$(pwd)":/src inav-build $@
 
-if ls ./build/*.hex &> /dev/null; then
+if [ -z "$(ls ./build/*.hex &> /dev/null)" ]; then
   echo -e "\n*** Built targets in ./build:"
   stat -c "%n (%.19y)" ./build/*.hex
 fi
