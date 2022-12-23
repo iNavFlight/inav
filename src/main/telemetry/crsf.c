@@ -333,7 +333,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         }
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             flightMode = "!FS!";
-        } else if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "HRST";
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
@@ -345,10 +345,10 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "CRUZ";
         } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
             flightMode = "CRSH";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
-            flightMode = "AH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            flightMode = "AH";
         } else if (FLIGHT_MODE(ANGLE_MODE)) {
             flightMode = "ANGL";
         } else if (FLIGHT_MODE(HORIZON_MODE)) {
