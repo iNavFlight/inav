@@ -288,11 +288,12 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page && bitArrayGet(blinkChar, next) == blink);
 
         if (osdVideoSystem != VIDEO_SYSTEM_BFCOMPAT) {
-            attributes |= (page | 0) << DISPLAYPORT_MSP_ATTR_FONT;
+            attributes |= (page << DISPLAYPORT_MSP_ATTR_FONTPAGE);
+            //attributes = page;
         }
 
         if (blink) {
-            attributes |= DISPLAYPORT_MSP_ATTR_BLINK;
+            attributes |= (1 << DISPLAYPORT_MSP_ATTR_BLINK);
         }
 
         subcmd[1] = row;

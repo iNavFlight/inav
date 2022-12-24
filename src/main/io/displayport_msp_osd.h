@@ -33,6 +33,6 @@ displayPort_t *mspOsdDisplayPortInit(const videoSystem_e videoSystem);
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
 
 // MSP displayport V2 attribute byte bit functions
-#define DISPLAYPORT_MSP_ATTR_VERSION BIT(7) // Format indicator; must be zero for V2 (and V1)
-#define DISPLAYPORT_MSP_ATTR_BLINK   BIT(6) // Device local blink
-#define DISPLAYPORT_MSP_ATTR_FONT    (BIT(0) | BIT(1)) // Select bank of 256 characters as per displayPortSeverity_e
+#define DISPLAYPORT_MSP_ATTR_FONTPAGE   0 // Select bank of 256 characters as per displayPortSeverity_e
+#define DISPLAYPORT_MSP_ATTR_BLINK      6 // Device local blink
+#define DISPLAYPORT_MSP_ATTR_VERSION    7 // Format indicator; must be zero for V2 (and V1)
