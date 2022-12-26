@@ -3865,28 +3865,22 @@ static void osdShowStats(bool isHD, int page)
     statsPagesCheck = 1;
 
     if (page < 1 || page > 2)
-    {
-        page = 1;
-    }
+    page = 1;
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
-    if (isHD)
-    {
+    if (isHD) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---");
     }
-    else if (page == 1)
-    {
+    else if (page == 1) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2 ->");
     }
-    else if (page == 2)
-    {
+    else if (page == 2) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
     }
 
-    if (isHD || page == 1)
-    {
+    if (isHD || page == 1) {
         if (feature(FEATURE_GPS)) {
             displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
             osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
@@ -3948,8 +3942,7 @@ static void osdShowStats(bool isHD, int page)
         displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
     }
     
-    if (isHD || page == 2)
-    {
+    if (isHD || page == 2) {
         if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
             displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
             osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
