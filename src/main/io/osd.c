@@ -221,8 +221,15 @@ bool osdDisplayIsPAL(void)
 
 bool osdDisplayIsHD(void)
 {
-    if (displayScreenSize(osdDisplayPort) >= VIDEO_BUFFER_CHARS_HDZERO)
-    {
+    if (displayScreenSize(osdDisplayPort) >= VIDEO_BUFFER_CHARS_HDZERO) {
+        return true;
+    }
+    return false;
+}
+
+bool osdDisplayIsSinglePageCompatible(void)
+{
+    if (displayScreenSize(osdDisplayPort) >= VIDEO_BUFFER_CHARS_DJIWTF) {
         return true;
     }
     return false;
@@ -3855,7 +3862,7 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
-static void osdShowStats(bool isHD, int page)
+static void osdShowStats(bool isSinglePageCompatible, int page)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
     uint8_t top = 1;    /* first fully visible line */
@@ -3870,7 +3877,7 @@ static void osdShowStats(bool isHD, int page)
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
-    if (isHD) {
+    if (isSinglePageCompatible) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---");
     }
     else if (page == 1) {
@@ -3880,7 +3887,7 @@ static void osdShowStats(bool isHD, int page)
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
     }
 
-    if (isHD || page == 1) {
+    if (isSinglePageCompatible || page == 1) {
         if (feature(FEATURE_GPS)) {
             displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
             osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
@@ -3942,7 +3949,7 @@ static void osdShowStats(bool isHD, int page)
         displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
     }
     
-    if (isHD || page == 2) {
+    if (isSinglePageCompatible || page == 2) {
         if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
             displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
             osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
@@ -4064,7 +4071,6 @@ static void osdShowStats(bool isHD, int page)
         const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();        
         const float acc_extremes_min = acc_extremes[Z].min;
         const float acc_extremes_max = acc_extremes[Z].max;
-
         displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
         osdFormatCentiNumber(buff, acc_extremes_min * 100, 0, 2, 0, 4);
         strcat(buff,"/"); 
@@ -4209,7 +4215,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 #endif
             osdSetNextRefreshIn(delay);
         } else {
-            osdShowStats(osdDisplayIsHD(), 1); // show first page of statistics
+            osdShowStats(osdDisplayIsSinglePageCompatible(), 1); // show first page of statistics
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
             statsPageAutoSwapCntl = osdConfig()->stats_page_auto_swap_time > 0 ? 0 : 2; // disable swapping pages when time = 0
         }
@@ -4231,12 +4237,12 @@ static void osdRefresh(timeUs_t currentTimeUs)
             } else {
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
                     if (statsPageAutoSwapCntl == 0) {
-                        osdShowStats(osdDisplayIsHD(), 1);
+                        osdShowStats(osdDisplayIsSinglePageCompatible(), 1);
                         statsPageAutoSwapCntl = 1;
                     }
                 } else {
                     if (statsPageAutoSwapCntl == 1) {
-                        osdShowStats(osdDisplayIsHD(), 2);
+                        osdShowStats(osdDisplayIsSinglePageCompatible(), 2);
                         statsPageAutoSwapCntl = 0;
                     }
                 }
@@ -4251,11 +4257,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
             resumeRefreshAt = 0;
         } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE1)) {
             if (statsPagesCheck == 1) {
-                osdShowStats(osdDisplayIsHD(), 1);
+                osdShowStats(osdDisplayIsSinglePageCompatible(), 1);
             }
         } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE2)) {
             if (statsPagesCheck == 1) {
-                osdShowStats(osdDisplayIsHD(), 2);
+                osdShowStats(osdDisplayIsSinglePageCompatible(), 2);
             }
         } else {
             displayHeartbeat(osdDisplayPort);
