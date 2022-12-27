@@ -44,6 +44,7 @@
 
 #include "flight/imu.h"
 #include "flight/failsafe.h"
+#include "flight/mixer.h"
 
 #include "navigation/navigation.h"
 
