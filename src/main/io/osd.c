@@ -69,6 +69,7 @@ FILE_COMPILE_FOR_SPEED
 #include "io/osd.h"
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
+#include "io/displayport_msp_bf_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
@@ -241,6 +242,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     int decimals = maxDecimals;
     bool negative = false;
     bool scaled = false;
+    bool explicitDecimal = isBfCompatibleVideoSystem(osdConfig());
 
     buff[length] = '\0';
 
@@ -256,6 +258,9 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
 
     int digits = digitCount(integerPart);
     int remaining = length - digits;
+    if (explicitDecimal) {
+        remaining--;
+    }
 
     if (remaining < 0 && scale > 0) {
         // Reduce by scale
@@ -266,6 +271,9 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
         millis = ((centivalue % (100 * scale)) * 10) / scale;
         digits = digitCount(integerPart);
         remaining = length - digits;
+        if (explicitDecimal) {
+            remaining--;
+        }
     }
 
     // 3 decimals at most
@@ -289,8 +297,14 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     // Now write the digits.
     ui2a(integerPart, 10, 0, ptr);
     ptr += digits;
+
     if (decimals > 0) {
-        *(ptr-1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        if (explicitDecimal) {
+            *ptr = '.';
+            ptr++;
+        } else {
+            *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        }
         dec = ptr;
         int factor = 3; // we're getting the decimal part in millis first
         while (decimals < factor) {
@@ -304,7 +318,9 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
             ptr++;
         }
         ui2a(millis, 10, 0, ptr);
-        *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
+        if (!explicitDecimal) {
+            *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
+        }
     }
     return scaled;
 }
@@ -715,10 +731,15 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     // We can show up to 7 digits in decimalPart.
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
     STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
-    int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
-    // Embbed the decimal separator
-    buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
-    buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    int decimalDigits;
+    if (!isBfCompatibleVideoSystem(osdConfig())) {
+        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
+        // Embbed the decimal separator
+        buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
+    } else {
+        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%06d", (int)decimalPart);
+    }
     // Fill up to coordinateLength with zeros
     int total = 1 + integerDigits + decimalDigits;
     while(total < coordinateLength) {
@@ -1389,7 +1410,7 @@ static void osdFormatPidControllerOutput(char *buff, const char *label, const pi
 
 static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_t voltage, uint8_t digits, uint8_t decimals)
 {
-    char buff[6];
+    char buff[7];
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
 
     osdFormatBatteryChargeSymbol(buff);
@@ -1398,7 +1419,7 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
 
     elemAttr = TEXT_ATTRIBUTES_NONE;
-    digits = MIN(digits, 4);
+    digits = MIN(digits, 5);
     osdFormatCentiNumber(buff, voltage, 0, decimals, 0, digits);
     buff[digits] = SYM_VOLT;
     buff[digits+1] = '\0';
@@ -1574,11 +1595,11 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 
     case OSD_MAIN_BATT_VOLTAGE:
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), 2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 3 : 2) + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
 
     case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), 2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 3 : 2) + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
 
     case OSD_CURRENT_DRAW:
@@ -2687,13 +2708,13 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), 3, 2);
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 4 : 3), 2);
             return true;
         }
 
     case OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE:
         {
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), 3, 2);
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 4 : 3), 2);
             return true;
         }
 
@@ -2982,7 +3003,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 if (h < 0) {
                     h += 360;
                 }
-                if(h >= 180)
+                if (h >= 180)
                     h = h - 180;
                 else
                     h = h + 180;

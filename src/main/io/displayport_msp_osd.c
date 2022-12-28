@@ -52,12 +52,16 @@ FILE_COMPILE_FOR_SPEED
 
 #include "displayport_msp_osd.h"
 
+#include "displayport_msp_bf_compat.h"
+
 #define FONT_VERSION 3
 
+#define MSP_HEARTBEAT    0
+#define MSP_RELEASE      1
 #define MSP_CLEAR_SCREEN 2
 #define MSP_WRITE_STRING 3
-#define MSP_DRAW_SCREEN 4
-#define MSP_SET_OPTIONS 5
+#define MSP_DRAW_SCREEN  4
+#define MSP_SET_OPTIONS  5
 
 typedef enum {          // defines are from hdzero code
     SD_3016,
@@ -273,7 +277,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len++] = screen[pos++];
+            subcmd[len++] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? getBfCharacter(screen[pos++], page): screen[pos++];
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
@@ -282,7 +286,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
 
         subcmd[1] = row;
         subcmd[2] = col;
-        subcmd[3] = page;
+        subcmd[3] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? 0 : page;
         output(displayPort, MSP_DISPLAYPORT, subcmd, len);
         updateCount++;
         next = BITARRAY_FIND_FIRST_SET(dirty, pos);
@@ -348,22 +352,21 @@ static bool isReady(displayPort_t *displayPort)
     return vtxActive;
 }
 
-static int grab(displayPort_t *displayPort)
-{
-    UNUSED(displayPort);
-    return 0;
-}
-
 static int heartbeat(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    uint8_t subcmd[] = { MSP_HEARTBEAT };
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
+}
+
+static int grab(displayPort_t *displayPort)
+{
+    return heartbeat(displayPort);
 }
 
 static int release(displayPort_t *displayPort)
 {
-    UNUSED(displayPort);
-    return 0;
+    uint8_t subcmd[] = { MSP_RELEASE };
+    return output(displayPort, MSP_DISPLAYPORT, subcmd, sizeof(subcmd));
 }
 
 static const displayPortVTable_t mspOsdVTable = {
@@ -415,6 +418,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
     if (mspOsdSerialInit()) {
         switch(videoSystem) {
         case VIDEO_SYSTEM_AUTO:
+        case VIDEO_SYSTEM_BFCOMPAT:
         case VIDEO_SYSTEM_PAL:
             currentOsdMode = SD_3016;
             screenRows = PAL_ROWS;

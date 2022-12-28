@@ -476,6 +476,8 @@ main_sources(COMMON_SRC
     io/displayport_max7456.h
     io/displayport_msp.c
     io/displayport_msp.h
+    io/displayport_msp_bf_compat.c
+    io/displayport_msp_bf_compat.h
     io/displayport_oled.c
     io/displayport_oled.h
     io/displayport_msp_osd.c
