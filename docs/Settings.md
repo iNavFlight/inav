@@ -852,6 +852,16 @@ Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active 
 
 ---
 
+### failsafe_gps_fix_estimation_delay
+
+Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | -1 | 600 |
+
+---
+
 ### failsafe_lights
 
 Enable or disable the lights when the `FAILSAFE` flight mode is enabled. The target needs to be compiled with `USE_LIGHTS` [ON/OFF].
@@ -1714,7 +1724,7 @@ Defines if INAV will dead-reckon over short GPS outages. May also be useful for 
 
 ### inav_allow_gps_fix_estimation
 
-Defines if inav will estimate GPS fix with magnetometer and barometer on GPS outages. Enables navigation and RTH without GPS.
+Defines if inav will estimate GPS fix with magnetometer and barometer on GPS outages. Enables navigation and RTH without GPS fix on fixed wing. Also see failsafe_gps_fix_estimation_delay.
 
 | Default | Min | Max |
 | --- | --- | --- |

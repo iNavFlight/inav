@@ -82,6 +82,7 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_min_distance = SETTING_FAILSAFE_MIN_DISTANCE_DEFAULT,                     // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = SETTING_FAILSAFE_MIN_DISTANCE_PROCEDURE_DEFAULT, // default minimum distance failsafe procedure
     .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // Time delay before Failsafe activated during WP mission (s)
+    .failsafe_gps_fix_estimation_delay = SETTING_FAILSAFE_GPS_FIX_ESTIMATION_DELAY_DEFAULT, // Time delay before Failsafe activated when GPS Fix estimation is allied
 );
 
 typedef enum {
@@ -403,6 +404,18 @@ void failsafeUpdateState(void)
                         }
                         reprocessState = true;
                     }
+                    else {
+                        if (STATE(GPS_ESTIMATED_FIX) && (FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && (failsafeConfig()->failsafe_gps_fix_estimation_delay >= 0)) {
+                            if (!failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) {
+                               failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = millis();
+                            } else if ((millis() - failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) > (MILLIS_PER_SECOND * (uint16_t)MAX(failsafeConfig()->failsafe_gps_fix_estimation_delay,7))) {
+                                failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_RTH);
+                                failsafeActivate(FAILSAFE_RETURN_TO_HOME);
+                                activateForcedRTH();
+                            }
+                      } else
+                          failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = 0;
+                    }		
                 } else {
                     // When NOT armed, show rxLinkState of failsafe switch in GUI (failsafe mode)
                     if (!receivingRxDataAndNotFailsafeMode) {
