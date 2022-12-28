@@ -227,12 +227,21 @@ bool osdDisplayIsHD(void)
     return false;
 }
 
-bool osdDisplayIsSinglePageCompatible(void)
-{
-    if (displayScreenSize(osdDisplayPort) >= VIDEO_BUFFER_CHARS_DJIWTF) {
-        return true;
+bool osdVideoSystemIsSinglePageStatsCompatible(void)
+{    
+    bool result = false;
+
+    switch ((videoSystem_e)osdConfig()->video_system) {
+        case VIDEO_SYSTEM_HDZERO:
+            FALLTHROUGH;
+        case VIDEO_SYSTEM_DJIWTF:
+            result = true;
+            break;
+        default:
+            result = false;
     }
-    return false;
+
+    return result;
 }
 
 /**
@@ -634,6 +643,27 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
             TEXT_ATTRIBUTES_ADD_BLINK(*attr);
         }
     }
+}
+
+char *osdFormatTrimWhiteSpace(char *buff)
+{
+    char *end;
+
+    // Trim leading spaces
+    while(isspace((unsigned char)*buff)) buff++;
+
+    // All spaces?
+    if(*buff == 0)  
+    return buff;
+
+    // Trim trailing spaces
+    end = buff + strlen(buff) - 1;
+    while(end > buff && isspace((unsigned char)*end)) end--;
+
+    // Write new null terminator character
+    end[1] = '\0';
+
+    return buff;
 }
 
 /**
@@ -3862,10 +3892,12 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
-static void osdShowStats(bool isSinglePageCompatible, int page)
+static void osdShowStats(bool isSinglePageStatsCompatible, int page)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
-    uint8_t top = 1;    /* first fully visible line */
+    uint8_t top = 1;    /* first fully visible line */    
+    size_t multiValueLengthOffset = 0;
+
     const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
     const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
     char buff[10];
@@ -3877,27 +3909,37 @@ static void osdShowStats(bool isSinglePageCompatible, int page)
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
-    if (isSinglePageCompatible) {
+    if (isSinglePageStatsCompatible) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---");
-    }
-    else if (page == 1) {
+    } else if (page == 1) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2 ->");
-    }
-    else if (page == 2) {
+    } else if (page == 2) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
     }
 
-    if (isSinglePageCompatible || page == 1) {
-        if (feature(FEATURE_GPS)) {
-            displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
-            osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
-            osdLeftAlignString(buff);
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+    if (isSinglePageStatsCompatible || page == 1) {
+        if (feature(FEATURE_GPS)) {            
+            if (isSinglePageStatsCompatible) {
+                displayWrite(osdDisplayPort, statNameX, top, "MAX/AVG SPEED    :");
+                osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
+                osdLeftAlignString(buff);
+                strcat(osdFormatTrimWhiteSpace(buff),"/");
+                multiValueLengthOffset = strlen(buff);
+                displayWrite(osdDisplayPort, statValuesX, top, buff);            
+                osdGenerateAverageVelocityStr(buff);
+                osdLeftAlignString(buff);
+                displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
+            } else {
+                displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
+                osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
+                osdLeftAlignString(buff);
+                displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-            displayWrite(osdDisplayPort, statNameX, top, "AVG SPEED        :");
-            osdGenerateAverageVelocityStr(buff);
-            osdLeftAlignString(buff);
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
+                displayWrite(osdDisplayPort, statNameX, top, "AVG SPEED        :");
+                osdGenerateAverageVelocityStr(buff);
+                osdLeftAlignString(buff);
+                displayWrite(osdDisplayPort, statValuesX, top++, buff);
+            }
 
             displayWrite(osdDisplayPort, statNameX, top, "MAX DISTANCE     :");
             osdFormatDistanceStr(buff, stats.max_distance*100);
@@ -3914,15 +3956,28 @@ static void osdShowStats(bool isSinglePageCompatible, int page)
 
         switch (rxConfig()->serialrx_provider) {
             case SERIALRX_CRSF:
-                displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI %       :");
-                itoa(stats.min_rssi, buff, 10);
-                strcat(buff, "%");
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
+                if (isSinglePageStatsCompatible) {
+                    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI %/DBM   :");
+                    itoa(stats.min_rssi, buff, 10);
+                    osdLeftAlignString(buff);
+                    strcat(osdFormatTrimWhiteSpace(buff), "%/");
+                    multiValueLengthOffset = strlen(buff);
+                    displayWrite(osdDisplayPort, statValuesX, top, buff);                
+                    itoa(stats.min_rssi_dbm, buff, 10);
+                    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+                    osdLeftAlignString(buff);
+                    displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
+                } else {
+                    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI %       :");
+                    itoa(stats.min_rssi, buff, 10);
+                    strcat(buff, "%");
+                    displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-                displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI DBM     :");
-                itoa(stats.min_rssi_dbm, buff, 10);
-                tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
+                    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI DBM     :");
+                    itoa(stats.min_rssi_dbm, buff, 10);
+                    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+                    displayWrite(osdDisplayPort, statValuesX, top++, buff);
+                } 
 
                 displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
                 itoa(stats.min_lq, buff, 10);
@@ -3949,7 +4004,7 @@ static void osdShowStats(bool isSinglePageCompatible, int page)
         displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
     }
     
-    if (isSinglePageCompatible || page == 2) {
+    if (isSinglePageStatsCompatible || page == 2) {
         if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
             displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
             osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
@@ -4073,10 +4128,13 @@ static void osdShowStats(bool isSinglePageCompatible, int page)
         const float acc_extremes_max = acc_extremes[Z].max;
         displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
         osdFormatCentiNumber(buff, acc_extremes_min * 100, 0, 2, 0, 4);
-        strcat(buff,"/"); 
-        displayWrite(osdDisplayPort, statValuesX - 1, top, buff);
+        osdLeftAlignString(buff);
+        strcat(osdFormatTrimWhiteSpace(buff),"/"); 
+        multiValueLengthOffset = strlen(buff);        
+        displayWrite(osdDisplayPort, statValuesX, top, buff);        
         osdFormatCentiNumber(buff, acc_extremes_max * 100, 0, 2, 0, 3);
-        displayWrite(osdDisplayPort, statValuesX + 4, top++, buff);
+        osdLeftAlignString(buff);
+        displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
     displayCommitTransaction(osdDisplayPort);
@@ -4215,7 +4273,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 #endif
             osdSetNextRefreshIn(delay);
         } else {
-            osdShowStats(osdDisplayIsSinglePageCompatible(), 1); // show first page of statistics
+            osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 1); // show first page of statistics
             osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
             statsPageAutoSwapCntl = osdConfig()->stats_page_auto_swap_time > 0 ? 0 : 2; // disable swapping pages when time = 0
         }
@@ -4237,12 +4295,12 @@ static void osdRefresh(timeUs_t currentTimeUs)
             } else {
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
                     if (statsPageAutoSwapCntl == 0) {
-                        osdShowStats(osdDisplayIsSinglePageCompatible(), 1);
+                        osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 1);
                         statsPageAutoSwapCntl = 1;
                     }
                 } else {
                     if (statsPageAutoSwapCntl == 1) {
-                        osdShowStats(osdDisplayIsSinglePageCompatible(), 2);
+                        osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 2);
                         statsPageAutoSwapCntl = 0;
                     }
                 }
@@ -4257,11 +4315,11 @@ static void osdRefresh(timeUs_t currentTimeUs)
             resumeRefreshAt = 0;
         } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE1)) {
             if (statsPagesCheck == 1) {
-                osdShowStats(osdDisplayIsSinglePageCompatible(), 1);
+                osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 1);
             }
         } else if ((currentTimeUs > resumeRefreshAt) || ((!refreshWaitForResumeCmdRelease) && STATS_PAGE2)) {
             if (statsPagesCheck == 1) {
-                osdShowStats(osdDisplayIsSinglePageCompatible(), 2);
+                osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 2);
             }
         } else {
             displayHeartbeat(osdDisplayPort);
