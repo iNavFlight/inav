@@ -234,6 +234,9 @@ bool osdVideoSystemIsSinglePageStatsCompatible(void)
     switch ((videoSystem_e)osdConfig()->video_system) {
         case VIDEO_SYSTEM_HDZERO:
             FALLTHROUGH;
+        // Placeholder for Avatar system support once Darren completes that.
+        // case VIDEO_SYSTEM_AVATAR:
+        //      FALLTHROUGH;
         case VIDEO_SYSTEM_DJIWTF:
             result = true;
             break;
