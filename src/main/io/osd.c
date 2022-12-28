@@ -3920,7 +3920,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, int page)
     if (isSinglePageStatsCompatible || page == 1) {
         if (feature(FEATURE_GPS)) {            
             if (isSinglePageStatsCompatible) {
-                displayWrite(osdDisplayPort, statNameX, top, "SPEED MAX/AVG    :");
+                displayWrite(osdDisplayPort, statNameX, top, "MAX/AVG SPEED    :");
                 osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
                 osdLeftAlignString(buff);
                 strcat(osdFormatTrimWhiteSpace(buff),"/");
