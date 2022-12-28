@@ -2385,7 +2385,7 @@ bool validateRTHSanityChecker(void)
 		//disable sanity checks in GPS estimation mode
 		//when estimated GPS fix is replaced with real fix, coordinates may jump 
 		posControl.rthSanityChecker.minimalDistanceToHome = 1e10f;
-		//schedule check 5 seconds after apperange of real GPS fix, when position estimation coords stabilise after jump
+		//schedule check in 5 seconds after getting real GPS fix, when position estimation coords stabilise after jump
 		posControl.rthSanityChecker.lastCheckTime = currentTimeMs + 5000; 
 		return true;
 	}
