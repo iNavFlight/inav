@@ -519,9 +519,7 @@ void tryArm(void)
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    if (!isArmingDisabled() ||
-        emergencyArmingIsEnabled() ||
-        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
+    if (!isArmingDisabled() || emergencyArmingIsEnabled() || LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
 #else
     if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
 #endif
