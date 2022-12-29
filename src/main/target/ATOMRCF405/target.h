@@ -63,11 +63,11 @@
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
 
-//BMI270
-#define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN                CW180_DEG
-#define BMI270_SPI_BUS                  BUS_SPI1
-#define BMI270_CS_PIN                   PA4
+//MPU6000
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN               CW180_DEG
+#define MPU6000_SPI_BUS                 BUS_SPI1
+#define MPU6000_CS_PIN                  PA4
 
 /*
  * Magnetometer
@@ -146,17 +146,17 @@
 /*
  * SD Card
  */
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI3
-#define SDCARD_CS_PIN           PB6
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+// #define USE_SDCARD
+// #define USE_SDCARD_SPI
+// #define SDCARD_SPI_BUS          BUS_SPI3
+// #define SDCARD_CS_PIN           PB6
+// #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 /*
  * LED Strip
  */
 #define USE_LED_STRIP
-#define WS2811_PIN                      PB7
+#define WS2811_PIN                      PB6
 
 /*
  * Other configs
@@ -166,20 +166,20 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART2
 
-#define USE_RANGEFINDER
-#define USE_RANGEFINDER_MSP
-#define USE_OPFLOW
-#define USE_OPFLOW_MSP
+// #define USE_RANGEFINDER
+// #define USE_RANGEFINDER_MSP
+// #define USE_OPFLOW
+// #define USE_OPFLOW_MSP
 
-#define RANGEFINDER_I2C_BUS         DEFAULT_I2C_BUS
-#define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
-#define PITOT_I2C_BUS               DEFAULT_I2C_BUS
+// #define RANGEFINDER_I2C_BUS         DEFAULT_I2C_BUS
+// #define TEMPERATURE_I2C_BUS         DEFAULT_I2C_BUS
+// #define PITOT_I2C_BUS               DEFAULT_I2C_BUS
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
-#define MAX_PWM_OUTPUT_PORTS    8
+#define MAX_PWM_OUTPUT_PORTS    6
 
 #define TARGET_IO_PORTA 0xffff
 #define TARGET_IO_PORTB 0xffff
