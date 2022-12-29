@@ -4364,11 +4364,11 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ### osd_msp_displayport_fullframe_interval
 
-P Frame interval for MSP DisplayPort [seconds] 0 = disabled
+P Frame interval for MSP DisplayPort [seconds]. -1 = disabled | 0 = every frame
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 30 |
+| 5 | -1 | 120 |
 
 ---
 
