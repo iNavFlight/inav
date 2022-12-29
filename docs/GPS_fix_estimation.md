@@ -48,7 +48,7 @@ GPS Fix estimation is enabled with CLI command:
 
 Also you have to specify criuse airspeed of the plane.
 
-The get cruise airspeed, make test flight. Enable ground speed display on OSD. Flight in CRUISE mode in two opposite directions. Take average speed.
+To find out cruise airspeed, make a test flight. Enable ground speed display on OSD. Flight in CRUISE mode in two opposite directions. Take average speed.
 
 Cruise airspeed is specified in cm/s.
 
@@ -76,6 +76,12 @@ Example: 100 km/h = 100 * 27.77 = 2777 cm/s
 For testing purpoces, it is possible to disable GPS sensor fix from RC controller in programming tab:
 
 *GPS can be disabled only after 1) initial GPS fix is acquired 2) in ARMED mode.*
+
+# Allowing wp missions with GPS Fix estimation
+
+```failsafe_gps_fix_estimation_delay```
+
+Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation.
 
 # Is it possible to implement this for multirotor ?
 
