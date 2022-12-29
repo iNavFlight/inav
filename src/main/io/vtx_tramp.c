@@ -561,22 +561,22 @@ static vtxDevice_t impl_vtxDevice = {
 };
 
 const uint16_t trampPowerTable_5G8_200[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 200, 200 };
-const char * const trampPowerNames_5G8_200[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "25 ", "100", "200", "200", "200" };
+const char * const trampPowerNames_5G8_200[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "----", "25  ", "100 ", "200 ", "200 ", "200 " };
 
 const uint16_t trampPowerTable_5G8_400[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 400, 400 };
-const char * const trampPowerNames_5G8_400[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "25 ", "100", "200", "400", "400" };
+const char * const trampPowerNames_5G8_400[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "----", "25  ", "100 ", "200 ", "400 ", "400 " };
 
 const uint16_t trampPowerTable_5G8_600[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 400, 600 };
-const char * const trampPowerNames_5G8_600[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "25 ", "100", "200", "400", "600" };
+const char * const trampPowerNames_5G8_600[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "----", "25  ", "100 ", "200 ", "400 ", "600 " };
 
 const uint16_t trampPowerTable_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 500, 800 };
-const char * const trampPowerNames_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "25 ", "100", "200", "500", "800" };
+const char * const trampPowerNames_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "----", "25  ", "100 ", "200 ", "500 ", "800 " };
 
 const uint16_t trampPowerTable_5G8_2500[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 200, 500, 1500, 2500 };
-const char * const trampPowerNames_5G8_2500[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "500", "1500", "2500" };
+const char * const trampPowerNames_5G8_2500[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "----", "25  ", "200 ", "500 ", "1500", "2500" };
 
 const uint16_t trampPowerTable_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 800 };
-const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "800" };
+const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "----", "25  ", "200 ", "800 " };
 
 static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
 {

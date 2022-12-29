@@ -1360,8 +1360,8 @@ static void cliSafeHomes(char *cmdline)
         }
     }
 }
-
 #endif
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
