@@ -2906,9 +2906,9 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
         if (STATE(FIXED_WING_LEGACY)) {
             // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
             float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
+            static bool targetHoldActive = false;
 
             if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
-                static bool targetHoldActive = false;
                 // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
                 if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
                     posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
@@ -2917,6 +2917,8 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
                     posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
                     targetHoldActive = true;
                 }
+            } else {
+                targetHoldActive = false;
             }
         }
         else {
