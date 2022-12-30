@@ -868,8 +868,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         armTime += cycleTime;
         updateAccExtremes();
     }
+
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
+        
+        processDelayedSave();
     }
 
     gyroFilter();

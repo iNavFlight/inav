@@ -122,7 +122,9 @@ void resetEEPROM(void);
 void readEEPROM(void);
 void writeEEPROM(void);
 void ensureEEPROMContainsValidData(void);
+void processDelayedSave(void);
 
+void saveConfig(void);
 void saveConfigAndNotify(void);
 void validateAndFixConfig(void);
 void validateAndFixTargetConfig(void);
