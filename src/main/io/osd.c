@@ -4023,8 +4023,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, int page)
         displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
 
         /* We only want to show this message once, so it will be shown after the second
-        *  section for single page stats.
-        */
+        *  section for single page stats. */
         if (!isSinglePageStatsCompatible) {
             if (savingSettings == true) {
                 displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
@@ -4376,8 +4375,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
     if (resumeRefreshAt) {
                             
         /* This is a workaround to introduce a delay for the paging stick commands so that
-        *  holding the roll stick doesn't cause a race condition with the osdShowStats() method
-        */
+        *  holding the roll stick doesn't cause a race condition with the osdShowStats() method. */
         bool pageUp = false;  
         bool pageDown = false;  
         if (!osdVideoSystemIsSinglePageStatsCompatible())
@@ -4414,47 +4412,6 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 }
             }
         }
-
-        // bool pageUp = false;  
-        // bool pageDown = false;                              
-        // if (!osdVideoSystemIsSinglePageStatsCompatible())
-        // {
-        //     /* This is a workaround to introduce a delay for the paging stick commands so that
-        //     *  holding the roll stick doesn't cause a race condition with the osdShowStats() method
-        //     */
-        //     if (osdIsPageUpKeyHeld()) {               
-        //         pageUp = true;
-        //         statsPageAutoSwapCntl = 2;
-        //     } else if (osdIsPageDownKeyHeld()) {
-        //         pageDown = true;                
-        //         statsPageAutoSwapCntl = 2;
-        //     }
-
-
-        //     if (statsPageAutoSwapCntl == 2) {
-        //         if (pageDown) {
-        //             if (statsPagesCheck == 1) {
-        //                 osdShowStats(false, 1);                       
-        //             }
-        //         } else if (pageUp) {
-        //             if (statsPagesCheck == 1) {
-        //                 osdShowStats(false, 2);
-        //             }
-        //         }
-        //     } else {
-        //         if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-        //             if (statsPageAutoSwapCntl == 0) {
-        //                 osdShowStats(false, 1);
-        //                 statsPageAutoSwapCntl = 1;
-        //             }
-        //         } else {
-        //             if (statsPageAutoSwapCntl == 1) {
-        //                 osdShowStats(false, 2);
-        //                 statsPageAutoSwapCntl = 0;
-        //             }
-        //         }
-        //     }
-        // }
 
         if ((currentTimeUs > resumeRefreshAt) || CANCEL_STATS_COMMAND) {
             displayClearScreen(osdDisplayPort);
