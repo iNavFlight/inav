@@ -1792,6 +1792,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_IN_PR
 {
     UNUSED(previousState);
 
+    // Reset target position if too far away for some reason, e.g. GPS recovered since start landing.
+    if (posControl.flags.estPosStatus >= EST_USABLE
+        float targetPosLimit = STATE(MULTIROTOR) ? 2000.0f : navConfig()->fw.loiter_radius * 2.0f;
+        if (calculateDistanceToDestination(&posControl.desiredState.pos) > targetPosLimit) {
+            setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
+        }
+    }
+
     if (STATE(LANDING_DETECTED)) {
         return NAV_FSM_EVENT_SUCCESS;
     }
@@ -3527,6 +3535,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         // If we are disarmed, abort forced RTH or Emergency Landing
         posControl.flags.forcedRTHActivated = false;
         posControl.flags.forcedEmergLandingActivated = false;
+        posControl.flags.manualEmergLandActive = false;
         //  ensure WP missions always restart from first waypoint after disarm
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
@@ -3605,7 +3614,7 @@ static bool isWaypointMissionValid(void)
 
 static bool isManualEmergencyLandingActivated(void)
 {
-    // Emergency landing initiated manually by toggling Poshold 4 times within 2 seconds
+    // Emergency landing initiated manually by toggling Poshold 4 times within 3 seconds
     static timeMs_t timeout = 0;
     static int8_t counter = 0;
     static bool toggle;
