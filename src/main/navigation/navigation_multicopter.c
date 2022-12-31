@@ -814,8 +814,6 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     static timeUs_t previousTimePositionUpdate = 0;
 
     /* Attempt to stabilise */
-    rcCommand[ROLL] = 0;
-    rcCommand[PITCH] = 0;
     rcCommand[YAW] = 0;
 
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
