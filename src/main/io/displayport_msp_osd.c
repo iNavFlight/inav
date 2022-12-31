@@ -55,6 +55,8 @@ FILE_COMPILE_FOR_SPEED
 
 #include "displayport_msp_bf_compat.h"
 
+#include "programming/global_variables.h"
+
 #define FONT_VERSION 3
 
 typedef enum {          // defines are from hdzero code
@@ -259,7 +261,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
     }
 
     if (osdConfig()->msp_displayport_fullframe_interval >= 0 && (millis() > sendSubFrameMs)) {
-        if ((osdConfig()->msp_displayport_fullframe_interval == 0) || (fullFrameCounter++ % FULL_FRAME_SEND_DENOM)) {
+        if ((osdConfig()->msp_displayport_fullframe_interval == 0) || (fullFrameCounter++ % FULL_FRAME_SEND_DENOM == 0)) {
             // dirty all characters, even blanks, if interval set to 0, or the full frame timeout is reached
             BITARRAY_SET_ALL(dirty);
         } else if (osdConfig()->msp_displayport_fullframe_interval > 0) {

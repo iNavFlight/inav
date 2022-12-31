@@ -3027,7 +3027,7 @@ groups:
         min: 0
         max: 1
       - name: osd_msp_displayport_fullframe_interval
-        description: "P Frame interval for MSP DisplayPort [seconds]. -1 = disabled | 0 = every frame"
+        description: "P Frame interval for MSP DisplayPort [seconds]. This is how often a full frame update is sent to the DisplayPort. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 5"
         default_value: 5
         min: -1
         max: 120
