@@ -139,9 +139,9 @@
 /*
  * OSD
  */
-#define USE_MAX7456
-#define MAX7456_SPI_BUS                 BUS_SPI2
-#define MAX7456_CS_PIN                  PA15
+// #define USE_MAX7456
+// #define MAX7456_SPI_BUS                 BUS_SPI2
+// #define MAX7456_CS_PIN                  PA15
 
 /*
  * SD Card
