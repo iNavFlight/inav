@@ -139,18 +139,18 @@
 /*
  * OSD
  */
-// #define USE_MAX7456
-// #define MAX7456_SPI_BUS                 BUS_SPI2
-// #define MAX7456_CS_PIN                  PB12
+#define USE_MAX7456
+#define MAX7456_SPI_BUS                 BUS_SPI2
+#define MAX7456_CS_PIN                  PA15
 
 /*
  * SD Card
  */
-// #define USE_SDCARD
-// #define USE_SDCARD_SPI
-// #define SDCARD_SPI_BUS          BUS_SPI3
-// #define SDCARD_CS_PIN           PB6
-// #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PB12
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 /*
  * LED Strip
