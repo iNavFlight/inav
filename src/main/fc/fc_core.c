@@ -477,7 +477,7 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
     }
 
     if (armingSwitchIsOn) {
-        if (!timeout) {
+        if (!timeout && toggle) {
             timeout = currentTimeMs + EMERGENCY_ARMING_TIME_WINDOW_MS;
         }
         counter += toggle;
