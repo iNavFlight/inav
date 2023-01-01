@@ -120,7 +120,8 @@ FILE_COMPILE_FOR_SPEED
 
 #define GFORCE_FILTER_TC 0.2
 
-#define CANCEL_STATS_COMMAND (rxGetChannelValue(THROTTLE) > 1750 || rxGetChannelValue(PITCH) > 1750)
+#define OSD_STATS_SINGLE_PAGE_MIN_ROWS 18
+#define OSD_RESUME_UPDATES_STICK_COMMAND (rxGetChannelValue(THROTTLE) > 1750 || rxGetChannelValue(PITCH) > 1750)
 #define IS_HI(X)  (rxGetChannelValue(X) > 1750)
 #define IS_LO(X)  (rxGetChannelValue(X) < 1250)
 #define IS_MID(X) (rxGetChannelValue(X) > 1250 && rxGetChannelValue(X) < 1750)
@@ -152,8 +153,6 @@ FILE_COMPILE_FOR_SPEED
 
 static timeMs_t notify_settings_saved = 0;
 static bool savingSettings = false;
-// static bool statsUpdating = false;
-// static timeMs_t cmsYieldUntil = 0;
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -179,12 +178,10 @@ typedef struct statistic_s {
 static statistic_t stats;
 
 static timeUs_t resumeRefreshAt = 0;
-static bool refreshWaitForResumeCmdRelease;
 
 static bool fullRedraw = false;
 
 static uint8_t armState;
-static uint8_t statsPagesCheck = 0;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -241,26 +238,6 @@ bool osdDisplayIsHD(void)
         return true;
     }
     return false;
-}
-
-bool osdVideoSystemIsSinglePageStatsCompatible(void)
-{   
-    bool result = false;
-
-    switch ((videoSystem_e)osdConfig()->video_system) {
-        case VIDEO_SYSTEM_HDZERO:
-            FALLTHROUGH;
-        // Placeholder for Avatar system support once that is complete.
-        // case VIDEO_SYSTEM_AVATAR:
-        //      FALLTHROUGH;
-        case VIDEO_SYSTEM_DJIWTF:
-            result = true;
-            break;
-        default:
-            result = false;
-    }
-
-    return result;
 }
 
 /**
@@ -664,6 +641,10 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
     }
 }
 
+/** 
+ * Trim whitespace from string. 
+ * Used in Stats screen on lines with multiple values.
+*/
 char *osdFormatTrimWhiteSpace(char *buff)
 {
     char *end;
@@ -3687,7 +3668,6 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
 static void osdSetNextRefreshIn(uint32_t timeMs) {
     resumeRefreshAt = micros() + timeMs * 1000;
-    refreshWaitForResumeCmdRelease = true;
 }
 
 static void osdCompleteAsyncInitialization(void)
@@ -3911,32 +3891,31 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
-static void osdShowStats(bool isSinglePageStatsCompatible, int page)
+static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
-    uint8_t top = 1;    /* first fully visible line */    
+    uint8_t top = 1;  // Start one line down leaving space at the top of the screen. 
     size_t multiValueLengthOffset = 0;
 
     const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
     const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
     char buff[10];
-    statsPagesCheck = 1;
 
-    if (page < 1 || page > 2)
-    page = 1;
+    if (page > 1)
+    page = 0;
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
 
     if (isSinglePageStatsCompatible) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---");
-    } else if (page == 1) {
+    } else if (page == 0) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2 ->");
-    } else if (page == 2) {
+    } else if (page == 1) {
         displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
     }
 
-    if (isSinglePageStatsCompatible || page == 1) {
+    if (isSinglePageStatsCompatible || page == 0) {
         if (feature(FEATURE_GPS)) {            
             if (isSinglePageStatsCompatible) {
                 displayWrite(osdDisplayPort, statNameX, top, "MAX/AVG SPEED    :");
@@ -4021,23 +4000,9 @@ static void osdShowStats(bool isSinglePageStatsCompatible, int page)
 
         displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
         displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
-
-        /* We only want to show this message once, so it will be shown after the second
-        *  section for single page stats. */
-        if (!isSinglePageStatsCompatible) {
-            if (savingSettings == true) {
-                displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
-            } else if (notify_settings_saved > 0) {
-                if (millis() > notify_settings_saved) {
-                    notify_settings_saved = 0;
-                } else {
-                    displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
-                }
-            }
-        }
     }
     
-    if (isSinglePageStatsCompatible || page == 2) {
+    if (isSinglePageStatsCompatible || page == 1) {
         if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
             displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
             osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2);
@@ -4168,19 +4133,18 @@ static void osdShowStats(bool isSinglePageStatsCompatible, int page)
         osdFormatCentiNumber(buff, acc_extremes_max * 100, 0, 2, 0, 3);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
+    }
 
-        if (savingSettings == true) {
-            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
-        } else if (notify_settings_saved > 0) {
-            if (millis() > notify_settings_saved) {
-                notify_settings_saved = 0;
-            } else {
-                displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
-            }
+    if (savingSettings == true) {
+        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
+    } else if (notify_settings_saved > 0) {
+        if (millis() > notify_settings_saved) {
+            notify_settings_saved = 0;
+        } else {
+            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
         }
     }
 
-    displayHeartbeat(osdDisplayPort);
     displayCommitTransaction(osdDisplayPort);
 }
 
@@ -4288,9 +4252,10 @@ static void osdFilterData(timeUs_t currentTimeUs) {
     lastRefresh = currentTimeUs;
 }
 
-static bool osdIsPageUpKeyHeld(void)
+// Detect when the user is holding the roll stick to the right
+static bool osdIsPageUpStickCommandHeld(void)
 {
-    static int holdCount = 1;
+    static int pageUpHoldCount = 1;
 
     bool keyHeld = false;
 
@@ -4299,22 +4264,23 @@ static bool osdIsPageUpKeyHeld(void)
     }
 
     if (!keyHeld) {
-        holdCount = 1;
+        pageUpHoldCount = 1;
     } else {
-        ++holdCount;
+        ++pageUpHoldCount;
     }
 
-    if (holdCount > 20) {
-        holdCount = 1;
+    if (pageUpHoldCount > 20) {
+        pageUpHoldCount = 1;
         return true;
     }
 
     return false;
 }
 
-static bool osdIsPageDownKeyHeld(void)
+// Detect when the user is holding the roll stick to the left
+static bool osdIsPageDownStickCommandHeld(void)
 {
-    static int holdCount = 1;
+    static int pageDownHoldCount = 1;
 
     bool keyHeld = false;
     if (IS_LO(ROLL)) {
@@ -4322,13 +4288,13 @@ static bool osdIsPageDownKeyHeld(void)
     }
 
     if (!keyHeld) {
-        holdCount = 1;
+        pageDownHoldCount = 1;
     } else {
-        ++holdCount;
+        ++pageDownHoldCount;
     }
 
-    if (holdCount > 20) {
-        holdCount = 1;
+    if (pageDownHoldCount > 20) {
+        pageDownHoldCount = 1;
         return true;
     }
 
@@ -4349,78 +4315,111 @@ static void osdRefresh(timeUs_t currentTimeUs)
       return;
     }
 
-    // detect arm/disarm
-    static uint8_t statsPageAutoSwapCntl = 2;
+    bool statsSinglePageCompatible = (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS);
+    static uint8_t statsCurrentPage = 0;
+    static bool statsDisplayed = false;
+    static bool statsAutoPagingEnabled = true;
+
+    // Detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
         if (ARMING_FLAG(ARMED)) {
+            // Display the "Arming" screen
+            statsDisplayed = false;
             osdResetStats();
-            statsPageAutoSwapCntl = 2;
-            osdShowArmed(); // reset statistic etc
+            osdShowArmed();
             uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
-            statsPagesCheck = 0;
 #if defined(USE_SAFE_HOME)
             if (safehome_distance)
                 delay *= 3;
 #endif
             osdSetNextRefreshIn(delay);
         } else {
-            osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 1); // show first page of statistics
-            osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
-            statsPageAutoSwapCntl = osdConfig()->stats_page_auto_swap_time > 0 ? 0 : 2;
+            // Display the "Stats" screen
+            statsDisplayed = true;
+            statsCurrentPage = 0;
+            statsAutoPagingEnabled = osdConfig()->stats_page_auto_swap_time > 0 ? true : false;
+            osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+            osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);            
         }
 
         armState = ARMING_FLAG(ARMED);
     }
 
-    if (resumeRefreshAt) {
-                            
-        /* This is a workaround to introduce a delay for the paging stick commands so that
-        *  holding the roll stick doesn't cause a race condition with the osdShowStats() method. */
-        bool pageUp = false;  
-        bool pageDown = false;  
-        if (!osdVideoSystemIsSinglePageStatsCompatible())
-        {
-            if (osdIsPageUpKeyHeld()) {               
-                pageUp = true;
-                statsPageAutoSwapCntl = 2;
-            } else if (osdIsPageDownKeyHeld()) {
-                pageDown = true;                
-                statsPageAutoSwapCntl = 2;
-            }
-        }
+    // This block is entered when we're showing the "Splash", "Armed" or "Stats" screens
+    if (resumeRefreshAt) {   
+                                
+        // Handle events only when the "Stats" screen is being displayed.
+        if (statsDisplayed) {
 
-        if (statsPageAutoSwapCntl == 2) {
-            if (pageDown) {
-                if (statsPagesCheck == 1) {
-                    osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 1);                       
-                }
-            } else if (pageUp) {
-                if (statsPagesCheck == 1) {
-                    osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 2);
+             // Manual paging stick commands are only applicable to multi-page stats.
+             // ******************************
+             // For single-page stats, this effectively disables the ability to cancel the 
+             // automatic paging/updates with the stick commands. So unless stats_page_auto_swap_time
+             // is set to 0 or greater than 4 (saved settings display interval is 5 seconds), then 
+             // "Saved Settings" should display if it is active within the refresh interval. 
+             // ******************************
+             // With multi-page stats, "Saved Settings" could also be missed if the user
+             // has canceled automatic paging using the stick commands, because that is only 
+             // updated when osdShowStats() is called. So, in that case, they would only see 
+             // the "Saved Settings" message if they happen to manually change pages using the 
+             // stick commands within the interval the message is displayed. 
+            bool manualPageUpRequested = false;
+            bool manualPageDownRequested = false;       
+            if (!statsSinglePageCompatible) {
+                // These methods ensure the paging stick commands are held for a brief period
+                // Otherwise it can result in a race condition where the stats are 
+                // updated too quickly and can result in partial blanks, etc. 
+                if (osdIsPageUpStickCommandHeld()) {               
+                    manualPageUpRequested = true;
+                    statsAutoPagingEnabled = false;
+                } else if (osdIsPageDownStickCommandHeld()) {
+                    manualPageDownRequested = true;                
+                    statsAutoPagingEnabled = false;
                 }
             }
-        } else {
-            if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                if (statsPageAutoSwapCntl == 0) {
-                    osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 1);
-                    statsPageAutoSwapCntl = 1;
+
+            if (statsAutoPagingEnabled) {
+                // Alternate screens for multi-page stats.
+                // Also, refreshes screen at swap interval for single-page stats.
+                if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
+                    if (statsCurrentPage == 0) {
+                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                        statsCurrentPage = 1;
+                    }
+                } else {
+                    if (statsCurrentPage == 1) {
+                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                        statsCurrentPage = 0;
+                    }
                 }
             } else {
-                if (statsPageAutoSwapCntl == 1) {
-                    osdShowStats(osdVideoSystemIsSinglePageStatsCompatible(), 2);
-                    statsPageAutoSwapCntl = 0;
+                // Process manual page change events for multi-page stats.
+                if (manualPageUpRequested) {
+                    osdShowStats(statsSinglePageCompatible, 1);
+                    statsCurrentPage = 1;                   
+                } else if (manualPageDownRequested) {
+                    osdShowStats(statsSinglePageCompatible, 0);
+                    statsCurrentPage = 0;
                 }
             }
         }
 
-        if ((currentTimeUs > resumeRefreshAt) || CANCEL_STATS_COMMAND) {
+        // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
+        if ((currentTimeUs > resumeRefreshAt) || OSD_RESUME_UPDATES_STICK_COMMAND) { 
+            // Time elapsed or canceled by stick commands.
+            // Exit to normal OSD operation.
             displayClearScreen(osdDisplayPort);
             resumeRefreshAt = 0;
+            statsDisplayed = false;
+        } else {
+            // Continue "Splash", "Armed" or "Stats" screens.
+            displayHeartbeat(osdDisplayPort);
         }
-
+        
         return;
     }
 
+// The "Splash", "Armed" or "Stats" screens are not currently displayed, so resume normal OSD operation.
 #ifdef USE_CMS
     if (!displayIsGrabbed(osdDisplayPort)) {
         displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
