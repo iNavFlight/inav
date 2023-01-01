@@ -83,11 +83,22 @@
 #define SOFTSERIAL_1_RX_PIN     PA8 // LED pad
 #define SERIAL_PORT_COUNT       4
 
+#elif defined(MATEKF411_S5S6_SS2)
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN     PA0 // ST1 pad
+#define SOFTSERIAL_1_RX_PIN     PA8
+#define USE_SOFTSERIAL2
+#define SOFTSERIAL_2_TX_PIN     PB3 // S5 PAD
+#define SOFTSERIAL_2_RX_PIN     PB10 //S6 PAD
+#define SERIAL_PORT_COUNT       5
+
 #elif defined(MATEKF411_RSSI)
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_TX_PIN     PA8 // LED pad
 #define SOFTSERIAL_1_RX_PIN     PA8
 #define SERIAL_PORT_COUNT       4
+
+
 
 #else
 #define USE_SOFTSERIAL1
@@ -143,7 +154,7 @@
 #endif
 
 // *************** LED2812 ************************
-#if !defined(MATEKF411_SFTSRL2) && !defined(MATEKF411_RSSI) && !defined(MATEKF411_FD_SFTSRL)
+#if !defined(MATEKF411_SFTSRL2) && !defined(MATEKF411_RSSI) && !defined(MATEKF411_FD_SFTSRL) && !defined(MATEKF411_S5S6_SS2)
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA8
 #endif
