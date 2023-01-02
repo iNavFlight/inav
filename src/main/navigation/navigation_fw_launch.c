@@ -248,11 +248,6 @@ static void applyThrottleIdleLogic(bool forceMixerIdle)
     }
 }
 
-static inline bool isThrottleLow(void)
-{
-    return calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
-}
-
 static inline bool isLaunchMaxAltitudeReached(void)
 {
     return (navConfig()->fw.launch_max_altitude > 0) && (getEstimatedActualPosition(Z) >= navConfig()->fw.launch_max_altitude);
@@ -272,7 +267,7 @@ static inline bool isProbablyNotFlying(void)
 
 static void resetPidsIfNeeded(void) {
     // Don't use PID I-term and reset TPA filter until motors are started or until flight is detected
-    if (isProbablyNotFlying() || fwLaunch.currentState < FW_LAUNCH_STATE_MOTOR_SPINUP || (navConfig()->fw.launch_manual_throttle && isThrottleLow())) {
+    if (isProbablyNotFlying() || fwLaunch.currentState < FW_LAUNCH_STATE_MOTOR_SPINUP || (navConfig()->fw.launch_manual_throttle && throttleStickIsLow())) {
         pidResetErrorAccumulators();
         pidResetTPAFilter();
     }
@@ -292,7 +287,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
 {
     UNUSED(currentTimeUs);
 
-    if (!isThrottleLow()) {
+    if (!throttleStickIsLow()) {
         if (isThrottleIdleEnabled()) {
             return FW_LAUNCH_EVENT_SUCCESS;
         }
@@ -312,7 +307,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(timeUs_t currentTimeUs)
 {
-    if (isThrottleLow()) {
+    if (throttleStickIsLow()) {
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
@@ -330,7 +325,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_MOTOR_DELAY(tim
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t currentTimeUs)
 {
-    if (isThrottleLow()) {
+    if (throttleStickIsLow()) {
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
@@ -349,7 +344,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t 
 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeUs_t currentTimeUs)
 {
-    if (isThrottleLow()) {
+    if (throttleStickIsLow()) {
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
@@ -427,7 +422,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
 
     if (navConfig()->fw.launch_manual_throttle) {
         // reset timers when throttle is low or until flight detected and abort launch regardless of launch settings
-        if (isThrottleLow()) {
+        if (throttleStickIsLow()) {
             fwLaunch.currentStateTimeUs = currentTimeUs;
             fwLaunch.pitchAngle = 0;
             if (isRollPitchStickDeflected(navConfig()->fw.launch_abort_deadband)) {

@@ -5,7 +5,6 @@ Others add features to boards that are supported, such as adding PINIO or extra 
 Targets can be found in [src/main/target/](src/main/target/)
 
 Targets available here include:
-
 GEPRCF722
 GRAVITYF7
 IFLIGHTF7_SXEMINI
@@ -35,6 +34,13 @@ Getting a new target added to the *offical* inav distribution has certain
 On the other hand, all targets are welcome here.
 
 Please add in your target folder a readme.txt file saying what your target is for and how you've tested it.
+
+# INAV 6 Horizon Hawk feature freeze
+
+INAV 6 feature freeze will happen on 29th of January 2023. No new features for INAv 6 will be accepted after that date.
+
+# INAV Community
+
 
 * Runs on the most popular F4, F7 and H7 flight controllers
 * On Screen Display (OSD) - both character and pixel style
