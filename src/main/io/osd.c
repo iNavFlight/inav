@@ -1795,23 +1795,6 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
-    case OSD_HEADING:
-        {
-            buff[0] = SYM_HEADING;
-            if (osdIsHeadingValid()) {
-                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
-                if (h < 0) {
-                    h += 360;
-                }
-                tfp_sprintf(&buff[1], "%3d", h);
-            } else {
-                buff[1] = buff[2] = buff[3] = '-';
-            }
-            buff[4] = SYM_DEGREES;
-            buff[5] = '\0';
-            break;
-        }
-
     case OSD_GROUND_COURSE:
         {
             buff[0] = SYM_GROUND_COURSE;
@@ -2734,6 +2717,23 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
+    case OSD_HEADING:
+        {
+            buff[0] = SYM_HEADING;
+            if (osdIsHeadingValid()) {
+                int16_t h = DECIDEGREES_TO_DEGREES(osdGetHeading());
+                if (h < 0) {
+                    h += 360;
+                }
+                tfp_sprintf(&buff[1], "%3d", h);
+            } else {
+                buff[1] = buff[2] = buff[3] = '-';
+            }
+            buff[4] = SYM_DEGREES;
+            buff[5] = '\0';
+            break;
+        }
+
     case OSD_HEADING_GRAPH:
         {
             if (osdIsHeadingValid()) {
@@ -3280,73 +3280,102 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 {
     ++elementIndex;
 
-    if (elementIndex == OSD_ARTIFICIAL_HORIZON)
-        ++elementIndex;
-
-#ifndef USE_TEMPERATURE_SENSOR
-    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE)
-        elementIndex = OSD_ALTITUDE_MSL;
-#endif
-
-    if (!sensors(SENSOR_ACC)) {
-        if (elementIndex == OSD_CROSSHAIRS) {
-            elementIndex = OSD_ONTIME;
-        }
+    if (elementIndex == OSD_ARTIFICIAL_HORIZON) {   // always drawn last so skip
+        elementIndex++;
     }
 
-    if (!feature(FEATURE_VBAT)) {
+#ifndef USE_TEMPERATURE_SENSOR
+    if (elementIndex == OSD_TEMP_SENSOR_0_TEMPERATURE) {
+        elementIndex = OSD_ALTITUDE_MSL;
+    }
+#endif
+
+    if (!(feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER))) {
+        if (elementIndex == OSD_POWER) {
+            elementIndex = OSD_GPS_LON;
+        }
         if (elementIndex == OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE) {
             elementIndex = OSD_LEVEL_PIDS;
         }
+#ifdef USE_POWER_LIMITS
+        if (elementIndex == OSD_PLIMIT_REMAINING_BURST_TIME) {
+            elementIndex = OSD_GLIDESLOPE;
+        }
+#endif
     }
+
+#ifndef USE_POWER_LIMITS
+    if (elementIndex == OSD_PLIMIT_REMAINING_BURST_TIME) {
+        elementIndex = OSD_GLIDESLOPE;
+    }
+#endif
 
     if (!feature(FEATURE_CURRENT_METER)) {
         if (elementIndex == OSD_CURRENT_DRAW) {
             elementIndex = OSD_GPS_SPEED;
         }
         if (elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
+            elementIndex = OSD_BATTERY_REMAINING_PERCENT;
+        }
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
             elementIndex = OSD_TRIP_DIST;
         }
         if (elementIndex == OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH) {
             elementIndex = OSD_HOME_HEADING_ERROR;
         }
-        if (elementIndex == OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE) {
-            elementIndex = OSD_LEVEL_PIDS;
-        }
-    }
-
-    if (!feature(FEATURE_GPS)) {
-        if (elementIndex == OSD_GPS_SPEED) {
-            elementIndex = OSD_ALTITUDE;
-        }
-        if (elementIndex == OSD_GPS_LON) {
-            elementIndex = OSD_VARIO;
-        }
-        if (elementIndex == OSD_GPS_HDOP) {
-            elementIndex = OSD_MAIN_BATT_CELL_VOLTAGE;
-        }
-        if (elementIndex == OSD_TRIP_DIST) {
-            elementIndex = OSD_ATTITUDE_PITCH;
-        }
-        if (elementIndex == OSD_WIND_SPEED_HORIZONTAL) {
-            elementIndex = OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE;
-        }
-        if (elementIndex == OSD_3D_SPEED) {
-            elementIndex++;
+        if (elementIndex == OSD_CLIMB_EFFICIENCY) {
+            elementIndex = OSD_NAV_WP_MULTI_MISSION_INDEX;
         }
     }
 
     if (!STATE(ESC_SENSOR_ENABLED)) {
         if (elementIndex == OSD_ESC_RPM) {
-            elementIndex++;
+            elementIndex = OSD_AZIMUTH;
         }
     }
 
-#ifndef USE_POWER_LIMITS
-    if (elementIndex == OSD_NAV_FW_CONTROL_SMOOTHNESS) {
-        elementIndex = OSD_ITEM_COUNT;
+    if (!feature(FEATURE_GPS)) {
+        if (elementIndex == OSD_GPS_HDOP || elementIndex == OSD_TRIP_DIST || elementIndex == OSD_3D_SPEED || elementIndex == OSD_MISSION ||
+            elementIndex == OSD_AZIMUTH || elementIndex == OSD_BATTERY_REMAINING_CAPACITY || elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
+            elementIndex++;
+        }
+        if (elementIndex == OSD_HEADING_GRAPH && !sensors(SENSOR_MAG)) {
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_WH_DRAWN : OSD_BATTERY_REMAINING_PERCENT;
+        }
+        if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
+            elementIndex = OSD_ATTITUDE_PITCH;
+        }
+        if (elementIndex == OSD_GPS_SPEED) {
+            elementIndex = OSD_ALTITUDE;
+        }
+        if (elementIndex == OSD_GPS_LON) {
+            elementIndex = sensors(SENSOR_MAG) ? OSD_HEADING : OSD_VARIO;
+        }
+        if (elementIndex == OSD_MAP_NORTH) {
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE : OSD_LEVEL_PIDS;
+        }
+        if (elementIndex == OSD_PLUS_CODE) {
+            elementIndex = OSD_GFORCE;
+        }
+        if (elementIndex == OSD_GLIDESLOPE) {
+            elementIndex = OSD_AIR_MAX_SPEED;
+        }
+        if (elementIndex == OSD_GLIDE_RANGE) {
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_CLIMB_EFFICIENCY : OSD_ITEM_COUNT;
+        }
+        if (elementIndex == OSD_NAV_WP_MULTI_MISSION_INDEX) {
+            elementIndex = OSD_ITEM_COUNT;
+        }
     }
-#endif
+
+    if (!sensors(SENSOR_ACC)) {
+        if (elementIndex == OSD_CROSSHAIRS) {
+            elementIndex = OSD_ONTIME;
+        }
+        if (elementIndex == OSD_GFORCE) {
+            elementIndex = OSD_RC_SOURCE;
+        }
+    }
 
     if (elementIndex == OSD_ITEM_COUNT) {
         elementIndex = 0;
@@ -3357,18 +3386,18 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
-    // Prevent infinite loop when no elements are enabled
+    // Flag for end of loop, also prevents infinite loop when no elements are enabled
     uint8_t index = elementIndex;
     do {
         elementIndex = osdIncElementIndex(elementIndex);
-    } while(!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
     // Draw artificial horizon + tracking telemtry last
-		osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-		if (osdConfig()->telemetry>0){
-		  osdDisplayTelemetry();
-		}
+    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+    if (osdConfig()->telemetry>0){
+        osdDisplayTelemetry();
     }
+}
 
 PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .rssi_alarm = SETTING_OSD_RSSI_ALARM_DEFAULT,
