@@ -270,6 +270,7 @@ typedef enum {
     OSD_NAV_WP_MULTI_MISSION_INDEX,
     OSD_GROUND_COURSE,      // 140
     OSD_CROSS_TRACK_ERROR,
+    OSD_MULTI_FUNCTION,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -327,6 +328,12 @@ typedef enum {
     OSD_CRSF_LQ_TYPE2,
     OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
+
+typedef enum {
+    OSD_WARN_NONE   = 0,
+    OSD_WARN_1      = 1 << 0,
+    OSD_WARN_2      = 1 << 1,
+} osd_warnings_status_flags_e;
 
 typedef struct osdLayoutsConfig_s {
     // Layouts
@@ -472,6 +479,8 @@ int32_t osdGetAltitude(void);
 
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
+
+void resetOsdWarningMask(void);
 
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);

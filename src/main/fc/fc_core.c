@@ -365,7 +365,7 @@ static bool emergencyArmingCanOverrideArmingDisabled(void)
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
+    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
 static void processPilotAndFailSafeActions(float dT)
@@ -457,7 +457,7 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
-bool emergencyArmingUpdate(bool armingSwitchIsOn)
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
 {
     if (ARMING_FLAG(ARMED)) {
         return false;
@@ -484,6 +484,10 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
         toggle = false;
     } else {
         toggle = true;
+    }
+
+    if (forceArm) {
+        counter = EMERGENCY_ARMING_MIN_ARM_COUNT + 1;
     }
 
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
@@ -838,7 +842,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
-        
+
         processDelayedSave();
     }
 

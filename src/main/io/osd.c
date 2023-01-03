@@ -77,6 +77,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
 #include "fc/fc_tasks.h"
+#include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -182,6 +183,9 @@ static bool fullRedraw = false;
 
 static uint8_t armState;
 static uint8_t statsPagesCheck = 0;
+
+textAttributes_t osdGetMultiFunctionMessage(char *buff);
+static osd_warnings_status_flags_e osdWarningsMask = 0;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -1684,8 +1688,10 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
         if (!STATE(GPS_FIX)) {
-            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
-                strcpy(buff + 2, "X!");
+            hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
+            if (sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY) {
+                buff[2] = SYM_ALERT;
+                buff[3] = '\0';
             }
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
@@ -3267,6 +3273,12 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif // USE_ADC
 #endif // USE_POWER_LIMITS
+    case OSD_MULTI_FUNCTION:
+        {
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "          ");
+            elemAttr = osdGetMultiFunctionMessage(buff);
+            break;
+        }
 
     default:
         return false;
@@ -3969,7 +3981,7 @@ static void osdShowStatsPage1(void)
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
-    
+
     if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
     } else if (notify_settings_saved > 0) {
@@ -3979,7 +3991,7 @@ static void osdShowStatsPage1(void)
             displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
         }
     }
-    
+
     displayCommitTransaction(osdDisplayPort);
 }
 
@@ -4656,4 +4668,77 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
     return elemAttr;
 }
 
+void resetOsdWarningMask(void)
+{
+    osdWarningsMask = 0;
+}
+
+bool checkOsdWarning(bool condition, osd_warnings_status_flags_e warningType)
+{
+    static timeMs_t newWarningStartTime = 0;
+    const timeMs_t currentTimeMs = millis();
+
+    if (condition) {
+        if (!(osdWarningsMask & warningType)) {
+            newWarningStartTime = currentTimeMs;
+            osdWarningsMask |= warningType;
+        }
+        if (currentTimeMs - newWarningStartTime < 10000) {  // Display new warnings for 10s
+            return true;
+        }
+    } else if (osdWarningsMask & warningType) {
+        osdWarningsMask ^= warningType;
+    }
+
+    return false;
+}
+
+textAttributes_t osdGetMultiFunctionMessage(char *buff)
+{
+    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
+    uint8_t warningCount = BITCOUNT(osdWarningsMask);
+
+    multi_function_e multiFuncItem;
+    multiFunctionSelection(&multiFuncItem);
+    if (multiFuncItem) {
+        switch (multiFuncItem) {
+        case MULTI_FUNC_NONE:
+        case MULTI_FUNC_1:
+            strcpy(buff, warningCount ? "WARNINGS  " : "0 WARNINGS");
+            break;
+        case MULTI_FUNC_2:
+            strcpy(buff, "EMERG ARM ");
+            break;
+        case MULTI_FUNC_COUNT:
+            break;
+        }
+
+        return elemAttr;
+    }
+
+/* WARNINGS --------------------------------------------- */
+    const char *messages[2];
+    const char *message = NULL;
+    uint8_t messageCount = 0;
+
+    if (checkOsdWarning(!STATE(GPS_FIX), OSD_WARN_1)) {
+        hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
+        bool gpsFailed = sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY;
+        messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
+    }
+
+    if (messageCount) {
+        message = messages[OSD_ALTERNATING_CHOICES(2000, messageCount)];    // display each warning for 2s
+        strcpy(buff, message);
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        return elemAttr;
+    } else if (warningCount) {
+        buff[0] = SYM_ALERT;
+        tfp_sprintf(buff + 1, "%u", warningCount);
+        return elemAttr;
+    }
+/* WARNINGS --------------------------------------------- */
+
+    return elemAttr;
+}
 #endif // OSD
