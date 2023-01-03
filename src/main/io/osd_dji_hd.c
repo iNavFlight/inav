@@ -953,7 +953,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            tfp_sprintf(buff, "MTDPA %4d", currentBatteryProfileMutable->fwMinThrottleDownPitchAngle);
+            tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
             tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);

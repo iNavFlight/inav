@@ -291,11 +291,13 @@ typedef struct navConfig_s {
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
-        uint8_t control_smoothness;          // The amount of smoothing to apply to controls for navigation
+        uint8_t  control_smoothness;         // The amount of smoothing to apply to controls for navigation
         uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
         uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
+        uint16_t minThrottleDownPitchAngle;  // Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
-        int8_t land_dive_angle;
+        uint8_t  loiter_direction;           // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+        int8_t   land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
@@ -393,11 +395,12 @@ extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 
 typedef struct {
     fpVector3_t pos;
-    int32_t     yaw;                // centidegrees
+    int32_t     heading;            // centidegrees
+    int32_t     bearing;            // centidegrees
     int32_t     nextTurnAngle;      // centidegrees
 } navWaypointPosition_t;
 
-typedef struct navDestinationPath_s {
+typedef struct navDestinationPath_s {   // NOT USED
     uint32_t distance; // meters * 100
     int32_t bearing; // deg * 100
 } navDestinationPath_t;
@@ -569,7 +572,7 @@ float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
 geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag);
 
 /* Distance/bearing calculation */
-bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);
+bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);   // NOT USED
 uint32_t distanceToFirstWP(void);
 
 /* Failsafe-forced RTH mode */
@@ -608,6 +611,7 @@ void updateLandingStatus(void);
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
 int32_t navigationGetHeadingError(void);
+float navigationGetCrossTrackError(void);
 int32_t getCruiseHeadingAdjustment(void);
 bool isAdjustingPosition(void);
 bool isAdjustingHeading(void);
