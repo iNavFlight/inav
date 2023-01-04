@@ -38,10 +38,10 @@ static void multiFunctionApply(multi_function_e selectedItem)
     switch (selectedItem) {
     case MULTI_FUNC_NONE:
         return;
-    case MULTI_FUNC_1:
+    case MULTI_FUNC_1:  // redisplay current warnings
         resetOsdWarningMask();
         break;
-    case MULTI_FUNC_2:
+    case MULTI_FUNC_2:  // emergency ARM
         emergencyArmingUpdate(true, true);
         break;
     case MULTI_FUNC_COUNT:
@@ -59,7 +59,7 @@ bool multiFunctionSelection(multi_function_e * returnItem)
 
     if (IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)) {
         if (selectTimer) {
-            if (currentTime - selectTimer > 3000) {
+            if (currentTime - selectTimer > 3000) {     // 3s selection duration to activate selected function
                 *returnItem = selectedItem;
                 multiFunctionApply(selectedItem);
                 selectTimer = 0;
@@ -75,7 +75,7 @@ bool multiFunctionSelection(multi_function_e * returnItem)
         toggle = false;
     } else if (startTimer) {
         selectTimer = 0;
-        if (currentTime - startTimer > 2000) {
+        if (currentTime - startTimer > 2000) {  // 2s reset delay after mode deselected
             startTimer = 0;
             selectedItem = 0;
         }

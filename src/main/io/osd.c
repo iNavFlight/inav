@@ -184,7 +184,7 @@ static bool fullRedraw = false;
 static uint8_t armState;
 static uint8_t statsPagesCheck = 0;
 
-textAttributes_t osdGetMultiFunctionMessage(char *buff);
+static textAttributes_t osdGetMultiFunctionMessage(char *buff);
 static osd_warnings_status_flags_e osdWarningsMask = 0;
 
 typedef struct osdMapData_s {
@@ -3275,7 +3275,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif // USE_POWER_LIMITS
     case OSD_MULTI_FUNCTION:
         {
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, "          ");
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, "          ");     // Max 10 characters
             elemAttr = osdGetMultiFunctionMessage(buff);
             break;
         }
@@ -4673,41 +4673,42 @@ void resetOsdWarningMask(void)
     osdWarningsMask = 0;
 }
 
-bool checkOsdWarning(bool condition, osd_warnings_status_flags_e warningType)
+static bool checkOsdWarning(bool condition, osd_warnings_status_flags_e warningIndex)
 {
     static timeMs_t newWarningStartTime = 0;
     const timeMs_t currentTimeMs = millis();
 
-    if (condition) {
-        if (!(osdWarningsMask & warningType)) {
+    if (condition) {    // condition required to trigger warning
+        if (!(osdWarningsMask & warningIndex)) {
             newWarningStartTime = currentTimeMs;
-            osdWarningsMask |= warningType;
+            osdWarningsMask |= warningIndex;
         }
         if (currentTimeMs - newWarningStartTime < 10000) {  // Display new warnings for 10s
             return true;
         }
-    } else if (osdWarningsMask & warningType) {
-        osdWarningsMask ^= warningType;
+    } else if (osdWarningsMask & warningIndex) {
+        osdWarningsMask ^= warningIndex;
     }
 
     return false;
 }
 
-textAttributes_t osdGetMultiFunctionMessage(char *buff)
+static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 {
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
     uint8_t warningCount = BITCOUNT(osdWarningsMask);
 
+/* --- FUNCTIONS --- */
     multi_function_e multiFuncItem;
     multiFunctionSelection(&multiFuncItem);
     if (multiFuncItem) {
         switch (multiFuncItem) {
         case MULTI_FUNC_NONE:
         case MULTI_FUNC_1:
-            strcpy(buff, warningCount ? "WARNINGS  " : "0 WARNINGS");
+            strcpy(buff, warningCount ? "WARNINGS" : "0 WARNINGS");
             break;
         case MULTI_FUNC_2:
-            strcpy(buff, "EMERG ARM ");
+            strcpy(buff, "EMERG ARM");
             break;
         case MULTI_FUNC_COUNT:
             break;
@@ -4716,19 +4717,21 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
         return elemAttr;
     }
 
-/* WARNINGS --------------------------------------------- */
+/* --- WARNINGS --- */
     const char *messages[2];
     const char *message = NULL;
     uint8_t messageCount = 0;
-
-    if (checkOsdWarning(!STATE(GPS_FIX), OSD_WARN_1)) {
-        hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
-        bool gpsFailed = sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY;
-        messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
+#if defined(USE_GPS)
+    if (feature(FEATURE_GPS)) {
+        if (checkOsdWarning(!STATE(GPS_FIX), OSD_WARN_1)) {
+            hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
+            bool gpsFailed = sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY;
+            messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
+        }
     }
-
+#endif
     if (messageCount) {
-        message = messages[OSD_ALTERNATING_CHOICES(2000, messageCount)];    // display each warning for 2s
+        message = messages[OSD_ALTERNATING_CHOICES(2000, messageCount)];    // display each warning on 2s cycle
         strcpy(buff, message);
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         return elemAttr;
@@ -4737,7 +4740,6 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
         tfp_sprintf(buff + 1, "%u", warningCount);
         return elemAttr;
     }
-/* WARNINGS --------------------------------------------- */
 
     return elemAttr;
 }
