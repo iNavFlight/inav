@@ -144,13 +144,13 @@
 #define MAX7456_CS_PIN                  PA15
 
 /*
- * SD Card
+ * Blackbox
  */
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI2
-#define SDCARD_CS_PIN           PB12
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_SPI_BUS          BUS_SPI2
+#define M25P16_CS_PIN           PB12
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 /*
  * LED Strip
