@@ -164,12 +164,17 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 0             | Is WP                         | boolean `0`/`1` |
 | 1             | Current Waypoint Index        | Current waypoint leg. Indexed from `1`. To verify WP is in progress, use `Is WP` |
 | 2             | Current Waypoint Action       | Action active in current leg. See ACTIVE_WAYPOINT_ACTION table |
-| 3             | Distance to next Waypoint     | Distance to next WP in metres |
-| 4             | Distance from Waypoint        | Distance from the last WP in metres |
-| 5             | User Action 1                 | User Action 1 is active on this waypoint leg [boolean `0`/`1`] |
-| 6             | User Action 2                 | User Action 2 is active on this waypoint leg [boolean `0`/`1`] |
-| 7             | User Action 3                 | User Action 3 is active on this waypoint leg [boolean `0`/`1`] |
-| 8             | User Action 4                 | User Action 4 is active on this waypoint leg [boolean `0`/`1`] |
+| 3             | Next Waypoint Action          | Action active in next leg. See ACTIVE_WAYPOINT_ACTION table |
+| 4             | Distance to next Waypoint     | Distance to next WP in metres |
+| 5             | Distance from Waypoint        | Distance from the last WP in metres |
+| 6             | User Action 1                 | User Action 1 is active on this waypoint leg [boolean `0`/`1`] |
+| 7             | User Action 2                 | User Action 2 is active on this waypoint leg [boolean `0`/`1`] |
+| 8             | User Action 3                 | User Action 3 is active on this waypoint leg [boolean `0`/`1`] |
+| 9             | User Action 4                 | User Action 4 is active on this waypoint leg [boolean `0`/`1`] |
+| 10            | Next Waypoint User Action 1   | User Action 1 is active on the next waypoint leg [boolean `0`/`1`] |
+| 11            | Next Waypoint User Action 2   | User Action 2 is active on the next waypoint leg [boolean `0`/`1`] |
+| 12            | Next Waypoint User Action 3   | User Action 3 is active on the next waypoint leg [boolean `0`/`1`] |
+| 13            | Next Waypoint User Action 4   | User Action 4 is active on the next waypoint leg [boolean `0`/`1`] |
 
 
 #### ACTIVE_WAYPOINT_ACTION
