@@ -1807,7 +1807,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_IN_PR
     UNUSED(previousState);
 
     // Reset target position if too far away for some reason, e.g. GPS recovered since start landing.
-    if (posControl.flags.estPosStatus >= EST_USABLE
+    if (posControl.flags.estPosStatus >= EST_USABLE) {
         float targetPosLimit = STATE(MULTIROTOR) ? 2000.0f : navConfig()->fw.loiter_radius * 2.0f;
         if (calculateDistanceToDestination(&posControl.desiredState.pos) > targetPosLimit) {
             setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
@@ -3628,9 +3628,8 @@ static bool isWaypointMissionValid(void)
     return posControl.waypointListValid && (posControl.waypointCount > 0);
 }
 
-static bool isManualEmergencyLandingActivated(void)
+static void checkManualEmergencyLandingControl(void)
 {
-    // Emergency landing initiated manually by toggling Poshold 4 times within 3 seconds
     static timeMs_t timeout = 0;
     static int8_t counter = 0;
     static bool toggle;
@@ -3644,8 +3643,8 @@ static bool isManualEmergencyLandingActivated(void)
         }
     }
     if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD)) {
-        if (!timeout) {
-            timeout = currentTimeMs + 3000;
+        if (!timeout && toggle) {
+            timeout = currentTimeMs + 4000;
         }
         counter += toggle;
         toggle = false;
@@ -3653,7 +3652,15 @@ static bool isManualEmergencyLandingActivated(void)
         toggle = true;
     }
 
-    return counter >= 4;
+    // Emergency landing toggled ON or OFF after 5 cycles of Poshold mode @ 1Hz minimum rate
+    if (counter >= 5) {
+        counter = 0;
+        posControl.flags.manualEmergLandActive = !posControl.flags.manualEmergLandActive;
+
+        if (!posControl.flags.manualEmergLandActive) {
+            navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
+        }
+    }
 }
 
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
@@ -3680,13 +3687,9 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             posControl.flags.rthTrackbackActive = isExecutingRTH;
         }
 
-        // Emergency landing initiated manually. Cancelled when throttle high.
-        if (isManualEmergencyLandingActivated()) {
-            posControl.flags.manualEmergLandActive = true;
-        } else if (posControl.flags.manualEmergLandActive && checkStickPosition(THR_HI)) {
-            posControl.flags.manualEmergLandActive = false;
-            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
-        }
+        /* Emergency landing controlled manually by rapid switching of Poshold mode.
+         * Landing toggled ON or OFF for each Poshold activation sequence */
+        checkManualEmergencyLandingControl();
 
         /* Emergency landing triggered by failsafe Landing or manually initiated */
         if (posControl.flags.forcedEmergLandingActivated || posControl.flags.manualEmergLandActive) {
