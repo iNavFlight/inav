@@ -321,7 +321,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
         posEstimator.baro.lastUpdateTime = currentTimeUs;
 
         if (baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
-            pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
+            posEstimator.baro.alt = pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
         }
     }
     else {
