@@ -31,6 +31,7 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page);
 #else
 #define getBfCharacter(x, page) (x)
 #define isBfCompatibleVideoSystem(osdConfigPtr) (false)
+
 #endif
 
 #endif
