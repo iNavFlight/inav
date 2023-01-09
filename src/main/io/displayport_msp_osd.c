@@ -55,8 +55,6 @@ FILE_COMPILE_FOR_SPEED
 
 #include "displayport_msp_bf_compat.h"
 
-#include "programming/global_variables.h"
-
 #define FONT_VERSION 3
 
 typedef enum {          // defines are from hdzero code
