@@ -330,9 +330,10 @@ typedef enum {
 } osd_crsf_lq_format_e;
 
 typedef enum {
-    OSD_WARN_NONE   = 0,
     OSD_WARN_1      = 1 << 0,
     OSD_WARN_2      = 1 << 1,
+    OSD_WARN_3      = 1 << 2,
+    OSD_WARN_4      = 1 << 3,
 } osd_warnings_status_flags_e;
 
 typedef struct osdLayoutsConfig_s {
@@ -480,7 +481,7 @@ int32_t osdGetAltitude(void);
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
 
-void resetOsdWarningMask(void);
+void resetOsdWarningFlags(void);
 
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);

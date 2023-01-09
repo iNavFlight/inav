@@ -487,7 +487,7 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
     }
 
     if (forceArm) {
-        counter = EMERGENCY_ARMING_MIN_ARM_COUNT + 1;
+        counter = EMERGENCY_ARMING_MIN_ARM_COUNT;
     }
 
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;

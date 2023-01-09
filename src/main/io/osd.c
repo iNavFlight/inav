@@ -185,7 +185,7 @@ static uint8_t armState;
 static uint8_t statsPagesCheck = 0;
 
 static textAttributes_t osdGetMultiFunctionMessage(char *buff);
-static osd_warnings_status_flags_e osdWarningsMask = 0;
+static osd_warnings_status_flags_e osdWarningsFlags = 0;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -3373,10 +3373,10 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
             elementIndex = OSD_AIR_MAX_SPEED;
         }
         if (elementIndex == OSD_GLIDE_RANGE) {
-            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_CLIMB_EFFICIENCY : OSD_ITEM_COUNT;
+            elementIndex = feature(FEATURE_CURRENT_METER) ? OSD_CLIMB_EFFICIENCY : OSD_MULTI_FUNCTION;
         }
         if (elementIndex == OSD_NAV_WP_MULTI_MISSION_INDEX) {
-            elementIndex = OSD_ITEM_COUNT;
+            elementIndex = OSD_MULTI_FUNCTION;
         }
     }
 
@@ -3651,6 +3651,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_1] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
+
+    osdLayoutsConfig->item_pos[0][OSD_MULTI_FUNCTION] = OSD_POS(1, 4);
 
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_0] = OSD_POS(2, 7);
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_1] = OSD_POS(2, 8);
@@ -4640,12 +4642,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             }
         }
 
-#ifdef USE_DEV_TOOLS
-        if (systemConfig()->groundTestMode) {
-            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_GRD_TEST_MODE);
-        }
-#endif
-
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
             if (message == failsafeInfoMessage) {
@@ -4668,26 +4664,32 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
     return elemAttr;
 }
 
-void resetOsdWarningMask(void)
+void resetOsdWarningFlags(void)
 {
-    osdWarningsMask = 0;
+    osdWarningsFlags = 0;
 }
 
-static bool checkOsdWarning(bool condition, osd_warnings_status_flags_e warningIndex)
+static bool checkOsdWarning(bool condition, osd_warnings_status_flags_e warningFlag, uint8_t *warningsCount)
 {
     static timeMs_t newWarningStartTime = 0;
     const timeMs_t currentTimeMs = millis();
 
     if (condition) {    // condition required to trigger warning
-        if (!(osdWarningsMask & warningIndex)) {
+        if (!(osdWarningsFlags & warningFlag)) {
             newWarningStartTime = currentTimeMs;
-            osdWarningsMask |= warningIndex;
+            osdWarningsFlags |= warningFlag;
         }
-        if (currentTimeMs - newWarningStartTime < 10000) {  // Display new warnings for 10s
+#ifdef USE_DEV_TOOLS
+        if (systemConfig()->groundTestMode) {
             return true;
         }
-    } else if (osdWarningsMask & warningIndex) {
-        osdWarningsMask ^= warningIndex;
+#endif
+        if (currentTimeMs - newWarningStartTime < 10000) {      // Display new warnings for 10s
+            return true;
+        }
+        *warningsCount += 1;
+    } else if (osdWarningsFlags & warningFlag) {
+        osdWarningsFlags &= ~warningFlag;
     }
 
     return false;
@@ -4695,17 +4697,19 @@ static bool checkOsdWarning(bool condition, osd_warnings_status_flags_e warningI
 
 static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 {
-    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
-    uint8_t warningCount = BITCOUNT(osdWarningsMask);
+    /* Message length limit 10 char max */
 
-/* --- FUNCTIONS --- */
+    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
+    static uint8_t osdWarningsCount;
+
+    /* --- FUNCTIONS --- */
     multi_function_e multiFuncItem;
     multiFunctionSelection(&multiFuncItem);
     if (multiFuncItem) {
         switch (multiFuncItem) {
         case MULTI_FUNC_NONE:
         case MULTI_FUNC_1:
-            strcpy(buff, warningCount ? "WARNINGS" : "0 WARNINGS");
+            strcpy(buff, osdWarningsCount ? "WARNINGS" : "0 WARNINGS");
             break;
         case MULTI_FUNC_2:
             strcpy(buff, "EMERG ARM");
@@ -4717,17 +4721,34 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         return elemAttr;
     }
 
-/* --- WARNINGS --- */
-    const char *messages[2];
+    /* --- WARNINGS --- */
+    const char *messages[4];
     const char *message = NULL;
     uint8_t messageCount = 0;
+    bool warningCondition = false;
+    osdWarningsCount = 0;
 #if defined(USE_GPS)
+    // GPS Fix and Failure
     if (feature(FEATURE_GPS)) {
-        if (checkOsdWarning(!STATE(GPS_FIX), OSD_WARN_1)) {
-            hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
-            bool gpsFailed = sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY;
+        if (checkOsdWarning(!STATE(GPS_FIX), OSD_WARN_1, &osdWarningsCount)) {
+            bool gpsFailed = getHwGPSStatus() == HW_SENSOR_UNAVAILABLE;
             messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
         }
+    }
+    // RTH Sanity (warning if RTH heads 200m further away from home than closest point)
+    warningCondition = NAV_Status.state == MW_NAV_STATE_RTH_ENROUTE && !posControl.flags.rthTrackbackActive &&
+                       (posControl.homeDistance - posControl.rthSanityChecker.minimalDistanceToHome) > 20000;
+    if (checkOsdWarning(warningCondition, OSD_WARN_2, &osdWarningsCount)) {
+        messages[messageCount++] = "RTH SANITY";
+    }
+    // Altitude sanity (warning if significant mismatch between estimated and GPS altitude)
+    if (checkOsdWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, OSD_WARN_3, &osdWarningsCount)) {
+        messages[messageCount++] = "ALT SANITY";
+    }
+#endif
+#ifdef USE_DEV_TOOLS
+    if (checkOsdWarning(systemConfig()->groundTestMode, OSD_WARN_4, &osdWarningsCount)) {
+        messages[messageCount++] = "GRD TEST";
     }
 #endif
     if (messageCount) {
@@ -4735,9 +4756,9 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         strcpy(buff, message);
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         return elemAttr;
-    } else if (warningCount) {
+    } else if (osdWarningsCount) {
         buff[0] = SYM_ALERT;
-        tfp_sprintf(buff + 1, "%u", warningCount);
+        tfp_sprintf(buff + 1, "%u", osdWarningsCount);
         return elemAttr;
     }
 

@@ -2067,7 +2067,7 @@ void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelVali
 /*-----------------------------------------------------------
  * Processes an update to Z-position and velocity
  *-----------------------------------------------------------*/
-void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus)
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError)
 {
     posControl.actualState.abs.pos.z = newAltitude;
     posControl.actualState.abs.vel.z = newVelocity;
@@ -2090,11 +2090,14 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
         posControl.flags.estAltStatus = EST_TRUSTED;
         posControl.flags.verticalPositionDataNew = true;
         posControl.lastValidAltitudeTimeMs = millis();
+        /* flag set if mismatch between relative GPS and estimated altitude exceeds 20m */
+        posControl.flags.gpsCfEstimatedAltitudeMismatch = fabsf(gpsCfEstimatedAltitudeError) > 2000;
     }
     else {
         posControl.flags.estAltStatus = EST_NONE;
         posControl.flags.estAglStatus = EST_NONE;
         posControl.flags.verticalPositionDataNew = false;
+        posControl.flags.gpsCfEstimatedAltitudeMismatch = false;
     }
 
     if (ARMING_FLAG(ARMED)) {

@@ -39,7 +39,7 @@ static void multiFunctionApply(multi_function_e selectedItem)
     case MULTI_FUNC_NONE:
         return;
     case MULTI_FUNC_1:  // redisplay current warnings
-        resetOsdWarningMask();
+        resetOsdWarningFlags();
         break;
     case MULTI_FUNC_2:  // emergency ARM
         emergencyArmingUpdate(true, true);
