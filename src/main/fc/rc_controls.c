@@ -210,7 +210,6 @@ void processRcStickPositions(bool isThrottleLow)
 
     // perform actions
     bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
-    emergencyArmingUpdate(armingSwitchIsActive);
 
     if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
         // Auto arm on throttle when using fixedwing and motorstop
@@ -224,6 +223,7 @@ void processRcStickPositions(bool isThrottleLow)
             rcDisarmTimeMs = currentTimeMs;
             tryArm();
         } else {
+            emergencyArmingUpdate(armingSwitchIsActive);
             // Disarming via ARM BOX
             // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
             // and can't afford to risk disarming in the air

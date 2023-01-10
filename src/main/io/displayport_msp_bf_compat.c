@@ -242,34 +242,36 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_AIR:
         return BF_SYM_AIR;
+*/
 
     case SYM_FTS:
-        return BF_SYM_FTS;
-
+        return BF_SYM_FTPS;
+/*
     case SYM_100FTM:
         return BF_SYM_100FTM;
-
+*/
     case SYM_MS:
-        return BF_SYM_MS;
+        return BF_SYM_MPS;
 
     case SYM_KMH:
-        return BF_SYM_KMH;
-*/
+        return BF_SYM_KPH;
+
     case SYM_MPH:
         return BF_SYM_MPH;
 /*
     case SYM_KT:
-        return BF_SYM_KT;
+        return BF_SYM_KT
 
     case SYM_MAH_MI_0:
         return BF_SYM_MAH_MI_0;
 
     case SYM_MAH_MI_1:
         return BF_SYM_MAH_MI_1;
-
+*/
     case SYM_THR:
         return BF_SYM_THR;
 
+/*
     case SYM_TEMP_F:
         return BF_SYM_TEMP_F;
 
@@ -481,49 +483,49 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
         return BF_SYM_ARROW_NORTH;
 
     case SYM_ARROW_2:
-        return BF_SYM_ARROW_2;
+        return BF_SYM_ARROW_8;
 
     case SYM_ARROW_3:
-        return BF_SYM_ARROW_3;
+        return BF_SYM_ARROW_7;
 
     case SYM_ARROW_4:
-        return BF_SYM_ARROW_4;
+        return BF_SYM_ARROW_6;
 
     case SYM_ARROW_RIGHT:
         return BF_SYM_ARROW_EAST;
 
     case SYM_ARROW_6:
-        return BF_SYM_ARROW_6;
+        return BF_SYM_ARROW_4;
 
     case SYM_ARROW_7:
-        return BF_SYM_ARROW_7;
+        return BF_SYM_ARROW_3;
 
     case SYM_ARROW_8:
-        return BF_SYM_ARROW_8;
+        return BF_SYM_ARROW_2;
 
     case SYM_ARROW_DOWN:
         return BF_SYM_ARROW_SOUTH;
 
     case SYM_ARROW_10:
-        return BF_SYM_ARROW_10;
+        return BF_SYM_ARROW_16;
 
     case SYM_ARROW_11:
-        return BF_SYM_ARROW_11;
+        return BF_SYM_ARROW_15;
 
     case SYM_ARROW_12:
-        return BF_SYM_ARROW_12;
+        return BF_SYM_ARROW_14;
 
     case SYM_ARROW_LEFT:
         return BF_SYM_ARROW_WEST;
 
     case SYM_ARROW_14:
-        return BF_SYM_ARROW_14;
+        return BF_SYM_ARROW_12;
 
     case SYM_ARROW_15:
-        return BF_SYM_ARROW_15;
+        return BF_SYM_ARROW_11;
 
     case SYM_ARROW_16:
-        return BF_SYM_ARROW_16;
+        return BF_SYM_ARROW_10;
 
     case SYM_AH_H_START:
         return BF_SYM_AH_BAR9_0;
@@ -567,10 +569,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_VARIO_DOWN_2A:
         return BF_SYM_VARIO_DOWN_2A;
-
+*/
     case SYM_ALT:
-        return BF_SYM_ALT;
-
+        return BF_SYM_ALTITUDE;
+/*
     case SYM_HUD_SIGNAL_0:
         return BF_SYM_HUD_SIGNAL_0;
 

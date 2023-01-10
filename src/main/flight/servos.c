@@ -556,7 +556,7 @@ void processContinuousServoAutotrim(const float dT)
         }
     } else if (trimState == AUTOTRIM_COLLECTING) {
         // We have disarmed, save midpoints to EEPROM
-        writeEEPROM();
+        saveConfigAndNotify();
         trimState = AUTOTRIM_IDLE;
     }
 
