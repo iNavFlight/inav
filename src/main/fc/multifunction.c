@@ -44,44 +44,46 @@ static void multiFunctionApply(multi_function_e selectedItem)
     case MULTI_FUNC_2:  // emergency ARM
         emergencyArmingUpdate(true, true);
         break;
-    case MULTI_FUNC_COUNT:
+    case MULTI_FUNC_END:
         break;
     }
 }
 
-bool multiFunctionSelection(multi_function_e * returnItem)
+multi_function_e multiFunctionSelection(void)
 {
     static timeMs_t startTimer;
     static timeMs_t selectTimer;
-    static int8_t selectedItem = 0;
+    static multi_function_e selectedItem = MULTI_FUNC_NONE;
     static bool toggle = true;
     const timeMs_t currentTime = millis();
 
     if (IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)) {
         if (selectTimer) {
             if (currentTime - selectTimer > 3000) {     // 3s selection duration to activate selected function
-                *returnItem = selectedItem;
                 multiFunctionApply(selectedItem);
                 selectTimer = 0;
-                selectedItem = 0;
-                return true;
+                selectedItem = MULTI_FUNC_NONE;
             }
         } else if (toggle) {
-            selectedItem++;
-            selectedItem = selectedItem == MULTI_FUNC_COUNT ? 1 : selectedItem;
-            selectTimer = currentTime;
+            if (selectedItem == MULTI_FUNC_NONE) {
+                selectedItem++;
+            } else {
+                selectTimer = currentTime;
+            }
         }
         startTimer = currentTime;
         toggle = false;
     } else if (startTimer) {
+        if (!toggle && selectTimer) {
+            selectedItem = selectedItem == MULTI_FUNC_END - 1 ? MULTI_FUNC_1 : selectedItem + 1;
+        }
         selectTimer = 0;
-        if (currentTime - startTimer > 2000) {  // 2s reset delay after mode deselected
+        if (currentTime - startTimer > 2000) {      // 2s reset delay after mode deselected
             startTimer = 0;
-            selectedItem = 0;
+            selectedItem = MULTI_FUNC_NONE;
         }
         toggle = true;
     }
 
-    *returnItem = selectedItem;
-    return false;
+    return selectedItem;
 }

@@ -28,7 +28,7 @@ typedef enum {
     MULTI_FUNC_NONE,
     MULTI_FUNC_1,
     MULTI_FUNC_2,
-    MULTI_FUNC_COUNT,
+    MULTI_FUNC_END,
 } multi_function_e;
 
-bool multiFunctionSelection(multi_function_e * returnItem);
+multi_function_e multiFunctionSelection(void);

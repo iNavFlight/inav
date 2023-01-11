@@ -329,13 +329,6 @@ typedef enum {
     OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
 
-typedef enum {
-    OSD_WARN_1      = 1 << 0,
-    OSD_WARN_2      = 1 << 1,
-    OSD_WARN_3      = 1 << 2,
-    OSD_WARN_4      = 1 << 3,
-} osd_warnings_status_flags_e;
-
 typedef struct osdLayoutsConfig_s {
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
@@ -481,14 +474,14 @@ int32_t osdGetAltitude(void);
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
 
-void resetOsdWarningFlags(void);
-
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
+
+void resetOsdWarningFlags(void);
 
 /**
  * @brief Get the OSD system message
