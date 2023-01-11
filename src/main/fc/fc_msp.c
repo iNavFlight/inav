@@ -3313,8 +3313,10 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResult_e *ret)
 {
+#ifdef USE_SIMULATOR
     uint8_t tmp_u8;
     const unsigned int dataSize = sbufBytesRemaining(src);
+#endif
 
     switch (cmdMSP) {
 
@@ -3391,7 +3393,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
-        
+
         // Check the MSP version of simulator
 		if (tmp_u8 != SIMULATOR_MSP_VERSION) {
             break;
@@ -3420,7 +3422,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			if (!ARMING_FLAG(SIMULATOR_MODE)) { // Just once
 #ifdef USE_BARO
 				baroStartCalibration();
-#endif			
+#endif
 
 #ifdef USE_MAG
 				if (compassConfig()->mag_hardware != MAG_NONE) {
@@ -3479,7 +3481,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				} else {
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
-                
+
                 // Get the acceleration in 1G units
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
@@ -3487,7 +3489,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				acc.accVibeSq[X] = 0.0f;
 				acc.accVibeSq[Y] = 0.0f;
 				acc.accVibeSq[Z] = 0.0f;
-                
+
                 // Get the angular velocity in DPS
 				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
@@ -3515,7 +3517,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 }
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-                    simulatorData.airSpeed = sbufReadU16(src);   
+                    simulatorData.airSpeed = sbufReadU16(src);
 			    }
 			} else {
 				DISABLE_STATE(GPS_FIX);
@@ -3549,7 +3551,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
         *ret = MSP_RESULT_ACK;
         break;
-#endif
+#endif  // simulator
 
     default:
         // Not handled

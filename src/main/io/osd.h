@@ -29,11 +29,13 @@
 #endif
 #define OSD_LAYOUT_COUNT (OSD_ALTERNATE_LAYOUT_COUNT + 1)
 
-// 00vb yyyy yyxx xxxx
-// (visible)(blink)(yCoord)(xCoord)
+// 0ivb yyyy yyxx xxxx                          CR22x
+// (infocycle)(visible)(blink)(yCoord)(xCoord)  CR22x
 
 #define OSD_VISIBLE_FLAG    0x2000
+#define OSD_INFOCYCLE_FLAG  0x4000  // CR22x   changed for HD system bit changes 270222
 #define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
+#define OSD_INFOCYCLE(x)    ((x) & OSD_INFOCYCLE_FLAG)  // CR22
 
 #define OSD_POS(x,y)        (((x) & 0x3F) | (((y) & 0x3F) << 6))
 #define OSD_X(x)            ((x) & 0x3F)
@@ -104,8 +106,9 @@
 #define OSD_MSG_LANDING             "LANDING"
 #define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
 #define OSD_MSG_HOVERING            "HOVERING"
-#define OSD_MSG_LANDED              "LANDED"
+#define OSD_MSG_LANDED              "! LANDED !"
 #define OSD_MSG_PREPARING_LAND      "PREPARING TO LAND"
+// #define OSD_MSG_NAV_SENSOR_LOSS     "NAV FAIL -> SENSOR LOSS"   // CR44
 #define OSD_MSG_AUTOLAUNCH          "AUTOLAUNCH"
 #define OSD_MSG_AUTOLAUNCH_MANUAL   "AUTOLAUNCH (MANUAL)"
 #define OSD_MSG_ALTITUDE_HOLD       "(ALTITUDE HOLD)"
@@ -115,12 +118,9 @@
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_NAV_SOARING         "(SOARING)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
+#define OSD_MSG_COMPASS_ERROR       "COMPASS ERROR !"     // CR27
 #define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
 #define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
-
-#ifdef USE_DEV_TOOLS
-#define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
-#endif
 
 #if defined(USE_SAFE_HOME)
 #define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
@@ -251,7 +251,7 @@ typedef enum {
     OSD_RANGEFINDER,
     OSD_PLIMIT_REMAINING_BURST_TIME,
     OSD_PLIMIT_ACTIVE_CURRENT_LIMIT,
-    OSD_PLIMIT_ACTIVE_POWER_LIMIT,
+    OSD_PLIMIT_ACTIVE_POWER_LIMIT,  // limit of CMS entries
     OSD_GLIDESLOPE,
     OSD_GPS_MAX_SPEED,
     OSD_3D_MAX_SPEED,
@@ -268,8 +268,10 @@ typedef enum {
     OSD_GLIDE_RANGE,
     OSD_CLIMB_EFFICIENCY,
     OSD_NAV_WP_MULTI_MISSION_INDEX,
-    OSD_GROUND_COURSE,      // 140
+    OSD_GROUND_COURSE, // 140
     OSD_CROSS_TRACK_ERROR,
+    OSD_MULTI_FUNCTION,     // 142  CR88
+    OSD_INFO_CYCLE, // 143  CR22
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -399,9 +401,9 @@ typedef struct osdConfig_s {
     uint8_t right_sidebar_scroll; // from osd_sidebar_scroll_e
     uint8_t sidebar_scroll_arrows;
 
-    uint8_t units; // from osd_unit_e
-    uint8_t stats_energy_unit; // from osd_stats_energy_unit_e
-    uint8_t stats_min_voltage_unit; // from osd_stats_min_voltage_unit_e
+    uint8_t units;                       // from osd_unit_e
+    uint8_t stats_energy_unit;           // from osd_stats_energy_unit_e
+    uint8_t stats_min_voltage_unit;      // from osd_stats_min_voltage_unit_e
     uint8_t stats_page_auto_swap_time;   // stats page auto swap interval time (seconds)
 
 #ifdef USE_WIND_ESTIMATOR
@@ -430,6 +432,7 @@ typedef struct osdConfig_s {
     uint8_t telemetry; 				            // use telemetry on displayed pixel line 0
     uint8_t esc_rpm_precision;                  // Number of characters used for the RPM numbers.
     uint16_t system_msg_display_time;           // system message display time for multiple messages (ms)
+    uint16_t infocycle_interval_time;           // Info Cycle field item display time interval (ms)   CR22
     uint8_t mAh_used_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
     uint8_t ahi_pitch_interval;                 // redraws AHI at set pitch interval (Not pixel OSD)
     char    osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 0.
@@ -479,6 +482,8 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
+
+void resetOsdWarningFlags(void);    // CR88
 
 /**
  * @brief Get the OSD system message

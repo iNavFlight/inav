@@ -736,14 +736,11 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     estimationPredict(&ctx);
 
     /* Correction stage: Z */
-    const bool estZCorrectOk =
-        estimationCalculateCorrection_Z(&ctx);
+    const bool estZCorrectOk = estimationCalculateCorrection_Z(&ctx);
 
     /* Correction stage: XY: GPS, FLOW */
     // FIXME: Handle transition from FLOW to GPS and back - seamlessly fly indoor/outdoor
-    const bool estXYCorrectOk =
-        estimationCalculateCorrection_XY_GPS(&ctx) ||
-        estimationCalculateCorrection_XY_FLOW(&ctx);
+    const bool estXYCorrectOk = estimationCalculateCorrection_XY_GPS(&ctx) || estimationCalculateCorrection_XY_FLOW(&ctx);
 
     // If we can't apply correction or accuracy is off the charts - decay velocity to zero
     if (!estXYCorrectOk || ctx.newEPH > positionEstimationConfig()->max_eph_epv) {
@@ -810,11 +807,12 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 
         /* Publish altitude update and set altitude validity */
         if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
+            const float gpsCfEstimatedAltitudeError = STATE(GPS_FIX) ? posEstimator.gps.pos.z - posEstimator.est.pos.z : 0; // CR88
             navigationEstimateStatus_e aglStatus = (posEstimator.est.aglQual == SURFACE_QUAL_LOW) ? EST_USABLE : EST_TRUSTED;
-            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.z, posEstimator.est.vel.z, posEstimator.est.aglAlt, posEstimator.est.aglVel, aglStatus);
+            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.z, posEstimator.est.vel.z, posEstimator.est.aglAlt, posEstimator.est.aglVel, aglStatus, gpsCfEstimatedAltitudeError);  // CR88
         }
         else {
-            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE);
+            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE, 0);  // CR88
         }
 
         //Update Blackbox states

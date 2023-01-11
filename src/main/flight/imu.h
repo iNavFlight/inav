@@ -44,6 +44,8 @@ extern fpQuaternion_t orientation;
 extern attitudeEulerAngles_t attitude;
 extern float rMat[3][3];
 
+extern uint16_t compassGpsCogError;          // heading difference between compass and GPS (degrees)    // CR27
+
 typedef struct imuConfig_s {
     uint16_t dcm_kp_acc;                    // DCM filter proportional gain ( x 10000) for accelerometer
     uint16_t dcm_ki_acc;                    // DCM filter integral gain ( x 10000) for accelerometer
@@ -81,6 +83,7 @@ void imuUpdateAccelerometer(void);
 float calculateCosTiltAngle(void);
 bool isImuReady(void);
 bool isImuHeadingValid(void);
+bool compassHeadingGPSCogErrorCheck(void);   // CR27
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);

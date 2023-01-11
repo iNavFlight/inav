@@ -42,7 +42,7 @@
 #define USE_SERIALRX_FPORT
 #define USE_SERIALRX_FPORT2
 
-//#define USE_DEV_TOOLS           // tools for dev use only. Undefine for release builds.
+#define USE_DEV_TOOLS           // functions for dev use only. Undefine for release builds.
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
@@ -179,7 +179,7 @@
 //Enable DST calculations
 #define RTC_AUTOMATIC_DST
 // Wind estimator
-#define USE_WIND_ESTIMATOR
+#define USE_WIND_ESTIMATOR   // CR46 removed to free up memory with Flywood F411 mainly, but don't use anyway
 
 #define USE_SIMULATOR
 #define USE_PITOT_VIRTUAL

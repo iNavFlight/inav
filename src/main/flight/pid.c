@@ -283,6 +283,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .navVelXyDtermAttenuationEnd = SETTING_NAV_MC_VEL_XY_DTERM_ATTENUATION_END_DEFAULT,
         .iterm_relax_cutoff = SETTING_MC_ITERM_RELAX_CUTOFF_DEFAULT,
         .iterm_relax = SETTING_MC_ITERM_RELAX_DEFAULT,
+        .mc_vel_xy_accel_tweak = SETTING_NAV_MC_VEL_XY_ACCEL_TWEAK_DEFAULT,      // CR47
 
 #ifdef USE_D_BOOST
         .dBoostMin = SETTING_D_BOOST_MIN_DEFAULT,

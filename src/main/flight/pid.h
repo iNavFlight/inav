@@ -106,11 +106,11 @@ typedef struct pidProfile_s {
     pidBank_t bank_mc;
 
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf_hz;                  
-    
+    uint16_t dterm_lpf_hz;
+
     uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf2_hz;                 
-    
+    uint16_t dterm_lpf2_hz;
+
     uint8_t yaw_lpf_hz;
 
     uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
@@ -139,6 +139,8 @@ typedef struct pidProfile_s {
     uint8_t navVelXyDtermAttenuationEnd;    // VEL_XY dynamic Dterm scale: Dterm will be fully attenuated at this percent of max velocity
     uint8_t iterm_relax_cutoff;             // This cutoff frequency specifies a low pass filter which predicts average response of the quad to setpoint
     uint8_t iterm_relax;                    // Enable iterm suppression during stick input
+
+    uint8_t mc_vel_xy_accel_tweak;          // CR47
 
 #ifdef USE_D_BOOST
     float dBoostMin;

@@ -34,7 +34,6 @@ typedef enum disarmReason_e {
     DISARM_REASON_COUNT
 } disarmReason_t;
 
-
 void handleInflightCalibrationStickPosition(void);
 
 void disarm(disarmReason_t disarmReason);
@@ -42,7 +41,7 @@ timeUs_t getLastDisarmTimeUs(void);
 void tryArm(void);
 disarmReason_t getDisarmReason(void);
 
-bool emergencyArmingUpdate(bool armingSwitchIsOn);
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm);  // CR88
 
 bool areSensorsCalibrating(void);
 float getFlightTime(void);

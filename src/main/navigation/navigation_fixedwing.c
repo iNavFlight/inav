@@ -169,6 +169,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // Reconstrain pitch angle ( >0 - climb, <0 - dive)
     targetPitchAngle = constrainf(targetPitchAngle, minDiveDeciDeg, maxClimbDeciDeg);
     posControl.rcAdjustment[PITCH] = targetPitchAngle;
+    // DEBUG_SET(DEBUG_ALWAYS, 5, targetPitchAngle);
 }
 
 void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
@@ -267,6 +268,11 @@ static int8_t loiterDirection(void) {
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
+    // CR80
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+        return;
+    }
+    // CR80
     float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
     float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
@@ -299,7 +305,7 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
         float turnStartFactor;
         if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_ON) {     // passes through WP
             turnStartFactor = waypointTurnAngle / 6000.0f;
-        } else {    // // cut inside turn missing WP
+        } else {    // cut inside turn missing WP
             turnStartFactor = constrainf(tan_approx(CENTIDEGREES_TO_RADIANS(waypointTurnAngle / 2.0f)), 1.0f, 2.0f);
         }
         // velXY provides additional turn initiation distance based on an assumed 1 second delayed turn response time
@@ -319,6 +325,9 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             }
             posControl.flags.wpTurnSmoothingActive = true;
         }
+        // DEBUG_SET(DEBUG_ALWAYS, 1, loiterCenterPos.x);
+        // DEBUG_SET(DEBUG_ALWAYS, 2, loiterTurnDirection);
+        // DEBUG_SET(DEBUG_ALWAYS, 0, waypointTurnAngle);
     }
 
     // We are closing in on a waypoint, calculate circular loiter if required
@@ -334,9 +343,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     }
 
     // Calculate virtual waypoint
-    virtualDesiredPosition.x = navGetCurrentActualPositionAndVelocity()->pos.x + posErrorX * (trackingDistance / distanceToActualTarget);
-    virtualDesiredPosition.y = navGetCurrentActualPositionAndVelocity()->pos.y + posErrorY * (trackingDistance / distanceToActualTarget);
-
+    // CR72
+    virtualDesiredPosition.x = navGetCurrentActualPositionAndVelocity()->pos.x + posErrorX;
+    virtualDesiredPosition.y = navGetCurrentActualPositionAndVelocity()->pos.y + posErrorY;
+    // CR72
     // Shift position according to pilot's ROLL input (up to max_manual_speed velocity)
     if (posControl.flags.isAdjustingPosition) {
         int16_t rcRollAdjustment = applyDeadbandRescaled(rcCommand[ROLL], rcControlsConfig()->pos_hold_deadband, -500, 500);
@@ -345,6 +355,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             float rcShiftY = rcRollAdjustment * navConfig()->general.max_manual_speed / 500.0f * trackingPeriod;
 
             // Rotate this target shift from body frame to to earth frame and apply to position target
+            // CR72
+            virtualDesiredPosition.x += posErrorX * ((trackingDistance / distanceToActualTarget) - 1);
+            virtualDesiredPosition.y += posErrorY * ((trackingDistance / distanceToActualTarget) - 1);
+            // CR72
             virtualDesiredPosition.x += -rcShiftY * posControl.actualState.sinYaw;
             virtualDesiredPosition.y +=  rcShiftY * posControl.actualState.cosYaw;
         }
@@ -392,23 +406,33 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     static bool errorIsDecreasing;
     static bool forceTurnDirection = false;
 
-    // We have virtual position target, calculate heading error
-    int32_t virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
+    // CR80
+    int32_t virtualTargetBearing;
 
-    /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+        virtualTargetBearing = posControl.desiredState.yaw;
+    } else {
+        // We have virtual position target, calculate heading error
+        virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
+    }
+    //CR80
+
+    DEBUG_SET(DEBUG_ALWAYS, 4, virtualTargetBearing);
+    /* If waypoint tracking enabled force craft toward waypoint course line and hold on course line */
     if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
         // courseVirtualCorrection initially used to determine current position relative to course line for later use
         int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.bearing - virtualTargetBearing);
         navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
+        DEBUG_SET(DEBUG_ALWAYS, 3, navCrossTrackError);
 
         // tracking only active when certain distance and heading conditions are met
         if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200) {
             int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.bearing - posControl.actualState.cog);
-
+            // DEBUG_SET(DEBUG_ALWAYS, 0, courseHeadingError);
             // captureFactor adjusts distance/heading sensitivity balance when closing in on course line.
             // Closing distance threashold based on speed and an assumed 1 second response time.
             float captureFactor = navCrossTrackError < posControl.actualState.velXY ? constrainf(2.0f - ABS(courseHeadingError) / 500.0f, 0.0f, 2.0f) : 1.0f;
-
+            // DEBUG_SET(DEBUG_ALWAYS, 2, captureFactor * 100);
             // bias between reducing distance to course line and aligning with course heading adjusted by waypoint_tracking_accuracy
             // initial courseCorrectionFactor based on distance to course line
             float courseCorrectionFactor = constrainf(captureFactor * navCrossTrackError / (1000.0f * navConfig()->fw.wp_tracking_accuracy), 0.0f, 1.0f);
@@ -418,14 +442,20 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             float courseHeadingFactor = constrainf(courseHeadingError / 18000.0f, 0.0f, 1.0f);
             courseHeadingFactor = courseHeadingError < 0 ? -courseHeadingFactor : courseHeadingFactor;
 
-            // final courseCorrectionFactor combining distance and heading factors
             courseCorrectionFactor = constrainf(courseCorrectionFactor - courseHeadingFactor, -1.0f, 1.0f);
 
             // final courseVirtualCorrection value
             courseVirtualCorrection = DEGREES_TO_CENTIDEGREES(navConfig()->fw.wp_tracking_max_angle) * courseCorrectionFactor;
+
             virtualTargetBearing = wrap_36000(posControl.activeWaypoint.bearing - courseVirtualCorrection);
+
+            // DEBUG_SET(DEBUG_ALWAYS, 1, courseCorrectionFactor * 100);
+            DEBUG_SET(DEBUG_ALWAYS, 7, courseVirtualCorrection);
         }
+        // DEBUG_SET(DEBUG_ALWAYS, 5, virtualTargetBearing);
     }
+    // DEBUG_SET(DEBUG_ALWAYS, 2, gpsSol.groundCourse / 10);
+    DEBUG_SET(DEBUG_ALWAYS, 6, posControl.activeWaypoint.bearing);
 
     /*
      * Calculate NAV heading error
@@ -646,7 +676,6 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
         if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
            (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
-
             // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
             rcCommand[THROTTLE] = getThrottleIdleValue();
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
@@ -677,6 +706,7 @@ bool isFixedWingFlying(void)
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
     return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;
+    // return throttleCondition;
 }
 
 /*-----------------------------------------------------------
@@ -735,6 +765,7 @@ bool isFixedWingLandingDetected(void)
             }
         }
     }
+
     return false;
 }
 
@@ -743,8 +774,8 @@ bool isFixedWingLandingDetected(void)
  *-----------------------------------------------------------*/
 void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
-    rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
+    // rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
+    // rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
@@ -756,6 +787,19 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     } else {
         rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
     }
+    // CR82
+    if (posControl.flags.estPosStatus >= EST_USABLE) {  // Hold position if possible
+        applyFixedWingPositionController(currentTimeUs);
+        int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL],
+                                            -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle),
+                                            DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle));
+        rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcCommand[YAW] = 0;
+    } else {
+        rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
+    }
+    // CR82
 }
 
 /*-----------------------------------------------------------
@@ -811,7 +855,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
         }
 
         //if (navStateFlags & NAV_CTL_YAW)
-        if ((navStateFlags & NAV_CTL_ALT) || (navStateFlags & NAV_CTL_POS)) {
+        if (navStateFlags & NAV_CTL_ALT || navStateFlags & NAV_CTL_POS) {
             applyFixedWingPitchRollThrottleController(navStateFlags, currentTimeUs);
         }
 

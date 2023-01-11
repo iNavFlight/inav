@@ -90,6 +90,8 @@ typedef struct navigationFlags_s {
     navigationEstimateStatus_e estVelStatus;        // Indicates that GPS is working (or not)
     navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
+    bool compassGpsCogMismatchError;                // mismatch between compass heading and valid GPS heading   // CR27
+    bool gpsCfEstimatedAltitudeMismatch;            // Indicates mismatch between GPS altitude and estimated altitude   // CR88
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
@@ -104,14 +106,13 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
 
-    bool wpMissionPlannerActive;            // Activation status of WP mission planner
-
     /* Landing detector */
     bool resetLandingDetector;
 
+    bool wpMissionPlannerActive;            // Activation status of WP mission planner
     bool rthTrackbackActive;                // Activation status of RTH trackback
-
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
+    bool manualEmergLandActive;             // Activation status of manual emergency landing  CR82
 } navigationFlags_t;
 
 typedef struct {
@@ -323,7 +324,7 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
-    fpVector3_t                 targetPos;
+    // fpVector3_t                 targetPos;  // CR80
     int32_t                     course;
     int32_t                     previousCourse;
     timeMs_t                    lastCourseAdjustmentTime;
@@ -366,7 +367,7 @@ typedef struct {
     uint32_t                    lastValidPositionTimeMs;
     uint32_t                    lastValidAltitudeTimeMs;
 
-    /* INAV GPS origin (position where GPS fix was first acquired) */
+    /* INAV GPS origin (position where GPS fix first acquired) */
     gpsOrigin_t                 gpsOrigin;
 
     /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
@@ -448,7 +449,7 @@ navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
-void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
+// void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
 
 bool isNavHoldPositionActive(void);
@@ -458,7 +459,7 @@ bool isWaypointNavTrackingActive(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
-void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError);  // CR88
 
 bool checkForPositionSensorTimeout(void);
 
@@ -503,6 +504,7 @@ void calculateFixedWingInitialHoldPosition(fpVector3_t * pos);
 
 /* Fixed-wing launch controller */
 void resetFixedWingLaunchController(timeUs_t currentTimeUs);
+// bool isFixedWingLaunchFinishedThrottleLow(void);    // CR6
 void enableFixedWingLaunchController(timeUs_t currentTimeUs);
 void abortFixedWingLaunch(void);
 void applyFixedWingLaunchController(timeUs_t currentTimeUs);

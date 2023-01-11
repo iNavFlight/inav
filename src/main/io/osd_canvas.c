@@ -680,7 +680,6 @@ static bool osdCanvasDrawSidebar(uint32_t *configured, displayWidgets_t *widgets
         osdCrosshairPosition(&ex, &ey);
         const int height = 2 * OSD_AH_SIDEBAR_HEIGHT_POS * OSD_CHAR_HEIGHT;
         const int y = (ey - OSD_AH_SIDEBAR_HEIGHT_POS) * OSD_CHAR_HEIGHT;
-
         widgetSidebarConfiguration_t config = {
             .rect.y = y,
             .rect.w = width,

@@ -281,6 +281,8 @@ main_sources(COMMON_SRC
     fc/firmware_update.h
     fc/firmware_update_common.c
     fc/firmware_update_common.h
+    fc/multifunction.c  # CR88
+    fc/multifunction.h  # CR88
     fc/rc_smoothing.c
     fc/rc_smoothing.h
     fc/rc_adjustments.c

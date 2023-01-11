@@ -370,9 +370,9 @@ void compassUpdate(timeUs_t currentTimeUs)
     // Check magZero
     if (
         compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0 &&
-        compassConfig()->magGain[X] == 1024 && compassConfig()->magGain[Y] == 1024 && compassConfig()->magGain[Z] == 1024  
+        compassConfig()->magGain[X] == 1024 && compassConfig()->magGain[Y] == 1024 && compassConfig()->magGain[Z] == 1024
     ) {
-        DISABLE_STATE(COMPASS_CALIBRATED);
+        DISABLE_STATE(COMPASS_CALIBRATED);  // CR27 disable if mismatch with GPS heading in compassHeadingGPSCheck()
     }
     else {
         ENABLE_STATE(COMPASS_CALIBRATED);

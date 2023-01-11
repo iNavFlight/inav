@@ -105,7 +105,7 @@
 #ifdef FLYWOOF411_V2
 #define UART2_TX_PIN            PA2
 #else
-#define UART2_TX_PIN            NONE    //PA2
+#define UART2_TX_PIN            PA2    //PA2    Changed from NONE AWH
 #endif
 #define UART2_RX_PIN            PA3
 
@@ -114,8 +114,8 @@
 #define SOFTSERIAL_1_TX_PIN     PB6     // Clash with TX2, possible to use as S.Port or VTX control
 #define SOFTSERIAL_1_RX_PIN     PB7
 #else
-#define SOFTSERIAL_1_TX_PIN     PA2     // Clash with TX2, possible to use as S.Port or VTX control
-#define SOFTSERIAL_1_RX_PIN     PA2
+#define SOFTSERIAL_1_TX_PIN     PA15     // LED Strip repurposed AWH
+#define SOFTSERIAL_1_RX_PIN     NONE
 #endif
 
 #define SERIAL_PORT_COUNT       4       // VCP, USART1, USART2, SS1
@@ -148,13 +148,15 @@
 #ifdef FLYWOOF411_V2
 #define WS2811_PIN                      PA0
 #else
-#define WS2811_PIN                      PA15
+#define WS2811_PIN                      NONE    // PA15 repurosed as Softserial AWH
 #endif
+
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES                (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)
 
-#define USE_DSHOT
-#define USE_ESC_SENSOR
+// #define USE_DSHOT        removed to prevent Flash1 overflow with Custom build CR46
+// #define USE_ESC_SENSOR   removed to prevent Flash1 overflow with Custom build CR46
+#define USE_SERIALSHOT
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff

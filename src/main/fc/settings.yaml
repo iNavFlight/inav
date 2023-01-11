@@ -347,7 +347,7 @@ groups:
         max: INT16_MAX
       - name: ins_gravity_cmss
         description: "Calculated 1G of Acc axis Z to use in INS"
-        default_value: 0.0
+        default_value: 0
         field: gravity_cmss_cal
         min: 0
         max: 2000
@@ -760,7 +760,7 @@ groups:
         min: 0
         max: PWM_RANGE_MAX
       - name: motor_pwm_rate
-        description: "Output frequency (in Hz) for motor pins.  Applies only to brushed motors. "
+        description: "Output frequency (in Hz) for motor pins.  Applies only to brushed motors."
         default_value: 16000
         field: motorPwmRate
         min: 50
@@ -1943,6 +1943,14 @@ groups:
         min: 0
         max: 255
         default_value: 40
+        # CR47
+      - name: nav_mc_vel_xy_accel_tweak
+        description: "Fiddle factor to tune bank angle response to specific quad performance"
+        field: mc_vel_xy_accel_tweak
+        default_value: 100
+        min: 10
+        max: 100
+        # CR47
       - name: nav_mc_heading_p
         description: "P gain of Heading Hold controller (Multirotor)"
         default_value: 60
@@ -2779,6 +2787,13 @@ groups:
         field: fw.launch_climb_angle
         min: 5
         max: 45
+        # CR6 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      - name: nav_fw_launch_allow_throttle_low
+        description: "Allow launch sequence with throttle maintained low throughout. When main launch sequence completes control is maintained with Nav cruise throttle until sticks moved/throttle raised or control switches to other Nav mode if preselected"
+        default_value: OFF
+        field: fw.launch_allow_throttle_low
+        type: bool
+        # CR6 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       - name: nav_fw_launch_manual_throttle
         description: "Allows launch with manually controlled throttle. INAV only levels wings and controls climb pitch during launch. Throttle is controlled directly by throttle stick movement. IF USED WITHOUT A GPS LOCK plane must be launched immediately after throttle is increased to avoid issues with climb out stabilisation and the launch ending sooner than expected (launch end timer starts as soon as the throttle stick is raised)."
         default_value: OFF
@@ -3353,6 +3368,7 @@ groups:
         default_value: 11
         min: 10
         max: 13
+
       - name: osd_plus_code_short
         description: "Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requires a reference location within, respectively, ~800km, ~40 km and ~2km to recover the original coordinates."
         field: plus_code_short
@@ -3422,7 +3438,6 @@ groups:
         max: 5
         default_value: 3
         description: Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
-
       - name: osd_ahi_pitch_interval
         field: ahi_pitch_interval
         min: 0
@@ -3449,6 +3464,14 @@ groups:
         min: -36
         max: 36
 
+        # CR22
+      - name: osd_infocycle_interval_time
+        description: Info Cycle field item display time (milliseconds).
+        field: infocycle_interval_time
+        default_value: 2000
+        min: 500
+        max: 5000
+        # CR22
       - name: osd_esc_rpm_precision
         description: Number of characters used to display the RPM value.
         field: esc_rpm_precision

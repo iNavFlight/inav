@@ -26,7 +26,7 @@
 #include "navigation/sqrt_controller.h"
 
 /*
-    Square Root Controller calculates the correction based on a proportional controller (kP). 
+    Square Root Controller calculates the correction based on a proportional controller (kP).
     Used only in AutoPilot System for Vertical (Z) control.
 */
 
@@ -99,15 +99,14 @@ float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float targ
     if (deltaTime != 0.0f) {
         // This ensures we do not get small oscillations by over shooting the error correction in the last time step.
         return constrainf(correction_rate, -fabsf(sqrt_controller_pointer->error) / deltaTime, fabsf(sqrt_controller_pointer->error) / deltaTime);
-    } 
+    }
 
-    return correction_rate; 
+    return correction_rate;
 }
 
 // Sets the maximum error to limit output and derivative of output
 void sqrtControllerInit(sqrt_controller_t *sqrt_controller_pointer,const float kp,const float output_min,const float output_max,const float derivative_out_max)
 {
-
     // Reset the variables
     sqrt_controller_pointer->kp = kp;
     sqrt_controller_pointer->derivative_max = 0.0f;

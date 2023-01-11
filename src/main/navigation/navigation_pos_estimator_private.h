@@ -132,7 +132,7 @@ typedef struct {
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
-     timeUs_t               lastUpdateTime;
+    timeUs_t                lastUpdateTime;
     fpVector3_t             accelNEU;
     fpVector3_t             accelBias;
     float                   calibratedGravityCMSS;

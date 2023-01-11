@@ -91,11 +91,7 @@ static void processAirmodeMultirotor(void) {
              * activation threshold
              */
             ENABLE_STATE(AIRMODE_ACTIVE);
-        } else if (
-            STATE(AIRMODE_ACTIVE) &&
-            !feature(FEATURE_AIRMODE) &&
-            !IS_RC_MODE_ACTIVE(BOXAIRMODE)
-        ) {
+        } else if (STATE(AIRMODE_ACTIVE) && !feature(FEATURE_AIRMODE) && !IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
             /*
              *  When user disables BOXAIRMODE, turn airmode off as well
              */

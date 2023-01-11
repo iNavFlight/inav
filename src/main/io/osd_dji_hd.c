@@ -602,7 +602,7 @@ static char * navigationStateMessage(void)
     switch (NAV_Status.state) {
         case MW_NAV_STATE_NONE:
             break;
-        case MW_NAV_STATE_RTH_START:
+		case MW_NAV_STATE_RTH_START:
             return OSD_MESSAGE_STR("STARTING RTH");
         case MW_NAV_STATE_RTH_CLIMB:
             return OSD_MESSAGE_STR("ADJUSTING RTH ALTITUDE");

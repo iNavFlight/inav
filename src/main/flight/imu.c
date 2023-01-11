@@ -48,6 +48,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/rc_controls.h"
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -57,6 +58,8 @@ FILE_COMPILE_FOR_SPEED
 #endif
 
 #include "io/gps.h"
+
+#include "navigation/navigation_private.h"  // CR27
 
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -110,6 +113,8 @@ STATIC_FASTRAM float GPS3DspeedFiltered=0.0f;
 STATIC_FASTRAM pt1Filter_t GPS3DspeedFilter;
 
 FASTRAM bool gpsHeadingInitialized;
+
+FASTRAM uint16_t compassGpsCogError;                         // heading difference between compass and GPS (degrees)    // CR27
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
@@ -630,7 +635,7 @@ static void imuCalculateGPSacceleration(fpVector3_t *vEstcentrifugalAccelBF, flo
 }
 
 static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF, float dT, float *acc_ignore_slope_multipiler)
-{   
+{
     //fixed wing only
     static float lastspeed = -1.0f;
     float currentspeed;
@@ -659,7 +664,47 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     vEstcentrifugalAccelBF->z = currentspeed*imuMeasuredRotationBFFiltered.y;
     lastspeed = currentspeed;
 }
+// CR27
+#if defined(USE_MAG) && defined(USE_GPS)
+bool compassHeadingGPSCogErrorCheck(void)
+{
+    static timeMs_t timerStartMs = 0;
 
+    compassGpsCogError = 270;
+    if (!isGPSHeadingValid()) {
+        timerStartMs = 0;
+        return false;
+    }
+
+    compassGpsCogError = 260;
+    bool rcCommandCondition = ABS(rcCommand[PITCH]) > 25 || ABS(rcCommand[ROLL]) > 25 || navigationIsFlyingAutonomousMode();
+        // DEBUG_SET(DEBUG_ALWAYS, 0, rcCommand[PITCH]);
+        // DEBUG_SET(DEBUG_ALWAYS, 1, rcCommand[ROLL]);
+
+    if (sensors(SENSOR_MAG) && compassIsHealthy() && rcCommandCondition) {
+        static uint16_t compassGpsCogErrorPrev = 10;
+        int16_t commandCorrection = RADIANS_TO_DECIDEGREES(atan2_approx(rcCommand[ROLL], rcCommand[PITCH]));
+
+        // DEBUG_SET(DEBUG_ALWAYS, 2, commandCorrection);
+
+        compassGpsCogError = ABS(gpsSol.groundCourse - (wrap_36000(10 * (attitude.values.yaw + commandCorrection))) / 10);
+        // compassGpsCogError = ABS(900 - (wrap_36000(10 * (attitude.values.yaw + commandCorrection))) / 10);
+        // DEBUG_SET(DEBUG_ALWAYS, 3, compassGpsCogError);
+        compassGpsCogError = compassGpsCogError > 1800 ? ABS(compassGpsCogError - 3600) : compassGpsCogError;
+        compassGpsCogError = 0.8 * compassGpsCogErrorPrev + 0.2 * compassGpsCogError;
+        compassGpsCogErrorPrev = compassGpsCogError;
+        compassGpsCogError = compassGpsCogError / 10;
+
+        if (compassGpsCogError > 90) { // 90 for test, change for better value
+            timerStartMs = timerStartMs == 0 ? millis(): timerStartMs;
+            return millis() - timerStartMs > 10000; // 10s for test, use shorter time
+        }
+    }
+    timerStartMs = 0;
+    return false;
+}
+#endif
+// CR27
 static void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
@@ -817,6 +862,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
+    // CR27 add block if compass heading mismatch with GPS heading in compassHeadingGPSCheck()
     return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING_LEGACY) && gpsHeadingInitialized);
 }
 

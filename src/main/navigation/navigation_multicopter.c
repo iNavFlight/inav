@@ -550,6 +550,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         accelLimitX = maxAccelLimit / 1.414213f;
         accelLimitY = accelLimitX;
     }
+    // DEBUG_SET(DEBUG_ALWAYS, 1, velErrorX * 1000);
+    // DEBUG_SET(DEBUG_ALWAYS, 2, accelLimitX * 1000);
 
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
@@ -618,7 +620,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
-
+// DEBUG_SET(DEBUG_ALWAYS, 3, newAccelX * 1000);
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 
 #ifdef USE_MR_BRAKING_MODE
@@ -651,8 +653,17 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     lastAccelTargetY = newAccelY;
 
     // Rotate acceleration target into forward-right frame (aircraft)
-    const float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;
+    float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;     // const deleted CR47
     const float accelRight = -newAccelX * posControl.actualState.sinYaw + newAccelY * posControl.actualState.cosYaw;
+
+    // Apply accel tweak factor     CR47
+    const float speedError = fabsf(posControl.actualState.velXY - setpointXY);
+    if (speedError < 300.0f) {
+        uint8_t tweakScaled = scaleRange(speedError, 0, 300, pidProfile()->mc_vel_xy_accel_tweak, 100);
+        // DEBUG_SET(DEBUG_ALWAYS, 6, tweakScaled);
+        accelForward = accelForward * (tweakScaled / 100.0f);
+    }
+    // CR47
 
     // Calculate banking angles
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
@@ -660,6 +671,10 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
     posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngle, maxBankAngle);
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
+
+    // DEBUG_SET(DEBUG_ALWAYS, 0, speedError * 1000);
+    // DEBUG_SET(DEBUG_ALWAYS, 4, accelForward * 1000);
+    // DEBUG_SET(DEBUG_ALWAYS, 5, posControl.rcAdjustment[PITCH]);
 }
 
 static void applyMulticopterPositionController(timeUs_t currentTimeUs)
@@ -723,17 +738,17 @@ bool isMulticopterFlying(void)
 bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
+    DEBUG_SET(DEBUG_LANDING, 3, averageAbsGyroRates() * 100);
     static timeUs_t landingDetectorStartedAt;
 
-    /* Basic condition to start looking for landing
-    *  Prevent landing detection if WP mission allowed during Failsafe (except landing states) */
+    // Basic condition to start looking for landing (prevent landing detection if failsafe_mission OFF except landing states)
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
                           || (!navigationIsFlyingAutonomousMode() && throttleStickIsLow());
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
         landingDetectorStartedAt = 0;
-        return posControl.flags.resetLandingDetector = false;
+        return  posControl.flags.resetLandingDetector = false;
     }
 
     const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
@@ -743,8 +758,8 @@ bool isMulticopterLandingDetected(void)
                         posControl.actualState.velXY < (MC_LAND_CHECK_VEL_XY_MOVING * sensitivity);
     // check gyro rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < (4.0f * sensitivity);
-    DEBUG_SET(DEBUG_LANDING, 2, velCondition);
-    DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
+    // DEBUG_SET(DEBUG_LANDING, 2, velCondition);
+    // DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
     bool possibleLandingDetected = false;
     const timeUs_t currentTimeUs = micros();
@@ -776,6 +791,7 @@ bool isMulticopterLandingDetected(void)
 
         possibleLandingDetected = isAtMinimalThrust && velCondition;
 
+        DEBUG_SET(DEBUG_LANDING, 4, 3);
         DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedThrottle);
         DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
     } else {    // non autonomous and emergency landing
@@ -814,8 +830,8 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     static timeUs_t previousTimePositionUpdate = 0;
 
     /* Attempt to stabilise */
-    rcCommand[ROLL] = 0;
-    rcCommand[PITCH] = 0;
+    // rcCommand[ROLL] = 0;
+    // rcCommand[PITCH] = 0;
     rcCommand[YAW] = 0;
 
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
@@ -852,6 +868,14 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
     // Update throttle controller
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
+    // CR82
+    if ((posControl.flags.estPosStatus >= EST_USABLE)) {
+        applyMulticopterPositionController(currentTimeUs);
+    } else {
+        rcCommand[ROLL] = 0;
+        rcCommand[PITCH] = 0;
+    }
+    // CR82
 }
 
 /*-----------------------------------------------------------

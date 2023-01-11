@@ -114,8 +114,7 @@ typedef union {
     fp_angles_def angles;
 } fp_angles_t;
 
-typedef struct stdev_s
-{
+typedef struct stdev_s {
     float m_oldM, m_newM, m_oldS, m_newS;
     int m_n;
 } stdev_t;

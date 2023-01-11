@@ -345,7 +345,11 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
             return FAILSAFE_PROCEDURE_NONE;
         }
     }
-
+    // CR82
+    if (posControl.flags.manualEmergLandActive) {
+        return FAILSAFE_PROCEDURE_NONE;
+    }
+    // CR82
     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
     // GPS must also be working, and home position set
     if (failsafeConfig()->failsafe_min_distance > 0 &&

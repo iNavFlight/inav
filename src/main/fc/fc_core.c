@@ -365,7 +365,7 @@ static bool emergencyArmingCanOverrideArmingDisabled(void)
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
+    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();  // CR88
 }
 
 static void processPilotAndFailSafeActions(float dT)
@@ -457,7 +457,7 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
-bool emergencyArmingUpdate(bool armingSwitchIsOn)
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)    // CR88
 {
     if (ARMING_FLAG(ARMED)) {
         return false;
@@ -485,7 +485,13 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
     } else {
         toggle = true;
     }
-
+    // CR88
+    if (forceArm) {
+        counter = EMERGENCY_ARMING_MIN_ARM_COUNT;
+    }
+    // CR88
+    // DEBUG_SET(DEBUG_ALWAYS, 0, counter);
+    // DEBUG_SET(DEBUG_ALWAYS, 1, timeout - currentTimeMs);
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
@@ -517,7 +523,6 @@ void tryArm(void)
         return;
     }
 #endif
-
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (!isArmingDisabled() || emergencyArmingIsEnabled() || LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
 #else
@@ -727,52 +732,52 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-             if (rollPitchStatus != CENTERED) {
-                 ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
-             }
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+            if (rollPitchStatus != CENTERED) {
+                ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
+            }
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
-         DISABLE_STATE(ANTI_WINDUP);
-         //This case applies only to MR when Airmode management is throttle threshold activated
-         if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
+        DISABLE_STATE(ANTI_WINDUP);
+        //This case applies only to MR when Airmode management is throttle threshold activated
+        if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
              pidResetErrorAccumulators();
-         }
-     }
+        }
+    }
 //---------------------------------------------------------
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
@@ -838,7 +843,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
-        
+
         processDelayedSave();
     }
 
@@ -932,6 +937,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         blackboxUpdate(micros());
     }
 #endif
+
 }
 
 // This function is called in a busy-loop, everything called from here should do it's own
