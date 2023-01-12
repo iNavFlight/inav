@@ -2654,7 +2654,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
         suspendTracking = false;
     }
 
-    if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED || suspendTracking)) {
+    if (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_OFF || FLIGHT_MODE(NAV_RTH_MODE) || !ARMING_FLAG(ARMED) || suspendTracking) {
         return;
     }
 
