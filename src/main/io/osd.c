@@ -3275,8 +3275,17 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif // USE_POWER_LIMITS
     case OSD_MULTI_FUNCTION:
         {
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, "          ");     // Max 10 characters
+            // message shown infrequently so only write when needed
+            static bool clearMultiFunction = true;
             elemAttr = osdGetMultiFunctionMessage(buff);
+            if (buff[0] == 0) {
+                if (clearMultiFunction) {
+                    displayWrite(osdDisplayPort, elemPosX, elemPosY, "          ");
+                    clearMultiFunction = false;
+                }
+                return true;
+            }
+            clearMultiFunction = true;
             break;
         }
 
@@ -4701,24 +4710,29 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 
     textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
     static uint8_t warningsCount;
+    const char *message = NULL;
 
     /* --- FUNCTIONS --- */
-    switch (multiFunctionSelection()) {
-    case MULTI_FUNC_NONE:
-        break;
-    case MULTI_FUNC_1:
-        strcpy(buff, warningsCount ? "WARNINGS" : "0 WARNINGS");
+    multi_function_e selectedFunction = multiFunctionSelection();
+    if (selectedFunction) {
+        switch (selectedFunction) {
+        case MULTI_FUNC_NONE:
+        case MULTI_FUNC_1:
+            message = warningsCount ? "WARNINGS !" : "0 WARNINGS";
+            break;
+        case MULTI_FUNC_2:
+            message = "EMERG ARM ";
+            break;
+        case MULTI_FUNC_END:
+            break;
+        }
+
+        strcpy(buff, message);
         return elemAttr;
-    case MULTI_FUNC_2:
-        strcpy(buff, "EMERG ARM");
-        return elemAttr;
-    case MULTI_FUNC_END:
-        break;
     }
 
     /* --- WARNINGS --- */
     const char *messages[4];
-    const char *message = NULL;
     uint8_t messageCount = 0;
     bool warningCondition = false;
     warningsCount = 0;
@@ -4745,18 +4759,16 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #endif
 #ifdef USE_DEV_TOOLS
     if (checkOsdWarning(systemConfig()->groundTestMode, warningFlagID << 1, &warningsCount)) {
-        messages[messageCount++] = "GRD TEST";
+        messages[messageCount++] = "GRD TEST !";
     }
 #endif
     if (messageCount) {
         message = messages[OSD_ALTERNATING_CHOICES(2000, messageCount)];    // display each warning on 2s cycle
         strcpy(buff, message);
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
-        return elemAttr;
     } else if (warningsCount) {
         buff[0] = SYM_ALERT;
-        tfp_sprintf(buff + 1, "%u ", warningsCount);
-        return elemAttr;
+        tfp_sprintf(buff + 1, "%u        ", warningsCount);
     }
 
     return elemAttr;
