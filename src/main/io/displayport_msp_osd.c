@@ -447,6 +447,12 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
         init();
         displayInit(&mspOsdDisplayPort, &mspOsdVTable);
 
+        if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: DJI Compatability mode";
+        } else {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort";
+        }
+
         return &mspOsdDisplayPort;
     }
     return NULL;
