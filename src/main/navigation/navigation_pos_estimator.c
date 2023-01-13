@@ -434,7 +434,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 
                 if (gravityCalibrationComplete()) {
                     zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
-                    setGravityCalibrationAndWriteEEPROM(posEstimator.imu.calibratedGravityCMSS);
+                    setGravityCalibration(posEstimator.imu.calibratedGravityCMSS);
                     LOG_DEBUG(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
                 }
             }
