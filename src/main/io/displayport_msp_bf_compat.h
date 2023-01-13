@@ -1,7 +1,8 @@
+
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV Project.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
+ * INAV is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -17,14 +18,20 @@
 
 #pragma once
 
-#include "config/parameter_group.h"
-#include "drivers/display.h"
+#include <stdint.h>
 
-// MSP Display Port commands
-#define MSP_DP_RELEASE      1
-#define MSP_DP_CLEAR_SCREEN 2
-#define MSP_DP_WRITE_STRING 3
-#define MSP_DP_DRAW_SCREEN  4
+#include "platform.h"
 
-struct displayPort_s;
-struct displayPort_s *displayPortMspInit(void);
+#ifdef USE_MSP_DISPLAYPORT
+
+#ifndef DISABLE_MSP_BF_COMPAT
+#include "osd.h"
+uint8_t getBfCharacter(uint8_t ch, uint8_t page);
+#define isBfCompatibleVideoSystem(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT)
+#else
+#define getBfCharacter(x, page) (x)
+#define isBfCompatibleVideoSystem(osdConfigPtr) (false)
+
+#endif
+
+#endif

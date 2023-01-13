@@ -106,8 +106,6 @@ typedef struct batteryProfile_s {
 
     uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
 
-    uint16_t fwMinThrottleDownPitchAngle;
-
     struct {
 
         struct {

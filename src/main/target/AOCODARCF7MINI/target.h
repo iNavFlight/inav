@@ -18,35 +18,37 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "AO7D"
-#define USBD_PRODUCT_STRING  "AocodaRCF7Dual"
+#define TARGET_BOARD_IDENTIFIER "AO7M"
 
+#if defined(AOCODARCF7MINI_V2)
+#define USBD_PRODUCT_STRING  "AocodaRCF7MiniV2"
+#else
+#define USBD_PRODUCT_STRING  "AocodaRCF7MiniV1"
+#endif
 
-#define LED0                    PC14  //Blue
+#define LED0                    PA13
 
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// *************** SPI2 Gyro & ACC *******************
-#define USE_SPI
-#define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
-
-#define USE_DUAL_GYRO
-
+// *************** SPI1 Gyro & ACC *******************
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
-#define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW270_DEG
-#define MPU6000_CS_PIN          PB12
-#define MPU6000_SPI_BUS         BUS_SPI2
+#define USE_SPI
+#define USE_SPI_DEVICE_1
+#define SPI1_SCK_PIN            PA5
+#define SPI1_MISO_PIN           PA6
+#define SPI1_MOSI_PIN           PA7
 
-#define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN        CW180_DEG
-#define BMI270_CS_PIN           PA13
-#define BMI270_SPI_BUS          BUS_SPI2
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       CW0_DEG
+#define MPU6500_CS_PIN          PB2
+#define MPU6500_SPI_BUS         BUS_SPI1
+
+#define USE_EXTI
+#define MPU6500_EXTI_PIN        PC4
+
+#define USE_MPU_DATA_READY_SIGNAL
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -58,15 +60,10 @@
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
-#define USE_BARO_MS5607
 #define USE_BARO_DPS310
 
-#define USE_I2C_DEVICE_2
-#define I2C2_SCL                PB10
-#define I2C2_SDA                PB11
-
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
@@ -75,41 +72,41 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
 
-#define PITOT_I2C_BUS           BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 
-// *************** SPI1 OSD ***********************
-#define USE_SPI_DEVICE_1
-#define SPI1_SCK_PIN            PA5
-#define SPI1_MISO_PIN           PA6
-#define SPI1_MOSI_PIN           PA7
+// *************** SPI2 OSD ***********************
+#define USE_SPI_DEVICE_2
+#define SPI2_SCK_PIN            PB13
+#define SPI2_MISO_PIN           PB14
+#define SPI2_MOSI_PIN           PB15
 
 #define USE_OSD
 #define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI1
-#define MAX7456_CS_PIN          PA4
+#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          PB12
 
 // *************** SPI3 FLASH BLACKBOX*******************
 #define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PB3
-#define SPI3_MISO_PIN           PB4
-#define SPI3_MOSI_PIN           PB5
+#define SPI3_SCK_PIN            PC10
+#define SPI3_MISO_PIN           PC11
+#define SPI3_MOSI_PIN           PC12
 
 
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_SPI_BUS          BUS_SPI3
-#define M25P16_CS_PIN           PC0
+#define M25P16_CS_PIN           PD2
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 
 // *************** UART *****************************
 #define USE_VCP
-#define USB_DETECT_PIN          PC15
+#define USB_DETECT_PIN          PC14
 #define USE_USB_DETECT
 
 #define USE_UART1
@@ -121,17 +118,17 @@
 #define UART2_RX_PIN            PA3
 
 #define USE_UART3
-#define UART3_TX_PIN            PC10
-#define UART3_RX_PIN            PC11
+#define UART3_TX_PIN            PB10
+#define UART3_RX_PIN            PB11
 
 #define USE_UART4
-#define UART4_TX_PIN            NONE
+#define UART4_TX_PIN            PA0
 #define UART4_RX_PIN            PA1
 
-#define USE_UART5
-#define UART5_TX_PIN            PC12
-#define UART5_RX_PIN            PD2
-     
+#define USE_UART6
+#define UART6_TX_PIN            PC6
+#define UART6_RX_PIN            PC7
+
 #define SERIAL_PORT_COUNT       6
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
@@ -143,21 +140,23 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream0
 
-#define ADC_CHANNEL_1_PIN           PC1
-#define ADC_CHANNEL_2_PIN           PC2
-#define ADC_CHANNEL_3_PIN           PC3
+#define ADC_CHANNEL_1_PIN           PC2
+#define ADC_CHANNEL_2_PIN           PC1
+#define ADC_CHANNEL_3_PIN           PC0
 
-
-#define VBAT_ADC_CHANNEL            ADC_CHN_2
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_1
+#define VBAT_ADC_CHANNEL            ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
+
+// *************** PINIO ***************************
+
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
-#define WS2811_PIN                  PA0
+#define WS2811_PIN                  PA8
 
-#define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE     650
+#define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_BLACKBOX | FEATURE_TX_PROF_SEL)
+#define CURRENT_METER_SCALE     400
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

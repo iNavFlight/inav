@@ -122,7 +122,9 @@ void resetEEPROM(void);
 void readEEPROM(void);
 void writeEEPROM(void);
 void ensureEEPROMContainsValidData(void);
+void processDelayedSave(void);
 
+void saveConfig(void);
 void saveConfigAndNotify(void);
 void validateAndFixConfig(void);
 void validateAndFixTargetConfig(void);
@@ -135,8 +137,8 @@ uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
-void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
-void setGravityCalibrationAndWriteEEPROM(float getGravity);
+void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGravityCalibration(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

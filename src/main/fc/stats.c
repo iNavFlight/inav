@@ -64,7 +64,7 @@ void statsOnDisarm(void)
                 flyingEnergy += energy;
             }
 #endif
-            writeEEPROM();
+            saveConfigAndNotify();
         }
     }
 }
