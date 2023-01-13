@@ -1102,11 +1102,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         posControl.cruise.course = wrap_36000(posControl.cruise.course - centidegsPerIteration);
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
         posControl.cruise.lastCourseAdjustmentTime = currentTimeMs;
-    } else if (currentTimeMs - posControl.cruise.lastCourseAdjustmentTime > 4000)
+    } else if (currentTimeMs - posControl.cruise.lastCourseAdjustmentTime > 4000) {
         posControl.cruise.previousCourse = posControl.cruise.course;
     }
 
-    setDesiredPosition(NULL, posControl.cruise.yaw, NAV_POS_UPDATE_HEADING);
+    setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
 
     return NAV_FSM_EVENT_NONE;
 }
