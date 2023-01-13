@@ -471,6 +471,7 @@ typedef struct {
     navSystemStatus_Error_e error;
     navSystemStatus_Flags_e flags;
     uint8_t                 activeWpNumber;
+    uint8_t                 activeWpIndex;
     navWaypointActions_e    activeWpAction;
 } navSystemStatus_t;
 

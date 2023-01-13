@@ -681,7 +681,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     return '?'; // Missing/not mapped character
 }
 
-
 #endif
 
 #endif
