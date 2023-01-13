@@ -67,7 +67,6 @@ typedef enum {          // defines are from hdzero code
 #define DRAW_FREQ_DENOM 4 // 60Hz
 #define TX_BUFFER_SIZE 1024
 #define VTX_TIMEOUT 1000 // 1 second timer
-#define FULL_FRAME_SEND_DENOM 5
 
 static mspProcessCommandFnPtr mspProcessCommand;
 static mspPort_t mspPort;
@@ -252,26 +251,25 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
 static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
-    static uint8_t fullFrameCounter = 0;
 
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz
         return 0;
     }
 
     if (osdConfig()->msp_displayport_fullframe_interval >= 0 && (millis() > sendSubFrameMs)) {
-        if ((osdConfig()->msp_displayport_fullframe_interval == 0) || (fullFrameCounter++ % FULL_FRAME_SEND_DENOM == 0)) {
-            // dirty all characters, even blanks, if interval set to 0, or the full frame timeout is reached
-            BITARRAY_SET_ALL(dirty);
-        } else if (osdConfig()->msp_displayport_fullframe_interval > 0) {
-            // Only dirty the character if not blank
-            for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
-                if (screen[pos] != SYM_BLANK) {
-                    bitArraySet(dirty, pos);
-                }
+        // For full frame update, first clear the OSD completely
+        uint8_t refreshSubcmd[1];
+        refreshSubcmd[0] = MSP_DP_CLEAR_SCREEN;
+        output(displayPort, MSP_DISPLAYPORT, refreshSubcmd, sizeof(refreshSubcmd));
+        
+        // Then dirty the characters that are not blank, to send all data on this draw.
+        for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
+            if (screen[pos] != SYM_BLANK) {
+                bitArraySet(dirty, pos);
             }
         }
             
-        sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + (S2MS(osdConfig()->msp_displayport_fullframe_interval) / FULL_FRAME_SEND_DENOM)) : 0;
+        sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + S2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
     }
 
     uint8_t subcmd[COLS + 4];
