@@ -50,7 +50,7 @@ cd /c/Workspace/xpack
 ```
 cat /c/Workspace/inav/cmake/arm-none-eabi-checks.cmake | grep "set(arm_none_eabi_gcc_version" | cut -d\" -f2
 ```
-3. Find the version you need from the releases page [here](https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/), then either:
+3. Find the version you need from the [releases page](https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/), then either:
 - Download the "...-win32-x64.zip" and copy the folder inside, or
 - Right click, choose "Copy link address" and paste it into the following commands:
 ```
