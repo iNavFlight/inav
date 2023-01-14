@@ -5668,7 +5668,7 @@ Time zone offset from UTC, in minutes. This is applied to the GPS time for loggi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | -1440 | 1440 |
+| 0 | -720 | 840 |
 
 ---
 

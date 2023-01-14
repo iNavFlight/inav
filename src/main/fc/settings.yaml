@@ -3620,8 +3620,8 @@ groups:
       - name: tz_offset
         description: "Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs"
         default_value: 0
-        min: -1440
-        max: 1440
+        min: -720
+        max: 840
       - name: tz_automatic_dst
         description: "Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`."
         default_value: "OFF"
