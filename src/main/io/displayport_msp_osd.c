@@ -269,7 +269,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             }
         }
             
-        sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + S2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
+        sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + DS2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
     }
 
     uint8_t subcmd[COLS + 4];

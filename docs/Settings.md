@@ -4364,11 +4364,11 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ### osd_msp_displayport_fullframe_interval
 
-Full Frame redraw interval for MSP DisplayPort [seconds]. This is how often a full frame update is sent to the DisplayPort. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 5
+Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | -1 | 120 |
+| 10 | -1 | 200 |
 
 ---
 
