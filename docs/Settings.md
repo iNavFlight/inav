@@ -4368,7 +4368,7 @@ Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | -1 | 200 |
+| 10 | -1 | 600 |
 
 ---
 

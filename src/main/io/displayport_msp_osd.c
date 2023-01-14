@@ -52,7 +52,6 @@ FILE_COMPILE_FOR_SPEED
 #include "msp/msp_serial.h"
 
 #include "displayport_msp_osd.h"
-
 #include "displayport_msp_bf_compat.h"
 
 #define FONT_VERSION 3
