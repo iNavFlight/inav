@@ -3435,6 +3435,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
     .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
+    .msp_displayport_fullframe_interval = SETTING_OSD_MSP_DISPLAYPORT_FULLFRAME_INTERVAL_DEFAULT,
 
     .ahi_reverse_roll = SETTING_OSD_AHI_REVERSE_ROLL_DEFAULT,
     .ahi_max_pitch = SETTING_OSD_AHI_MAX_PITCH_DEFAULT,

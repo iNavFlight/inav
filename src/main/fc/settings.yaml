@@ -72,7 +72,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "BF43COMPAT"]
+    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -3015,7 +3015,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, `DJIWTF` and `BF43COMPAT`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3026,6 +3026,13 @@ groups:
         field: row_shiftdown
         min: 0
         max: 1
+      - name: osd_msp_displayport_fullframe_interval
+        description: "Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)"
+        default_value: 10
+        min: -1
+        max: 600
+        type: int16_t
+        field: msp_displayport_fullframe_interval
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
