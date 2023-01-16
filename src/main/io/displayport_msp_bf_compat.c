@@ -554,10 +554,15 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case (SYM_AH_H_START+8):
         return BF_SYM_AH_BAR9_8;
 
-/*
+    // BF does not have vertical artificial horizon. replace with middle horizontal one
     case SYM_AH_V_START:
-        return BF_SYM_AH_V_START;
-
+    case (SYM_AH_V_START+1):
+    case (SYM_AH_V_START+2):
+    case (SYM_AH_V_START+3):
+    case (SYM_AH_V_START+4):
+    case (SYM_AH_V_START+5):
+        return BF_SYM_AH_BAR9_4;
+/*
     case SYM_VARIO_UP_2A:
         return BF_SYM_VARIO_UP_2A;
 
