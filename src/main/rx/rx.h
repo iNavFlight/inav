@@ -79,6 +79,7 @@ typedef enum {
     SERIALRX_SRXL2,
     SERIALRX_GHST,
     SERIALRX_MAVLINK,
+    SERIALRX_FBUS,
 } rxSerialReceiverType_e;
 
 #define MAX_SUPPORTED_RC_CHANNEL_COUNT              18
