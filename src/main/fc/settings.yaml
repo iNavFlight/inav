@@ -2296,7 +2296,7 @@ groups:
     members:
       - name: nav_disarm_on_landing
         description: "If set to ON, INAV disarms the FC after landing"
-        default_value: OFF
+        default_value: ON
         field: general.flags.disarm_on_landing
         type: bool
       - name: nav_land_detect_sensitivity
