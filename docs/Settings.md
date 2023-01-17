@@ -2708,7 +2708,7 @@ If set to ON, INAV disarms the FC after landing
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
