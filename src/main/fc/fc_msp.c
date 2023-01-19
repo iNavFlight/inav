@@ -1398,7 +1398,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_NAME:
         {
-            const char *name = systemConfig()->name;
+            const char *name = systemConfig()->craftName;
             while (*name) {
                 sbufWriteU8(dst, *name++);
             }
