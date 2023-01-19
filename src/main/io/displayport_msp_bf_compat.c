@@ -237,12 +237,13 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_3D_KT:
         return BF_SYM_3D_KT;
 
-    case SYM_RPM:
-        return BF_SYM_RPM;
 
     case SYM_AIR:
         return BF_SYM_AIR;
 */
+
+    case SYM_RPM:
+        return BF_SYM_RPM;
 
     case SYM_FTS:
         return BF_SYM_FTPS;
