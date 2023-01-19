@@ -1626,14 +1626,22 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_MAH_DRAWN: {
-        if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
-           // Shown in mAh
-           buff[osdConfig()->mAh_used_precision] = SYM_AH;
+
+        if (isBfCompatibleVideoSystem(osdConfig())) {
+            //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
+            tfp_sprintf(buff, "%4d", (int)getMAhDrawn());
+            buff[4] = SYM_MAH;
+            buff[5] = '\0';
         } else {
-          // Shown in Ah
-            buff[osdConfig()->mAh_used_precision] = SYM_MAH;
+            if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
+            // Shown in mAh
+            buff[osdConfig()->mAh_used_precision] = SYM_AH;
+            } else {
+            // Shown in Ah
+                buff[osdConfig()->mAh_used_precision] = SYM_MAH;
+            }
+            buff[(osdConfig()->mAh_used_precision + 1)] = '\0';
         }
-        buff[(osdConfig()->mAh_used_precision + 1)] = '\0';
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
     }
