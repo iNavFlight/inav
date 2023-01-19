@@ -118,7 +118,7 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
-    .craftName = SETTING_NAME_DEFAULT
+    .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );
 

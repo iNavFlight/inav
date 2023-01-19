@@ -4762,6 +4762,16 @@ A limitation to overall amount of correction Flight PID can request on each axis
 
 ---
 
+### pilot_name
+
+Pilot name
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _empty_ |  | MAX_NAME_LENGTH |
+
+---
+
 ### pinio_box1
 
 Mode assignment for PINIO#1
