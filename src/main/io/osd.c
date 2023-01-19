@@ -532,10 +532,10 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             suffix = SYM_KMH;
             break;
     }
-    if (isValid) {
-        osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
-    } else {
-        buff[0] = buff[1] = buff[2] = '-';
+    osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
+    if (!isValid)
+    {
+        suffix = '*';
     }
     buff[3] = suffix;
     buff[4] = '\0';
@@ -2942,16 +2942,11 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             bool valid = isEstimatedWindSpeedValid();
             float horizontalWindSpeed;
-            if (valid) {
-                uint16_t angle;
-                horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
-                int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
-                buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
-            } else {
-                horizontalWindSpeed = 0;
-                buff[1] = SYM_BLANK;
-            }
+            uint16_t angle;
+            horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
+            int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
             buff[0] = SYM_WIND_HORIZONTAL;
+            buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
             osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed, valid);
             break;
         }
@@ -2966,16 +2961,12 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[1] = SYM_BLANK;
             bool valid = isEstimatedWindSpeedValid();
             float verticalWindSpeed;
-            if (valid) {
-                verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
-                if (verticalWindSpeed < 0) {
-                    buff[1] = SYM_AH_DECORATION_DOWN;
-                    verticalWindSpeed = -verticalWindSpeed;
-                } else if (verticalWindSpeed > 0) {
-                    buff[1] = SYM_AH_DECORATION_UP;
-                }
+            verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
+            if (verticalWindSpeed < 0) {
+                buff[1] = SYM_AH_DECORATION_DOWN;
+                verticalWindSpeed = -verticalWindSpeed;
             } else {
-                verticalWindSpeed = 0;
+                buff[1] = SYM_AH_DECORATION_UP;
             }
             osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
             break;
