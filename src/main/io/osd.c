@@ -2503,7 +2503,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     tfp_sprintf(buff, "%3d%c", -panOffset, SYM_DEGREES);
                     displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
                 }
-                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_L, elemAttr);
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_R, elemAttr);
             } else if (panOffset > 0) {
                 if (osdConfig()->pan_servo_offcentre_warning != 0 && panOffset <= osdConfig()->pan_servo_offcentre_warning) {
                     if (panServoTimeOffCentre == 0) {
@@ -2519,7 +2519,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     tfp_sprintf(buff, "%3d%c", panOffset, SYM_DEGREES);
                     displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
                 }
-                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_R, elemAttr);
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_L, elemAttr);
             } else {
                 panServoTimeOffCentre = 0;
                 
@@ -3041,10 +3041,10 @@ static bool osdDrawSingleElement(uint8_t item)
             float verticalWindSpeed;
             verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
             if (verticalWindSpeed < 0) {
-                buff[1] = SYM_AH_DECORATION_DOWN;
+                buff[1] = SYM_AH_DIRECTION_DOWN;
                 verticalWindSpeed = -verticalWindSpeed;
             } else {
-                buff[1] = SYM_AH_DECORATION_UP;
+                buff[1] = SYM_AH_DIRECTION_UP;
             }
             osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
             break;
