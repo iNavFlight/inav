@@ -1419,7 +1419,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP_NAME:
         {
-            const char *name = systemConfig()->name;
+            const char *name = systemConfig()->craftName;
             while (*name) {
                 sbufWriteU8(dst, *name++);
             }
@@ -2789,7 +2789,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_NAME:
         if (dataSize <= MAX_NAME_LENGTH) {
-            char *name = systemConfigMutable()->name;
+            char *name = systemConfigMutable()->craftName;
             int len = MIN(MAX_NAME_LENGTH, (int)dataSize);
             sbufReadData(src, name, len);
             memset(&name[len], '\0', (MAX_NAME_LENGTH + 1) - len);
