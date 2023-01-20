@@ -1769,7 +1769,8 @@ static bool osdDrawSingleElement(uint8_t item)
                     if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
                         panHomeDirOffset = osdPanServoHomeDirectionOffset();
                     }
-                    int homeDirection = GPS_directionToHome - DECIDEGREES_TO_DEGREES(osdGetHeading()) + panHomeDirOffset;
+                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int homeDirection = GPS_directionToHome - flightDirection + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -1789,7 +1790,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[1] = SYM_HEADING;
 
             if (isImuHeadingValid() && navigationPositionEstimateIsHealthy()) {
-                int16_t h = lrintf(CENTIDEGREES_TO_DEGREES((float)wrap_18000(DEGREES_TO_CENTIDEGREES((int32_t)GPS_directionToHome) - DECIDEGREES_TO_CENTIDEGREES((int32_t)osdGetHeading()))));
+                int16_t h = lrintf(CENTIDEGREES_TO_DEGREES((float)wrap_18000(DEGREES_TO_CENTIDEGREES((int32_t)GPS_directionToHome) - (STATE(AIRPLANE) ? posControl.actualState.cog : DECIDEGREES_TO_CENTIDEGREES((int32_t)osdGetHeading())))));
                 tfp_sprintf(buff + 2, "%4d", h);
             } else {
                 strcpy(buff + 2, "----");
@@ -3987,7 +3988,7 @@ static void osdShowStatsPage1(void)
 
     displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
     displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
-    
+
     if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
     } else if (notify_settings_saved > 0) {
@@ -3997,7 +3998,7 @@ static void osdShowStatsPage1(void)
             displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
         }
     }
-    
+
     displayCommitTransaction(osdDisplayPort);
 }
 
