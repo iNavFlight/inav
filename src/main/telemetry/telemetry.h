@@ -88,6 +88,7 @@ typedef struct telemetryConfig_s {
         uint8_t extra2_rate;
         uint8_t extra3_rate;
         uint8_t version;
+        uint16_t chn_override_timeout_ms;
     } mavlink;
 } telemetryConfig_t;
 

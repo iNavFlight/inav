@@ -23,3 +23,4 @@ void checkMAVLinkTelemetryState(void);
 
 void freeMAVLinkTelemetryPort(void);
 void configureMAVLinkTelemetryPort(void);
+void mavlinkOverrideChannels(rcChannel_t *rcChannels);

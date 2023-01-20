@@ -35,7 +35,7 @@ FILE_COMPILE_FOR_SPEED
 static uint16_t mavlinkChannelData[MAVLINK_CHANNEL_COUNT];
 static bool frameReceived;
 
-void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg) {
+uint16_t * mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg) {
     if (msg->chan1_raw != 0 && msg->chan1_raw != UINT16_MAX) mavlinkChannelData[0] = msg->chan1_raw;
     if (msg->chan2_raw != 0 && msg->chan2_raw != UINT16_MAX) mavlinkChannelData[1] = msg->chan2_raw;
     if (msg->chan3_raw != 0 && msg->chan3_raw != UINT16_MAX) mavlinkChannelData[2] = msg->chan3_raw;
@@ -55,6 +55,7 @@ void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg) {
     if (msg->chan17_raw != 0 && msg->chan17_raw < UINT16_MAX - 1) mavlinkChannelData[16] = msg->chan17_raw;
     if (msg->chan18_raw != 0 && msg->chan18_raw < UINT16_MAX - 1) mavlinkChannelData[17] = msg->chan18_raw;
     frameReceived = true;
+    return mavlinkChannelData;
 }
 
 static uint8_t mavlinkFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
