@@ -338,6 +338,22 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 #endif
 
 /*
+ * Returns true if we need to clear ARM flag.
+ * This is required to prevent overheating VTX in auto-launch mode.
+ * It makes VTX stay in low power mode after ARM and before actual launch.
+ */
+static bool needResetArmFlag(void)
+{
+    if (!STATE(FIXED_WING_LEGACY))
+        return false;
+    if (!isNavLaunchEnabled())
+        return false;
+    if (fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED)
+        return false;
+    return true;
+}
+
+/*
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
  */
@@ -425,6 +441,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         {
             boxBitmask_t mspBoxModeFlags;
             packBoxModeFlags(&mspBoxModeFlags);
+
+            if (needResetArmFlag()) {
+                bitArrayClr(mspBoxModeFlags.bits, 0);
+            }
 
             sbufWriteU16(dst, (uint16_t)cycleTime);
 #ifdef USE_I2C
