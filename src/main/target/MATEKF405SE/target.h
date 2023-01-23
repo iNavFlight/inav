@@ -135,7 +135,11 @@
 #define SOFTSERIAL_1_TX_PIN      PA2
 #define SOFTSERIAL_1_RX_PIN      PA2
 
+#ifdef MATEKF405SE_PINIO
+#define SERIAL_PORT_COUNT       7
+#else
 #define SERIAL_PORT_COUNT       8
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
