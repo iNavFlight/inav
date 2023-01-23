@@ -270,6 +270,7 @@ typedef enum {
     OSD_NAV_WP_MULTI_MISSION_INDEX,
     OSD_GROUND_COURSE,      // 140
     OSD_CROSS_TRACK_ERROR,
+    OSD_PILOT_NAME,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

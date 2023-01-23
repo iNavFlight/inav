@@ -2296,7 +2296,7 @@ groups:
     members:
       - name: nav_disarm_on_landing
         description: "If set to ON, INAV disarms the FC after landing"
-        default_value: OFF
+        default_value: ON
         field: general.flags.disarm_on_landing
         type: bool
       - name: nav_land_detect_sensitivity
@@ -3576,6 +3576,12 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        field: craftName
+        max: MAX_NAME_LENGTH
+      - name: pilot_name
+        description: "Pilot name"
+        default_value: ""
+        field: pilotName
         max: MAX_NAME_LENGTH
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
