@@ -737,8 +737,8 @@ bool isFixedWingLandingDetected(void)
             DEBUG_SET(DEBUG_LANDING, 7, isPitchAxisStatic);
             if (isRollAxisStatic && isPitchAxisStatic) {
                 // Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
-                timeMs_t safetyTimeDelay = 2000 + navConfig()->general.auto_disarm_delay;
-                return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay; // check conditions stable for 2s + optional extra delay
+                timeMs_t safetyTimeDelay = 1000 + navConfig()->general.auto_disarm_delay;
+                return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay; // check conditions stable for 1s + optional extra delay
             } else {
                 fixAxisCheck = false;
             }
