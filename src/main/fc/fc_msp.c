@@ -344,7 +344,7 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  */
 static bool needResetArmFlag(void)
 {
-    if (!STATE(FIXED_WING_LEGACY))
+    if (!STATE(AIRPLANE))
         return false;
     if (!isNavLaunchEnabled())
         return false;
