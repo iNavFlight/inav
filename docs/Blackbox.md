@@ -159,10 +159,10 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * `RC_DATA` - RC channels 1-4 as returned by the radio receiver
 * `RC_COMMAND` - RC_DATA converted to [-500:500] scale (for A,E,R) with expo and deadband
 * `MOTORS` - motor output
-- `GYRO_RAW` - Raw Gyro data
-- `PEAKS_R` - Roll axis peaks
-- `PEAKS_P` - Pitch axis peak
-- `PEAKS_Y` - Yaw axis peak
+* `GYRO_RAW` - Raw Gyro data
+* `PEAKS_R` - Roll axis noise peak
+* `PEAKS_P` - Pitch axis noise peak
+* `PEAKS_Y` - Yaw axis noise peak
 
 Usage:
 
