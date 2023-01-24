@@ -1148,8 +1148,8 @@ if __FILE__ == $0
     opts = GetoptLong.new(
         [ "--output-dir", "-o", GetoptLong::REQUIRED_ARGUMENT ],
         [ "--help", "-h", GetoptLong::NO_ARGUMENT ],
-        [ "--use_host_gcc", "-g", GetoptLong::REQUIRED_ARGUMENT],
         [ "--json", "-j", GetoptLong::REQUIRED_ARGUMENT ],
+        [ "--use_host_gcc", "-g", GetoptLong::NO_ARGUMENT ]
     )
 
     jsonFile = nil
@@ -1163,10 +1163,10 @@ if __FILE__ == $0
         when "--help"
             usage()
             exit(0)
-        when "--use_host_gcc"
-            use_host_gcc = true
         when "--json"
             jsonFile = arg
+        when "--use_host_gcc"
+            use_host_gcc = true
         end
     end
 
