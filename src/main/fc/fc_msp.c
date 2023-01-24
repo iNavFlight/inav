@@ -445,7 +445,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             packBoxModeFlags(&mspBoxModeFlags);
 
             if (needResetArmFlag()) {
-                bitArrayClr(mspBoxModeFlags.bits, 0);
+                bitArrayClr(mspBoxModeFlags.bits, BOXARM);
             }
 
             sbufWriteU16(dst, (uint16_t)cycleTime);
