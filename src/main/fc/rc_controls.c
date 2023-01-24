@@ -111,20 +111,23 @@ bool isRollPitchStickDeflected(uint8_t deadband)
 
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
-    int value;
-    if (type == THROTTLE_STATUS_TYPE_RC) {
-        value = rxGetChannelValue(THROTTLE);
-    } else {
+    int value = rxGetChannelValue(THROTTLE);    // THROTTLE_STATUS_TYPE_RC
+    if (type == THROTTLE_STATUS_TYPE_COMMAND) {
         value = rcCommand[THROTTLE];
     }
 
     const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
-    if (feature(FEATURE_REVERSIBLE_MOTORS) && (value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband)))
+    bool midThrottle = value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband);
+    if ((feature(FEATURE_REVERSIBLE_MOTORS) && midThrottle) || (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))) {
         return THROTTLE_LOW;
-    else if (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))
-        return THROTTLE_LOW;
+    }
 
     return THROTTLE_HIGH;
+}
+
+bool throttleStickIsLow(void)
+{
+    return calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 }
 
 int16_t throttleStickMixedValue(void)
@@ -181,7 +184,7 @@ static void updateRcStickPositions(void)
     rcStickPositions = tmp;
 }
 
-void processRcStickPositions(throttleStatus_e throttleStatus)
+void processRcStickPositions(bool isThrottleLow)
 {
     static timeMs_t lastTickTimeMs = 0;
     static uint8_t rcDelayCommand;      // this indicates the number of time (multiple of RC measurement at 50Hz) the sticks must be maintained to run or switch off motors
@@ -207,11 +210,10 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
 
     // perform actions
     bool armingSwitchIsActive = IS_RC_MODE_ACTIVE(BOXARM);
-    emergencyArmingUpdate(armingSwitchIsActive);
 
     if (STATE(AIRPLANE) && feature(FEATURE_MOTOR_STOP) && armingConfig()->fixed_wing_auto_arm) {
         // Auto arm on throttle when using fixedwing and motorstop
-        if (throttleStatus != THROTTLE_LOW) {
+        if (!isThrottleLow) {
             tryArm();
             return;
         }
@@ -221,13 +223,14 @@ void processRcStickPositions(throttleStatus_e throttleStatus)
             rcDisarmTimeMs = currentTimeMs;
             tryArm();
         } else {
+            emergencyArmingUpdate(armingSwitchIsActive);
             // Disarming via ARM BOX
             // Don't disarm via switch if failsafe is active or receiver doesn't receive data - we can't trust receiver
             // and can't afford to risk disarming in the air
             if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
                 const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
                 if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
-                    if (armingConfig()->disarm_kill_switch || (throttleStatus == THROTTLE_LOW)) {
+                    if (armingConfig()->disarm_kill_switch || isThrottleLow) {
                         disarm(DISARM_SWITCH);
                     }
                 }

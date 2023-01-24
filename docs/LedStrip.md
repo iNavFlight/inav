@@ -125,6 +125,7 @@ And each LED has overlays:
 * `B` - `B`link (flash twice) mode.
 * `O` - Lars`O`n Scanner (Cylon Effect).
 * `N` - Blink on la`N`ding (throttle < 50%).
+* `E` - Strob`E` Blink white on top of selected color.
 
 `cc` specifies the color number (0 based index), or Channel number to adjust Hue
 

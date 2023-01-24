@@ -148,7 +148,13 @@
 
 /*** Timer/PWM output ***/
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
+#ifdef FOXEERF722V4_X8
+#define MAX_PWM_OUTPUT_PORTS            8
+#else
 #define MAX_PWM_OUTPUT_PORTS            4
+#endif
+
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 

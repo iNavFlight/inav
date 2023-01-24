@@ -2708,7 +2708,7 @@ If set to ON, INAV disarms the FC after landing
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -4362,6 +4362,16 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ---
 
+### osd_msp_displayport_fullframe_interval
+
+Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | -1 | 600 |
+
+---
+
 ### osd_neg_alt_alarm
 
 Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters)
@@ -4704,7 +4714,7 @@ IMPERIAL, METRIC, UK
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO` and 'DJIWTF'
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4749,6 +4759,16 @@ A limitation to overall amount of correction Flight PID can request on each axis
 | Default | Min | Max |
 | --- | --- | --- |
 | 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
+
+---
+
+### pilot_name
+
+Pilot name
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _empty_ |  | MAX_NAME_LENGTH |
 
 ---
 
@@ -5658,7 +5678,7 @@ Time zone offset from UTC, in minutes. This is applied to the GPS time for loggi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | -1440 | 1440 |
+| 0 | -720 | 840 |
 
 ---
 

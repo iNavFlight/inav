@@ -1557,7 +1557,7 @@ static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledC
         bool equalsDefault = false;
         if (defaultLedConfigs) {
             ledConfig_t ledConfigDefault = defaultLedConfigs[i];
-            equalsDefault = ledConfig == ledConfigDefault;
+            equalsDefault = !memcmp(&ledConfig, &ledConfigDefault, sizeof(ledConfig_t));
             generateLedConfig(&ledConfigDefault, ledConfigDefaultBuffer, sizeof(ledConfigDefaultBuffer));
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, i, ledConfigDefaultBuffer);
         }
@@ -3274,6 +3274,17 @@ static void cliStatus(char *cmdline)
     char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
+    cliPrintLinef("%s/%s %s %s / %s (%s)",
+        FC_FIRMWARE_NAME,
+        targetName,
+        FC_VERSION_STRING,
+        buildDate,
+        buildTime,
+        shortGitRevision
+    );
+    cliPrintLinef("GCC-%s",
+        compilerVersion
+    );
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
@@ -3399,9 +3410,18 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
 
-#if defined(USE_VTX_CONTROL) && !defined(CLI_MINIMAL_VERBOSITY)
-    cliPrint("VTX: ");
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("OSD: ");
+#if defined(USE_OSD)
+    displayPort_t *osdDisplayPort = osdGetDisplayPort();
+    cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
+#else 
+    cliPrint("not used");
+#endif
+    cliPrintLinefeed();
 
+    cliPrint("VTX: ");
+#if defined(USE_VTX_CONTROL)
     if (vtxCommonDeviceIsReady(vtxCommonDevice())) {
         vtxDeviceOsdInfo_t osdInfo;
         vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
@@ -3418,6 +3438,9 @@ static void cliStatus(char *cmdline)
     else {
         cliPrint("not detected");
     }
+#else
+    cliPrint("no VTX control");
+#endif
 
     cliPrintLinefeed();
 #endif
@@ -3588,18 +3611,18 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
-        cliPrintHashLine("mixer");
+        cliPrintHashLine("Mixer: motor mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
-        cliPrintHashLine("servo mixer");
+        cliPrintHashLine("Mixer: servo mixer");
         cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters
-        cliPrintHashLine("servo");
+        cliPrintHashLine("Outputs [servo]");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
 #if defined(USE_SAFE_HOME)
@@ -3607,7 +3630,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 
-        cliPrintHashLine("feature");
+        cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
 #if defined(BEEPER) || defined(USE_DSHOT)
@@ -3620,30 +3643,30 @@ static void printConfig(const char *cmdline, bool doDiff)
         printBlackbox(dumpMask, &blackboxConfig_Copy, blackboxConfig());
 #endif
 
-        cliPrintHashLine("map");
+        cliPrintHashLine("Receiver: Channel map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
-        cliPrintHashLine("serial");
+        cliPrintHashLine("Ports");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
 #ifdef USE_LED_STRIP
-        cliPrintHashLine("led");
+        cliPrintHashLine("LEDs");
         printLed(dumpMask, ledStripConfig_Copy.ledConfigs, ledStripConfig()->ledConfigs);
 
-        cliPrintHashLine("color");
+        cliPrintHashLine("LED color");
         printColor(dumpMask, ledStripConfig_Copy.colors, ledStripConfig()->colors);
 
-        cliPrintHashLine("mode_color");
+        cliPrintHashLine("LED mode_color");
         printModeColor(dumpMask, &ledStripConfig_Copy, ledStripConfig());
 #endif
 
-        cliPrintHashLine("aux");
+        cliPrintHashLine("Modes [aux]");
         printAux(dumpMask, modeActivationConditions_CopyArray, modeActivationConditions(0));
 
-        cliPrintHashLine("adjrange");
+        cliPrintHashLine("Adjustments [adjrange]");
         printAdjustmentRange(dumpMask, adjustmentRanges_CopyArray, adjustmentRanges(0));
 
-        cliPrintHashLine("rxrange");
+        cliPrintHashLine("Receiver rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
 #ifdef USE_TEMPERATURE_SENSOR
@@ -3652,23 +3675,23 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
 
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
-        cliPrintHashLine("wp");
+        cliPrintHashLine("Mission Control Waypoints [wp]");
         printWaypoints(dumpMask, posControl.waypointList, nonVolatileWaypointList(0));
 #endif
 
 #ifdef USE_OSD
-        cliPrintHashLine("osd_layout");
+        cliPrintHashLine("OSD [osd_layout]");
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("logic");
+        cliPrintHashLine("Programming: logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
 
-        cliPrintHashLine("global vars");
+        cliPrintHashLine("Programming: global variables");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 
-        cliPrintHashLine("programmable pid controllers");
+        cliPrintHashLine("Programming: PID controllers");
         printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 

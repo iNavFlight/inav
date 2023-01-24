@@ -124,6 +124,7 @@ typedef struct {
     navEstimatedPosVel_t    abs;
     navEstimatedPosVel_t    agl;
     int32_t                 yaw;
+    int32_t                 cog;
 
     // Service values
     float                   sinYaw;
@@ -322,10 +323,9 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
-    fpVector3_t                 targetPos;
-    int32_t                     yaw;
-    int32_t                     previousYaw;
-    timeMs_t                    lastYawAdjustmentTime;
+    int32_t                     course;
+    int32_t                     previousCourse;
+    timeMs_t                    lastCourseAdjustmentTime;
 } navCruise_t;
 
 typedef struct {
@@ -444,10 +444,10 @@ bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
-void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
+void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
-void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
+void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
 
 bool isNavHoldPositionActive(void);
@@ -455,7 +455,7 @@ bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
 bool isWaypointNavTrackingActive(void);
 
-void updateActualHeading(bool headingValid, int32_t newHeading);
+void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
 
