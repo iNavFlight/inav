@@ -2842,16 +2842,6 @@ Launch abort stick deadband in [r/c points], applied after r/c deadband and expo
 
 ---
 
-### nav_fw_launch_vtx_lowpower
-
-Prevents VTX overheating by sending UNARMED to MSP until launch detected.
-
-| Default | Min | Max |
-|---------|-----|-----|
-| OFF     | OFF | ON  |
-
----
-
 ### nav_fw_launch_accel
 
 Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s
@@ -2999,6 +2989,16 @@ Forward velocity threshold for swing-launch detection [cm/s]
 | Default | Min | Max |
 | --- | --- | --- |
 | 300 | 100 | 10000 |
+
+---
+
+### nav_fw_launch_vtx_lowpower
+
+Prevents VTX overheating by sending UNARMED to MSP until launch detected
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

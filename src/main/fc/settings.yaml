@@ -2791,7 +2791,7 @@ groups:
         min: 2
         max: 250
       - name: nav_fw_launch_vtx_lowpower
-        description: "Send UNARMED to MSP until launch detected"
+        description: "Prevents VTX overheating by sending UNARMED to MSP until launch detected"
         default_value: OFF
         field: fw.launch_vtx_lowpower
         type: bool
