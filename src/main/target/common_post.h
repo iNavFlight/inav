@@ -85,8 +85,6 @@ extern uint8_t __config_end;
 
 #endif
 
-#endif
-
 #if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_FILE) || defined(CONFIG_IN_EXTERNAL_FLASH)
 #ifndef EEPROM_SIZE
 #define EEPROM_SIZE     8192
