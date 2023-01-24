@@ -626,7 +626,7 @@ static uint16_t osdGetCrsfLQ(void)
 {
     int16_t statsLQ = rxLinkStatistics.uplinkLQ;
     int16_t scaledLQ = scaleRange(constrain(statsLQ, 0, 100), 0, 100, 170, 300);
-    int16_t displayedLQ;
+    int16_t displayedLQ = 0;
     switch (osdConfig()->crsf_lq_format) {
         case OSD_CRSF_LQ_TYPE1:
             displayedLQ = statsLQ;
@@ -713,7 +713,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     // longitude maximum integer width is 4 (-180).
     int integerDigits = tfp_sprintf(buff + 1, (integerPart == 0 && val < 0) ? "-%d" : "%d", (int)integerPart);
     // We can show up to 7 digits in decimalPart.
-    int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
+    int32_t decimalPart = abs(val % (int)GPS_DEGREES_DIVIDER);
     STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
     int decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
     // Embbed the decimal separator
@@ -850,7 +850,9 @@ static const char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
-        case SIMULATOR_MODE:
+        case SIMULATOR_MODE_HITL:
+            FALLTHROUGH;
+        case SIMULATOR_MODE_SITL:
             FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;

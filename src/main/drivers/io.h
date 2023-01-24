@@ -70,7 +70,7 @@
 #define IOCFG_IN_FLOATING    IO_CONFIG(GPIO_Mode_IN,  0, 0,             GPIO_PuPd_NOPULL)
 #define IOCFG_IPU_25         IO_CONFIG(GPIO_Mode_IN,  GPIO_Speed_25MHz, 0, GPIO_PuPd_UP)
 
-#elif defined(UNIT_TEST)
+#elif defined(UNIT_TEST) || defined(SITL_BUILD)
 
 # define IOCFG_OUT_PP         0
 # define IOCFG_OUT_OD         0

@@ -3296,6 +3296,7 @@ static void cliStatus(char *cmdline)
     }
     cliPrintLinefeed();
 
+#if !defined(SITL_BUILD)
     cliPrintLine("STM32 system clocks:");
 #if defined(USE_HAL_DRIVER)
     cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -3309,6 +3310,7 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  HCLK   = %d MHz", clocks.HCLK_Frequency / 1000000);
     cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
+#endif
 #endif
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
@@ -3338,18 +3340,19 @@ static void cliStatus(char *cmdline)
 #endif
 #ifdef USE_I2C
     const uint16_t i2cErrorCounter = i2cGetErrorCounter();
-#else
+#elif !defined(SITL_BUILD)
     const uint16_t i2cErrorCounter = 0;
 #endif
 
 #ifdef STACK_CHECK
     cliPrintf("Stack used: %d, ", stackUsedSize());
 #endif
+#if !defined(SITL_BUILD)
     cliPrintLinef("Stack size: %d, Stack address: 0x%x, Heap available: %d", stackTotalSize(), stackHighMem(), memGetAvailableBytes());
 
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
-
-#ifdef USE_ADC
+#endif
+#if defined(USE_ADC) && !defined(SITL_BUILD)
     static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
     cliPrintLine("ADC channel usage:");
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -3492,7 +3495,7 @@ static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
     cliPrintLinef("IO:\r\n----------------------");
-    for (unsigned i = 0; i < DEFIO_IO_USED_COUNT; i++) {
+    for (int i = 0; i < DEFIO_IO_USED_COUNT; i++) {
         const char* owner;
         owner = ownerNames[ioRecs[i].owner];
 

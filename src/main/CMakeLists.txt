@@ -210,6 +210,8 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
     drivers/pitotmeter/pitotmeter_virtual.h
+    drivers/pitotmeter/pitotmeter_fake.h
+    drivers/pitotmeter/pitotmeter_fake.c
     drivers/pwm_esc_detect.c
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
@@ -491,6 +493,7 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_nmea.c
     io/gps_msp.c
+    io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c
     io/ledstrip.h
@@ -542,6 +545,8 @@ main_sources(COMMON_SRC
     sensors/rangefinder.h
     sensors/opflow.c
     sensors/opflow.h
+    sensors/battery_sensor_fake.c
+    sensors/battery_sensor_fake.h
 
     telemetry/crsf.c
     telemetry/crsf.h

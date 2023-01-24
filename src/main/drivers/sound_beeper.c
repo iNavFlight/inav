@@ -47,7 +47,7 @@ void systemBeep(bool onoff)
 #else
 
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE)) {
+	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
 		if (SIMULATOR_HAS_OPTION(HITL_MUTE_BEEPER)) {
 			onoff = false;
 		}

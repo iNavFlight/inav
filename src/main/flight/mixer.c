@@ -340,6 +340,7 @@ static void applyTurtleModeToMotors(void) {
 
 void FAST_CODE writeMotors(void)
 {
+#if !defined(SITL_BUILD)
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
 
@@ -422,6 +423,7 @@ void FAST_CODE writeMotors(void)
 
         pwmWriteMotor(i, motorValue);
     }
+#endif
 }
 
 void writeAllMotors(int16_t mc)
@@ -442,7 +444,10 @@ void stopMotors(void)
 
 void stopPwmAllMotors(void)
 {
+#if !defined(SITL_BUILD)
     pwmShutdownPulsesForAllMotors(motorCount);
+#endif
+
 }
 
 static int getReversibleMotorsThrottleDeadband(void)

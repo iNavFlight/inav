@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
+//FILE_COMPILE_FOR_SPEED
 
 #include "build/build_config.h"
 #include "build/debug.h"
@@ -486,7 +486,7 @@ void FAST_CODE NOINLINE gyroFilter()
             );
 
             secondaryDynamicGyroNotchFiltersUpdate(
-                &secondaryDynamicGyroNotchState,
+                &secondaryDynamicGyroNotchState, 
                 gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
@@ -500,7 +500,7 @@ void FAST_CODE NOINLINE gyroFilter()
 void FAST_CODE NOINLINE gyroUpdate()
 {
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         //output: gyro.gyroADCf[axis]
         //unused: dev->gyroADCRaw[], dev->gyroZero[];
         return;

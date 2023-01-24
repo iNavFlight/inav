@@ -128,6 +128,8 @@ uint32_t IO_EXTI_Line(IO_t io)
     }
 #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     return 1 << IO_GPIOPinIdx(io);
+#elif defined (SITL_BUILD)
+    return 0;
 #else
 # error "Unknown target type"
 #endif
@@ -334,8 +336,14 @@ void IOConfigGPIOAF(IO_t io, ioConfig_t cfg, uint8_t af)
 }
 #endif
 
+#if DEFIO_PORT_USED_COUNT > 0
 static const uint16_t ioDefUsedMask[DEFIO_PORT_USED_COUNT] = { DEFIO_PORT_USED_LIST };
 static const uint8_t ioDefUsedOffset[DEFIO_PORT_USED_COUNT] = { DEFIO_PORT_OFFSET_LIST };
+#else
+// Avoid -Wpedantic warning
+static const uint16_t ioDefUsedMask[1] = {0};
+static const uint8_t ioDefUsedOffset[1] = {0};
+#endif
 ioRec_t ioRecs[DEFIO_IO_USED_COUNT];
 
 // initialize all ioRec_t structures from ROM

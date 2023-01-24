@@ -1558,11 +1558,13 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
         blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]);
 
+#ifdef USE_DYNAMIC_FILTERS
         for (uint8_t i = 0; i < DYN_NOTCH_PEAK_COUNT ; i++) {
             blackboxCurrent->gyroPeaksRoll[i] = dynamicGyroNotchState.frequency[FD_ROLL][i];
             blackboxCurrent->gyroPeaksPitch[i] = dynamicGyroNotchState.frequency[FD_PITCH][i];
             blackboxCurrent->gyroPeaksYaw[i] = dynamicGyroNotchState.frequency[FD_YAW][i];
         }
+#endif
 
 #ifdef USE_MAG
         blackboxCurrent->magADC[i] = mag.magADC[i];
