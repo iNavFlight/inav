@@ -1,6 +1,6 @@
 # SITL
 
-![INAV-SIM-OSD](assetes/INAV-SIM-OSD.png)
+![INAV-SIM-OSD](assets/INAV-SIM-OSD.png)
 
 ## ATTENTION!
 SITL is currently still under development, its use is still a bit cumbersome. 
