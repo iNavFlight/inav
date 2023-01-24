@@ -350,6 +350,8 @@ static bool needResetArmFlag(void)
         return false;
     if (fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED)
         return false;
+    if (!navConfig()->fw.launch_vtx_lowpower)
+        return false;
     return true;
 }
 
