@@ -2272,6 +2272,16 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ---
 
+### mavlink_chn_override_timeout_ms
+
+Time out for RC_CHANNELS_OVERRIDE, to stop updading the channels values
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 65535 |
+
+---
+
 ### mavlink_ext_status_rate
 
 _// TODO_
