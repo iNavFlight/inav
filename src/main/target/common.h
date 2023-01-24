@@ -184,11 +184,6 @@
 #define USE_SIMULATOR
 #define USE_PITOT_VIRTUAL
 #define USE_FAKE_BATT_SENSOR
-#define USE_PITOT_FAKE
-#define USE_IMU_FAKE
-#define USE_FAKE_BARO
-#define USE_FAKE_MAG
-#define USE_GPS_FAKE
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)

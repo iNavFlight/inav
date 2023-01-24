@@ -211,8 +211,10 @@ STATIC_PROTOTHREAD(pitotThread)
         float airSpeed;
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
              airSpeed = simulatorData.airSpeed;
+#if defined(USE_PITOT_FAKE)
         } else if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
         	airSpeed = fakePitotGetAirspeed();
+#endif
     	} else {
             airSpeed = 0;
         }
@@ -244,8 +246,10 @@ STATIC_PROTOTHREAD(pitotThread)
 #ifdef USE_SIMULATOR
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
             pitot.airSpeed = simulatorData.airSpeed;
+#if defined(USE_PITOT_FAKE)
         } else if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
             pitot.airSpeed = fakePitotGetAirspeed();
+#endif
         } else {
             pitot.airSpeed = 0;
         }
