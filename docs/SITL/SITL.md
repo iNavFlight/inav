@@ -1,6 +1,6 @@
 # SITL
 
-![INAV-SIM-OSD](/assetes/INAV-SIM-OSD.png)
+![INAV-SIM-OSD](assetes/INAV-SIM-OSD.png)
 
 ## ATTENTION!
 SITL is currently still under development, its use is still a bit cumbersome. 
@@ -46,7 +46,7 @@ The following sensors are emulated:
 - barometer
 - Battery (current and voltage), depending on simulator
 
-![SITL-Fake-Sensors](/assets/SITL-Fake-Sensors.png)
+![SITL-Fake-Sensors](assets/SITL-Fake-Sensors.png)
 
 Magnetometer (compass) is not yet supported, therefore no support for copters.
 
@@ -59,7 +59,7 @@ To connect the Configurator to SITL: Select TCP and connect to ```127.0.0.1:5760
 
 The assignment and status of user UART/TCP connections is displayed on the console.
 
-![STL-Output](/assets/SITL-UART-TCP-Connecion.png)
+![STL-Output](assets/SITL-UART-TCP-Connecion.png)
 
 All other interfaces (I2C, SPI, etc.) are not emulated.
 
@@ -73,7 +73,7 @@ Please use the linked version, which has a smaller buffer, otherwise the control
 ### Example SBUS:
 For this you need a FT232 module. With FT-Prog (https://ftdichip.com/utilities/) the signals can be inverted: Devices->Scan and Parse, then Hardware Specific -> Invert RS232 Signals -> Invert RXD.
 
-![SITL-SBUS-FT232](/assets/SITL-SBUS-FT232.png)
+![SITL-SBUS-FT232](assets/SITL-SBUS-FT232.png)
 
 For SBUS, the command line arguments of the python script are: 
 ```python tcp_serial_redirect.py --parity E --stopbits 2 -c 127.0.0.1:[INAV-UART-PORT] COMXX 100000``` 
