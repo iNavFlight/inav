@@ -357,7 +357,7 @@ bool compassIsCalibrationComplete(void)
 void compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE)) {
+	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
 		magUpdatedAtLeastOnce = true;
 		return;
 	}

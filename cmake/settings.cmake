@@ -29,12 +29,15 @@ function(enable_settings exe name)
         ${ARGN}
     )
 
+    if(host STREQUAL TOOLCHAIN)
+        set(USE_HOST_GCC "-g")
+    endif()
     set(output ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C})
     add_custom_command(
         OUTPUT ${output}
         COMMAND
             ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="$ENV{PATH}" SETTINGS_CXX=${args_SETTINGS_CXX}
-            ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} -o "${dir}"
+            ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} ${USE_HOST_GCC} -o "${dir}" 
         DEPENDS ${SETTINGS_GENERATOR} ${SETTINGS_FILE}
     )
     set(${args_OUTPUTS} ${output} PARENT_SCOPE)

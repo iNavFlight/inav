@@ -827,6 +827,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+  
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -842,10 +843,18 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         processDelayedSave();
     }
 
+#if defined(SITL_BUILD)
+    if (lockMainPID()) {
+#endif
+
     gyroFilter();
 
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
+
+#if defined(SITL_BUILD)
+    }
+#endif
 
     processPilotAndFailSafeActions(dT);
 
@@ -902,8 +911,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
 
-#ifdef USE_SMULATOR
-	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+#ifdef USE_SIMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
 	    if (isServoOutputEnabled()) {
 	        writeServos();
 	    }

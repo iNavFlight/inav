@@ -59,6 +59,9 @@
 
 #include "io/beeper.h"
 
+#if defined(USE_FAKE_BATT_SENSOR)
+#include "sensors/battery_sensor_fake.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -283,21 +286,17 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             }
             break;
 #endif
-        case VOLTAGE_SENSOR_NONE:
+        
+#if defined(USE_FAKE_BATT_SENSOR)
+    case VOLTAGE_SENSOR_FAKE:
+        vbat = fakeBattSensorGetVBat();
+        break;
+#endif
+    case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
             break;
     }
-#ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE)) {
-		if (SIMULATOR_HAS_OPTION(HITL_SIMULATE_BATTERY)) {
-            vbat = ((uint16_t)simulatorData.vbat) * 10;
-            batteryFullVoltage = 1260;
-			batteryWarningVoltage = 1020;
-			batteryCriticalVoltage = 960;
-		}
-	}
-#endif
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
     } else {
@@ -572,6 +571,12 @@ void currentMeterUpdate(timeUs_t timeDelta)
                     amperage = 0;
                 }
             }
+            break;
+#endif
+
+#if defined(USE_FAKE_BATT_SENSOR)
+        case CURRENT_SENSOR_FAKE:
+            amperage = fakeBattSensorGetAmerperage();
             break;
 #endif
         case CURRENT_SENSOR_NONE:

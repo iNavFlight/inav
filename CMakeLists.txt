@@ -10,8 +10,15 @@ set(SVD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dev/svd")
 set(DOWNLOADS_DIR "${MAIN_DIR}/downloads")
 set(TOOLS_DIR "${MAIN_DIR}/tools")
 
-set(TOOLCHAIN_OPTIONS none arm-none-eabi)
-set(TOOLCHAIN "arm-none-eabi" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
+option(SITL "SITL build for host system" OFF)
+
+set(TOOLCHAIN_OPTIONS none arm-none-eabi host)
+if (SITL)
+    set(TOOLCHAIN "host" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
+else()
+    set(TOOLCHAIN "arm-none-eabi" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
+endif()
+
 set_property(CACHE TOOLCHAIN PROPERTY STRINGS ${TOOLCHAIN_OPTIONS})
 if("" STREQUAL TOOLCHAIN)
     set(TOOLCHAIN none)
@@ -33,7 +40,11 @@ include(settings)
 if(TOOLCHAIN STREQUAL none)
     add_subdirectory(src/test)
 else()
-    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
+    if (SITL)
+        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
+    else()
+        set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}.cmake")
+    endif()
     include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/${TOOLCHAIN}-checks.cmake")
 endif()
 
@@ -68,9 +79,13 @@ set(COMMON_COMPILE_DEFINITIONS
     FC_VERSION_PATCH_LEVEL=${CMAKE_PROJECT_VERSION_PATCH}
 )
 
-include(openocd)
-include(svd)
+if (NOT SITL)
+    include(openocd)
+    include(svd)
+endif()
+
 include(stm32)
+include(sitl)
 
 add_subdirectory(src)
 

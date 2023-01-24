@@ -159,12 +159,16 @@ void validateNavConfig(void)
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS

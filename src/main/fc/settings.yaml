@@ -35,16 +35,16 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "ESC"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC"]
+    values: ["NONE", "ADC", "ESC", "FAKE"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UBLOX7", "MSP"]
+    values: ["NMEA", "UBLOX", "UBLOX7", "MSP", "FAKE"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]

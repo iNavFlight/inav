@@ -446,7 +446,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         /* If calibration is incomplete - report zero acceleration */
         if (gravityCalibrationComplete()) {
 #ifdef USE_SIMULATOR
-            if (ARMING_FLAG(SIMULATOR_MODE)) {
+            if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
                 posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
             }
 #endif

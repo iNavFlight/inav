@@ -274,12 +274,12 @@ end
 OFF_ON_TABLE = Hash["name" => "off_on", "values" => ["OFF", "ON"]]
 
 class Generator
-    def initialize(src_root, settings_file, output_dir)
+    def initialize(src_root, settings_file, output_dir, use_host_gcc)
         @src_root = src_root
         @settings_file = settings_file
         @output_dir = output_dir || File.dirname(settings_file)
 
-        @compiler = Compiler.new
+        @compiler = Compiler.new(use_host_gcc)
 
         @count = 0
         @max_name_length = 0
@@ -1130,7 +1130,7 @@ class Generator
 end
 
 def usage
-    puts "Usage: ruby #{__FILE__} <source_dir> <settings_file> [--json <json_file>]"
+    puts "Usage: ruby #{__FILE__} <source_dir> <settings_file> [--use_host_gcc] [--json <json_file>]"
 end
 
 if __FILE__ == $0
@@ -1148,11 +1148,13 @@ if __FILE__ == $0
     opts = GetoptLong.new(
         [ "--output-dir", "-o", GetoptLong::REQUIRED_ARGUMENT ],
         [ "--help", "-h", GetoptLong::NO_ARGUMENT ],
+        [ "--use_host_gcc", "-g", GetoptLong::REQUIRED_ARGUMENT],
         [ "--json", "-j", GetoptLong::REQUIRED_ARGUMENT ],
     )
 
     jsonFile = nil
     output_dir = nil
+    use_host_gcc = nil
 
     opts.each do |opt, arg|
         case opt
@@ -1161,12 +1163,14 @@ if __FILE__ == $0
         when "--help"
             usage()
             exit(0)
+        when "--use_host_gcc"
+            use_host_gcc = true
         when "--json"
             jsonFile = arg
         end
     end
 
-    gen = Generator.new(src_root, settings_file, output_dir)
+    gen = Generator.new(src_root, settings_file, output_dir, use_host_gcc)
 
     if jsonFile
         gen.write_json(jsonFile)
