@@ -59,11 +59,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_program(RUBY_EXECUTABLE ruby)
-if (NOT RUBY_EXECUTABLE)
-    message(FATAL_ERROR "Could not find ruby")
-endif()
-
 if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     set(IS_RELEASE_BUILD ON)
 endif()

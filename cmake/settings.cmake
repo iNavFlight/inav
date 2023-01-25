@@ -29,6 +29,11 @@ function(enable_settings exe name)
         ${ARGN}
     )
 
+    find_program(RUBY_EXECUTABLE ruby)
+    if (NOT RUBY_EXECUTABLE)
+        message(FATAL_ERROR "Could not find ruby")
+    endif()
+
     if(host STREQUAL TOOLCHAIN)
         set(USE_HOST_GCC "-g")
     endif()
