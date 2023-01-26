@@ -618,6 +618,7 @@ bool isAdjustingHeading(void);
 
 float getEstimatedAglPosition(void);
 bool isEstimatedAglTrusted(void);
+bool isFlightDetected(void);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
