@@ -348,6 +348,12 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
         }
 
+        if ( ARMING_FLAG(WAS_EVER_ARMED) && isFlightDetected() ) {
+		    DISABLE_ARMING_FLAG(ARMING_DISABLED_NOT_LEVEL);
+		    DISABLE_ARMING_FLAG(ARMING_DISABLED_THROTTLE);
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
+        }
+
         /* CHECK: Arming switch */
         // If arming is disabled and the ARM switch is on
         // Note that this should be last check so all other blockers could be cleared correctly
