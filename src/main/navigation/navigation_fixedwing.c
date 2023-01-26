@@ -711,7 +711,7 @@ bool isFixedWingLandingDetected(void)
     static int16_t fwLandSetPitchDatum;
     const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
 
-    timeMs_t currentTimeMs = millis();
+    const timeMs_t currentTimeMs = millis();
 
     // Check horizontal and vertical velocities are low (cm/s)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&

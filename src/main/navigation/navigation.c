@@ -2808,7 +2808,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
     }
 
     static timeMs_t lastUpdateTimeMs = 0;
-    if (currentTimeMs < lastUpdateTimeMs + HZ2MS(100)) {  // limit update to 100Hz
+    if ((currentTimeMs - lastUpdateTimeMs) <= HZ2MS(100)) {  // limit update to 100Hz
         return;
     }
     lastUpdateTimeMs = currentTimeMs;
