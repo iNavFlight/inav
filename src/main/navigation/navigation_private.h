@@ -104,14 +104,13 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
 
-    bool wpMissionPlannerActive;            // Activation status of WP mission planner
-
     /* Landing detector */
     bool resetLandingDetector;
 
+    bool wpMissionPlannerActive;            // Activation status of WP mission planner
     bool rthTrackbackActive;                // Activation status of RTH trackback
-
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
+    bool manualEmergLandActive;             // Activation status of manual emergency landing
 } navigationFlags_t;
 
 typedef struct {

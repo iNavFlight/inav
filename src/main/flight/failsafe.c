@@ -346,6 +346,11 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
         }
     }
 
+    // Inhibit Failsafe if emergency landing triggered manually
+    if (posControl.flags.manualEmergLandActive) {
+        return FAILSAFE_PROCEDURE_NONE;
+    }
+
     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
     // GPS must also be working, and home position set
     if (failsafeConfig()->failsafe_min_distance > 0 &&
