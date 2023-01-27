@@ -2563,7 +2563,7 @@ groups:
         max: 45
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
+        default_value: 1000
         field: general.auto_disarm_delay
         min: 100
         max: 10000

@@ -734,6 +734,7 @@ bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
     DEBUG_SET(DEBUG_LANDING, 3, averageAbsGyroRates() * 100);
+
     const timeMs_t currentTimeMs = millis();
 
     /* Detection based on G bump at touchdown, falling Baro altitude and throttle below hover.
@@ -793,13 +794,13 @@ bool isMulticopterLandingDetected(void)
 
         if (!landingDetectorStartedAt) {
             landingThrSum = landingThrSamples = 0;
-            landingDetectorStartedAt = currentTimeUs;
+            landingDetectorStartedAt = currentTimeMs;
         }
         if (!landingThrSamples) {
-            if (currentTimeUs - landingDetectorStartedAt < (USECS_PER_SEC * MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
+            if (currentTimeMs - landingDetectorStartedAt < S2MS(MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
                 return false;
             } else {
-                landingDetectorStartedAt = currentTimeUs;
+                landingDetectorStartedAt = currentTimeMs;
             }
         }
         landingThrSamples += 1;
@@ -815,7 +816,7 @@ bool isMulticopterLandingDetected(void)
         if (landingDetectorStartedAt) {
             possibleLandingDetected = velCondition && gyroCondition;
         } else {
-            landingDetectorStartedAt = currentTimeUs;
+            landingDetectorStartedAt = currentTimeMs;
             return false;
         }
     }
@@ -830,10 +831,10 @@ bool isMulticopterLandingDetected(void)
     DEBUG_SET(DEBUG_LANDING, 5, possibleLandingDetected);
 
     if (possibleLandingDetected) {
-        timeUs_t safetyTimeDelay = MS2US(2000 + navConfig()->general.auto_disarm_delay);  // check conditions stable for 2s + optional extra delay
-        return (currentTimeUs - landingDetectorStartedAt > safetyTimeDelay);
+        timeMs_t safetyTimeDelay = 1000 + navConfig()->general.auto_disarm_delay;  // check conditions stable for 1s + optional extra delay
+        return (currentTimeMs - landingDetectorStartedAt > safetyTimeDelay);
     } else {
-        landingDetectorStartedAt = currentTimeUs;
+        landingDetectorStartedAt = currentTimeMs;
         return false;
     }
 }

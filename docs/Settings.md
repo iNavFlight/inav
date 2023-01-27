@@ -2688,7 +2688,7 @@ Delay before craft disarms when `nav_disarm_on_landing` is set (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 2000 | 100 | 10000 |
+| 1000 | 100 | 10000 |
 
 ---
 
