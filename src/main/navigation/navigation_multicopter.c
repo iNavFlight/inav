@@ -720,11 +720,44 @@ bool isMulticopterFlying(void)
 /*-----------------------------------------------------------
  * Multicopter land detector
  *-----------------------------------------------------------*/
+float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue)
+{
+    static float baroAltRate;
+    if (updateValue) {
+        baroAltRate = newBaroAltRate;
+    }
+
+    return baroAltRate;
+}
+
 bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
-    static timeUs_t landingDetectorStartedAt;
+    DEBUG_SET(DEBUG_LANDING, 3, averageAbsGyroRates() * 100);
+    const timeMs_t currentTimeMs = millis();
 
+    /* Detection based on G bump at touchdown, falling Baro altitude and throttle below hover.
+     * G bump trigger: > 2g then falling back below 1g in < 0.1s.
+     * Baro trigger: rate must be -ve at initial trigger g and < -2 m/s when g falls back below 1g
+     * Throttle trigger: must be below hover throttle with lower threshold for manual throttle control */
+    static timeMs_t gSpikeDetectTimeMs = 0;
+    float baroAltRate = updateBaroAltitudeRate(0, false);
+
+    if (!gSpikeDetectTimeMs && acc.accADCf[Z] > 2.0f && baroAltRate < 0.0f) {   // initial trigger, > 2g, -ve baro rate
+        gSpikeDetectTimeMs = currentTimeMs;
+    } else if (gSpikeDetectTimeMs) {
+        if (currentTimeMs < gSpikeDetectTimeMs + 100) {
+            if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
+                const uint16_t idleThrottle = getThrottleIdleValue();
+                const uint16_t hoverThrottleRange = currentBatteryProfile->nav.mc.hover_throttle - idleThrottle;
+                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.9 : 0.5) * hoverThrottleRange);
+            }
+        } else if (acc.accADCf[Z] <= 1.0f) {
+            gSpikeDetectTimeMs = 0;
+        }
+    }
+
+    static timeMs_t landingDetectorStartedAt;
     /* Basic condition to start looking for landing
     *  Prevent landing detection if WP mission allowed during Failsafe (except landing states) */
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
@@ -747,7 +780,6 @@ bool isMulticopterLandingDetected(void)
     DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
     bool possibleLandingDetected = false;
-    const timeUs_t currentTimeUs = micros();
 
     if (navGetCurrentStateFlags() & NAV_CTL_LAND) {
         // We have likely landed if throttle is 40 units below average descend throttle

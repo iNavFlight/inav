@@ -619,6 +619,8 @@ bool isAdjustingHeading(void);
 float getEstimatedAglPosition(void);
 bool isEstimatedAglTrusted(void);
 
+float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
+
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
  * are in the [0, 360 * 100) interval.
