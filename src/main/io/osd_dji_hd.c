@@ -1192,7 +1192,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     djiSerializeCraftNameOverride(dst);
                 } else {
 #endif
-                    sbufWriteData(dst, systemConfig()->name, (int)strlen(systemConfig()->name));
+                    sbufWriteData(dst, systemConfig()->craftName, (int)strlen(systemConfig()->craftName));
 #if defined(USE_OSD)
                 }
 #endif

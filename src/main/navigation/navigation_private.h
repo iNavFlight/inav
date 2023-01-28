@@ -42,7 +42,7 @@
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
-#define MC_LAND_DESCEND_THROTTLE            40      // uS
+#define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
@@ -105,14 +105,13 @@ typedef struct navigationFlags_s {
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
 
-    bool wpMissionPlannerActive;            // Activation status of WP mission planner
-
     /* Landing detector */
     bool resetLandingDetector;
 
+    bool wpMissionPlannerActive;            // Activation status of WP mission planner
     bool rthTrackbackActive;                // Activation status of RTH trackback
-
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
+    bool manualEmergLandActive;             // Activation status of manual emergency landing
 } navigationFlags_t;
 
 typedef struct {
@@ -324,7 +323,6 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
-    fpVector3_t                 targetPos;
     int32_t                     course;
     int32_t                     previousCourse;
     timeMs_t                    lastCourseAdjustmentTime;

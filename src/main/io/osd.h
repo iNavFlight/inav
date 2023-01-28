@@ -270,6 +270,7 @@ typedef enum {
     OSD_NAV_WP_MULTI_MISSION_INDEX,
     OSD_GROUND_COURSE,      // 140
     OSD_CROSS_TRACK_ERROR,
+    OSD_PILOT_NAME,
     OSD_MULTI_FUNCTION,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
@@ -374,6 +375,7 @@ typedef struct osdConfig_s {
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
+    int16_t msp_displayport_fullframe_interval;
 
     // Preferences
     uint8_t main_voltage_decimals;

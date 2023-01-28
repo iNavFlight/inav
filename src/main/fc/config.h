@@ -80,7 +80,8 @@ typedef struct systemConfig_s {
     uint8_t cpuUnderclock;
 #endif
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
-    char name[MAX_NAME_LENGTH + 1];
+    char craftName[MAX_NAME_LENGTH + 1];
+    char pilotName[MAX_NAME_LENGTH + 1];
 } systemConfig_t;
 
 PG_DECLARE(systemConfig_t, systemConfig);
@@ -137,8 +138,8 @@ uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
-void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]);
-void setGravityCalibrationAndWriteEEPROM(float getGravity);
+void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGravityCalibration(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);
 void applyAndSaveBoardAlignmentDelta(int16_t roll, int16_t pitch);

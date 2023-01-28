@@ -511,6 +511,105 @@ void logicConditionProcess(uint8_t i) {
     }
 }
 
+static int logicConditionGetWaypointOperandValue(int operand) {
+
+    switch (operand) {
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_IS_WP: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_INDEX:
+            return NAV_Status.activeWpNumber;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_ACTION:
+            return NAV_Status.activeWpAction;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_NEXT_WAYPOINT_ACTION:
+            {
+                uint8_t wpIndex = posControl.activeWaypointIndex + 1;
+                if ((wpIndex > 0) && (wpIndex < NAV_MAX_WAYPOINTS)) {
+                    return posControl.waypointList[wpIndex].action;
+                }
+                return false;
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE:
+            {
+                uint32_t distance = 0;
+                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex].alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+
+                    distance = calculateDistanceToDestination(&poi) / 100;
+                }
+
+                return distance;
+            }
+            break;
+
+        case LOGIC_CONDTIION_OPERAND_WAYPOINTS_DISTANCE_FROM_WAYPOINT:
+            {
+                uint32_t distance = 0;
+                if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpIndex > 0) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex-1].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex-1].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex-1].alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+
+                    distance = calculateDistanceToDestination(&poi) / 100;
+                }
+
+                return distance;
+            }
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER1) == NAV_WP_USER1);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER2) == NAV_WP_USER2);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER3) == NAV_WP_USER3);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER4) == NAV_WP_USER4);
+            break;
+
+        default:
+            return 0;
+            break;
+    }
+}
+
 static int logicConditionGetFlightOperandValue(int operand) {
 
     switch (operand) {
@@ -624,10 +723,6 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return (navGetCurrentStateFlags() & NAV_AUTO_RTH) ? 1 : 0;
             break; 
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP: // 0/1
-            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
-            break; 
-
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
             return (navGetCurrentStateFlags() & NAV_CTL_LAND) ? 1 : 0;
             break;
@@ -646,14 +741,6 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
             return axisPID[PITCH];
-            break;
-
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX:
-            return NAV_Status.activeWpNumber;
-            break;
-
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
-            return NAV_Status.activeWpAction;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
@@ -778,7 +865,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 
         case LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL:
             //Extract RC channel raw value
-            if (operand >= 1 && operand <= 16) {
+            if (operand >= 1 && operand <= MAX_SUPPORTED_RC_CHANNEL_COUNT) {
                 retVal = rxGetChannelValue(operand - 1);
             } 
             break;
@@ -807,6 +894,10 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
             if (operand >= 0 && operand < MAX_PROGRAMMING_PID_COUNT) {
                 retVal = programmingPidGetOutput(operand);
             }
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS:
+            retVal = logicConditionGetWaypointOperandValue(operand);
             break;
 
         default:
