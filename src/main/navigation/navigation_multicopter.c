@@ -798,8 +798,11 @@ bool isMulticopterLandingDetected(void)
     DEBUG_SET(DEBUG_LANDING, 5, possibleLandingDetected);
 
     if (possibleLandingDetected) {
-        timeMs_t safetyTimeDelay = 1000 + navConfig()->general.auto_disarm_delay;  // check conditions stable for 1s + optional extra delay
-        return (currentTimeMs - landingDetectorStartedAt > safetyTimeDelay);
+        /* Conditions need to be held for fixed safety time + optional extra delay.
+         * Fixed time increased if Z velocity invalid to provide extra safety margin against false triggers */
+        const uint16_t safetyTime = posControl.flags.estAltStatus == EST_NONE ? 5000 : 1000;
+        timeMs_t safetyTimeDelay = safetyTime + navConfig()->general.auto_disarm_delay;
+        return currentTimeMs - landingDetectorStartedAt > safetyTimeDelay;
     } else {
         landingDetectorStartedAt = currentTimeMs;
         return false;
