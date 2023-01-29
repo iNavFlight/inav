@@ -80,7 +80,7 @@ static bool flashDeviceInit(void)
 {
     bool detected = false;
 
-    for (uint32_t idx = 0; idx <= ARRAYLEN(flashDrivers); idx++)
+    for (uint32_t idx = 0; idx < ARRAYLEN(flashDrivers); idx++) //idx = ARRAYLEN may cause overflow
     {
         detected = flashDrivers[idx].init(0);
         if (detected)
