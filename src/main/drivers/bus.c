@@ -396,9 +396,7 @@ bool busIsBusy(const busDevice_t * dev)
             return false;
 #endif
         case BUSTYPE_I2C:
-            // Not implemented for I2C, respond as always free
-            return false;
-
+            return i2cBusBusy(dev,NULL);
         default:
             return false;
     }

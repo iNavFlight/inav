@@ -25,4 +25,8 @@ typedef enum {
 
 void uartInverterInit(void);
 
+ #if defined(AT32F43x) 
+void uartInverterSet(usart_type *USARTx, uartInverterLine_e line, bool enable);
+#else
 void uartInverterSet(USART_TypeDef *USARTx, uartInverterLine_e line, bool enable);
+#endif

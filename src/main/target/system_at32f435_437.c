@@ -99,7 +99,7 @@ void SystemInit (void)
 
   /* disable all interrupts enable and clear pending bits  */
   CRM->clkint = 0x009F0000U;
-// todo set RAM
+// set vector table relocation 
 #ifdef VECT_TAB_SRAM
   SCB->VTOR = SRAM_BASE  | VECT_TAB_OFFSET;  /* vector table relocation in internal sram. */
 #else
