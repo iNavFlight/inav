@@ -3615,7 +3615,7 @@ static bool isWaypointMissionValid(void)
     return posControl.waypointListValid && (posControl.waypointCount > 0);
 }
 
-static void checkManualEmergencyLandingControl(void)
+void checkManualEmergencyLandingControl(bool forcedActivation)
 {
     static timeMs_t timeout = 0;
     static int8_t counter = 0;
@@ -3640,7 +3640,7 @@ static void checkManualEmergencyLandingControl(void)
     }
 
     // Emergency landing toggled ON or OFF after 5 cycles of Poshold mode @ 1Hz minimum rate
-    if (counter >= 5) {
+    if (counter >= 5 || forcedActivation) {
         counter = 0;
         posControl.flags.manualEmergLandActive = !posControl.flags.manualEmergLandActive;
 
@@ -3677,7 +3677,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         /* Emergency landing controlled manually by rapid switching of Poshold mode.
          * Landing toggled ON or OFF for each Poshold activation sequence */
-        checkManualEmergencyLandingControl();
+        checkManualEmergencyLandingControl(false);
 
         /* Emergency landing triggered by failsafe Landing or manually initiated */
         if (posControl.flags.forcedEmergLandingActivated || posControl.flags.manualEmergLandActive) {

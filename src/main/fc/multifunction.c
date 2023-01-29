@@ -29,6 +29,7 @@
 #include "fc/fc_core.h"
 #include "fc/multifunction.h"
 #include "fc/rc_modes.h"
+#include "fc/runtime_config.h"
 
 #include "io/osd.h"
 #include "navigation/navigation.h"
@@ -41,7 +42,10 @@ static void multiFunctionApply(multi_function_e selectedItem)
     case MULTI_FUNC_1:  // redisplay current warnings
         resetOsdWarningFlags();
         break;
-    case MULTI_FUNC_2:  // emergency ARM
+    case MULTI_FUNC_2:  // control manual emergency landing
+        checkManualEmergencyLandingControl(ARMING_FLAG(ARMED));
+        break;
+    case MULTI_FUNC_3:  // emergency ARM
         emergencyArmingUpdate(true, true);
         break;
     case MULTI_FUNC_END:
