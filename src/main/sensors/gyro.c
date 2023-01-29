@@ -49,6 +49,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
+#include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
 
@@ -204,6 +205,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_BMI270:
         if (bmi270GyroDetect(dev)) {
             gyroHardware = GYRO_BMI270;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_LSM6DXX
+    case GYRO_LSM6DXX:
+        if (lsm6dGyroDetect(dev)) {
+            gyroHardware = GYRO_LSM6DXX;
             break;
         }
         FALLTHROUGH;
