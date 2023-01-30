@@ -1,4 +1,12 @@
 #!/usr/bin/python3
+# Betaflight unified config to INAV target converter
+#
+# This script can be used to Generate a basic working target from a Betaflight Configuration.
+# The idea is that this target can be used as a starting point for full INAV target.
+#
+# The generated target will not include any servo assignments or fixed wing features.
+#
+
 import sys
 import os
 import io
@@ -93,7 +101,7 @@ def writeTargetH(folder, map):
 
  \n"""
  )
-    file.write("#define TARGET_BOARD_IDENTIFIER \"????\"\n")
+    file.write("#define TARGET_BOARD_IDENTIFIER \"B2IN\"\n")
     file.write("#define USBD_PRODUCT_STRING \"%s\"\n" % (map['board_name']))
 
     # beeper
@@ -199,16 +207,83 @@ def writeTargetH(folder, map):
             file.write("#define I2C%i_SCL %s\n" % (i, sclpin))
         if sdapin:
             file.write("#define I2C%i_SDA %s\n" % (i, sdapin))
-    # todo: #define DEFAULT_I2C_BUS 
+
     file.write("// ADC\n")
-    # TODO
+
+
+    # ADC_BATT ch1
+    use_adc = False
+    pin = findPinByFunction('ADC_BATT_1', map)
+    if pin:
+        use_adc = True
+        file.write("#define ADC_CHANNEL_1_PIN %s\n" % (pin))
+        file.write("#define VBAT_ADC_CHANNEL ADC_CHN_1\n");
+    
+    # ADC_CURR ch2
+    pin = findPinByFunction('ADC_CURR_1'):
+    if pin:
+        use_adc = True
+        file.write("#define ADC_CHANNEL_2_PIN %s\n" % (pin))
+        file.write("#define CURRENT_METER_ADC_CHANNEL ADC_CHN_2\n");
+    # ADC_RSSI ch3
+    pin = findPinByFunction('ADC_RSSI_1'):
+    if pin:
+        use_adc = True
+        file.write("#define ADC_CHANNEL_3_PIN %s\n" % (pin))
+        file.write("#define RSSI_ADC_CHANNEL ADC_CHN_3\n");
+
+    # ADC_EXT  ch4 (airspeed?)
+    pin = findPinByFunction('ADC_EXT_1'):
+    if pin:
+        use_adc = True
+        file.write("#define ADC_CHANNEL_4_PIN %s\n" % (pin))
+        file.write("#define AIRSPEED_ADC_CHANNEL ADC_CHN_4\n");
+
+    if use_adc:
+        file.write("#define USE_ADC\n")
+        file.write("#define ADC_INSTANCE ADC1\n")
+    # TODO:
+    #define ADC1_DMA_STREAM             DMA2_Stream4
+
     file.write("// Gyro & ACC\n")
     # TODO
     file.write("// OSD\n")
-    # TODO
+    osd_spi_bus = map['variables'].get('max7456_spi_bus')
+    if osd_spi_bus:
+        file.write("#define USE_MAX7456\n")
+        pin = findPinByFunction('OSD_CS', map)
+        file.write("#define MAX7456_CS_PIN %s\n" % (pin))
+        file.write("#define MAX7456_SPI_BUS %s\n" % (osd_spi_bus))
     file.write("// Blackbox\n")
-    # TODO
+    # Flash:
+    spiflash_bus = map['variables'].get('flash_spi_bus')
+    if spiflash_bus:
+        for i in range(1, 9):
+            cs = findPinByFunction("FLASH_CS_%i" % (i), map)
+            if cs:
+                file.write("#define USE_FLASHFS\n")
+                file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT\n")
+                file.write("#define USE_FLASH_M25P16\n")
+                file.write("#define USE_FLASH_W25N01G\n")
+                file.write("#define M25P16_SPI_BUS %s\n" % (spiflash_bus))
+                file.write("#define M25P16_CS_PIN %s\n" % (cs))
+                file.write("#define W25N01G_SPI_BUS %s\n" % (spiflash_bus))
+                file.write("#define W25N01G_CS_PIN %s\n" % (cs))
+                break
 
+    # SD Card:
+    use_sdcard = False
+    for i in range(1, 9):
+        sdio_cmd = findPinByFunction("SDIO_CMD_%i" % (i), map)
+
+        if sdio_cmd:
+            if not use_sdcard:
+                file.write("#define USE_SDCARD\n")
+                file.write("#define USE_SDCARD_SDIO\n")
+                file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT\n")
+                use_sdcard = True
+            file.write("#define SDCARD_SDIO_4BIT\n")
+            file.write("#define SDCARD_SDIO_DEVICE SDIODEV_%i\n" % (i))
 
     return
 
@@ -227,7 +302,7 @@ def writeTarget(outputFolder, map):
     return
 
 def buildMap(inputFile):
-    map = { 'defines': [], 'features': [], 'pins': {}, 'serial': {}, 'variables': {}}
+    map = { 'defines': [], 'features': [], 'pins': {}, 'dmas': {}, 'serial': {}, 'variables': {}}
 
     f = open(inputFile, 'r')
     while True:
@@ -235,6 +310,10 @@ def buildMap(inputFile):
         if not l:
             break
         m = re.search(r'^#mcu\s+([0-9A-Za-z]+)$', l)
+        if m:
+            map['mcu'] = {'type': m.group(1)}
+
+        m = re.search(r'^#\s+Betaflight\s+/\s+(STM32\w+)\s+\(\w+\).+$', l)
         if m:
             map['mcu'] = {'type': m.group(1)}
 
@@ -253,7 +332,6 @@ def buildMap(inputFile):
         m = re.search(r'^feature\s+(-?\w+)$', l)
         if m:
             map['features'].append(m.group(1))
-
 
         m = re.search(r'^resource\s+(-?\w+)\s+(\d+)\s+(\w+)$', l)
         if m:
@@ -289,10 +367,10 @@ def buildMap(inputFile):
                 pin = 'ADC' + m.group(2)
             else:
                 pin = translatePin(m.group(2))
-            if not map['pins'].get(pin):
-                map['pins'][pin] = {}
+            if not map['dmas'].get(pin):
+                map['dmas'][pin] = {}
             
-            map['pins'][pin]['DMA'] = m.group(3)
+            map['dmas'][pin]['DMA'] = m.group(3)
 
 #      1     2         3         4
 # pin B04: DMA1 Stream 4 Channel 5
@@ -309,11 +387,47 @@ def buildMap(inputFile):
         m = re.search(r'^#\s+ADC\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
         if m:
             pin = 'ADC' + m.group(1)
-            if not map['pins'].get(pin):
-                map['pins'][pin] = {}
+            if not map['dmas'].get(pin):
+                map['dmas'][pin] = {}
             
-            map['pins'][pin]['DMA_STREAM'] = m.group(3)
-            map['pins'][pin]['DMA_CHANNEL'] = m.group(4)
+            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+            map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
+
+        m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
+        if m:
+            pin = 'TIMUP' + m.group(1)
+            if not map['dmas'].get(pin):
+                map['dmas'][pin] = {}
+            
+            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+            map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
+
+        m = re.search(r'^#\s+ADC\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Request\s+(\d+)\s*$', l)
+        if m:
+            pin = 'ADC' + m.group(1)
+            if not map['dmas'].get(pin):
+                map['dmas'][pin] = {}
+            
+            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+            map['dmas'][pin]['DMA_REQUEST'] = m.group(4)
+
+        m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
+        if m:
+            pin = 'TIMUP' + m.group(1)
+            if not map['dmas'].get(pin):
+                map['dmas'][pin] = {}
+            
+            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+            map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
+
+        m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Request\s+(\d+)\s*$', l)
+        if m:
+            pin = 'TIMUP' + m.group(1)
+            if not map['dmas'].get(pin):
+                map['dmas'][pin] = {}
+            
+            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+            map['dmas'][pin]['DMA_REQUEST'] = m.group(4)
  
         m = re.search(r'^serial\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$', l)
         if m:
