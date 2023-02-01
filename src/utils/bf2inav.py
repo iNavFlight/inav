@@ -233,7 +233,7 @@ def writeTargetH(folder, map):
         file.write("#define RSSI_ADC_CHANNEL ADC_CHN_3\n");
 
     # ADC_EXT  ch4 (airspeed?)
-    pin = findPinByFunction('ADC_EXT_1'):
+    pin = findPinByFunction('ADC_EXT_1')
     if pin:
         use_adc = True
         file.write("#define ADC_CHANNEL_4_PIN %s\n" % (pin))
