@@ -1,0 +1,1 @@
+target_stm32f405xg(JHEHMCU_GHF405AIO_ICM)
