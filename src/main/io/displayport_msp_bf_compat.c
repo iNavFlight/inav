@@ -228,12 +228,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_WIND_VERTICAL:
         return BF_SYM_WIND_VERTICAL;
 
-    case SYM_3D_KMH:
-        return BF_SYM_3D_KMH;
-
-    case SYM_3D_MPH:
-        return BF_SYM_3D_MPH;
-
     case SYM_3D_KT:
         return BF_SYM_3D_KT;
 
@@ -241,6 +235,12 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_AIR:
         return BF_SYM_AIR;
 */
+
+    case SYM_3D_KMH:
+        return BF_SYM_KPH;
+
+    case SYM_3D_MPH:
+        return BF_SYM_MPH;
 
     case SYM_RPM:
         return BF_SYM_RPM;
