@@ -44,8 +44,8 @@
 #define SYM_DBM                     0x13  // 019 dBm
 #define SYM_SNR                     0x14  // 020 SNR
 
-#define SYM_AH_DECORATION_UP        0x15  // 021 Arrow up AHI
-#define SYM_AH_DECORATION_DOWN      0x16  // 022 Arrow down AHI
+#define SYM_AH_DIRECTION_UP         0x15  // 021 Arrow up AHI
+#define SYM_AH_DIRECTION_DOWN       0x16  // 022 Arrow down AHI
 #define SYM_DIRECTION               0x17  // 023 to 030, directional little arrows
 
 #define SYM_VOLT                    0x1F  // 031 VOLTS
@@ -251,6 +251,12 @@
 #define SYM_HUD_ARROWS_D1           0x1B7 // 439 1 arrow down
 #define SYM_HUD_ARROWS_D2           0x1B8 // 440 2 arrows down
 #define SYM_HUD_ARROWS_D3           0x1B9 // 441 3 arrows down
+
+#define SYM_HUD_CARDINAL            0x1BA // 442-453 Cardinal direction in 30 degree segments
+
+#define SYM_SERVO_PAN_IS_CENTRED    0x1C6 // 454 Pan servo is centred
+#define SYM_SERVO_PAN_IS_OFFSET_L   0x1C7 // 455 Pan servo is offset left
+#define SYM_SERVO_PAN_IS_OFFSET_R   0x1C8 // 456 Pan servo is offset right
 
 #else
 
