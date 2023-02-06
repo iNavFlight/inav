@@ -28,7 +28,7 @@
 #define BF_SYM_HYPHEN                  0x2D
 #define BF_SYM_BBLOG                   0x10
 #define BF_SYM_HOMEFLAG                0x11
-//#define SYM_RPM                     0x12
+#define BF_SYM_RPM                     0x12
 #define BF_SYM_ROLL                    0x14
 #define BF_SYM_PITCH                   0x15
 #define BF_SYM_TEMPERATURE             0x7A

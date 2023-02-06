@@ -162,6 +162,8 @@ displayPort_t *displayPortMspInit(void)
 {
     displayInit(&mspDisplayPort, &mspDisplayPortVTable);
     resync(&mspDisplayPort);
+    mspDisplayPort.displayPortType = "MSP";
     return &mspDisplayPort;
 }
+
 #endif // USE_MSP_DISPLAYPORT

@@ -118,7 +118,8 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
-    .name = SETTING_NAME_DEFAULT
+    .craftName = SETTING_NAME_DEFAULT,
+    .pilotName = SETTING_NAME_DEFAULT
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
@@ -456,14 +457,14 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
-void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT])
+void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT])
 {
     gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
     gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
     gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
 }
 
-void setGravityCalibrationAndWriteEEPROM(float getGravity)
+void setGravityCalibration(float getGravity)
 {
     gyroConfigMutable()->gravity_cmss_cal = getGravity;
 }

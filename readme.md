@@ -4,7 +4,7 @@
 
 # INAV 6 Horizon Hawk feature freeze
 
-> INAV 6 feature freeze will happen on 29th of January 2023. No new features for INAv 6 will be accepted after that date. 
+> INAV 6 feature freeze will happen on 29th of January 2023. No new features for INAV 6 will be accepted after that date. 
 
 # INAV Community
 

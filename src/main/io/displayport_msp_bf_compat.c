@@ -228,21 +228,22 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_WIND_VERTICAL:
         return BF_SYM_WIND_VERTICAL;
 
-    case SYM_3D_KMH:
-        return BF_SYM_3D_KMH;
-
-    case SYM_3D_MPH:
-        return BF_SYM_3D_MPH;
-
     case SYM_3D_KT:
         return BF_SYM_3D_KT;
 
-    case SYM_RPM:
-        return BF_SYM_RPM;
 
     case SYM_AIR:
         return BF_SYM_AIR;
 */
+
+    case SYM_3D_KMH:
+        return BF_SYM_KPH;
+
+    case SYM_3D_MPH:
+        return BF_SYM_MPH;
+
+    case SYM_RPM:
+        return BF_SYM_RPM;
 
     case SYM_FTS:
         return BF_SYM_FTPS;
@@ -554,10 +555,15 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case (SYM_AH_H_START+8):
         return BF_SYM_AH_BAR9_8;
 
-/*
+    // BF does not have vertical artificial horizon. replace with middle horizontal one
     case SYM_AH_V_START:
-        return BF_SYM_AH_V_START;
-
+    case (SYM_AH_V_START+1):
+    case (SYM_AH_V_START+2):
+    case (SYM_AH_V_START+3):
+    case (SYM_AH_V_START+4):
+    case (SYM_AH_V_START+5):
+        return BF_SYM_AH_BAR9_4;
+/*
     case SYM_VARIO_UP_2A:
         return BF_SYM_VARIO_UP_2A;
 
@@ -680,7 +686,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     return '?'; // Missing/not mapped character
 }
-
 
 #endif
 
