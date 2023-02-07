@@ -4653,8 +4653,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     }
 
     // Keep number right aligned and correct length
-    if(explicitDecimal && decimals == 0)
-    {
+    if(explicitDecimal && decimals == 0) {
         if ((digits + 1) == length) {
             *ptr = SYM_BLANK;
             ptr++;
