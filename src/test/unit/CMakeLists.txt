@@ -34,6 +34,9 @@ set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
+set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd.c")
+#set_property(SOURCE osd_unittest.cc PROPERTY definitions USE_OSD)
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )
@@ -54,6 +57,7 @@ function(unit_test src)
     target_compile_definitions(${name} PRIVATE ${test_definitions})
     target_compile_options(${name} PRIVATE -pthread -Wall -Wextra -Wno-extern-c-compat -ggdb3 -O0)
     enable_settings(${name} ${gen_name} OUTPUTS setting_files SETTINGS_CXX g++)
+    #enable_settings(${name} ${gen_name} OUTPUTS setting_files SETTINGS_CC gcc)
     target_sources(${name} PRIVATE ${setting_files})
     target_link_libraries(${name} gtest_main)
     gtest_discover_tests(${name})
