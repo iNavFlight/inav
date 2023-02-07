@@ -33,6 +33,17 @@
 
 FILE_COMPILE_FOR_SPEED
 
+#include "drivers/osd_symbols.h"
+#include "common/maths.h"
+#include "io/displayport_msp_bf_compat.h"
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+#include "common/typeconversion.h"
+
+//PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
+//PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
+
+
 #ifdef USE_OSD
 
 #include "build/debug.h"
@@ -50,7 +61,6 @@ FILE_COMPILE_FOR_SPEED
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
-#include "common/typeconversion.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -60,7 +70,6 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/display.h"
 #include "drivers/display_canvas.h"
 #include "drivers/display_font_metadata.h"
-#include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
@@ -69,7 +78,6 @@ FILE_COMPILE_FOR_SPEED
 #include "io/osd.h"
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
-#include "io/displayport_msp_bf_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
@@ -213,18 +221,7 @@ void osdShowEEPROMSavedNotification() {
     notify_settings_saved = millis() + 5000;
 }
 
-static int digitCount(int32_t value)
-{
-    int digits = 1;
-    while(1) {
-        value = value / 10;
-        if (value == 0) {
-            break;
-        }
-        digits++;
-    }
-    return digits;
-}
+
 
 bool osdDisplayIsPAL(void)
 {
@@ -4583,6 +4580,18 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 #endif // OSD
 
 #if defined(USE_OSD) || defined (OSD_UNIT_TEST)
+static int digitCount(int32_t value)
+{
+    int digits = 1;
+    while(1) {
+        value = value / 10;
+        if (value == 0) {
+            break;
+        }
+        digits++;
+    }
+    return digits;
+}
 /**
  * Formats a number given in cents, to support non integer values
  * without using floating point math. Value is always right aligned
