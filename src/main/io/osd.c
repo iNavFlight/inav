@@ -4645,12 +4645,20 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     remaining -= decimals;
 
     // Done counting. Time to write the characters.
-
     // Write spaces at the start
     while (remaining > 0) {
         *ptr = SYM_BLANK;
         ptr++;
         remaining--;
+    }
+
+    if(explicitDecimal && decimals == 0)
+    {
+        if ((digits + 1) == length) {
+            *ptr = SYM_BLANK;
+            ptr++;
+            remaining--;
+        }
     }
 
     // Write the minus sign if required
