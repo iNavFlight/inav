@@ -240,102 +240,7 @@ bool osdDisplayIsHD(void)
     return false;
 }
 
-/**
- * Formats a number given in cents, to support non integer values
- * without using floating point math. Value is always right aligned
- * and spaces are inserted before the number to always yield a string
- * of the same length. If the value doesn't fit into the provided length
- * it will be divided by scale and true will be returned.
- */
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
-{
-    char *ptr = buff;
-    char *dec;
-    int decimals = maxDecimals;
-    bool negative = false;
-    bool scaled = false;
-    bool explicitDecimal = isBfCompatibleVideoSystem(osdConfig());
 
-    buff[length] = '\0';
-
-    if (centivalue < 0) {
-        negative = true;
-        centivalue = -centivalue;
-        length--;
-    }
-
-    int32_t integerPart = centivalue / 100;
-    // 3 decimal digits
-    int32_t millis = (centivalue % 100) * 10;
-
-    int digits = digitCount(integerPart);
-    int remaining = length - digits;
-    if (explicitDecimal) {
-        remaining--;
-    }
-
-    if (remaining < 0 && scale > 0) {
-        // Reduce by scale
-        scaled = true;
-        decimals = maxScaledDecimals;
-        integerPart = integerPart / scale;
-        // Multiply by 10 to get 3 decimal digits
-        millis = ((centivalue % (100 * scale)) * 10) / scale;
-        digits = digitCount(integerPart);
-        remaining = length - digits;
-        if (explicitDecimal) {
-            remaining--;
-        }
-    }
-
-    // 3 decimals at most
-    decimals = MIN(remaining, MIN(decimals, 3));
-    remaining -= decimals;
-
-    // Done counting. Time to write the characters.
-
-    // Write spaces at the start
-    while (remaining > 0) {
-        *ptr = SYM_BLANK;
-        ptr++;
-        remaining--;
-    }
-
-    // Write the minus sign if required
-    if (negative) {
-        *ptr = '-';
-        ptr++;
-    }
-    // Now write the digits.
-    ui2a(integerPart, 10, 0, ptr);
-    ptr += digits;
-
-    if (decimals > 0) {
-        if (explicitDecimal) {
-            *ptr = '.';
-            ptr++;
-        } else {
-            *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
-        }
-        dec = ptr;
-        int factor = 3; // we're getting the decimal part in millis first
-        while (decimals < factor) {
-            factor--;
-            millis /= 10;
-        }
-        int decimalDigits = digitCount(millis);
-        while (decimalDigits < decimals) {
-            decimalDigits++;
-            *ptr = '0';
-            ptr++;
-        }
-        ui2a(millis, 10, 0, ptr);
-        if (!explicitDecimal) {
-            *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
-        }
-    }
-    return scaled;
-}
 
 /*
  * Aligns text to the left side. Adds spaces at the end to keep string length unchanged.
@@ -4676,3 +4581,103 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 }
 
 #endif // OSD
+
+#if defined(USE_OSD) || defined (OSD_UNIT_TEST)
+/**
+ * Formats a number given in cents, to support non integer values
+ * without using floating point math. Value is always right aligned
+ * and spaces are inserted before the number to always yield a string
+ * of the same length. If the value doesn't fit into the provided length
+ * it will be divided by scale and true will be returned.
+ */
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
+{
+    char *ptr = buff;
+    char *dec;
+    int decimals = maxDecimals;
+    bool negative = false;
+    bool scaled = false;
+    bool explicitDecimal = isBfCompatibleVideoSystem(osdConfig());
+
+    buff[length] = '\0';
+
+    if (centivalue < 0) {
+        negative = true;
+        centivalue = -centivalue;
+        length--;
+    }
+
+    int32_t integerPart = centivalue / 100;
+    // 3 decimal digits
+    int32_t millis = (centivalue % 100) * 10;
+
+    int digits = digitCount(integerPart);
+    int remaining = length - digits;
+    if (explicitDecimal) {
+        remaining--;
+    }
+
+    if (remaining < 0 && scale > 0) {
+        // Reduce by scale
+        scaled = true;
+        decimals = maxScaledDecimals;
+        integerPart = integerPart / scale;
+        // Multiply by 10 to get 3 decimal digits
+        millis = ((centivalue % (100 * scale)) * 10) / scale;
+        digits = digitCount(integerPart);
+        remaining = length - digits;
+        if (explicitDecimal) {
+            remaining--;
+        }
+    }
+
+    // 3 decimals at most
+    decimals = MIN(remaining, MIN(decimals, 3));
+    remaining -= decimals;
+
+    // Done counting. Time to write the characters.
+
+    // Write spaces at the start
+    while (remaining > 0) {
+        *ptr = SYM_BLANK;
+        ptr++;
+        remaining--;
+    }
+
+    // Write the minus sign if required
+    if (negative) {
+        *ptr = '-';
+        ptr++;
+    }
+    // Now write the digits.
+    ui2a(integerPart, 10, 0, ptr);
+    ptr += digits;
+
+    if (decimals > 0) {
+        if (explicitDecimal) {
+            *ptr = '.';
+            ptr++;
+        } else {
+            *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        }
+        dec = ptr;
+        int factor = 3; // we're getting the decimal part in millis first
+        while (decimals < factor) {
+            factor--;
+            millis /= 10;
+        }
+        int decimalDigits = digitCount(millis);
+        while (decimalDigits < decimals) {
+            decimalDigits++;
+            *ptr = '0';
+            ptr++;
+        }
+        ui2a(millis, 10, 0, ptr);
+        if (!explicitDecimal) {
+            *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
+        }
+    }
+    return scaled;
+}
+
+#endif
