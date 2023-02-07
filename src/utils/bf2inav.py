@@ -382,17 +382,19 @@ def writeTargetC(folder, map):
 
     beeper = findPinByFunction("BEEPER_1", map)
     if beeper:
-        timer = map['pins'][beeper]['TIM']
-        channel = map['pins'][beeper]['CH']
+        timer = map['pins'].get(beeper, {}).get('TIM')
+        channel = map['pins'].get(beeper, {}).get('CH')
         dma = map['dmas'].get(beeper, {}).get("DMA", "0")
-        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (timer, channel, beeper, dma))
+        if timer and channel:
+            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (timer, channel, beeper, dma))
 
     led = findPinByFunction("LED_STRIP_1", map)
     if led:
-        timer = map['pins'][led]['TIM']
-        channel = map['pins'][led]['CH']
+        timer = map['pins'].get(led, {}).get('TIM')
+        channel = map['pins'].get(led, {}).get('CH')
         dma = map['dmas'].get(led, {}).get("DMA", "0")
-        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_LED, 0, %s),\n" % (timer, channel, led, dma))
+        if timer and channel:
+            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_LED, 0, %s),\n" % (timer, channel, led, dma))
 
 
     file.write("""
