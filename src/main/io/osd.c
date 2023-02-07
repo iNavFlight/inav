@@ -43,6 +43,20 @@ FILE_COMPILE_FOR_SPEED
 //PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
 //PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
+#if defined(USE_OSD) || defined (OSD_UNIT_TEST)
+static int digitCount(int32_t value)
+{
+    int digits = 1;
+    while(1) {
+        value = value / 10;
+        if (value == 0) {
+            break;
+        }
+        digits++;
+    }
+    return digits;
+}
+#endif
 
 #ifdef USE_OSD
 
@@ -4580,18 +4594,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 #endif // OSD
 
 #if defined(USE_OSD) || defined (OSD_UNIT_TEST)
-static int digitCount(int32_t value)
-{
-    int digits = 1;
-    while(1) {
-        value = value / 10;
-        if (value == 0) {
-            break;
-        }
-        digits++;
-    }
-    return digits;
-}
 /**
  * Formats a number given in cents, to support non integer values
  * without using floating point math. Value is always right aligned
