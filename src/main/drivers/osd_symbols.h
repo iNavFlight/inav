@@ -21,7 +21,7 @@
 
 #pragma once
 
-#ifdef USE_OSD
+#if defined(USE_OSD) || defined(OSD_UNIT_TEST)
 
 #define SYM_RSSI                    0x01  // 001 Icon RSSI
 #define SYM_LQ                      0x02  // 002 LQ
