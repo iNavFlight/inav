@@ -478,11 +478,6 @@ float calculateThrottleCompensationFactor(void)
     return 1.0f + ((float)batteryFullVoltage / sagCompensatedVBat - 1.0f) * batteryMetersConfig()->throttle_compensation_weight;
 }
 
-uint16_t getBatteryWarningVoltage(void)
-{
-    return batteryWarningVoltage;
-}
-
 uint8_t getBatteryCellCount(void)
 {
     return batteryCellCount;
