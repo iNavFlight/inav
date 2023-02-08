@@ -463,7 +463,7 @@ void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
             break;
     }
 
-    tfp_sprintf(buff, "%4d", convertedAltutude);
+    tfp_sprintf(buff, "%4d", (int) convertedAltutude);
     buff[4] = suffix;
     buff[5] = '\0';
 }
