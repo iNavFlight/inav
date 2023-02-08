@@ -4692,28 +4692,45 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
     return elemAttr;
 }
 
-void resetOsdWarningFlags(void)
+void osdResetWarningFlags(void)
 {
     osdWarningsFlags = 0;
 }
 
-static bool checkOsdWarning(bool condition, uint8_t warningFlag, uint8_t *warningsCount)
+static bool osdCheckWarning(bool condition, uint8_t warningFlag, uint8_t *warningsCount)
 {
-    static timeMs_t newWarningStartTime = 0;
+#define WARNING_REDISPLAY_DURATION 5000;    // milliseconds
+
     const timeMs_t currentTimeMs = millis();
+    static timeMs_t warningDisplayStartTime = 0;
+    static timeMs_t redisplayStartTimeMs = 0;
+    static uint16_t osdWarningTimerDuration;
+    static uint8_t newWarningFlags;
 
     if (condition) {    // condition required to trigger warning
         if (!(osdWarningsFlags & warningFlag)) {
-            newWarningStartTime = currentTimeMs;
             osdWarningsFlags |= warningFlag;
+            newWarningFlags |= warningFlag;
+            redisplayStartTimeMs = 0;
         }
 #ifdef USE_DEV_TOOLS
         if (systemConfig()->groundTestMode) {
             return true;
         }
 #endif
-        if (currentTimeMs - newWarningStartTime < 10000) {  // Display new warnings for 10s
-            return true;
+        /* Warnings displayed in full for set time before shrinking down to alert symbol with warning count only.
+         * All current warnings then redisplayed for 5s on 30s rolling cycle.
+         * New warnings dislayed individually for 10s */
+        if (currentTimeMs > redisplayStartTimeMs) {
+            warningDisplayStartTime = currentTimeMs;
+            osdWarningTimerDuration = newWarningFlags ? 10000 : WARNING_REDISPLAY_DURATION;
+            redisplayStartTimeMs = currentTimeMs + osdWarningTimerDuration + 30000;
+        }
+
+        if (currentTimeMs - warningDisplayStartTime < osdWarningTimerDuration) {
+            return (newWarningFlags & warningFlag) || osdWarningTimerDuration == WARNING_REDISPLAY_DURATION;
+        } else {
+            newWarningFlags = 0;
         }
         *warningsCount += 1;
     } else if (osdWarningsFlags & warningFlag) {
@@ -4754,38 +4771,49 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     }
 
     /* --- WARNINGS --- */
-    const char *messages[4];
+    const char *messages[5];
     uint8_t messageCount = 0;
     bool warningCondition = false;
     warningsCount = 0;
     uint8_t warningFlagID = 1;
 
+    // Low Battery
+    const batteryState_e batteryState = getBatteryState();
+    warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
+    if (osdCheckWarning(warningCondition, warningFlagID, &warningsCount)) {
+        messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW !";
+    }
+
 #if defined(USE_GPS)
     // GPS Fix and Failure
     if (feature(FEATURE_GPS)) {
-        if (checkOsdWarning(!STATE(GPS_FIX), warningFlagID, &warningsCount)) {
+        if (osdCheckWarning(!STATE(GPS_FIX), warningFlagID <<= 1, &warningsCount)) {
             bool gpsFailed = getHwGPSStatus() == HW_SENSOR_UNAVAILABLE;
             messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
         }
     }
+
     // RTH sanity (warning if RTH heads 200m further away from home than closest point)
     warningCondition = NAV_Status.state == MW_NAV_STATE_RTH_ENROUTE && !posControl.flags.rthTrackbackActive &&
                        (posControl.homeDistance - posControl.rthSanityChecker.minimalDistanceToHome) > 20000;
-    if (checkOsdWarning(warningCondition, warningFlagID << 1, &warningsCount)) {
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
         messages[messageCount++] = "RTH SANITY";
     }
+
     // Altitude sanity (warning if significant mismatch between estimated and GPS altitude)
-    if (checkOsdWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID << 1, &warningsCount)) {
+    if (osdCheckWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID <<= 1, &warningsCount)) {
         messages[messageCount++] = "ALT SANITY";
     }
 #endif
+
 #ifdef USE_DEV_TOOLS
-    if (checkOsdWarning(systemConfig()->groundTestMode, warningFlagID << 1, &warningsCount)) {
+    if (osdCheckWarning(systemConfig()->groundTestMode, warningFlagID <<= 1, &warningsCount)) {
         messages[messageCount++] = "GRD TEST !";
     }
 #endif
+
     if (messageCount) {
-        message = messages[OSD_ALTERNATING_CHOICES(2000, messageCount)];    // display each warning on 2s cycle
+        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];    // display each warning on 1s cycle
         strcpy(buff, message);
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
     } else if (warningsCount) {
