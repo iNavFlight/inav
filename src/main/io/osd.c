@@ -33,31 +33,6 @@
 
 FILE_COMPILE_FOR_SPEED
 
-#include "drivers/osd_symbols.h"
-#include "common/maths.h"
-#include "io/displayport_msp_bf_compat.h"
-#include "config/parameter_group.h"
-#include "config/parameter_group_ids.h"
-#include "common/typeconversion.h"
-
-//PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
-//PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
-
-#if defined(USE_OSD) || defined (OSD_UNIT_TEST)
-static int digitCount(int32_t value)
-{
-    int digits = 1;
-    while(1) {
-        value = value / 10;
-        if (value == 0) {
-            break;
-        }
-        digits++;
-    }
-    return digits;
-}
-#endif
-
 #ifdef USE_OSD
 
 #include "build/debug.h"
@@ -75,6 +50,7 @@ static int digitCount(int32_t value)
 #include "common/printf.h"
 #include "common/string_light.h"
 #include "common/time.h"
+#include "common/typeconversion.h"
 #include "common/utils.h"
 
 #include "config/feature.h"
@@ -84,6 +60,7 @@ static int digitCount(int32_t value)
 #include "drivers/display.h"
 #include "drivers/display_canvas.h"
 #include "drivers/display_font_metadata.h"
+#include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
@@ -92,6 +69,8 @@ static int digitCount(int32_t value)
 #include "io/osd.h"
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
+#include "io/osd_utils.h"
+#include "io/displayport_msp_bf_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
@@ -4592,111 +4571,3 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 }
 
 #endif // OSD
-
-#if defined(USE_OSD) || defined (OSD_UNIT_TEST)
-/**
- * Formats a number given in cents, to support non integer values
- * without using floating point math. Value is always right aligned
- * and spaces are inserted before the number to always yield a string
- * of the same length. If the value doesn't fit into the provided length
- * it will be divided by scale and true will be returned.
- */
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
-{
-    char *ptr = buff;
-    char *dec;
-    int decimals = maxDecimals;
-    bool negative = false;
-    bool scaled = false;
-    bool explicitDecimal = isBfCompatibleVideoSystem(osdConfig());
-
-    buff[length] = '\0';
-
-    if (centivalue < 0) {
-        negative = true;
-        centivalue = -centivalue;
-        length--;
-    }
-
-    int32_t integerPart = centivalue / 100;
-    // 3 decimal digits
-    int32_t millis = (centivalue % 100) * 10;
-
-    int digits = digitCount(integerPart);
-    int remaining = length - digits;
-    if (explicitDecimal) {
-        remaining--;
-    }
-
-    if (remaining < 0 && scale > 0) {
-        // Reduce by scale
-        scaled = true;
-        decimals = maxScaledDecimals;
-        integerPart = integerPart / scale;
-        // Multiply by 10 to get 3 decimal digits
-        millis = ((centivalue % (100 * scale)) * 10) / scale;
-        digits = digitCount(integerPart);
-        remaining = length - digits;
-        if (explicitDecimal) {
-            remaining--;
-        }
-    }
-
-    // 3 decimals at most
-    decimals = MIN(remaining, MIN(decimals, 3));
-    remaining -= decimals;
-
-    // Done counting. Time to write the characters.
-    // Write spaces at the start
-    while (remaining > 0) {
-        *ptr = SYM_BLANK;
-        ptr++;
-        remaining--;
-    }
-
-    // Keep number right aligned and correct length
-    if(explicitDecimal && decimals == 0) {
-        if ((digits + 1) == length) {
-            *ptr = SYM_BLANK;
-            ptr++;
-            remaining--;
-        }
-    }
-
-    // Write the minus sign if required
-    if (negative) {
-        *ptr = '-';
-        ptr++;
-    }
-    // Now write the digits.
-    ui2a(integerPart, 10, 0, ptr);
-    ptr += digits;
-
-    if (decimals > 0) {
-        if (explicitDecimal) {
-            *ptr = '.';
-            ptr++;
-        } else {
-            *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
-        }
-        dec = ptr;
-        int factor = 3; // we're getting the decimal part in millis first
-        while (decimals < factor) {
-            factor--;
-            millis /= 10;
-        }
-        int decimalDigits = digitCount(millis);
-        while (decimalDigits < decimals) {
-            decimalDigits++;
-            *ptr = '0';
-            ptr++;
-        }
-        ui2a(millis, 10, 0, ptr);
-        if (!explicitDecimal) {
-            *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
-        }
-    }
-    return scaled;
-}
-
-#endif
