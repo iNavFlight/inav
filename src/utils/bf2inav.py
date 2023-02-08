@@ -14,6 +14,8 @@ import io
 import getopt
 import re
 import json
+import random
+import string
 
 version = '0.1'
 
@@ -191,7 +193,8 @@ def writeTargetH(folder, map):
 
  \n"""
  )
-    file.write("#define TARGET_BOARD_IDENTIFIER \"B2IN\"\n")
+    board_id = ''.join(random.choice(string.ascii_uppercase) for i in range(4))
+    file.write("#define TARGET_BOARD_IDENTIFIER \"%s\"\n" % (board_id))
     file.write("#define USBD_PRODUCT_STRING \"%s\"\n" % (map['board_name']))
 
     # beeper
@@ -218,6 +221,7 @@ def writeTargetH(folder, map):
     # Serial ports and usb
     file.write("// UARTs\n")
     file.write("#define USB_IO\n")
+    file.write("#define USB_VCP\n")
     serial_count = 0 
     pin = findPinByFunction('USB_DETECT_1', map)
     if pin:
