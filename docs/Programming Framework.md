@@ -143,19 +143,24 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 
 #### FLIGHT_MODE
 
-| Operand Value | Name      | Notes |
-|---------------|-----------|-------|
-| 0             | FAILSAFE  |  |
-| 1             | MANUAL    |  |
-| 2             | RTH       |  |
-| 3             | POSHOLD   |  |
-| 4             | CRUISE    |  |
-| 5             | ALTHOLD   |  |
-| 6             | ANGLE     |  |
-| 7             | HORIZON   |  |
-| 8             | AIR       |  |
-| 9             | USER1     |  |
-| 10            | USER2     |  |
+| Operand Value | Name              | Notes |
+|---------------|-------------------|-------|
+| 0             | FAILSAFE          |  |
+| 1             | MANUAL            |  |
+| 2             | RTH               |  |
+| 3             | POSHOLD           |  |
+| 4             | CRUISE            |  |
+| 5             | ALTHOLD           |  |
+| 6             | ANGLE             |  |
+| 7             | HORIZON           |  |
+| 8             | AIR               |  |
+| 9             | USER1             |  |
+| 10            | USER2             |  |
+| 11            | COURSE_HOLD       |  |
+| 12            | USER3             |  |
+| 13            | USER4             |  |
+| 14            | ACRO              |  |
+| 15            | WAYPOINT_MISSION  |  | 
 
 #### WAYPOINTS
 
@@ -195,7 +200,8 @@ All flags are reseted on ARM and DISARM event.
 
 | bit   | Decimal   | Function  |
 |-------|-----------|-----------|
-| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
+| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reset |
+| 1     | 2         | Timeout satisfied - Used in timed operands to determine if the timeout has been met |
 
 ## Global variables
 
