@@ -48,6 +48,58 @@ def mcu2target(mcu):
     print("Unknown MCU: %s" % (mcu))
     sys.exit(-1)
 
+def getPortConfig(map):
+    mcu = map['mcu']
+#mcu STM32F405
+    if mcu['type'] == 'STM32F405':
+        return """
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         (BIT(2))
+"""
+
+#mcu STM32F411
+    if mcu['type'] == 'STM32F411':
+        return """
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         (BIT(2))
+"""
+    
+#mcu STM32F7X2
+    if mcu['type'] == 'STM32F7X2':
+        return """
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         0xffff
+"""
+    
+#mcu STM32F745
+    if mcu['type'] == 'STM32F745':
+        return """
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD 0xffff
+#define TARGET_IO_PORTE 0xffff
+"""
+
+#mcu STM32H743
+    if mcu['type'] == 'STM32H743':
+        return """
+#define TARGET_IO_PORTA 0xffff
+#define TARGET_IO_PORTB 0xffff
+#define TARGET_IO_PORTC 0xffff
+#define TARGET_IO_PORTD 0xffff
+#define TARGET_IO_PORTE 0xffff
+"""
+    
+    print("Unknown MCU: %s" % (mcu))
+    sys.exit(-1)
+
 def writeCmakeLists(outputFolder, map):
     file = open(outputFolder + '/CMakeLists.txt', "w+")
 
@@ -74,6 +126,13 @@ def findPinByFunction(function, map):
     
     return None
 
+
+def getPwmOutputCount(map):
+    motors = findPinsByFunction("MOTOR", map)
+    servos = findPinsByFunction("SERVO", map)
+
+    return len(motors) + len(servos)
+
 def getGyroAlign(map):
     bfalign = map['variables']['gyro_1_sensor_align']
     m = re.search("^CW(\d+)(FLIP)?$", bfalign)
@@ -84,6 +143,22 @@ def getGyroAlign(map):
             return "CW%s_DEG_FLIP" % (deg)
         else:
             return "CW%s_DEG" % (deg)
+
+def getSerialByFunction(map, function):
+    for serial in map.get("serial"):
+        if map['serial'][serial].get('FUNCTION') == function:
+            return serial
+
+    return None
+
+def getSerialMspDisplayPort(map):
+    return getSerialByFunction(map, "131072")
+
+def getSerialRx(map):
+    rx = getSerialByFunction(map, "64")
+    if(rx != None):
+        return int(rx) + 1
+    return None
 
 def writeTargetH(folder, map):
     file = open(folder + '/target.h', "w+")
@@ -109,7 +184,10 @@ def writeTargetH(folder, map):
 
 #pragma once
 
-#define USE_TARGET_CONFIG
+//#define USE_TARGET_CONFIG
+
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY  )
+
 
  \n"""
  )
@@ -139,13 +217,13 @@ def writeTargetH(folder, map):
 
     # Serial ports and usb
     file.write("// UARTs\n")
+    file.write("#define USB_IO\n")
     serial_count = 0 
     pin = findPinByFunction('USB_DETECT_1', map)
     if pin:
-        file.write("#define USB_IO\n")
-        file.write("#define USE_VCP\n")
-        file.write("#define VBUS_SENSING_PIN %s\n" % (pin))
-        file.write("#define VBUS_SENSING_ENABLED\n");  
+        file.write("#define USE_USB_DETECT\n")
+        file.write("#define USB_DETECT_PIN %s\n" % (pin))
+        #file.write("#define VBUS_SENSING_ENABLED\n");  
         serial_count += 1
  
     for i in range(1, 9):
@@ -174,16 +252,23 @@ def writeTargetH(folder, map):
             continue
 
         if txpin != None:
-            file.write("#define SOFTSERIAL%i_TX_PIN %s\n" % (idx, txpin))
+            file.write("#define SOFTSERIAL_%i_TX_PIN %s\n" % (idx, txpin))
         else:
-            file.write("#define SOFTSERIAL%i_TX_PIN %s\n" % (idx, rxpin))
+            file.write("#define SOFTSERIAL_%i_TX_PIN %s\n" % (idx, rxpin))
     
         if rxpin != None:
-            file.write("#define SOFTSERIAL%i_RX_PIN %s\n" % (idx, rxpin))
+            file.write("#define SOFTSERIAL_%i_RX_PIN %s\n" % (idx, rxpin))
         else:
-            file.write("#define SOFTSERIAL%i_RX_PIN %s\n" % (idx, txpin))
+            file.write("#define SOFTSERIAL_%i_RX_PIN %s\n" % (idx, txpin))
    
     file.write("#define SERIAL_PORT_COUNT %i\n" % (serial_count))
+
+    serial_rx = getSerialRx(map)
+
+    if serial_rx != None:
+        file.write("#define DEFAULT_RX_TYPE RX_TYPE_SERIAL\n")
+        file.write("#define SERIALRX_PROVIDER SERIALRX_CRSF\n")
+        file.write("#define SERIALRX_UART SERIAL_PORT_USART%s\n" % (serial_rx))
 
     file.write("// SPI\n")
     use_spi_defined = False
@@ -278,9 +363,9 @@ def writeTargetH(folder, map):
     osd_spi_bus = map['variables'].get('max7456_spi_bus')
     if osd_spi_bus:
         file.write("#define USE_MAX7456\n")
-        pin = findPinByFunction('OSD_CS', map)
+        pin = findPinByFunction('OSD_CS_1', map)
         file.write("#define MAX7456_CS_PIN %s\n" % (pin))
-        file.write("#define MAX7456_SPI_BUS %s\n" % (osd_spi_bus))
+        file.write("#define MAX7456_SPI_BUS BUS_SPI%s\n" % (osd_spi_bus))
     file.write("// Blackbox\n")
     # Flash:
     spiflash_bus = map['variables'].get('flash_spi_bus')
@@ -292,9 +377,9 @@ def writeTargetH(folder, map):
                 file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT\n")
                 file.write("#define USE_FLASH_M25P16\n")
                 file.write("#define USE_FLASH_W25N01G\n")
-                file.write("#define M25P16_SPI_BUS %s\n" % (spiflash_bus))
+                file.write("#define M25P16_SPI_BUS BUS_SPI%s\n" % (spiflash_bus))
                 file.write("#define M25P16_CS_PIN %s\n" % (cs))
-                file.write("#define W25N01G_SPI_BUS %s\n" % (spiflash_bus))
+                file.write("#define W25N01G_SPI_BUS BUS_SPI%s\n" % (spiflash_bus))
                 file.write("#define W25N01G_CS_PIN %s\n" % (cs))
                 break
 
@@ -311,6 +396,19 @@ def writeTargetH(folder, map):
                 use_sdcard = True
             file.write("#define SDCARD_SDIO_4BIT\n")
             file.write("#define SDCARD_SDIO_DEVICE SDIODEV_%i\n" % (i))
+
+    file.write("\n// Otehrs\n\n")
+
+    pwm_outputs = getPwmOutputCount(map)
+    file.write("#define MAX_PWM_OUTPUT_PORTS %i\n" % (pwm_outputs))
+    file.write("#define USE_SERIAL_4WAY_BLHELI_INTERFACE\n")
+
+    file.write("#define USE_DSHOT\n");
+    file.write("#define USE_ESC_SENSOR\n");
+
+    port_config = getPortConfig(map)
+
+    file.write(port_config)
 
     file.close()
     return
@@ -346,7 +444,7 @@ def writeTargetC(folder, map):
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/pinio.h"
-#include "drivers/sensor.h"
+//#include "drivers/sensor.h"
 
 """)
 
@@ -359,7 +457,7 @@ def writeTargetC(folder, map):
                     break
         
         if found:
-            file.write("BUSDEV_REGISTER_SPI_TAG(busdev_%s,  DEVHW_%s,  %s_SPI_BUS,   %s_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_%s_ALIGN);\n" % (supportedgyro.lower(), supportedgyro, supportedgyro, supportedgyro, supportedgyro))
+            file.write("//BUSDEV_REGISTER_SPI_TAG(busdev_%s,  DEVHW_%s,  %s_SPI_BUS,   %s_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_%s_ALIGN);\n" % (supportedgyro.lower(), supportedgyro, supportedgyro, supportedgyro, supportedgyro))
 
 
     file.write("\ntimerHardware_t timerHardware[] = {\n")
