@@ -3955,7 +3955,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     char buff[10];
 
     if (page > 1)
-    page = 0;
+        page = 0;
 
     displayBeginTransaction(osdDisplayPort, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
     displayClearScreen(osdDisplayPort);
