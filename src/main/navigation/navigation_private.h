@@ -336,6 +336,7 @@ typedef struct {
     float                   rthFinalAltitude;       // Altitude at end of RTH approach
     float                   rthInitialDistance;     // Distance when starting flight home
     fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
+    fpVector3_t             originalHomePosition;   // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
 } rthState_t;
 
 typedef enum {
@@ -345,6 +346,14 @@ typedef enum {
     RTH_HOME_FINAL_HOVER,           // Final hover altitude (if rth_home_altitude is set)
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
+
+typedef struct {
+    fpVector3_t nearestSafeHome;    // The nearestSafeHome found during arming
+    uint32_t    distance;           // distance to the nearest safehome
+    int8_t      index;              // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+    bool        isApplied;          // whether the safehome has been applied to home
+    bool        isSuspended;        // used to suspend Safehome on demand
+} safehomeState_t;
 
 typedef struct {
     /* Flags and navigation system state */
@@ -368,13 +377,14 @@ typedef struct {
     /* INAV GPS origin (position where GPS fix was first acquired) */
     gpsOrigin_t                 gpsOrigin;
 
-    /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
+    /* Home/RTH parameters - NEU coordinates (geodetic position of home (LLH) is stored in GPS_home variable) */
     rthSanityChecker_t          rthSanityChecker;
     rthState_t                  rthState;
-
-    /* Home parameters */
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+
+    /* Safehome parameters */
+    safehomeState_t             safehomeState;
 
     /* Cruise */
     navCruise_t                 cruise;

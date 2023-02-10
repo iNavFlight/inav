@@ -35,7 +35,6 @@
 extern gpsLocation_t        GPS_home;
 extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
-extern fpVector3_t          original_rth_home;         // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
 
 extern bool autoThrottleManuallyIncreased;
 
@@ -59,13 +58,9 @@ typedef enum {
 
 PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
 
-extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
-extern uint32_t safehome_distance;               // distance to the nearest safehome
-extern bool safehome_applied;                    // whether the safehome has been applied to home.
-
-void resetSafeHomes(void);                       // remove all safehomes
-bool findNearestSafeHome(void);                  // Find nearest safehome
-
+void resetSafeHomes(void);           // remove all safehomes
+bool findNearestSafeHome(void);      // Find nearest safehome
+void suspendSafehome(void);          // Suspend safehome on demand
 #endif // defined(USE_SAFE_HOME)
 
 #ifndef NAV_MAX_WAYPOINTS

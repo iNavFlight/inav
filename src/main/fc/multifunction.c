@@ -45,8 +45,17 @@ static void multiFunctionApply(multi_function_e selectedItem)
     case MULTI_FUNC_2:  // control manual emergency landing
         checkManualEmergencyLandingControl(ARMING_FLAG(ARMED));
         break;
-    case MULTI_FUNC_3:  // emergency ARM
-        emergencyArmingUpdate(true, true);
+    case MULTI_FUNC_3:  // toggle Safehome suspend
+#if defined(USE_SAFE_HOME)
+        if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
+            suspendSafehome();
+        }
+#endif
+        break;
+    case MULTI_FUNC_4:  // emergency ARM
+        if (!ARMING_FLAG(ARMED)) {
+            emergencyArmingUpdate(true, true);
+        }
         break;
     case MULTI_FUNC_END:
         break;
