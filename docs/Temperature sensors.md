@@ -11,6 +11,24 @@ Up to 8 can be connected to the flight controller.
 * Supply: 2.7 to 5.5V
 * Temperature range: -55 to +125°C
 
+On the purple LM75 (CJMCU-75), adress pins on the bottom of the PCB needs to be sorted to get it works (define i2c adress)
+![image](https://user-images.githubusercontent.com/40316777/218416736-b30f364f-aaeb-426e-b211-ea7ef1f3c20e.png)
+
+Pin definition:
+| A2  | A1  | A0  |Address|INAV add|
+|-----|-----|-----|-------|--------|
+| GND | GND	| GND	| 0x48	 | 0      |
+| GND	| GND	| VCC	| 0x49	 | 1      |
+| GND	| VCC	| GND	| 0x4A	 | 2      |
+| GND	| VCC	| VCC	| 0x4B	 | 3      |
+| VCC	| GND	| GND	| 0x4C	 | 4      |
+| VCC	| GND	| VCC	| 0x4D	 | 5      |
+| VCC	| VCC	| GND	| 0x4E	 | 6      |
+| VCC	| VCC	| VCC	| 0x4F	 | 7      |
+
+If more than one sensor is used, each sensor must have different address.
+
+
 ## DS18B20
 
 * Package: TO-92, SO-8, µSOP-8
