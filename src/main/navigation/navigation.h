@@ -473,6 +473,7 @@ typedef struct {
     navSystemStatus_Error_e error;
     navSystemStatus_Flags_e flags;
     uint8_t                 activeWpNumber;
+    uint8_t                 activeWpIndex;
     navWaypointActions_e    activeWpAction;
 } navSystemStatus_t;
 
@@ -607,7 +608,7 @@ const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
 
-void updateLandingStatus(void);
+void updateLandingStatus(timeMs_t currentTimeMs);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 

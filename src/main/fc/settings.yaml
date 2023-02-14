@@ -72,7 +72,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "BF43COMPAT"]
+    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -1398,22 +1398,22 @@ groups:
     type: imuConfig_t
     headers: ["flight/imu.h"]
     members:
-      - name: imu_dcm_kp
+      - name: ahrs_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
         default_value: 2000
         field: dcm_kp_acc
         max: UINT16_MAX
-      - name: imu_dcm_ki
+      - name: ahrs_dcm_ki
         description: "Inertial Measurement Unit KI Gain for accelerometer measurements"
         default_value: 50
         field: dcm_ki_acc
         max: UINT16_MAX
-      - name: imu_dcm_kp_mag
+      - name: ahrs_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
         default_value: 2000
         field: dcm_kp_mag
         max: UINT16_MAX
-      - name: imu_dcm_ki_mag
+      - name: ahrs_dcm_ki_mag
         description: "Inertial Measurement Unit KI Gain for compass measurements"
         default_value: 50
         field: dcm_ki_mag
@@ -1423,24 +1423,24 @@ groups:
         default_value: 25
         min: 0
         max: 180
-      - name: imu_acc_ignore_rate
+      - name: ahrs_acc_ignore_rate
         description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
         default_value: 15
         field: acc_ignore_rate
         min: 0
         max: 30
-      - name: imu_acc_ignore_slope
+      - name: ahrs_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
         default_value: 5
         field: acc_ignore_slope
         min: 0
         max: 10
-      - name: imu_gps_yaw_windcomp
+      - name: ahrs_gps_yaw_windcomp
         description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
         default_value: ON
         field: gps_yaw_windcomp
         type: bool
-      - name: imu_inertia_comp_method
+      - name: ahrs_inertia_comp_method
         description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
         default_value: VELNED
         field: inertia_comp_method
@@ -2306,7 +2306,7 @@ groups:
     members:
       - name: nav_disarm_on_landing
         description: "If set to ON, INAV disarms the FC after landing"
-        default_value: OFF
+        default_value: ON
         field: general.flags.disarm_on_landing
         type: bool
       - name: nav_land_detect_sensitivity
@@ -2573,7 +2573,7 @@ groups:
         max: 45
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
+        default_value: 1000
         field: general.auto_disarm_delay
         min: 100
         max: 10000
@@ -3025,7 +3025,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, `DJIWTF` and `BF43COMPAT`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3036,6 +3036,13 @@ groups:
         field: row_shiftdown
         min: 0
         max: 1
+      - name: osd_msp_displayport_fullframe_interval
+        description: "Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)"
+        default_value: 10
+        min: -1
+        max: 600
+        type: int16_t
+        field: msp_displayport_fullframe_interval
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
@@ -3579,6 +3586,12 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        field: craftName
+        max: MAX_NAME_LENGTH
+      - name: pilot_name
+        description: "Pilot name"
+        default_value: ""
+        field: pilotName
         max: MAX_NAME_LENGTH
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
@@ -3623,8 +3636,8 @@ groups:
       - name: tz_offset
         description: "Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs"
         default_value: 0
-        min: -1440
-        max: 1440
+        min: -720
+        max: 840
       - name: tz_automatic_dst
         description: "Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`."
         default_value: "OFF"

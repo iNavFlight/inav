@@ -182,6 +182,86 @@ Calculated value after '6 position avanced calibration'. See Wiki page.
 
 ---
 
+### ahrs_acc_ignore_rate
+
+Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 0 | 30 |
+
+---
+
+### ahrs_acc_ignore_slope
+
+Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 0 | 10 |
+
+---
+
+### ahrs_dcm_ki
+
+Inertial Measurement Unit KI Gain for accelerometer measurements
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 |  | 65535 |
+
+---
+
+### ahrs_dcm_ki_mag
+
+Inertial Measurement Unit KI Gain for compass measurements
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 |  | 65535 |
+
+---
+
+### ahrs_dcm_kp
+
+Inertial Measurement Unit KP Gain for accelerometer measurements
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 |  | 65535 |
+
+---
+
+### ahrs_dcm_kp_mag
+
+Inertial Measurement Unit KP Gain for compass measurements
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2000 |  | 65535 |
+
+---
+
+### ahrs_gps_yaw_windcomp
+
+Wind compensation in heading estimation from gps groundcourse(fixed wing only)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
+### ahrs_inertia_comp_method
+
+Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop
+
+| Default | Min | Max |
+| --- | --- | --- |
+| VELNED |  |  |
+
+---
+
 ### airmode_throttle_threshold
 
 Defines airmode THROTTLE activation threshold when `airmode_type` **THROTTLE_THRESHOLD** is used
@@ -1632,86 +1712,6 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 
 ---
 
-### imu_acc_ignore_rate
-
-Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 15 | 0 | 30 |
-
----
-
-### imu_acc_ignore_slope
-
-Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 5 | 0 | 10 |
-
----
-
-### imu_dcm_ki
-
-Inertial Measurement Unit KI Gain for accelerometer measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 50 |  | 65535 |
-
----
-
-### imu_dcm_ki_mag
-
-Inertial Measurement Unit KI Gain for compass measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 50 |  | 65535 |
-
----
-
-### imu_dcm_kp
-
-Inertial Measurement Unit KP Gain for accelerometer measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2000 |  | 65535 |
-
----
-
-### imu_dcm_kp_mag
-
-Inertial Measurement Unit KP Gain for compass measurements
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 2000 |  | 65535 |
-
----
-
-### imu_gps_yaw_windcomp
-
-Wind compensation in heading estimation from gps groundcourse(fixed wing only)
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
-### imu_inertia_comp_method
-
-Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop
-
-| Default | Min | Max |
-| --- | --- | --- |
-| VELNED |  |  |
-
----
-
 ### inav_allow_dead_reckoning
 
 Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation
@@ -2708,7 +2708,7 @@ Delay before craft disarms when `nav_disarm_on_landing` is set (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 2000 | 100 | 10000 |
+| 1000 | 100 | 10000 |
 
 ---
 
@@ -2728,7 +2728,7 @@ If set to ON, INAV disarms the FC after landing
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -4382,6 +4382,16 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ---
 
+### osd_msp_displayport_fullframe_interval
+
+Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | -1 | 600 |
+
+---
+
 ### osd_neg_alt_alarm
 
 Value below which (negative altitude) to make the OSD relative altitude indicator blink (meters)
@@ -4724,7 +4734,7 @@ IMPERIAL, METRIC, UK
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, `DJIWTF` and `BF43COMPAT`
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4769,6 +4779,16 @@ A limitation to overall amount of correction Flight PID can request on each axis
 | Default | Min | Max |
 | --- | --- | --- |
 | 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
+
+---
+
+### pilot_name
+
+Pilot name
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _empty_ |  | MAX_NAME_LENGTH |
 
 ---
 
@@ -5678,7 +5698,7 @@ Time zone offset from UTC, in minutes. This is applied to the GPS time for loggi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | -1440 | 1440 |
+| 0 | -720 | 840 |
 
 ---
 
