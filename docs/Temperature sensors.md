@@ -11,7 +11,7 @@ Up to 8 can be connected to the flight controller.
 * Supply: 2.7 to 5.5V
 * Temperature range: -55 to +125°C
 
-On the purple LM75 (CJMCU-75), adress pins on the bottom of the PCB needs to be sorted to get it works (define i2c adress)
+On the purple LM75 (CJMCU-75), address line pins on the bottom of the PCB need to be bridged either to ground or VCC (to define I2C address)
 ![image](https://user-images.githubusercontent.com/40316777/218416736-b30f364f-aaeb-426e-b211-ea7ef1f3c20e.png)
 
 Pin definition:
