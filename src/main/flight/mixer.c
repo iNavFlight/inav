@@ -617,7 +617,7 @@ int16_t getThrottlePercent(bool useScaled)
     if (useScaled) {
         thr = (thr - idleThrottle) * 100 / (motorConfig()->maxthrottle - idleThrottle);
     } else {
-        thr = (thr - 1000) / 10;
+        thr = (thr - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
     }
     return thr;
 }
