@@ -228,6 +228,13 @@ All flags are reseted on ARM and DISARM event.
 
 ## Examples
 
+### When more than 100 meters away, increase VTX power
+![screenshot of vtx home distance](./assets/images/vtx_home_distance.png)
+
+### When more than 600 meters away, engage return-to-home by setting the matching RC channel
+![screenshot of rth home distance](./assets/images/rth_home_distance.jpg)
+
+
 ### Dynamic THROTTLE scale
 
 `logic 0 1 0 23 0 50 0 0 0`
