@@ -1108,7 +1108,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst)
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE;
         }
 
-        if (OSD_VISIBLE(osdLayoutConfig[OSD_THROTTLE_POS_AUTO_THR])) {
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_SCALED_THROTTLE_POS])) {
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE_AUTO_THR;
         }
 
