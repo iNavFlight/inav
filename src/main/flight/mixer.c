@@ -611,12 +611,13 @@ void FAST_CODE mixTable()
 
 int16_t getThrottlePercent(bool useScaled)
 {
-    int16_t thr = constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX); 
+    int16_t thr = constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX);
+    const int idleThrottle = getThrottleIdleValue();
     
     if (useScaled) {
-        thr = (thr - getThrottleIdleValue()) * 100 / (motorConfig()->maxthrottle - getThrottleIdleValue());
+        thr = (thr - idleThrottle) * 100 / (motorConfig()->maxthrottle - idleThrottle);
     } else {
-        thr = (thr - 100) / 10;
+        thr = (thr - 1000) / 10;
     }
     return thr;
 }
