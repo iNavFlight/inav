@@ -24,12 +24,24 @@
 
 #pragma once
 
+extern uint8_t multiFunctionFlags;
+
+#define MULTI_FUNC_FLAG_DISABLE(mask) (multiFunctionFlags &= ~(mask))
+#define MULTI_FUNC_FLAG_ENABLE(mask) (multiFunctionFlags |= (mask))
+#define MULTI_FUNC_FLAG(mask) (multiFunctionFlags & (mask))
+
+typedef enum {
+    SUSPEND_SAFEHOMES = (1 << 0),
+    SUSPEND_TRACKBACK = (1 << 1),
+} multiFunctionFlags_e;
+
 typedef enum {
     MULTI_FUNC_NONE,
     MULTI_FUNC_1,
     MULTI_FUNC_2,
     MULTI_FUNC_3,
     MULTI_FUNC_4,
+    MULTI_FUNC_5,
     MULTI_FUNC_END,
 } multi_function_e;
 

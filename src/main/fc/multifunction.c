@@ -34,11 +34,13 @@
 #include "io/osd.h"
 #include "navigation/navigation.h"
 
+uint8_t multiFunctionFlags;
+
 static void multiFunctionApply(multi_function_e selectedItem)
 {
     switch (selectedItem) {
     case MULTI_FUNC_NONE:
-        return;
+        break;
     case MULTI_FUNC_1:  // redisplay current warnings
         osdResetWarningFlags();
         break;
@@ -48,15 +50,19 @@ static void multiFunctionApply(multi_function_e selectedItem)
     case MULTI_FUNC_3:  // toggle Safehome suspend
 #if defined(USE_SAFE_HOME)
         if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
-            suspendSafehome();
+            MULTI_FUNC_FLAG(SUSPEND_SAFEHOMES) ? MULTI_FUNC_FLAG_DISABLE(SUSPEND_SAFEHOMES) : MULTI_FUNC_FLAG_ENABLE(SUSPEND_SAFEHOMES);
         }
 #endif
         break;
-    case MULTI_FUNC_4:  // emergency ARM
+    case MULTI_FUNC_4:
+        if (navConfig()->general.flags.rth_trackback_mode != RTH_TRACKBACK_OFF) {
+            MULTI_FUNC_FLAG(SUSPEND_TRACKBACK) ? MULTI_FUNC_FLAG_DISABLE(SUSPEND_TRACKBACK) : MULTI_FUNC_FLAG_ENABLE(SUSPEND_TRACKBACK);
+        }
+        break;
+    case MULTI_FUNC_5:  // emergency ARM
         if (!ARMING_FLAG(ARMED)) {
             emergencyArmingUpdate(true, true);
         }
-        break;
     case MULTI_FUNC_END:
         break;
     }
