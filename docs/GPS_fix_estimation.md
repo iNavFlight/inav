@@ -63,7 +63,7 @@ Example: 100 km/h = 100 * 27.77 = 2777 cm/s
 
 *If pitot is available, pitot sensor data will be used instead of constant.*
 
-*Note related command: to continue mission without RC signal, see command ```set failsafe_mission=OFF```.*
+*Note related command: to continue mission without RC signal, see command ```set failsafe_mission_delay=-1```.*
 
 **After entering CLI command, make sure that settings are saved:**
 
