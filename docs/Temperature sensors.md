@@ -12,6 +12,7 @@ Up to 8 can be connected to the flight controller.
 * Temperature range: -55 to +125°C
 
 On the purple LM75 (CJMCU-75), address line pins on the bottom of the PCB need to be bridged either to ground or VCC (to define I2C address)
+
 ![image](assets/images/CJMCU-75_address.png)
 
 Pin definition:
