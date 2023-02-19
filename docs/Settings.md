@@ -3722,6 +3722,16 @@ Aircraft will climb/descend to this altitude after reaching home if landing is n
 
 ---
 
+### nav_rth_linear_descent_start_distance
+
+The distance [m] away from home to start the linear descent. 0 = immediately (original linear descent behaviour)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
 ### nav_rth_tail_first
 
 If set to ON drone will return tail-first. Obviously meaningless for airplanes.
@@ -3749,6 +3759,16 @@ Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF |  |  |
+
+---
+
+### nav_rth_use_linear_descent
+
+If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en route. The distance from home to start the descent can be set with `nav_rth_linear_descent_start_distance`.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
