@@ -3188,7 +3188,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_FW_LEVEL_TRIM:
         {
-            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "LEVEL", 0, pidProfileMutable()->fixedWingLevelTrim, 3, 1, ADJUSTMENT_FW_LEVEL_TRIM);
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "LEVEL", 0, getFixedWingLevelTrim(), 3, 1, ADJUSTMENT_FW_LEVEL_TRIM);
             return true;
         }
 
