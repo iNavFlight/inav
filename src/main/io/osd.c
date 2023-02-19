@@ -2089,8 +2089,11 @@ static bool osdDrawSingleElement(uint8_t item)
             else if (FLIGHT_MODE(ANGLE_MODE))
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
-                p = "HOR ";
-
+                p = "HOR";
+		
+	    if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL))
+		p += "L";
+		
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
         }
