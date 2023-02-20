@@ -2096,7 +2096,7 @@ static bool osdDrawSingleElement(uint8_t item)
 		strcpy(new_p, p);
 		strcat(new_p, "L");
 		p = new_p;
-		}
+	    }
 		
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
