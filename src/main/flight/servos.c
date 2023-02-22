@@ -525,7 +525,7 @@ void processContinuousServoAutotrim(const float dT)
                 isGPSHeadingValid() // TODO: proper flying detection
             ) { 
                 // Plane is flying straight and level: trim servos
-                for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
+                for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
                     if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
@@ -542,7 +542,7 @@ void processContinuousServoAutotrim(const float dT)
                                 // Convert axis I-term to servo PWM and add to midpoint
                                 const float mixerRate = currentServoMixer[i].rate / 100.0f;
                                 const float servoRate = servoParams(target)->rate / 100.0f;
-                                servoParamsMutable(target)->middle += ItermUpdate * mixerRate * servoRate;
+                                servoParamsMutable(target)->middle += (int16_t)(ItermUpdate * mixerRate * servoRate);
                                 servoParamsMutable(target)->middle = constrain(servoParamsMutable(target)->middle, SERVO_AUTOTRIM_CENTER_MIN, SERVO_AUTOTRIM_CENTER_MAX);
                                 }
                         }
