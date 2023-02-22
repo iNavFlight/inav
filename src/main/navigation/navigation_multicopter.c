@@ -725,10 +725,14 @@ bool isMulticopterLandingDetected(void)
     DEBUG_SET(DEBUG_LANDING, 4, 0);
     static timeMs_t landingDetectorStartedAt;
 
+    bool throttleIsBelowMidHover = rcCommand[THROTTLE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+
     /* Basic condition to start looking for landing
-    *  Prevent landing detection if WP mission allowed during Failsafe (except landing states) */
+     * Detection active during Failsafe only if throttle below mid hover throttle
+     * and WP mission not active (except landing states).
+     * Also active in non autonomous flight modes but only when thottle low */
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
-                          || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE))
+                          || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && throttleIsBelowMidHover)
                           || (!navigationIsFlyingAutonomousMode() && throttleStickIsLow());
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
