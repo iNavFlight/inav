@@ -1313,7 +1313,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_TRACKBACK(navigatio
     if (posControl.flags.estPosStatus >= EST_USABLE) {
         const int32_t distFromStartTrackback = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.rthTBLastSavedIndex]) / 100;
         const bool cancelTrackback = distFromStartTrackback > navConfig()->general.rth_trackback_distance ||
-                                     ((rthAltControlStickOverrideCheck(ROLL) || MULTI_FUNC_FLAG(SUSPEND_TRACKBACK)) && !posControl.flags.forcedRTHActivated);
+                                     ((rthAltControlStickOverrideCheck(ROLL) || MULTI_FUNC_FLAG(MF_SUSPEND_TRACKBACK)) && !posControl.flags.forcedRTHActivated);
 
         if (posControl.activeRthTBPointIndex < 0 || cancelTrackback) {
             posControl.rthTBWrapAroundCounter = posControl.activeRthTBPointIndex = -1;
@@ -2460,7 +2460,7 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 void checkSafeHomeState(bool shouldBeEnabled)
 {
     const bool safehomeNotApplicable = navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF ||
-                                       (MULTI_FUNC_FLAG(SUSPEND_SAFEHOMES) && !posControl.flags.forcedRTHActivated) ||
+                                       (MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) && !posControl.flags.forcedRTHActivated) ||
                                        posControl.flags.rthTrackbackActive ||
                                        (!posControl.safehomeState.isApplied && posControl.homeDistance < navConfig()->general.min_rth_distance);
 

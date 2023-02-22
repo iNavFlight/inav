@@ -4763,16 +4763,23 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         case MULTI_FUNC_3:
 #if defined(USE_SAFE_HOME)
             if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
-                message = MULTI_FUNC_FLAG(SUSPEND_SAFEHOMES) ? "USE SFHOME" : "SUS SFHOME";
+                message = MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) ? "USE SFHOME" : "SUS SFHOME";
             }
 #endif
             break;
         case MULTI_FUNC_4:
             if (navConfig()->general.flags.rth_trackback_mode != RTH_TRACKBACK_OFF) {
-                message = MULTI_FUNC_FLAG(SUSPEND_TRACKBACK) ? "USE TKBACK" : "SUS TKBACK";
+                message = MULTI_FUNC_FLAG(MF_SUSPEND_TRACKBACK) ? "USE TKBACK" : "SUS TKBACK";
             }
             break;
         case MULTI_FUNC_5:
+#ifdef USE_DSHOT
+            if (STATE(MULTIROTOR)) {
+                message = MULTI_FUNC_FLAG(MF_TURTLE_MODE) ? "USE TURTLE" : "END TURTLE";
+            }
+#endif
+            break;
+        case MULTI_FUNC_6:
             message = ARMING_FLAG(ARMED) ? "NOW ARMED " : "EMERG ARM ";
             break;
         case MULTI_FUNC_END:

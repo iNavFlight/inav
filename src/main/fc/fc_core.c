@@ -56,6 +56,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
 #include "fc/rc_controls.h"
@@ -512,7 +513,7 @@ void tryArm(void)
     }
 
 #ifdef USE_DSHOT
-    if (STATE(MULTIROTOR) && IS_RC_MODE_ACTIVE(BOXTURTLE) && !FLIGHT_MODE(TURTLE_MODE) &&
+    if (STATE(MULTIROTOR) && (IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE)) && !FLIGHT_MODE(TURTLE_MODE) &&
         emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
         ) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);

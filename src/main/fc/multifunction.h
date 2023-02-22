@@ -31,8 +31,9 @@ extern uint8_t multiFunctionFlags;
 #define MULTI_FUNC_FLAG(mask) (multiFunctionFlags & (mask))
 
 typedef enum {
-    SUSPEND_SAFEHOMES = (1 << 0),
-    SUSPEND_TRACKBACK = (1 << 1),
+    MF_SUSPEND_SAFEHOMES    = (1 << 0),
+    MF_SUSPEND_TRACKBACK    = (1 << 1),
+    MF_TURTLE_MODE          = (1 << 2),
 } multiFunctionFlags_e;
 
 typedef enum {
@@ -42,6 +43,7 @@ typedef enum {
     MULTI_FUNC_3,
     MULTI_FUNC_4,
     MULTI_FUNC_5,
+    MULTI_FUNC_6,
     MULTI_FUNC_END,
 } multi_function_e;
 
