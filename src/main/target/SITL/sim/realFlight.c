@@ -414,7 +414,7 @@ bool simRealFlightInit(char* ip, uint8_t* mapping, uint8_t mapCount, bool imu)
     // Wait until the connection is established, the interface has been initialised 
     // and the first valid packet has been received to avoid problems with the startup calibration.   
     while (!isInitalised) {
-        // ...
+        delay(250);
     }
 
     return true;

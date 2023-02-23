@@ -606,7 +606,7 @@ const char * fixedWingLaunchStateMessage(void);
 
 float calculateAverageSpeed(void);
 
-void updateLandingStatus(timeMs_t currentTimeMs);
+void updateLandingStatus(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 

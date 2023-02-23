@@ -44,6 +44,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 #include "drivers/serial.h"
+#include "config/config_streamer.h"
 
 #include "target/SITL/sim/realFlight.h"
 #include "target/SITL/sim/xplane.h"
@@ -66,46 +67,46 @@ static int simPort = 0;
 
 void systemInit(void) {
 
-    printf("INAV %d.%d.%d SITL\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL);
+    fprintf(stderr, "INAV %d.%d.%d SITL\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL);
     clock_gettime(CLOCK_MONOTONIC, &start_time);
-    printf("[SYSTEM] Init...\n");
+    fprintf(stderr, "[SYSTEM] Init...\n");
 
     if (pthread_mutex_init(&mainLoopLock, NULL) != 0) {
-        printf("[SYSTEM] Unable to create mainLoop lock.\n");
+        fprintf(stderr, "[SYSTEM] Unable to create mainLoop lock.\n");
         exit(1);
     }
 
     if (sitlSim != SITL_SIM_NONE) {
-        printf("[SIM] Waiting for connection...\n");
+        fprintf(stderr, "[SIM] Waiting for connection...\n");
     }
     
     switch (sitlSim) {
         case SITL_SIM_REALFLIGHT:
             if (mappingCount > RF_MAX_PWM_OUTS) {
-                printf("[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", RF_MAX_PWM_OUTS);
+                fprintf(stderr, "[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", RF_MAX_PWM_OUTS);
                 sitlSim = SITL_SIM_NONE;
                 break;
             }
             if (simRealFlightInit(simIp, pwmMapping, mappingCount, useImu)) {
-                printf("[SIM] Connection with RealFlight (%s) successfully established. \n", simIp);
+                fprintf(stderr, "[SIM] Connection with RealFlight successfully established.\n");
             } else {
-                printf("[SIM] Connection with RealFlight (%s) NOT established. \n", simIp);
+                fprintf(stderr, "[SIM] Connection with RealFlight NOT established.\n");
             }
             break;
         case SITL_SIM_XPLANE:
             if (mappingCount > XP_MAX_PWM_OUTS) {
-                printf("[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", XP_MAX_PWM_OUTS);
+                fprintf(stderr, "[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", XP_MAX_PWM_OUTS);
                 sitlSim = SITL_SIM_NONE;
                 break;
             }            
             if (simXPlaneInit(simIp, simPort, pwmMapping, mappingCount, useImu)) {
-                printf("[SIM] Connection with XPlane successfully established. \n");
+                fprintf(stderr, "[SIM] Connection with X-Plane successfully established.\n");
             } else {
-                printf("[SIM] Connection with XPLane NOT established. \n");
+                fprintf(stderr, "[SIM] Connection with X-PLane NOT established.\n");
             }
             break;
         default:
-          printf("[SIM] No interface specified. Configurator only.\n");
+          fprintf(stderr, "[SIM] No interface specified. Configurator only.\n");
           break;
     }
  
@@ -149,21 +150,22 @@ bool parseMapping(char* mapStr)
 
 void printCmdLineOptions(void)         
 {
-    printf("Avaiable options:\n");
-    printf("--sim=[rf|xp]                        Simulator interface: rf = RealFligt, xp = XPlane. Example: --sim=rf\n");
-    printf("--simip=[ip]                         IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.");
-    printf("--simport=[port]                     Port oft the simulator host.");
-    printf("--useimu                             Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).");
-    printf("--chanmap=[mapstring]                Channel mapping, Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
-    printf("                                     The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER_OUT>,)... All numbers must have two digits\n");
-    printf("                                     For example map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
-    printf("                                     --chanmap=M01-01,S01-02,S02-03\n"); 
+    fprintf(stderr, "Avaiable options:\n");
+    fprintf(stderr, "--path=[path]                        Path and filename of eeprom.bin. If not specified 'eeprom.bin' in program directory is used.\n");
+    fprintf(stderr, "--sim=[rf|xp]                        Simulator interface: rf = RealFligt, xp = XPlane. Example: --sim=rf\n");
+    fprintf(stderr, "--simip=[ip]                         IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
+    fprintf(stderr, "--simport=[port]                     Port oft the simulator host.\n");
+    fprintf(stderr, "--useimu                             Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
+    fprintf(stderr, "--chanmap=[mapstring]                Channel mapping, Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
+    fprintf(stderr, "                                     The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER_OUT>,)... All numbers must have two digits\n");
+    fprintf(stderr, "                                     For example map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
+    fprintf(stderr, "                                     --chanmap=M01-01,S01-02,S02-03\n"); 
 }
 
 void parseArguments(int argc, char *argv[])
 {
     int c;
-    while(1) {
+    while(true) {
         static struct option longOpt[] = {
             {"sim", optional_argument, 0, 's'},
             {"useimu", optional_argument, 0, 'u'},
@@ -171,6 +173,7 @@ void parseArguments(int argc, char *argv[])
             {"simip", optional_argument, 0, 'i'},
             {"simport", optional_argument, 0, 'p'},
             {"help", optional_argument, 0, 'h'},
+            {"path", optional_argument, 0, 'e'},
             {NULL, 0, NULL, 0}
         };
 
@@ -185,13 +188,13 @@ void parseArguments(int argc, char *argv[])
                 } else if (strcmp(optarg, "xp") == 0){
                     sitlSim = SITL_SIM_XPLANE;
                 } else {
-                    printf("[SIM] Unsupported simulator %s.\n", optarg);
+                    fprintf(stderr, "[SIM] Unsupported simulator %s.\n", optarg);
                 }
                 break;
 
             case 'c':
                 if (!parseMapping(optarg) && sitlSim != SITL_SIM_NONE) {
-                    printf("[SIM] Invalid channel mapping string.\n");
+                    fprintf(stderr, "[SIM] Invalid channel mapping string.\n");
                     printCmdLineOptions();
                     exit(0);
                 }
@@ -205,7 +208,11 @@ void parseArguments(int argc, char *argv[])
             case 'i':
                 simIp = optarg;
                 break;
-
+            case 'e':
+                if (!configFileSetPath(optarg)){
+                    fprintf(stderr, "[EEPROM] Invalid path, using eeprom file in program directory\n.");
+                }
+                break;
             case 'h':
                 printCmdLineOptions();
                 exit(0);
@@ -271,18 +278,18 @@ void delay(timeMs_t ms)
 
 void systemReset(void) 
 {
-    printf("[SYSTEM] Reset\n");
+    fprintf(stderr, "[SYSTEM] Reset\n");
     exit(0);
 }
 
 void systemResetToBootloader(void)
 {
-    printf("[SYSTEM] Reset to bootloader\n");
+    fprintf(stderr, "[SYSTEM] Reset to bootloader\n");
     exit(0);
 }
 
 void failureMode(failureMode_e mode) {
-    printf("[SYSTEM] Failure mode %d\n", mode);
+    fprintf(stderr, "[SYSTEM] Failure mode %d\n", mode);
     while (1);
 }
 

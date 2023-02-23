@@ -51,7 +51,6 @@ typedef uint32_t timeUs_t;
 #define USECS_PER_SEC (1000 * 1000)
 
 #define HZ2US(hz)   (1000000 / (hz))
-#define HZ2MS(hz)   (1000 / (hz))
 #define US2S(us)    ((us) * 1e-6f)
 #define US2MS(us)   ((us) * 1e-3f)
 #define MS2US(ms)   ((ms) * 1000)
