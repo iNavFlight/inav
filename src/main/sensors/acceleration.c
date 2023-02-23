@@ -520,6 +520,11 @@ void accUpdate(void)
 
     if (!ARMING_FLAG(SIMULATOR_MODE_SITL)) {
         performAcclerationCalibration();
+
+        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);  
+        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
+        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);  
+        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
         applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);  
     } 
 

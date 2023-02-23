@@ -39,6 +39,9 @@
 static pthread_mutex_t gyroMutex;
 static pthread_mutex_t accMutex;
 
+#define LOCK(mutex) (pthread_mutex_lock(mutex))
+#define UNLOCK(mutex) (pthread_mutex_unlock(mutex))
+
 #define GYROLOCK (pthread_mutex_lock(&gyroMutex))
 #define GYROUNLOCK (pthread_mutex_unlock(&gyroMutex))
 #define ACCLOCK (pthread_mutex_lock(&accMutex))
@@ -62,6 +65,8 @@ static void fakeGyroInit(gyroDev_t *gyro)
 #if defined(SITL_BUILD)
     pthread_mutex_init(&gyroMutex, NULL);
 #endif
+
+    //ENABLE_STATE(ACCELEROMETER_CALIBRATED);
 }
 
 void fakeGyroSet(int16_t x, int16_t y, int16_t z)

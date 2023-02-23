@@ -184,11 +184,11 @@ static void* listenWorker(void* arg)
         
         recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
         if (recvLen < 0 && errno != EWOULDBLOCK) {
-            continue;
+            break;
         } 
 
         if (strncmp((char*)buf, "RREF", 4) != 0) {
-            continue;
+            break;
         }
 
         for (int i = 5; i < recvLen; i += 8) {
@@ -276,6 +276,7 @@ static void* listenWorker(void* arg)
                 default:
                     break;
             }
+
         }
 
         if (hpath < 0) {
@@ -327,9 +328,7 @@ static void* listenWorker(void* arg)
         fakeBattSensorSetVbat(16.8 * 100);
 
         if (!initalized) {
-            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
-            // Aircraft can wobble on the runway and prevents calibration of the accelerometer
-            ENABLE_STATE(ACCELEROMETER_CALIBRATED);                   
+            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);                        
             initalized = true;
         }
 
@@ -363,42 +362,42 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         return false;
     }
 
-    if (setsockopt(sockFd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
+    if (bind(sockFd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         return false;
     }
-         
-    bind(sockFd, (struct sockaddr *) &addr, sizeof(addr));
 
     serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr(ip);
 	serverAddr.sin_port = htons(port);
-    
+
+    registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
+    registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
+    registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
+    registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
+    registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
+    registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
+    registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
+    registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
+    registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
+    registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
+    registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
+    registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
+    registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
+    registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
+    registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
+    registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
+    registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
+    registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
+    registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
+
     if (pthread_create(&listenThread, NULL, listenWorker, NULL) < 0) {
         return false;
     }
 
-    while (!initalized) {
-        registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
-        registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
-        registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
-        registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
-        registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
-        registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
-        registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
-        registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
-        registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
-        registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
-        registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
-        registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
-        registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
-        registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
-        registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
-        registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
-        registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
-        registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
-        registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
-        delay(250);
+    while(!initalized) {
+        //
     }
 
     return true;
+
 }

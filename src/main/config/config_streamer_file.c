@@ -16,7 +16,6 @@
  */
 
 #include <string.h>
-#include <dirent.h>
 #include "platform.h"
 #include "drivers/system.h"
 #include "config/config_streamer.h"
@@ -27,32 +26,21 @@
 #include <stdio.h>
 #include <errno.h>
 
-
 #define FLASH_PAGE_SIZE  (0x400)
 
 static FILE *eepromFd = NULL;
-static bool streamerLocked = true;
-static char eepromPath[260] = EEPROM_FILENAME;
 
-bool configFileSetPath(char* path)
-{
-    if(!path || strlen(path) > 260) {
-        return false;
-    }
-    
-    strcpy(eepromPath, path);
-    return true;
-}
+static bool streamerLocked = true;
 
 void config_streamer_impl_unlock(void)
 {
     if (eepromFd != NULL) {
-        fprintf(stderr, "[EEPROM] Unable to load %s\n", eepromPath);
+        fprintf(stderr, "[EEPROM] Unable to load %s\n", EEPROM_FILENAME);
         return;
     }
 
     // open or create
-    eepromFd = fopen(eepromPath,"r+");
+    eepromFd = fopen(EEPROM_FILENAME,"r+");
     if (eepromFd != NULL) {
         // obtain file size:
         fseek(eepromFd , 0 , SEEK_END);
@@ -61,16 +49,16 @@ void config_streamer_impl_unlock(void)
 
         size_t n = fread(eepromData, 1, sizeof(eepromData), eepromFd);
         if (n == size) {
-            fprintf(stderr,"[EEPROM] Loaded '%s' (%ld of %ld bytes)\n", eepromPath, size, sizeof(eepromData));
+            printf("[EEPROM] Loaded '%s' (%ld of %ld bytes)\n", EEPROM_FILENAME, size, sizeof(eepromData));
             streamerLocked = false;
         } else {
-            fprintf(stderr, "[EEPROM] Failed to load '%s'\n", eepromPath);
+            fprintf(stderr, "[EEPROM] Failed to load '%s'\n", EEPROM_FILENAME);
         }
     } else {
-        printf("[EEPROM] Created '%s', size = %ld\n", eepromPath, sizeof(eepromData));
+        printf("[EEPROM] Created '%s', size = %ld\n", EEPROM_FILENAME, sizeof(eepromData));
         streamerLocked = false;
-        if ((eepromFd = fopen(eepromPath, "w+")) == NULL) {
-            fprintf(stderr, "[EEPROM] Failed to create '%s'\n", eepromPath);
+        if ((eepromFd = fopen(EEPROM_FILENAME, "w+")) == NULL) {
+            fprintf(stderr, "[EEPROM] Failed to create '%s'\n", EEPROM_FILENAME);
             streamerLocked = true;
         }
         if (fwrite(eepromData, sizeof(eepromData), 1, eepromFd) != 1) {
@@ -78,6 +66,8 @@ void config_streamer_impl_unlock(void)
             streamerLocked = true;
         }
     }
+    
+    
 }
 
 void config_streamer_impl_lock(void)
@@ -88,7 +78,7 @@ void config_streamer_impl_lock(void)
         fwrite(eepromData, 1, sizeof(eepromData), eepromFd);
         fclose(eepromFd);
         eepromFd = NULL;
-        fprintf(stderr, "[EEPROM] Saved '%s'\n", eepromPath);
+        printf("[EEPROM] Saved '%s'\n", EEPROM_FILENAME);
         streamerLocked = false;
     } else {
         fprintf(stderr, "[EEPROM] Unlock error\n");
@@ -103,9 +93,9 @@ int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer
 
     if ((c->address >= (uintptr_t)eepromData) && (c->address < (uintptr_t)ARRAYEND(eepromData))) {
         *((uint32_t*)c->address) = *buffer;
-        fprintf(stderr, "[EEPROM] Program word  %p = %08x\n", (void*)c->address, *((uint32_t*)c->address));
+        printf("[EEPROM] Program word  %p = %08x\n", (void*)c->address, *((uint32_t*)c->address));
     } else {
-        fprintf(stderr, "[EEPROM] Program word %p out of range!\n", (void*)c->address);
+        printf("[EEPROM] Program word %p out of range!\n", (void*)c->address);
     }
 
     c->address += CONFIG_STREAMER_BUFFER_SIZE;

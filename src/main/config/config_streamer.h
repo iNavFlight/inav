@@ -57,7 +57,3 @@ int config_streamer_flush(config_streamer_t *c);
 
 int config_streamer_finish(config_streamer_t *c);
 int config_streamer_status(config_streamer_t *c);
-
-#if defined(CONFIG_IN_FILE)
-bool configFileSetPath(char* path);
-#endif
