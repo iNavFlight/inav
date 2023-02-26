@@ -349,10 +349,21 @@ bool gpsUpdate(void)
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE)) {
-        gpsUpdateTime();
-        gpsSetState(GPS_RUNNING);
-        sensorsSet(SENSOR_GPS);
-        return gpsSol.flags.hasNewData;
+        if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT))
+        {
+            gpsSetState(GPS_LOST_COMMUNICATION);
+            sensorsClear(SENSOR_GPS);
+            gpsStats.timeouts = 5;
+            return false;
+        }
+        else
+        {
+            gpsSetState(GPS_RUNNING);
+            sensorsSet(SENSOR_GPS);
+            bool res = gpsSol.flags.hasNewData;
+            gpsSol.flags.hasNewData = false;
+            return res;
+        }
     }
 #endif
 #ifdef USE_FAKE_GPS

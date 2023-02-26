@@ -193,6 +193,13 @@ STATIC_PROTOTHREAD(pitotThread)
     pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
+#ifdef USE_SIMULATOR
+    	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
+        {
+            ptDelayUs(10000);
+    	}
+#endif
+
         // Start measurement
         if (pitot.dev.start(&pitot.dev)) {
             pitot.lastSeenHealthyMs = millis();
@@ -236,7 +243,7 @@ STATIC_PROTOTHREAD(pitotThread)
         }
 #ifdef USE_SIMULATOR
     	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-        	pitot.airSpeed = simulatorData.airSpeed;
+        	    pitot.airSpeed = simulatorData.airSpeed;
     	}
 #endif
     }
