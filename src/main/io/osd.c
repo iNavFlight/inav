@@ -427,11 +427,12 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             suffix = SYM_KMH;
             break;
     }
+
     osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
-    if (!isValid)
-    {
+    
+    if (!isValid && ((millis() / 1000) % 4 < 2))
         suffix = '*';
-    }
+
     buff[3] = suffix;
     buff[4] = '\0';
 }
