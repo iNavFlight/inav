@@ -11,7 +11,7 @@ INAV Programming Framework coinsists of:
 * Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
 * Programming PID - general purpose, user configurable PID controllers
 
-IPF can be edited using INAV Configurator user interface, of via CLI
+IPF can be edited using INAV Configurator user interface, or via CLI
 
 ## Logic Conditions
 
@@ -143,19 +143,24 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 
 #### FLIGHT_MODE
 
-| Operand Value | Name      | Notes |
-|---------------|-----------|-------|
-| 0             | FAILSAFE  |  |
-| 1             | MANUAL    |  |
-| 2             | RTH       |  |
-| 3             | POSHOLD   |  |
-| 4             | CRUISE    |  |
-| 5             | ALTHOLD   |  |
-| 6             | ANGLE     |  |
-| 7             | HORIZON   |  |
-| 8             | AIR       |  |
-| 9             | USER1     |  |
-| 10            | USER2     |  |
+| Operand Value | Name              | Notes |
+|---------------|-------------------|-------|
+| 0             | FAILSAFE          |  |
+| 1             | MANUAL            |  |
+| 2             | RTH               |  |
+| 3             | POSHOLD           |  |
+| 4             | CRUISE            |  |
+| 5             | ALTHOLD           |  |
+| 6             | ANGLE             |  |
+| 7             | HORIZON           |  |
+| 8             | AIR               |  |
+| 9             | USER1             |  |
+| 10            | USER2             |  |
+| 11            | COURSE_HOLD       |  |
+| 12            | USER3             |  |
+| 13            | USER4             |  |
+| 14            | ACRO              |  |
+| 15            | WAYPOINT_MISSION  |  | 
 
 #### WAYPOINTS
 
@@ -195,7 +200,8 @@ All flags are reseted on ARM and DISARM event.
 
 | bit   | Decimal   | Function  |
 |-------|-----------|-----------|
-| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
+| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reset |
+| 1     | 2         | Timeout satisfied - Used in timed operands to determine if the timeout has been met |
 
 ## Global variables
 
@@ -219,6 +225,13 @@ All flags are reseted on ARM and DISARM event.
 * `<FF gain>` - FF-gain, scaled to `1/1000`
 
 ## Examples
+
+### When more than 100 meters away, increase VTX power
+![screenshot of vtx home distance](./assets/images/vtx_home_distance.png)
+
+### When more than 600 meters away, engage return-to-home by setting the matching RC channel
+![screenshot of rth home distance](./assets/images/rth_home_distance.jpg)
+
 
 ### Dynamic THROTTLE scale
 
