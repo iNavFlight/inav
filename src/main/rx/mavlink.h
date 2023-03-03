@@ -23,5 +23,5 @@
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
-void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);
+uint16_t * mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);
 bool mavlinkRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);

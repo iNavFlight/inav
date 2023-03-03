@@ -180,6 +180,9 @@ static mavlink_message_t mavSendMsg;
 static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
+#define MAVLINK_CHANNEL_COUNT 18
+static uint32_t mavlinkChannelSetTime[MAVLINK_CHANNEL_COUNT];
+static uint16_t * mavlinkChannelDataPointer = NULL;    // pointer to the variable declared for mavlink based rx. 
 static uint8_t mavSystemId = 1;
 static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
 
@@ -1047,8 +1050,29 @@ static bool handleIncoming_MISSION_REQUEST(void)
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
+    // update time of reciving override value for every single channel
+    uint32_t curTimeMs = micros() / 1000;
+    if (msg.chan1_raw != 0 && msg.chan1_raw != UINT16_MAX) mavlinkChannelSetTime[0] = curTimeMs;
+    if (msg.chan2_raw != 0 && msg.chan2_raw != UINT16_MAX) mavlinkChannelSetTime[1] = curTimeMs;
+    if (msg.chan3_raw != 0 && msg.chan3_raw != UINT16_MAX) mavlinkChannelSetTime[2] = curTimeMs;
+    if (msg.chan4_raw != 0 && msg.chan4_raw != UINT16_MAX) mavlinkChannelSetTime[3] = curTimeMs;
+    if (msg.chan5_raw != 0 && msg.chan5_raw != UINT16_MAX) mavlinkChannelSetTime[4] = curTimeMs;
+    if (msg.chan6_raw != 0 && msg.chan6_raw != UINT16_MAX) mavlinkChannelSetTime[5] = curTimeMs;
+    if (msg.chan7_raw != 0 && msg.chan7_raw != UINT16_MAX) mavlinkChannelSetTime[6] = curTimeMs;
+    if (msg.chan8_raw != 0 && msg.chan8_raw != UINT16_MAX) mavlinkChannelSetTime[7] = curTimeMs;
+    if (msg.chan9_raw != 0 && msg.chan9_raw != UINT16_MAX) mavlinkChannelSetTime[8] = curTimeMs;
+    if (msg.chan10_raw != 0 && msg.chan10_raw != UINT16_MAX) mavlinkChannelSetTime[9] = curTimeMs;
+    if (msg.chan11_raw != 0 && msg.chan11_raw != UINT16_MAX) mavlinkChannelSetTime[10] = curTimeMs;
+    if (msg.chan12_raw != 0 && msg.chan12_raw != UINT16_MAX) mavlinkChannelSetTime[11] = curTimeMs;
+    if (msg.chan13_raw != 0 && msg.chan13_raw != UINT16_MAX) mavlinkChannelSetTime[12] = curTimeMs;
+    if (msg.chan14_raw != 0 && msg.chan14_raw != UINT16_MAX) mavlinkChannelSetTime[13] = curTimeMs;
+    if (msg.chan15_raw != 0 && msg.chan15_raw != UINT16_MAX) mavlinkChannelSetTime[14] = curTimeMs;
+    if (msg.chan16_raw != 0 && msg.chan16_raw != UINT16_MAX) mavlinkChannelSetTime[15] = curTimeMs;
+    if (msg.chan17_raw != 0 && msg.chan17_raw != UINT16_MAX) mavlinkChannelSetTime[16] = curTimeMs;
+    if (msg.chan18_raw != 0 && msg.chan18_raw != UINT16_MAX) mavlinkChannelSetTime[17] = curTimeMs;
+    
     // Don't check system ID because it's not configurable with systems like Crossfire
-    mavlinkRxHandleMessage(&msg);
+    mavlinkChannelDataPointer = mavlinkRxHandleMessage(&msg);
     return true;
 }
 
@@ -1113,6 +1137,19 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         }
         lastMavlinkMessage = currentTimeUs;
         incomingRequestServed = false;
+    }
+}
+
+void mavlinkOverrideChannels(rcChannel_t *rcChannels)
+{
+    if (mavlinkTelemetryEnabled && mavlinkChannelDataPointer ){
+        uint32_t curTimeMs = micros() / 1000;
+        for (uint8_t ii=0; ii < MAVLINK_CHANNEL_COUNT; ii++){
+            // check if a channel value recived via mavlink it's not too old
+            if ( curTimeMs - mavlinkChannelSetTime[ii] < telemetryConfig()->mavlink.chn_override_timeout_ms ){
+                rcChannels[ii].raw = rcChannels[ii].data = mavlinkChannelDataPointer[ii];
+            }
+        }
     }
 }
 

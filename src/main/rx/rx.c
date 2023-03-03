@@ -63,6 +63,9 @@
 #include "rx/sumd.h"
 #include "rx/ghst.h"
 #include "rx/mavlink.h"
+#include "telemetry/telemetry.h"
+#include "telemetry/mavlink.h"
+
 
 const char rcChannelLetters[] = "AERT";
 
@@ -508,6 +511,13 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     if (IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE) && !mspOverrideIsInFailsafe()) {
         mspOverrideChannels(rcChannels);
+    }
+#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_MAVLINK)
+    // overwrite by mavlink only if mavlink_chn_override_timeout_ms is set
+    if ( telemetryConfig()->mavlink.chn_override_timeout_ms > 0) {
+         mavlinkOverrideChannels(rcChannels);    
     }
 #endif
 
