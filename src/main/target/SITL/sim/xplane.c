@@ -45,14 +45,19 @@
 #include "sensors/battery_sensor_fake.h"
 #include "sensors/acceleration.h"
 #include "drivers/pitotmeter/pitotmeter_fake.h"
+#include "drivers/compass/compass_fake.h"
+#include "drivers/rangefinder/rangefinder_virtual.h"
+#include "io/rangefinder.h"
 #include "common/utils.h"
 #include "common/maths.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/imu.h"
 #include "io/gps.h"
+#include "rx/sim.h"
 
 #define XP_PORT 49000
+#define XPLANE_JOYSTICK_AXIS_COUNT 8
 
 
 static uint8_t pwmMapping[XP_MAX_PWM_OUTS];
@@ -67,6 +72,7 @@ static bool useImu = false;
 static float lattitude = 0; 
 static float longitude = 0;
 static float elevation = 0;
+static float agl = 0;
 static float local_vx = 0;
 static float local_vy = 0;
 static float local_vz = 0;
@@ -83,13 +89,27 @@ static float gyro_x = 0;
 static float gyro_y = 0;
 static float gyro_z = 0;
 static float barometer = 0;
+static bool  hasJoystick = false;
+static float joystickRaw[XPLANE_JOYSTICK_AXIS_COUNT];
 
+enum 
+{
+    RF_ASSIGNMENT_PITCH,
+    RF_ASSIGNMENT_ROLL,
+    RF_ASSIGNMENT_YAW,
+    RF_ASSIGNMENT_THROTLE,
+    RF_ASSIGNMENT_PROP,
+    RF_ASSIGNMENT_MIXTURE,
+    RF_ASSIGNMENT_COLLECTIVE,
+    RF_ASSIGNMENT_THRUST_VECTOR
+};
 
 typedef enum 
 {
     DREF_LATITUDE,
     DREF_LONGITUDE,
     DREF_ELEVATION,
+    DREF_AGL,
     DREF_LOCAL_VX,
     DREF_LOCAL_VY,
     DREF_LOCAL_VZ,
@@ -106,7 +126,16 @@ typedef enum
     DREF_POS_Q,
     DREF_POS_R,
     DREF_POS_BARO_CURRENT_INHG,
-    DREF_COUNT
+    DREF_COUNT,
+    DREF_HAS_JOYSTICK,
+    DREF_JOYSTICK_VALUES_ROll,
+    DREF_JOYSTICK_VALUES_PITCH,
+    DREF_JOYSTICK_VALUES_THROTTLE,
+    DREF_JOYSTICK_VALUES_YAW,
+    DREF_JOYSTICK_VALUES_PROP,
+    DREF_JOYSTICK_VALUES_MIXTURE,
+    DREF_JOYSTICK_VALUES_COLLECTIVE,
+    DREF_JOYSTICK_VALUES_THRUST_VECTOR,
 } dref_t;
 
 uint32_t xint2uint32 (uint8_t * buf) 
@@ -168,7 +197,7 @@ static void* listenWorker(void* arg)
             if (y > 2) {
                 break;
             }
-            if (pwmMapping[i] & 0x80) { // Motor)
+            if (pwmMapping[i] & 0x80) { // Motor
                 motorValue = PWM_TO_FLOAT_0_1(motor[pwmMapping[i] & 0x7f]);
             } else {
                 yokeValues[y] = PWM_TO_FLOAT_MINUS_1_1(servo[pwmMapping[i]]);
@@ -184,11 +213,11 @@ static void* listenWorker(void* arg)
         
         recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
         if (recvLen < 0 && errno != EWOULDBLOCK) {
-            break;
+            continue;
         } 
 
         if (strncmp((char*)buf, "RREF", 4) != 0) {
-            break;
+            continue;
         }
 
         for (int i = 5; i < recvLen; i += 8) {
@@ -207,6 +236,10 @@ static void* listenWorker(void* arg)
 
                 case DREF_ELEVATION:
                     elevation = value;
+                    break;
+                
+                case DREF_AGL:
+                    agl = value;
                     break;
 
                 case DREF_LOCAL_VX:
@@ -273,10 +306,45 @@ static void* listenWorker(void* arg)
                     barometer = value;
                     break;
 
+                case DREF_HAS_JOYSTICK:
+                    hasJoystick = value >= 1 ? true : false;
+                    break;
+                
+                case DREF_JOYSTICK_VALUES_ROll: 
+                    joystickRaw[0] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_PITCH: 
+                    joystickRaw[1] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_THROTTLE: 
+                    joystickRaw[2] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_YAW: 
+                    joystickRaw[3] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_PROP: 
+                    joystickRaw[4] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_MIXTURE: 
+                    joystickRaw[5] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_COLLECTIVE: 
+                    joystickRaw[6] = value;
+                    break;
+
+                case DREF_JOYSTICK_VALUES_THRUST_VECTOR: 
+                    joystickRaw[7] = value;
+                    break;
+
                 default:
                     break;
             }
-
         }
 
         if (hpath < 0) {
@@ -285,6 +353,20 @@ static void* listenWorker(void* arg)
 
         if (yaw < 0){
             yaw += 3600;
+        }
+
+        if (hasJoystick) {
+            uint16_t channelValues[XPLANE_JOYSTICK_AXIS_COUNT];
+            channelValues[0] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_ROLL]);
+            channelValues[1] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_PITCH]);
+            channelValues[2] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_THROTLE]);
+            channelValues[3] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_YAW]);
+            channelValues[4] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_PROP]);
+            channelValues[5] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_MIXTURE]);
+            channelValues[6] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_COLLECTIVE]);
+            channelValues[7] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_THRUST_VECTOR]);
+
+            rxSimSetChannelValue(channelValues, XPLANE_JOYSTICK_AXIS_COUNT);
         }
 
         gpsFakeSet(
@@ -300,26 +382,33 @@ static void* listenWorker(void* arg)
             0, //(int16_t)round(-local_vy * 100),
             0
         );
+        
+        const int32_t altitideOverGround = (int32_t)round(agl * 100); 
+        if (altitideOverGround > 0 && altitideOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
+            fakeRangefindersSetData(altitideOverGround);
+        } else {
+            fakeRangefindersSetData(-1);
+        }
+
+        const int16_t roll_inav = roll * 10;
+        const int16_t pitch_inav = -pitch * 10;
+        const int16_t yaw_inav = yaw * 10;
 
         if (!useImu) {
-            imuSetAttitudeRPY(
-                (int16_t)round(roll * 10), 
-                (int16_t)round(-pitch * 10), 
-                (int16_t)round(yaw * 10)
-            );
+            imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
             imuUpdateAttitude(micros());
         }
         
         fakeAccSet(
-            clampToInt16(-accel_x * GRAVITY_MSS * 1000),
-            clampToInt16(accel_y * GRAVITY_MSS * 1000),
-            clampToInt16(accel_z * GRAVITY_MSS * 1000)
+            constrainToInt16(-accel_x * GRAVITY_MSS * 1000),
+            constrainToInt16(accel_y * GRAVITY_MSS * 1000),
+            constrainToInt16(accel_z * GRAVITY_MSS * 1000)
         );
 
         fakeGyroSet(
-            clampToInt16(gyro_x * 16.0f),
-            clampToInt16(-gyro_y * 16.0f),
-            clampToInt16(-gyro_z * 16.0f)
+            constrainToInt16(gyro_x * 16.0f),
+            constrainToInt16(-gyro_y * 16.0f),
+            constrainToInt16(-gyro_z * 16.0f)
         );
 
         fakeBaroSet((int32_t)round(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
@@ -327,8 +416,24 @@ static void* listenWorker(void* arg)
 
         fakeBattSensorSetVbat(16.8 * 100);
 
+        fpQuaternion_t quat;
+        fpVector3_t north;
+        north.x = 1.0f;
+        north.y = 0;
+        north.z = 0;
+        computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
+        transformVectorEarthToBody(&north, &quat);
+        fakeMagSet(
+            constrainToInt16(north.x * 16000.0f),
+            constrainToInt16(north.y * 16000.0f),
+            constrainToInt16(north.z * 16000.0f)
+        );
+        ENABLE_STATE(COMPASS_CALIBRATED);    
+
         if (!initalized) {
-            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);                        
+            ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+            // Aircraft can wobble on the runway and prevents calibration of the accelerometer
+            ENABLE_STATE(ACCELEROMETER_CALIBRATED);                  
             initalized = true;
         }
 
@@ -362,42 +467,52 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         return false;
     }
 
-    if (bind(sockFd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+    if (setsockopt(sockFd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
         return false;
     }
+         
+    bind(sockFd, (struct sockaddr *) &addr, sizeof(addr));
 
     serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = inet_addr(ip);
 	serverAddr.sin_port = htons(port);
-
-    registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
-    registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
-    registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
-    registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
-    registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
-    registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
-    registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
-    registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
-    registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
-    registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
-    registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
-    registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
-    registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
-    registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
-    registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
-    registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
-    registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
-    registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
-    registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
-
+    
     if (pthread_create(&listenThread, NULL, listenWorker, NULL) < 0) {
         return false;
     }
 
-    while(!initalized) {
-        //
+    while (!initalized) {
+        registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
+        registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
+        registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);
+        registerDref(DREF_AGL, "sim/flightmodel/position/y_agl", 100);
+        registerDref(DREF_LOCAL_VX, "sim/flightmodel/position/local_vx", 100);
+        registerDref(DREF_LOCAL_VY, "sim/flightmodel/position/local_vy", 100);
+        registerDref(DREF_LOCAL_VZ, "sim/flightmodel/position/local_vz", 100);
+        registerDref(DREF_GROUNDSPEED, "sim/flightmodel/position/groundspeed", 100);
+        registerDref(DREF_TRUE_AIRSPEED, "sim/flightmodel/position/true_airspeed", 100);
+        registerDref(DREF_POS_PHI, "sim/flightmodel/position/phi", 100);
+        registerDref(DREF_POS_THETA, "sim/flightmodel/position/theta", 100);
+        registerDref(DREF_POS_PSI, "sim/flightmodel/position/psi", 100);
+        registerDref(DREF_POS_HPATH, "sim/flightmodel/position/hpath", 100);
+        registerDref(DREF_FORCE_G_AXI1, "sim/flightmodel/forces/g_axil", 100);
+        registerDref(DREF_FORCE_G_SIDE, "sim/flightmodel/forces/g_side", 100);
+        registerDref(DREF_FORCE_G_NRML, "sim/flightmodel/forces/g_nrml", 100);
+        registerDref(DREF_POS_P, "sim/flightmodel/position/P", 100);
+        registerDref(DREF_POS_Q, "sim/flightmodel/position/Q", 100);
+        registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
+        registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
+        registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", 100);
+        registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[1]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[2]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[3]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[4]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_PROP, "sim/joystick/joy_mapped_axis_value[8]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_MIXTURE, "sim/joystick/joy_mapped_axis_value[9]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_COLLECTIVE, "sim/joystick/joy_mapped_axis_value[5]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_THRUST_VECTOR, "sim/joystick/joy_mapped_axis_value[12]", 100);
+        delay(250);
     }
 
     return true;
-
 }

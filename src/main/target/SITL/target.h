@@ -65,6 +65,8 @@
 #define USE_FAKE_BARO
 #define USE_FAKE_MAG
 #define USE_GPS_FAKE
+#define USE_RANGEFINDER_FAKE
+#define USE_RX_SIM
 
 #undef USE_DASHBOARD
 #undef USE_TELEMETRY_LTM

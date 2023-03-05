@@ -23,11 +23,15 @@
  */
 
 #include <stdint.h>
+#include "common/maths.h"
+#include "common/quaternion.h"
 
 #define EARTH_RADIUS ((double)6378.137)
-#define DEG2RAD(deg) (deg * (double)M_PIf / (double)180.0)
 #define PWM_TO_FLOAT_0_1(x) (((int)x - 1000) / 1000.0f)
 #define PWM_TO_FLOAT_MINUS_1_1(x) (((int)x - 1500) / 500.0f)
+#define FLOAT_0_1_TO_PWM(x) ((uint16_t)(x * 1000.0f) + 1000.0f)
+#define FLOAT_MINUS_1_1_TO_PWM(x) ((uint16_t)((x + 1.0f) / 2.0f * 1000.0f) + 1000.0f)
 
-double clampd(double value, double min, double max);
-int16_t clampToInt16(double value);
+int16_t constrainToInt16(double value);
+void transformVectorEarthToBody(fpVector3_t *v, const fpQuaternion_t *quat);
+void computeQuaternionFromRPY(fpQuaternion_t *quat, int16_t initialRoll, int16_t initialPitch, int16_t initialYaw);

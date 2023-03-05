@@ -22,16 +22,65 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#pragma once
-
 #include <stdbool.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <math.h>
 
-#include "sensors/rangefinder.h"
+#include "platform.h"
+
+#include "build/build_config.h"
+#include "build/debug.h"
+
+#include "common/maths.h"
+
+#include "io/serial.h"
+
+#if defined(USE_RANGEFINDER_FAKE)
 #include "drivers/rangefinder/rangefinder_virtual.h"
+#include "drivers/time.h"
+#include "io/rangefinder.h"
 
-extern virtualRangefinderVTable_t rangefinderMSPVtable;
-extern virtualRangefinderVTable_t rangefinderBenewakeVtable;
-extern virtualRangefinderVTable_t rangefinderFakeVtable;
+static bool hasNewData = false;
+static int32_t sensorData = RANGEFINDER_NO_NEW_DATA;
 
-void mspRangefinderReceiveNewData(uint8_t * bufferPtr);
-void fakeRangefindersSetData(int32_t data);
+static bool fakeRangefinderDetect(void)
+{
+    // Always detectable
+    return true;
+}
+
+static void fakeRangefinderInit(void)
+{
+}
+
+static void fakeRangefinderUpdate(void)
+{
+}
+
+static int32_t fakeRangefinderGetDistance(void)
+{
+    if (hasNewData) {
+        hasNewData = false;
+        return (sensorData > 0) ? sensorData : RANGEFINDER_OUT_OF_RANGE;
+    }
+    else {
+        return RANGEFINDER_NO_NEW_DATA;
+    }
+}
+
+void fakeRangefindersSetData(int32_t data)
+{
+    sensorData = data;
+    hasNewData = true;
+}
+
+virtualRangefinderVTable_t rangefinderFakeVtable = {
+    .detect = fakeRangefinderDetect,
+    .init = fakeRangefinderInit,
+    .update = fakeRangefinderUpdate,
+    .read = fakeRangefinderGetDistance
+};
+
+
+#endif

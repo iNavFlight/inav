@@ -47,7 +47,7 @@ bool soapClientConnect(soap_client_t *client, const char *address, int port)
     }
 
     int one = 1;
-    if (setsockopt(client->sockedFd, SOL_SOCKET, SO_REUSEADDR, &one,sizeof(one)) < 0) {
+    if (setsockopt(client->sockedFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0) {
         return false;
     }
     
@@ -69,6 +69,8 @@ void soapClientClose(soap_client_t *client)
 {
     close(client->sockedFd);
     memset(client, 0, sizeof(soap_client_t));
+    client->isConnected = false;
+    client->isInitalised = false;
 }
 
 void soapClientSendRequestVa(soap_client_t *client, const char* action, const char *fmt, va_list va)
@@ -78,11 +80,15 @@ void soapClientSendRequestVa(soap_client_t *client, const char* action, const ch
     }
 
     char* requestBody;  
-    vasprintf(&requestBody, fmt, va);
-    
+    if (vasprintf(&requestBody, fmt, va) < 0) {
+        return;
+    }
+
     char* request;
-    asprintf(&request, "POST / HTTP/1.1\r\nsoapaction: %s\r\ncontent-length: %u\r\ncontent-type: text/xml;charset='UTF-8'\r\nConnection: Keep-Alive\r\n\r\n<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body>%s</soap:Body></soap:Envelope>",
-         action, (unsigned)strlen(requestBody), requestBody);
+    if (asprintf(&request, "POST / HTTP/1.1\r\nsoapaction: %s\r\ncontent-length: %u\r\ncontent-type: text/xml;charset='UTF-8'\r\nConnection: Keep-Alive\r\n\r\n<soap:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body>%s</soap:Body></soap:Envelope>",
+         action, (unsigned)strlen(requestBody), requestBody) < 0) {
+            return;
+         }
     
     send(client->sockedFd, request, strlen(request), 0);
 }

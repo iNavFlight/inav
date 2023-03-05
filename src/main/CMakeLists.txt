@@ -406,6 +406,9 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
+    rx/sim.c
+    rx/sim.h
+
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -467,6 +470,7 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
+    io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
     io/opflow_msp.c

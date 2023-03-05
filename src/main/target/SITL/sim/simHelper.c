@@ -26,22 +26,42 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "common/quaternion.h"
+
 #include "target/SITL/sim/simHelper.h"
 
-inline double clampd(double value, double min, double max)
+inline int16_t constrainToInt16(double value)
 {
-    if (value < min) {
-        value = min;
-    }
-
-    if (value > max) {
-        value = max;
-    }
-
-    return value;
+    return (int16_t)round(constrain(value, INT16_MIN, INT16_MAX));
 }
 
-inline int16_t clampToInt16(double value)
+// Move to quaternion.h ?
+void computeQuaternionFromRPY(fpQuaternion_t *quat, int16_t initialRoll, int16_t initialPitch, int16_t initialYaw)
 {
-    return (int16_t)round(clampd(value, INT16_MIN, INT16_MAX));
+    if (initialRoll > 1800) initialRoll -= 3600;
+    if (initialPitch > 1800) initialPitch -= 3600;
+    if (initialYaw > 1800) initialYaw -= 3600;
+
+    const float cosRoll = cos_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
+    const float sinRoll = sin_approx(DECIDEGREES_TO_RADIANS(initialRoll) * 0.5f);
+
+    const float cosPitch = cos_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
+    const float sinPitch = sin_approx(DECIDEGREES_TO_RADIANS(initialPitch) * 0.5f);
+
+    const float cosYaw = cos_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
+    const float sinYaw = sin_approx(DECIDEGREES_TO_RADIANS(-initialYaw) * 0.5f);
+
+    quat->q0 = cosRoll * cosPitch * cosYaw + sinRoll * sinPitch * sinYaw;
+    quat->q1 = sinRoll * cosPitch * cosYaw - cosRoll * sinPitch * sinYaw;
+    quat->q2 = cosRoll * sinPitch * cosYaw + sinRoll * cosPitch * sinYaw;
+    quat->q3 = cosRoll * cosPitch * sinYaw - sinRoll * sinPitch * cosYaw;
+}
+
+void transformVectorEarthToBody(fpVector3_t *v, const fpQuaternion_t *quat)
+{
+    // HACK: This is needed to correctly transform from NED (sensor frame) to NEU (navigation)
+    v->y = -v->y;
+
+    // From earth frame to body frame
+    quaternionRotateVector(v, v, quat);
 }

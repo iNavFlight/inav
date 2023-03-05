@@ -45,14 +45,19 @@
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "drivers/pitotmeter/pitotmeter_fake.h"
+#include "drivers/compass/compass_fake.h"
+#include "drivers/rangefinder/rangefinder_virtual.h"
+#include "io/rangefinder.h"
 #include "common/utils.h"
 #include "common/maths.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/imu.h"
 #include "io/gps.h"
+#include "rx/sim.h"
 
 #define RF_PORT 18083
+#define RF_MAX_CHANNEL_COUNT 12
 // RealFlight scenerys doesn't represent real landscapes, so fake some nice coords: Area 51 ;)
 #define FAKE_LAT 37.277127f
 #define FAKE_LON -115.799669f
@@ -212,6 +217,33 @@ static char* getStringFromResponse(const char* response, const char* elementName
     return ret;
 }
 
+static bool getChannelValues(const char* response, uint16_t* channelValues)
+{
+    if (!response) {
+        return false;
+    }
+    
+    const char* channelValueTag = "<m-channelValues-0to1 xsi:type=\"SOAP-ENC:Array\" SOAP-ENC:arrayType=\"xsd:double[12]\">";
+    char* pos = strstr(response, channelValueTag);
+    if (!pos){
+        return false;
+    }
+
+    pos += strlen(channelValueTag);
+    for (size_t i = 0; i < RF_MAX_CHANNEL_COUNT; i++) {
+        char* end = strstr(pos, "</");
+        if (!end) {
+            return false;
+        }
+
+        channelValues[i] = FLOAT_0_1_TO_PWM((float)atof(pos + 6));
+        pos = end + 7;   
+    }
+
+    return true;
+}
+
+
 static void fakeCoords(double posX, double posY, double distanceX, double distanceY, double *lat, double *lon)
 {
     double m = 1 / (2 * (double)M_PIf / 360 * EARTH_RADIUS) / 1000;
@@ -224,7 +256,6 @@ static double convertAzimuth(double azimuth)
     if (azimuth < 0) {
         azimuth += 360;
     }
-
     return 360 - fmod(azimuth + 90, 360.0f);
 }
 
@@ -246,8 +277,8 @@ static void exchangeData(void)
     //rfValues.m_currentPhysicsTime_SEC = getDoubleFromResponse(response, "m-currentPhysicsTime-SEC");
     //rfValues.m_currentPhysicsSpeedMultiplier = getDoubleFromResponse(response, "m-currentPhysicsSpeedMultiplier");
     rfValues.m_airspeed_MPS = getDoubleFromResponse(response, "m-airspeed-MPS");
-    rfValues.m_altitudeASL_MTR = getDoubleFromResponse(response, "<m-altitudeASL-MTR");
-    //rfValues.m_altitudeAGL_MTR = getDoubleFromResponse(response, "<m-altitudeAGL-MTR");
+    rfValues.m_altitudeASL_MTR = getDoubleFromResponse(response, "m-altitudeASL-MTR");
+    rfValues.m_altitudeAGL_MTR = getDoubleFromResponse(response, "m-altitudeAGL-MTR");
     rfValues.m_groundspeed_MPS = getDoubleFromResponse(response, "m-groundspeed-MPS");
     rfValues.m_pitchRate_DEGpSEC = getDoubleFromResponse(response, "m-pitchRate-DEGpSEC");
     rfValues.m_rollRate_DEGpSEC = getDoubleFromResponse(response, "m-rollRate-DEGpSEC");
@@ -289,6 +320,11 @@ static void exchangeData(void)
     //rfValues.m_flightAxisControllerIsActive= getBoolFromResponse(response, "m-flightAxisControllerIsActive");
     rfValues.m_currentAircraftStatus = getStringFromResponse(response, "m-currentAircraftStatus");
 
+    
+    uint16_t channelValues[RF_MAX_CHANNEL_COUNT];
+    getChannelValues(response, channelValues);
+    rxSimSetChannelValue(channelValues, RF_MAX_CHANNEL_COUNT);
+    
     double lat, lon;
     fakeCoords(FAKE_LAT, FAKE_LON, rfValues.m_aircraftPositionX_MTR, -rfValues.m_aircraftPositionY_MTR, &lat, &lon);
     
@@ -308,12 +344,18 @@ static void exchangeData(void)
         0
     );
 
+    int32_t altitudeOverGround = (int32_t)round(rfValues.m_altitudeAGL_MTR * 100);
+    if (altitudeOverGround > 0 && altitudeOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
+        fakeRangefindersSetData(altitudeOverGround);
+    } else {
+        fakeRangefindersSetData(-1);
+    }
+
+    const int16_t roll_inav = (int16_t)round(rfValues.m_roll_DEG * 10);
+    const int16_t pitch_inav = (int16_t)round(-rfValues.m_inclination_DEG * 10);
+    const int16_t yaw_inav = course;
     if (!useImu) {
-        imuSetAttitudeRPY(
-            (int16_t)round(rfValues.m_roll_DEG * 10), 
-            (int16_t)round(-rfValues.m_inclination_DEG * 10), 
-            course
-        );
+        imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
         imuUpdateAttitude(micros());
     }
 
@@ -326,26 +368,38 @@ static void exchangeData(void)
         accY = 0;
         accZ = (int16_t)(GRAVITY_MSS * 1000.0f);
     } else {
-         accX = clampToInt16(rfValues.m_accelerationBodyAX_MPS2 * 1000);
-         accY = clampToInt16(-rfValues.m_accelerationBodyAY_MPS2 * 1000);
-         accZ = clampToInt16(-rfValues.m_accelerationBodyAZ_MPS2 * 1000);
+         accX = constrainToInt16(rfValues.m_accelerationBodyAX_MPS2 * 1000);
+         accY = constrainToInt16(-rfValues.m_accelerationBodyAY_MPS2 * 1000);
+         accZ = constrainToInt16(-rfValues.m_accelerationBodyAZ_MPS2 * 1000);
     }
 
     fakeAccSet(accX, accY, accZ);
 
     fakeGyroSet(
-        clampToInt16(rfValues.m_rollRate_DEGpSEC * (double)16.0),
-        clampToInt16(-rfValues.m_pitchRate_DEGpSEC * (double)16.0),
-        clampToInt16(rfValues.m_yawRate_DEGpSEC * (double)16.0)
+        constrainToInt16(rfValues.m_rollRate_DEGpSEC * (double)16.0),
+        constrainToInt16(-rfValues.m_pitchRate_DEGpSEC * (double)16.0),
+        constrainToInt16(rfValues.m_yawRate_DEGpSEC * (double)16.0)
     );
 
     fakeBaroSet(altitudeToPressure(altitude), DEGREES_TO_CENTIDEGREES(21));
     fakePitotSetAirspeed(rfValues.m_airspeed_MPS * 100);
 
-    // TODO fakeMag
-
     fakeBattSensorSetVbat((uint16_t)round(rfValues.m_batteryVoltage_VOLTS * 100));
-    fakeBattSensorSetAmperage((uint16_t)round(rfValues.m_batteryCurrentDraw_AMPS * 100));     
+    fakeBattSensorSetAmperage((uint16_t)round(rfValues.m_batteryCurrentDraw_AMPS * 100)); 
+
+    fpQuaternion_t quat;
+    fpVector3_t north;
+    north.x = 1.0f;
+    north.y = 0;
+    north.z = 0;
+    computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
+    transformVectorEarthToBody(&north, &quat);
+    fakeMagSet(
+        constrainToInt16(north.x * 16000.0f),
+        constrainToInt16(north.y * 16000.0f),
+        constrainToInt16(north.z * 16000.0f)
+    );
+    ENABLE_STATE(COMPASS_CALIBRATED);
 }
 
 static void* soapWorker(void* arg)
@@ -357,14 +411,14 @@ static void* soapWorker(void* arg)
             startRequest("RestoreOriginalControllerDevice", "<RestoreOriginalControllerDevice><a>1</a><b>2</b></RestoreOriginalControllerDevice>");
             endRequest();
             startRequest("InjectUAVControllerInterface", "<InjectUAVControllerInterface><a>1</a><b>2</b></InjectUAVControllerInterface>");
-            endRequest();
-            
+            endRequest();        
             exchangeData();
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
+            
             isInitalised = true;  
         }
-        exchangeData();
 
+        exchangeData();
         unlockMainPID();
     }
 
@@ -414,7 +468,7 @@ bool simRealFlightInit(char* ip, uint8_t* mapping, uint8_t mapCount, bool imu)
     // Wait until the connection is established, the interface has been initialised 
     // and the first valid packet has been received to avoid problems with the startup calibration.   
     while (!isInitalised) {
-        // ...
+        delay(250);
     }
 
     return true;

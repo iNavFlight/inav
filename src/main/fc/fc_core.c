@@ -161,11 +161,22 @@ bool areSensorsCalibrating(void)
 
 int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
-    int16_t stickDeflection;
+    int16_t stickDeflection = 0;
 
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914   
+    const int16_t value = rawData - PWM_RANGE_MIDDLE;
+    if (value < -500) {
+        stickDeflection = -500;
+    } else if (value > 500) {
+        stickDeflection = 500;
+    } else {
+        stickDeflection = value;
+    }
+#else
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);   
+#endif
+    
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
-
     return rcLookup(stickDeflection, rate);
 }
 
