@@ -1393,22 +1393,22 @@ groups:
     type: imuConfig_t
     headers: ["flight/imu.h"]
     members:
-      - name: imu_dcm_kp
+      - name: ahrs_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
         default_value: 2000
         field: dcm_kp_acc
         max: UINT16_MAX
-      - name: imu_dcm_ki
+      - name: ahrs_dcm_ki
         description: "Inertial Measurement Unit KI Gain for accelerometer measurements"
         default_value: 50
         field: dcm_ki_acc
         max: UINT16_MAX
-      - name: imu_dcm_kp_mag
+      - name: ahrs_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
         default_value: 2000
         field: dcm_kp_mag
         max: UINT16_MAX
-      - name: imu_dcm_ki_mag
+      - name: ahrs_dcm_ki_mag
         description: "Inertial Measurement Unit KI Gain for compass measurements"
         default_value: 50
         field: dcm_ki_mag
@@ -1418,24 +1418,24 @@ groups:
         default_value: 25
         min: 0
         max: 180
-      - name: imu_acc_ignore_rate
+      - name: ahrs_acc_ignore_rate
         description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
         default_value: 15
         field: acc_ignore_rate
         min: 0
         max: 30
-      - name: imu_acc_ignore_slope
+      - name: ahrs_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
         default_value: 5
         field: acc_ignore_slope
         min: 0
         max: 10
-      - name: imu_gps_yaw_windcomp
+      - name: ahrs_gps_yaw_windcomp
         description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
         default_value: ON
         field: gps_yaw_windcomp
         type: bool
-      - name: imu_inertia_comp_method
+      - name: ahrs_inertia_comp_method
         description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
         default_value: VELNED
         field: inertia_comp_method
@@ -2563,7 +2563,7 @@ groups:
         max: 45
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
+        default_value: 1000
         field: general.auto_disarm_delay
         min: 100
         max: 10000
