@@ -1707,9 +1707,11 @@ static bool osdDrawSingleElement(uint8_t item)
         if (STATE(GPS_ESTIMATED_FIX)) {
 			if (!STATE(GPS_FIX)) {
 				strcpy(buff + 2, "ES");
-			} else if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
-                strcpy(buff + 2, "X!");
-            }
+			} 
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        }
+        else if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+            strcpy(buff + 2, "X!");
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
