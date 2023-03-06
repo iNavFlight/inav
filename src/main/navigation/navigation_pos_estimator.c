@@ -210,7 +210,7 @@ void onNewGPSData(void)
     newLLH.lon = gpsSol.llh.lon;
     newLLH.alt = gpsSol.llh.alt;
 
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) {
         if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX))) {
             isFirstGPSUpdate = true;
             return;
@@ -486,7 +486,7 @@ static bool navIsAccelerationUsable(void)
 
 static bool navIsHeadingUsable(void)
 {
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) {
         // If we have GPS - we need true IMU north (valid heading)
         return isImuHeadingValid();
     }
@@ -501,7 +501,7 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
     /* Figure out if we have valid position data from our data sources */
     uint32_t newFlags = 0;
 
-    if (sensors(SENSOR_GPS) && posControl.gpsOrigin.valid &&
+    if ((sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) && posControl.gpsOrigin.valid &&
         ((currentTimeUs - posEstimator.gps.lastUpdateTime) <= MS2US(INAV_GPS_TIMEOUT_MS)) &&
         (posEstimator.gps.eph < positionEstimationConfig()->max_eph_epv)) {
         if (posEstimator.gps.epv < positionEstimationConfig()->max_eph_epv) {

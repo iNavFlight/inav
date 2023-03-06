@@ -476,7 +476,7 @@ static bool processBinaryModeRequest(uint8_t address)
     switch (address) {
 #ifdef USE_GPS
     case 0x8A:
-        if (sensors(SENSOR_GPS)) {
+        if (sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) {
             hottPrepareGPSResponse(&hottGPSMessage);
             hottQueueSendResponse((uint8_t *)&hottGPSMessage, sizeof(hottGPSMessage));
             return true;

@@ -540,7 +540,7 @@ void handleFrSkyTelemetry(void)
         }
 
 #ifdef USE_GPS
-        if (sensors(SENSOR_GPS)) {
+        if (sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) {
             sendSpeed();
             sendHomeDistance();
             sendGpsAltitude();

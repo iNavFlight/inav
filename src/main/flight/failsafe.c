@@ -355,7 +355,7 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
     // GPS must also be working, and home position set
     if (failsafeConfig()->failsafe_min_distance > 0 &&
-            sensors(SENSOR_GPS) && (STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && STATE(GPS_FIX_HOME)) {
+            ((sensors(SENSOR_GPS) && STATE(GPS_FIX)) || STATE(GPS_ESTIMATED_FIX)) && STATE(GPS_FIX_HOME)) {
 
         // get the distance to the original arming point
         uint32_t distance = calculateDistanceToDestination(&original_rth_home);

@@ -523,7 +523,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
 
-    if (!sensors(SENSOR_GPS))
+    if (!(sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)))
         return;
 
     if (gpsSol.fixType == GPS_NO_FIX)
@@ -638,7 +638,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_GPS)
     // use ground speed if source available
-    if (sensors(SENSOR_GPS)) {
+    if (!( sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX))) {
         mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
     }
 #endif

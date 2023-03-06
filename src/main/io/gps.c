@@ -152,23 +152,16 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
 
 bool canEstimateGPSFix(void)
 {
+    //we do not check neither sensors(SENSOR_GPS) nor FEATURE(FEATURE_GPS) because:
+    //1) checking STATE(GPS_FIX_HOME) is enought to ensure that GPS sensor was initialized once
+    //2) sensors(SENSOR_GPS) is false on GPS timeout. We also want to support GPS timeouts, not just lost fix
 	return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && 
-        sensors(SENSOR_GPS) && 
         sensors(SENSOR_BARO) && baroIsHealthy() &&
         sensors(SENSOR_MAG) && compassIsHealthy() &&
         ARMING_FLAG(WAS_EVER_ARMED) && STATE(GPS_FIX_HOME);
 }
 
-void updateEstimatedGPSFix(void) {
-
-	static uint32_t lastUpdateMs = 0;
-	static int32_t estimated_lat = 0;
-	static int32_t estimated_lon = 0;
-	static int32_t estimated_alt = 0;
-
-	uint32_t t = millis();
-	int32_t dt = t - lastUpdateMs;
-	lastUpdateMs = t;
+void processDisableGPSFix(void) {
 
 	static int32_t last_lat = 0;
 	static int32_t last_lon = 0;
@@ -179,6 +172,11 @@ void updateEstimatedGPSFix(void) {
 		gpsSol.fixType = GPS_NO_FIX;
 		gpsSol.hdop = 9999;
 		gpsSol.numSat = 0;
+
+	    gpsSol.flags.validVelNE = false;
+	    gpsSol.flags.validVelD = false;  
+	    gpsSol.flags.validEPE = false;
+        gpsSol.flags.validTime = false;
 
 		//freeze coordinates
 		gpsSol.llh.lat = last_lat;
@@ -193,6 +191,18 @@ void updateEstimatedGPSFix(void) {
 		last_lon = gpsSol.llh.lon;
 		last_alt = gpsSol.llh.alt;
 	}
+}
+
+void updateEstimatedGPSFix(void) {
+
+	static uint32_t lastUpdateMs = 0;
+	static int32_t estimated_lat = 0;
+	static int32_t estimated_lon = 0;
+	static int32_t estimated_alt = 0;
+
+	uint32_t t = millis();
+	int32_t dt = t - lastUpdateMs;
+	lastUpdateMs = t;
 
 	if (STATE(GPS_FIX) || !canEstimateGPSFix()) {
 		DISABLE_STATE(GPS_ESTIMATED_FIX);
@@ -212,9 +222,10 @@ void updateEstimatedGPSFix(void) {
 	gpsSol.eph = 100;
 	gpsSol.epv = 100;
 
-	gpsSol.flags.validVelNE = 1;
-	gpsSol.flags.validVelD = 0;  //do not provide velocity.z
-	gpsSol.flags.validEPE = 1;
+	gpsSol.flags.validVelNE = true;
+	gpsSol.flags.validVelD = false;  //do not provide velocity.z
+	gpsSol.flags.validEPE = true;
+    gpsSol.flags.validTime = false;
 
 	float speed = pidProfile()->fixedWingReferenceAirspeed;
 
@@ -281,6 +292,8 @@ void gpsProcessNewSolutionData(void)
     // Set sensor as ready and available
     sensorsSet(SENSOR_GPS);
 
+    processDisableGPSFix();
+
 	updateEstimatedGPSFix();
 
     // Pass on GPS update to NAV and IMU
@@ -298,6 +311,8 @@ void gpsProcessNewSolutionData(void)
 
     // Toggle heartbeat
     gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
+
+    debug[0]+=1;
 }
 
 static void gpsResetSolution(void)
@@ -314,6 +329,23 @@ static void gpsResetSolution(void)
     gpsSol.flags.validMag = false;
     gpsSol.flags.validEPE = false;
     gpsSol.flags.validTime = false;
+}
+
+void gpsTryEstimateOnTimeout(void)
+{
+    gpsResetSolution();
+    DISABLE_STATE(GPS_FIX);
+
+    processDisableGPSFix();
+
+	updateEstimatedGPSFix();
+
+    if (STATE(GPS_ESTIMATED_FIX))
+    {
+        onNewGPSData();
+        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
+    }
+    debug[1]+=1;
 }
 
 void gpsPreInit(void)
@@ -483,6 +515,7 @@ bool gpsUpdate(void)
             gpsSetState(GPS_LOST_COMMUNICATION);
             sensorsClear(SENSOR_GPS);
             gpsStats.timeouts = 5;
+        	gpsTryEstimateOnTimeout();
             return false;
         }
         else
@@ -542,6 +575,11 @@ bool gpsUpdate(void)
         break;
     }
 
+    if ( !sensors(SENSOR_GPS) && canEstimateGPSFix() ) 
+    {
+        gpsTryEstimateOnTimeout();
+    }
+
     return gpsSol.flags.hasNewData;
 #endif
 }
@@ -588,6 +626,7 @@ bool isGPSHealthy(void)
     return true;
 }
 
+//NOTE: checks if real GPS data present, ignoring any available GPS Fix estimation 
 bool isGPSHeadingValid(void)
 {
     return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;

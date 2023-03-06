@@ -117,7 +117,7 @@ void ltm_gframe(sbuf_t *dst)
     uint8_t gps_fix_type = 0;
     int32_t ltm_lat = 0, ltm_lon = 0, ltm_alt = 0, ltm_gs = 0;
 
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) {
         if (gpsSol.fixType == GPS_NO_FIX)
             gps_fix_type = 1;
         else if (gpsSol.fixType == GPS_FIX_2D)
