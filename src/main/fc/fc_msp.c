@@ -2495,7 +2495,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gpsSol.flags.validVelNE = false;
             gpsSol.flags.validVelD = false;
             gpsSol.flags.validEPE = false;
-			gpsSol.flags.validTime = false;
+            gpsSol.flags.validTime = false;
             gpsSol.numSat = sbufReadU8(src);
             gpsSol.llh.lat = sbufReadU32(src);
             gpsSol.llh.lon = sbufReadU32(src);

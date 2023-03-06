@@ -65,7 +65,7 @@ hardwareSensorStatus_e getHwCompassStatus(void)
 #if defined(USE_MAG)
 #ifdef USE_SIMULATOR
 	if (ARMING_FLAG(SIMULATOR_MODE) && sensors(SENSOR_MAG)) {
-		if (compassIsHealthy()) {
+        if (compassIsHealthy()) {
             return HW_SENSOR_OK;
         }
         else {
