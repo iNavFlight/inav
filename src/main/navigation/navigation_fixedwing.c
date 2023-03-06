@@ -406,7 +406,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
     if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
-            // courseVirtualCorrection initially used to determine current position relative to course line for later use
+        // courseVirtualCorrection initially used to determine current position relative to course line for later use
         int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.bearing - virtualTargetBearing);
         navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
 

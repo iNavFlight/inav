@@ -64,11 +64,10 @@ hardwareSensorStatus_e getHwCompassStatus(void)
 {
 #if defined(USE_MAG)
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE) && sensors(SENSOR_MAG)) {
+    if (ARMING_FLAG(SIMULATOR_MODE) && sensors(SENSOR_MAG)) {
         if (compassIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
 	}
@@ -76,17 +75,14 @@ hardwareSensorStatus_e getHwCompassStatus(void)
     if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         if (compassIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
-    }
-    else {
+    } else {
         if (requestedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
-        }
-        else {
+        } else {
             // Not selected and not detected
             return HW_SENSOR_NONE;
         }
