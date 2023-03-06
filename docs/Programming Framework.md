@@ -11,7 +11,7 @@ INAV Programming Framework coinsists of:
 * Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
 * Programming PID - general purpose, user configurable PID controllers
 
-IPF can be edited using INAV Configurator user interface, of via CLI
+IPF can be edited using INAV Configurator user interface, or via CLI
 
 ## Logic Conditions
 
@@ -225,6 +225,13 @@ All flags are reseted on ARM and DISARM event.
 * `<FF gain>` - FF-gain, scaled to `1/1000`
 
 ## Examples
+
+### When more than 100 meters away, increase VTX power
+![screenshot of vtx home distance](./assets/images/vtx_home_distance.png)
+
+### When more than 600 meters away, engage return-to-home by setting the matching RC channel
+![screenshot of rth home distance](./assets/images/rth_home_distance.jpg)
+
 
 ### Dynamic THROTTLE scale
 
