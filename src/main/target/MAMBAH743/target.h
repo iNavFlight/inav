@@ -210,16 +210,16 @@
 #define USE_PINIO
 #define USE_PINIOBOX
 
-#ifdef MAMBAH743_2022B
+// #ifdef MAMBAH743_2022B
 
-#define PINIO1_PIN PC2
-#define PINIO2_PIN PC5
+// #define PINIO1_PIN PC2
+// #define PINIO2_PIN PC5
 
-#else
+// #else
 
 #define PINIO1_PIN PC5
 
-#endif
+// #endif
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP

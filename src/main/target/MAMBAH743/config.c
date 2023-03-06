@@ -51,9 +51,9 @@ void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 
-#ifdef MAMBAH743_2022B
-    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
-#endif 
+// #ifdef MAMBAH743_2022B
+//     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+// #endif 
 
     /*
      * UART1 is SerialRX
