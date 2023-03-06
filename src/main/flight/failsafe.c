@@ -408,18 +408,19 @@ void failsafeUpdateState(void)
                             failsafeState.wpModeDelayedFailsafeStart = 0;
                         }
                         reprocessState = true;
-                    }
-                    else {
+                    } else {
                         if (STATE(GPS_ESTIMATED_FIX) && (FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && (failsafeConfig()->failsafe_gps_fix_estimation_delay >= 0)) {
                             if (!failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) {
                                failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = millis();
                             } else if ((millis() - failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) > (MILLIS_PER_SECOND * (uint16_t)MAX(failsafeConfig()->failsafe_gps_fix_estimation_delay,7))) {
-                                failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_RTH);
-                                failsafeActivate(FAILSAFE_RETURN_TO_HOME);
-                                activateForcedRTH();
+                                if ( !FLIGHT_MODE(FAILSAFE_MODE) ) {
+                                    failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_RTH);
+                                    failsafeActivate(FAILSAFE_RETURN_TO_HOME);
+                                    activateForcedRTH();
+                                }
                             }
-                      } else
-                          failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = 0;
+                        } else
+                            failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = 0;
                     }		
                 } else {
                     // When NOT armed, show rxLinkState of failsafe switch in GUI (failsafe mode)
