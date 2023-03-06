@@ -232,11 +232,6 @@ groups:
         default_value: "PT1"
         field: gyro_anti_aliasing_lpf_type
         table: filter_type
-      - name: moron_threshold
-        description: "When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered."
-        default_value: 32
-        field: gyroMovementCalibrationThreshold
-        max: 128
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
