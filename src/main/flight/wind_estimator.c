@@ -83,8 +83,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     static float lastValidEstimateAltitude = 0.0f;
     float currentAltitude = gpsSol.llh.alt / 100.0f; // altitude in m
 
-    if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT)
-    {
+    if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT) {
         hasValidWindEstimate = false;
     }
 
@@ -92,7 +91,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         !isGPSHeadingValid() ||
         !gpsSol.flags.validVelNE ||
         !gpsSol.flags.validVelD ||
-		STATE(GPS_ESTIMATED_FIX)){
+        STATE(GPS_ESTIMATED_FIX)) {
         return;
     }
 

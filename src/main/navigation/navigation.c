@@ -2376,14 +2376,14 @@ bool validateRTHSanityChecker(void)
         return true;
     }
 
-	if (STATE(GPS_ESTIMATED_FIX)) {
-		//disable sanity checks in GPS estimation mode
-		//when estimated GPS fix is replaced with real fix, coordinates may jump 
-		posControl.rthSanityChecker.minimalDistanceToHome = 1e10f;
-		//schedule check in 5 seconds after getting real GPS fix, when position estimation coords stabilise after jump
-		posControl.rthSanityChecker.lastCheckTime = currentTimeMs + 5000; 
-		return true;
-	}
+    if (STATE(GPS_ESTIMATED_FIX)) {
+        //disable sanity checks in GPS estimation mode
+        //when estimated GPS fix is replaced with real fix, coordinates may jump 
+        posControl.rthSanityChecker.minimalDistanceToHome = 1e10f;
+        //schedule check in 5 seconds after getting real GPS fix, when position estimation coords stabilise after jump
+        posControl.rthSanityChecker.lastCheckTime = currentTimeMs + 5000; 
+        return true;
+    }
 
     // Check at 10Hz rate
     if ( ((int32_t)(currentTimeMs - posControl.rthSanityChecker.lastCheckTime)) > 100) {

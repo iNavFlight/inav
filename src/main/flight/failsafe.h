@@ -43,7 +43,7 @@ typedef struct failsafeConfig_s {
     uint16_t failsafe_min_distance;             // Minimum distance required for failsafe procedure to be taken. 1 step = 1 centimeter. 0 = Regular failsafe_procedure always active (default)
     uint8_t failsafe_min_distance_procedure;    // selected minimum distance failsafe procedure is 0: auto-landing, 1: Drop it, 2: Return To Home (RTH)
     int16_t failsafe_mission_delay;             // Time delay before Failsafe triggered when WP mission in progress (s)
-	int16_t failsafe_gps_fix_estimation_delay;  // Time delay before Failsafe triggered when GPX Fix estimation is applied (s)
+    int16_t failsafe_gps_fix_estimation_delay;  // Time delay before Failsafe triggered when GPX Fix estimation is applied (s)
 } failsafeConfig_t;
 
 PG_DECLARE(failsafeConfig_t, failsafeConfig);

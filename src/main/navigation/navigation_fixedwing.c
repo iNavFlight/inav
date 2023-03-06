@@ -319,10 +319,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
             // turn direction to next waypoint
             loiterTurnDirection = posControl.activeWaypoint.nextTurnAngle > 0 ? 1 : -1;  // 1 = right
 
-                needToCalculateCircularLoiter = true;
-        }
+            needToCalculateCircularLoiter = true;
+            }
             posControl.flags.wpTurnSmoothingActive = true;
-    }
+        }
     }
 
     // We are closing in on a waypoint, calculate circular loiter if required

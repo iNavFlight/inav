@@ -163,121 +163,116 @@ bool canEstimateGPSFix(void)
         ARMING_FLAG(WAS_EVER_ARMED) && STATE(GPS_FIX_HOME);
         
 #else
-        return false;
+    return false;
 #endif        
 
 }
 
-void processDisableGPSFix(void) {
+void processDisableGPSFix(void) 
+{
+    static int32_t last_lat = 0;
+    static int32_t last_lon = 0;
+    static int32_t last_alt = 0;
 
-	static int32_t last_lat = 0;
-	static int32_t last_lon = 0;
-	static int32_t last_alt = 0;
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX)) {
+        gpsSol.fixType = GPS_NO_FIX;
+        gpsSol.hdop = 9999;
+        gpsSol.numSat = 0;
 
-	if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX))
-	{
-		gpsSol.fixType = GPS_NO_FIX;
-		gpsSol.hdop = 9999;
-		gpsSol.numSat = 0;
-
-	    gpsSol.flags.validVelNE = false;
-	    gpsSol.flags.validVelD = false;  
-	    gpsSol.flags.validEPE = false;
+        gpsSol.flags.validVelNE = false;
+        gpsSol.flags.validVelD = false;  
+        gpsSol.flags.validEPE = false;
         gpsSol.flags.validTime = false;
 
-		//freeze coordinates
-		gpsSol.llh.lat = last_lat;
-		gpsSol.llh.lon = last_lon;
-		gpsSol.llh.alt = last_alt;
+        //freeze coordinates
+        gpsSol.llh.lat = last_lat;
+        gpsSol.llh.lon = last_lon;
+        gpsSol.llh.alt = last_alt;
 
-		DISABLE_STATE(GPS_FIX);
-	}
-	else
-	{
-		last_lat = gpsSol.llh.lat;
-		last_lon = gpsSol.llh.lon;
-		last_alt = gpsSol.llh.alt;
-	}
+        DISABLE_STATE(GPS_FIX);
+    } else {
+        last_lat = gpsSol.llh.lat;
+        last_lon = gpsSol.llh.lon;
+        last_alt = gpsSol.llh.alt;
+    }
 }
 
-void updateEstimatedGPSFix(void) {
+void updateEstimatedGPSFix(void) 
+{
+    static uint32_t lastUpdateMs = 0;
+    static int32_t estimated_lat = 0;
+    static int32_t estimated_lon = 0;
+    static int32_t estimated_alt = 0;
 
-	static uint32_t lastUpdateMs = 0;
-	static int32_t estimated_lat = 0;
-	static int32_t estimated_lon = 0;
-	static int32_t estimated_alt = 0;
+    uint32_t t = millis();
+    int32_t dt = t - lastUpdateMs;
+    lastUpdateMs = t;
 
-	uint32_t t = millis();
-	int32_t dt = t - lastUpdateMs;
-	lastUpdateMs = t;
+    if (STATE(GPS_FIX) || !canEstimateGPSFix()) {
+        DISABLE_STATE(GPS_ESTIMATED_FIX);
+        estimated_lat = gpsSol.llh.lat;
+        estimated_lon = gpsSol.llh.lon;
+        estimated_alt = posControl.gpsOrigin.alt + baro.BaroAlt;
+        return;
+    }
 
-	if (STATE(GPS_FIX) || !canEstimateGPSFix()) {
-		DISABLE_STATE(GPS_ESTIMATED_FIX);
-		estimated_lat = gpsSol.llh.lat;
-		estimated_lon = gpsSol.llh.lon;
-		estimated_alt = posControl.gpsOrigin.alt + baro.BaroAlt;
-		return;
-	}
-	
-	ENABLE_STATE(GPS_ESTIMATED_FIX);
+    ENABLE_STATE(GPS_ESTIMATED_FIX);
 
-	gpsSol.fixType = GPS_FIX_3D;
-	gpsSol.hdop = 99;
-	gpsSol.flags.hasNewData = true;
-	gpsSol.numSat = 99;
+    gpsSol.fixType = GPS_FIX_3D;
+    gpsSol.hdop = 99;
+    gpsSol.flags.hasNewData = true;
+    gpsSol.numSat = 99;
 
-	gpsSol.eph = 100;
-	gpsSol.epv = 100;
+    gpsSol.eph = 100;
+    gpsSol.epv = 100;
 
-	gpsSol.flags.validVelNE = true;
-	gpsSol.flags.validVelD = false;  //do not provide velocity.z
-	gpsSol.flags.validEPE = true;
+    gpsSol.flags.validVelNE = true;
+    gpsSol.flags.validVelD = false;  //do not provide velocity.z
+    gpsSol.flags.validEPE = true;
     gpsSol.flags.validTime = false;
 
-	float speed = pidProfile()->fixedWingReferenceAirspeed;
+    float speed = pidProfile()->fixedWingReferenceAirspeed;
 
 #ifdef USE_PITOT
-	if (sensors(SENSOR_PITOT) && pitotIsHealthy())
-	{
-		speed = getAirspeedEstimate();
-	}
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        speed = getAirspeedEstimate();
+    }
 #endif
 
-	float velX = rMat[0][0] * speed;
-	float velY = -rMat[1][0] * speed;
-	// here (velX, velY) is estimated horizontal speed without wind influence = airspeed, cm/sec in NEU frame
+    float velX = rMat[0][0] * speed;
+    float velY = -rMat[1][0] * speed;
+    // here (velX, velY) is estimated horizontal speed without wind influence = airspeed, cm/sec in NEU frame
 
-	if (isEstimatedWindSpeedValid()) {
-		velX += getEstimatedWindSpeed(X);
-		velY += getEstimatedWindSpeed(Y);
-	}
-	// here (velX, velY) is estimated horizontal speed with wind influence = ground speed
+    if (isEstimatedWindSpeedValid()) {
+        velX += getEstimatedWindSpeed(X);
+        velY += getEstimatedWindSpeed(Y);
+    }
+    // here (velX, velY) is estimated horizontal speed with wind influence = ground speed
 
-	if (STATE(LANDING_DETECTED) || ((posControl.navState == NAV_STATE_RTH_LANDING) && (getThrottlePercent() == 0)))
-	{
-		velX = 0;
-		velY = 0;
-	}
+    if (STATE(LANDING_DETECTED) || ((posControl.navState == NAV_STATE_RTH_LANDING) && (getThrottlePercent() == 0))) {
+        velX = 0;
+        velY = 0;
+    }
 
-	estimated_lat += (int32_t)( velX * dt / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * 1000 ) );
-	estimated_lon += (int32_t)( velY * dt / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * 1000 * posControl.gpsOrigin.scale) );
-	estimated_alt = posControl.gpsOrigin.alt + baro.BaroAlt;
+    estimated_lat += (int32_t)( velX * dt / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * 1000 ) );
+    estimated_lon += (int32_t)( velY * dt / (DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * 1000 * posControl.gpsOrigin.scale) );
+    estimated_alt = posControl.gpsOrigin.alt + baro.BaroAlt;
 
-	gpsSol.llh.lat = estimated_lat;
-	gpsSol.llh.lon = estimated_lon;
-	gpsSol.llh.alt = estimated_alt;
-	
-	gpsSol.groundSpeed = (int16_t)fast_fsqrtf(velX * velX + velY * velY);
+    gpsSol.llh.lat = estimated_lat;
+    gpsSol.llh.lon = estimated_lon;
+    gpsSol.llh.alt = estimated_alt;
 
-	float groundCourse = atan2_approx(velY, velX); // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
-	if (groundCourse < 0) {
-		groundCourse += 2 * M_PIf;
-	}
-	gpsSol.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
+    gpsSol.groundSpeed = (int16_t)fast_fsqrtf(velX * velX + velY * velY);
 
-	gpsSol.velNED[X] = (int16_t)(velX);
-	gpsSol.velNED[Y] = (int16_t)(velY);
-	gpsSol.velNED[Z] = 0;
+    float groundCourse = atan2_approx(velY, velX); // atan2 returns [-M_PI, M_PI], with 0 indicating the vector points in the X direction
+    if (groundCourse < 0) {
+        groundCourse += 2 * M_PIf;
+    }
+    gpsSol.groundCourse = RADIANS_TO_DECIDEGREES(groundCourse);
+
+    gpsSol.velNED[X] = (int16_t)(velX);
+    gpsSol.velNED[Y] = (int16_t)(velY);
+    gpsSol.velNED[Z] = 0;
 }
 
 
@@ -301,7 +296,7 @@ void gpsProcessNewSolutionData(void)
 
     processDisableGPSFix();
 
-	updateEstimatedGPSFix();
+    updateEstimatedGPSFix();
 
     // Pass on GPS update to NAV and IMU
     onNewGPSData();
@@ -345,10 +340,9 @@ void gpsTryEstimateOnTimeout(void)
 
     processDisableGPSFix();
 
-	updateEstimatedGPSFix();
+    updateEstimatedGPSFix();
 
-    if (STATE(GPS_ESTIMATED_FIX))
-    {
+    if (STATE(GPS_ESTIMATED_FIX)) {
         onNewGPSData();
         gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
     }
@@ -582,8 +576,7 @@ bool gpsUpdate(void)
         break;
     }
 
-    if ( !sensors(SENSOR_GPS) && canEstimateGPSFix() ) 
-    {
+    if ( !sensors(SENSOR_GPS) && canEstimateGPSFix() ) {
         gpsTryEstimateOnTimeout();
     }
 
