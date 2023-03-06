@@ -92,18 +92,6 @@ static float barometer = 0;
 static bool  hasJoystick = false;
 static float joystickRaw[XPLANE_JOYSTICK_AXIS_COUNT];
 
-enum 
-{
-    RF_ASSIGNMENT_PITCH,
-    RF_ASSIGNMENT_ROLL,
-    RF_ASSIGNMENT_YAW,
-    RF_ASSIGNMENT_THROTLE,
-    RF_ASSIGNMENT_PROP,
-    RF_ASSIGNMENT_MIXTURE,
-    RF_ASSIGNMENT_COLLECTIVE,
-    RF_ASSIGNMENT_THRUST_VECTOR
-};
-
 typedef enum 
 {
     DREF_LATITUDE,
@@ -132,10 +120,10 @@ typedef enum
     DREF_JOYSTICK_VALUES_PITCH,
     DREF_JOYSTICK_VALUES_THROTTLE,
     DREF_JOYSTICK_VALUES_YAW,
-    DREF_JOYSTICK_VALUES_PROP,
-    DREF_JOYSTICK_VALUES_MIXTURE,
-    DREF_JOYSTICK_VALUES_COLLECTIVE,
-    DREF_JOYSTICK_VALUES_THRUST_VECTOR,
+    DREF_JOYSTICK_VALUES_CH5,
+    DREF_JOYSTICK_VALUES_CH6,
+    DREF_JOYSTICK_VALUES_CH7,
+    DREF_JOYSTICK_VALUES_CH8,
 } dref_t;
 
 uint32_t xint2uint32 (uint8_t * buf) 
@@ -210,6 +198,11 @@ static void* listenWorker(void* arg)
         sendDref("sim/joystick/yoke_roll_ratio", yokeValues[0]);
         sendDref("sim/joystick/yoke_pitch_ratio", yokeValues[1]);
         sendDref("sim/joystick/yoke_heading_ratio", yokeValues[2]);
+        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[0]", 0);
+        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[1]", 0);
+        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[2]", 0);
+        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[3]", 0);
+        sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[4]", 0);
         
         recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
         if (recvLen < 0 && errno != EWOULDBLOCK) {
@@ -326,19 +319,19 @@ static void* listenWorker(void* arg)
                     joystickRaw[3] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_PROP: 
+                case DREF_JOYSTICK_VALUES_CH5: 
                     joystickRaw[4] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_MIXTURE: 
+                case DREF_JOYSTICK_VALUES_CH6: 
                     joystickRaw[5] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_COLLECTIVE: 
+                case DREF_JOYSTICK_VALUES_CH7: 
                     joystickRaw[6] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_THRUST_VECTOR: 
+                case DREF_JOYSTICK_VALUES_CH8: 
                     joystickRaw[7] = value;
                     break;
 
@@ -357,14 +350,14 @@ static void* listenWorker(void* arg)
 
         if (hasJoystick) {
             uint16_t channelValues[XPLANE_JOYSTICK_AXIS_COUNT];
-            channelValues[0] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_ROLL]);
-            channelValues[1] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_PITCH]);
-            channelValues[2] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_THROTLE]);
-            channelValues[3] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_YAW]);
-            channelValues[4] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_PROP]);
-            channelValues[5] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_MIXTURE]);
-            channelValues[6] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_COLLECTIVE]);
-            channelValues[7] = FLOAT_0_1_TO_PWM(joystickRaw[RF_ASSIGNMENT_THRUST_VECTOR]);
+            channelValues[0] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[0]);
+            channelValues[1] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[1]);
+            channelValues[2] = FLOAT_0_1_TO_PWM(joystickRaw[2]);
+            channelValues[3] = FLOAT_MINUS_1_1_TO_PWM(joystickRaw[3]);
+            channelValues[4] = FLOAT_0_1_TO_PWM(joystickRaw[4]);
+            channelValues[5] = FLOAT_0_1_TO_PWM(joystickRaw[5]);
+            channelValues[6] = FLOAT_0_1_TO_PWM(joystickRaw[6]);
+            channelValues[7] = FLOAT_0_1_TO_PWM(joystickRaw[7]);
 
             rxSimSetChannelValue(channelValues, XPLANE_JOYSTICK_AXIS_COUNT);
         }
@@ -428,7 +421,6 @@ static void* listenWorker(void* arg)
             constrainToInt16(north.y * 16000.0f),
             constrainToInt16(north.z * 16000.0f)
         );
-        ENABLE_STATE(COMPASS_CALIBRATED);    
 
         if (!initalized) {
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
@@ -503,14 +495,15 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         registerDref(DREF_POS_R, "sim/flightmodel/position/R", 100);
         registerDref(DREF_POS_BARO_CURRENT_INHG, "sim/weather/barometer_current_inhg", 100);
         registerDref(DREF_HAS_JOYSTICK, "sim/joystick/has_joystick", 100);
-        registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[1]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[2]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[3]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[4]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_PROP, "sim/joystick/joy_mapped_axis_value[8]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_MIXTURE, "sim/joystick/joy_mapped_axis_value[9]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_COLLECTIVE, "sim/joystick/joy_mapped_axis_value[5]", 100);
-        registerDref(DREF_JOYSTICK_VALUES_THRUST_VECTOR, "sim/joystick/joy_mapped_axis_value[12]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_PITCH, "sim/joystick/joy_mapped_axis_value[1]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_ROll, "sim/joystick/joy_mapped_axis_value[2]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_YAW, "sim/joystick/joy_mapped_axis_value[3]", 100);
+        // Abusing cowl flaps for other channels
+        registerDref(DREF_JOYSTICK_VALUES_THROTTLE, "sim/joystick/joy_mapped_axis_value[57]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_CH5, "sim/joystick/joy_mapped_axis_value[58]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_CH6, "sim/joystick/joy_mapped_axis_value[59]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_CH7, "sim/joystick/joy_mapped_axis_value[60]", 100);
+        registerDref(DREF_JOYSTICK_VALUES_CH8, "sim/joystick/joy_mapped_axis_value[61]", 100);
         delay(250);
     }
 

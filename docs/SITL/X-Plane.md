@@ -19,12 +19,12 @@ In the settings, calibrate the joystick, set it up and assign the axes as follow
 |------|---------|
 | Roll | Roll |
 | Pitch | Pitch |
-| Throttle | Throttle |
+| Throttle | Cowl Flap 1 |
 | Yaw | Yaw | 
-| Channel 5 | Prop | 
-| Channel 6 | Mixture | 
-| Channel 7 | Collective | 
-| Channel 8 | Thrust vector | 
+| Channel 5 | Cowl Flap 2 | 
+| Channel 6 | Cowl Flap 3 | 
+| Channel 7 | Cowl Flap 4 | 
+| Channel 8 | Cowl Flap 5 | 
 
 Reverse axis in X-Plane if necessary.
 

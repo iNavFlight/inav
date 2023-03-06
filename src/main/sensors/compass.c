@@ -367,6 +367,9 @@ void compassUpdate(timeUs_t currentTimeUs)
     static int16_t magPrev[XYZ_AXIS_COUNT];
     static int magAxisDeviation[XYZ_AXIS_COUNT];
 
+#if defined(SITL_BUILD)
+    ENABLE_STATE(COMPASS_CALIBRATED);
+#else
     // Check magZero
     if (
         compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0 &&
@@ -377,6 +380,7 @@ void compassUpdate(timeUs_t currentTimeUs)
     else {
         ENABLE_STATE(COMPASS_CALIBRATED);
     }
+#endif
 
     if (!mag.dev.read(&mag.dev)) {
         mag.magADC[X] = 0;

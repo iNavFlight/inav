@@ -399,7 +399,6 @@ static void exchangeData(void)
         constrainToInt16(north.y * 16000.0f),
         constrainToInt16(north.z * 16000.0f)
     );
-    ENABLE_STATE(COMPASS_CALIBRATED);
 }
 
 static void* soapWorker(void* arg)
