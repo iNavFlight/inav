@@ -522,7 +522,7 @@ bool gpsUpdate(void)
             gpsSetState(GPS_LOST_COMMUNICATION);
             sensorsClear(SENSOR_GPS);
             gpsStats.timeouts = 5;
-        	gpsTryEstimateOnTimeout();
+            gpsTryEstimateOnTimeout();
             return false;
         }
         else
