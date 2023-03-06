@@ -21,6 +21,8 @@ GPS fix estimation allows to recover plane using magnetometer and baromener only
 
 Note, that GPS fix estimation is not a solution for navigation without GPS. Without GPS fix, position error accumulates quickly. But it is acceptable for RTH.
 
+GPS Fix is also estimated on GPS Sensor timeout (harware failure).
+
 # How it works ?
 
 In normal situation, plane is receiving it's position from GPS sensor. This way it is able to hold course, RTH or navigate by waypoints.
@@ -39,6 +41,7 @@ From estimated heading direction and speed, plane is able to **roughtly** estima
 It is assumed, that plane will fly in roughtly estimated direction to home position untill either GPS fix or RC signal is recovered.
 
 *Plane has to aquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
+
 
 # Settings
 
@@ -75,7 +78,7 @@ Example: 100 km/h = 100 * 27.77 = 2777 cm/s
 
 For testing purpoces, it is possible to disable GPS sensor fix from RC controller in programming tab:
 
-*GPS can be disabled only after 1) initial GPS fix is acquired 2) in ARMED mode.*
+*GPS can be disabled only after: 1) initial GPS fix is acquired 2) in ARMED mode.*
 
 # Allowing wp missions with GPS Fix estimation
 
