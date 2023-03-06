@@ -157,7 +157,7 @@ bool canEstimateGPSFix(void)
     //we do not check neither sensors(SENSOR_GPS) nor FEATURE(FEATURE_GPS) because:
     //1) checking STATE(GPS_FIX_HOME) is enought to ensure that GPS sensor was initialized once
     //2) sensors(SENSOR_GPS) is false on GPS timeout. We also want to support GPS timeouts, not just lost fix
-	return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && 
+    return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && 
         sensors(SENSOR_BARO) && baroIsHealthy() &&
         sensors(SENSOR_MAG) && compassIsHealthy() &&
         ARMING_FLAG(WAS_EVER_ARMED) && STATE(GPS_FIX_HOME);
@@ -313,8 +313,6 @@ void gpsProcessNewSolutionData(void)
 
     // Toggle heartbeat
     gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
-
-    debug[0]+=1;
 }
 
 static void gpsResetSolution(void)
@@ -346,7 +344,6 @@ void gpsTryEstimateOnTimeout(void)
         onNewGPSData();
         gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
     }
-    debug[1]+=1;
 }
 
 void gpsPreInit(void)
