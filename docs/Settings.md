@@ -2602,16 +2602,6 @@ ID of mixer preset applied in a Configurator. **Do not modify manually**. Used o
 
 ---
 
-### moron_threshold
-
-When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 32 |  | 128 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
