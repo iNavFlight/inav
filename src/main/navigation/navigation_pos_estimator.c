@@ -152,12 +152,12 @@ static bool detectGPSGlitch(timeUs_t currentTimeUs)
 
     bool isGlitching = false;
 
-	if (STATE(GPS_ESTIMATED_FIX)) {
-		//disable sanity checks in GPS estimation mode
-		//when estimated GPS fix is replaced with real fix, coordinates may jump 
-		previousTime = 0;
-		return true;
-	}
+    if (STATE(GPS_ESTIMATED_FIX)) {
+        //disable sanity checks in GPS estimation mode
+        //when estimated GPS fix is replaced with real fix, coordinates may jump 
+        previousTime = 0;
+        return true;
+    }
 
     if (previousTime == 0) {
         isGlitching = false;

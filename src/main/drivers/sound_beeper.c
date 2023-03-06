@@ -47,11 +47,11 @@ void systemBeep(bool onoff)
 #else
 
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE)) {
-		if (SIMULATOR_HAS_OPTION(HITL_MUTE_BEEPER)) {
-			onoff = false;
-		}
-	}
+    if (ARMING_FLAG(SIMULATOR_MODE)) {
+        if (SIMULATOR_HAS_OPTION(HITL_MUTE_BEEPER)) {
+            onoff = false;
+        }
+    }
 #endif
 
     if (beeperConfig()->pwmMode) {
