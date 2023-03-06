@@ -1690,7 +1690,7 @@ static void cliDelay(char* cmdLine) {
         cliPrintLine("CLI delay deactivated");
         return;
     }
-    
+
     ms = fastA2I(cmdLine);
     if (ms) {
         cliDelayMs = ms;
@@ -1699,7 +1699,7 @@ static void cliDelay(char* cmdLine) {
     } else {
         cliShowParseError();
     }
-    
+
 }
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
@@ -2288,7 +2288,7 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
@@ -2323,12 +2323,12 @@ static void cliFlashErase(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
     }
-    
+
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -3414,8 +3414,12 @@ static void cliStatus(char *cmdline)
     cliPrint("OSD: ");
 #if defined(USE_OSD)
     displayPort_t *osdDisplayPort = osdGetDisplayPort();
-    cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
-#else 
+    if (osdDisplayPort != NULL) {
+        cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
+    } else {
+        cliPrint("not enabled");
+    }
+#else
     cliPrint("not used");
 #endif
     cliPrintLinefeed();
