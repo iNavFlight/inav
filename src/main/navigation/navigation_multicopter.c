@@ -483,7 +483,7 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
      * 2 - in WP mission when: slowDownForTurning is OFF, we do not fly towards na last waypoint and computed speed is < maxSpeed
      */
     if (
-        (navGetCurrentStateFlags() & NAV_AUTO_WP &&
+        ((navGetCurrentStateFlags() & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) &&
         !isNavHoldPositionActive() &&
         newVelTotal < maxSpeed &&
         !navConfig()->mc.slowDownForTurning
