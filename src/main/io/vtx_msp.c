@@ -144,21 +144,30 @@ void setMspVtxDeviceStatusReady(const int descriptor)
 
 void prepareMspFrame(uint8_t *mspFrame)
 {
+/*
+HDZERO parsing
+    fc_band_rx = msp_rx_buf[1];
+    fc_channel_rx = msp_rx_buf[2];
+    fc_pwr_rx = msp_rx_buf[3];
+    fc_pit_rx = msp_rx_buf[4];
+    fc_lp_rx = msp_rx_buf[8];
+*/
+
     mspFrame[0] = VTXDEV_MSP,
     mspFrame[1] = vtxSettingsConfig()->band;
     mspFrame[2] = vtxSettingsConfig()->channel;
     mspFrame[3] = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power; // index based
     mspFrame[4] = mspConfPitMode;
-    mspFrame[5] = vtxCommonDeviceIsReady(&vtxMsp) ? 1 : 0;
-    mspFrame[6] = vtxSettingsConfig()->lowPowerDisarm;
-    mspFrame[7] = 0;
-    mspFrame[8] = 0;
-    mspFrame[9] = 0;
-    mspFrame[10] = 0;
-    mspFrame[11] = 0;
-    mspFrame[12] = 0;
-    mspFrame[13] = 0;
-    mspFrame[14] = 0;
+    mspFrame[5] = 0; // Freq_L 
+    mspFrame[6] = 0; // Freq_H
+    mspFrame[7] = (mspVtxStatus == MSP_VTX_STATUS_READY) ? 1 : 0;
+    mspFrame[8] = vtxSettingsConfig()->lowPowerDisarm;
+    mspFrame[9] = 0; // Pitmode freq Low
+    mspFrame[10] = 0; // pitmod freq High
+    mspFrame[11] = 0; // 1 if using vtx table
+    mspFrame[12] = 0; // vtx table bands or 0
+    mspFrame[13] = 0; // vtx table channels or 0
+    mspFrame[14] = 0; // vtx table power levels or 0
 }
 
 static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const uint8_t mspFrameSize)
