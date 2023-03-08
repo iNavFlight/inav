@@ -698,7 +698,7 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
 
 static void estimationCalculateGroundCourse(timeUs_t currentTimeUs)
 {
-    if (STATE(GPS_FIX) && navIsHeadingUsable()) {
+    if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && navIsHeadingUsable()) {
         static timeUs_t lastUpdateTimeUs = 0;
 
         if (currentTimeUs - lastUpdateTimeUs >= HZ2US(INAV_COG_UPDATE_RATE_HZ)) {   // limit update rate
