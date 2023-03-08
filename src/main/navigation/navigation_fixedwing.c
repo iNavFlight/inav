@@ -715,7 +715,7 @@ bool isFixedWingLandingDetected(void)
 
     // Check horizontal and vertical velocities are low (cm/s)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
-                        ( posControl.actualState.velXY < (100.0f * sensitivity) || STATE(GPS_ESTIMATED_FIX));
+                        ( posControl.actualState.velXY < (100.0f * sensitivity));
     // Check angular rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
