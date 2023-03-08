@@ -2785,11 +2785,9 @@ static bool osdDrawSingleElement(uint8_t item)
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             // Check for BFCOMPAT mode
             uint8_t digits = 3U;
-            bool bf_compat = false;
             if (isBfCompatibleVideoSystem(osdConfig())) {
                 // Increase number of digits so values above 99 don't get scaled by osdFormatCentiNumber
                 digits = 4U;
-                bf_compat = true;
             }
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
@@ -2813,12 +2811,8 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
-                        if(bf_compat){
-                            buff[0] = buff[1] = buff[2] = buff[3] = '-';    
-                        } else {
-                            buff[0] = buff[1] = buff[2] = '-';
-                        }                        
-                        buff[digits] = SYM_MAH_MI_0;
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in BFCOMPAT mode
                         buff[digits + 1] = SYM_MAH_MI_1;
                         buff[digits + 2] = '\0';
                     }
@@ -2831,11 +2825,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
-                        if(bf_compat){
-                            buff[0] = buff[1] = buff[2] = buff[3] = '-';    
-                        } else {
-                            buff[0] = buff[1] = buff[2] = '-';
-                        }
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         buff[digits] = SYM_MAH_NM_0;
                         buff[digits + 1] = SYM_MAH_NM_1;
                         buff[digits + 2] = '\0';
@@ -2851,11 +2841,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
-                        if(bf_compat){
-                            buff[0] = buff[1] = buff[2] = buff[3] = '-';    
-                        } else {
-                            buff[0] = buff[1] = buff[2] = '-';
-                        }
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         buff[digits] = SYM_MAH_KM_0;
                         buff[digits + 1] = SYM_MAH_KM_1;
                         buff[digits + 2] = '\0';
