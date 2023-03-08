@@ -119,6 +119,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
 
@@ -656,6 +657,10 @@ void init(void)
 
 #ifdef USE_VTX_FFPV
     vtxFuriousFPVInit();
+#endif
+
+#ifdef USE_VTX_MSP
+    vtxMspInit();
 #endif
 
 #endif // USE_VTX_CONTROL
