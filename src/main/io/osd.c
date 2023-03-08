@@ -1827,7 +1827,11 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[0] = SYM_HDP_L;
             buff[1] = SYM_HDP_R;
             int32_t centiHDOP = 100 * gpsSol.hdop / HDOP_SCALE;
-            osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, 2);
+            uint8_t digits = 2U;
+            if (isBfCompatibleVideoSystem(osdConfig())) {
+                digits = 3U;
+            }
+            osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits);
             break;
         }
 
@@ -2810,7 +2814,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                     if (!efficiencyValid) {
                         if(bf_compat){
-                            buff[0] = buff[1] = buff[2] = buf[3] = '-';    
+                            buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         } else {
                             buff[0] = buff[1] = buff[2] = '-';
                         }                        
@@ -2828,7 +2832,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                     if (!efficiencyValid) {
                         if(bf_compat){
-                            buff[0] = buff[1] = buff[2] = buf[3] = '-';    
+                            buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         } else {
                             buff[0] = buff[1] = buff[2] = '-';
                         }
@@ -2848,7 +2852,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                     if (!efficiencyValid) {
                         if(bf_compat){
-                            buff[0] = buff[1] = buff[2] = buf[3] = '-';    
+                            buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         } else {
                             buff[0] = buff[1] = buff[2] = '-';
                         }
