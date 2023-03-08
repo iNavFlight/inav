@@ -368,6 +368,27 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
     return failsafeConfig()->failsafe_procedure;
 }
 
+
+bool checkGPSFixFailsafe(void)
+{
+    if (STATE(GPS_ESTIMATED_FIX) && (FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && (failsafeConfig()->failsafe_gps_fix_estimation_delay >= 0)) {
+        if (!failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) {
+            failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = millis();
+        } else if ((millis() - failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) > (MILLIS_PER_SECOND * (uint16_t)MAX(failsafeConfig()->failsafe_gps_fix_estimation_delay,7))) {
+            if ( !posControl.flags.forcedRTHActivated ) {
+                failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_RTH);
+                failsafeActivate(FAILSAFE_RETURN_TO_HOME);
+                activateForcedRTH();
+                return true;
+            }
+        }
+    } else {
+        failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = 0;
+    }
+    return false;
+}
+
+
 void failsafeUpdateState(void)
 {
     if (!failsafeIsMonitoring() || failsafeIsSuspended()) {
@@ -396,7 +417,10 @@ void failsafeUpdateState(void)
                     if (!throttleStickIsLow()) {
                         failsafeState.throttleLowPeriod = millis() + failsafeConfig()->failsafe_throttle_low_delay * MILLIS_PER_TENTH_SECOND;
                     }
-                    if (!receivingRxDataAndNotFailsafeMode) {
+
+                    if ( checkGPSFixFailsafe() ) {
+                        reprocessState = true;
+                    } else if (!receivingRxDataAndNotFailsafeMode) {
                         if ((failsafeConfig()->failsafe_throttle_low_delay && (millis() > failsafeState.throttleLowPeriod)) || STATE(NAV_MOTOR_STOP_OR_IDLE)) {
                             // JustDisarm: throttle was LOW for at least 'failsafe_throttle_low_delay' seconds or waiting for launch
                             // Don't disarm at all if `failsafe_throttle_low_delay` is set to zero
@@ -408,20 +432,7 @@ void failsafeUpdateState(void)
                             failsafeState.wpModeDelayedFailsafeStart = 0;
                         }
                         reprocessState = true;
-                    } else {
-                        if (STATE(GPS_ESTIMATED_FIX) && (FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && (failsafeConfig()->failsafe_gps_fix_estimation_delay >= 0)) {
-                            if (!failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) {
-                               failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = millis();
-                            } else if ((millis() - failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart) > (MILLIS_PER_SECOND * (uint16_t)MAX(failsafeConfig()->failsafe_gps_fix_estimation_delay,7))) {
-                                if ( !FLIGHT_MODE(FAILSAFE_MODE) ) {
-                                    failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_RTH);
-                                    failsafeActivate(FAILSAFE_RETURN_TO_HOME);
-                                    activateForcedRTH();
-                                }
-                            }
-                        } else
-                            failsafeState.wpModeGPSFixEstimationDelayedFailsafeStart = 0;
-                    }		
+                    } 		
                 } else {
                     // When NOT armed, show rxLinkState of failsafe switch in GUI (failsafe mode)
                     if (!receivingRxDataAndNotFailsafeMode) {
@@ -477,7 +488,12 @@ void failsafeUpdateState(void)
                 } else if (failsafeChooseFailsafeProcedure() != FAILSAFE_PROCEDURE_NONE) {  // trigger new failsafe procedure if changed
                     failsafeState.phase = FAILSAFE_RX_LOSS_DETECTED;
                     reprocessState = true;
+                } else {
+                    if ( checkGPSFixFailsafe() ) {
+                        reprocessState = true;
+                    }
                 }
+
                 break;
 
             case FAILSAFE_RETURN_TO_HOME:
