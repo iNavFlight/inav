@@ -253,11 +253,13 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals)
 {
     uint8_t digits = 3U;    // Total number of digits (including decimal point)
     uint8_t sym_index = 3U; // Position (index) at buffer of units symbol
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
     if (isBfCompatibleVideoSystem(osdConfig())) {
         // Add one digit so up no switch to scaled decimal occurs above 99
         digits = 4U;
         sym_index = 4U;
     }
+#endif
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
         FALLTHROUGH;
@@ -678,12 +680,21 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     int32_t decimalPart = abs(val % GPS_DEGREES_DIVIDER);
     STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
     int decimalDigits;
-    if (!isBfCompatibleVideoSystem(osdConfig())) {
+    bool bfcompat = false;  // Assume BFCOMPAT mode is no enabled
+
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+        if(isBfCompatibleVideoSystem(osdConfig())) {
+            bfcompat = true;
+        }
+#endif
+
+    if (!bfcompat) {
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
         // Embbed the decimal separator
         buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
         buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
     } else {
+        // BFCOMPAT mode enabled
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%06d", (int)decimalPart);
     }
     // Fill up to coordinateLength with zeros
@@ -1553,15 +1564,29 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_MAIN_BATT_VOLTAGE:
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 3 : 2) + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
+    case OSD_MAIN_BATT_VOLTAGE: {
+        uint8_t base_digits = 2U;
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+        if(isBfCompatibleVideoSystem(osdConfig())) {
+            base_digits = 3U;   // Add extra digit to account for decimal point taking an extra character space
+        }
+#endif
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawVoltage(), base_digits + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
+    }
 
-    case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE:
-        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 3 : 2) + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
+    case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE: {
+        uint8_t base_digits = 2U;
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+        if(isBfCompatibleVideoSystem(osdConfig())) {
+            base_digits = 3U;   // Add extra digit to account for decimal point taking an extra character space
+        }
+#endif
+        osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), base_digits + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
+    }
 
-    case OSD_CURRENT_DRAW:
+    case OSD_CURRENT_DRAW: {
         osdFormatCentiNumber(buff, getAmperage(), 0, 2, 0, 3);
         buff[3] = SYM_AMP;
         buff[4] = '\0';
@@ -1571,27 +1596,38 @@ static bool osdDrawSingleElement(uint8_t item)
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
         break;
+    }
 
     case OSD_MAH_DRAWN: {
+        uint8_t mah_digits = osdConfig()->mAh_used_precision; // Initialize to config value
+        bool bfcompat = false;  // Assume BFCOMPAT is off
 
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
         if (isBfCompatibleVideoSystem(osdConfig())) {
-            //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
-            tfp_sprintf(buff, "%4d", (int)getMAhDrawn());
-            buff[4] = SYM_MAH;
-            buff[5] = '\0';
-        } else {
-            if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (osdConfig()->mAh_used_precision - 2), osdConfig()->mAh_used_precision)) {
-            // Shown in mAh
-            buff[osdConfig()->mAh_used_precision] = SYM_AH;
-            } else {
-            // Shown in Ah
-                buff[osdConfig()->mAh_used_precision] = SYM_MAH;
-            }
-            buff[(osdConfig()->mAh_used_precision + 1)] = '\0';
+            bfcompat = true;
         }
+#endif
+
+        if (bfcompat) {
+            //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
+            tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow 10Ah+ packs
+            buff[5] = SYM_MAH;
+            buff[6] = '\0';
+        } else {
+            if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (mah_digits - 2), mah_digits)) {
+                // Shown in Ah
+                buff[mah_digits] = SYM_AH;
+            } else {
+                // Shown in mAh
+                buff[mah_digits] = SYM_MAH;
+            }
+            buff[mah_digits + 1] = '\0';
+        }
+
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         break;
     }
+
     case OSD_WH_DRAWN:
         osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3);
         osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
@@ -1828,9 +1864,11 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[1] = SYM_HDP_R;
             int32_t centiHDOP = 100 * gpsSol.hdop / HDOP_SCALE;
             uint8_t digits = 2U;
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
             if (isBfCompatibleVideoSystem(osdConfig())) {
                 digits = 3U;
             }
+#endif
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits);
             break;
         }
@@ -1862,11 +1900,16 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             int32_t alt = osdGetAltitude();
 
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it
             if (isBfCompatibleVideoSystem(osdConfig())) {
                 osdSimpleAltitudeSymbol(buff, alt);
             } else {
                 osdFormatAltitudeSymbol(buff, alt);
             }
+#else       
+            // BFCOMPAT mode not supported, directly call original altitude formatting function
+            osdFormatAltitudeSymbol(buff, alt);
+#endif
 
             uint16_t alt_alarm = osdConfig()->alt_alarm;
             uint16_t neg_alt_alarm = osdConfig()->neg_alt_alarm;
@@ -1881,11 +1924,16 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ALTITUDE_MSL:
         {
             int32_t alt = osdGetAltitudeMsl();
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it
             if (isBfCompatibleVideoSystem(osdConfig())) {
                 osdSimpleAltitudeSymbol(buff, alt);
             } else {
                 osdFormatAltitudeSymbol(buff, alt);
             }
+#else
+            // BFCOMPAT mode not supported, directly call original altitude formatting function
+            osdFormatAltitudeSymbol(buff, alt);
+#endif
             break;
         }
 
@@ -2727,13 +2775,25 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 4 : 3), 2);
+            uint8_t base_digits = 3U;
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+            if(isBfCompatibleVideoSystem(osdConfig())) {
+                base_digits = 4U;   // Add extra digit to account for decimal point taking an extra character space
+            }
+#endif
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatteryRawAverageCellVoltage(), base_digits, 2);
             return true;
         }
 
     case OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE:
         {
-            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), (isBfCompatibleVideoSystem(osdConfig()) ? 4 : 3), 2);
+            uint8_t base_digits = 3U;
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+            if(isBfCompatibleVideoSystem(osdConfig())) {
+                base_digits = 4U;   // Add extra digit to account for decimal point taking an extra character space
+            }
+#endif
+            osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedAverageCellVoltage(), base_digits, 2);
             return true;
         }
 
@@ -2783,12 +2843,13 @@ static bool osdDrawSingleElement(uint8_t item)
             bool moreThanAh = false;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            // Check for BFCOMPAT mode
             uint8_t digits = 3U;
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
             if (isBfCompatibleVideoSystem(osdConfig())) {
                 // Increase number of digits so values above 99 don't get scaled by osdFormatCentiNumber
                 digits = 4U;
             }
+#endif
             if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
