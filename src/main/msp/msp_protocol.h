@@ -209,13 +209,16 @@
 #define MSP_SET_FILTER_CONFIG           93
 
 #define MSP_PID_ADVANCED                94
-#define MSP_SET_PID_ADVANCED         95
+#define MSP_SET_PID_ADVANCED            95
 
 #define MSP_SENSOR_CONFIG               96
 #define MSP_SET_SENSOR_CONFIG           97
 
 #define MSP_SPECIAL_PARAMETERS          98 // Temporary betaflight parameters before cleanup and keep CF compatibility
 #define MSP_SET_SPECIAL_PARAMETERS      99 // Temporary betaflight parameters before cleanup and keep CF compatibility
+
+#define MSP_VTXTABLE_BAND              137 //out message         vtxTable band/channel data - needed by msp vtx
+#define MSP_VTXTABLE_POWERLEVEL        138 //out message         vtxTable powerLevel data - neede by msp vtx
 
 //
 // OSD specific

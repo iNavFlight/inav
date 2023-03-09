@@ -530,7 +530,7 @@ int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t 
     return mspSerialEncode(mspPort, &push, version);
 }
 
-int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
+int mspSerialPushVersion(uint8_t cmd, const uint8_t *data, int datalen, mspVersion_e version)
 {
     int ret = 0;
 
@@ -545,9 +545,14 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
             continue;
         }
 
-        ret = mspSerialPushPort(cmd, data, datalen, mspPort, MSP_V1);
+        ret = mspSerialPushPort(cmd, data, datalen, mspPort, version);
     }
     return ret; // return the number of bytes written
+}
+
+int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
+{
+    return mspSerialPushVersion(cmd, data, datalen, MSP_V1);
 }
 
 uint32_t mspSerialTxBytesFree(void)
