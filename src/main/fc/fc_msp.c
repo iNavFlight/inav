@@ -3164,6 +3164,8 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, 0);
         sbufWriteU8(dst, 0);
         break;
+    case EZ_TUNE_VALUE:
+        FALLTHROUGH;
     case PROFILE_VALUE:
         FALLTHROUGH;
     case CONTROL_RATE_VALUE:

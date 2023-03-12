@@ -34,6 +34,7 @@ typedef enum {
     PROFILE_VALUE = (1 << SETTING_SECTION_OFFSET),
     CONTROL_RATE_VALUE = (2 << SETTING_SECTION_OFFSET), // 0x20
     BATTERY_CONFIG_VALUE = (3 << SETTING_SECTION_OFFSET),
+    EZ_TUNE_VALUE = (4 << SETTING_SECTION_OFFSET)
 } setting_section_e;
 
 typedef enum {

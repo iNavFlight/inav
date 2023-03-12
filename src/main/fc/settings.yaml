@@ -1477,6 +1477,23 @@ groups:
         min: 0
         max: 99
 
+  - name: PG_EZ_TUNE
+    headers: ["flight/ez_tune.h"]
+    type: ezTuneSettings_t
+    value_type: EZ_TUNE_VALUE
+    members:
+      - name: ez_tune_enabled
+        description: "Enables EzTune feature"
+        default_value: OFF
+        field: enabled
+        type: bool
+      - name: ez_tune_filter_hz
+        description: "EzTune filter cutoff frequency"
+        default_value: 110
+        field: filterHz
+        min: 10
+        max: 300
+
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
     condition: USE_RPM_FILTER

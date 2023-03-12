@@ -96,6 +96,7 @@
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
+#include "flight/ez_tune.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -507,6 +508,10 @@ void init(void)
     // 1-Wire IF chip
 #ifdef USE_1WIRE
     owInit();
+#endif
+
+#ifdef USE_EZ_TUNE
+    ezTuneUpdate();
 #endif
 
     if (!sensorsAutodetect()) {

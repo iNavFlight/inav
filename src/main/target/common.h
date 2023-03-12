@@ -192,3 +192,5 @@
 #define USE_HOTT_TEXTMODE
 
 #endif
+
+#define USE_EZ_TUNE
