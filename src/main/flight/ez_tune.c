@@ -85,7 +85,8 @@ void ezTuneUpdate(void) {
             gyroConfigMutable()->kalman_q = scaleRangef(ezTune()->filterHz, 150, 300, 200, 400);
         }
 
-        
+        //Disable dynamic LPF
+        gyroConfigMutable()->useDynamicLpf = 0;
 
     }
 }
