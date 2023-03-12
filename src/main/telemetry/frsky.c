@@ -8,7 +8,7 @@
 
 #include "platform.h"
 
-#if defined(USE_TELEMETRY) && (defined(USE_TELEMETRY_FRSKY) || defined(USE_TELEMETRY_SMARTPORT))
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SMARTPORT)
 
 #include "common/maths.h"
 #include "fc/runtime_config.h"

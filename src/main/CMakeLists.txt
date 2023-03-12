@@ -551,8 +551,6 @@ main_sources(COMMON_SRC
     telemetry/srxl.h
     telemetry/frsky.c
     telemetry/frsky.h
-    telemetry/frsky_d.c
-    telemetry/frsky_d.h
     telemetry/ghst.c
     telemetry/ghst.h
     telemetry/hott.c
