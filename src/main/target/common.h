@@ -60,11 +60,8 @@
 #define USE_TELEMETRY_LTM
 #define USE_TELEMETRY_FRSKY
 
-#if defined(STM_FAST_TARGET)
+// This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10
-#else
-#define SCHEDULER_DELAY_LIMIT           100
-#endif
 
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
