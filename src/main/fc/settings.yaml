@@ -1493,6 +1493,36 @@ groups:
         field: filterHz
         min: 10
         max: 300
+      - name: ez_tune_axis_ratio
+        description: "EzTune axis ratio"
+        default_value: 100
+        field: axisRatio
+        min: 25
+        max: 175
+      - name: ez_tune_response
+        description: "EzTune response"
+        default_value: 100
+        field: response
+        min: 0
+        max: 200
+      - name: ez_tune_damping
+        description: "EzTune damping"
+        default_value: 100
+        field: damping
+        min: 0
+        max: 200
+      - name: ez_tune_stability
+        description: "EzTune stability"
+        default_value: 100
+        field: stability
+        min: 0
+        max: 200
+      - name: ez_tune_aggressiveness
+        description: "EzTune aggressiveness"
+        default_value: 100
+        field: aggressiveness
+        min: 0
+        max: 200
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]

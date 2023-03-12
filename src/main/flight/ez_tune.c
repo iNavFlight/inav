@@ -38,6 +38,11 @@ PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 0)
 PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
     .enabled = SETTING_EZ_TUNE_ENABLED_DEFAULT,
     .filterHz = SETTING_EZ_TUNE_FILTER_HZ_DEFAULT,
+    .axisRatio = SETTING_EZ_TUNE_AXIS_RATIO_DEFAULT,
+    .response = SETTING_EZ_TUNE_RESPONSE_DEFAULT,
+    .damping = SETTING_EZ_TUNE_DAMPING_DEFAULT,
+    .stability = SETTING_EZ_TUNE_STABILITY_DEFAULT,
+    .aggressiveness = SETTING_EZ_TUNE_AGGRESSIVENESS_DEFAULT,
 );
 
 static float computePt1FilterDelayMs(uint8_t filterHz) {
@@ -87,6 +92,11 @@ void ezTuneUpdate(void) {
 
         //Disable dynamic LPF
         gyroConfigMutable()->useDynamicLpf = 0;
+
+        //Setup PID controller
+
+        //Roll
+        
 
     }
 }
