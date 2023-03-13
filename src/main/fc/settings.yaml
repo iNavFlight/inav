@@ -1482,45 +1482,57 @@ groups:
     type: ezTuneSettings_t
     value_type: EZ_TUNE_VALUE
     members:
-      - name: ez_tune_enabled
+      - name: ez_enabled
         description: "Enables EzTune feature"
         default_value: OFF
         field: enabled
         type: bool
-      - name: ez_tune_filter_hz
+      - name: ez_filter_hz
         description: "EzTune filter cutoff frequency"
         default_value: 110
         field: filterHz
         min: 10
         max: 300
-      - name: ez_tune_axis_ratio
+      - name: ez_axis_ratio
         description: "EzTune axis ratio"
         default_value: 110
         field: axisRatio
         min: 25
         max: 175
-      - name: ez_tune_response
+      - name: ez_response
         description: "EzTune response"
         default_value: 100
         field: response
         min: 0
         max: 200
-      - name: ez_tune_damping
+      - name: ez_damping
         description: "EzTune damping"
         default_value: 100
         field: damping
         min: 0
         max: 200
-      - name: ez_tune_stability
+      - name: ez_stability
         description: "EzTune stability"
         default_value: 100
         field: stability
         min: 0
         max: 200
-      - name: ez_tune_aggressiveness
+      - name: ez_aggressiveness
         description: "EzTune aggressiveness"
         default_value: 100
         field: aggressiveness
+        min: 0
+        max: 200
+      - name: ez_rate
+        description: "EzTune rate"
+        default_value: 100
+        field: rate
+        min: 0
+        max: 200
+      - name: ez_expo
+        description: "EzTune expo"
+        default_value: 100
+        field: expo
         min: 0
         max: 200
 
