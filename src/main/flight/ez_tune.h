@@ -36,9 +36,6 @@ typedef struct ezTuneSettings_s {
     uint8_t aggressiveness;
 } ezTuneSettings_t;
 
-#define EZ_TUNE_PID_RP_DEFAULT {40, 75, 23, 100}
-#define EZ_TUNE_PID_YAW_DEFAULT {45, 80, 0, 100}
-
 PG_DECLARE_PROFILE(ezTuneSettings_t, ezTune);
 
 void ezTuneUpdate(void);

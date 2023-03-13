@@ -45,8 +45,19 @@ PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
     .aggressiveness = SETTING_EZ_TUNE_AGGRESSIVENESS_DEFAULT,
 );
 
+#define EZ_TUNE_PID_RP_DEFAULT { 40, 75, 23, 100 }
+#define EZ_TUNE_PID_YAW_DEFAULT { 45, 80, 0, 100 }
+
+#define EZ_TUNE_YAW_SCALE 0.5f
+
 static float computePt1FilterDelayMs(uint8_t filterHz) {
     return 1.0f / (2.0f * M_PIf * filterHz);
+}
+
+static float getYawPidScale(float input) {
+    const float normalized = (input - 100) * 0.01f;
+
+    return 1.0f + (normalized * 0.5f); 
 }
 
 /**
@@ -95,8 +106,26 @@ void ezTuneUpdate(void) {
 
         //Setup PID controller
 
-        //Roll
-        
+        const uint8_t pidDefaults[4] = EZ_TUNE_PID_RP_DEFAULT;
+        const uint8_t pidDefaultsYaw[4] = EZ_TUNE_PID_YAW_DEFAULT;
+        const float pitchRatio = ezTune()->axisRatio / 100.0f;
 
+        //Roll
+        pidProfileMutable()->bank_mc.pid[PID_ROLL].P = pidDefaults[0] * ezTune()->response / 100.0f;
+        pidProfileMutable()->bank_mc.pid[PID_ROLL].I = pidDefaults[1] * ezTune()->stability / 100.0f;
+        pidProfileMutable()->bank_mc.pid[PID_ROLL].D = pidDefaults[2] * ezTune()->damping / 100.0f;
+        pidProfileMutable()->bank_mc.pid[PID_ROLL].FF = pidDefaults[3] * ezTune()->aggressiveness / 100.0f;
+
+        //Pitch
+        pidProfileMutable()->bank_mc.pid[PID_PITCH].P = pidDefaults[0] * ezTune()->response / 100.0f * pitchRatio;
+        pidProfileMutable()->bank_mc.pid[PID_PITCH].I = pidDefaults[1] * ezTune()->stability / 100.0f * pitchRatio;
+        pidProfileMutable()->bank_mc.pid[PID_PITCH].D = pidDefaults[2] * ezTune()->damping / 100.0f * pitchRatio;
+        pidProfileMutable()->bank_mc.pid[PID_PITCH].FF = pidDefaults[3] * ezTune()->aggressiveness / 100.0f * pitchRatio;
+    
+        //Yaw
+        pidProfileMutable()->bank_mc.pid[PID_YAW].P = pidDefaultsYaw[0] * getYawPidScale(ezTune()->response);
+        pidProfileMutable()->bank_mc.pid[PID_YAW].I = pidDefaultsYaw[1] * getYawPidScale(ezTune()->stability);
+        pidProfileMutable()->bank_mc.pid[PID_YAW].D = pidDefaultsYaw[2] * getYawPidScale(ezTune()->damping);
+        pidProfileMutable()->bank_mc.pid[PID_YAW].FF = pidDefaultsYaw[3] * getYawPidScale(ezTune()->aggressiveness);
     }
 }

@@ -1495,7 +1495,7 @@ groups:
         max: 300
       - name: ez_tune_axis_ratio
         description: "EzTune axis ratio"
-        default_value: 100
+        default_value: 110
         field: axisRatio
         min: 25
         max: 175
