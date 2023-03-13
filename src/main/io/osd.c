@@ -249,7 +249,7 @@ static void osdLeftAlignString(char *buff)
  * but is fully compatible with the DJI G2 MSP Displayport OSD implementation.
  * (Based on osdSimpleAltitudeSymbol() implementation)
  */
-void osdSimpleDistanceSymbol(char *buff, int32_t dist) {
+/* void osdSimpleDistanceSymbol(char *buff, int32_t dist) {
 
     int32_t convertedDistance;
     char suffix;
@@ -274,7 +274,7 @@ void osdSimpleDistanceSymbol(char *buff, int32_t dist) {
     tfp_sprintf(buff, "%5d", (int) convertedDistance); // 5 digits, allowing up to 99999 meters/feet, which should be plenty for 99.9% of use cases
     buff[5] = suffix;
     buff[6] = '\0';
-}
+} */
 
 /**
  * Converts distance into a string based on the current unit system
@@ -285,21 +285,34 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals)
 {
     uint8_t digits = 3U;    // Total number of digits (including decimal point)
     uint8_t sym_index = 3U; // Position (index) at buffer of units symbol
+    uint8_t symbol_m = SYM_DIST_M;
+    uint8_t symbol_km = SYM_DIST_KM;
+    uint8_t symbol_ft = SYM_DIST_FT;
+    uint8_t symbol_mi = SYM_DIST_MI;
+    uint8_t symbol_nm = SYM_DIST_NM;
+
 #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
     if (isBfCompatibleVideoSystem(osdConfig())) {
         // Add one digit so up no switch to scaled decimal occurs above 99
         digits = 4U;
         sym_index = 4U;
+        // Use altitude symbols on purpose, as it seems distance symbols are not defined in BFCOMPAT mode
+        symbol_m = SYM_ALT_M;
+        symbol_km = SYM_ALT_KM;
+        symbol_ft = SYM_ALT_FT;
+        symbol_mi = SYM_MI;
+        symbol_nm = SYM_MI;
     }
 #endif
+
     switch ((osd_unit_e)osdConfig()->units) {
     case OSD_UNIT_UK:
         FALLTHROUGH;
     case OSD_UNIT_IMPERIAL:
         if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_MILE, decimals, 3, digits)) {
-            buff[sym_index] = SYM_DIST_MI;
+            buff[sym_index] = symbol_mi;
         } else {
-            buff[sym_index] = SYM_DIST_FT;
+            buff[sym_index] = symbol_ft;
         }
         buff[sym_index + 1] = '\0';
         break;
@@ -307,17 +320,17 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals)
         FALLTHROUGH;
     case OSD_UNIT_METRIC:
         if (osdFormatCentiNumber(buff, dist, METERS_PER_KILOMETER, decimals, 3, digits)) {
-            buff[sym_index] = SYM_DIST_KM;
+            buff[sym_index] = symbol_km;
         } else {
-            buff[sym_index] = SYM_DIST_M;
+            buff[sym_index] = symbol_m;
         }
         buff[sym_index + 1] = '\0';
         break;
     case OSD_UNIT_GA:
         if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_NAUTICALMILE, decimals, 3, digits)) {
-            buff[sym_index] = SYM_DIST_NM;
+            buff[sym_index] = symbol_nm;
         } else {
-            buff[sym_index] = SYM_DIST_FT;
+            buff[sym_index] = symbol_ft;
         }
         buff[sym_index + 1] = '\0';
         break;
@@ -483,7 +496,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
  * This is a simplified altitude conversion code that does not use any scaling
  * but is fully compatible with the DJI G2 MSP Displayport OSD implementation.
  */
-void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
+/* void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
 
     int32_t convertedAltutude;
     char suffix;
@@ -508,7 +521,7 @@ void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
     tfp_sprintf(buff, "%4d", (int) convertedAltutude);
     buff[4] = suffix;
     buff[5] = '\0';
-}
+} */
 
 /**
 * Converts altitude into a string based on the current unit system
@@ -1807,17 +1820,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_HOME;
             uint32_t distance_to_home_cm = GPS_distanceToHome * 100;
-
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-            if (isBfCompatibleVideoSystem(osdConfig())) {
-                osdSimpleDistanceSymbol(&buff[1], distance_to_home_cm);
-            } else {
-                osdFormatDistanceSymbol(&buff[1], distance_to_home_cm, 0);
-            }
-#else       
-            // BFCOMPAT mode not supported, directly call original formatting function
             osdFormatDistanceSymbol(&buff[1], distance_to_home_cm, 0);
-#endif
 
             uint16_t dist_alarm = osdConfig()->dist_alarm;
             if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
@@ -1828,16 +1831,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_TRIP_DIST:
         buff[0] = SYM_TOTAL;
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-            if (isBfCompatibleVideoSystem(osdConfig())) {
-                osdSimpleDistanceSymbol(&buff[1], getTotalTravelDistance());
-            } else {
-                osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
-            }
-#else       
-            // BFCOMPAT mode not supported, directly call original formatting function
-            osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
-#endif
+        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
     case OSD_GROUND_COURSE:
@@ -1955,7 +1949,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
 #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it
             if (isBfCompatibleVideoSystem(osdConfig())) {
-                osdSimpleAltitudeSymbol(buff, alt);
+                // Use the same formatting function used for distance, which provides the proper scaling functionality
+                osdFormatDistanceSymbol(buff, alt, 0);
             } else {
                 osdFormatAltitudeSymbol(buff, alt);
             }
@@ -1979,7 +1974,8 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t alt = osdGetAltitudeMsl();
 #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it
             if (isBfCompatibleVideoSystem(osdConfig())) {
-                osdSimpleAltitudeSymbol(buff, alt);
+                // Use the same formatting function used for distance, which provides the proper scaling functionality
+                osdFormatDistanceSymbol(buff, alt, 0);
             } else {
                 osdFormatAltitudeSymbol(buff, alt);
             }
