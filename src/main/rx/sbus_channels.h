@@ -20,7 +20,11 @@
 #include <stdint.h>
 #include "rx/rx.h"
 
+#ifdef USE_24CHANNELS
+#define SBUS_MAX_CHANNEL 26
+#else
 #define SBUS_MAX_CHANNEL 18
+#endif
 
 #define SBUS_FLAG_SIGNAL_LOSS       (1 << 2)
 #define SBUS_FLAG_FAILSAFE_ACTIVE   (1 << 3)

@@ -3808,8 +3808,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             if ((FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
         }
-    }
-    else {
+    } else {
         canActivateWaypoint = false;
 
         // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
@@ -3924,13 +3923,13 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         }
     }
 
-        /*
-         * Don't allow arming if any of JUMP waypoint has invalid settings
-         * First WP can't be JUMP
-         * Can't jump to immediately adjacent WPs (pointless)
-         * Can't jump beyond WP list
-         * Only jump to geo-referenced WP types
-         */
+    /*
+     * Don't allow arming if any of JUMP waypoint has invalid settings
+     * First WP can't be JUMP
+     * Can't jump to immediately adjacent WPs (pointless)
+     * Can't jump beyond WP list
+     * Only jump to geo-referenced WP types
+     */
     if (posControl.waypointCount) {
         for (uint8_t wp = posControl.startWpIndex; wp < posControl.waypointCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
