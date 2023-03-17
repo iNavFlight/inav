@@ -472,6 +472,8 @@ displayCanvas_t *osdGetDisplayPortCanvas(void);
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
 
+bool osdUsingScaledThrottle(void);
+
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
 

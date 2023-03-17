@@ -653,7 +653,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
 
-    int16_t thr = getThrottlePercent(true);
+    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
     mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // airspeed Current airspeed in m/s
         mavAirSpeed,

@@ -1057,6 +1057,21 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 }
 
 /**
+ * Check if this OSD layout is using scaled or unscaled throttle.
+ * If both are used, it will default to scaled.
+ */
+bool osdUsingScaledThrottle() 
+{
+    bool usingScaledThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_SCALED_THROTTLE_POS]);
+    bool usingRCThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_THROTTLE_POS]);
+
+    if (!usingScaledThrottle && !usingRCThrottle)
+        usingScaledThrottle = true;
+
+    return usingScaledThrottle;
+}
+
+/**
  * Formats throttle position prefixed by its symbol.
  * Shows unscaled or scaled (output to motor) throttle percentage
  **/
