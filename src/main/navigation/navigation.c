@@ -984,6 +984,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE(navi
 
     resetGCSFlags();
 
+    // Prepare altitude controller if idle, RTH or WP modes active or surface mode status changed
     if (!(prevFlags & NAV_CTL_ALT) || (prevFlags & NAV_AUTO_RTH) || (prevFlags & NAV_AUTO_WP) || terrainFollowingToggled) {
         resetAltitudeController(navTerrainFollowingRequested());
         setupAltitudeController();
@@ -1013,12 +1014,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_INITIALIZE(n
 
     resetGCSFlags();
 
+    // Prepare altitude controller if idle, RTH or WP modes active or surface mode status changed
     if (!(prevFlags & NAV_CTL_ALT) || (prevFlags & NAV_AUTO_RTH) || (prevFlags & NAV_AUTO_WP) || terrainFollowingToggled) {
         resetAltitudeController(navTerrainFollowingRequested());
         setupAltitudeController();
         setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);  // This will reset surface offset
     }
 
+    // Prepare position controller if idle or current Mode NOT active in position hold state
     if (previousState != NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING && previousState != NAV_STATE_RTH_HOVER_ABOVE_HOME &&
         previousState != NAV_STATE_RTH_LANDING && previousState != NAV_STATE_WAYPOINT_RTH_LAND &&
         previousState != NAV_STATE_WAYPOINT_FINISHED && previousState != NAV_STATE_WAYPOINT_HOLD_TIME)
@@ -1166,11 +1169,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
 
     // If we have valid position sensor or configured to ignore it's loss at initial stage - continue
     if ((posControl.flags.estPosStatus >= EST_USABLE) || navConfig()->general.flags.rth_climb_ignore_emerg) {
-        // Reset controllers
+        // Prepare controllers
         resetPositionController();
-
-        // Make sure surface tracking is not enabled - RTH uses global altitude, not AGL
-        resetAltitudeController(false);
+        resetAltitudeController(false);     // Make sure surface tracking is not enabled - RTH uses global altitude, not AGL
         setupAltitudeController();
 
         // If close to home - reset home position and land
@@ -1504,9 +1505,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_INITIALIZE(nav
 
     // Prepare controllers
     resetPositionController();
-
-    // Make sure surface tracking is not enabled - WP uses global altitude, not AGL
-    resetAltitudeController(false);
+    resetAltitudeController(false);     // Make sure surface tracking is not enabled - WP uses global altitude, not AGL
     setupAltitudeController();
 
     if (posControl.activeWaypointIndex == posControl.startWpIndex || posControl.wpMissionRestart) {
