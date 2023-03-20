@@ -78,7 +78,12 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
 
-#define SERIAL_PORT_COUNT       7
+//Optional Softserial on UART2 TX Pin PA2
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_TX_PIN      PA2
+#define SOFTSERIAL_1_RX_PIN      PA2
+
+#define SERIAL_PORT_COUNT       8
 
 /*
  * I2C
