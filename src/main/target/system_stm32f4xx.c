@@ -372,7 +372,9 @@ uint32_t hse_value = HSE_VALUE;
 
 /************************* PLL Parameters *************************************/
 #if defined(STM32F40_41xxx) || defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F401xx) || defined(STM32F469_479xx) || defined (STM32F446xx) || defined (STM32F410xx) || defined (STM32F411xE)
-    #if HSE_VALUE == 24000000
+    #if HSE_VALUE == 25000000
+		#define PLL_M   25
+    #elif HSE_VALUE == 24000000
         #define PLL_M   24
     #elif HSE_VALUE == 16000000
         #define PLL_M   16
