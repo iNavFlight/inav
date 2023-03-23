@@ -46,9 +46,7 @@
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
-#if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
-#endif
 
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
