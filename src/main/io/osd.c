@@ -445,7 +445,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
 
     int32_t convertedAltutude;
-    char suffix = '';
+    char suffix = '\0';
 
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
