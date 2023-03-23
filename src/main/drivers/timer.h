@@ -29,7 +29,7 @@
 
 typedef uint16_t captureCompare_t;        // 16 bit on both 103 and 303, just register access must be 32bit sometimes (use timCCR_t)
 
-#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)|| defined(AT32F43x)
 typedef uint32_t timCCR_t;
 typedef uint32_t timCCER_t;
 typedef uint32_t timSR_t;
@@ -49,10 +49,32 @@ typedef uint32_t timCNT_t;
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
 #elif defined(STM32H7)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#elif defined(AT32F43x)
+#define HARDWARE_TIMER_DEFINITION_COUNT 15
 #else
 #error "Unknown CPU defined"
 #endif
-
+//  tmr_type instead in AT32 
+#if defined(AT32F43x)
+typedef struct timerDef_s {
+    tmr_type   * tim;
+    rccPeriphTag_t  rcc;
+    uint8_t         irq;
+    uint8_t         secondIrq;
+} timerDef_t;
+// TCH hardware definition (listed in target.c)
+typedef struct timerHardware_s {
+    tmr_type *tim;
+    ioTag_t tag;
+    uint8_t channelIndex;
+    uint8_t output;
+    ioConfig_t ioMode;
+    uint8_t alternateFunction;
+    uint32_t usageFlags;
+    dmaTag_t dmaTag;
+    uint32_t dmaMuxid; //DMAMUX ID
+} timerHardware_t;
+#else
 typedef struct timerDef_s {
     TIM_TypeDef   * tim;
     rccPeriphTag_t  rcc;
@@ -60,6 +82,19 @@ typedef struct timerDef_s {
     uint8_t         secondIrq;
 } timerDef_t;
 
+// TCH hardware definition (listed in target.c)
+typedef struct timerHardware_s {
+    TIM_TypeDef *tim;
+    ioTag_t tag;
+    uint8_t channelIndex;
+    uint8_t output;
+    ioConfig_t ioMode;
+    uint8_t alternateFunction;
+    uint32_t usageFlags;
+    dmaTag_t dmaTag;
+} timerHardware_t;
+
+#endif
 typedef enum {
     TIM_USE_ANY             = 0,
     TIM_USE_PPM             = (1 << 0),
@@ -73,17 +108,6 @@ typedef enum {
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
-// TCH hardware definition (listed in target.c)
-typedef struct timerHardware_s {
-    TIM_TypeDef *tim;
-    ioTag_t tag;
-    uint8_t channelIndex;
-    uint8_t output;
-    ioConfig_t ioMode;
-    uint8_t alternateFunction;
-    uint32_t usageFlags;
-    dmaTag_t dmaTag;
-} timerHardware_t;
 
 enum {
     TIMER_OUTPUT_NONE = 0x00,
@@ -155,7 +179,14 @@ typedef enum {
     TYPE_TIMER
 } channelType_t;
 
-uint32_t timerClock(TIM_TypeDef *tim);
+#if defined(AT32F43x)
+    uint32_t timerClock(tmr_type *tim);
+    uint16_t timerGetPrescalerByDesiredMhz(tmr_type *tim, uint16_t mhz);
+#else
+    uint32_t timerClock(TIM_TypeDef *tim);
+    uint16_t timerGetPrescalerByDesiredMhz(TIM_TypeDef *tim, uint16_t mhz);
+#endif
+
 uint32_t timerGetBaseClockHW(const timerHardware_t * timHw);
 
 const timerHardware_t * timerGetByUsageFlag(timerUsageFlag_e flag);
@@ -191,5 +222,3 @@ void timerPWMStopDMA(TCH_t * tch);
 bool timerPWMDMAInProgress(TCH_t * tch);
 
 volatile timCCR_t *timerCCR(TCH_t * tch);
-
-uint16_t timerGetPrescalerByDesiredMhz(TIM_TypeDef *tim, uint16_t mhz);

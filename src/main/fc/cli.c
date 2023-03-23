@@ -177,7 +177,7 @@ static const char * const blackboxIncludeFlagNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -3308,7 +3308,17 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
+#if defined(AT32F43x)
+    cliPrintLine("AT32 system clocks:");
+    crm_clocks_freq_type clocks;
+    crm_clocks_freq_get(&clocks); 
+    
+    cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
+    cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
+    cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
+    cliPrintLinef("  ABP2   = %d MHz", clocks.apb2_freq / 1000000);
 
+#else
     cliPrintLine("STM32 system clocks:");
 #if defined(USE_HAL_DRIVER)
     cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -3323,6 +3333,7 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
+#endif //for if at32
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],

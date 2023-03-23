@@ -71,6 +71,7 @@ set(COMMON_COMPILE_DEFINITIONS
 include(openocd)
 include(svd)
 include(stm32)
+include(at32)
 
 add_subdirectory(src)
 
