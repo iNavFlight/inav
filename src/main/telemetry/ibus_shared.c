@@ -170,7 +170,7 @@ static uint8_t dispatchMeasurementRequest(ibusAddress_t address) {
         return sendIbusMeasurement2(address, (uint16_t) (attitude.values.roll * 10)); //in ddeg -> cdeg, 1ddeg = 10cdeg
     } else if (SENSOR_ADDRESS_TYPE_LOOKUP[address].value == IBUS_MEAS_VALUE_VSPEED) { //Speed cm/s
 #ifdef USE_PITOT
-        if (sensors(SENSOR_PITOT)) return sendIbusMeasurement2(address, (uint16_t)getAirspeedEstimate()); //int32_t
+        if (sensors(SENSOR_PITOT) && pitotIsHealthy()) return sendIbusMeasurement2(address, (uint16_t)getAirspeedEstimate()); //int32_t
         else
 #endif
         return sendIbusMeasurement2(address, 0);
