@@ -90,7 +90,6 @@ static uint8_t rxChannelCount;
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
 static timeUs_t suspendRxSignalUntil = 0;
-static uint8_t skipRxSamples = 0;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
@@ -381,13 +380,11 @@ void suspendRxSignal(void)
 {
     failsafeOnRxSuspend();
     suspendRxSignalUntil = micros() + SKIP_RC_ON_SUSPEND_PERIOD;
-    skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
 }
 
 void resumeRxSignal(void)
 {
     suspendRxSignalUntil = micros();
-    skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
     failsafeOnRxResume();
 }
 
@@ -456,12 +453,8 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     rxDataProcessingRequired = false;
     rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
 
-    // only proceed when no more samples to skip and suspend period is over
-    if (skipRxSamples) {
-        if (currentTimeUs > suspendRxSignalUntil) {
-            skipRxSamples--;
-        }
-
+    // If RX is suspended, do not process any data
+    if (suspendRxSignalUntil > currentTimeUs) {
         return true;
     }
 

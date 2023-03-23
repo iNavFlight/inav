@@ -345,9 +345,9 @@ void processSaveConfigAndNotify(void)
 
 void writeEEPROM(void)
 {
-    suspendRxSignal();
+    // suspendRxSignal();
     writeConfigToEEPROM();
-    resumeRxSignal();
+    // resumeRxSignal();
 }
 
 void resetEEPROM(void)
