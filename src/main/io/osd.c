@@ -1890,6 +1890,8 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t range = rangefinderGetLatestRawAltitude();
             if (range < 0) {
                 buff[0] = '-';
+                buff[1] = '-';
+                buff[2] = '-';
             } else {
                 osdFormatDistanceSymbol(buff, range, 1);
             }
