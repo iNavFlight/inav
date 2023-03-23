@@ -41,6 +41,7 @@ set(SITL_LINK_LIBRARIS
 set(SITL_COMPILE_OPTIONS
     -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
     -Wno-return-local-addr
+    -Wno-error=maybe-uninitialized
     -fsingle-precision-constant
     -funsigned-char
 )
