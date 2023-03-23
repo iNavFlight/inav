@@ -2017,6 +2017,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
                 p = isWaypointMissionRTHActive() ? "WRTH" : "RTH ";
+            else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE))
+                p = "LOTR";
             else if (FLIGHT_MODE(NAV_POSHOLD_MODE))
                 p = "HOLD";
             else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE))
