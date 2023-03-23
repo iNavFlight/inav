@@ -429,7 +429,12 @@ bool busIsBusy(const busDevice_t * dev)
             return false;
 #endif
         case BUSTYPE_I2C:
+#ifdef USE_I2C
             return i2cBusBusy(dev,NULL);
+#else
+            UNUSED(dev);
+            return false;
+#endif
         default:
             return false;
     }
