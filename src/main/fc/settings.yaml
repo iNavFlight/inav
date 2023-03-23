@@ -3443,10 +3443,10 @@ groups:
         description: Should home position coordinates be displayed on the arming screen.
 
       - name: osd_pan_servo_index
-        description: Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+        description: Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
         field: pan_servo_index
         min: 0
-        max: 10
+        max: 16
         default_value: 0
 
       - name: osd_pan_servo_pwm2centideg
@@ -3455,6 +3455,19 @@ groups:
         default_value: 0
         min: -36
         max: 36
+
+      - name: osd_pan_servo_offcentre_warning
+        description: Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink. 0 means the warning is disabled.
+        field: pan_servo_offcentre_warning
+        min: 0
+        max: 45
+        default_value: 10
+
+      - name: osd_pan_servo_indicator_show_degrees
+        description: Show the degress of offset from centre on the pan servo OSD display element.
+        field: pan_servo_indicator_show_degrees
+        type: bool
+        default_value: OFF
 
       - name: osd_esc_rpm_precision
         description: Number of characters used to display the RPM value.
@@ -3576,11 +3589,13 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        type: string
         field: craftName
         max: MAX_NAME_LENGTH
       - name: pilot_name
         description: "Pilot name"
         default_value: ""
+        type: string
         field: pilotName
         max: MAX_NAME_LENGTH
 
