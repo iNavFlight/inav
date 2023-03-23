@@ -3240,8 +3240,12 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
 #ifdef USE_SIMULATOR
 bool isOSDTypeSupportedBySimulator(void)
 {
+#ifdef USE_OSD
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
 	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+#else
+    return false;
+#endif
 }
 
 void mspWriteSimulatorOSD(sbuf_t *dst)

@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#if defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_BF_COMPAT)
+#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_BF_COMPAT)
 #include "osd.h"
 uint8_t getBfCharacter(uint8_t ch, uint8_t page);
 #define isBfCompatibleVideoSystem(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT)
