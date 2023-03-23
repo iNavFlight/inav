@@ -56,7 +56,6 @@
 #define USE_GPS_PROTO_MSP
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
-#define USE_TELEMETRY_FRSKY
 
 #if defined(STM_FAST_TARGET)
 #define SCHEDULER_DELAY_LIMIT           10

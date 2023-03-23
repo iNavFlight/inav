@@ -41,7 +41,6 @@
 #include "rx/rx.h"
 
 #include "telemetry/telemetry.h"
-#include "telemetry/frsky_d.h"
 #include "telemetry/hott.h"
 #include "telemetry/smartport.h"
 #include "telemetry/ltm.h"
@@ -54,16 +53,11 @@
 #include "telemetry/ghst.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 6);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
-    .gpsNoFixLatitude = SETTING_FRSKY_DEFAULT_LATITUDE_DEFAULT,
-    .gpsNoFixLongitude = SETTING_FRSKY_DEFAULT_LONGITUDE_DEFAULT,
     .telemetry_switch = SETTING_TELEMETRY_SWITCH_DEFAULT,
     .telemetry_inverted = SETTING_TELEMETRY_INVERTED_DEFAULT,
-    .frsky_coordinate_format = SETTING_FRSKY_COORDINATES_FORMAT_DEFAULT,
-    .frsky_unit = SETTING_FRSKY_UNIT_DEFAULT,
-    .frsky_vfas_precision = SETTING_FRSKY_VFAS_PRECISION_DEFAULT,
     .frsky_pitch_roll = SETTING_FRSKY_PITCH_ROLL_DEFAULT,
     .report_cell_voltage = SETTING_REPORT_CELL_VOLTAGE_DEFAULT,
     .hottAlarmSoundInterval = SETTING_HOTT_ALARM_SOUND_INTERVAL_DEFAULT,
@@ -97,9 +91,6 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
 
 void telemetryInit(void)
 {
-#if defined(USE_TELEMETRY_FRSKY)
-    initFrSkyTelemetry();
-#endif
 
 #if defined(USE_TELEMETRY_HOTT)
     initHoTTTelemetry();
@@ -167,9 +158,6 @@ serialPort_t *telemetrySharedPort = NULL;
 
 void telemetryCheckState(void)
 {
-#if defined(USE_TELEMETRY_FRSKY)
-    checkFrSkyTelemetryState();
-#endif
 
 #if defined(USE_TELEMETRY_HOTT)
     checkHoTTTelemetryState();
@@ -214,10 +202,6 @@ void telemetryCheckState(void)
 void telemetryProcess(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs); // since not used by all the telemetry protocols
-
-#if defined(USE_TELEMETRY_FRSKY)
-    handleFrSkyTelemetry();
-#endif
 
 #if defined(USE_TELEMETRY_HOTT)
     handleHoTTTelemetry(currentTimeUs);
