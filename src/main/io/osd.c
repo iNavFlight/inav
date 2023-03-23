@@ -2671,12 +2671,20 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef USE_PITOT
-            const float airspeed_estimate = getAirspeedEstimate();
             buff[0] = SYM_AIR;
-            osdFormatVelocityStr(buff + 1, airspeed_estimate, false, false);
 
-            if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||
-                (osdConfig()->airspeed_alarm_max != 0 && airspeed_estimate > osdConfig()->airspeed_alarm_max)) {
+            if (pitotIsHealthy())
+            {
+                const float airspeed_estimate = getAirspeedEstimate();
+                osdFormatVelocityStr(buff + 1, airspeed_estimate, false, false);
+                if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||
+                    (osdConfig()->airspeed_alarm_max != 0 && airspeed_estimate > osdConfig()->airspeed_alarm_max)) {
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+            }
+            else
+            {
+                strcpy(buff + 1, "  X!");
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
         #else
