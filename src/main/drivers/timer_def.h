@@ -107,7 +107,7 @@
     #include "timer_def_stm32h7xx.h"
 #elif defined(AT32F43x)
     #include "timer_def_at32f43x.h"
-#if defined(SITL_BUILD)
+#elif defined(SITL_BUILD)
 #else
     #error "Unknown CPU defined"
 #endif
