@@ -1806,16 +1806,6 @@ groups:
         default_value: "PT2"
         field: dterm_lpf_type
         table: filter_type_full
-      - name: dterm_lpf2_hz
-        description: "Cutoff frequency for stage 2 D-term low pass filter"
-        default_value: 0
-        min: 0
-        max: 500
-      - name: dterm_lpf2_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
-        default_value: "PT1"
-        field: dterm_lpf2_type
-        table: filter_type_full
       - name: yaw_lpf_hz
         description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
