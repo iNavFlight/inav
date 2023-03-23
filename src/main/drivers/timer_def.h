@@ -20,6 +20,9 @@
 #include "drivers/dma.h"
 
 // Macros expand to keep DMA descriptor table compatible with Betaflight
+//0  TMR3_CH1
+// DEF_TIM_DMAMAP_VARIANT__0,  DEF_TIM_DMA__BTCH_TMR3_CH1
+// DEF_TIM_DMAMAP__D(1, 4, 5)
 #define DEF_TIM_DMAMAP(variant, timch) CONCAT(DEF_TIM_DMAMAP__, PP_CALL(CONCAT(DEF_TIM_DMAMAP_VARIANT__, variant), CONCAT(DEF_TIM_DMA__, DEF_TIM_TCH2BTCH(timch)), DMA_VARIANT_MISSING, DMA_VARIANT_MISSING))
 #define DEF_TIM_DMAMAP_VARIANT__0(_0, ...)                                                                      _0
 #define DEF_TIM_DMAMAP_VARIANT__1(_0, _1, ...)                                                                  _1
@@ -49,7 +52,26 @@
 #define DEF_TIM_CHNL_CH4N   3
 
 // map to base channel (strip N from channel); works only when channel N exists
+//BTCH_TMR1_CH1N
 #define DEF_TIM_TCH2BTCH(timch) CONCAT(BTCH_, timch)
+
+#if defined(AT32F43x)
+#define BTCH_TMR1_CH1N BTCH_TMR1_CH1
+#define BTCH_TMR1_CH2N BTCH_TMR1_CH2
+#define BTCH_TMR1_CH3N BTCH_TMR1_CH3
+
+#define BTCH_TMR8_CH1N BTCH_TMR8_CH1
+#define BTCH_TMR8_CH2N BTCH_TMR8_CH2
+#define BTCH_TMR8_CH3N BTCH_TMR8_CH3
+
+#define BTCH_TMR20_CH1N BTCH_TMR20_CH1
+#define BTCH_TMR20_CH2N BTCH_TMR20_CH2
+#define BTCH_TMR20_CH3N BTCH_TMR20_CH3
+
+#define BTCH_TMR15_CH1N BTCH_TMR15_CH1
+#define BTCH_TMR16_CH1N BTCH_TMR16_CH1
+#else
+     
 #define BTCH_TIM1_CH1N BTCH_TIM1_CH1
 #define BTCH_TIM1_CH2N BTCH_TIM1_CH2
 #define BTCH_TIM1_CH3N BTCH_TIM1_CH3
@@ -64,6 +86,7 @@
 
 #define BTCH_TIM15_CH1N BTCH_TIM15_CH1
 #define BTCH_TIM16_CH1N BTCH_TIM16_CH1
+#endif
 
 // Default output flags
 #define DEF_TIM_OUTPUT(ch)                      DEF_TIM_OUTPUT__ ## ch
@@ -82,7 +105,9 @@
     #include "timer_def_stm32f7xx.h"
 #elif defined(STM32H7)
     #include "timer_def_stm32h7xx.h"
-#elif defined(SITL_BUILD)
+#elif defined(AT32F43x)
+    #include "timer_def_at32f43x.h"
+#if defined(SITL_BUILD)
 #else
     #error "Unknown CPU defined"
 #endif

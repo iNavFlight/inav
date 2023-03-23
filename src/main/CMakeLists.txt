@@ -92,6 +92,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
+    drivers/accgyro/accgyro_lsm6dxx.c
+    drivers/accgyro/accgyro_lsm6dxx.h
 
     drivers/adc.c
     drivers/adc.h
@@ -505,6 +507,8 @@ main_sources(COMMON_SRC
     io/ledstrip.h
     io/osd.c
     io/osd.h
+    io/osd_utils.c
+    io/osd_utils.h
     io/osd_canvas.c
     io/osd_canvas.h
     io/osd_common.c

@@ -17,6 +17,7 @@
 
 #include <limits.h>
 
+#include "string.h"
 #include "string_light.h"
 #include "typeconversion.h"
 
@@ -48,6 +49,15 @@ int sl_tolower(int c)
 int sl_toupper(int c)
 {
     return sl_islower(c) ? (c) - 'a' + 'A' : c;
+}
+
+void sl_toupperptr(char * c)
+{
+    for (unsigned int i = 0; i < strlen(c); i++) {
+        if (c[i] >= 'a' && c[i] <= 'z') {
+           c[i] = c[i] - 'a' + 'A'; 
+        }
+    }
 }
 
 int sl_strcasecmp(const char * s1, const char * s2)

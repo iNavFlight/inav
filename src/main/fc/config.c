@@ -344,7 +344,9 @@ void processSaveConfigAndNotify(void)
     writeEEPROM();
     readEEPROM();
     beeperConfirmationBeeps(1);
+#ifdef USE_OSD
     osdShowEEPROMSavedNotification();
+#endif
 }
 
 void writeEEPROM(void)
@@ -374,7 +376,9 @@ void ensureEEPROMContainsValidData(void)
  */
 void saveConfigAndNotify(void)
 {
+#ifdef USE_OSD
     osdStartedSaveProcess();
+#endif
     saveState = SAVESTATE_SAVEANDNOTIFY;
 }
 

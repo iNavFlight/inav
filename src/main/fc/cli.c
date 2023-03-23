@@ -177,7 +177,7 @@ static const char * const blackboxIncludeFlagNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -1690,7 +1690,7 @@ static void cliDelay(char* cmdLine) {
         cliPrintLine("CLI delay deactivated");
         return;
     }
-    
+
     ms = fastA2I(cmdLine);
     if (ms) {
         cliDelayMs = ms;
@@ -1699,7 +1699,7 @@ static void cliDelay(char* cmdLine) {
     } else {
         cliShowParseError();
     }
-    
+
 }
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
@@ -2288,7 +2288,7 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
@@ -2323,12 +2323,12 @@ static void cliFlashErase(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
     }
-    
+
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -3194,8 +3194,10 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
+                    // Convert strings to uppercase. Lower case is not supported by the OSD.
+                    sl_toupperptr(eqptr);
                     // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
                         settingSetString(val, eqptr + 1, strlen(eqptr)-2);
                     } else {
                         settingSetString(val, eqptr, strlen(eqptr));
@@ -3306,8 +3308,17 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-
 #if !defined(SITL_BUILD)
+#if defined(AT32F43x)
+    cliPrintLine("AT32 system clocks:");
+    crm_clocks_freq_type clocks;
+    crm_clocks_freq_get(&clocks); 
+    
+    cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
+    cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
+    cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
+    cliPrintLinef("  ABP2   = %d MHz", clocks.apb2_freq / 1000000);
+#else
     cliPrintLine("STM32 system clocks:");
 #if defined(USE_HAL_DRIVER)
     cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -3322,7 +3333,8 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
-#endif
+#endif // for if at32
+#endif // for SITL
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
@@ -3417,12 +3429,12 @@ static void cliStatus(char *cmdline)
     cliPrint("OSD: ");
 #if defined(USE_OSD)
     displayPort_t *osdDisplayPort = osdGetDisplayPort();
-    if (osdDisplayPort) {
+    if (osdDisplayPort != NULL) {
         cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
     } else {
-        cliPrintf("no OSD detected");
+        cliPrint("not enabled");
     }
-#else 
+#else
     cliPrint("not used");
 #endif
     cliPrintLinefeed();

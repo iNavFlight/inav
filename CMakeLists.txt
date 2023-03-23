@@ -48,7 +48,7 @@ else()
     endif()
 endif()
 
-project(INAV VERSION 6.0.0)
+project(INAV VERSION 6.1.0)
 
 enable_language(ASM)
 
@@ -80,6 +80,7 @@ if (NOT SITL)
 endif()
 
 include(stm32)
+include(at32)
 include(sitl)
 
 add_subdirectory(src)

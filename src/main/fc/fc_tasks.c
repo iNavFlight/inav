@@ -200,7 +200,10 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
     }
 
     pitotUpdate();
-    updatePositionEstimator_PitotTopic(currentTimeUs);
+
+    if ( pitotIsHealthy()) {
+        updatePositionEstimator_PitotTopic(currentTimeUs);
+    }
 }
 #endif
 
