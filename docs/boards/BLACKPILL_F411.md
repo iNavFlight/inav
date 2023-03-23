@@ -32,3 +32,19 @@ Mag
 * MAG3110
 * LIS3MDL
 * AK8975
+## PINIO or SWDIO
+Default PINIO is enabled. If you want use SWDIO just delete this lines from:
+
+config.c:
+```
+#include "io/piniobox.h"
+pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+```
+
+target.h:
+```
+// *************** PINIO ***************************
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PA13 // Camera switcher
+```
