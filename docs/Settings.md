@@ -5018,7 +5018,7 @@ When enabled, INAV will set RC filtering based on refresh rate and smoothing fac
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 

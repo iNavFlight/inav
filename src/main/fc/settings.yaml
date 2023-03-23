@@ -658,7 +658,7 @@ groups:
       - name: rc_filter_auto
         description: "When enabled, INAV will set RC filtering based on refresh rate and smoothing factor."
         type: bool
-        default_value: OFF
+        default_value: ON
         field: autoSmooth
       - name: rc_filter_smoothing_factor
         description: "The RC filter smoothing factor. The higher the value, the more smoothing but also the more delay in response. Value 1 sets the filter at half the refresh rate. Value 100 sets the filter to aprox. 10% of the RC refresh rate"
