@@ -2344,8 +2344,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_RESET_CONF:
         if (!ARMING_FLAG(ARMED)) {
+            suspendRxSignal();
             resetEEPROM();
+            writeEEPROM();
             readEEPROM();
+            resumeRxSignal();
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2375,8 +2378,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_EEPROM_WRITE:
         if (!ARMING_FLAG(ARMED)) {
+            suspendRxSignal();
             writeEEPROM();
             readEEPROM();
+            resumeRxSignal();
         } else
             return MSP_RESULT_ERROR;
         break;

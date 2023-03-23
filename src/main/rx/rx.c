@@ -89,12 +89,9 @@ static uint8_t rxChannelCount;
 
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
-static timeUs_t suspendRxSignalUntil = 0;
+static bool isRxSuspended = false;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
-
-#define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
-#define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
 
 rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
@@ -379,12 +376,12 @@ bool rxAreFlightChannelsValid(void)
 void suspendRxSignal(void)
 {
     failsafeOnRxSuspend();
-    suspendRxSignalUntil = micros() + SKIP_RC_ON_SUSPEND_PERIOD;
+    isRxSuspended = true;
 }
 
 void resumeRxSignal(void)
 {
-    suspendRxSignalUntil = micros();
+    isRxSuspended = false;
     failsafeOnRxResume();
 }
 
@@ -454,7 +451,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
 
     // If RX is suspended, do not process any data
-    if (suspendRxSignalUntil > currentTimeUs) {
+    if (isRxSuspended) {
         return true;
     }
 
