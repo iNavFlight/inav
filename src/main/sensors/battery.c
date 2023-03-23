@@ -305,6 +305,44 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
     }
 }
 
+batteryState_e checkBatteryVoltageState(void)
+{
+    uint16_t stateVoltage = getBatteryVoltage();
+    switch (batteryState)
+    {
+        case BATTERY_OK:
+            if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
+                return BATTERY_WARNING;
+            }
+            break;
+        case BATTERY_WARNING:
+            if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
+                return BATTERY_CRITICAL;
+            } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
+                return BATTERY_OK;
+            }
+            break;
+        case BATTERY_CRITICAL:
+            if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS)) {
+                return BATTERY_WARNING;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return batteryState;
+}
+
+static void checkBatteryCapacityState(void)
+{
+    if (batteryRemainingCapacity == 0) {
+        batteryState = BATTERY_CRITICAL;
+    } else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical) {
+        batteryState = BATTERY_WARNING;
+    }
+}
+
 void batteryUpdate(timeUs_t timeDelta)
 {
     /* battery has just been connected*/
@@ -367,32 +405,9 @@ void batteryUpdate(timeUs_t timeDelta)
         }
 
         if (batteryUseCapacityThresholds) {
-            if (batteryRemainingCapacity == 0)
-                batteryState = BATTERY_CRITICAL;
-            else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical)
-                batteryState = BATTERY_WARNING;
+            checkBatteryCapacityState();
         } else {
-            uint16_t stateVoltage = getBatteryVoltage();
-            switch (batteryState)
-            {
-                case BATTERY_OK:
-                    if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
-                    break;
-                case BATTERY_WARNING:
-                    if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
-                        batteryState = BATTERY_CRITICAL;
-                    } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
-                        batteryState = BATTERY_OK;
-                    }
-                    break;
-                case BATTERY_CRITICAL:
-                    if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
-                    break;
-                default:
-                    break;
-            }
+            batteryState = checkBatteryVoltageState();
         }
 
         // handle beeper
@@ -461,11 +476,6 @@ uint16_t getBatterySagCompensatedVoltage(void)
 float calculateThrottleCompensationFactor(void)
 {
     return 1.0f + ((float)batteryFullVoltage / sagCompensatedVBat - 1.0f) * batteryMetersConfig()->throttle_compensation_weight;
-}
-
-uint16_t getBatteryWarningVoltage(void)
-{
-    return batteryWarningVoltage;
 }
 
 uint8_t getBatteryCellCount(void)

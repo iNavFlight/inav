@@ -972,8 +972,11 @@ static void osdFormatBatteryChargeSymbol(char *buff)
 
 static void osdUpdateBatteryCapacityOrVoltageTextAttributes(textAttributes_t *attr)
 {
-    if ((getBatteryState() != BATTERY_NOT_PRESENT) && ((batteryUsesCapacityThresholds() && (getBatteryRemainingCapacity() <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical)) || ((!batteryUsesCapacityThresholds()) && (getBatteryVoltage() <= getBatteryWarningVoltage()))))
+    const batteryState_e batteryState = getBatteryState();
+
+    if (batteryState == BATTERY_WARNING || batteryState == BATTERY_CRITICAL) {
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);
+    }
 }
 
 void osdCrosshairPosition(uint8_t *x, uint8_t *y)
@@ -1375,8 +1378,10 @@ static void osdDisplayBatteryVoltage(uint8_t elemPosX, uint8_t elemPosY, uint16_
     osdFormatCentiNumber(buff, voltage, 0, decimals, 0, digits);
     buff[digits] = SYM_VOLT;
     buff[digits+1] = '\0';
-    if ((getBatteryState() != BATTERY_NOT_PRESENT) && (getBatteryVoltage() <= getBatteryWarningVoltage()))
+    const batteryState_e batteryVoltageState = checkBatteryVoltageState();
+    if (batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING) {
         TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    }
     displayWriteWithAttr(osdDisplayPort, elemPosX + 1, elemPosY, buff, elemAttr);
 }
 
@@ -1606,8 +1611,9 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
         buff[5] = '\0';
 
-        if ((getBatteryState() != BATTERY_NOT_PRESENT) && batteryUsesCapacityThresholds() && (getBatteryRemainingCapacity() <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical))
-            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        if (batteryUsesCapacityThresholds()) {
+            osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
+        }
 
         break;
 
