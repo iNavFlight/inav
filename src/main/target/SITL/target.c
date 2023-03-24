@@ -284,7 +284,7 @@ void delay(timeMs_t ms)
 void systemReset(void)
 {
     fprintf(stderr, "[SYSTEM] Reset\n");
-#if defined(__CYGWIN__) || defined(__APPLE__)
+#if defined(__CYGWIN__) || defined(__APPLE__) || GCC_MAJOR < 12
     for(int j = 3; j < 1024; j++) {
         close(j);
     }
