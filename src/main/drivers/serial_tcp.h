@@ -22,12 +22,15 @@
 
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 
 #define BASE_IP_ADDRESS 5760
 #define TCP_BUFFER_SIZE 2048
 #define TCP_MAX_PACKET_SIZE 65535
 
-typedef struct 
+typedef struct
 {
     serialPort_t serialPort;
 
@@ -39,8 +42,8 @@ typedef struct
     pthread_t receiveThread;
     int socketFd;
     int clientSocketFd;
-    struct sockaddr_in sockAddress;
-    struct sockaddr clientAddress;
+    struct sockaddr_storage sockAddress;
+    struct sockaddr_storage clientAddress;
     bool isClientConnected;
 } tcpPort_t;
 
