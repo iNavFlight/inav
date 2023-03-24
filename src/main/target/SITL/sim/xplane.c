@@ -531,8 +531,6 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     mappingCount = mapCount;
     useImu = imu;
 
-    sockFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
     if (port == 0) {
 	port = XP_PORT; // use default port
     }
@@ -541,6 +539,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         return false;
     }
 
+    sockFd = socket(((struct sockaddr*)&serverAddr)->sa_family, SOCK_DGRAM, IPPROTO_UDP);
     if (sockFd < 0) {
         return false;
     } else {
