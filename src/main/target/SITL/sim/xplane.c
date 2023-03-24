@@ -32,9 +32,6 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <netinet/ip.h>
-#include <netinet/udp.h>
-#include <net/if.h>
 #include <pthread.h>
 #include <errno.h>
 #include <math.h>
