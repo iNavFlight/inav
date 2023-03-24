@@ -1123,6 +1123,25 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         serializeSDCardSummaryReply(dst);
         break;
 
+#if defined (USE_DJI_HD_OSD) || defined (USE_MSP_DISPLAYPORT)
+    case MSP_BATTERY_STATE:
+        // Battery characteristics
+        sbufWriteU8(dst, constrain(getBatteryCellCount(), 0, 255));
+        sbufWriteU16(dst, currentBatteryProfile->capacity.value);
+
+        // Battery state
+        sbufWriteU8(dst, constrain(getBatteryVoltage() / 10, 0, 255)); // in 0.1V steps
+        sbufWriteU16(dst, constrain(getMAhDrawn(), 0, 0xFFFF));
+        sbufWriteU16(dst, constrain(getAmperage(), -0x8000, 0x7FFF));
+
+        // Battery alerts - used values match Betaflight's/DJI's
+        sbufWriteU8(dst,  getBatteryState());
+
+        // Additional battery voltage field (in 0.01V steps)
+        sbufWriteU16(dst, getBatteryVoltage());
+        break;
+#endif
+
     case MSP_OSD_CONFIG:
 #ifdef USE_OSD
         sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
