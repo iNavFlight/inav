@@ -23,6 +23,8 @@
  */
 
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netdb.h>
 
 #define SOAP_REC_BUF_SIZE 256 * 1024
 
