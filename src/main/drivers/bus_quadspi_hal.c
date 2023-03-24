@@ -35,8 +35,6 @@
 #include "nvic.h"
 #include "rcc.h"
 
-#include "pg/bus_quadspi.h"
-
 static void Error_Handler(void) { while (1) { } }
 
 void quadSpiInitDevice(QUADSPIDevice device)
@@ -45,20 +43,20 @@ void quadSpiInitDevice(QUADSPIDevice device)
 
     // Enable QUADSPI clock
     RCC_ClockCmd(quadSpi->rcc, ENABLE);
-    RCC_ResetCmd(quadSpi->rcc, ENABLE);
+    //RCC_ResetCmd(quadSpi->rcc, ENABLE);
 
-    IOInit(IOGetByTag(quadSpi->clk),  OWNER_QUADSPI_CLK,  RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk1IO0), OWNER_QUADSPI_BK1IO0, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk1IO1), OWNER_QUADSPI_BK1IO1, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk1IO2), OWNER_QUADSPI_BK1IO2, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk1IO3), OWNER_QUADSPI_BK1IO3, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk1CS), OWNER_QUADSPI_BK1CS, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->clk), OWNER_QUADSPI,  RESOURCE_QUADSPI_CLK, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk1IO0), OWNER_QUADSPI, RESOURCE_QUADSPI_BK1IO0, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk1IO1), OWNER_QUADSPI, RESOURCE_QUADSPI_BK1IO1, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk1IO2), OWNER_QUADSPI, RESOURCE_QUADSPI_BK1IO2, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk1IO3), OWNER_QUADSPI, RESOURCE_QUADSPI_BK1IO3, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk1CS), OWNER_QUADSPI, RESOURCE_QUADSPI_BK1CS, RESOURCE_INDEX(device));
 
-    IOInit(IOGetByTag(quadSpi->bk2IO0), OWNER_QUADSPI_BK2IO0, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk2IO1), OWNER_QUADSPI_BK2IO1, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk2IO2), OWNER_QUADSPI_BK2IO2, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk2IO3), OWNER_QUADSPI_BK2IO3, RESOURCE_INDEX(device));
-    IOInit(IOGetByTag(quadSpi->bk2CS), OWNER_QUADSPI_BK2CS, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk2IO0), OWNER_QUADSPI, RESOURCE_QUADSPI_BK2IO0, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk2IO1), OWNER_QUADSPI, RESOURCE_QUADSPI_BK2IO1, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk2IO2), OWNER_QUADSPI, RESOURCE_QUADSPI_BK2IO2, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk2IO3), OWNER_QUADSPI, RESOURCE_QUADSPI_BK2IO3, RESOURCE_INDEX(device));
+    IOInit(IOGetByTag(quadSpi->bk2CS), OWNER_QUADSPI, RESOURCE_QUADSPI_BK2CS, RESOURCE_INDEX(device));
 
 #if defined(STM32H7)
     // clock is only on AF9
@@ -73,13 +71,13 @@ void quadSpiInitDevice(QUADSPIDevice device)
     IOConfigGPIOAF(IOGetByTag(quadSpi->bk2IO2), QUADSPI_IO_AF_BK_IO_CFG, quadSpi->bk2IO2AF);
     IOConfigGPIOAF(IOGetByTag(quadSpi->bk2IO3), QUADSPI_IO_AF_BK_IO_CFG, quadSpi->bk2IO3AF);
 
-    if ((quadSpiConfig(device)->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_HARDWARE) {
+    if ((quadSpi->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_HARDWARE) {
         IOConfigGPIOAF(IOGetByTag(quadSpi->bk1CS), QUADSPI_IO_AF_BK_CS_CFG, quadSpi->bk1CSAF);
     } else {
         IOConfigGPIO(IOGetByTag(quadSpi->bk1CS), QUADSPI_IO_BK_CS_CFG);
     }
 
-    if ((quadSpiConfig(device)->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_HARDWARE) {
+    if ((quadSpi->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_HARDWARE) {
         IOConfigGPIOAF(IOGetByTag(quadSpi->bk2CS), QUADSPI_IO_AF_BK_CS_CFG, quadSpi->bk2CSAF);
     } else {
         IOConfigGPIO(IOGetByTag(quadSpi->bk2CS), QUADSPI_IO_BK_CS_CFG);
@@ -97,7 +95,7 @@ void quadSpiInitDevice(QUADSPIDevice device)
     quadSpi->hquadSpi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
     quadSpi->hquadSpi.Init.ClockMode = QSPI_CLOCK_MODE_0;
 
-    switch (quadSpiConfig(device)->mode) {
+    switch (quadSpi->mode) {
     case QUADSPI_MODE_BK1_ONLY:
         quadSpi->hquadSpi.Init.FlashID = QSPI_FLASH_ID_1;
         quadSpi->hquadSpi.Init.DualFlash = QSPI_DUALFLASH_DISABLE;
@@ -148,25 +146,27 @@ void quadSpiSelectDevice(QUADSPI_TypeDef *instance)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
 
-    IO_t bk1CS = IOGetByTag(quadSpiDevice[device].bk1CS);
-    IO_t bk2CS = IOGetByTag(quadSpiDevice[device].bk2CS);
+    quadSpiDevice_t *quadSpi = &(quadSpiDevice[device]);
 
-    switch(quadSpiConfig(device)->mode) {
+    IO_t bk1CS = IOGetByTag(quadSpi->bk1CS);
+    IO_t bk2CS = IOGetByTag(quadSpi->bk2CS);
+
+    switch(quadSpi->mode) {
     case QUADSPI_MODE_DUAL_FLASH:
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
             IOLo(bk1CS);
         }
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
             IOLo(bk2CS);
         }
         break;
     case QUADSPI_MODE_BK1_ONLY:
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
             IOLo(bk1CS);
         }
         break;
     case QUADSPI_MODE_BK2_ONLY:
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
             IOLo(bk2CS);
         }
         break;
@@ -177,25 +177,27 @@ void quadSpiDeselectDevice(QUADSPI_TypeDef *instance)
 {
     QUADSPIDevice device = quadSpiDeviceByInstance(instance);
 
-    IO_t bk1CS = IOGetByTag(quadSpiDevice[device].bk1CS);
-    IO_t bk2CS = IOGetByTag(quadSpiDevice[device].bk2CS);
+    quadSpiDevice_t *quadSpi = &(quadSpiDevice[device]);
 
-    switch(quadSpiConfig(device)->mode) {
+    IO_t bk1CS = IOGetByTag(quadSpi->bk1CS);
+    IO_t bk2CS = IOGetByTag(quadSpi->bk2CS);
+
+    switch(quadSpi->mode) {
     case QUADSPI_MODE_DUAL_FLASH:
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
             IOHi(bk1CS);
         }
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
             IOHi(bk2CS);
         }
         break;
     case QUADSPI_MODE_BK1_ONLY:
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
             IOHi(bk1CS);
         }
         break;
     case QUADSPI_MODE_BK2_ONLY:
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
+        if ((quadSpi->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
             IOHi(bk2CS);
         }
         break;

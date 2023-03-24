@@ -34,7 +34,17 @@
 #include "drivers/io.h"
 #include "drivers/rcc.h"
 
-#include "pg/bus_quadspi.h"
+static const quadSpiConfig_t quadSpiConfig[] = {
+#ifdef USE_QUADSPI_DEVICE_1
+        { .device = QUADSPIDEV_1, .clk = IO_TAG(QUADSPI1_SCK_PIN),
+          .bk1CS = IO_TAG(QUADSPI1_BK1_CS_PIN),
+          .bk1IO0 = IO_TAG(QUADSPI1_BK1_IO0_PIN), .bk1IO1 = IO_TAG(QUADSPI1_BK1_IO1_PIN), .bk1IO2 = IO_TAG(QUADSPI1_BK1_IO2_PIN), .bk1IO3 = IO_TAG(QUADSPI1_BK1_IO3_PIN),
+          .bk2CS = IO_TAG(QUADSPI1_BK2_CS_PIN),
+          .bk2IO0 = IO_TAG(QUADSPI1_BK2_IO0_PIN), .bk2IO1 = IO_TAG(QUADSPI1_BK2_IO1_PIN), .bk2IO2 = IO_TAG(QUADSPI1_BK2_IO2_PIN), .bk2IO3 = IO_TAG(QUADSPI1_BK2_IO3_PIN),
+          .mode = QUADSPI1_MODE, .csFlags = QUADSPI1_CS_FLAGS
+        }
+#endif
+};
 
 quadSpiDevice_t quadSpiDevice[QUADSPIDEV_COUNT] = { 0 };
 
@@ -157,75 +167,99 @@ const quadSpiHardware_t quadSpiHardware[] = {
 #endif
 };
 
-void quadSpiPinConfigure(const quadSpiConfig_t *pConfig)
+const quadSpiConfig_t * getQuadSpiConfig(QUADSPIDevice device)
 {
+    const quadSpiConfig_t * pConfig = NULL;
+
+    for (size_t configIndex = 0; configIndex < ARRAYLEN(quadSpiConfig); configIndex++) {
+        if (quadSpiConfig[configIndex].device == device) {
+            pConfig = &quadSpiConfig[configIndex];
+            break;
+        }
+    }
+
+    return pConfig;
+}
+
+
+void quadSpiPinConfigure(QUADSPIDevice device)
+{
+    if (device == QUADSPIINVALID) {
+        return;
+    }
+
+    const quadSpiConfig_t * pConfig = getQuadSpiConfig(device);
+
+    if (pConfig == NULL) {
+        return;
+    }
+
     for (size_t hwindex = 0; hwindex < ARRAYLEN(quadSpiHardware); hwindex++) {
         const quadSpiHardware_t *hw = &quadSpiHardware[hwindex];
 
-        if (!hw->reg) {
+        if (hw->device != device) {
             continue;
         }
 
-        QUADSPIDevice device = hw->device;
         quadSpiDevice_t *pDev = &quadSpiDevice[device];
 
         for (int pindex = 0; pindex < MAX_QUADSPI_PIN_SEL; pindex++) {
-            if (pConfig[device].ioTagClk == hw->clkPins[pindex].pin) {
+            if (pConfig->clk == hw->clkPins[pindex].pin) {
                 pDev->clk = hw->clkPins[pindex].pin;
             }
             //
             // BK1
             //
-            if (pConfig[device].ioTagBK1IO0 == hw->bk1IO0Pins[pindex].pin) {
+            if (pConfig->bk1IO0 == hw->bk1IO0Pins[pindex].pin) {
                 pDev->bk1IO0 = hw->bk1IO0Pins[pindex].pin;
                 pDev->bk1IO0AF = hw->bk1IO0Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK1IO1 == hw->bk1IO1Pins[pindex].pin) {
+            if (pConfig->bk1IO1 == hw->bk1IO1Pins[pindex].pin) {
                 pDev->bk1IO1 = hw->bk1IO1Pins[pindex].pin;
                 pDev->bk1IO1AF = hw->bk1IO1Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK1IO2 == hw->bk1IO2Pins[pindex].pin) {
+            if (pConfig->bk1IO2 == hw->bk1IO2Pins[pindex].pin) {
                 pDev->bk1IO2 = hw->bk1IO2Pins[pindex].pin;
                 pDev->bk1IO2AF = hw->bk1IO2Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK1IO3 == hw->bk1IO3Pins[pindex].pin) {
+            if (pConfig->bk1IO3 == hw->bk1IO3Pins[pindex].pin) {
                 pDev->bk1IO3 = hw->bk1IO3Pins[pindex].pin;
                 pDev->bk1IO3AF = hw->bk1IO3Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK1CS == hw->bk1CSPins[pindex].pin) {
+            if (pConfig->bk1CS == hw->bk1CSPins[pindex].pin) {
                 pDev->bk1CS = hw->bk1CSPins[pindex].pin;
                 pDev->bk1CSAF = hw->bk1CSPins[pindex].af;
             }
             //
             // BK2
             //
-            if (pConfig[device].ioTagBK2IO0 == hw->bk2IO0Pins[pindex].pin) {
+            if (pConfig->bk2IO0 == hw->bk2IO0Pins[pindex].pin) {
                 pDev->bk2IO0 = hw->bk2IO0Pins[pindex].pin;
                 pDev->bk2IO0AF = hw->bk2IO0Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK2IO1 == hw->bk2IO1Pins[pindex].pin) {
+            if (pConfig->bk2IO1 == hw->bk2IO1Pins[pindex].pin) {
                 pDev->bk2IO1 = hw->bk2IO1Pins[pindex].pin;
                 pDev->bk2IO1AF = hw->bk2IO1Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK2IO2 == hw->bk2IO2Pins[pindex].pin) {
+            if (pConfig->bk2IO1 == hw->bk2IO2Pins[pindex].pin) {
                 pDev->bk2IO2 = hw->bk2IO2Pins[pindex].pin;
                 pDev->bk2IO2AF = hw->bk2IO2Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK2IO3 == hw->bk2IO3Pins[pindex].pin) {
+            if (pConfig->bk2IO2 == hw->bk2IO3Pins[pindex].pin) {
                 pDev->bk2IO3 = hw->bk2IO3Pins[pindex].pin;
                 pDev->bk2IO3AF = hw->bk2IO3Pins[pindex].af;
             }
-            if (pConfig[device].ioTagBK2CS == hw->bk2CSPins[pindex].pin) {
+            if (pConfig->bk2IO3 == hw->bk2CSPins[pindex].pin) {
                 pDev->bk2CS = hw->bk2CSPins[pindex].pin;
                 pDev->bk2CSAF = hw->bk2CSPins[pindex].af;
             }
         }
 
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
-            pDev->bk1CS = pConfig[device].ioTagBK1CS;
+        if ((pConfig->csFlags & QUADSPI_BK1_CS_MASK) == QUADSPI_BK1_CS_SOFTWARE) {
+            pDev->bk1CS = pConfig->bk1CS;
         }
-        if ((quadSpiConfig(device)->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
-            pDev->bk2CS = pConfig[device].ioTagBK2CS;
+        if ((pConfig->csFlags & QUADSPI_BK2_CS_MASK) == QUADSPI_BK2_CS_SOFTWARE) {
+            pDev->bk2CS = pConfig->bk2CS;
         }
 
         bool haveResources = true;
@@ -236,13 +270,13 @@ void quadSpiPinConfigure(const quadSpiConfig_t *pConfig)
 
         // data pins
 
-        bool needBK1 = (pConfig[device].mode == QUADSPI_MODE_DUAL_FLASH) || (pConfig[device].mode == QUADSPI_MODE_BK1_ONLY);
+        bool needBK1 = (pConfig->mode == QUADSPI_MODE_DUAL_FLASH) || (pConfig->mode == QUADSPI_MODE_BK1_ONLY);
         if (needBK1) {
             bool haveBK1Resources = pDev->bk1IO0 && pDev->bk1IO1 && pDev->bk1IO2 && pDev->bk1IO3 && pDev->bk1CS;
             haveResources = haveResources && haveBK1Resources;
         }
 
-        bool needBK2 = (pConfig[device].mode == QUADSPI_MODE_DUAL_FLASH) || (pConfig[device].mode == QUADSPI_MODE_BK2_ONLY);
+        bool needBK2 = (pConfig->mode == QUADSPI_MODE_DUAL_FLASH) || (pConfig->mode == QUADSPI_MODE_BK2_ONLY);
         if (needBK2) {
             bool haveBK2Resources = pDev->bk2IO0 && pDev->bk2IO1 && pDev->bk2IO2 && pDev->bk2IO3;
             haveResources = haveResources && haveBK2Resources;
@@ -255,18 +289,21 @@ void quadSpiPinConfigure(const quadSpiConfig_t *pConfig)
         }
 
         bool needBK2CS =
-            (pConfig[device].mode == QUADSPI_MODE_DUAL_FLASH && (pConfig[device].csFlags & QUADSPI_CS_MODE_MASK) == QUADSPI_CS_MODE_SEPARATE) ||
-            (pConfig[device].mode == QUADSPI_MODE_BK2_ONLY);
+            (pConfig->mode == QUADSPI_MODE_DUAL_FLASH && (pConfig->csFlags & QUADSPI_CS_MODE_MASK) == QUADSPI_CS_MODE_SEPARATE) ||
+            (pConfig->mode == QUADSPI_MODE_BK2_ONLY);
 
         if (needBK2CS) {
             haveResources = haveResources && pDev->bk2CS;
         }
 
-
         if (haveResources) {
             pDev->dev = hw->reg;
             pDev->rcc = hw->rcc;
         }
+
+        // copy mode and flags
+        pDev->mode = pConfig->mode;
+        pDev->csFlags = pConfig->csFlags;
     }
 }
 

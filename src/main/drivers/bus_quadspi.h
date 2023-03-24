@@ -25,9 +25,6 @@
 #include "drivers/io_types.h"
 #include "drivers/rcc_types.h"
 
-#include "pg/pg.h"
-#include "pg/pg_ids.h"
-
 /*
  * Quad SPI supports 1/2/4 wire modes
  *
@@ -50,7 +47,6 @@
 #define QUADSPI_IO_BK_CS_CFG              IO_CONFIG(GPIO_MODE_OUTPUT_PP, GPIO_SPEED_FREQ_HIGH, GPIO_PULLUP)
 
 typedef enum {
-    QUADSPI_CLOCK_INITIALIZATION = 256,
     /* QSPI freq = CLK /(1 + ClockPrescaler) = 200 MHz/(1+x) */
     QUADSPI_CLOCK_INITIALISATION = 255, //  0.78125 Mhz
     QUADSPI_CLOCK_SLOW           = 19,  // 10.00000 Mhz
@@ -133,7 +129,30 @@ QUADSPI_TypeDef *quadSpiInstanceByDevice(QUADSPIDevice device);
 // Config
 //
 
-struct quadSpiConfig_s;
-void quadSpiPinConfigure(const struct quadSpiConfig_s *pConfig);
+typedef struct quadSpiConfig_s {
+    QUADSPIDevice device;
+    ioTag_t clk;
+
+    // Note: Either or both CS pin may be used in DUAL_FLASH mode, any unused pins should be IO_NONE
+    ioTag_t bk1IO0;
+    ioTag_t bk1IO1;
+    ioTag_t bk1IO2;
+    ioTag_t bk1IO3;
+    ioTag_t bk1CS;
+
+    ioTag_t bk2IO0;
+    ioTag_t bk2IO1;
+    ioTag_t bk2IO2;
+    ioTag_t bk2IO3;
+    ioTag_t bk2CS;
+
+    uint8_t mode;
+
+    // CS pins can be under software control, useful when using BK1CS as the CS pin for BK2 in non-DUAL-FLASH mode.
+    uint8_t csFlags;
+} quadSpiConfig_t;
+
+const quadSpiConfig_t * getQuadSpiConfig(QUADSPIDevice device);
+void quadSpiPinConfigure(QUADSPIDevice device);
 
 #endif

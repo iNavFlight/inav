@@ -79,6 +79,8 @@ typedef struct QUADSPIDevice_s {
     uint8_t bk2IO3AF;
     uint8_t bk2CSAF;
 #endif
+    uint8_t mode;
+    uint8_t csFlags;
     rccPeriphTag_t rcc;
     volatile uint16_t errorCount;
 #if defined(USE_HAL_DRIVER)
