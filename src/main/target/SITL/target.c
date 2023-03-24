@@ -74,14 +74,15 @@ void systemInit(void) {
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     fprintf(stderr, "[SYSTEM] Init...\n");
 
+#if !defined(__FreeBSD__)   // maybe also || !defined(__APPLE__)
     pthread_attr_t thAttr;
     int policy = 0;
 
     pthread_attr_init(&thAttr);
     pthread_attr_getschedpolicy(&thAttr, &policy);
-
     pthread_setschedprio(pthread_self(), sched_get_priority_min(policy));
     pthread_attr_destroy(&thAttr);
+#endif
 
     if (pthread_mutex_init(&mainLoopLock, NULL) != 0) {
         fprintf(stderr, "[SYSTEM] Unable to create mainLoop lock.\n");
