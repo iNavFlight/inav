@@ -66,6 +66,8 @@ static bool useImu = false;
 static char *simIp = NULL;
 static int simPort = 0;
 
+static char **c_argv;
+
 void systemInit(void) {
 
     fprintf(stderr, "INAV %d.%d.%d SITL\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL);
@@ -174,6 +176,11 @@ void printCmdLineOptions(void)
 
 void parseArguments(int argc, char *argv[])
 {
+    // Stash these so we can rexec on reboot, just like a FC does
+    c_argv = calloc(argc+1, sizeof(char *));
+    for (int i = 0; i < argc; i++) {
+        c_argv[i] = strdup(argv[i]);
+    }
     int c;
     while(true) {
         static struct option longOpt[] = {
@@ -276,7 +283,14 @@ void delay(timeMs_t ms)
 void systemReset(void)
 {
     fprintf(stderr, "[SYSTEM] Reset\n");
-    exit(0);
+#if defined(__CYGWIN__) || defined(__APPLE__)
+    for(int j = 3; j < 1024; j++) {
+        close(j);
+    }
+#else
+    closefrom(3);
+#endif
+    execvp(c_argv[0], c_argv); // restart
 }
 
 void systemResetToBootloader(void)
