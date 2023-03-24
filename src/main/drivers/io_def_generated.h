@@ -1457,6 +1457,7 @@
 # if !defined DEFIO_NO_PORTS   // supress warnings if we really don't want any pins
 #  warning "No pins are defined. Maybe you forgot to define TARGET_IO_PORTx in target.h"
 # endif
+
 # define DEFIO_PORT_USED_COUNT 0
 # define DEFIO_PORT_USED_LIST /* empty */
 # define DEFIO_PORT_OFFSET_LIST /* empty */

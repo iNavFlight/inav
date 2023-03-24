@@ -58,7 +58,7 @@ extern uint8_t __config_end;
 
 #define USE_ARM_MATH // try to use FPU functions
 
-#if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
+#if defined(SITL_BUILD) || defined(UNIT_TEST)
 // This feature uses 'arm_math.h', which does not exist for x86.
 #undef USE_DYNAMIC_FILTERS
 #undef USE_ARM_MATH
@@ -85,7 +85,7 @@ extern uint8_t __config_end;
 
 #endif
 
-#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_EXTERNAL_FLASH)
+#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_FILE) || defined(CONFIG_IN_EXTERNAL_FLASH)
 #ifndef EEPROM_SIZE
 #define EEPROM_SIZE     8192
 #endif

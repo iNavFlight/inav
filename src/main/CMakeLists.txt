@@ -212,6 +212,8 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
     drivers/pitotmeter/pitotmeter_virtual.h
+    drivers/pitotmeter/pitotmeter_fake.h
+    drivers/pitotmeter/pitotmeter_fake.c
     drivers/pwm_esc_detect.c
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
@@ -406,6 +408,9 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
+    rx/sim.c
+    rx/sim.h
+
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -467,6 +472,7 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
+    io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
     io/opflow_msp.c
@@ -495,6 +501,7 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_nmea.c
     io/gps_msp.c
+    io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c
     io/ledstrip.h
@@ -548,6 +555,8 @@ main_sources(COMMON_SRC
     sensors/rangefinder.h
     sensors/opflow.c
     sensors/opflow.h
+    sensors/battery_sensor_fake.c
+    sensors/battery_sensor_fake.h
 
     telemetry/crsf.c
     telemetry/crsf.h

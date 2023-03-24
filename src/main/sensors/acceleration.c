@@ -516,7 +516,7 @@ float accGetMeasuredMaxG(void)
 void accUpdate(void)
 {
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         //output: acc.accADCf
         //unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
         return;
@@ -525,15 +525,15 @@ void accUpdate(void)
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
-
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
         DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);
     }
 
-    performAcclerationCalibration();
-
-    applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
+    if (!ARMING_FLAG(SIMULATOR_MODE_SITL)) {
+        performAcclerationCalibration();
+        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);  
+    } 
 
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
@@ -611,8 +611,9 @@ bool accIsClipped(void)
 
 void accSetCalibrationValues(void)
 {
-    if ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
-        (accelerometerConfig()->accGain.raw[X] == 4096) && (accelerometerConfig()->accGain.raw[Y] == 4096) &&(accelerometerConfig()->accGain.raw[Z] == 4096)) {
+    if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && 
+        ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
+        (accelerometerConfig()->accGain.raw[X] == 4096) && (accelerometerConfig()->accGain.raw[Y] == 4096) &&(accelerometerConfig()->accGain.raw[Z] == 4096))) {
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
     }
     else {

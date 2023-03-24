@@ -17,11 +17,14 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <pthread.h>
 
 #include "platform.h"
 
 #include "common/axis.h"
 #include "common/utils.h"
+
+#include "fc/runtime_config.h"
 
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_fake.h"
@@ -70,24 +73,20 @@ bool fakeGyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = fakeGyroInitStatus;
     gyro->readFn = fakeGyroRead;
     gyro->temperatureFn = fakeGyroReadTemperature;
-    gyro->scale = 1.0f / 16.4f;
+    gyro->scale = 0.0625f;
     gyro->gyroAlign = 0;
     return true;
 }
-#endif // USE_FAKE_GYRO
-
-
-#ifdef USE_FAKE_ACC
 
 static int16_t fakeAccData[XYZ_AXIS_COUNT];
 
 static void fakeAccInit(accDev_t *acc)
 {
-    UNUSED(acc);
+    acc->acc_1G = 9806;
 }
 
 void fakeAccSet(int16_t x, int16_t y, int16_t z)
-{
+{ 
     fakeAccData[X] = x;
     fakeAccData[Y] = y;
     fakeAccData[Z] = z;
@@ -108,5 +107,5 @@ bool fakeAccDetect(accDev_t *acc)
     acc->accAlign = 0;
     return true;
 }
-#endif // USE_FAKE_ACC
+#endif 
 

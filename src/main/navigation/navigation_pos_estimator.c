@@ -241,7 +241,7 @@ void onNewGPSData(void)
 
                 /* Use VELNED provided by GPS if available, calculate from coordinates otherwise */
                 float gpsScaleLonDown = constrainf(cos_approx((ABS(gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
+                if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
                     posEstimator.gps.vel.x = gpsSol.velNED[X];
                     posEstimator.gps.vel.y = gpsSol.velNED[Y];
                 }
@@ -446,7 +446,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         /* If calibration is incomplete - report zero acceleration */
         if (gravityCalibrationComplete()) {
 #ifdef USE_SIMULATOR
-            if (ARMING_FLAG(SIMULATOR_MODE)) {
+            if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
                 posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
             }
 #endif

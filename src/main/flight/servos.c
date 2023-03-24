@@ -223,7 +223,8 @@ static void filterServos(void)
 void writeServos(void)
 {
     filterServos();
-
+    
+#if !defined(SITL_BUILD)
     int servoIndex = 0;
     bool zeroServoValue = false;
 
@@ -241,6 +242,7 @@ void writeServos(void)
             pwmWriteServo(servoIndex++, servo[i]);
         }
     }
+#endif
 }
 
 void servoMixer(float dT)
@@ -573,7 +575,7 @@ void processContinuousServoAutotrim(const float dT)
 
 void processServoAutotrim(const float dT) {
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         return;
     }
 #endif

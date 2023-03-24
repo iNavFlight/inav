@@ -17,7 +17,7 @@
 
 #pragma once
 
-#ifdef UNIT_TEST
+#if defined(UNIT_TEST) || defined(SITL_BUILD)
 static inline void __set_BASEPRI(uint32_t basePri) {(void)basePri;}
 static inline void __set_BASEPRI_MAX(uint32_t basePri) {(void)basePri;}
 #endif // UNIT_TEST
