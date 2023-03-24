@@ -133,11 +133,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
-            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             posControl.desiredState.pos.z = altTarget;
         }
         else {
-            updateClimbRateToAltitudeController(-50.0f, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
@@ -159,14 +159,14 @@ bool adjustMulticopterAltitudeFromRCInput(void)
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - getThrottleIdleValue() - rcControlsConfig()->alt_hold_deadband);
             }
 
-            updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
             return true;
         }
         else {
             // Adjusting finished - reset desired position to stay exactly where pilot released the stick
             if (posControl.flags.isAdjustingAltitude) {
-                updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+                updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             }
 
             return false;
@@ -842,7 +842,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, 0, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }

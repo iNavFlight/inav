@@ -117,13 +117,13 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     if (rcAdjustment) {
         // set velocity proportional to stick movement
         float rcClimbRate = -rcAdjustment * navConfig()->general.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
-        updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
+        updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
         return true;
     }
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingAltitude) {
-            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
         }
         return false;
     }
@@ -760,7 +760,7 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
-        updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+        updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, 0, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
