@@ -442,7 +442,7 @@ static void* listenWorker(void* arg)
 static int lookup_address (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
 {
     struct addrinfo *servinfo, *p;
-    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type};
+    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
     if (name == NULL) {
 	hints.ai_flags |= AI_PASSIVE;
     }
