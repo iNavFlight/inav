@@ -66,20 +66,23 @@ static bool useImu = false;
 static char *simIp = NULL;
 static int simPort = 0;
 
+static char **c_argv;
+
 void systemInit(void) {
 
     fprintf(stderr, "INAV %d.%d.%d SITL\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL);
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     fprintf(stderr, "[SYSTEM] Init...\n");
 
+#if !defined(__FreeBSD__)   // maybe also || !defined(__APPLE__)
     pthread_attr_t thAttr;
     int policy = 0;
 
     pthread_attr_init(&thAttr);
     pthread_attr_getschedpolicy(&thAttr, &policy);
-
     pthread_setschedprio(pthread_self(), sched_get_priority_min(policy));
     pthread_attr_destroy(&thAttr);
+#endif
 
     if (pthread_mutex_init(&mainLoopLock, NULL) != 0) {
         fprintf(stderr, "[SYSTEM] Unable to create mainLoop lock.\n");
@@ -89,7 +92,7 @@ void systemInit(void) {
     if (sitlSim != SITL_SIM_NONE) {
         fprintf(stderr, "[SIM] Waiting for connection...\n");
     }
-    
+
     switch (sitlSim) {
         case SITL_SIM_REALFLIGHT:
             if (mappingCount > RF_MAX_PWM_OUTS) {
@@ -108,7 +111,7 @@ void systemInit(void) {
                 fprintf(stderr, "[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", XP_MAX_PWM_OUTS);
                 sitlSim = SITL_SIM_NONE;
                 break;
-            }            
+            }
             if (simXPlaneInit(simIp, simPort, pwmMapping, mappingCount, useImu)) {
                 fprintf(stderr, "[SIM] Connection with X-Plane successfully established.\n");
             } else {
@@ -119,13 +122,13 @@ void systemInit(void) {
           fprintf(stderr, "[SIM] No interface specified. Configurator only.\n");
           break;
     }
- 
+
     rescheduleTask(TASK_SERIAL, 1);
 }
 
 bool parseMapping(char* mapStr)
 {
-    char *split = strtok(mapStr, ","); 
+    char *split = strtok(mapStr, ",");
     char numBuf[2];
     while(split)
     {
@@ -158,7 +161,7 @@ bool parseMapping(char* mapStr)
     return true;
 }
 
-void printCmdLineOptions(void)         
+void printCmdLineOptions(void)
 {
     fprintf(stderr, "Avaiable options:\n");
     fprintf(stderr, "--path=[path]                        Path and filename of eeprom.bin. If not specified 'eeprom.bin' in program directory is used.\n");
@@ -169,21 +172,26 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--chanmap=[mapstring]                Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                                     The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                                     For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
-    fprintf(stderr, "                                     --chanmap=M01-01,S01-02,S02-03\n"); 
+    fprintf(stderr, "                                     --chanmap=M01-01,S01-02,S02-03\n");
 }
 
 void parseArguments(int argc, char *argv[])
 {
+    // Stash these so we can rexec on reboot, just like a FC does
+    c_argv = calloc(argc+1, sizeof(char *));
+    for (int i = 0; i < argc; i++) {
+        c_argv[i] = strdup(argv[i]);
+    }
     int c;
     while(true) {
         static struct option longOpt[] = {
-            {"sim", optional_argument, 0, 's'},
-            {"useimu", optional_argument, 0, 'u'},
-            {"chanmap", optional_argument, 0, 'c'},
-            {"simip", optional_argument, 0, 'i'},
-            {"simport", optional_argument, 0, 'p'},
-            {"help", optional_argument, 0, 'h'},
-            {"path", optional_argument, 0, 'e'},
+            {"sim", required_argument, 0, 's'},
+            {"useimu", no_argument, 0, 'u'},
+            {"chanmap", required_argument, 0, 'c'},
+            {"simip", required_argument, 0, 'i'},
+            {"simport", required_argument, 0, 'p'},
+            {"help", no_argument, 0, 'h'},
+            {"path", required_argument, 0, 'e'},
             {NULL, 0, NULL, 0}
         };
 
@@ -192,7 +200,7 @@ void parseArguments(int argc, char *argv[])
             break;
 
         switch (c) {
-            case 's':         
+            case 's':
                 if (strcmp(optarg, "rf") == 0) {
                     sitlSim = SITL_SIM_REALFLIGHT;
                 } else if (strcmp(optarg, "xp") == 0){
@@ -210,7 +218,7 @@ void parseArguments(int argc, char *argv[])
                 }
                 break;
             case 'p':
-                simPort = atoi(optarg); 
+                simPort = atoi(optarg);
                 break;
             case 'u':
                 useImu = true;
@@ -227,12 +235,12 @@ void parseArguments(int argc, char *argv[])
                 printCmdLineOptions();
                 exit(0);
                 break;
-        }  
+        }
     }
 
     if (simIp == NULL) {
         simIp = malloc(10);
-        strcpy(simIp, "127.0.0.1");    
+        strcpy(simIp, "127.0.0.1");
     }
 }
 
@@ -261,7 +269,7 @@ uint64_t microsISR(void)
 
 uint32_t millis(void) {
     return (uint32_t)(micros() / 1000);
-}    
+}
 
 void delayMicroseconds(timeUs_t us)
 {
@@ -273,10 +281,17 @@ void delay(timeMs_t ms)
     delayMicroseconds(ms * 1000UL);
 }
 
-void systemReset(void) 
+void systemReset(void)
 {
     fprintf(stderr, "[SYSTEM] Reset\n");
-    exit(0);
+#if defined(__CYGWIN__) || defined(__APPLE__) || GCC_MAJOR < 12
+    for(int j = 3; j < 1024; j++) {
+        close(j);
+    }
+#else
+    closefrom(3);
+#endif
+    execvp(c_argv[0], c_argv); // restart
 }
 
 void systemResetToBootloader(void)

@@ -29,6 +29,9 @@
 #include <stdarg.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
 #include <pthread.h>
 #include <errno.h>
 #include <math.h>
@@ -63,13 +66,14 @@
 static uint8_t pwmMapping[XP_MAX_PWM_OUTS];
 static uint8_t mappingCount;
 
-static struct sockaddr_in serverAddr;
+static struct sockaddr_storage serverAddr;
+static socklen_t serverAddrLen;
 static int sockFd;
 static pthread_t listenThread;
 static bool initalized = false;
 static bool useImu = false;
 
-static float lattitude = 0; 
+static float lattitude = 0;
 static float longitude = 0;
 static float elevation = 0;
 static float agl = 0;
@@ -92,7 +96,7 @@ static float barometer = 0;
 static bool  hasJoystick = false;
 static float joystickRaw[XPLANE_JOYSTICK_AXIS_COUNT];
 
-typedef enum 
+typedef enum
 {
     DREF_LATITUDE,
     DREF_LONGITUDE,
@@ -126,12 +130,12 @@ typedef enum
     DREF_JOYSTICK_VALUES_CH8,
 } dref_t;
 
-uint32_t xint2uint32 (uint8_t * buf) 
+uint32_t xint2uint32 (uint8_t * buf)
 {
 	return buf[3] << 24 | buf [2] << 16 | buf [1] << 8 | buf [0];
 }
 
-float xflt2float (uint8_t * buf) 
+float xflt2float (uint8_t * buf)
 {
 	union {
 		float f;
@@ -152,18 +156,18 @@ static void registerDref(dref_t id, char* dref, uint32_t freq)
     memcpy(buf + 9, &id, 4);
     memcpy(buf + 13, dref, strlen(dref) + 1);
 
-    sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+    sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
 }
 
 static void sendDref(char* dref, float value)
 {
     char buf[509];
     strcpy(buf, "DREF");
-	memcpy(buf + 5, &value, 4);
-	memset(buf + 9, ' ', sizeof(buf) - 9);
-	strcpy(buf + 9, dref);
+    memcpy(buf + 5, &value, 4);
+    memset(buf + 9, ' ', sizeof(buf) - 9);
+    strcpy(buf + 9, dref);
 
-    sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
+    sendto(sockFd, (void*)buf, sizeof(buf), 0, (struct sockaddr*)&serverAddr, serverAddrLen);
 }
 
 static void* listenWorker(void* arg)
@@ -171,13 +175,13 @@ static void* listenWorker(void* arg)
     UNUSED(arg);
 
     uint8_t buf[1024];
-    struct sockaddr remoteAddr;
+    struct sockaddr_storage remoteAddr;
     socklen_t slen = sizeof(remoteAddr);
     int recvLen;
 
     while (true)
     {
-        
+
         float motorValue = 0;
         float yokeValues[3] = { 0 };
         int y = 0;
@@ -189,10 +193,10 @@ static void* listenWorker(void* arg)
                 motorValue = PWM_TO_FLOAT_0_1(motor[pwmMapping[i] & 0x7f]);
             } else {
                 yokeValues[y] = PWM_TO_FLOAT_MINUS_1_1(servo[pwmMapping[i]]);
-                y++;   
+                y++;
             }
         }
-            
+
         sendDref("sim/operation/override/override_joystick", 1);
         sendDref("sim/cockpit2/engine/actuators/throttle_ratio_all", motorValue);
         sendDref("sim/joystick/yoke_roll_ratio", yokeValues[0]);
@@ -203,11 +207,11 @@ static void* listenWorker(void* arg)
         sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[2]", 0);
         sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[3]", 0);
         sendDref("sim/cockpit2/engine/actuators/cowl_flap_ratio[4]", 0);
-        
+
         recvLen = recvfrom(sockFd, buf, sizeof(buf), 0, (struct sockaddr*)&remoteAddr, &slen);
         if (recvLen < 0 && errno != EWOULDBLOCK) {
             continue;
-        } 
+        }
 
         if (strncmp((char*)buf, "RREF", 4) != 0) {
             continue;
@@ -216,7 +220,7 @@ static void* listenWorker(void* arg)
         for (int i = 5; i < recvLen; i += 8) {
             dref_t dref = (dref_t)xint2uint32(&buf[i]);
             float value = xflt2float(&(buf[i + 4]));
-            
+
             switch (dref)
             {
                 case DREF_LATITUDE:
@@ -230,7 +234,7 @@ static void* listenWorker(void* arg)
                 case DREF_ELEVATION:
                     elevation = value;
                     break;
-                
+
                 case DREF_AGL:
                     agl = value;
                     break;
@@ -274,7 +278,7 @@ static void* listenWorker(void* arg)
                 case DREF_FORCE_G_AXI1:
                     accel_x = value;
                     break;
-            
+
                 case DREF_FORCE_G_SIDE:
                     accel_y = value;
                     break;
@@ -290,7 +294,7 @@ static void* listenWorker(void* arg)
                 case DREF_POS_Q:
                     gyro_y = value;
                     break;
-                
+
                 case DREF_POS_R:
                     gyro_z = value;
                     break;
@@ -302,36 +306,36 @@ static void* listenWorker(void* arg)
                 case DREF_HAS_JOYSTICK:
                     hasJoystick = value >= 1 ? true : false;
                     break;
-                
-                case DREF_JOYSTICK_VALUES_ROll: 
+
+                case DREF_JOYSTICK_VALUES_ROll:
                     joystickRaw[0] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_PITCH: 
+                case DREF_JOYSTICK_VALUES_PITCH:
                     joystickRaw[1] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_THROTTLE: 
+                case DREF_JOYSTICK_VALUES_THROTTLE:
                     joystickRaw[2] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_YAW: 
+                case DREF_JOYSTICK_VALUES_YAW:
                     joystickRaw[3] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_CH5: 
+                case DREF_JOYSTICK_VALUES_CH5:
                     joystickRaw[4] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_CH6: 
+                case DREF_JOYSTICK_VALUES_CH6:
                     joystickRaw[5] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_CH7: 
+                case DREF_JOYSTICK_VALUES_CH7:
                     joystickRaw[6] = value;
                     break;
 
-                case DREF_JOYSTICK_VALUES_CH8: 
+                case DREF_JOYSTICK_VALUES_CH8:
                     joystickRaw[7] = value;
                     break;
 
@@ -375,8 +379,8 @@ static void* listenWorker(void* arg)
             0, //(int16_t)round(-local_vy * 100),
             0
         );
-        
-        const int32_t altitideOverGround = (int32_t)round(agl * 100); 
+
+        const int32_t altitideOverGround = (int32_t)round(agl * 100);
         if (altitideOverGround > 0 && altitideOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
             fakeRangefindersSetData(altitideOverGround);
         } else {
@@ -391,7 +395,7 @@ static void* listenWorker(void* arg)
             imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
             imuUpdateAttitude(micros());
         }
-        
+
         fakeAccSet(
             constrainToInt16(-accel_x * GRAVITY_MSS * 1000),
             constrainToInt16(accel_y * GRAVITY_MSS * 1000),
@@ -425,7 +429,7 @@ static void* listenWorker(void* arg)
         if (!initalized) {
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
             // Aircraft can wobble on the runway and prevents calibration of the accelerometer
-            ENABLE_STATE(ACCELEROMETER_CALIBRATED);                  
+            ENABLE_STATE(ACCELEROMETER_CALIBRATED);
             initalized = true;
         }
 
@@ -435,22 +439,113 @@ static void* listenWorker(void* arg)
     return NULL;
 }
 
+static int lookup_address (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
+{
+    struct addrinfo *servinfo, *p;
+    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
+    if (name == NULL) {
+	hints.ai_flags |= AI_PASSIVE;
+    }
+  /*
+    This nonsense is to uniformly deliver the same sa_family regardless of whether
+    name is NULL or non-NULL ** ON LINUX **
+    Otherwise, at least on Linux, we get
+    - V6,V4 for the non-null case and
+    - V4,V6 for the null case, regardless of gai.conf
+    Which may confuse consumers
+    FreeBSD and Windows behave consistently, giving V6 for Ipv6 enabled stacks
+    unless a quad dotted address is specified (or a name resolveds to V4,
+    or system policy enforces IPv4 over V6
+  */
+    struct addrinfo *p4 = NULL;
+    struct addrinfo *p6 = NULL;
+
+    int result;
+    char aport[16];
+    snprintf(aport, sizeof(aport), "%d", port);
+
+    if ((result = getaddrinfo(name, aport, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+        return result;
+    } else {
+	int j = 0;
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+	    if(p->ai_family == AF_INET6)
+		p6 = p;
+	    else if(p->ai_family == AF_INET)
+		p4 = p;
+	    j++;
+	}
+
+	if (p6 != NULL)
+	    p = p6;
+	else if (p4 != NULL)
+	    p = p4;
+	else
+	    return -1;
+	memcpy(addr, p->ai_addr, p->ai_addrlen);
+	*len = p->ai_addrlen;
+	freeaddrinfo(servinfo);
+    }
+    return 0;
+}
+
+static char * pretty_print_address(struct sockaddr* p)
+{
+    char straddr[INET6_ADDRSTRLEN];
+    void *addr;
+    uint16_t port;
+    if (p->sa_family == AF_INET6) {
+	struct sockaddr_in6 * ip = (struct sockaddr_in6*)p;
+	addr = &ip->sin6_addr;
+	port = ntohs(ip->sin6_port);
+    } else {
+	struct sockaddr_in * ip = (struct sockaddr_in*)p;
+	port = ntohs(ip->sin_port);
+	addr = &ip->sin_addr;
+    }
+    const char *res = inet_ntop(p->sa_family, addr, straddr, sizeof straddr);
+    if (res != NULL) {
+	int nb = strlen(res)+16;
+	char *buf = calloc(nb,1);
+	char *ptr = buf;
+	if (p->sa_family == AF_INET6) {
+	    *ptr++='[';
+	}
+	ptr = stpcpy(ptr, res);
+	if (p->sa_family == AF_INET6) {
+	    *ptr++=']';
+	}
+	sprintf(ptr, ":%d", port);
+	return buf;
+    }
+    return NULL;
+}
+
 bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool imu)
 {
     memcpy(pwmMapping, mapping, mapCount);
     mappingCount = mapCount;
     useImu = imu;
-    
-    sockFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    if (sockFd < 0) {
+    if (port == 0) {
+	port = XP_PORT; // use default port
+    }
+
+    if(lookup_address(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
         return false;
     }
 
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(0);
+    sockFd = socket(((struct sockaddr*)&serverAddr)->sa_family, SOCK_DGRAM, IPPROTO_UDP);
+    if (sockFd < 0) {
+        return false;
+    } else {
+	char *nptr = pretty_print_address((struct sockaddr *)&serverAddr);
+	if (nptr != NULL) {
+	    fprintf(stderr, "[SOCKET] xplane address = %s, fd=%d\n", nptr, sockFd);
+	    free(nptr);
+	}
+    }
 
     struct timeval tv;
 	tv.tv_sec = 1;
@@ -462,13 +557,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     if (setsockopt(sockFd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
         return false;
     }
-         
-    bind(sockFd, (struct sockaddr *) &addr, sizeof(addr));
 
-    serverAddr.sin_family = AF_INET;
-	serverAddr.sin_addr.s_addr = inet_addr(ip);
-	serverAddr.sin_port = htons(port);
-    
     if (pthread_create(&listenThread, NULL, listenWorker, NULL) < 0) {
         return false;
     }

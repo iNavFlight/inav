@@ -429,7 +429,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
     }
 
     osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
-    
+
     if (!isValid && ((millis() / 1000) % 4 < 2))
         suffix = '*';
 
@@ -444,7 +444,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
  */
 void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
 
-    int32_t convertedAltutude;
+    int32_t convertedAltutude = 0;
     char suffix = '\0';
 
     switch ((osd_unit_e)osdConfig()->units) {
@@ -2471,7 +2471,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_L, elemAttr);
             } else {
                 panServoTimeOffCentre = 0;
-                
+
                 if (osdConfig()->pan_servo_indicator_show_degrees) {
                     tfp_sprintf(buff, "%3d%c", panOffset, SYM_DEGREES);
                     displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
