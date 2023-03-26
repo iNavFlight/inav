@@ -842,7 +842,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, 0, ROC_TO_ALT_TARGET);
+            updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 500, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }

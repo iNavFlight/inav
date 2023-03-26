@@ -1283,17 +1283,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         }
 
         // Climb to safe altitude and turn to correct direction
+        // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
+        // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
         if (STATE(FIXED_WING_LEGACY)) {
-            if (navConfig()->general.flags.rth_climb_first == RTH_CLIMB_ON_FW_SPIRAL) {
-                float altitudeChangeDirection = (tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM) > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
-                updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, 0, ROC_TO_ALT_CONSTANT);
-            } else {
-                tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
-                setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-            }
+            tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
+            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
         } else {
-            // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
-            // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
             tmpHomePos->z += MR_RTH_CLIMB_OVERSHOOT_CM;
 
             if (navConfig()->general.flags.rth_tail_first) {
@@ -1415,21 +1410,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(na
     }
 
     fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_FINAL_HOVER);
-
-    if (navConfig()->general.rth_home_altitude) {
-        float timeToReachHomeAltitude = fabsf(tmpHomePos->z - navGetCurrentActualPositionAndVelocity()->pos.z) / navConfig()->general.max_auto_climb_rate;
-
-        if (timeToReachHomeAltitude < 1) {
-            // we almost reached the target home altitude so set the desired altitude to the desired home altitude
-            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-        } else {
-            float altitudeChangeDirection = tmpHomePos->z > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
-            updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, tmpHomePos->z, ROC_TO_ALT_TARGET);
-        }
-    }
-    else {
-        setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-    }
+    setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1702,12 +1683,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
 
     if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
         // Adjust altitude to waypoint setting
-        if (STATE(AIRPLANE)) {
-            int8_t altitudeChangeDirection = posControl.activeWaypoint.pos.z > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
-            updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, posControl.activeWaypoint.pos.z, ROC_TO_ALT_TARGET);
-        } else {
-            setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_Z);
-        }
+        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_Z);
 
         posControl.wpAltitudeReached = isWaypointAltitudeReached();
 
@@ -2887,9 +2863,11 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
     // Terrain following uses different altitude measurement
     const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
 
-    if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {  // ROC_TO_ALT_CONSTANT & ROC_TO_ALT_TARGET
+    if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
+        /* ROC_TO_ALT_CONSTANT - constant climb rate always
+         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min value when altitude reached
+         * Rate reduction starts at distance from target altitude of 5 x climb rate for FW, 1 x climb rate for MC */
 
-        /*  */
         if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > MIN_TARGET_CLIMB_RATE) {
             int8_t direction = desiredClimbRate > 0 ? 1 : -1;
             float absClimbRate = fabsf(desiredClimbRate);
