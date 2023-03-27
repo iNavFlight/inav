@@ -80,9 +80,6 @@ tables:
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
-  - name: frsky_unit
-    values: ["METRIC", "IMPERIAL"]
-    enum: frskyUnit_e
   - name: ltm_rates
     values: ["NORMAL", "MEDIUM", "SLOW"]
   - name: i2c_speed
@@ -232,11 +229,6 @@ groups:
         default_value: "PT1"
         field: gyro_anti_aliasing_lpf_type
         table: filter_type
-      - name: moron_threshold
-        description: "When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered."
-        default_value: 32
-        field: gyroMovementCalibrationThreshold
-        max: 128
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
@@ -1806,16 +1798,6 @@ groups:
         default_value: "PT2"
         field: dterm_lpf_type
         table: filter_type_full
-      - name: dterm_lpf2_hz
-        description: "Cutoff frequency for stage 2 D-term low pass filter"
-        default_value: 0
-        min: 0
-        max: 500
-      - name: dterm_lpf2_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
-        default_value: "PT1"
-        field: dterm_lpf2_type
-        table: filter_type_full
       - name: yaw_lpf_hz
         description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
@@ -2815,7 +2797,7 @@ groups:
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
-    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h", "telemetry/sim.h"]
+    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/sim.h"]
     condition: USE_TELEMETRY
     members:
       - name: telemetry_switch
@@ -2826,41 +2808,12 @@ groups:
         description: "Determines if the telemetry protocol default signal inversion is reversed. This should be OFF in most cases unless a custom or hacked RX is used."
         default_value: OFF
         type: bool
-      - name: frsky_default_latitude
-        description: "D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired."
-        default_value: 0
-        field: gpsNoFixLatitude
-        min: -90
-        max: 90
-      - name: frsky_default_longitude
-        description: "D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired."
-        default_value: 0
-        field: gpsNoFixLongitude
-        min: -180
-        max: 180
-      - name: frsky_coordinates_format
-        description: "D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA"
-        default_value: 0
-        field: frsky_coordinate_format
-        min: 0
-        max: FRSKY_FORMAT_NMEA
-        type: uint8_t # TODO: This seems to use an enum, we should use table:
-      - name: frsky_unit
-        description: "Not used? [METRIC/IMPERIAL]"
-        default_value: "METRIC"
-        table: frsky_unit
-        type: uint8_t
-      - name: frsky_vfas_precision
-        description: "D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method"
-        default_value: 0
-        min: FRSKY_VFAS_PRECISION_LOW
-        max: FRSKY_VFAS_PRECISION_HIGH
       - name: frsky_pitch_roll
-        description: "S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
+        description: "S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
         default_value: OFF
         type: bool
       - name: report_cell_voltage
-        description: "S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON"
+        description: "S.Port and IBUS telemetry: Send the average cell voltage if set to ON"
         default_value: OFF
         type: bool
       - name: hott_alarm_sound_interval
@@ -3443,10 +3396,10 @@ groups:
         description: Should home position coordinates be displayed on the arming screen.
 
       - name: osd_pan_servo_index
-        description: Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+        description: Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
         field: pan_servo_index
         min: 0
-        max: 10
+        max: 16
         default_value: 0
 
       - name: osd_pan_servo_pwm2centideg
@@ -3455,6 +3408,19 @@ groups:
         default_value: 0
         min: -36
         max: 36
+
+      - name: osd_pan_servo_offcentre_warning
+        description: Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink. 0 means the warning is disabled.
+        field: pan_servo_offcentre_warning
+        min: 0
+        max: 45
+        default_value: 10
+
+      - name: osd_pan_servo_indicator_show_degrees
+        description: Show the degress of offset from centre on the pan servo OSD display element.
+        field: pan_servo_indicator_show_degrees
+        type: bool
+        default_value: OFF
 
       - name: osd_esc_rpm_precision
         description: Number of characters used to display the RPM value.
@@ -3576,11 +3542,13 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        type: string
         field: craftName
         max: MAX_NAME_LENGTH
       - name: pilot_name
         description: "Pilot name"
         default_value: ""
+        type: string
         field: pilotName
         max: MAX_NAME_LENGTH
 

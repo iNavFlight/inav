@@ -120,7 +120,6 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
-#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
@@ -1690,7 +1689,7 @@ static void cliDelay(char* cmdLine) {
         cliPrintLine("CLI delay deactivated");
         return;
     }
-    
+
     ms = fastA2I(cmdLine);
     if (ms) {
         cliDelayMs = ms;
@@ -1699,7 +1698,7 @@ static void cliDelay(char* cmdLine) {
     } else {
         cliShowParseError();
     }
-    
+
 }
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
@@ -2288,7 +2287,7 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
@@ -2323,12 +2322,12 @@ static void cliFlashErase(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
     }
-    
+
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -3194,8 +3193,10 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
+                    // Convert strings to uppercase. Lower case is not supported by the OSD.
+                    sl_toupperptr(eqptr);
                     // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
                         settingSetString(val, eqptr + 1, strlen(eqptr)-2);
                     } else {
                         settingSetString(val, eqptr, strlen(eqptr));
@@ -3414,8 +3415,12 @@ static void cliStatus(char *cmdline)
     cliPrint("OSD: ");
 #if defined(USE_OSD)
     displayPort_t *osdDisplayPort = osdGetDisplayPort();
-    cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
-#else 
+    if (osdDisplayPort != NULL) {
+        cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
+    } else {
+        cliPrint("not enabled");
+    }
+#else
     cliPrint("not used");
 #endif
     cliPrintLinefeed();

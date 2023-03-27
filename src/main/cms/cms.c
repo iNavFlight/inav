@@ -875,6 +875,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     setServoOutputEnabled(true);
 
     if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
+        processDelayedSave();
         displayClearScreen(pDisplay);
         displayWrite(pDisplay, 5, 3, "REBOOTING...");
 

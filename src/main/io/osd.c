@@ -69,6 +69,7 @@ FILE_COMPILE_FOR_SPEED
 #include "io/osd.h"
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
+#include "io/osd_utils.h"
 #include "io/displayport_msp_bf_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
@@ -201,7 +202,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 8);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 void osdStartedSaveProcess() {
@@ -213,18 +214,7 @@ void osdShowEEPROMSavedNotification() {
     notify_settings_saved = millis() + 5000;
 }
 
-static int digitCount(int32_t value)
-{
-    int digits = 1;
-    while(1) {
-        value = value / 10;
-        if (value == 0) {
-            break;
-        }
-        digits++;
-    }
-    return digits;
-}
+
 
 bool osdDisplayIsPAL(void)
 {
@@ -240,102 +230,7 @@ bool osdDisplayIsHD(void)
     return false;
 }
 
-/**
- * Formats a number given in cents, to support non integer values
- * without using floating point math. Value is always right aligned
- * and spaces are inserted before the number to always yield a string
- * of the same length. If the value doesn't fit into the provided length
- * it will be divided by scale and true will be returned.
- */
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
-{
-    char *ptr = buff;
-    char *dec;
-    int decimals = maxDecimals;
-    bool negative = false;
-    bool scaled = false;
-    bool explicitDecimal = isBfCompatibleVideoSystem(osdConfig());
 
-    buff[length] = '\0';
-
-    if (centivalue < 0) {
-        negative = true;
-        centivalue = -centivalue;
-        length--;
-    }
-
-    int32_t integerPart = centivalue / 100;
-    // 3 decimal digits
-    int32_t millis = (centivalue % 100) * 10;
-
-    int digits = digitCount(integerPart);
-    int remaining = length - digits;
-    if (explicitDecimal) {
-        remaining--;
-    }
-
-    if (remaining < 0 && scale > 0) {
-        // Reduce by scale
-        scaled = true;
-        decimals = maxScaledDecimals;
-        integerPart = integerPart / scale;
-        // Multiply by 10 to get 3 decimal digits
-        millis = ((centivalue % (100 * scale)) * 10) / scale;
-        digits = digitCount(integerPart);
-        remaining = length - digits;
-        if (explicitDecimal) {
-            remaining--;
-        }
-    }
-
-    // 3 decimals at most
-    decimals = MIN(remaining, MIN(decimals, 3));
-    remaining -= decimals;
-
-    // Done counting. Time to write the characters.
-
-    // Write spaces at the start
-    while (remaining > 0) {
-        *ptr = SYM_BLANK;
-        ptr++;
-        remaining--;
-    }
-
-    // Write the minus sign if required
-    if (negative) {
-        *ptr = '-';
-        ptr++;
-    }
-    // Now write the digits.
-    ui2a(integerPart, 10, 0, ptr);
-    ptr += digits;
-
-    if (decimals > 0) {
-        if (explicitDecimal) {
-            *ptr = '.';
-            ptr++;
-        } else {
-            *(ptr - 1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
-        }
-        dec = ptr;
-        int factor = 3; // we're getting the decimal part in millis first
-        while (decimals < factor) {
-            factor--;
-            millis /= 10;
-        }
-        int decimalDigits = digitCount(millis);
-        while (decimalDigits < decimals) {
-            decimalDigits++;
-            *ptr = '0';
-            ptr++;
-        }
-        ui2a(millis, 10, 0, ptr);
-        if (!explicitDecimal) {
-            *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
-        }
-    }
-    return scaled;
-}
 
 /*
  * Aligns text to the left side. Adds spaces at the end to keep string length unchanged.
@@ -532,15 +427,47 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             suffix = SYM_KMH;
             break;
     }
+
     osdFormatCentiNumber(buff, centivalue, 0, 2, 0, 3);
-    if (!isValid)
-    {
+    
+    if (!isValid && ((millis() / 1000) % 4 < 2))
         suffix = '*';
-    }
+
     buff[3] = suffix;
     buff[4] = '\0';
 }
 #endif
+
+/*
+ * This is a simplified altitude conversion code that does not use any scaling
+ * but is fully compatible with the DJI G2 MSP Displayport OSD implementation.
+ */
+void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
+
+    int32_t convertedAltutude;
+    char suffix;
+
+    switch ((osd_unit_e)osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_GA:
+            FALLTHROUGH;
+        case OSD_UNIT_IMPERIAL:
+            convertedAltutude = CENTIMETERS_TO_FEET(alt);
+            suffix = SYM_ALT_FT;
+            break;
+        case OSD_UNIT_METRIC_MPH:
+            FALLTHROUGH;
+        case OSD_UNIT_METRIC:
+            convertedAltutude = CENTIMETERS_TO_METERS(alt);
+            suffix = SYM_ALT_M;
+            break;
+    }
+
+    tfp_sprintf(buff, "%4d", (int) convertedAltutude);
+    buff[4] = suffix;
+    buff[5] = '\0';
+}
 
 /**
 * Converts altitude into a string based on the current unit system
@@ -1170,7 +1097,7 @@ int16_t osdGetHeading(void)
     return attitude.values.yaw;
 }
 
-int16_t osdPanServoHomeDirectionOffset(void)
+int16_t osdGetPanServoOffset(void)
 {
     int8_t servoIndex = osdConfig()->pan_servo_index;
     int16_t servoPosition = servo[servoIndex];
@@ -1767,7 +1694,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 {
                     int16_t panHomeDirOffset = 0;
                     if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
-                        panHomeDirOffset = osdPanServoHomeDirectionOffset();
+                        panHomeDirOffset = osdGetPanServoOffset();
                     }
                     int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
                     int homeDirection = GPS_directionToHome - flightDirection + panHomeDirOffset;
@@ -1923,7 +1850,13 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ALTITUDE:
         {
             int32_t alt = osdGetAltitude();
-            osdFormatAltitudeSymbol(buff, alt);
+
+            if (isBfCompatibleVideoSystem(osdConfig())) {
+                osdSimpleAltitudeSymbol(buff, alt);
+            } else {
+                osdFormatAltitudeSymbol(buff, alt);
+            }
+
             uint16_t alt_alarm = osdConfig()->alt_alarm;
             uint16_t neg_alt_alarm = osdConfig()->neg_alt_alarm;
             if ((alt_alarm > 0 && CENTIMETERS_TO_METERS(alt) > alt_alarm) ||
@@ -1937,7 +1870,11 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ALTITUDE_MSL:
         {
             int32_t alt = osdGetAltitudeMsl();
-            osdFormatAltitudeSymbol(buff, alt);
+            if (isBfCompatibleVideoSystem(osdConfig())) {
+                osdSimpleAltitudeSymbol(buff, alt);
+            } else {
+                osdFormatAltitudeSymbol(buff, alt);
+            }
             break;
         }
 
@@ -2482,6 +2419,58 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channel - 1), buff);
         break;
 
+    case OSD_PAN_SERVO_CENTRED:
+        {
+            int16_t panOffset = osdGetPanServoOffset();
+            const timeMs_t panServoTimeNow = millis();
+            static timeMs_t panServoTimeOffCentre = 0;
+
+            if (panOffset < 0) {
+                if (osdConfig()->pan_servo_offcentre_warning != 0 && panOffset >= -osdConfig()->pan_servo_offcentre_warning) {
+                    if (panServoTimeOffCentre == 0) {
+                        panServoTimeOffCentre = panServoTimeNow;
+                    } else if (panServoTimeNow >= (panServoTimeOffCentre + 10000 )) {
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                } else {
+                    panServoTimeOffCentre = 0;
+                }
+
+                if (osdConfig()->pan_servo_indicator_show_degrees) {
+                    tfp_sprintf(buff, "%3d%c", -panOffset, SYM_DEGREES);
+                    displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
+                }
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_R, elemAttr);
+            } else if (panOffset > 0) {
+                if (osdConfig()->pan_servo_offcentre_warning != 0 && panOffset <= osdConfig()->pan_servo_offcentre_warning) {
+                    if (panServoTimeOffCentre == 0) {
+                        panServoTimeOffCentre = panServoTimeNow;
+                    } else if (panServoTimeNow >= (panServoTimeOffCentre + 10000 )) {
+                        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                    }
+                } else {
+                    panServoTimeOffCentre = 0;
+                }
+
+                if (osdConfig()->pan_servo_indicator_show_degrees) {
+                    tfp_sprintf(buff, "%3d%c", panOffset, SYM_DEGREES);
+                    displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
+                }
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_OFFSET_L, elemAttr);
+            } else {
+                panServoTimeOffCentre = 0;
+                
+                if (osdConfig()->pan_servo_indicator_show_degrees) {
+                    tfp_sprintf(buff, "%3d%c", panOffset, SYM_DEGREES);
+                    displayWriteWithAttr(osdDisplayPort, elemPosX+1, elemPosY, buff, elemAttr);
+                }
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_SERVO_PAN_IS_CENTRED);
+            }
+
+            return true;
+        }
+        break;
+
     case OSD_ACTIVE_PROFILE:
         tfp_sprintf(buff, "%c%u", SYM_PROFILE, (getConfigProfile() + 1));
         displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
@@ -2989,10 +2978,10 @@ static bool osdDrawSingleElement(uint8_t item)
             float verticalWindSpeed;
             verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
             if (verticalWindSpeed < 0) {
-                buff[1] = SYM_AH_DECORATION_DOWN;
+                buff[1] = SYM_AH_DIRECTION_DOWN;
                 verticalWindSpeed = -verticalWindSpeed;
             } else {
-                buff[1] = SYM_AH_DECORATION_UP;
+                buff[1] = SYM_AH_DIRECTION_UP;
             }
             osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
             break;
@@ -3188,7 +3177,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_FW_LEVEL_TRIM:
         {
-            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "LEVEL", 0, pidProfileMutable()->fixedWingLevelTrim, 3, 1, ADJUSTMENT_FW_LEVEL_TRIM);
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "LEVEL", 0, getFixedWingLevelTrim(), 3, 1, ADJUSTMENT_FW_LEVEL_TRIM);
             return true;
         }
 
@@ -3483,6 +3472,8 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
     .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
+    .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
     .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
     .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
@@ -4588,6 +4579,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         if (FLIGHT_MODE(MANUAL_MODE)) {
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE_ACRO);
                         }
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || (navigationRequiresAngleMode() && !navigationIsControllingAltitude()))) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
                     }
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
