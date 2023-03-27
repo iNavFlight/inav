@@ -678,7 +678,7 @@ static void applyLedIndicatorLayer(bool updateNow, timeUs_t *timer)
     if (updateNow) {
         if (rxIsReceivingSignal()) {
             // calculate update frequency
-            int scale = (STATE(AIRPLANE)) ? ABS(rcCommand[ROLL]) : MAX(ABS(rcCommand[ROLL]), ABS(rcCommand[PITCH]));  // 0 - 500
+            int scale = (STATE(AIRPLANE) || STATE(ROVER)) ? ABS(rcCommand[ROLL]) : MAX(ABS(rcCommand[ROLL]), ABS(rcCommand[PITCH]));  // 0 - 500
             scale += (50 - INDICATOR_DEADBAND);  // start increasing frequency right after deadband
             *timer += LED_STRIP_HZ(5) * 50 / MAX(50, scale);   // 5 - 50Hz update, 2.5 - 25Hz blink
 
@@ -693,7 +693,7 @@ static void applyLedIndicatorLayer(bool updateNow, timeUs_t *timer)
 
     const hsvColor_t *flashColor = &HSV(ORANGE); // TODO - use user color?
 
-    if (STATE(AIRPLANE)) {
+    if (STATE(AIRPLANE) || STATE(ROVER)) {
         for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
             const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_INDICATOR)) {
