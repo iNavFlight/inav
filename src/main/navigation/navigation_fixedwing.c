@@ -160,8 +160,8 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
     const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
 
-    // Reduce max allowed climb pitch if performing loiter climb
-    if (isNavHoldPositionActive()) {
+    // Reduce max allowed climb pitch if performing loiter (stall prevention)
+    if (needToCalculateCircularLoiter) {
         maxClimbDeciDeg = maxClimbDeciDeg * 0.67f;
     }
 
@@ -765,6 +765,7 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
+        // target min descent rate 10m above takeoff altitude
         updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 

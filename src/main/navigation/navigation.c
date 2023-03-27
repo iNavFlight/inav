@@ -2855,7 +2855,7 @@ bool isFlightDetected(void)
  *-----------------------------------------------------------*/
 void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
 {
-#define MIN_TARGET_CLIMB_RATE   100.0f
+#define MIN_TARGET_CLIMB_RATE   100.0f  // cm/s
 
     static timeUs_t lastUpdateTimeUs;
     timeUs_t currentTimeUs = micros();
@@ -2864,8 +2864,8 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
     const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
 
     if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
-        /* ROC_TO_ALT_CONSTANT - constant climb rate always
-         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min value when altitude reached
+        /* ROC_TO_ALT_CONSTANT - constant climb rate
+         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
          * Rate reduction starts at distance from target altitude of 5 x climb rate for FW, 1 x climb rate for MC */
 
         if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > MIN_TARGET_CLIMB_RATE) {
@@ -2873,7 +2873,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
             float absClimbRate = fabsf(desiredClimbRate);
             uint16_t maxRateCutoffAlt = STATE(AIRPLANE) ? absClimbRate * 5 : absClimbRate;
             float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
-                                      direction * -500.0f, direction * -maxRateCutoffAlt, MIN_TARGET_CLIMB_RATE, absClimbRate);
+                                      0.0f, -maxRateCutoffAlt * direction, MIN_TARGET_CLIMB_RATE, absClimbRate);
 
             desiredClimbRate = direction * constrainf(verticalVelScaled, MIN_TARGET_CLIMB_RATE, absClimbRate);
         }
