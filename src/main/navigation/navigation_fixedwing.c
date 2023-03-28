@@ -766,7 +766,7 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
         // target min descent rate 10m above takeoff altitude
-        updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000, ROC_TO_ALT_TARGET);
+        updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000.0f, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
