@@ -123,7 +123,7 @@ void systemInit(void) {
           break;
     }
 
-    rescheduleTask(TASK_SERIAL, 1);
+    rescheduleTask(TASK_SERIAL, SITL_SERIAL_TASK_US);
 }
 
 bool parseMapping(char* mapStr)
