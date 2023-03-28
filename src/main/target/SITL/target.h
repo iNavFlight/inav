@@ -53,6 +53,7 @@
 #define USE_UART8
 
 #define SERIAL_PORT_COUNT 8
+#define SITL_SERIAL_TASK_US (500)
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
 #define DEFAULT_FEATURES        (FEATURE_GPS |  FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT)
@@ -181,7 +182,7 @@ typedef struct
 #define UART7 ((USART_TypeDef *)0x0007)
 #define UART8 ((USART_TypeDef *)0x0008)
 
-typedef enum 
+typedef enum
 {
     SITL_SIM_NONE,
     SITL_SIM_REALFLIGHT,
