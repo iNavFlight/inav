@@ -60,7 +60,8 @@ typedef enum {          // defines are from hdzero code
     SD_3016,
     HD_5018,
     HD_3016,           // Special HDZERO mode that just sends the centre 30x16 of the 50x18 canvas to the VRX
-    HD_6022            // added to support DJI wtfos 60x22 grid
+    HD_6022,            // added to support DJI wtfos 60x22 grid
+    HD_5320            // added to support Avatar and BetaflightHD
 } resolutionType_e;
 
 #define DRAW_FREQ_DENOM 4 // 60Hz
@@ -289,16 +290,15 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len++] = (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) ? getBfCharacter(screen[pos++], page): screen[pos++];
+            subcmd[len++] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
             }
         } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page && bitArrayGet(blinkChar, next) == blink);
 
-        if (osdVideoSystem != VIDEO_SYSTEM_BFCOMPAT) {
+        if (!isBfCompatibleVideoSystem(osdConfig())) {
             attributes |= (page << DISPLAYPORT_MSP_ATTR_FONTPAGE);
-            //attributes = page;
         }
 
         if (blink) {
@@ -464,8 +464,9 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             screenRows = DJI_ROWS;
             screenCols = DJI_COLS;
             break;
+        case VIDEO_SYSTEM_BFCOMPAT_HD:
         case VIDEO_SYSTEM_AVATAR:
-            currentOsdMode = HD_5018;
+            currentOsdMode = HD_5320;
             screenRows = AVATAR_ROWS;
             screenCols = AVATAR_COLS;
             break;
@@ -478,7 +479,9 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
         displayInit(&mspOsdDisplayPort, &mspOsdVTable);
 
         if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) {
-            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: DJI Compatability mode";
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: BetaFlight Compatability mode";
+        } else if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT_HD) {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: BetaFlight Compatability mode (HD)";
         } else {
             mspOsdDisplayPort.displayPortType = "MSP DisplayPort";
         }
