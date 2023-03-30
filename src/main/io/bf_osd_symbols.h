@@ -32,14 +32,12 @@
 #define BF_SYM_ROLL                    0x14
 #define BF_SYM_PITCH                   0x15
 #define BF_SYM_TEMPERATURE             0x7A
-#define BF_SYM_MAX                     0x24
-#define BF_SYM_PROFILE                 0x7C
 
 // GPS and navigation
 #define BF_SYM_LAT                     0x89
 #define BF_SYM_LON                     0x98
 #define BF_SYM_ALTITUDE                0x7F
-#define BF_SYM_TOTAL_DISTANCE          0x2A
+#define BF_SYM_TOTAL_DISTANCE          0x71
 #define BF_SYM_OVER_HOME               0x05
 
 // RSSI
@@ -140,8 +138,6 @@
 // Time
 #define BF_SYM_ON_M                    0x9B
 #define BF_SYM_FLY_M                   0x9C
-#define BF_SYM_ON_H                    0x70
-#define BF_SYM_FLY_H                   0x71
 
 // Speed
 #define BF_SYM_SPEED                   0x70
