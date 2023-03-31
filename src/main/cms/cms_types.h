@@ -47,6 +47,7 @@ typedef enum
     OME_TAB,
     OME_END,
     OME_BACK_AND_END,
+    OME_Label_PAGE2_DATA,
 
     // Debug aid
     OME_MENU,
@@ -83,6 +84,7 @@ typedef struct
 #define OSD_LABEL_DATA_ENTRY(label, data)       ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, 0 })
 #define OSD_LABEL_DATA_DYN_ENTRY(label, data)   ((OSD_Entry){ label, {.func = NULL}, data, OME_Label, DYNAMIC })
 #define OSD_LABEL_FUNC_DYN_ENTRY(label, fn)     ((OSD_Entry){ label, {.func = NULL}, fn, OME_LabelFunc, DYNAMIC })
+#define OSD_LABEL_PAGE2_ENTRY(label, p2text)    ((OSD_Entry){ label, {.func = NULL}, p2text, OME_Label_PAGE2_DATA, 0 })
 #define OSD_BACK_ENTRY                          ((OSD_Entry){ "BACK", {.func = NULL}, NULL, OME_Back, 0 })
 #define OSD_BACK_AND_END_ENTRY                  ((OSD_Entry){ "BACK", {.func = NULL}, NULL, OME_BACK_AND_END, 0 })
 #define OSD_SUBMENU_ENTRY(label, menu)          ((OSD_Entry){ label, {.func = NULL}, menu, OME_Submenu, 0 })

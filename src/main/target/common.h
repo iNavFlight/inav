@@ -178,6 +178,8 @@
 #define USE_SIMULATOR
 #define USE_PITOT_VIRTUAL
 
+#define USE_CMS_FONT_PREVIEW
+
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
 #define USE_VTX_FFPV
