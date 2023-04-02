@@ -165,6 +165,7 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
     }
 
     port->isClientConnected = false;
+    port->isInitalized = true;
     port->id = id;
 
     if (bind(port->socketFd, (struct sockaddr*)&port->sockAddress, sockaddrlen) < 0) {
@@ -248,7 +249,7 @@ serialPort_t *tcpOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, 
 #if defined(USE_UART1) || defined(USE_UART2) || defined(USE_UART3) || defined(USE_UART4) || defined(USE_UART5) || defined(USE_UART6) || defined(USE_UART7) || defined(USE_UART8)
     uint32_t id = (uintptr_t)USARTx;
     if (id < SERIAL_PORT_COUNT) {
-        port = tcpReConfigure(&tcpPorts[id], id);
+        port = tcpReConfigure(&tcpPorts[id-1], id);
     }
 #endif
 
