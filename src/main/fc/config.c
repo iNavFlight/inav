@@ -159,12 +159,16 @@ void validateNavConfig(void)
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
@@ -338,7 +342,9 @@ void processSaveConfigAndNotify(void)
     readEEPROM();
     resumeRxSignal();
     beeperConfirmationBeeps(1);
+#ifdef USE_OSD
     osdShowEEPROMSavedNotification();
+#endif
 }
 
 void writeEEPROM(void)
@@ -368,7 +374,9 @@ void ensureEEPROMContainsValidData(void)
  */
 void saveConfigAndNotify(void)
 {
+#ifdef USE_OSD
     osdStartedSaveProcess();
+#endif
     saveState = SAVESTATE_SAVEANDNOTIFY;
 }
 
