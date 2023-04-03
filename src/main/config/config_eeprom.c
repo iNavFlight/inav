@@ -36,6 +36,10 @@
 
 #include "fc/config.h"
 
+#if defined(CONFIG_IN_FILE)
+    void config_streamer_impl_unlock(void);
+#endif
+
 static uint16_t eepromConfigSize;
 
 typedef enum {
@@ -120,6 +124,8 @@ void initEEPROM(void)
         // Flash read failed - just die now
         failureMode(FAILURE_FLASH_READ_FAILED);
     }
+#elif defined(CONFIG_IN_FILE)
+    config_streamer_impl_unlock();
 #endif
 }
 

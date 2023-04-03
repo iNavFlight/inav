@@ -21,7 +21,11 @@
 #include "drivers/persistent.h"
 #include <stdbool.h>
 
+#ifdef USE_USB_MSC
+
 bool mscCheckBoot(void)
 {
     return (persistentObjectRead(PERSISTENT_OBJECT_RESET_REASON) == RESET_MSC_REQUEST);
 }
+
+#endif
