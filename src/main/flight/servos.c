@@ -223,7 +223,8 @@ static void filterServos(void)
 void writeServos(void)
 {
     filterServos();
-
+    
+#if !defined(SITL_BUILD)
     int servoIndex = 0;
     bool zeroServoValue = false;
 
@@ -241,6 +242,7 @@ void writeServos(void)
             pwmWriteServo(servoIndex++, servo[i]);
         }
     }
+#endif
 }
 
 void servoMixer(float dT)
@@ -356,6 +358,20 @@ void servoMixer(float dT)
         int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], input[from], currentServoMixer[i].speed * 10, dT);
 
         servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
+    }
+
+    /*
+     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        for (int i = 0; i < servoRuleCount; i++) {
+            const uint8_t target = currentServoMixer[i].targetChannel;
+            const uint8_t from = currentServoMixer[i].inputSource;
+
+            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
+                servo[target] = motorConfig()->mincommand;
+            }
+        }
     }
 
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
@@ -573,7 +589,7 @@ void processContinuousServoAutotrim(const float dT)
 
 void processServoAutotrim(const float dT) {
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         return;
     }
 #endif

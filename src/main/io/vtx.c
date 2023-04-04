@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "platform.h"
+#if defined(USE_VTX_CONTROL)
 
 #include "common/maths.h"
 #include "common/time.h"
@@ -194,3 +195,5 @@ void vtxUpdate(timeUs_t currentTimeUs)
         currentSchedule = (currentSchedule + 1) % VTX_PARAM_COUNT;
     }
 }
+
+#endif
