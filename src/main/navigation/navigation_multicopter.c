@@ -480,10 +480,10 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     /*
      * We override computed speed with max speed in following cases:
      * 1 - computed velocity is > maxSpeed
-     * 2 - in WP mission when: slowDownForTurning is OFF, we do not fly towards na last waypoint and computed speed is < maxSpeed
+     * 2 - in WP mission or RTH Trackback when: slowDownForTurning is OFF, not a hold waypoint and computed speed is < maxSpeed
      */
     if (
-        (navGetCurrentStateFlags() & NAV_AUTO_WP &&
+        ((navGetCurrentStateFlags() & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) &&
         !isNavHoldPositionActive() &&
         newVelTotal < maxSpeed &&
         !navConfig()->mc.slowDownForTurning

@@ -63,6 +63,7 @@
 #include "rx/sumd.h"
 #include "rx/ghst.h"
 #include "rx/mavlink.h"
+#include "rx/sim.h"
 
 const char rcChannelLetters[] = "AERT";
 
@@ -308,6 +309,12 @@ void rxInit(void)
         case RX_TYPE_MSP:
             rxMspInit(rxConfig(), &rxRuntimeConfig);
             break;
+#endif
+
+#ifdef USE_RX_SIM
+    case RX_TYPE_SIM:
+        rxSimInit(rxConfig(), &rxRuntimeConfig);
+        break;
 #endif
 
         default:
