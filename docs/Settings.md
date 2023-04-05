@@ -792,26 +792,6 @@ Sets the DShot beeper tone
 
 ---
 
-### dterm_lpf2_hz
-
-Cutoff frequency for stage 2 D-term low pass filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 500 |
-
----
-
-### dterm_lpf2_type
-
-Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| PT1 |  |  |
-
----
-
 ### dterm_lpf_hz
 
 Dterm low pass filter cutoff frequency. Default setting is very conservative and small multirotors should use higher value between 80 and 100Hz. 80 seems like a gold spot for 7-inch builds while 100 should work best with 5-inch machines. If motors are getting too hot, lower the value
@@ -1092,63 +1072,13 @@ _// TODO_
 
 ---
 
-### frsky_coordinates_format
-
-D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | FRSKY_FORMAT_NMEA |
-
----
-
-### frsky_default_latitude
-
-D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | -90 | 90 |
-
----
-
-### frsky_default_longitude
-
-D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | -180 | 180 |
-
----
-
 ### frsky_pitch_roll
 
-S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data
+S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data
 
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
-
----
-
-### frsky_unit
-
-Not used? [METRIC/IMPERIAL]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| METRIC |  |  |
-
----
-
-### frsky_vfas_precision
-
-D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | FRSKY_VFAS_PRECISION_LOW | FRSKY_VFAS_PRECISION_HIGH |
 
 ---
 
@@ -2622,16 +2552,6 @@ ID of mixer preset applied in a Configurator. **Do not modify manually**. Used o
 
 ---
 
-### moron_threshold
-
-When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 32 |  | 128 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
@@ -2748,7 +2668,7 @@ If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ALLOW_BYPASS |  |  |
 
 ---
 
@@ -4404,11 +4324,31 @@ Value below which (negative altitude) to make the OSD relative altitude indicato
 
 ### osd_pan_servo_index
 
-Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 10 |
+| 0 | 0 | 16 |
+
+---
+
+### osd_pan_servo_indicator_show_degrees
+
+Show the degress of offset from centre on the pan servo OSD display element.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### osd_pan_servo_offcentre_warning
+
+Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink. 0 means the warning is disabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 45 |
 
 ---
 
@@ -5018,7 +4958,7 @@ When enabled, INAV will set RC filtering based on refresh rate and smoothing fac
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -5074,7 +5014,7 @@ Selection of receiver (RX) type. Additional configuration of a `serialrx_provide
 
 ### report_cell_voltage
 
-S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON
+S.Port and IBUS telemetry: Send the average cell voltage if set to ON
 
 | Default | Min | Max |
 | --- | --- | --- |

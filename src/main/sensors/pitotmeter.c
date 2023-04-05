@@ -34,6 +34,7 @@
 #include "drivers/pitotmeter/pitotmeter_adc.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "drivers/pitotmeter/pitotmeter_virtual.h"
+#include "drivers/pitotmeter/pitotmeter_fake.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -214,9 +215,17 @@ STATIC_PROTOTHREAD(pitotThread)
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
 #ifdef USE_SIMULATOR
+        float airSpeed;
     	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-        	pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
+             airSpeed = simulatorData.airSpeed;
+#if defined(USE_PITOT_FAKE)
+        } else if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+        	airSpeed = fakePitotGetAirspeed();
+#endif
+    	} else {
+            airSpeed = 0;
     	}
+        pitotPressureTmp = sq(airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
 #endif
         ptYield();
 
@@ -244,6 +253,12 @@ STATIC_PROTOTHREAD(pitotThread)
 #ifdef USE_SIMULATOR
     	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
             pitot.airSpeed = simulatorData.airSpeed;
+#if defined(USE_PITOT_FAKE)
+        } else if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitot.airSpeed = fakePitotGetAirspeed();
+#endif
+        } else {
+            pitot.airSpeed = 0;
     	}
 #endif
     }

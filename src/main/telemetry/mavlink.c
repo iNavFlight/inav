@@ -644,7 +644,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 #endif
 
 #if defined(USE_PITOT)
-    if (sensors(SENSOR_PITOT)) {
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
         mavAirSpeed = getAirspeedEstimate() / 100.0f;
     }
 #endif

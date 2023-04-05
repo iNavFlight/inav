@@ -115,6 +115,13 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 #else
     { false, 0, NULL, NULL },
 #endif
+
+#ifdef USE_GPS_FAKE
+    {true, 0, &gpsFakeRestart, &gpsFakeHandle},
+#else
+    { false, 0, NULL, NULL },
+#endif
+
 };
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 2);
@@ -410,76 +417,6 @@ void gpsInit(void)
     gpsSetState(GPS_INITIALIZING);
 }
 
-#ifdef USE_FAKE_GPS
-static bool gpsFakeGPSUpdate(void)
-{
-#define FAKE_GPS_INITIAL_LAT 509102311
-#define FAKE_GPS_INITIAL_LON -15349744
-#define FAKE_GPS_GROUND_ARMED_SPEED 350 // In cm/s
-#define FAKE_GPS_GROUND_UNARMED_SPEED 0
-#define FAKE_GPS_GROUND_COURSE_DECIDEGREES 300 //30deg
-
-    // Each degree in latitude corresponds to 111km.
-    // Each degree in longitude at the equator is 111km,
-    // going down to zero as latitude gets close to 90º.
-    // We approximate it linearly.
-
-    static int32_t lat = FAKE_GPS_INITIAL_LAT;
-    static int32_t lon = FAKE_GPS_INITIAL_LON;
-
-    timeMs_t now = millis();
-    uint32_t delta = now - gpsState.lastMessageMs;
-    if (delta > 100) {
-        int32_t speed = ARMING_FLAG(ARMED) ? FAKE_GPS_GROUND_ARMED_SPEED : FAKE_GPS_GROUND_UNARMED_SPEED;
-        speed = speed * sin_approx((now % 1000) / 1000.f * M_PIf) * +speed;
-        int32_t cmDelta = speed * (delta / 1000.0f);
-        int32_t latCmDelta = cmDelta * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
-        int32_t lonCmDelta = cmDelta * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
-        int32_t latDelta = ceilf((float)latCmDelta / (111 * 1000 * 100 / 1e7));
-        int32_t lonDelta = ceilf((float)lonCmDelta / (111 * 1000 * 100 / 1e7));
-        if (speed > 0 && latDelta == 0 && lonDelta == 0) {
-            return false;
-        }
-        lat += latDelta;
-        lon += lonDelta;
-        gpsSol.fixType = GPS_FIX_3D;
-        gpsSol.numSat = 6;
-        gpsSol.llh.lat = lat;
-        gpsSol.llh.lon = lon;
-        gpsSol.llh.alt = 0;
-        gpsSol.groundSpeed = speed;
-        gpsSol.groundCourse = FAKE_GPS_GROUND_COURSE_DECIDEGREES;
-        gpsSol.velNED[X] = speed * cos_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
-        gpsSol.velNED[Y] = speed * sin_approx(DECIDEGREES_TO_RADIANS(FAKE_GPS_GROUND_COURSE_DECIDEGREES));
-        gpsSol.velNED[Z] = 0;
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
-        gpsSol.flags.validEPE = true;
-        gpsSol.flags.validTime = true;
-        gpsSol.eph = 100;
-        gpsSol.epv = 100;
-        gpsSol.time.year = 1983;
-        gpsSol.time.month = 1;
-        gpsSol.time.day = 1;
-        gpsSol.time.hours = 3;
-        gpsSol.time.minutes = 15;
-        gpsSol.time.seconds = 42;
-
-        ENABLE_STATE(GPS_FIX);
-        sensorsSet(SENSOR_GPS);
-        gpsUpdateTime();
-        onNewGPSData();
-
-        gpsSetProtocolTimeout(gpsState.baseTimeoutMs);
-
-        gpsSetState(GPS_RUNNING);
-        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
-        return true;
-    }
-    return false;
-}
-#endif
-
 uint16_t gpsConstrainEPE(uint32_t epe)
 {
     return (epe > 9999) ? 9999 : epe; // max 99.99m error
@@ -507,7 +444,7 @@ bool gpsUpdate(void)
     }
 
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT))
         {
             gpsSetState(GPS_LOST_COMMUNICATION);
@@ -526,9 +463,6 @@ bool gpsUpdate(void)
         }
     }
 #endif
-#ifdef USE_FAKE_GPS
-    return gpsFakeGPSUpdate();
-#else
 
     // Assume that we don't have new data this run
     gpsSol.flags.hasNewData = false;
@@ -578,7 +512,6 @@ bool gpsUpdate(void)
     }
 
     return gpsSol.flags.hasNewData;
-#endif
 }
 
 void gpsEnablePassthrough(serialPort_t *gpsPassthroughPort)

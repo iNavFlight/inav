@@ -839,7 +839,11 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
 
 long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 {
-    int exitType = (int)ptr;
+#if defined(SITL_BUILD)
+    unsigned long exitType = (uintptr_t)ptr;   
+#else
+    int exitType = (int)ptr;  
+#endif
     switch (exitType) {
     case CMS_EXIT_SAVE:
     case CMS_EXIT_SAVEREBOOT:
@@ -875,6 +879,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     setServoOutputEnabled(true);
 
     if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
+        processDelayedSave();
         displayClearScreen(pDisplay);
         displayWrite(pDisplay, 5, 3, "REBOOTING...");
 

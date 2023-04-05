@@ -179,7 +179,7 @@ int displayWriteChar(displayPort_t *instance, uint8_t x, uint8_t y, uint16_t c)
     }
 
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         //some FCs do not power max7456 from USB power 
         //driver can not read font metadata 
         //chip assumed to not support second bank of font
