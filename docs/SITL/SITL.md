@@ -38,7 +38,15 @@ IPv4 and IPv6 are supported, either raw addresses or host-name lookup.
 
 The assignment and status of user UART/TCP connections is displayed on the console.
 
-![STL-Output](assets/SITL-UART-TCP-Connecion.png)
+```
+INAV 6.1.0 SITL
+[SYSTEM] Init...
+[SIM] No interface specified. Configurator only.
+[EEPROM] Loaded 'eeprom.bin' (32768 of 32768 bytes)
+[SOCKET] Bind TCP :: port 5760 to UART1
+[SOCKET] Bind TCP :: port 5761 to UART2
+[SOCKET] ::1 connected to UART1
+```
 
 All other interfaces (I2C, SPI, etc.) are not emulated.
 
