@@ -692,8 +692,8 @@ void mavlinkSendHUDAndHeartbeat(void)
 #endif
 
 #if defined(USE_PITOT)
-    if (sensors(SENSOR_PITOT)) {
-        mavAirSpeed = pitot.airSpeed / 100.0f;
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        mavAirSpeed = getAirspeedEstimate() / 100.0f;
     }
 #endif
 
@@ -701,10 +701,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
 
-    int16_t thr = rxGetChannelValue(THROTTLE);
-    if (navigationIsControllingThrottle()) {
-        thr = rcCommand[THROTTLE];
-    }
+    int16_t thr = getThrottlePercent();
     mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // airspeed Current airspeed in m/s
         mavAirSpeed,
@@ -713,7 +710,7 @@ void mavlinkSendHUDAndHeartbeat(void)
         // heading Current heading in degrees, in compass units (0..360, 0=north)
         DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         // throttle Current throttle setting in integer percent, 0 to 100
-        scaleRange(constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX), PWM_RANGE_MIN, PWM_RANGE_MAX, 0, 100),
+        thr, 
         // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
         mavAltitude,
         // climb Current climb rate in meters/second
@@ -1153,7 +1150,13 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed) {
+        if (!incomingRequestServed || 
+            (
+                 (rxConfig()->receiverType == RX_TYPE_SERIAL) && 
+                 (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
+                 !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
+            )
+        ) {
             processMAVLinkTelemetry(currentTimeUs);
         }
         lastMavlinkMessage = currentTimeUs;

@@ -44,8 +44,8 @@
 #define FRSKY_OSD_INFO_READY_INTERVAL_MS 5000
 
 #define FRSKY_OSD_TRACE(fmt, ...)
-#define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
-#define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_DEBUG(fmt, ...) LOG_DEBUG(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_ERROR(fmt, ...) LOG_ERROR(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
 #define FRSKY_OSD_ASSERT(x)
 
 typedef enum

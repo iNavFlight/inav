@@ -2,7 +2,7 @@
 
 ## Overview
 
-inav offers a function to use serial `printf` style debugging.
+INAV offers a function to use serial `printf` style debugging.
 
 This provides a simple and intuitive debugging facility. This facility is only available after the serial sub-system has been initialised, which should be adequate for all but the most hard-core debugging requirements.
 
@@ -17,7 +17,7 @@ For example, on a VCP port.
 serial 20 32769 115200 115200 0 115200
 ```
 
-If the port is shared, it will be resused with extant settings; if the port is not shared it is opened at 921600 baud.
+If the port is shared, it will be reused with extant baud rate settings; if the port is not shared it is opened at 921600 baud.
 
 There are two run time settings that control the verbosity, the most verbose settings being:
 
@@ -36,15 +36,15 @@ The use of level and topics is described in the following sections.
 
 Log levels are defined in `src/main/common/log.h`, at the time of writing these include (in ascending order):
 
-* ERROR
-* WARNING
-* INFO
-* VERBOSE
-* DEBUG
+* LOG_LEVEL_ERROR
+* LOG_LEVEL_WARNING
+* LOG_LEVEL_INFO
+* LOG_LEVEL_VERBOSE
+* LOG_LEVEL_DEBUG
 
 These are used at both compile time and run time.
 
-At compile time, a maximum level may be defined. As of inav 2.3, for F3 targets the maximum level is ERROR, for F4/F7 the maximum level is DEBUG.
+At compile time, a maximum level may be defined. As of INAV 2.3, for F3 targets the maximum level is ERROR, for F4/F7 the maximum level is DEBUG.
 
 At run time, the level defines the level that will be displayed, so for a F4 or F7 target that has compile time suport for all log levels, if the CLI sets
 ```
@@ -56,17 +56,17 @@ then only `ERROR`, `WARNING` and `INFO` levels will be output.
 
 Log topics are defined in `src/main/common/log.h`, at the time of writing:
 
-* SYSTEM
-* GYRO
-* BARO
-* PITOT
-* PWM
-* TIMER
-* IMU
-* TEMPERATURE
-* POS_ESTIMATOR
-* VTX
-* OSD
+* LOG_TOPIC_SYSTEM
+* LOG_TOPIC_GYRO
+* LOG_TOPIC_BARO
+* LOG_TOPIC_PITOT
+* LOG_TOPIC_PWM
+* LOG_TOPIC_TIMER
+* LOG_TOPIC_IMU
+* LOG_TOPIC_TEMPERATURE
+* LOG_TOPIC_POS_ESTIMATOR
+* LOG_TOPIC_VTX
+* LOG_TOPIC_OSD
 
 Topics are stored as masks (SYSTEM=1 ... OSD=1024) and may be used to unconditionally display log messages.
 
@@ -74,36 +74,37 @@ If the CLI `log_topics` is non-zero, then all topics matching the mask will be d
 
 ## Code usage
 
-A set of macros `LOG_E()` (log error) through `LOG_D()` (log debug) may be used, subject to compile time log level constraints. These provide `printf` style logging for a given topic.
+A set of macros `LOG_ERROR()` (log error) through `LOG_DEBUG()` (log debug) may be used, subject to compile time log level constraints. These provide `printf` style logging for a given topic.
 
 ```
-//  LOG_D(topic, fmt, ...)
-LOG_D(SYSTEM, "This is %s topic debug message, value %d", "system", 42);
+//  LOG_DEBUG(topic, fmt, ...)
+LOG_DEBUG(LOG_TOPIC_SYSTEM, "This is %s topic debug message, value %d", "system", 42);
 ```
 
-It is also possible to dump a hex representation of arbitrary  data:
+It is also possible to dump a hex representation of arbitrary  data, using functions named variously `LOG_BUFFER_` (`ERROR`) and `LOG_BUF_` (anything else, alas) e.g.:
 
 ```
-// LOG_BUF_D(topic, buf, size)
+// LOG_BUFFER_ERROR(topic, buf, size)
+// LOG_BUF_DEBUG(topic, buf, size)
 
 struct {...} tstruct;
 ...
-LOG_BUF_D(TEMPERATURE, &tstruct, sizeof(tstruct));
-
+LOG_BUF_DEBUG(LOG_TOPIC_TEMPERATURE, &tstruct, sizeof(tstruct));
 ```
 
 ## Output Support
 
 Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messages (`MSP_DEBUGMSG`). It is possible to use any serial terminal to display these messages, however it is advisable to use an application that understands `MSP_DEBUGMSG` in order to maintain readability (in a raw serial terminal the MSP message envelope may result in the display of strange characters). `MSP_DEBUGMSG` aware applications include:
 
-* msp-tool https://github.com/fiam/msp-tool
-* mwp https://github.com/stronnag/mwptools
-* inav Configurator
+* [msp-tool](https://github.com/fiam/msp-tool)
+* [mwp](https://github.com/stronnag/mwptools)
+* [dbg-tool](https://github.com/stronnag/mwptools)
+* [INAV Configurator](https://github.com/iNavFlight/inav-configurator)
 
 For example, with the final lines of `src/main/fc/fc_init.c` set to:
 
 ```
- LOG_E(SYSTEM, "Init is complete");
+ LOG_ERROR(LOG_TOPIC_SYSTEM, "Init is complete");
  systemState |= SYSTEM_STATE_READY;
 ```
 

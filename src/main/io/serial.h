@@ -33,7 +33,7 @@ typedef enum {
     FUNCTION_NONE                       = 0,
     FUNCTION_MSP                        = (1 << 0), // 1
     FUNCTION_GPS                        = (1 << 1), // 2
-    FUNCTION_TELEMETRY_FRSKY            = (1 << 2), // 4
+    FUNCTION_UNUSED_3                   = (1 << 2), // 4 //Was FUNCTION_TELEMETRY_FRSKY
     FUNCTION_TELEMETRY_HOTT             = (1 << 3), // 8
     FUNCTION_TELEMETRY_LTM              = (1 << 4), // 16
     FUNCTION_TELEMETRY_SMARTPORT        = (1 << 5), // 32
@@ -55,8 +55,8 @@ typedef enum {
     FUNCTION_DJI_HD_OSD                 = (1 << 21), // 2097152
     FUNCTION_SERVO_SERIAL               = (1 << 22), // 4194304
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
-    FUNCTION_IMU2                       = (1 << 24), // 16777216
-	FUNCTION_HDZERO_OSD                 = (1 << 25), // 33554432
+    FUNCTION_UNUSED_2                   = (1 << 24), // 16777216
+    FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
 } serialPortFunction_e;
 
 typedef enum {

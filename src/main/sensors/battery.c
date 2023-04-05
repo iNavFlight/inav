@@ -59,6 +59,9 @@
 
 #include "io/beeper.h"
 
+#if defined(USE_FAKE_BATT_SENSOR)
+#include "sensors/battery_sensor_fake.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -94,7 +97,7 @@ static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) draw
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 1);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 2);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -129,8 +132,6 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             },
 
             .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
-
-            .fwMinThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
 
             .nav = {
 
@@ -285,16 +286,59 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             }
             break;
 #endif
-        case VOLTAGE_SENSOR_NONE:
+        
+#if defined(USE_FAKE_BATT_SENSOR)
+    case VOLTAGE_SENSOR_FAKE:
+        vbat = fakeBattSensorGetVBat();
+        break;
+#endif
+    case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
             break;
     }
-
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
     } else {
-        vbat = pt1FilterApply4(&vbatFilterState, vbat, VBATT_LPF_FREQ, timeDelta * 1e-6f);
+        vbat = pt1FilterApply4(&vbatFilterState, vbat, VBATT_LPF_FREQ, US2S(timeDelta));
+    }
+}
+
+batteryState_e checkBatteryVoltageState(void)
+{
+    uint16_t stateVoltage = getBatteryVoltage();
+    switch (batteryState)
+    {
+        case BATTERY_OK:
+            if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
+                return BATTERY_WARNING;
+            }
+            break;
+        case BATTERY_WARNING:
+            if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
+                return BATTERY_CRITICAL;
+            } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
+                return BATTERY_OK;
+            }
+            break;
+        case BATTERY_CRITICAL:
+            if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS)) {
+                return BATTERY_WARNING;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return batteryState;
+}
+
+static void checkBatteryCapacityState(void)
+{
+    if (batteryRemainingCapacity == 0) {
+        batteryState = BATTERY_CRITICAL;
+    } else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical) {
+        batteryState = BATTERY_WARNING;
     }
 }
 
@@ -360,32 +404,9 @@ void batteryUpdate(timeUs_t timeDelta)
         }
 
         if (batteryUseCapacityThresholds) {
-            if (batteryRemainingCapacity == 0)
-                batteryState = BATTERY_CRITICAL;
-            else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical)
-                batteryState = BATTERY_WARNING;
+            checkBatteryCapacityState();
         } else {
-            uint16_t stateVoltage = getBatteryVoltage();
-            switch (batteryState)
-            {
-                case BATTERY_OK:
-                    if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
-                    break;
-                case BATTERY_WARNING:
-                    if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
-                        batteryState = BATTERY_CRITICAL;
-                    } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
-                        batteryState = BATTERY_OK;
-                    }
-                    break;
-                case BATTERY_CRITICAL:
-                    if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
-                    break;
-                default:
-                    break;
-            }
+            batteryState = checkBatteryVoltageState();
         }
 
         // handle beeper
@@ -454,11 +475,6 @@ uint16_t getBatterySagCompensatedVoltage(void)
 float calculateThrottleCompensationFactor(void)
 {
     return 1.0f + ((float)batteryFullVoltage / sagCompensatedVBat - 1.0f) * batteryMetersConfig()->throttle_compensation_weight;
-}
-
-uint16_t getBatteryWarningVoltage(void)
-{
-    return batteryWarningVoltage;
 }
 
 uint8_t getBatteryCellCount(void)
@@ -534,13 +550,12 @@ void currentMeterUpdate(timeUs_t timeDelta)
     switch (batteryMetersConfig()->current.type) {
         case CURRENT_SENSOR_ADC:
             {
-                amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                amperage = pt1FilterApply4(&amperageFilterState, getAmperageSample(), AMPERAGE_LPF_FREQ, US2S(timeDelta));
                 break;
             }
         case CURRENT_SENSOR_VIRTUAL:
             amperage = batteryMetersConfig()->current.offset;
             if (ARMING_FLAG(ARMED)) {
-                throttleStatus_e throttleStatus = calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC);
                 navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
                 bool allNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_ALL_NAV && posControl.navState != NAV_STATE_IDLE;
                 bool autoNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_AUTO_ONLY && (stateFlags & (NAV_AUTO_RTH | NAV_AUTO_WP));
@@ -549,7 +564,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 if (allNav || autoNav) {    // account for motors running in Nav modes with throttle low + motor stop
                     throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
                 } else {
-                    throttleOffset = ((throttleStatus == THROTTLE_LOW) && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                    throttleOffset = (throttleStickIsLow() && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
                 }
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
@@ -560,12 +575,18 @@ void currentMeterUpdate(timeUs_t timeDelta)
             {
                 escSensorData_t * escSensor = escSensorGetData();
                 if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
-                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, timeDelta * 1e-6f);
+                    amperage = pt1FilterApply4(&amperageFilterState, escSensor->current, AMPERAGE_LPF_FREQ, US2S(timeDelta));
                 }
                 else {
                     amperage = 0;
                 }
             }
+            break;
+#endif
+
+#if defined(USE_FAKE_BATT_SENSOR)
+        case CURRENT_SENSOR_FAKE:
+            amperage = fakeBattSensorGetAmerperage();
             break;
 #endif
         case CURRENT_SENSOR_NONE:

@@ -46,9 +46,7 @@
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
-#if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
-#endif
 
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
@@ -58,13 +56,9 @@
 #define USE_GPS_PROTO_MSP
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
-#define USE_TELEMETRY_FRSKY
 
-#if defined(STM_FAST_TARGET)
+// This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10
-#else
-#define SCHEDULER_DELAY_LIMIT           100
-#endif
 
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
@@ -114,7 +108,7 @@
 #define USE_OSD
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
-#define USE_HDZERO_OSD
+#define USE_MSP_OSD
 #define USE_SMARTPORT_MASTER
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
@@ -144,9 +138,6 @@
 
 #define USE_SERIALRX_GHST
 #define USE_TELEMETRY_GHST
-
-#define USE_SECONDARY_IMU
-#define USE_IMU_BNO055
 
 #define USE_POWER_LIMITS
 
@@ -184,11 +175,13 @@
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
+#define USE_SIMULATOR
+#define USE_PITOT_VIRTUAL
+#define USE_FAKE_BATT_SENSOR
+
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
-
 #define USE_VTX_FFPV
-#define USE_PITOT_VIRTUAL
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE

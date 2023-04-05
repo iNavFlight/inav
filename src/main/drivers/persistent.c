@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
- * iNav free software. You can redistribute
+ * INAV free software. You can redistribute
  * this software and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav distributed in the hope that it
+ * INAV distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -31,7 +31,35 @@
 
 #define PERSISTENT_OBJECT_MAGIC_VALUE (('i' << 24)|('N' << 16)|('a' << 8)|('v' << 0))
 
-#ifdef USE_HAL_DRIVER
+#if defined(AT32F43x)
+
+    uint32_t persistentObjectRead(persistentObjectId_e id)
+    {
+        uint32_t value = ertc_bpr_data_read((ertc_dt_type)id);
+        return value;
+
+    }
+
+    void persistentObjectWrite(persistentObjectId_e id, uint32_t value)
+    {
+        ertc_bpr_data_write((ertc_dt_type)id,value);
+    }
+    // examples ertc 
+    void persistentObjectRTCEnable(void)
+    {
+         /* enable the pwc clock interface */
+        crm_periph_clock_enable(CRM_PWC_PERIPH_CLOCK, TRUE);
+
+        /* allow access to bpr domain */
+        pwc_battery_powered_domain_access(TRUE);
+
+        // We don't need a clock source for RTC itself. Skip it.
+        ertc_write_protect_enable();
+        ertc_write_protect_disable();
+
+    }
+
+#elif defined(USE_HAL_DRIVER)
 
 uint32_t persistentObjectRead(persistentObjectId_e id)
 {
@@ -104,7 +132,9 @@ void persistentObjectInit(void)
 
     uint32_t wasSoftReset;
 
-#ifdef STM32H7
+#if defined(AT32F43x)
+    wasSoftReset = crm_flag_get(CRM_SW_RESET_FLAG);
+#elif defined(STM32H7)
     wasSoftReset = RCC->RSR & RCC_RSR_SFTRSTF;
 #else
     wasSoftReset = RCC->CSR & RCC_CSR_SFTRSTF;

@@ -17,21 +17,29 @@
 
 #include <stdint.h>
 #include <platform.h>
+
 #include "config/config_master.h"
 #include "config/feature.h"
+
 #include "flight/mixer.h"
+
 #include "io/serial.h"
+
 #include "telemetry/telemetry.h"
+#include "fc/fc_msp_box.h"
+#include "io/piniobox.h"
 
 // alternative defaults settings for MATEKF405SE targets
 void targetConfiguration(void)
-{
-    
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
+{  
+#ifdef MATEKF405SE_PINIO
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+#endif
 
-    //featureSet(FEATURE_PWM_OUTPUT_ENABLE); // enable PWM outputs by default
-    //mixerConfigMutable()->mixerMode = MIXER_FLYING_WING; // default mixer to flying wing
+    //serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
+    //serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
+
     mixerConfigMutable()->platformType = PLATFORM_AIRPLANE;   // default mixer to Airplane
 
     serialConfigMutable()->portConfigs[7].functionMask = FUNCTION_TELEMETRY_SMARTPORT;

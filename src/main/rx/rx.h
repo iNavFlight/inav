@@ -51,8 +51,6 @@
 
 #define RSSI_MAX_VALUE 1023
 
-#define PPM_RCVR_TIMEOUT            0
-
 typedef enum {
     RX_FRAME_PENDING             = 0,         // No new data available from receiver
     RX_FRAME_COMPLETE            = (1 << 0),  // There is new data available
@@ -64,7 +62,8 @@ typedef enum {
 typedef enum {
     RX_TYPE_NONE = 0,
     RX_TYPE_SERIAL,
-    RX_TYPE_MSP
+    RX_TYPE_MSP,
+    RX_TYPE_SIM
 } rxReceiverType_e;
 
 typedef enum {
@@ -83,7 +82,6 @@ typedef enum {
     SERIALRX_MAVLINK,
 } rxSerialReceiverType_e;
 
-#define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
 #define MAX_SUPPORTED_RC_CHANNEL_COUNT              18
 
 #define NON_AUX_CHANNEL_COUNT 4
@@ -136,7 +134,7 @@ typedef struct rxConfig_s {
 
 PG_DECLARE(rxConfig_t, rxConfig);
 
-#define REMAPPABLE_CHANNEL_COUNT (sizeof(((rxConfig_t *)0)->rcmap) / sizeof(((rxConfig_t *)0)->rcmap[0]))
+#define REMAPPABLE_CHANNEL_COUNT ARRAYLEN(((rxConfig_t *)0)->rcmap)
 
 typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data

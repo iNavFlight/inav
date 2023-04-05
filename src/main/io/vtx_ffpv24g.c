@@ -203,7 +203,7 @@ static void vtxProtoSend(uint8_t cmd, const uint8_t * data)
         memcpy(vtxState.sendPkt.data, data, sizeof(vtxState.sendPkt.data));
     }
     else {
-        memset(vtxState.sendPkt.data, 0, sizeof(vtxState.sendPkt.data));
+        ZERO_FARRAY(vtxState.sendPkt.data);
     }
 
     vtxState.sendPkt.checksum = vtxCalcChecksum(&vtxState.sendPkt);

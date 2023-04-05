@@ -438,7 +438,7 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
 
 void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
 {
-    static const uint16_t graph[] = {
+    static const uint8_t graph[] = {
         SYM_HEADING_W,
         SYM_HEADING_LINE,
         SYM_HEADING_DIVIDED_LINE,
@@ -517,7 +517,7 @@ static int32_t osdCanvasSidebarGetValue(osd_sidebar_scroll_e scroll)
         case OSD_SIDEBAR_SCROLL_SPEED:
             {
 #if defined(USE_GPS)
-                int speed = osdGetSpeedFromSelectedSource();
+                int16_t speed = osdGetSpeedFromSelectedSource();
                 switch ((osd_unit_e)osdConfig()->units) {
                     case OSD_UNIT_UK:
                         FALLTHROUGH;

@@ -39,6 +39,7 @@
 
 #define INAV_POSITION_PUBLISH_RATE_HZ       50      // Publish position updates at this rate
 #define INAV_PITOT_UPDATE_RATE              10
+#define INAV_COG_UPDATE_RATE_HZ             20      // ground course update rate
 
 #define INAV_GPS_TIMEOUT_MS                 1500    // GPS timeout
 #define INAV_BARO_TIMEOUT_MS                200     // Baro timeout
@@ -125,6 +126,9 @@ typedef struct {
 
     // FLOW
     float                   flowCoordinates[2];
+
+    // COURSE
+    int16_t     cog;    // course over ground (decidegrees)
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
@@ -182,6 +186,8 @@ typedef struct {
     fpVector3_t estVelCorr;
     fpVector3_t accBiasCorr;
 } estimationContext_t;
+
+extern navigationPosEstimator_t posEstimator;
 
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);

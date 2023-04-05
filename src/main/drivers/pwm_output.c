@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#if !defined(SITL_BUILD)
+
 FILE_COMPILE_FOR_SPEED
 
 #include "build/debug.h"
@@ -130,7 +132,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 static pwmOutputPort_t *pwmOutAllocatePort(void)
 {
     if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
-        LOG_E(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
+        LOG_ERROR(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
 
@@ -261,7 +263,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     // Configure timer DMA
     if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
-        memset(port->dmaBuffer, 0, sizeof(port->dmaBuffer));
+        ZERO_FARRAY(port->dmaBuffer);
         port->configured = true;
     }
 
@@ -635,3 +637,5 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
     }
 }
+
+#endif

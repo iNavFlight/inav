@@ -24,21 +24,40 @@
 
 #include "common/utils.h"
 
-#include "pitotmeter.h"
-#include "pitotmeter_fake.h"
+#include "drivers/pitotmeter/pitotmeter.h"
+#include "drivers/pitotmeter/pitotmeter_fake.h"
 
 #ifdef USE_PITOT_FAKE
-static int32_t fakePressure;
-static int32_t fakeTemperature;
+static float fakePressure;
+static float fakeTemperature;
+static float fakeAirspeed;
 
-static void fakePitotStart(pitotDev_t *pitot)
+static bool fakePitotStart(pitotDev_t *pitot)
 {
     UNUSED(pitot);
+    return true;
 }
 
-static void fakePitotRead(pitotDev_t *pitot)
+void fakePitotSet(float pressure, float temperature)
 {
-    UNUSED(pitot);
+    fakePressure = pressure;
+    fakeTemperature = temperature;
+}
+
+void fakePitotSetAirspeed(float airSpeed)
+{
+    fakeAirspeed = airSpeed;
+}
+
+float fakePitotGetAirspeed(void)
+{
+    return fakeAirspeed;
+}
+
+bool fakePitotRead(pitotDev_t *pitot)
+{
+    pitot->calculate(pitot, &fakePressure, &fakeTemperature);
+    return true;
 }
 
 static void fakePitotCalculate(pitotDev_t *pitot, float *pressure, float *temperature)

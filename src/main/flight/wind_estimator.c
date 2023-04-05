@@ -40,6 +40,9 @@
 
 #include "io/gps.h"
 
+
+#define WINDESTIMATOR_TIMEOUT       60*15 // 15min with out altitude change
+#define WINDESTIMATOR_ALTITUDE_SCALE WINDESTIMATOR_TIMEOUT/500.0f //or 500m altitude change
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
@@ -49,8 +52,6 @@ static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
 bool isEstimatedWindSpeedValid(void)
 {
-    // TODO: Add a timeout. Estimated wind should expire if
-    // if we can't update it for an extended time.
     return hasValidWindEstimate;
 }
 
@@ -78,6 +79,14 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
 void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
+    static timeUs_t lastValidWindEstimate = 0;
+    static float lastValidEstimateAltitude = 0.0f;
+    float currentAltitude = gpsSol.llh.alt / 100.0f; // altitude in m
+
+    if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT)
+    {
+        hasValidWindEstimate = false;
+    }
 
     if (!STATE(FIXED_WING_LEGACY) ||
         !isGPSHeadingValid() ||
@@ -101,9 +110,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
     groundVelocity[Z] = gpsSol.velNED[Z];
 
     // Fuselage direction in earth frame
-    fuselageDirection[X] = rMat[0][0];
-    fuselageDirection[Y] = -rMat[1][0];
-    fuselageDirection[Z] = -rMat[2][0];
+    fuselageDirection[X] = HeadVecEFFiltered.x;
+    fuselageDirection[Y] = -HeadVecEFFiltered.y;
+    fuselageDirection[Z] = -HeadVecEFFiltered.z;
 
     timeDelta_t timeDelta = cmpTimeUs(currentTimeUs, lastUpdateUs);
     // scrap our data and start over if we're taking too long to get a direction change
@@ -159,15 +168,18 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
         float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
 
-        if (windLength < prevWindLength + 2000) {
+        //is this really needed? The reason it is here might be above equation was wrong in early implementations
+        if (windLength < prevWindLength + 4000) {
             // TODO: Better filtering
-            estimatedWind[X] = estimatedWind[X] * 0.95f + wind[X] * 0.05f;
-            estimatedWind[Y] = estimatedWind[Y] * 0.95f + wind[Y] * 0.05f;
-            estimatedWind[Z] = estimatedWind[Z] * 0.95f + wind[Z] * 0.05f;
+            estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
+            estimatedWind[Y] = estimatedWind[Y] * 0.98f + wind[Y] * 0.02f;
+            estimatedWind[Z] = estimatedWind[Z] * 0.98f + wind[Z] * 0.02f;
         }
 
         lastUpdateUs = currentTimeUs;
+        lastValidWindEstimate = currentTimeUs;
         hasValidWindEstimate = true;
+        lastValidEstimateAltitude = currentAltitude;
     }
 }
 

@@ -15,7 +15,7 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// iNav specific IDs start from 0x2000
+// INAV specific IDs start from 0x2000
 // See https://github.com/iNavFlight/inav/wiki/MSP-V2#msp-v2-message-catalogue
 
 #define MSP2_INAV_STATUS                        0x2000
@@ -53,6 +53,8 @@
 #define MSP2_INAV_SET_TEMP_SENSOR_CONFIG        0x201D
 #define MSP2_INAV_TEMPERATURES                  0x201E
 
+#define MSP_SIMULATOR							0x201F
+
 #define MSP2_INAV_SERVO_MIXER                   0x2020
 #define MSP2_INAV_SET_SERVO_MIXER               0x2021
 #define MSP2_INAV_LOGIC_CONDITIONS              0x2022
@@ -83,3 +85,7 @@
 #define MSP2_INAV_LOGIC_CONDITIONS_SINGLE       0x203B
 
 #define MSP2_INAV_ESC_RPM                       0x2040
+
+#define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
+#define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
+

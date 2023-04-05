@@ -40,10 +40,15 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 
-#define USE_EXTI
-#define GYRO_INT_EXTI           PC4
-#define USE_MPU_DATA_READY_SIGNAL
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW180_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PA4
 
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW180_DEG
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PA4
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C

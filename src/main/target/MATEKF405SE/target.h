@@ -20,8 +20,11 @@
 #define TARGET_BOARD_IDENTIFIER "MF4S"
 #define USBD_PRODUCT_STRING  "Matek_F405SE"
 
+// ******** Board LEDs  **********************
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green
+
+// ******* Beeper ***********
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
 
@@ -33,15 +36,17 @@
 #define SPI1_MISO_PIN   	    PA6
 #define SPI1_MOSI_PIN   	    PA7
 
+// MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
+// ICM42688P
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
+#define ICM42605_CS_PIN         PA4
+#define ICM42605_SPI_BUS        BUS_SPI1
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -126,15 +131,21 @@
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
 
+#ifndef MATEKF405SE_PINIO
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
+#endif
 
 #define USE_SOFTSERIAL1               //Frsky SmartPort on TX2 pad
 #define SOFTSERIAL_1_TX_PIN      PA2
 #define SOFTSERIAL_1_RX_PIN      PA2
 
+#ifdef MATEKF405SE_PINIO
+#define SERIAL_PORT_COUNT       7
+#else
 #define SERIAL_PORT_COUNT       8
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -158,6 +169,14 @@
 #define WS2811_DMA_STREAM               DMA1_Stream5
 #define WS2811_DMA_CHANNEL              DMA_Channel_3
 
+// *************** PINIO ***************************
+#ifdef MATEKF405SE_PINIO
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PC6 // USER 1
+#define PINIO2_PIN                  PC7 // USER 2
+#endif
+
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)
 #define CURRENT_METER_SCALE   317
@@ -167,7 +186,6 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff
