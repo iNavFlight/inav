@@ -65,7 +65,7 @@ extern uint8_t __config_end;
 #endif
 
 //Defines for compiler optimizations
-#ifdef STM32H7
+#ifdef STM32F7
 
 #define FUNCTION_COMPILE_FOR_SIZE
 #define FUNCTION_COMPILE_NORMAL
