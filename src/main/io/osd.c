@@ -2916,7 +2916,6 @@ static bool osdDrawSingleElement(uint8_t item)
             bool moreThanAh = false;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && gpsSol.groundSpeed > 0) {
             uint8_t digits = 3U;
 #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
             if (isBfCompatibleVideoSystem(osdConfig())) {
@@ -2924,8 +2923,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 digits = 4U;
             }
 #endif
-            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
-                if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
+			if ((STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)) && gpsSol.groundSpeed > 0) {
+				if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                         1, US2S(efficiencyTimeDelta));
 
