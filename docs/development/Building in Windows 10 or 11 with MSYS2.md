@@ -5,10 +5,11 @@
 ### Download and install MSYS2
 1. For 6.0.0, the last version that works is [20220603](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20220603.exe)
     - [20220503](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20220503.exe) is also known to work
-    - You can view MSYS2 releases at https://repo.msys2.org/distrib/x86_64/
+    - MSYS2 releases can be viewed at https://repo.msys2.org/distrib/x86_64/
     - Scroll all the way down for an executable, scroll halfway down for a self-extracting archive
 1. Open an MSYS2 terminal by running C:\msys64\msys2_shell.cmd
 1. In the newly opened shell, set up your work path
+    - To paste commands, use "Shift+Insert" or Right-click and select "Paste"
 ```
 mkdir /c/Workspace
 ```
@@ -29,14 +30,14 @@ git clone https://github.com/iNavFlight/inav
 ```
 - For [a branch](https://github.com/iNavFlight/inav/branches) or [a tag](https://github.com/iNavFlight/inav/tags): 
 ```
-# "6.0.0" here can be the name of a branch or a tag 
-git clone --branch 6.0.0 https://github.com/iNavFlight/inav
+# "release_6.0.0" here can be the name of a branch or a tag 
+git clone --branch release_6.0.0 https://github.com/iNavFlight/inav
 ```
 - If you are internet speed or space restrained, you can also use `--depth 1`, which won't download the whole history, and `--single-branch`, which won't download other branches:
 ```
-git clone --depth 1 --single-branch --branch 6.0.0 https://github.com/iNavFlight/inav
+git clone --depth 1 --single-branch --branch release_6.0.0 https://github.com/iNavFlight/inav
 ```
-This results in ~315 MB instead of ~476 MB download/install size(as of 5.1.0)
+This results in ~302 MB instead of ~468 MB download/install size(as of 6.0.0)
 ### Installing xPack 
 1. Create xPack directory:
 ```
@@ -54,7 +55,7 @@ cat /c/Workspace/inav/cmake/arm-none-eabi-checks.cmake | grep "set(arm_none_eabi
 ```
 cd /c/Workspace/xpack
 # paste the link after "wget"
-wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v10.3.1-2.3/xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
+wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v10.2.1-1.1/xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 # paste the file name after "unzip"
 unzip xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 # you can delete the zip file after as it is no longer needed
