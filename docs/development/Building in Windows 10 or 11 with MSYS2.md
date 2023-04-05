@@ -18,6 +18,10 @@ mkdir /c/Workspace
 ```
 pacman -S git ruby make cmake gcc mingw-w64-x86_64-libwinpthread-git unzip wget
 ```
+- Note: If some fails to download, use the following command to install the rest without reinstalling everything:
+```
+pacman -S git ruby make cmake gcc mingw-w64-x86_64-libwinpthread-git unzip wget --needed
+```
 ### Download the INAV repository
 #### Go to the working directory
 ```
