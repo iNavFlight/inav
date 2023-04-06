@@ -100,6 +100,8 @@
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_BMP280
+#define USE_BARO_DPS310
+
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C3
