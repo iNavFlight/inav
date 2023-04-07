@@ -65,7 +65,7 @@ extern uint8_t __config_end;
 #endif
 
 //Defines for compiler optimizations
-#ifdef STM32F7
+// #ifdef STM32F7
 
 #define FUNCTION_COMPILE_FOR_SIZE
 #define FUNCTION_COMPILE_NORMAL
@@ -74,16 +74,16 @@ extern uint8_t __config_end;
 #define FILE_COMPILE_NORMAL
 #define FILE_COMPILE_FOR_SPEED
 
-#else
+// #else
 
-#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
-#define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
-#define FUNCTION_COMPILE_FOR_SPEED __attribute__((optimize("-Ofast")))
-#define FILE_COMPILE_FOR_SIZE _Pragma("GCC optimize(\"Os\")")
-#define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
-#define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
+// #define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
+// #define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
+// #define FUNCTION_COMPILE_FOR_SPEED __attribute__((optimize("-Ofast")))
+// #define FILE_COMPILE_FOR_SIZE _Pragma("GCC optimize(\"Os\")")
+// #define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
+// #define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
 
-#endif
+// #endif
 
 #if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_FILE) || defined(CONFIG_IN_EXTERNAL_FLASH)
 #ifndef EEPROM_SIZE
