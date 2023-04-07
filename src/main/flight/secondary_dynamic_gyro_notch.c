@@ -26,8 +26,6 @@
 
 #ifdef USE_DYNAMIC_FILTERS
 
-FILE_COMPILE_FOR_SPEED
-
 #include <stdint.h>
 #include "secondary_dynamic_gyro_notch.h"
 #include "fc/config.h"

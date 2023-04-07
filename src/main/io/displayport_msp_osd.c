@@ -28,8 +28,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #if defined(USE_OSD) && defined(USE_MSP_OSD)
 
 #include "common/utils.h"
