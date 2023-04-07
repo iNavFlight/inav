@@ -31,8 +31,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #ifdef USE_OSD
 
 #include "build/debug.h"
