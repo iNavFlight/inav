@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#if !defined(SITL_BUILD)
+
 FILE_COMPILE_FOR_SPEED
 
 #include "build/debug.h"
@@ -635,3 +637,5 @@ void beeperPwmInit(ioTag_t tag, uint16_t frequency)
         pwmOutConfigTimer(beeperPwm, tch, PWM_TIMER_HZ, 1000000 / beeperFrequency, (1000000 / beeperFrequency) / 2);
     }
 }
+
+#endif

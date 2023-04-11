@@ -276,7 +276,7 @@ static void cmsPagePrev(displayPort_t *instance)
 
 static bool cmsElementIsLabel(OSD_MenuElement element)
 {
-    return element == OME_Label || element == OME_LabelFunc;
+    return element == OME_Label || element == OME_LabelFunc || element == OME_Label_PAGE2_DATA;
 }
 
 static void cmsFormatFloat(int32_t value, char *floatString)
@@ -577,7 +577,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
             CLR_PRINTVALUE(p, screenRow);
         }
         break;
-
+    case OME_Label_PAGE2_DATA:
     case OME_OSD_Exit:
     case OME_END:
     case OME_Back:
@@ -656,7 +656,30 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
         if (IS_PRINTLABEL(p, i)) {
             uint8_t coloff = leftMenuColumn;
             coloff += cmsElementIsLabel(p->type) ? 0 : 1;
-            room -= displayWrite(pDisplay, coloff, top + i * linesPerMenuItem, p->text);
+
+            if (p->type == OME_Label_PAGE2_DATA) {
+#ifdef USE_CMS_FONT_PREVIEW
+                // A label with immediately following text in page2
+                int printed = 0;
+                if (p->text)  {
+                    size_t textLen = strlen(p->text);
+                    for(size_t k = 0; k < textLen; k++) {
+                        displayWriteChar(pDisplay,
+                            coloff + printed, top + i * linesPerMenuItem, p->text[k]);
+                        printed++;
+                    }
+                }
+                if (p->data) {
+                    const char *p2text = (const char *)p->data;
+                    for (size_t k = 0; k < strlen(p2text); ++k) {
+                        displayWriteChar(pDisplay,
+                            coloff + printed + k, top + i * linesPerMenuItem, (p2text[k] | (1 << 8)));
+                    }
+                }
+#endif
+            } else {
+                room -= displayWrite(pDisplay, coloff, top + i * linesPerMenuItem, p->text);
+            }
             CLR_PRINTLABEL(p, i);
             if (room < 30) {
                 return;
@@ -839,7 +862,11 @@ static void cmsTraverseGlobalExit(const CMS_Menu *pMenu)
 
 long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
 {
-    int exitType = (int)ptr;
+#if defined(SITL_BUILD)
+    unsigned long exitType = (uintptr_t)ptr;   
+#else
+    int exitType = (int)ptr;  
+#endif
     switch (exitType) {
     case CMS_EXIT_SAVE:
     case CMS_EXIT_SAVEREBOOT:

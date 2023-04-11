@@ -46,6 +46,7 @@
 #include "drivers/compass/compass_msp.h"
 #include "drivers/barometer/barometer_msp.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
+#include "sensors/battery_sensor_fake.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/display.h"
 #include "drivers/flash.h"
@@ -1474,6 +1475,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
     case MSP_VTX_CONFIG:
+#ifdef USE_VTX_CONTROL
         {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
@@ -1522,6 +1524,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
             }
         }
+#else
+        sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
+#endif
         break;
 
     case MSP_NAME:
@@ -2549,6 +2554,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif // USE_OSD
+#ifdef USE_VTX_CONTROL
     case MSP_SET_VTX_CONFIG:
         if (dataSize == 15) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -2616,6 +2622,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+#endif
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
@@ -3361,8 +3368,12 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
 #ifdef USE_SIMULATOR
 bool isOSDTypeSupportedBySimulator(void)
 {
+#ifdef USE_OSD
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
 	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+#else
+    return false;
+#endif
 }
 
 void mspWriteSimulatorOSD(sbuf_t *dst)
@@ -3584,8 +3595,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
         if (!SIMULATOR_HAS_OPTION(HITL_ENABLE)) {
 
-			if (ARMING_FLAG(SIMULATOR_MODE)) { // Just once
-				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+			if (ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
+				DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 
 #ifdef USE_BARO
 				baroStartCalibration();
@@ -3598,9 +3609,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 // Review: Many states were affected. Reboot?
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
-			}
+			}   
 		} else if (!areSensorsCalibrating()) {
-			if (!ARMING_FLAG(SIMULATOR_MODE)) { // Just once
+			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
 				baroStartCalibration();
 #endif			
@@ -3615,7 +3626,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					mag.magADC[Z] = 0;
 				}
 #endif
-				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+				ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 				LOG_DEBUG(SYSTEM, "Simulator enabled");
 			}
 
@@ -3691,11 +3702,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
+#if defined(USE_FAKE_BATT_SENSOR)
                 if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
-                    simulatorData.vbat = sbufReadU8(src);
+                    fakeBattSensorSetVbat(sbufReadU8(src) * 10);
                 } else {
-                    simulatorData.vbat = (uint8_t)(SIMULATOR_FULL_BATTERY * 10.0f);
+#endif
+                    fakeBattSensorSetVbat((uint16_t)(SIMULATOR_FULL_BATTERY * 10.0f));
+#if defined(USE_FAKE_BATT_SENSOR)
                 }
+#endif
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
                     simulatorData.airSpeed = sbufReadU16(src);   

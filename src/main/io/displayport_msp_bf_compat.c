@@ -17,7 +17,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MSP_DISPLAYPORT
+#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT)
 
 #ifndef DISABLE_MSP_BF_COMPAT
 
