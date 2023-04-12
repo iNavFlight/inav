@@ -2587,8 +2587,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
                 setMspVtxDeviceStatusReady(1);
             }
-        }
-        if (dataSize >= 2) {
+        } else if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
                 if (vtxCommonGetDeviceType(vtxDevice) != VTXDEV_UNKNOWN) {
@@ -2615,6 +2614,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         }
                     }
                 }
+                setMspVtxDeviceStatusReady(1);
             }
         }
         else
