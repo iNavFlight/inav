@@ -48,6 +48,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_string.h"
 #include "io/vtx.h"
+#include "io/displayport_msp_osd.h"
 
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
@@ -257,7 +258,13 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
             if (isCrsfPortConfig(portConfig)) {
                 mspCrsfPush(MSP_VTX_CONFIG, frame, sizeof(frame));
             } else {
-                mspSerialPushVersion(MSP_VTX_CONFIG, frame, sizeof(frame), MSP_V2_NATIVE);
+                mspPort_t *port = getMspOsdPort();
+                if(port != NULL && port->port) {
+                    int sent = mspSerialPushPort(MSP_VTX_CONFIG, frame, sizeof(frame), port, MSP_V2_NATIVE);
+                    if (sent <= 0) {
+                        break;
+                    }
+                }
             }
             packetCounter++;
             mspVtxLastTimeUs = currentTimeUs;
