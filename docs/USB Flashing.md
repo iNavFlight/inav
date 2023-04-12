@@ -49,7 +49,9 @@ With the board connected and in bootloader mode (reset it by sending the charact
 * Choose Options > List All Devices
 * Select `STM32 BOOTLOADER` in the device list
 * Choose `WinUSB (v6.x.x.x)` in the right hand box
+
 ![Zadig Driver Procedure](assets/images/zadig-dfu.png)
+
 * Click Replace Driver
 * Restart the Configurator (make sure it is completely closed, logout and login if unsure)
 * Now the DFU device should be seen by Configurator
@@ -65,8 +67,8 @@ Put the device into DFU mode by **one** of the following:
 * Send a single 'R' character to the serial device, e.g. on POSIX OS using `/dev/ttyACM0` at 115200 baudrate.
 
 ```
-	stty 115200 < /dev/ttyACM0
-    echo -ne 'R' > /dev/ttyACM0
+stty 115200 < /dev/ttyACM0
+echo -ne 'R' > /dev/ttyACM0
 ```
 * Use the CLI command `dfu`
 
@@ -105,12 +107,12 @@ Examples:
 * Erase the device (assumed `/dev/ttyUSB0`)
 
 ```
-    stm32flash -o -b 57600 /dev/ttyUSB0
+stm32flash -o -b 57600 /dev/ttyUSB0
 ```
 * Flash a HEX file (notionally `inav_x.y.z_NNNNNN.hex`)
 
 ```
-    stm32flash -w inav_x.y.z_NNNNNN.hex -v -g 0x0 -b 57600 /dev/ttyUSB0
+stm32flash -w inav_x.y.z_NNNNNN.hex -v -g 0x0 -b 57600 /dev/ttyUSB0
 ```
 
 replace `/dev/ttyUSB0` as appropriate for your OS. You will probably be more successful at 57600 baud than 115200. The speed is auto-detected by the FC.
