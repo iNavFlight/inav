@@ -5,6 +5,7 @@
 
 #include "io/serial.h"
 #include "io/ledstrip.h"
+
 #include "sensors/boardalignment.h"
 
 void targetConfiguration(void)
