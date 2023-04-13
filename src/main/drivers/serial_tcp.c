@@ -73,13 +73,11 @@ static int lookup_address (char *name, int port, int type, struct sockaddr *addr
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
         return result;
     } else {
-	int j = 0;
 	for(p = servinfo; p != NULL; p = p->ai_next) {
 	    if(p->ai_family == AF_INET6)
 		p6 = p;
 	    else if(p->ai_family == AF_INET)
-        p4 = p;
-	    j++;
+		p4 = p;
 	}
 	if (p6 != NULL)
 	    p = p6;
