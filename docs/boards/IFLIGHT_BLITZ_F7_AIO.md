@@ -1,3 +1,6 @@
+This board is currently not officially supported, so you need to manually build the target IFLIGHT_BLITZ_F7_AIO
+
+
 # Hardware
 - STM32F745
 - Baro
