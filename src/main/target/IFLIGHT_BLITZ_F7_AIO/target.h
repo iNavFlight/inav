@@ -180,6 +180,7 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         0xffff
+#define TARGET_IO_PORTF         0xffff
 
 #define MAX_PWM_OUTPUT_PORTS    10
 #define USE_DSHOT
