@@ -230,7 +230,10 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #endif
 #ifdef USE_SERIALRX_FPORT2
     case SERIALRX_FPORT2:
-        enabled = fport2RxInit(rxConfig, rxRuntimeConfig);
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, false);
+        break;
+    case SERIALRX_FBUS:
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, true);
         break;
 #endif
 #ifdef USE_SERIALRX_GHST
