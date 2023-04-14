@@ -342,7 +342,7 @@ int16_t baroGetTemperature(void)
 
 bool baroIsHealthy(void)
 {
-    return true;
+    return sensors(SENSOR_BARO);
 }
 
 #endif /* BARO */
