@@ -51,22 +51,72 @@
 
 #define M25P16_FAST_READ_DUMMY_CYCLES       8
 
-// Format is manufacturer, memory type, then capacity
-#define JEDEC_ID_MACRONIX_MX25L3206E   0xC22016
-#define JEDEC_ID_MACRONIX_MX25L6406E   0xC22017
-#define JEDEC_ID_MACRONIX_MX25L25635E  0xC22019
-#define JEDEC_ID_MICRON_M25P16         0x202015
-#define JEDEC_ID_MICRON_N25Q064        0x20BA17
-#define JEDEC_ID_MICRON_N25Q128        0x20ba18
-#define JEDEC_ID_WINBOND_W25Q16        0xEF4015
-#define JEDEC_ID_WINBOND_W25Q64        0xEF4017
-#define JEDEC_ID_WINBOND_W25Q128       0xEF4018
-#define JEDEC_ID_WINBOND_W25Q256       0xEF4019
-#define JEDEC_ID_SPANSION_S25FL116     0x014015
-#define JEDEC_ID_EON_W25Q64            0x1C3017
-#define JEDEC_ID_CYPRESS_S25FL128L     0x016018
-#define JEDEC_ID_WINBOND_W25Q128_2     0xEF7018
-
+struct {
+    uint32_t        jedecID;
+    flashSector_t   sectors;
+    uint16_t        pagesPerSector;
+} m25p16FlashConfig[] = {
+    // Macronix MX25L3206E
+    // Datasheet: https://docs.rs-online.com/5c85/0900766b814ac6f9.pdf
+    {0xC22016, 64, 256},
+    // Macronix MX25L6406E
+    // Datasheet: https://www.macronix.com/Lists/Datasheet/Attachments/7370/MX25L6406E,%203V,%2064Mb,%20v1.9.pdf
+    {0xC22017, 128, 256},
+    // Macronix MX25L25635E
+    // Datasheet: https://www.macronix.com/Lists/Datasheet/Attachments/7331/MX25L25635E,%203V,%20256Mb,%20v1.3.pdf
+    {0xC22019, 512, 256},
+    // Micron M25P16
+    // Datasheet: https://www.micron.com/-/media/client/global/documents/products/data-sheet/nor-flash/serial-nor/m25p/m25p16.pdf
+    {0x202015, 32, 256},
+    // Micron N25Q064
+    // Datasheet: https://www.micron.com/-/media/client/global/documents/products/data-sheet/nor-flash/serial-nor/n25q/n25q_64a_3v_65nm.pdf
+    {0x20BA17, 128, 256},
+    // Micron N25Q128
+    // Datasheet: https://www.micron.com/-/media/client/global/documents/products/data-sheet/nor-flash/serial-nor/n25q/n25q_128mb_1_8v_65nm.pdf
+    {0x20ba18, 256, 256},
+    // Winbond W25Q80
+    // Datasheet: https://www.winbond.com/resource-files/w25q80dv%20dl_revh_10022015.pdf
+    {0xEF4014, 16, 256},
+    // Winbond W25Q16
+    // Datasheet: https://www.winbond.com/resource-files/w25q16dv_revi_nov1714_web.pdf
+    {0xEF4015, 32, 256},
+    // Winbond W25X32
+    // Datasheet: https://www.winbond.com/resource-files/w25x32a_revb_080709.pdf
+    {0xEF3016, 64, 256},
+    // Winbond W25Q32
+    // Datasheet: https://www.winbond.com/resource-files/w25q32jv%20dtr%20revf%2002242017.pdf?__locale=zh_TW
+    {0xEF4016, 64, 256},
+    // Winbond W25Q64
+    // Datasheet: https://www.winbond.com/resource-files/w25q64jv%20spi%20%20%20revc%2006032016%20kms.pdf
+    {0xEF4017, 128, 256}, // W25Q64JV-IQ/JQ
+    {0xEF7017, 128, 256}, // W25Q64JV-IM/JM*
+    // Winbond W25Q128
+    // Datasheet: https://www.winbond.com/resource-files/w25q128fv%20rev.l%2008242015.pdf
+    {0xEF4018, 256, 256},
+    // Zbit ZB25VQ128
+    // Datasheet: http://zbitsemi.com/upload/file/20201010/20201010174048_82182.pdf
+    {0x5E4018, 256, 256},
+    // Winbond W25Q128_DTR
+    // Datasheet: https://www.winbond.com/resource-files/w25q128jv%20dtr%20revb%2011042016.pdf
+    {0xEF7018, 256, 256},
+    // Winbond W25Q256
+    // Datasheet: https://www.winbond.com/resource-files/w25q256jv%20spi%20revb%2009202016.pdf
+    {0xEF4019, 512, 256},
+    // Cypress S25FL064L
+    // Datasheet: https://www.cypress.com/file/316661/download
+    {0x016017, 128, 256},
+    // Cypress S25FL128L
+    // Datasheet: https://www.cypress.com/file/316171/download
+    {0x016018, 256, 256},
+    // BergMicro W25Q32
+    // Datasheet: https://www.winbond.com/resource-files/w25q32jv%20dtr%20revf%2002242017.pdf?__locale=zh_TW
+    {0xE04016, 1024, 16},
+    // JEDEC_ID_EON_W25Q64
+    {0x1C3017, 128, 256},
+    // JEDEC_ID_SPANSION_S25FL116
+    {0x014015, 32, 256 },
+    // End of list
+    {0x000000, 0, 0}};
 
 // The timeout we expect between being able to issue page program instructions
 #define DEFAULT_TIMEOUT_MILLIS       6
@@ -199,54 +249,24 @@ static bool m25p16_readIdentification(void)
     // Manufacturer, memory type, and capacity
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
 
-    // All supported chips use the same pagesize of 256 bytes
+    geometry.sectors = 0;
+    geometry.pagesPerSector = 0;
+    geometry.sectorSize = 0;
+    geometry.totalSize = 0;
 
-    switch (chipID) {
-        case JEDEC_ID_MICRON_M25P16:
-        case JEDEC_ID_SPANSION_S25FL116:
-        case JEDEC_ID_WINBOND_W25Q16:
-            geometry.sectors = 32;
-            geometry.pagesPerSector = 256;
-            break;
+    for(int i = 0; m25p16FlashConfig[i].jedecID != 0; ++i) {
+        if(m25p16FlashConfig[i].jedecID == chipID) {
+            geometry.sectors = m25p16FlashConfig[i].sectors;
+            geometry.pagesPerSector = m25p16FlashConfig[i].pagesPerSector;
+        }
+    }
 
-        case JEDEC_ID_MACRONIX_MX25L3206E:
-            geometry.sectors = 64;
-            geometry.pagesPerSector = 256;
-            break;
-
-        case JEDEC_ID_MICRON_N25Q064:
-        case JEDEC_ID_WINBOND_W25Q64:
-        case JEDEC_ID_MACRONIX_MX25L6406E:
-        case JEDEC_ID_EON_W25Q64:
-            geometry.sectors = 128;
-            geometry.pagesPerSector = 256;
-            break;
-
-        case JEDEC_ID_MICRON_N25Q128:
-        case JEDEC_ID_WINBOND_W25Q128:
-	    case JEDEC_ID_CYPRESS_S25FL128L:
-        case JEDEC_ID_WINBOND_W25Q128_2:
-            geometry.sectors = 256;
-            geometry.pagesPerSector = 256;
-            break;
-
-        case JEDEC_ID_WINBOND_W25Q256:
-        case JEDEC_ID_MACRONIX_MX25L25635E:
-            geometry.sectors = 512;
-            geometry.pagesPerSector = 256;
-            break;
-
-        default:
-            // Unsupported chip or not an SPI NOR flash
-            geometry.sectors = 0;
-            geometry.pagesPerSector = 0;
-
-            geometry.sectorSize = 0;
-            geometry.totalSize = 0;
-            return false;
+    if(geometry.sectors == 0) {
+        return false;
     }
 
     geometry.flashType = FLASH_TYPE_NOR;
+    geometry.pageSize = M25P16_PAGESIZE;
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
 
