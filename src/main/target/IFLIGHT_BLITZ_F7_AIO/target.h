@@ -26,10 +26,6 @@
 #define BEEPER                  PD3
 #define BEEPER_INVERTED
 
-// *************** IMU generic ***********************
-//#define USE_DUAL_GYRO
-//#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
-
 // ******************* SPI *************************
 #define USE_SPI
 
@@ -37,6 +33,7 @@
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
+#define SPI1_NSS_PIN            PA4
 
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
@@ -45,13 +42,18 @@
 
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PC10
+#define SPI3_SCK_AF             GPIO_AF6_SPI3
 #define SPI3_MISO_PIN           PC11
+#define SPI3_MISO_AF            GPIO_AF6_SPI3
 #define SPI3_MOSI_PIN           PD6
+#define SPI3_MOSI_AF            GPIO_AF5_SPI3
+#define SPI3_NSS_PIN            PA15
 
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE2
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
+#define SPI4_NSS_PIN            PE4
 
 
 // *************** Gyro & ACC **********************
@@ -59,12 +61,12 @@
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW0_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
-#define BMI270_CS_PIN           PA4
+#define BMI270_CS_PIN           SPI1_NSS_PIN
 
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
-#define ICM42605_CS_PIN         PA4
+#define ICM42605_CS_PIN         SPI1_NSS_PIN
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
@@ -99,7 +101,7 @@
 #define USE_FLASH_M25P16
 
 #define M25P16_SPI_BUS          BUS_SPI3
-#define M25P16_CS_PIN           PA15
+#define M25P16_CS_PIN           SPI3_NSS_PIN
 //#define M25P16_SPI_SHARED
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
@@ -108,7 +110,7 @@
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI4
-#define MAX7456_CS_PIN          PE4
+#define MAX7456_CS_PIN          SPI4_NSS_PIN
 
 // *************** UART *****************************
 #define USE_VCP
