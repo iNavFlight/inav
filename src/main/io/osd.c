@@ -1842,6 +1842,35 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
+    case OSD_ODOMETER:
+#ifdef USE_STATS    
+        {
+            displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
+            int odometerDist = (int)statsConfig()->stats_total_dist + (getTotalTravelDistance() / 100);
+            switch (osdConfig()->units) {
+                case OSD_UNIT_UK:
+                    FALLTHROUGH;
+                case OSD_UNIT_IMPERIAL:
+                    tfp_sprintf(buff+1, "%7d", (int)(odometerDist / METERS_PER_MILE));
+                    buff[6] = SYM_MI;
+                    break;
+                default:
+                case OSD_UNIT_GA:
+                    tfp_sprintf(buff+1, "%7d", (int)(odometerDist / METERS_PER_NAUTICALMILE));
+                    buff[6] = SYM_NM;
+                    break;
+                case OSD_UNIT_METRIC_MPH:
+                    FALLTHROUGH;
+                case OSD_UNIT_METRIC:
+                    tfp_sprintf(buff+1, "%7d", (int)(odometerDist / METERS_PER_KILOMETER));
+                    buff[6] = SYM_KM;
+                    break;
+            }
+            buff[7] = '\0';
+        }
+#endif
+        break;
+
     case OSD_GROUND_COURSE:
         {
             buff[0] = SYM_GROUND_COURSE;
@@ -3670,6 +3699,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     //line 2
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIST] = OSD_POS(1, 1);
     osdLayoutsConfig->item_pos[0][OSD_TRIP_DIST] = OSD_POS(1, 2);
+    osdLayoutsConfig->item_pos[0][OSD_ODOMETER] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE] = OSD_POS(12, 1);
     osdLayoutsConfig->item_pos[0][OSD_GPS_SPEED] = OSD_POS(23, 1);
