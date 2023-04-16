@@ -40,6 +40,10 @@
 #include "drivers/serial_uart.h"
 #endif
 
+#if defined(SITL_BUILD)
+#include "drivers/serial_tcp.h"
+#endif
+
 #include "drivers/light_led.h"
 
 #if defined(USE_VCP)
@@ -327,6 +331,13 @@ bool doesConfigurationUsePort(serialPortIdentifier_e identifier)
     serialPortConfig_t *candidate = serialFindPortConfiguration(identifier);
     return candidate != NULL && candidate->functionMask;
 }
+
+#if defined(SITL_BUILD)
+serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
+}
+#endif
 
 serialPort_t *openSerialPort(
     serialPortIdentifier_e identifier,

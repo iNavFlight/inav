@@ -63,6 +63,7 @@ typedef enum {
 
 uint16_t batteryAdcToVoltage(uint16_t src);
 batteryState_e getBatteryState(void);
+batteryState_e checkBatteryVoltageState(void);
 bool batteryWasFullWhenPluggedIn(void);
 bool batteryUsesCapacityThresholds(void);
 void batteryInit(void);
@@ -75,7 +76,6 @@ bool isPowerSupplyImpedanceValid(void);
 uint16_t getBatteryVoltage(void);
 uint16_t getBatteryRawVoltage(void);
 uint16_t getBatterySagCompensatedVoltage(void);
-uint16_t getBatteryWarningVoltage(void);
 uint8_t getBatteryCellCount(void);
 uint16_t getBatteryRawAverageCellVoltage(void);
 uint16_t getBatteryAverageCellVoltage(void);

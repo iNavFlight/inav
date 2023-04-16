@@ -2648,7 +2648,7 @@ If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ALLOW_BYPASS |  |  |
 
 ---
 
@@ -4958,7 +4958,7 @@ When enabled, INAV will set RC filtering based on refresh rate and smoothing fac
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
