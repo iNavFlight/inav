@@ -1,0 +1,1 @@
+target_stm32f745xg(IFLIGHT_BLITZ_F7_AIO)
