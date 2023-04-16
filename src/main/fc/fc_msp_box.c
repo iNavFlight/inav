@@ -97,6 +97,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXPLANWPMISSION,    .boxName = "WP PLANNER",        .permanentId = 55 },
     { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
     { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },
+    { .boxId = BOXBEEPERMUTE,       .boxName = "BEEPER MUTE",       .permanentId = 60 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -281,6 +282,7 @@ void initActiveBoxIds(void)
     }
 
     ADD_ACTIVE_BOX(BOXBEEPERON);
+    ADD_ACTIVE_BOX(BOXBEEPERMUTE);
 
 #ifdef USE_LIGHTS
     ADD_ACTIVE_BOX(BOXLIGHTS);
