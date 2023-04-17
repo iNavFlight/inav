@@ -1412,6 +1412,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #ifdef USE_VTX_MSP
     case MSP_VTXTABLE_BAND:
         {
+            LOG_DEBUG(VTX, "msp MSP_VTXTABLE_BAND\r\n");
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice)
             {
@@ -1449,6 +1450,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
     case MSP_VTXTABLE_POWERLEVEL:
         {
+            LOG_DEBUG(VTX, "msp MSP_VTXTABLE_POWERLEVEL\r\n");
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
                 uint8_t deviceType = vtxCommonGetDeviceType(vtxDevice);
@@ -1477,6 +1479,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_VTX_CONFIG:
 #ifdef USE_VTX_CONTROL
         {
+            LOG_DEBUG(VTX, "msp USE_VTX_CONTROL\r\n");
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
 
@@ -1657,6 +1660,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     default:
+        LOG_DEBUG(SYSTEM, "unknown MSP command cmdMSP: %i (0x%02x%02x)\r\n", ((cmdMSP>>8) & 0xFF), (cmdMSP & 0xFF));
         return false;
     }
     return true;
@@ -2554,7 +2558,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif // USE_OSD
-#ifdef USE_VTX_CONTROL
+#if defined(USE_VTX_CONTROL) || defined(USE_VTX_MSP)
     case MSP_SET_VTX_CONFIG:
         if (dataSize == 15) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();

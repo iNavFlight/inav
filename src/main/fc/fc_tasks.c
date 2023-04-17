@@ -109,6 +109,9 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #ifdef USE_MSP_OSD
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
+#ifdef USE_VTX_MSP
+    mspVtxSerialProcess();
+#endif
 #endif
 
 }

@@ -49,3 +49,5 @@ typedef struct mspPowerTable_s {
 bool vtxMspInit(void);
 void setMspVtxDeviceStatusReady(const int descriptor);
 void prepareMspFrame(uint8_t *mspFrame);
+
+void mspVtxSerialProcess(void);

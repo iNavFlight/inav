@@ -22,6 +22,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
 #include <string.h>
@@ -95,13 +96,13 @@ static uint8_t mspVtxPortIdentifier = 255;
 
 static bool isCrsfPortConfig(const serialPortConfig_t *portConfig)
 {
-    LOG_DEBUG(VTX, "msp IsCrsfPortConfig\r\n");
+    LOG_DEBUG(VTX, "msp IsCrsfPortConfig: %c", portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & FUNCTION_VTX_MSP && rxConfig()->serialrx_provider == SERIALRX_CRSF ? 'Y': 'N');
     return portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & FUNCTION_VTX_MSP && rxConfig()->serialrx_provider == SERIALRX_CRSF;
 }
 
 static bool isLowPowerDisarmed(void)
 {
-    LOG_DEBUG(VTX, "msp IsLowPowerDisarmed\r\n");
+    //LOG_DEBUG(VTX, "msp IsLowPowerDisarmed\r\n");
     return (!ARMING_FLAG(ARMED) && !failsafeIsActive() &&
         (vtxSettingsConfig()->lowPowerDisarm == VTX_LOW_POWER_DISARM_ALWAYS ||
         (vtxSettingsConfig()->lowPowerDisarm == VTX_LOW_POWER_DISARM_UNTIL_FIRST_ARM && !ARMING_FLAG(WAS_EVER_ARMED))));
@@ -149,6 +150,7 @@ void setMspVtxDeviceStatusReady(const int descriptor)
     }
     */
     mspVtxStatus = MSP_VTX_STATUS_READY;
+    mspVtxConfigChanged = true;
 }
 
 
@@ -231,7 +233,6 @@ static uint16_t packetCounter = 0;
 
 static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 {
-    LOG_DEBUG(VTX, "msp MspProcess\r\n");
     UNUSED(vtxDevice);
 
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_OSD);
@@ -239,12 +240,14 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 
     switch (mspVtxStatus) {
     case MSP_VTX_STATUS_OFFLINE:
+        LOG_DEBUG(VTX, "msp MspProcess: OFFLINE\r\n");
         // wait for MSP communication from the VTX
 #ifdef USE_CMS
         //mspCmsUpdateStatusString();
 #endif
         break;
     case MSP_VTX_STATUS_READY:
+        //LOG_DEBUG(VTX, "msp MspProcess: READY\r\n");
         if (isLowPowerDisarmed() != prevLowPowerDisarmedState) {
             mspVtxConfigChanged = true;
             prevLowPowerDisarmedState = isLowPowerDisarmed();
@@ -253,6 +256,7 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
         // send an update if stuff has changed with 200ms period
         if (mspVtxConfigChanged && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
 
+            LOG_DEBUG(VTX, "msp-vtx: vtxInfo Changed\r\n");
             prepareMspFrame(frame);
 
             if (isCrsfPortConfig(portConfig)) {
@@ -260,6 +264,7 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
             } else {
                 mspPort_t *port = getMspOsdPort();
                 if(port != NULL && port->port) {
+                    LOG_DEBUG(VTX, "msp-vtx: mspSerialPushPort\r\n");
                     int sent = mspSerialPushPort(MSP_VTX_CONFIG, frame, sizeof(frame), port, MSP_V2_NATIVE);
                     if (sent <= 0) {
                         break;
@@ -294,14 +299,14 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 
 static vtxDevType_e vtxMspGetDeviceType(const vtxDevice_t *vtxDevice)
 {
-    LOG_DEBUG(VTX, "msp GetDeviceType\r\n");
+    //LOG_DEBUG(VTX, "msp GetDeviceType\r\n");
     UNUSED(vtxDevice);
     return VTXDEV_MSP;
 }
 
 static bool vtxMspIsReady(const vtxDevice_t *vtxDevice)
 {
-    LOG_DEBUG(VTX, "msp vtxIsReady\r\n");
+    //LOG_DEBUG(VTX, "msp vtxIsReady: %s\r\n", (vtxDevice != NULL && mspVtxStatus == MSP_VTX_STATUS_READY) ? "Y": "N");
     return vtxDevice != NULL && mspVtxStatus == MSP_VTX_STATUS_READY;
 }
 
@@ -358,7 +363,6 @@ static void vtxMspSetFreq(vtxDevice_t *vtxDevice, uint16_t freq)
 
 static bool vtxMspGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
 {
-    LOG_DEBUG(VTX, "msp GetBandAndChannel\r\n");
     if (!vtxMspIsReady(vtxDevice)) {
         return false;
     }
@@ -366,12 +370,13 @@ static bool vtxMspGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand
     *pBand = vtxSettingsConfig()->band;
     *pChannel = vtxSettingsConfig()->channel;
 
+    //LOG_DEBUG(VTX, "msp GetBandAndChannel: %02x:%02x\r\n", vtxSettingsConfig()->band, vtxSettingsConfig()->channel);
+
     return true;
 }
 
 static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 {
-    LOG_DEBUG(VTX, "msp GetPowerIndex\r\n");
     if (!vtxMspIsReady(vtxDevice)) {
         return false;
     }
@@ -380,11 +385,13 @@ static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
     // Special case, power not set
     if (power > VTX_MSP_MAX_POWER_COUNT + 1) {
         *pIndex = 0;
+        //LOG_DEBUG(VTX, "msp GetPowerIndex: %u\r\n", *pIndex);
         return true;
     }
 
     *pIndex = power;
 
+    //LOG_DEBUG(VTX, "msp GetPowerIndex: %u\r\n", *pIndex);
     return true;
 }
 
@@ -482,6 +489,7 @@ static bool vtxMspGetOsdInfo(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t *
 
 bool vtxMspInit(void)
 {
+    LOG_DEBUG(VTX, "msp %s\r\n", __FUNCTION__);
     // don't bother setting up this device if we don't have MSP vtx enabled
     // Port is shared with MSP_OSD
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_OSD);
@@ -544,6 +552,53 @@ static const vtxVTable_t mspVTable = {
     //.serializeCustomDeviceStatus = NULL,
     .getOsdInfo = vtxMspGetOsdInfo,
 };
+
+static mspResult_e mspVtxProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    UNUSED(mspPostProcessFn);
+
+    sbuf_t *dst = &reply->buf;
+    sbuf_t *src = &cmd->buf;
+
+    UNUSED(dst);
+    UNUSED(src);
+
+    // Start initializing the reply message
+    reply->cmd = cmd->cmd;
+    reply->result = MSP_RESULT_ACK;
+
+    switch (cmd->cmd) {
+        //case MSP_SET_VTX_CONFIG:
+        //    break;
+        default:
+            // debug[1]++;
+            // debug[2] = cmd->cmd;
+            reply->result = MSP_RESULT_ERROR;
+            break;
+    }
+
+    // Process DONT_REPLY flag
+    if (cmd->flags & MSP_FLAG_DONT_REPLY) {
+        reply->result = MSP_RESULT_NO_REPLY;
+    }
+
+    return reply->result;
+}
+
+void mspVtxSerialProcess(void)
+{
+    // Check if VTX is ready
+    if (mspVtxStatus != MSP_VTX_STATUS_READY) {
+        return;
+    }
+
+    mspPort_t *port = getMspOsdPort();
+
+    if(port) {
+        mspSerialProcessOnePort(port, MSP_SKIP_NON_MSP_DATA, mspVtxProcessMspCommand);
+    }
+
+}
 
 
 #endif
