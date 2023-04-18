@@ -615,9 +615,9 @@ int16_t getThrottlePercent(bool useScaled)
     const int idleThrottle = getThrottleIdleValue();
     
     if (useScaled) {
-        thr = (thr - idleThrottle) * 100 / (motorConfig()->maxthrottle - idleThrottle);
+       thr = (thr - idleThrottle) * 100 / (motorConfig()->maxthrottle - idleThrottle);
     } else {
-        thr = (thr - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
+        thr = (rxGetChannelValue(THROTTLE) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
     }
     return thr;
 }

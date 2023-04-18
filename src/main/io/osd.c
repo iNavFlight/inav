@@ -1089,6 +1089,7 @@ static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes
         if (isFixedWingAutoThrottleManuallyIncreased()) {
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
         }
+        useScaled = true;
     }
 #ifdef USE_POWER_LIMITS
     if (powerLimiterIsLimiting()) {
