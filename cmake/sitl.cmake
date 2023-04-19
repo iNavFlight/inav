@@ -63,7 +63,9 @@ function(generate_map_file target)
 endfunction()
 
 function (target_sitl name)
-    set(CMAKE_C_STANDARD 17)
+    if(CMAKE_VERSION VERSION_GREATER 3.22)
+        set(CMAKE_C_STANDARD 17)
+    endif()
 
     if(NOT host STREQUAL TOOLCHAIN)
         return()
