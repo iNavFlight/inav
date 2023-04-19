@@ -29,8 +29,11 @@ set(SITL_LINK_OPTIONS
     -lrt
     -Wl,-L${STM32_LINKER_DIR}
     -Wl,--cref
-    -static-libgcc # Required for windows build under cygwin
 )
+
+if(${WIN32} OR ${CYGWIN})
+    set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-static-libgcc")
+endif()
 
 set(SITL_LINK_LIBRARIS
     -lpthread
@@ -60,11 +63,12 @@ function(generate_map_file target)
 endfunction()
 
 function (target_sitl name)
+    set(CMAKE_C_STANDARD 17)
 
     if(NOT host STREQUAL TOOLCHAIN)
         return()
     endif()
-    
+
     exclude(COMMON_SRC "${SITL_COMMON_SRC_EXCLUDES}")
 
     set(target_sources)
@@ -72,9 +76,9 @@ function (target_sitl name)
     file(GLOB target_c_sources "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
     file(GLOB target_h_sources "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
     list(APPEND target_sources ${target_c_sources} ${target_h_sources})
-    
+
     set(target_definitions ${COMMON_COMPILE_DEFINITIONS})
-    
+
     set(hse_mhz ${STM32_DEFAULT_HSE_MHZ})
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
@@ -92,18 +96,18 @@ function (target_sitl name)
     target_include_directories(${exe_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(${exe_target} PRIVATE ${target_definitions})
 
-    
+
     if(WARNINGS_AS_ERRORS)
         target_compile_options(${exe_target} PRIVATE -Werror)
     endif()
-    
+
     target_compile_options(${exe_target} PRIVATE ${SITL_COMPILE_OPTIONS})
-  
+
     target_link_libraries(${exe_target} PRIVATE ${SITL_LINK_LIBRARIS})
     target_link_options(${exe_target} PRIVATE ${SITL_LINK_OPTIONS})
-    
+
     generate_map_file(${exe_target})
-    
+
     set(script_path ${MAIN_SRC_DIR}/target/link/sitl.ld)
     if(NOT EXISTS ${script_path})
         message(FATAL_ERROR "linker script ${script_path} doesn't exist")
@@ -116,7 +120,7 @@ function (target_sitl name)
     else()
         set(exe_filename ${CMAKE_BINARY_DIR}/${binary_name})
     endif()
-    
+
     add_custom_target(${name} ALL
         cmake -E env PATH="$ENV{PATH}"
         ${CMAKE_OBJCOPY} $<TARGET_FILE:${exe_target}> ${exe_filename}
