@@ -91,7 +91,6 @@
 #include "io/serial.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
-#include "io/vtx_msp.h"
 #include "io/vtx_string.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
 
@@ -1409,77 +1408,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
-#ifdef USE_VTX_MSP
-    case MSP_VTXTABLE_BAND:
-        {
-            LOG_DEBUG(VTX, "msp MSP_VTXTABLE_BAND\r\n");
-            vtxDevice_t *vtxDevice = vtxCommonDevice();
-            if (vtxDevice)
-            {
-                uint8_t deviceType = vtxCommonGetDeviceType(vtxDevice);
-                if (deviceType == VTXDEV_MSP) {
-                    /*
-                    char bandName[MSP_VTX_TABLE_BAND_NAME_LENGTH + 1];
-                    memset(bandName, 0, MSP_VTX_TABLE_BAND_NAME_LENGTH + 1);
-                    uint16_t frequencies[MSP_VTX_TABLE_MAX_CHANNELS];
-                    const uint8_t band = sbufReadU8(src);
-                    const uint8_t bandNameLength = sbufReadU8(src);
-                    for (int i = 0; i < bandNameLength; i++) {
-                        const char nameChar = sbufReadU8(src);
-                        if (i < MSP_VTX_TABLE_BAND_NAME_LENGTH) {
-                            bandName[i] = toupper(nameChar);
-                        }
-                    }
-                    const char bandLetter = toupper(sbufReadU8(src));
-                    const bool isFactoryBand = (bool)sbufReadU8(src);
-                    const uint8_t channelCount = sbufReadU8(src);
-                    for (int i = 0; i < channelCount; i++)
-                    {
-                        const uint16_t frequency = sbufReadU16(src);
-                        if (i < vtxTableConfig()->channels)
-                        {
-                            frequencies[i] = frequency;
-                        }
-                    }
-                    */
-
-                    setMspVtxDeviceStatusReady(1);
-                }
-            }
-            break;
-        }
-    case MSP_VTXTABLE_POWERLEVEL:
-        {
-            LOG_DEBUG(VTX, "msp MSP_VTXTABLE_POWERLEVEL\r\n");
-            vtxDevice_t *vtxDevice = vtxCommonDevice();
-            if (vtxDevice) {
-                uint8_t deviceType = vtxCommonGetDeviceType(vtxDevice);
-                if (deviceType == VTXDEV_MSP) {
-                    /*
-                    char powerLevelLabel[VTX_TABLE_POWER_LABEL_LENGTH + 1];
-                    memset(powerLevelLabel, 0, VTX_TABLE_POWER_LABEL_LENGTH + 1);
-                    const uint8_t powerLevel = sbufReadU8(src);
-                    const uint16_t powerValue = sbufReadU16(src);
-                    const uint8_t powerLevelLabelLength = sbufReadU8(src);
-                    for (int i = 0; i < powerLevelLabelLength; i++)
-                    {
-                        const char labelChar = sbufReadU8(src);
-                        if (i < VTX_TABLE_POWER_LABEL_LENGTH)
-                        {
-                            powerLevelLabel[i] = toupper(labelChar);
-                        }
-                    }
-                    */
-                    setMspVtxDeviceStatusReady(1);
-                }
-            }
-        }
-        break;
-#endif
     case MSP_VTX_CONFIG:
 #ifdef USE_VTX_CONTROL
         {
-            LOG_DEBUG(VTX, "msp USE_VTX_CONTROL\r\n");
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
 
@@ -1490,38 +1421,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 uint8_t pitmode = 0;
                 vtxCommonGetPitMode(vtxDevice, &pitmode);
 
-
-
-                // VTXDEV_MSP,
                 sbufWriteU8(dst, deviceType);
-                // band;
                 sbufWriteU8(dst, vtxSettingsConfig()->band);
-                // channel;
                 sbufWriteU8(dst, vtxSettingsConfig()->channel);
-                // power; // index based
                 sbufWriteU8(dst, vtxSettingsConfig()->power);
-                // pit mode;
                 sbufWriteU8(dst, pitmode);
-                // Freq_L
-                sbufWriteU8(dst, 0);
-                // Freq_H
-                sbufWriteU8(dst, 0);
-                // vtx status
-                sbufWriteU8(dst, 1);
-                // lowPowerDisarm
-                sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
-                // Pitmode freq Low
-                sbufWriteU8(dst, 0);
-                // pitmod freq High
-                sbufWriteU8(dst, 0);
-                // 1 if using vtx table
-                sbufWriteU8(dst, 0);
-                // vtx table bands or 0
-                sbufWriteU8(dst, 0);
-                // vtx table channels or 0
-                sbufWriteU8(dst, 0);
 
-                setMspVtxDeviceStatusReady(1);
+                // Betaflight < 4 doesn't send these fields
+                sbufWriteU8(dst, vtxCommonDeviceIsReady(vtxDevice) ? 1 : 0);
+                sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
+                // future extensions here...
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
@@ -1660,7 +1569,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 
     default:
-        LOG_DEBUG(SYSTEM, "unknown MSP command cmdMSP: %i (0x%02x%02x)\r\n", ((cmdMSP>>8) & 0xFF), (cmdMSP & 0xFF));
         return false;
     }
     return true;
@@ -2558,40 +2466,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif // USE_OSD
-#if defined(USE_VTX_CONTROL) || defined(USE_VTX_MSP)
-    case MSP_SET_VTX_CONFIG:
-        if (dataSize == 15) {
-            vtxDevice_t *vtxDevice = vtxCommonDevice();
-            if (vtxDevice) {
-                if (vtxCommonGetDeviceType(vtxDevice) != VTXDEV_UNKNOWN) {
-                    for (int i = 0; i < 15; ++i) {
-                        uint8_t data = sbufReadU8(src);
-                        switch (i) {
-                            case 1:
-                                vtxSettingsConfigMutable()->band = data;
-                                break;
-                            case 2:
-                                vtxSettingsConfigMutable()->channel = data;
-                                break;
-                            case 3:
-                                vtxSettingsConfigMutable()->power = data;
-                                break;
-                            case 4:
-                                vtxCommonSetPitMode(vtxDevice, data);
-                                break;
-                            case 7:
-                                // vtx ready
-                                break;
-                            case 8:
-                                vtxSettingsConfigMutable()->lowPowerDisarm = data;
-                                break;
-                        }
-                    }
-                }
 
-                setMspVtxDeviceStatusReady(1);
-            }
-        } else if (dataSize >= 2) {
+#ifdef USE_VTX_CONTROL
+    case MSP_SET_VTX_CONFIG:
+        if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
                 if (vtxCommonGetDeviceType(vtxDevice) != VTXDEV_UNKNOWN) {
@@ -2618,11 +2496,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         }
                     }
                 }
-                setMspVtxDeviceStatusReady(1);
             }
-        }
-        else
-        {
+        } else {
             return MSP_RESULT_ERROR;
         }
         break;
