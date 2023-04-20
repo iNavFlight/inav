@@ -1078,9 +1078,9 @@ bool osdUsingScaledThrottle()
 static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes_t *elemAttr)
 {
     if (useScaled) {
-        buff[0] = SYM_BLANK;
+        buff[0] = SYM_SCALE;
     } else {
-        buff[0] = 0x2A; // * symbol
+        buff[0] = SYM_BLANK;
     }
     buff[1] = SYM_THR;
     if (navigationIsControllingThrottle()) {
