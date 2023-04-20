@@ -47,6 +47,7 @@
 #include "flight/imu.h"
 
 #include "io/gps.h"
+#include "io/osd.h"
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
@@ -195,7 +196,7 @@ static void sendThrottleOrBatterySizeAsRpm(void)
 {
     sendDataHead(ID_RPM);
     if (ARMING_FLAG(ARMED)) {
-        uint16_t throttleForRPM = getThrottlePercent() / BLADE_NUMBER_DIVIDER;
+        uint16_t throttleForRPM = getThrottlePercent(osdUsingScaledThrottle()) / BLADE_NUMBER_DIVIDER;
         serialize16(throttleForRPM);
     } else {
         serialize16((currentBatteryProfile->capacity.value / BLADE_NUMBER_DIVIDER));

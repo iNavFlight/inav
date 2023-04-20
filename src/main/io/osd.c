@@ -1079,26 +1079,46 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
 }
 
 /**
- * Formats throttle position prefixed by its symbol.
- * Shows output to motor, not stick position
- **/
-static void osdFormatThrottlePosition(char *buff, bool autoThr, textAttributes_t *elemAttr)
+ * Check if this OSD layout is using scaled or unscaled throttle.
+ * If both are used, it will default to scaled.
+ */
+bool osdUsingScaledThrottle() 
 {
-    buff[0] = SYM_BLANK;
+    bool usingScaledThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_SCALED_THROTTLE_POS]);
+    bool usingRCThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_THROTTLE_POS]);
+
+    if (!usingScaledThrottle && !usingRCThrottle)
+        usingScaledThrottle = true;
+
+    return usingScaledThrottle;
+}
+
+/**
+ * Formats throttle position prefixed by its symbol.
+ * Shows unscaled or scaled (output to motor) throttle percentage
+ **/
+static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes_t *elemAttr)
+{
+    if (useScaled) {
+        buff[0] = SYM_SCALE;
+    } else {
+        buff[0] = SYM_BLANK;
+    }
     buff[1] = SYM_THR;
-    if (autoThr && navigationIsControllingThrottle()) {
+    if (navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
         buff[1] = SYM_AUTO_THR1;
         if (isFixedWingAutoThrottleManuallyIncreased()) {
             TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
         }
+        useScaled = true;
     }
 #ifdef USE_POWER_LIMITS
     if (powerLimiterIsLimiting()) {
         TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
 #endif
-    tfp_sprintf(buff + 2, "%3d", getThrottlePercent());
+    tfp_sprintf(buff + 2, "%3d", getThrottlePercent(useScaled));
 }
 
 /**
@@ -2893,7 +2913,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-    case OSD_THROTTLE_POS_AUTO_THR:
+    case OSD_SCALED_THROTTLE_POS:
         {
             osdFormatThrottlePosition(buff, true, &elemAttr);
             break;
@@ -3704,7 +3724,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GLIDESLOPE] = OSD_POS(23, 2);
 
     osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS] = OSD_POS(1, 2) | OSD_VISIBLE_FLAG;
-    osdLayoutsConfig->item_pos[0][OSD_THROTTLE_POS_AUTO_THR] = OSD_POS(6, 2);
+    osdLayoutsConfig->item_pos[0][OSD_SCALED_THROTTLE_POS] = OSD_POS(6, 2);
     osdLayoutsConfig->item_pos[0][OSD_HEADING] = OSD_POS(12, 2);
     osdLayoutsConfig->item_pos[0][OSD_GROUND_COURSE] = OSD_POS(12, 3);
     osdLayoutsConfig->item_pos[0][OSD_COURSE_HOLD_ERROR] = OSD_POS(12, 2);
