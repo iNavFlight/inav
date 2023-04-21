@@ -1,1 +1,2 @@
 target_stm32f722xe(SPEEDYBEEF7V3)
+target_stm32f722xe(SPEEDYBEEF7V3_NOSD)

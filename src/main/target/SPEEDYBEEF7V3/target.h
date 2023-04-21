@@ -21,7 +21,11 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "SB73"
+#ifdef SPEEDYBEEF7V3_NOSD
+#define USBD_PRODUCT_STRING  "SpeedyBeeF7V3_NOSD"
+#else
 #define USBD_PRODUCT_STRING  "SpeedyBeeF7V3"
+#endif
 
 #define LED0                PA14
 #define LED1                PA13
@@ -107,19 +111,33 @@
 #define USE_MAG_MAG3110
 #define USE_MAG_LIS3MDL
 
-// *************** Internal SD card **************************
-
+// *************** SPI3/Blackbox **************************
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PC10
-#define SPI3_MISO_PIN   	    PC11
-#define SPI3_MOSI_PIN   	    PC12
+#define SPI3_MISO_PIN           PC11
+#define SPI3_MOSI_PIN           PC12
 
+#ifdef SPEEDYBEEF7V3
+// *************** Internal SD card **************************
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PD2
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#else
+// *************** Onboard blackbox **************************
+#define USE_FLASHFS
+
+#define USE_FLASH_M25P16
+#define M25P16_SPI_BUS		BUS_SPI3
+#define M25P16_CS_PIN		PD2
+
+#define USE_FLASH_W25N01G
+#define W25N01G_SPI_BUS		BUS_SPI3
+#define W25N01G_CS_PIN		PD2
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#endif
 
 // *************** OSD *****************************
 #define USE_OSD
