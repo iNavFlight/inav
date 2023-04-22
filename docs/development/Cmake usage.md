@@ -24,7 +24,7 @@ target_stm32f405xg(QUARKVISION HSE_MHZ 16)
 
 ## Hardware names
 
-As of inav 4.1, the following target hardware platforms are recognised:
+As of INAV 4.1, the following target hardware platforms are recognised:
 
 * stm32f405xg
 * stm32f411xe
