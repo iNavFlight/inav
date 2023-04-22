@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This guide documents inav usage of the `cmake` build tool.
+This guide documents INAV usage of the `cmake` build tool.
 
 ## Target Defintion
 
