@@ -52,7 +52,7 @@ static int lookup_address (char *name, int port, int type, struct sockaddr *addr
     struct addrinfo *servinfo, *p;
     struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
     if (name == NULL) {
-	hints.ai_flags |= AI_PASSIVE;
+	    hints.ai_flags |= AI_PASSIVE;
     }
     /*
       This nonsense is to uniformly deliver the same sa_family regardless of whether
@@ -73,21 +73,21 @@ static int lookup_address (char *name, int port, int type, struct sockaddr *addr
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
         return result;
     } else {
-	for(p = servinfo; p != NULL; p = p->ai_next) {
-	    if(p->ai_family == AF_INET6)
-		p6 = p;
-	    else if(p->ai_family == AF_INET)
-		p4 = p;
-	}
-	if (p6 != NULL)
-	    p = p6;
-	else if (p4 != NULL)
-	    p = p4;
-	else
-	    return -1;
-	memcpy(addr, p->ai_addr, p->ai_addrlen);
-	*len = p->ai_addrlen;
-	freeaddrinfo(servinfo);
+        for(p = servinfo; p != NULL; p = p->ai_next) {
+            if(p->ai_family == AF_INET6)
+                p6 = p;
+            else if(p->ai_family == AF_INET)
+                p4 = p;
+        }
+        if (p6 != NULL)
+            p = p6;
+        else if (p4 != NULL)
+            p = p4;
+        else
+            return -1;
+        memcpy(addr, p->ai_addr, p->ai_addrlen);
+        *len = p->ai_addrlen;
+        freeaddrinfo(servinfo);
     }
     return 0;
 }
@@ -97,11 +97,11 @@ static char *tcpGetAddressString(struct sockaddr *addr)
     static char straddr[INET6_ADDRSTRLEN];
     void *ipaddr;
     if (addr->sa_family == AF_INET6) {
-	struct sockaddr_in6 * ip = (struct sockaddr_in6*)addr;
-	ipaddr = &ip->sin6_addr;
+	    struct sockaddr_in6 * ip = (struct sockaddr_in6*)addr;
+	    ipaddr = &ip->sin6_addr;
     } else {
-	struct sockaddr_in * ip = (struct sockaddr_in*)addr;
-	ipaddr = &ip->sin_addr;
+	    struct sockaddr_in * ip = (struct sockaddr_in*)addr;
+	    ipaddr = &ip->sin_addr;
     }
     const char *res = inet_ntop(addr->sa_family, ipaddr, straddr, sizeof straddr);
     return (char *)res;
@@ -133,7 +133,7 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 
     uint16_t tcpPort = BASE_IP_ADDRESS + id - 1;
     if (lookup_address(NULL, tcpPort, SOCK_STREAM, (struct sockaddr*)&port->sockAddress, &sockaddrlen) != 0) {
-	return NULL;
+	    return NULL;
     }
     port->socketFd = socket(((struct sockaddr*)&port->sockAddress)->sa_family, SOCK_STREAM, IPPROTO_TCP);
 
@@ -196,7 +196,7 @@ int tcpReceive(tcpPort_t *port)
             return -1;
         }
 
-	socklen_t addrLen = sizeof(struct sockaddr_storage);
+	    socklen_t addrLen = sizeof(struct sockaddr_storage);
         port->clientSocketFd = accept(port->socketFd,(struct sockaddr*)&port->clientAddress, &addrLen);
         if (port->clientSocketFd < 1) {
             fprintf(stderr, "[SOCKET] Can't accept connection.\n");
@@ -210,9 +210,8 @@ int tcpReceive(tcpPort_t *port)
     uint8_t buffer[TCP_BUFFER_SIZE];
     ssize_t recvSize = recv(port->clientSocketFd, buffer, TCP_BUFFER_SIZE, 0);
 
-    // Disconnect
-    if (port->isClientConnected && recvSize == 0)
-    {
+    // recv() under cygwin does not recognise the closed connection under certain circumstances, but returns ECONNRESET as an error.
+    if (port->isClientConnected && (recvSize == 0 || ( recvSize == -1 && errno == ECONNRESET))) {
        fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", tcpGetAddressString((struct sockaddr *)&port->clientAddress), port->id);
        close(port->clientSocketFd);
        memset(&port->clientAddress, 0, sizeof(port->clientAddress));
