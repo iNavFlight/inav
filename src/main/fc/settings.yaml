@@ -59,7 +59,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
   - name: nav_rth_climb_first_stage_modes
     values: ["AT_LEAST", "EXTRA"]
   - name: osd_unit
@@ -2510,6 +2510,17 @@ groups:
         default_value: 0
         field: general.rth_home_altitude
         max: 65000
+      - name: nav_rth_linear_descent_start_distance
+        description: The distance [m] away from home to start the linear descent. 0 = immediately (original linear descent behaviour)
+        default_value: 0
+        min: 0
+        max: 10000
+        field: general.rth_linear_descent_start_distance
+      - name: nav_rth_use_linear_descent
+        description: If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en route. The distance from home to start the descent can be set with `nav_rth_linear_descent_start_distance`.
+        default_value: OFF
+        type: bool
+        field: general.flags.rth_use_linear_descent
       - name: nav_rth_trackback_mode
         description: "Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only."
         default_value: "OFF"
