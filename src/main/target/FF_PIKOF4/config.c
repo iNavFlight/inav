@@ -28,5 +28,7 @@
 void targetConfiguration(void)
 {
     rxConfigMutable()->halfDuplex = TRISTATE_OFF;
-    currentBatteryProfileMutable->batteryMeters.current.scale = CURRENTSCALE;
+    for ( int i = 0; i < MAX_BATTERY_PROFILE_COUNT; i++ ) {
+        batteryProfilesMutable(i)->batteryMeters.current.scale = CURRENTSCALE;
+    }
 }

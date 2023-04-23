@@ -60,8 +60,11 @@ void targetConfiguration(void)
     compassConfigMutable()->mag_align = CW90_DEG;
 
     serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_RX_SERIAL;
-    currentBatteryProfileMutable->batteryMeters.current.offset = CURRENTOFFSET;
-    currentBatteryProfileMutable->batteryMeters.current.scale = CURRENTSCALE;
+
+    for ( int i = 0; i < MAX_BATTERY_PROFILE_COUNT; i++ ) {
+        batteryProfilesMutable(i)->batteryMeters.current.offset = CURRENTOFFSET;
+        batteryProfilesMutable(i)->batteryMeters.current.scale = CURRENTSCALE;
+    }
 
     if (hardwareMotorType == MOTOR_BRUSHED) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_BRUSHED;
