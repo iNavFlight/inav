@@ -216,6 +216,8 @@ Up to 3 battery profiles are supported. You can select the battery profile from 
 - `nav_fw_launch_idle_thr`
 - `failsafe_throttle`
 - `nav_mc_hover_thr`
+- `current_meter_scale`
+- `current_meter_offset`
 
 To enable the automatic battery profile switching based on battery voltage enable the `BAT_PROF_AUTOSWITCH` feature. For a profile to be automatically selected the number of cells of the battery needs to be specified (>0).
 

@@ -857,8 +857,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0);
 #endif
 
-        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
-        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
+        sbufWriteU16(dst, currentBatteryProfile->batteryMeters.current.offset);
+        sbufWriteU16(dst, currentBatteryProfile->batteryMeters.current.scale);
 
         sbufWriteU32(dst, currentBatteryProfile->capacity.value);
         sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
@@ -968,8 +968,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_CURRENT_METER_CONFIG:
-        sbufWriteU16(dst, batteryMetersConfig()->current.scale);
-        sbufWriteU16(dst, batteryMetersConfig()->current.offset);
+        sbufWriteU16(dst, currentBatteryProfile->batteryMeters.current.scale);
+        sbufWriteU16(dst, currentBatteryProfile->batteryMeters.current.offset);
         sbufWriteU8(dst, batteryMetersConfig()->current.type);
         sbufWriteU16(dst, constrain(currentBatteryProfile->capacity.value, 0, 0xFFFF));
         break;
@@ -1931,8 +1931,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);
 #endif
 
-            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
-            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
+            currentBatteryProfileMutable->batteryMeters.current.offset = sbufReadU16(src);
+            currentBatteryProfileMutable->batteryMeters.current.scale = sbufReadU16(src);
 
             currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
@@ -2580,8 +2580,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_CURRENT_METER_CONFIG:
         if (dataSize == 7) {
-            batteryMetersConfigMutable()->current.scale = sbufReadU16(src);
-            batteryMetersConfigMutable()->current.offset = sbufReadU16(src);
+            currentBatteryProfileMutable->batteryMeters.current.scale = sbufReadU16(src);
+            currentBatteryProfileMutable->batteryMeters.current.offset = sbufReadU16(src);
             batteryMetersConfigMutable()->current.type = sbufReadU8(src);
             currentBatteryProfileMutable->capacity.value = sbufReadU16(src);
         } else

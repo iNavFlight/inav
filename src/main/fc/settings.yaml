@@ -905,18 +905,6 @@ groups:
         condition: USE_ADC
         min: 0
         max: 65535
-      - name: current_meter_scale
-        description: "This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt."
-        default_value: :target
-        field: current.scale
-        min: -10000
-        max: 10000
-      - name: current_meter_offset
-        description: "This sets the output offset voltage of the current sensor in millivolts."
-        default_value: :target
-        field: current.offset
-        min: -32768
-        max: 32767
       - name: current_meter_type
         description: "ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
@@ -1138,6 +1126,19 @@ groups:
         default_value: 0
         field: powerLimits.burstPowerFalldownTime
         max: 3000
+
+      - name: current_meter_scale
+        description: "This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt."
+        default_value: :target
+        field: batteryMeters.current.scale
+        min: -10000
+        max: 10000
+      - name: current_meter_offset
+        description: "This sets the output offset voltage of the current sensor in millivolts."
+        default_value: :target
+        field: batteryMeters.current.offset
+        min: -32768
+        max: 32767
 
   - name: PG_MIXER_CONFIG
     type: mixerConfig_t

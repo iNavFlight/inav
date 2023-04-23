@@ -59,9 +59,8 @@ typedef struct batteryMetersConfig_s {
 #endif
 
     struct {
-        int16_t scale;          // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
-        int16_t offset;         // offset of the current sensor in millivolt steps
         currentSensor_e type;   // type of current meter used, either ADC or virtual
+        //scale and offset are moved to battery config
     } current;
 
     batVoltageSource_e voltageSource;
@@ -139,4 +138,10 @@ typedef struct batteryProfile_s {
     } powerLimits;
 #endif // USE_POWER_LIMITS
 
+    struct {
+        struct {
+            int16_t scale;          // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
+            int16_t offset;         // offset of the current sensor in millivolt steps
+        } current;
+    } batteryMeters;
 } batteryProfile_t;

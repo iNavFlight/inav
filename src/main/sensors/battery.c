@@ -159,8 +159,17 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .burstPowerTime = SETTING_LIMIT_BURST_POWER_TIME_DEFAULT,                           // dS
                 .burstPowerFalldownTime = SETTING_LIMIT_BURST_POWER_FALLDOWN_TIME_DEFAULT,          // dS
 #endif // USE_ADC
-            }
+            },
 #endif // USE_POWER_LIMITS
+
+            .batteryMeters = {
+
+                .current = {
+                    .scale = CURRENT_METER_SCALE,
+                    .offset = CURRENT_METER_OFFSET,
+                }
+
+            }
 
         );
     }
@@ -179,8 +188,6 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
     .current = {
         .type = SETTING_CURRENT_METER_TYPE_DEFAULT,
-        .scale = CURRENT_METER_SCALE,
-        .offset = CURRENT_METER_OFFSET
     },
 
     .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
@@ -514,8 +521,8 @@ int16_t getAmperage(void)
 
 int16_t getAmperageSample(void)
 {
-    int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)batteryMetersConfig()->current.offset * 100;
-    return microvolts / batteryMetersConfig()->current.scale; // current in 0.01A steps
+    int32_t microvolts = ((uint32_t)adcGetChannel(ADC_CURRENT) * ADCVREF * 100) / 0xFFF * 10 - (int32_t)currentBatteryProfile->batteryMeters.current.offset * 100;
+    return microvolts / currentBatteryProfile->batteryMeters.current.scale; // current in 0.01A steps
 }
 
 int32_t getPower(void)
@@ -545,7 +552,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 break;
             }
         case CURRENT_SENSOR_VIRTUAL:
-            amperage = batteryMetersConfig()->current.offset;
+            amperage = currentBatteryProfile->batteryMeters.current.offset;
             if (ARMING_FLAG(ARMED)) {
                 navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
                 bool allNav = navConfig()->general.flags.nav_overrides_motor_stop == NOMS_ALL_NAV && posControl.navState != NAV_STATE_IDLE;
@@ -558,7 +565,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
                     throttleOffset = (throttleStickIsLow() && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
                 }
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
-                amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;
+                amperage += throttleFactor * currentBatteryProfile->batteryMeters.current.scale / 1000;
             }
             break;
 #if defined(USE_ESC_SENSOR)

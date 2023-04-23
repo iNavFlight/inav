@@ -1834,8 +1834,8 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE_CUSTOM(
             //Note: Log even if this is a virtual current meter, since the virtual meter uses these parameters too:
             if (feature(FEATURE_CURRENT_METER)) {
-                blackboxPrintfHeaderLine("currentMeter", "%d,%d",           batteryMetersConfig()->current.offset,
-                                                                            batteryMetersConfig()->current.scale);
+                blackboxPrintfHeaderLine("currentMeter", "%d,%d",           currentBatteryProfile->batteryMeters.current.offset,
+                                                                            currentBatteryProfile->batteryMeters.current.scale);
             }
             );
 
