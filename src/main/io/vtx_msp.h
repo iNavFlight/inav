@@ -24,6 +24,9 @@
 
 #include "build/build_config.h"
 
+#include "msp/msp_protocol.h"
+#include "msp/msp_serial.h"
+
 typedef enum {
     // Offline - device hasn't responded yet
     MSP_VTX_STATUS_OFFLINE = 0,
@@ -50,4 +53,4 @@ bool vtxMspInit(void);
 void setMspVtxDeviceStatusReady(const int descriptor);
 void prepareMspFrame(uint8_t *mspFrame);
 
-void mspVtxSerialProcess(void);
+void mspVtxSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
