@@ -93,7 +93,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXPREARM,           .boxName = "PREARM",            .permanentId = 51 },
     { .boxId = BOXTURTLE,           .boxName = "TURTLE",            .permanentId = 52 },
     { .boxId = BOXNAVCRUISE,        .boxName = "NAV CRUISE",        .permanentId = 53 },
-    { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL",        .permanentId = 54 },
+    { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL TRIM",   .permanentId = 54 },
     { .boxId = BOXPLANWPMISSION,    .boxName = "WP PLANNER",        .permanentId = 55 },
     { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
     { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },

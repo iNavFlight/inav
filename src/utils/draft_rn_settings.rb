@@ -54,7 +54,7 @@ ARGV.options do |opt|
   opt.banner = "#{File.basename($0)} [options]"
   opt.on('-t','--tag=TAG',  'New tag or branch') {|o|ntag=o}
   opt.on('-f','--from-tag=TAG', 'previous release tag or branch'){|o|otag=o}
-  opt.on('-b','--base=DIR',  "Base of the inav repo [#{base}]" ) {|o|base=o}
+  opt.on('-b','--base=DIR',  "Base of the INAV repo [#{base}]" ) {|o|base=o}
   opt.on('-?', "--help", "Show this message") {puts opt.to_s; exit}
   begin
     opt.parse!
