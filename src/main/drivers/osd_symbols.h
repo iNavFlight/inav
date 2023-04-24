@@ -258,6 +258,8 @@
 #define SYM_SERVO_PAN_IS_OFFSET_L   0x1C7 // 455 Pan servo is offset left
 #define SYM_SERVO_PAN_IS_OFFSET_R   0x1C8 // 456 Pan servo is offset right
 
+#define SYM_EST_FRESNEL_ALT         0x1C9 // 457 Estimated Fresnel Altitude
+
 #else
 
 #define TEMP_SENSOR_SYM_COUNT 0

@@ -31,3 +31,10 @@ If you have problems getting SmartAudio working. There are a couple of CLI param
 - If you are using softserial, you can try using the alternate method by setting [`vtx_smartaudio_alternate_softserial_method`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_alternate_softserial_method) to OFF.
 
 - If you are using TBS Sixty9 VTX you may consider to set count of stop bits to 1, using [`set vtx_smartaudio_stopbits = 1`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_stopbits)
+
+
+### Misc
+
+#### OSD Estimated Fresnel Altitude
+
+The Estimated Fresnel Alititude OSD element is a guide for helping avoid video signal block. It cannot know about features that may block signal. But can help in areas with reasonably clear line of sight. The system defaults to 5.8GHz. If you use a different frequency. You can use the CLI command `set vtx_frequency_group` to correct this. The options are `FREQUENCYGROUP_1G3`, `FREQUENCYGROUP_2G4`, and `FREQUENCYGROUP_5G8`.

@@ -40,7 +40,7 @@ int digitCount(int32_t value)
 }
 
 
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool showNegativeSymbol)
 {
     char *ptr = buff;
     char *dec;
@@ -108,7 +108,7 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     }
 
     // Write the minus sign if required
-    if (negative) {
+    if (negative && showNegativeSymbol) {
         *ptr = '-';
         ptr++;
     }

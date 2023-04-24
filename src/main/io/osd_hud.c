@@ -256,18 +256,18 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
             case OSD_UNIT_IMPERIAL:
                 {
                     if (poiType == 1) {
-                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 4, 4);
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 4, 4, true);
                     } else {
-                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3);
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_MILE, 0, 3, 3, true);
                     }
                 }
                 break;
             case OSD_UNIT_GA:
                 {
                     if (poiType == 1) {
-                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 4, 4);
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 4, 4, true);
                     } else {
-                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 3, 3);
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 3, 3, true);
                     }
                 }
                 break;
@@ -278,9 +278,9 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
             case OSD_UNIT_METRIC:
                 {
                     if (poiType == 1) {
-                        osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 4, 4);
+                        osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 4, 4, true);
                     } else {
-                        osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3);
+                        osdFormatCentiNumber(buff, poiDistance * 100, METERS_PER_KILOMETER, 0, 3, 3, true);
                     }
                 }
                 break;

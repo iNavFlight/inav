@@ -3697,7 +3697,7 @@ groups:
         max: 10000
       - name: vtx_frequency_group
         field: frequencyGroup
-        description: "VTx Frequency group to use. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz."
+        description: "VTx Frequency group to use. This is used by IRC Tramp frequency tables and also by the OSD Estimated Fresnel Altitude element. Frequency groups: FREQUENCYGROUP_5G8: 5.8GHz, FREQUENCYGROUP_2G4: 2.4GHz, FREQUENCYGROUP_1G3: 1.3GHz."
         table: vtx_frequency_groups
         min: 0
         max: 2

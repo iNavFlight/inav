@@ -33,6 +33,6 @@ int digitCount(int32_t value);
  * of the same length. If the value doesn't fit into the provided length
  * it will be divided by scale and true will be returned.
  */
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool showNegativeSymbol);
 
 #endif
