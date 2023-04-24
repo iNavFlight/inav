@@ -33,6 +33,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
         return ch;
     }
 
+    if (ech >= SYM_AH_DECORATION_MIN && ech <= SYM_AH_DECORATION_MAX) {
+        return BF_SYM_AH_DECORATION;
+    }
+
     switch (ech) {
     case SYM_RSSI:
         return BF_SYM_RSSI;
@@ -445,10 +449,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_AH_RIGHT:
         return BF_SYM_AH_RIGHT;
 
-    case SYM_AH_DECORATION_MIN:
-    case SYM_AH_DECORATION_MAX:
-    case SYM_AH_DECORATION:
-        return BF_SYM_AH_DECORATION;
 /*
     case SYM_AH_DECORATION_COUNT:
         return BF_SYM_AH_DECORATION_COUNT;
