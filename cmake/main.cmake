@@ -9,14 +9,24 @@ set(MAIN_DEFINITIONS
     __REVISION__="${GIT_REV}"
 )
 
-set(MAIN_COMPILE_OPTIONS
-    -Wall
-    -Wextra
-    -Wunsafe-loop-optimizations
-    -Wdouble-promotion
-    -Wstrict-prototypes
-    -Werror=switch
-)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(MAIN_COMPILE_OPTIONS
+        -Wall
+        -Wextra
+        -Wdouble-promotion
+        -Wstrict-prototypes
+        -Werror=switch
+    )
+else()
+    set(MAIN_COMPILE_OPTIONS
+        -Wall
+        -Wextra
+        -Wunsafe-loop-optimizations
+        -Wdouble-promotion
+        -Wstrict-prototypes
+        -Werror=switch
+    )
+endif()
 
 macro(main_sources var) # list-var src-1...src-n
     set(${var} ${ARGN})

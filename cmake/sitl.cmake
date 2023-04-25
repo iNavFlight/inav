@@ -59,13 +59,20 @@ else()
     )
 endif()
 
-set(SITL_COMPILE_OPTIONS
-    -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
-    -Wno-return-local-addr
-    -Wno-error=maybe-uninitialized
-    -fsingle-precision-constant
-    -funsigned-char
-)
+if(MACOSX)
+    set(SITL_COMPILE_OPTIONS
+        -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
+        -funsigned-char
+    )
+else()
+    set(SITL_COMPILE_OPTIONS
+        -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
+        -Wno-return-local-addr
+        -Wno-error=maybe-uninitialized
+        -fsingle-precision-constant
+        -funsigned-char
+    )
+endif()
 
 set(SITL_DEFINITIONS
     SITL_BUILD
