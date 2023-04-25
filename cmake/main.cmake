@@ -9,13 +9,16 @@ set(MAIN_DEFINITIONS
     __REVISION__="${GIT_REV}"
 )
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+# Can't check for OSX yet at this point
+if(SITL)
     set(MAIN_COMPILE_OPTIONS
         -Wall
         -Wextra
         -Wdouble-promotion
         -Wstrict-prototypes
         -Werror=switch
+	-Wno-unknown-warning-option
     )
 else()
     set(MAIN_COMPILE_OPTIONS

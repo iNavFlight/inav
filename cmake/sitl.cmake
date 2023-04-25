@@ -25,24 +25,26 @@ main_sources(SITL_SRC
     target/SITL/sim/xplane.h
 )
 
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(MACOSX ON)
+endif()
+
 if(MACOSX)
-set(SITL_LINK_OPTIONS
-    -Wl,-L${STM32_LINKER_DIR}
-    -Wl,--cref
+    set(SITL_LINK_OPTIONS
+        -Wl,-L${STM32_LINKER_DIR}
 )
 else()
-set(SITL_LINK_OPTIONS
-    -Wl,-L${STM32_LINKER_DIR}
-)
+    set(SITL_LINK_OPTIONS
+        -Wl,-L${STM32_LINKER_DIR}
+        -Wl,--cref
+    )
 endif()
 
 if(${WIN32} OR ${CYGWIN})
     set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-static-libgcc")
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(MACOSX ON)
-endif()
 
 if(MACOSX)
     set(SITL_LINK_LIBRARIS
