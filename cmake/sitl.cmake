@@ -131,7 +131,9 @@ function (target_sitl name)
     target_link_libraries(${exe_target} PRIVATE ${SITL_LINK_LIBRARIS})
     target_link_options(${exe_target} PRIVATE ${SITL_LINK_OPTIONS})
 
-    generate_map_file(${exe_target})
+    if (NOT SITL)
+        generate_map_file(${exe_target})
+    endif()
 
     set(script_path ${MAIN_SRC_DIR}/target/link/sitl.ld)
     if(NOT EXISTS ${script_path})
@@ -149,9 +151,8 @@ function (target_sitl name)
     endif()
 
     add_custom_target(${name} ALL
-        cmake -E env PATH="$ENV{PATH}"
-        ${CMAKE_OBJCOPY} $<TARGET_FILE:${exe_target}> ${exe_filename}
-        BYPRODUCTS ${hex}
+        cmake -E copy $<TARGET_FILE:${exe_target}> ${exe_filename}
+        #COMMAND file(COPY_FILE $<TARGET_FILE:${exe_target}> ${exe_filename} )
     )
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
