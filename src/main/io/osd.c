@@ -532,13 +532,23 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
-    int digits;
-    if (alt < 0) {
-        digits = 4;
-    } else {
-        digits = 3;
+    uint8_t digits = 4U;
+    uint8_t symbolIndex = 4U;
+    uint8_t symbolKFt = SYM_ALT_KFT;
+
+    if (alt >= 0) {
+        digits = 3U;
         buff[0] = ' ';
     }
+
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values  
+    if (isBfCompatibleVideoSystem(osdConfig())) {
+        digits++;
+        symbolIndex++;
+        symbolKFt = SYM_ALT_FT;
+    }
+#endif
+
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
@@ -547,12 +557,12 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         case OSD_UNIT_IMPERIAL:
             if (osdFormatCentiNumber(buff + 4 - digits, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, digits)) {
                 // Scaled to kft
-                buff[4] = SYM_ALT_KFT;
+                buff[symbolIndex++] = symbolKFt;
             } else {
                 // Formatted in feet
-                buff[4] = SYM_ALT_FT;
+                buff[symbolIndex++] = SYM_ALT_FT;
             }
-            buff[5] = '\0';
+            buff[symbolIndex] = '\0';
             break;
         case OSD_UNIT_METRIC_MPH:
             FALLTHROUGH;
@@ -560,12 +570,12 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
             // alt is alredy in cm
             if (osdFormatCentiNumber(buff + 4 - digits, alt, 1000, 0, 2, digits)) {
                 // Scaled to km
-                buff[4] = SYM_ALT_KM;
+                buff[symbolIndex++] = SYM_ALT_KM;
             } else {
                 // Formatted in m
-                buff[4] = SYM_ALT_M;
+                buff[symbolIndex++] = SYM_ALT_M;
             }
-            buff[5] = '\0';
+            buff[symbolIndex] = '\0';
             break;
     }
 }
@@ -2001,18 +2011,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ALTITUDE:
         {
             int32_t alt = osdGetAltitude();
-
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it
-            if (isBfCompatibleVideoSystem(osdConfig())) {
-                // Use the same formatting function used for distance, which provides the proper scaling functionality
-                osdFormatDistanceSymbol(buff, alt, 0);
-            } else {
-                osdFormatAltitudeSymbol(buff, alt);
-            }
-#else       
-            // BFCOMPAT mode not supported, directly call original altitude formatting function
             osdFormatAltitudeSymbol(buff, alt);
-#endif
 
             uint16_t alt_alarm = osdConfig()->alt_alarm;
             uint16_t neg_alt_alarm = osdConfig()->neg_alt_alarm;
@@ -2027,17 +2026,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ALTITUDE_MSL:
         {
             int32_t alt = osdGetAltitudeMsl();
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it
-            if (isBfCompatibleVideoSystem(osdConfig())) {
-                // Use the same formatting function used for distance, which provides the proper scaling functionality
-                osdFormatDistanceSymbol(buff, alt, 0);
-            } else {
-                osdFormatAltitudeSymbol(buff, alt);
-            }
-#else
-            // BFCOMPAT mode not supported, directly call original altitude formatting function
             osdFormatAltitudeSymbol(buff, alt);
-#endif
             break;
         }
 
