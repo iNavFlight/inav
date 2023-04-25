@@ -638,7 +638,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_GPS)
     // use ground speed if source available
-    if (!( sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX))) {
+    if (sensors(SENSOR_GPS) || STATE(GPS_ESTIMATED_FIX)) {
         mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
     }
 #endif
