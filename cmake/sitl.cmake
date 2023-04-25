@@ -25,21 +25,39 @@ main_sources(SITL_SRC
     target/SITL/sim/xplane.h
 )
 
+if(MACOSX)
 set(SITL_LINK_OPTIONS
-    -lrt
     -Wl,-L${STM32_LINKER_DIR}
     -Wl,--cref
 )
+else()
+set(SITL_LINK_OPTIONS
+    -Wl,-L${STM32_LINKER_DIR}
+)
+endif()
 
 if(${WIN32} OR ${CYGWIN})
     set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-static-libgcc")
 endif()
 
-set(SITL_LINK_LIBRARIS
-    -lpthread
-    -lm
-    -lc
-)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(MACOSX ON)
+endif()
+
+if(MACOSX)
+    set(SITL_LINK_LIBRARIS
+        -lpthread
+        -lm
+        -lc
+    )
+else()
+    set(SITL_LINK_LIBRARIS
+        -lpthread
+        -lm
+        -lc
+        -lrt
+    )
+endif()
 
 set(SITL_COMPILE_OPTIONS
     -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
@@ -59,7 +77,12 @@ function(generate_map_file target)
     else()
         set(map "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>.map")
     endif()
-    target_link_options(${target} PRIVATE "-Wl,-gc-sections,-Map,${map}")
+
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        #target_link_options(${target} PRIVATE "-Map,${map}")
+    else()
+        target_link_options(${target} PRIVATE "-Wl,-gc-sections,-Map,${map}")
+    endif()
 endfunction()
 
 function (target_sitl name)
@@ -115,7 +138,9 @@ function (target_sitl name)
         message(FATAL_ERROR "linker script ${script_path} doesn't exist")
     endif()
     set_target_properties(${exe_target} PROPERTIES LINK_DEPENDS ${script_path})
-    target_link_options(${exe_target} PRIVATE -T${script_path})
+    if(NOT MACOSX)
+        target_link_options(${exe_target} PRIVATE -T${script_path})
+    endif()
 
     if(${WIN32} OR ${CYGWIN})
         set(exe_filename ${CMAKE_BINARY_DIR}/${binary_name}.exe)
