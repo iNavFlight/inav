@@ -18,7 +18,7 @@ if(SITL)
         -Wdouble-promotion
         -Wstrict-prototypes
         -Werror=switch
-	-Wno-unknown-warning-option
+        #-Wno-unknown-warning-option
     )
 else()
     set(MAIN_COMPILE_OPTIONS

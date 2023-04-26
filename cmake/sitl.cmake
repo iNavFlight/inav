@@ -30,69 +30,40 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   set(MACOSX ON)
 endif()
 
-if(MACOSX)
-    set(SITL_LINK_OPTIONS
-        -Wl,-L${STM32_LINKER_DIR}
+set(SITL_LINK_OPTIONS
+    -Wl,-L${STM32_LINKER_DIR}
 )
-else()
-    set(SITL_LINK_OPTIONS
-        -Wl,-L${STM32_LINKER_DIR}
-        -Wl,--cref
-    )
-endif()
 
 if(${WIN32} OR ${CYGWIN})
     set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-static-libgcc")
 endif()
 
+set(SITL_LINK_LIBRARIS
+    -lpthread
+    -lm
+    -lc
+)
 
-if(MACOSX)
-    set(SITL_LINK_LIBRARIS
-        -lpthread
-        -lm
-        -lc
-    )
-else()
-    set(SITL_LINK_LIBRARIS
-        -lpthread
-        -lm
-        -lc
-        -lrt
-    )
+if(NOT MACOSX)
+    set(SITL_LINK_LIBRARIS ${SITL_LINK_LIBRARIS} -lrt)
 endif()
 
-if(MACOSX)
-    set(SITL_COMPILE_OPTIONS
-        -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
-        -funsigned-char
-    )
-else()
-    set(SITL_COMPILE_OPTIONS
-        -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
+set(SITL_COMPILE_OPTIONS
+    -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
+    -funsigned-char
+)
+
+if(NOT MACOSX)
+    set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
         -Wno-return-local-addr
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
-        -funsigned-char
     )
 endif()
 
 set(SITL_DEFINITIONS
     SITL_BUILD
 )
-
-function(generate_map_file target)
-    if(CMAKE_VERSION VERSION_LESS 3.15)
-        set(map "$<TARGET_FILE:${target}>.map")
-    else()
-        set(map "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>.map")
-    endif()
-
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        #target_link_options(${target} PRIVATE "-Map,${map}")
-    else()
-        target_link_options(${target} PRIVATE "-Wl,-gc-sections,-Map,${map}")
-    endif()
-endfunction()
 
 function (target_sitl name)
     if(CMAKE_VERSION VERSION_GREATER 3.22)
@@ -139,10 +110,6 @@ function (target_sitl name)
 
     target_link_libraries(${exe_target} PRIVATE ${SITL_LINK_LIBRARIS})
     target_link_options(${exe_target} PRIVATE ${SITL_LINK_OPTIONS})
-
-    if (NOT SITL)
-        generate_map_file(${exe_target})
-    endif()
 
     set(script_path ${MAIN_SRC_DIR}/target/link/sitl.ld)
     if(NOT EXISTS ${script_path})
