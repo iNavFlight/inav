@@ -128,7 +128,6 @@ function (target_sitl name)
 
     add_custom_target(${name} ALL
         cmake -E copy $<TARGET_FILE:${exe_target}> ${exe_filename}
-        #COMMAND file(COPY_FILE $<TARGET_FILE:${exe_target}> ${exe_filename} )
     )
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
