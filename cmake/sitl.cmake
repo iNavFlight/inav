@@ -25,10 +25,13 @@ main_sources(SITL_SRC
     target/SITL/sim/xplane.h
 )
 
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(MACOSX ON)
+endif()
+
 set(SITL_LINK_OPTIONS
-    -lrt
     -Wl,-L${STM32_LINKER_DIR}
-    -Wl,--cref
 )
 
 if(${WIN32} OR ${CYGWIN})
@@ -41,26 +44,26 @@ set(SITL_LINK_LIBRARIS
     -lc
 )
 
+if(NOT MACOSX)
+    set(SITL_LINK_LIBRARIS ${SITL_LINK_LIBRARIS} -lrt)
+endif()
+
 set(SITL_COMPILE_OPTIONS
     -Wno-format #Fixme: Compile for 32bit, but settings.rb has to be adjusted
-    -Wno-return-local-addr
-    -Wno-error=maybe-uninitialized
-    -fsingle-precision-constant
     -funsigned-char
 )
+
+if(NOT MACOSX)
+    set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
+        -Wno-return-local-addr
+        -Wno-error=maybe-uninitialized
+        -fsingle-precision-constant
+    )
+endif()
 
 set(SITL_DEFINITIONS
     SITL_BUILD
 )
-
-function(generate_map_file target)
-    if(CMAKE_VERSION VERSION_LESS 3.15)
-        set(map "$<TARGET_FILE:${target}>.map")
-    else()
-        set(map "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>.map")
-    endif()
-    target_link_options(${target} PRIVATE "-Wl,-gc-sections,-Map,${map}")
-endfunction()
 
 function (target_sitl name)
     if(CMAKE_VERSION VERSION_GREATER 3.22)
@@ -108,14 +111,14 @@ function (target_sitl name)
     target_link_libraries(${exe_target} PRIVATE ${SITL_LINK_LIBRARIS})
     target_link_options(${exe_target} PRIVATE ${SITL_LINK_OPTIONS})
 
-    generate_map_file(${exe_target})
-
     set(script_path ${MAIN_SRC_DIR}/target/link/sitl.ld)
     if(NOT EXISTS ${script_path})
         message(FATAL_ERROR "linker script ${script_path} doesn't exist")
     endif()
     set_target_properties(${exe_target} PROPERTIES LINK_DEPENDS ${script_path})
-    target_link_options(${exe_target} PRIVATE -T${script_path})
+    if(NOT MACOSX)
+        target_link_options(${exe_target} PRIVATE -T${script_path})
+    endif()
 
     if(${WIN32} OR ${CYGWIN})
         set(exe_filename ${CMAKE_BINARY_DIR}/${binary_name}.exe)
@@ -124,9 +127,7 @@ function (target_sitl name)
     endif()
 
     add_custom_target(${name} ALL
-        cmake -E env PATH="$ENV{PATH}"
-        ${CMAKE_OBJCOPY} $<TARGET_FILE:${exe_target}> ${exe_filename}
-        BYPRODUCTS ${hex}
+        cmake -E copy $<TARGET_FILE:${exe_target}> ${exe_filename}
     )
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
