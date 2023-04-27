@@ -1048,7 +1048,7 @@ static bool djiFormatMessages(char *buff)
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTOLEVEL)";
+                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
