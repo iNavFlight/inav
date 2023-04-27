@@ -559,7 +559,7 @@ bool isGPSHealthy(void)
 //NOTE: checks if real GPS data present, ignoring any available GPS Fix estimation 
 bool isGPSHeadingValid(void)
 {
-    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6 && gpsSol.groundSpeed >= 300;
+    return sensors(SENSOR_GPS) && ((STATE(GPS_FIX) && gpsSol.numSat >= 6) || STATE(GPS_ESTIMATED_FIX)) && gpsSol.groundSpeed >= 300;
 }
 
 #endif
