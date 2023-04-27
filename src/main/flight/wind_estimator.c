@@ -52,7 +52,7 @@ static float lastFuselageDirection[XYZ_AXIS_COUNT];
 
 bool isEstimatedWindSpeedValid(void)
 {
-    return hasValidWindEstimate;
+    return hasValidWindEstimate || STATE(GPS_ESTIMATED_FIX);  //use any wind estimate with GPS fix estimation.
 }
 
 float getEstimatedWindSpeed(int axis)
