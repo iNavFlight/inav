@@ -59,6 +59,9 @@
 
 #include "io/beeper.h"
 
+#if defined(USE_FAKE_BATT_SENSOR)
+#include "sensors/battery_sensor_fake.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -283,25 +286,59 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             }
             break;
 #endif
-        case VOLTAGE_SENSOR_NONE:
+        
+#if defined(USE_FAKE_BATT_SENSOR)
+    case VOLTAGE_SENSOR_FAKE:
+        vbat = fakeBattSensorGetVBat();
+        break;
+#endif
+    case VOLTAGE_SENSOR_NONE:
         default:
             vbat = 0;
             break;
     }
-#ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE)) {
-		if (SIMULATOR_HAS_OPTION(HITL_SIMULATE_BATTERY)) {
-            vbat = ((uint16_t)simulatorData.vbat) * 10;
-            batteryFullVoltage = 1260;
-			batteryWarningVoltage = 1020;
-			batteryCriticalVoltage = 960;
-		}
-	}
-#endif
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
     } else {
         vbat = pt1FilterApply4(&vbatFilterState, vbat, VBATT_LPF_FREQ, US2S(timeDelta));
+    }
+}
+
+batteryState_e checkBatteryVoltageState(void)
+{
+    uint16_t stateVoltage = getBatteryVoltage();
+    switch (batteryState)
+    {
+        case BATTERY_OK:
+            if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS)) {
+                return BATTERY_WARNING;
+            }
+            break;
+        case BATTERY_WARNING:
+            if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
+                return BATTERY_CRITICAL;
+            } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
+                return BATTERY_OK;
+            }
+            break;
+        case BATTERY_CRITICAL:
+            if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS)) {
+                return BATTERY_WARNING;
+            }
+            break;
+        default:
+            break;
+    }
+
+    return batteryState;
+}
+
+static void checkBatteryCapacityState(void)
+{
+    if (batteryRemainingCapacity == 0) {
+        batteryState = BATTERY_CRITICAL;
+    } else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical) {
+        batteryState = BATTERY_WARNING;
     }
 }
 
@@ -367,32 +404,9 @@ void batteryUpdate(timeUs_t timeDelta)
         }
 
         if (batteryUseCapacityThresholds) {
-            if (batteryRemainingCapacity == 0)
-                batteryState = BATTERY_CRITICAL;
-            else if (batteryRemainingCapacity <= currentBatteryProfile->capacity.warning - currentBatteryProfile->capacity.critical)
-                batteryState = BATTERY_WARNING;
+            checkBatteryCapacityState();
         } else {
-            uint16_t stateVoltage = getBatteryVoltage();
-            switch (batteryState)
-            {
-                case BATTERY_OK:
-                    if (stateVoltage <= (batteryWarningVoltage - VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
-                    break;
-                case BATTERY_WARNING:
-                    if (stateVoltage <= (batteryCriticalVoltage - VBATT_HYSTERESIS)) {
-                        batteryState = BATTERY_CRITICAL;
-                    } else if (stateVoltage > (batteryWarningVoltage + VBATT_HYSTERESIS)){
-                        batteryState = BATTERY_OK;
-                    }
-                    break;
-                case BATTERY_CRITICAL:
-                    if (stateVoltage > (batteryCriticalVoltage + VBATT_HYSTERESIS))
-                        batteryState = BATTERY_WARNING;
-                    break;
-                default:
-                    break;
-            }
+            batteryState = checkBatteryVoltageState();
         }
 
         // handle beeper
@@ -461,11 +475,6 @@ uint16_t getBatterySagCompensatedVoltage(void)
 float calculateThrottleCompensationFactor(void)
 {
     return 1.0f + ((float)batteryFullVoltage / sagCompensatedVBat - 1.0f) * batteryMetersConfig()->throttle_compensation_weight;
-}
-
-uint16_t getBatteryWarningVoltage(void)
-{
-    return batteryWarningVoltage;
 }
 
 uint8_t getBatteryCellCount(void)
@@ -572,6 +581,12 @@ void currentMeterUpdate(timeUs_t timeDelta)
                     amperage = 0;
                 }
             }
+            break;
+#endif
+
+#if defined(USE_FAKE_BATT_SENSOR)
+        case CURRENT_SENSOR_FAKE:
+            amperage = fakeBattSensorGetAmerperage();
             break;
 #endif
         case CURRENT_SENSOR_NONE:

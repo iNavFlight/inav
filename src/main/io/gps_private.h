@@ -78,4 +78,10 @@ extern void gpsHandleNMEA(void);
 extern void gpsRestartMSP(void);
 extern void gpsHandleMSP(void);
 
+#if defined(USE_GPS_FAKE)
+extern void gpsFakeRestart(void);
+extern void gpsFakeHandle(void);
+#endif
+
+
 #endif

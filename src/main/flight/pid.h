@@ -108,9 +108,6 @@ typedef struct pidProfile_s {
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf_hz;                  
     
-    uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf2_hz;                 
-    
     uint8_t yaw_lpf_hz;
 
     uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller

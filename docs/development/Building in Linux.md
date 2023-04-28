@@ -53,7 +53,7 @@ sudo pacman -Syu
 sudo pacman -S git make ruby cmake gcc
 ```
 
-Once these prerequisites are installed, we can clone the repository to provide a local instance of the inav source code.
+Once these prerequisites are installed, we can clone the repository to provide a local instance of the INAV source code.
 
 ## Cloning the repository
 ```

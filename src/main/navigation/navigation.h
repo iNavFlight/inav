@@ -211,23 +211,24 @@ typedef struct navConfig_s {
 
     struct {
         struct {
-            uint8_t use_thr_mid_for_althold;    // Don't remember throttle when althold was initiated, assume that throttle is at Thr Mid = zero climb rate
-            uint8_t extra_arming_safety;        // from navExtraArmingSafety_e
-            uint8_t user_control_mode;          // NAV_GPS_ATTI or NAV_GPS_CRUISE
-            uint8_t rth_alt_control_mode;       // Controls the logic for choosing the RTH altitude
-            uint8_t rth_climb_first;            // Controls the logic for initial RTH climbout
-            uint8_t rth_climb_first_stage_mode;  // To determine how rth_climb_first_stage_altitude is used
-            uint8_t rth_tail_first;             // Return to home tail first
-            uint8_t disarm_on_landing;          //
-            uint8_t rth_allow_landing;          // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
-            uint8_t rth_climb_ignore_emerg;     // Option to ignore GPS loss on initial climb stage of RTH
-            uint8_t rth_alt_control_override;   // Override RTH Altitude and Climb First settings using Pitch and Roll stick
-            uint8_t nav_overrides_motor_stop;   // Autonomous modes override motor_stop setting and user command to stop motor
-            uint8_t safehome_usage_mode;        // Controls when safehomes are used
-            uint8_t soaring_motor_stop;         // stop motor when Soaring mode enabled
-            uint8_t mission_planner_reset;      // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
-            uint8_t waypoint_mission_restart;   // Waypoint mission restart action
-            uint8_t rth_trackback_mode;         // Useage mode setting for RTH trackback
+            uint8_t use_thr_mid_for_althold;        // Don't remember throttle when althold was initiated, assume that throttle is at Thr Mid = zero climb rate
+            uint8_t extra_arming_safety;            // from navExtraArmingSafety_e
+            uint8_t user_control_mode;              // NAV_GPS_ATTI or NAV_GPS_CRUISE
+            uint8_t rth_alt_control_mode;           // Controls the logic for choosing the RTH altitude
+            uint8_t rth_climb_first;                // Controls the logic for initial RTH climbout
+            uint8_t rth_climb_first_stage_mode;     // To determine how rth_climb_first_stage_altitude is used
+            uint8_t rth_tail_first;                 // Return to home tail first
+            uint8_t disarm_on_landing;              //
+            uint8_t rth_allow_landing;              // Enable landing as last stage of RTH. Use constants in navRTHAllowLanding_e.
+            uint8_t rth_climb_ignore_emerg;         // Option to ignore GPS loss on initial climb stage of RTH
+            uint8_t rth_alt_control_override;       // Override RTH Altitude and Climb First settings using Pitch and Roll stick
+            uint8_t nav_overrides_motor_stop;       // Autonomous modes override motor_stop setting and user command to stop motor
+            uint8_t safehome_usage_mode;            // Controls when safehomes are used
+            uint8_t soaring_motor_stop;             // stop motor when Soaring mode enabled
+            uint8_t mission_planner_reset;          // Allow WP Mission Planner reset using mode toggle (resets WPs to 0)
+            uint8_t waypoint_mission_restart;       // Waypoint mission restart action
+            uint8_t rth_trackback_mode;             // Useage mode setting for RTH trackback
+            uint8_t rth_use_linear_descent;         // Use linear descent in the RTH head home leg
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
@@ -259,6 +260,7 @@ typedef struct navConfig_s {
         uint16_t waypoint_enforce_altitude;         // Forces waypoint altitude to be achieved
         uint8_t  land_detect_sensitivity;           // Sensitivity of landing detector
         uint16_t auto_disarm_delay;                 // safety time delay for landing detector
+        uint16_t rth_linear_descent_start_distance; // Distance from home to start the linear descent (0 = immediately)
     } general;
 
     struct {

@@ -27,6 +27,8 @@
 
 #include "blackbox/blackbox.h"
 
+#include "cms/cms.h"
+
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -250,17 +252,16 @@ void processRcStickPositions(bool isThrottleLow)
         return;
     }
 
-    if (ARMING_FLAG(ARMED)) {
-        // actions during armed
+    /* Disable stick commands when armed, in CLI mode or CMS is active */
+    bool disableStickCommands = ARMING_FLAG(ARMED) || cliMode;
+#ifdef USE_CMS
+    disableStickCommands = disableStickCommands || cmsInMenu;
+#endif
+    if (disableStickCommands) {
         return;
     }
 
-    // Disable stick commands when in CLI mode. Ideally, they should also be disabled when configurator is connected
-    if (cliMode) {
-        return;
-    }
-
-    // actions during not armed and not in CLI
+    /* REMAINING SECTION HANDLES STICK COMANDS ONLY */
 
     // GYRO calibration
     if (rcSticks == THR_LO + YAW_LO + PIT_LO + ROL_CE) {

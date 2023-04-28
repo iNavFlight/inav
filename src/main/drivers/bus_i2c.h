@@ -47,12 +47,16 @@ typedef enum I2CDevice {
 } I2CDevice;
 
 typedef struct i2cDevice_s {
+#if defined(AT32F43x) 
+    i2c_type *dev;
+#else
     I2C_TypeDef *dev;
+#endif
     ioTag_t scl;
     ioTag_t sda;
     rccPeriphTag_t rcc;
     I2CSpeed speed;
-#if defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x) 
     uint8_t ev_irq;
     uint8_t er_irq;
     uint8_t af;
@@ -64,5 +68,6 @@ void i2cInit(I2CDevice device);
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess);
 bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
 bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
+bool i2cBusy(I2CDevice device, bool *error);
 
 uint16_t i2cGetErrorCounter(void);

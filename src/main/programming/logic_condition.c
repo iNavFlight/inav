@@ -93,7 +93,9 @@ static int logicConditionCompute(
     uint8_t lcIndex
 ) {
     int temporaryValue;
+#if defined(USE_VTX_CONTROL)
     vtxDeviceCapability_t vtxDeviceCapability;
+#endif    
 
     switch (operation) {
 
@@ -284,7 +286,8 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_CONTROL) 
+#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
             if (
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
@@ -324,7 +327,7 @@ static int logicConditionCompute(
                 return false;
             }
             break;
-        
+#endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
             return true;
@@ -808,12 +811,16 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_WAYPOINT_MISSION:
+            return (bool) FLIGHT_MODE(NAV_WP_MODE);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD:
-            return (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
+            return ((bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !(bool)FLIGHT_MODE(NAV_ALTHOLD_MODE));
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
-            return (bool)(FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE));
+            return (bool) (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE));
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
@@ -830,6 +837,11 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
             return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ACRO:
+            return (((bool) FLIGHT_MODE(ANGLE_MODE) || (bool) FLIGHT_MODE(HORIZON_MODE) || (bool) FLIGHT_MODE(MANUAL_MODE) || (bool) FLIGHT_MODE(NAV_RTH_MODE) || 
+                    (bool) FLIGHT_MODE(NAV_POSHOLD_MODE) || (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || (bool) FLIGHT_MODE(NAV_WP_MODE)) == false);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1:
