@@ -3560,8 +3560,12 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 }
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-                    simulatorData.airSpeed = sbufReadU16(src);   
-			    }
+                    simulatorData.airSpeed = sbufReadU16(src);
+			    } else {
+                    if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
+                        sbufReadU16(src); 
+                    }
+                }
 
                 if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
                     simulatorData.flags |= ((uint16_t)sbufReadU8(src)) << 8;
