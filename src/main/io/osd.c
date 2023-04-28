@@ -1969,7 +1969,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 osdFormatAltitudeSymbol(buff, alt);
             }
-#else       
+#else
             // BFCOMPAT mode not supported, directly call original altitude formatting function
             osdFormatAltitudeSymbol(buff, alt);
 #endif
@@ -2948,7 +2948,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in BFCOMPAT mode
                         buff[digits + 1] = SYM_MAH_MI_1;
                         buff[digits + 2] = '\0';
@@ -2962,7 +2962,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_NM_0;
                         buff[digits + 1] = SYM_MAH_NM_1;
                         buff[digits + 2] = '\0';
@@ -2978,7 +2978,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_KM_0;
                         buff[digits + 1] = SYM_MAH_KM_1;
                         buff[digits + 2] = '\0';
@@ -4946,12 +4946,12 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
         messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW !";
     }
 
-    // Vibration levels
-    const float vibrationLevel = accGetVibrationLevel();
-    warningCondition = vibrationLevel > 1.5f;
-    if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
-        messages[messageCount++] = vibrationLevel > 2.5f ? "BAD VIBRTN" : "VIBRATION!";
-    }
+    // Vibration levels   TODO - needs better vibration measurement to be useful
+    // const float vibrationLevel = accGetVibrationLevel();
+    // warningCondition = vibrationLevel > 1.5f;
+    // if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+        // messages[messageCount++] = vibrationLevel > 2.5f ? "BAD VIBRTN" : "VIBRATION!";
+    // }
 
 #if defined(USE_GPS)
     // GPS Fix and Failure
