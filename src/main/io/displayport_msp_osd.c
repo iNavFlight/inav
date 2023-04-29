@@ -342,7 +342,7 @@ static int screenSize(const displayPort_t *displayPort)
 static uint32_t txBytesFree(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return mspSerialTxBytesFree();
+    return mspSerialTxBytesFree(mspPort.port);
 }
 
 static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
