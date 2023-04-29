@@ -275,7 +275,7 @@ uint32_t baroUpdate(void)
 
         case BAROMETER_NEEDS_CALCULATION:
             if (baro.dev.get_up) {
-                 baro.dev.get_up(&baro.dev);
+                baro.dev.get_up(&baro.dev);
             }
             if (baro.dev.start_ut) {
                 baro.dev.start_ut(&baro.dev);
