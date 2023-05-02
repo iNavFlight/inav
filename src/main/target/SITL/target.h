@@ -69,6 +69,9 @@
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
 
+#define USE_MSP_OSD
+#define USE_OSD
+
 #undef USE_DASHBOARD
 
 #undef USE_GYRO_KALMAN // Strange behaviour under x86/x64 ?!?
@@ -86,9 +89,6 @@
 #undef USE_TELEMETRY_JETIEXBUS
 #undef USE_TELEMETRY_SRXL
 #undef USE_TELEMETRY_GHST
-#undef USE_VTX_COMMON
-#undef USE_VTX_CONTROL
-#undef USE_VTX_SMARTAUDIO
 #undef USE_VTX_TRAMP
 #undef USE_CAMERA_CONTROL
 #undef USE_BRUSHED_ESC_AUTODETECT
