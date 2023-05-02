@@ -64,6 +64,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
+#include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
