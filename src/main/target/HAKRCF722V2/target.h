@@ -155,8 +155,8 @@
 
 // *** ADC ***
 #define USE_ADC
-#define ADC_INSTANCE                ADC3
-#define ADC1_DMA_STREAM             DMA2_Stream0
+//#define ADC_INSTANCE                ADC3
+//#define ADC1_DMA_STREAM             DMA2_Stream0
 #define ADC_CHANNEL_1_PIN           PC1
 #define ADC_CHANNEL_2_PIN           PC3
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
