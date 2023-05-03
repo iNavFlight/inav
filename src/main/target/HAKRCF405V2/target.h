@@ -96,6 +96,7 @@
 
 /*** Serial ports ***/
 #define USE_VCP
+#define USE_UART_INVERTER
 
 #define USE_UART1
 #define UART1_RX_PIN            PB7
@@ -120,7 +121,7 @@
 
 #define USE_UART6
 #define UART6_RX_PIN            PC7
-#define UART6_TX_PIN            PC12
+#define UART6_TX_PIN            PC6
 
 #define SERIAL_PORT_COUNT       7
 
@@ -146,7 +147,7 @@
 
 
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_3
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 
 
 /*** LED STRIP ***/
