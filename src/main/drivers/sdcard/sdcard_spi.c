@@ -862,6 +862,7 @@ void sdcardSpi_init(void)
     int time = 100000;
     while (busIsBusy(sdcard.dev)) {
         if (time-- == 0) {
+            busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
             busDeviceDeInit(sdcard.dev);
             sdcard.dev = NULL;
             sdcard.state = SDCARD_STATE_NOT_PRESENT;
@@ -873,6 +874,8 @@ void sdcardSpi_init(void)
     sdcard.operationStartTime = millis();
     sdcard.state = SDCARD_STATE_RESET;
     sdcard.failureCount = 0;
+
+    busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
 }
 
 sdcardVTable_t sdcardSpiVTable = {
