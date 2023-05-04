@@ -851,7 +851,7 @@ void sdcardSpi_init(void)
     busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
 
     // SDCard wants 1ms minimum delay after power is applied to it
-    delay(1000);
+    delay(1);
 
     // Transmit at least 74 dummy clock cycles with CS high so the SD card can start up
     busDeselectDevice(sdcard.dev);
