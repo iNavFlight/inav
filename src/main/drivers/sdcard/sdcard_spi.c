@@ -90,10 +90,6 @@ static void sdcardSpi_reset(void)
         return;
     }
 
-    if (sdcard.state >= SDCARD_STATE_READY) {
-        busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
-    }
-
     sdcard.failureCount++;
     if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
@@ -457,6 +453,7 @@ static bool sdcardSpi_poll(void)
     doMore:
     switch (sdcard.state) {
         case SDCARD_STATE_RESET:
+            busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
             sdcardSpi_select();
 
             initStatus = sdcardSpi_sendCommand(SDCARD_COMMAND_GO_IDLE_STATE, 0);
@@ -474,9 +471,13 @@ static bool sdcardSpi_poll(void)
                     sdcard.state = SDCARD_STATE_NOT_PRESENT;
                 }
             }
+
+            busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
         break;
 
         case SDCARD_STATE_CARD_INIT_IN_PROGRESS:
+            busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
+
             if (sdcardSpi_checkInitDone()) {
                 if (sdcard.version == 2) {
                     // Check for high capacity card
@@ -511,8 +512,12 @@ static bool sdcardSpi_poll(void)
                     }
                 }
             }
+
+            busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
         break;
         case SDCARD_STATE_INITIALIZATION_RECEIVE_CID:
+            busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
+
             if (sdcardSpi_receiveCID()) {
                 sdcardSpi_deselect();
 
@@ -532,6 +537,8 @@ static bool sdcardSpi_poll(void)
                 sdcard.state = SDCARD_STATE_READY;
                 goto doMore;
             } // else keep waiting for the CID to arrive
+
+            busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
         break;
         case SDCARD_STATE_SENDING_WRITE:
             // Have we finished sending the write yet?
