@@ -58,13 +58,24 @@ extern uint8_t __config_end;
 
 #define USE_ARM_MATH // try to use FPU functions
 
-#if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
+#if defined(SITL_BUILD) || defined(UNIT_TEST)
 // This feature uses 'arm_math.h', which does not exist for x86.
 #undef USE_DYNAMIC_FILTERS
 #undef USE_ARM_MATH
 #endif
 
 //Defines for compiler optimizations
+#ifdef STM32H7
+
+#define FUNCTION_COMPILE_FOR_SIZE
+#define FUNCTION_COMPILE_NORMAL
+#define FUNCTION_COMPILE_FOR_SPEED
+#define FILE_COMPILE_FOR_SIZE
+#define FILE_COMPILE_NORMAL
+#define FILE_COMPILE_FOR_SPEED
+
+#else
+
 #define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
 #define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
 #define FUNCTION_COMPILE_FOR_SPEED __attribute__((optimize("-Ofast")))
@@ -72,7 +83,9 @@ extern uint8_t __config_end;
 #define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
 #define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
 
-#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_EXTERNAL_FLASH)
+#endif
+
+#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_FILE) || defined(CONFIG_IN_EXTERNAL_FLASH)
 #ifndef EEPROM_SIZE
 #define EEPROM_SIZE     8192
 #endif

@@ -118,7 +118,8 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
-    .name = SETTING_NAME_DEFAULT
+    .craftName = SETTING_NAME_DEFAULT,
+    .pilotName = SETTING_NAME_DEFAULT
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
@@ -142,6 +143,12 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
+#define SAVESTATE_NONE 0
+#define SAVESTATE_SAVEONLY 1
+#define SAVESTATE_SAVEANDNOTIFY 2
+
+static uint8_t saveState = SAVESTATE_NONE;
+
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
@@ -152,14 +159,17 @@ void validateNavConfig(void)
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
-
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
@@ -169,11 +179,13 @@ __attribute__((weak)) void targetConfiguration(void)
 #define SECOND_PORT_INDEX 1
 #endif
 
-uint32_t getLooptime(void) {
+uint32_t getLooptime(void)
+{
     return gyroConfig()->looptime;
 }
 
-uint32_t getGyroLooptime(void) {
+uint32_t getGyroLooptime(void)
+{
     return gyro.targetLooptime;
 }
 
@@ -327,12 +339,20 @@ void readEEPROM(void)
     resumeRxSignal();
 }
 
+void processSaveConfigAndNotify(void)
+{
+    writeEEPROM();
+    readEEPROM();
+    beeperConfirmationBeeps(1);
+#ifdef USE_OSD
+    osdShowEEPROMSavedNotification();
+#endif
+}
+
 void writeEEPROM(void)
 {
     suspendRxSignal();
-
     writeConfigToEEPROM();
-
     resumeRxSignal();
 }
 
@@ -350,11 +370,39 @@ void ensureEEPROMContainsValidData(void)
     resetEEPROM();
 }
 
+/*
+ * Used to save the EEPROM and notify the user with beeps and OSD notifications.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
+ */
 void saveConfigAndNotify(void)
 {
-    writeEEPROM();
-    readEEPROM();
-    beeperConfirmationBeeps(1);
+#ifdef USE_OSD
+    osdStartedSaveProcess();
+#endif
+    saveState = SAVESTATE_SAVEANDNOTIFY;
+}
+
+/*
+ * Used to save the EEPROM without notifications. Can be used instead of writeEEPROM() if no reboot is called after the write.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
+ * If any save with notifications are requested, notifications are shown.
+ */
+void saveConfig(void)
+{
+    if (saveState != SAVESTATE_SAVEANDNOTIFY) {
+        saveState = SAVESTATE_SAVEONLY;
+    }
+}
+
+void processDelayedSave(void)
+{
+    if (saveState == SAVESTATE_SAVEANDNOTIFY) {
+        processSaveConfigAndNotify();
+        saveState = SAVESTATE_NONE;
+    } else if (saveState == SAVESTATE_SAVEONLY) {
+        writeEEPROM();
+        saveState = SAVESTATE_NONE;
+    }
 }
 
 uint8_t getConfigProfile(void)
@@ -417,13 +465,15 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
-void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]) {
+void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT])
+{
     gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
     gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
     gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
 }
 
-void setGravityCalibrationAndWriteEEPROM(float getGravity) {
+void setGravityCalibration(float getGravity)
+{
     gyroConfigMutable()->gravity_cmss_cal = getGravity;
 }
 

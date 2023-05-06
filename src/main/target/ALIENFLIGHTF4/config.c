@@ -73,7 +73,6 @@ void targetConfiguration(void)
         rxConfigMutable()->spektrum_sat_bind_autoreset = 1;
     } else {
         rxConfigMutable()->serialrx_provider = SERIALRX_SBUS;
-        serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_TELEMETRY_FRSKY;
         featureConfigMutable()->enabledFeatures |= (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY);
     }
 

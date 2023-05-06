@@ -438,7 +438,7 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
 
 void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
 {
-    static const uint16_t graph[] = {
+    static const uint8_t graph[] = {
         SYM_HEADING_W,
         SYM_HEADING_LINE,
         SYM_HEADING_DIVIDED_LINE,

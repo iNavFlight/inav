@@ -44,6 +44,10 @@
 #include "stm32h7xx.h"
 #endif
 
+#ifdef AT32F43x
+#include "at32f435_437.h"
+#endif
+
  /* SDCARD pinouts
  *
  * SD CARD PINS
@@ -215,7 +219,12 @@ typedef struct
 extern SD_CardInfo_t SD_CardInfo;
 extern SD_CardType_t SD_CardType;
 
-bool SD_Initialize_LL(DMA_Stream_TypeDef * dmaRef);
+#ifdef AT32F43x
+// TODO:AT32 TARGES NOT USE SD CARD ANT TF CARD FOR NOW
+void             SD_Initialize_LL            (dma_channel_type *dma);
+#else
+bool             SD_Initialize_LL            (DMA_Stream_TypeDef *dma);
+#endif
 bool SD_Init(void);
 bool SD_IsDetected(void);
 bool SD_GetState(void);

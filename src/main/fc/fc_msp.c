@@ -46,6 +46,7 @@
 #include "drivers/compass/compass_msp.h"
 #include "drivers/barometer/barometer_msp.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
+#include "sensors/battery_sensor_fake.h"
 #include "drivers/bus_i2c.h"
 #include "drivers/display.h"
 #include "drivers/flash.h"
@@ -1051,9 +1052,30 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_LED_STRIP_CONFIG:
         for (int i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
             const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
-            sbufWriteU32(dst, *ledConfig);
+
+            uint32_t legacyLedConfig = ledConfig->led_position;
+            int shiftCount = 8;
+            legacyLedConfig |= ledConfig->led_function << shiftCount;
+            shiftCount += 4;
+            legacyLedConfig |= (ledConfig->led_overlay & 0x3F) << (shiftCount);
+            shiftCount += 6; 
+            legacyLedConfig |= (ledConfig->led_color) << (shiftCount);
+            shiftCount += 4;
+            legacyLedConfig |= (ledConfig->led_direction) << (shiftCount);
+            shiftCount += 6;
+            legacyLedConfig |= (ledConfig->led_params) << (shiftCount);
+
+            sbufWriteU32(dst, legacyLedConfig);
         }
         break;
+
+    case MSP2_INAV_LED_STRIP_CONFIG_EX:
+        for (int i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
+            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
+            sbufWriteDataSafe(dst, ledConfig, sizeof(ledConfig_t));
+        }
+        break;
+
 
     case MSP_LED_STRIP_MODECOLOR:
         for (int i = 0; i < LED_MODE_COUNT; i++) {
@@ -1101,6 +1123,25 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_SDCARD_SUMMARY:
         serializeSDCardSummaryReply(dst);
         break;
+
+#if defined (USE_DJI_HD_OSD) || defined (USE_MSP_DISPLAYPORT)
+    case MSP_BATTERY_STATE:
+        // Battery characteristics
+        sbufWriteU8(dst, constrain(getBatteryCellCount(), 0, 255));
+        sbufWriteU16(dst, currentBatteryProfile->capacity.value);
+
+        // Battery state
+        sbufWriteU8(dst, constrain(getBatteryVoltage() / 10, 0, 255)); // in 0.1V steps
+        sbufWriteU16(dst, constrain(getMAhDrawn(), 0, 0xFFFF));
+        sbufWriteU16(dst, constrain(getAmperage(), -0x8000, 0x7FFF));
+
+        // Battery alerts - used values match Betaflight's/DJI's
+        sbufWriteU8(dst,  getBatteryState());
+
+        // Additional battery voltage field (in 0.01V steps)
+        sbufWriteU16(dst, getBatteryVoltage());
+        break;
+#endif
 
     case MSP_OSD_CONFIG:
 #ifdef USE_OSD
@@ -1368,6 +1409,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_VTX_CONFIG:
+#ifdef USE_VTX_CONTROL
         {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
@@ -1394,11 +1436,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
             }
         }
+#else
+        sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
+#endif
         break;
 
     case MSP_NAME:
         {
-            const char *name = systemConfig()->name;
+            const char *name = systemConfig()->craftName;
             while (*name) {
                 sbufWriteU8(dst, *name++);
             }
@@ -1529,6 +1574,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     return true;
 }
 
+#ifdef USE_SAFE_HOME
 static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
 {
     const uint8_t safe_home_no = sbufReadU8(src);    // get the home number
@@ -1542,6 +1588,8 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
          return MSP_RESULT_ERROR;
     }
 }
+#endif
+
 
 static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
     const uint8_t idx = sbufReadU8(src);
@@ -2419,6 +2467,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif // USE_OSD
 
+#ifdef USE_VTX_CONTROL
     case MSP_SET_VTX_CONFIG:
         if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
@@ -2452,6 +2501,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+#endif
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
@@ -2677,13 +2727,35 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_LED_STRIP_CONFIG:
-        if (dataSize == 5) {
+        if (dataSize == (1 + sizeof(uint32_t))) {
             tmp_u8 = sbufReadU8(src);
-            if (tmp_u8 >= LED_MAX_STRIP_LENGTH || dataSize != (1 + 4)) {
+            if (tmp_u8 >= LED_MAX_STRIP_LENGTH) {
                 return MSP_RESULT_ERROR;
             }
             ledConfig_t *ledConfig = &ledStripConfigMutable()->ledConfigs[tmp_u8];
-            *ledConfig = sbufReadU32(src);
+
+            uint32_t legacyConfig = sbufReadU32(src);
+
+            ledConfig->led_position = legacyConfig & 0xFF;
+            ledConfig->led_function = (legacyConfig >> 8) & 0xF;
+            ledConfig->led_overlay = (legacyConfig >> 12) & 0x3F;
+            ledConfig->led_color = (legacyConfig >> 18) & 0xF; 
+            ledConfig->led_direction = (legacyConfig >> 22) & 0x3F;
+            ledConfig->led_params = (legacyConfig >> 28) & 0xF;
+
+            reevaluateLedConfig();
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_INAV_SET_LED_STRIP_CONFIG_EX:
+        if (dataSize == (1 + sizeof(ledConfig_t))) {
+            tmp_u8 = sbufReadU8(src);
+            if (tmp_u8 >= LED_MAX_STRIP_LENGTH) {
+                return MSP_RESULT_ERROR;
+            }
+            ledConfig_t *ledConfig = &ledStripConfigMutable()->ledConfigs[tmp_u8];
+            sbufReadDataSafe(src, ledConfig, sizeof(ledConfig_t));
             reevaluateLedConfig();
         } else
             return MSP_RESULT_ERROR;
@@ -2743,7 +2815,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_NAME:
         if (dataSize <= MAX_NAME_LENGTH) {
-            char *name = systemConfigMutable()->name;
+            char *name = systemConfigMutable()->craftName;
             int len = MIN(MAX_NAME_LENGTH, (int)dataSize);
             sbufReadData(src, name, len);
             memset(&name[len], '\0', (MAX_NAME_LENGTH + 1) - len);
@@ -2919,6 +2991,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         return MSP_RESULT_ERROR; // will only be reached if the rollback is not ready
         break;
 #endif
+#ifdef USE_SAFE_HOME
     case MSP2_INAV_SET_SAFEHOME:
         if (dataSize == 10) {
              uint8_t i;
@@ -2932,6 +3005,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+#endif
 
     default:
         return MSP_RESULT_ERROR;
@@ -3173,8 +3247,12 @@ static bool mspParameterGroupsCommand(sbuf_t *dst, sbuf_t *src)
 #ifdef USE_SIMULATOR
 bool isOSDTypeSupportedBySimulator(void)
 {
+#ifdef USE_OSD
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
 	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+#else
+    return false;
+#endif
 }
 
 void mspWriteSimulatorOSD(sbuf_t *dst)
@@ -3377,9 +3455,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcLogicConditionCommand(dst, src);
         break;
 #endif
+#ifdef USE_SAFE_HOME
     case MSP2_INAV_SAFEHOME:
         *ret = mspFcSafeHomeOutCommand(dst, src);
         break;
+#endif
 
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
@@ -3394,8 +3474,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
         if (!SIMULATOR_HAS_OPTION(HITL_ENABLE)) {
 
-			if (ARMING_FLAG(SIMULATOR_MODE)) { // Just once
-				DISABLE_ARMING_FLAG(SIMULATOR_MODE);
+			if (ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
+				DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 
 #ifdef USE_BARO
 				baroStartCalibration();
@@ -3408,9 +3488,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 // Review: Many states were affected. Reboot?
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
-			}
+			}   
 		} else if (!areSensorsCalibrating()) {
-			if (!ARMING_FLAG(SIMULATOR_MODE)) { // Just once
+			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
 				baroStartCalibration();
 #endif			
@@ -3425,7 +3505,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					mag.magADC[Z] = 0;
 				}
 #endif
-				ENABLE_ARMING_FLAG(SIMULATOR_MODE);
+				ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 				LOG_DEBUG(SYSTEM, "Simulator enabled");
 			}
 
@@ -3501,11 +3581,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
+#if defined(USE_FAKE_BATT_SENSOR)
                 if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
-                    simulatorData.vbat = sbufReadU8(src);
+                    fakeBattSensorSetVbat(sbufReadU8(src) * 10);
                 } else {
-                    simulatorData.vbat = (uint8_t)(SIMULATOR_FULL_BATTERY * 10.0f);
+#endif
+                    fakeBattSensorSetVbat((uint16_t)(SIMULATOR_FULL_BATTERY * 10.0f));
+#if defined(USE_FAKE_BATT_SENSOR)
                 }
+#endif
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
                     simulatorData.airSpeed = sbufReadU16(src);   

@@ -25,11 +25,28 @@
 #define BEEPER                  PD2
 #define BEEPER_INVERTED
 
+/*** IMU sensors ***/
+#define USE_EXTI
+
+
+#define USE_MPU_DATA_READY_SIGNAL
+
+#ifdef FOXEERF745AIO_V3
+
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW90_DEG
+#define ICM42605_SPI_BUS        BUS_SPI3
+#define ICM42605_CS_PIN         PA15
+
+#else
+
 // MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS         BUS_SPI3
+
+#endif
 
 /*** SPI/I2C bus ***/
 #define USE_SPI

@@ -275,7 +275,7 @@ uint32_t baroUpdate(void)
                 baro.dev.start_ut(&baro.dev);
             }
 #ifdef USE_SIMULATOR
-            if (!ARMING_FLAG(SIMULATOR_MODE)) {
+            if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
                 //output: baro.baroPressure, baro.baroTemperature
                 baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             }
@@ -293,7 +293,7 @@ static float pressureToAltitude(const float pressure)
     return (1.0f - powf(pressure / 101325.0f, 0.190295f)) * 4433000.0f;
 }
 
-static float altitudeToPressure(const float altCm)
+float altitudeToPressure(const float altCm)
 {
     return powf(1.0f - (altCm / 4433000.0f), 5.254999) * 101325.0f;
 }

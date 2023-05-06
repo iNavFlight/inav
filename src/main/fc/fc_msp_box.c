@@ -84,18 +84,20 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXOSDALT3,          .boxName = "OSD ALT 3",         .permanentId = 44 },
     { .boxId = BOXNAVCOURSEHOLD,    .boxName = "NAV COURSE HOLD",   .permanentId = 45 },
     { .boxId = BOXBRAKING,          .boxName = "MC BRAKING",        .permanentId = 46 },
-    { .boxId = BOXUSER1,            .boxName = "USER1",             .permanentId = BOX_PERMANENT_ID_USER1 },
-    { .boxId = BOXUSER2,            .boxName = "USER2",             .permanentId = BOX_PERMANENT_ID_USER2 },
-    { .boxId = BOXUSER3,            .boxName = "USER3",             .permanentId = BOX_PERMANENT_ID_USER3 },
+    { .boxId = BOXUSER1,            .boxName = "USER1",             .permanentId = BOX_PERMANENT_ID_USER1 }, // 47
+    { .boxId = BOXUSER2,            .boxName = "USER2",             .permanentId = BOX_PERMANENT_ID_USER2 }, // 48
+    { .boxId = BOXUSER3,            .boxName = "USER3",             .permanentId = BOX_PERMANENT_ID_USER3 }, // 57
+    { .boxId = BOXUSER4,            .boxName = "USER4",             .permanentId = BOX_PERMANENT_ID_USER4 }, // 58
+    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 49 },
     { .boxId = BOXMSPRCOVERRIDE,    .boxName = "MSP RC OVERRIDE",   .permanentId = 50 },
     { .boxId = BOXPREARM,           .boxName = "PREARM",            .permanentId = 51 },
     { .boxId = BOXTURTLE,           .boxName = "TURTLE",            .permanentId = 52 },
     { .boxId = BOXNAVCRUISE,        .boxName = "NAV CRUISE",        .permanentId = 53 },
-    { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL",        .permanentId = 54 },
+    { .boxId = BOXAUTOLEVEL,        .boxName = "AUTO LEVEL TRIM",   .permanentId = 54 },
     { .boxId = BOXPLANWPMISSION,    .boxName = "WP PLANNER",        .permanentId = 55 },
     { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
-    { .boxId = BOXLOITERDIRCHN,     .boxName = "LOITER CHANGE",     .permanentId = 57 },
-    { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 58 },
+    { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },
+    { .boxId = BOXBEEPERMUTE,       .boxName = "BEEPER MUTE",       .permanentId = 60 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -280,6 +282,7 @@ void initActiveBoxIds(void)
     }
 
     ADD_ACTIVE_BOX(BOXBEEPERON);
+    ADD_ACTIVE_BOX(BOXBEEPERMUTE);
 
 #ifdef USE_LIGHTS
     ADD_ACTIVE_BOX(BOXLIGHTS);
@@ -319,6 +322,7 @@ void initActiveBoxIds(void)
     ADD_ACTIVE_BOX(BOXUSER1);
     ADD_ACTIVE_BOX(BOXUSER2);
     ADD_ACTIVE_BOX(BOXUSER3);
+    ADD_ACTIVE_BOX(BOXUSER4);
 #endif
 
 #if defined(USE_OSD) && defined(OSD_LAYOUT_COUNT)
@@ -397,6 +401,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER1)),           BOXUSER1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),           BOXUSER2);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER3)),           BOXUSER3);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER4)),           BOXUSER4);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),    BOXLOITERDIRCHN);
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);

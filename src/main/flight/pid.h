@@ -108,9 +108,6 @@ typedef struct pidProfile_s {
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
     uint16_t dterm_lpf_hz;                  
     
-    uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf2_hz;                 
-    
     uint8_t yaw_lpf_hz;
 
     uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
@@ -132,8 +129,7 @@ typedef struct pidProfile_s {
     float       fixedWingCoordinatedPitchGain;    // This is the gain of the pitch rate to keep the pitch angle constant during coordinated turns.
     float       fixedWingItermLimitOnStickPosition;   //Do not allow Iterm to grow when stick position is above this point
     uint16_t    fixedWingYawItermBankFreeze;       // Freeze yaw Iterm when bank angle is more than this many degrees
-
-    uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+    
     float       navVelXyDTermLpfHz;
     uint8_t navVelXyDtermAttenuation;       // VEL_XY dynamic Dterm scale: Dterm will be attenuatedby this value (in percent) when UAV is traveling with more than navVelXyDtermAttenuationStart percents of max velocity
     uint8_t navVelXyDtermAttenuationStart;  // VEL_XY dynamic Dterm scale: Dterm attenuation will begin at this percent of max velocity

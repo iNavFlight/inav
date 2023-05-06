@@ -2,6 +2,10 @@
 
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 
+# INAV 6 Horizon Hawk feature freeze
+
+> INAV 6 feature freeze will happen on 29th of January 2023. No new features for INAV 6 will be accepted after that date. 
+
 # INAV Community
 
 * [INAV Discord Server](https://discord.gg/peg2hhbYwN)

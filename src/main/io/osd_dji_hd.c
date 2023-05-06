@@ -537,7 +537,9 @@ static char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
-        case SIMULATOR_MODE:
+        case SIMULATOR_MODE_HITL:
+            FALLTHROUGH;
+        case SIMULATOR_MODE_SITL:
             FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;
@@ -953,7 +955,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            tfp_sprintf(buff, "MTDPA %4d", currentBatteryProfileMutable->fwMinThrottleDownPitchAngle);
+            tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
             tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
@@ -1046,7 +1048,7 @@ static bool djiFormatMessages(char *buff)
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTOLEVEL)";
+                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
@@ -1192,7 +1194,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     djiSerializeCraftNameOverride(dst);
                 } else {
 #endif
-                    sbufWriteData(dst, systemConfig()->name, (int)strlen(systemConfig()->name));
+                    sbufWriteData(dst, systemConfig()->craftName, (int)strlen(systemConfig()->craftName));
 #if defined(USE_OSD)
                 }
 #endif
