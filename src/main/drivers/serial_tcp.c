@@ -45,7 +45,6 @@
 
 static const struct serialPortVTable tcpVTable[];
 static tcpPort_t tcpPorts[SERIAL_PORT_COUNT];
-static bool tcpThreadRunning = false;
 
 static int lookup_address (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
 {
@@ -110,16 +109,10 @@ static char *tcpGetAddressString(struct sockaddr *addr)
 static void *tcpReceiveThread(void* arg)
 {
     tcpPort_t *port = (tcpPort_t*)arg;
-
-    while(tcpThreadRunning) {
-        if (tcpReceive(port) < 0) {
-            break;
-        }
-    }
-
+    while(tcpReceive(port) >= 0)
+        ;
     return NULL;
 }
-
 static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 {
     socklen_t sockaddrlen;
@@ -184,6 +177,7 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 
 int tcpReceive(tcpPort_t *port)
 {
+
     if (!port->isClientConnected) {
 
         fd_set fds;
@@ -270,8 +264,6 @@ serialPort_t *tcpOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, 
         fprintf(stderr, "[SOCKET] Unable to create receive thread for UART%d\n", id);
         return NULL;
     }
-    tcpThreadRunning = true;
-
     return (serialPort_t*)port;
 }
 
