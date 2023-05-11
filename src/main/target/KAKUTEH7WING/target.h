@@ -22,6 +22,7 @@
 #define USBD_PRODUCT_STRING     "KAKUTEH7WING"
 
 #define USE_TARGET_CONFIG
+#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define LED0                    PC14
 #define LED1                    PC15
@@ -48,14 +49,12 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-// #define USE_SDCARD
-// #define USE_SDCARD_SPI
-// #define SDCARD_SPI_BUS          BUS_SPI1
-// #define SDCARD_CS_PIN           PA4
-// #define SDCARD_DETECT_INVERTED
-// #define SDCARD_DETECT_PIN       PA3
+#define USE_SDCARD
+#define USE_SDCARD_SDIO
+#define SDCARD_SDIO_DEVICE      SDIODEV_2
+#define SDCARD_SDIO_4BIT
 
-// #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // ICM42605/ICM42688P
 #define USE_IMU_ICM42605
@@ -68,10 +67,10 @@
 #define MAX7456_CS_PIN          PB12
 
 // // *************** I2C /Baro/Mag *********************
-// #define USE_I2C
-// #define USE_I2C_DEVICE_1
-// #define I2C1_SCL                PB6
-// #define I2C1_SDA                PB7
+#define USE_I2C
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL                PB8
+#define I2C1_SDA                PB7
 
 // #define USE_BARO
 // #define BARO_I2C_BUS            BUS_I2C1
@@ -80,15 +79,15 @@
 // #define USE_BARO_DPS310
 // #define USE_BARO_SPL06
 
-// #define USE_MAG
-// #define MAG_I2C_BUS             BUS_I2C1
-// #define USE_MAG_HMC5883
-// #define USE_MAG_QMC5883
-// #define USE_MAG_IST8310
-// #define USE_MAG_IST8308
-// #define USE_MAG_MAG3110
-// #define USE_MAG_LIS3MDL
-// #define USE_MAG_VCM5883
+#define USE_MAG
+#define MAG_I2C_BUS             BUS_I2C1
+#define USE_MAG_HMC5883
+#define USE_MAG_QMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_IST8308
+#define USE_MAG_MAG3110
+#define USE_MAG_LIS3MDL
+#define USE_MAG_VCM5883
 
 // #define TEMPERATURE_I2C_BUS     BUS_I2C1
 // #define PITOT_I2C_BUS           BUS_I2C1
@@ -129,9 +128,9 @@
 
 #define SERIAL_PORT_COUNT       8
 
-// #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-// #define SERIALRX_PROVIDER       SERIALRX_SBUS
-// #define SERIALRX_UART           SERIAL_PORT_USART1
+#define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
+#define SERIALRX_PROVIDER       SERIALRX_CRSF
+#define SERIALRX_UART           SERIAL_PORT_USART5
 
 // *************** ADC *****************************
 #define USE_ADC

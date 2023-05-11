@@ -26,6 +26,8 @@
 #include "drivers/pinio.h"
 #include "drivers/sensor.h"
 
+BUSDEV_REGISTER_SPI_TAG(busdev_icm42688, DEVHW_ICM42605, ICM42605_SPI_BUS,   ICM42605_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+
 timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM1, CH1, PA8,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),   // S1
