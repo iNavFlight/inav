@@ -206,9 +206,11 @@ Up to 3 battery profiles are supported. You can select the battery profile from 
 - `battery_capacity_warning`
 - `battery_capacity_critical`
 - `throttle_idle`
-- `fw_min_throttle_down_pitch`
+- `throttle_scale`
+- `turtle_mode_power_factor`
 - `nav_fw_cruise_thr`
 - `nav_fw_min_thr`
+- `nav_fw_max_thr`
 - `nav_fw_pitch2thr`
 - `nav_fw_launch_thr`
 - `nav_fw_launch_idle_thr`

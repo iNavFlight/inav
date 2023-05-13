@@ -42,7 +42,7 @@
       <xs:attribute name="alt" use="required" type="xs:integer"/>
       <!--
            flag is not strictly required unless the WP is "Flyby Home"
-           or the are multiple mission segments 'multi-mission', inav 4.0
+           or the are multiple mission segments 'multi-mission', INAV 4.0
       -->
       <xs:attribute name="flag" use="optional" type="xs:integer"/>
       <!--
