@@ -112,6 +112,7 @@
 #define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
+#define OSD_MSG_AUTOLEVEL           "(AUTO LEVEL TRIM)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_NAV_SOARING         "(SOARING)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"

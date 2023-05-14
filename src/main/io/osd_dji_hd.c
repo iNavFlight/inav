@@ -537,7 +537,9 @@ static char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
-        case SIMULATOR_MODE:
+        case SIMULATOR_MODE_HITL:
+            FALLTHROUGH;
+        case SIMULATOR_MODE_SITL:
             FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;
@@ -1046,7 +1048,7 @@ static bool djiFormatMessages(char *buff)
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTOLEVEL)";
+                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
