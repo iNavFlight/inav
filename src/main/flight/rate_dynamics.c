@@ -20,8 +20,6 @@
 
 #ifdef USE_RATE_DYNAMICS
 
-FILE_COMPILE_FOR_SPEED
-
 #include <stdlib.h>
 #include "rate_dynamics.h"
 #include "fc/controlrate_profile.h"

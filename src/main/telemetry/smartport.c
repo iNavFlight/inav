@@ -9,7 +9,6 @@
 #include <math.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SMARTPORT)
 

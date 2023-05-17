@@ -323,8 +323,6 @@ static void activateConfig(void)
 
 void readEEPROM(void)
 {
-    suspendRxSignal();
-
     // Sanity check, read flash
     if (!loadEEPROM()) {
         failureMode(FAILURE_INVALID_EEPROM_CONTENTS);
@@ -335,14 +333,14 @@ void readEEPROM(void)
 
     validateAndFixConfig();
     activateConfig();
-
-    resumeRxSignal();
 }
 
 void processSaveConfigAndNotify(void)
 {
+    suspendRxSignal();
     writeEEPROM();
     readEEPROM();
+    resumeRxSignal();
     beeperConfirmationBeeps(1);
 #ifdef USE_OSD
     osdShowEEPROMSavedNotification();
@@ -351,15 +349,12 @@ void processSaveConfigAndNotify(void)
 
 void writeEEPROM(void)
 {
-    suspendRxSignal();
     writeConfigToEEPROM();
-    resumeRxSignal();
 }
 
 void resetEEPROM(void)
 {
     resetConfigs();
-    writeEEPROM();
 }
 
 void ensureEEPROMContainsValidData(void)
@@ -368,6 +363,9 @@ void ensureEEPROMContainsValidData(void)
         return;
     }
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 }
 
 /*
@@ -400,7 +398,9 @@ void processDelayedSave(void)
         processSaveConfigAndNotify();
         saveState = SAVESTATE_NONE;
     } else if (saveState == SAVESTATE_SAVEONLY) {
+        suspendRxSignal();
         writeEEPROM();
+        resumeRxSignal();
         saveState = SAVESTATE_NONE;
     }
 }
@@ -430,8 +430,10 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
@@ -459,8 +461,10 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigBatteryProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
