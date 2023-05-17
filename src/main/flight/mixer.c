@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -614,9 +612,16 @@ void FAST_CODE mixTable()
     }
 }
 
-int16_t getThrottlePercent(void)
+int16_t getThrottlePercent(bool useScaled)
 {
-    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - getThrottleIdleValue()) * 100 / (motorConfig()->maxthrottle - getThrottleIdleValue());
+    int16_t thr = constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX);
+    const int idleThrottle = getThrottleIdleValue();
+    
+    if (useScaled) {
+       thr = (thr - idleThrottle) * 100 / (motorConfig()->maxthrottle - idleThrottle);
+    } else {
+        thr = (rxGetChannelValue(THROTTLE) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
+    }
     return thr;
 }
 

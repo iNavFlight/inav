@@ -34,7 +34,6 @@
 #include "flight/smith_predictor.h"
 #include "build/debug.h"
 
-FUNCTION_COMPILE_FOR_SPEED
 float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sample) {
     UNUSED(axis);
     if (predictor->enabled) {
@@ -54,7 +53,6 @@ float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sampl
     return sample;
 }
 
-FUNCTION_COMPILE_FOR_SIZE
 void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength, uint16_t filterLpfHz, uint32_t looptime) {
     if (delay > 0.1) {
         predictor->enabled = true;

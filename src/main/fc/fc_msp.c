@@ -834,7 +834,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getFlightTime()); // Flight time (seconds)
 
         // Throttle
-        sbufWriteU8(dst, getThrottlePercent()); // Throttle Percent
+        sbufWriteU8(dst, getThrottlePercent(true)); // Throttle Percent
         sbufWriteU8(dst, navigationIsControllingThrottle() ? 1 : 0); // Auto Throttle Flag (0 or 1)
 
         break;
@@ -2349,8 +2349,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_RESET_CONF:
         if (!ARMING_FLAG(ARMED)) {
+            suspendRxSignal();
             resetEEPROM();
+            writeEEPROM();
             readEEPROM();
+            resumeRxSignal();
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2380,8 +2383,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_EEPROM_WRITE:
         if (!ARMING_FLAG(ARMED)) {
+            suspendRxSignal();
             writeEEPROM();
             readEEPROM();
+            resumeRxSignal();
         } else
             return MSP_RESULT_ERROR;
         break;

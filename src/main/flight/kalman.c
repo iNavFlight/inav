@@ -20,8 +20,6 @@
 #include "platform.h"
 #ifdef USE_GYRO_KALMAN
 
-FILE_COMPILE_FOR_SPEED
-
 #include <string.h>
 #if !defined(SITL_BUILD)
 #include "arm_math.h"

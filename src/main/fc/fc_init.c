@@ -224,7 +224,9 @@ void init(void)
 
     initEEPROM();
     ensureEEPROMContainsValidData();
+    suspendRxSignal();
     readEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_UNDERCLOCK
     // Re-initialize system clock to their final values (if necessary)

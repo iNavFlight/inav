@@ -28,8 +28,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #if defined(USE_OSD) && defined(USE_MSP_OSD)
 
 #include "common/utils.h"
@@ -344,7 +342,7 @@ static int screenSize(const displayPort_t *displayPort)
 static uint32_t txBytesFree(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return mspSerialTxBytesFree();
+    return mspSerialTxBytesFree(mspPort.port);
 }
 
 static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)

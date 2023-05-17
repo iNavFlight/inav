@@ -327,6 +327,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
     else {
         posEstimator.baro.alt = 0;
         posEstimator.baro.lastUpdateTime = 0;
+        posEstimator.baro.epv = positionEstimationConfig()->max_eph_epv;
     }
 }
 #endif
@@ -554,15 +555,8 @@ static void estimationPredict(estimationContext_t * ctx)
 }
 
 static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
-{
-    DEBUG_SET(DEBUG_ALTITUDE, 0, posEstimator.est.pos.z);       // Position estimate
-    DEBUG_SET(DEBUG_ALTITUDE, 2, posEstimator.baro.alt);        // Baro altitude
-    DEBUG_SET(DEBUG_ALTITUDE, 4, posEstimator.gps.pos.z);       // GPS altitude
-    DEBUG_SET(DEBUG_ALTITUDE, 6, accGetVibrationLevel());       // Vibration level
-    DEBUG_SET(DEBUG_ALTITUDE, 1, posEstimator.est.vel.z);       // Vertical speed estimate
-    DEBUG_SET(DEBUG_ALTITUDE, 3, posEstimator.imu.accelNEU.z);  // Vertical acceleration on earth frame
-    DEBUG_SET(DEBUG_ALTITUDE, 5, posEstimator.gps.vel.z);       // GPS vertical speed
-    DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
+{   
+    bool correctionCalculated = false;
 
     if (ctx->newFlags & EST_BARO_VALID) {
         timeUs_t currentTimeUs = micros();
@@ -608,9 +602,12 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->accBiasCorr.z -= baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p);
         }
 
-        return true;
+        correctionCalculated = true;
+    } else {
+        pt1FilterInit(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ, 0.0f);
     }
-    else if ((STATE(FIXED_WING_LEGACY) || positionEstimationConfig()->use_gps_no_baro) && (ctx->newFlags & EST_GPS_Z_VALID)) {
+    
+    if ((STATE(FIXED_WING_LEGACY) || positionEstimationConfig()->use_gps_no_baro) && (ctx->newFlags & EST_GPS_Z_VALID)) {
         // If baro is not available - use GPS Z for correction on a plane
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
@@ -631,10 +628,20 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->accBiasCorr.z -= gpsAltResudual * sq(positionEstimationConfig()->w_z_gps_p);
         }
 
-        return true;
+        correctionCalculated = true;
     }
 
-    return false;
+    // DEBUG_ALTITUDE will be always available
+    DEBUG_SET(DEBUG_ALTITUDE, 0, posEstimator.est.pos.z);       // Position estimate
+    DEBUG_SET(DEBUG_ALTITUDE, 2, posEstimator.baro.alt);        // Baro altitude
+    DEBUG_SET(DEBUG_ALTITUDE, 4, posEstimator.gps.pos.z);       // GPS altitude
+    DEBUG_SET(DEBUG_ALTITUDE, 6, accGetVibrationLevel());       // Vibration level
+    DEBUG_SET(DEBUG_ALTITUDE, 1, posEstimator.est.vel.z);       // Vertical speed estimate
+    DEBUG_SET(DEBUG_ALTITUDE, 3, posEstimator.imu.accelNEU.z);  // Vertical acceleration on earth frame
+    DEBUG_SET(DEBUG_ALTITUDE, 5, posEstimator.gps.vel.z);       // GPS vertical speed
+    DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
+
+    return correctionCalculated;
 }
 
 static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
@@ -820,6 +827,7 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
         //Update Blackbox states
         navEPH = posEstimator.est.eph;
         navEPV = posEstimator.est.epv;
+
 
         DEBUG_SET(DEBUG_POS_EST, 0, (int32_t) posEstimator.est.pos.x*1000.0F);                // Position estimate X
         DEBUG_SET(DEBUG_POS_EST, 1, (int32_t) posEstimator.est.pos.y*1000.0F);                // Position estimate Y

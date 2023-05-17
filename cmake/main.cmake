@@ -9,14 +9,27 @@ set(MAIN_DEFINITIONS
     __REVISION__="${GIT_REV}"
 )
 
-set(MAIN_COMPILE_OPTIONS
-    -Wall
-    -Wextra
-    -Wunsafe-loop-optimizations
-    -Wdouble-promotion
-    -Wstrict-prototypes
-    -Werror=switch
-)
+
+# Can't check for OSX yet at this point
+if(SITL)
+    set(MAIN_COMPILE_OPTIONS
+        -Wall
+        -Wextra
+        -Wdouble-promotion
+        -Wstrict-prototypes
+        -Werror=switch
+        #-Wno-unknown-warning-option
+    )
+else()
+    set(MAIN_COMPILE_OPTIONS
+        -Wall
+        -Wextra
+        -Wunsafe-loop-optimizations
+        -Wdouble-promotion
+        -Wstrict-prototypes
+        -Werror=switch
+    )
+endif()
 
 macro(main_sources var) # list-var src-1...src-n
     set(${var} ${ARGN})

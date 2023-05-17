@@ -17,8 +17,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "encoding.h"
 
 /**

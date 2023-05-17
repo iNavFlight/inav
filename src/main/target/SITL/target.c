@@ -74,7 +74,7 @@ void systemInit(void) {
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     fprintf(stderr, "[SYSTEM] Init...\n");
 
-#if !defined(__FreeBSD__)   // maybe also || !defined(__APPLE__)
+#if !defined(__FreeBSD__)  && !defined(__APPLE__)
     pthread_attr_t thAttr;
     int policy = 0;
 

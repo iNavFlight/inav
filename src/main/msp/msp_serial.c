@@ -555,28 +555,9 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
     return mspSerialPushVersion(cmd, data, datalen, MSP_V1);
 }
 
-uint32_t mspSerialTxBytesFree(void)
+uint32_t mspSerialTxBytesFree(serialPort_t *port)
 {
-    uint32_t ret = UINT32_MAX;
-
-    for (int portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t * const mspPort = &mspPorts[portIndex];
-        if (!mspPort->port) {
-            continue;
-        }
-
-        // XXX Kludge!!! Avoid zombie VCP port (avoid VCP entirely for now)
-        if (mspPort->port->identifier == SERIAL_PORT_USB_VCP) {
-            continue;
-        }
-
-        const uint32_t bytesFree = serialTxBytesFree(mspPort->port);
-        if (bytesFree < ret) {
-            ret = bytesFree;
-        }
-    }
-
-    return ret;
+   return serialTxBytesFree(port);
 }
 
 mspPort_t * mspSerialPortFind(const serialPort_t *serialPort)
