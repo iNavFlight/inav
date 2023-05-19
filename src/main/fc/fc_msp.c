@@ -3513,35 +3513,36 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 			if (dataSize >= 14) {
 
 				if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
-					gpsSol.fixType = sbufReadU8(src);
-					gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
-					gpsSol.flags.hasNewData = true;
-					gpsSol.numSat = sbufReadU8(src);
+					gpsSolDRV.fixType = sbufReadU8(src);
+					gpsSolDRV.hdop = gpsSolDRV.fixType == GPS_NO_FIX ? 9999 : 100;
+					gpsSolDRV.flags.hasNewData = true;
+					gpsSolDRV.numSat = sbufReadU8(src);
 
-					if (gpsSol.fixType != GPS_NO_FIX) {
-						gpsSol.flags.validVelNE = true;
-						gpsSol.flags.validVelD = true;
-						gpsSol.flags.validEPE = true;
-						gpsSol.flags.validTime = false;
+					if (gpsSolDRV.fixType != GPS_NO_FIX) {
+						gpsSolDRV.flags.validVelNE = true;
+						gpsSolDRV.flags.validVelD = true;
+						gpsSolDRV.flags.validEPE = true;
+						gpsSolDRV.flags.validTime = false;
 
-						gpsSol.llh.lat = sbufReadU32(src);
-						gpsSol.llh.lon = sbufReadU32(src);
-						gpsSol.llh.alt = sbufReadU32(src);
-						gpsSol.groundSpeed = (int16_t)sbufReadU16(src);
-						gpsSol.groundCourse = (int16_t)sbufReadU16(src);
+						gpsSolDRV.llh.lat = sbufReadU32(src);
+						gpsSolDRV.llh.lon = sbufReadU32(src);
+						gpsSolDRV.llh.alt = sbufReadU32(src);
+						gpsSolDRV.groundSpeed = (int16_t)sbufReadU16(src);
+						gpsSolDRV.groundCourse = (int16_t)sbufReadU16(src);
 
-						gpsSol.velNED[X] = (int16_t)sbufReadU16(src);
-						gpsSol.velNED[Y] = (int16_t)sbufReadU16(src);
-						gpsSol.velNED[Z] = (int16_t)sbufReadU16(src);
+						gpsSolDRV.velNED[X] = (int16_t)sbufReadU16(src);
+						gpsSolDRV.velNED[Y] = (int16_t)sbufReadU16(src);
+						gpsSolDRV.velNED[Z] = (int16_t)sbufReadU16(src);
 
-						gpsSol.eph = 100;
-						gpsSol.epv = 100;
+						gpsSolDRV.eph = 100;
+						gpsSolDRV.epv = 100;
 
 						ENABLE_STATE(GPS_FIX);
 					} else {
 						sbufAdvance(src, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
 					}
                     // Feed data to navigation
+					gpsProcessNewDriverData();
 					gpsProcessNewSolutionData();
 				} else {
 					sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);

@@ -604,84 +604,84 @@ static bool gpsParceFrameUBLOX(void)
 {
     switch (_msg_id) {
     case MSG_POSLLH:
-        gpsSol.llh.lon = _buffer.posllh.longitude;
-        gpsSol.llh.lat = _buffer.posllh.latitude;
-        gpsSol.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
-        gpsSol.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
-        gpsSol.flags.validEPE = true;
+        gpsSolDRV.llh.lon = _buffer.posllh.longitude;
+        gpsSolDRV.llh.lat = _buffer.posllh.latitude;
+        gpsSolDRV.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
+        gpsSolDRV.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
+        gpsSolDRV.flags.validEPE = true;
         if (next_fix_type != GPS_NO_FIX)
-            gpsSol.fixType = next_fix_type;
+            gpsSolDRV.fixType = next_fix_type;
         _new_position = true;
         break;
     case MSG_STATUS:
         next_fix_type = gpsMapFixType(_buffer.status.fix_status & NAV_STATUS_FIX_VALID, _buffer.status.fix_type);
         if (next_fix_type == GPS_NO_FIX)
-            gpsSol.fixType = GPS_NO_FIX;
+            gpsSolDRV.fixType = GPS_NO_FIX;
         break;
     case MSG_SOL:
         next_fix_type = gpsMapFixType(_buffer.solution.fix_status & NAV_STATUS_FIX_VALID, _buffer.solution.fix_type);
         if (next_fix_type == GPS_NO_FIX)
-            gpsSol.fixType = GPS_NO_FIX;
-        gpsSol.numSat = _buffer.solution.satellites;
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
+            gpsSolDRV.fixType = GPS_NO_FIX;
+        gpsSolDRV.numSat = _buffer.solution.satellites;
+        gpsSolDRV.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
         break;
     case MSG_VELNED:
-        gpsSol.groundSpeed = _buffer.velned.speed_2d;    // cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.velNED[X] = _buffer.velned.ned_north;
-        gpsSol.velNED[Y] = _buffer.velned.ned_east;
-        gpsSol.velNED[Z] = _buffer.velned.ned_down;
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
+        gpsSolDRV.groundSpeed = _buffer.velned.speed_2d;    // cm/s
+        gpsSolDRV.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.velNED[X] = _buffer.velned.ned_north;
+        gpsSolDRV.velNED[Y] = _buffer.velned.ned_east;
+        gpsSolDRV.velNED[Z] = _buffer.velned.ned_down;
+        gpsSolDRV.flags.validVelNE = true;
+        gpsSolDRV.flags.validVelD = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
         if (UBX_VALID_GPS_DATE_TIME(_buffer.timeutc.valid)) {
-            gpsSol.time.year = _buffer.timeutc.year;
-            gpsSol.time.month = _buffer.timeutc.month;
-            gpsSol.time.day = _buffer.timeutc.day;
-            gpsSol.time.hours = _buffer.timeutc.hour;
-            gpsSol.time.minutes = _buffer.timeutc.min;
-            gpsSol.time.seconds = _buffer.timeutc.sec;
-            gpsSol.time.millis = _buffer.timeutc.nano / (1000*1000);
+            gpsSolDRV.time.year = _buffer.timeutc.year;
+            gpsSolDRV.time.month = _buffer.timeutc.month;
+            gpsSolDRV.time.day = _buffer.timeutc.day;
+            gpsSolDRV.time.hours = _buffer.timeutc.hour;
+            gpsSolDRV.time.minutes = _buffer.timeutc.min;
+            gpsSolDRV.time.seconds = _buffer.timeutc.sec;
+            gpsSolDRV.time.millis = _buffer.timeutc.nano / (1000*1000);
 
-            gpsSol.flags.validTime = true;
+            gpsSolDRV.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = false;
+            gpsSolDRV.flags.validTime = false;
         }
         break;
     case MSG_PVT:
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
-        gpsSol.fixType = next_fix_type;
-        gpsSol.llh.lon = _buffer.pvt.longitude;
-        gpsSol.llh.lat = _buffer.pvt.latitude;
-        gpsSol.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
-        gpsSol.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
-        gpsSol.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
-        gpsSol.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
-        gpsSol.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.numSat = _buffer.pvt.satellites;
-        gpsSol.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
-        gpsSol.flags.validEPE = true;
+        gpsSolDRV.fixType = next_fix_type;
+        gpsSolDRV.llh.lon = _buffer.pvt.longitude;
+        gpsSolDRV.llh.lat = _buffer.pvt.latitude;
+        gpsSolDRV.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
+        gpsSolDRV.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
+        gpsSolDRV.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
+        gpsSolDRV.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
+        gpsSolDRV.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.numSat = _buffer.pvt.satellites;
+        gpsSolDRV.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
+        gpsSolDRV.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
+        gpsSolDRV.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
+        gpsSolDRV.flags.validVelNE = true;
+        gpsSolDRV.flags.validVelD = true;
+        gpsSolDRV.flags.validEPE = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
-            gpsSol.time.year = _buffer.pvt.year;
-            gpsSol.time.month = _buffer.pvt.month;
-            gpsSol.time.day = _buffer.pvt.day;
-            gpsSol.time.hours = _buffer.pvt.hour;
-            gpsSol.time.minutes = _buffer.pvt.min;
-            gpsSol.time.seconds = _buffer.pvt.sec;
-            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
+            gpsSolDRV.time.year = _buffer.pvt.year;
+            gpsSolDRV.time.month = _buffer.pvt.month;
+            gpsSolDRV.time.day = _buffer.pvt.day;
+            gpsSolDRV.time.hours = _buffer.pvt.hour;
+            gpsSolDRV.time.minutes = _buffer.pvt.min;
+            gpsSolDRV.time.seconds = _buffer.pvt.sec;
+            gpsSolDRV.time.millis = _buffer.pvt.nano / (1000*1000);
 
-            gpsSol.flags.validTime = true;
+            gpsSolDRV.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = false;
+            gpsSolDRV.flags.validTime = false;
         }
 
         _new_position = true;
@@ -985,6 +985,7 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameUBLOX(newChar)) {
+                gpsProcessNewDriverData();
                 ptSemaphoreSignal(semNewDataReady);
                 break;
             }

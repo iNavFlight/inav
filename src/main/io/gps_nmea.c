@@ -200,45 +200,45 @@ static bool gpsNewFrameNMEA(char c)
                     switch (gps_frame) {
                     case FRAME_GGA:
                         frameOK = 1;
-                        gpsSol.numSat = gps_Msg.numSat;
+                        gpsSolDRV.numSat = gps_Msg.numSat;
                         if (gps_Msg.fix) {
-                            gpsSol.fixType = GPS_FIX_3D;    // NMEA doesn't report fix type, assume 3D
+                            gpsSolDRV.fixType = GPS_FIX_3D;    // NMEA doesn't report fix type, assume 3D
 
-                            gpsSol.llh.lat = gps_Msg.latitude;
-                            gpsSol.llh.lon = gps_Msg.longitude;
-                            gpsSol.llh.alt = gps_Msg.altitude;
+                            gpsSolDRV.llh.lat = gps_Msg.latitude;
+                            gpsSolDRV.llh.lon = gps_Msg.longitude;
+                            gpsSolDRV.llh.alt = gps_Msg.altitude;
 
                             // EPH/EPV are unreliable for NMEA as they are not real accuracy
-                            gpsSol.hdop = gpsConstrainHDOP(gps_Msg.hdop);
-                            gpsSol.eph = gpsConstrainEPE(gps_Msg.hdop * GPS_HDOP_TO_EPH_MULTIPLIER);
-                            gpsSol.epv = gpsConstrainEPE(gps_Msg.hdop * GPS_HDOP_TO_EPH_MULTIPLIER);
-                            gpsSol.flags.validEPE = false;
+                            gpsSolDRV.hdop = gpsConstrainHDOP(gps_Msg.hdop);
+                            gpsSolDRV.eph = gpsConstrainEPE(gps_Msg.hdop * GPS_HDOP_TO_EPH_MULTIPLIER);
+                            gpsSolDRV.epv = gpsConstrainEPE(gps_Msg.hdop * GPS_HDOP_TO_EPH_MULTIPLIER);
+                            gpsSolDRV.flags.validEPE = false;
                         }
                         else {
-                            gpsSol.fixType = GPS_NO_FIX;
+                            gpsSolDRV.fixType = GPS_NO_FIX;
                         }
 
                         // NMEA does not report VELNED
-                        gpsSol.flags.validVelNE = false;
-                        gpsSol.flags.validVelD = false;
+                        gpsSolDRV.flags.validVelNE = false;
+                        gpsSolDRV.flags.validVelD = false;
                         break;
                     case FRAME_RMC:
-                        gpsSol.groundSpeed = gps_Msg.speed;
-                        gpsSol.groundCourse = gps_Msg.ground_course;
+                        gpsSolDRV.groundSpeed = gps_Msg.speed;
+                        gpsSolDRV.groundCourse = gps_Msg.ground_course;
 
                         // This check will miss 00:00:00.00, but we shouldn't care - next report will be valid
                         if (gps_Msg.date != 0 && gps_Msg.time != 0) {
-                            gpsSol.time.year = (gps_Msg.date % 100) + 2000;
-                            gpsSol.time.month = (gps_Msg.date / 100) % 100;
-                            gpsSol.time.day = (gps_Msg.date / 10000) % 100;
-                            gpsSol.time.hours = (gps_Msg.time / 1000000) % 100;
-                            gpsSol.time.minutes = (gps_Msg.time / 10000) % 100;
-                            gpsSol.time.seconds = (gps_Msg.time / 100) % 100;
-                            gpsSol.time.millis = (gps_Msg.time & 100) * 10;
-                            gpsSol.flags.validTime = true;
+                            gpsSolDRV.time.year = (gps_Msg.date % 100) + 2000;
+                            gpsSolDRV.time.month = (gps_Msg.date / 100) % 100;
+                            gpsSolDRV.time.day = (gps_Msg.date / 10000) % 100;
+                            gpsSolDRV.time.hours = (gps_Msg.time / 1000000) % 100;
+                            gpsSolDRV.time.minutes = (gps_Msg.time / 10000) % 100;
+                            gpsSolDRV.time.seconds = (gps_Msg.time / 100) % 100;
+                            gpsSolDRV.time.millis = (gps_Msg.time & 100) * 10;
+                            gpsSolDRV.flags.validTime = true;
                         }
                         else {
-                            gpsSol.flags.validTime = false;
+                            gpsSolDRV.flags.validTime = false;
                         }
 
                         break;
@@ -276,8 +276,9 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameNMEA(newChar)) {
-                gpsSol.flags.validVelNE = false;
-                gpsSol.flags.validVelD = false;
+                gpsSolDRV.flags.validVelNE = false;
+                gpsSolDRV.flags.validVelD = false;
+                gpsProcessNewDriverData();
                 ptSemaphoreSignal(semNewDataReady);
                 break;
             }
