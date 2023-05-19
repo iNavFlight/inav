@@ -168,7 +168,7 @@ bool canEstimateGPSFix(void)
 #if defined(USE_GPS) && defined(USE_MAG) && defined(USE_BARO)
 
     //we do not check neither sensors(SENSOR_GPS) nor FEATURE(FEATURE_GPS) because:
-    //1) checking STATE(GPS_FIX_HOME) is enought to ensure that GPS sensor was initialized once
+    //1) checking STATE(GPS_FIX_HOME) is enough to ensure that GPS sensor was initialized once
     //2) sensors(SENSOR_GPS) is false on GPS timeout. We also want to support GPS timeouts, not just lost fix
     return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && 
         sensors(SENSOR_BARO) && baroIsHealthy() &&
@@ -231,7 +231,6 @@ void updateEstimatedGPSFix(void)
 
     gpsSol.fixType = GPS_FIX_3D;
     gpsSol.hdop = 99;
-    gpsSol.flags.hasNewData = true;
     gpsSol.numSat = 99;
 
     gpsSol.eph = 100;
@@ -298,8 +297,9 @@ void gpsProcessNewDriverData(void)
 //called after: 
 //1)driver copies gpsSolDRV to gpsSol
 //2)gpsSol is processed by "Disable GPS logical switch"
-//3)gpsSol is processed by GPS Fix estimator
-void gpsProcessNewSolutionData(void)
+//3)gpsSol is processed by GPS Fix estimator - updateEstimatedGPSFix()
+//On GPS sensor timeout - called after updateEstimatedGPSFix()
+void gpsProcessNewSolutionData(bool timeout)
 {
     if ( gpsSol.numSat == 99 ) {
         ENABLE_STATE(GPS_ESTIMATED_FIX);
@@ -320,8 +320,10 @@ void gpsProcessNewSolutionData(void)
         }
     }
 
-    // Set sensor as ready and available
-    sensorsSet(SENSOR_GPS);
+    if (!timeout) {
+        // Data came from GPS sensor - set sensor as ready and available (it may still not have GPS fix)
+        sensorsSet(SENSOR_GPS);
+    }
 
     // Pass on GPS update to NAV and IMU
     onNewGPSData();
@@ -357,15 +359,13 @@ static void gpsResetSolution(gpsSolutionData_t* gpsSol)
 
 void gpsTryEstimateOnTimeout(void)
 {
-    gpsResetSolution(&gpsSolDRV);
     gpsResetSolution(&gpsSol);
     DISABLE_STATE(GPS_FIX);
 
     updateEstimatedGPSFix();
 
-    if (STATE(GPS_ESTIMATED_FIX)) {
-        onNewGPSData();
-        gpsSol.flags.gpsHeartbeat = !gpsSol.flags.gpsHeartbeat;
+    if (gpsSol.fixType == GPS_FIX_3D) {  //estimation kicked in
+        gpsProcessNewSolutionData(true);
     }
 }
 
@@ -462,27 +462,20 @@ bool gpsUpdate(void)
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-        if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT))
-        {
+        if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT)) {
             gpsSetState(GPS_LOST_COMMUNICATION);
             sensorsClear(SENSOR_GPS);
             gpsStats.timeouts = 5;
             gpsTryEstimateOnTimeout();
-            return false;
-        }
-        else
-        {
+        } else {
             gpsSetState(GPS_RUNNING);
             sensorsSet(SENSOR_GPS);
-            bool res = gpsSol.flags.hasNewData;
-            gpsSol.flags.hasNewData = false;
-            return res;
         }
+        bool res = gpsSol.flags.hasNewData;
+        gpsSol.flags.hasNewData = false;
+        return res;
     }
 #endif
-
-    // Assume that we don't have new data this run
-    gpsSol.flags.hasNewData = false;
 
     switch (gpsState.state) {
     default:
@@ -491,11 +484,9 @@ bool gpsUpdate(void)
         if ((millis() - gpsState.lastStateSwitchMs) >= GPS_INIT_DELAY) {
             // Reset internals
             DISABLE_STATE(GPS_FIX);
-            gpsSol.fixType = GPS_NO_FIX;
 
             // Reset solution
             gpsResetSolution(&gpsSolDRV);
-            gpsResetSolution(&gpsSol);
 
             // Call GPS protocol reset handler
             gpsProviders[gpsState.gpsConfig->provider].restart();
@@ -529,7 +520,9 @@ bool gpsUpdate(void)
         gpsTryEstimateOnTimeout();
     }
 
-    return gpsSol.flags.hasNewData;
+    bool res = gpsSol.flags.hasNewData;
+    gpsSol.flags.hasNewData = false;
+    return res;
 }
 
 void gpsEnablePassthrough(serialPort_t *gpsPassthroughPort)

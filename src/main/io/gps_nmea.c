@@ -313,7 +313,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThreadNMEA)
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
         ptSemaphoreWait(semNewDataReady);
-        gpsProcessNewSolutionData();
+        gpsProcessNewSolutionData(false);
     }
 
     ptEnd(0);

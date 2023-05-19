@@ -63,7 +63,7 @@ void gpsRestartMSP(void)
 void gpsHandleMSP(void)
 {
     if (newDataReady) {
-        gpsProcessNewSolutionData();
+        gpsProcessNewSolutionData(false);
         newDataReady = false;
     }
 }

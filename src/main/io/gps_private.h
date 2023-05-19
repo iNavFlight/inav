@@ -68,7 +68,7 @@ extern uint16_t gpsConstrainEPE(uint32_t epe);
 extern uint16_t gpsConstrainHDOP(uint32_t hdop);
 
 void gpsProcessNewDriverData(void);
-void gpsProcessNewSolutionData(void);
+void gpsProcessNewSolutionData(bool);
 void gpsSetProtocolTimeout(timeMs_t timeoutMs);
 
 extern void gpsRestartUBLOX(void);

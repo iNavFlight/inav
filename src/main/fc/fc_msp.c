@@ -3515,7 +3515,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				if (feature(FEATURE_GPS) && SIMULATOR_HAS_OPTION(HITL_HAS_NEW_GPS_DATA)) {
 					gpsSolDRV.fixType = sbufReadU8(src);
 					gpsSolDRV.hdop = gpsSolDRV.fixType == GPS_NO_FIX ? 9999 : 100;
-					gpsSolDRV.flags.hasNewData = true;
 					gpsSolDRV.numSat = sbufReadU8(src);
 
 					if (gpsSolDRV.fixType != GPS_NO_FIX) {
@@ -3536,14 +3535,12 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 						gpsSolDRV.eph = 100;
 						gpsSolDRV.epv = 100;
-
-						ENABLE_STATE(GPS_FIX);
 					} else {
 						sbufAdvance(src, sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
 					}
                     // Feed data to navigation
 					gpsProcessNewDriverData();
-					gpsProcessNewSolutionData();
+					gpsProcessNewSolutionData(false);
 				} else {
 					sbufAdvance(src, sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint16_t) * 3);
 				}
