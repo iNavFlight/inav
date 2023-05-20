@@ -259,7 +259,7 @@ void updateEstimatedGPSFix(void)
     }
     // here (velX, velY) is estimated horizontal speed with wind influence = ground speed
 
-    if (STATE(LANDING_DETECTED) || ((posControl.navState == NAV_STATE_RTH_LANDING) && (getThrottlePercent() == 0))) {
+    if (STATE(LANDING_DETECTED) || ((posControl.navState == NAV_STATE_RTH_LANDING) && (getThrottlePercent(false) == 0))) {
         velX = 0;
         velY = 0;
     }
