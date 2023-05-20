@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "common/maths.h"
 #include "common/vector.h"
 #include "common/axis.h"

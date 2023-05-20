@@ -17,7 +17,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MSP_DISPLAYPORT
+#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT)
 
 #ifndef DISABLE_MSP_BF_COMPAT
 
@@ -31,6 +31,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     if (ech >= 0x20 && ech <= 0x5F) { // ASCII range
         return ch;
+    }
+
+    if (ech >= SYM_AH_DECORATION_MIN && ech <= SYM_AH_DECORATION_MAX) {
+        return BF_SYM_AH_DECORATION;
     }
 
     switch (ech) {
@@ -176,6 +180,13 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 */
     case SYM_FT:
         return BF_SYM_FT;
+
+    case SYM_ALT_FT:
+        return BF_SYM_FT;
+
+    case SYM_ALT_M:
+        return BF_SYM_M;
+
 /*
     case SYM_TRIP_DIST:
         return BF_SYM_TRIP_DIST;
@@ -183,14 +194,8 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_TOTAL:
         return BF_SYM_TOTAL;
 
-    case SYM_ALT_M:
-        return BF_SYM_ALT_M;
-
     case SYM_ALT_KM:
         return BF_SYM_ALT_KM;
-
-    case SYM_ALT_FT:
-        return BF_SYM_ALT_FT;
 
     case SYM_ALT_KFT:
         return BF_SYM_ALT_KFT;
@@ -443,16 +448,8 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_AH_RIGHT:
         return BF_SYM_AH_RIGHT;
-/*
-    case SYM_AH_DECORATION_MIN:
-        return BF_SYM_AH_DECORATION_MIN;
-*/
-    case SYM_AH_DECORATION:
-        return BF_SYM_AH_DECORATION;
-/*
-    case SYM_AH_DECORATION_MAX:
-        return BF_SYM_AH_DECORATION_MAX;
 
+/*
     case SYM_AH_DECORATION_COUNT:
         return BF_SYM_AH_DECORATION_COUNT;
 */

@@ -537,7 +537,9 @@ static char * osdArmingDisabledReasonMessage(void)
             FALLTHROUGH;
         case ARMED:
             FALLTHROUGH;
-        case SIMULATOR_MODE:
+        case SIMULATOR_MODE_HITL:
+            FALLTHROUGH;
+        case SIMULATOR_MODE_SITL:
             FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;
@@ -1046,7 +1048,7 @@ static bool djiFormatMessages(char *buff)
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTOLEVEL)";
+                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
@@ -1108,7 +1110,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst)
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE;
         }
 
-        if (OSD_VISIBLE(osdLayoutConfig[OSD_THROTTLE_POS_AUTO_THR])) {
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_SCALED_THROTTLE_POS])) {
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE_AUTO_THR;
         }
 

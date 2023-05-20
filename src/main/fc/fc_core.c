@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -161,11 +159,22 @@ bool areSensorsCalibrating(void)
 
 int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
-    int16_t stickDeflection;
+    int16_t stickDeflection = 0;
 
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914   
+    const int16_t value = rawData - PWM_RANGE_MIDDLE;
+    if (value < -500) {
+        stickDeflection = -500;
+    } else if (value > 500) {
+        stickDeflection = 500;
+    } else {
+        stickDeflection = value;
+    }
+#else
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);   
+#endif
+    
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
-
     return rcLookup(stickDeflection, rate);
 }
 
@@ -489,7 +498,7 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
@@ -827,6 +836,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+  
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -842,10 +852,18 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         processDelayedSave();
     }
 
+#if defined(SITL_BUILD)
+    if (lockMainPID()) {
+#endif
+
     gyroFilter();
 
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
+
+#if defined(SITL_BUILD)
+    }
+#endif
 
     processPilotAndFailSafeActions(dT);
 
@@ -901,8 +919,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
 
-#ifdef USE_SMULATOR
-	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+#ifdef USE_SIMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
 	    if (isServoOutputEnabled()) {
 	        writeServos();
 	    }

@@ -26,7 +26,6 @@
 #include <stdint.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #ifdef USE_DYNAMIC_FILTERS
 
