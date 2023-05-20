@@ -162,7 +162,7 @@ typedef enum {
     OSD_MESSAGES,
     OSD_GPS_HDOP,
     OSD_MAIN_BATT_CELL_VOLTAGE,
-    OSD_THROTTLE_POS_AUTO_THR,
+    OSD_SCALED_THROTTLE_POS,
     OSD_HEADING_GRAPH,
     OSD_EFFICIENCY_MAH_PER_KM,
     OSD_WH_DRAWN,
@@ -475,6 +475,8 @@ displayCanvas_t *osdGetDisplayPortCanvas(void);
 
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
+
+bool osdUsingScaledThrottle(void);
 
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);

@@ -19,8 +19,6 @@
 #include <stdint.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
-
 #include "rx/frsky_crc.h"
 
 void frskyCheckSumStep(uint16_t *checksum, uint8_t byte)

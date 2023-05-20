@@ -3098,7 +3098,9 @@ static void cliSave(char *cmdline)
 
     cliPrint("Saving");
     //copyCurrentProfileToProfileSlot(getConfigProfile();
+    suspendRxSignal();
     writeEEPROM();
+    resumeRxSignal();
     cliReboot();
 }
 
@@ -3108,6 +3110,9 @@ static void cliDefaults(char *cmdline)
 
     cliPrint("Resetting to defaults");
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_CLI_BATCH
     commandBatchError = false;

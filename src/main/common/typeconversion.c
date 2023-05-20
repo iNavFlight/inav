@@ -21,7 +21,6 @@
 
 #include "maths.h"
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #ifdef REQUIRE_PRINTF_LONG_SUPPORT
 
