@@ -80,7 +80,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install ninja
+          brew install ninja ruby
           brew upgrade
 
       - name: Setup environment
