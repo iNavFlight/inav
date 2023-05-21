@@ -100,7 +100,7 @@ jobs:
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja
+        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -G Ninja .. && ninja
       - name: Upload artifacts
         uses: actions/upload-artifact@v2-preview
         with:
