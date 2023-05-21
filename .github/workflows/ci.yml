@@ -80,8 +80,7 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install ninja ruby
-          brew upgrade
+          brew install cmake ninja ruby
 
       - name: Setup environment
         env:
@@ -100,7 +99,12 @@ jobs:
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON  .. && make
+        run: |
+          mkdir -p build_SITL && cd build_SITL
+          export MACOSX_DEPLOYMENT_TARGET=11
+          cmake -DSITL=ON  ..
+          make
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v2-preview
         with:
