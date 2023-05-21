@@ -102,8 +102,8 @@ jobs:
         run: |
           mkdir -p build_SITL && cd build_SITL
           export MACOSX_DEPLOYMENT_TARGET=11
-          cmake -DSITL=ON  ..
-          make
+          cmake -DSITL=ON -G Ninja ..
+          ninja
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2-preview

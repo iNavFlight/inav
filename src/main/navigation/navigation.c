@@ -2626,7 +2626,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * transiton in to turn.
  * Limited to fixed wing only.
  * --------------------------------------------------- */
- bool rthClimbStageActiveAndComplete() {
+ bool rthClimbStageActiveAndComplete(void) {
     if ((STATE(FIXED_WING_LEGACY) || STATE(AIRPLANE)) && (navConfig()->general.rth_climb_first_stage_altitude > 0)) {
         if (posControl.actualState.abs.pos.z >= posControl.rthState.rthClimbStageAltitude) {
             return true;
@@ -4388,7 +4388,7 @@ int32_t navigationGetHomeHeading(void)
 }
 
 // returns m/s
-float calculateAverageSpeed() {
+float calculateAverageSpeed(void) {
     float flightTime = getFlightTime();
     if (flightTime == 0.0f) return 0;
     return (float)getTotalTravelDistance() / (flightTime * 100);
