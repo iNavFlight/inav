@@ -388,7 +388,7 @@ static void sendSMS(void)
     atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
 }
 
-void handleSimTelemetry()
+void handleSimTelemetry(void)
 {
     static uint16_t simResponseIndex = 0;
     uint32_t now = millis();
