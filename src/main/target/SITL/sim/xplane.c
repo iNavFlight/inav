@@ -421,9 +421,9 @@ static void* listenWorker(void* arg)
         computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
         transformVectorEarthToBody(&north, &quat);
         fakeMagSet(
-            constrainToInt16(north.x * 16000.0),
-            constrainToInt16(north.y * 16000.0),
-            constrainToInt16(north.z * 16000.0)
+            constrainToInt16(north.x * 16000.0f),
+            constrainToInt16(north.y * 16000.0f),
+            constrainToInt16(north.z * 16000.0f)
         );
 
         if (!initalized) {

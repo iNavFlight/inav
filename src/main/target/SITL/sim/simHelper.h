@@ -32,6 +32,6 @@
 #define FLOAT_0_1_TO_PWM(x) ((uint16_t)(x * 1000.0f) + 1000.0f)
 #define FLOAT_MINUS_1_1_TO_PWM(x) ((uint16_t)((x + 1.0f) / 2.0f * 1000.0f) + 1000.0f)
 
-int16_t constrainToInt16(double value);
+int16_t constrainToInt16(float value);
 void transformVectorEarthToBody(fpVector3_t *v, const fpQuaternion_t *quat);
 void computeQuaternionFromRPY(fpQuaternion_t *quat, int16_t initialRoll, int16_t initialPitch, int16_t initialYaw);
