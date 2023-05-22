@@ -108,7 +108,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2-preview
         with:
-          name: ${{ env.BUILD_NAME }}_SITL.zip
+          name: ${{ env.BUILD_NAME }}_SITL-MacOS.zip
           path: ./build_SITL/*_SITL
 
   build-SITL-Windows:
