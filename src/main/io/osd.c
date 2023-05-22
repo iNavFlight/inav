@@ -329,7 +329,7 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals)
         buff[sym_index + 1] = '\0';
         break;
     case OSD_UNIT_GA:
-        if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), FEET_PER_NAUTICALMILE, decimals, 3, digits)) {
+        if (osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(dist), (uint32_t)FEET_PER_NAUTICALMILE, decimals, 3, digits)) {
             buff[sym_index] = symbol_nm;
         } else {
             buff[sym_index] = symbol_ft;

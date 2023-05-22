@@ -627,7 +627,7 @@ class Generator
                 enc = @value_encoder.encode_values(min, max)
                 buf <<  ", .config.minmax.indexes = #{enc}"
             end
-            buf << ", offsetof(#{group["type"]}, #{member["field"]}) },\n"
+            buf << ", (setting_offset_t)offsetof(#{group["type"]}, #{member["field"]}) },\n"
         end
         buf << "};\n"
 

@@ -376,7 +376,7 @@ static void sendSMS(void)
         getAltitudeMeters(),
         groundSpeed, avgSpeed / 10, avgSpeed % 10,
         (unsigned long)GPS_distanceToHome, getTotalTravelDistance() / 100ul,
-        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
+        (int)DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
