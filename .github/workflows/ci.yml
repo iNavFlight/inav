@@ -38,9 +38,9 @@ jobs:
       - name: Build targets (${{ matrix.id }})
         run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.BUILD_NAME }}.zip
+          name: ${{ env.BUILD_NAME }}
           path: ./build/*.hex
 
   build-SITL-Linux:
@@ -68,9 +68,9 @@ jobs:
       - name: Build SITL
         run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.BUILD_NAME }}_SITL.zip
+          name: ${{ env.BUILD_NAME }}_SITL
           path: ./build_SITL/*_SITL
 
   build-SITL-Mac:
@@ -105,9 +105,9 @@ jobs:
           ninja
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.BUILD_NAME }}_SITL-MacOS.zip
+          name: ${{ env.BUILD_NAME }}_SITL-MacOS
           path: ./build_SITL/*_SITL
 
   build-SITL-Windows:
@@ -140,9 +140,9 @@ jobs:
       - name: Build SITL
         run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2-preview
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.BUILD_NAME }}_SITL-WIN.zip
+          name: ${{ env.BUILD_NAME }}_SITL-WIN
           path: ./build_SITL/*.exe
 
 
