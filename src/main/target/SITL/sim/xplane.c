@@ -397,15 +397,15 @@ static void* listenWorker(void* arg)
         }
 
         fakeAccSet(
-            constrainToInt16(-accel_x * GRAVITY_MSS * 1000.0),
-            constrainToInt16(accel_y * GRAVITY_MSS * 1000.0),
-            constrainToInt16(accel_z * GRAVITY_MSS * 1000.0)
+            constrainToInt16(-accel_x * GRAVITY_MSS * 1000.0f),
+            constrainToInt16(accel_y * GRAVITY_MSS * 1000.0f),
+            constrainToInt16(accel_z * GRAVITY_MSS * 1000.0f)
         );
 
         fakeGyroSet(
-            constrainToInt16(gyro_x * 16.0),
-            constrainToInt16(-gyro_y * 16.0),
-            constrainToInt16(-gyro_z * 16.0)
+            constrainToInt16(gyro_x * 16.0f),
+            constrainToInt16(-gyro_y * 16.0f),
+            constrainToInt16(-gyro_z * 16.0f)
         );
 
         fakeBaroSet((int32_t)roundf(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
