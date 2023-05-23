@@ -61,7 +61,7 @@
 #define I2C_DEVICE_2_SHARES_UART3
 
 #define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
+#define BARO_I2C_BUS            BUS_I2C2
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
