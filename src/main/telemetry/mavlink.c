@@ -593,7 +593,8 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 
     mavlinkSendMessage();
 
-    mavlink_msg_gps_global_origin_pack(mavSystemId, mavComponentId, &mavSendMsg,
+    // TODO: Don't think we need this message
+    /*mavlink_msg_gps_global_origin_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // latitude Latitude (WGS84), expressed as * 1E7
         GPS_home.lat,
         // longitude Longitude (WGS84), expressed as * 1E7
@@ -604,7 +605,26 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
         // Use millis() * 1000 as micros() will overflow after 1.19 hours.
         ((uint64_t) millis()) * 1000);
 
-    mavlinkSendMessage();
+    mavlinkSendMessage();*/
+
+    // See https://mavlink.io/en/messages/common.html#HOME_POSITION
+    bool inav_has_home=true; // TODO when is the inav home position set ?
+    if(inav_has_home){
+        float dummy_q[4]; // World to surface normal and heading transformation, doubt this is of use
+        mavlink_msg_home_position_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            // latitude Latitude (WGS84), expressed as * 1E7
+            GPS_home.lat,
+            // longitude Longitude (WGS84), expressed as * 1E7
+            GPS_home.lon,
+            // altitude Altitude(WGS84), expressed as * 1000
+            GPS_home.alt * 10, // FIXME
+            0,0,0, // xyz unsupported
+            dummy_q, // also unsupported
+            0,0,0, // approach_x,y,z unsupported
+            ((uint64_t) millis()) * 1000);
+
+        mavlinkSendMessage();
+    }
 }
 #endif
 
