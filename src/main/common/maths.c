@@ -409,7 +409,7 @@ void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * 
     state->XtY[3] += squareSum;
 }
 
-void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target)
+void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, float sample[3], int target)
 {
     for (int i = 0; i < 3; i++) {
         float scaledSample = (float)sample[i] / (float)target;

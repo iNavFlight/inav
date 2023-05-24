@@ -447,7 +447,7 @@ static void performAcclerationCalibration(void)
         sensorCalibrationResetState(&calState);
 
         for (int axis = 0; axis < 6; axis++) {
-            int32_t accSample[3];
+            float accSample[3];
 
             accSample[X] = accSamples[axis][X] - accelerometerConfig()->accZero.raw[X];
             accSample[Y] = accSamples[axis][Y] - accelerometerConfig()->accZero.raw[Y];
