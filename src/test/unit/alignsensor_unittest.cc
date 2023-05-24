@@ -98,8 +98,8 @@ static void initZAxisRotation(int32_t mat[][3], int32_t angle)
 
 static void testCW(sensor_align_e rotation, int32_t angle)
 {
-    int32_t src[XYZ_AXIS_COUNT];
-    int32_t test[XYZ_AXIS_COUNT];
+    float src[XYZ_AXIS_COUNT];
+    float test[XYZ_AXIS_COUNT];
 
     // unit vector along x-axis
     src[X] = 1;
