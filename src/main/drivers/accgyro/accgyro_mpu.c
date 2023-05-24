@@ -43,6 +43,7 @@
 // Check busDevice scratchpad memory size
 STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
+#define float_val(v, idx) ((float)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
 #define int16_val(v, idx) ((int16_t)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
 
 static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
@@ -83,9 +84,9 @@ bool mpuGyroRead(gyroDev_t *gyro)
         return false;
     }
 
-    gyro->gyroADCRaw[X] = int16_val(data, 0);
-    gyro->gyroADCRaw[Y] = int16_val(data, 1);
-    gyro->gyroADCRaw[Z] = int16_val(data, 2);
+    gyro->gyroADCRaw[X] = float_val(data, 0);
+    gyro->gyroADCRaw[Y] = float_val(data, 1);
+    gyro->gyroADCRaw[Z] = float_val(data, 2);
 
     return true;
 }
@@ -102,9 +103,9 @@ bool mpuGyroReadScratchpad(gyroDev_t *gyro)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(busDev);
 
     if (mpuUpdateSensorContext(busDev, ctx)) {
-        gyro->gyroADCRaw[X] = int16_val(ctx->gyroRaw, 0);
-        gyro->gyroADCRaw[Y] = int16_val(ctx->gyroRaw, 1);
-        gyro->gyroADCRaw[Z] = int16_val(ctx->gyroRaw, 2);
+        gyro->gyroADCRaw[X] = float_val(ctx->gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = float_val(ctx->gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = float_val(ctx->gyroRaw, 2);
         return true;
     }
 
@@ -116,9 +117,9 @@ bool mpuAccReadScratchpad(accDev_t *acc)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = int16_val(ctx->accRaw, 0);
-        acc->ADCRaw[Y] = int16_val(ctx->accRaw, 1);
-        acc->ADCRaw[Z] = int16_val(ctx->accRaw, 2);
+        acc->ADCRaw[X] = float_val(ctx->accRaw, 0);
+        acc->ADCRaw[Y] = float_val(ctx->accRaw, 1);
+        acc->ADCRaw[Z] = float_val(ctx->accRaw, 2);
         return true;
     }
 

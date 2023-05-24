@@ -184,9 +184,9 @@ static bool lsm6dxxAccRead(accDev_t *acc)
     if (!ack) {
         return false;
     }
-    acc->ADCRaw[X] = (int16_t)((data[1] << 8) | data[0]);
-    acc->ADCRaw[Y] = (int16_t)((data[3] << 8) | data[2]);
-    acc->ADCRaw[Z] = (int16_t)((data[5] << 8) | data[4]);
+    acc->ADCRaw[X] = (float)((data[1] << 8) | data[0]);
+    acc->ADCRaw[Y] = (float)((data[3] << 8) | data[2]);
+    acc->ADCRaw[Z] = (float)((data[5] << 8) | data[4]);
     return true; 
 }
 
@@ -197,9 +197,9 @@ static bool lsm6dxxGyroRead(gyroDev_t *gyro)
     if (!ack) {
         return false;
     }
-    gyro->gyroADCRaw[X] = (int16_t)((data[1] << 8) | data[0]);
-    gyro->gyroADCRaw[Y] = (int16_t)((data[3] << 8) | data[2]);
-    gyro->gyroADCRaw[Z] = (int16_t)((data[5] << 8) | data[4]);
+    gyro->gyroADCRaw[X] = (float)((data[1] << 8) | data[0]);
+    gyro->gyroADCRaw[Y] = (float)((data[3] << 8) | data[2]);
+    gyro->gyroADCRaw[Z] = (float)((data[5] << 8) | data[4]);
     return true;
 }
 

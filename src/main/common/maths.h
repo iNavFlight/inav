@@ -137,7 +137,7 @@ typedef struct {
 } sensorCalibrationState_t;
 
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
-void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3]);
+void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, float sample[3]);
 void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target);
 bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
 bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);

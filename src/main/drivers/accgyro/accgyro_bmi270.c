@@ -254,9 +254,9 @@ static bool bmi270yroReadScratchpad(gyroDev_t *gyro)
     ctx->lastReadStatus = busReadBuf(gyro->busDev, BMI270_REG_ACC_DATA_X_LSB, &ctx->__padding_dummy, 6 + 6 + 1);
 
     if (ctx->lastReadStatus) {
-        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[1] << 8) | ctx->gyroRaw[0]);
-        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[3] << 8) | ctx->gyroRaw[2]);
-        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[5] << 8) | ctx->gyroRaw[4]);
+        gyro->gyroADCRaw[X] = (float)((ctx->gyroRaw[1] << 8) | ctx->gyroRaw[0]);
+        gyro->gyroADCRaw[Y] = (float)((ctx->gyroRaw[3] << 8) | ctx->gyroRaw[2]);
+        gyro->gyroADCRaw[Z] = (float)((ctx->gyroRaw[5] << 8) | ctx->gyroRaw[4]);
 
         return true;
     }
@@ -269,9 +269,9 @@ static bool bmi270AccReadScratchpad(accDev_t *acc)
     bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
-        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
+        acc->ADCRaw[X] = (float)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
+        acc->ADCRaw[Y] = (float)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
+        acc->ADCRaw[Z] = (float)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
         return true;
     }
 
