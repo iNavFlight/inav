@@ -369,18 +369,18 @@ static void* listenWorker(void* arg)
         gpsFakeSet(
             GPS_FIX_3D,
             16,
-            (int32_t)round(lattitude * 10000000),
-            (int32_t)round(longitude * 10000000),
-            (int32_t)round(elevation * 100),
-            (int16_t)round(groundspeed * 100),
-            (int16_t)round(hpath * 10),
-            0, //(int16_t)round(-local_vz * 100),
-            0, //(int16_t)round(local_vx * 100),
-            0, //(int16_t)round(-local_vy * 100),
+            (int32_t)roundf(lattitude * 10000000),
+            (int32_t)roundf(longitude * 10000000),
+            (int32_t)roundf(elevation * 100),
+            (int16_t)roundf(groundspeed * 100),
+            (int16_t)roundf(hpath * 10),
+            0, //(int16_t)roundf(-local_vz * 100),
+            0, //(int16_t)roundf(local_vx * 100),
+            0, //(int16_t)roundf(-local_vy * 100),
             0
         );
 
-        const int32_t altitideOverGround = (int32_t)round(agl * 100);
+        const int32_t altitideOverGround = (int32_t)roundf(agl * 100);
         if (altitideOverGround > 0 && altitideOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
             fakeRangefindersSetData(altitideOverGround);
         } else {
@@ -397,9 +397,9 @@ static void* listenWorker(void* arg)
         }
 
         fakeAccSet(
-            constrainToInt16(-accel_x * GRAVITY_MSS * 1000),
-            constrainToInt16(accel_y * GRAVITY_MSS * 1000),
-            constrainToInt16(accel_z * GRAVITY_MSS * 1000)
+            constrainToInt16(-accel_x * GRAVITY_MSS * 1000.0f),
+            constrainToInt16(accel_y * GRAVITY_MSS * 1000.0f),
+            constrainToInt16(accel_z * GRAVITY_MSS * 1000.0f)
         );
 
         fakeGyroSet(
@@ -408,16 +408,16 @@ static void* listenWorker(void* arg)
             constrainToInt16(-gyro_z * 16.0f)
         );
 
-        fakeBaroSet((int32_t)round(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
+        fakeBaroSet((int32_t)roundf(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
         fakePitotSetAirspeed(airspeed * 100.0f);
 
-        fakeBattSensorSetVbat(16.8 * 100);
+        fakeBattSensorSetVbat(16.8f * 100);
 
         fpQuaternion_t quat;
         fpVector3_t north;
         north.x = 1.0f;
-        north.y = 0;
-        north.z = 0;
+        north.y = 0.0f;
+        north.z = 0.0f;
         computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
         transformVectorEarthToBody(&north, &quat);
         fakeMagSet(

@@ -521,7 +521,7 @@ float bellCurve(const float x, const float curveWidth)
     return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
 }
 
-float fast_fsqrtf(const double value) {
+float fast_fsqrtf(const float value) {
     float ret = 0.0f;
 #ifdef USE_ARM_MATH
     arm_sqrt_f32(value, &ret);

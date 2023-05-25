@@ -1247,7 +1247,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
     }
 
     const uint8_t rthClimbMarginPercent = STATE(FIXED_WING_LEGACY) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
-    const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
+    const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0f) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
 
     // If we reached desired initial RTH altitude or we don't want to climb first
     if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (navConfig()->general.flags.rth_climb_first == RTH_CLIMB_OFF) || rthAltControlStickOverrideCheck(ROLL) || rthClimbStageActiveAndComplete()) {
@@ -1878,7 +1878,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
 static void navProcessFSMEvents(navigationFSMEvent_t injectedEvent)
 {
     const timeMs_t currentMillis = millis();
-    navigationFSMState_t previousState;
+    navigationFSMState_t previousState = NAV_STATE_UNDEFINED;
     static timeMs_t lastStateProcessTime = 0;
 
     /* Process new injected event if event defined,
@@ -2627,7 +2627,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis)
  * transiton in to turn.
  * Limited to fixed wing only.
  * --------------------------------------------------- */
- bool rthClimbStageActiveAndComplete() {
+ bool rthClimbStageActiveAndComplete(void) {
     if ((STATE(FIXED_WING_LEGACY) || STATE(AIRPLANE)) && (navConfig()->general.rth_climb_first_stage_altitude > 0)) {
         if (posControl.actualState.abs.pos.z >= posControl.rthState.rthClimbStageAltitude) {
             return true;
@@ -3221,7 +3221,7 @@ void loadSelectedMultiMission(uint8_t missionIndex)
     posControl.geoWaypointCount = 0;
 
     for (int i = 0; i < NAV_MAX_WAYPOINTS; i++) {
-        if ((missionCount == missionIndex)) {
+        if (missionCount == missionIndex) {
             /* store details of selected mission: start wp index, mission wp count, geo wp count */
             if (!(posControl.waypointList[i].action == NAV_WP_ACTION_SET_POI ||
                     posControl.waypointList[i].action == NAV_WP_ACTION_SET_HEAD ||
@@ -4389,7 +4389,7 @@ int32_t navigationGetHomeHeading(void)
 }
 
 // returns m/s
-float calculateAverageSpeed() {
+float calculateAverageSpeed(void) {
     float flightTime = getFlightTime();
     if (flightTime == 0.0f) return 0;
     return (float)getTotalTravelDistance() / (flightTime * 100);
