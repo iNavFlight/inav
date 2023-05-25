@@ -509,6 +509,12 @@ void SystemClock_Config(void)
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
 #endif
 
+#ifdef USE_QUADSPI
+    RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_QSPI;
+    RCC_PeriphClkInit.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
+    HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
+#endif
+
     // Configure MCO clocks for clock test/verification
 
     // Possible sources for MCO1:
