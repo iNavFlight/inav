@@ -86,6 +86,7 @@ STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
 STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
+FASTRAM float runtime_gyro_scale[XYZ_AXIS_COUNT] = {1.0f, 1.0f, 1.0f};
 
 #ifdef USE_DYNAMIC_FILTERS
 
@@ -124,6 +125,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #endif
     .init_gyro_cal_enabled = SETTING_INIT_GYRO_CAL_DEFAULT,
     .gyro_zero_cal = {SETTING_GYRO_ZERO_X_DEFAULT, SETTING_GYRO_ZERO_Y_DEFAULT, SETTING_GYRO_ZERO_Z_DEFAULT},
+    .gyro_scale_cal = {SETTING_GYRO_SCALE_X_DEFAULT, SETTING_GYRO_SCALE_Y_DEFAULT, SETTING_GYRO_SCALE_Z_DEFAULT},
     .gravity_cmss_cal = SETTING_INS_GRAVITY_CMSS_DEFAULT,
 );
 
@@ -317,6 +319,10 @@ bool gyroInit(void)
         getLooptime()
     );
 #endif
+    // calculate custom scale
+    runtime_gyro_scale[X] = (gyroConfig()->gyro_scale_cal[X]) / 10000.0f + 1.0f;
+    runtime_gyro_scale[Y] = (gyroConfig()->gyro_scale_cal[Y]) / 10000.0f + 1.0f;
+    runtime_gyro_scale[Z] = (gyroConfig()->gyro_scale_cal[Z]) / 10000.0f + 1.0f;
     return true;
 }
 
@@ -421,9 +427,9 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
             applyBoardAlignment(gyroADCtmp);
 
             // Convert to deg/s and store in unified data
-            gyroADCf[X] = (float)gyroADCtmp[X] * gyroDev->scale;
-            gyroADCf[Y] = (float)gyroADCtmp[Y] * gyroDev->scale;
-            gyroADCf[Z] = (float)gyroADCtmp[Z] * gyroDev->scale;
+            gyroADCf[X] = (float)gyroADCtmp[X] * gyroDev->scale * runtime_gyro_scale[X];
+            gyroADCf[Y] = (float)gyroADCtmp[Y] * gyroDev->scale * runtime_gyro_scale[Y];
+            gyroADCf[Z] = (float)gyroADCtmp[Z] * gyroDev->scale * runtime_gyro_scale[Z];
 
             return true;
         } else {

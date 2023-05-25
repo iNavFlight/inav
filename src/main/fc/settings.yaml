@@ -337,6 +337,24 @@ groups:
         field: gyro_zero_cal[Z]
         min: INT16_MIN
         max: INT16_MAX
+      - name: gyro_scale_x
+        description: "Gyro scale apply for axis X, 0 is 100% no scaling, 1000 is 110% scaling"
+        default_value: 0
+        field: gyro_scale_cal[X]
+        min: -2500
+        max: 2500
+      - name: gyro_scale_y
+        description: "Gyro scale apply for axis Y, 0 is 100% no scaling, 500 is 105% scaling"
+        default_value: 0
+        field: gyro_scale_cal[Y]
+        min: -2500
+        max: 2500
+      - name: gyro_scale_z
+        description: "Gyro scale apply for axis Z, 0 is 100% no scaling, -1000 is 90% scaling"
+        default_value: 0
+        field: gyro_scale_cal[Z]
+        min: -2500
+        max: 2500
       - name: ins_gravity_cmss
         description: "Calculated 1G of Acc axis Z to use in INS"
         default_value: 0.0
