@@ -184,9 +184,9 @@ static bool lsm6dxxAccRead(accDev_t *acc)
     if (!ack) {
         return false;
     }
-    acc->ADCRaw[X] = (float)((data[1] << 8) | data[0]);
-    acc->ADCRaw[Y] = (float)((data[3] << 8) | data[2]);
-    acc->ADCRaw[Z] = (float)((data[5] << 8) | data[4]);
+    acc->ADCRaw[X] = (float) int16_val_little_endian(data, 0);
+    acc->ADCRaw[Y] = (float) int16_val_little_endian(data, 1);
+    acc->ADCRaw[Z] = (float) int16_val_little_endian(data, 2);
     return true; 
 }
 
@@ -197,9 +197,9 @@ static bool lsm6dxxGyroRead(gyroDev_t *gyro)
     if (!ack) {
         return false;
     }
-    gyro->gyroADCRaw[X] = (float)((data[1] << 8) | data[0]);
-    gyro->gyroADCRaw[Y] = (float)((data[3] << 8) | data[2]);
-    gyro->gyroADCRaw[Z] = (float)((data[5] << 8) | data[4]);
+    gyro->gyroADCRaw[X] = (float) int16_val_little_endian(data, 0);
+    gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(data, 1);
+    gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(data, 2);
     return true;
 }
 

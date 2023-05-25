@@ -191,3 +191,14 @@ float bellCurve(const float x, const float curveWidth);
 float fast_fsqrtf(const double value);
 float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
 float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);
+
+/*
+ * The most significat byte is placed at the lowest address
+ * in other words, the most significant byte is "first", on even indexes
+ */
+#define int16_val_big_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
+/*
+ * The most significat byte is placed at the highest address
+ * in other words, the most significant byte is "last", on odd indexes
+ */
+#define int16_val_little_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx + 1] << 8) | v[2 * idx]))
