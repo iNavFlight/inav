@@ -380,36 +380,36 @@ void sensorCalibrationResetState(sensorCalibrationState_t * state)
     }
 }
 
-void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3])
+void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, float sample[3])
 {
-    state->XtX[0][0] += (float)sample[0] * sample[0];
-    state->XtX[0][1] += (float)sample[0] * sample[1];
-    state->XtX[0][2] += (float)sample[0] * sample[2];
-    state->XtX[0][3] += (float)sample[0];
+    state->XtX[0][0] += sample[0] * sample[0];
+    state->XtX[0][1] += sample[0] * sample[1];
+    state->XtX[0][2] += sample[0] * sample[2];
+    state->XtX[0][3] += sample[0];
 
-    state->XtX[1][0] += (float)sample[1] * sample[0];
-    state->XtX[1][1] += (float)sample[1] * sample[1];
-    state->XtX[1][2] += (float)sample[1] * sample[2];
-    state->XtX[1][3] += (float)sample[1];
+    state->XtX[1][0] += sample[1] * sample[0];
+    state->XtX[1][1] += sample[1] * sample[1];
+    state->XtX[1][2] += sample[1] * sample[2];
+    state->XtX[1][3] += sample[1];
 
-    state->XtX[2][0] += (float)sample[2] * sample[0];
-    state->XtX[2][1] += (float)sample[2] * sample[1];
-    state->XtX[2][2] += (float)sample[2] * sample[2];
-    state->XtX[2][3] += (float)sample[2];
+    state->XtX[2][0] += sample[2] * sample[0];
+    state->XtX[2][1] += sample[2] * sample[1];
+    state->XtX[2][2] += sample[2] * sample[2];
+    state->XtX[2][3] += sample[2];
 
-    state->XtX[3][0] += (float)sample[0];
-    state->XtX[3][1] += (float)sample[1];
-    state->XtX[3][2] += (float)sample[2];
+    state->XtX[3][0] += sample[0];
+    state->XtX[3][1] += sample[1];
+    state->XtX[3][2] += sample[2];
     state->XtX[3][3] += 1;
 
-    float squareSum = ((float)sample[0] * sample[0]) + ((float)sample[1] * sample[1]) + ((float)sample[2] * sample[2]);
+    float squareSum = (sample[0] * sample[0]) + (sample[1] * sample[1]) + (sample[2] * sample[2]);
     state->XtY[0] += sample[0] * squareSum;
     state->XtY[1] += sample[1] * squareSum;
     state->XtY[2] += sample[2] * squareSum;
     state->XtY[3] += squareSum;
 }
 
-void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target)
+void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, float sample[3], int target)
 {
     for (int i = 0; i < 3; i++) {
         float scaledSample = (float)sample[i] / (float)target;
