@@ -25,6 +25,7 @@
 #include "drivers/sensor.h"
 #include "flight/dynamic_gyro_notch.h"
 #include "flight/secondary_dynamic_gyro_notch.h"
+#include "arm_math.h"
 
 typedef enum {
     GYRO_NONE = 0,
