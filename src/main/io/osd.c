@@ -532,6 +532,7 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
+    uint8_t totalDigits = 4U;
     uint8_t digits = 4U;
     uint8_t symbolIndex = 4U;
     uint8_t symbolKFt = SYM_ALT_KFT;
@@ -543,6 +544,7 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 
 #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values  
     if (isBfCompatibleVideoSystem(osdConfig())) {
+        totalDigits++;
         digits++;
         symbolIndex++;
         symbolKFt = SYM_ALT_FT;
@@ -555,7 +557,7 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         case OSD_UNIT_GA:
             FALLTHROUGH;
         case OSD_UNIT_IMPERIAL:
-            if (osdFormatCentiNumber(buff + 4 - digits, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, digits)) {
+            if (osdFormatCentiNumber(buff + totalDigits - digits, CENTIMETERS_TO_CENTIFEET(alt), 1000, 0, 2, digits)) {
                 // Scaled to kft
                 buff[symbolIndex++] = symbolKFt;
             } else {
@@ -568,7 +570,7 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
             FALLTHROUGH;
         case OSD_UNIT_METRIC:
             // alt is alredy in cm
-            if (osdFormatCentiNumber(buff + 4 - digits, alt, 1000, 0, 2, digits)) {
+            if (osdFormatCentiNumber(buff + totalDigits - digits, alt, 1000, 0, 2, digits)) {
                 // Scaled to km
                 buff[symbolIndex++] = SYM_ALT_KM;
             } else {
