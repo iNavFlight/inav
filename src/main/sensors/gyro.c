@@ -372,7 +372,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         setGyroCalibration(dev->gyroZero);
 #endif
 
-        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
         dev->gyroZero[X] = 0;
@@ -409,12 +409,12 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 #endif
 
         if (zeroCalibrationIsCompleteV(gyroCal)) {
-            int32_t gyroADCtmp[XYZ_AXIS_COUNT];
+            float gyroADCtmp[XYZ_AXIS_COUNT];
 
             // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
-            gyroADCtmp[X] = (int32_t)gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
-            gyroADCtmp[Y] = (int32_t)gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
-            gyroADCtmp[Z] = (int32_t)gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
+            gyroADCtmp[X] = gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
+            gyroADCtmp[Y] = gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
+            gyroADCtmp[Z] = gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
 
             // Apply sensor alignment
             applySensorAlignment(gyroADCtmp, gyroADCtmp, gyroDev->gyroAlign);
@@ -442,7 +442,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
     }
 }
 
-void FAST_CODE NOINLINE gyroFilter()
+void FAST_CODE NOINLINE gyroFilter(void)
 {
     if (!gyro.initialized) {
         return;
@@ -504,7 +504,7 @@ void FAST_CODE NOINLINE gyroFilter()
 
 }
 
-void FAST_CODE NOINLINE gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate(void)
 {
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {

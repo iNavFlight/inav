@@ -98,9 +98,9 @@ static bool icm42605AccRead(accDev_t *acc)
         return false;
     }
 
-    acc->ADCRaw[X] = (int16_t)((data[0] << 8) | data[1]);
-    acc->ADCRaw[Y] = (int16_t)((data[2] << 8) | data[3]);
-    acc->ADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
+    acc->ADCRaw[X] = (float) int16_val_big_endian(data, 0);
+    acc->ADCRaw[Y] = (float) int16_val_big_endian(data, 1);
+    acc->ADCRaw[Z] = (float) int16_val_big_endian(data, 2);
 
     return true;
 }
@@ -231,9 +231,9 @@ static bool icm42605GyroRead(gyroDev_t *gyro)
         return false;
     }
 
-    gyro->gyroADCRaw[X] = (int16_t)((data[0] << 8) | data[1]);
-    gyro->gyroADCRaw[Y] = (int16_t)((data[2] << 8) | data[3]);
-    gyro->gyroADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
+    gyro->gyroADCRaw[X] = (float) int16_val_big_endian(data, 0);
+    gyro->gyroADCRaw[Y] = (float) int16_val_big_endian(data, 0);
+    gyro->gyroADCRaw[Z] = (float) int16_val_big_endian(data, 0);
 
     return true;
 }

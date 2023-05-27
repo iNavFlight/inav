@@ -59,6 +59,10 @@ if(NOT MACOSX)
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
     )
+else()
+    set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
+        -Wno-missing-braces
+    )
 endif()
 
 set(SITL_DEFINITIONS

@@ -1326,12 +1326,19 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #endif
 
     bool valid_temp;
-    valid_temp = getIMUTemperature(&slow->imuTemperature);
-    if (!valid_temp) slow->imuTemperature = TEMPERATURE_INVALID_VALUE;
+    int16_t newTemp = 0;
+    valid_temp = getIMUTemperature(&newTemp);
+    if (valid_temp) 
+        slow->imuTemperature = newTemp;
+    else
+        slow->imuTemperature = TEMPERATURE_INVALID_VALUE;
 
 #ifdef USE_BARO
-    valid_temp = getBaroTemperature(&slow->baroTemperature);
-    if (!valid_temp) slow->baroTemperature = TEMPERATURE_INVALID_VALUE;
+    valid_temp = getBaroTemperature(&newTemp);
+    if (valid_temp)
+        slow->baroTemperature = newTemp;
+    else
+        slow->baroTemperature = TEMPERATURE_INVALID_VALUE;
 #endif
 
 #ifdef USE_TEMPERATURE_SENSOR

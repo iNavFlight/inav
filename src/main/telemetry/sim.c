@@ -375,8 +375,8 @@ static void sendSMS(void)
         amps / 10, amps % 10,
         getAltitudeMeters(),
         groundSpeed, avgSpeed / 10, avgSpeed % 10,
-        GPS_distanceToHome, getTotalTravelDistance() / 100,
-        DECIDEGREES_TO_DEGREES(attitude.values.yaw),
+        (unsigned long)GPS_distanceToHome, getTotalTravelDistance() / 100ul,
+        (int)DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         gpsSol.numSat, gpsFixIndicators[gpsSol.fixType],
         simRssi,
         getStateOfForcedRTH() == RTH_IDLE ? modeDescriptions[getFlightModeForTelemetry()] : "RTH",
@@ -388,7 +388,7 @@ static void sendSMS(void)
     atCommandStatus = SIM_AT_WAITING_FOR_RESPONSE;
 }
 
-void handleSimTelemetry()
+void handleSimTelemetry(void)
 {
     static uint16_t simResponseIndex = 0;
     uint32_t now = millis();

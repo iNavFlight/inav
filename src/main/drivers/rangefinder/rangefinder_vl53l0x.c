@@ -367,7 +367,7 @@ uint16_t encodeTimeout(uint16_t timeout_mclks)
 // Defaults to 0.25 MCPS as initialized by the ST API and this library.
 bool setSignalRateLimit(busDevice_t * busDev, float limit_Mcps)
 {
-    if (limit_Mcps < 0 || limit_Mcps > 511.99) {
+    if (limit_Mcps < 0 || limit_Mcps > 511.99f) {
         return false;
     }
 
