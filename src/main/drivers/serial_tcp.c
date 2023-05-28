@@ -110,18 +110,17 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
         fprintf(stderr, "[SOCKET] Unable to listen.\n");
         return NULL;
     }
-
-    char *addrptr = prettyPrintAddress((struct sockaddr *)&port->sockAddress);
+    char addrbuf[IPADDRESS_PRINT_BUFLEN];
+    char *addrptr = prettyPrintAddress((struct sockaddr *)&port->sockAddress, addrbuf, IPADDRESS_PRINT_BUFLEN);
     if (addrptr != NULL) {
         fprintf(stderr, "[SOCKET] Bind TCP %s to UART%d\n", addrptr, id);
-        free(addrptr);
     }
     return port;
 }
 
 int tcpReceive(tcpPort_t *port)
 {
-
+    char addrbuf[IPADDRESS_PRINT_BUFLEN];
     if (!port->isClientConnected) {
 
         fd_set fds;
@@ -134,16 +133,16 @@ int tcpReceive(tcpPort_t *port)
             return -1;
         }
 
-            socklen_t addrLen = sizeof(struct sockaddr_storage);
+        socklen_t addrLen = sizeof(struct sockaddr_storage);
         port->clientSocketFd = accept(port->socketFd,(struct sockaddr*)&port->clientAddress, &addrLen);
         if (port->clientSocketFd < 1) {
             fprintf(stderr, "[SOCKET] Can't accept connection.\n");
             return -1;
         }
-        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress);
+
+        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress, addrbuf, IPADDRESS_PRINT_BUFLEN);
         if (addrptr != NULL) {
            fprintf(stderr, "[SOCKET] %s connected to UART%d\n", addrptr, port->id);
-           free(addrptr);
         }
         port->isClientConnected = true;
     }
@@ -153,10 +152,9 @@ int tcpReceive(tcpPort_t *port)
 
     // recv() under cygwin does not recognise the closed connection under certain circumstances, but returns ECONNRESET as an error.
     if (port->isClientConnected && (recvSize == 0 || ( recvSize == -1 && errno == ECONNRESET))) {
-        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress);
+        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress, addrbuf, IPADDRESS_PRINT_BUFLEN);
         if (addrptr != NULL) {
             fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", addrptr, port->id);
-            free(addrptr);
         }
         close(port->clientSocketFd);
         memset(&port->clientAddress, 0, sizeof(port->clientAddress));

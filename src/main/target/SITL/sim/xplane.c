@@ -458,10 +458,10 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     if (sockFd < 0) {
         return false;
     } else {
-        char *nptr = prettyPrintAddress((struct sockaddr *)&serverAddr);
+	char addrbuf[IPADDRESS_PRINT_BUFLEN];
+        char *nptr = prettyPrintAddress((struct sockaddr *)&serverAddr, addrbuf, IPADDRESS_PRINT_BUFLEN );
         if (nptr != NULL) {
             fprintf(stderr, "[SOCKET] xplane address = %s, fd=%d\n", nptr, sockFd);
-            free(nptr);
         }
     }
 

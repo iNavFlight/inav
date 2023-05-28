@@ -418,9 +418,12 @@ int lookupAddress (char *name, int port, int type, struct sockaddr *addr, sockle
     return 0;
 }
 
-char *prettyPrintAddress(struct sockaddr* p)
+char *prettyPrintAddress(struct sockaddr* p, char *outbuf, size_t buflen)
 {
-    char straddr[INET6_ADDRSTRLEN];
+    if (buflen < IPADDRESS_PRINT_BUFLEN) {
+	return NULL;
+    }
+    char *bufp = outbuf;
     void *addr;
     uint16_t port;
     if (p->sa_family == AF_INET6) {
@@ -432,20 +435,17 @@ char *prettyPrintAddress(struct sockaddr* p)
 	port = ntohs(ip->sin_port);
 	addr = &ip->sin_addr;
     }
-    const char *res = inet_ntop(p->sa_family, addr, straddr, sizeof straddr);
+    const char *res = inet_ntop(p->sa_family, addr, outbuf+1, buflen-1);
     if (res != NULL) {
-	int nb = strlen(res)+16;
-	char *buf = calloc(nb,1);
-	char *ptr = buf;
+	char *ptr = (char*)res+strlen(res);
 	if (p->sa_family == AF_INET6) {
-	    *ptr++='[';
-	}
-	ptr = stpcpy(ptr, res);
-	if (p->sa_family == AF_INET6) {
-	    *ptr++=']';
+	    *bufp ='[';
+	    *ptr++ = ']';
+	} else {
+	    bufp++;
 	}
 	sprintf(ptr, ":%d", port);
-	return buf;
+	return bufp;
     }
     return NULL;
 }
