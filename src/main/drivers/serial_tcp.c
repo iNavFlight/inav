@@ -47,66 +47,6 @@
 static const struct serialPortVTable tcpVTable[];
 static tcpPort_t tcpPorts[SERIAL_PORT_COUNT];
 
-static int lookup_address (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
-{
-    struct addrinfo *servinfo, *p;
-    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
-    if (name == NULL) {
-	    hints.ai_flags |= AI_PASSIVE;
-    }
-    /*
-      This nonsense is to uniformly deliver the same sa_family regardless of whether
-      name is NULL or non-NULL
-      Otherwise, at least on Linux, we get
-      - V6,V4 for the non-null case and
-      - V4,V6 for the null case, regardless of gai.conf
-      Which may confuse consumers.
-      FreeBSD and Windows behave consistently, giving V6 for Ipv6 enabled stacks in all cases
-      unless a quad dotted address is specificied
-    */
-    struct addrinfo *p4 = NULL;
-    struct addrinfo *p6 = NULL;
-    int result;
-    char aport[16];
-    snprintf(aport, sizeof(aport), "%d", port);
-    if ((result = getaddrinfo(name, aport, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
-        return result;
-    } else {
-        for(p = servinfo; p != NULL; p = p->ai_next) {
-            if(p->ai_family == AF_INET6)
-                p6 = p;
-            else if(p->ai_family == AF_INET)
-                p4 = p;
-        }
-        if (p6 != NULL)
-            p = p6;
-        else if (p4 != NULL)
-            p = p4;
-        else
-            return -1;
-        memcpy(addr, p->ai_addr, p->ai_addrlen);
-        *len = p->ai_addrlen;
-        freeaddrinfo(servinfo);
-    }
-    return 0;
-}
-
-static char *tcpGetAddressString(struct sockaddr *addr)
-{
-    static char straddr[INET6_ADDRSTRLEN];
-    void *ipaddr;
-    if (addr->sa_family == AF_INET6) {
-	    struct sockaddr_in6 * ip = (struct sockaddr_in6*)addr;
-	    ipaddr = &ip->sin6_addr;
-    } else {
-	    struct sockaddr_in * ip = (struct sockaddr_in*)addr;
-	    ipaddr = &ip->sin_addr;
-    }
-    const char *res = inet_ntop(addr->sa_family, ipaddr, straddr, sizeof straddr);
-    return (char *)res;
-}
-
 static void *tcpReceiveThread(void* arg)
 {
     tcpPort_t *port = (tcpPort_t*)arg;
@@ -126,8 +66,8 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
     }
 
     uint16_t tcpPort = BASE_IP_ADDRESS + id - 1;
-    if (lookup_address(NULL, tcpPort, SOCK_STREAM, (struct sockaddr*)&port->sockAddress, &sockaddrlen) != 0) {
-	    return NULL;
+    if (lookupAddress(NULL, tcpPort, SOCK_STREAM, (struct sockaddr*)&port->sockAddress, &sockaddrlen) != 0) {
+            return NULL;
     }
     port->socketFd = socket(((struct sockaddr*)&port->sockAddress)->sa_family, SOCK_STREAM, IPPROTO_TCP);
 
@@ -139,11 +79,11 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 #ifdef __CYGWIN__
     // Sadly necesary to enforce dual-stack behaviour on Windows networking ,,,
     if (((struct sockaddr*)&port->sockAddress)->sa_family == AF_INET6) {
-	int v6only=0;
-	err = setsockopt(port->socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
-	if (err != 0) {
-	    fprintf(stderr,"[SOCKET] setting V6ONLY=false: %s\n", strerror(errno));
-	}
+        int v6only=0;
+        err = setsockopt(port->socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
+        if (err != 0) {
+            fprintf(stderr,"[SOCKET] setting V6ONLY=false: %s\n", strerror(errno));
+        }
     }
 #endif
 
@@ -171,9 +111,11 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
         return NULL;
     }
 
-    fprintf(stderr, "[SOCKET] Bind TCP %s port %d to UART%d\n",
-	    tcpGetAddressString((struct sockaddr*)&port->sockAddress), tcpPort, id);
-
+    char *addrptr = prettyPrintAddress((struct sockaddr *)&port->sockAddress);
+    if (addrptr != NULL) {
+        fprintf(stderr, "[SOCKET] Bind TCP %s to UART%d\n", addrptr, id);
+        free(addrptr);
+    }
     return port;
 }
 
@@ -192,14 +134,17 @@ int tcpReceive(tcpPort_t *port)
             return -1;
         }
 
-	    socklen_t addrLen = sizeof(struct sockaddr_storage);
+            socklen_t addrLen = sizeof(struct sockaddr_storage);
         port->clientSocketFd = accept(port->socketFd,(struct sockaddr*)&port->clientAddress, &addrLen);
         if (port->clientSocketFd < 1) {
             fprintf(stderr, "[SOCKET] Can't accept connection.\n");
             return -1;
         }
-
-       fprintf(stderr, "[SOCKET] %s connected to UART%d\n", tcpGetAddressString((struct sockaddr *)&port->clientAddress), port->id);
+        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress);
+        if (addrptr != NULL) {
+           fprintf(stderr, "[SOCKET] %s connected to UART%d\n", addrptr, port->id);
+           free(addrptr);
+        }
         port->isClientConnected = true;
     }
 
@@ -208,12 +153,15 @@ int tcpReceive(tcpPort_t *port)
 
     // recv() under cygwin does not recognise the closed connection under certain circumstances, but returns ECONNRESET as an error.
     if (port->isClientConnected && (recvSize == 0 || ( recvSize == -1 && errno == ECONNRESET))) {
-       fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", tcpGetAddressString((struct sockaddr *)&port->clientAddress), port->id);
-       close(port->clientSocketFd);
-       memset(&port->clientAddress, 0, sizeof(port->clientAddress));
-       port->isClientConnected = false;
-
-       return 0;
+        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress);
+        if (addrptr != NULL) {
+            fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", addrptr, port->id);
+            free(addrptr);
+        }
+        close(port->clientSocketFd);
+        memset(&port->clientAddress, 0, sizeof(port->clientAddress));
+        port->isClientConnected = false;
+        return 0;
     }
 
     for (ssize_t i = 0; i < recvSize; i++) {
