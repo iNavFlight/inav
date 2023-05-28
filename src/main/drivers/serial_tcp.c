@@ -37,6 +37,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/tcp.h>
 
 #include "common/utils.h"
 
@@ -147,6 +148,7 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 #endif
 
     int one = 1;
+    err = setsockopt(port->socketFd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     err = setsockopt(port->socketFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     err = fcntl(port->socketFd, F_SETFL, fcntl(port->socketFd, F_GETFL, 0) | O_NONBLOCK);
 
