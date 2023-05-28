@@ -26,7 +26,7 @@ main_sources(SITL_SRC
 )
 
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(CMAKE_HOST_APPLE)
   set(MACOSX ON)
 endif()
 
@@ -61,7 +61,6 @@ if(NOT MACOSX)
     )
 else()
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
-        -Wno-missing-braces
     )
 endif()
 
