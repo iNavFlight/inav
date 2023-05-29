@@ -38,6 +38,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 
 #include <platform.h>
 #include "target.h"
