@@ -157,7 +157,7 @@ bool srxl2ProcessHandshake(const Srxl2Header* header)
             /* priority */ 10,
             /* baudSupported*/ baudRate,
             /* info */ 0,
-            // U_ID_2
+            0 // U_ID_2
         }
     };
 

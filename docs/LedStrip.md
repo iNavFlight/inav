@@ -125,6 +125,7 @@ And each LED has overlays:
 * `B` - `B`link (flash twice) mode.
 * `O` - Lars`O`n Scanner (Cylon Effect).
 * `N` - Blink on la`N`ding (throttle < 50%).
+* `E` - Strob`E` Blink white on top of selected color.
 
 `cc` specifies the color number (0 based index), or Channel number to adjust Hue
 
@@ -235,6 +236,12 @@ That is, south facing LEDs have priority.
 The mapping between modes led placement and colors is currently fixed and cannot be changed.
 
 #### Indicator
+
+##### For fixed wing (INAV 6.1 onwards)
+
+This mode flashes LEDs that correspond to the roll stick position. Rolling left will flash any `indicator` LED on the left half of the grid. Rolling right will flash any `indicator` on the right side of the grid.
+
+##### For other platforms (all platforms pre INAV 6.1)
 
 This mode flashes LEDs that correspond to roll and pitch stick positions.  i.e.  they indicate the direction the craft is going to turn.
 

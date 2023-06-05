@@ -120,7 +120,6 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
-#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
@@ -177,7 +176,7 @@ static const char * const blackboxIncludeFlagNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -1557,7 +1556,7 @@ static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledC
         bool equalsDefault = false;
         if (defaultLedConfigs) {
             ledConfig_t ledConfigDefault = defaultLedConfigs[i];
-            equalsDefault = ledConfig == ledConfigDefault;
+            equalsDefault = !memcmp(&ledConfig, &ledConfigDefault, sizeof(ledConfig_t));
             generateLedConfig(&ledConfigDefault, ledConfigDefaultBuffer, sizeof(ledConfigDefaultBuffer));
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, i, ledConfigDefaultBuffer);
         }
@@ -1690,7 +1689,7 @@ static void cliDelay(char* cmdLine) {
         cliPrintLine("CLI delay deactivated");
         return;
     }
-    
+
     ms = fastA2I(cmdLine);
     if (ms) {
         cliDelayMs = ms;
@@ -1699,7 +1698,7 @@ static void cliDelay(char* cmdLine) {
     } else {
         cliShowParseError();
     }
-    
+
 }
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
@@ -2288,7 +2287,7 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
@@ -2323,12 +2322,12 @@ static void cliFlashErase(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
     }
-    
+
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -3099,7 +3098,9 @@ static void cliSave(char *cmdline)
 
     cliPrint("Saving");
     //copyCurrentProfileToProfileSlot(getConfigProfile();
+    suspendRxSignal();
     writeEEPROM();
+    resumeRxSignal();
     cliReboot();
 }
 
@@ -3109,6 +3110,9 @@ static void cliDefaults(char *cmdline)
 
     cliPrint("Resetting to defaults");
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_CLI_BATCH
     commandBatchError = false;
@@ -3194,8 +3198,10 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
+                    // Convert strings to uppercase. Lower case is not supported by the OSD.
+                    sl_toupperptr(eqptr);
                     // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
                         settingSetString(val, eqptr + 1, strlen(eqptr)-2);
                     } else {
                         settingSetString(val, eqptr, strlen(eqptr));
@@ -3274,6 +3280,17 @@ static void cliStatus(char *cmdline)
     char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
+    cliPrintLinef("%s/%s %s %s / %s (%s)",
+        FC_FIRMWARE_NAME,
+        targetName,
+        FC_VERSION_STRING,
+        buildDate,
+        buildTime,
+        shortGitRevision
+    );
+    cliPrintLinef("GCC-%s",
+        compilerVersion
+    );
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
@@ -3295,7 +3312,17 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-
+#if !defined(SITL_BUILD)
+#if defined(AT32F43x)
+    cliPrintLine("AT32 system clocks:");
+    crm_clocks_freq_type clocks;
+    crm_clocks_freq_get(&clocks); 
+    
+    cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
+    cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
+    cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
+    cliPrintLinef("  ABP2   = %d MHz", clocks.apb2_freq / 1000000);
+#else
     cliPrintLine("STM32 system clocks:");
 #if defined(USE_HAL_DRIVER)
     cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -3310,6 +3337,8 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
+#endif // for if at32
+#endif // for SITL
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
@@ -3338,18 +3367,19 @@ static void cliStatus(char *cmdline)
 #endif
 #ifdef USE_I2C
     const uint16_t i2cErrorCounter = i2cGetErrorCounter();
-#else
+#elif !defined(SITL_BUILD)
     const uint16_t i2cErrorCounter = 0;
 #endif
 
 #ifdef STACK_CHECK
     cliPrintf("Stack used: %d, ", stackUsedSize());
 #endif
+#if !defined(SITL_BUILD)
     cliPrintLinef("Stack size: %d, Stack address: 0x%x, Heap available: %d", stackTotalSize(), stackHighMem(), memGetAvailableBytes());
 
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
-
-#ifdef USE_ADC
+#endif
+#if defined(USE_ADC) && !defined(SITL_BUILD)
     static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
     cliPrintLine("ADC channel usage:");
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -3399,9 +3429,22 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
 
-#if defined(USE_VTX_CONTROL) && !defined(CLI_MINIMAL_VERBOSITY)
-    cliPrint("VTX: ");
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("OSD: ");
+#if defined(USE_OSD)
+    displayPort_t *osdDisplayPort = osdGetDisplayPort();
+    if (osdDisplayPort != NULL) {
+        cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
+    } else {
+        cliPrint("not enabled");
+    }
+#else
+    cliPrint("not used");
+#endif
+    cliPrintLinefeed();
 
+    cliPrint("VTX: ");
+#if defined(USE_VTX_CONTROL)
     if (vtxCommonDeviceIsReady(vtxCommonDevice())) {
         vtxDeviceOsdInfo_t osdInfo;
         vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
@@ -3418,6 +3461,9 @@ static void cliStatus(char *cmdline)
     else {
         cliPrint("not detected");
     }
+#else
+    cliPrint("no VTX control");
+#endif
 
     cliPrintLinefeed();
 #endif
@@ -3492,7 +3538,7 @@ static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
     cliPrintLinef("IO:\r\n----------------------");
-    for (unsigned i = 0; i < DEFIO_IO_USED_COUNT; i++) {
+    for (int i = 0; i < DEFIO_IO_USED_COUNT; i++) {
         const char* owner;
         owner = ownerNames[ioRecs[i].owner];
 
@@ -3588,18 +3634,18 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
-        cliPrintHashLine("mixer");
+        cliPrintHashLine("Mixer: motor mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
 
         printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
 
         // print custom servo mixer if exists
-        cliPrintHashLine("servo mixer");
+        cliPrintHashLine("Mixer: servo mixer");
         cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
         printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
 
         // print servo parameters
-        cliPrintHashLine("servo");
+        cliPrintHashLine("Outputs [servo]");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
 #if defined(USE_SAFE_HOME)
@@ -3607,7 +3653,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 
-        cliPrintHashLine("feature");
+        cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
 #if defined(BEEPER) || defined(USE_DSHOT)
@@ -3620,30 +3666,30 @@ static void printConfig(const char *cmdline, bool doDiff)
         printBlackbox(dumpMask, &blackboxConfig_Copy, blackboxConfig());
 #endif
 
-        cliPrintHashLine("map");
+        cliPrintHashLine("Receiver: Channel map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
-        cliPrintHashLine("serial");
+        cliPrintHashLine("Ports");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
 #ifdef USE_LED_STRIP
-        cliPrintHashLine("led");
+        cliPrintHashLine("LEDs");
         printLed(dumpMask, ledStripConfig_Copy.ledConfigs, ledStripConfig()->ledConfigs);
 
-        cliPrintHashLine("color");
+        cliPrintHashLine("LED color");
         printColor(dumpMask, ledStripConfig_Copy.colors, ledStripConfig()->colors);
 
-        cliPrintHashLine("mode_color");
+        cliPrintHashLine("LED mode_color");
         printModeColor(dumpMask, &ledStripConfig_Copy, ledStripConfig());
 #endif
 
-        cliPrintHashLine("aux");
+        cliPrintHashLine("Modes [aux]");
         printAux(dumpMask, modeActivationConditions_CopyArray, modeActivationConditions(0));
 
-        cliPrintHashLine("adjrange");
+        cliPrintHashLine("Adjustments [adjrange]");
         printAdjustmentRange(dumpMask, adjustmentRanges_CopyArray, adjustmentRanges(0));
 
-        cliPrintHashLine("rxrange");
+        cliPrintHashLine("Receiver rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
 #ifdef USE_TEMPERATURE_SENSOR
@@ -3652,23 +3698,23 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
 
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
-        cliPrintHashLine("wp");
+        cliPrintHashLine("Mission Control Waypoints [wp]");
         printWaypoints(dumpMask, posControl.waypointList, nonVolatileWaypointList(0));
 #endif
 
 #ifdef USE_OSD
-        cliPrintHashLine("osd_layout");
+        cliPrintHashLine("OSD [osd_layout]");
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("logic");
+        cliPrintHashLine("Programming: logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
 
-        cliPrintHashLine("global vars");
+        cliPrintHashLine("Programming: global variables");
         printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
 
-        cliPrintHashLine("programmable pid controllers");
+        cliPrintHashLine("Programming: PID controllers");
         printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
 #endif
 

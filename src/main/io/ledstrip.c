@@ -138,6 +138,7 @@ static const specialColorIndexes_t defaultSpecialColors[] = {
        [LED_SCOLOR_GPSNOSATS]       = COLOR_RED,
        [LED_SCOLOR_GPSNOLOCK]       = COLOR_ORANGE,
        [LED_SCOLOR_GPSLOCKED]       = COLOR_GREEN,
+       [LED_SCOLOR_STROBE]          = COLOR_WHITE,
     }}
 };
 
@@ -185,10 +186,11 @@ STATIC_UNIT_TESTED void updateLedCount(void)
 {
     int count = 0, countRing = 0, countScanner= 0;
 
+    const ledConfig_t configNotSet = {};
     for (int ledIndex = 0; ledIndex < LED_MAX_STRIP_LENGTH; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
 
-        if (!(*ledConfig))
+        if (!memcmp(ledConfig, &configNotSet, sizeof(ledConfig_t)))
             break;
 
         count++;
@@ -221,7 +223,7 @@ static const hsvColor_t* getSC(ledSpecialColorIds_e index)
 
 static const char directionCodes[LED_DIRECTION_COUNT] = { 'N', 'E', 'S', 'W', 'U', 'D' };
 static const char baseFunctionCodes[LED_BASEFUNCTION_COUNT]   = { 'C', 'F', 'A', 'L', 'S', 'G', 'R', 'H' };
-static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W' };
+static const char overlayCodes[LED_OVERLAY_COUNT]   = { 'T', 'O', 'B', 'N', 'I', 'W', 'E' };
 
 #define CHUNK_BUFFER_SIZE 11
 
@@ -305,7 +307,7 @@ bool parseLedStripConfig(int ledIndex, const char *config)
         }
     }
 
-    *ledConfig = DEFINE_LED(x, y, color, direction_flags, baseFunction, overlay_flags, 0);
+    DEFINE_LED(ledConfig, x, y, color, direction_flags, baseFunction, overlay_flags, 0);
 
     reevaluateLedConfig();
 
@@ -502,7 +504,7 @@ static void applyLedHsv(uint32_t mask, uint32_t ledOperation, const hsvColor_t *
 {
     for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
         const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
-        if ((*ledConfig & mask) == ledOperation)
+        if ((*((uint32_t *)ledConfig) & mask) == ledOperation)
             setLedHsv(ledIndex, color);
     }
 }
@@ -676,7 +678,7 @@ static void applyLedIndicatorLayer(bool updateNow, timeUs_t *timer)
     if (updateNow) {
         if (rxIsReceivingSignal()) {
             // calculate update frequency
-            int scale = MAX(ABS(rcCommand[ROLL]), ABS(rcCommand[PITCH]));  // 0 - 500
+            int scale = (STATE(AIRPLANE) || STATE(ROVER)) ? ABS(rcCommand[ROLL]) : MAX(ABS(rcCommand[ROLL]), ABS(rcCommand[PITCH]));  // 0 - 500
             scale += (50 - INDICATOR_DEADBAND);  // start increasing frequency right after deadband
             *timer += LED_STRIP_HZ(5) * 50 / MAX(50, scale);   // 5 - 50Hz update, 2.5 - 25Hz blink
 
@@ -691,23 +693,33 @@ static void applyLedIndicatorLayer(bool updateNow, timeUs_t *timer)
 
     const hsvColor_t *flashColor = &HSV(ORANGE); // TODO - use user color?
 
-    quadrant_e quadrants = 0;
-    if (rcCommand[ROLL] > INDICATOR_DEADBAND) {
-        quadrants |= QUADRANT_NORTH_EAST | QUADRANT_SOUTH_EAST;
-    } else if (rcCommand[ROLL] < -INDICATOR_DEADBAND) {
-        quadrants |= QUADRANT_NORTH_WEST | QUADRANT_SOUTH_WEST;
-    }
-    if (rcCommand[PITCH] > INDICATOR_DEADBAND) {
-        quadrants |= QUADRANT_NORTH_EAST | QUADRANT_NORTH_WEST;
-    } else if (rcCommand[PITCH] < -INDICATOR_DEADBAND) {
-        quadrants |= QUADRANT_SOUTH_EAST | QUADRANT_SOUTH_WEST;
-    }
+    if (STATE(AIRPLANE) || STATE(ROVER)) {
+        for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
+            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
+            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_INDICATOR)) {
+                if (((rcCommand[ROLL] > INDICATOR_DEADBAND) && (ledGetX(ledConfig) >= 8)) || ((rcCommand[ROLL] < -INDICATOR_DEADBAND) && (ledGetX(ledConfig) < 8))) 
+                    setLedHsv(ledIndex, flashColor);
+            }
+        }
+    } else {
+        quadrant_e quadrants = 0;
+        if (rcCommand[ROLL] > INDICATOR_DEADBAND) {
+            quadrants |= QUADRANT_NORTH_EAST | QUADRANT_SOUTH_EAST;
+        } else if (rcCommand[ROLL] < -INDICATOR_DEADBAND) {
+            quadrants |= QUADRANT_NORTH_WEST | QUADRANT_SOUTH_WEST;
+        }
+        if (rcCommand[PITCH] > INDICATOR_DEADBAND) {
+            quadrants |= QUADRANT_NORTH_EAST | QUADRANT_NORTH_WEST;
+        } else if (rcCommand[PITCH] < -INDICATOR_DEADBAND) {
+            quadrants |= QUADRANT_SOUTH_EAST | QUADRANT_SOUTH_WEST;
+        }
 
-    for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
-        const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
-        if (ledGetOverlayBit(ledConfig, LED_OVERLAY_INDICATOR)) {
-            if (getLedQuadrant(ledIndex) & quadrants)
-                setLedHsv(ledIndex, flashColor);
+        for (int ledIndex = 0; ledIndex < ledCounts.count; ledIndex++) {
+            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[ledIndex];
+            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_INDICATOR)) {
+                if (getLedQuadrant(ledIndex) & quadrants)
+                    setLedHsv(ledIndex, flashColor);
+            }
         }
     }
 }
@@ -842,10 +854,14 @@ static void applyLedBlinkLayer(bool updateNow, timeUs_t *timer)
     }
 
     bool ledOn = (blinkMask & 1);  // b_b_____...
-    if (!ledOn) {
-        for (int i = 0; i < ledCounts.count; ++i) {
-            const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
+    for (int i = 0; i < ledCounts.count; ++i) {
+        const ledConfig_t *ledConfig = &ledStripConfig()->ledConfigs[i];
 
+        if (ledOn) {
+            if (ledGetOverlayBit(ledConfig, LED_OVERLAY_STROBE)) {
+                setLedHsv(i, getSC(LED_SCOLOR_STROBE));
+            }
+        } else {
             if (ledGetOverlayBit(ledConfig, LED_OVERLAY_BLINK) ||
                     (ledGetOverlayBit(ledConfig, LED_OVERLAY_LANDING_FLASH) && scaledThrottle < 55 && scaledThrottle > 10)) {
                 setLedHsv(i, getSC(LED_SCOLOR_BLINKBACKGROUND));

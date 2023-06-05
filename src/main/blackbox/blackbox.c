@@ -1326,12 +1326,19 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #endif
 
     bool valid_temp;
-    valid_temp = getIMUTemperature(&slow->imuTemperature);
-    if (!valid_temp) slow->imuTemperature = TEMPERATURE_INVALID_VALUE;
+    int16_t newTemp = 0;
+    valid_temp = getIMUTemperature(&newTemp);
+    if (valid_temp) 
+        slow->imuTemperature = newTemp;
+    else
+        slow->imuTemperature = TEMPERATURE_INVALID_VALUE;
 
 #ifdef USE_BARO
-    valid_temp = getBaroTemperature(&slow->baroTemperature);
-    if (!valid_temp) slow->baroTemperature = TEMPERATURE_INVALID_VALUE;
+    valid_temp = getBaroTemperature(&newTemp);
+    if (valid_temp)
+        slow->baroTemperature = newTemp;
+    else
+        slow->baroTemperature = TEMPERATURE_INVALID_VALUE;
 #endif
 
 #ifdef USE_TEMPERATURE_SENSOR
@@ -1558,11 +1565,13 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->accADC[i] = lrintf(acc.accADCf[i] * acc.dev.acc_1G);
         blackboxCurrent->gyroRaw[i] = lrintf(gyro.gyroRaw[i]);
 
+#ifdef USE_DYNAMIC_FILTERS
         for (uint8_t i = 0; i < DYN_NOTCH_PEAK_COUNT ; i++) {
             blackboxCurrent->gyroPeaksRoll[i] = dynamicGyroNotchState.frequency[FD_ROLL][i];
             blackboxCurrent->gyroPeaksPitch[i] = dynamicGyroNotchState.frequency[FD_PITCH][i];
             blackboxCurrent->gyroPeaksYaw[i] = dynamicGyroNotchState.frequency[FD_YAW][i];
         }
+#endif
 
 #ifdef USE_MAG
         blackboxCurrent->magADC[i] = mag.magADC[i];
@@ -1809,7 +1818,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("Firmware revision", "INAV %s (%s) %s",  FC_VERSION_STRING, shortGitRevision, targetName);
         BLACKBOX_PRINT_HEADER_LINE("Firmware date", "%s %s",                buildDate, buildTime);
         BLACKBOX_PRINT_HEADER_LINE("Log start datetime", "%s",              blackboxGetStartDateTime(buf));
-        BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->name);
+        BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->craftName);
         BLACKBOX_PRINT_HEADER_LINE("P interval", "%u/%u",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     getThrottleIdleValue());
         BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     motorConfig()->maxthrottle);
@@ -1881,8 +1890,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("yaw_lpf_hz", "%d",                      pidProfile()->yaw_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_hz", "%d",                    pidProfile()->dterm_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_type", "%d",                  pidProfile()->dterm_lpf_type);
-        BLACKBOX_PRINT_HEADER_LINE("dterm_lpf2_hz", "%d",                   pidProfile()->dterm_lpf2_hz);
-        BLACKBOX_PRINT_HEADER_LINE("dterm_lpf2_type", "%d",                 pidProfile()->dterm_lpf2_type);
         BLACKBOX_PRINT_HEADER_LINE("deadband", "%d",                        rcControlsConfig()->deadband);
         BLACKBOX_PRINT_HEADER_LINE("yaw_deadband", "%d",                    rcControlsConfig()->yaw_deadband);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf", "%d",                        gyroConfig()->gyro_lpf);

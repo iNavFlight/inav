@@ -31,5 +31,7 @@
 
 extern virtualRangefinderVTable_t rangefinderMSPVtable;
 extern virtualRangefinderVTable_t rangefinderBenewakeVtable;
+extern virtualRangefinderVTable_t rangefinderFakeVtable;
 
 void mspRangefinderReceiveNewData(uint8_t * bufferPtr);
+void fakeRangefindersSetData(int32_t data);

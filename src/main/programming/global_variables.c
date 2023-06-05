@@ -24,8 +24,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SIZE
-
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
 #include <stdint.h>

@@ -1,87 +1,106 @@
-# General Info
-
-This is a guide on how to use Windows MSYS2 distribution and building platform to build INAV firmware. This environment is very simple to manage and does not require installing docker for Windows which may get in the way of VMWare or any other virtualization software you already have running for other reasons. Another benefit of this approach is that the compiler runs natively on Windows, so performance is much better than compiling in a virtual environment or a container. You can also integrate with whatever IDE you are using to make code edits and work with github, which makes the entire development and testing workflow a lot more efficient. In addition to MSYS2, this build environment also uses Arm Embedded GCC tolkit from The xPack Project, which provides many benefits over the toolkits maintained by arm.com
-
-Some of those benefits are described here:
-
-https://xpack.github.io/arm-none-eabi-gcc/
-
-## Setting up build environment
-
-Download MSYS2 for your architecture (most likely 64-bit)
-
-https://www.msys2.org/wiki/MSYS2-installation/
-
-Click on 64-bit, scroll all the way down for the latest release
-
-pacman is the package manager which makes it a lot easier to install and maintain all the dependencies
-
-## Installing dependencies
-
-Once MSYS2 is installed, you can open up a new terminal window by running:
-
-"C:\msys64\mingw64.exe"
-
-You can also make a shortcut of this somewhere on your taskbar, desktop, etc, or even setup a shortcut key to open it up every time you need to get a terminal window. If you right click on the window you can customize the font and layout to make it more comfortable to work with. This is very similar to cygwin or any other terminal program you might have used before
-
-This is the best part:
+# Building in Windows with MSYS2
+- This environment does not require installing WSL, which may not be available or would get in the way of other virtualization and/or anti-cheat software
+- It is also much faster to install and get set up because of its small size(~3.65 GB total after building hex file as of 6.0.0)
+## Setting up the environment
+### Download and install MSYS2
+1. For 6.0.0, the last version that works is [20220603](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20220603.exe)
+    - [20220503](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20220503.exe) is also known to work
+    - MSYS2 releases can be viewed at https://repo.msys2.org/distrib/x86_64/
+    - Scroll all the way down for an executable, scroll halfway down for a self-extracting archive
+1. Open an MSYS2 terminal by running C:\msys64\msys2_shell.cmd
+1. In the newly opened shell, set up your work path
+    - To paste commands, use "Shift+Insert" or Right-click and select "Paste"
+```
+mkdir /c/Workspace
+```
+## Downloading and installing dependencies
+### Installing other dependencies:
 ```
 pacman -S git ruby make cmake gcc mingw-w64-x86_64-libwinpthread-git unzip wget
 ```
-
-Now, each release needs a different version of arm toolchain. To setup the xPack ARM toolchain, use the following process:
-
-First, setup your work path, get the release you want to build or master if you want the latest/greatest
+- Note: If some fails to download, use the following command to install the rest without reinstalling everything:
 ```
-mkdir /c/Workspace
+pacman -S git ruby make cmake gcc mingw-w64-x86_64-libwinpthread-git unzip wget --needed
+```
+### Download the INAV repository
+#### Go to the working directory
+```
 cd /c/Workspace
-# you can also check out your own fork here which makes contributing easier
+```
+#### Download INAV source code
+- For master:
+```
 git clone https://github.com/iNavFlight/inav
-cd inav
 ```
-
-(Optional) Switch to a release instead of master
+- For [a branch](https://github.com/iNavFlight/inav/branches) or [a tag](https://github.com/iNavFlight/inav/tags): 
 ```
-git fetch origin
-# on the next line, tags/5.0.0 is the release's tag, and local_5.0.0 is the name of a local branch you will create.
-# tags can be found on https://github.com/iNavFlight/inav/tags as well as the releases page
-git checkout tags/5.0.0 -b local_5.0.0
-# you can also checkout with a branch if applicable:
-# git checkout -b release_5.1.0 origin/release_5.1.0
+# "release_6.0.0" here can be the name of a branch or a tag 
+git clone --branch release_6.0.0 https://github.com/iNavFlight/inav
 ```
-Now create the build and xpack directories and get the toolkit version you need for your INAV version
+- If you are internet speed or space restrained, you can also use `--depth 1`, which won't download the whole history, and `--single-branch`, which won't download other branches:
 ```
-mkdir build
-cd build
+git clone --depth 1 --single-branch --branch release_6.0.0 https://github.com/iNavFlight/inav
+```
+This results in ~302 MB instead of ~468 MB download/install size(as of 6.0.0)
+### Installing xPack 
+1. Create xPack directory:
+```
 mkdir /c/Workspace/xpack
 cd /c/Workspace/xpack
+```
+2. Find out which version of xPack you need for your INAV version:
+```
+# Currently, this is 10.2.1 for 6.0.0 and 10.3.1 for master
 cat /c/Workspace/inav/cmake/arm-none-eabi-checks.cmake | grep "set(arm_none_eabi_gcc_version" | cut -d\" -f2
 ```
-This will give you the version you need for any given release or master branch. You can get to all the releases here and find the version you need
-
-https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/
+3. Find the version you need from the [releases page](https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/), then either:
+- Download the "...-win32-x64.zip" and copy the folder inside, or
+- Right-click, choose "Copy link address" and paste it into the following commands:
 ```
-# for INAV version 5.0.0, toolchain version needed is 10.2.1
+cd /c/Workspace/xpack
+# paste the link after "wget"
 wget https://github.com/xpack-dev-tools/arm-none-eabi-gcc-xpack/releases/download/v10.2.1-1.1/xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
+# paste the file name after "unzip"
 unzip xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
+# you can delete the zip file after as it is no longer needed
+rm xpack-arm-none-eabi-gcc-10.2.1-1.1-win32-x64.zip
 ```
-This is important, put the toolkit first before your path so that it is  picked up ahead of any other versions that may be present on your system
+3. This is important. Put the toolkit first before your path so that it is picked up ahead of any other versions that may be present on your system:
 ```
 export PATH=/c/Workspace/xpack/xpack-arm-none-eabi-gcc-10.2.1-1.1/bin:$PATH
+```
+## Building the INAV firmware
+1. Create the build directory:
+```
+mkdir /c/Workspace/inav/build
+```
+2. Go into the build directory:
+```
 cd /c/Workspace/inav/build
 ```
-You may need to run rm -rf * in build directory if you had any failed previous runs now run cmake
+3. Run cmake
+- This may take a while. If you only want to test one target, remove the rest of the folders from C:\Workspace\inav\src\main\target\
 ```
-# while inside the build directory
 cmake ..
 ```
-Once that's done you can compile the firmware for your flight controller
+4. Compile the firmware for your flight controller.
 ```
-make DALRCF405
+make MATEKH743
 ```
-To get a list of available targets in INAV, see the target src folder
-[https://github.com/tednv/inav/tree/master/src/main/target](https://github.com/inavflight/inav/tree/master/src/main/target)
-
-The generated hex file will be in /c/Workspace/inav/build folder
-
-At the time of writting this document, I believe this is the fastest, easiest, and most efficient Windows build environment that is available. I have used this approach several years ago and was very happy with it building INAV 2.1 and 2.2, and now I'm getting back into it so figured I would share my method
+- The list of available targets in INAV can be found here: https://github.com/inavflight/inav/tree/master/src/main/target
+- The generated hex file will be in the /c/Workspace/inav/build folder
+## Troubleshooting
+### *** multiple target patterns.  Stop. | Error 2
+#### Delete everything in the build directory that contains previous runs
+You can either use file explorer and delete everything inside C:\Workspace\inav\build
+or run:
+```
+cd /c/Workspace/inav/build && rm -rf *
+```
+### -- could not find arm-none-eabi-gcc
+#### Redo export PATH, make sure xpack version number is correct:
+```
+export PATH=/c/Workspace/xpack/xpack-arm-none-eabi-gcc-10.2.1-1.1/bin:$PATH
+```
+### make: the '-j' option requires a positive integer argument
+#### You are using too new version of MSYS2, uninstall and reinstall version [20220603](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20220603.exe) or [20220503](https://repo.msys2.org/distrib/x86_64/msys2-x86_64-20220503.exe)

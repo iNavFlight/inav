@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -47,6 +45,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
+#include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/sensor.h"
 
@@ -71,7 +70,7 @@ FASTRAM acc_t acc;                       // acc access functions
 
 STATIC_FASTRAM zeroCalibrationVector_t zeroCalibration;
 
-STATIC_FASTRAM int32_t accADC[XYZ_AXIS_COUNT];
+STATIC_FASTRAM float accADC[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM filter_t accFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr accSoftLpfFilterApplyFn;
@@ -221,7 +220,18 @@ static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
         }
         FALLTHROUGH;
 #endif
-
+#ifdef USE_IMU_LSM6DXX
+    case ACC_LSM6DXX:
+        if (lsm6dAccDetect(dev)) {
+            accHardware = ACC_LSM6DXX;
+            break;
+        }
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (accHardwareToUse != ACC_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+#endif
 #ifdef USE_IMU_FAKE
     case ACC_FAKE:
         if (fakeAccDetect(dev)) {
@@ -280,7 +290,7 @@ bool accInit(uint32_t targetLooptime)
 }
 
 static bool calibratedPosition[6];
-static int32_t accSamples[6][3];
+static float accSamples[6][3];
 
 uint8_t accGetCalibrationAxisFlags(void)
 {
@@ -299,10 +309,10 @@ uint8_t accGetCalibrationAxisFlags(void)
     return flags;
 }
 
-static int getPrimaryAxisIndex(int32_t accADCData[3])
+static int getPrimaryAxisIndex(float accADCData[3])
 {
     // Work on a copy so we don't mess with accADC data
-    int32_t sample[3];
+    float sample[3];
 
     applySensorAlignment(sample, accADCData, acc.dev.accAlign);
 
@@ -437,7 +447,7 @@ static void performAcclerationCalibration(void)
         sensorCalibrationResetState(&calState);
 
         for (int axis = 0; axis < 6; axis++) {
-            int32_t accSample[3];
+            float accSample[3];
 
             accSample[X] = accSamples[axis][X] - accelerometerConfig()->accZero.raw[X];
             accSample[Y] = accSamples[axis][Y] - accelerometerConfig()->accZero.raw[Y];
@@ -504,7 +514,7 @@ float accGetMeasuredMaxG(void)
 void accUpdate(void)
 {
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         //output: acc.accADCf
         //unused: acc.dev.ADCRaw[], acc.accClipCount, acc.accVibeSq[]
         return;
@@ -513,15 +523,15 @@ void accUpdate(void)
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
-
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accADC[axis] = acc.dev.ADCRaw[axis];
         DEBUG_SET(DEBUG_ACC, axis, accADC[axis]);
     }
 
-    performAcclerationCalibration();
-
-    applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);
+    if (!ARMING_FLAG(SIMULATOR_MODE_SITL)) {
+        performAcclerationCalibration();
+        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);  
+    } 
 
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
@@ -599,8 +609,9 @@ bool accIsClipped(void)
 
 void accSetCalibrationValues(void)
 {
-    if ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
-        (accelerometerConfig()->accGain.raw[X] == 4096) && (accelerometerConfig()->accGain.raw[Y] == 4096) &&(accelerometerConfig()->accGain.raw[Z] == 4096)) {
+    if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && 
+        ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
+        (accelerometerConfig()->accGain.raw[X] == 4096) && (accelerometerConfig()->accGain.raw[Y] == 4096) &&(accelerometerConfig()->accGain.raw[Z] == 4096))) {
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
     }
     else {

@@ -346,6 +346,11 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
         }
     }
 
+    // Inhibit Failsafe if emergency landing triggered manually
+    if (posControl.flags.manualEmergLandActive) {
+        return FAILSAFE_PROCEDURE_NONE;
+    }
+
     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
     // GPS must also be working, and home position set
     if (failsafeConfig()->failsafe_min_distance > 0 &&
@@ -387,7 +392,7 @@ void failsafeUpdateState(void)
             case FAILSAFE_IDLE:
                 if (armed) {
                     // Track throttle command below minimum time
-                    if (THROTTLE_HIGH == calculateThrottleStatus(THROTTLE_STATUS_TYPE_RC)) {
+                    if (!throttleStickIsLow()) {
                         failsafeState.throttleLowPeriod = millis() + failsafeConfig()->failsafe_throttle_low_delay * MILLIS_PER_TENTH_SECOND;
                     }
                     if (!receivingRxDataAndNotFailsafeMode) {

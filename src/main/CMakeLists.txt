@@ -92,6 +92,8 @@ main_sources(COMMON_SRC
     drivers/accgyro/accgyro_mpu6500.h
     drivers/accgyro/accgyro_mpu9250.c
     drivers/accgyro/accgyro_mpu9250.h
+    drivers/accgyro/accgyro_lsm6dxx.c
+    drivers/accgyro/accgyro_lsm6dxx.h
 
     drivers/adc.c
     drivers/adc.h
@@ -210,6 +212,8 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
     drivers/pitotmeter/pitotmeter_virtual.h
+    drivers/pitotmeter/pitotmeter_fake.h
+    drivers/pitotmeter/pitotmeter_fake.c
     drivers/pwm_esc_detect.c
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
@@ -404,6 +408,9 @@ main_sources(COMMON_SRC
     rx/srxl2.h
     rx/sumd.c
     rx/sumd.h
+    rx/sim.c
+    rx/sim.h
+
 
     scheduler/scheduler.c
     scheduler/scheduler.h
@@ -465,6 +472,7 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
+    io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
     io/opflow_msp.c
@@ -476,6 +484,8 @@ main_sources(COMMON_SRC
     io/displayport_max7456.h
     io/displayport_msp.c
     io/displayport_msp.h
+    io/displayport_msp_bf_compat.c
+    io/displayport_msp_bf_compat.h
     io/displayport_oled.c
     io/displayport_oled.h
     io/displayport_msp_osd.c
@@ -491,11 +501,14 @@ main_sources(COMMON_SRC
     io/gps_ublox.c
     io/gps_nmea.c
     io/gps_msp.c
+    io/gps_fake.c
     io/gps_private.h
     io/ledstrip.c
     io/ledstrip.h
     io/osd.c
     io/osd.h
+    io/osd_utils.c
+    io/osd_utils.h
     io/osd_canvas.c
     io/osd_canvas.h
     io/osd_common.c
@@ -542,15 +555,13 @@ main_sources(COMMON_SRC
     sensors/rangefinder.h
     sensors/opflow.c
     sensors/opflow.h
+    sensors/battery_sensor_fake.c
+    sensors/battery_sensor_fake.h
 
     telemetry/crsf.c
     telemetry/crsf.h
     telemetry/srxl.c
     telemetry/srxl.h
-    telemetry/frsky.c
-    telemetry/frsky.h
-    telemetry/frsky_d.c
-    telemetry/frsky_d.h
     telemetry/ghst.c
     telemetry/ghst.h
     telemetry/hott.c

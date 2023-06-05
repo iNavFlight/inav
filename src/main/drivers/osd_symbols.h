@@ -21,7 +21,7 @@
 
 #pragma once
 
-#ifdef USE_OSD
+#if defined(USE_OSD) || defined(OSD_UNIT_TEST)
 
 #define SYM_RSSI                    0x01  // 001 Icon RSSI
 #define SYM_LQ                      0x02  // 002 LQ
@@ -44,8 +44,8 @@
 #define SYM_DBM                     0x13  // 019 dBm
 #define SYM_SNR                     0x14  // 020 SNR
 
-#define SYM_AH_DECORATION_UP        0x15  // 021 Arrow up AHI
-#define SYM_AH_DECORATION_DOWN      0x16  // 022 Arrow down AHI
+#define SYM_AH_DIRECTION_UP         0x15  // 021 Arrow up AHI
+#define SYM_AH_DIRECTION_DOWN       0x16  // 022 Arrow down AHI
 #define SYM_DIRECTION               0x17  // 023 to 030, directional little arrows
 
 #define SYM_VOLT                    0x1F  // 031 VOLTS
@@ -171,9 +171,13 @@
 #define SYM_AH_V_FT_1               0xD7  // 215 mAh/v-ft right
 #define SYM_AH_V_M_0                0xD8  // 216 mAh/v-m left
 #define SYM_AH_V_M_1                0xD9  // 217 mAh/v-m right
+#define SYM_FLIGHT_MINS_REMAINING   0xDA  // 218 Flight time (mins) remaining
+#define SYM_FLIGHT_HOURS_REMAINING  0xDB  // 219 Flight time (hours) remaining
+#define SYM_GROUND_COURSE           0xDC  // 220 Ground course
+#define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
 
-#define SYM_LOGO_START              0x101 // 257 to 280, INAV logo
-#define SYM_LOGO_WIDTH              6
+#define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
+#define SYM_LOGO_WIDTH              10
 #define SYM_LOGO_HEIGHT             4
 
 #define SYM_AH_LEFT                 0x12C // 300 Arrow left
@@ -220,6 +224,7 @@
 
 #define SYM_HOME_DIST 	            0x165 // 357 DIST
 #define SYM_AH_CH_CENTER            0x166 // 358 Crossair center
+#define SYM_FLIGHT_DIST_REMAINING   0x167 // 359 Flight distance reminaing
 
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4
@@ -246,6 +251,12 @@
 #define SYM_HUD_ARROWS_D1           0x1B7 // 439 1 arrow down
 #define SYM_HUD_ARROWS_D2           0x1B8 // 440 2 arrows down
 #define SYM_HUD_ARROWS_D3           0x1B9 // 441 3 arrows down
+
+#define SYM_HUD_CARDINAL            0x1BA // 442-453 Cardinal direction in 30 degree segments
+
+#define SYM_SERVO_PAN_IS_CENTRED    0x1C6 // 454 Pan servo is centred
+#define SYM_SERVO_PAN_IS_OFFSET_L   0x1C7 // 455 Pan servo is offset left
+#define SYM_SERVO_PAN_IS_OFFSET_R   0x1C8 // 456 Pan servo is offset right
 
 #else
 

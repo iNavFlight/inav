@@ -112,9 +112,12 @@
 #define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
+#define OSD_MSG_AUTOLEVEL           "(AUTO LEVEL TRIM)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_NAV_SOARING         "(SOARING)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
+#define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
+#define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
@@ -159,7 +162,7 @@ typedef enum {
     OSD_MESSAGES,
     OSD_GPS_HDOP,
     OSD_MAIN_BATT_CELL_VOLTAGE,
-    OSD_THROTTLE_POS_AUTO_THR,
+    OSD_SCALED_THROTTLE_POS,
     OSD_HEADING_GRAPH,
     OSD_EFFICIENCY_MAH_PER_KM,
     OSD_WH_DRAWN,
@@ -266,6 +269,10 @@ typedef enum {
     OSD_GLIDE_RANGE,
     OSD_CLIMB_EFFICIENCY,
     OSD_NAV_WP_MULTI_MISSION_INDEX,
+    OSD_GROUND_COURSE,      // 140
+    OSD_CROSS_TRACK_ERROR,
+    OSD_PILOT_NAME,
+    OSD_PAN_SERVO_CENTRED,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -369,6 +376,7 @@ typedef struct osdConfig_s {
 
     videoSystem_e video_system;
     uint8_t row_shiftdown;
+    int16_t msp_displayport_fullframe_interval;
 
     // Preferences
     uint8_t main_voltage_decimals;
@@ -421,6 +429,8 @@ typedef struct osdConfig_s {
     bool    osd_home_position_arm_screen;
     uint8_t pan_servo_index;                    // Index of the pan servo used for home direction offset
     int8_t  pan_servo_pwm2centideg;             // Centidegrees of servo rotation per us pwm
+    uint8_t pan_servo_offcentre_warning;        // Degrees around the centre, that is assumed camera is wanted to be facing forwards, but isn't centred
+    bool    pan_servo_indicator_show_degrees;   // Show the degrees of offset for the pan servo
     uint8_t crsf_lq_format;
     uint8_t sidebar_height;                     // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
     uint8_t telemetry; 				            // use telemetry on displayed pixel line 0
@@ -466,12 +476,19 @@ displayCanvas_t *osdGetDisplayPortCanvas(void);
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
 
+bool osdUsingScaledThrottle(void);
+
+void osdStartedSaveProcess(void);
+void osdShowEEPROMSavedNotification(void);
+
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
+
+int16_t osdGetPanServoOffset(void);
 
 /**
  * @brief Get the OSD system message

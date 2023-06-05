@@ -139,7 +139,8 @@ static void resync(displayPort_t *displayPort)
 static uint32_t txBytesFree(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return mspSerialTxBytesFree();
+    // Should be fixed if we ever get this thing to work
+    return UINT32_MAX;
 }
 
 static const displayPortVTable_t mspDisplayPortVTable = {
@@ -162,6 +163,8 @@ displayPort_t *displayPortMspInit(void)
 {
     displayInit(&mspDisplayPort, &mspDisplayPortVTable);
     resync(&mspDisplayPort);
+    mspDisplayPort.displayPortType = "MSP";
     return &mspDisplayPort;
 }
+
 #endif // USE_MSP_DISPLAYPORT

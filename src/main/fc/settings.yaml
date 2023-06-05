@@ -4,10 +4,10 @@ tables:
   - name: gyro_lpf
     values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
-    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"]
+    values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
@@ -22,10 +22,10 @@ tables:
     values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
     enum: pitotSensor_e
   - name: receiver_type
-    values: ["NONE", "SERIAL", "MSP"]
+    values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK", "FBUS"]
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
@@ -35,16 +35,16 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "ESC"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC"]
+    values: ["NONE", "ADC", "ESC", "FAKE"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["NMEA", "UBLOX", "UBLOX7", "MSP"]
+    values: ["NMEA", "UBLOX", "UBLOX7", "MSP", "FAKE"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]
@@ -59,7 +59,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
   - name: nav_rth_climb_first_stage_modes
     values: ["AT_LEAST", "EXTRA"]
   - name: osd_unit
@@ -72,7 +72,7 @@ tables:
     values: ["BATTERY", "CELL"]
     enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF"]
+    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -80,9 +80,6 @@ tables:
   - name: osd_alignment
     values: ["LEFT", "RIGHT"]
     enum: osd_alignment_e
-  - name: frsky_unit
-    values: ["METRIC", "IMPERIAL"]
-    enum: frskyUnit_e
   - name: ltm_rates
     values: ["NORMAL", "MEDIUM", "SLOW"]
   - name: i2c_speed
@@ -91,7 +88,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING"]
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -232,11 +229,6 @@ groups:
         default_value: "PT1"
         field: gyro_anti_aliasing_lpf_type
         table: filter_type
-      - name: moron_threshold
-        description: "When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered."
-        default_value: 32
-        field: gyroMovementCalibrationThreshold
-        max: 128
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
@@ -658,7 +650,7 @@ groups:
       - name: rc_filter_auto
         description: "When enabled, INAV will set RC filtering based on refresh rate and smoothing factor."
         type: bool
-        default_value: OFF
+        default_value: ON
         field: autoSmooth
       - name: rc_filter_smoothing_factor
         description: "The RC filter smoothing factor. The higher the value, the more smoothing but also the more delay in response. Value 1 sets the filter at half the refresh rate. Value 100 sets the filter to aprox. 10% of the RC refresh rate"
@@ -1393,22 +1385,22 @@ groups:
     type: imuConfig_t
     headers: ["flight/imu.h"]
     members:
-      - name: imu_dcm_kp
+      - name: ahrs_dcm_kp
         description: "Inertial Measurement Unit KP Gain for accelerometer measurements"
         default_value: 2000
         field: dcm_kp_acc
         max: UINT16_MAX
-      - name: imu_dcm_ki
+      - name: ahrs_dcm_ki
         description: "Inertial Measurement Unit KI Gain for accelerometer measurements"
         default_value: 50
         field: dcm_ki_acc
         max: UINT16_MAX
-      - name: imu_dcm_kp_mag
+      - name: ahrs_dcm_kp_mag
         description: "Inertial Measurement Unit KP Gain for compass measurements"
         default_value: 2000
         field: dcm_kp_mag
         max: UINT16_MAX
-      - name: imu_dcm_ki_mag
+      - name: ahrs_dcm_ki_mag
         description: "Inertial Measurement Unit KI Gain for compass measurements"
         default_value: 50
         field: dcm_ki_mag
@@ -1418,24 +1410,24 @@ groups:
         default_value: 25
         min: 0
         max: 180
-      - name: imu_acc_ignore_rate
+      - name: ahrs_acc_ignore_rate
         description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
         default_value: 15
         field: acc_ignore_rate
         min: 0
         max: 30
-      - name: imu_acc_ignore_slope
+      - name: ahrs_acc_ignore_slope
         description: "Half-width of the interval to gradually reduce accelerometer weight. Centered at `imu_acc_ignore_rate` (exactly 50% weight)"
         default_value: 5
         field: acc_ignore_slope
         min: 0
         max: 10
-      - name: imu_gps_yaw_windcomp
+      - name: ahrs_gps_yaw_windcomp
         description: "Wind compensation in heading estimation from gps groundcourse(fixed wing only)"
         default_value: ON
         field: gps_yaw_windcomp
         type: bool
-      - name: imu_inertia_comp_method
+      - name: ahrs_inertia_comp_method
         description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
         default_value: VELNED
         field: inertia_comp_method
@@ -1805,16 +1797,6 @@ groups:
         description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
         default_value: "PT2"
         field: dterm_lpf_type
-        table: filter_type_full
-      - name: dterm_lpf2_hz
-        description: "Cutoff frequency for stage 2 D-term low pass filter"
-        default_value: 0
-        min: 0
-        max: 500
-      - name: dterm_lpf2_type
-        description: "Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`, `PT2`, `PT3`."
-        default_value: "PT1"
-        field: dterm_lpf2_type
         table: filter_type_full
       - name: yaw_lpf_hz
         description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
@@ -2296,7 +2278,7 @@ groups:
     members:
       - name: nav_disarm_on_landing
         description: "If set to ON, INAV disarms the FC after landing"
-        default_value: OFF
+        default_value: ON
         field: general.flags.disarm_on_landing
         type: bool
       - name: nav_land_detect_sensitivity
@@ -2312,7 +2294,7 @@ groups:
         type: bool
       - name: nav_extra_arming_safety
         description: "If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used"
-        default_value: "ON"
+        default_value: "ALLOW_BYPASS"
         field: general.flags.extra_arming_safety
         table: nav_extra_arming_safety
       - name: nav_user_control_mode
@@ -2528,6 +2510,17 @@ groups:
         default_value: 0
         field: general.rth_home_altitude
         max: 65000
+      - name: nav_rth_linear_descent_start_distance
+        description: The distance [m] away from home to start the linear descent. 0 = immediately (original linear descent behaviour)
+        default_value: 0
+        min: 0
+        max: 10000
+        field: general.rth_linear_descent_start_distance
+      - name: nav_rth_use_linear_descent
+        description: If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en route. The distance from home to start the descent can be set with `nav_rth_linear_descent_start_distance`.
+        default_value: OFF
+        type: bool
+        field: general.flags.rth_use_linear_descent
       - name: nav_rth_trackback_mode
         description: "Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only."
         default_value: "OFF"
@@ -2563,7 +2556,7 @@ groups:
         max: 45
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
-        default_value: 2000
+        default_value: 1000
         field: general.auto_disarm_delay
         min: 100
         max: 10000
@@ -2815,7 +2808,7 @@ groups:
 
   - name: PG_TELEMETRY_CONFIG
     type: telemetryConfig_t
-    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/frsky_d.h", "telemetry/sim.h"]
+    headers: ["io/serial.h", "telemetry/telemetry.h", "telemetry/sim.h"]
     condition: USE_TELEMETRY
     members:
       - name: telemetry_switch
@@ -2826,41 +2819,12 @@ groups:
         description: "Determines if the telemetry protocol default signal inversion is reversed. This should be OFF in most cases unless a custom or hacked RX is used."
         default_value: OFF
         type: bool
-      - name: frsky_default_latitude
-        description: "D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired."
-        default_value: 0
-        field: gpsNoFixLatitude
-        min: -90
-        max: 90
-      - name: frsky_default_longitude
-        description: "D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired."
-        default_value: 0
-        field: gpsNoFixLongitude
-        min: -180
-        max: 180
-      - name: frsky_coordinates_format
-        description: "D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA"
-        default_value: 0
-        field: frsky_coordinate_format
-        min: 0
-        max: FRSKY_FORMAT_NMEA
-        type: uint8_t # TODO: This seems to use an enum, we should use table:
-      - name: frsky_unit
-        description: "Not used? [METRIC/IMPERIAL]"
-        default_value: "METRIC"
-        table: frsky_unit
-        type: uint8_t
-      - name: frsky_vfas_precision
-        description: "D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method"
-        default_value: 0
-        min: FRSKY_VFAS_PRECISION_LOW
-        max: FRSKY_VFAS_PRECISION_HIGH
       - name: frsky_pitch_roll
-        description: "S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
+        description: "S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
         default_value: OFF
         type: bool
       - name: report_cell_voltage
-        description: "S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON"
+        description: "S.Port and IBUS telemetry: Send the average cell voltage if set to ON"
         default_value: OFF
         type: bool
       - name: hott_alarm_sound_interval
@@ -3015,7 +2979,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO` and 'DJIWTF'"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3026,6 +2990,13 @@ groups:
         field: row_shiftdown
         min: 0
         max: 1
+      - name: osd_msp_displayport_fullframe_interval
+        description: "Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)"
+        default_value: 10
+        min: -1
+        max: 600
+        type: int16_t
+        field: msp_displayport_fullframe_interval
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
@@ -3436,10 +3407,10 @@ groups:
         description: Should home position coordinates be displayed on the arming screen.
 
       - name: osd_pan_servo_index
-        description: Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+        description: Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
         field: pan_servo_index
         min: 0
-        max: 10
+        max: 16
         default_value: 0
 
       - name: osd_pan_servo_pwm2centideg
@@ -3448,6 +3419,19 @@ groups:
         default_value: 0
         min: -36
         max: 36
+
+      - name: osd_pan_servo_offcentre_warning
+        description: Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink. 0 means the warning is disabled.
+        field: pan_servo_offcentre_warning
+        min: 0
+        max: 45
+        default_value: 10
+
+      - name: osd_pan_servo_indicator_show_degrees
+        description: Show the degress of offset from centre on the pan servo OSD display element.
+        field: pan_servo_indicator_show_degrees
+        type: bool
+        default_value: OFF
 
       - name: osd_esc_rpm_precision
         description: Number of characters used to display the RPM value.
@@ -3569,6 +3553,14 @@ groups:
       - name: name
         description: "Craft name"
         default_value: ""
+        type: string
+        field: craftName
+        max: MAX_NAME_LENGTH
+      - name: pilot_name
+        description: "Pilot name"
+        default_value: ""
+        type: string
+        field: pilotName
         max: MAX_NAME_LENGTH
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
@@ -3613,8 +3605,8 @@ groups:
       - name: tz_offset
         description: "Time zone offset from UTC, in minutes. This is applied to the GPS time for logging and time-stamping of Blackbox logs"
         default_value: 0
-        min: -1440
-        max: 1440
+        min: -720
+        max: 840
       - name: tz_automatic_dst
         description: "Automatically add Daylight Saving Time to the GPS time when needed or simply ignore it. Includes presets for EU and the USA - if you live outside these areas it is suggested to manage DST manually via `tz_offset`."
         default_value: "OFF"

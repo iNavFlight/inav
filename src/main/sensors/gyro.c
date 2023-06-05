@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -49,6 +47,7 @@ FILE_COMPILE_FOR_SPEED
 #include "drivers/accgyro/accgyro_bmi270.h"
 #include "drivers/accgyro/accgyro_icm20689.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
+#include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
 
@@ -96,13 +95,12 @@ EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 6);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
     .gyro_anti_aliasing_lpf_type = SETTING_GYRO_ANTI_ALIASING_LPF_TYPE_DEFAULT,
-    .gyroMovementCalibrationThreshold = SETTING_MORON_THRESHOLD_DEFAULT,
     .looptime = SETTING_LOOPTIME_DEFAULT,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
@@ -204,6 +202,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_BMI270:
         if (bmi270GyroDetect(dev)) {
             gyroHardware = GYRO_BMI270;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_LSM6DXX
+    case GYRO_LSM6DXX:
+        if (lsm6dGyroDetect(dev)) {
+            gyroHardware = GYRO_LSM6DXX;
             break;
         }
         FALLTHROUGH;
@@ -325,7 +332,7 @@ void gyroStartCalibration(void)
     }
 #endif
 
-    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, gyroConfig()->gyroMovementCalibrationThreshold, false);
+    zeroCalibrationStartV(&gyroCalibration[0], CALIBRATING_GYRO_TIME_MS, CALIBRATING_GYRO_MORON_THRESHOLD, false);
 }
 
 bool gyroIsCalibrationComplete(void)
@@ -362,10 +369,10 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         dev->gyroZero[Z] = v.v[Z];
 
 #ifndef USE_IMU_FAKE // fixes Test Unit compilation error
-        setGyroCalibrationAndWriteEEPROM(dev->gyroZero);
+        setGyroCalibration(dev->gyroZero);
 #endif
 
-        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
         dev->gyroZero[X] = 0;
@@ -402,12 +409,12 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 #endif
 
         if (zeroCalibrationIsCompleteV(gyroCal)) {
-            int32_t gyroADCtmp[XYZ_AXIS_COUNT];
+            float gyroADCtmp[XYZ_AXIS_COUNT];
 
             // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
-            gyroADCtmp[X] = (int32_t)gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
-            gyroADCtmp[Y] = (int32_t)gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
-            gyroADCtmp[Z] = (int32_t)gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
+            gyroADCtmp[X] = gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
+            gyroADCtmp[Y] = gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
+            gyroADCtmp[Z] = gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
 
             // Apply sensor alignment
             applySensorAlignment(gyroADCtmp, gyroADCtmp, gyroDev->gyroAlign);
@@ -435,7 +442,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
     }
 }
 
-void FAST_CODE NOINLINE gyroFilter()
+void FAST_CODE NOINLINE gyroFilter(void)
 {
     if (!gyro.initialized) {
         return;
@@ -486,7 +493,7 @@ void FAST_CODE NOINLINE gyroFilter()
             );
 
             secondaryDynamicGyroNotchFiltersUpdate(
-                &secondaryDynamicGyroNotchState,
+                &secondaryDynamicGyroNotchState, 
                 gyroAnalyseState.filterUpdateAxis,
                 gyroAnalyseState.centerFrequency[gyroAnalyseState.filterUpdateAxis]
             );
@@ -497,10 +504,10 @@ void FAST_CODE NOINLINE gyroFilter()
 
 }
 
-void FAST_CODE NOINLINE gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate(void)
 {
 #ifdef USE_SIMULATOR
-    if (ARMING_FLAG(SIMULATOR_MODE)) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         //output: gyro.gyroADCf[axis]
         //unused: dev->gyroADCRaw[], dev->gyroZero[];
         return;
