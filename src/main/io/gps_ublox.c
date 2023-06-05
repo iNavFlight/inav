@@ -885,9 +885,11 @@ STATIC_PROTOTHREAD(gpsConfigure)
         configureMSG(MSG_CLASS_UBX, MSG_NAV_SIG, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-        // u-Blox 9 receivers such as M9N can do 10Hz as well, but the number of used satellites will be restricted to 16.
-        // Not mentioned in the datasheet
-        configureRATE(200);
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
+            configureRATE(100); // 10Hz
+        } else {
+            configureRATE(200); // 5Hz
+        }
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }
     else {
