@@ -1422,6 +1422,16 @@ Which SBAS mode to be used
 
 ---
 
+### gps_ublox7_nav_hz
+
+Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when the value is too high.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 5 | 200 |
+
+---
+
 ### gps_ublox_use_galileo
 
 Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON].
