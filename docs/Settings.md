@@ -1422,7 +1422,7 @@ Which SBAS mode to be used
 
 ---
 
-### gps_ublox7_nav_hz
+### gps_ublox_nav_hz
 
 Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when the value is too high.
 
