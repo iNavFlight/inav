@@ -1543,7 +1543,7 @@ groups:
         field: gpsMinSats
         min: 5
         max: 10
-      - name: gps_ublox7_nav_hz
+      - name: gps_ublox_nav_hz
         description: "Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when the value is too high."
         default_value: 10
         field: ubloxNavHz
