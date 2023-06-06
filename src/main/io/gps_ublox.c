@@ -816,7 +816,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
     return parsed;
 }
 
-uint16_t hz2rate(uint8_t hz)
+static uint16_t hz2rate(uint8_t hz)
 {
     return 1000 / hz;
 }
