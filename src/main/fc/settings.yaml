@@ -1544,7 +1544,7 @@ groups:
         min: 5
         max: 10
       - name: gps_ublox_nav_hz
-        description: "Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when the value is too high."
+        description: "Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
         default_value: 10
         field: ubloxNavHz
         type: uint8_t
