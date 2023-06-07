@@ -3483,7 +3483,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 
 #ifdef USE_BARO
+            if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
 				baroStartCalibration();
+            }
 #endif
 #ifdef USE_MAG
 				DISABLE_STATE(COMPASS_CALIBRATED);
@@ -3494,10 +3496,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
 			}   
-		} else if (!areSensorsCalibrating()) {
+        } else {
 			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
-				baroStartCalibration();
+                if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
+                    sensorsSet(SENSOR_BARO);
+                    setTaskEnabled(TASK_BARO, true);
+                    DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+				    baroStartCalibration();
+                }
 #endif			
 
 #ifdef USE_MAG
