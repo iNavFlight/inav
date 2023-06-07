@@ -895,7 +895,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
         } else {
             configureRATE(200); // 5Hz
         }
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+
+        if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
+            configureRATE(200); // 5Hz
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        }
     }
     else {
         // u-Blox 5/6/7/8 or unknown
@@ -928,7 +933,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
             else {
                 configureRATE(200); // 5Hz
             }
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+
+            if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
+                configureRATE(200); // 5Hz
+                ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            }
         }
         // u-Blox 5/6 doesn't support PVT, use legacy config
         // UNKNOWN also falls here, use as a last resort
