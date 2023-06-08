@@ -77,14 +77,6 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,230400,0*1C\r\n",     // GPS_BAUDRATE_230400
 };
 
-ubx_ack_state_t ubx_ack_state;
-
-ubx_protocol_bytes_t ubx_protocol_bytes;
-
-ubs_nav_fix_type_t ubs_nav_fix_type;
-
-ubx_nav_status_bits_t ubx_nav_status_bits;
-
 // Packet checksum accumulators
 static uint8_t _ck_a;
 static uint8_t _ck_b;
