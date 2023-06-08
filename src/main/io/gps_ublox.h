@@ -17,6 +17,12 @@
 
 #pragma once
 
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define GPS_CFG_CMD_TIMEOUT_MS              200
 #define GPS_VERSION_RETRY_TIMES             2
 #define MAX_UBLOX_PAYLOAD_SIZE              256
@@ -71,7 +77,7 @@ typedef struct {
 } ubx_sbas;
 
 typedef struct {
-    uint8_t class;
+    uint8_t msg_class;
     uint8_t id;
     uint8_t rate;
 } ubx_msg;
@@ -271,7 +277,7 @@ typedef struct {
 } ubx_nav_pvt;
 
 typedef struct {
-    uint8_t class;
+    uint8_t msg_class;
     uint8_t msg;
 } ubx_ack_ack;
 
@@ -329,3 +335,8 @@ enum {
     UBX_ACK_GOT_NAK = 2
 } ubx_ack_state;
 
+void ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPairs, uint8_t count);
+
+#ifdef __cplusplus
+}
+#endif

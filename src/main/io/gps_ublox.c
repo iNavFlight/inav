@@ -192,28 +192,37 @@ static const uint8_t default_payload[] = {
 #define GNSSID_GZSS     5
 #define GNSSID_GLONASS  6
 
-static void ubloxCfgValSetBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
+
+void ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPairs, uint8_t count)
 {
-    ubx_config_data8_t cfg = {
-        .header.preamble1 = 0xb5,
-        .header.preamble2 = 0x62,
-        .header.msg_class = 0x06,
-        .header.msg_id = 0x8A,
-        .header.length = sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_payload_t) * count),
-        .configHeader.layers = 0x1,
-        .configHeader.reserved = 0,
-        .configHeader.version = 0,
-    };
     uint8_t ck_a, ck_b;
 
+    cfg->header.preamble1 = 0xb5;
+    cfg->header.preamble2 = 0x62;
+    cfg->header.msg_class = 0x06;
+    cfg->header.msg_id = 0x8A;
+    cfg->header.length = sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_payload_t) * count);
+    cfg->configHeader.layers = 0x1;
+    cfg->configHeader.reserved = 0;
+    cfg->configHeader.version = 0;
+
     for (int i = 0; i < count; ++i) {
-        cfg.data.payload[i].key = kvPairs[i].key;
-        cfg.data.payload[i].value = kvPairs[i].value;
+        cfg->data.payload[i].key = kvPairs[i].key;
+        cfg->data.payload[i].value = kvPairs[i].value;
     }
 
-    _update_checksum(&cfg.header.msg_class, sizeof(ubx_header) + sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_t) * count) - 4, &ck_a, &ck_b);
-    cfg.data.buffer[sizeof(ubx_config_data8_t) * count] = ck_a;
-    cfg.data.buffer[sizeof(ubx_config_data8_t) * count + 1] = ck_b;
+    _update_checksum(&cfg->header.msg_class, sizeof(ubx_header) + sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_t) * count) - 4, &ck_a, &ck_b);
+    cfg->data.buffer[sizeof(ubx_config_data8_t) * count] = ck_a;
+    cfg->data.buffer[sizeof(ubx_config_data8_t) * count + 1] = ck_b;
+}
+
+// ublox info: https://cdn.sparkfun.com/assets/f/7/4/3/5/PM-15136.pdf
+static void ubloxCfgValSetBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
+{
+    ubx_config_data8_t cfg = {};
+
+    ubloxCfgFillBytes(&cfg, kvPairs, count);
+
     serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
     _ack_waiting_msg = cfg.header.msg_id;
     _ack_state = UBX_ACK_WAITING;
@@ -387,12 +396,12 @@ static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
     sendConfigMessageUBLOX();
 }
 
-static void configureMSG(uint8_t class, uint8_t id, uint8_t rate)
+static void configureMSG(uint8_t msg_class, uint8_t id, uint8_t rate)
 {
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_SET_RATE;
     send_buffer.message.header.length = 3;
-    send_buffer.message.payload.msg.class = class;
+    send_buffer.message.payload.msg.msg_class = msg_class;
     send_buffer.message.payload.msg.id = id;
     send_buffer.message.payload.msg.rate = rate;
     sendConfigMessageUBLOX();
