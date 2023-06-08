@@ -1542,11 +1542,6 @@ groups:
         default_value: OFF
         field: ubloxUseBeidou
         type: bool
-      - name: gps_ublox_use_gzss
-        description: "Enable use of GZSS satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
-        default_value: OFF
-        field: ubloxUseGzss
-        type: bool
       - name: gps_ublox_use_glonass
         description: "Enable use of Glonass satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps haardware support [OFF/ON]."
         default_value: OFF

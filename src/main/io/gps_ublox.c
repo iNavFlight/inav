@@ -49,6 +49,8 @@
 
 #include "scheduler/protothreads.h"
 
+#include "gps_ublox.h"
+
 #define GPS_CFG_CMD_TIMEOUT_MS              200
 #define GPS_VERSION_RETRY_TIMES             2
 #define MAX_UBLOX_PAYLOAD_SIZE              256
@@ -140,6 +142,13 @@ typedef struct {
      ubx_gnss_element_t config[0];
 } ubx_gnss_msg_t;
 
+typedef struct {
+    uint8_t version;
+    uint8_t layers;
+    uint8_t reserved;
+} ubx_config_data_header_t;
+
+
 #define MAX_GNSS 7
 #define MAX_GNSS_SIZE_BYTES (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)*MAX_GNSS)
 
@@ -159,6 +168,20 @@ typedef struct {
     uint8_t msg_id;
     uint16_t length;
 } ubx_header;
+
+typedef struct {
+    uint32_t key;
+    uint8_t value;
+} ubx_config_data8_payload_t;
+
+typedef struct {
+    ubx_header header;
+    ubx_config_data_header_t configHeader;
+    union {
+        ubx_config_data8_payload_t payload[0];
+        uint8_t buffer[62]; // 12 key/value pairs + 2 checksum bytes
+    } data;
+} __attribute__((packed)) ubx_config_data8_t;
 
 typedef struct {
     ubx_header header;
@@ -458,8 +481,35 @@ static const uint8_t default_payload[] = {
 #define GNSSID_SBAS     1
 #define GNSSID_GALILEO  2
 #define GNSSID_BEIDOU   3
-#define GNSSID_GZSS     4
-#define GNSSID_GLONASS  5
+#define GNSSID_GZSS     5
+#define GNSSID_GLONASS  6
+
+static void ubloxCfgValSetBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
+{
+    ubx_config_data8_t cfg = {
+        .header.preamble1 = 0xb5,
+        .header.preamble2 = 0x62,
+        .header.msg_class = 0x06,
+        .header.msg_id = 0x8A,
+        .header.length = sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_payload_t) * count),
+        .configHeader.layers = 0x1,
+        .configHeader.reserved = 0,
+        .configHeader.version = 0,
+    };
+    uint8_t ck_a, ck_b;
+
+    for (int i = 0; i < count; ++i) {
+        cfg.data.payload[i].key = kvPairs[i].key;
+        cfg.data.payload[i].value = kvPairs[i].value;
+    }
+
+    _update_checksum(&cfg.header.msg_class, sizeof(ubx_header) + sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_t) * count) - 4, &ck_a, &ck_b);
+    cfg.data.buffer[sizeof(ubx_config_data8_t) * count] = ck_a;
+    cfg.data.buffer[sizeof(ubx_config_data8_t) * count + 1] = ck_b;
+    serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
+    _ack_waiting_msg = cfg.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+}
 
 static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 {
@@ -485,6 +535,7 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 
     gnss_block->gnssId = GNSSID_GALILEO;
     gnss_block->maxTrkCh = 8;
+    // E1 = 0x01
     gnss_block->sigCfgMask = 1;
     if (gpsState.gpsConfig->ubloxUseGalileo) {
         gnss_block->enabled = 1;
@@ -505,7 +556,9 @@ static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
 
     gnss_block->gnssId = GNSSID_BEIDOU;
     gnss_block->maxTrkCh = 8;
-    gnss_block->sigCfgMask = 1;
+    // B1L = 0x01
+    // B2L = 0x10
+    gnss_block->sigCfgMask = 0x01;
     if (gpsState.gpsConfig->ubloxUseBeidou) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
@@ -525,14 +578,12 @@ static int configureGNSS_GZSS(ubx_gnss_element_t * gnss_block)
 
     gnss_block->gnssId = GNSSID_GZSS;
     gnss_block->maxTrkCh = 8;
-    gnss_block->sigCfgMask = 1;
-    if (gpsState.gpsConfig->ubloxUseGzss) {
-        gnss_block->enabled = 1;
-        gnss_block->resTrkCh = 4;
-    } else {
-        gnss_block->enabled = 0;
-        gnss_block->resTrkCh = 0;
-    }
+    // L1C = 0x01
+    // L1S = 0x04
+    // L2C = 0x10
+    gnss_block->sigCfgMask = 0x01 | 0x04;
+    gnss_block->enabled = 1;
+    gnss_block->resTrkCh = 4;
 
     return 1;
 }
@@ -545,7 +596,9 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
     gnss_block->gnssId = GNSSID_GLONASS;
     gnss_block->maxTrkCh = 8;
-    gnss_block->sigCfgMask = 1;
+    // L1 = 0x01
+    // L2 = 0x10
+    gnss_block->sigCfgMask = 0x01;
     if (gpsState.gpsConfig->ubloxUseGlonass) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
@@ -560,32 +613,59 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
 static void configureGNSS(void)
 {
-    int blocksUsed = 0;
+    if(gpsState.hwVersion < UBX_HW_VERSION_UBLOX9) {
+        int blocksUsed = 0;
+        send_buffer.message.header.msg_class = CLASS_CFG;
+        send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
+        send_buffer.message.payload.gnss.msgVer = 0;
+        send_buffer.message.payload.gnss.numTrkChHw = 0;     // read only, so unset
+        send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
 
-    send_buffer.message.header.msg_class = CLASS_CFG;
-    send_buffer.message.header.msg_id = MSG_CFG_GNSS;
-    send_buffer.message.payload.gnss.msgVer = 0;
-    send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
-    send_buffer.message.payload.gnss.numTrkChUse = 32;
+        /* SBAS, always generated */
+        blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* SBAS, always generated */
-    blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        /* Galileo */
+        blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* Galileo */
-    blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        /* BeiDou */
+        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* BeiDou */
-    blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        /* GZSS  should be enabled when GPS is enabled */
+        blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* GZSS */
-    blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        /* GLONASS */
+        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* GLONASS */
-    blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
+        send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
+        sendConfigMessageUBLOX();
+    } else {
+        ubx_config_data8_payload_t gnssConfigValues[] = {
+            // SBAS
+            {UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
+            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
+    
+            // Galileo
+            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
 
-    send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
-    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
-    sendConfigMessageUBLOX();
+            // Beidou
+            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+
+            // Should be enabled with GPS
+            {UBLOX_CFG_QZSS_ENA, 1},
+            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
+            {UBLOX_CFG_QZSS_L1S_ENA, 1},
+
+            // Glonass
+            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+        };
+
+        ubloxCfgValSetBytes(gnssConfigValues, 12);
+    }
 }
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)

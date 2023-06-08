@@ -1452,16 +1452,6 @@ Enable use of Glonass satellites. This is at the expense of other regional const
 
 ---
 
-### gps_ublox_use_gzss
-
-Enable use of GZSS satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON].
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### ground_test_mode
 
 For developer ground test use. Disables motors, sets heading status = Trusted on FW.

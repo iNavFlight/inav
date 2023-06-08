@@ -94,7 +94,6 @@ typedef struct gpsConfig_s {
     gpsDynModel_e dynModel;
     bool ubloxUseGalileo;
     bool ubloxUseBeidou;
-    bool ubloxUseGzss;
     bool ubloxUseGlonass;
     uint8_t gpsMinSats;
 } gpsConfig_t;
