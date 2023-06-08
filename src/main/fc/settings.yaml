@@ -1537,6 +1537,21 @@ groups:
         default_value: OFF
         field: ubloxUseGalileo
         type: bool
+      - name: gps_ublox_use_beidou
+        description: "Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseBeidou
+        type: bool
+      - name: gps_ublox_use_gzss
+        description: "Enable use of GZSS satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseGzss
+        type: bool
+      - name: gps_ublox_use_glonass
+        description: "Enable use of Glonass satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps haardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseGlonass
+        type: bool
       - name: gps_min_sats
         description: "Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS position valid. Some GPS receivers appeared to be very inaccurate with low satellite count."
         default_value: 6

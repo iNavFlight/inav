@@ -370,6 +370,9 @@ static bool _new_speed;
 
 // Need this to determine if Galileo capable only
 static bool capGalileo;
+static bool capBeidou;
+static bool capGzss;
+static bool capGlonass;
 
 // Example packet sizes from UBlox u-center from a Glonass capable GPS receiver.
 //15:17:55  R -> UBX NAV-STATUS,  Size  24,  'Navigation Status'
@@ -452,8 +455,11 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-#define GNSSID_SBAS 1
-#define GNSSID_GALILEO 2
+#define GNSSID_SBAS     1
+#define GNSSID_GALILEO  2
+#define GNSSID_BEIDOU   3
+#define GNSSID_GZSS     4
+#define GNSSID_GLONASS  5
 
 static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 {
@@ -491,6 +497,67 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
+{
+    if (!capBeidou) {
+        return 0;
+    }
+
+    gnss_block->gnssId = GNSSID_BEIDOU;
+    gnss_block->maxTrkCh = 8;
+    gnss_block->sigCfgMask = 1;
+    if (gpsState.gpsConfig->ubloxUseBeidou) {
+        gnss_block->enabled = 1;
+        gnss_block->resTrkCh = 4;
+    } else {
+        gnss_block->enabled = 0;
+        gnss_block->resTrkCh = 0;
+    }
+
+    return 1;
+}
+
+static int configureGNSS_GZSS(ubx_gnss_element_t * gnss_block)
+{
+    if (!capGzss) {
+        return 0;
+    }
+
+    gnss_block->gnssId = GNSSID_GZSS;
+    gnss_block->maxTrkCh = 8;
+    gnss_block->sigCfgMask = 1;
+    if (gpsState.gpsConfig->ubloxUseGzss) {
+        gnss_block->enabled = 1;
+        gnss_block->resTrkCh = 4;
+    } else {
+        gnss_block->enabled = 0;
+        gnss_block->resTrkCh = 0;
+    }
+
+    return 1;
+}
+
+static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
+{
+    if (!capGlonass) {
+        return 0;
+    }
+
+    gnss_block->gnssId = GNSSID_GLONASS;
+    gnss_block->maxTrkCh = 8;
+    gnss_block->sigCfgMask = 1;
+    if (gpsState.gpsConfig->ubloxUseGlonass) {
+        gnss_block->enabled = 1;
+        gnss_block->resTrkCh = 4;
+    } else {
+        gnss_block->enabled = 0;
+        gnss_block->resTrkCh = 0;
+    }
+
+    return 1;
+}
+
+
 static void configureGNSS(void)
 {
     int blocksUsed = 0;
@@ -506,6 +573,15 @@ static void configureGNSS(void)
 
     /* Galileo */
     blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
+
+    /* BeiDou */
+    blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+
+    /* GZSS */
+    blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+
+    /* GLONASS */
+    blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
     send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
     send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
@@ -696,8 +772,14 @@ static bool gpsParceFrameUBLOX(void)
                 for(int j = 40; j < _payload_length; j += 30) {
                     if (strnstr((const char *)(_buffer.bytes+j), "GAL", 30)) {
                         capGalileo = true;
-                        break;
+                    } else if (strnstr((const char *)(_buffer.bytes+j), "BDS", 30)) {
+                        capBeidou = true;
+                    } else if (strnstr((const char *)(_buffer.bytes+j), "GZSS", 30)) {
+                        capGzss = true;
+                    } else if (strnstr((const char *)(_buffer.bytes+j), "GLO", 30)) {
+                        capGlonass = true;
                     }
+
                 }
             }
         }

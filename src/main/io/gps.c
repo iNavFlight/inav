@@ -121,7 +121,10 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .autoBaud = SETTING_GPS_AUTO_BAUD_DEFAULT,
     .dynModel = SETTING_GPS_DYN_MODEL_DEFAULT,
     .gpsMinSats = SETTING_GPS_MIN_SATS_DEFAULT,
-    .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT
+    .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT,
+    .ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT,
+    .ubloxUseGzss = SETTING_GPS_UBLOX_USE_GZSS_DEFAULT,
+    .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
 );
 
 void gpsSetState(gpsState_e state)
