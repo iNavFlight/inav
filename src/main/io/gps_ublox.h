@@ -281,7 +281,13 @@ typedef struct {
     uint8_t msg;
 } ubx_ack_ack;
 
-enum {
+typedef enum {
+    UBX_ACK_WAITING = 0,
+    UBX_ACK_GOT_ACK = 1,
+    UBX_ACK_GOT_NAK = 2
+} ubx_ack_state_t;
+
+typedef enum {
     PREAMBLE1 = 0xB5,
     PREAMBLE2 = 0x62,
     CLASS_NAV = 0x01,
@@ -314,28 +320,23 @@ enum {
     MSG_CFG_NAV_SETTINGS = 0x24,
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e
-} ubx_protocol_bytes;
+} ubx_protocol_bytes_t;
 
-enum {
+typedef enum {
     FIX_NONE = 0,
     FIX_DEAD_RECKONING = 1,
     FIX_2D = 2,
     FIX_3D = 3,
     FIX_GPS_DEAD_RECKONING = 4,
     FIX_TIME = 5
-} ubs_nav_fix_type;
+} ubs_nav_fix_type_t;
 
-enum {
+typedef enum {
     NAV_STATUS_FIX_VALID = 1
-} ubx_nav_status_bits;
+} ubx_nav_status_bits_t;
 
-enum {
-    UBX_ACK_WAITING = 0,
-    UBX_ACK_GOT_ACK = 1,
-    UBX_ACK_GOT_NAK = 2
-} ubx_ack_state;
 
-void ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPairs, uint8_t count);
+
 
 #ifdef __cplusplus
 }

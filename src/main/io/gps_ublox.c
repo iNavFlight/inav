@@ -50,6 +50,7 @@
 #include "scheduler/protothreads.h"
 
 #include "gps_ublox.h"
+#include "gps_ublox_utils.h"
 
 
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
@@ -76,6 +77,13 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,230400,0*1C\r\n",     // GPS_BAUDRATE_230400
 };
 
+ubx_ack_state_t ubx_ack_state;
+
+ubx_protocol_bytes_t ubx_protocol_bytes;
+
+ubs_nav_fix_type_t ubs_nav_fix_type;
+
+ubx_nav_status_bits_t ubx_nav_status_bits;
 
 // Packet checksum accumulators
 static uint8_t _ck_a;
@@ -138,14 +146,6 @@ static union {
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
-void _update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
-{
-    while (len--) {
-        *ck_a += *data;
-        *ck_b += *ck_a;
-        data++;
-    }
-}
 
 static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
 {
@@ -161,7 +161,7 @@ static void sendConfigMessageUBLOX(void)
     uint8_t ck_a=0, ck_b=0;
     send_buffer.message.header.preamble1=PREAMBLE1;
     send_buffer.message.header.preamble2=PREAMBLE2;
-    _update_checksum(&send_buffer.bytes[2], send_buffer.message.header.length+4, &ck_a, &ck_b);
+    ublox_update_checksum(&send_buffer.bytes[2], send_buffer.message.header.length+4, &ck_a, &ck_b);
     send_buffer.bytes[send_buffer.message.header.length+6] = ck_a;
     send_buffer.bytes[send_buffer.message.header.length+7] = ck_b;
     serialWriteBuf(gpsState.gpsPort, send_buffer.bytes, send_buffer.message.header.length+8);
@@ -193,28 +193,7 @@ static const uint8_t default_payload[] = {
 #define GNSSID_GLONASS  6
 
 
-void ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPairs, uint8_t count)
-{
-    uint8_t ck_a, ck_b;
 
-    cfg->header.preamble1 = 0xb5;
-    cfg->header.preamble2 = 0x62;
-    cfg->header.msg_class = 0x06;
-    cfg->header.msg_id = 0x8A;
-    cfg->header.length = sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_payload_t) * count);
-    cfg->configHeader.layers = 0x1;
-    cfg->configHeader.reserved = 0;
-    cfg->configHeader.version = 0;
-
-    for (int i = 0; i < count; ++i) {
-        cfg->data.payload[i].key = kvPairs[i].key;
-        cfg->data.payload[i].value = kvPairs[i].value;
-    }
-
-    _update_checksum(&cfg->header.msg_class, sizeof(ubx_header) + sizeof(ubx_config_data_header_t) + (sizeof(ubx_config_data8_t) * count) - 4, &ck_a, &ck_b);
-    cfg->data.buffer[sizeof(ubx_config_data8_t) * count] = ck_a;
-    cfg->data.buffer[sizeof(ubx_config_data8_t) * count + 1] = ck_b;
-}
 
 // ublox info: https://cdn.sparkfun.com/assets/f/7/4/3/5/PM-15136.pdf
 static void ubloxCfgValSetBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
