@@ -140,12 +140,15 @@ typedef struct {
     uint8_t value;
 } ubx_config_data8_payload_t;
 
+
+#define MAX_CONFIG_SET_VAL_VALUES   32
+
 typedef struct {
     ubx_header header;
     ubx_config_data_header_t configHeader;
     union {
         ubx_config_data8_payload_t payload[0];
-        uint8_t buffer[62]; // 12 key/value pairs + 2 checksum bytes
+        uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data8_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
     } data;
 } __attribute__((packed)) ubx_config_data8_t;
 
