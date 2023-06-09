@@ -330,29 +330,30 @@ static void configureGNSS(void)
     } else {
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
-            {UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
-            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
+            //{UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
+            //{UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
     
             // Galileo
             {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
-            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            //{UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
 
             // Beidou
-            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+            //{UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            //{UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            //{UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
 
             // Should be enabled with GPS
-            {UBLOX_CFG_QZSS_ENA, 1},
-            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
-            {UBLOX_CFG_QZSS_L1S_ENA, 1},
+            //{UBLOX_CFG_QZSS_ENA, 1},
+            //{UBLOX_CFG_QZSS_L1CA_ENA, 1},
+            //{UBLOX_CFG_QZSS_L1S_ENA, 1},
 
             // Glonass
-            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+            //{UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
+            //{UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
         };
 
-        ubloxCfgValSetBytes(gnssConfigValues, 12);
+        //ubloxCfgValSetBytes(gnssConfigValues, 12);
+        ubloxCfgValSetBytes(gnssConfigValues, 1);
     }
 }
 

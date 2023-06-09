@@ -20,9 +20,9 @@ int ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPai
     cfg->header.preamble2 = 0x62;
     cfg->header.msg_class = 0x06;
     cfg->header.msg_id = 0x8A;
-    cfg->header.length = sizeof(ubx_config_data_header_t) + ((sizeof(ubx_config_data8_payload_t) * count));
+    cfg->header.length = sizeof(ubx_config_data_header_v1_t) + ((sizeof(ubx_config_data8_payload_t) * count));
     cfg->configHeader.layers = 0x1;
-    cfg->configHeader.transation = 0;
+    cfg->configHeader.transaction = 0;
     cfg->configHeader.reserved = 0;
     cfg->configHeader.version = 1;
     

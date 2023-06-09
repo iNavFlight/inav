@@ -111,9 +111,15 @@ typedef struct {
 typedef struct {
     uint8_t version;
     uint8_t layers;
-    uint8_t transation;
     uint8_t reserved;
-} __attribute__((packed)) ubx_config_data_header_t;
+} __attribute__((packed)) ubx_config_data_header_v0_t;
+
+typedef struct {
+    uint8_t version;
+    uint8_t layers;
+    uint8_t transaction;
+    uint8_t reserved;
+} __attribute__((packed)) ubx_config_data_header_v1_t;
 
 
 #define MAX_GNSS 7
@@ -146,7 +152,7 @@ typedef struct {
 
 typedef struct {
     ubx_header header;
-    ubx_config_data_header_t configHeader;
+    ubx_config_data_header_v1_t configHeader;
     union {
         ubx_config_data8_payload_t payload[0];
         uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data8_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
