@@ -124,6 +124,7 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT,
     .ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT,
     .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
+    .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT
 );
 
 void gpsSetState(gpsState_e state)

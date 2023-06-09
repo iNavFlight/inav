@@ -96,6 +96,7 @@ typedef struct gpsConfig_s {
     bool ubloxUseBeidou;
     bool ubloxUseGlonass;
     uint8_t gpsMinSats;
+    uint8_t ubloxNavHz;
 } gpsConfig_t;
 
 PG_DECLARE(gpsConfig_t, gpsConfig);
