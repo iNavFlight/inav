@@ -4290,7 +4290,16 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                         FALLTHROUGH;
                     case OSD_UNIT_METRIC:
                         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, 3);
+                            uint8_t digits = 3U;    // Total number of digits (including decimal point)
+
+                            #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
+                                if (isBfCompatibleVideoSystem(osdConfig())) {
+                                    // Add one digit so no switch to scaled decimal occurs above 99
+                                    digits = 4U;
+                                }
+                            #endif
+
+                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits);
                             if (!moreThanAh) {
                                 tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
                             } else {
