@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <arpa/inet.h>
 
 #include "gps_ublox_utils.h"
 
