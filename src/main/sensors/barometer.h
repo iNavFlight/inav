@@ -33,8 +33,9 @@ typedef enum {
     BARO_BMP388 = 8,
     BARO_DPS310 = 9,
     BARO_B2SMPB = 10,
-    BARO_MSP    = 11,
-    BARO_FAKE   = 12,
+    BARO_BMP390 = 11,
+    BARO_MSP    = 12,
+    BARO_FAKE   = 13,
     BARO_MAX    = BARO_FAKE
 } baroSensor_e;
 

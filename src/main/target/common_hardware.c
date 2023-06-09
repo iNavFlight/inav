@@ -102,7 +102,7 @@
         #define BMP280_I2C_BUS BARO_I2C_BUS
     #endif
     #if !defined(BMP280_I2C_ADDR)
-        #define BMP280_I2C_ADDR (0x76)
+        #define BMP280_I2C_ADDR (0x77)
     #endif
     BUSDEV_REGISTER_I2C(busdev_bmp280,      DEVHW_BMP280,       BMP280_I2C_BUS,     BMP280_I2C_ADDR,	NONE,           DEVFLAGS_NONE,      0);
     #endif
@@ -175,6 +175,18 @@
     BUSDEV_REGISTER_I2C(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_I2C_BUS,      0x70,                NONE,           DEVFLAGS_NONE, 0);
     #endif
 #endif
+
+#if defined(USE_BARO_BMP390)
+    #if defined(BMP390_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_BMP390,      DEVHW_BMP390,       BMP390_SPI_BUS,     BMP390_CS_PIN,      NONE,           DEVFLAGS_NONE,      0);
+    #elif defined(BMP390_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(BMP390_I2C_BUS)
+        #define BMP390_I2C_BUS BARO_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_BMP390,      DEVHW_BMP390,       BMP390_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE,      0);
+    #endif
+#endif
+
 
 /** COMPASS SENSORS **/
 #if !defined(USE_TARGET_MAG_HARDWARE_DESCRIPTORS)

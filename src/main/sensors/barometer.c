@@ -35,6 +35,7 @@
 #include "drivers/barometer/barometer_bmp085.h"
 #include "drivers/barometer/barometer_bmp280.h"
 #include "drivers/barometer/barometer_bmp388.h"
+#include "drivers/barometer/barometer_bmp390.h"
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
@@ -195,6 +196,19 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         }
         FALLTHROUGH;
 
+    case BARO_BMP390:
+#if defined(USE_BARO_BMP390) || defined(USE_BARO_SPI_BMP390)
+        if (bmp390Detect(dev)) {
+            baroHardware = BARO_BMP390;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+        
     case BARO_MSP:
 #ifdef USE_BARO_MSP
         // Skip autodetection for MSP baro, only allow manual config
