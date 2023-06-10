@@ -4239,12 +4239,19 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
             bool efficiencyValid = totalDistance >= 10000;
             if (feature(FEATURE_GPS)) {
                 displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
+                uint8_t digits = 3U;    // Total number of digits (including decimal point)
+                #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
+                    if (isBfCompatibleVideoSystem(osdConfig())) {
+                        // Add one digit so no switch to scaled decimal occurs above 99
+                        digits = 4U;
+                    }
+                #endif
                 switch (osdConfig()->units) {
                     case OSD_UNIT_UK:
                         FALLTHROUGH;
                     case OSD_UNIT_IMPERIAL:
                         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, 3);
+                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits);
                             if (!moreThanAh) {
                                 tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
                             } else {
@@ -4257,7 +4264,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                                 buff[5] = '\0';
                             }
                         } else {
-                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, 3);
+                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits);
                             tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
                             if (!efficiencyValid) {
                                 buff[0] = buff[1] = buff[2] = '-';
@@ -4266,7 +4273,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                         break;
                     case OSD_UNIT_GA:
                         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, 3);
+                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits);
                             if (!moreThanAh) {
                                 tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_NM_0, SYM_MAH_NM_1);
                             } else {
@@ -4279,7 +4286,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                                 buff[5] = '\0';
                             }
                         } else {
-                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, 3);
+                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits);
                             tfp_sprintf(buff, "%s%c", buff, SYM_WH_NM);
                             if (!efficiencyValid) {
                                 buff[0] = buff[1] = buff[2] = '-';
@@ -4290,15 +4297,6 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                         FALLTHROUGH;
                     case OSD_UNIT_METRIC:
                         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            uint8_t digits = 3U;    // Total number of digits (including decimal point)
-
-                            #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-                                if (isBfCompatibleVideoSystem(osdConfig())) {
-                                    // Add one digit so no switch to scaled decimal occurs above 99
-                                    digits = 4U;
-                                }
-                            #endif
-
                             moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits);
                             if (!moreThanAh) {
                                 tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
@@ -4312,7 +4310,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                                 buff[5] = '\0';
                             }
                         } else {
-                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, 3);
+                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, digits);
                             tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
                             if (!efficiencyValid) {
                                 buff[0] = buff[1] = buff[2] = '-';
