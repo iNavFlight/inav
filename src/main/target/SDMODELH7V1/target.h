@@ -21,8 +21,6 @@
 #define TARGET_BOARD_IDENTIFIER "SMH71"
 #define USBD_PRODUCT_STRING     "SDMODELH7V1"
 
-#endif
-
 #define USE_TARGET_CONFIG
 
 #define LED0                    PC2
