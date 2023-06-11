@@ -538,11 +538,43 @@ float fast_fsqrtf(const float value) {
 // function to calculate the normalization (pythagoras) of a 2-dimensional vector
 float NOINLINE calc_length_pythagorean_2D(const float firstElement, const float secondElement)
 {
-  return fast_fsqrtf(sq(firstElement) + sq(secondElement));
+    return fast_fsqrtf(sq(firstElement) + sq(secondElement));
 }
 
 // function to calculate the normalization (pythagoras) of a 3-dimensional vector
 float NOINLINE calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement)
 {
-  return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
+    return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
 }
+
+#ifdef SITL_BUILD
+
+/**
+ * @brief Floating-point vector subtraction, equivalent of CMSIS arm_sub_f32.
+*/
+void arm_sub_f32(
+  float * pSrcA,
+  float * pSrcB,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] - pSrcB[i];
+    }
+}
+
+/**
+ * @brief Floating-point vector scaling, equivalent of CMSIS arm_scale_f32.
+*/
+void arm_scale_f32(
+  float * pSrc,
+  float scale,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrc[i] * scale;
+    }
+}
+
+#endif
