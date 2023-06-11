@@ -513,10 +513,7 @@ static void applyAccelerationZero(void)
  */
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {
-    //TODO replace with DSP
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
-    }
+    arm_scale_f32(acc.accADCf, GRAVITY_CMSS, measuredAcc->v, XYZ_AXIS_COUNT);
 }
 
 /*
