@@ -553,9 +553,9 @@ float NOINLINE calc_length_pythagorean_3D(const float firstElement, const float 
  * @brief Floating-point vector subtraction, equivalent of CMSIS arm_sub_f32.
 */
 void arm_sub_f32(
-  float32_t * pSrcA,
-  float32_t * pSrcB,
-  float32_t * pDst,
+  float * pSrcA,
+  float * pSrcB,
+  float * pDst,
   uint32_t blockSize)
 {
     for (int i = 0; i < blockSize; i++) {
