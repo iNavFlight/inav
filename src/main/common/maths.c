@@ -558,8 +558,22 @@ void arm_sub_f32(
   float * pDst,
   uint32_t blockSize)
 {
-    for (int i = 0; i < blockSize; i++) {
+    for (uint32_t i = 0; i < blockSize; i++) {
         pDst[i] = pSrcA[i] - pSrcB[i];
+    }
+}
+
+/**
+ * @brief Floating-point vector scaling, equivalent of CMSIS arm_scale_f32.
+*/
+void arm_scale_f32(
+  float * pSrc,
+  float scale,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrc[i] * scale;
     }
 }
 
