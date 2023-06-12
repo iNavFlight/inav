@@ -27,13 +27,20 @@
 #include "drivers/bus.h"
 #include "drivers/time.h"
 
+#if defined(USE_QUADSPI)
+#include "drivers/bus_quadspi.h"
+#include "drivers/bus_quadspi_impl.h"
+#endif
+
 #define M25P16_INSTRUCTION_RDID             0x9F
 #define M25P16_INSTRUCTION_READ_BYTES       0x03
+#define M25P16_INSTRUCTION_QUAD_READ        0x6B
 #define M25P16_INSTRUCTION_READ_STATUS_REG  0x05
 #define M25P16_INSTRUCTION_WRITE_STATUS_REG 0x01
 #define M25P16_INSTRUCTION_WRITE_ENABLE     0x06
 #define M25P16_INSTRUCTION_WRITE_DISABLE    0x04
 #define M25P16_INSTRUCTION_PAGE_PROGRAM     0x02
+#define M25P16_INSTRUCTION_QPAGE_PROGRAM    0x32
 #define M25P16_INSTRUCTION_SECTOR_ERASE     0xD8
 #define M25P16_INSTRUCTION_BULK_ERASE       0xC7
 
@@ -41,6 +48,8 @@
 #define M25P16_STATUS_FLAG_WRITE_ENABLED     0x02
 
 #define W25Q256_INSTRUCTION_ENTER_4BYTE_ADDRESS_MODE 0xB7
+
+#define M25P16_FAST_READ_DUMMY_CYCLES       8
 
 struct {
     uint32_t        jedecID;
@@ -118,7 +127,12 @@ struct {
 
 static flashGeometry_t geometry = {.pageSize = M25P16_PAGESIZE};
 
+#if !defined(M25P16_QUADSPI_DEVICE)
 static busDevice_t * busDev = NULL;
+#else
+static QUADSPI_TypeDef * qspi = NULL;
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
+
 static bool isLargeFlash = false;
 static uint32_t timeoutAt = 0;
 
@@ -134,7 +148,11 @@ static bool couldBeBusy = false;
  */
 static void m25p16_performOneByteCommand(uint8_t command)
 {
+#if !defined(M25P16_QUADSPI_DEVICE)
     busTransfer(busDev, NULL, &command, 1);
+#else
+    quadSpiTransmit1LINE(qspi, command, 0, NULL, 0);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 }
 
 /**
@@ -151,12 +169,18 @@ static void m25p16_writeEnable(void)
 
 static uint8_t m25p16_readStatus(void)
 {
+    uint8_t status;
+#if !defined(M25P16_QUADSPI_DEVICE)
     uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
     uint8_t in[2];
 
     busTransfer(busDev, in, command, sizeof(command));
+    status = in[1];
+#else
+    quadSpiReceive1LINE(qspi, M25P16_INSTRUCTION_READ_STATUS_REG, 0, &status, 1);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
-    return in[1];
+    return status;
 }
 
 bool m25p16_isReady(void)
@@ -201,7 +225,6 @@ bool m25p16_waitForReady(uint32_t timeoutMillis)
  */
 static bool m25p16_readIdentification(void)
 {
-    uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
     uint8_t in[4];
     uint32_t chipID;
 
@@ -212,7 +235,16 @@ static bool m25p16_readIdentification(void)
      */
     in[1] = 0;
 
+#if !defined(M25P16_QUADSPI_DEVICE)
+    uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
+
     busTransfer(busDev, in, out, sizeof(out));
+#else
+    bool status = quadSpiReceive1LINE(qspi, M25P16_INSTRUCTION_RDID, 0, &in[1], sizeof(in) - 1);
+    if (!status) {
+        return false;
+    }
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     // Manufacturer, memory type, and capacity
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
@@ -256,6 +288,9 @@ static bool m25p16_readIdentification(void)
  */
 bool m25p16_init(int flashNumToUse)
 {
+    bool detected;
+#if !defined(M25P16_QUADSPI_DEVICE)
+    // SPI Mode
     busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_M25P16, flashNumToUse, OWNER_FLASH);
     if (busDev == NULL) {
         return false;
@@ -264,8 +299,25 @@ bool m25p16_init(int flashNumToUse)
 #ifndef M25P16_SPI_SHARED
     busSetSpeed(busDev, BUS_SPEED_FAST);
 #endif
+#else
+    // QUADSPI Mode
+    UNUSED(flashNumToUse);
+    quadSpiPinConfigure(M25P16_QUADSPI_DEVICE);
+    quadSpiInitDevice(M25P16_QUADSPI_DEVICE);
 
-    return m25p16_readIdentification();
+    qspi = quadSpiInstanceByDevice(M25P16_QUADSPI_DEVICE);
+    quadSpiSetDivisor(qspi, QUADSPI_CLOCK_INITIALISATION);
+#endif /* M25P16_QUADSPI_DEVICE */
+
+    detected = m25p16_readIdentification();
+
+#if defined(M25P16_QUADSPI_DEVICE)
+    if (detected) {
+        quadSpiSetDivisor(qspi, QUADSPI_CLOCK_ULTRAFAST);
+    }
+#endif
+
+    return detected;
 }
 
 void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLongAddress)
@@ -284,17 +336,20 @@ void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLongAddres
  */
 void m25p16_eraseSector(uint32_t address)
 {
-    uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
-
-    m25p16_setCommandAddress(&out[1], address, isLargeFlash);
-
     if (!m25p16_waitForReady(0)) {
         return;
     }
 
     m25p16_writeEnable();
 
+#if !defined(M25P16_QUADSPI_DEVICE)
+    uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
+    m25p16_setCommandAddress(&out[1], address, isLargeFlash);
+
     busTransfer(busDev, NULL, out, isLargeFlash ? 5 : 4);
+#else
+    quadSpiInstructionWithAddress1LINE(qspi, M25P16_INSTRUCTION_SECTOR_ERASE, 0, address, isLargeFlash ? 32 : 24);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     m25p16_setTimeout(SECTOR_ERASE_TIMEOUT_MILLIS);
 }
@@ -329,6 +384,14 @@ void m25p16_eraseCompletely(void)
  */
 uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 {
+    if (!m25p16_waitForReady(0)) {
+        // return same address to indicate timeout
+        return address;
+    }
+
+    m25p16_writeEnable();
+
+#if !defined(M25P16_QUADSPI_DEVICE)
     uint8_t command[5] = { M25P16_INSTRUCTION_PAGE_PROGRAM };
 
     busTransferDescriptor_t txn[2] = {
@@ -338,14 +401,10 @@ uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
-    if (!m25p16_waitForReady(0)) {
-        // return same address to indicate timeout
-        return address;
-    }
-
-    m25p16_writeEnable();
-
     busTransferMultiple(busDev, txn, 2);
+#else
+    quadSpiTransmitWithAddress4LINES(qspi, M25P16_INSTRUCTION_QPAGE_PROGRAM, 0, address, isLargeFlash ? 32 : 24, data, length);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     m25p16_setTimeout(DEFAULT_TIMEOUT_MILLIS);
 
@@ -362,6 +421,11 @@ uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
  */
 int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 {
+    if (!m25p16_waitForReady(0)) {
+        return 0;
+    }
+
+#if !defined(M25P16_QUADSPI_DEVICE)
     uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
 
     busTransferDescriptor_t txn[2] = {
@@ -371,11 +435,11 @@ int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
-    if (!m25p16_waitForReady(0)) {
-        return 0;
-    }
-
     busTransferMultiple(busDev, txn, 2);
+#else
+    quadSpiReceiveWithAddress4LINES(qspi, M25P16_INSTRUCTION_QUAD_READ, M25P16_FAST_READ_DUMMY_CYCLES,
+                                    address, isLargeFlash ? 32 : 24, buffer, length);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     return length;
 }

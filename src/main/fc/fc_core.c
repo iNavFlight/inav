@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -985,12 +983,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime()
+float getFlightTime(void)
 {
     return US2S(flightTime);
 }
 
-float getArmTime()
+float getArmTime(void)
 {
     return US2S(armTime);
 }

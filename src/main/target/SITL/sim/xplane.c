@@ -132,18 +132,18 @@ typedef enum
 
 uint32_t xint2uint32 (uint8_t * buf)
 {
-	return buf[3] << 24 | buf [2] << 16 | buf [1] << 8 | buf [0];
+        return buf[3] << 24 | buf [2] << 16 | buf [1] << 8 | buf [0];
 }
 
 float xflt2float (uint8_t * buf)
 {
-	union {
-		float f;
-		uint32_t i;
-	} v;
+        union {
+                float f;
+                uint32_t i;
+        } v;
 
-	v.i = xint2uint32 (buf);
-	return v.f;
+        v.i = xint2uint32 (buf);
+        return v.f;
 }
 
 static void registerDref(dref_t id, char* dref, uint32_t freq)
@@ -369,18 +369,18 @@ static void* listenWorker(void* arg)
         gpsFakeSet(
             GPS_FIX_3D,
             16,
-            (int32_t)round(lattitude * 10000000),
-            (int32_t)round(longitude * 10000000),
-            (int32_t)round(elevation * 100),
-            (int16_t)round(groundspeed * 100),
-            (int16_t)round(hpath * 10),
-            0, //(int16_t)round(-local_vz * 100),
-            0, //(int16_t)round(local_vx * 100),
-            0, //(int16_t)round(-local_vy * 100),
+            (int32_t)roundf(lattitude * 10000000),
+            (int32_t)roundf(longitude * 10000000),
+            (int32_t)roundf(elevation * 100),
+            (int16_t)roundf(groundspeed * 100),
+            (int16_t)roundf(hpath * 10),
+            0, //(int16_t)roundf(-local_vz * 100),
+            0, //(int16_t)roundf(local_vx * 100),
+            0, //(int16_t)roundf(-local_vy * 100),
             0
         );
 
-        const int32_t altitideOverGround = (int32_t)round(agl * 100);
+        const int32_t altitideOverGround = (int32_t)roundf(agl * 100);
         if (altitideOverGround > 0 && altitideOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
             fakeRangefindersSetData(altitideOverGround);
         } else {
@@ -397,9 +397,9 @@ static void* listenWorker(void* arg)
         }
 
         fakeAccSet(
-            constrainToInt16(-accel_x * GRAVITY_MSS * 1000),
-            constrainToInt16(accel_y * GRAVITY_MSS * 1000),
-            constrainToInt16(accel_z * GRAVITY_MSS * 1000)
+            constrainToInt16(-accel_x * GRAVITY_MSS * 1000.0f),
+            constrainToInt16(accel_y * GRAVITY_MSS * 1000.0f),
+            constrainToInt16(accel_z * GRAVITY_MSS * 1000.0f)
         );
 
         fakeGyroSet(
@@ -408,16 +408,16 @@ static void* listenWorker(void* arg)
             constrainToInt16(-gyro_z * 16.0f)
         );
 
-        fakeBaroSet((int32_t)round(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
+        fakeBaroSet((int32_t)roundf(barometer * 3386.39f), DEGREES_TO_CENTIDEGREES(21));
         fakePitotSetAirspeed(airspeed * 100.0f);
 
-        fakeBattSensorSetVbat(16.8 * 100);
+        fakeBattSensorSetVbat(16.8f * 100);
 
         fpQuaternion_t quat;
         fpVector3_t north;
         north.x = 1.0f;
-        north.y = 0;
-        north.z = 0;
+        north.y = 0.0f;
+        north.z = 0.0f;
         computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
         transformVectorEarthToBody(&north, &quat);
         fakeMagSet(
@@ -439,88 +439,6 @@ static void* listenWorker(void* arg)
     return NULL;
 }
 
-static int lookup_address (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
-{
-    struct addrinfo *servinfo, *p;
-    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
-    if (name == NULL) {
-	hints.ai_flags |= AI_PASSIVE;
-    }
-  /*
-    This nonsense is to uniformly deliver the same sa_family regardless of whether
-    name is NULL or non-NULL ** ON LINUX **
-    Otherwise, at least on Linux, we get
-    - V6,V4 for the non-null case and
-    - V4,V6 for the null case, regardless of gai.conf
-    Which may confuse consumers
-    FreeBSD and Windows behave consistently, giving V6 for Ipv6 enabled stacks
-    unless a quad dotted address is specified (or a name resolveds to V4,
-    or system policy enforces IPv4 over V6
-  */
-    struct addrinfo *p4 = NULL;
-    struct addrinfo *p6 = NULL;
-
-    int result;
-    char aport[16];
-    snprintf(aport, sizeof(aport), "%d", port);
-
-    if ((result = getaddrinfo(name, aport, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
-        return result;
-    } else {
-	int j = 0;
-	for(p = servinfo; p != NULL; p = p->ai_next) {
-	    if(p->ai_family == AF_INET6)
-		p6 = p;
-	    else if(p->ai_family == AF_INET)
-		p4 = p;
-	    j++;
-	}
-
-	if (p6 != NULL)
-	    p = p6;
-	else if (p4 != NULL)
-	    p = p4;
-	else
-	    return -1;
-	memcpy(addr, p->ai_addr, p->ai_addrlen);
-	*len = p->ai_addrlen;
-	freeaddrinfo(servinfo);
-    }
-    return 0;
-}
-
-static char * pretty_print_address(struct sockaddr* p)
-{
-    char straddr[INET6_ADDRSTRLEN];
-    void *addr;
-    uint16_t port;
-    if (p->sa_family == AF_INET6) {
-	struct sockaddr_in6 * ip = (struct sockaddr_in6*)p;
-	addr = &ip->sin6_addr;
-	port = ntohs(ip->sin6_port);
-    } else {
-	struct sockaddr_in * ip = (struct sockaddr_in*)p;
-	port = ntohs(ip->sin_port);
-	addr = &ip->sin_addr;
-    }
-    const char *res = inet_ntop(p->sa_family, addr, straddr, sizeof straddr);
-    if (res != NULL) {
-	int nb = strlen(res)+16;
-	char *buf = calloc(nb,1);
-	char *ptr = buf;
-	if (p->sa_family == AF_INET6) {
-	    *ptr++='[';
-	}
-	ptr = stpcpy(ptr, res);
-	if (p->sa_family == AF_INET6) {
-	    *ptr++=']';
-	}
-	sprintf(ptr, ":%d", port);
-	return buf;
-    }
-    return NULL;
-}
 
 bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool imu)
 {
@@ -529,10 +447,10 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     useImu = imu;
 
     if (port == 0) {
-	port = XP_PORT; // use default port
+        port = XP_PORT; // use default port
     }
 
-    if(lookup_address(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
+    if(lookupAddress(ip, port, SOCK_DGRAM, (struct sockaddr*)&serverAddr, &serverAddrLen) != 0) {
         return false;
     }
 
@@ -540,17 +458,17 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
     if (sockFd < 0) {
         return false;
     } else {
-	char *nptr = pretty_print_address((struct sockaddr *)&serverAddr);
-	if (nptr != NULL) {
-	    fprintf(stderr, "[SOCKET] xplane address = %s, fd=%d\n", nptr, sockFd);
-	    free(nptr);
-	}
+	char addrbuf[IPADDRESS_PRINT_BUFLEN];
+        char *nptr = prettyPrintAddress((struct sockaddr *)&serverAddr, addrbuf, IPADDRESS_PRINT_BUFLEN );
+        if (nptr != NULL) {
+            fprintf(stderr, "[SOCKET] xplane address = %s, fd=%d\n", nptr, sockFd);
+        }
     }
 
     struct timeval tv;
-	tv.tv_sec = 1;
-	tv.tv_usec = 0;
-	if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+        if (setsockopt(sockFd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *) &tv,sizeof(struct timeval))) {
         return false;
     }
 

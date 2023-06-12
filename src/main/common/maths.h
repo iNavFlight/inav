@@ -36,13 +36,13 @@
 #define RAD    (M_PIf / 180.0f)
 
 #define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
-#define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100)
+#define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100.0f)
 
-#define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10)
+#define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10.0f)
 #define DECIDEGREES_TO_CENTIDEGREES(angle) ((angle) * 10)
 
 #define DEGREES_TO_DECIDEGREES(angle) ((angle) * 10)
-#define DECIDEGREES_TO_DEGREES(angle) ((angle) / 10)
+#define DECIDEGREES_TO_DEGREES(angle) ((angle) / 10.0f)
 
 #define DEGREES_PER_DEKADEGREE 10
 #define DEGREES_TO_DEKADEGREES(angle) ((angle) / DEGREES_PER_DEKADEGREE)
@@ -56,15 +56,15 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048)
-#define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48)
-#define CENTIMETERS_TO_METERS(cm)               (cm / 100)
+#define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048f)
+#define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48f)
+#define CENTIMETERS_TO_METERS(cm)               (cm / 100.0f)
 
 #define METERS_TO_CENTIMETERS(m)                (m * 100)
 
-#define CMSEC_TO_CENTIMPH(cms)      (cms * 2.2369363)
-#define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6)
-#define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845)
+#define CMSEC_TO_CENTIMPH(cms)      (cms * 2.2369363f)
+#define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6f)
+#define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845f)
 
 #define C_TO_KELVIN(temp) (temp + 273.15f)
 
@@ -137,8 +137,8 @@ typedef struct {
 } sensorCalibrationState_t;
 
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
-void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3]);
-void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target);
+void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, float sample[3]);
+void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, float sample[3], int target);
 bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
 bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
 
@@ -188,6 +188,22 @@ float acos_approx(float x);
 void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
 
 float bellCurve(const float x, const float curveWidth);
-float fast_fsqrtf(const double value);
+float fast_fsqrtf(const float value);
 float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
 float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);
+
+/*
+ * The most significat byte is placed at the lowest address
+ * in other words, the most significant byte is "first", on even indexes
+ */
+#define int16_val_big_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
+/*
+ * The most significat byte is placed at the highest address
+ * in other words, the most significant byte is "last", on odd indexes
+ */
+#define int16_val_little_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx + 1] << 8) | v[2 * idx]))
+
+#ifdef SITL_BUILD
+void arm_sub_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
+void arm_scale_f32(float * pSrc, float scale, float * pDst, uint32_t blockSize);
+#endif

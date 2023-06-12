@@ -254,6 +254,12 @@ uint32_t baroUpdate(void)
 {
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
 
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        return 0;
+    }
+#endif
+
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
@@ -274,14 +280,8 @@ uint32_t baroUpdate(void)
             if (baro.dev.start_ut) {
                 baro.dev.start_ut(&baro.dev);
             }
-#ifdef USE_SIMULATOR
-            if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-                //output: baro.baroPressure, baro.baroTemperature
-                baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
-            }
-#else
+            //output: baro.baroPressure, baro.baroTemperature
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
-#endif
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
         break;
@@ -342,7 +342,7 @@ int16_t baroGetTemperature(void)
 
 bool baroIsHealthy(void)
 {
-    return true;
+    return sensors(SENSOR_BARO);
 }
 
 #endif /* BARO */

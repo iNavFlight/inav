@@ -721,7 +721,7 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
         thr = rcCommand[THROTTLE];
     }
 
-    tfp_sprintf(buff, "%3ld%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
+    tfp_sprintf(buff, "%3ld%s", (unsigned long)((constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN)), "%THR");
 }
 
 /**
@@ -1110,7 +1110,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst)
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE;
         }
 
-        if (OSD_VISIBLE(osdLayoutConfig[OSD_THROTTLE_POS_AUTO_THR])) {
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_SCALED_THROTTLE_POS])) {
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE_AUTO_THR;
         }
 

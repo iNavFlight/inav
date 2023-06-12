@@ -834,7 +834,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getFlightTime()); // Flight time (seconds)
 
         // Throttle
-        sbufWriteU8(dst, getThrottlePercent()); // Throttle Percent
+        sbufWriteU8(dst, getThrottlePercent(true)); // Throttle Percent
         sbufWriteU8(dst, navigationIsControllingThrottle() ? 1 : 0); // Auto Throttle Flag (0 or 1)
 
         break;
@@ -2349,8 +2349,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_RESET_CONF:
         if (!ARMING_FLAG(ARMED)) {
+            suspendRxSignal();
             resetEEPROM();
+            writeEEPROM();
             readEEPROM();
+            resumeRxSignal();
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2380,8 +2383,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_EEPROM_WRITE:
         if (!ARMING_FLAG(ARMED)) {
+            suspendRxSignal();
             writeEEPROM();
             readEEPROM();
+            resumeRxSignal();
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -3478,7 +3483,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 
 #ifdef USE_BARO
+            if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
 				baroStartCalibration();
+            }
 #endif
 #ifdef USE_MAG
 				DISABLE_STATE(COMPASS_CALIBRATED);
@@ -3489,10 +3496,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
 			}   
-		} else if (!areSensorsCalibrating()) {
+        } else {
 			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
-				baroStartCalibration();
+                if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
+                    sensorsSet(SENSOR_BARO);
+                    setTaskEnabled(TASK_BARO, true);
+                    DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+				    baroStartCalibration();
+                }
 #endif			
 
 #ifdef USE_MAG

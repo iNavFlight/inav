@@ -21,8 +21,6 @@
 
 #include <platform.h>
 
-FILE_COMPILE_FOR_SPEED
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -307,7 +305,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 #endif
 );
 
-FUNCTION_COMPILE_FOR_SIZE
 bool pidInitFilters(void)
 {
     const uint32_t refreshRate = getLooptime();
@@ -480,7 +477,7 @@ void schedulePidGainsUpdate(void)
     pidGainsUpdateRequired = true;
 }
 
-void updatePIDCoefficients()
+void updatePIDCoefficients(void)
 {
     STATIC_FASTRAM uint16_t prevThrottle = 0;
 
@@ -867,7 +864,7 @@ void resetHeadingHoldTarget(int16_t heading)
     pt1FilterReset(&headingHoldRateFilter, 0.0f);
 }
 
-int16_t getHeadingHoldTarget() {
+int16_t getHeadingHoldTarget(void) {
     return headingHoldTarget;
 }
 

@@ -29,8 +29,6 @@
 #include "arm_math.h"
 #endif
 
-FILE_COMPILE_FOR_SPEED
-
 // http://lolengine.net/blog/2011/12/21/better-function-approximations
 // Chebyshev http://stackoverflow.com/questions/345085/how-do-trigonometric-functions-work/345117#345117
 // Thanks for ledvinap for making such accuracy possible! See: https://github.com/cleanflight/cleanflight/issues/940#issuecomment-110323384
@@ -382,36 +380,36 @@ void sensorCalibrationResetState(sensorCalibrationState_t * state)
     }
 }
 
-void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3])
+void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, float sample[3])
 {
-    state->XtX[0][0] += (float)sample[0] * sample[0];
-    state->XtX[0][1] += (float)sample[0] * sample[1];
-    state->XtX[0][2] += (float)sample[0] * sample[2];
-    state->XtX[0][3] += (float)sample[0];
+    state->XtX[0][0] += sample[0] * sample[0];
+    state->XtX[0][1] += sample[0] * sample[1];
+    state->XtX[0][2] += sample[0] * sample[2];
+    state->XtX[0][3] += sample[0];
 
-    state->XtX[1][0] += (float)sample[1] * sample[0];
-    state->XtX[1][1] += (float)sample[1] * sample[1];
-    state->XtX[1][2] += (float)sample[1] * sample[2];
-    state->XtX[1][3] += (float)sample[1];
+    state->XtX[1][0] += sample[1] * sample[0];
+    state->XtX[1][1] += sample[1] * sample[1];
+    state->XtX[1][2] += sample[1] * sample[2];
+    state->XtX[1][3] += sample[1];
 
-    state->XtX[2][0] += (float)sample[2] * sample[0];
-    state->XtX[2][1] += (float)sample[2] * sample[1];
-    state->XtX[2][2] += (float)sample[2] * sample[2];
-    state->XtX[2][3] += (float)sample[2];
+    state->XtX[2][0] += sample[2] * sample[0];
+    state->XtX[2][1] += sample[2] * sample[1];
+    state->XtX[2][2] += sample[2] * sample[2];
+    state->XtX[2][3] += sample[2];
 
-    state->XtX[3][0] += (float)sample[0];
-    state->XtX[3][1] += (float)sample[1];
-    state->XtX[3][2] += (float)sample[2];
+    state->XtX[3][0] += sample[0];
+    state->XtX[3][1] += sample[1];
+    state->XtX[3][2] += sample[2];
     state->XtX[3][3] += 1;
 
-    float squareSum = ((float)sample[0] * sample[0]) + ((float)sample[1] * sample[1]) + ((float)sample[2] * sample[2]);
+    float squareSum = (sample[0] * sample[0]) + (sample[1] * sample[1]) + (sample[2] * sample[2]);
     state->XtY[0] += sample[0] * squareSum;
     state->XtY[1] += sample[1] * squareSum;
     state->XtY[2] += sample[2] * squareSum;
     state->XtY[3] += squareSum;
 }
 
-void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target)
+void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, float sample[3], int target)
 {
     for (int i = 0; i < 3; i++) {
         float scaledSample = (float)sample[i] / (float)target;
@@ -523,7 +521,7 @@ float bellCurve(const float x, const float curveWidth)
     return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
 }
 
-float fast_fsqrtf(const double value) {
+float fast_fsqrtf(const float value) {
     float ret = 0.0f;
 #ifdef USE_ARM_MATH
     arm_sqrt_f32(value, &ret);
@@ -540,11 +538,43 @@ float fast_fsqrtf(const double value) {
 // function to calculate the normalization (pythagoras) of a 2-dimensional vector
 float NOINLINE calc_length_pythagorean_2D(const float firstElement, const float secondElement)
 {
-  return fast_fsqrtf(sq(firstElement) + sq(secondElement));
+    return fast_fsqrtf(sq(firstElement) + sq(secondElement));
 }
 
 // function to calculate the normalization (pythagoras) of a 3-dimensional vector
 float NOINLINE calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement)
 {
-  return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
+    return fast_fsqrtf(sq(firstElement) + sq(secondElement) + sq(thirdElement));
 }
+
+#ifdef SITL_BUILD
+
+/**
+ * @brief Floating-point vector subtraction, equivalent of CMSIS arm_sub_f32.
+*/
+void arm_sub_f32(
+  float * pSrcA,
+  float * pSrcB,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] - pSrcB[i];
+    }
+}
+
+/**
+ * @brief Floating-point vector scaling, equivalent of CMSIS arm_scale_f32.
+*/
+void arm_scale_f32(
+  float * pSrc,
+  float scale,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrc[i] * scale;
+    }
+}
+
+#endif
