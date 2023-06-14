@@ -14,10 +14,10 @@ option(SITL "SITL build for host system" OFF)
 
 set(TOOLCHAIN_OPTIONS none arm-none-eabi host)
 if (SITL)
-    set(TOOLCHAIN "host" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
-    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    if (CMAKE_HOST_APPLE)
         set(MACOSX TRUE)
     endif()
+    set(TOOLCHAIN "host" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
 else()
     set(TOOLCHAIN "arm-none-eabi" CACHE STRING "Toolchain to use. Available: ${TOOLCHAIN_OPTIONS}")
 endif()
@@ -51,7 +51,7 @@ else()
     endif()
 endif()
 
-project(INAV VERSION 6.1.1)
+project(INAV VERSION 7.0.0)
 
 enable_language(ASM)
 

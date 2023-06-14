@@ -365,7 +365,7 @@ static void frskyOSDUpdateReceiveBuffer(void)
                     // Full uvarint decoded. Check against buffer size.
                     if (state.recvBuffer.expected > sizeof(state.recvBuffer.data)) {
                         FRSKY_OSD_ERROR("Can't handle payload of size %u with a buffer of size %u",
-                            state.recvBuffer.expected, sizeof(state.recvBuffer.data));
+                            state.recvBuffer.expected, (unsigned int)sizeof(state.recvBuffer.data));
                         frskyOSDResetReceiveBuffer();
                         break;
                     }

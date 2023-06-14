@@ -265,9 +265,9 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
             case OSD_UNIT_GA:
                 {
                     if (poiType == 1) {
-                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 4, 4);
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), (uint32_t)FEET_PER_NAUTICALMILE, 0, 4, 4);
                     } else {
-                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), FEET_PER_NAUTICALMILE, 0, 3, 3);
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(poiDistance * 100), (uint32_t)FEET_PER_NAUTICALMILE, 0, 3, 3);
                     }
                 }
                 break;

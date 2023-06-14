@@ -34,6 +34,11 @@
 #include <time.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
 
 #include <platform.h>
 #include "target.h"
@@ -363,4 +368,85 @@ char * strnstr(const char *s, const char *find, size_t slen)
 		s--;
 	}
 	return ((char *)s);
+}
+
+int lookupAddress (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
+{
+    struct addrinfo *servinfo, *p;
+    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
+    if (name == NULL) {
+	hints.ai_flags |= AI_PASSIVE;
+    }
+  /*
+    This nonsense is to uniformly deliver the same sa_family regardless of whether
+    name is NULL or non-NULL ** ON LINUX **
+    Otherwise, at least on Linux, we get
+    - V6,V4 for the non-null case and
+    - V4,V6 for the null case, regardless of gai.conf
+    Which may confuse consumers
+    FreeBSD and Windows behave consistently, giving V6 for Ipv6 enabled stacks
+    unless a quad dotted address is specified (or a name resolveds to V4,
+    or system policy enforces IPv4 over V6
+  */
+    struct addrinfo *p4 = NULL;
+    struct addrinfo *p6 = NULL;
+
+    int result;
+    char aport[16];
+    snprintf(aport, sizeof(aport), "%d", port);
+
+    if ((result = getaddrinfo(name, aport, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
+        return result;
+    } else {
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+	    if(p->ai_family == AF_INET6)
+		p6 = p;
+	    else if(p->ai_family == AF_INET)
+		p4 = p;
+	}
+
+	if (p6 != NULL)
+	    p = p6;
+	else if (p4 != NULL)
+	    p = p4;
+	else
+	    return -1;
+	memcpy(addr, p->ai_addr, p->ai_addrlen);
+	*len = p->ai_addrlen;
+	freeaddrinfo(servinfo);
+    }
+    return 0;
+}
+
+char *prettyPrintAddress(struct sockaddr* p, char *outbuf, size_t buflen)
+{
+    if (buflen < IPADDRESS_PRINT_BUFLEN) {
+	return NULL;
+    }
+    char *bufp = outbuf;
+    void *addr;
+    uint16_t port;
+    if (p->sa_family == AF_INET6) {
+	struct sockaddr_in6 * ip = (struct sockaddr_in6*)p;
+	addr = &ip->sin6_addr;
+	port = ntohs(ip->sin6_port);
+    } else {
+	struct sockaddr_in * ip = (struct sockaddr_in*)p;
+	port = ntohs(ip->sin_port);
+	addr = &ip->sin_addr;
+    }
+    const char *res = inet_ntop(p->sa_family, addr, outbuf+1, buflen-1);
+    if (res != NULL) {
+	char *ptr = (char*)res+strlen(res);
+	if (p->sa_family == AF_INET6) {
+	    *bufp ='[';
+	    *ptr++ = ']';
+	} else {
+	    bufp++;
+	}
+	sprintf(ptr, ":%d", port);
+	return bufp;
+    }
+    return NULL;
 }

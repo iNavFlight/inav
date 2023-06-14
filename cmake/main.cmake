@@ -83,7 +83,7 @@ function(setup_executable exe name)
     set_target_properties(${exe} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
-    if(IS_RELEASE_BUILD)
+    if(IS_RELEASE_BUILD AND NOT CMAKE_HOST_APPLE)
         set_target_properties(${exe} PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION ON
         )

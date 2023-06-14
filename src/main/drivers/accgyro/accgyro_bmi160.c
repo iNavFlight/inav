@@ -180,9 +180,9 @@ bool bmi160GyroReadScratchpad(gyroDev_t *gyro)
     ctx->lastReadStatus = busReadBuf(gyro->busDev, BMI160_REG_GYR_DATA_X_LSB, ctx->gyroRaw, 6 + 6);
 
     if (ctx->lastReadStatus) {
-        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[1] << 8) | ctx->gyroRaw[0]);
-        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[3] << 8) | ctx->gyroRaw[2]);
-        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[5] << 8) | ctx->gyroRaw[4]);
+        gyro->gyroADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
 
         return true;
     }
@@ -195,9 +195,9 @@ bool bmi160AccReadScratchpad(accDev_t *acc)
     bmi160ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
-        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
+        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
+        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
+        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
         return true;
     }
 
