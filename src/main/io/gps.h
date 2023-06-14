@@ -170,7 +170,6 @@ void mspGPSReceiveNewData(const uint8_t * bufferPtr);
 
 const char *getGpsHwVersion(void);
 int getGpsBaudrate(void);
-bool getGpsGnssSettingsStatus(void);
 
 #if defined(USE_GPS_FAKE)
 void gpsFakeSet(

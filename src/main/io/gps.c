@@ -129,11 +129,6 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
 );
 
 
-bool getGpsGnssSettingsStatus(void)
-{
-    return gpsState.gnssSettingsSuccess;
-}
-
 int getGpsBaudrate(void)
 {
     switch(gpsState.baudrateIndex)
