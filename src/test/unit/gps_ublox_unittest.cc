@@ -29,7 +29,7 @@ void dumpCfg(const ubx_config_data8_t *cfg, int valuesAdded)
 {
     printf("%02x %02x %02x %02x %04x\n", cfg->header.preamble1, cfg->header.preamble2, cfg->header.msg_class, cfg->header.msg_id, cfg->header.length);
 
-    printf("%02x %02x %02x %02x\n", cfg->configHeader.version, cfg->configHeader.layers, cfg->configHeader.transation, cfg->configHeader.reserved);
+    printf("%02x %02x %02x %02x\n", cfg->configHeader.version, cfg->configHeader.layers, cfg->configHeader.transaction, cfg->configHeader.reserved);
 
     for(int i =0; i < valuesAdded; ++i) {
         printf("%i: %08x %02x\n", i+1, cfg->data.payload[i].key, cfg->data.payload[i].value);
