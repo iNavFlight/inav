@@ -206,4 +206,5 @@ float calc_length_pythagorean_3D(const float firstElement, const float secondEle
 #ifdef SITL_BUILD
 void arm_sub_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
 void arm_scale_f32(float * pSrc, float scale, float * pDst, uint32_t blockSize);
+void arm_mult_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
 #endif

@@ -577,4 +577,18 @@ void arm_scale_f32(
     }
 }
 
+/**
+ * @brief Floating-point vector multiplication, equivalent of CMSIS arm_mult_f32.
+*/
+void arm_mult_f32(
+  float * pSrcA,
+  float * pSrcB,
+  float * pDst,
+  uint32_t blockSize)
+{
+    for (uint32_t i = 0; i < blockSize; i++) {
+        pDst[i] = pSrcA[i] * pSrcB[i];
+    }
+}
+
 #endif
