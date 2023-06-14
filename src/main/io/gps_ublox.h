@@ -50,22 +50,64 @@ extern "C" {
 #define UBX_HW_VERSION_UBLOX10  1000
 
 
-#define UBLOX_CFG_SIGNAL_SBAS_ENA       0x10310020
-#define UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA  0x10310005
+#define UBLOX_CFG_SIGNAL_SBAS_ENA       0x10310020 // U1
+#define UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA  0x10310005 // U1
 
-#define UBLOX_CFG_SIGNAL_GAL_ENA        0x10310021
-#define UBLOX_CFG_SIGNAL_GAL_E1_ENA     0x10310007
+#define UBLOX_CFG_SIGNAL_GAL_ENA        0x10310021 // U1
+#define UBLOX_CFG_SIGNAL_GAL_E1_ENA     0x10310007 // U1
 
-#define UBLOX_CFG_SIGNAL_BDS_ENA        0x10310022
-#define UBLOX_CFG_SIGNAL_BDS_B1_ENA     0x1031000d
-#define UBLOX_CFG_SIGNAL_BDS_B1C_ENA    0x1031000f // default off
+#define UBLOX_CFG_SIGNAL_BDS_ENA        0x10310022 // U1
+#define UBLOX_CFG_SIGNAL_BDS_B1_ENA     0x1031000d // U1
+#define UBLOX_CFG_SIGNAL_BDS_B1C_ENA    0x1031000f // U1 default off
 
-#define UBLOX_CFG_QZSS_ENA              0x10310024
-#define UBLOX_CFG_QZSS_L1CA_ENA         0x10310012
-#define UBLOX_CFG_QZSS_L1S_ENA          0x10310014
+#define UBLOX_CFG_QZSS_ENA              0x10310024 // U1
+#define UBLOX_CFG_QZSS_L1CA_ENA         0x10310012 // U1
+#define UBLOX_CFG_QZSS_L1S_ENA          0x10310014 // U1
 
-#define UBLOX_CFG_GLO_ENA               0x10310025
-#define UBLOX_CFG_GLO_L1_ENA            0x10310018
+#define UBLOX_CFG_GLO_ENA               0x10310025 // U1 default off - may conflict with other constelations
+#define UBLOX_CFG_GLO_L1_ENA            0x10310018 // U1 default off
+
+#define UBLOX_CFG_SBAS_PRNSCANMASK      0x50360006 // 0 = auto // X8
+#define UBLOX_SBAS_ALL                  0x0000000000000000 //Enable search for all SBAS PRNs
+#define UBLOX_SBAS_PRN120               0x0000000000000001 //Enable search for SBAS PRN120
+#define UBLOX_SBAS_PRN121               0x0000000000000002 //Enable search for SBAS PRN121
+#define UBLOX_SBAS_PRN122               0x0000000000000004 //Enable search for SBAS PRN122
+#define UBLOX_SBAS_PRN123               0x0000000000000008 //Enable search for SBAS PRN123
+#define UBLOX_SBAS_PRN124               0x0000000000000010 //Enable search for SBAS PRN124
+#define UBLOX_SBAS_PRN125               0x0000000000000020 //Enable search for SBAS PRN125
+#define UBLOX_SBAS_PRN126               0x0000000000000040 //Enable search for SBAS PRN126
+#define UBLOX_SBAS_PRN127               0x0000000000000080 //Enable search for SBAS PRN127
+#define UBLOX_SBAS_PRN128               0x0000000000000100 //Enable search for SBAS PRN128
+#define UBLOX_SBAS_PRN129               0x0000000000000200 //Enable search for SBAS PRN129
+#define UBLOX_SBAS_PRN130               0x0000000000000400 //Enable search for SBAS PRN130
+#define UBLOX_SBAS_PRN131               0x0000000000000800 //Enable search for SBAS PRN131
+#define UBLOX_SBAS_PRN132               0x0000000000001000 //Enable search for SBAS PRN132
+#define UBLOX_SBAS_PRN133               0x0000000000002000 //Enable search for SBAS PRN133
+#define UBLOX_SBAS_PRN134               0x0000000000004000 //Enable search for SBAS PRN134
+#define UBLOX_SBAS_PRN135               0x0000000000008000 //Enable search for SBAS PRN135
+#define UBLOX_SBAS_PRN136               0x0000000000010000 //Enable search for SBAS PRN136
+#define UBLOX_SBAS_PRN137               0x0000000000020000 //Enable search for SBAS PRN137
+#define UBLOX_SBAS_PRN138               0x0000000000040000 //Enable search for SBAS PRN138
+#define UBLOX_SBAS_PRN139               0x0000000000080000 //Enable search for SBAS PRN139
+#define UBLOX_SBAS_PRN140               0x0000000000100000 //Enable search for SBAS PRN140
+#define UBLOX_SBAS_PRN141               0x0000000000200000 //Enable search for SBAS PRN141
+#define UBLOX_SBAS_PRN142               0x0000000000400000 //Enable search for SBAS PRN142
+#define UBLOX_SBAS_PRN143               0x0000000000800000 //Enable search for SBAS PRN143
+#define UBLOX_SBAS_PRN144               0x0000000001000000 //Enable search for SBAS PRN144
+#define UBLOX_SBAS_PRN145               0x0000000002000000 //Enable search for SBAS PRN145
+#define UBLOX_SBAS_PRN146               0x0000000004000000 //Enable search for SBAS PRN146
+#define UBLOX_SBAS_PRN147               0x0000000008000000 //Enable search for SBAS PRN147
+#define UBLOX_SBAS_PRN148               0x0000000010000000 //Enable search for SBAS PRN148
+#define UBLOX_SBAS_PRN149               0x0000000020000000 //Enable search for SBAS PRN149
+#define UBLOX_SBAS_PRN150               0x0000000040000000 //Enable search for SBAS PRN150
+#define UBLOX_SBAS_PRN151               0x0000000080000000 //Enable search for SBAS PRN151
+#define UBLOX_SBAS_PRN152               0x0000000100000000 //Enable search for SBAS PRN152
+#define UBLOX_SBAS_PRN153               0x0000000200000000 //Enable search for SBAS PRN153
+#define UBLOX_SBAS_PRN154               0x0000000400000000 //Enable search for SBAS PRN154
+#define UBLOX_SBAS_PRN155               0x0000000800000000 //Enable search for SBAS PRN155
+#define UBLOX_SBAS_PRN156               0x0000001000000000 //Enable search for SBAS PRN156
+#define UBLOX_SBAS_PRN157               0x0000002000000000 //Enable search for SBAS PRN157
+#define UBLOX_SBAS_PRN158               0x0000004000000000 //Enable search for SBAS PRN158
 
 // payload types
 typedef struct {

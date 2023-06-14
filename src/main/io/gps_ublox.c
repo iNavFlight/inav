@@ -42,6 +42,7 @@
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
@@ -188,7 +189,7 @@ static const uint8_t default_payload[] = {
 
 
 // ublox info: https://cdn.sparkfun.com/assets/f/7/4/3/5/PM-15136.pdf
-static void ubloxCfgValSetBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
+static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
 {
     ubx_config_data8_t cfg = {};
 
@@ -236,6 +237,7 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+/* TODO: look for m8 docs
 static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
 {
     if (!capBeidou) {
@@ -297,7 +299,36 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
     return 1;
 }
+*/
 
+static void configureGNSS9(void)
+{
+        ubx_config_data8_payload_t gnssConfigValues[] = {
+            // SBAS
+            {UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
+            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
+    
+            // Galileo
+            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+
+            // Beidou
+            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+
+            // Should be enabled with GPS
+            {UBLOX_CFG_QZSS_ENA, 1},
+            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
+            {UBLOX_CFG_QZSS_L1S_ENA, 1},
+
+            // Glonass
+            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+        };
+
+        ubloxSendSetCfgBytes(gnssConfigValues, 12);
+}
 
 static void configureGNSS(void)
 {
@@ -351,8 +382,7 @@ static void configureGNSS(void)
             {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
         };
 
-        //ubloxCfgValSetBytes(gnssConfigValues, 12);
-        ubloxCfgValSetBytes(gnssConfigValues, 1);
+        ubloxSendSetCfgBytes(gnssConfigValues, 12);
     }
 }
 
@@ -743,12 +773,13 @@ STATIC_PROTOTHREAD(gpsConfigure)
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
             configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
         } else {
-            configureRATE(200); // 5Hz
+            configureRATE(hz2rate(SETTING_GPS_UBLOX_NAV_HZ_DEFAULT)); // 5Hz
+            gpsConfigMutable()->ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT;
         }
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
         if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
-            configureRATE(200); // 5Hz
+            configureRATE(hz2rate(5)); // 5Hz
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
         }
     }
@@ -781,12 +812,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
                 configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
             }
             else {
-                configureRATE(200); // 5Hz
+                configureRATE(hz2rate(5)); // 5Hz
             }
             ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
             if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
-                configureRATE(200); // 5Hz
+                configureRATE(hz2rate(5)); // 5Hz
                 ptWait(_ack_state == UBX_ACK_GOT_ACK);
             }
         }
@@ -829,10 +860,23 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if (gpsState.hwVersion >= 80000) {
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
          gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         configureGNSS();
+         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
+            configureGNSS9();
+         } else {
+            configureGNSS();
+         }
          ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+         if(_ack_state == UBX_ACK_GOT_NAK) {
+            gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
+            gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
+            gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
+            gpsState.gnssSettingsSuccess = false;
+         } else {
+            gpsState.gnssSettingsSuccess = true;
+         }
     }
 
     ptEnd(0);

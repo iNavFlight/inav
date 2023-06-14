@@ -168,6 +168,10 @@ struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
 
+const char *getGpsHwVersion(void);
+int getGpsBaudrate(void);
+bool getGpsGnssSettingsStatus(void);
+
 #if defined(USE_GPS_FAKE)
 void gpsFakeSet(
     gpsFixType_e fixType,

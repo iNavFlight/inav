@@ -3468,6 +3468,12 @@ static void cliStatus(char *cmdline)
     cliPrintLinefeed();
 #endif
 
+    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+        cliPrint("GPS: ");
+        cliPrintf("HW Version: %s Baud: %d", getGpsHwVersion(), getGpsBaudrate());
+        cliPrintLinefeed();
+    }
+
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
         cliPrintLinef("PWM output init error: %s", getPwmInitErrorMessage());

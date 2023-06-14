@@ -51,6 +51,7 @@
 #include "io/serial.h"
 #include "io/gps.h"
 #include "io/gps_private.h"
+#include "io/gps_ublox.h"
 
 #include "navigation/navigation.h"
 
@@ -126,6 +127,54 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
     .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT
 );
+
+
+bool getGpsGnssSettingsStatus(void)
+{
+    return gpsState.gnssSettingsSuccess;
+}
+
+int getGpsBaudrate(void)
+{
+    switch(gpsState.baudrateIndex)
+    {
+        case GPS_BAUDRATE_115200:
+            return 115200;
+        case GPS_BAUDRATE_57600:
+            return 57600;
+        case GPS_BAUDRATE_38400:
+            return 38400;
+        case GPS_BAUDRATE_19200:
+            return 19200;
+        case GPS_BAUDRATE_9600:
+            return 9600;
+        case GPS_BAUDRATE_230400:
+            return 230400;
+        default:
+            return 0;
+    }
+}
+
+const char *getGpsHwVersion(void)
+{
+    switch(gpsState.hwVersion)
+    {
+        case UBX_HW_VERSION_UBLOX5:
+            return "UBLOX5";
+        case UBX_HW_VERSION_UBLOX6:
+            return "UBLOX6";
+        case UBX_HW_VERSION_UBLOX7:
+            return "UBLOX7";
+        case UBX_HW_VERSION_UBLOX8:
+            return "UBLOX8";
+        case UBX_HW_VERSION_UBLOX9:
+            return "UBLOX9";
+        case UBX_HW_VERSION_UBLOX10:
+            return "UBLOX10";
+        default:
+            return "Unknown";
+    }
+}
 
 void gpsSetState(gpsState_e state)
 {
