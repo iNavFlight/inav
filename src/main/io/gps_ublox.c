@@ -314,15 +314,14 @@ static void configureGNSS(void)
 
         /* Galileo */
         blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
-
         /* BeiDou */
-        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        //blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         /* GZSS  should be enabled when GPS is enabled */
-        blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        //blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         /* GLONASS */
-        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        //blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
         send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
