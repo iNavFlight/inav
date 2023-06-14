@@ -256,6 +256,8 @@ static void SystemClockHSE_Config(void)
     pllConfig_t *pll1Config = (HAL_GetREVID() == REV_ID_V) ? &pll1ConfigRevV : &pll1ConfigRevY;
 #endif
 
+    pll1Config->m = HSE_VALUE / 1000000 / 2;  // correction for different HSE_VALUE
+
     // Configure voltage scale.
     // It has been pre-configured at PWR_REGULATOR_VOLTAGE_SCALE1,
     // and it may stay or overridden by PWR_REGULATOR_VOLTAGE_SCALE0 depending on the clock config.

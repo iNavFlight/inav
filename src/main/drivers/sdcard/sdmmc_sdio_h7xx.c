@@ -104,8 +104,8 @@ static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
     {
         .instance = SDMMC2,
         .irqn = SDMMC2_IRQn,
-        .sdioPinCK  = { PINDEF(2, PC1,   9), PINDEF(2, PD6, 11) },
-        .sdioPinCMD = { PINDEF(2, PA0,   9), PINDEF(2, PD7, 11) },
+        .sdioPinCK  = { PINDEF(2, PC1,   9), PINDEF(2, PD6,  11) },
+        .sdioPinCMD = { PINDEF(2, PD7,  11), PINDEF(2, PA0,   9) },
         .sdioPinD0  = { PINDEF(2, PB14,  9) },
         .sdioPinD1  = { PINDEF(2, PB15,  9) },
         .sdioPinD2  = { PINDEF(2, PB3,   9) },
