@@ -89,6 +89,7 @@ bool cliMode = false;
 #include "io/beeper.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
@@ -3472,6 +3473,12 @@ static void cliStatus(char *cmdline)
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Baud: %d", getGpsHwVersion(), getGpsBaudrate());
         cliPrintLinefeed();
+        cliPrintLine("  GNSS Capabilities:");
+        cliPrintLine("    GPS");
+        cliPrintLinef("    %s (default: %d): %d", gpsUbloxHasGalileo(), gpsUbloxGalileoDefault(), gpsUbloxGalileoEnabled());
+        cliPrintLinef("    %s (default: %d): %d", gpsUbloxHasBeidou(), gpsUbloxBeidouDefault(), gpsUbloxBeidouEnabled());
+        cliPrintLinef("    %s (default: %d): %d", gpsUbloxHasGlonass(), gpsUbloxGlonassDefault(), gpsUbloxGlonassEnabled());
+        cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
     }
 
     // If we are blocked by PWM init - provide more information

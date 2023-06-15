@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -328,6 +329,22 @@ typedef struct {
     uint16_t reserved3;
 } ubx_nav_pvt;
 
+#define UBX_MON_GNSS_GPS_MASK       (1 << 0)
+#define UBX_MON_GNSS_GLONASS_MASK   (1 << 1)
+#define UBX_MON_GNSS_BEIDOU_MASK    (1 << 2)
+#define UBX_MON_GNSS_GALILEO_MASK   (1 << 3)
+
+typedef struct {
+    uint8_t version;
+    uint8_t supported;     // bitfield for GNSS types: 0:GPS, 1:Glonass, 2:Beidou, 3:Galileo
+    uint8_t defaultGnss;   // bitfield for GNSS types: 0:GPS, 1:Glonass, 2:Beidou, 3:Galileo
+    uint8_t enabled;       // bitfield for GNSS types: 0:GPS, 1:Glonass, 2:Beidou, 3:Galileo
+    uint8_t maxConcurrent;
+    uint8_t reserverd1;
+    uint8_t reserverd2;
+    uint8_t reserverd3;
+} ubx_mon_gnss;
+
 typedef struct {
     uint8_t msg_class;
     uint8_t msg;
@@ -371,7 +388,8 @@ typedef enum {
     MSG_CFG_SET_RATE = 0x01,
     MSG_CFG_NAV_SETTINGS = 0x24,
     MSG_CFG_SBAS = 0x16,
-    MSG_CFG_GNSS = 0x3e
+    MSG_CFG_GNSS = 0x3e,
+    MSG_MON_GNSS = 0x28
 } ubx_protocol_bytes_t;
 
 typedef enum {
@@ -387,7 +405,16 @@ typedef enum {
     NAV_STATUS_FIX_VALID = 1
 } ubx_nav_status_bits_t;
 
-
+const char *gpsUbloxHasGalileo(void);
+const char *gpsUbloxHasBeidou(void);
+const char *gpsUbloxHasGlonass(void);
+uint8_t gpsUbloxMaxGnss(void);
+bool gpsUbloxGalileoDefault(void);
+bool gpsUbloxBeidouDefault(void);
+bool gpsUbloxGlonassDefault(void);
+bool gpsUbloxGalileoEnabled(void);
+bool gpsUbloxBeidouEnabled(void);
+bool gpsUbloxGlonassEnabled(void);
 
 
 #ifdef __cplusplus
