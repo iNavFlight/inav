@@ -3474,10 +3474,11 @@ static void cliStatus(char *cmdline)
         cliPrintf("HW Version: %s Baud: %d", getGpsHwVersion(), getGpsBaudrate());
         cliPrintLinefeed();
         cliPrintLine("  GNSS Capabilities:");
-        cliPrintLine("    GPS");
-        cliPrintLinef("    %s (default: %d): %d", gpsUbloxHasGalileo(), gpsUbloxGalileoDefault(), gpsUbloxGalileoEnabled());
-        cliPrintLinef("    %s (default: %d): %d", gpsUbloxHasBeidou(), gpsUbloxBeidouDefault(), gpsUbloxBeidouEnabled());
-        cliPrintLinef("    %s (default: %d): %d", gpsUbloxHasGlonass(), gpsUbloxGlonassDefault(), gpsUbloxGlonassEnabled());
+        cliPrintLine("    GNSS Provider active/default");
+        cliPrintLine ("    GPS 1/1");
+        cliPrintLinef("    %s %d/%d", gpsUbloxHasGalileo(), gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
+        cliPrintLinef("    %s %d/%d", gpsUbloxHasBeidou(), gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
+        cliPrintLinef("    %s %d/%d", gpsUbloxHasGlonass(), gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
         cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
     }
 
