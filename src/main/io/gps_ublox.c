@@ -301,7 +301,7 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 }
 */
 
-static void configureGNSS9(void)
+static void configureGNSS10(void)
 {
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
@@ -773,7 +773,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
             configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
         } else {
-            configureRATE(hz2rate(SETTING_GPS_UBLOX_NAV_HZ_DEFAULT)); // 5Hz
+            configureRATE(hz2rate(5)); // 5Hz
             gpsConfigMutable()->ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT;
         }
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
@@ -862,8 +862,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
          gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
-            configureGNSS9();
+         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) {
+            configureGNSS10();
          } else {
             configureGNSS();
          }
