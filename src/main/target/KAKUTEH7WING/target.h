@@ -50,7 +50,7 @@
 #define BMI088_GYRO_CS_PIN      PC9
 #define BMI088_GYRO_EXTI_PIN    PD10
 #define BMI088_ACC_CS_PIN       PC8
-#define BMI088_ACCEL_EXTI_PIN   PD11
+#define BMI088_ACC_EXTI_PIN     PD11
 
 // *************** SPI3 IMU1  ICM42688 ************
 #define USE_SPI_DEVICE_3
@@ -82,25 +82,9 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-// // *************** SPI3 FLASH ***********************
-// #define USE_SPI_DEVICE_3
-
-// #define SPI3_NSS_PIN            PD3
-// #define SPI3_SCK_PIN            PB3
-// #define SPI3_MISO_PIN           PB4
-// #define SPI3_MOSI_PIN           PB5
- 
 // #define SPI3_SCK_AF GPIO_AF6_SPI3
 // #define SPI3_MISO_AF GPIO_AF6_SPI3
 // #define SPI3_MOSI_AF GPIO_AF7_SPI3
-
-// #define W25N01G_SPI_BUS BUS_SPI3
-// #define W25N01G_CS_PIN  SPI3_NSS_PIN
-
-// #define USE_BLACKBOX
-// #define USE_FLASHFS
-// #define USE_FLASH_W25N01G
-// #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
