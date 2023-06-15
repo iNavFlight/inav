@@ -86,7 +86,7 @@ void ezTuneUpdate(void) {
         gyroConfigMutable()->gyro_main_lpf_type = FILTER_PT1;
 
         //Set anti-aliasing filter
-        gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = MIN(ezTune()->filterHz * 2, 250);
+        gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = MIN(MIN(ezTune()->filterHz * 2, 250), getGyroLooptime() * 0.5f);
         gyroConfigMutable()->gyro_anti_aliasing_lpf_type = FILTER_PT1;
 
         //Enable dynamic notch
