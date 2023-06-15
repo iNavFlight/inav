@@ -202,3 +202,9 @@ float calc_length_pythagorean_3D(const float firstElement, const float secondEle
  * in other words, the most significant byte is "last", on odd indexes
  */
 #define int16_val_little_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx + 1] << 8) | v[2 * idx]))
+
+#ifdef SITL_BUILD
+void arm_sub_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
+void arm_scale_f32(float * pSrc, float scale, float * pDst, uint32_t blockSize);
+void arm_mult_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
+#endif
