@@ -264,9 +264,6 @@ static const uint8_t default_payload[] = {
 #define GNSSID_GZSS     5
 #define GNSSID_GLONASS  6
 
-
-
-
 // ublox info: https://cdn.sparkfun.com/assets/f/7/4/3/5/PM-15136.pdf
 static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
 {
@@ -316,7 +313,6 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
-/* TODO: look for m8 docs
 static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
 {
     if (!ubx_capabilities.capBeidou) {
@@ -339,6 +335,7 @@ static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+/*
 static int configureGNSS_GZSS(ubx_gnss_element_t * gnss_block)
 {
     if (!ubx_capabilities.capGzss) {
@@ -356,6 +353,7 @@ static int configureGNSS_GZSS(ubx_gnss_element_t * gnss_block)
 
     return 1;
 }
+*/
 
 static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 {
@@ -378,7 +376,6 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
     return 1;
 }
-*/
 
 static void configureGNSS10(void)
 {
@@ -424,14 +421,15 @@ static void configureGNSS(void)
 
         /* Galileo */
         blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    
         /* BeiDou */
-        //blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         /* GZSS  should be enabled when GPS is enabled */
         //blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         /* GLONASS */
-        //blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
         send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
@@ -663,35 +661,17 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_MON_GNSS: // M9 / M10?
         if(_class == CLASS_MON) {
             if (_buffer.gnss.version == 0) {
-                if (_buffer.gnss.supported & UBX_MON_GNSS_GALILEO_MASK) {
-                    ubx_capabilities.capGalileo = true;
-                }
-                if (_buffer.gnss.supported & UBX_MON_GNSS_BEIDOU_MASK) {
-                    ubx_capabilities.capBeidou = true;
-                }
-                if (_buffer.gnss.supported & UBX_MON_GNSS_GLONASS_MASK) {
-                    ubx_capabilities.capGlonass = true;
-                }
+                ubx_capabilities.capGalileo = _buffer.gnss.supported & UBX_MON_GNSS_GALILEO_MASK;
+                ubx_capabilities.capBeidou =_buffer.gnss.supported & UBX_MON_GNSS_BEIDOU_MASK;
+                ubx_capabilities.capGlonass =_buffer.gnss.supported & UBX_MON_GNSS_GLONASS_MASK ;
 
-                if (_buffer.gnss.defaultGnss & UBX_MON_GNSS_GALILEO_MASK) {
-                    ubx_capabilities.galileoDefault = true;
-                }
-                if (_buffer.gnss.defaultGnss & UBX_MON_GNSS_BEIDOU_MASK) {
-                    ubx_capabilities.beidouDefault = true;
-                }
-                if (_buffer.gnss.defaultGnss & UBX_MON_GNSS_GLONASS_MASK) {
-                    ubx_capabilities.glonassDefault = true;
-                }
+                ubx_capabilities.galileoDefault = _buffer.gnss.defaultGnss & UBX_MON_GNSS_GALILEO_MASK;
+                ubx_capabilities.beidouDefault = _buffer.gnss.defaultGnss & UBX_MON_GNSS_BEIDOU_MASK;
+                ubx_capabilities.glonassDefault = _buffer.gnss.defaultGnss & UBX_MON_GNSS_GLONASS_MASK;
 
-                if (_buffer.gnss.enabled & UBX_MON_GNSS_GALILEO_MASK) {
-                    ubx_capabilities.galileoEnabled = true;
-                }
-                if (_buffer.gnss.enabled & UBX_MON_GNSS_BEIDOU_MASK) {
-                    ubx_capabilities.beidouEnabled = true;
-                }
-                if (_buffer.gnss.enabled & UBX_MON_GNSS_GLONASS_MASK) {
-                    ubx_capabilities.glonassEnabled = true;
-                }
+                ubx_capabilities.galileoEnabled = _buffer.gnss.enabled & UBX_MON_GNSS_GALILEO_MASK;
+                ubx_capabilities.beidouEnabled = _buffer.gnss.enabled & UBX_MON_GNSS_BEIDOU_MASK;
+                ubx_capabilities.glonassEnabled = _buffer.gnss.enabled & UBX_MON_GNSS_GLONASS_MASK;
 
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
             }
@@ -990,6 +970,9 @@ STATIC_PROTOTHREAD(gpsConfigure)
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
          }
     }
+
+    pollGnssCapabilities();
+    //ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     ptEnd(0);
 }
