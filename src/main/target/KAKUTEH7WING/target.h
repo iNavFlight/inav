@@ -40,13 +40,7 @@
 #define USE_SPI_DEVICE_1
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
-#define SPI1_MOSI_PIN           PD7
-
-#define USE_IMU_MPU6000
-
-#define IMU_MPU6000_ALIGN       CW90_DEG
-#define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_CS_PIN          PE12
+#define SPI1_MOSI_PIN           PA7
 
 #define USE_IMU_BMI088
 
@@ -54,9 +48,9 @@
 #define BMI088_SPI_BUS          BUS_SPI1
 
 #define BMI088_GYRO_CS_PIN      PC9
-#define BMI088_GYRO_EXTI_PIN    PD11
+#define BMI088_GYRO_EXTI_PIN    PD10
 #define BMI088_ACC_CS_PIN       PC8
-#define BMI088_ACCEL_EXTI_PIN   PD10
+#define BMI088_ACCEL_EXTI_PIN   PD11
 
 // *************** SPI3 IMU1  ICM42688 ************
 #define USE_SPI_DEVICE_3
@@ -103,7 +97,7 @@
 // #define W25N01G_SPI_BUS BUS_SPI3
 // #define W25N01G_CS_PIN  SPI3_NSS_PIN
 
-#define USE_BLACKBOX
+// #define USE_BLACKBOX
 // #define USE_FLASHFS
 // #define USE_FLASH_W25N01G
 // #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
@@ -151,8 +145,8 @@
 #define VBUS_SENSING_ENABLED
 
 #define USE_UART1
-#define UART1_TX_PIN PA9
-#define UART1_RX_PIN PB6
+#define UART1_TX_PIN PB6
+#define UART1_RX_PIN PA10
 
 #define USE_UART2
 #define UART2_TX_PIN PD5
@@ -182,7 +176,7 @@
 
 #define DEFAULT_RX_TYPE     RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER   SERIALRX_SBUS
-#define SERIALRX_UART       SERIAL_PORT_USART7
+#define SERIALRX_UART       SERIAL_PORT_USART6
 
 // *************** ADC *****************************
 #define USE_ADC
@@ -203,8 +197,8 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PE3   // VTX power switcher
-#define PINIO2_PIN                  PC13  // 2xCamera switcher
+#define PINIO1_PIN                  PC13  // VTX power switcher
+#define PINIO2_PIN                  PE3   // 2xCamera switcher
 #define PINIO3_PIN                  PD4   // User1
 #define PINIO4_PIN                  PE4   // User2
 
