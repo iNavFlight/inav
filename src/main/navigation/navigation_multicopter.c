@@ -766,7 +766,7 @@ bool isMulticopterLandingDetected(void)
     const timeMs_t currentTimeMs = millis();
 
 #if defined(USE_BARO)
-    if (sensors(SENSOR_BARO) && isLandingGbumpDetected(currentTimeMs)) {
+    if (sensors(SENSOR_BARO) && navConfig()->general.flags.landing_bump_detection && isLandingGbumpDetected(currentTimeMs)) {
         return true;    // Landing flagged immediately if landing bump detected
     }
 #endif

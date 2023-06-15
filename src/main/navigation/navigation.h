@@ -235,6 +235,7 @@ typedef struct navConfig_s {
             uint8_t waypoint_mission_restart;       // Waypoint mission restart action
             uint8_t rth_trackback_mode;             // Useage mode setting for RTH trackback
             uint8_t rth_use_linear_descent;         // Use linear descent in the RTH head home leg
+            uint8_t landing_bump_detection;         // Allow landing detection based on G bump at touchdown
         } flags;
 
         uint8_t  pos_failure_timeout;               // Time to wait before switching to emergency landing (0 - disable)
