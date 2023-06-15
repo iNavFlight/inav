@@ -25,6 +25,11 @@
 #include "drivers/sensor.h"
 #include "flight/dynamic_gyro_notch.h"
 #include "flight/secondary_dynamic_gyro_notch.h"
+#if !defined(SITL_BUILD)
+#include "arm_math.h"
+#else
+#include <math.h>
+#endif
 
 typedef enum {
     GYRO_NONE = 0,
@@ -37,7 +42,9 @@ typedef enum {
     GYRO_BMI088,
     GYRO_ICM42605,
     GYRO_BMI270,
+    GYRO_LSM6DXX,
     GYRO_FAKE
+   
 } gyroSensor_e;
 
 typedef enum {
@@ -62,7 +69,6 @@ extern gyro_t gyro;
 extern dynamicGyroNotchState_t dynamicGyroNotchState;
 
 typedef struct gyroConfig_s {
-    uint8_t  gyroMovementCalibrationThreshold; // people keep forgetting that moving model while init results in wrong gyro offsets. and then they never reset gyro. so this is now on by default.
     uint16_t looptime;                      // imu loop time in us
     uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint16_t  gyro_anti_aliasing_lpf_hz;

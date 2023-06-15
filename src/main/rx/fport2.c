@@ -61,6 +61,7 @@
 #define FPORT2_FC_COMMON_ID 0x1B
 #define FPORT2_FC_MSP_ID 0x0D
 #define FPORT2_BAUDRATE 115200
+#define FBUS_BAUDRATE 460800
 #define FPORT2_PORT_OPTIONS (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
 #define FPORT2_RX_TIMEOUT 120 // µs
 #define FPORT2_CONTROL_FRAME_LENGTH 24
@@ -629,7 +630,7 @@ static bool processFrame(const rxRuntimeConfig_t *rxRuntimeConfig)
 }
 
 
-bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, bool isFBUS)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
     rxRuntimeConfig->channelData = sbusChannelData;
@@ -644,11 +645,13 @@ bool fport2RxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         return false;
     }
 
+    uint32_t baudRate = (isFBUS) ? FBUS_BAUDRATE : FPORT2_BAUDRATE;
+
     fportPort = openSerialPort(portConfig->identifier,
         FUNCTION_RX_SERIAL,
         fportDataReceive,
         NULL,
-        FPORT2_BAUDRATE,
+        baudRate,
         MODE_RXTX,
         FPORT2_PORT_OPTIONS | (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) | (tristateWithDefaultOnIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
     );

@@ -159,12 +159,16 @@ void validateNavConfig(void)
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
@@ -319,8 +323,6 @@ static void activateConfig(void)
 
 void readEEPROM(void)
 {
-    suspendRxSignal();
-
     // Sanity check, read flash
     if (!loadEEPROM()) {
         failureMode(FAILURE_INVALID_EEPROM_CONTENTS);
@@ -331,29 +333,28 @@ void readEEPROM(void)
 
     validateAndFixConfig();
     activateConfig();
-
-    resumeRxSignal();
 }
 
 void processSaveConfigAndNotify(void)
 {
+    suspendRxSignal();
     writeEEPROM();
     readEEPROM();
+    resumeRxSignal();
     beeperConfirmationBeeps(1);
+#ifdef USE_OSD
     osdShowEEPROMSavedNotification();
+#endif
 }
 
 void writeEEPROM(void)
 {
-    suspendRxSignal();
     writeConfigToEEPROM();
-    resumeRxSignal();
 }
 
 void resetEEPROM(void)
 {
     resetConfigs();
-    writeEEPROM();
 }
 
 void ensureEEPROMContainsValidData(void)
@@ -362,6 +363,9 @@ void ensureEEPROMContainsValidData(void)
         return;
     }
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 }
 
 /*
@@ -370,7 +374,9 @@ void ensureEEPROMContainsValidData(void)
  */
 void saveConfigAndNotify(void)
 {
+#ifdef USE_OSD
     osdStartedSaveProcess();
+#endif
     saveState = SAVESTATE_SAVEANDNOTIFY;
 }
 
@@ -392,7 +398,9 @@ void processDelayedSave(void)
         processSaveConfigAndNotify();
         saveState = SAVESTATE_NONE;
     } else if (saveState == SAVESTATE_SAVEONLY) {
+        suspendRxSignal();
         writeEEPROM();
+        resumeRxSignal();
         saveState = SAVESTATE_NONE;
     }
 }
@@ -422,8 +430,10 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
@@ -451,17 +461,19 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigBatteryProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
-void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT])
+void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT])
 {
-    gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
-    gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
-    gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
+    gyroConfigMutable()->gyro_zero_cal[X] = (int16_t) getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = (int16_t) getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = (int16_t) getGyroZero[Z];
 }
 
 void setGravityCalibration(float getGravity)

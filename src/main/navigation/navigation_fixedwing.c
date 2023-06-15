@@ -670,7 +670,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 #endif
 }
 
-bool isFixedWingAutoThrottleManuallyIncreased()
+bool isFixedWingAutoThrottleManuallyIncreased(void)
 {
     return isAutoThrottleManuallyIncreased;
 }
@@ -679,7 +679,9 @@ bool isFixedWingFlying(void)
 {
     float airspeed = 0.0f;
 #ifdef USE_PITOT
-    airspeed = getAirspeedEstimate();
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        airspeed = getAirspeedEstimate();
+    }
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;

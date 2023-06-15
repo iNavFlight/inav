@@ -80,7 +80,7 @@ static bool flashDeviceInit(void)
 {
     bool detected = false;
 
-    for (uint32_t idx = 0; idx <= ARRAYLEN(flashDrivers); idx++)
+    for (uint32_t idx = 0; idx < ARRAYLEN(flashDrivers); idx++) //idx = ARRAYLEN may cause overflow
     {
         detected = flashDrivers[idx].init(0);
         if (detected)
@@ -218,7 +218,7 @@ static void flashConfigurePartitions(void)
 #endif
 }
 
-flashPartition_t *flashPartitionFindByType(uint8_t type)
+flashPartition_t *flashPartitionFindByType(flashPartitionType_e type)
 {
     for (int index = 0; index < FLASH_MAX_PARTITIONS; index++) {
         flashPartition_t *candidate = &flashPartitionTable.partitions[index];

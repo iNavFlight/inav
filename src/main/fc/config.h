@@ -138,7 +138,7 @@ uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
-void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT]);
 void setGravityCalibration(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);

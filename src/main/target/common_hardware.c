@@ -77,6 +77,11 @@
     #if defined(USE_IMU_BMI270)
         BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
     #endif
+
+    #if defined(USE_IMU_LSM6DXX)
+        BUSDEV_REGISTER_SPI(busdev_lsm6dxx,      DEVHW_LSM6D,       LSM6DXX_SPI_BUS,     LSM6DXX_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_LSM6DXX_ALIGN);
+    #endif
+
 #endif
 
 
@@ -359,10 +364,10 @@
 /** OTHER HARDWARE **/
 
 #if defined(USE_MAX7456)
-    BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
+    BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS | DEVFLAGS_SPI_MODE_0,  0);
 #endif
 
-#if defined(USE_FLASH_M25P16)
+#if defined(USE_FLASH_M25P16) && defined(M25P16_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
 #endif
 
@@ -371,7 +376,7 @@
 #endif
 
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)
-    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0,  0);
+    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_SPI_MODE_0,  0);
 #endif
 
 /*

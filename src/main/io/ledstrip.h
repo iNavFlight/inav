@@ -19,6 +19,7 @@
 
 #include "config/parameter_group.h"
 #include "common/color.h"
+#include "rx/rx.h"
 
 #define LED_MAX_STRIP_LENGTH           32
 #define LED_CONFIGURABLE_COLOR_COUNT   16

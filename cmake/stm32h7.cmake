@@ -149,6 +149,8 @@ main_sources(STM32H7_SRC
     drivers/bus_i2c_hal.c
     drivers/dma_stm32h7xx.c
     drivers/bus_spi_hal_ll.c
+    drivers/bus_quadspi.c
+    drivers/bus_quadspi_hal.c
     drivers/memprot.h
     drivers/memprot_hal.c
     drivers/memprot_stm32h7xx.c
@@ -185,7 +187,7 @@ function(target_stm32h7xx)
         VCP_SOURCES ${STM32H7_USB_SRC} ${STM32H7_VCP_SRC}
         VCP_INCLUDE_DIRECTORIES ${STM32H7_USB_INCLUDE_DIRS} ${STM32H7_VCP_DIR}
 
-        OPTIMIZATION -Ofast
+        OPTIMIZATION -O2
 
         OPENOCD_TARGET stm32h7x
 

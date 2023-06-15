@@ -84,7 +84,7 @@ sudo udevadm control --reload-rules
 - Just for info: `usbipd detach --busid ID_OF_DEVICE_FROM_FIRST_COMMAND` - will deattach USB device from WSL
 ### Back to WSL2 prompt
 - `lsusb` - should show you just attached USB device
-- `st-info -probe` - should "see" ST-Link and MCU
+- `st-info --probe` - should "see" ST-Link and MCU
 
 #### Leave Command Prompt and WSL Prompt minimized (for later usage)
 #### **NOTE:** Due to some USB reconnect issues, sometimes, is need to execute `usbipd wsl list` and `usbipd wsl attach...` commands again, to reconnect ST-Link to WSL

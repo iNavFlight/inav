@@ -1062,63 +1062,13 @@ _// TODO_
 
 ---
 
-### frsky_coordinates_format
-
-D-Series telemetry only: FRSKY_FORMAT_DMS (default), FRSKY_FORMAT_NMEA
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | FRSKY_FORMAT_NMEA |
-
----
-
-### frsky_default_latitude
-
-D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | -90 | 90 |
-
----
-
-### frsky_default_longitude
-
-D-Series telemetry only: OpenTX needs a valid set of coordinates to show compass value. A fake value defined in this setting is sent while no fix is acquired.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | -180 | 180 |
-
----
-
 ### frsky_pitch_roll
 
-S.Port and D-Series telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data
+S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data
 
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
-
----
-
-### frsky_unit
-
-Not used? [METRIC/IMPERIAL]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| METRIC |  |  |
-
----
-
-### frsky_vfas_precision
-
-D-Series telemetry only: Set to 1 to send raw VBat value in 0.1V resolution for receivers that can handle it, or 0 (default) to use the standard method
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | FRSKY_VFAS_PRECISION_LOW | FRSKY_VFAS_PRECISION_HIGH |
 
 ---
 
@@ -1469,6 +1419,16 @@ Which SBAS mode to be used
 | Default | Min | Max |
 | --- | --- | --- |
 | NONE |  |  |
+
+---
+
+### gps_ublox_nav_hz
+
+Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 5 | 200 |
 
 ---
 
@@ -2582,16 +2542,6 @@ ID of mixer preset applied in a Configurator. **Do not modify manually**. Used o
 
 ---
 
-### moron_threshold
-
-When powering up, gyro bias is calculated. If the model is shaking/moving during this initial calibration, offsets are calculated incorrectly, and could lead to poor flying performance. This threshold means how much average gyro reading could differ before re-calibration is triggered.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 32 |  | 128 |
-
----
-
 ### motor_direction_inverted
 
 Use if you need to inverse yaw motor direction.
@@ -2708,7 +2658,7 @@ If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON |  |  |
+| ALLOW_BYPASS |  |  |
 
 ---
 
@@ -3702,6 +3652,16 @@ Aircraft will climb/descend to this altitude after reaching home if landing is n
 
 ---
 
+### nav_rth_linear_descent_start_distance
+
+The distance [m] away from home to start the linear descent. 0 = immediately (original linear descent behaviour)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
 ### nav_rth_tail_first
 
 If set to ON drone will return tail-first. Obviously meaningless for airplanes.
@@ -3729,6 +3689,16 @@ Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF |  |  |
+
+---
+
+### nav_rth_use_linear_descent
+
+If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en route. The distance from home to start the descent can be set with `nav_rth_linear_descent_start_distance`.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -4364,11 +4334,31 @@ Value below which (negative altitude) to make the OSD relative altitude indicato
 
 ### osd_pan_servo_index
 
-Index of the pan servo to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
+Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 10 |
+| 0 | 0 | 16 |
+
+---
+
+### osd_pan_servo_indicator_show_degrees
+
+Show the degress of offset from centre on the pan servo OSD display element.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### osd_pan_servo_offcentre_warning
+
+Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink. 0 means the warning is disabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 45 |
 
 ---
 
@@ -4978,7 +4968,7 @@ When enabled, INAV will set RC filtering based on refresh rate and smoothing fac
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -5034,7 +5024,7 @@ Selection of receiver (RX) type. Additional configuration of a `serialrx_provide
 
 ### report_cell_voltage
 
-S.Port, D-Series, and IBUS telemetry: Send the average cell voltage if set to ON
+S.Port and IBUS telemetry: Send the average cell voltage if set to ON
 
 | Default | Min | Max |
 | --- | --- | --- |

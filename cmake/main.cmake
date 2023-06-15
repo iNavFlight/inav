@@ -9,19 +9,42 @@ set(MAIN_DEFINITIONS
     __REVISION__="${GIT_REV}"
 )
 
-set(MAIN_COMPILE_OPTIONS
-    -Wall
-    -Wextra
-    -Wunsafe-loop-optimizations
-    -Wdouble-promotion
-    -Wstrict-prototypes
-    -Werror=switch
-)
+
+# Can't check for OSX yet at this point
+if(SITL)
+    set(MAIN_COMPILE_OPTIONS
+        -Wall
+        -Wextra
+        -Wdouble-promotion
+        -Wstrict-prototypes
+        -Werror=switch
+        #-Wno-unknown-warning-option
+    )
+else()
+    set(MAIN_COMPILE_OPTIONS
+        -Wall
+        -Wextra
+        -Wunsafe-loop-optimizations
+        -Wdouble-promotion
+        -Wstrict-prototypes
+        -Werror=switch
+    )
+endif()
 
 macro(main_sources var) # list-var src-1...src-n
     set(${var} ${ARGN})
     list(TRANSFORM ${var} PREPEND "${MAIN_SRC_DIR}/")
 endmacro()
+
+function(exclude var excludes)
+    set(filtered "")
+    foreach(item ${${var}})
+        if (NOT ${item} IN_LIST excludes)
+            list(APPEND filtered ${item})
+        endif()
+    endforeach()
+    set(${var} ${filtered} PARENT_SCOPE)
+endfunction()
 
 function(exclude_basenames var excludes)
     set(filtered "")
@@ -60,7 +83,7 @@ function(setup_executable exe name)
     set_target_properties(${exe} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
-    if(IS_RELEASE_BUILD)
+    if(IS_RELEASE_BUILD AND NOT CMAKE_HOST_APPLE)
         set_target_properties(${exe} PROPERTIES
             INTERPROCEDURAL_OPTIMIZATION ON
         )
@@ -73,8 +96,10 @@ function(setup_firmware_target exe name)
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(APPEND targets ${name})
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets}")
-    setup_openocd(${exe} ${name})
-    setup_svd(${exe} ${name})
+    if(NOT SITL)
+        setup_openocd(${exe} ${name})
+        setup_svd(${exe} ${name})
+    endif()
 
     cmake_parse_arguments(args "SKIP_RELEASES" "" "" ${ARGN})
     if(args_SKIP_RELEASES)
