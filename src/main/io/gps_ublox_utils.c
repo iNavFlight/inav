@@ -22,6 +22,7 @@
 
 void ublox_update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
 {
+    *ck_a = *ck_b = 0;
     while (len--) {
         *ck_a += *data;
         *ck_b += *ck_a;
