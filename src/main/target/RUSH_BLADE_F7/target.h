@@ -53,13 +53,11 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          SPI1_NSS_PIN
-#define MPU6000_EXTI_PIN        GYRO_INT_EXTI
 
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW270_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
-#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C

@@ -670,7 +670,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 #endif
 }
 
-bool isFixedWingAutoThrottleManuallyIncreased()
+bool isFixedWingAutoThrottleManuallyIncreased(void)
 {
     return isAutoThrottleManuallyIncreased;
 }
@@ -679,7 +679,9 @@ bool isFixedWingFlying(void)
 {
     float airspeed = 0.0f;
 #ifdef USE_PITOT
-    airspeed = getAirspeedEstimate();
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        airspeed = getAirspeedEstimate();
+    }
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
@@ -736,9 +738,12 @@ bool isFixedWingLandingDetected(void)
             DEBUG_SET(DEBUG_LANDING, 6, isRollAxisStatic);
             DEBUG_SET(DEBUG_LANDING, 7, isPitchAxisStatic);
             if (isRollAxisStatic && isPitchAxisStatic) {
-                // Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
-                timeMs_t safetyTimeDelay = 1000 + navConfig()->general.auto_disarm_delay;
-                return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay; // check conditions stable for 1s + optional extra delay
+                /* Probably landed, low horizontal and vertical velocities and no axis rotation in Roll and Pitch
+                 * Conditions need to be held for fixed safety time + optional extra delay.
+                 * Fixed time increased if velocities invalid to provide extra safety margin against false triggers */
+                const uint16_t safetyTime = posControl.flags.estAltStatus == EST_NONE || posControl.flags.estVelStatus == EST_NONE ? 5000 : 1000;
+                timeMs_t safetyTimeDelay = safetyTime + navConfig()->general.auto_disarm_delay;
+                return currentTimeMs - fwLandingTimerStartAt > safetyTimeDelay;
             } else {
                 fixAxisCheck = false;
             }
@@ -752,8 +757,6 @@ bool isFixedWingLandingDetected(void)
  *-----------------------------------------------------------*/
 void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
-    rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
@@ -764,6 +767,18 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
     } else {
         rcCommand[PITCH] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_pitch_angle, pidProfile()->max_angle_inclination[FD_PITCH]);
+    }
+
+    if (posControl.flags.estPosStatus >= EST_USABLE) {  // Hold position if possible
+        applyFixedWingPositionController(currentTimeUs);
+        int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL],
+                                            -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle),
+                                            DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle));
+        rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcCommand[YAW] = 0;
+    } else {
+        rcCommand[ROLL] = pidAngleToRcCommand(failsafeConfig()->failsafe_fw_roll_angle, pidProfile()->max_angle_inclination[FD_ROLL]);
+        rcCommand[YAW] = -pidRateToRcCommand(failsafeConfig()->failsafe_fw_yaw_rate, currentControlRateProfile->stabilized.rates[FD_YAW]);
     }
 }
 
