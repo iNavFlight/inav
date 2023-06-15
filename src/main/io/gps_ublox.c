@@ -972,7 +972,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     }
 
     pollGnssCapabilities();
-    //ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     ptEnd(0);
 }
@@ -1053,8 +1053,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
             pollGnssCapabilities();
             gpsState.autoConfigStep++;
             ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
-
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
 
         // Configure GPS
         ptSpawn(gpsConfigure);
