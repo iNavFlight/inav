@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "platform.h"
 
@@ -188,6 +189,13 @@ bool settingsValidate(unsigned *invalidIndex)
 			if (invalidIndex) {
 				*invalidIndex = ii;
 			}
+#if SITL_BUILD
+			{
+				char buf[1024];
+				settingGetName(setting, buf);
+				fprintf(stderr, "Invalid settings for %s: min: %d max: %d\n", buf, min, max);
+			}
+#endif
 			return false;
 		}
 	}
@@ -246,6 +254,13 @@ static uint16_t getValueOffset(const setting_t *value)
 void *settingGetValuePointer(const setting_t *val)
 {
     const pgRegistry_t *pg = pgFind(settingGetPgn(val));
+#if SITL_BUILD
+	{
+		char buf[1024];
+		settingGetName(val, buf);
+		fprintf(stderr, "Value offset %s: %i\n", buf, getValueOffset(val));
+	}
+#endif
     return pg->address + getValueOffset(val);
 }
 
