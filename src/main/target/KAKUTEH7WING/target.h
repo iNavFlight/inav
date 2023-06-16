@@ -44,7 +44,7 @@
 
 #define USE_IMU_BMI088
 
-#define IMU_BMI088_ALIGN        CW90_DEG
+#define IMU_BMI088_ALIGN        CW0_DEG
 #define BMI088_SPI_BUS          BUS_SPI1
 
 #define BMI088_GYRO_CS_PIN      PC9
@@ -187,8 +187,8 @@
 #define PINIO4_PIN                  PE4   // User2
 
 // *************** LEDSTRIP ************************
-// #define USE_LED_STRIP
-// #define WS2811_PIN                  PA8
+#define USE_LED_STRIP
+#define WS2811_PIN                  PA15
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define CURRENT_METER_SCALE         3660     // 36.6

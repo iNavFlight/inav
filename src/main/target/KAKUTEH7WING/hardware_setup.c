@@ -37,6 +37,26 @@ void initialisePreBootHardware(void)
     // delay(100);
     IOHi(DEFIO_IO(PB2));
 
+    // CAM Switch / User3
+    IOInit(DEFIO_IO(PC13), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(DEFIO_IO(PC13), IOCFG_OUT_PP);
+    IOLo(DEFIO_IO(PC13));
+
+    // User1
+    IOInit(DEFIO_IO(PD4), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(DEFIO_IO(PD4), IOCFG_OUT_PP);
+    IOLo(DEFIO_IO(PD4));
+
+    // VTx 9V Switch / User4
+    IOInit(DEFIO_IO(PE3), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(DEFIO_IO(PE3), IOCFG_OUT_PP);
+    IOHi(DEFIO_IO(PE3));
+
+    // User2
+    IOInit(DEFIO_IO(PE4), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(DEFIO_IO(PE4), IOCFG_OUT_PP);
+    IOLo(DEFIO_IO(PE4));
+
     // // make sure Vsw is on during bootloader
     // IOInit(DEFIO_IO(PE3), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
     // IOConfigGPIO(DEFIO_IO(PE3), IOCFG_OUT_PP);
