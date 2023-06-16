@@ -2305,6 +2305,11 @@ groups:
         field: general.land_detect_sensitivity
         min: 1
         max: 15
+      - name: nav_landing_bump_detection
+        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors."
+        default_value: OFF
+        field: general.flags.landing_bump_detection
+        type: bool
       - name: nav_use_midthr_for_althold
         description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
         default_value: OFF
