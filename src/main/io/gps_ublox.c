@@ -1051,15 +1051,19 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData();
 
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN) {
-            pollVersion();
-            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-        }
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
+            if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
+                gpsState.lastCapaPoolMs = millis();
 
-        if((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
-            pollGnssCapabilities();
-            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-            gpsState.lastCapaPoolMs = millis();
+                if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
+                {
+                    pollVersion();
+                    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+                }
+
+                pollGnssCapabilities();
+                ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+            }
         }
     }
 
