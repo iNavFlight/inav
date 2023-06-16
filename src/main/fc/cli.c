@@ -3473,7 +3473,8 @@ static void cliStatus(char *cmdline)
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
         cliPrintLinefeed();
-        cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
+        //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
+        cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
         cliPrintLine("    GPS 1/1");
         if(gpsUbloxHasGalileo())

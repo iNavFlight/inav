@@ -943,7 +943,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
          gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 /*|| (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)*/) {
+         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
             configureGNSS10();
          } else {
             configureGNSS();
@@ -1051,7 +1051,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData();
 
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider || GPS_UBLOX7PLUS) && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN) {
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN) {
             pollVersion();
             ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
         }
