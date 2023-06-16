@@ -169,6 +169,9 @@ void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
 
 const char *getGpsHwVersion(void);
+uint8_t getGpsProtoMajorVersion(void);
+uint8_t getGpsProtoMinorVersion(void);
+
 int getGpsBaudrate(void);
 
 #if defined(USE_GPS_FAKE)

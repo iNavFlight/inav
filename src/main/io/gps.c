@@ -171,6 +171,16 @@ const char *getGpsHwVersion(void)
     }
 }
 
+uint8_t getGpsProtoMajorVersion(void)
+{
+    return gpsState.swVersionMajor;
+}
+
+uint8_t getGpsProtoMinorVersion(void)
+{
+    return gpsState.swVersionMinor;
+}
+
 void gpsSetState(gpsState_e state)
 {
     gpsState.state = state;

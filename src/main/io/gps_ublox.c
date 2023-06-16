@@ -298,14 +298,17 @@ static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 
 static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 {
-    if (!ubx_capabilities.capGalileo) {
+    if (!ubx_capabilities.capGalileo || gpsState.swVersionMajor < 18) {
         return 0;
     }
 
     gnss_block->gnssId = GNSSID_GALILEO;
     gnss_block->maxTrkCh = 8;
-    // E1 = 0x01
-    gnss_block->sigCfgMask = 1;
+    // sigCfgMask
+    // 0x01 = Galileo E1 (not supported for protocol versions less than 18.00)
+    // 0x10 = Galileo E5a // off by default
+    // 0x20 = Galileo E5b // off by default
+    gnss_block->sigCfgMask = 0x01;
     if (gpsState.gpsConfig->ubloxUseGalileo) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
@@ -325,9 +328,11 @@ static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
 
     gnss_block->gnssId = GNSSID_BEIDOU;
     gnss_block->maxTrkCh = 8;
-    // B1L = 0x01
-    // B2L = 0x10
-    gnss_block->sigCfgMask = 0x01;
+    // sigCfgMask
+    // 0x01 = BeiDou B1I
+    // 0x10 = BeiDou B2I // off by default
+    // 0x80 = BeiDou B2A // off by default
+    gnss_block->sigCfgMask = 0x01 | 0x10;
     if (gpsState.gpsConfig->ubloxUseBeidou) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
@@ -367,8 +372,8 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 
     gnss_block->gnssId = GNSSID_GLONASS;
     gnss_block->maxTrkCh = 8;
-    // L1 = 0x01
-    // L2 = 0x10
+    // 0x01 = GLONASS L1
+    // 0x10 = GLONASS L2 // off by default
     gnss_block->sigCfgMask = 0x01;
     if (gpsState.gpsConfig->ubloxUseGlonass) {
         gnss_block->enabled = 1;
@@ -522,12 +527,9 @@ static void configureSBAS(void)
 
 static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
 {
-    gpsState.swVersionMajor = 0;
-    gpsState.swVersionMinor = 0;
-
-    if (!strncmp(proto, "PROTOVER=", 9)) {
-        proto+=9;
-        bufferLength-=9;
+    if (!strncmp(proto, "PROTVER=", 8)) {
+        proto+=8;
+        bufferLength-=8;
 
         float ver = atof(proto);
 
@@ -661,23 +663,37 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_VER:
         if (_class == CLASS_MON) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
-            if  ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8 && gpsState.hwVersion < UBX_HW_VERSION_UBLOX10) && (_buffer.ver.swVersion[9] > '2')) {
-                // check extensions;
-                // after hw + sw vers; each is 30 bytes
-                for(int j = 40; j < _payload_length; j += 30) {
-                    // Example content: GPS;GAL;BDS;GLO
-                    if (strnstr((const char *)(_buffer.bytes+j), "GAL", 30)) {
-                        ubx_capabilities.capGalileo = true;
+            if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
+                if (_buffer.ver.swVersion[9] > '2') {
+                    // check extensions;
+                    // after hw + sw vers; each is 30 bytes
+                    bool found = false;
+                    for (int j = 40; j < _payload_length && !found; j += 30)
+                    {
+                        // Example content: GPS;GAL;BDS;GLO
+                        if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
+                        {
+                            ubx_capabilities.capGalileo = true;
+                            found = true;
+                        }
+                        if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
+                        {
+                            ubx_capabilities.capBeidou = true;
+                            found = true;
+                        }
+                        if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
+                        {
+                            ubx_capabilities.capGlonass = true;
+                            found = true;
+                        }
                     }
-                    if (strnstr((const char *)(_buffer.bytes+j), "BDS", 30)) {
-                        ubx_capabilities.capBeidou = true;
-                    }
-                    if (strnstr((const char *)(_buffer.bytes+j), "GLO", 30)) {
-                       ubx_capabilities.capGlonass = true;
-                    }
-
-                    if(!strncmp((const char *)(_buffer.bytes+j), "PROTOVER=", 9)) {
-                        gpsDecodeProtocolVersion((const char *)(_buffer.bytes+j), 30);
+                }
+                for (int j = 40; j < _payload_length; j += 30) {
+                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER=", 30)) {
+                        gpsState.swVersionMajor = 3;
+                        gpsState.swVersionMinor = 3;
+                        gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
+                        break;
                     }
                 }
             }
@@ -982,7 +998,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
          gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) {
+         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
             configureGNSS10();
          } else {
             configureGNSS();
@@ -995,9 +1011,6 @@ STATIC_PROTOTHREAD(gpsConfigure)
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
          }
     }
-
-    pollGnssCapabilities();
-    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     ptEnd(0);
 }
@@ -1092,7 +1105,16 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData();
 
-        pollGnssCapabilities();
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider || GPS_UBLOX7PLUS) && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN) {
+            pollVersion();
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+        }
+
+        if((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
+            pollGnssCapabilities();
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+            gpsState.lastCapaPoolMs = millis();
+        }
     }
 
     ptEnd(0);

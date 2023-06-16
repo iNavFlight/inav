@@ -25,10 +25,11 @@ extern "C" {
 #endif
 
 #define GPS_CFG_CMD_TIMEOUT_MS              200
-#define GPS_VERSION_RETRY_TIMES             2
+#define GPS_VERSION_RETRY_TIMES             3
 #define MAX_UBLOX_PAYLOAD_SIZE              256
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
+#define GPS_CAPA_INTERVAL                   5000
 
 #define UBX_DYNMODEL_PEDESTRIAN 3
 #define UBX_DYNMODEL_AIR_1G     6

@@ -3471,7 +3471,7 @@ static void cliStatus(char *cmdline)
 
     if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
         cliPrint("GPS: ");
-        cliPrintf("HW Version: %s Baud: %d", getGpsHwVersion(), getGpsBaudrate());
+        cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
         cliPrintLinefeed();
         cliPrintLine("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
