@@ -278,6 +278,7 @@ static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t co
 }
 
 // Info on protocol used by M8-M9, check UBX-CFG-GNSS for gnss configuration
+// https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
 // https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.32_InterfaceDescription_UBX-22008968.pdf
 static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 {
@@ -519,6 +520,22 @@ static void configureSBAS(void)
     sendConfigMessageUBLOX();
 }
 
+static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
+{
+    gpsState.swVersionMajor = 0;
+    gpsState.swVersionMinor = 0;
+
+    if (!strncmp(proto, "PROTOVER=", 9)) {
+        proto+=9;
+        bufferLength-=9;
+
+        float ver = atof(proto);
+
+        gpsState.swVersionMajor = (uint8_t)ver;
+        gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);
+    }
+}
+
 static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
 {
     // ublox_5   hwVersion 00040005
@@ -644,21 +661,26 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_VER:
         if (_class == CLASS_MON) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
-            /*
             if  ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8 && gpsState.hwVersion < UBX_HW_VERSION_UBLOX10) && (_buffer.ver.swVersion[9] > '2')) {
                 // check extensions;
                 // after hw + sw vers; each is 30 bytes
                 for(int j = 40; j < _payload_length; j += 30) {
+                    // Example content: GPS;GAL;BDS;GLO
                     if (strnstr((const char *)(_buffer.bytes+j), "GAL", 30)) {
-                        capGalileo = true;
-                    } else if (strnstr((const char *)(_buffer.bytes+j), "BDS", 30)) {
-                        capBeidou = true;
-                    } else if (strnstr((const char *)(_buffer.bytes+j), "GLO", 30)) {
-                        capGlonass = true;
+                        ubx_capabilities.capGalileo = true;
+                    }
+                    if (strnstr((const char *)(_buffer.bytes+j), "BDS", 30)) {
+                        ubx_capabilities.capBeidou = true;
+                    }
+                    if (strnstr((const char *)(_buffer.bytes+j), "GLO", 30)) {
+                       ubx_capabilities.capGlonass = true;
+                    }
+
+                    if(!strncmp((const char *)(_buffer.bytes+j), "PROTOVER=", 9)) {
+                        gpsDecodeProtocolVersion((const char *)(_buffer.bytes+j), 30);
                     }
                 }
             }
-            */
         }
         break;
     case MSG_MON_GNSS: // M9 / M10?

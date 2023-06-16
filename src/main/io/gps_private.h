@@ -43,6 +43,8 @@ typedef struct {
     serialPort_t *  gpsPort;                // Serial GPS only
 
     uint32_t        hwVersion;
+    uint8_t         swVersionMajor;
+    uint8_t         swVersionMinor;
 
     gpsState_e      state;
     gpsBaudRate_e   baudrateIndex;
