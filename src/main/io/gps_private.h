@@ -57,6 +57,7 @@ typedef struct {
     timeMs_t        timeoutMs;
     timeMs_t        baseTimeoutMs;
     timeMs_t        lastCapaPoolMs;
+    timeMs_t        lastCapaUpdMs;
 } gpsReceiverData_t;
 
 extern gpsReceiverData_t gpsState;

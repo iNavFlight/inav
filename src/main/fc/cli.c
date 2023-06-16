@@ -3473,13 +3473,17 @@ static void cliStatus(char *cmdline)
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
         cliPrintLinefeed();
-        cliPrintLine("  GNSS Capabilities:");
+        cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLine("    GNSS Provider active/default");
-        cliPrintLine ("    GPS 1/1");
-        cliPrintLinef("    %s %d/%d", gpsUbloxHasGalileo(), gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
-        cliPrintLinef("    %s %d/%d", gpsUbloxHasBeidou(), gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
-        cliPrintLinef("    %s %d/%d", gpsUbloxHasGlonass(), gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
+        cliPrintLine("    GPS 1/1");
+        if(gpsUbloxHasGalileo())
+            cliPrintLinef("    Galileo %d/%d", gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
+        if(gpsUbloxHasBeidou())
+            cliPrintLinef("    BeiDou %d/%d", gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
+        if(gpsUbloxHasGlonass())
+            cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
         cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
+        cliPrintLinef("    lastUpdate: %d", gpsUbloxCapLastUpdate());
     }
 
     // If we are blocked by PWM init - provide more information

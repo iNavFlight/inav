@@ -20,11 +20,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "common/time.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define GPS_CFG_CMD_TIMEOUT_MS              200
+#define GPS_CFG_CMD_TIMEOUT_MS              500
 #define GPS_VERSION_RETRY_TIMES             3
 #define MAX_UBLOX_PAYLOAD_SIZE              256
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
@@ -406,13 +408,17 @@ typedef enum {
     NAV_STATUS_FIX_VALID = 1
 } ubx_nav_status_bits_t;
 
-const char *gpsUbloxHasGalileo(void);
-const char *gpsUbloxHasBeidou(void);
-const char *gpsUbloxHasGlonass(void);
 uint8_t gpsUbloxMaxGnss(void);
+timeMs_t gpsUbloxCapLastUpdate(void);
+
+bool gpsUbloxHasGalileo(void);
+bool gpsUbloxHasBeidou(void);
+bool gpsUbloxHasGlonass(void);
+
 bool gpsUbloxGalileoDefault(void);
 bool gpsUbloxBeidouDefault(void);
 bool gpsUbloxGlonassDefault(void);
+
 bool gpsUbloxGalileoEnabled(void);
 bool gpsUbloxBeidouEnabled(void);
 bool gpsUbloxGlonassEnabled(void);

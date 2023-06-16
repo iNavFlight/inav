@@ -102,16 +102,10 @@ static bool _new_speed;
 
 // Need this to determine if Galileo capable only
 static struct {
-    bool capGalileo;
-    bool capBeidou;
-    bool capGlonass;
+    uint8_t supported;
     int capMaxGnss;
-    bool galileoDefault;
-    bool beidouDefault;
-    bool glonassDefault;
-    bool galileoEnabled;
-    bool beidouEnabled;
-    bool glonassEnabled;
+    uint8_t defaultGnss;
+    uint8_t enabledGnss;
 } ubx_capabilities = { };
 
 // Example packet sizes from UBlox u-center from a Glonass capable GPS receiver.
@@ -148,66 +142,59 @@ static union {
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
-const char *gpsUbloxHasGalileo(void)
+bool gpsUbloxHasGalileo(void)
 {
-    if (ubx_capabilities.capGalileo) {
-        return "Galileo";
-    }
-
-    return "No Galileo";
+    return (ubx_capabilities.supported & UBX_MON_GNSS_GALILEO_MASK);
 }
 
-const char *gpsUbloxHasBeidou(void)
+bool gpsUbloxHasBeidou(void)
 {
-    if (ubx_capabilities.capBeidou) {
-        return "BeiDou";
-    }
-
-    return "No BeiDou";
+    return ubx_capabilities.supported & UBX_MON_GNSS_BEIDOU_MASK;
 }
 
-const char *gpsUbloxHasGlonass(void)
+bool gpsUbloxHasGlonass(void)
 {
-    if (ubx_capabilities.capGlonass) {
-        return "Glonass";
-    }
-
-    return "No Glonass";
+    return ubx_capabilities.supported & UBX_MON_GNSS_GLONASS_MASK;
 }
 
 bool gpsUbloxGalileoDefault(void)
 {
-    return ubx_capabilities.galileoDefault;
+    return ubx_capabilities.defaultGnss & UBX_MON_GNSS_GALILEO_MASK;
 }
 
 bool gpsUbloxBeidouDefault(void)
 {
-    return ubx_capabilities.beidouDefault;
+    return ubx_capabilities.defaultGnss & UBX_MON_GNSS_BEIDOU_MASK;
 }
 
 bool gpsUbloxGlonassDefault(void)
 {
-    return ubx_capabilities.glonassDefault;
+    return ubx_capabilities.defaultGnss & UBX_MON_GNSS_GLONASS_MASK;
 }
 
 bool gpsUbloxGalileoEnabled(void)
 {
-    return ubx_capabilities.galileoEnabled;
+    return ubx_capabilities.enabledGnss & UBX_MON_GNSS_GALILEO_MASK;
 }
 
 bool gpsUbloxBeidouEnabled(void)
 {
-    return ubx_capabilities.beidouEnabled;
+    return ubx_capabilities.enabledGnss & UBX_MON_GNSS_BEIDOU_MASK;
 }
 
 bool gpsUbloxGlonassEnabled(void)
 {
-    return ubx_capabilities.glonassEnabled;
+    return ubx_capabilities.enabledGnss & UBX_MON_GNSS_GLONASS_MASK;
 }
 
 uint8_t gpsUbloxMaxGnss(void)
 {
     return ubx_capabilities.capMaxGnss;
+}
+
+timeMs_t gpsUbloxCapLastUpdate(void)
+{
+    return gpsState.lastCapaUpdMs;
 }
 
 static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
@@ -298,7 +285,7 @@ static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 
 static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 {
-    if (!ubx_capabilities.capGalileo || gpsState.swVersionMajor < 18) {
+    if (!gpsUbloxHasGalileo()) {
         return 0;
     }
 
@@ -322,7 +309,7 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 
 static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
 {
-    if (!ubx_capabilities.capBeidou) {
+    if (!gpsUbloxHasBeidou()) {
         return 0;
     }
 
@@ -366,7 +353,7 @@ static int configureGNSS_GZSS(ubx_gnss_element_t * gnss_block)
 
 static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 {
-    if (!ubx_capabilities.capGlonass) {
+    if(!gpsUbloxHasGlonass()) {
         return 0;
     }
 
@@ -417,7 +404,6 @@ static void configureGNSS10(void)
 
 static void configureGNSS(void)
 {
-    if(gpsState.hwVersion < UBX_HW_VERSION_UBLOX9) {
         int blocksUsed = 0;
         send_buffer.message.header.msg_class = CLASS_CFG;
         send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
@@ -430,12 +416,9 @@ static void configureGNSS(void)
 
         /* Galileo */
         blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
-    
+
         /* BeiDou */
         blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
-
-        /* GZSS  should be enabled when GPS is enabled */
-        //blocksUsed += configureGNSS_GZSS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         /* GLONASS */
         blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
@@ -443,33 +426,6 @@ static void configureGNSS(void)
         send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
         send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
         sendConfigMessageUBLOX();
-    } else {
-        ubx_config_data8_payload_t gnssConfigValues[] = {
-            // SBAS
-            {UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
-            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
-    
-            // Galileo
-            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
-            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
-
-            // Beidou
-            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
-
-            // Should be enabled with GPS
-            {UBLOX_CFG_QZSS_ENA, 1},
-            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
-            {UBLOX_CFG_QZSS_L1S_ENA, 1},
-
-            // Glonass
-            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
-        };
-
-        ubloxSendSetCfgBytes(gnssConfigValues, 12);
-    }
 }
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
@@ -527,9 +483,8 @@ static void configureSBAS(void)
 
 static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
 {
-    if (!strncmp(proto, "PROTVER=", 8)) {
+    if (bufferLength > 13 && !strncmp(proto, "PROTVER=", 8)) {
         proto+=8;
-        bufferLength-=8;
 
         float ver = atof(proto);
 
@@ -664,7 +619,7 @@ static bool gpsParceFrameUBLOX(void)
         if (_class == CLASS_MON) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
             if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-                if (_buffer.ver.swVersion[9] > '2') {
+                if (_buffer.ver.swVersion[9] > '2' || true) {
                     // check extensions;
                     // after hw + sw vers; each is 30 bytes
                     bool found = false;
@@ -673,25 +628,23 @@ static bool gpsParceFrameUBLOX(void)
                         // Example content: GPS;GAL;BDS;GLO
                         if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
                         {
-                            ubx_capabilities.capGalileo = true;
+                            ubx_capabilities.supported |= UBX_MON_GNSS_GALILEO_MASK;
                             found = true;
                         }
                         if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
                         {
-                            ubx_capabilities.capBeidou = true;
+                            ubx_capabilities.supported |= UBX_MON_GNSS_BEIDOU_MASK;
                             found = true;
                         }
                         if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
                         {
-                            ubx_capabilities.capGlonass = true;
+                            ubx_capabilities.supported |= UBX_MON_GNSS_GLONASS_MASK;
                             found = true;
                         }
                     }
                 }
                 for (int j = 40; j < _payload_length; j += 30) {
                     if (strnstr((const char *)(_buffer.bytes + j), "PROTVER=", 30)) {
-                        gpsState.swVersionMajor = 3;
-                        gpsState.swVersionMinor = 3;
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
                     }
@@ -699,22 +652,14 @@ static bool gpsParceFrameUBLOX(void)
             }
         }
         break;
-    case MSG_MON_GNSS: // M9 / M10?
+    case MSG_MON_GNSS:
         if(_class == CLASS_MON) {
             if (_buffer.gnss.version == 0) {
-                ubx_capabilities.capGalileo = _buffer.gnss.supported & UBX_MON_GNSS_GALILEO_MASK;
-                ubx_capabilities.capBeidou =_buffer.gnss.supported & UBX_MON_GNSS_BEIDOU_MASK;
-                ubx_capabilities.capGlonass =_buffer.gnss.supported & UBX_MON_GNSS_GLONASS_MASK ;
-
-                ubx_capabilities.galileoDefault = _buffer.gnss.defaultGnss & UBX_MON_GNSS_GALILEO_MASK;
-                ubx_capabilities.beidouDefault = _buffer.gnss.defaultGnss & UBX_MON_GNSS_BEIDOU_MASK;
-                ubx_capabilities.glonassDefault = _buffer.gnss.defaultGnss & UBX_MON_GNSS_GLONASS_MASK;
-
-                ubx_capabilities.galileoEnabled = _buffer.gnss.enabled & UBX_MON_GNSS_GALILEO_MASK;
-                ubx_capabilities.beidouEnabled = _buffer.gnss.enabled & UBX_MON_GNSS_BEIDOU_MASK;
-                ubx_capabilities.glonassEnabled = _buffer.gnss.enabled & UBX_MON_GNSS_GLONASS_MASK;
-
+                ubx_capabilities.supported = _buffer.gnss.supported;
+                ubx_capabilities.defaultGnss = _buffer.gnss.defaultGnss;
+                ubx_capabilities.enabledGnss = _buffer.gnss.enabled;
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
+                gpsState.lastCapaUpdMs = millis();
             }
         }
         break;
@@ -998,7 +943,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
          gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
+         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 /*|| (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)*/) {
             configureGNSS10();
          } else {
             configureGNSS();
@@ -1071,28 +1016,29 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
+    // Reset protocol timeout
+    gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
+
+    // Attempt to detect GPS hw version
+    gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    gpsState.autoConfigStep = 0;
+
+    do {
+        pollVersion();
+        gpsState.autoConfigStep++;
+        ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
+    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+
+    gpsState.autoConfigStep = 0;
+    ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+    do {
+        pollGnssCapabilities();
+        gpsState.autoConfigStep++;
+        ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
+    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
-        // Reset protocol timeout
-        gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
-
-        // Attempt to detect GPS hw version
-        gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
-        gpsState.autoConfigStep = 0;
-
-        do {
-            pollVersion();
-            gpsState.autoConfigStep++;
-            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
-
-        gpsState.autoConfigStep = 0;
-        do {
-            pollGnssCapabilities();
-            gpsState.autoConfigStep++;
-            ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
-
         // Configure GPS
         ptSpawn(gpsConfigure);
     }
