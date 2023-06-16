@@ -3484,7 +3484,6 @@ static void cliStatus(char *cmdline)
         if(gpsUbloxHasGlonass())
             cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
         cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
-        cliPrintLinef("    lastUpdate: %d", gpsUbloxCapLastUpdate());
     }
 
     // If we are blocked by PWM init - provide more information
