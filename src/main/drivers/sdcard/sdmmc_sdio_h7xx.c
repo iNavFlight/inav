@@ -127,14 +127,14 @@ void sdioPinConfigure(void)
 
     sdioHardware = &sdioPinHardware[SDCARD_SDIO_DEVICE];
 
-    sdioPin[SDIO_PIN_CK] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinCK[0];
-    sdioPin[SDIO_PIN_CMD] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinCMD[0];
-    sdioPin[SDIO_PIN_D0] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinD0[0];  
+    sdioPin[SDIO_PIN_CK] = sdioHardware->sdioPinCK[0];
+    sdioPin[SDIO_PIN_CMD] = sdioHardware->sdioPinCMD[0];
+    sdioPin[SDIO_PIN_D0] = sdioHardware->sdioPinD0[0];  
 
 #ifdef SDCARD_SDIO_4BIT
-    sdioPin[SDIO_PIN_D1] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinD1[0];
-    sdioPin[SDIO_PIN_D2] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinD2[0];
-    sdioPin[SDIO_PIN_D3] = sdioHardware[SDCARD_SDIO_DEVICE].sdioPinD3[0];
+    sdioPin[SDIO_PIN_D1] = sdioHardware->sdioPinD1[0];
+    sdioPin[SDIO_PIN_D2] = sdioHardware->sdioPinD2[0];
+    sdioPin[SDIO_PIN_D3] = sdioHardware->sdioPinD3[0];
 #endif
 }
 
@@ -254,7 +254,8 @@ bool SD_Init(void)
     hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B; // FIXME untested
 #endif
     hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-    hsd1.Init.ClockDiv = 1; // 200Mhz / (2 * 1 ) = 100Mhz, used for "UltraHigh speed SD card" only, see   HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
+    // hsd1.Init.ClockDiv = 1; // 200Mhz / (2 * 1 ) = 100Mhz, used for "UltraHigh speed SD card" only, see   HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
+    hsd1.Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
 
     status = HAL_SD_Init(&hsd1); // Will call HAL_SD_MspInit
 
