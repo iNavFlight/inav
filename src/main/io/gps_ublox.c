@@ -264,7 +264,8 @@ static const uint8_t default_payload[] = {
 #define GNSSID_GZSS     5
 #define GNSSID_GLONASS  6
 
-// ublox info: https://cdn.sparkfun.com/assets/f/7/4/3/5/PM-15136.pdf
+// M10 ublox protocol info:
+// https://content.u-blox.com/sites/default/files/u-blox-M10-SPG-5.10_InterfaceDescription_UBX-21035062.pdf
 static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
 {
     ubx_config_data8_t cfg = {};
@@ -276,6 +277,8 @@ static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t co
     _ack_state = UBX_ACK_WAITING;
 }
 
+// Info on protocol used by M8-M9, check UBX-CFG-GNSS for gnss configuration
+// https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.32_InterfaceDescription_UBX-22008968.pdf
 static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 {
     gnss_block->gnssId = GNSSID_SBAS;
