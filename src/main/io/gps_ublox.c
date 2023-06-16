@@ -332,7 +332,7 @@ static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
     // 0x01 = BeiDou B1I
     // 0x10 = BeiDou B2I // off by default
     // 0x80 = BeiDou B2A // off by default
-    gnss_block->sigCfgMask = 0x01 | 0x10;
+    gnss_block->sigCfgMask = 0x01;
     if (gpsState.gpsConfig->ubloxUseBeidou) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
