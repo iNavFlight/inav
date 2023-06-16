@@ -3192,6 +3192,16 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ---
 
+### nav_landing_bump_detection
+
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_manual_climb_rate
 
 Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
