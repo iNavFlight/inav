@@ -93,6 +93,8 @@ typedef struct gpsConfig_s {
     gpsAutoBaud_e autoBaud;
     gpsDynModel_e dynModel;
     bool ubloxUseGalileo;
+    bool ubloxUseBeidou;
+    bool ubloxUseGlonass;
     uint8_t gpsMinSats;
     uint8_t ubloxNavHz;
 } gpsConfig_t;
@@ -165,6 +167,12 @@ bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
+
+const char *getGpsHwVersion(void);
+uint8_t getGpsProtoMajorVersion(void);
+uint8_t getGpsProtoMinorVersion(void);
+
+int getGpsBaudrate(void);
 
 #if defined(USE_GPS_FAKE)
 void gpsFakeSet(
