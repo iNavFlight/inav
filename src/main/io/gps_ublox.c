@@ -483,7 +483,7 @@ static void configureSBAS(void)
 
 static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
 {
-    if (bufferLength > 13 && !strncmp(proto, "PROTVER=", 8)) {
+    if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
         proto+=8;
 
         float ver = atof(proto);
@@ -528,7 +528,7 @@ static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
     return UBX_HW_VERSION_UNKNOWN;
 }
 
-static bool gpsParceFrameUBLOX(void)
+static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
     case MSG_POSLLH:
@@ -644,7 +644,7 @@ static bool gpsParceFrameUBLOX(void)
                     }
                 }
                 for (int j = 40; j < _payload_length; j += 30) {
-                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER=", 30)) {
+                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
                     }
@@ -769,7 +769,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
                 break;
             }
 
-            if (gpsParceFrameUBLOX()) {
+            if (gpsParseFrameUBLOX()) {
                 parsed = true;
             }
     }
