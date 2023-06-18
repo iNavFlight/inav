@@ -483,7 +483,7 @@ static void configureSBAS(void)
 
 static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
 {
-    if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strcmp(proto, "PROTVER "))) {
+    if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
         proto+=8;
 
         float ver = atof(proto);
