@@ -528,7 +528,7 @@ static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
     return UBX_HW_VERSION_UNKNOWN;
 }
 
-static bool gpsParceFrameUBLOX(void)
+static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
     case MSG_POSLLH:
@@ -769,7 +769,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
                 break;
             }
 
-            if (gpsParceFrameUBLOX()) {
+            if (gpsParseFrameUBLOX()) {
                 parsed = true;
             }
     }
