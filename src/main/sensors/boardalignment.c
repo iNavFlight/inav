@@ -85,7 +85,7 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
-void applyBoardAlignment(int32_t *vec)
+void applyBoardAlignment(float *vec)
 {
     if (standardBoardAlignment) {
         return;
@@ -99,12 +99,12 @@ void applyBoardAlignment(int32_t *vec)
     vec[Z] = lrintf(fpVec.z);
 }
 
-void FAST_CODE applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation)
+void FAST_CODE applySensorAlignment(float * dest, float * src, uint8_t rotation)
 {
     // Create a copy so we could use the same buffer for src & dest
-    const int32_t x = src[X];
-    const int32_t y = src[Y];
-    const int32_t z = src[Z];
+    const float x = src[X];
+    const float y = src[Y];
+    const float z = src[Z];
 
     switch (rotation) {
     default:

@@ -26,7 +26,7 @@ main_sources(SITL_SRC
 )
 
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(CMAKE_HOST_APPLE)
   set(MACOSX ON)
 endif()
 
@@ -58,6 +58,9 @@ if(NOT MACOSX)
         -Wno-return-local-addr
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
+    )
+else()
+    set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
     )
 endif()
 

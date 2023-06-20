@@ -55,16 +55,11 @@
 #define SPI1_MOSI_PIN           PA7
 #define SPI1_NSS_PIN            PA4
 
-#define USE_EXTI 
-#define GYRO_INT_EXTI           PA15
-#define USE_MPU_DATA_READY_SIGNAL
-
 // MPU6000
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          SPI1_NSS_PIN
-#define MPU6000_EXTI_PIN        GYRO_INT_EXTI
 // MPU6500
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW0_DEG 
@@ -76,7 +71,6 @@
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
-#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
 
 // MPU9250   
 #define USE_IMU_MPU9250

@@ -204,7 +204,7 @@ void opflowUpdate(timeUs_t currentTimeUs)
 
         // If quality of the flow from the sensor is good - process further
         if (opflow.flowQuality == OPFLOW_QUALITY_VALID) {
-            const float integralToRateScaler = (opticalFlowConfig()->opflow_scale > 0.01f) ? (1.0e6 / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale : 0.0f;
+            const float integralToRateScaler = (opticalFlowConfig()->opflow_scale > 0.01f) ? (1.0e6f / opflow.dev.rawData.deltaTime) / (float)opticalFlowConfig()->opflow_scale : 0.0f;
 
             // Apply sensor alignment
             applySensorAlignment(opflow.dev.rawData.flowRateRaw, opflow.dev.rawData.flowRateRaw, opticalFlowConfig()->opflow_align);

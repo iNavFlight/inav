@@ -42,6 +42,7 @@
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
@@ -49,31 +50,9 @@
 
 #include "scheduler/protothreads.h"
 
-#define GPS_CFG_CMD_TIMEOUT_MS              200
-#define GPS_VERSION_RETRY_TIMES             2
-#define MAX_UBLOX_PAYLOAD_SIZE              256
-#define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
-#define UBLOX_SBAS_MESSAGE_LENGTH           16
+#include "gps_ublox.h"
+#include "gps_ublox_utils.h"
 
-#define UBX_DYNMODEL_PEDESTRIAN 3
-#define UBX_DYNMODEL_AIR_1G     6
-#define UBX_DYNMODEL_AIR_4G     8
-
-#define UBX_FIXMODE_2D_ONLY 1
-#define UBX_FIXMODE_3D_ONLY 2
-#define UBX_FIXMODE_AUTO    3
-
-#define UBX_VALID_GPS_DATE(valid) (valid & 1 << 0)
-#define UBX_VALID_GPS_TIME(valid) (valid & 1 << 1)
-#define UBX_VALID_GPS_DATE_TIME(valid) (UBX_VALID_GPS_DATE(valid) && UBX_VALID_GPS_TIME(valid))
-
-#define UBX_HW_VERSION_UNKNOWN  0
-#define UBX_HW_VERSION_UBLOX5   500
-#define UBX_HW_VERSION_UBLOX6   600
-#define UBX_HW_VERSION_UBLOX7   700
-#define UBX_HW_VERSION_UBLOX8   800
-#define UBX_HW_VERSION_UBLOX9   900
-#define UBX_HW_VERSION_UBLOX10  1000
 
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
 // note PRNs last upadted 2020-12-18
@@ -99,253 +78,6 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,230400,0*1C\r\n",     // GPS_BAUDRATE_230400
 };
 
-// payload types
-typedef struct {
-    uint8_t mode;
-    uint8_t usage;
-    uint8_t maxSBAS;
-    uint8_t scanmode2;
-    uint32_t scanmode1;
-} ubx_sbas;
-
-typedef struct {
-    uint8_t class;
-    uint8_t id;
-    uint8_t rate;
-} ubx_msg;
-
-typedef struct {
-    uint16_t meas;
-    uint16_t nav;
-    uint16_t time;
-} ubx_rate;
-
-typedef struct {
-     uint8_t gnssId;
-     uint8_t resTrkCh;
-     uint8_t maxTrkCh;
-     uint8_t reserved1;
-// flags
-     uint8_t enabled;
-     uint8_t undefined0;
-     uint8_t sigCfgMask;
-     uint8_t undefined1;
-} ubx_gnss_element_t;
-
-typedef struct {
-     uint8_t msgVer;
-     uint8_t numTrkChHw;
-     uint8_t numTrkChUse;
-     uint8_t numConfigBlocks;
-     ubx_gnss_element_t config[0];
-} ubx_gnss_msg_t;
-
-#define MAX_GNSS 7
-#define MAX_GNSS_SIZE_BYTES (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)*MAX_GNSS)
-
-typedef union {
-    uint8_t bytes[MAX_GNSS_SIZE_BYTES]; // placeholder
-    ubx_sbas sbas;
-    ubx_msg msg;
-    ubx_rate rate;
-    ubx_gnss_msg_t gnss;
-} ubx_payload;
-
-// UBX support
-typedef struct {
-    uint8_t preamble1;
-    uint8_t preamble2;
-    uint8_t msg_class;
-    uint8_t msg_id;
-    uint16_t length;
-} ubx_header;
-
-typedef struct {
-    ubx_header header;
-    ubx_payload payload;
-} __attribute__((packed)) ubx_message;
-
-typedef struct {
-    char swVersion[30];      // Zero-terminated Software Version String
-    char hwVersion[10];      // Zero-terminated Hardware Version String
-} ubx_mon_ver;
-
-typedef struct {
-    uint32_t time;              // GPS msToW
-    int32_t longitude;
-    int32_t latitude;
-    int32_t altitude_ellipsoid;
-    int32_t altitude_msl;
-    uint32_t horizontal_accuracy;
-    uint32_t vertical_accuracy;
-} ubx_nav_posllh;
-
-typedef struct {
-    uint32_t time;              // GPS msToW
-    uint8_t fix_type;
-    uint8_t fix_status;
-    uint8_t differential_status;
-    uint8_t res;
-    uint32_t time_to_first_fix;
-    uint32_t uptime;            // milliseconds
-} ubx_nav_status;
-
-typedef struct {
-    uint32_t time;
-    int32_t time_nsec;
-    int16_t week;
-    uint8_t fix_type;
-    uint8_t fix_status;
-    int32_t ecef_x;
-    int32_t ecef_y;
-    int32_t ecef_z;
-    uint32_t position_accuracy_3d;
-    int32_t ecef_x_velocity;
-    int32_t ecef_y_velocity;
-    int32_t ecef_z_velocity;
-    uint32_t speed_accuracy;
-    uint16_t position_DOP;
-    uint8_t res;
-    uint8_t satellites;
-    uint32_t res2;
-} ubx_nav_solution;
-
-typedef struct {
-    uint32_t time;              // GPS msToW
-    int32_t ned_north;
-    int32_t ned_east;
-    int32_t ned_down;
-    uint32_t speed_3d;
-    uint32_t speed_2d;
-    int32_t heading_2d;
-    uint32_t speed_accuracy;
-    uint32_t heading_accuracy;
-} ubx_nav_velned;
-
-typedef struct {
-    uint8_t chn;                // Channel number, 255 for SVx not assigned to channel
-    uint8_t svid;               // Satellite ID
-    uint8_t flags;              // Bitmask
-    uint8_t quality;            // Bitfield
-    uint8_t cno;                // Carrier to Noise Ratio (Signal Strength) // dbHz, 0-55.
-    uint8_t elev;               // Elevation in integer degrees
-    int16_t azim;               // Azimuth in integer degrees
-    int32_t prRes;              // Pseudo range residual in centimetres
-} ubx_nav_svinfo_channel;
-
-typedef struct {
-    uint32_t time;              // GPS Millisecond time of week
-    uint8_t numCh;              // Number of channels
-    uint8_t globalFlags;        // Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
-    uint16_t reserved2;         // Reserved
-    ubx_nav_svinfo_channel channel[16];         // 16 satellites * 12 byte
-} ubx_nav_svinfo;
-
-typedef struct {
-    uint32_t time;              // GPS msToW
-    uint32_t tAcc;
-    int32_t nano;
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t min;
-    uint8_t sec;
-    uint8_t valid;
-} ubx_nav_timeutc;
-
-typedef struct {
-    uint32_t time; // GPS msToW
-    uint16_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t min;
-    uint8_t sec;
-    uint8_t valid;
-    uint32_t tAcc;
-    int32_t nano;
-    uint8_t fix_type;
-    uint8_t fix_status;
-    uint8_t reserved1;
-    uint8_t satellites;
-    int32_t longitude;
-    int32_t latitude;
-    int32_t altitude_ellipsoid;
-    int32_t altitude_msl;
-    uint32_t horizontal_accuracy;
-    uint32_t vertical_accuracy;
-    int32_t ned_north;
-    int32_t ned_east;
-    int32_t ned_down;
-    int32_t speed_2d;
-    int32_t heading_2d;
-    uint32_t speed_accuracy;
-    uint32_t heading_accuracy;
-    uint16_t position_DOP;
-    uint16_t reserved2;
-    uint16_t reserved3;
-} ubx_nav_pvt;
-
-typedef struct {
-    uint8_t class;
-    uint8_t msg;
-} ubx_ack_ack;
-
-enum {
-    PREAMBLE1 = 0xB5,
-    PREAMBLE2 = 0x62,
-    CLASS_NAV = 0x01,
-    CLASS_ACK = 0x05,
-    CLASS_CFG = 0x06,
-    CLASS_MON = 0x0A,
-    MSG_CLASS_UBX = 0x01,
-    MSG_CLASS_NMEA = 0xF0,
-    MSG_VER = 0x04,
-    MSG_ACK_NACK = 0x00,
-    MSG_ACK_ACK = 0x01,
-    MSG_NMEA_GGA = 0x0,
-    MSG_NMEA_GLL = 0x1,
-    MSG_NMEA_GSA = 0x2,
-    MSG_NMEA_GSV = 0x3,
-    MSG_NMEA_RMC = 0x4,
-    MSG_NMEA_VGS = 0x5,
-    MSG_POSLLH = 0x2,
-    MSG_STATUS = 0x3,
-    MSG_SOL = 0x6,
-    MSG_PVT = 0x7,
-    MSG_VELNED = 0x12,
-    MSG_TIMEUTC = 0x21,
-    MSG_SVINFO = 0x30,
-    MSG_NAV_SAT = 0x35,
-    MSG_NAV_SIG = 0x35,
-    MSG_CFG_PRT = 0x00,
-    MSG_CFG_RATE = 0x08,
-    MSG_CFG_SET_RATE = 0x01,
-    MSG_CFG_NAV_SETTINGS = 0x24,
-    MSG_CFG_SBAS = 0x16,
-    MSG_CFG_GNSS = 0x3e
-} ubx_protocol_bytes;
-
-enum {
-    FIX_NONE = 0,
-    FIX_DEAD_RECKONING = 1,
-    FIX_2D = 2,
-    FIX_3D = 3,
-    FIX_GPS_DEAD_RECKONING = 4,
-    FIX_TIME = 5
-} ubs_nav_fix_type;
-
-enum {
-    NAV_STATUS_FIX_VALID = 1
-} ubx_nav_status_bits;
-
-enum {
-    UBX_ACK_WAITING = 0,
-    UBX_ACK_GOT_ACK = 1,
-    UBX_ACK_GOT_NAK = 2
-} ubx_ack_state;
-
 // Packet checksum accumulators
 static uint8_t _ck_a;
 static uint8_t _ck_b;
@@ -369,7 +101,12 @@ static bool _new_position;
 static bool _new_speed;
 
 // Need this to determine if Galileo capable only
-static bool capGalileo;
+static struct {
+    uint8_t supported;
+    int capMaxGnss;
+    uint8_t defaultGnss;
+    uint8_t enabledGnss;
+} ubx_capabilities = { };
 
 // Example packet sizes from UBlox u-center from a Glonass capable GPS receiver.
 //15:17:55  R -> UBX NAV-STATUS,  Size  24,  'Navigation Status'
@@ -401,16 +138,63 @@ static union {
     ubx_mon_ver ver;
     ubx_nav_timeutc timeutc;
     ubx_ack_ack ack;
+    ubx_mon_gnss gnss;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
-void _update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
+bool gpsUbloxHasGalileo(void)
 {
-    while (len--) {
-        *ck_a += *data;
-        *ck_b += *ck_a;
-        data++;
-    }
+    return (ubx_capabilities.supported & UBX_MON_GNSS_GALILEO_MASK);
+}
+
+bool gpsUbloxHasBeidou(void)
+{
+    return ubx_capabilities.supported & UBX_MON_GNSS_BEIDOU_MASK;
+}
+
+bool gpsUbloxHasGlonass(void)
+{
+    return ubx_capabilities.supported & UBX_MON_GNSS_GLONASS_MASK;
+}
+
+bool gpsUbloxGalileoDefault(void)
+{
+    return ubx_capabilities.defaultGnss & UBX_MON_GNSS_GALILEO_MASK;
+}
+
+bool gpsUbloxBeidouDefault(void)
+{
+    return ubx_capabilities.defaultGnss & UBX_MON_GNSS_BEIDOU_MASK;
+}
+
+bool gpsUbloxGlonassDefault(void)
+{
+    return ubx_capabilities.defaultGnss & UBX_MON_GNSS_GLONASS_MASK;
+}
+
+bool gpsUbloxGalileoEnabled(void)
+{
+    return ubx_capabilities.enabledGnss & UBX_MON_GNSS_GALILEO_MASK;
+}
+
+bool gpsUbloxBeidouEnabled(void)
+{
+    return ubx_capabilities.enabledGnss & UBX_MON_GNSS_BEIDOU_MASK;
+}
+
+bool gpsUbloxGlonassEnabled(void)
+{
+    return ubx_capabilities.enabledGnss & UBX_MON_GNSS_GLONASS_MASK;
+}
+
+uint8_t gpsUbloxMaxGnss(void)
+{
+    return ubx_capabilities.capMaxGnss;
+}
+
+timeMs_t gpsUbloxCapLastUpdate(void)
+{
+    return gpsState.lastCapaUpdMs;
 }
 
 static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
@@ -427,7 +211,7 @@ static void sendConfigMessageUBLOX(void)
     uint8_t ck_a=0, ck_b=0;
     send_buffer.message.header.preamble1=PREAMBLE1;
     send_buffer.message.header.preamble2=PREAMBLE2;
-    _update_checksum(&send_buffer.bytes[2], send_buffer.message.header.length+4, &ck_a, &ck_b);
+    ublox_update_checksum(&send_buffer.bytes[2], send_buffer.message.header.length+4, &ck_a, &ck_b);
     send_buffer.bytes[send_buffer.message.header.length+6] = ck_a;
     send_buffer.bytes[send_buffer.message.header.length+7] = ck_b;
     serialWriteBuf(gpsState.gpsPort, send_buffer.bytes, send_buffer.message.header.length+8);
@@ -445,6 +229,15 @@ static void pollVersion(void)
     sendConfigMessageUBLOX();
 }
 
+static void pollGnssCapabilities(void)
+{
+    send_buffer.message.header.msg_class = CLASS_MON;
+    send_buffer.message.header.msg_id = MSG_MON_GNSS;
+    send_buffer.message.header.length = 0;
+    sendConfigMessageUBLOX();
+}
+
+
 static const uint8_t default_payload[] = {
     0xFF, 0xFF, 0x03, 0x03, 0x00,           // CFG-NAV5 - Set engine settings (original MWII code)
     0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00, 0x05, 0x00, 0xFA, 0x00,           // Collected by resetting a GPS unit to defaults. Changing mode to Pedistrian and
@@ -452,9 +245,28 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-#define GNSSID_SBAS 1
-#define GNSSID_GALILEO 2
+#define GNSSID_SBAS     1
+#define GNSSID_GALILEO  2
+#define GNSSID_BEIDOU   3
+#define GNSSID_GZSS     5
+#define GNSSID_GLONASS  6
 
+// M10 ublox protocol info:
+// https://content.u-blox.com/sites/default/files/u-blox-M10-SPG-5.10_InterfaceDescription_UBX-21035062.pdf
+static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t count)
+{
+    ubx_config_data8_t cfg = {};
+
+    ubloxCfgFillBytes(&cfg, kvPairs, count);
+
+    serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
+    _ack_waiting_msg = cfg.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+}
+
+// Info on protocol used by M8-M9, check UBX-CFG-GNSS for gnss configuration
+// https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
+// https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.32_InterfaceDescription_UBX-22008968.pdf
 static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 {
     gnss_block->gnssId = GNSSID_SBAS;
@@ -473,13 +285,17 @@ static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 
 static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 {
-    if (!capGalileo) {
+    if (!gpsUbloxHasGalileo()) {
         return 0;
     }
 
     gnss_block->gnssId = GNSSID_GALILEO;
     gnss_block->maxTrkCh = 8;
-    gnss_block->sigCfgMask = 1;
+    // sigCfgMask
+    // 0x01 = Galileo E1 (not supported for protocol versions less than 18.00)
+    // 0x10 = Galileo E5a // off by default
+    // 0x20 = Galileo E5b // off by default
+    gnss_block->sigCfgMask = 0x01;
     if (gpsState.gpsConfig->ubloxUseGalileo) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
@@ -491,25 +307,125 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
+{
+    if (!gpsUbloxHasBeidou()) {
+        return 0;
+    }
+
+    gnss_block->gnssId = GNSSID_BEIDOU;
+    gnss_block->maxTrkCh = 8;
+    // sigCfgMask
+    // 0x01 = BeiDou B1I
+    // 0x10 = BeiDou B2I // off by default
+    // 0x80 = BeiDou B2A // off by default
+    gnss_block->sigCfgMask = 0x01;
+    if (gpsState.gpsConfig->ubloxUseBeidou) {
+        gnss_block->enabled = 1;
+        gnss_block->resTrkCh = 4;
+    } else {
+        gnss_block->enabled = 0;
+        gnss_block->resTrkCh = 0;
+    }
+
+    return 1;
+}
+
+/*
+static int configureGNSS_GZSS(ubx_gnss_element_t * gnss_block)
+{
+    if (!ubx_capabilities.capGzss) {
+        return 0;
+    }
+
+    gnss_block->gnssId = GNSSID_GZSS;
+    gnss_block->maxTrkCh = 8;
+    // L1C = 0x01
+    // L1S = 0x04
+    // L2C = 0x10
+    gnss_block->sigCfgMask = 0x01 | 0x04;
+    gnss_block->enabled = 1;
+    gnss_block->resTrkCh = 4;
+
+    return 1;
+}
+*/
+
+static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
+{
+    if(!gpsUbloxHasGlonass()) {
+        return 0;
+    }
+
+    gnss_block->gnssId = GNSSID_GLONASS;
+    gnss_block->maxTrkCh = 8;
+    // 0x01 = GLONASS L1
+    // 0x10 = GLONASS L2 // off by default
+    gnss_block->sigCfgMask = 0x01;
+    if (gpsState.gpsConfig->ubloxUseGlonass) {
+        gnss_block->enabled = 1;
+        gnss_block->resTrkCh = 4;
+    } else {
+        gnss_block->enabled = 0;
+        gnss_block->resTrkCh = 0;
+    }
+
+    return 1;
+}
+
+static void configureGNSS10(void)
+{
+        ubx_config_data8_payload_t gnssConfigValues[] = {
+            // SBAS
+            {UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
+            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
+    
+            // Galileo
+            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+
+            // Beidou
+            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+
+            // Should be enabled with GPS
+            {UBLOX_CFG_QZSS_ENA, 1},
+            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
+            {UBLOX_CFG_QZSS_L1S_ENA, 1},
+
+            // Glonass
+            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+        };
+
+        ubloxSendSetCfgBytes(gnssConfigValues, 12);
+}
+
 static void configureGNSS(void)
 {
-    int blocksUsed = 0;
+        int blocksUsed = 0;
+        send_buffer.message.header.msg_class = CLASS_CFG;
+        send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
+        send_buffer.message.payload.gnss.msgVer = 0;
+        send_buffer.message.payload.gnss.numTrkChHw = 0;     // read only, so unset
+        send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
 
-    send_buffer.message.header.msg_class = CLASS_CFG;
-    send_buffer.message.header.msg_id = MSG_CFG_GNSS;
-    send_buffer.message.payload.gnss.msgVer = 0;
-    send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
-    send_buffer.message.payload.gnss.numTrkChUse = 32;
+        /* SBAS, always generated */
+        blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* SBAS, always generated */
-    blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        /* Galileo */
+        blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    /* Galileo */
-    blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
+        /* BeiDou */
+        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-    send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
-    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
-    sendConfigMessageUBLOX();
+        /* GLONASS */
+        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+
+        send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
+        send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
+        sendConfigMessageUBLOX();
 }
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
@@ -523,12 +439,12 @@ static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
     sendConfigMessageUBLOX();
 }
 
-static void configureMSG(uint8_t class, uint8_t id, uint8_t rate)
+static void configureMSG(uint8_t msg_class, uint8_t id, uint8_t rate)
 {
     send_buffer.message.header.msg_class = CLASS_CFG;
     send_buffer.message.header.msg_id = MSG_CFG_SET_RATE;
     send_buffer.message.header.length = 3;
-    send_buffer.message.payload.msg.class = class;
+    send_buffer.message.payload.msg.msg_class = msg_class;
     send_buffer.message.payload.msg.id = id;
     send_buffer.message.payload.msg.rate = rate;
     sendConfigMessageUBLOX();
@@ -563,6 +479,18 @@ static void configureSBAS(void)
     send_buffer.message.payload.sbas.scanmode2=0;
     send_buffer.message.payload.sbas.scanmode1=ubloxScanMode1[gpsState.gpsConfig->sbasMode];
     sendConfigMessageUBLOX();
+}
+
+static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
+{
+    if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
+        proto+=8;
+
+        float ver = atof(proto);
+
+        gpsState.swVersionMajor = (uint8_t)ver;
+        gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);
+    }
 }
 
 static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
@@ -600,7 +528,7 @@ static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
     return UBX_HW_VERSION_UNKNOWN;
 }
 
-static bool gpsParceFrameUBLOX(void)
+static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
     case MSG_POSLLH:
@@ -690,15 +618,48 @@ static bool gpsParceFrameUBLOX(void)
     case MSG_VER:
         if (_class == CLASS_MON) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
-            if  ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) && (_buffer.ver.swVersion[9] > '2')) {
-                // check extensions;
-                // after hw + sw vers; each is 30 bytes
-                for(int j = 40; j < _payload_length; j += 30) {
-                    if (strnstr((const char *)(_buffer.bytes+j), "GAL", 30)) {
-                        capGalileo = true;
+            if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
+                if (_buffer.ver.swVersion[9] > '2' || true) {
+                    // check extensions;
+                    // after hw + sw vers; each is 30 bytes
+                    bool found = false;
+                    for (int j = 40; j < _payload_length && !found; j += 30)
+                    {
+                        // Example content: GPS;GAL;BDS;GLO
+                        if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
+                        {
+                            ubx_capabilities.supported |= UBX_MON_GNSS_GALILEO_MASK;
+                            found = true;
+                        }
+                        if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
+                        {
+                            ubx_capabilities.supported |= UBX_MON_GNSS_BEIDOU_MASK;
+                            found = true;
+                        }
+                        if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
+                        {
+                            ubx_capabilities.supported |= UBX_MON_GNSS_GLONASS_MASK;
+                            found = true;
+                        }
+                    }
+                }
+                for (int j = 40; j < _payload_length; j += 30) {
+                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
+                        gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
                     }
                 }
+            }
+        }
+        break;
+    case MSG_MON_GNSS:
+        if(_class == CLASS_MON) {
+            if (_buffer.gnss.version == 0) {
+                ubx_capabilities.supported = _buffer.gnss.supported;
+                ubx_capabilities.defaultGnss = _buffer.gnss.defaultGnss;
+                ubx_capabilities.enabledGnss = _buffer.gnss.enabled;
+                ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
+                gpsState.lastCapaUpdMs = millis();
             }
         }
         break;
@@ -808,12 +769,17 @@ static bool gpsNewFrameUBLOX(uint8_t data)
                 break;
             }
 
-            if (gpsParceFrameUBLOX()) {
+            if (gpsParseFrameUBLOX()) {
                 parsed = true;
             }
     }
 
     return parsed;
+}
+
+static uint16_t hz2rate(uint8_t hz)
+{
+    return 1000 / hz;
 }
 
 STATIC_PROTOTHREAD(gpsConfigure)
@@ -885,10 +851,18 @@ STATIC_PROTOTHREAD(gpsConfigure)
         configureMSG(MSG_CLASS_UBX, MSG_NAV_SIG, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-        // u-Blox 9 receivers such as M9N can do 10Hz as well, but the number of used satellites will be restricted to 16.
-        // Not mentioned in the datasheet
-        configureRATE(200);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
+            configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
+        } else {
+            configureRATE(hz2rate(5)); // 5Hz
+            gpsConfigMutable()->ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT;
+        }
+        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+
+        if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
+            configureRATE(hz2rate(5)); // 5Hz
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        }
     }
     else {
         // u-Blox 5/6/7/8 or unknown
@@ -916,12 +890,17 @@ STATIC_PROTOTHREAD(gpsConfigure)
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
             if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
-                configureRATE(100); // 10Hz
+                configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
             }
             else {
-                configureRATE(200); // 5Hz
+                configureRATE(hz2rate(5)); // 5Hz
             }
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+
+            if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
+                configureRATE(hz2rate(5)); // 5Hz
+                ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            }
         }
         // u-Blox 5/6 doesn't support PVT, use legacy config
         // UNKNOWN also falls here, use as a last resort
@@ -962,10 +941,20 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if (gpsState.hwVersion >= 80000) {
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
          gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         configureGNSS();
+         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
+            configureGNSS10();
+         } else {
+            configureGNSS();
+         }
          ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+         if(_ack_state == UBX_ACK_GOT_NAK) {
+            gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
+            gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
+            gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
+         }
     }
 
     ptEnd(0);
@@ -1027,21 +1016,29 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
+    // Reset protocol timeout
+    gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
+
+    // Attempt to detect GPS hw version
+    gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    gpsState.autoConfigStep = 0;
+
+    do {
+        pollVersion();
+        gpsState.autoConfigStep++;
+        ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
+    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+
+    gpsState.autoConfigStep = 0;
+    ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+    do {
+        pollGnssCapabilities();
+        gpsState.autoConfigStep++;
+        ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
+    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
-        // Reset protocol timeout
-        gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
-
-        // Attempt to detect GPS hw version
-        gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
-        gpsState.autoConfigStep = 0;
-
-        do {
-            pollVersion();
-            gpsState.autoConfigStep++;
-            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
-
         // Configure GPS
         ptSpawn(gpsConfigure);
     }
@@ -1053,6 +1050,21 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     while (1) {
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData();
+
+        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
+            if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
+                gpsState.lastCapaPoolMs = millis();
+
+                if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
+                {
+                    pollVersion();
+                    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+                }
+
+                pollGnssCapabilities();
+                ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+            }
+        }
     }
 
     ptEnd(0);

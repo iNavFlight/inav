@@ -26,11 +26,6 @@
 #define BEEPER_INVERTED
 
 /*** IMU sensors ***/
-#define USE_EXTI
-
-
-#define USE_MPU_DATA_READY_SIGNAL
-
 #ifdef FOXEERF745AIO_V3
 
 #define USE_IMU_ICM42605

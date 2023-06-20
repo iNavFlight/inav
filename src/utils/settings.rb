@@ -627,7 +627,7 @@ class Generator
                 enc = @value_encoder.encode_values(min, max)
                 buf <<  ", .config.minmax.indexes = #{enc}"
             end
-            buf << ", offsetof(#{group["type"]}, #{member["field"]}) },\n"
+            buf << ", (setting_offset_t)offsetof(#{group["type"]}, #{member["field"]}) },\n"
         end
         buf << "};\n"
 
@@ -1002,7 +1002,7 @@ class Generator
                 typ = "uint32_t"
             when "float"
                 typ = "float"
-            when /^char \[(\d+)\]/
+            when /^char\s*\[(\d+)\]/
                 # Substract 1 to show the maximum string size without the null terminator
                 member["max"] = $1.to_i - 1;
                 typ = "string"
