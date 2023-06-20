@@ -1710,21 +1710,17 @@ static bool osdDrawSingleElement(uint8_t item)
     }
 
     case OSD_MAH_DRAWN: {
-        uint8_t mah_digits = osdConfig()->mAh_used_precision; // Initialize to config value
-        bool bfcompat = false;  // Assume BFCOMPAT is off
+        uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
 
 #ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
         if (isBfCompatibleVideoSystem(osdConfig())) {
-            bfcompat = true;
-        }
-#endif
-
-        if (bfcompat) {
             //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
-            tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow 10Ah+ packs
+            tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow packs below 100Ah
             buff[5] = SYM_MAH;
             buff[6] = '\0';
-        } else {
+        } else 
+#endif
+        {
             if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (mah_digits - 2), mah_digits)) {
                 // Shown in Ah
                 buff[mah_digits] = SYM_AH;
@@ -1747,25 +1743,50 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_BATTERY_REMAINING_CAPACITY:
+    {
+        bool unitsDrawn = false;
 
         if (currentBatteryProfile->capacity.value == 0)
             tfp_sprintf(buff, "  NA");
         else if (!batteryWasFullWhenPluggedIn())
             tfp_sprintf(buff, "  NF");
-        else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH)
-            tfp_sprintf(buff, "%4lu", (unsigned long)getBatteryRemainingCapacity());
-        else // currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH
+        else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
+            uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
+            
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+            if (isBfCompatibleVideoSystem(osdConfig())) {
+                //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
+                tfp_sprintf(buff, "%5d", (int)getBatteryRemainingCapacity());   // Use 5 digits to allow packs below 100Ah
+                buff[5] = SYM_MAH;
+                buff[6] = '\0';
+                unitsDrawn = true;
+            } else 
+#endif
+            {
+                if (osdFormatCentiNumber(buff, getBatteryRemainingCapacity() * 100, 1000, 0, (mah_digits - 2), mah_digits)) {
+                    // Shown in Ah
+                    buff[mah_digits] = SYM_AH;
+                } else {
+                    // Shown in mAh
+                    buff[mah_digits] = SYM_MAH;
+                }
+                buff[mah_digits + 1] = '\0';
+                unitsDrawn = true;
+            }
+        } else // currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH
             osdFormatCentiNumber(buff + 1, getBatteryRemainingCapacity() / 10, 0, 2, 0, 3);
 
-        buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
-        buff[5] = '\0';
+        if (!unitsDrawn) {
+            buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
+            buff[5] = '\0';
+        }
 
         if (batteryUsesCapacityThresholds()) {
             osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         }
 
         break;
-
+    }
     case OSD_BATTERY_REMAINING_PERCENT:
         osdFormatBatteryChargeSymbol(buff);
         tfp_sprintf(buff + 1, "%3d%%", calculateBatteryPercentage());
@@ -3660,7 +3681,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
-    .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
+    .mAh_precision = SETTING_OSD_MAH_PRECISION_DEFAULT,
     .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
     .osd_switch_indicator0_channel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNEL_DEFAULT,
     .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,
