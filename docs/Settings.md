@@ -1432,9 +1432,29 @@ Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximu
 
 ---
 
+### gps_ublox_use_beidou
+
+Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gps_ublox_use_galileo
 
 Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### gps_ublox_use_glonass
+
+Enable use of Glonass satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps haardware support [OFF/ON].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3189,6 +3209,16 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 | Default | Min | Max |
 | --- | --- | --- |
 | 500 | 50 | 1000 |
+
+---
+
+### nav_landing_bump_detection
+
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

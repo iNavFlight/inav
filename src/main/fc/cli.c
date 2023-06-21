@@ -89,6 +89,7 @@ bool cliMode = false;
 #include "io/beeper.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
@@ -3467,6 +3468,23 @@ static void cliStatus(char *cmdline)
 
     cliPrintLinefeed();
 #endif
+
+    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+        cliPrint("GPS: ");
+        cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
+        cliPrintLinefeed();
+        //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
+        cliPrintLinef("  GNSS Capabilities:");
+        cliPrintLine("    GNSS Provider active/default");
+        cliPrintLine("    GPS 1/1");
+        if(gpsUbloxHasGalileo())
+            cliPrintLinef("    Galileo %d/%d", gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
+        if(gpsUbloxHasBeidou())
+            cliPrintLinef("    BeiDou %d/%d", gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
+        if(gpsUbloxHasGlonass())
+            cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
+        cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
+    }
 
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
