@@ -1537,12 +1537,30 @@ groups:
         default_value: OFF
         field: ubloxUseGalileo
         type: bool
+      - name: gps_ublox_use_beidou
+        description: "Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseBeidou
+        type: bool
+      - name: gps_ublox_use_glonass
+        description: "Enable use of Glonass satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps haardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseGlonass
+        type: bool
       - name: gps_min_sats
         description: "Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS position valid. Some GPS receivers appeared to be very inaccurate with low satellite count."
         default_value: 6
         field: gpsMinSats
         min: 5
         max: 10
+      - name: gps_ublox_nav_hz
+        description: "Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
+        default_value: 10
+        field: ubloxNavHz
+        type: uint8_t
+        min: 5
+        max: 200
+
 
   - name: PG_RC_CONTROLS_CONFIG
     type: rcControlsConfig_t
@@ -2287,6 +2305,11 @@ groups:
         field: general.land_detect_sensitivity
         min: 1
         max: 15
+      - name: nav_landing_bump_detection
+        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors."
+        default_value: OFF
+        field: general.flags.landing_bump_detection
+        type: bool
       - name: nav_use_midthr_for_althold
         description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
         default_value: OFF

@@ -82,6 +82,9 @@ static EXTENDED_FASTRAM pt1Filter_t accVibeFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM filterApplyFnPtr accNotchFilterApplyFn;
 static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 
+static EXTENDED_FASTRAM float fAccZero[XYZ_AXIS_COUNT];
+static EXTENDED_FASTRAM float fAccGain[XYZ_AXIS_COUNT];
+
 PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 5);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
@@ -103,6 +106,17 @@ void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
          .raw[Y] = SETTING_ACCGAIN_Y_DEFAULT,
          .raw[Z] = SETTING_ACCGAIN_Z_DEFAULT
     );
+}
+
+static void updateAccCoefficients(void) {
+
+    for (uint8_t i = 0; i < XYZ_AXIS_COUNT; i++) {
+        //Float zero
+        fAccZero[i] = (float)accelerometerConfig()->accZero.raw[i];
+        //Float gain
+        fAccGain[i] = (float)accelerometerConfig()->accGain.raw[i] / 4096.0f;
+    }
+
 }
 
 static bool accDetect(accDev_t *dev, accelerationSensor_e accHardwareToUse)
@@ -280,6 +294,7 @@ bool accInit(uint32_t targetLooptime)
     acc.accTargetLooptime = targetLooptime;
     acc.accClipCount = 0;
     accInitFilters();
+    updateAccCoefficients();
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         acc.extremes[axis].min = 100;
@@ -477,15 +492,20 @@ static void performAcclerationCalibration(void)
             // saveConfigAndNotify will trigger eepromREAD and in turn call back the accelerometer gain validation
             // that will set ENABLE_STATE(ACCELEROMETER_CALIBRATED) if all is good
             saveConfigAndNotify();
+            //Recompute all coeffs
+            updateAccCoefficients();
         }
     }
 }
 
-static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const flightDynamicsTrims_t * accGain)
+static void applyAccelerationZero(void)
 {
-    accADC[X] = (accADC[X] - accZero->raw[X]) * accGain->raw[X] / 4096;
-    accADC[Y] = (accADC[Y] - accZero->raw[Y]) * accGain->raw[Y] / 4096;
-    accADC[Z] = (accADC[Z] - accZero->raw[Z]) * accGain->raw[Z] / 4096;
+    float tmp[XYZ_AXIS_COUNT];
+
+    //Apply zero
+    arm_sub_f32(accADC, fAccZero, tmp, XYZ_AXIS_COUNT);
+    //Apply gain
+    arm_mult_f32(tmp, fAccGain, accADC, XYZ_AXIS_COUNT);
 }
 
 /*
@@ -493,9 +513,7 @@ static void applyAccelerationZero(const flightDynamicsTrims_t * accZero, const f
  */
 void accGetMeasuredAcceleration(fpVector3_t *measuredAcc)
 {
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        measuredAcc->v[axis] = acc.accADCf[axis] * GRAVITY_CMSS;
-    }
+    arm_scale_f32(acc.accADCf, GRAVITY_CMSS, measuredAcc->v, XYZ_AXIS_COUNT);
 }
 
 /*
@@ -530,7 +548,7 @@ void accUpdate(void)
 
     if (!ARMING_FLAG(SIMULATOR_MODE_SITL)) {
         performAcclerationCalibration();
-        applyAccelerationZero(&accelerometerConfig()->accZero, &accelerometerConfig()->accGain);  
+        applyAccelerationZero();  
     } 
 
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
