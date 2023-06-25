@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#if !defined(SITL_BUILD)
+
 #include "build/debug.h"
 #include "common/log.h"
 #include "common/memory.h"
@@ -400,3 +402,5 @@ bool pwmMotorAndServoInit(void)
 
     return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
+
+#endif

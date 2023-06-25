@@ -17,4 +17,10 @@
 
 #pragma once
 
+#include "drivers/pitotmeter/pitotmeter.h"
+
 bool fakePitotDetect(pitotDev_t *pitot);
+void fakePitotSetAirspeed(float airSpeed);
+float fakePitotGetAirspeed(void);
+void fakePitotSet(float pressure, float temperature);
+bool fakePitotRead(pitotDev_t *pitot);

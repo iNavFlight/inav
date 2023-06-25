@@ -206,9 +206,11 @@ Up to 3 battery profiles are supported. You can select the battery profile from 
 - `battery_capacity_warning`
 - `battery_capacity_critical`
 - `throttle_idle`
-- `fw_min_throttle_down_pitch`
+- `throttle_scale`
+- `turtle_mode_power_factor`
 - `nav_fw_cruise_thr`
 - `nav_fw_min_thr`
+- `nav_fw_max_thr`
 - `nav_fw_pitch2thr`
 - `nav_fw_launch_thr`
 - `nav_fw_launch_idle_thr`
@@ -309,6 +311,25 @@ set vbat_min_cell_voltage = 330
 set battery_capacity = 1500
 set battery_capacity_warning = 300
 set battery_capacity_critical = 150
+```
+
+#### Change control profile based on battery profile
+
+You can change the control profile, automatically, based on the battery profile. This allows for fine tuning of each power choice.
+
+```
+feature BAT_PROF_AUTOSWITCH
+
+
+battery_profile 1
+
+set bat_cells = 3
+set controlrate_profile = 1
+
+battery_profile 2
+
+set bat_cells = 4
+set controlrate_profile = 2
 ```
 
 ## Remaining flight time and flight distance estimation

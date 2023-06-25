@@ -23,8 +23,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "blackbox/blackbox.h"
 
 #include "build/build_config.h"
@@ -111,18 +109,20 @@ STATIC_FASTRAM pt1Filter_t GPS3DspeedFilter;
 
 FASTRAM bool gpsHeadingInitialized;
 
+FASTRAM bool imuUpdated = false;
+
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
-    .dcm_kp_acc = SETTING_IMU_DCM_KP_DEFAULT,                   // 0.20 * 10000
-    .dcm_ki_acc = SETTING_IMU_DCM_KI_DEFAULT,                   // 0.005 * 10000
-    .dcm_kp_mag = SETTING_IMU_DCM_KP_MAG_DEFAULT,               // 0.20 * 10000
-    .dcm_ki_mag = SETTING_IMU_DCM_KI_MAG_DEFAULT,               // 0.005 * 10000
+    .dcm_kp_acc = SETTING_AHRS_DCM_KP_DEFAULT,                   // 0.20 * 10000
+    .dcm_ki_acc = SETTING_AHRS_DCM_KI_DEFAULT,                   // 0.005 * 10000
+    .dcm_kp_mag = SETTING_AHRS_DCM_KP_MAG_DEFAULT,               // 0.20 * 10000
+    .dcm_ki_mag = SETTING_AHRS_DCM_KI_MAG_DEFAULT,               // 0.005 * 10000
     .small_angle = SETTING_SMALL_ANGLE_DEFAULT,
-    .acc_ignore_rate = SETTING_IMU_ACC_IGNORE_RATE_DEFAULT,
-    .acc_ignore_slope = SETTING_IMU_ACC_IGNORE_SLOPE_DEFAULT,
-    .gps_yaw_windcomp = 1,
-    .inertia_comp_method = COMPMETHOD_VELNED
+    .acc_ignore_rate = SETTING_AHRS_ACC_IGNORE_RATE_DEFAULT,
+    .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
+    .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
+    .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -277,7 +277,7 @@ static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
 
 static bool imuValidateQuaternion(const fpQuaternion_t * quat)
 {
-    const float check = fabs(quat->q0) + fabs(quat->q1) + fabs(quat->q2) + fabs(quat->q3);
+    const float check = fabsf(quat->q0) + fabsf(quat->q1) + fabsf(quat->q2) + fabsf(quat->q3);
 
     if (!isnan(check) && !isinf(check)) {
         return true;
@@ -362,7 +362,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorNormalize(&vMag, &vMag);
 
 #ifdef USE_SIMULATOR
-            if (ARMING_FLAG(SIMULATOR_MODE)) {
+            if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
                 imuSetMagneticDeclination(0);
             }
 #endif
@@ -480,7 +480,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     const float thetaMagnitudeSq = vectorNormSquared(&vTheta);
 
     // If calculated rotation is zero - don't update quaternion
-    if (thetaMagnitudeSq >= 1e-20) {
+    if (thetaMagnitudeSq >= 1e-20f) {
         // Calculate quaternion delta:
         // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
         // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
@@ -511,7 +511,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE) && !SIMULATOR_HAS_OPTION(HITL_USE_IMU)) {
+	if ((ARMING_FLAG(SIMULATOR_MODE_HITL) && !SIMULATOR_HAS_OPTION(HITL_USE_IMU)) || (ARMING_FLAG(SIMULATOR_MODE_SITL) && imuUpdated)) {
 		imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, attitude.values.yaw);
 		imuComputeRotationMatrix();
 	}
@@ -633,7 +633,7 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
 {   
     //fixed wing only
     static float lastspeed = -1.0f;
-    float currentspeed;
+    float currentspeed = 0;
     if (isGPSTrustworthy()){
         //first speed choice is gps
         currentspeed = GPS3DspeedFiltered;
@@ -824,3 +824,15 @@ float calculateCosTiltAngle(void)
 {
     return 1.0f - 2.0f * sq(orientation.q1) - 2.0f * sq(orientation.q2);
 }
+
+#if defined(SITL_BUILD) || defined (USE_SIMULATOR)
+
+void imuSetAttitudeRPY(int16_t roll, int16_t pitch, int16_t yaw)
+{
+    attitude.values.roll = roll;
+    attitude.values.pitch = pitch;
+    attitude.values.yaw = yaw;
+    imuUpdated = true;
+}
+#endif
+

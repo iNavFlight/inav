@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "scheduler.h"
 
 #include "build/build_config.h"
@@ -197,7 +195,6 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId)
         currentTask->maxExecutionTime = 0;
     } else if (taskId < TASK_COUNT) {
         cfTasks[taskId].movingSumExecutionTime = 0;
-        cfTasks[taskId].totalExecutionTime = 0;
         cfTasks[taskId].totalExecutionTime = 0;
     }
 }

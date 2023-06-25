@@ -125,40 +125,6 @@ The following sensors are transmitted
 
 To quickly and easily monitor these SmartPort sensors and flight modes, install [OpenTX Telemetry Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
 
-## FrSky telemetry
-
-FrSky telemetry is for older FrSky transmitters and D-series receivers.  For newer transmitters paired with X-series receivers see SmartPort (S.Port) telemetry above.
-
-FrSky telemetry is transmit only and just requires a single connection from the TX pin of a serial port to the RX pin on an FrSky telemetry receiver.
-
-FrSky telemetry signals are inverted.  To connect a INAV capable board to an FrSKy receiver you have some options.
-
-1. A hardware inverter - Built in to some flight controllers.
-2. Use software serial.
-3. Use a flight controller that has software configurable hardware inversion (e.g. F3 or F7).
-
-For 1, just connect your inverter to a usart or software serial port.
-
-For 2 and 3 use the CLI command as follows:
-
-```
-set telemetry_inverted = OFF
-```
-
-### Precision setting for VFAS
-
-INAV can send VFAS (FrSky Ampere Sensor Voltage) in two ways:
-
-```
-set frsky_vfas_precision  = 0
-```
-This is default setting which supports VFAS resolution of 0.2 volts and is supported on all FrSky hardware.
-
-```
-set frsky_vfas_precision  = 1
-```
-This is new setting which supports VFAS resolution of 0.1 volts and is supported by OpenTX and er9x/ersky9x firmware (this method uses custom ID 0x39).
-
 
 ### Notes
 

@@ -54,11 +54,6 @@
 #define I2C1_SDA                PB7 
 
 /*** IMU sensors ***/
-#define USE_EXTI
-
-#define GYRO_INT_EXTI           PC3
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 // MPU6000
@@ -66,20 +61,18 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          SPI1_NSS_PIN
-#define MPU6000_EXTI_PIN        GYRO_INT_EXTI
 
 // ICM42605/ICM42688P
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW270_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
-#define ICM42605_EXTI_PIN       GYRO_INT_EXTI
+
 //BMI270
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW270_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
-#define BMI270_EXTI_PIN         GYRO_INT_EXTI
 
 /*** OSD ***/
 #define USE_MAX7456

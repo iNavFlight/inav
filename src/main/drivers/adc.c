@@ -25,9 +25,10 @@
 #include "drivers/time.h"
 #include "common/utils.h"
 
-#ifdef USE_ADC
-#include "drivers/io.h"
 #include "drivers/adc.h"
+#if defined(USE_ADC) && !defined(SITL_BUILD)
+#include "drivers/io.h"
+
 #include "drivers/adc_impl.h"
 
 #ifndef ADC_INSTANCE
@@ -206,6 +207,18 @@ uint16_t adcGetChannel(uint8_t channel)
 #endif
 
 #else // USE_ADC
+
+bool adcIsFunctionAssigned(uint8_t function)
+{
+    UNUSED(function);
+    return false;
+}
+
+void adcInit(drv_adc_config_t *init)
+{
+    UNUSED(init);
+}
+
 uint16_t adcGetChannel(uint8_t channel)
 {
     UNUSED(channel);

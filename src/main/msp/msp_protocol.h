@@ -59,7 +59,7 @@
 #define MSP_PROTOCOL_VERSION                0   // Same version over MSPv1 & MSPv2 - message format didn't change and it backward compatible
 
 #define API_VERSION_MAJOR                   2   // increment when major changes are made
-#define API_VERSION_MINOR                   4   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
+#define API_VERSION_MINOR                   5   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
 
 #define API_VERSION_LENGTH                  2
 
@@ -209,7 +209,7 @@
 #define MSP_SET_FILTER_CONFIG           93
 
 #define MSP_PID_ADVANCED                94
-#define MSP_SET_PID_ADVANCED         95
+#define MSP_SET_PID_ADVANCED            95
 
 #define MSP_SENSOR_CONFIG               96
 #define MSP_SET_SENSOR_CONFIG           97
@@ -257,6 +257,7 @@
 #define MSP_RC_DEADBAND          125    //out message         deadbands for yaw alt pitch roll
 #define MSP_SENSOR_ALIGNMENT     126    //out message         orientation of acc,gyro,mag
 #define MSP_LED_STRIP_MODECOLOR  127    //out message         Get LED strip mode_color settings
+#define MSP_BATTERY_STATE        130    // DJI googles fc battery info
 
 #define MSP_SET_RAW_RC           200    //in message          8 rc chan
 #define MSP_SET_RAW_GPS          201    //in message          fix, numsat, lat, lon, alt, speed

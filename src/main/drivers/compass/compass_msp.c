@@ -45,7 +45,7 @@
 
 #define MSP_MAG_TIMEOUT_MS      250     // Less than 4Hz updates is considered a failure
 
-static int32_t mspMagData[XYZ_AXIS_COUNT];
+static float mspMagData[XYZ_AXIS_COUNT];
 static timeMs_t mspMagLastUpdateMs;
 
 static bool mspMagInit(magDev_t *magDev)
@@ -62,9 +62,9 @@ void mspMagReceiveNewData(uint8_t * bufferPtr)
 {
     const mspSensorCompassDataMessage_t * pkt = (const mspSensorCompassDataMessage_t *)bufferPtr;
 
-    mspMagData[X] = pkt->magX;
-    mspMagData[Y] = pkt->magY;
-    mspMagData[Z] = pkt->magZ;
+    mspMagData[X] = (float) pkt->magX;
+    mspMagData[Y] = (float) pkt->magY;
+    mspMagData[Z] = (float) pkt->magZ;
 
     applySensorAlignment(mspMagData, mspMagData, CW90_DEG_FLIP);
 

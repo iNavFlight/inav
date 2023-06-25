@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_SERIAL_RX)
 
@@ -36,8 +35,8 @@ FILE_COMPILE_FOR_SPEED
 
 #ifdef USE_TELEMETRY
 #include "telemetry/telemetry.h"
-#include "telemetry/smartport.h"
 #endif
+#include "telemetry/smartport.h"
 
 #include "rx/frsky_crc.h"
 #include "rx/rx.h"

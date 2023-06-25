@@ -38,6 +38,21 @@
 
 timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 
+#if defined(AT32F43x)
+uint8_t lookupTimerIndex(const tmr_type *tim)
+{
+    int i;
+
+    // let gcc do the work, switch should be quite optimized
+    for (i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        if (tim == timerDefinitions[i].tim) {
+            return i;
+        }
+    }
+    // make sure final index is out of range
+    return ~1;
+}
+#else
 // return index of timer in timer table. Lowest timer has index 0
 uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
 {
@@ -53,6 +68,7 @@ uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
     // make sure final index is out of range
     return ~1;
 }
+#endif
 
 void timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 {
@@ -156,9 +172,13 @@ void timerChConfigIC(TCH_t * tch, bool polarityRising, unsigned inputFilterSampl
 
 uint16_t timerGetPeriod(TCH_t * tch)
 {
+#if defined(AT32F43x)
+    return tch->timHw->tim->pr;     //tmr pr registe
+#else
     return tch->timHw->tim->ARR;
+#endif
 }
-
+//timerHardware  target.c
 void timerInit(void)
 {
     memset(timerCtx, 0, sizeof (timerCtx));

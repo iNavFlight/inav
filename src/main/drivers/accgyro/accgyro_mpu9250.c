@@ -115,6 +115,7 @@ static bool mpu9250DeviceDetect(busDevice_t * dev)
 
         switch (tmp) {
             case MPU9250_WHO_AM_I_CONST:
+            case MPU9255_WHO_AM_I_CONST:
                 // Compatible chip detected
                 return true;
 

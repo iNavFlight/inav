@@ -34,6 +34,12 @@ set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
+set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
+set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT DISABLE_MSP_BF_COMPAT)
+
+set_property(SOURCE gps_ublox_unittest.cc PROPERTY depends "io/gps_ublox_utils.c")
+set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TEST)
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )
