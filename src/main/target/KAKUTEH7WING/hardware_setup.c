@@ -56,19 +56,4 @@ void initialisePreBootHardware(void)
     IOInit(DEFIO_IO(PE4), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
     IOConfigGPIO(DEFIO_IO(PE4), IOCFG_OUT_PP);
     IOLo(DEFIO_IO(PE4));
-
-    // // make sure Vsw is on during bootloader
-    // IOInit(DEFIO_IO(PE3), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
-    // IOConfigGPIO(DEFIO_IO(PE3), IOCFG_OUT_PP);
-    // IOLo(DEFIO_IO(PE3));
-
-    // // VDD_3V3_PERIPH_EN - Enables 3V3 for 8266 and Spektrum
-    // IOInit(DEFIO_IO(PC5), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
-    // IOConfigGPIO(DEFIO_IO(PC5), IOCFG_OUT_PP);
-    // IOHi(DEFIO_IO(PC5));
-
-    // // SPEKTRUM_POWER - Enables 3V3 power output for RC connector
-    // IOInit(DEFIO_IO(PE4), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
-    // IOConfigGPIO(DEFIO_IO(PE4), IOCFG_OUT_PP);
-    // IOHi(DEFIO_IO(PE4));
 }
