@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <sys/socket.h>
 
 #include <platform.h>
 
@@ -186,7 +187,13 @@ typedef enum
     SITL_SIM_XPLANE,
 } SitlSim_e;
 
-bool lockMainPID(void);
-void unlockMainPID(void);
-void parseArguments(int argc, char *argv[]);
-char *strnstr(const char *s, const char *find, size_t slen);
+
+
+extern bool lockMainPID(void);
+extern void unlockMainPID(void);
+extern void parseArguments(int argc, char *argv[]);
+extern char *strnstr(const char *s, const char *find, size_t slen);
+extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
+
+#define IPADDRESS_PRINT_BUFLEN (INET6_ADDRSTRLEN + 16)
+extern char *prettyPrintAddress(struct sockaddr*, char*, size_t);

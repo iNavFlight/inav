@@ -461,7 +461,7 @@ static int getReversibleMotorsThrottleDeadband(void)
     return feature(FEATURE_MOTOR_STOP) ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE mixTable()
+void FAST_CODE mixTable(void)
 {
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {

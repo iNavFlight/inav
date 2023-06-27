@@ -469,11 +469,11 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
-void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT])
+void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT])
 {
-    gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
-    gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
-    gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
+    gyroConfigMutable()->gyro_zero_cal[X] = (int16_t) getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = (int16_t) getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = (int16_t) getGyroZero[Z];
 }
 
 void setGravityCalibration(float getGravity)

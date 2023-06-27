@@ -44,8 +44,8 @@ typedef struct gyroDev_s {
     sensorGyroInterruptStatusFuncPtr intStatusFn;
     sensorGyroUpdateFuncPtr updateFn;
     float scale;                                        // scalefactor
-    int16_t gyroADCRaw[XYZ_AXIS_COUNT];
-    int16_t gyroZero[XYZ_AXIS_COUNT];
+    float gyroADCRaw[XYZ_AXIS_COUNT];
+    float gyroZero[XYZ_AXIS_COUNT];
     uint8_t imuSensorToUse;
     uint8_t lpf;                                        // Configuration value: Hardware LPF setting
     uint32_t requestedSampleIntervalUs;                 // Requested sample interval
@@ -59,7 +59,7 @@ typedef struct accDev_s {
     sensorAccInitFuncPtr initFn;                        // initialize function
     sensorAccReadFuncPtr readFn;                        // read 3 axis data function
     uint16_t acc_1G;
-    int16_t ADCRaw[XYZ_AXIS_COUNT];
+    float ADCRaw[XYZ_AXIS_COUNT];
     uint8_t imuSensorToUse;
     sensor_align_e accAlign;
 } accDev_t;

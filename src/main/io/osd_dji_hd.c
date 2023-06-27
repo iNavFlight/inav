@@ -721,7 +721,7 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
         thr = rcCommand[THROTTLE];
     }
 
-    tfp_sprintf(buff, "%3ld%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
+    tfp_sprintf(buff, "%3ld%s", (unsigned long)((constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN)), "%THR");
 }
 
 /**
@@ -1048,7 +1048,7 @@ static bool djiFormatMessages(char *buff)
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTOLEVEL)";
+                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
