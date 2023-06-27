@@ -84,10 +84,6 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-// #define SPI3_SCK_AF GPIO_AF6_SPI3
-// #define SPI3_MISO_AF GPIO_AF6_SPI3
-// #define SPI3_MOSI_AF GPIO_AF7_SPI3
-
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
@@ -171,14 +167,12 @@
 #define ADC_CHANNEL_1_PIN           PC5  //VBAT1
 #define ADC_CHANNEL_2_PIN           PC4  //CURR1
 #define ADC_CHANNEL_3_PIN           PC0  //RSSI
-// #define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
 #define ADC_CHANNEL_5_PIN           PA3  //VB2
 #define ADC_CHANNEL_6_PIN           PA2  //CU2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
-// #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
 // *************** PINIO ***************************
 #define USE_PINIO
