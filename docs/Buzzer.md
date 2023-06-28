@@ -85,10 +85,12 @@ As with other CLI commands, the `save` command is needed to save the new setting
 
 ## Types of buzzer supported
 
-The buzzers are enabled/disabled by simply enabling or disabling a GPIO output pin on the board.
+Most FCs require ACTIVE buzzers. Active buzzers are enabled/disabled by simply enabling or disabling a GPIO output pin on the board.
 This means the buzzer must be able to generate its own tone simply by having power applied to it.
 
-Buzzers that need an analog or PWM signal do not work and will make clicking noises or no sound at all.
+Passive buzzers that need an analog or PWM signal do not work and will make clicking noises or no sound at all.
+
+Passive buzzers are supported on FCs which are designed to work with passive buzzers only (so far there is no available, except rare cases like Matek F765-WSE where passive buzzer is preinstalled).
 
 Examples of a known-working buzzers.
 
