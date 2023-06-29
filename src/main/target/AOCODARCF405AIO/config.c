@@ -26,5 +26,5 @@
 
 void targetConfiguration(void)
 {
-    boardAlignmentMutable()->yawDeciDegrees = 450;
+    //boardAlignmentMutable()->yawDeciDegrees = 450;
 }
