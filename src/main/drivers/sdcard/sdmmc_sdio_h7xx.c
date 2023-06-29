@@ -104,8 +104,8 @@ static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
     {
         .instance = SDMMC2,
         .irqn = SDMMC2_IRQn,
-        .sdioPinCK  = { PINDEF(2, PC1,   9), PINDEF(2, PD6,  11) },
-        .sdioPinCMD = { PINDEF(2, PA0,   9), PINDEF(2, PD7,  11) },
+        .sdioPinCK  = { PINDEF(2, PC1,   9), PINDEF(2, PD6, 11) },
+        .sdioPinCMD = { PINDEF(2, PA0,   9), PINDEF(2, PD7, 11) },
         .sdioPinD0  = { PINDEF(2, PB14,  9) },
         .sdioPinD1  = { PINDEF(2, PB15,  9) },
         .sdioPinD2  = { PINDEF(2, PB3,   9) },
@@ -262,7 +262,7 @@ bool SD_Init(void)
     hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B; // FIXME untested
 #endif
     hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-#ifdef SDCARD_SDIO_NORMAL_SPPED
+#ifdef SDCARD_SDIO_NORMAL_SPEED
         hsd1.Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
 #else
         hsd1.Init.ClockDiv = 1; // 200Mhz / (2 * 1 ) = 100Mhz, used for "UltraHigh speed SD card" only, see   HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
