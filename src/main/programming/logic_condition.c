@@ -425,20 +425,10 @@ static int logicConditionCompute(
                     pidInit();
                     pidInitFilters();
                     schedulePidGainsUpdate();
-                    navigationUsePIDs();
+                    navigationUsePIDs(); //set navigation pid gains
                     profileChanged = true;
                 }
                 return profileChanged;
-            } else {
-                return false;
-            }
-            break;
-
-        case LOGIC_CONDITION_SET_MIXER_PROFILE:
-            operandA--;
-            if ( getConfigMixerProfile() != operandA  && (operandA >= 0 && operandA < MAX_MIXER_PROFILE_COUNT)) {
-                bool mixerprofileChanged = OutputProfileHotSwitch(operandA);
-                return mixerprofileChanged;
             } else {
                 return false;
             }

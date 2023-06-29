@@ -9,6 +9,15 @@
 #define MAX_MIXER_PROFILE_COUNT 2
 #endif
 
+typedef struct mixerConfig_s {
+    int8_t motorDirectionInverted;
+    uint8_t platformType;
+    bool hasFlaps;
+    int16_t appliedMixerPreset;
+    uint8_t outputMode;
+    bool motorstopFeature;
+    bool PIDProfileLinking;
+} mixerConfig_t;
 typedef struct mixerProfile_s {
     mixerConfig_t mixer_config;
     motorMixer_t MotorMixers[MAX_SUPPORTED_MOTORS];

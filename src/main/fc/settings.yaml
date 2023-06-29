@@ -1134,7 +1134,7 @@ groups:
 
   - name: PG_MIXER_PROFILE
     type: mixerProfile_t
-    headers: ["flight/mixer.h","flight/mixer_profile.h"]
+    headers: ["flight/mixer_profile.h"]
     value_type: MIXER_CONFIG_VALUE
     members:
       - name: motor_direction_inverted
@@ -1168,6 +1168,11 @@ groups:
         description: "If enabled, motor will stop when throttle is low"
         default_value: OFF
         field: mixer_config.motorstopFeature
+        type: bool
+      - name: mixer_pid_profile_linking
+        description: "If enabled, pid profile index will follow mixer profile index"
+        default_value: OFF
+        field: mixer_config.PIDProfileLinking
         type: bool
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG

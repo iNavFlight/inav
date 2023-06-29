@@ -332,6 +332,9 @@ void readEEPROM(void)
     setConfigProfile(getConfigProfile());
     setConfigBatteryProfile(getConfigBatteryProfile());
     setConfigMixerProfile(getConfigMixerProfile());
+    if(mixerConfig()->PIDProfileLinking){
+        setConfigProfile(getConfigMixerProfile());
+    }
 
     validateAndFixConfig();
     activateConfig();
@@ -494,8 +497,10 @@ void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigMixerProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }

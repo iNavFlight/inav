@@ -62,15 +62,6 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
-typedef struct mixerConfig_s {
-    int8_t motorDirectionInverted;
-    uint8_t platformType;
-    bool hasFlaps;
-    int16_t appliedMixerPreset;
-    uint8_t outputMode;
-    bool motorstopFeature;
-} mixerConfig_t;
-
 typedef struct reversibleMotorsConfig_s {
     uint16_t deadband_low;                // min 3d value
     uint16_t deadband_high;               // max 3d value
@@ -125,6 +116,7 @@ void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
 void processContinuousServoAutotrim(const float dT);
 void stopMotors(void);
+void stopMotorsNoDelay(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);

@@ -37,6 +37,8 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                 .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
                 .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
                 .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
+                .motorstopFeature = SETTING_MOTORSTOP_FEATURE_DEFAULT,
+                .PIDProfileLinking = SETTING_OUTPUT_MODE_DEFAULT
             }
         );
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++) {
@@ -108,29 +110,17 @@ static int computeServoCountByMixerProfileIndex(int index)
     }
 }
 
-//pid init will be done by the following pid profile change
-static bool CheckIfPidInitNeededInSwitch(void)
+void SwitchPidProfileByMixerProfile()
 {
-    static bool ret = true;
-    if (!ret)
-    {
-        return false;
-    }
-    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++)
-    {
-        const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
-        const logicOperand_t *operandA = &(logicConditions(i)->operandA);
-        if (logicConditions(i)->enabled && activatorValue && logicConditions(i)->operation == LOGIC_CONDITION_SET_PROFILE &&
-            operandA->type == LOGIC_CONDITION_OPERAND_TYPE_FLIGHT && operandA->value == LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE &&
-            logicConditions(i)->flags == 0)
-        {
-            ret = false;
-            return false;
-        }
-    }
-    return true;
+    LOG_INFO(PWM, "mixer switch pidInit");
+    setConfigProfile(getConfigMixerProfile());
+    pidInit();
+    pidInitFilters();
+    schedulePidGainsUpdate();
+    navigationUsePIDs(); //set navigation pid gains
 }
 
+//switch mixerprofile without reboot
 bool OutputProfileHotSwitch(int profile_index)
 {
     // does not work with timerHardwareOverride
@@ -144,7 +134,7 @@ bool OutputProfileHotSwitch(int profile_index)
     {
         return false;
     }
-    if (areSensorsCalibrating()) {//it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D
+    if (areSensorsCalibrating()) {//it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D,TODO
         return false;
     }
     //do not allow switching in navigation mode
@@ -154,16 +144,16 @@ bool OutputProfileHotSwitch(int profile_index)
     }
     //do not allow switching between multi rotor and non multi rotor
 #ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
-    bool MCFW_hotswap_unavailable = false;
+    bool MCFW_hotswap_available = true;
 #else
-    bool MCFW_hotswap_unavailable = true;
+    bool MCFW_hotswap_available = false;
 #endif
     uint8_t old_platform_type = mixerConfig()->platformType;
     uint8_t new_platform_type = mixerConfigByIndex(profile_index)->platformType;
     bool old_platform_type_mc = old_platform_type == PLATFORM_MULTIROTOR || old_platform_type == PLATFORM_TRICOPTER;
     bool new_platform_type_mc = new_platform_type == PLATFORM_MULTIROTOR || new_platform_type == PLATFORM_TRICOPTER;
     bool is_mcfw_switching = old_platform_type_mc ^ new_platform_type_mc;
-    if (MCFW_hotswap_unavailable && is_mcfw_switching)
+    if ((!MCFW_hotswap_available) && is_mcfw_switching)
     {
         LOG_INFO(PWM, "mixer MCFW_hotswap_unavailable");
         return false;
@@ -171,7 +161,7 @@ bool OutputProfileHotSwitch(int profile_index)
     //do not allow switching if motor or servos counts has changed
     if ((getMotorCount() != computeMotorCountByMixerProfileIndex(profile_index)) || (getServoCount() != computeServoCountByMixerProfileIndex(profile_index)))
     {
-        LOG_INFO(PWM, "mixer switch failed, motor/servo count will change");
+        LOG_INFO(PWM, "mixer switch failed, because of motor/servo count will change");
         // LOG_INFO(PWM, "old motor/servo count:%d,%d",getMotorCount(),getServoCount());
         // LOG_INFO(PWM, "new motor/servo count:%d,%d",computeMotorCountByMixerProfileIndex(profile_index),computeServoCountByMixerProfileIndex(profile_index));
         return false;
@@ -180,23 +170,14 @@ bool OutputProfileHotSwitch(int profile_index)
         LOG_INFO(PWM, "mixer switch failed to set config");
         return false;
     }
-    // stopMotors();
-    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);//stop motors without delay
+    stopMotorsNoDelay();
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
 
-    if(old_platform_type!=mixerConfig()->platformType)
+    if(mixerConfig()->PIDProfileLinking)
     {
-        navigationYawControlInit();
-        if (CheckIfPidInitNeededInSwitch())
-        {
-            LOG_INFO(PWM, "mixer switch pidInit");
-            pidInit();
-            pidInitFilters();
-            schedulePidGainsUpdate();
-            navigationUsePIDs();
-        }
+        SwitchPidProfileByMixerProfile();
     }
     return true;
 }
@@ -244,4 +225,25 @@ bool OutputProfileHotSwitch(int profile_index)
 //     }
 // }
 
-
+//check if a pid profile switch followed on a mixer profile switch
+// static bool CheckIfPidInitNeededInSwitch(void)
+// {
+//     static bool ret = true;
+//     if (!ret)
+//     {
+//         return false;
+//     }
+//     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++)
+//     {
+//         const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+//         const logicOperand_t *operandA = &(logicConditions(i)->operandA);
+//         if (logicConditions(i)->enabled && activatorValue && logicConditions(i)->operation == LOGIC_CONDITION_SET_PROFILE &&
+//             operandA->type == LOGIC_CONDITION_OPERAND_TYPE_FLIGHT && operandA->value == LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE &&
+//             logicConditions(i)->flags == 0)
+//         {
+//             ret = false;
+//             return false;
+//         }
+//     }
+//     return true;
+// }
