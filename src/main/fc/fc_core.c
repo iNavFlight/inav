@@ -784,7 +784,7 @@ void processRx(timeUs_t currentTimeUs)
          }
      }
 //---------------------------------------------------------
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 

@@ -773,7 +773,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE: // int
-            return getConfigMixerProfile() + 1;
+            return currentMixerProfileIndex + 1;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:

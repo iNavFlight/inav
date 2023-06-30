@@ -251,7 +251,7 @@ void writeServos(void)
     /*
      * in case of tricopters, there might me a need to zero servo output when unarmed
      */
-    if (mixerConfig()->platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
+    if (currentMixerConfig.platformType == PLATFORM_TRICOPTER && !ARMING_FLAG(ARMED) && !servoConfig()->tri_unarmed_servo) {
         zeroServoValue = true;
     }
 
@@ -281,7 +281,7 @@ void servoMixer(float dT)
 
         // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
         if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < PWM_RANGE_MIDDLE) &&
-        (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER)) {
+        (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }
@@ -316,6 +316,8 @@ void servoMixer(float dT)
     }
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
+
+    input[BOXMIXERTRANSITION] = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION) * 500; //fixed value
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:

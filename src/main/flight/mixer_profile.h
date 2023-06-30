@@ -26,6 +26,8 @@ typedef struct mixerProfile_s {
 
 PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 
+extern mixerConfig_t currentMixerConfig;
+extern int currentMixerProfileIndex;
 #define mixerConfig() (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->mixer_config))
 #define mixerConfigMutable() ((mixerConfig_t *) mixerConfig())
 
@@ -43,3 +45,4 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 #define mixerServoMixersByIndex(index) (&(mixerProfiles(index)->ServoMixers))
 
 bool OutputProfileHotSwitch(int profile_index);
+void mixerConfigInit(void);

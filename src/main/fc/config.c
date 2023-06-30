@@ -332,9 +332,6 @@ void readEEPROM(void)
     setConfigProfile(getConfigProfile());
     setConfigBatteryProfile(getConfigBatteryProfile());
     setConfigMixerProfile(getConfigMixerProfile());
-    if(mixerConfig()->PIDProfileLinking){
-        setConfigProfile(getConfigMixerProfile());
-    }
 
     validateAndFixConfig();
     activateConfig();

@@ -116,7 +116,7 @@ static void computeMotorCount(void)
 }
 
 bool ifMotorstopFeatureEnabled(void){
-    return mixerConfig()->motorstopFeature;
+    return currentMixerConfig.motorstopFeature;
 }
 
 uint8_t getMotorCount(void) {
@@ -142,31 +142,31 @@ void mixerUpdateStateFlags(void)
     DISABLE_STATE(AIRPLANE);
     DISABLE_STATE(MOVE_FORWARD_ONLY);
 
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
         ENABLE_STATE(FIXED_WING_LEGACY);
         ENABLE_STATE(AIRPLANE);
         ENABLE_STATE(ALTITUDE_CONTROL);
         ENABLE_STATE(MOVE_FORWARD_ONLY);
-    } if (mixerConfig()->platformType == PLATFORM_ROVER) {
+    } if (currentMixerConfig.platformType == PLATFORM_ROVER) {
         ENABLE_STATE(ROVER);
         ENABLE_STATE(FIXED_WING_LEGACY);
         ENABLE_STATE(MOVE_FORWARD_ONLY);
-    } if (mixerConfig()->platformType == PLATFORM_BOAT) {
+    } if (currentMixerConfig.platformType == PLATFORM_BOAT) {
         ENABLE_STATE(BOAT);
         ENABLE_STATE(FIXED_WING_LEGACY);
         ENABLE_STATE(MOVE_FORWARD_ONLY);
-    } else if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+    } else if (currentMixerConfig.platformType == PLATFORM_MULTIROTOR) {
         ENABLE_STATE(MULTIROTOR);
         ENABLE_STATE(ALTITUDE_CONTROL);
-    } else if (mixerConfig()->platformType == PLATFORM_TRICOPTER) {
+    } else if (currentMixerConfig.platformType == PLATFORM_TRICOPTER) {
         ENABLE_STATE(MULTIROTOR);
         ENABLE_STATE(ALTITUDE_CONTROL);
-    } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    } else if (currentMixerConfig.platformType == PLATFORM_HELICOPTER) {
         ENABLE_STATE(MULTIROTOR);
         ENABLE_STATE(ALTITUDE_CONTROL);
     }
 
-    if (mixerConfig()->hasFlaps) {
+    if (currentMixerConfig.hasFlaps) {
         ENABLE_STATE(FLAPERON_AVAILABLE);
     } else {
         DISABLE_STATE(FLAPERON_AVAILABLE);
@@ -192,7 +192,7 @@ void mixerInit(void)
 
     mixerResetDisarmedMotors();
 
-    if (mixerConfig()->motorDirectionInverted) {
+    if (currentMixerConfig.motorDirectionInverted) {
         motorYawMultiplier = -1;
     } else {
         motorYawMultiplier = 1;
@@ -272,7 +272,7 @@ static void applyTurtleModeToMotors(void) {
 
         float signPitch = rcCommand[PITCH] < 0 ? 1 : -1;
         float signRoll = rcCommand[ROLL] < 0 ? 1 : -1;
-        float signYaw = (float)((rcCommand[YAW] < 0 ? 1 : -1) * (mixerConfig()->motorDirectionInverted ? 1 : -1));
+        float signYaw = (float)((rcCommand[YAW] < 0 ? 1 : -1) * (currentMixerConfig.motorDirectionInverted ? 1 : -1));
 
         float stickDeflectionLength = calc_length_pythagorean_2D(stickDeflectionPitchAbs, stickDeflectionRollAbs);
         float stickDeflectionExpoLength = calc_length_pythagorean_2D(stickDeflectionPitchExpo, stickDeflectionRollExpo);
@@ -434,7 +434,7 @@ void stopMotorsNoDelay(void)
 void stopMotors(void)
 {
     stopMotorsNoDelay();
-    
+
     delay(50); // give the timers and ESCs a chance to react.
 }
 
@@ -592,13 +592,20 @@ void FAST_CODE mixTable(void)
             } else {
                 motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
             }
+            
+            //stop motors
+            if (currentMixer[i].throttle <= 0.0f) {
+                motor[i] = motorZeroCommand;
+            }
+            //spin stopped motors only in mixer transition mode
+            if (IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION) && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && (!feature(FEATURE_REVERSIBLE_MOTORS))) {
+                motor[i] = -currentMixer[i].throttle * 1000;
+                motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
+            }
 
             // Motor stop handling
             if (currentMotorStatus != MOTOR_RUNNING) {
                 motor[i] = motorValueWhenStopped;
-            }
-            if (currentMixer[i].throttle <= -1.0f) {
-                motor[i] = motorZeroCommand;
             }
 #ifdef USE_DEV_TOOLS
             if (systemConfig()->groundTestMode) {

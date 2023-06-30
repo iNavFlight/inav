@@ -201,7 +201,7 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 }
 
 static void timerHardwareOverride(timerHardware_t * timer) {
-    if (mixerConfig()->outputMode == OUTPUT_MODE_SERVOS) {
+    if (currentMixerConfig.outputMode == OUTPUT_MODE_SERVOS) {
         
         //Motors are rewritten as servos
         if (timer->usageFlags & TIM_USE_MC_MOTOR) {
@@ -213,7 +213,7 @@ static void timerHardwareOverride(timerHardware_t * timer) {
             timer->usageFlags = timer->usageFlags | TIM_USE_FW_SERVO;
         }
         
-    } else if (mixerConfig()->outputMode == OUTPUT_MODE_MOTORS) {
+    } else if (currentMixerConfig.outputMode == OUTPUT_MODE_MOTORS) {
         
         // Servos are rewritten as motors
         if (timer->usageFlags & TIM_USE_MC_SERVO) {
@@ -250,7 +250,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
         }
 
         // Determine if timer belongs to motor/servo
-        if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER) {
+        if (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER) {
             // Multicopter
 
             // Make sure first motorCount outputs get assigned to motor

@@ -19,11 +19,15 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/rc_modes.h"
 
 #include "programming/logic_condition.h"
 #include "navigation/navigation.h"
 
 #include "common/log.h"
+
+mixerConfig_t currentMixerConfig;
+int currentMixerProfileIndex;
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
 
@@ -60,6 +64,26 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 #endif
             );
         }
+    }
+}
+
+void loadMixerConfig(void) {
+    currentMixerProfileIndex=getConfigMixerProfile();
+    currentMixerConfig=*mixerConfig();
+}
+
+void mixerConfigInit(void){
+    loadMixerConfig();
+    servosInit();
+    mixerUpdateStateFlags();
+    mixerInit();
+    if(currentMixerConfig.PIDProfileLinking){
+        LOG_INFO(PWM, "mixer switch pidInit");
+        setConfigProfile(getConfigMixerProfile());
+        pidInit();
+        pidInitFilters();
+        schedulePidGainsUpdate();
+        navigationUsePIDs(); //set navigation pid gains
     }
 }
 
@@ -110,27 +134,22 @@ static int computeServoCountByMixerProfileIndex(int index)
     }
 }
 
-void SwitchPidProfileByMixerProfile()
-{
-    LOG_INFO(PWM, "mixer switch pidInit");
-    setConfigProfile(getConfigMixerProfile());
-    pidInit();
-    pidInitFilters();
-    schedulePidGainsUpdate();
-    navigationUsePIDs(); //set navigation pid gains
-}
-
 //switch mixerprofile without reboot
 bool OutputProfileHotSwitch(int profile_index)
 {
-    // does not work with timerHardwareOverride
+    static bool allow_hot_switch = true;
+    // does not work with timerHardwareOverride,need to set mixerConfig()->outputMode == OUTPUT_MODE_AUTO
     LOG_INFO(PWM, "OutputProfileHotSwitch");
+    if (!allow_hot_switch)
+    {
+        return false;
+    }
     if (profile_index < 0 || profile_index >= MAX_MIXER_PROFILE_COUNT)
     { // sanity check
         LOG_INFO(PWM, "invalid mixer profile index");
         return false;
     }
-    if (getConfigMixerProfile() == profile_index)
+    if (currentMixerProfileIndex == profile_index)
     {
         return false;
     }
@@ -138,17 +157,18 @@ bool OutputProfileHotSwitch(int profile_index)
         return false;
     }
     //do not allow switching in navigation mode
-    if (ARMING_FLAG(ARMED) && navigationInAnyMode()){
+    if (ARMING_FLAG(ARMED) && (navigationInAnyMode() || isUsingNavigationModes())){
         LOG_INFO(PWM, "mixer switch failed, navModesEnabled");
         return false;
     }
-    //do not allow switching between multi rotor and non multi rotor
+    //pwm mapping map outputs based on platformtype, check if mapping remain unchanged after the switch
+    //do not allow switching between multi rotor and non multi rotor if sannity check fails
 #ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
     bool MCFW_hotswap_available = true;
 #else
     bool MCFW_hotswap_available = false;
 #endif
-    uint8_t old_platform_type = mixerConfig()->platformType;
+    uint8_t old_platform_type = currentMixerConfig.platformType;
     uint8_t new_platform_type = mixerConfigByIndex(profile_index)->platformType;
     bool old_platform_type_mc = old_platform_type == PLATFORM_MULTIROTOR || old_platform_type == PLATFORM_TRICOPTER;
     bool new_platform_type_mc = new_platform_type == PLATFORM_MULTIROTOR || new_platform_type == PLATFORM_TRICOPTER;
@@ -156,14 +176,17 @@ bool OutputProfileHotSwitch(int profile_index)
     if ((!MCFW_hotswap_available) && is_mcfw_switching)
     {
         LOG_INFO(PWM, "mixer MCFW_hotswap_unavailable");
+        allow_hot_switch = false;
         return false;
     }
     //do not allow switching if motor or servos counts has changed
     if ((getMotorCount() != computeMotorCountByMixerProfileIndex(profile_index)) || (getServoCount() != computeServoCountByMixerProfileIndex(profile_index)))
     {
+
         LOG_INFO(PWM, "mixer switch failed, because of motor/servo count will change");
         // LOG_INFO(PWM, "old motor/servo count:%d,%d",getMotorCount(),getServoCount());
         // LOG_INFO(PWM, "new motor/servo count:%d,%d",computeMotorCountByMixerProfileIndex(profile_index),computeServoCountByMixerProfileIndex(profile_index));
+        allow_hot_switch = false;
         return false;
     }
     if (!setConfigMixerProfile(profile_index)){
@@ -171,14 +194,8 @@ bool OutputProfileHotSwitch(int profile_index)
         return false;
     }
     stopMotorsNoDelay();
-    servosInit();
-    mixerUpdateStateFlags();
-    mixerInit();
+    mixerConfigInit();
 
-    if(mixerConfig()->PIDProfileLinking)
-    {
-        SwitchPidProfileByMixerProfile();
-    }
     return true;
 }
 
