@@ -67,13 +67,9 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
     }
 }
 
-void loadMixerConfig(void) {
+void mixerConfigInit(void){
     currentMixerProfileIndex=getConfigMixerProfile();
     currentMixerConfig=*mixerConfig();
-}
-
-void mixerConfigInit(void){
-    loadMixerConfig();
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
@@ -134,23 +130,30 @@ static int computeServoCountByMixerProfileIndex(int index)
     }
 }
 
+
+void outputProfileUpdateTask(timeUs_t currentTimeUs) {
+    UNUSED(currentTimeUs);
+    outputProfileHotSwitch((int) IS_RC_MODE_ACTIVE(BOXMIXERPROFILE));
+
+}
+
 //switch mixerprofile without reboot
-bool OutputProfileHotSwitch(int profile_index)
+bool outputProfileHotSwitch(int profile_index)
 {
     static bool allow_hot_switch = true;
     // does not work with timerHardwareOverride,need to set mixerConfig()->outputMode == OUTPUT_MODE_AUTO
-    LOG_INFO(PWM, "OutputProfileHotSwitch");
+    // LOG_INFO(PWM, "OutputProfileHotSwitch");
     if (!allow_hot_switch)
+    {
+        return false;
+    }
+    if (currentMixerProfileIndex == profile_index)
     {
         return false;
     }
     if (profile_index < 0 || profile_index >= MAX_MIXER_PROFILE_COUNT)
     { // sanity check
         LOG_INFO(PWM, "invalid mixer profile index");
-        return false;
-    }
-    if (currentMixerProfileIndex == profile_index)
-    {
         return false;
     }
     if (areSensorsCalibrating()) {//it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D,TODO

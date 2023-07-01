@@ -349,6 +349,11 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXTURTLE);
     }
 #endif
+
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    ADD_ACTIVE_BOX(BOXMIXERPROFILE);
+    ADD_ACTIVE_BOX(BOXMIXERTRANSITION);
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -415,7 +420,10 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #ifdef USE_MULTI_MISSION
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)),   BOXCHANGEMISSION);
 #endif
-
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    CHECK_ACTIVE_BOX(IS_ENABLED(currentMixerProfileIndex));
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)));
+#endif
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {

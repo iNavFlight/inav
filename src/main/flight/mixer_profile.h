@@ -44,5 +44,6 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 #define mixerMotorMixersByIndex(index) (&(mixerProfiles(index)->MotorMixers))
 #define mixerServoMixersByIndex(index) (&(mixerProfiles(index)->ServoMixers))
 
-bool OutputProfileHotSwitch(int profile_index);
+bool outputProfileHotSwitch(int profile_index);
 void mixerConfigInit(void);
+void outputProfileUpdateTask(timeUs_t currentTimeUs);
