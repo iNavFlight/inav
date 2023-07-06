@@ -59,6 +59,7 @@ if(NOT MACOSX)
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
     )
+    set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-Wl,--no-warn-rwx-segments")
 else()
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
     )
