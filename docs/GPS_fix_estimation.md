@@ -87,14 +87,22 @@ Controls whether waypoint mission is allowed to proceed with gps fix estimation.
 
 # Expected error
 
-Relistic expected error is up to 20%. In tests, 500m drift per 5km path was seen. 
+Realistic expected error is up to 200m per 1km of flight path. In tests, 500m drift per 5km path was seen. 
 
 To dicrease drift:
 - fly one large circle with GPS available to get good wind estimation
-- use airspeed sensor
-- do large turns
-- make sure compass is pointing nose direction precicely
+- use airspeed sensor. If airspeed sensor is not installed, fly in cruise mode without throttle override.
+- do smooth, large turns
+- make sure compass is pointing in nose direction precicely
 - calibrate compass correctly
+
+This video shown real world test where GPS was disabled occasionally. Wind is 10km/h south-west:
+
+
+https://github.com/RomanLut/inav/assets/11955117/0599a3c3-df06-4d40-a32a-4d8f96140592
+
+
+Purple line shows estimated position. Black line shows real position. "EST ERR" sensor shows estimation error in metters. Estimation is running when satellite icon displays "ES". Estimated position snaps to real position when GPS fix is reaquired.
 
 
 # Is it possible to implement this for multirotor ?
