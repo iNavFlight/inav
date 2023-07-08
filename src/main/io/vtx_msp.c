@@ -48,6 +48,7 @@
 #include "io/vtx_msp.h"
 #include "io/vtx_control.h"
 #include "io/vtx_string.h"
+#include "io/vtx_smartaudio.h"
 #include "io/vtx.h"
 #include "io/displayport_msp_osd.h"
 
@@ -77,6 +78,13 @@ static bool prevLowPowerDisarmedState = false;
 static const vtxVTable_t mspVTable; // forward
 static vtxDevice_t vtxMsp = {
     .vTable = &mspVTable,
+    .capability.bandCount = VTX_MSP_TABLE_MAX_BANDS,
+    .capability.channelCount = VTX_MSP_TABLE_MAX_CHANNELS,
+    .capability.powerCount = VTX_MSP_TABLE_MAX_POWER_LEVELS,
+    .capability.bandNames = (char **)vtx58BandNames,
+    .capability.channelNames = (char **)vtx58ChannelNames,
+    .capability.powerNames = (char**)saPowerNames
+
 };
 
 // Fill table with standard values for SA 1.0 and 2.0
@@ -96,13 +104,11 @@ static uint8_t mspVtxPortIdentifier = 255;
 
 static bool isCrsfPortConfig(const serialPortConfig_t *portConfig)
 {
-    LOG_DEBUG(VTX, "msp IsCrsfPortConfig: %c", portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & FUNCTION_VTX_MSP && rxConfig()->serialrx_provider == SERIALRX_CRSF ? 'Y': 'N');
     return portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & FUNCTION_VTX_MSP && rxConfig()->serialrx_provider == SERIALRX_CRSF;
 }
 
 static bool isLowPowerDisarmed(void)
 {
-    //LOG_DEBUG(VTX, "msp IsLowPowerDisarmed\r\n");
     return (!ARMING_FLAG(ARMED) && !failsafeIsActive() &&
         (vtxSettingsConfig()->lowPowerDisarm == VTX_LOW_POWER_DISARM_ALWAYS ||
         (vtxSettingsConfig()->lowPowerDisarm == VTX_LOW_POWER_DISARM_UNTIL_FIRST_ARM && !ARMING_FLAG(WAS_EVER_ARMED))));
@@ -130,25 +136,7 @@ void setMspVtxDeviceStatusReady(const int descriptor)
 {
     LOG_DEBUG(VTX, "msp setMspVtxDeviceStatusReady\r\n");
     UNUSED(descriptor);
-    /*
-    vtxDevice_t *vtxDevice = NULL;
-    uint8_t pBand;
-    uint8_t pChannel;
-    uint8_t pIndex;
 
-    UNUSED(pBand);
-    UNUSED(pChannel);
-    UNUSED(pIndex);
-    if (mspVtxStatus != MSP_VTX_STATUS_READY && isVtxConfigValid(vtxConfig())) {
-#if 0 && defined(USE_MSP_OVER_TELEMETRY)
-        if (getMspSerialPortDescriptor(mspVtxPortIdentifier) == descriptor || getMspTelemetryDescriptor() == descriptor) {
-#else
-        if (getMspSerialPortDescriptor(mspVtxPortIdentifier) == descriptor) {
-#endif
-            mspVtxStatus = MSP_VTX_STATUS_READY;
-        }
-    }
-    */
     mspVtxStatus = MSP_VTX_STATUS_READY;
     mspVtxConfigChanged = true;
 }
@@ -253,7 +241,15 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
             mspVtxConfigChanged = true;
             prevLowPowerDisarmedState = isLowPowerDisarmed();
         }
+/*
+        if(mspConfPowerIndex != vtxSettingsConfig()->power - 1) {
+            mspVtxConfigChanged = true;
+        }
 
+        if(mspConfBand != vtxSettingsConfig()->band || mspConfChannel != vtxSettingsConfig()->channel) {
+            mspVtxConfigChanged = true;
+        }
+*/
         // send an update if stuff has changed with 200ms period
         if ((mspVtxConfigChanged) && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
 
@@ -315,7 +311,7 @@ static void vtxMspSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_
 {
     LOG_DEBUG(VTX, "msp SetBandAndChannel\r\n");
     UNUSED(vtxDevice);
-    if (band != mspConfBand || channel != mspConfChannel /*|| true*/) {
+    if (band != vtxSettingsConfig()->band || channel != mspConfChannel /*|| true*/) {
         LOG_DEBUG(VTX, "msp vtx config changed\r\n");
         mspVtxConfigChanged = true;
     }
@@ -336,7 +332,6 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
             mspVtxConfigChanged = true;
         }
         mspConfPowerIndex = index - 1;
-        //mspConfPower = mspPowerTable[index].mW;
     }
 }
 
