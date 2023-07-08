@@ -111,7 +111,7 @@ static bool isLowPowerDisarmed(void)
 bool isVtxConfigValid(const vtxConfig_t *cfg)
 {
     LOG_DEBUG(VTX, "msp isVtxConfigValid\r\n");
-    for(int i  =0; i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT;++i) {
+    for (int i = 0; i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT; ++i) {
 
         if (cfg->vtxChannelActivationConditions[i].band || 
             (cfg->vtxChannelActivationConditions[i].range.startStep && cfg->vtxChannelActivationConditions[i].range.endStep) ||
@@ -177,7 +177,7 @@ HDZERO parsing
     mspFrame[5] = 0; // Freq_L 
     mspFrame[6] = 0; // Freq_H
     mspFrame[7] = (mspVtxStatus == MSP_VTX_STATUS_READY) ? 1 : 0;
-    mspFrame[8] = vtxSettingsConfig()->lowPowerDisarm;
+    mspFrame[8] = isLowPowerDisarmed();
     mspFrame[9] = 0; // Pitmode freq Low
     mspFrame[10] = 0; // pitmod freq High
     mspFrame[11] = 0; // 1 if using vtx table
@@ -249,12 +249,13 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
     case MSP_VTX_STATUS_READY:
         //LOG_DEBUG(VTX, "msp MspProcess: READY\r\n");
         if (isLowPowerDisarmed() != prevLowPowerDisarmedState) {
+            LOG_DEBUG(VTX, "msp vtx config changed\r\n");
             mspVtxConfigChanged = true;
             prevLowPowerDisarmedState = isLowPowerDisarmed();
         }
 
         // send an update if stuff has changed with 200ms period
-        if (mspVtxConfigChanged && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
+        if ((mspVtxConfigChanged) && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
 
             LOG_DEBUG(VTX, "msp-vtx: vtxInfo Changed\r\n");
             prepareMspFrame(frame);
@@ -314,7 +315,8 @@ static void vtxMspSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_
 {
     LOG_DEBUG(VTX, "msp SetBandAndChannel\r\n");
     UNUSED(vtxDevice);
-    if (band != mspConfBand || channel != mspConfChannel) {
+    if (band != mspConfBand || channel != mspConfChannel /*|| true*/) {
+        LOG_DEBUG(VTX, "msp vtx config changed\r\n");
         mspVtxConfigChanged = true;
     }
     mspConfBand = band;
@@ -328,8 +330,9 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 
     if (index > 0 && (index < VTX_MSP_MAX_POWER_COUNT + 1) && mspPowerTable[index - 1].mW)
     {
-        if (index != mspConfPowerIndex)
+        if (index != mspConfPowerIndex /*|| true*/)
         {
+            LOG_DEBUG(VTX, "msp vtx config changed\r\n");
             mspVtxConfigChanged = true;
         }
         mspConfPowerIndex = index - 1;
@@ -341,7 +344,8 @@ static void vtxMspSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
 {
     LOG_DEBUG(VTX, "msp SetPitMode\r\n");
     UNUSED(vtxDevice);
-    if (onoff != mspConfPitMode) {
+    if (onoff != mspConfPitMode /*|| true*/) {
+        LOG_DEBUG(VTX, "msp vtx config changed\r\n");
         mspVtxConfigChanged = true;
     }
     mspConfPitMode = onoff;
