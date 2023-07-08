@@ -2493,8 +2493,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
                     if (sbufBytesRemaining(src) > 1) {
                         uint8_t newPower = sbufReadU8(src);
-                        vtxCommonSetPowerByIndex(vtxDevice, newPower);
-                        vtxSettingsConfigMutable()->power = newPower;
+                        uint8_t currentPower = 0;
+                        vtxCommonGetPowerIndex(vtxDevice, &currentPower);
+                        if (newPower != currentPower) {
+                            vtxCommonSetPowerByIndex(vtxDevice, newPower);
+                            vtxSettingsConfigMutable()->power = newPower;
+                        }
+
                         // Delegate pitmode to vtx directly
                         const uint8_t newPitmode = sbufReadU8(src);
                         uint8_t currentPitmode = 0;
