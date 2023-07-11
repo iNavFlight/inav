@@ -8,7 +8,7 @@ Building the pull request manually or using custom/unofficial targets is not the
 - You are interested in testing a new feature implemented by this pull request
 
 # Why should you not test a pull request?
-- Pull requests are beta code and may have bugs, bugs may cause you to crash and damage your model
+- Pull requests are beta code and may have bugs; bugs may cause you to crash and damage your model
 - Upgrading from the stable version of INAV may require changes to your config that are not yet fully documented
 
 # Before you proceed
@@ -23,7 +23,7 @@ This is easy, but you will need to be logged in to your GitHub account.
 
 Navigate to the INAV github project and click on [``Pull Requests``](https://github.com/iNavFlight/inav/pulls).
 
-You can just scrool through the list to find a pull request you are interested in, or use the filter bar by typing the name of the pull request, or the number, if you know it.
+You can just scroll through the list to find a pull request you are interested in, or use the filter bar by typing the name of the pull request, or the number, if you know it.
 
 ![Search results](assets/pr_testing/pr_search_result.png)
 
