@@ -878,8 +878,10 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
                           1000 + 0.9 * (currentBatteryProfile->nav.mc.hover_throttle - 1000) : currentBatteryProfile->failsafe_throttle;
 
     /* Altitude sensors gone haywire, attempt to land regardless */
-    if ((posControl.flags.estAltStatus < EST_USABLE) && failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
-        rcCommand[THROTTLE] = getThrottleIdleValue();
+    if (posControl.flags.estAltStatus < EST_USABLE) {
+        if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
+            rcCommand[THROTTLE] = getThrottleIdleValue();
+        }
         return;
     }
 
@@ -893,6 +895,9 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
             updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
+
+            // Update throttle
+            rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
         }
         else {
             // due to some glitch position update has not occurred in time, reset altitude controller
@@ -902,9 +907,6 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         // Indicate that information is no longer usable
         posControl.flags.verticalPositionDataConsumed = true;
     }
-
-    // Update throttle controller
-    rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
 
     // Hold position if possible
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
