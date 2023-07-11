@@ -13,8 +13,9 @@ Building the pull request manually or using custom/unofficial targets is not the
 
 # Before you proceed
 - Read the comments on the pull request you want to test. It may provide useful context and information on known issues, required configuration changes or what branch of the inav-configurator is required.
-- Make a diff all backup of your existing INAV configuration
-- Take notes of what INAV target you are using
+- Make sure the pull request has passed all checks, otherwise you may not have pre-compiled firmware images.
+- Make a diff all backup of your existing INAV configuration.
+- Take notes of what INAV target you are using.
 - You will need a recent version of INAV Configurator from master, or even a specific branch. If you don't need a specific branch, [inav-configurator-next](http://seyrsnys.myzen.co.uk/inav-configurator-next/) usually has recent unofficial pre-built versions of INAV Configurator. If your pull requests refers to an inav-configruator pull request, you are likely to need a specific branch of the configurator. In that case you can try to build it from source by following the build [``Instructions``](https://github.com/iNavFlight/inav-configurator#building-and-running-inav-configurator-locally-for-development) or follow instructions on how to do any needed configuration changes using the CLI.
 
 # Finding the pull request
