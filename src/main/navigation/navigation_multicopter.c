@@ -869,20 +869,21 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
     /* Attempt to stabilise */
     rcCommand[YAW] = 0;
+    rcCommand[ROLL] = 0;
+    rcCommand[PITCH] = 0;
 
-    if ((posControl.flags.estAltStatus < EST_USABLE)) {
-        /* Sensors has gone haywire, attempt to land regardless */
-        if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
-            rcCommand[THROTTLE] = getThrottleIdleValue();
-        }
-        else {
-            rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
-        }
+    /* Set default throttle to 90% of hover throttle if failsafe LAND throttle not set from default.
+     * Will be overwritten if better altitude descent control available */
+    rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle == SETTING_FAILSAFE_THROTTLE_DEFAULT ?
+                          1000 + 0.9 * (currentBatteryProfile->nav.mc.hover_throttle - 1000) : currentBatteryProfile->failsafe_throttle;
 
+    /* Altitude sensors gone haywire, attempt to land regardless */
+    if ((posControl.flags.estAltStatus < EST_USABLE) && failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
+        rcCommand[THROTTLE] = getThrottleIdleValue();
         return;
     }
 
-    // Normal sensor data
+    // Normal sensor data available, use controlled landing descent
     if (posControl.flags.verticalPositionDataNew) {
         const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
         previousTimePositionUpdate = currentTimeUs;
@@ -908,9 +909,6 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     // Hold position if possible
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
         applyMulticopterPositionController(currentTimeUs);
-    } else {
-        rcCommand[ROLL] = 0;
-        rcCommand[PITCH] = 0;
     }
 }
 
