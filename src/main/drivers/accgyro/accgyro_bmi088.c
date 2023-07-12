@@ -136,9 +136,9 @@ static bool bmi088GyroRead(gyroDev_t *gyro)
     uint8_t gyroRaw[6];
 
     if (busReadBuf(gyro->busDev, REGG_RATE_X_LSB, gyroRaw, 6)) {
-        gyro->gyroADCRaw[X] = (int16_t)((gyroRaw[1] << 8) | gyroRaw[0]);
-        gyro->gyroADCRaw[Y] = (int16_t)((gyroRaw[3] << 8) | gyroRaw[2]);
-        gyro->gyroADCRaw[Z] = (int16_t)((gyroRaw[5] << 8) | gyroRaw[4]);
+        gyro->gyroADCRaw[X] = (float) int16_val_little_endian(gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(gyroRaw, 2);
         return true;
     }
 
@@ -151,9 +151,9 @@ static bool bmi088AccRead(accDev_t *acc)
 
     if (busReadBuf(acc->busDev, REGA_STATUS, buffer, 2) && (buffer[1] & 0x80) && busReadBuf(acc->busDev, REGA_X_LSB, buffer, 7)) {
         // first byte is discarded, see datasheet
-        acc->ADCRaw[X] = (int32_t)(((int16_t)(buffer[2] << 8) | buffer[1]) * 3 / 4);
-        acc->ADCRaw[Y] = (int32_t)(((int16_t)(buffer[4] << 8) | buffer[3]) * 3 / 4);
-        acc->ADCRaw[Z] = (int32_t)(((int16_t)(buffer[6] << 8) | buffer[5]) * 3 / 4);
+        acc->ADCRaw[X] = (float)(((int16_t)(buffer[2] << 8) | buffer[1]) * 3 / 4);
+        acc->ADCRaw[Y] = (float)(((int16_t)(buffer[4] << 8) | buffer[3]) * 3 / 4);
+        acc->ADCRaw[Z] = (float)(((int16_t)(buffer[6] << 8) | buffer[5]) * 3 / 4);
         return true;
     }
 

@@ -70,7 +70,7 @@ git clone https://github.com/iNavFlight/inav
 
 ![GIT Checkout](assets/002.test.png)
 
-To compile your INAV binaries, enter the inav directory and build the project using the make command. You can append TARGET=[HARDWARE] if you want to build anything other than the default SPRACINGF3 target:
+To compile your INAV binaries, enter the INAV directory and build the project using the make command. You can append TARGET=[HARDWARE] if you want to build anything other than the default SPRACINGF3 target:
 
 ```bash
 cd inav

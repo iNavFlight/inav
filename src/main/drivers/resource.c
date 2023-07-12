@@ -19,7 +19,7 @@
 
 const char * const ownerNames[OWNER_TOTAL_COUNT] = {
     "FREE", "PWM/IO", "MOTOR", "SERVO", "SOFTSERIAL", "ADC", "SERIAL", "TIMER",
-    "RANGEFINDER", "SYSTEM", "SPI", "I2C", "SDCARD", "FLASH", "USB", "BEEPER", "OSD",
+    "RANGEFINDER", "SYSTEM", "SPI", "QUADSPI", "I2C", "SDCARD", "FLASH", "USB", "BEEPER", "OSD",
     "BARO", "MPU", "INVERTER", "LED STRIP", "LED", "RECEIVER", "TRANSMITTER",
     "VTX", "SPI_PREINIT", "COMPASS", "TEMPERATURE", "1-WIRE", "AIRSPEED", "OLED DISPLAY",
     "PINIO", "IRLOCK"
@@ -33,6 +33,8 @@ const char * const resourceNames[RESOURCE_TOTAL_COUNT] = {
     "EXTI",
     "SCL", "SDA",
     "SCK", "MOSI", "MISO", "CS",
+    "CLK","BK1IO0", "BK1IO1", "BK1IO2", "BK1IO3", "BK1CS",
+    "BK2IO0", "BK2IO1", "BK2IO2", "BK2IO3", "BK2CS",
     "CH1", "CH2", "CH3", "CH4",
     "CE"
 };

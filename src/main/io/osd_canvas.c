@@ -279,7 +279,7 @@ static void osdDrawArtificialHorizonShapes(displayCanvas_t *canvas, float pitchA
         itoa(absLevel, buf, 10);
         int pos = level * pixelsPerDegreeLevel;
         int charY = 9 - pos * 2;
-        int cx = (absLevel >= 100 ? -1.5f : -1.0) * canvas->gridElementWidth;
+        int cx = (absLevel >= 100 ? -1.5f : -1.0f) * canvas->gridElementWidth;
         int px = cx + (pitchOffset + pos) * sx * 2;
         int py = -charY - (pitchOffset + pos) * (1 - sy) * 2;
         displayCanvasDrawString(canvas, px, py, buf, 0);
@@ -438,7 +438,7 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
 
 void osdCanvasDrawHeadingGraph(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, int heading)
 {
-    static const uint16_t graph[] = {
+    static const uint8_t graph[] = {
         SYM_HEADING_W,
         SYM_HEADING_LINE,
         SYM_HEADING_DIVIDED_LINE,

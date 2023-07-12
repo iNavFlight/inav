@@ -51,8 +51,6 @@
 
 #define RSSI_MAX_VALUE 1023
 
-#define PPM_RCVR_TIMEOUT            0
-
 typedef enum {
     RX_FRAME_PENDING             = 0,         // No new data available from receiver
     RX_FRAME_COMPLETE            = (1 << 0),  // There is new data available
@@ -64,7 +62,8 @@ typedef enum {
 typedef enum {
     RX_TYPE_NONE = 0,
     RX_TYPE_SERIAL,
-    RX_TYPE_MSP
+    RX_TYPE_MSP,
+    RX_TYPE_SIM
 } rxReceiverType_e;
 
 typedef enum {
@@ -81,9 +80,9 @@ typedef enum {
     SERIALRX_SRXL2,
     SERIALRX_GHST,
     SERIALRX_MAVLINK,
+    SERIALRX_FBUS,
 } rxSerialReceiverType_e;
 
-#define MAX_SUPPORTED_RC_PPM_CHANNEL_COUNT          16
 #define MAX_SUPPORTED_RC_CHANNEL_COUNT              18
 
 #define NON_AUX_CHANNEL_COUNT 4
@@ -138,18 +137,21 @@ PG_DECLARE(rxConfig_t, rxConfig);
 
 #define REMAPPABLE_CHANNEL_COUNT ARRAYLEN(((rxConfig_t *)0)->rcmap)
 
-typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
-typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
-typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
-typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
-typedef uint16_t (*rcGetLinkQualityPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
-
 typedef struct rxLinkQualityTracker_s {
     timeMs_t lastUpdatedMs;
     uint32_t lqAccumulator;
     uint32_t lqCount;
     uint32_t lqValue;
 } rxLinkQualityTracker_e;
+
+
+struct rxRuntimeConfig_s;
+typedef struct rxRuntimeConfig_s rxRuntimeConfig_t;
+
+typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
+typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
+typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
+typedef uint16_t (*rcGetLinkQualityPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
 
 typedef struct rxRuntimeConfig_s {
     uint8_t channelCount;                  // number of rc channels as reported by current input driver
@@ -185,6 +187,11 @@ typedef struct rxLinkStatistics_s {
     uint16_t uplinkTXPower; // power in mW
     uint8_t activeAntenna;
 } rxLinkStatistics_t;
+
+typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
+typedef uint8_t (*rcFrameStatusFnPtr)(rxRuntimeConfig_t *rxRuntimeConfig);
+typedef bool (*rcProcessFrameFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
+typedef uint16_t (*rcGetLinkQualityPtr)(const rxRuntimeConfig_t *rxRuntimeConfig);
 
 extern rxRuntimeConfig_t rxRuntimeConfig; //!!TODO remove this extern, only needed once for channelCount
 extern rxLinkStatistics_t rxLinkStatistics;

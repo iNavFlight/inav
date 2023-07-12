@@ -49,7 +49,6 @@
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
-#include "flight/secondary_imu.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
 
@@ -201,7 +200,10 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
     }
 
     pitotUpdate();
-    updatePositionEstimator_PitotTopic(currentTimeUs);
+
+    if ( pitotIsHealthy()) {
+        updatePositionEstimator_PitotTopic(currentTimeUs);
+    }
 }
 #endif
 
@@ -307,7 +309,7 @@ void taskUpdateAux(timeUs_t currentTimeUs)
     updatePIDCoefficients();
     dynamicLpfGyroTask();
 #ifdef USE_SIMULATOR
-    if (!ARMING_FLAG(SIMULATOR_MODE)) {
+    if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         updateFixedWingLevelTrim(currentTimeUs);
     }
 #else
@@ -397,9 +399,6 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
-#endif
-#ifdef USE_SECONDARY_IMU
-    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
 }
 
@@ -625,14 +624,6 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PROGRAMMING_FRAMEWORK] = {
         .taskName = "PROGRAMMING",
         .taskFunc = programmingFrameworkUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
-        .staticPriority = TASK_PRIORITY_IDLE,
-    },
-#endif
-#ifdef USE_SECONDARY_IMU
-    [TASK_SECONDARY_IMU] = {
-        .taskName = "IMU2",
-        .taskFunc = taskSecondaryImu,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

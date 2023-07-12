@@ -69,6 +69,7 @@ typedef struct displayPortVTable_s displayPortVTable_t;
 typedef struct displayPort_s {
     const displayPortVTable_t *vTable;
     void *device;
+    const char* displayPortType;
     uint8_t rows;
     uint8_t cols;
     uint8_t posX;

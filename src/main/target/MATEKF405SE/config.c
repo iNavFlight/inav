@@ -37,11 +37,9 @@ void targetConfiguration(void)
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 #endif
 
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
+    //serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
+    //serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
 
-    //featureSet(FEATURE_PWM_OUTPUT_ENABLE); // enable PWM outputs by default
-    //mixerConfigMutable()->mixerMode = MIXER_FLYING_WING; // default mixer to flying wing
     mixerConfigMutable()->platformType = PLATFORM_AIRPLANE;   // default mixer to Airplane
 
     serialConfigMutable()->portConfigs[7].functionMask = FUNCTION_TELEMETRY_SMARTPORT;

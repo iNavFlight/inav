@@ -189,7 +189,7 @@ void ltm_sframe(sbuf_t *dst)
     sbufWriteU16(dst, (uint16_t)constrain(getMAhDrawn(), 0, 0xFFFF));    // current mAh (65535 mAh max)
     sbufWriteU8(dst, (uint8_t)((getRSSI() * 254) / 1023));        // scaled RSSI (uchar)
 #if defined(USE_PITOT)
-    sbufWriteU8(dst, sensors(SENSOR_PITOT) ? getAirspeedEstimate() / 100.0f : 0);  // in m/s
+    sbufWriteU8(dst, (sensors(SENSOR_PITOT) && pitotIsHealthy())? getAirspeedEstimate() / 100.0f : 0);  // in m/s
 #else
     sbufWriteU8(dst, 0);
 #endif

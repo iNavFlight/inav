@@ -10,6 +10,18 @@ To use the Matek 1G3SE with IRC Tramp. You will need to enter the CLI command `s
 
 Note: The frequencies required by the US version of the VTx are on `vtx_band` 2 (BAND B) only.
 
+Power levels are: 
+- `1` 25mW
+- `2` 200mW
+- `3` 800 mW
+
+##### Matek 1G3SE frequency chart
+
+| Band | 1    | 2    | 3    | 4    | 5    | 6    | 7    | 8    |
+|------|------|------|------|------|------|------|------|------|
+| A    | 1080 | 1120 | 1160 | 1200 | 1240 | 1280 | 1320 | 1360 |
+| B    | 1080 | 1120 | 1160 | 1200 | 1258 | 1280 | 1320 | 1360 |
+
 ### Team BlackSheep SmartAudio
 
 If you have problems getting SmartAudio working. There are a couple of CLI parameters you can try changing to see if they help.

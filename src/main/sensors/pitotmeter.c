@@ -34,6 +34,7 @@
 #include "drivers/pitotmeter/pitotmeter_adc.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "drivers/pitotmeter/pitotmeter_virtual.h"
+#include "drivers/pitotmeter/pitotmeter_fake.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -193,6 +194,13 @@ STATIC_PROTOTHREAD(pitotThread)
     pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
+#ifdef USE_SIMULATOR
+    	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
+        {
+            ptDelayUs(10000);
+    	}
+#endif
+
         // Start measurement
         if (pitot.dev.start(&pitot.dev)) {
             pitot.lastSeenHealthyMs = millis();
@@ -210,6 +218,11 @@ STATIC_PROTOTHREAD(pitotThread)
     	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
         	pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
     	}
+#endif
+#if defined(USE_PITOT_FAKE)
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+    	} 
 #endif
         ptYield();
 
@@ -236,8 +249,13 @@ STATIC_PROTOTHREAD(pitotThread)
         }
 #ifdef USE_SIMULATOR
     	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-        	pitot.airSpeed = simulatorData.airSpeed;
+            pitot.airSpeed = simulatorData.airSpeed;
     	}
+#endif
+#if defined(USE_PITOT_FAKE)
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitot.airSpeed = fakePitotGetAirspeed();
+    }
 #endif
     }
 
