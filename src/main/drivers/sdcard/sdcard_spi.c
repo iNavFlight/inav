@@ -453,7 +453,6 @@ static bool sdcardSpi_poll(void)
     doMore:
     switch (sdcard.state) {
         case SDCARD_STATE_RESET:
-            busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
             sdcardSpi_select();
 
             initStatus = sdcardSpi_sendCommand(SDCARD_COMMAND_GO_IDLE_STATE, 0);
@@ -476,8 +475,6 @@ static bool sdcardSpi_poll(void)
         break;
 
         case SDCARD_STATE_CARD_INIT_IN_PROGRESS:
-            busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
-
             if (sdcardSpi_checkInitDone()) {
                 if (sdcard.version == 2) {
                     // Check for high capacity card
@@ -516,8 +513,6 @@ static bool sdcardSpi_poll(void)
             busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
         break;
         case SDCARD_STATE_INITIALIZATION_RECEIVE_CID:
-            busSetSpeed(sdcard.dev, BUS_SPEED_INITIALIZATION);
-
             if (sdcardSpi_receiveCID()) {
                 sdcardSpi_deselect();
 
@@ -881,8 +876,6 @@ void sdcardSpi_init(void)
     sdcard.operationStartTime = millis();
     sdcard.state = SDCARD_STATE_RESET;
     sdcard.failureCount = 0;
-
-    busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
 }
 
 sdcardVTable_t sdcardSpiVTable = {
