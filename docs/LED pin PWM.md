@@ -1,0 +1,61 @@
+# LED pin PWM
+
+Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and every 10ms a set of pulses is sent to change color of the 24 LEDs:
+
+As alternative function, it is possible to generate PWM signal with specified duty ratio on the LED pin.
+
+Feature can be used to drive external devices. It also is used to simulate OSD joystick to control cameras.
+
+PWN frequency is fixed to 24kHz with duty ratio between 0 and 100%.
+
+There are four modes of opearation:
+- low
+- high
+- shared_low
+- shared_high
+
+Mode is configured using led_pin_pwm_mode setting.
+
+## Low
+ LED Pin is initialized to output low level and can be used to generate PWM signal.
+ ws2812 strip can not be controlled.
+
+## High
+ LED Pin is initialized to output high level and can be used to generate PWM signal.
+ ws2812 strip can not be controlled.
+
+## Shared low ( default)
+ LED Pin is used to drive WS2812 strip. Pauses between pulses are low:
+
+
+ It is possible to generate PWM signal with duty ratio >0...100%. While PWM signal is generated, ws2811 strip is not updated. When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio < ~10%.
+
+ 
+
+## Shared high
+ LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pulses are prefixed with 300us low 'reset' pulse:
+
+ It is possible to generate PWM signal with duty ratio 0...<100%. While PWM signal is generated, ws2811 strip is not updated. When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1.5ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio > ~85%.
+ After sending ws2812 pulses for 24 LEDS, we held line high for 9ms, then send 300us low 'reset' pulse. Datasheet for ws2812 protocol does not describe behavior for long high pulse, but in practice it works the same as 'reset' pulse. To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
+ This moude is used to simulate OSD joystick. It is Ok that effective PWM ratio is 85..100% while driving LEDs, because OSD joystick keyspress voltages are far below 85%.
+ See OSD Joystick.md for more information.
+
+# Generating PWM signal in programming framework
+
+*TODO*
+0...100 - enable PWM generation with specified duty cicle
+-1 - disable PWM generation ( disable to allow ws2812 LEDs updates in shared modes )
+
+# Generating PWM signal from CLI
+
+led_pin_pwm <value> - value=0...100 -  enable PWM generation with specified duty cicle
+led_pin_pwm - disable PWM generation ( disable to allow ws2812 LEDs updates in shared modes )
+
+# Example of driving single color LED
+
+*TODO*
+
+# Example of driving powerfull white LED
+
+*TODO*
+
