@@ -87,16 +87,6 @@ static vtxDevice_t vtxMsp = {
 
 };
 
-// Fill table with standard values for SA 1.0 and 2.0
-static mspPowerTable_t mspPowerTable[VTX_MSP_MAX_POWER_COUNT] = {
-    {  25,   7 },
-    { 200,  16 },
-    { 500,  25 },
-    { 800,  40 },
-    {   0,   0 } // Placeholder
-};
-
-
 STATIC_UNIT_TESTED mspVtxStatus_e mspVtxStatus = MSP_VTX_STATUS_OFFLINE;
 static uint8_t mspVtxPortIdentifier = 255;
 
@@ -219,6 +209,34 @@ static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const
 
 static uint16_t packetCounter = 0;
 
+static bool isVtxConfigChanged(void)
+{
+    if(mspVtxStatus == MSP_VTX_STATUS_READY) {
+        if (mspVtxConfigChanged == true)
+                return true;
+
+        if (isLowPowerDisarmed() != prevLowPowerDisarmedState) {
+                LOG_DEBUG(VTX, "msp vtx config changed (lower power disarm 2)\r\n");
+                mspVtxConfigChanged = true;
+                prevLowPowerDisarmedState = isLowPowerDisarmed();
+        }
+
+        if (mspConfPowerIndex != vtxSettingsConfig()->power) {
+                LOG_DEBUG(VTX, "msp vtx config changed (power 2)\r\n");
+                mspVtxConfigChanged = true;
+        }
+
+        if (mspConfBand != vtxSettingsConfig()->band || mspConfChannel != vtxSettingsConfig()->channel) {
+                LOG_DEBUG(VTX, "msp vtx config changed (band and channel 2)\r\n");
+                mspVtxConfigChanged = true;
+        }
+
+        return mspVtxConfigChanged;
+    }
+
+    return false;
+}
+
 static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 {
     UNUSED(vtxDevice);
@@ -235,23 +253,9 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 #endif
         break;
     case MSP_VTX_STATUS_READY:
-        //LOG_DEBUG(VTX, "msp MspProcess: READY\r\n");
-        if (isLowPowerDisarmed() != prevLowPowerDisarmedState) {
-            LOG_DEBUG(VTX, "msp vtx config changed\r\n");
-            mspVtxConfigChanged = true;
-            prevLowPowerDisarmedState = isLowPowerDisarmed();
-        }
-/*
-        if(mspConfPowerIndex != vtxSettingsConfig()->power - 1) {
-            mspVtxConfigChanged = true;
-        }
-
-        if(mspConfBand != vtxSettingsConfig()->band || mspConfChannel != vtxSettingsConfig()->channel) {
-            mspVtxConfigChanged = true;
-        }
-*/
+        LOG_DEBUG(VTX, "msp MspProcess: READY\r\n");
         // send an update if stuff has changed with 200ms period
-        if ((mspVtxConfigChanged) && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
+        if ((isVtxConfigChanged()) && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
 
             LOG_DEBUG(VTX, "msp-vtx: vtxInfo Changed\r\n");
             prepareMspFrame(frame);
@@ -311,8 +315,8 @@ static void vtxMspSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_
 {
     LOG_DEBUG(VTX, "msp SetBandAndChannel\r\n");
     UNUSED(vtxDevice);
-    if (band != vtxSettingsConfig()->band || channel != mspConfChannel /*|| true*/) {
-        LOG_DEBUG(VTX, "msp vtx config changed\r\n");
+    if (band != mspConfBand || channel != mspConfChannel) {
+        LOG_DEBUG(VTX, "msp vtx config changed (band and channel)\r\n");
         mspVtxConfigChanged = true;
     }
     mspConfBand = band;
@@ -324,14 +328,14 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
     LOG_DEBUG(VTX, "msp SetPowerByIndex\r\n");
     UNUSED(vtxDevice);
 
-    if (index > 0 && (index < VTX_MSP_MAX_POWER_COUNT + 1) && mspPowerTable[index - 1].mW)
+    if (index > 0 && (index < VTX_MSP_MAX_POWER_LEVELS))
     {
-        if (index != mspConfPowerIndex /*|| true*/)
+        if (index != mspConfPowerIndex)
         {
-            LOG_DEBUG(VTX, "msp vtx config changed\r\n");
+            LOG_DEBUG(VTX, "msp vtx config changed (power by index)\r\n");
             mspVtxConfigChanged = true;
         }
-        mspConfPowerIndex = index - 1;
+        mspConfPowerIndex = index;
     }
 }
 
@@ -339,8 +343,8 @@ static void vtxMspSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
 {
     LOG_DEBUG(VTX, "msp SetPitMode\r\n");
     UNUSED(vtxDevice);
-    if (onoff != mspConfPitMode /*|| true*/) {
-        LOG_DEBUG(VTX, "msp vtx config changed\r\n");
+    if (onoff != mspConfPitMode) {
+        LOG_DEBUG(VTX, "msp vtx config changed (pitmode)\r\n");
         mspVtxConfigChanged = true;
     }
     mspConfPitMode = onoff;
@@ -382,7 +386,7 @@ static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 
     uint8_t power = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power;
     // Special case, power not set
-    if (power > VTX_MSP_MAX_POWER_COUNT + 1) {
+    if (power > VTX_MSP_TABLE_MAX_POWER_LEVELS) {
         *pIndex = 0;
         //LOG_DEBUG(VTX, "msp GetPowerIndex: %u\r\n", *pIndex);
         return true;
@@ -401,42 +405,11 @@ static bool vtxMspGetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
         return false;
     }
 
-    // TODO: 
-    switch(vtxSettingsConfig()->frequencyGroup)
-    {
-        case FREQUENCYGROUP_1G3:
-            *pFreq = 1300;
-            break;
-        case FREQUENCYGROUP_2G4:
-            *pFreq = 2400;
-            break;
-        case FREQUENCYGROUP_5G8:
-            *pFreq = 5800;
-            break;
-        default:
-            return false;
-    }
+    *pFreq = 5800;
+    break;
 
     return true;
 }
-
-
-
-#if 0
-static bool vtxMspGetStatus(const vtxDevice_t *vtxDevice, unsigned *status)
-{
-    if (!vtxMspIsReady(vtxDevice)) {
-        return false;
-    }
-
-    // Mirror configued pit mode state rather than use current pitmode as we
-    // should, otherwise the logic in vtxProcessPitMode may not get us to the
-    // correct state if pitmode is toggled quickly
-    *status = (mspConfPitMode ? 1 : 0);
-
-    return true;
-}
-#endif
 
 static bool vtxMspGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw)
 {
@@ -449,7 +422,7 @@ static bool vtxMspGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16
 
 
     *pIndex = powerIndex;
-    *pPowerMw = (powerIndex > 0) ? mspPowerTable[powerIndex - 1].mW : 0;
+    *pPowerMw = *pIndex;
     return true;
 }
 
@@ -506,34 +479,12 @@ bool vtxMspInit(void)
     mspConfBand = vtxSettingsConfig()->band;
     mspConfChannel = vtxSettingsConfig()->channel;
     mspConfPowerIndex = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power; // index based
-    mspConfPitMode = 0;
+    vtxCommonGetPitMode(&vtxMsp, &mspConfPitMode);
 
     vtxInit();
 
-    mspVtxStatus = MSP_VTX_STATUS_READY;
-
     return true;
 }
-
-/*
-typedef struct vtxVTable_s {
-    void (*process)(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs);
-    vtxDevType_e (*getDeviceType)(const vtxDevice_t *vtxDevice);
-    bool (*isReady)(const vtxDevice_t *vtxDevice);
-
-    void (*setBandAndChannel)(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel);
-    void (*setPowerByIndex)(vtxDevice_t *vtxDevice, uint8_t level);
-    void (*setPitMode)(vtxDevice_t *vtxDevice, uint8_t onoff);
-
-    bool (*getBandAndChannel)(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel);
-    bool (*getPowerIndex)(const vtxDevice_t *vtxDevice, uint8_t *pIndex);
-    bool (*getPitMode)(const vtxDevice_t *vtxDevice, uint8_t *pOnOff);
-    bool (*getFrequency)(const vtxDevice_t *vtxDevice, uint16_t *pFreq);
-
-    bool (*getPower)(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw);
-    bool (*getOsdInfo)(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * pOsdInfo);
-}
-*/
 
 static const vtxVTable_t mspVTable = {
     .process = vtxMspProcess,
