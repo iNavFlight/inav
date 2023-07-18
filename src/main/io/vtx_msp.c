@@ -328,7 +328,7 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
     LOG_DEBUG(VTX, "msp SetPowerByIndex\r\n");
     UNUSED(vtxDevice);
 
-    if (index > 0 && (index < VTX_MSP_MAX_POWER_LEVELS))
+    if (index > 0 && (index < VTX_MSP_TABLE_MAX_POWER_LEVELS))
     {
         if (index != mspConfPowerIndex)
         {
@@ -406,8 +406,6 @@ static bool vtxMspGetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
     }
 
     *pFreq = 5800;
-    break;
-
     return true;
 }
 
