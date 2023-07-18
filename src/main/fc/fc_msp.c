@@ -92,6 +92,7 @@
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
+#include "io/vtx_msp.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
 
 #include "msp/msp.h"
@@ -1411,6 +1412,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_VTX_CONFIG:
 #ifdef USE_VTX_CONTROL
         {
+            LOG_DEBUG(VTX, "MSP_VTX_CONFIG fc_msp");
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
 
@@ -2474,6 +2476,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_VTX_CONTROL
     case MSP_SET_VTX_CONFIG:
+        LOG_DEBUG(VTX, "msp MSP_SET_VTX_CONFIG fc_msp");
         if (dataSize >= 2) {
             vtxDevice_t *vtxDevice = vtxCommonDevice();
             if (vtxDevice) {
@@ -2518,6 +2521,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
+#ifdef USE_VTX_MSP
+    case MSP_SET_VTXTABLE_BAND:
+    case MSP_SET_VTXTABLE_POWERLEVEL:
+        if(MSP_RESULT_ERROR == mspVtxProcessMspInCommand(cmdMSP, src)) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
 #endif
 
 #ifdef USE_FLASHFS

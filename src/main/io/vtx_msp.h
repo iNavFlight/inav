@@ -33,11 +33,6 @@ typedef enum {
     MSP_VTX_STATUS_READY,
 } mspVtxStatus_e;
 
-typedef struct mspPowerTable_s {
-    int mW;         // rfpower
-    int16_t dbi;    // valueV1
-} mspPowerTable_t;
-
 #define VTX_MSP_TABLE_MAX_BANDS             5 // default freq table has 5 bands
 #define VTX_MSP_TABLE_MAX_CHANNELS          8 // and eight channels
 #define VTX_MSP_TABLE_MAX_POWER_LEVELS      5 //max of VTX_TRAMP_POWER_COUNT, VTX_SMARTAUDIO_POWER_COUNT and VTX_RTC6705_POWER_COUNT
@@ -45,9 +40,23 @@ typedef struct mspPowerTable_s {
 #define VTX_MSP_TABLE_BAND_NAME_LENGTH      8
 #define VTX_MSP_TABLE_POWER_LABEL_LENGTH    3
 
+typedef struct vtxMspTableConfig_s {
+    uint8_t  bands;
+    uint8_t  channels;
+    uint16_t frequency[VTX_MSP_TABLE_MAX_BANDS][VTX_MSP_TABLE_MAX_CHANNELS];
+    char     bandNames[VTX_MSP_TABLE_MAX_BANDS][VTX_MSP_TABLE_BAND_NAME_LENGTH + 1];
+    char     bandLetters[VTX_MSP_TABLE_MAX_BANDS];
+    char     channelNames[VTX_MSP_TABLE_MAX_CHANNELS][VTX_MSP_TABLE_CHANNEL_NAME_LENGTH + 1];
+    bool     isFactoryBand[VTX_MSP_TABLE_MAX_BANDS];
+
+    uint8_t  powerLevels;
+    uint16_t powerValues[VTX_MSP_TABLE_MAX_POWER_LEVELS];
+    char     powerLabels[VTX_MSP_TABLE_MAX_POWER_LEVELS][VTX_MSP_TABLE_POWER_LABEL_LENGTH + 1];
+} vtxMspTableConfig_t;
 
 bool vtxMspInit(void);
 void setMspVtxDeviceStatusReady(const int descriptor);
 void prepareMspFrame(uint8_t *mspFrame);
 
 void mspVtxSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
+mspResult_e mspVtxProcessMspInCommand(uint16_t cmdMSP, sbuf_t *src);
