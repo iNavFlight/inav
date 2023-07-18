@@ -196,7 +196,7 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
     }
 #endif
 #if defined(ADC_CHANNEL_5_PIN)
-    if (timHw->tag == IO_TAG(ADC_CHANNEL_6_PIN)) {
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_5_PIN)) {
         return true;
     }
 #endif
