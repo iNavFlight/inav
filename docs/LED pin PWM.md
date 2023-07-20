@@ -4,9 +4,9 @@ Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and eve
 
 As alternative function, it is possible to generate PWM signal with specified duty ratio on the LED pin.
 
-Feature can be used to drive external devices. It also is used to simulate OSD joystick to control cameras.
+Feature can be used to drive external devices. It is also used to simulate OSD joystick to control cameras.
 
-PWN frequency is fixed to 24kHz with duty ratio between 0 and 100%.
+PWM frequency is fixed to 24kHz with duty ratio between 0 and 100%.
 
 There are four modes of opearation:
 - low
@@ -17,14 +17,14 @@ There are four modes of opearation:
 Mode is configured using led_pin_pwm_mode setting.
 
 ## Low
- LED Pin is initialized to output low level and can be used to generate PWM signal.
+ LED Pin is initialized to output low level by default and can be used to generate PWM signal.
  ws2812 strip can not be controlled.
 
 ## High
- LED Pin is initialized to output high level and can be used to generate PWM signal.
+ LED Pin is initialized to output high level by default and can be used to generate PWM signal.
  ws2812 strip can not be controlled.
 
-## Shared low ( default)
+## Shared low (default)
  LED Pin is used to drive WS2812 strip. Pauses between pulses are low:
 
 
