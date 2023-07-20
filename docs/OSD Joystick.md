@@ -2,7 +2,7 @@
 
 LED pin can be used to emulate 5key OSD joystick for OSD camera pin, while still driving ws2812 LEDs (shared functionality).
 
-Note that for cameras which support RuncamDevice protocol, there is alternative functionality sing serial communication: Runcam device.md
+Note that for cameras which support RuncamDevice protocol, there is alternative functionality using serial communication: Runcam device.md
 
 # OSD Joystick schematics
 
@@ -10,7 +10,7 @@ Note that for cameras which support RuncamDevice protocol, there is alternative 
 
 Camera internal resistance seems to be 47kOhm or 9kOhm depending on camera model.
 
-Each key effectively implements voltage divider. Voltage is sensed by the camera and is compared to the list of keys voltages with some threshold.
+Each key effectively turns on voltage divider. Voltage is sensed by the camera and is compared to the list of keys voltages with some threshold.
 
 Key voltage has to be held for at least 200ms.
 
@@ -43,7 +43,7 @@ If default voltages does not work with your camera model, then you have to measu
 2. Measure voltages on OSD pin while each key is pressed.
 3. Connect camera to FC throught RC filter as shown on schematix above.
 4. Enable OSD Joystick emulation (see "Enabling OSD Joystick emulation" above)
-4. use cli command led_pin_pwm <value>, value = 0...100 to find out PWM values for each voltage.
+4. Use cli command led_pin_pwm <value>, value = 0...100 to find out PWM values for each voltage.
 5. Specify PWM values in configuration and save:
 
 set osd_joystick_down=0
@@ -52,12 +52,12 @@ set osd_joystick_left=63
 set osd_joystick_right=28
 set osd_joystick_enter=75
 
-# Entering OSD Joysyick emulation mode
+# Entering OSD Joystick emulation mode
 
-OSD Joystick emulation mode is enabled using the following stick combinations:
+OSD Joystick emulation mode is enabled using the following stick combination:
 RIGHT CENTER
 
-Mode is exited using stick combinations:
+Mode is exited using stick combination:
 LEFT CENTER
 
 *Note that the same stick combination is used to enable 5keys joystick emulation with RuncamDevice protocol.*
