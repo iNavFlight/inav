@@ -140,11 +140,9 @@ void ws2811LedStripInit(void)
     if ( ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_LOW ) {
         ledConfigurePWM();
         *timerCCR(ws2811TCH) = 0;
-        IOLo(ws2811IO);
     } else if ( ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_HIGH ) {
         ledConfigurePWM();
         *timerCCR(ws2811TCH) = 100;
-        IOHi(ws2811IO);
     } else {
         if (!ledConfigureDMA()) {
             // If DMA failed - abort
@@ -234,16 +232,15 @@ void ledPinStopPWM(void) {
     if (ws2811TCH == NULL || !pwmMode ) {
         return;
     }
-    pwmMode = false;
 
-    if ( (ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_SHARED_HIGH) || 
-        (ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_HIGH) ) {
+    if ( ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_HIGH ) {
 		*timerCCR(ws2811TCH) = 100;
-        IOHi(ws2811IO);
-    } else {
+        return;
+    } else if ( ledPinConfig()->led_pin_pwm_mode == LED_PIN_PWM_MODE_LOW ) {
 		*timerCCR(ws2811TCH) = 0;
-        IOLo(ws2811IO);
+        return;
     } 
+    pwmMode = false;
 
     if (!ledConfigureDMA()) {
         ws2811Initialised = false;
