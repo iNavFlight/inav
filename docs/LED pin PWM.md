@@ -48,8 +48,8 @@ Mode is configured using led_pin_pwm_mode setting.
 
 # Generating PWM signal from CLI
 
-led_pin_pwm <value> - value=0...100 -  enable PWM generation with specified duty cicle
-led_pin_pwm - disable PWM generation ( disable to allow ws2812 LEDs updates in shared modes )
+ledpinpwm <value> - value=0...100 -  enable PWM generation with specified duty cicle
+ledpinpwm - disable PWM generation ( disable to allow ws2812 LEDs updates in shared modes )
 
 # Example of driving single color LED
 
