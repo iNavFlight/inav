@@ -15,16 +15,43 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
-#include "platform.h"
 
-#include "fc/fc_msp_box.h"
+#include <platform.h>
+
+#include "common/axis.h"
+
+#include "config/config_master.h"
+#include "config/feature.h"
+
+#include "drivers/sensor.h"
+#include "drivers/pwm_esc_detect.h"
+#include "drivers/pwm_output.h"
+#include "drivers/serial.h"
+
+#include "fc/rc_controls.h"
+
+#include "flight/failsafe.h"
+#include "flight/mixer.h"
+#include "flight/pid.h"
+
+#include "rx/rx.h"
+
+#include "io/serial.h"
+
+#include "sensors/battery.h"
+#include "sensors/sensors.h"
+
+#include "telemetry/telemetry.h"
+
 #include "io/piniobox.h"
-#include "sensors/boardalignment.h"
-#include "sensors/barometer.h"
-#include "sensors/compass.h"
 
 void targetConfiguration(void)
 {
-    //boardAlignmentMutable()->yawDeciDegrees = 450;
+    /*
+     * UART1 is SerialRX
+     */
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_RX_SERIAL;
+   
 }
