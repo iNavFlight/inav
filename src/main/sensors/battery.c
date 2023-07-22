@@ -199,7 +199,7 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 void batteryInit(void)
 {
     batteryState = BATTERY_NOT_PRESENT;
-    batteryCellCount = 1;
+    batteryCellCount = 0;
     batteryFullVoltage = 0;
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
