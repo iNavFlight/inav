@@ -15,7 +15,7 @@ typedef struct mixerConfig_s {
     bool hasFlaps;
     int16_t appliedMixerPreset;
     uint8_t outputMode;
-    bool motorstopFeature;
+    bool motorstopOnLow;
     bool PIDProfileLinking;
 } mixerConfig_t;
 typedef struct mixerProfile_s {
@@ -28,6 +28,7 @@ PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;
+extern bool isInMixerTransition;
 #define mixerConfig() (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->mixer_config))
 #define mixerConfigMutable() ((mixerConfig_t *) mixerConfig())
 
@@ -45,5 +46,6 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 #define mixerServoMixersByIndex(index) (&(mixerProfiles(index)->ServoMixers))
 
 bool outputProfileHotSwitch(int profile_index);
+bool checkMixerProfileHotSwitchAvalibility(void);
 void mixerConfigInit(void);
 void outputProfileUpdateTask(timeUs_t currentTimeUs);

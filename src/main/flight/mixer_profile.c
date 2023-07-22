@@ -28,6 +28,7 @@
 
 mixerConfig_t currentMixerConfig;
 int currentMixerProfileIndex;
+bool isInMixerTransition;
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
 
@@ -41,8 +42,8 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                 .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
                 .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
                 .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
-                .motorstopFeature = SETTING_MOTORSTOP_FEATURE_DEFAULT,
-                .PIDProfileLinking = SETTING_OUTPUT_MODE_DEFAULT
+                .motorstopOnLow = SETTING_MOTORSTOP_ON_LOW_DEFAULT,
+                .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT
             }
         );
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++) {
@@ -105,10 +106,6 @@ static int computeServoCountByMixerProfileIndex(int index)
 
     const servoMixer_t* temp_servomixers=mixerServoMixersByIndex(index)[0];
     for (int i = 0; i < MAX_SERVO_RULES; i++) {
-        // mixerServoMixersByIndex(index)[i]->targetChannel will occour problem after i=1
-        // LOG_INFO(PWM, "i:%d, targetChannel:%d, inputSource:%d, rate:%d",i,mixerServoMixersByIndex(index)[i]->targetChannel,mixerServoMixersByIndex(index)[i]->inputSource,mixerServoMixersByIndex(index)[i]->rate);
-        // LOG_INFO(PWM, "i:%d, targetChannel:%d, inputSource:%d, rate:%d",i,mixerProfiles_SystemArray[index].ServoMixers[i].targetChannel,mixerProfiles_SystemArray[index].ServoMixers[i].inputSource,mixerProfiles_SystemArray[index].ServoMixers[i].rate);
-        // LOG_INFO(PWM, "i:%d, targetChannel:%d, inputSource:%d, rate:%d",i,temp_servomixers[i].targetChannel,temp_servomixers[i].inputSource,temp_servomixers[i].rate);
         if (temp_servomixers[i].rate == 0)
             break;
 
@@ -130,9 +127,51 @@ static int computeServoCountByMixerProfileIndex(int index)
     }
 }
 
+bool checkMixerProfileHotSwitchAvalibility(void)
+{
+    static int allow_hot_switch = -1;
+    //pwm mapping maps outputs based on platformtype, check if mapping remain unchanged after the switch
+    //do not allow switching between multi rotor and non multi rotor if sannity check fails
+    if (MAX_MIXER_PROFILE_COUNT!=2)
+    {
+        return false;
+    }
+    if (allow_hot_switch == 0)
+    {
+        return false;
+    }
+    if (allow_hot_switch == 1)
+    {
+        return true;
+    }
+#ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
+    bool MCFW_hotswap_available = true;
+#else
+    bool MCFW_hotswap_available = false;
+#endif
+    uint8_t platform_type0 = mixerConfigByIndex(0)->platformType;
+    uint8_t platform_type1 = mixerConfigByIndex(1)->platformType;
+    bool platform_type_mc0 = (platform_type0 == PLATFORM_MULTIROTOR) || (platform_type0 == PLATFORM_TRICOPTER);
+    bool platform_type_mc1 = (platform_type1 == PLATFORM_MULTIROTOR) || (platform_type1 == PLATFORM_TRICOPTER);
+    bool is_mcfw_switching = platform_type_mc0 ^ platform_type_mc1;
+    if ((!MCFW_hotswap_available) && is_mcfw_switching)
+    {
+        allow_hot_switch = 0;
+        return false;
+    }
+    //do not allow switching if motor or servos counts are different
+    if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)) || (computeServoCountByMixerProfileIndex(0) != computeServoCountByMixerProfileIndex(1)))
+    {
+        allow_hot_switch = 0;
+        return false;
+    }
+    allow_hot_switch = 1;
+    return true;
+}
 
 void outputProfileUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
+    isInMixerTransition = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
     outputProfileHotSwitch((int) IS_RC_MODE_ACTIVE(BOXMIXERPROFILE));
 
 }
@@ -153,117 +192,27 @@ bool outputProfileHotSwitch(int profile_index)
     }
     if (profile_index < 0 || profile_index >= MAX_MIXER_PROFILE_COUNT)
     { // sanity check
-        LOG_INFO(PWM, "invalid mixer profile index");
+        // LOG_INFO(PWM, "invalid mixer profile index");
         return false;
     }
     if (areSensorsCalibrating()) {//it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D,TODO
         return false;
     }
-    //do not allow switching in navigation mode
-    if (ARMING_FLAG(ARMED) && (navigationInAnyMode() || isUsingNavigationModes())){
-        LOG_INFO(PWM, "mixer switch failed, navModesEnabled");
+    // do not allow switching when user activated navigation mode
+    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
+    if (ARMING_FLAG(ARMED) && navBoxModesEnabled){
+        // LOG_INFO(PWM, "mixer switch failed, navModesEnabled");
         return false;
     }
-    //pwm mapping map outputs based on platformtype, check if mapping remain unchanged after the switch
-    //do not allow switching between multi rotor and non multi rotor if sannity check fails
-#ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
-    bool MCFW_hotswap_available = true;
-#else
-    bool MCFW_hotswap_available = false;
-#endif
-    uint8_t old_platform_type = currentMixerConfig.platformType;
-    uint8_t new_platform_type = mixerConfigByIndex(profile_index)->platformType;
-    bool old_platform_type_mc = old_platform_type == PLATFORM_MULTIROTOR || old_platform_type == PLATFORM_TRICOPTER;
-    bool new_platform_type_mc = new_platform_type == PLATFORM_MULTIROTOR || new_platform_type == PLATFORM_TRICOPTER;
-    bool is_mcfw_switching = old_platform_type_mc ^ new_platform_type_mc;
-    if ((!MCFW_hotswap_available) && is_mcfw_switching)
-    {
-        LOG_INFO(PWM, "mixer MCFW_hotswap_unavailable");
-        allow_hot_switch = false;
-        return false;
-    }
-    //do not allow switching if motor or servos counts has changed
-    if ((getMotorCount() != computeMotorCountByMixerProfileIndex(profile_index)) || (getServoCount() != computeServoCountByMixerProfileIndex(profile_index)))
-    {
-
-        LOG_INFO(PWM, "mixer switch failed, because of motor/servo count will change");
-        // LOG_INFO(PWM, "old motor/servo count:%d,%d",getMotorCount(),getServoCount());
-        // LOG_INFO(PWM, "new motor/servo count:%d,%d",computeMotorCountByMixerProfileIndex(profile_index),computeServoCountByMixerProfileIndex(profile_index));
-        allow_hot_switch = false;
+    if (!checkMixerProfileHotSwitchAvalibility()){
+        // LOG_INFO(PWM, "mixer switch failed, checkMixerProfileHotSwitchAvalibility");
         return false;
     }
     if (!setConfigMixerProfile(profile_index)){
-        LOG_INFO(PWM, "mixer switch failed to set config");
+        // LOG_INFO(PWM, "mixer switch failed to set config");
         return false;
     }
     stopMotorsNoDelay();
     mixerConfigInit();
-
     return true;
 }
-
-// static int min_ab(int a,int b)
-// {
-//     return a > b ? b : a;
-// }
-
-// void checkOutputMapping(int profile_index)//debug purpose
-// {
-//     timMotorServoHardware_t old_timOutputs;
-//     pwmBuildTimerOutputList(&old_timOutputs, isMixerUsingServos());
-//     stopMotors();
-//     delay(1000); //check motor stop
-//     if (!setConfigMixerProfile(profile_index)){
-//         LOG_INFO(PWM, "failed to set config");
-//         return;
-//     }
-//     servosInit();
-//     mixerUpdateStateFlags();
-//     mixerInit();
-//     timMotorServoHardware_t timOutputs;
-//     pwmBuildTimerOutputList(&timOutputs, isMixerUsingServos());
-//     bool motor_output_type_not_changed = old_timOutputs.maxTimMotorCount == timOutputs.maxTimMotorCount;
-//     bool servo_output_type_not_changed = old_timOutputs.maxTimServoCount == timOutputs.maxTimServoCount;
-//     LOG_INFO(PWM, "maxTimMotorCount:%d,%d",old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount);
-//     for (int i; i < min_ab(old_timOutputs.maxTimMotorCount,timOutputs.maxTimMotorCount); i++)
-//     {
-//         LOG_INFO(PWM, "motor_output_type_not_changed:%d,%d",i,motor_output_type_not_changed);
-//         motor_output_type_not_changed &= old_timOutputs.timMotors[i]->tag==timOutputs.timMotors[i]->tag;
-//     }
-//     LOG_INFO(PWM, "motor_output_type_not_changed:%d",motor_output_type_not_changed);
-
-//     LOG_INFO(PWM, "maxTimServoCount:%d,%d",old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount);
-//     for (int i; i < min_ab(old_timOutputs.maxTimServoCount,timOutputs.maxTimServoCount); i++)
-//     {
-//         LOG_INFO(PWM, "servo_output_type_not_changed:%d,%d",i,servo_output_type_not_changed);
-//         servo_output_type_not_changed &= old_timOutputs.timServos[i]->tag==timOutputs.timServos[i]->tag;
-//     }
-//     LOG_INFO(PWM, "servo_output_type_not_changed:%d",servo_output_type_not_changed);
-
-//     if(!motor_output_type_not_changed || !servo_output_type_not_changed){
-//         LOG_INFO(PWM, "pwm output mapping has changed");
-//     }
-// }
-
-//check if a pid profile switch followed on a mixer profile switch
-// static bool CheckIfPidInitNeededInSwitch(void)
-// {
-//     static bool ret = true;
-//     if (!ret)
-//     {
-//         return false;
-//     }
-//     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++)
-//     {
-//         const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
-//         const logicOperand_t *operandA = &(logicConditions(i)->operandA);
-//         if (logicConditions(i)->enabled && activatorValue && logicConditions(i)->operation == LOGIC_CONDITION_SET_PROFILE &&
-//             operandA->type == LOGIC_CONDITION_OPERAND_TYPE_FLIGHT && operandA->value == LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE &&
-//             logicConditions(i)->flags == 0)
-//         {
-//             ret = false;
-//             return false;
-//         }
-//     }
-//     return true;
-// }

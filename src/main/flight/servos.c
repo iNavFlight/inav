@@ -317,7 +317,7 @@ void servoMixer(float dT)
 
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
-    input[BOXMIXERTRANSITION] = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION) * 500; //fixed value
+    input[INPUT_MIXER_TRANSITION] = isInMixerTransition * 500; //fixed value
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:
