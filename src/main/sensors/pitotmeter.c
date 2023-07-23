@@ -31,6 +31,7 @@
 
 #include "drivers/pitotmeter/pitotmeter.h"
 #include "drivers/pitotmeter/pitotmeter_ms4525.h"
+#include "drivers/pitotmeter/pitotmeter_dlvr_l10d.h"
 #include "drivers/pitotmeter/pitotmeter_adc.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "drivers/pitotmeter/pitotmeter_virtual.h"
@@ -86,6 +87,19 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             }
             FALLTHROUGH;
 
+        case PITOT_DLVR:
+#ifdef USE_PITOT_DLVR
+            if (dlvrDetect(dev)) {
+                pitotHardware = PITOT_DLVR;
+                break;
+            }
+#endif
+            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+            if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
+			
         case PITOT_ADC:
 #if defined(USE_ADC) && defined(USE_PITOT_ADC)
             if (adcPitotDetect(dev)) {

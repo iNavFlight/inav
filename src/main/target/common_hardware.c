@@ -357,9 +357,17 @@
 #endif
 
 #if defined(USE_PITOT_MS4525) && defined(MS4525_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
+    BUSDEV_REGISTER_I2C(busdev_ms4525,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
 #endif
 
+
+#if defined(PITOT_I2C_BUS) && !defined(DLVR_I2C_BUS)
+    #define DLVR_I2C_BUS PITOT_I2C_BUS
+#endif
+
+#if defined(USE_PITOT_DLVR) && defined(DLVR_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_dlvr,        DEVHW_DLVR,         DLVR_I2C_BUS,        0x28,              NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
+#endif
 
 /** OTHER HARDWARE **/
 
