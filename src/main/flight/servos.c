@@ -120,7 +120,8 @@ void pgResetFn_servoParams(servoParam_t *instance)
 int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
-static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
+static servoMixer_t currentServoMixer[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
+static bool currentServoMixerActivative[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];// if true, the rule is used by current servo mixer
 static bool servoOutputEnabled;
 
 static bool mixerUsesServos;
@@ -192,28 +193,31 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
-    // reset settings
     servoRuleCount = 0;
     minServoIndex = 255;
     maxServoIndex = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
 
-    // load custom mixer into currentServoMixer
-    for (int i = 0; i < MAX_SERVO_RULES; i++) {
-        // check if done
-        if (customServoMixers(i)->rate == 0)
-            break;
+    for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
+        const servoMixer_t* tmp_customServoMixers = mixerServoMixersByIndex(j)[0];
+        // load custom mixer into currentServoMixer
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            // check if done
+            if (tmp_customServoMixers[i].rate == 0)
+                break;
 
-        if (customServoMixers(i)->targetChannel < minServoIndex) {
-            minServoIndex = customServoMixers(i)->targetChannel;
+            if (tmp_customServoMixers[i].targetChannel < minServoIndex) {
+                minServoIndex = tmp_customServoMixers[i].targetChannel;
+            }
+
+            if (tmp_customServoMixers[i].targetChannel > maxServoIndex) {
+                maxServoIndex = tmp_customServoMixers[i].targetChannel;
+            }
+
+            memcpy(&currentServoMixer[servoRuleCount], &tmp_customServoMixers[i], sizeof(servoMixer_t));
+            currentServoMixerActivative[servoRuleCount] = j==currentMixerProfileIndex;
+            servoRuleCount++;
         }
-
-        if (customServoMixers(i)->targetChannel > maxServoIndex) {
-            maxServoIndex = customServoMixers(i)->targetChannel;
-        }
-
-        memcpy(&currentServoMixer[i], customServoMixers(i), sizeof(servoMixer_t));
-        servoRuleCount++;
     }
 }
 
@@ -357,19 +361,22 @@ void servoMixer(float dT)
 
     // mix servos according to rules
     for (int i = 0; i < servoRuleCount; i++) {
+        const uint8_t target = currentServoMixer[i].targetChannel;
+        const uint8_t from = currentServoMixer[i].inputSource;
+
+        int16_t inputRaw = input[from];
 
         /*
          * Check if conditions for a rule are met, not all conditions apply all the time
          */
     #ifdef USE_PROGRAMMING_FRAMEWORK
         if (!logicConditionGetValue(currentServoMixer[i].conditionId)) {
-            continue; 
+            inputRaw = 0;
         }
     #endif
-
-        const uint8_t target = currentServoMixer[i].targetChannel;
-        const uint8_t from = currentServoMixer[i].inputSource;
-
+        if (!currentServoMixerActivative[i]) {
+            inputRaw = 0;
+        }
         /*
          * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
          * 0 = no limiting
@@ -377,7 +384,7 @@ void servoMixer(float dT)
          * 10 = 100us/s -> full sweep (from 1000 to 2000)  is performed in 10s
          * 100 = 1000us/s -> full sweep in 1s
          */
-        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i+MAX_SERVO_RULES*currentMixerProfileIndex], input[from], currentServoMixer[i].speed * 10, dT);
+        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], inputRaw, currentServoMixer[i].speed * 10, dT);
 
         servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
@@ -452,6 +459,8 @@ void processServoAutotrimMode(void)
                 if (ARMING_FLAG(ARMED)) {
                     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                         for (int i = 0; i < servoRuleCount; i++) {
+                            if (!currentServoMixerActivative[i]) {continue;}
+                                // Reset servo middle accumulator
                             const uint8_t target = currentServoMixer[i].targetChannel;
                             const uint8_t source = currentServoMixer[i].inputSource;
                             if (source == axis) {
@@ -473,6 +482,7 @@ void processServoAutotrimMode(void)
                 if (ARMING_FLAG(ARMED)) {
                     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                         for (int i = 0; i < servoRuleCount; i++) {
+                            if (!currentServoMixerActivative[i]) {continue;}
                             const uint8_t target = currentServoMixer[i].targetChannel;
                             const uint8_t source = currentServoMixer[i].inputSource;
                             if (source == axis) {
@@ -485,6 +495,7 @@ void processServoAutotrimMode(void)
                     if ((millis() - trimStartedAt) > SERVO_AUTOTRIM_TIMER_MS) {
                         for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                             for (int i = 0; i < servoRuleCount; i++) {
+                                if (!currentServoMixerActivative[i]) {continue;}
                                 const uint8_t target = currentServoMixer[i].targetChannel;
                                 const uint8_t source = currentServoMixer[i].inputSource;
                                 if (source == axis) {
@@ -518,6 +529,7 @@ void processServoAutotrimMode(void)
         if (trimState == AUTOTRIM_SAVE_PENDING) {
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                 for (int i = 0; i < servoRuleCount; i++) {
+                    if (!currentServoMixerActivative[i]) {continue;}
                     const uint8_t target = currentServoMixer[i].targetChannel;
                     const uint8_t source = currentServoMixer[i].inputSource;
                     if (source == axis) {

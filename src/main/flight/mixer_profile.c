@@ -61,7 +61,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
             .rate = 0,
             .speed = 0
 #ifdef USE_PROGRAMMING_FRAMEWORK
-            ,.conditionId = -1
+            ,.conditionId = -1,
 #endif
             );
         }
@@ -98,34 +98,34 @@ static int computeMotorCountByMixerProfileIndex(int index)
     return motorCount;
 }
 
-static int computeServoCountByMixerProfileIndex(int index)
-{
-    int servoRuleCount = 0;
-    int minServoIndex = 255;
-    int maxServoIndex = 0;
+// static int computeServoCountByMixerProfileIndex(int index)
+// {
+//     int servoRuleCount = 0;
+//     int minServoIndex = 255;
+//     int maxServoIndex = 0;
 
-    const servoMixer_t* temp_servomixers=mixerServoMixersByIndex(index)[0];
-    for (int i = 0; i < MAX_SERVO_RULES; i++) {
-        if (temp_servomixers[i].rate == 0)
-            break;
+//     const servoMixer_t* temp_servomixers=mixerServoMixersByIndex(index)[0];
+//     for (int i = 0; i < MAX_SERVO_RULES; i++) {
+//         if (temp_servomixers[i].rate == 0)
+//             break;
 
-        if (temp_servomixers[i].targetChannel < minServoIndex) {
-            minServoIndex = temp_servomixers[i].targetChannel;
-        }
+//         if (temp_servomixers[i].targetChannel < minServoIndex) {
+//             minServoIndex = temp_servomixers[i].targetChannel;
+//         }
 
-        if (temp_servomixers[i].targetChannel > maxServoIndex) {
-            maxServoIndex = temp_servomixers[i].targetChannel;
-        }
-        // LOG_INFO(PWM, "i:%d, minServoIndex:%d, maxServoIndex:%d",i,minServoIndex,maxServoIndex);
-        servoRuleCount++;
-    }
-    if (servoRuleCount) {
-        return 1 + maxServoIndex - minServoIndex;
-    }
-    else {
-        return 0;
-    }
-}
+//         if (temp_servomixers[i].targetChannel > maxServoIndex) {
+//             maxServoIndex = temp_servomixers[i].targetChannel;
+//         }
+//         // LOG_INFO(PWM, "i:%d, minServoIndex:%d, maxServoIndex:%d",i,minServoIndex,maxServoIndex);
+//         servoRuleCount++;
+//     }
+//     if (servoRuleCount) {
+//         return 1 + maxServoIndex - minServoIndex;
+//     }
+//     else {
+//         return 0;
+//     }
+// }
 
 bool checkMixerProfileHotSwitchAvalibility(void)
 {
@@ -160,7 +160,8 @@ bool checkMixerProfileHotSwitchAvalibility(void)
         return false;
     }
     //do not allow switching if motor or servos counts are different
-    if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)) || (computeServoCountByMixerProfileIndex(0) != computeServoCountByMixerProfileIndex(1)))
+    // if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)) || (computeServoCountByMixerProfileIndex(0) != computeServoCountByMixerProfileIndex(1)))
+    if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)))
     {
         allow_hot_switch = 0;
         return false;
