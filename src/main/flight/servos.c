@@ -131,7 +131,7 @@ static biquadFilter_t servoFilter[MAX_SUPPORTED_SERVOS];
 static bool servoFilterIsSet;
 
 static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
-static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
+static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
 
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
 STATIC_FASTRAM pt1Filter_t targetRateFilter;
@@ -377,7 +377,7 @@ void servoMixer(float dT)
          * 10 = 100us/s -> full sweep (from 1000 to 2000)  is performed in 10s
          * 100 = 1000us/s -> full sweep in 1s
          */
-        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i], input[from], currentServoMixer[i].speed * 10, dT);
+        int16_t inputLimited = (int16_t) rateLimitFilterApply4(&servoSpeedLimitFilter[i+MAX_SERVO_RULES*currentMixerProfileIndex], input[from], currentServoMixer[i].speed * 10, dT);
 
         servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
@@ -615,6 +615,10 @@ void processServoAutotrim(const float dT) {
         return;
     }
 #endif
+    if(!STATE(AIRPLANE))
+    {
+        return;
+    }
     if (feature(FEATURE_FW_AUTOTRIM)) {
         processContinuousServoAutotrim(dT);
     } else {
