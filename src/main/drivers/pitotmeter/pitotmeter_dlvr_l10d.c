@@ -27,8 +27,7 @@
 #include "drivers/time.h"
 #include "drivers/pitotmeter/pitotmeter.h"
 
-// MS4525, Standard address 0x28
-#define DLVR_L10D_ADDR                 0x28
+#define DLVR_L10D_ADDR                 0x28     // this var is not used !!!
 
 // //---------------------------------------------------
 // //---------------------------------------------------
@@ -51,14 +50,15 @@
 // #define SSL_AIR_PRESSURE 101325.01576f // Pascal
 // #define SSL_AIR_TEMPERATURE    288.15f // K
 
-// #define INCH_OF_H2O_TO_PASCAL 248.84f
-// //---------------------------------------------------
-// //---------------------------------------------------
+#define INCH_OF_H2O_TO_PASCAL   248.84f
+//#define INCH_OF_H2O_TO_PASCAL 249.09
 
-#define INCH_H2O_TO_PA      249.09
+#define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * press)
+
 #define RANGE_INCH_H2O      10
 #define DLVR_OFFSET         8192.0f
 #define DLVR_SCALE          16384.0f
+
 
 typedef struct __attribute__ ((__packed__)) dlvrCtx_s {
     bool     dataValid;
@@ -91,6 +91,9 @@ static bool dlvr_read(pitotDev_t * pitot)
         return false;
     }
 
+    // status = 00 -> ok new data
+    // status = 10 -> ok dtata stale
+    // else error
     const uint8_t status = ((rxbuf1[0] & 0xC0) >> 6);
     if (status == 2 || status == 3) {
         return false;
@@ -120,6 +123,9 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
 {
     dlvrCtx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
 
+    // //-----------------------------------------------------------------------------
+    // // MS4525 sensor
+    // //-----------------------------------------------------------------------------
     // const float P_max = 1.0f;
     // const float P_min = -P_max;
     // const float PSI_to_Pa = 6894.757f;
@@ -137,21 +143,28 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     //     *temperature = T; // K
     // }
 
-    // //-----------------------------------------------------------------------------
-    float press_h2o = 1.25f *  2.0f * RANGE_INCH_H2O  * ((ctx->dlvr_up - DLVR_OFFSET) / DLVR_SCALE);
-    float temp = ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;
+    //-----------------------------------------------------------------------------
+    // DLVR-L10D sensor
+    //-----------------------------------------------------------------------------
+    
+    // pressure in inchH2O
+    float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - DLVR_OFFSET) / DLVR_SCALE);    
 
-    if ((press_h2o > RANGE_INCH_H2O) || (press_h2o < -RANGE_INCH_H2O)) {
-        //Debug("DLVR: Out of range pressure %f", press_h2o);
+    // temperature in deg C
+    float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
+
+    // result must fit inside the range
+    if ((dP_inchH2O > RANGE_INCH_H2O) || (dP_inchH2O < -RANGE_INCH_H2O)) {
+        // Debug("DLVR: Out of range pressure %f", dP_inchH2O);
         return;
     }
 
     if (pressure) {
-        *pressure = INCH_H2O_TO_PA * press_h2o;; //dP;    // Pa
+        *pressure = INCH_H2O_TO_PASCAL( dP_inchH2O);    // Pa
     }
 
     if (temperature) {
-        *temperature = temp; //T; // K
+        *temperature = C_TO_KELVIN( T_C); // K
     }
 }
 
