@@ -2542,6 +2542,16 @@ This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly 
 
 ---
 
+### mixer_pid_profile_linking
+
+If enabled, pid profile index will follow mixer profile index
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### mode_range_logic_operator
 
 Control how Mode selection works in flight modes. If you example have Angle mode configured on two different Aux channels, this controls if you need both activated ( AND ) or if you only need one activated ( OR ) to active angle mode.
@@ -2599,6 +2609,16 @@ Output frequency (in Hz) for motor pins.  Applies only to brushed motors.
 | Default | Min | Max |
 | --- | --- | --- |
 | 16000 | 50 | 32000 |
+
+---
+
+### motorstop_on_low
+
+If enabled, motor will stop when throttle is low
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
