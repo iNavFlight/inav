@@ -84,19 +84,19 @@ void mixerConfigInit(void){
     }
 }
 
-static int computeMotorCountByMixerProfileIndex(int index)
-{
-    int motorCount = 0;
-    const motorMixer_t* temp_motormixers=mixerMotorMixersByIndex(index)[0];
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        // check if done
-        if (temp_motormixers[i].throttle == 0.0f) {
-            break;
-        }
-        motorCount++;
-    }
-    return motorCount;
-}
+// static int computeMotorCountByMixerProfileIndex(int index)
+// {
+//     int motorCount = 0;
+//     const motorMixer_t* temp_motormixers=mixerMotorMixersByIndex(index)[0];
+//     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+//         // check if done
+//         if (temp_motormixers[i].throttle == 0.0f) {
+//             break;
+//         }
+//         motorCount++;
+//     }
+//     return motorCount;
+// }
 
 // static int computeServoCountByMixerProfileIndex(int index)
 // {
@@ -159,13 +159,13 @@ bool checkMixerProfileHotSwitchAvalibility(void)
         allow_hot_switch = 0;
         return false;
     }
+    //not necessary when map motor/servos of all mixer profiles on the first boot 
     //do not allow switching if motor or servos counts are different
     // if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)) || (computeServoCountByMixerProfileIndex(0) != computeServoCountByMixerProfileIndex(1)))
-    if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)))
-    {
-        allow_hot_switch = 0;
-        return false;
-    }
+    // {
+    //     allow_hot_switch = 0;
+    //     return false;
+    // }
     allow_hot_switch = 1;
     return true;
 }

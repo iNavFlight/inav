@@ -105,14 +105,25 @@ int getThrottleIdleValue(void)
 
 static void computeMotorCount(void)
 {
+    static bool firstRun = true;
+    if (!firstRun) {
+        return;
+    }
     motorCount = 0;
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        bool isMotorUsed = false;
+        for(int j = 0; j< MAX_MIXER_PROFILE_COUNT; j++){
+            if (mixerMotorMixersByIndex(j)[i]->throttle != 0.0f) {
+                isMotorUsed = true;
+            }
+        }
         // check if done
-        if (primaryMotorMixer(i)->throttle == 0.0f) {
+        if (!isMotorUsed) {
             break;
         }
         motorCount++;
     }
+    firstRun = false;
 }
 
 bool ifMotorstopFeatureEnabled(void){
