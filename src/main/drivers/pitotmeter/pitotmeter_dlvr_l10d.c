@@ -53,7 +53,7 @@
 #define INCH_OF_H2O_TO_PASCAL   248.84f
 //#define INCH_OF_H2O_TO_PASCAL 249.09
 
-#define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * press)
+#define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * (press))
 
 #define RANGE_INCH_H2O      10
 #define DLVR_OFFSET         8192.0f
@@ -91,9 +91,11 @@ static bool dlvr_read(pitotDev_t * pitot)
         return false;
     }
 
-    // status = 00 -> ok new data
-    // status = 10 -> ok dtata stale
-    // else error
+    // status = 00 -> ok, new data
+	// status = 01 -> reserved
+    // status = 10 -> ok, data stale
+    // status = 11 -> error
+	// check the status of the first read:
     const uint8_t status = ((rxbuf1[0] & 0xC0) >> 6);
     if (status == 2 || status == 3) {
         return false;
@@ -160,7 +162,7 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     }
 
     if (pressure) {
-        *pressure = INCH_H2O_TO_PASCAL( dP_inchH2O);    // Pa
+        *pressure = INCH_H2O_TO_PASCAL( dP_inchH2O);	// Pa
     }
 
     if (temperature) {
