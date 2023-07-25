@@ -479,7 +479,6 @@ typedef struct {
 } navSystemStatus_t;
 
 void navigationUsePIDs(void);
-void navigationInitYawControl(void);
 void navigationInit(void);
 
 /* Position estimator update functions */

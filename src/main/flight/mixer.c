@@ -182,6 +182,15 @@ void mixerUpdateStateFlags(void)
     } else {
         DISABLE_STATE(FLAPERON_AVAILABLE);
     }
+    if (
+        currentMixerConfig.platformType == PLATFORM_BOAT ||
+        currentMixerConfig.platformType == PLATFORM_ROVER ||
+        navConfig()->fw.useFwNavYawControl
+    ) {
+        ENABLE_STATE(FW_HEADING_USE_YAW);
+    } else {
+        DISABLE_STATE(FW_HEADING_USE_YAW);
+    }
 }
 
 void nullMotorRateLimiting(const float dT)
