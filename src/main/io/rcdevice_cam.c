@@ -48,6 +48,12 @@ bool waitingDeviceResponse = false;
 
 static bool isFeatureSupported(uint8_t feature)
 {
+#ifdef USE_LED_STRIP
+    if (!rcdeviceIsEnabled() && osdJoystickEnabled() ) {
+        return true;
+    }
+#endif
+
     if (camDevice->info.features & feature) {
         return true;
     }
@@ -262,6 +268,7 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
 #ifdef USE_LED_STRIP
             else if (osdJoystickEnabled()) {
                 osdJoystickSimulate5KeyButtonRelease();
+                isButtonPressed = false;
             }
 #endif
         }

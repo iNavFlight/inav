@@ -21,7 +21,7 @@
 
 #define WS2811_LED_STRIP_LENGTH 32
 #define WS2811_BITS_PER_LED 24
-#define WS2811_DELAY_BUFFER_LENGTH 242 // for 300us delay ( new LEDS since 2017 require 300us delay, old LEDS were fine with 50us )
+#define WS2811_DELAY_BUFFER_LENGTH 42 // for 50us delay 
 
 #define WS2811_DATA_BUFFER_SIZE (WS2811_BITS_PER_LED * WS2811_LED_STRIP_LENGTH)
 

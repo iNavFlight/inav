@@ -473,5 +473,7 @@ void impl_timerPWMStopDMA(TCH_t * tch)
         LL_DMA_DisableStream(dmaBase, streamLL);
         DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
     }
+    tch->dmaState = TCH_DMA_IDLE;
+
     HAL_TIM_Base_Start(tch->timCtx->timHandle);
 }
