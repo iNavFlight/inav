@@ -1,6 +1,6 @@
 # LED pin PWM
 
-Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and every 10ms or 20ms a set of pulses is sent to change color of the 24 LEDs:
+Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and every 10ms or 20ms a set of pulses is sent to change color of the 32 LEDs:
 
 ![alt text](/docs/assets/images/ws2811_packets.png  "ws2811 packets")
 ![alt text](/docs/assets/images/ws2811_data.png  "ws2811 data")
@@ -56,15 +56,15 @@ Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device sho
  
  While PWM signal is generated, ws2811 strip is not updated. 
  
- When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1.5ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio > ~85%.
+ When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM signal with duty ratio > ~90%.
  
- After sending ws2812 pulses for 24 LEDS, we held line high for 9ms, then send 300us low 'reset' pulse. 
+ After sending ws2812 protocol pulses for 32 LEDS, we held line high for 9ms, then send 50us low 'reset' pulse. 
  
  Datasheet for ws2812 protocol does not describe behavior for long high pulse, but in practice it works the same as 'reset' pulse. 
  
  To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
  
- This mode is used to simulate OSD joystick. It is Ok that effective PWM ratio is 85..100% while driving LEDs, because OSD joystick keyspress voltages are far below 85%.
+ This mode is used to simulate OSD joystick. It is Ok that effective PWM ratio is 90..100% while driving LEDs, because OSD joystick keypress voltages are below 90%.
  
  See OSD Joystick.md for more information.
 
