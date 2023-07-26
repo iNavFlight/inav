@@ -1,6 +1,6 @@
 # LED pin PWM
 
-Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and every 10ms a set of pulses is sent to change color of the 24 LEDs:
+Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and every 10ms a set of pulses is sent to change color of the 32 LEDs:
 
 ![alt text](/docs/assets/images/ws2811_packets.png  "ws2811 packets")
 ![alt text](/docs/assets/images/ws2811_data.png  "ws2811 data")
@@ -35,7 +35,7 @@ LED Pin is used to drive WS2812 strip. Pauses between pulses are low:
 
 ![alt text](/docs/assets/images/ws2811_packets.png  "ws2811 packets")
 
-It is possible to generate PWM signal with duty ratio >0...100%. While PWM signal is generated, ws2811 strip is not updated. When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio < ~10%.
+It is possible to generate PWM signal with duty ratio >0...100%. While PWM signal is generated, ws2811 strip is not updated. When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio < ~7%.
 
  
 
@@ -45,8 +45,8 @@ It is possible to generate PWM signal with duty ratio >0...100%. While PWM signa
 ![alt text](/docs/assets/images/ws2811_packets_high.png  "ws2811 packets_high")
 ![alt text](/docs/assets/images/ws2811_data_high.png  "ws2811 data_high")
 
- It is possible to generate PWM signal with duty ratio 0...<100%. While PWM signal is generated, ws2811 strip is not updated. When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1.5ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio > ~85%.
- After sending ws2812 pulses for 24 LEDS, we held line high for 9ms, then send 300us low 'reset' pulse. Datasheet for ws2812 protocol does not describe behavior for long high pulse, but in practice it works the same as 'reset' pulse. To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
+ It is possible to generate PWM signal with duty ratio 0...<100%. While PWM signal is generated, ws2811 strip is not updated. When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio > ~93%.
+ After sending ws2812 pulses for 32 LEDS, we held line high for 9ms, then send 50us low 'reset' pulse. Datasheet for ws2812 protocol does not describe behavior for long high pulse, but in practice it works the same as 'reset' pulse. To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
  This moude is used to simulate OSD joystick. It is Ok that effective PWM ratio is 85..100% while driving LEDs, because OSD joystick keyspress voltages are far below 85%.
  See OSD Joystick.md for more information.
 
