@@ -7,7 +7,7 @@ Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and eve
 
 As alternative function, it is possible to generate PWM signal with specified duty ratio on the LED pin.
 
-Feature can be used to drive external devices. It is also used to simulate OSD joystick to control cameras.
+Feature can be used to drive external devices. It is also used to simulate [OSD joystick](OSD%20Joystick.md) to control cameras.
 
 PWM frequency is fixed to 24kHz with duty ratio between 0 and 100%:
 
@@ -19,19 +19,21 @@ There are four modes of operation:
 - shared_low
 - shared_high
 
-Mode is configured using ```led_pin_pwm_mode``` setting.
+Mode is configured using ```led_pin_pwm_mode``` setting: ```LOW```, ```HIGH```, ```SHARED_LOW```, ```SHARED_HIGH```
 
-## Low
+*Note that in any mode, there will be ~1 second LOW pulse on boot.*
+
+## LOW
 LED Pin is initialized to output low level by default and can be used to generate PWM signal.
 
 ws2812 strip can not be controlled.
 
-## High
+## HIGH
 LED Pin is initialized to output high level by default and can be used to generate PWM signal.
 
 ws2812 strip can not be controlled.
 
-## Shared low (default)
+## SHARED_LOW (default)
 LED Pin is used to drive WS2812 strip. Pauses between pulses are low:
 
 ![alt text](/docs/assets/images/ws2811_packets.png  "ws2811 packets")
@@ -44,10 +46,8 @@ When PWM generation is disabled, LED pin is used to drive ws2812 strip.
 
 Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM singal with duty ratio < ~10%.
 
- 
-
-## Shared high
- LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pulses are prefixed with 300us low 'reset' pulse:
+## SHARED_HIGH
+LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pulses are prefixed with 300us low 'reset' pulse:
 
 ![alt text](/docs/assets/images/ws2811_packets_high.png  "ws2811 packets_high")
 ![alt text](/docs/assets/images/ws2811_data_high.png  "ws2811 data_high")
@@ -66,15 +66,15 @@ Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device sho
  
  This mode is used to simulate OSD joystick. It is Ok that effectively voltage level is held >90% while driving LEDs, because OSD joystick keypress voltages are below 90%.
  
- See OSD Joystick.md for more information.
+ See [OSD Joystick](OSD%20Joystick.md) for more information.
 
-# Generating PWM signal in programming framework
+# Generating PWM signal with programming framework
 
 *TODO*
 
-0...100 - enable PWM generation with specified duty cicle
+0...100 - start PWM generation with specified duty cicle
 
--1 - disable PWM generation ( disable to allow ws2812 LEDs updates in shared modes )
+-1 - stop PWM generation ( stop to allow ws2812 LEDs updates in shared modes )
 
 # Generating PWM signal from CLI
 
