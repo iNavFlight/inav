@@ -83,11 +83,15 @@ Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device sho
 ```ledpinpwm``` - disable PWM generation ( disable to allow ws2812 LEDs updates in shared modes )
 
 
-# Example of driving single color LED
+# Example of driving LED
 
-*TODO*
+It is possible to drive single color LED with brightness control. Current consumption should not be greater then 1-2ma, thus LED can be used for indication only.
+
+![alt text](/docs/assets/images/ledpinpwmled.png  "led pin pwm led")
 
 # Example of driving powerfull white LED
 
-*TODO*
+To drive power LED with brightness control, Mosfet should be used:
+
+![alt text](/docs/assets/images/ledpinpwmpowerled.png  "led pin pwm power_led")
 
