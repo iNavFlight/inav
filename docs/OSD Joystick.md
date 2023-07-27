@@ -65,18 +65,26 @@ If default voltages does not work with your camera model, then you have to measu
 
 # Entering OSD Joystick emulation mode
 
+Emulation can be enabled in unarmed state only. 
+
 OSD Joystick emulation mode is enabled using the following stick combination:
 
 ```RIGHT CENTER```
 
 
+Than camera OSD can be navigated using right stick. See [Controls](Controls.md) for all stick combinations.
+
+*Note that the same stick combination is used to enable 5keys joystick emulation with RuncamDevice protocol.*
+
 Mode is exited using stick combination:
 
 ```LEFT CENTER```
 
+# RC Box
 
-*Note that the same stick combination is used to enable 5keys joystick emulation with RuncamDevice protocol.*
+There are 3 RC Boxes which can be used armed and unarmed state:
+- Camera 1 - Enter
+- Camera 2 - Up
+- Camera 3 - Down
 
-Emulation can be enabled in unarmed state only. 
-
-See [Controls](Controls.md)
+Other keys can be emulated using Programming framework ( see [LED pin PWM](LED%20pin%20PWM.md) for more details ).
