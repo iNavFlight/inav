@@ -392,7 +392,7 @@ typedef struct radar_pois_s {
     int16_t direction; // °
 } radar_pois_t;
 
-#define RADAR_MAX_POIS 5
+#define RADAR_MAX_POIS 7
 
 extern radar_pois_t radar_pois[RADAR_MAX_POIS];
 
