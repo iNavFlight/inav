@@ -4172,26 +4172,6 @@ To vertically adjust the whole OSD and AHI and scrolling bars
 
 ---
 
-### osd_hud_homepoint
-
-To 3D-display the home point location in the hud
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### osd_hud_homing
-
-To display little arrows around the crossair showing where the home point is in the hud
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### osd_hud_margin_h
 
 Left and right margins for the hud area
