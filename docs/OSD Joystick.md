@@ -32,6 +32,7 @@ We use LED pin PWM functionality with RC filter to generate voltage:
 
 ![alt text](/docs/assets/images/ledpinpwmfilter.png  "led pin pwm filter")
 
+*Note that there is ~1 second LOW pulse on FC boot, which can be sensed by some cameras as ENTER key*.
 
 # Example PCB layout (SMD components)
 
@@ -47,22 +48,32 @@ If default voltages does not work with your camera model, then you have to measu
 2. Measure voltages on OSD pin while each key is pressed.
 3. Connect camera to FC throught RC filter as shown on schematix above.
 4. Enable OSD Joystick emulation (see "Enabling OSD Joystick emulation" above)
-4. Use cli command led_pin_pwm <value>, value = 0...100 to find out PWM values for each voltage.
+4. Use cli ```command led_pin_pwm <value>```, value = 0...100 to find out PWM values for each voltage.
 5. Specify PWM values in configuration and save:
 
-set osd_joystick_down=0
-set osd_joystick_up=48
-set osd_joystick_left=63
-set osd_joystick_right=28
-set osd_joystick_enter=75
+```set osd_joystick_down=0```
+
+```set osd_joystick_up=48```
+
+```set osd_joystick_left=63```
+
+```set osd_joystick_right=28```
+
+```set osd_joystick_enter=75```
+
+```save```
 
 # Entering OSD Joystick emulation mode
 
 OSD Joystick emulation mode is enabled using the following stick combination:
-RIGHT CENTER
+
+```RIGHT CENTER```
+
 
 Mode is exited using stick combination:
-LEFT CENTER
+
+```LEFT CENTER```
+
 
 *Note that the same stick combination is used to enable 5keys joystick emulation with RuncamDevice protocol.*
 
