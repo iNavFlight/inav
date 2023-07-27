@@ -13,13 +13,13 @@ PWM frequency is fixed to 24kHz with duty ratio between 0 and 100%:
 
 ![alt text](/docs/assets/images/led_pin_pwm.png  "led pin pwm")
 
-There are four modes of opearation:
+There are four modes of operation:
 - low
 - high
 - shared_low
 - shared_high
 
-Mode is configured using led_pin_pwm_mode setting.
+Mode is configured using ```led_pin_pwm_mode``` setting.
 
 ## Low
 LED Pin is initialized to output low level by default and can be used to generate PWM signal.
@@ -64,7 +64,7 @@ Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device sho
  
  To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
  
- This mode is used to simulate OSD joystick. It is Ok that effective PWM ratio is 90..100% while driving LEDs, because OSD joystick keypress voltages are below 90%.
+ This mode is used to simulate OSD joystick. It is Ok that effectively voltage level is held >90% while driving LEDs, because OSD joystick keypress voltages are below 90%.
  
  See OSD Joystick.md for more information.
 
