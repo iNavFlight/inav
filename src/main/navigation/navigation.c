@@ -3789,14 +3789,14 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // CRUISE has priority over COURSE_HOLD and AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE) && STATE(AIRPLANE)) {
             if ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
         }
 
         // PH has priority over COURSE_HOLD
         // CRUISE has priority on AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) && STATE(AIRPLANE)) {
             if (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))) {
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
             }
@@ -4373,7 +4373,7 @@ bool navigationRTHAllowsLanding(void)
 
 bool isNavLaunchEnabled(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
+    return (IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH)) && STATE(AIRPLANE);
 }
 
 bool abortLaunchAllowed(void)

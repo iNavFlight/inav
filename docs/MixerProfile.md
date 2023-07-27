@@ -139,6 +139,7 @@ It is recommended to have some amount of control surface (elevon / elevator) map
 Typically, 'transition input' will be useful in MR mode to gain airspeed.
 Both the servo mixer and motor mixer can accept transition mode as an input.
 The associated motor or servo will then move accordingly when transition mode is activated.
+Transition input is disabled when navigation mode is activate
 
 The use of Transition Mode is recommended to enable further features and future developments like fail-safe support. Mapping motor to servo output, or servo with logic conditions is **not** recommended
 
@@ -171,6 +172,7 @@ mmix 4 -1.200  0.000  0.000  0.000
 ### RC mode settings
 
 It is recommend that the pilot uses a RC mode switch to activate modes or switch profiles.
+Profile files Switching is not available until the runtime sensor calibration is done. Switching is NOT available when navigation mode is activate or position controller is activate, including altitude hold.
 
 `mixer_profile` 1 will be used as default, `mixer_profile` 2 will be used when the `MIXER PROFILE 2` mode box is activated. Once successfully set, you can see the profiles / model preview etc. will switch accordingly when you view the relevant INAV Configurator tabs. Checking these tabs in the INAV Configurator will help make the setup easier.
 

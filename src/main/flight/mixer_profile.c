@@ -14,6 +14,8 @@
 #include "common/axis.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
@@ -172,7 +174,8 @@ bool checkMixerProfileHotSwitchAvalibility(void)
 
 void outputProfileUpdateTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
-    isInMixerTransition = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
+    const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
+    isInMixerTransition = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION) && (!navBoxModesEnabled) && ((posControl.navState == NAV_STATE_IDLE) || (posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
     outputProfileHotSwitch((int) IS_RC_MODE_ACTIVE(BOXMIXERPROFILE));
 
 }
@@ -201,7 +204,7 @@ bool outputProfileHotSwitch(int profile_index)
     }
     // do not allow switching when user activated navigation mode
     const bool navBoxModesEnabled = IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
-    if (ARMING_FLAG(ARMED) && navBoxModesEnabled){
+    if (navBoxModesEnabled || IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) || posControl.navState != NAV_STATE_IDLE){
         // LOG_INFO(PWM, "mixer switch failed, navModesEnabled");
         return false;
     }
