@@ -2,7 +2,11 @@
 
 LED pin can be used to emulate 5key OSD joystick for OSD camera pin, while still driving ws2812 LEDs (shared functionality).
 
+See [LED pin PWM](LED%20pin%20PWM.md) for more details.
+
 Note that for cameras which support RuncamDevice protocol, there is alternative functionality using serial communication: [Runcam device](Runcam%20device.md)
+
+Alao special adapters exist to convert RuncamDevice protocol to OSD Joystick: [Runcam control adapter](https://www.runcam.com/download/runcam_control_adapter_manual.pdf)
 
 # OSD Joystick schematics
 
@@ -18,8 +22,9 @@ To simulate 5key joystick, it is sufficient to generate correct voltage on camer
 
 # Enabling OSD Joystick emulation
 
-set led_pin_pwm_mode = shared_high
-set osd_joystick_enabled = on
+```set led_pin_pwm_mode=shared_high```
+
+```set osd_joystick_enabled=on```
 
 # Connection diagram
 
@@ -34,7 +39,7 @@ RC Filter can be soldered on a small piece of PCB:
 
 ![alt text](/docs/assets/images/osd_joystick.jpg  "osd joystick")
 
-# Configutring keys voltages
+# Configuring keys voltages
 
 If default voltages does not work with your camera model, then you have to measure voltages and find out corresponding PWM duty ratios.
 
