@@ -84,9 +84,13 @@ Mode is exited using stick combination:
 
 # RC Box
 
-There are 3 RC Boxes which can be used armed and unarmed state:
+There are 3 RC Boxes which can be used in armed and unarmed state:
 - Camera 1 - Enter
 - Camera 2 - Up
 - Camera 3 - Down
 
 Other keys can be emulated using Programming framework ( see [LED pin PWM](LED%20pin%20PWM.md) for more details ).
+
+# Behavior on boot
+
+There is ~2 seconds LOW pulse during boot sequence, which corresponds to DOWN key. Fortunately, cameras seem to ignore any key events  few seconds after statup.
