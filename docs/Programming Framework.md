@@ -86,6 +86,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI
 | 49            | TIMER                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
 | 50            | DELTA                         | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. |
 | 51            | APPROX_EQUAL                  | `true` if `Operand B` is within 1% of `Operand A`. |
+| 52            | LED_PIN_PWM                   | Value 0...100 starts PWM generation on LED pin. See [LED pin PWM](LED%20pin%20PWM.md) Any other value stops PWM generation.|
 
 ### Operands
 
