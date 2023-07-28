@@ -26,6 +26,8 @@ To simulate 5key joystick, it is sufficient to generate correct voltage on camer
 
 ```set osd_joystick_enabled=on```
 
+Also enable "Multi-color RGB LED Strinp support" in Configuration tab.
+
 # Connection diagram
 
 We use LED pin PWM functionality with RC filter to generate voltage:
