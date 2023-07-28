@@ -21,7 +21,7 @@ There are four modes of operation:
 
 Mode is configured using ```led_pin_pwm_mode``` setting: ```LOW```, ```HIGH```, ```SHARED_LOW```, ```SHARED_HIGH```
 
-*Note that in any mode, there will be ~1 second LOW pulse on boot.*
+*Note that in any mode, there will be ~2 seconds LOW pulse on boot.*
 
 ## LOW
 LED Pin is initialized to output low level by default and can be used to generate PWM signal.
