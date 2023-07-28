@@ -70,11 +70,8 @@ LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pu
 
 # Generating PWM signal with programming framework
 
-*TODO*
+See "LED Pin PWM" operation in [Programming Framework](Programming%20Framework.md)
 
-0...100 - start PWM generation with specified duty cicle
-
--1 - stop PWM generation ( stop to allow ws2812 LEDs updates in shared modes )
 
 # Generating PWM signal from CLI
 
