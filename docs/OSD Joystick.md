@@ -6,7 +6,7 @@ See [LED pin PWM](LED%20pin%20PWM.md) for more details.
 
 Note that for cameras which support RuncamDevice protocol, there is alternative functionality using serial communication: [Runcam device](Runcam%20device.md)
 
-Alao special adapters exist to convert RuncamDevice protocol to OSD Joystick: [Runcam control adapter](https://www.runcam.com/download/runcam_control_adapter_manual.pdf)
+Also special adapters exist to convert RuncamDevice protocol to OSD Joystick: [Runcam control adapter](https://www.runcam.com/download/runcam_control_adapter_manual.pdf)
 
 # OSD Joystick schematics
 
@@ -33,8 +33,6 @@ Also enable "Multi-color RGB LED Strinp support" in Configuration tab.
 We use LED pin PWM functionality with RC filter to generate voltage:
 
 ![alt text](/docs/assets/images/ledpinpwmfilter.png  "led pin pwm filter")
-
-*Note that there is ~1 second LOW pulse on FC boot, which can be sensed by some cameras as ENTER key*.
 
 # Example PCB layout (SMD components)
 
