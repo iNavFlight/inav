@@ -34,8 +34,6 @@ We use LED pin PWM functionality with RC filter to generate voltage:
 
 ![alt text](/docs/assets/images/ledpinpwmfilter.png  "led pin pwm filter")
 
-*Note that there is ~1 second LOW pulse on FC boot, which can be sensed by some cameras as ENTER key*.
-
 # Example PCB layout (SMD components)
 
 RC Filter can be soldered on a small piece of PCB:
