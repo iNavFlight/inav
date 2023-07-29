@@ -48,10 +48,12 @@ bool waitingDeviceResponse = false;
 
 static bool isFeatureSupported(uint8_t feature)
 {
+#ifndef UNIT_TEST
 #ifdef USE_LED_STRIP
     if (!rcdeviceIsEnabled() && osdJoystickEnabled() ) {
         return true;
     }
+#endif
 #endif
 
     if (camDevice->info.features & feature) {
@@ -110,6 +112,7 @@ static void rcdeviceCameraControlProcess(void)
                 if ( rcdeviceIsEnabled() ) {
                     runcamDeviceSimulateCameraButton(camDevice, behavior);
                 }
+#ifndef UNIT_TEST
 #ifdef USE_LED_STRIP
                 else if (osdJoystickEnabled()) {
 
@@ -126,13 +129,16 @@ static void rcdeviceCameraControlProcess(void)
                     }
                 }
 #endif
+#endif
                 switchStates[switchIndex].isActivated = true;
             }
         } else {
+#ifndef UNIT_TEST
 #ifdef USE_LED_STRIP
             if (osdJoystickEnabled() && switchStates[switchIndex].isActivated) {
                 osdJoystickSimulate5KeyButtonRelease();
             }
+#endif
 #endif
             switchStates[switchIndex].isActivated = false;
         }
@@ -265,11 +271,13 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                 rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
                 waitingDeviceResponse = true;
             }
+#ifndef UNIT_TEST
 #ifdef USE_LED_STRIP
             else if (osdJoystickEnabled()) {
                 osdJoystickSimulate5KeyButtonRelease();
                 isButtonPressed = false;
             }
+#endif
 #endif
         }
     } else {
@@ -308,6 +316,7 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                 rcdeviceSend5KeyOSDCableSimualtionEvent(key);
                 waitingDeviceResponse = true;
             }
+#ifndef UNIT_TEST
 #ifdef USE_LED_STRIP
             else if (osdJoystickEnabled()) {
                 if ( key == RCDEVICE_CAM_KEY_CONNECTION_OPEN ) {
@@ -318,6 +327,7 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
                     osdJoystickSimulate5KeyButtonPress(key);
                 }
             }
+#endif
 #endif
             isButtonPressed = true;
         }
