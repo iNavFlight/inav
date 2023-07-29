@@ -47,6 +47,10 @@
 #include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 
+
+#include "build/debug.h"
+
+
 #ifdef USE_PITOT
 
 pitot_t pitot;
@@ -201,6 +205,7 @@ STATIC_PROTOTHREAD(pitotThread)
     ptBegin(pitotThread);
 
     static float pitotPressureTmp;
+    static float pitotTemperatureTmp;
     timeUs_t currentTimeUs;
 
     // Init filter
@@ -220,7 +225,7 @@ STATIC_PROTOTHREAD(pitotThread)
             pitot.lastSeenHealthyMs = millis();
         }
 
-        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
+        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
 #ifdef USE_SIMULATOR
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
             pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
@@ -249,12 +254,19 @@ STATIC_PROTOTHREAD(pitotThread)
             //
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-            
-            // // with calibration
-            // pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;
 
-            // no calibibration 
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf( 2.0f * fabsf(pitot.pressure) / SSL_AIR_DENSITY) * 100;
+            // // no calibibration 
+            // pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf( 2.0f * fabsf(pitot.pressure) / SSL_AIR_DENSITY) * 100;
+            
+            // with calibration
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;
+
+            // LOG_DEBUG( PITOT, "HELLO!");
+            debug[0] = pitot.pressure * 1000;
+            debug[1] = pitot.pressureZero * 1000;
+            debug[2] = pitot.airSpeed;
+            // debug[3] = pitot.lastSeenHealthyMs;
+
         } else {
             performPitotCalibrationCycle();
             pitot.airSpeed = 0.0f;

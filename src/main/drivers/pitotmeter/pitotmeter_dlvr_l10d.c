@@ -21,6 +21,7 @@
 #include <platform.h>
 #include <build/debug.h>
 
+#include "common/log.h"
 #include "common/utils.h"
 #include "common/maths.h"
 #include "drivers/bus_i2c.h"
@@ -56,7 +57,7 @@
 #define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * (press))
 
 #define RANGE_INCH_H2O      10
-#define DLVR_OFFSET         8192.0f
+#define DLVR_OFFSET         (8192.0f)
 #define DLVR_SCALE          16384.0f
 
 
@@ -150,7 +151,10 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     //-----------------------------------------------------------------------------
     
     // pressure in inchH2O
-    float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - DLVR_OFFSET) / DLVR_SCALE);    
+    float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - DLVR_OFFSET) / DLVR_SCALE); 
+
+    LOG_DEBUG( PITOT, "adc = %f; dP_inchH2O =  %f", (double)ctx->dlvr_up, (double)dP_inchH2O);
+   
 
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
@@ -162,7 +166,7 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     }
 
     if (pressure) {
-        *pressure = INCH_H2O_TO_PASCAL( dP_inchH2O);	// Pa
+        *pressure = INCH_H2O_TO_PASCAL( dP_inchH2O);   // Pa
     }
 
     if (temperature) {
@@ -197,7 +201,7 @@ bool dlvrDetect(pitotDev_t * pitot)
     ctx->dlvr_up = 0;
 
     // Initialize pitotDev object
-    pitot->delay = 10000;
+    pitot->delay = 5000;    //10000;
     pitot->start = dlvr_start;
     pitot->get = dlvr_read;
     pitot->calculate = dlvr_calculate;
