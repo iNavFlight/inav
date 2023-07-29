@@ -58,11 +58,7 @@ LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pu
  
  When PWM generation is disabled, LED pin is used to drive ws2812 strip. Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM signal with duty ratio > ~90%.
  
- After sending ws2812 protocol pulses for 32 LEDS, we held line high for 9ms, then send 50us low 'reset' pulse. 
- 
- Datasheet for ws2812 protocol does not describe behavior for long high pulse, but in practice it works the same as 'reset' pulse. 
- 
- To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
+ After sending ws2812 protocol pulses for 32 LEDS, we held line high for 9ms, then send 50us low 'reset' pulse. Datasheet for ws2812 protocol does not describe behavior for long high pulse, but in practice it works the same as 'reset' pulse. To be safe, we also send correct low 'reset' pulse before starting next LEDs update sequence.
  
  This mode is used to simulate OSD joystick. It is Ok that effectively voltage level is held >90% while driving LEDs, because OSD joystick keypress voltages are below 90%.
  
