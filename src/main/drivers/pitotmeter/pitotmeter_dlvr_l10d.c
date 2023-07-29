@@ -115,6 +115,8 @@ static bool dlvr_read(pitotDev_t * pitot)
         return false;
     }
 
+    LOG_DEBUG( PITOT, "dP_raw1 = %f; dP_raw2 =  %f", (double)dP_raw1, (double)dP_raw2 );
+
     // Data valid, update ut/up values
     ctx->dataValid = true;
     ctx->dlvr_up = (dP_raw1 + dP_raw2) / 2;
@@ -153,11 +155,12 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     // pressure in inchH2O
     float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - DLVR_OFFSET) / DLVR_SCALE); 
 
-    LOG_DEBUG( PITOT, "adc = %f; dP_inchH2O =  %f", (double)ctx->dlvr_up, (double)dP_inchH2O);
-   
+    LOG_DEBUG( PITOT, "p_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
 
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
+
+    LOG_DEBUG( PITOT, "t_adc = %f; T_C = %f", (double)ctx->dlvr_ut, (double)T_C );
 
     // result must fit inside the range
     if ((dP_inchH2O > RANGE_INCH_H2O) || (dP_inchH2O < -RANGE_INCH_H2O)) {

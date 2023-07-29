@@ -194,6 +194,9 @@ static void performPitotCalibrationCycle(void)
 {
     zeroCalibrationAddValueS(&pitot.zeroCalibration, pitot.pressure);
 
+    // pitot.zeroCalibration.params.sampleCount
+    // pitot.zeroCalibration.val.accumulatedValue
+
     if (zeroCalibrationIsCompleteS(&pitot.zeroCalibration)) {
         zeroCalibrationGetZeroS(&pitot.zeroCalibration, &pitot.pressureZero);
         LOG_DEBUG(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
@@ -205,7 +208,7 @@ STATIC_PROTOTHREAD(pitotThread)
     ptBegin(pitotThread);
 
     static float pitotPressureTmp;
-    static float pitotTemperatureTmp;
+    static float pitotTemperature;
     timeUs_t currentTimeUs;
 
     // Init filter
@@ -225,7 +228,8 @@ STATIC_PROTOTHREAD(pitotThread)
             pitot.lastSeenHealthyMs = millis();
         }
 
-        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
+        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperature);
+
 #ifdef USE_SIMULATOR
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
             pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
@@ -259,18 +263,20 @@ STATIC_PROTOTHREAD(pitotThread)
             // pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf( 2.0f * fabsf(pitot.pressure) / SSL_AIR_DENSITY) * 100;
             
             // with calibration
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
 
-            // LOG_DEBUG( PITOT, "HELLO!");
+            pitot.temperature = pitotTemperature;   // Kelvin
+
             debug[0] = pitot.pressure * 1000;
             debug[1] = pitot.pressureZero * 1000;
             debug[2] = pitot.airSpeed;
-            // debug[3] = pitot.lastSeenHealthyMs;
+            debug[3] = millis() - pitot.lastSeenHealthyMs;
 
         } else {
             performPitotCalibrationCycle();
             pitot.airSpeed = 0.0f;
         }
+
 #ifdef USE_SIMULATOR
         if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
             pitot.airSpeed = simulatorData.airSpeed;
