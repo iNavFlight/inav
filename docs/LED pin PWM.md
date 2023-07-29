@@ -47,7 +47,7 @@ When PWM generation is disabled, LED pin is used to drive ws2812 strip.
 Total ws2812 pulses duration is ~1ms with ~9ms pauses. Thus connected device should ignore PWM signal with duty ratio < ~10%.
 
 ## SHARED_HIGH
-LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pulses are prefixed with 300us low 'reset' pulse:
+LED Pin is used to drive WS2812 strip. Pauses between pulses are high. ws2812 pulses are prefixed with 50us low 'reset' pulse:
 
 ![alt text](/docs/assets/images/ws2811_packets_high.png  "ws2811 packets_high")
 ![alt text](/docs/assets/images/ws2811_data_high.png  "ws2811 data_high")
