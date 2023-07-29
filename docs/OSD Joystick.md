@@ -6,7 +6,7 @@ See [LED pin PWM](LED%20pin%20PWM.md) for more details.
 
 Note that for cameras which support RuncamDevice protocol, there is alternative functionality using serial communication: [Runcam device](Runcam%20device.md)
 
-Alao special adapters exist to convert RuncamDevice protocol to OSD Joystick: [Runcam control adapter](https://www.runcam.com/download/runcam_control_adapter_manual.pdf)
+Also special adapters exist to convert RuncamDevice protocol to OSD Joystick: [Runcam control adapter](https://www.runcam.com/download/runcam_control_adapter_manual.pdf)
 
 # OSD Joystick schematics
 
