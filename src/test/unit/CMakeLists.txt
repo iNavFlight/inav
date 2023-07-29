@@ -21,7 +21,7 @@ set_property(SOURCE olc_unittest.cc PROPERTY depends "common/olc.c")
 set_property(SOURCE rcdevice_unittest.cc PROPERTY definitions USE_RCDEVICE)
 set_property(SOURCE rcdevice_unittest.cc PROPERTY depends
     "common/bitarray.c" "common/crc.c" "io/rcdevice.c" "io/rcdevice_cam.c"
-    "fc/rc_modes.c" "common/maths.c" "drivers/osd_joystick.c")
+    "fc/rc_modes.c" "common/maths.c" "io/osd_joystick.c")
 
 set_property(SOURCE sensor_gyro_unittest.cc PROPERTY depends
     "build/debug.c" "common/maths.c" "common/calibration.c" "common/filter.c"
