@@ -499,8 +499,8 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
-        .staticPriority = TASK_PRIORITY_MEDIUM,
+        .desiredPeriod = TASK_PERIOD_HZ(100),            // min real period ~30ms
+        .staticPriority = TASK_PRIORITY_MEDIUM_HIGH,    // TASK_PRIORITY_MEDIUM, //  ???
     },
 #endif
 

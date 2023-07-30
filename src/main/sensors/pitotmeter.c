@@ -269,8 +269,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
             debug[0] = pitot.pressure * 1000;
             debug[1] = pitot.pressureZero * 1000;
-            debug[2] = pitot.airSpeed;
-            debug[3] = millis() - pitot.lastSeenHealthyMs;
+            debug[2] = (pitot.pressure - pitot.pressureZero) * 1000;
 
         } else {
             performPitotCalibrationCycle();

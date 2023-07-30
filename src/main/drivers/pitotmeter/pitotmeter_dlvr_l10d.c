@@ -57,7 +57,8 @@
 #define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * (press))
 
 #define RANGE_INCH_H2O      10
-#define DLVR_OFFSET         (8192.0f)
+#define DLVR_OFFSET_CORR    -9.0f
+#define DLVR_OFFSET         8192.0f
 #define DLVR_SCALE          16384.0f
 
 
@@ -71,15 +72,18 @@ STATIC_ASSERT(sizeof(dlvrCtx_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchp
 
 static bool dlvr_start(pitotDev_t * pitot)
 {
-    uint8_t rxbuf[1];
-    bool ack = busReadBuf(pitot->busDev, 0xFF, rxbuf, 1);
-    return ack;
+    (void)pitot;
+    return true;
+
+    // uint8_t rxbuf[1];
+    // bool ack = busReadBuf(pitot->busDev, 0xFF, rxbuf, 1);
+    // return ack;
 }
 
 static bool dlvr_read(pitotDev_t * pitot)
 {
     uint8_t rxbuf1[4];
-    uint8_t rxbuf2[4];
+    // uint8_t rxbuf2[4];
 
     dlvrCtx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
     ctx->dataValid = false;
@@ -88,9 +92,9 @@ static bool dlvr_read(pitotDev_t * pitot)
         return false;
     }
 
-    if (!busReadBuf(pitot->busDev, 0xFF, rxbuf2, 4)) {
-        return false;
-    }
+    // if (!busReadBuf(pitot->busDev, 0xFF, rxbuf2, 4)) {
+    //     return false;
+    // }
 
     // status = 00 -> ok, new data
 	// status = 01 -> reserved
@@ -103,24 +107,26 @@ static bool dlvr_read(pitotDev_t * pitot)
     }
 
     int16_t dP_raw1, dT_raw1;
-    int16_t dP_raw2, dT_raw2;
+    // int16_t dP_raw2, dT_raw2;
 
     dP_raw1 = 0x3FFF & ((rxbuf1[0] << 8) + rxbuf1[1]);
     dT_raw1 = (0xFFE0 & ((rxbuf1[2] << 8) + rxbuf1[3])) >> 5;
-    dP_raw2 = 0x3FFF & ((rxbuf2[0] << 8) + rxbuf2[1]);
-    dT_raw2 = (0xFFE0 & ((rxbuf2[2] << 8) + rxbuf2[3])) >> 5;
+    // dP_raw2 = 0x3FFF & ((rxbuf2[0] << 8) + rxbuf2[1]);
+    // dT_raw2 = (0xFFE0 & ((rxbuf2[2] << 8) + rxbuf2[3])) >> 5;
 
-    // reject any double reads where the value has shifted in the upper more than 0xFF
-    if (ABS(dP_raw1 - dP_raw2) > 0xFF || ABS(dT_raw1 - dT_raw2) > 0xFF) {
-        return false;
-    }
+    // // reject any double reads where the value has shifted in the upper more than 0xFF
+    // if (ABS(dP_raw1 - dP_raw2) > 0xFF || ABS(dT_raw1 - dT_raw2) > 0xFF) {
+    //     return false;
+    // }
 
-    LOG_DEBUG( PITOT, "dP_raw1 = %f; dP_raw2 =  %f", (double)dP_raw1, (double)dP_raw2 );
+    // LOG_DEBUG( PITOT, "dP_raw1 = %f; dP_raw2 =  %f", (double)dP_raw1, (double)dP_raw2 );
 
     // Data valid, update ut/up values
     ctx->dataValid = true;
-    ctx->dlvr_up = (dP_raw1 + dP_raw2) / 2;
-    ctx->dlvr_ut = (dT_raw1 + dT_raw2) / 2;
+    // ctx->dlvr_up = (dP_raw1 + dP_raw2) / 2;
+    // ctx->dlvr_ut = (dT_raw1 + dT_raw2) / 2;
+    ctx->dlvr_up = dP_raw1;
+    ctx->dlvr_ut = dT_raw1;
     return true;
 }
 
@@ -128,39 +134,19 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
 {
     dlvrCtx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
 
-    // //-----------------------------------------------------------------------------
-    // // MS4525 sensor
-    // //-----------------------------------------------------------------------------
-    // const float P_max = 1.0f;
-    // const float P_min = -P_max;
-    // const float PSI_to_Pa = 6894.757f;
-
-    // //float dP = ctx->ms4525_up * 10.0f * 0.1052120688f;
-    // const float dP_psi = -((ctx->dlvr_up - 0.1f * 16383) * (P_max - P_min) / (0.8f * 16383) + P_min);
-    // float dP = dP_psi * PSI_to_Pa;
-    // float T  = C_TO_KELVIN((float)(200.0f * (int32_t)ctx->dlvr_ut) / 2047.0f - 50.0f);
-
-    // if (pressure) {
-    //     *pressure = dP;    // Pa
-    // }
-
-    // if (temperature) {
-    //     *temperature = T; // K
-    // }
-
-    //-----------------------------------------------------------------------------
-    // DLVR-L10D sensor
-    //-----------------------------------------------------------------------------
-    
+  
     // pressure in inchH2O
-    float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - DLVR_OFFSET) / DLVR_SCALE); 
+    float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR) ) / DLVR_SCALE); 
 
-    LOG_DEBUG( PITOT, "p_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
+    LOG_DEBUG( PITOT, "dP_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
+
+    debug[3] = (int32_t)(ctx->dlvr_up *100);
+    debug[4] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
 
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
 
-    LOG_DEBUG( PITOT, "t_adc = %f; T_C = %f", (double)ctx->dlvr_ut, (double)T_C );
+    //LOG_DEBUG( PITOT, "t_adc = %f; T_C = %f", (double)ctx->dlvr_ut, (double)T_C );
 
     // result must fit inside the range
     if ((dP_inchH2O > RANGE_INCH_H2O) || (dP_inchH2O < -RANGE_INCH_H2O)) {
@@ -204,7 +190,7 @@ bool dlvrDetect(pitotDev_t * pitot)
     ctx->dlvr_up = 0;
 
     // Initialize pitotDev object
-    pitot->delay = 5000;    //10000;
+    pitot->delay = 1000;
     pitot->start = dlvr_start;
     pitot->get = dlvr_read;
     pitot->calculate = dlvr_calculate;
