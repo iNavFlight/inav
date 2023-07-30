@@ -43,6 +43,7 @@
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 
@@ -430,8 +431,14 @@ void failsafeUpdateState(void)
                     switch (failsafeState.activeProcedure) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
                             // Use Emergency Landing if Nav defined (otherwise stabilize and set Throttle to specified level).
-                            failsafeActivate(FAILSAFE_LANDING);
-                            activateForcedEmergLanding();
+                            if(mixerATUpdateState(FAILSAFE_LANDING))
+                            {   
+                                failsafeActivate(FAILSAFE_LANDING);
+                                activateForcedEmergLanding();
+                            }
+                            else{
+                                failsafeActivate(FAILSAFE_MIXER_SWITCHING);
+                            }
                             break;
 
                         case FAILSAFE_PROCEDURE_DROP_IT:
@@ -441,9 +448,16 @@ void failsafeUpdateState(void)
                             break;
 
                         case FAILSAFE_PROCEDURE_RTH:
-                            // Proceed to handling & monitoring RTH navigation
-                            failsafeActivate(FAILSAFE_RETURN_TO_HOME);
-                            activateForcedRTH();
+                            if(mixerATUpdateState(FAILSAFE_RETURN_TO_HOME))
+                            {   
+                                // Proceed to handling & monitoring RTH navigation
+                                failsafeActivate(FAILSAFE_RETURN_TO_HOME);
+                                activateForcedRTH();
+                            }
+                            else{
+                                failsafeActivate(FAILSAFE_MIXER_SWITCHING);
+                                activateForcedAltHold();
+                            }
                             break;
                         case FAILSAFE_PROCEDURE_NONE:
                         default:
@@ -463,6 +477,31 @@ void failsafeUpdateState(void)
                 } else if (failsafeChooseFailsafeProcedure() != FAILSAFE_PROCEDURE_NONE) {  // trigger new failsafe procedure if changed
                     failsafeState.phase = FAILSAFE_RX_LOSS_DETECTED;
                     reprocessState = true;
+                }
+                break;
+
+            case FAILSAFE_MIXER_SWITCHING:
+                //enters when mixer switching is required                
+                if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
+                    mixerATUpdateState(FAILSAFE_RX_LOSS_RECOVERED);
+                    failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
+                    reprocessState = true;
+                } else {
+                    if (armed) {
+                        beeperMode = BEEPER_RX_LOST;
+                    }
+                    if (mixerATUpdateState(FAILSAFE_MIXER_SWITCHING)){
+                        failsafeActivate(FAILSAFE_RX_LOSS_DETECTED); //throw back to failsafe_rx_loss_detected to perform designated procedure
+                    }
+                    else
+                    {
+                        failsafeState.phase = FAILSAFE_MIXER_SWITCHING; //wait
+                    }
+                    if (!armed) {
+                        failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_30_SECONDS; // require 30 seconds of valid rxData
+                        failsafeState.phase = FAILSAFE_LANDED;
+                        reprocessState = true;
+                    }
                 }
                 break;
 

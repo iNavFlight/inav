@@ -1173,6 +1173,30 @@ groups:
         default_value: OFF
         field: mixer_config.PIDProfileLinking
         type: bool
+      - name: mixer_switch_on_fs_rth
+        description: "If set to on, mixer_profile will switch on failsafe RTH"
+        default_value: OFF
+        field: mixer_config.switchOnFSRTH
+        type: bool
+      - name: mixer_switch_on_fs_land
+        description: "If set to on, mixer_profile will switch on failsafe Landing"
+        default_value: OFF
+        field: mixer_config.switchOnFSLand
+        type: bool
+      - name: mixer_switch_on_fs_stab_timer
+        description: "If swith mixer_profile on failsafe is required, Wait for this many decisecond(0.1s) before using mixerTransition input for servo and motor mixer"
+        default_value: 0
+        field: mixer_config.switchOnFSStabilizationTimer
+        min: 0
+        max: 200
+      - name: mixer_switch_on_fs_trans_timer
+        description: "If swith mixer_profile on failsafe is required, Activate MixerTransion mode for this many decisecond(0.1s) before the actual mixer_profile switch"
+        default_value: 0
+        field: mixer_config.switchOnFSTransitionTimer
+        min: 0
+        max: 200
+
+      
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t

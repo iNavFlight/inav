@@ -945,6 +945,8 @@ static const char * osdFailsafePhaseMessage(void)
         case FAILSAFE_LANDING:
             // This should be considered an emergengy landing
             return OSD_MESSAGE_STR(OSD_MSG_EMERG_LANDING_FS);
+        case FAILSAFE_MIXER_SWITCHING:
+            return OSD_MESSAGE_STR(OSD_MSG_MIXER_SWITCHING_FS);
         case FAILSAFE_RX_LOSS_MONITORING:
             // Only reachable from FAILSAFE_LANDED, which performs
             // a disarm. Since aircraft has been disarmed, we no

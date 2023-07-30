@@ -1,7 +1,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
-
+#include "flight/failsafe.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 
@@ -17,6 +17,10 @@ typedef struct mixerConfig_s {
     uint8_t outputMode;
     bool motorstopOnLow;
     bool PIDProfileLinking;
+    bool switchOnFSRTH;
+    bool switchOnFSLand;
+    int16_t switchOnFSStabilizationTimer;
+    int16_t switchOnFSTransitionTimer;
 } mixerConfig_t;
 typedef struct mixerProfile_s {
     mixerConfig_t mixer_config;
@@ -26,9 +30,31 @@ typedef struct mixerProfile_s {
 
 PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 
+
+//mixerProfile Automated Transition PHASE
+typedef enum {
+    MIXERAT_PHASE_IDLE,
+    MIXERAT_PHASE_TRANSITION_INITIALIZE,
+    MIXERAT_PHASE_TRANSITIONING,
+    MIXERAT_PHASE_DONE,
+} mixerProfileATState_t;
+
+typedef struct mixerProfileAT_s {
+    mixerProfileATState_t phase;
+    bool transitionInputMixing;
+    timeMs_t transitionStartTime;
+    timeMs_t transitionStabEndTime;
+    timeMs_t transitionTransEndTime;
+    bool lastTransitionInputMixing;
+    bool lastMixerProfile;
+} mixerProfileAT_t;
+extern mixerProfileAT_t mixerProfileAT;
+bool mixerATRequiresAngleMode(void);
+bool mixerATUpdateState(failsafePhase_e required_fs_phase);
+
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;
-extern bool isInMixerTransition;
+extern bool isMixerTransitionMixing;
 #define mixerConfig() (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->mixer_config))
 #define mixerConfigMutable() ((mixerConfig_t *) mixerConfig())
 

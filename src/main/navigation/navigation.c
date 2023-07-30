@@ -3740,6 +3740,11 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             }
         }
 
+        // Failsafe_Altitude hold for vtol transition (can override MANUAL)
+        if (posControl.flags.forcedAltHoldActivated && canActivateAltHold) {
+            return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
+        }
+
         // Failsafe_RTH (can override MANUAL)
         if (posControl.flags.forcedRTHActivated) {
             // If we request forced RTH - attempt to activate it no matter what
@@ -3789,14 +3794,14 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // CRUISE has priority over COURSE_HOLD and AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE) && STATE(AIRPLANE)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
             if ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
         }
 
         // PH has priority over COURSE_HOLD
         // CRUISE has priority on AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) && STATE(AIRPLANE)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD)) {
             if (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))) {
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
             }
@@ -4193,6 +4198,7 @@ void navigationInit(void)
 
     posControl.flags.forcedRTHActivated = false;
     posControl.flags.forcedEmergLandingActivated = false;
+    posControl.flags.forcedAltHoldActivated = false;
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
@@ -4316,6 +4322,34 @@ emergLandState_e getStateOfForcedEmergLanding(void)
     }
 }
 
+
+/*-----------------------------------------------------------
+ * Ability to mixer_profile(vtol) switch on external event
+ *-----------------------------------------------------------*/
+void activateForcedAltHold(void)
+{
+    posControl.flags.forcedAltHoldActivated = true;
+    navProcessFSMEvents(selectNavEventFromBoxModeInput());
+}
+
+void abortForcedAltHold(void)
+{
+    // Disable emergency landing and make sure we back out of navigation mode to IDLE
+    // If any navigation mode was active prior to emergency landing it will be re-enabled with next RX update
+    posControl.flags.forcedAltHoldActivated = false;
+    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
+}
+
+altHoldState_e getStateOfForcedAltHold(void)
+{
+    /* If forced emergency landing activated and in EMERG state */
+    if (posControl.flags.forcedAltHoldActivated && (navGetStateFlags(posControl.navState) & NAV_CTL_ALT)) {
+        return ALTHOLD_IN_PROGRESS;
+    } else {
+        return ALTHOLD_IDLE;
+    }
+}
+
 bool isWaypointMissionRTHActive(void)
 {
     return (navGetStateFlags(posControl.navState) & NAV_AUTO_RTH) && IS_RC_MODE_ACTIVE(BOXNAVWP) &&
@@ -4373,7 +4407,7 @@ bool navigationRTHAllowsLanding(void)
 
 bool isNavLaunchEnabled(void)
 {
-    return (IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH)) && STATE(AIRPLANE);
+    return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
 }
 
 bool abortLaunchAllowed(void)

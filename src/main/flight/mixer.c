@@ -618,7 +618,7 @@ void FAST_CODE mixTable(void)
                 motor[i] = motorZeroCommand;
             }
             //spin stopped motors only in mixer transition mode
-            if (isInMixerTransition && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && (!feature(FEATURE_REVERSIBLE_MOTORS))) {
+            if (isMixerTransitionMixing && currentMixer[i].throttle <= -1.05f && currentMixer[i].throttle >= -2.0f && (!feature(FEATURE_REVERSIBLE_MOTORS))) {
                 motor[i] = -currentMixer[i].throttle * 1000;
                 motor[i] = constrain(motor[i], throttleRangeMin, throttleRangeMax);
             }

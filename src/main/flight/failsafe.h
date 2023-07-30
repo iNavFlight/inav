@@ -97,6 +97,10 @@ typedef enum {
      * and transition into FAILSAFE_RX_LOSS_MONITORING immediately. This is
      * the first recovery phase enabled when failsafe_procedure = DROP.
      */
+    FAILSAFE_MIXER_SWITCHING,
+    /* Failsafe is executing MIXER_PROFILE_SWITCHING. This phase is triggered
+    if a MIXER_PROFILE_SWITCHING is required by the failsafe process
+     */
     FAILSAFE_RX_LOSS_MONITORING,
     /* This phase will wait until the RX connection is
      * working for some time and if and only if switch arming
@@ -133,6 +137,12 @@ typedef enum {
     EMERG_LAND_IN_PROGRESS,     // Emergency landing is active
     EMERG_LAND_HAS_LANDED       // Emergency landing is active and has landed.
 } emergLandState_e;
+
+typedef enum {
+    ALTHOLD_IDLE = 0,         // Altitude hold is waiting
+    ALTHOLD_IN_PROGRESS  // Altitude hold is activated
+} altHoldState_e;
+
 
 typedef struct failsafeState_s {
     int16_t events;

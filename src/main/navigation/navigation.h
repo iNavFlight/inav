@@ -588,6 +588,10 @@ void activateForcedEmergLanding(void);
 void abortForcedEmergLanding(void);
 emergLandState_e getStateOfForcedEmergLanding(void);
 
+void activateForcedAltHold(void);
+void abortForcedAltHold(void);
+altHoldState_e getStateOfForcedAltHold(void);
+
 /* Getter functions which return data about the state of the navigation system */
 bool navigationInAutomaticThrottleMode(void);
 bool navigationIsControllingThrottle(void);
