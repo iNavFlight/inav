@@ -92,6 +92,7 @@ void mixerConfigInit(void)
         setConfigProfile(getConfigMixerProfile());
         pidInit();
         pidInitFilters();
+        pidResetErrorAccumulators();
         schedulePidGainsUpdate();
         navigationUsePIDs(); // set navigation pid gains
     }
