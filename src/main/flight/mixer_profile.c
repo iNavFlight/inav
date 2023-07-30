@@ -147,10 +147,17 @@ bool mixerATRequiresAngleMode(void)
 
 void setMixerProfileAT(void)
 {
-    mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
     mixerProfileAT.transitionStartTime = millis();
-    mixerProfileAT.transitionStabEndTime = millis() + (timeMs_t)mixerConfig()->switchOnFSStabilizationTimer * 100;
-    mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStabEndTime + (timeMs_t)mixerConfig()->switchOnFSTransitionTimer * 100;
+    if (isMixerTransitionMixing && STATE(MULTIROTOR))
+    {
+        mixerProfileAT.transitionStabEndTime = mixerProfileAT.transitionStartTime;   
+    }
+    else
+    {
+        mixerProfileAT.transitionStabEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchOnFSStabilizationTimer * 100;
+    }
+    mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStabEndTime + (timeMs_t)currentMixerConfig.switchOnFSTransitionTimer * 100;
+    mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
     activateForcedAltHold();
 }
 
@@ -171,6 +178,7 @@ void abortMixerProfileAT(void)
 
 bool mixerATUpdateState(failsafePhase_e required_fs_phase)
 {   
+    //return true if mixerAT condition is met or setting is not valid
     //set mixer profile automated transition according to failsafe phase
     //on non vtol setups , behave as normal  
     if ((!STATE(AIRPLANE)) && (!STATE(MULTIROTOR)))
@@ -182,15 +190,17 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
         return true;
     }
     int nextProfileIndex = 0;
-    bool reprocessState=false;
+    bool reprocessState;
     do
     {   
+        reprocessState=false;
         nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
         switch (mixerProfileAT.phase)
         {
         case MIXERAT_PHASE_IDLE:
+            // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             //check if mixerAT is required
-            if ((required_fs_phase == FAILSAFE_RETURN_TO_HOME) && mixerConfig()->switchOnFSRTH)
+            if ((required_fs_phase == FAILSAFE_RETURN_TO_HOME) && currentMixerConfig.switchOnFSRTH)
             {
                 if(!mixerConfigByIndex(nextProfileIndex)->switchOnFSRTH)//check next mixer_profile setting is valid
                 {
@@ -198,7 +208,7 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
                     reprocessState = true;
                 }
             }
-            else if ((required_fs_phase == FAILSAFE_LANDING) && mixerConfig()->switchOnFSLand)
+            else if ((required_fs_phase == FAILSAFE_LANDING) && currentMixerConfig.switchOnFSLand)
             {
                 if(!mixerConfigByIndex(nextProfileIndex)->switchOnFSLand)//check next mixer_profile setting is valid
                 {
@@ -206,29 +216,22 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
                     reprocessState = true;
                 }
             }
-            else
-            {   
-                //return true if mixerAT condition is met or setting is not valid
-                return true;
-            }
             break;
         case MIXERAT_PHASE_TRANSITION_INITIALIZE:
+            // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             setMixerProfileAT();
             reprocessState = true;
             break;
         case MIXERAT_PHASE_TRANSITIONING:
+            // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             if (required_fs_phase==FAILSAFE_RX_LOSS_RECOVERED)
             {
                 abortMixerProfileAT();
-                reprocessState = true;
             }
             else
             {
-                if (millis() < mixerProfileAT.transitionStabEndTime)
+                if (millis() > mixerProfileAT.transitionStabEndTime)
                 {
-                    isMixerTransitionMixing_requested = false;
-                }
-                else{
                     isMixerTransitionMixing_requested = true;
                 }
                 if (millis() > mixerProfileAT.transitionTransEndTime)
@@ -237,6 +240,7 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
                     reprocessState = true;
                     //transition is done
                 }
+                return false;
             }
             break;
         default:

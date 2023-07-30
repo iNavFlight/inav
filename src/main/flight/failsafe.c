@@ -456,7 +456,6 @@ void failsafeUpdateState(void)
                             }
                             else{
                                 failsafeActivate(FAILSAFE_MIXER_SWITCHING);
-                                activateForcedAltHold();
                             }
                             break;
                         case FAILSAFE_PROCEDURE_NONE:
