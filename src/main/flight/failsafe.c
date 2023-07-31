@@ -431,7 +431,7 @@ void failsafeUpdateState(void)
                     switch (failsafeState.activeProcedure) {
                         case FAILSAFE_PROCEDURE_AUTO_LANDING:
                             // Use Emergency Landing if Nav defined (otherwise stabilize and set Throttle to specified level).
-                            if(mixerATUpdateState(FAILSAFE_LANDING))
+                            if(mixerATUpdateState(MIXERAT_REQUEST_LAND))
                             {   
                                 failsafeActivate(FAILSAFE_LANDING);
                                 activateForcedEmergLanding();
@@ -448,7 +448,7 @@ void failsafeUpdateState(void)
                             break;
 
                         case FAILSAFE_PROCEDURE_RTH:
-                            if(mixerATUpdateState(FAILSAFE_RETURN_TO_HOME))
+                            if(mixerATUpdateState(MIXERAT_REQUEST_RTH))
                             {   
                                 // Proceed to handling & monitoring RTH navigation
                                 failsafeActivate(FAILSAFE_RETURN_TO_HOME);
@@ -482,19 +482,16 @@ void failsafeUpdateState(void)
             case FAILSAFE_MIXER_SWITCHING:
                 //enters when mixer switching is required                
                 if (receivingRxDataAndNotFailsafeMode && sticksAreMoving) {
-                    mixerATUpdateState(FAILSAFE_RX_LOSS_RECOVERED);
+                    mixerATUpdateState(MIXERAT_REQUEST_ABORT);
                     failsafeState.phase = FAILSAFE_RX_LOSS_RECOVERED;
                     reprocessState = true;
                 } else {
                     if (armed) {
                         beeperMode = BEEPER_RX_LOST;
                     }
-                    if (mixerATUpdateState(FAILSAFE_MIXER_SWITCHING)){
+                    if (mixerATUpdateState(MIXERAT_REQUEST_NONE)){
                         failsafeActivate(FAILSAFE_RX_LOSS_DETECTED); //throw back to failsafe_rx_loss_detected to perform designated procedure
-                    }
-                    else
-                    {
-                        failsafeState.phase = FAILSAFE_MIXER_SWITCHING; //wait
+                        reprocessState = true;
                     }
                     if (!armed) {
                         failsafeState.receivingRxDataPeriodPreset = PERIOD_OF_30_SECONDS; // require 30 seconds of valid rxData

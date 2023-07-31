@@ -143,41 +143,31 @@ void mixerConfigInit(void)
 
 bool mixerATRequiresAngleMode(void)
 {
-    return mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING;
+    return (mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING) || (mixerProfileAT.phase == MIXERAT_PHASE_STAB_AND_CLIMB);
 }
 
 void setMixerProfileAT(void)
 {
     mixerProfileAT.transitionStartTime = millis();
-    if (isMixerTransitionMixing && STATE(MULTIROTOR))
-    {
-        mixerProfileAT.transitionStabEndTime = mixerProfileAT.transitionStartTime;   
-    }
-    else
-    {
-        mixerProfileAT.transitionStabEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchOnFSStabilizationTimer * 100;
-    }
+    mixerProfileAT.transitionStabEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchOnFSStabilizationTimer * 100;
     mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStabEndTime + (timeMs_t)currentMixerConfig.switchOnFSTransitionTimer * 100;
-    mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
-    activateForcedAltHold();
+    activateMIXERATHelper();
 }
 
 void performMixerProfileAT(int nextProfileIndex)
 {
-    abortForcedAltHold();
+    abortMIXERATHelper();
     isMixerTransitionMixing_requested = false;
     outputProfileHotSwitch(nextProfileIndex);
-    mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
 }
 
 void abortMixerProfileAT(void)
 {
-    abortForcedAltHold();
+    abortMIXERATHelper();
     isMixerTransitionMixing_requested = false;
-    mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
 }
 
-bool mixerATUpdateState(failsafePhase_e required_fs_phase)
+bool mixerATUpdateState(mixerProfileATRequest_t required_action)
 {   
     //return true if mixerAT condition is met or setting is not valid
     //set mixer profile automated transition according to failsafe phase
@@ -196,12 +186,16 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
     {   
         reprocessState=false;
         nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
+        if (required_action==MIXERAT_REQUEST_ABORT){
+            abortMixerProfileAT();
+            mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
+        }
         switch (mixerProfileAT.phase)
         {
         case MIXERAT_PHASE_IDLE:
             // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             //check if mixerAT is required
-            if ((required_fs_phase == FAILSAFE_RETURN_TO_HOME) && currentMixerConfig.switchOnFSRTH)
+            if ((required_action == MIXERAT_REQUEST_RTH) && currentMixerConfig.switchOnFSRTH && STATE(MULTIROTOR))
             {
                 if(!mixerConfigByIndex(nextProfileIndex)->switchOnFSRTH)//check next mixer_profile setting is valid
                 {
@@ -209,7 +203,7 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
                     reprocessState = true;
                 }
             }
-            else if ((required_fs_phase == FAILSAFE_LANDING) && currentMixerConfig.switchOnFSLand)
+            else if ((required_action == MIXERAT_REQUEST_LAND) && currentMixerConfig.switchOnFSLand && STATE(AIRPLANE))
             {
                 if(!mixerConfigByIndex(nextProfileIndex)->switchOnFSLand)//check next mixer_profile setting is valid
                 {
@@ -221,28 +215,26 @@ bool mixerATUpdateState(failsafePhase_e required_fs_phase)
         case MIXERAT_PHASE_TRANSITION_INITIALIZE:
             // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             setMixerProfileAT();
+            mixerProfileAT.phase = MIXERAT_PHASE_STAB_AND_CLIMB;
             reprocessState = true;
             break;
+        case MIXERAT_PHASE_STAB_AND_CLIMB:
+            isMixerTransitionMixing_requested = false;
+            if (millis() > mixerProfileAT.transitionStabEndTime){
+                mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
+                reprocessState = true;
+            }
+            return false;
+            break;
         case MIXERAT_PHASE_TRANSITIONING:
-            // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
-            if (required_fs_phase==FAILSAFE_RX_LOSS_RECOVERED)
-            {
-                abortMixerProfileAT();
+            isMixerTransitionMixing_requested = true;
+            if (millis() > mixerProfileAT.transitionTransEndTime){
+                performMixerProfileAT(nextProfileIndex);
+                mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
+                reprocessState = true;
+                //transition is done
             }
-            else
-            {
-                if (millis() > mixerProfileAT.transitionStabEndTime)
-                {
-                    isMixerTransitionMixing_requested = true;
-                }
-                if (millis() > mixerProfileAT.transitionTransEndTime)
-                {
-                    performMixerProfileAT(nextProfileIndex);
-                    reprocessState = true;
-                    //transition is done
-                }
-                return false;
-            }
+            return false;
             break;
         default:
             break;
@@ -309,7 +301,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     {
         isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)  && (!isNavBoxModesEnabled()); // update BOXMIXERTRANSITION_input
     }
-    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) ||(posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
+    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) ||(posControl.navState == NAV_STATE_MIXERAT_IN_PROGRESS));
 
     if (failsafePhase() == FAILSAFE_IDLE)
     {

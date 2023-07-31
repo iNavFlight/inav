@@ -31,10 +31,18 @@ typedef struct mixerProfile_s {
 PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
 
 
+typedef enum {
+    MIXERAT_REQUEST_NONE, //no request, stats checking only
+    MIXERAT_REQUEST_RTH,
+    MIXERAT_REQUEST_LAND,
+    MIXERAT_REQUEST_ABORT,
+} mixerProfileATRequest_t;
+
 //mixerProfile Automated Transition PHASE
 typedef enum {
     MIXERAT_PHASE_IDLE,
     MIXERAT_PHASE_TRANSITION_INITIALIZE,
+    MIXERAT_PHASE_STAB_AND_CLIMB,
     MIXERAT_PHASE_TRANSITIONING,
     MIXERAT_PHASE_DONE,
 } mixerProfileATState_t;
@@ -50,7 +58,7 @@ typedef struct mixerProfileAT_s {
 } mixerProfileAT_t;
 extern mixerProfileAT_t mixerProfileAT;
 bool mixerATRequiresAngleMode(void);
-bool mixerATUpdateState(failsafePhase_e required_fs_phase);
+bool mixerATUpdateState(mixerProfileATRequest_t required_action);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;
