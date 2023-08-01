@@ -588,10 +588,6 @@ void activateForcedEmergLanding(void);
 void abortForcedEmergLanding(void);
 emergLandState_e getStateOfForcedEmergLanding(void);
 
-// void activateMIXERATHelper(void);
-// void abortMIXERATHelper(void);
-// altHoldState_e getStateOfMIXERATHelper(void);
-
 /* Getter functions which return data about the state of the navigation system */
 bool navigationInAutomaticThrottleMode(void);
 bool navigationIsControllingThrottle(void);

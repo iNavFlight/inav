@@ -112,11 +112,11 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
     //on non vtol setups , behave as normal  
     if ((!STATE(AIRPLANE)) && (!STATE(MULTIROTOR)))
     {
-        return true;
+        return false;
     }
     if (!isModeActivationConditionPresent(BOXMIXERPROFILE))
     {
-        return true;
+        return false;
     }
 
     if ((required_action == MIXERAT_REQUEST_RTH) && (currentMixerConfig.switchOnRTH!=MIXERAT_ON_EVENT_OFF) && STATE(MULTIROTOR))
@@ -246,7 +246,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         }
         isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)  && (!isNavBoxModesEnabled()); // update BOXMIXERTRANSITION_input
     }
-    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) || nav_mixerAT_inuse);
+    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) || nav_mixerAT_inuse ||(posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
 }
 
 // switch mixerprofile without reboot

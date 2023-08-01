@@ -68,6 +68,7 @@
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
 #define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
 #define MR_RTH_CLIMB_MARGIN_PERCENT 15   // on high RTH altitudes use even bigger margin - percent of the altitude set
+#define MR_RTH_LAND_MARGIN_CM       2000 // pause landing if this amount of cm *before* remaining to the home point (2D distance)
 
 // Planes:
 #define FW_RTH_CLIMB_OVERSHOOT_CM   100
@@ -1408,7 +1409,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
-    if (checkMixerATRequired(MIXERAT_REQUEST_RTH)){
+    if (checkMixerATRequired(MIXERAT_REQUEST_RTH) && (calculateDistanceToDestination(&posControl.rthState.homePosition.pos) > (navConfig()->fw.loiter_radius * 3))){
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
 
@@ -1522,10 +1523,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     float descentVelLimited = 0;
-    int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
 
+    fpVector3_t tmpHomePos = posControl.rthState.homeTmpWaypoint;
+    uint32_t remaning_distance = calculateDistanceToDestination(&tmpHomePos);
+
+    int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
+    if(STATE(MULTIROTOR) && (remaning_distance>MR_RTH_LAND_MARGIN_CM)){
+        descentVelLimited = navConfig()->general.land_minalt_vspd;
+    }
     // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
-    if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
+    else if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
         // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
         // Do not allow descent velocity slower than -30cm/s so the landing detector works.
         descentVelLimited = navConfig()->general.land_minalt_vspd;
@@ -3865,11 +3872,6 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             }
         }
 
-        // Altitude hold for vtol transition (can override MANUAL)
-        if (posControl.flags.mixerATHelperActivated && canActivateAltHold) {
-            return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
-        }
-
         // Failsafe_RTH (can override MANUAL)
         if (posControl.flags.forcedRTHActivated) {
             // If we request forced RTH - attempt to activate it no matter what
@@ -4323,7 +4325,6 @@ void navigationInit(void)
 
     posControl.flags.forcedRTHActivated = false;
     posControl.flags.forcedEmergLandingActivated = false;
-    posControl.flags.mixerATHelperActivated = false;
     posControl.waypointCount = 0;
     posControl.activeWaypointIndex = 0;
     posControl.waypointListValid = false;
