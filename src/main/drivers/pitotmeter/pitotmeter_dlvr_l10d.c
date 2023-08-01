@@ -72,12 +72,8 @@ STATIC_ASSERT(sizeof(dlvrCtx_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchp
 
 static bool dlvr_start(pitotDev_t * pitot)
 {
-    (void)pitot;
+    UNUSED(pitot);
     return true;
-
-    // uint8_t rxbuf[1];
-    // bool ack = busReadBuf(pitot->busDev, 0xFF, rxbuf, 1);
-    // return ack;
 }
 
 static bool dlvr_read(pitotDev_t * pitot)
@@ -140,8 +136,8 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
 
     LOG_DEBUG( PITOT, "dP_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
 
-    debug[3] = (int32_t)(ctx->dlvr_up *100);
-    debug[4] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
+    debug[4] = (int32_t)(ctx->dlvr_up *100);
+    debug[5] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
 
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
@@ -190,7 +186,7 @@ bool dlvrDetect(pitotDev_t * pitot)
     ctx->dlvr_up = 0;
 
     // Initialize pitotDev object
-    pitot->delay = 1000;
+    pitot->delay = 10;      // 10000
     pitot->start = dlvr_start;
     pitot->get = dlvr_read;
     pitot->calculate = dlvr_calculate;

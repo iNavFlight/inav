@@ -216,12 +216,12 @@ STATIC_PROTOTHREAD(pitotThread)
     pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
-        // Start measurement
-        if (pitot.dev.start(&pitot.dev)) {
-            pitot.lastSeenHealthyMs = millis();
-        }
+        // // Start measurement
+        // if (pitot.dev.start(&pitot.dev)) {
+        //     pitot.lastSeenHealthyMs = millis();
+        // }
 
-        ptDelayUs(pitot.dev.delay);
+        // ptDelayUs(pitot.dev.delay);
 
         // Read and calculate data
         if (pitot.dev.get(&pitot.dev)) {
@@ -246,7 +246,7 @@ STATIC_PROTOTHREAD(pitotThread)
         currentTimeUs = micros();
         pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
         pitot.lastMeasurementUs = currentTimeUs;
-        ptDelayUs(pitot.dev.delay);
+//        ptDelayUs(pitot.dev.delay);
 
         // Calculate IAS
         if (pitotIsCalibrationComplete()) {
@@ -270,6 +270,7 @@ STATIC_PROTOTHREAD(pitotThread)
             debug[0] = pitot.pressure * 1000;
             debug[1] = pitot.pressureZero * 1000;
             debug[2] = (pitot.pressure - pitot.pressureZero) * 1000;
+            debug[3] = pitot.dev.delay;
 
         } else {
             performPitotCalibrationCycle();

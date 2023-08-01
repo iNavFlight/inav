@@ -95,3 +95,4 @@ bool mspPitotmeterDetect(pitotDev_t *pitot)
 }
 
 #endif
+    
