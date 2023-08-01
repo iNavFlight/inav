@@ -498,7 +498,7 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
@@ -983,12 +983,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime()
+float getFlightTime(void)
 {
     return US2S(flightTime);
 }
 
-float getArmTime()
+float getArmTime(void)
 {
     return US2S(armTime);
 }

@@ -1,5 +1,5 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV
  *
  * Cleanflight is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,14 +17,18 @@
 
 #pragma once
 
-typedef enum {
-    FRSKY_VFAS_PRECISION_LOW = 0,
-    FRSKY_VFAS_PRECISION_HIGH
-} frskyVFasPrecision_e;
+#include <stdint.h>
 
-void handleFrSkyTelemetry(void);
-void checkFrSkyTelemetryState(void);
+#include "gps_ublox.h"
 
-void initFrSkyTelemetry(void);
-void configureFrSkyTelemetryPort(void);
-void freeFrSkyTelemetryPort(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPairs, uint8_t count);
+
+void ublox_update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b);
+
+#ifdef __cplusplus
+}
+#endif

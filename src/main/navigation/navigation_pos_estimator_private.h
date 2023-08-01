@@ -81,6 +81,7 @@ typedef struct {
     pt1Filter_t avgFilter;
     float       alt;            // Raw barometric altitude (cm)
     float       epv;
+    float       baroAltRate;    // Baro altitude rate of change (cm/s)
 } navPositionEstimatorBARO_t;
 
 typedef struct {

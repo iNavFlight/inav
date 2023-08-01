@@ -149,6 +149,8 @@ main_sources(STM32H7_SRC
     drivers/bus_i2c_hal.c
     drivers/dma_stm32h7xx.c
     drivers/bus_spi_hal_ll.c
+    drivers/bus_quadspi.c
+    drivers/bus_quadspi_hal.c
     drivers/memprot.h
     drivers/memprot_hal.c
     drivers/memprot_stm32h7xx.c

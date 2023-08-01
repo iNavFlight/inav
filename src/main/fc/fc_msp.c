@@ -2482,12 +2482,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     if (newFrequency <= VTXCOMMON_MSP_BANDCHAN_CHKVAL) {  //value is band and channel
                         const uint8_t newBand = (newFrequency / 8) + 1;
                         const uint8_t newChannel = (newFrequency % 8) + 1;
+
+                        if(vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
+                            vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
+                        }
+
                         vtxSettingsConfigMutable()->band = newBand;
                         vtxSettingsConfigMutable()->channel = newChannel;
                     }
 
                     if (sbufBytesRemaining(src) > 1) {
-                        vtxSettingsConfigMutable()->power = sbufReadU8(src);
+                        uint8_t newPower = sbufReadU8(src);
+                        uint8_t currentPower = 0;
+                        vtxCommonGetPowerIndex(vtxDevice, &currentPower);
+                        if (newPower != currentPower) {
+                            vtxCommonSetPowerByIndex(vtxDevice, newPower);
+                            vtxSettingsConfigMutable()->power = newPower;
+                        }
+
                         // Delegate pitmode to vtx directly
                         const uint8_t newPitmode = sbufReadU8(src);
                         uint8_t currentPitmode = 0;
@@ -2526,6 +2538,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             gpsSol.flags.validVelNE = false;
             gpsSol.flags.validVelD = false;
             gpsSol.flags.validEPE = false;
+            gpsSol.flags.validTime = false;
             gpsSol.numSat = sbufReadU8(src);
             gpsSol.llh.lat = sbufReadU32(src);
             gpsSol.llh.lon = sbufReadU32(src);
@@ -3483,7 +3496,9 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 
 #ifdef USE_BARO
+            if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
 				baroStartCalibration();
+            }
 #endif
 #ifdef USE_MAG
 				DISABLE_STATE(COMPASS_CALIBRATED);
@@ -3494,10 +3509,15 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
 			}   
-		} else if (!areSensorsCalibrating()) {
+        } else {
 			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
-				baroStartCalibration();
+                if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
+                    sensorsSet(SENSOR_BARO);
+                    setTaskEnabled(TASK_BARO, true);
+                    DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
+				    baroStartCalibration();
+                }
 #endif			
 
 #ifdef USE_MAG
@@ -3526,6 +3546,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 						gpsSol.flags.validVelNE = true;
 						gpsSol.flags.validVelD = true;
 						gpsSol.flags.validEPE = true;
+						gpsSol.flags.validTime = false;
 
 						gpsSol.llh.lat = sbufReadU32(src);
 						gpsSol.llh.lon = sbufReadU32(src);
@@ -3580,7 +3601,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 				if (sensors(SENSOR_MAG)) {
 					mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  // 16000 / 20 = 800uT
-					mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;
+					mag.magADC[Y] = ((int16_t)sbufReadU16(src)) / 20;   //note that mag failure is simulated by setting all readings to zero
 					mag.magADC[Z] = ((int16_t)sbufReadU16(src)) / 20;
 				} else {
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
@@ -3597,8 +3618,16 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #endif
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-                    simulatorData.airSpeed = sbufReadU16(src);   
-			    }
+                    simulatorData.airSpeed = sbufReadU16(src);
+			    } else {
+                    if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
+                        sbufReadU16(src); 
+                    }
+                }
+
+                if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
+                    simulatorData.flags |= ((uint16_t)sbufReadU8(src)) << 8;
+                }
 			} else {
 				DISABLE_STATE(GPS_FIX);
 			}

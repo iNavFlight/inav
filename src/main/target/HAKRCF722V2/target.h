@@ -57,8 +57,6 @@
 #define I2C1_SDA                PB9
 
 // *** IMU sensors ***
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
 
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_DUAL_GYRO

@@ -18,8 +18,10 @@
 
 // Get target build configuration
 #include "platform.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
+#include "common/log.h"
 
 #include "config/config_eeprom.h"
 #include "config/parameter_group.h"
@@ -36,7 +38,6 @@
 #include "io/beeper.h"
 #include "io/osd.h"
 #include "io/vtx_control.h"
-
 
 #if defined(USE_VTX_CONTROL)
 

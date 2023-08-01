@@ -52,7 +52,7 @@ void * memAllocate(size_t wantedSize, resourceOwner_e owner)
         retPointer = &dynHeap[dynHeapFreeWord];
         dynHeapFreeWord += wantedWords;
         dynHeapUsage[owner] += wantedWords * sizeof(uint32_t);
-        LOG_DEBUG(SYSTEM, "Memory allocated. Free memory = %d", memGetAvailableBytes());
+        LOG_DEBUG(SYSTEM, "Memory allocated. Free memory = %ld", (unsigned long)memGetAvailableBytes());
     }
     else {
         // OOM
