@@ -9,6 +9,12 @@
 #define MAX_MIXER_PROFILE_COUNT 2
 #endif
 
+typedef enum {
+    MIXERAT_ON_EVENT_OFF, //no request, stats checking only
+    MIXERAT_ON_EVENT_ON,
+    MIXERAT_ON_EVENT_ON_FS_ONLY,
+} mixerProfileSwitchOnEvent_e;
+
 typedef struct mixerConfig_s {
     int8_t motorDirectionInverted;
     uint8_t platformType;
@@ -17,10 +23,9 @@ typedef struct mixerConfig_s {
     uint8_t outputMode;
     bool motorstopOnLow;
     bool PIDProfileLinking;
-    bool switchOnFSRTH;
-    bool switchOnFSLand;
-    int16_t switchOnFSStabilizationTimer;
-    int16_t switchOnFSTransitionTimer;
+    mixerProfileSwitchOnEvent_e switchOnRTH;
+    mixerProfileSwitchOnEvent_e switchOnLand;
+    int16_t switchTransitionTimer;
 } mixerConfig_t;
 typedef struct mixerProfile_s {
     mixerConfig_t mixer_config;
@@ -29,36 +34,31 @@ typedef struct mixerProfile_s {
 } mixerProfile_t;
 
 PG_DECLARE_ARRAY(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles);
-
-
 typedef enum {
     MIXERAT_REQUEST_NONE, //no request, stats checking only
     MIXERAT_REQUEST_RTH,
     MIXERAT_REQUEST_LAND,
     MIXERAT_REQUEST_ABORT,
-} mixerProfileATRequest_t;
+} mixerProfileATRequest_e;
 
 //mixerProfile Automated Transition PHASE
 typedef enum {
     MIXERAT_PHASE_IDLE,
     MIXERAT_PHASE_TRANSITION_INITIALIZE,
-    MIXERAT_PHASE_STAB_AND_CLIMB,
     MIXERAT_PHASE_TRANSITIONING,
     MIXERAT_PHASE_DONE,
-} mixerProfileATState_t;
+} mixerProfileATState_e;
 
 typedef struct mixerProfileAT_s {
-    mixerProfileATState_t phase;
+    mixerProfileATState_e phase;
     bool transitionInputMixing;
     timeMs_t transitionStartTime;
     timeMs_t transitionStabEndTime;
     timeMs_t transitionTransEndTime;
-    bool lastTransitionInputMixing;
-    bool lastMixerProfile;
 } mixerProfileAT_t;
 extern mixerProfileAT_t mixerProfileAT;
-bool mixerATRequiresAngleMode(void);
-bool mixerATUpdateState(mixerProfileATRequest_t required_action);
+bool checkMixerATRequired(mixerProfileATRequest_e required_action);
+bool mixerATUpdateState(mixerProfileATRequest_e required_action);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;

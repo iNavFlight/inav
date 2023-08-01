@@ -638,7 +638,7 @@ void processRx(timeUs_t currentTimeUs)
 
     bool canUseHorizonMode = true;
 
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || navigationRequiresAngleMode() || mixerATRequiresAngleMode()) && sensors(SENSOR_ACC)) {
+    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || navigationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
         // bumpless transfer to Level mode
         canUseHorizonMode = false;
 

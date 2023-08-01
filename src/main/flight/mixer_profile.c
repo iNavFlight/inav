@@ -34,6 +34,7 @@ int currentMixerProfileIndex;
 bool isMixerTransitionMixing;
 bool isMixerTransitionMixing_requested;
 mixerProfileAT_t mixerProfileAT;
+int nextProfileIndex;
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
 
@@ -50,10 +51,9 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
                          .motorstopOnLow = SETTING_MOTORSTOP_ON_LOW_DEFAULT,
                          .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT,
-                         .switchOnFSRTH = SETTING_MIXER_SWITCH_ON_FS_RTH_DEFAULT,
-                         .switchOnFSLand = SETTING_MIXER_SWITCH_ON_FS_LAND_DEFAULT,
-                         .switchOnFSStabilizationTimer = SETTING_MIXER_SWITCH_ON_FS_STAB_TIMER_DEFAULT,
-                         .switchOnFSTransitionTimer =  SETTING_MIXER_SWITCH_ON_FS_TRANS_TIMER_DEFAULT,
+                         .switchOnRTH = SETTING_MIXER_SWITCH_ON_RTH_DEFAULT,
+                         .switchOnLand = SETTING_MIXER_SWITCH_ON_LAND_DEFAULT,
+                         .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
                      });
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++)
         {
@@ -83,12 +83,13 @@ void mixerConfigInit(void)
 {
     currentMixerProfileIndex = getConfigMixerProfile();
     currentMixerConfig = *mixerConfig();
+    nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
     if (currentMixerConfig.PIDProfileLinking)
     {
-        LOG_INFO(PWM, "mixer switch pidInit");
+        // LOG_INFO(PWM, "mixer switch pidInit");
         setConfigProfile(getConfigMixerProfile());
         pidInit();
         pidInitFilters();
@@ -98,77 +99,14 @@ void mixerConfigInit(void)
     }
 }
 
-// static int computeMotorCountByMixerProfileIndex(int index)
-// {
-//     int motorCount = 0;
-//     const motorMixer_t* temp_motormixers=mixerMotorMixersByIndex(index)[0];
-//     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-//         // check if done
-//         if (temp_motormixers[i].throttle == 0.0f) {
-//             break;
-//         }
-//         motorCount++;
-//     }
-//     return motorCount;
-// }
-
-// static int computeServoCountByMixerProfileIndex(int index)
-// {
-//     int servoRuleCount = 0;
-//     int minServoIndex = 255;
-//     int maxServoIndex = 0;
-
-//     const servoMixer_t* temp_servomixers=mixerServoMixersByIndex(index)[0];
-//     for (int i = 0; i < MAX_SERVO_RULES; i++) {
-//         if (temp_servomixers[i].rate == 0)
-//             break;
-
-//         if (temp_servomixers[i].targetChannel < minServoIndex) {
-//             minServoIndex = temp_servomixers[i].targetChannel;
-//         }
-
-//         if (temp_servomixers[i].targetChannel > maxServoIndex) {
-//             maxServoIndex = temp_servomixers[i].targetChannel;
-//         }
-//         // LOG_INFO(PWM, "i:%d, minServoIndex:%d, maxServoIndex:%d",i,minServoIndex,maxServoIndex);
-//         servoRuleCount++;
-//     }
-//     if (servoRuleCount) {
-//         return 1 + maxServoIndex - minServoIndex;
-//     }
-//     else {
-//         return 0;
-//     }
-// }
-
-bool mixerATRequiresAngleMode(void)
-{
-    return (mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING) || (mixerProfileAT.phase == MIXERAT_PHASE_STAB_AND_CLIMB);
-}
-
 void setMixerProfileAT(void)
 {
     mixerProfileAT.transitionStartTime = millis();
-    mixerProfileAT.transitionStabEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchOnFSStabilizationTimer * 100;
-    mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStabEndTime + (timeMs_t)currentMixerConfig.switchOnFSTransitionTimer * 100;
-    activateMIXERATHelper();
+    mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchTransitionTimer * 100;
 }
 
-void performMixerProfileAT(int nextProfileIndex)
+bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 {
-    abortMIXERATHelper();
-    isMixerTransitionMixing_requested = false;
-    outputProfileHotSwitch(nextProfileIndex);
-}
-
-void abortMixerProfileAT(void)
-{
-    abortMIXERATHelper();
-    isMixerTransitionMixing_requested = false;
-}
-
-bool mixerATUpdateState(mixerProfileATRequest_t required_action)
-{   
     //return true if mixerAT condition is met or setting is not valid
     //set mixer profile automated transition according to failsafe phase
     //on non vtol setups , behave as normal  
@@ -180,56 +118,59 @@ bool mixerATUpdateState(mixerProfileATRequest_t required_action)
     {
         return true;
     }
-    int nextProfileIndex = 0;
+
+    if ((required_action == MIXERAT_REQUEST_RTH) && (currentMixerConfig.switchOnRTH!=MIXERAT_ON_EVENT_OFF) && STATE(MULTIROTOR))
+    {
+        if ((currentMixerConfig.switchOnRTH==MIXERAT_ON_EVENT_ON_FS_ONLY) && (!FLIGHT_MODE(FAILSAFE_MODE)))
+        {
+            return false;
+        }
+        //check next mixer_profile setting is valid
+        return mixerConfigByIndex(nextProfileIndex)->switchOnRTH == MIXERAT_ON_EVENT_OFF ? true:false; 
+
+    }
+    else if ((required_action == MIXERAT_REQUEST_LAND) && (currentMixerConfig.switchOnLand!=MIXERAT_ON_EVENT_OFF) && STATE(AIRPLANE))
+    {
+        if ((currentMixerConfig.switchOnLand==MIXERAT_ON_EVENT_ON_FS_ONLY) && (!FLIGHT_MODE(FAILSAFE_MODE)))
+        {
+            return false;
+        }
+        //check next mixer_profile setting is valid
+        return mixerConfigByIndex(nextProfileIndex)->switchOnLand == MIXERAT_ON_EVENT_OFF ? true:false; 
+    }
+    return false;
+}
+
+bool mixerATUpdateState(mixerProfileATRequest_e required_action)
+{   
     bool reprocessState;
     do
     {   
         reprocessState=false;
-        nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
         if (required_action==MIXERAT_REQUEST_ABORT){
-            abortMixerProfileAT();
+            isMixerTransitionMixing_requested = false;
             mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
+            return true;
         }
-        switch (mixerProfileAT.phase)
-        {
+        switch (mixerProfileAT.phase){
         case MIXERAT_PHASE_IDLE:
-            // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             //check if mixerAT is required
-            if ((required_action == MIXERAT_REQUEST_RTH) && currentMixerConfig.switchOnFSRTH && STATE(MULTIROTOR))
-            {
-                if(!mixerConfigByIndex(nextProfileIndex)->switchOnFSRTH)//check next mixer_profile setting is valid
-                {
-                    mixerProfileAT.phase=MIXERAT_PHASE_TRANSITION_INITIALIZE;
-                    reprocessState = true;
-                }
-            }
-            else if ((required_action == MIXERAT_REQUEST_LAND) && currentMixerConfig.switchOnFSLand && STATE(AIRPLANE))
-            {
-                if(!mixerConfigByIndex(nextProfileIndex)->switchOnFSLand)//check next mixer_profile setting is valid
-                {
-                    mixerProfileAT.phase=MIXERAT_PHASE_TRANSITION_INITIALIZE;
-                    reprocessState = true;
-                }
+            if (checkMixerATRequired(required_action)){
+                mixerProfileAT.phase=MIXERAT_PHASE_TRANSITION_INITIALIZE;
+                reprocessState = true;
             }
             break;
         case MIXERAT_PHASE_TRANSITION_INITIALIZE:
             // LOG_INFO(PWM, "MIXERAT_PHASE_IDLE");
             setMixerProfileAT();
-            mixerProfileAT.phase = MIXERAT_PHASE_STAB_AND_CLIMB;
+            mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
             reprocessState = true;
-            break;
-        case MIXERAT_PHASE_STAB_AND_CLIMB:
-            isMixerTransitionMixing_requested = false;
-            if (millis() > mixerProfileAT.transitionStabEndTime){
-                mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
-                reprocessState = true;
-            }
-            return false;
             break;
         case MIXERAT_PHASE_TRANSITIONING:
             isMixerTransitionMixing_requested = true;
             if (millis() > mixerProfileAT.transitionTransEndTime){
-                performMixerProfileAT(nextProfileIndex);
+                isMixerTransitionMixing_requested = false;
+                outputProfileHotSwitch(nextProfileIndex);
                 mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
                 reprocessState = true;
                 //transition is done
@@ -295,22 +236,17 @@ bool isNavBoxModesEnabled(void)
 void outputProfileUpdateTask(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-
+    bool nav_mixerAT_inuse = (posControl.navState == NAV_STATE_MIXERAT_IN_PROGRESS || posControl.navState == NAV_STATE_MIXERAT_ABORT);
     // transition mode input for servo mix and motor mix
-    if (failsafePhase() == FAILSAFE_IDLE)
+    if (!FLIGHT_MODE(FAILSAFE_MODE) && (!nav_mixerAT_inuse))
     {
-        isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)  && (!isNavBoxModesEnabled()); // update BOXMIXERTRANSITION_input
-    }
-    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) ||(posControl.navState == NAV_STATE_MIXERAT_IN_PROGRESS));
-
-    if (failsafePhase() == FAILSAFE_IDLE)
-    {
-        // do not allow switching when user activated navigation mode
         if (!isNavBoxModesEnabled())
         {
             outputProfileHotSwitch((int)IS_RC_MODE_ACTIVE(BOXMIXERPROFILE));
         }
+        isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)  && (!isNavBoxModesEnabled()); // update BOXMIXERTRANSITION_input
     }
+    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) || nav_mixerAT_inuse);
 }
 
 // switch mixerprofile without reboot
@@ -341,7 +277,7 @@ bool outputProfileHotSwitch(int profile_index)
         // LOG_INFO(PWM, "mixer switch failed, checkMixerProfileHotSwitchAvalibility");
         return false;
     }
-    if  (posControl.navState != NAV_STATE_IDLE)
+    if  ((posControl.navState != NAV_STATE_IDLE) && (posControl.navState != NAV_STATE_MIXERAT_IN_PROGRESS))
     {
         // LOG_INFO(PWM, "mixer switch failed, navState != NAV_STATE_IDLE");
         return false;

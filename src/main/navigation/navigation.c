@@ -316,6 +316,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationF
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState);
 
 static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     /** Idle state ******************************************************/
@@ -373,7 +374,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -410,7 +410,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
     /** CRUISE_HOLD mode ************************************************/
@@ -447,7 +446,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -470,7 +468,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -508,7 +505,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -531,7 +527,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -571,7 +566,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -592,7 +586,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]                = NAV_STATE_POSHOLD_3D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]               = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]                    = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]                   = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -635,7 +628,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -655,7 +647,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -706,7 +697,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -763,7 +753,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -788,7 +777,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING] = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]       = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]            = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -810,7 +798,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -867,7 +854,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -887,7 +873,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -906,7 +891,6 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -976,7 +960,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_MIXERAT_INITIALIZE,
         .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE,
         .timeoutMs = 0,
-        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_MIXERAT,
         .mapToFlightModes = NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -991,20 +975,29 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_MIXERAT_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE_FW | NAV_REQUIRE_THRTILT,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_MIXERAT,
         .mapToFlightModes = NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_MIXERAT_IN_PROGRESS,    // re-process the state
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
-            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_WAYPOINT_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
-            [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME]        = NAV_STATE_RTH_HEAD_HOME,    // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING,
+        }
+    },
+    [NAV_STATE_MIXERAT_ABORT] = {
+        .persistentId = NAV_PERSISTENT_ID_MIXERAT_ABORT,
+        .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_ABORT,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT,
+        .mapToFlightModes = NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_NONE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
+            
         }
     },
 };
@@ -1415,6 +1408,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
+    if (checkMixerATRequired(MIXERAT_REQUEST_RTH)){
+        return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+    }
+
     if (navConfig()->general.flags.rth_use_linear_descent && navConfig()->general.rth_home_altitude > 0) {
         // Check linear descent status
         uint32_t homeDistance = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
@@ -1518,6 +1515,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
      * Continue to check for RTH sanity during landing */
     if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
+    }
+    
+    if (checkMixerATRequired(MIXERAT_REQUEST_LAND)){
+        return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
 
     float descentVelLimited = 0;
@@ -1924,33 +1925,68 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     return NAV_FSM_EVENT_NONE;
 }
 
+navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState)
 {
-    UNUSED(previousState);
-    resetGCSFlags();
+    const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
 
-    // Prepare altitude controller
-    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);  // This will reset surface offset
-
+    // Prepare altitude controller if idle, RTH or WP modes active or surface mode status changed
+    if (!(prevFlags & NAV_CTL_ALT) || (prevFlags & NAV_AUTO_RTH) || (prevFlags & NAV_AUTO_WP)) {
+        resetAltitudeController(false);
+        setupAltitudeController();
+    }
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+    navMixerATPendingState = previousState;
     return NAV_FSM_EVENT_SUCCESS;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
-
-    // Climb to safe altitude and turn to correct direction
-    if ( (STATE(MULTIROTOR)) && (mixerProfileAT.phase==MIXERAT_PHASE_STAB_AND_CLIMB)) {
-        updateClimbRateToAltitudeController(navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
-        // fpVector3_t tmp_pos = navGetCurrentActualPositionAndVelocity()->pos;
-        // tmp_pos.z = tmp_pos.z + navConfig()->general.max_auto_climb_rate;
-        // setDesiredPosition(&tmp_pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
-    } else {
-        // climb to perform the transition
-        //set the desired position to the current position to enable althold only
-        setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+    mixerProfileATRequest_e required_action;
+    switch (navMixerATPendingState)
+    {
+    case NAV_STATE_RTH_HEAD_HOME:
+        required_action = MIXERAT_REQUEST_RTH;
+        break;
+    case NAV_STATE_RTH_LANDING:
+        required_action = MIXERAT_REQUEST_LAND;
+        break;
+    default:
+        required_action = MIXERAT_REQUEST_NONE;
+        break;
     }
+    if (mixerATUpdateState(required_action)){
+        // MixerAT is done, switch to next state
+        resetPositionController();
+        resetAltitudeController(false);     // Make sure surface tracking is not enabled uses global altitude, not AGL
+        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+        switch (navMixerATPendingState)
+        {
+        case NAV_STATE_RTH_HEAD_HOME:
+            setupAltitudeController();
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+            break;
+        case NAV_STATE_RTH_LANDING:
+            setupAltitudeController();
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+            break;
+        default:
+            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+            break;
+        }
+    }
+
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+
     return NAV_FSM_EVENT_NONE;
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+    mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+    return NAV_FSM_EVENT_SUCCESS;
 }
 
 static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
@@ -4366,7 +4402,7 @@ void abortForcedRTH(void)
 rthState_e getStateOfForcedRTH(void)
 {
     /* If forced RTH activated and in AUTO_RTH or EMERG state */
-    if (posControl.flags.forcedRTHActivated && (navGetStateFlags(posControl.navState) & (NAV_AUTO_RTH | NAV_CTL_EMERG))) {
+    if (posControl.flags.forcedRTHActivated && (navGetStateFlags(posControl.navState) & (NAV_AUTO_RTH | NAV_CTL_EMERG | NAV_MIXERAT))) {
         if (posControl.navState == NAV_STATE_RTH_FINISHED || posControl.navState == NAV_STATE_EMERGENCY_LANDING_FINISHED) {
             return RTH_HAS_LANDED;
         }
@@ -4415,29 +4451,29 @@ emergLandState_e getStateOfForcedEmergLanding(void)
 /*-----------------------------------------------------------
  * Ability to mixer_profile(vtol) switch on external event
  *-----------------------------------------------------------*/
-void activateMIXERATHelper(void)
-{
-    posControl.flags.mixerATHelperActivated = true;
-    navProcessFSMEvents(selectNavEventFromBoxModeInput());
-}
+// void activateMIXERATHelper(void)
+// {
+//     posControl.flags.mixerATHelperActivated = true;
+//     navProcessFSMEvents(selectNavEventFromBoxModeInput());
+// }
 
-void abortMIXERATHelper(void)
-{
-    // Disable emergency landing and make sure we back out of navigation mode to IDLE
-    // If any navigation mode was active prior to emergency landing it will be re-enabled with next RX update
-    posControl.flags.mixerATHelperActivated = false;
-    navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
-}
+// void abortMIXERATHelper(void)
+// {
+//     // Disable emergency landing and make sure we back out of navigation mode to IDLE
+//     // If any navigation mode was active prior to emergency landing it will be re-enabled with next RX update
+//     posControl.flags.mixerATHelperActivated = false;
+//     navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
+// }
 
-altHoldState_e getStateOfMIXERATHelper(void)
-{
-    /* If forced emergency landing activated and in EMERG state */
-    if (posControl.flags.mixerATHelperActivated && (navGetStateFlags(posControl.navState) & NAV_CTL_ALT)) {
-        return ALTHOLD_IN_PROGRESS;
-    } else {
-        return ALTHOLD_IDLE;
-    }
-}
+// altHoldState_e getStateOfMIXERATHelper(void)
+// {
+//     /* If forced emergency landing activated and in EMERG state */
+//     if (posControl.flags.mixerATHelperActivated && (navGetStateFlags(posControl.navState) & NAV_CTL_ALT)) {
+//         return ALTHOLD_IN_PROGRESS;
+//     } else {
+//         return ALTHOLD_IDLE;
+//     }
+// }
 
 bool isWaypointMissionRTHActive(void)
 {
