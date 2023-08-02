@@ -43,9 +43,6 @@ typedef enum {
     MODE_LOOKUP = (1 << SETTING_MODE_OFFSET), // 0x40
 } setting_mode_e;
 
-// #define SETTING_TYPE_MASK (0x0F)
-// #define SETTING_SECTION_MASK (0x30)
-// #define SETTING_MODE_MASK (0xC0)
 
 #define SETTING_TYPE_MASK (0x07)
 #define SETTING_SECTION_MASK (0x38)

@@ -446,14 +446,9 @@ void writeAllMotors(int16_t mc)
     writeMotors();
 }
 
-
-void stopMotorsNoDelay(void)
-{
-    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);
-}
 void stopMotors(void)
 {
-    stopMotorsNoDelay();
+    writeAllMotors(feature(FEATURE_REVERSIBLE_MOTORS) ? reversibleMotorsConfig()->neutral : motorConfig()->mincommand);
 
     delay(50); // give the timers and ESCs a chance to react.
 }

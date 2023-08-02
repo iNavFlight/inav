@@ -107,8 +107,7 @@ void setMixerProfileAT(void)
 
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 {
-    //return true if mixerAT condition is met or setting is not valid
-    //set mixer profile automated transition according to failsafe phase
+    //return false if mixerAT condition is not required or setting is not valid
     //on non vtol setups , behave as normal  
     if ((!STATE(AIRPLANE)) && (!STATE(MULTIROTOR)))
     {
@@ -217,13 +216,6 @@ bool checkMixerProfileHotSwitchAvalibility(void)
         allow_hot_switch = 0;
         return false;
     }
-    // not necessary when map motor/servos of all mixer profiles on the first boot
-    // do not allow switching if motor or servos counts are different
-    //  if ((computeMotorCountByMixerProfileIndex(0) != computeMotorCountByMixerProfileIndex(1)) || (computeServoCountByMixerProfileIndex(0) != computeServoCountByMixerProfileIndex(1)))
-    //  {
-    //      allow_hot_switch = 0;
-    //      return false;
-    //  }
     allow_hot_switch = 1;
     return true;
 }
@@ -287,7 +279,7 @@ bool outputProfileHotSwitch(int profile_index)
         // LOG_INFO(PWM, "mixer switch failed to set config");
         return false;
     }
-    stopMotorsNoDelay(); // not necessary, but just in case something goes wrong. But will a short period of stop command cause problem?
+    // stopMotorsNoDelay(); // not necessary, but just in case something goes wrong. But will a short period of stop command cause problem?
     mixerConfigInit();
     return true;
 }
