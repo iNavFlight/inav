@@ -190,9 +190,6 @@ tables:
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
     enum: wpFwTurnSmoothing_e
-  - name: mixer_switch_on_event
-    values: ["OFF", "ON", "ON_FS_ONLY"]
-    enum: mixerProfileSwitchOnEvent_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -1178,16 +1175,14 @@ groups:
         type: bool
       - name: mixer_switch_on_rth
         description: "If set to on, mixer_profile will switch when it is heading home"
-        default_value: "OFF"
+        default_value: OFF
         field: mixer_config.switchOnRTH
-        table: mixer_switch_on_event
-        type: uint8_t
+        type: bool
       - name: mixer_switch_on_land
         description: "If set to on, mixer_profile will switch when Landing"
-        default_value: "OFF"
+        default_value: OFF
         field: mixer_config.switchOnLand
-        table: mixer_switch_on_event
-        type: uint8_t
+        type: bool
       - name: mixer_switch_trans_timer
         description: "If swith mixer_profile on failsafe is required, Activate MixerTransion mode for this many decisecond(0.1s) before the actual mixer_profile switch"
         default_value: 0

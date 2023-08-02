@@ -9,12 +9,6 @@
 #define MAX_MIXER_PROFILE_COUNT 2
 #endif
 
-typedef enum {
-    MIXERAT_ON_EVENT_OFF, //no request, stats checking only
-    MIXERAT_ON_EVENT_ON,
-    MIXERAT_ON_EVENT_ON_FS_ONLY,
-} mixerProfileSwitchOnEvent_e;
-
 typedef struct mixerConfig_s {
     int8_t motorDirectionInverted;
     uint8_t platformType;
@@ -23,8 +17,8 @@ typedef struct mixerConfig_s {
     uint8_t outputMode;
     bool motorstopOnLow;
     bool PIDProfileLinking;
-    mixerProfileSwitchOnEvent_e switchOnRTH;
-    mixerProfileSwitchOnEvent_e switchOnLand;
+    bool switchOnRTH;
+    bool switchOnLand;
     int16_t switchTransitionTimer;
 } mixerConfig_t;
 typedef struct mixerProfile_s {

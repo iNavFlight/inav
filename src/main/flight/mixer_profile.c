@@ -93,7 +93,7 @@ void mixerConfigInit(void)
         setConfigProfile(getConfigMixerProfile());
         pidInit();
         pidInitFilters();
-        pidResetErrorAccumulators();
+        // pidResetErrorAccumulators();
         schedulePidGainsUpdate();
         navigationUsePIDs(); // set navigation pid gains
     }
@@ -118,24 +118,16 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
         return false;
     }
 
-    if ((required_action == MIXERAT_REQUEST_RTH) && (currentMixerConfig.switchOnRTH!=MIXERAT_ON_EVENT_OFF) && STATE(MULTIROTOR))
+    if ((required_action == MIXERAT_REQUEST_RTH) && (currentMixerConfig.switchOnRTH) && STATE(MULTIROTOR))
     {
-        if ((currentMixerConfig.switchOnRTH==MIXERAT_ON_EVENT_ON_FS_ONLY) && (!FLIGHT_MODE(FAILSAFE_MODE)))
-        {
-            return false;
-        }
-        //check next mixer_profile setting is valid
-        return mixerConfigByIndex(nextProfileIndex)->switchOnRTH == MIXERAT_ON_EVENT_OFF ? true:false; 
+        //check next mixer_profile setting is valid, need to be false
+        return mixerConfigByIndex(nextProfileIndex)->switchOnRTH? false:true; 
 
     }
-    else if ((required_action == MIXERAT_REQUEST_LAND) && (currentMixerConfig.switchOnLand!=MIXERAT_ON_EVENT_OFF) && STATE(AIRPLANE))
+    else if ((required_action == MIXERAT_REQUEST_LAND) && (currentMixerConfig.switchOnLand) && STATE(AIRPLANE))
     {
-        if ((currentMixerConfig.switchOnLand==MIXERAT_ON_EVENT_ON_FS_ONLY) && (!FLIGHT_MODE(FAILSAFE_MODE)))
-        {
-            return false;
-        }
-        //check next mixer_profile setting is valid
-        return mixerConfigByIndex(nextProfileIndex)->switchOnLand == MIXERAT_ON_EVENT_OFF ? true:false; 
+        //check next mixer_profile setting is valid, need to be false
+        return mixerConfigByIndex(nextProfileIndex)->switchOnLand? false:true; 
     }
     return false;
 }
