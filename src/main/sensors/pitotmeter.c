@@ -53,7 +53,7 @@
 
 #ifdef USE_PITOT
 
-pitot_t pitot;
+pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
@@ -92,18 +92,25 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_DLVR:
-#ifdef USE_PITOT_DLVR
-            if (dlvrDetect(dev)) {
+// #ifdef USE_PITOT_DLVR
+//             if (dlvrDetect(dev)) {
+//                 pitotHardware = PITOT_DLVR;
+//                 break;
+//             }
+// #endif
+//             /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+//             if (pitotHardwareToUse != PITOT_AUTODETECT) {
+//                 break;
+//             }
+//             FALLTHROUGH;
+
+			// Skip autodetection for DLVR (it is indistinguishable from MS4525), only allow manual config
+            if (pitotHardwareToUse != PITOT_AUTODETECT && dlvrDetect(dev)) {
                 pitotHardware = PITOT_DLVR;
                 break;
             }
-#endif
-            /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-            if (pitotHardwareToUse != PITOT_AUTODETECT) {
-                break;
-            }
             FALLTHROUGH;
-			
+
         case PITOT_ADC:
 #if defined(USE_ADC) && defined(USE_PITOT_ADC)
             if (adcPitotDetect(dev)) {
@@ -223,17 +230,33 @@ STATIC_PROTOTHREAD(pitotThread)
     	}
 #endif
 
-        // Start measurement
-        if (pitot.dev.start(&pitot.dev)) {
-            pitot.lastSeenHealthyMs = millis();
+        if ( pitot.lastSeenHealthyMs == 0 ) {
+            if (pitot.dev.start(&pitot.dev)) {
+                pitot.lastSeenHealthyMs = millis();
+            }        
         }
 
-        ptDelayUs(pitot.dev.delay);
+        // if ( (millis() - pitot.lastSeenHealthyMs) >= 10) {
+        if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
+            if (pitot.dev.start(&pitot.dev))
+                pitot.lastSeenHealthyMs = millis();
 
-        // Read and calculate data
-        if (pitot.dev.get(&pitot.dev)) {
-            pitot.lastSeenHealthyMs = millis();
+            if (pitot.dev.start(&pitot.dev))
+                pitot.lastSeenHealthyMs = millis();        
         }
+
+
+        // // Start measurement
+        // if (pitot.dev.start(&pitot.dev)) {
+        //     pitot.lastSeenHealthyMs = millis();
+        // }
+
+        // ptDelayUs(pitot.dev.delay);
+
+        // // Read and calculate data
+        // if (pitot.dev.get(&pitot.dev)) {
+        //     pitot.lastSeenHealthyMs = millis();
+        // }
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperature);
 
@@ -247,7 +270,7 @@ STATIC_PROTOTHREAD(pitotThread)
             pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
     	} 
 #endif
-        ptYield();
+        ptYield();  // CHECKME :: is it necessary ??!
 
         // Filter pressure
         currentTimeUs = micros();

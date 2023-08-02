@@ -57,7 +57,7 @@
 #define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * (press))
 
 #define RANGE_INCH_H2O      10
-#define DLVR_OFFSET_CORR    -9.0f
+#define DLVR_OFFSET_CORR    -9.0f   // check for other samples of DLVR-L10D; should be 0
 #define DLVR_OFFSET         8192.0f
 #define DLVR_SCALE          16384.0f
 

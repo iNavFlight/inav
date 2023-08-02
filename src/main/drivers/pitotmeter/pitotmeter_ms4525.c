@@ -84,11 +84,6 @@ static bool ms4525_read(pitotDev_t * pitot)
     ctx->ms4525_up = (dP_raw1 + dP_raw2) / 2;
     ctx->ms4525_ut = (dT_raw1 + dT_raw2) / 2;
 
-    // former start
-    uint8_t rxbuf[1];
-    bool ack = busReadBuf(pitot->busDev, 0xFF, rxbuf, 1);
-    //return ack;
-
     return true;
 }
 
