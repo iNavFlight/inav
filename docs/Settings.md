@@ -2552,6 +2552,36 @@ If enabled, pid profile index will follow mixer profile index
 
 ---
 
+### mixer_switch_on_land
+
+If set to on, mixer_profile will switch when Landing
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_switch_on_rth
+
+If set to on, mixer_profile will switch when it is heading home
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_switch_trans_timer
+
+If swith mixer_profile on failsafe is required, Activate MixerTransion mode for this many decisecond(0.1s) before the actual mixer_profile switch
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 200 |
+
+---
+
 ### mode_range_logic_operator
 
 Control how Mode selection works in flight modes. If you example have Angle mode configured on two different Aux channels, this controls if you need both activated ( AND ) or if you only need one activated ( OR ) to active angle mode.

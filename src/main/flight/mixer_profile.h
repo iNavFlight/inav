@@ -70,8 +70,8 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 #define customServoMixers_CopyArray() (mixerProfiles_CopyArray_by_index(systemConfig()->current_mixer_profile_index)->ServoMixers)
 
 #define mixerConfigByIndex(index) (&(mixerProfiles(index)->mixer_config))
-#define mixerMotorMixersByIndex(index) (&(mixerProfiles(index)->MotorMixers))
-#define mixerServoMixersByIndex(index) (&(mixerProfiles(index)->ServoMixers))
+#define mixerMotorMixersByIndex(index) (mixerProfiles(index)->MotorMixers)
+#define mixerServoMixersByIndex(index) (mixerProfiles(index)->ServoMixers)
 
 bool outputProfileHotSwitch(int profile_index);
 bool checkMixerProfileHotSwitchAvalibility(void);

@@ -113,7 +113,7 @@ static void computeMotorCount(void)
     for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         bool isMotorUsed = false;
         for(int j = 0; j< MAX_MIXER_PROFILE_COUNT; j++){
-            if (mixerMotorMixersByIndex(j)[i]->throttle != 0.0f) {
+            if (mixerMotorMixersByIndex(j)[i].throttle != 0.0f) {
                 isMotorUsed = true;
             }
         }

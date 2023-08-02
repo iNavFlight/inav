@@ -199,7 +199,7 @@ void loadCustomServoMixer(void)
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
 
     for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
-        const servoMixer_t* tmp_customServoMixers = mixerServoMixersByIndex(j)[0];
+        const servoMixer_t* tmp_customServoMixers = &mixerServoMixersByIndex(j)[0];
         // load custom mixer into currentServoMixer
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             // check if done

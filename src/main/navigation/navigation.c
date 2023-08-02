@@ -982,17 +982,9 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_MIXERAT_IN_PROGRESS,    // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_MIXERAT_ABORT,
             [NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME]        = NAV_STATE_RTH_HEAD_HOME, //switch to its pending state
             [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING, //switch to its pending state
-            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]             = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_LAUNCH]               = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_MIXERAT_ABORT,
-            [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_MIXERAT_ABORT,
         }
     },
     [NAV_STATE_MIXERAT_ABORT] = {
