@@ -52,14 +52,13 @@
 // #define SSL_AIR_TEMPERATURE    288.15f // K
 
 #define INCH_OF_H2O_TO_PASCAL   248.84f
-//#define INCH_OF_H2O_TO_PASCAL 249.09
 
 #define INCH_H2O_TO_PASCAL(press) (INCH_OF_H2O_TO_PASCAL * (press))
 
 #define RANGE_INCH_H2O      10
-#define DLVR_OFFSET_CORR    -9.0f   // check for other samples of DLVR-L10D; should be 0
 #define DLVR_OFFSET         8192.0f
 #define DLVR_SCALE          16384.0f
+#define DLVR_OFFSET_CORR    -9.0f   // check for other samples of DLVR-L10D; should be 0
 
 
 typedef struct __attribute__ ((__packed__)) dlvrCtx_s {
@@ -186,7 +185,7 @@ bool dlvrDetect(pitotDev_t * pitot)
     ctx->dlvr_up = 0;
 
     // Initialize pitotDev object
-    pitot->delay = 10;      // 10000
+    pitot->delay = 10000;      // 10000
     pitot->start = dlvr_start;
     pitot->get = dlvr_read;
     pitot->calculate = dlvr_calculate;

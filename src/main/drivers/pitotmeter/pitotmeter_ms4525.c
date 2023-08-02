@@ -74,6 +74,13 @@ static bool ms4525_read(pitotDev_t * pitot)
     dP_raw2 = 0x3FFF & ((rxbuf2[0] << 8) + rxbuf2[1]);
     dT_raw2 = (0xFFE0 & ((rxbuf2[2] << 8) + rxbuf2[3])) >> 5;
 
+    // reject any values that are the absolute minimum or maximums these
+    // can happen due to gnd lifts or communication errors on the bus
+    if (dP_raw1 == 0x3FFF || dP_raw1 == 0 || dT_raw1 == 0x7FF || dT_raw1 == 0 ||
+        dP_raw2 == 0x3FFF || dP_raw2 == 0 || dT_raw2 == 0x7FF || dT_raw2 == 0) {
+        return false;
+    }
+
     // reject any double reads where the value has shifted in the upper more than 0xFF
     if (ABS(dP_raw1 - dP_raw2) > 0xFF || ABS(dT_raw1 - dT_raw2) > 0xFF) {
         return false;

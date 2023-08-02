@@ -45,6 +45,7 @@
 #include "scheduler/protothreads.h"
 
 #include "sensors/pitotmeter.h"
+#include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
 
@@ -52,6 +53,8 @@
 
 
 #ifdef USE_PITOT
+
+extern baro_t baro;
 
 pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
 
@@ -236,12 +239,14 @@ STATIC_PROTOTHREAD(pitotThread)
             }        
         }
 
+        LOG_DEBUG( PITOT, "cur delay = %d, req delay = %d", (int)(millis() - pitot.lastSeenHealthyMs),  (int)US2MS(pitot.dev.delay) );
+
         // if ( (millis() - pitot.lastSeenHealthyMs) >= 10) {
         if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
-            if (pitot.dev.start(&pitot.dev))
+            if (pitot.dev.get(&pitot.dev))          // read current data
                 pitot.lastSeenHealthyMs = millis();
 
-            if (pitot.dev.start(&pitot.dev))
+            if (pitot.dev.start(&pitot.dev))        // init for next read
                 pitot.lastSeenHealthyMs = millis();        
         }
 
@@ -278,6 +283,8 @@ STATIC_PROTOTHREAD(pitotThread)
         pitot.lastMeasurementUs = currentTimeUs;
 //        ptDelayUs(pitot.dev.delay);
 
+        static int calib_count = 0;
+
         // Calculate IAS
         if (pitotIsCalibrationComplete()) {
             // https://en.wikipedia.org/wiki/Indicated_airspeed
@@ -297,13 +304,20 @@ STATIC_PROTOTHREAD(pitotThread)
 
             pitot.temperature = pitotTemperature;   // Kelvin
 
+            int32_t baroPress  = baro.baroPressure;
+
             debug[0] = pitot.pressure * 1000;
             debug[1] = pitot.pressureZero * 1000;
             debug[2] = (pitot.pressure - pitot.pressureZero) * 1000;
-            debug[3] = pitot.dev.delay;
+            debug[3] = baroPress;
+
+            LOG_DEBUG( PITOT, "calib_count = %d", (int)(calib_count) );
+            // calib_count = 0;
 
         } else {
             performPitotCalibrationCycle();
+            ++calib_count;
+
             pitot.airSpeed = 0.0f;
         }
 
