@@ -3607,15 +3607,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
-#if defined(USE_FAKE_BATT_SENSOR)
                 if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
-                    fakeBattSensorSetVbat(sbufReadU8(src) * 10);
+                    simulatorData.vbat = sbufReadU8(src);
                 } else {
-#endif
-                    fakeBattSensorSetVbat((uint16_t)(SIMULATOR_FULL_BATTERY * 10.0f));
-#if defined(USE_FAKE_BATT_SENSOR)
+                    simulatorData.vbat = SIMULATOR_FULL_BATTERY;
                 }
-#endif
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
                     simulatorData.airSpeed = sbufReadU16(src);
