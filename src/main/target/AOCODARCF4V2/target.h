@@ -81,16 +81,16 @@
 #define UART2_RX_PIN                    PA3
 
 #define USE_UART3
-#define UART3_TX_PIN                    PC11
-#define UART3_RX_PIN                    PC10
+#define UART3_TX_PIN                    PC10
+#define UART3_RX_PIN                    PC11
 
 #define USE_UART4
 #define UART4_TX_PIN                    PA0
 #define UART4_RX_PIN                    PA1
 
 #define USE_UART5
-#define UART5_TX_PIN                    PC12
-#define UART5_RX_PIN                    PD2
+#define UART5_TX_PIN                   PD2
+#define UART5_RX_PIN                   PC12
 
 
 #define SERIAL_PORT_COUNT              6

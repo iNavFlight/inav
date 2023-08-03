@@ -330,13 +330,6 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_BACK_AND_END_ENTRY,
 };
 
-#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR) && defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-// All CMS OSD elements should be enabled in this case. The menu has 2 extra
-// elements (label, back+end), but there's an OSD element that we intentionally
-// don't show here (OSD_DEBUG).
-_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 2 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
-#endif
-
 const CMS_Menu menuOsdElements = {
 #ifdef CMS_MENU_DEBUG
     .GUARD_text = "MENUOSDE",

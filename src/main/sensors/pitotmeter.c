@@ -255,7 +255,7 @@ STATIC_PROTOTHREAD(pitotThread)
 #if defined(USE_PITOT_FAKE)
         if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
             pitot.airSpeed = fakePitotGetAirspeed();
-    	}
+    }
 #endif
     }
 

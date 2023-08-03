@@ -80,46 +80,46 @@ static bool useImu = false;
 
 typedef struct 
 {
-    double m_channelValues[RF_MAX_PWM_OUTS];
-    double m_currentPhysicsSpeedMultiplier;
-    double m_currentPhysicsTime_SEC;
-    double m_airspeed_MPS;
-    double m_altitudeASL_MTR;
-    double m_altitudeAGL_MTR;
-    double m_groundspeed_MPS;
-    double m_pitchRate_DEGpSEC;
-    double m_rollRate_DEGpSEC;
-    double m_yawRate_DEGpSEC;
-    double m_azimuth_DEG;
-    double m_inclination_DEG;
-    double m_roll_DEG;
-    double m_orientationQuaternion_X;
-    double m_orientationQuaternion_Y;
-    double m_orientationQuaternion_Z;
-    double m_orientationQuaternion_W;
-    double m_aircraftPositionX_MTR;
-    double m_aircraftPositionY_MTR;
-    double m_velocityWorldU_MPS;
-    double m_velocityWorldV_MPS;
-    double m_velocityWorldW_MPS;
-    double m_velocityBodyU_MPS;
-    double m_velocityBodyV_MPS;
-    double m_velocityBodyW_MPS;
-    double m_accelerationWorldAX_MPS2;
-    double m_accelerationWorldAY_MPS2;
-    double m_accelerationWorldAZ_MPS2;
-    double m_accelerationBodyAX_MPS2;
-    double m_accelerationBodyAY_MPS2;
-    double m_accelerationBodyAZ_MPS2;
-    double m_windX_MPS;
-    double m_windY_MPS;
-    double m_windZ_MPSPS;
-    double m_propRPM;
-    double m_heliMainRotorRPM;
-    double m_batteryVoltage_VOLTS;
-    double m_batteryCurrentDraw_AMPS;
-    double m_batteryRemainingCapacity_MAH;
-    double m_fuelRemaining_OZ;
+    float m_channelValues[RF_MAX_PWM_OUTS];
+    float m_currentPhysicsSpeedMultiplier;
+    float m_currentPhysicsTime_SEC;
+    float m_airspeed_MPS;
+    float m_altitudeASL_MTR;
+    float m_altitudeAGL_MTR;
+    float m_groundspeed_MPS;
+    float m_pitchRate_DEGpSEC;
+    float m_rollRate_DEGpSEC;
+    float m_yawRate_DEGpSEC;
+    float m_azimuth_DEG;
+    float m_inclination_DEG;
+    float m_roll_DEG;
+    float m_orientationQuaternion_X;
+    float m_orientationQuaternion_Y;
+    float m_orientationQuaternion_Z;
+    float m_orientationQuaternion_W;
+    float m_aircraftPositionX_MTR;
+    float m_aircraftPositionY_MTR;
+    float m_velocityWorldU_MPS;
+    float m_velocityWorldV_MPS;
+    float m_velocityWorldW_MPS;
+    float m_velocityBodyU_MPS;
+    float m_velocityBodyV_MPS;
+    float m_velocityBodyW_MPS;
+    float m_accelerationWorldAX_MPS2;
+    float m_accelerationWorldAY_MPS2;
+    float m_accelerationWorldAZ_MPS2;
+    float m_accelerationBodyAX_MPS2;
+    float m_accelerationBodyAY_MPS2;
+    float m_accelerationBodyAZ_MPS2;
+    float m_windX_MPS;
+    float m_windY_MPS;
+    float m_windZ_MPSPS;
+    float m_propRPM;
+    float m_heliMainRotorRPM;
+    float m_batteryVoltage_VOLTS;
+    float m_batteryCurrentDraw_AMPS;
+    float m_batteryRemainingCapacity_MAH;
+    float m_fuelRemaining_OZ;
     bool m_isLocked;
     bool m_hasLostComponents;
     bool m_anEngineIsRunning;
@@ -244,34 +244,38 @@ static bool getChannelValues(const char* response, uint16_t* channelValues)
 }
 
 
-static void fakeCoords(double posX, double posY, double distanceX, double distanceY, double *lat, double *lon)
+static void fakeCoords(float posX, float posY, float distanceX, float distanceY, float *lat, float *lon)
 {
-    double m = 1 / (2 * (double)M_PIf / 360 * EARTH_RADIUS) / 1000;
-    *lat = (double)(posX + (distanceX * m));
-    *lon = (double)(posY + (distanceY * m) / cos(posX * ((double)M_PIf / 180)));
+    float m = 1 / (2 * M_PIf / 360 * EARTH_RADIUS) / 1000;
+    *lat = (posX + (distanceX * m));
+    *lon = (posY + (distanceY * m) / cosf(posX * (M_PIf / 180)));
 } 
 
-static double convertAzimuth(double azimuth)
+static float convertAzimuth(float azimuth)
 {
     if (azimuth < 0) {
         azimuth += 360;
     }
-    return 360 - fmod(azimuth + 90, 360.0f);
+    return 360 - fmodf(azimuth + 90, 360.0f);
 }
 
 static void exchangeData(void)
 {
-    double servoValues[RF_MAX_PWM_OUTS] = { 0 };    
+    double servoValues[RF_MAX_PWM_OUTS] = {  };    
     for (int i = 0; i < mappingCount; i++) {
-        if (pwmMapping[i] & 0x80){ // Motor
-            servoValues[i] = PWM_TO_FLOAT_0_1(motor[pwmMapping[i] & 0x7f]);
+        if (pwmMapping[i] & 0x80) { // Motor
+            servoValues[i] = (double)PWM_TO_FLOAT_0_1(motor[pwmMapping[i] & 0x7f]);
         } else { 
-            servoValues[i] = PWM_TO_FLOAT_0_1(servo[pwmMapping[i]]);
+            servoValues[i] = (double)PWM_TO_FLOAT_0_1(servo[pwmMapping[i]]);
         }
     }
 
-    startRequest("ExchangeData", "<ExchangeData><pControlInputs><m-selectedChannels>%u</m-selectedChannels><m-channelValues-0to1><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item></m-channelValues-0to1></pControlInputs></ExchangeData>",
-        0xFFF, servoValues[0], servoValues[1], servoValues[2], servoValues[3], servoValues[4], servoValues[5], servoValues[6], servoValues[7], servoValues[8], servoValues[9], servoValues[10], servoValues[11]);
+    startRequest("ExchangeData", "<ExchangeData><pControlInputs><m-selectedChannels>%u</m-selectedChannels>"
+        "<m-channelValues-0to1><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item>"
+        "<item>%.4f</item><item>%.4f</item><item>%.4f</item><item>%.4f</item></m-channelValues-0to1></pControlInputs></ExchangeData>",
+        0xFFF, 
+        servoValues[0], servoValues[1], servoValues[2], servoValues[3], servoValues[4], servoValues[5], servoValues[6], servoValues[7],
+        servoValues[8], servoValues[9], servoValues[10], servoValues[11]);
     char* response = endRequest();
 
     //rfValues.m_currentPhysicsTime_SEC = getDoubleFromResponse(response, "m-currentPhysicsTime-SEC");
@@ -325,18 +329,18 @@ static void exchangeData(void)
     getChannelValues(response, channelValues);
     rxSimSetChannelValue(channelValues, RF_MAX_CHANNEL_COUNT);
     
-    double lat, lon;
+    float lat, lon;
     fakeCoords(FAKE_LAT, FAKE_LON, rfValues.m_aircraftPositionX_MTR, -rfValues.m_aircraftPositionY_MTR, &lat, &lon);
     
-    int16_t course = (int16_t)round(convertAzimuth(rfValues.m_azimuth_DEG) * 10);
-    int32_t altitude = (int32_t)round(rfValues.m_altitudeASL_MTR * 100);
+    int16_t course = (int16_t)roundf(convertAzimuth(rfValues.m_azimuth_DEG) * 10);
+    int32_t altitude = (int32_t)roundf(rfValues.m_altitudeASL_MTR * 100);
     gpsFakeSet(
         GPS_FIX_3D,
         16,
-        (int32_t)round(lat * 10000000),
-        (int32_t)round(lon * 10000000),
+        (int32_t)roundf(lat * 10000000),
+        (int32_t)roundf(lon * 10000000),
         altitude,
-        (int16_t)round(rfValues.m_groundspeed_MPS * 100),
+        (int16_t)roundf(rfValues.m_groundspeed_MPS * 100),
         course,
         0, 
         0,
@@ -344,15 +348,15 @@ static void exchangeData(void)
         0
     );
 
-    int32_t altitudeOverGround = (int32_t)round(rfValues.m_altitudeAGL_MTR * 100);
+    int32_t altitudeOverGround = (int32_t)roundf(rfValues.m_altitudeAGL_MTR * 100);
     if (altitudeOverGround > 0 && altitudeOverGround <= RANGEFINDER_VIRTUAL_MAX_RANGE_CM) {
         fakeRangefindersSetData(altitudeOverGround);
     } else {
         fakeRangefindersSetData(-1);
     }
 
-    const int16_t roll_inav = (int16_t)round(rfValues.m_roll_DEG * 10);
-    const int16_t pitch_inav = (int16_t)round(-rfValues.m_inclination_DEG * 10);
+    const int16_t roll_inav = (int16_t)roundf(rfValues.m_roll_DEG * 10);
+    const int16_t pitch_inav = (int16_t)roundf(-rfValues.m_inclination_DEG * 10);
     const int16_t yaw_inav = course;
     if (!useImu) {
         imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
@@ -376,16 +380,16 @@ static void exchangeData(void)
     fakeAccSet(accX, accY, accZ);
 
     fakeGyroSet(
-        constrainToInt16(rfValues.m_rollRate_DEGpSEC * (double)16.0),
-        constrainToInt16(-rfValues.m_pitchRate_DEGpSEC * (double)16.0),
-        constrainToInt16(rfValues.m_yawRate_DEGpSEC * (double)16.0)
+        constrainToInt16(rfValues.m_rollRate_DEGpSEC * 16.0f),
+        constrainToInt16(-rfValues.m_pitchRate_DEGpSEC * 16.0f),
+        constrainToInt16(rfValues.m_yawRate_DEGpSEC * 16.0f)
     );
 
     fakeBaroSet(altitudeToPressure(altitude), DEGREES_TO_CENTIDEGREES(21));
     fakePitotSetAirspeed(rfValues.m_airspeed_MPS * 100);
 
-    fakeBattSensorSetVbat((uint16_t)round(rfValues.m_batteryVoltage_VOLTS * 100));
-    fakeBattSensorSetAmperage((uint16_t)round(rfValues.m_batteryCurrentDraw_AMPS * 100)); 
+    fakeBattSensorSetVbat((uint16_t)roundf(rfValues.m_batteryVoltage_VOLTS * 100));
+    fakeBattSensorSetAmperage((uint16_t)roundf(rfValues.m_batteryCurrentDraw_AMPS * 100)); 
 
     fpQuaternion_t quat;
     fpVector3_t north;

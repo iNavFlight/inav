@@ -256,6 +256,8 @@ static void SystemClockHSE_Config(void)
     pllConfig_t *pll1Config = (HAL_GetREVID() == REV_ID_V) ? &pll1ConfigRevV : &pll1ConfigRevY;
 #endif
 
+    pll1Config->m = HSE_VALUE / 1000000 / 2;  // correction for different HSE_VALUE
+
     // Configure voltage scale.
     // It has been pre-configured at PWR_REGULATOR_VOLTAGE_SCALE1,
     // and it may stay or overridden by PWR_REGULATOR_VOLTAGE_SCALE0 depending on the clock config.
@@ -506,6 +508,12 @@ void SystemClock_Config(void)
     RCC_PeriphClkInit.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
     RCC_PeriphClkInit.PLL2.PLL2FRACN = 0;
     RCC_PeriphClkInit.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL2;
+    HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
+#endif
+
+#ifdef USE_QUADSPI
+    RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_QSPI;
+    RCC_PeriphClkInit.QspiClockSelection = RCC_QSPICLKSOURCE_D1HCLK;
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
 #endif
 

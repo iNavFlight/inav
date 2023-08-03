@@ -55,6 +55,7 @@
 #include "io/serial.h"
 #include "io/gps.h"
 #include "io/gps_private.h"
+#include "io/gps_ublox.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -91,7 +92,7 @@ gpsSolutionData_t gpsSolDRV;  //filled by driver
 gpsSolutionData_t gpsSol;     //used in the rest of the code
 
 // Map gpsBaudRate_e index to baudRate_e
-baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400 };
+baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400, BAUD_460800, BAUD_921600 };
 
 static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
@@ -130,7 +131,7 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 3);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
@@ -139,8 +140,68 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .autoBaud = SETTING_GPS_AUTO_BAUD_DEFAULT,
     .dynModel = SETTING_GPS_DYN_MODEL_DEFAULT,
     .gpsMinSats = SETTING_GPS_MIN_SATS_DEFAULT,
-    .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT
+    .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT,
+    .ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT,
+    .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
+    .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT
 );
+
+
+int getGpsBaudrate(void)
+{
+    switch(gpsState.baudrateIndex)
+    {
+        case GPS_BAUDRATE_115200:
+            return 115200;
+        case GPS_BAUDRATE_57600:
+            return 57600;
+        case GPS_BAUDRATE_38400:
+            return 38400;
+        case GPS_BAUDRATE_19200:
+            return 19200;
+        case GPS_BAUDRATE_9600:
+            return 9600;
+        case GPS_BAUDRATE_230400:
+            return 230400;
+        case GPS_BAUDRATE_460800:
+            return 460800;
+        case GPS_BAUDRATE_921600:
+            return 921600;
+        default:
+            return 0;
+    }
+}
+
+const char *getGpsHwVersion(void)
+{
+    switch(gpsState.hwVersion)
+    {
+        case UBX_HW_VERSION_UBLOX5:
+            return "UBLOX5";
+        case UBX_HW_VERSION_UBLOX6:
+            return "UBLOX6";
+        case UBX_HW_VERSION_UBLOX7:
+            return "UBLOX7";
+        case UBX_HW_VERSION_UBLOX8:
+            return "UBLOX8";
+        case UBX_HW_VERSION_UBLOX9:
+            return "UBLOX9";
+        case UBX_HW_VERSION_UBLOX10:
+            return "UBLOX10";
+        default:
+            return "Unknown";
+    }
+}
+
+uint8_t getGpsProtoMajorVersion(void)
+{
+    return gpsState.swVersionMajor;
+}
+
+uint8_t getGpsProtoMinorVersion(void)
+{
+    return gpsState.swVersionMinor;
+}
 
 void gpsSetState(gpsState_e state)
 {

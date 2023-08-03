@@ -983,12 +983,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime()
+float getFlightTime(void)
 {
     return US2S(flightTime);
 }
 
-float getArmTime()
+float getArmTime(void)
 {
     return US2S(armTime);
 }

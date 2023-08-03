@@ -54,7 +54,7 @@ float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sampl
 }
 
 void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength, uint16_t filterLpfHz, uint32_t looptime) {
-    if (delay > 0.1) {
+    if (delay > 0.1f) {
         predictor->enabled = true;
         predictor->samples = (delay * 1000) / looptime;
         predictor->idx = 0;
