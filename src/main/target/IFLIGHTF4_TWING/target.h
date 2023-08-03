@@ -42,14 +42,9 @@
 
 #define MPU6500_0_CS_PIN        PA4
 #define MPU6500_0_SPI_BUS       BUS_SPI1
-#define MPU6500_0_EXTI_PIN      PC4
 
 #define MPU6500_1_CS_PIN        PC3
 #define MPU6500_1_SPI_BUS       BUS_SPI1
-#define MPU6500_1_EXTI_PIN      PA8
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
@@ -77,8 +72,6 @@
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
-
-#define BNO055_I2C_BUS          BUS_I2C1
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2

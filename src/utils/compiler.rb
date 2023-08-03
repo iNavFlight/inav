@@ -30,7 +30,7 @@ require 'rbconfig'
 require 'shellwords'
 
 class Compiler
-    def initialize
+    def initialize(use_host_gcc)
         # Look for the compiler in PATH manually, since there
         # are some issues with the built-in search by spawn()
         # on Windows if PATH contains spaces.
@@ -38,7 +38,11 @@ class Compiler
         dirs = ((ENV["CPP_PATH"] || "") + File::PATH_SEPARATOR + (ENV["PATH"] || "")).split(File::PATH_SEPARATOR)
         bin = ENV["SETTINGS_CXX"]
         if bin.empty?
-            bin = "arm-none-eabi-g++"
+            if use_host_gcc
+                bin = "g++"
+            else
+                bin = "arm-none-eabi-g++"
+            end
         end
         dirs.each do |dir|
             p = File.join(dir, bin)

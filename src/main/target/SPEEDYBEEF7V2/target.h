@@ -72,10 +72,6 @@
 #define MPU6000_CS_PIN           PA4
 #define MPU6000_SPI_BUS     BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI         PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_BEEPER
 #define BEEPER              PB2
 #define BEEPER_INVERTED

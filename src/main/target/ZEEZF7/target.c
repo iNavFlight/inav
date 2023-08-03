@@ -14,7 +14,6 @@
 * You should have received a copy of the GNU General Public License
 * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 #include <stdint.h>
 
 #include "platform.h"
@@ -23,8 +22,21 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
+#include "drivers/pinio.h"
+#include "drivers/sensor.h"
 
 timerHardware_t timerHardware[] = {
+#ifdef ZEEZF7V3
+    DEF_TIM(TIM4, CH2,  PB7, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S1
+    DEF_TIM(TIM4, CH1,  PB6, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S2
+    DEF_TIM(TIM3, CH1,  PB4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S3
+    DEF_TIM(TIM2, CH2,  PB3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S4
+    DEF_TIM(TIM8, CH1,  PC6, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_MC_SERVO, 0, 1), // S5
+    DEF_TIM(TIM3, CH2,  PC7, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_MC_SERVO, 0, 0), // S6
+    DEF_TIM(TIM3, CH3,  PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_MC_SERVO, 0, 0), // S7
+    DEF_TIM(TIM3, CH4,  PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO | TIM_USE_MC_SERVO, 0, 0), // S8
+#endif
+
 #ifdef ZEEZF7V2
     DEF_TIM(TIM4, CH2,  PB7, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S1
     DEF_TIM(TIM4, CH1,  PB6, TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0), // S2
@@ -34,7 +46,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH2,  PC7, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S6
     DEF_TIM(TIM8, CH1,  PC6, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 1), // S7
     DEF_TIM(TIM3, CH4,  PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0), // S8
-#else
+#endif
+
+#ifdef ZEEZF7
     DEF_TIM(TIM4, CH3,  PB8, TIM_USE_MC_MOTOR, 0, 0), // S1
     DEF_TIM(TIM4, CH2,  PB7, TIM_USE_MC_MOTOR, 0, 0), // S2
     DEF_TIM(TIM4, CH1,  PB6, TIM_USE_MC_MOTOR, 0, 0), // S3
@@ -45,3 +59,4 @@ timerHardware_t timerHardware[] = {
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
+

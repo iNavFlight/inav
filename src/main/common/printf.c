@@ -48,6 +48,9 @@
 
 #ifdef REQUIRE_PRINTF_LONG_SUPPORT
 #include "typeconversion.h"
+#define MAX UINT64_MAX
+#else
+#define MAX UINT32_MAX
 #endif
 
 static serialPort_t *printfSerialPort;
@@ -110,7 +113,7 @@ int tfp_nformat(void *putp, int size, void (*putf) (void *, char), const char *f
     int written = 0;
     char ch;
 
-    const void *end = size < 0 ? (void*)UINT32_MAX : ((char *)putp + size - 1);
+    const void *end = size < 0 ? (void*)MAX : ((char *)putp + size - 1);
 
     while ((ch = *(fmt++))) {
         if (ch != '%') {

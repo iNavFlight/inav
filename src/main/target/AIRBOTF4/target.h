@@ -29,11 +29,6 @@
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
 
-// MPU6000 interrupts
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
@@ -64,7 +59,6 @@
 #define USE_PITOT_ADC
 #define PITOT_I2C_BUS           BUS_I2C2
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define BNO055_I2C_BUS          BUS_I2C2
 
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3

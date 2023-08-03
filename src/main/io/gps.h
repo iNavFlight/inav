@@ -18,6 +18,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <time.h>
 
 #include "config/parameter_group.h"
 
@@ -36,6 +37,7 @@ typedef enum {
     GPS_UBLOX,
     GPS_UBLOX7PLUS,
     GPS_MSP,
+    GPS_FAKE,
     GPS_PROVIDER_COUNT
 } gpsProvider_e;
 
@@ -57,6 +59,8 @@ typedef enum {
     GPS_BAUDRATE_19200,
     GPS_BAUDRATE_9600,
     GPS_BAUDRATE_230400,
+    GPS_BAUDRATE_460800,
+    GPS_BAUDRATE_921600,
     GPS_BAUDRATE_COUNT
 } gpsBaudRate_e;
 
@@ -91,7 +95,10 @@ typedef struct gpsConfig_s {
     gpsAutoBaud_e autoBaud;
     gpsDynModel_e dynModel;
     bool ubloxUseGalileo;
+    bool ubloxUseBeidou;
+    bool ubloxUseGlonass;
     uint8_t gpsMinSats;
+    uint8_t ubloxNavHz;
 } gpsConfig_t;
 
 PG_DECLARE(gpsConfig_t, gpsConfig);
@@ -162,3 +169,24 @@ bool isGPSHeadingValid(void);
 struct serialPort_s;
 void gpsEnablePassthrough(struct serialPort_s *gpsPassthroughPort);
 void mspGPSReceiveNewData(const uint8_t * bufferPtr);
+
+const char *getGpsHwVersion(void);
+uint8_t getGpsProtoMajorVersion(void);
+uint8_t getGpsProtoMinorVersion(void);
+
+int getGpsBaudrate(void);
+
+#if defined(USE_GPS_FAKE)
+void gpsFakeSet(
+    gpsFixType_e fixType,
+    uint8_t numSat,
+    int32_t lat, 
+    int32_t lon, 
+    int32_t alt, 
+    int16_t groundSpeed, 
+    int16_t groundCourse, 
+    int16_t velNED_X,  
+    int16_t velNED_Y,  
+    int16_t velNED_Z,
+    time_t time);
+#endif

@@ -44,8 +44,8 @@
 #define FRSKY_OSD_INFO_READY_INTERVAL_MS 5000
 
 #define FRSKY_OSD_TRACE(fmt, ...)
-#define FRSKY_OSD_DEBUG(fmt, ...) LOG_D(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
-#define FRSKY_OSD_ERROR(fmt, ...) LOG_E(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_DEBUG(fmt, ...) LOG_DEBUG(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
+#define FRSKY_OSD_ERROR(fmt, ...) LOG_ERROR(OSD, "FrSky OSD: " fmt,  ##__VA_ARGS__)
 #define FRSKY_OSD_ASSERT(x)
 
 typedef enum
@@ -365,7 +365,7 @@ static void frskyOSDUpdateReceiveBuffer(void)
                     // Full uvarint decoded. Check against buffer size.
                     if (state.recvBuffer.expected > sizeof(state.recvBuffer.data)) {
                         FRSKY_OSD_ERROR("Can't handle payload of size %u with a buffer of size %u",
-                            state.recvBuffer.expected, sizeof(state.recvBuffer.data));
+                            state.recvBuffer.expected, (unsigned int)sizeof(state.recvBuffer.data));
                         frskyOSDResetReceiveBuffer();
                         break;
                     }

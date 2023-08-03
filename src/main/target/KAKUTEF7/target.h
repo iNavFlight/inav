@@ -36,19 +36,16 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
-#define USE_MPU_DATA_READY_SIGNAL
-#define USE_EXTI
+
 
 // ICM-20689
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN       CW270_DEG
-#define GYRO_INT_EXTI            PE1
 #define ICM20689_CS_PIN          SPI4_NSS_PIN
 #define ICM20689_SPI_BUS         BUS_SPI4
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
-#define GYRO_INT_EXTI           PE1
 #define MPU6000_CS_PIN          SPI4_NSS_PIN
 #define MPU6000_SPI_BUS         BUS_SPI4
 
@@ -178,6 +175,3 @@
 #define TARGET_IO_PORTE 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS       6
-
-#define BNO055_I2C_BUS          BUS_I2C1
-

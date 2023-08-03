@@ -29,11 +29,6 @@
 
 #define USE_DSHOT
 
-// MPU interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define MPU9250_CS_PIN          PC0
 #define MPU9250_SPI_BUS         BUS_SPI3
 
@@ -126,7 +121,6 @@
 #define PITOT_I2C_BUS           BUS_I2C1
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_OSD | FEATURE_GPS | FEATURE_TELEMETRY)
 

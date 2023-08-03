@@ -37,12 +37,10 @@
 
 #define GYRO_0_CS_PIN           PD2
 #define GYRO_0_SPI_BUS          BUS_SPI3
-#define GYRO_0_EXTI_PIN         NONE
 #define GYRO_0_ALIGN            CW90_DEG
 
 #define GYRO_1_CS_PIN           PC4
 #define GYRO_1_SPI_BUS          BUS_SPI1
-#define GYRO_1_EXTI_PIN         NONE
 #define GYRO_1_ALIGN            CW0_DEG
 
 // *************** FLASH **************************

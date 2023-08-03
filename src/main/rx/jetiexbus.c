@@ -248,8 +248,6 @@ bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfi
     UNUSED(rxConfig);
 
     rxRuntimeConfig->channelCount = JETIEXBUS_CHANNEL_COUNT;
-    rxRuntimeConfig->rxRefreshRate = 5500;
-
     rxRuntimeConfig->rcReadRawFn = jetiExBusReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = jetiExBusFrameStatus;
 

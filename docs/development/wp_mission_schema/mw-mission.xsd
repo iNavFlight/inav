@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- XSchema for MW / iNav missions
-     This file is part of inav
+<!-- XSchema for MW / INAV missions
+     This file is part of INAV
      usage  e.g. xmllint -​-noout -​-schema mw-mission.xsd example.mission
      Updated 2021-11-12 for 'meta' substitution.
 -->
@@ -42,7 +42,7 @@
       <xs:attribute name="alt" use="required" type="xs:integer"/>
       <!--
            flag is not strictly required unless the WP is "Flyby Home"
-           or the are multiple mission segments 'multi-mission', inav 4.0
+           or the are multiple mission segments 'multi-mission', INAV 4.0
       -->
       <xs:attribute name="flag" use="optional" type="xs:integer"/>
       <!--

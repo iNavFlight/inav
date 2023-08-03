@@ -19,7 +19,7 @@ the actual one measured by the gyroscopes, and the controller tries to bring thi
 Note that:
 
 * For fixed wing, a PIFF controller is used. Some documentation is available in the wiki and legacy release notes.
-* The iNav Configurator provides conservative example PID settings for various aircraft types. These will require tuning to a particular machine.
+* The INAV Configurator provides conservative example PID settings for various aircraft types. These will require tuning to a particular machine.
 
 ## PIDs
 

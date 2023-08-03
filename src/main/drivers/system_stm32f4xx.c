@@ -26,8 +26,6 @@
 #include "drivers/nvic.h"
 #include "drivers/system.h"
 
-#include "drivers/exti.h"
-
 #include "target/system.h"
 
 

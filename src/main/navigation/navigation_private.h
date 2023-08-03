@@ -40,9 +40,9 @@
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
-#define MC_LAND_CHECK_VEL_Z_MOVING          25.0f   // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
-#define MC_LAND_DESCEND_THROTTLE            40      // uS
+#define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
@@ -96,20 +96,21 @@ typedef struct navigationFlags_s {
     bool isAdjustingHeading;
 
     // Behaviour modifiers
-    bool isGCSAssistedNavigationEnabled;    // Does iNav accept WP#255 - follow-me etc.
+    bool isGCSAssistedNavigationEnabled;    // Does INAV accept WP#255 - follow-me etc.
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
-    bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
+    bool isTerrainFollowEnabled;            // Does INAV use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     // Failsafe actions
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
 
-    bool wpMissionPlannerActive;            // Activation status of WP mission planner
-
     /* Landing detector */
     bool resetLandingDetector;
 
+    bool wpMissionPlannerActive;            // Activation status of WP mission planner
     bool rthTrackbackActive;                // Activation status of RTH trackback
+    bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
+    bool manualEmergLandActive;             // Activation status of manual emergency landing
 } navigationFlags_t;
 
 typedef struct {
@@ -122,6 +123,7 @@ typedef struct {
     navEstimatedPosVel_t    abs;
     navEstimatedPosVel_t    agl;
     int32_t                 yaw;
+    int32_t                 cog;
 
     // Service values
     float                   sinYaw;
@@ -320,10 +322,9 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
-    fpVector3_t                 targetPos;
-    int32_t                     yaw;
-    int32_t                     previousYaw;
-    timeMs_t                    lastYawAdjustmentTime;
+    int32_t                     course;
+    int32_t                     previousCourse;
+    timeMs_t                    lastCourseAdjustmentTime;
 } navCruise_t;
 
 typedef struct {
@@ -380,7 +381,8 @@ typedef struct {
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
-    int8_t                      waypointCount;
+    int8_t                      waypointCount;              // number of WPs in loaded mission
+    int8_t                      startWpIndex;               // index of first waypoint in mission
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
 
@@ -391,10 +393,9 @@ typedef struct {
     /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
-    int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
-    int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
+    int8_t                      totalMultiMissionWpCount;   // total number of waypoints in all multi missions
 #endif
-    navWaypointPosition_t       activeWaypoint;             // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;
     float                       wpInitialAltitude;          // Altitude at start of WP
     float                       wpInitialDistance;          // Distance when starting flight to WP
@@ -442,19 +443,18 @@ bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
-void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
+void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
-void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
+void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
 void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
 
-bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
-bool isWaypointMissed(const navWaypointPosition_t * waypoint);
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
 float getActiveWaypointSpeed(void);
+bool isWaypointNavTrackingActive(void);
 
-void updateActualHeading(bool headingValid, int32_t newHeading);
+void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
 

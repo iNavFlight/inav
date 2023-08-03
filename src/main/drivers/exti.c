@@ -4,7 +4,7 @@
 
 #include "platform.h"
 
-#ifdef USE_EXTI
+#if !defined(SITL_BUILD)
 
 #include "build/assert.h"
 
@@ -34,15 +34,15 @@ static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
     EXTI9_5_IRQn,
     EXTI15_10_IRQn
 };
-#elif defined(STM32F3)
+#elif defined(AT32F43x)  
 static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
-    EXTI0_IRQn,
-    EXTI1_IRQn,
-    EXTI2_TS_IRQn,
-    EXTI3_IRQn,
-    EXTI4_IRQn,
-    EXTI9_5_IRQn,
-    EXTI15_10_IRQn
+    EXINT0_IRQn,
+    EXINT1_IRQn,
+    EXINT2_IRQn,
+    EXINT3_IRQn,
+    EXINT4_IRQn,
+    EXINT9_5_IRQn,
+    EXINT15_10_IRQn
 };
 #else
 # warning "Unknown CPU"
@@ -52,6 +52,10 @@ static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
 #if defined(STM32H7)
 #define EXTI_REG_IMR (EXTI_D1->IMR1)
 #define EXTI_REG_PR  (EXTI_D1->PR1)
+#elif defined(AT32F43x)  
+// Interrupt enable register & interrupt status register
+#define EXTI_REG_IMR (EXINT->inten)
+#define EXTI_REG_PR  (EXINT->intsts)
 #else
 #define EXTI_REG_IMR (EXTI->IMR)
 #define EXTI_REG_PR  (EXTI->PR)
@@ -60,9 +64,11 @@ static const uint8_t extiGroupIRQn[EXTI_IRQ_GROUPS] = {
 
 void EXTIInit(void)
 {
-#if defined(STM32F3) || defined(STM32F4)
+#if defined(STM32F4)
     /* Enable SYSCFG clock otherwise the EXTI irq handlers are not called */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+#elif defined(AT32F43x)  
+    crm_periph_clock_enable(CRM_SCFG_PERIPH_CLOCK, TRUE);
 #endif
     memset(extiChannelRecs, 0, sizeof(extiChannelRecs));
     memset(extiGroupPriority, 0xff, sizeof(extiGroupPriority));
@@ -103,8 +109,38 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, ioConfig_t conf
         HAL_NVIC_EnableIRQ(extiGroupIRQn[group]);
     }
 }
-#else
+#elif defined(AT32F43x)  
+void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, exint_polarity_config_type trigger)
+{
+    int chIdx;
+    chIdx = IO_GPIOPinIdx(io);
+    if (chIdx < 0)
+        return;
+    // we have only 16 extiChannelRecs
+    ASSERT(chIdx < 16);
+    extiChannelRec_t *rec = &extiChannelRecs[chIdx];
+    int group = extiGroups[chIdx];
+    rec->handler = cb;
 
+    scfg_exint_line_config(IO_EXTI_PortSourceGPIO(io), IO_EXTI_PinSource(io));
+    uint32_t extiLine = IO_EXTI_Line(io);   
+    exint_flag_clear(extiLine);
+    
+    exint_init_type EXTIInit;
+    exint_default_para_init(&EXTIInit);
+    EXTIInit.line_mode = EXINT_LINE_INTERRUPUT;
+    EXTIInit.line_select = extiLine; 
+    EXTIInit.line_polarity = trigger;
+    EXTIInit.line_enable = TRUE;
+    exint_init(&EXTIInit);
+     
+    if (extiGroupPriority[group] > irqPriority) {
+        extiGroupPriority[group] = irqPriority;
+  	    nvic_priority_group_config(NVIC_PRIORITY_GROUPING);
+  	    nvic_irq_enable(extiGroupIRQn[group],irqPriority,0);  
+    }
+}
+#else
 void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_TypeDef trigger)
 {
     int chIdx;
@@ -119,9 +155,7 @@ void EXTIConfig(IO_t io, extiCallbackRec_t *cb, int irqPriority, EXTITrigger_Typ
     int group = extiGroups[chIdx];
 
     rec->handler = cb;
-#if defined(STM32F303xC)
-    SYSCFG_EXTILineConfig(IO_EXTI_PortSourceGPIO(io), IO_EXTI_PinSource(io));
-#elif defined(STM32F4)
+#if defined(STM32F4)
     SYSCFG_EXTILineConfig(IO_EXTI_PortSourceGPIO(io), IO_EXTI_PinSource(io));
 #else
 # warning "Unknown CPU"
@@ -165,7 +199,7 @@ void EXTIRelease(IO_t io)
 
 void EXTIEnable(IO_t io, bool enable)
 {
-#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)|| defined(AT32F43x)
     uint32_t extiLine = IO_EXTI_Line(io);
     if (!extiLine)
         return;
@@ -173,15 +207,6 @@ void EXTIEnable(IO_t io, bool enable)
         EXTI_REG_IMR |= extiLine;
     else
         EXTI_REG_IMR &= ~extiLine;
-#elif defined(STM32F303xC)
-    int extiLine = IO_EXTI_Line(io);
-    if (extiLine < 0)
-        return;
-    // assume extiLine < 32 (valid for all EXTI pins)
-    if (enable)
-        EXTI_REG_IMR |= 1 << extiLine;
-    else
-        EXTI_REG_IMR &= ~(1 << extiLine);
 #else
 # error "Unsupported target"
 #endif
@@ -208,11 +233,20 @@ void EXTI_IRQHandler(void)
     /**/
 
 
+#if defined(AT32F43x) 
+_EXTI_IRQ_HANDLER(EXINT0_IRQHandler);
+_EXTI_IRQ_HANDLER(EXINT1_IRQHandler); 
+_EXTI_IRQ_HANDLER(EXINT2_IRQHandler);  
+_EXTI_IRQ_HANDLER(EXINT3_IRQHandler);
+_EXTI_IRQ_HANDLER(EXINT4_IRQHandler);
+_EXTI_IRQ_HANDLER(EXINT9_5_IRQHandler);
+_EXTI_IRQ_HANDLER(EXINT15_10_IRQHandler);
+#else
 _EXTI_IRQ_HANDLER(EXTI0_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI1_IRQHandler);
 #if defined(STM32F7) || defined(STM32H7)
 _EXTI_IRQ_HANDLER(EXTI2_IRQHandler);
-#elif defined(STM32F3) || defined(STM32F4)
+#elif defined(STM32F4) || defined(AT32F43x)  
 _EXTI_IRQ_HANDLER(EXTI2_TS_IRQHandler);
 #else
 # warning "Unknown CPU"
@@ -221,5 +255,6 @@ _EXTI_IRQ_HANDLER(EXTI3_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI4_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI9_5_IRQHandler);
 _EXTI_IRQ_HANDLER(EXTI15_10_IRQHandler);
+#endif 
 
-#endif // USE_EXTI
+#endif

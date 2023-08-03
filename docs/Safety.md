@@ -9,7 +9,7 @@ As many can attest, multirotors and RC models in general can be very dangerous, 
 Please consult the [Cli](Cli.md), [Controls](Controls.md), [Failsafe](Failsafe.md) and [Modes](Modes.md) 
 pages for further important information.
 
-You are highly advised to use the Receiver tab in the CleanFlight Configurator, making sure your Rx channel 
+You are highly advised to use the Receiver tab in the INAV Configurator, making sure your Rx channel 
 values are centered at 1500 (1520 for Futaba RC) with minimum & maximums of 1000 and 2000 (respectively) 
 are reached when controls are operated.  Failure to configure these ranges properly can create
 problems, such as inability to arm (because you can't reach the endpoints) or immediate activation of

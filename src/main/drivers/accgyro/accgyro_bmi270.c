@@ -34,7 +34,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -132,8 +131,8 @@ typedef struct __attribute__ ((__packed__)) bmi270ContextData_s {
 STATIC_ASSERT(sizeof(bmi270ContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
 static const gyroFilterAndRateConfig_t gyroConfigs[] = {
-    { GYRO_LPF_256HZ,   3200,   { BMI270_BWP_NORM | BMI270_ODR_3200} },
-    { GYRO_LPF_256HZ,   1600,   { BMI270_BWP_NORM | BMI270_ODR_1600} },
+    { GYRO_LPF_256HZ,   3200,   { BMI270_BWP_OSR4 | BMI270_ODR_3200} },
+    { GYRO_LPF_256HZ,   1600,   { BMI270_BWP_OSR2 | BMI270_ODR_1600} },
     { GYRO_LPF_256HZ,    800,   { BMI270_BWP_NORM | BMI270_ODR_800 } },
 
     { GYRO_LPF_188HZ,    800,   { BMI270_BWP_OSR2 | BMI270_ODR_800 } },
@@ -197,8 +196,6 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
 {
     busDevice_t * busDev = gyro->busDev;
 
-    gyroIntExtiInit(gyro);
-
     // Perform a soft reset to set all configuration to default
     // Delay 100ms before continuing configuration
     busWrite(busDev, BMI270_REG_CMD, BMI270_CMD_SOFTRESET);
@@ -234,10 +231,8 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
     delay(1);
 
     // Configure the gyro data ready interrupt
-#ifdef USE_MPU_DATA_READY_SIGNAL
     busWrite(busDev, BMI270_REG_INT_MAP_DATA, BMI270_INT_MAP_DATA_DRDY_INT1);
     delay(1);
-#endif
 
     // Configure the behavior of the INT1 pin
     busWrite(busDev, BMI270_REG_INT1_IO_CTRL, BMI270_INT1_IO_CTRL_ACTIVE_HIGH | BMI270_INT1_IO_CTRL_OUTPUT_EN);
@@ -259,9 +254,9 @@ static bool bmi270yroReadScratchpad(gyroDev_t *gyro)
     ctx->lastReadStatus = busReadBuf(gyro->busDev, BMI270_REG_ACC_DATA_X_LSB, &ctx->__padding_dummy, 6 + 6 + 1);
 
     if (ctx->lastReadStatus) {
-        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[1] << 8) | ctx->gyroRaw[0]);
-        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[3] << 8) | ctx->gyroRaw[2]);
-        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[5] << 8) | ctx->gyroRaw[4]);
+        gyro->gyroADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
 
         return true;
     }
@@ -274,9 +269,9 @@ static bool bmi270AccReadScratchpad(accDev_t *acc)
     bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
-        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
+        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->accRaw, 0);
+        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->accRaw, 1);
+        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->accRaw, 2);
         return true;
     }
 

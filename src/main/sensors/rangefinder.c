@@ -141,7 +141,14 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             }
 #endif
             break;
-
+            case RANGEFINDER_FAKE:
+#if defined(USE_RANGEFINDER_FAKE)
+            if(virtualRangefinderDetect(dev, &rangefinderFakeVtable)) {
+                rangefinderHardware = RANGEFINDER_FAKE;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
+            }
+#endif
+            break;
             case RANGEFINDER_NONE:
             rangefinderHardware = RANGEFINDER_NONE;
             break;

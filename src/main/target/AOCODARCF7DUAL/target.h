@@ -27,36 +27,26 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// *************** SPI1 Gyro & ACC *******************
+// *************** SPI2 Gyro & ACC *******************
 #define USE_SPI
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-#define USE_EXTI
 #define USE_DUAL_GYRO
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
+
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PB12
 #define MPU6000_SPI_BUS         BUS_SPI2
-#define MPU6000_EXTI_PIN        PC4
-
-#define USE_IMU_MPU6500
-#define IMU_MPU6500_ALIGN       CW270_DEG
-#define MPU6500_CS_PIN          PB12
-#define MPU6500_SPI_BUS         BUS_SPI2
-#define MPU6500_EXTI_PIN        PC4
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW180_DEG
 #define BMI270_CS_PIN           PA13
 #define BMI270_SPI_BUS          BUS_SPI2
-#define BMI270_EXTI_PIN         PA8
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -92,7 +82,7 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
-// *************** SPI2 OSD ***********************
+// *************** SPI1 OSD ***********************
 #define USE_SPI_DEVICE_1
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6

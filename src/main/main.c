@@ -53,8 +53,14 @@ static void processLoopback(void)
 #endif
 }
 
+#if defined(SITL_BUILD)
+int main(int argc, char *argv[])
+{
+    parseArguments(argc, argv);
+#else
 int main(void)
 {
+#endif
     init();
     loopbackInit();
 

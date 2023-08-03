@@ -40,6 +40,10 @@
 #include "drivers/serial_uart.h"
 #endif
 
+#if defined(SITL_BUILD)
+#include "drivers/serial_tcp.h"
+#endif
+
 #include "drivers/light_led.h"
 
 #if defined(USE_VCP)
@@ -100,7 +104,7 @@ static uint8_t serialPortCount;
 const uint32_t baudRates[] = { 0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 250000,
         460800, 921600, 1000000, 1500000, 2000000, 2470000 }; // see baudRate_e
 
-#define BAUD_RATE_COUNT (sizeof(baudRates) / sizeof(baudRates[0]))
+#define BAUD_RATE_COUNT ARRAYLEN(baudRates)
 
 PG_REGISTER_WITH_RESET_FN(serialConfig_t, serialConfig, PG_SERIAL_CONFIG, 1);
 
@@ -263,7 +267,7 @@ serialPort_t *findNextSharedSerialPort(uint32_t functionMask, serialPortFunction
     return NULL;
 }
 
-#define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define ALL_TELEMETRY_FUNCTIONS_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 #define ALL_FUNCTIONS_SHARABLE_WITH_MSP (FUNCTION_BLACKBOX | ALL_TELEMETRY_FUNCTIONS_MASK | FUNCTION_LOG)
 
 bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
@@ -327,6 +331,13 @@ bool doesConfigurationUsePort(serialPortIdentifier_e identifier)
     serialPortConfig_t *candidate = serialFindPortConfiguration(identifier);
     return candidate != NULL && candidate->functionMask;
 }
+
+#if defined(SITL_BUILD)
+serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
+}
+#endif
 
 serialPort_t *openSerialPort(
     serialPortIdentifier_e identifier,

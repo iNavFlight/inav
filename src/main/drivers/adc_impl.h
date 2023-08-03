@@ -20,12 +20,10 @@
 #include "drivers/io_types.h"
 #include "rcc_types.h"
 
-#if defined(STM32F4) || defined(STM32F7)
+#if defined(STM32F4) || defined(STM32F7) || defined(AT32F43x) 
 #define ADC_TAG_MAP_COUNT 16
 #elif defined(STM32H7)
 #define ADC_TAG_MAP_COUNT 28
-#elif defined(STM32F3)
-#define ADC_TAG_MAP_COUNT 39
 #else
 #define ADC_TAG_MAP_COUNT 10
 #endif
@@ -39,10 +37,7 @@
 typedef enum ADCDevice {
     ADCINVALID = -1,
     ADCDEV_1   = 0,
-#if defined(STM32F3)
-    ADCDEV_2,
-    ADCDEV_MAX = ADCDEV_2,
-#elif defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     ADCDEV_2,
     ADCDEV_3,
     ADCDEV_MAX = ADCDEV_3,
@@ -58,12 +53,19 @@ typedef struct adcTagMap_s {
 } adcTagMap_t;
 
 typedef struct adcDevice_s {
+#if defined(AT32F43x) 
+    adc_type* ADCx;
+#else
     ADC_TypeDef* ADCx;
+#endif
     rccPeriphTag_t rccADC;
     rccPeriphTag_t rccDMA;
 #if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
     DMA_Stream_TypeDef* DMAy_Streamx;
     uint32_t channel;
+#elif defined(AT32F43x) 
+    dma_channel_type* DMAy_Channelx;
+    uint32_t dmaMuxid; // dmamux request type
 #else
     DMA_Channel_TypeDef* DMAy_Channelx;
 #endif
@@ -89,5 +91,9 @@ extern adc_config_t adcConfig[ADC_CHN_COUNT];
 extern volatile ADC_VALUES_ALIGNMENT(uint16_t adcValues[ADCDEV_COUNT][ADC_CHN_COUNT * ADC_AVERAGE_N_SAMPLES]);
 
 void adcHardwareInit(drv_adc_config_t *init);
+#if defined(AT32F43x) 
+ADCDevice adcDeviceByInstance(adc_type *instance);
+#else
 ADCDevice adcDeviceByInstance(ADC_TypeDef *instance);
+#endif
 uint32_t adcChannelByTag(ioTag_t ioTag);

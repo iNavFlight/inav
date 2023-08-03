@@ -47,25 +47,53 @@
 
 #include "flight/mixer.h"
 
-static biquadFilter_t rcSmoothFilter[4];
-static float rcStickUnfiltered[4];
+// RC Interpolation is not allowed to go below this value.
+#define RC_INTERPOLATION_MIN_FREQUENCY 15
 
-static void rcInterpolationInit(int rcFilterFreqency)
-{
-    for (int stick = 0; stick < 4; stick++) {
-        biquadFilterInitLPF(&rcSmoothFilter[stick], rcFilterFreqency, getLooptime());
-    }
+static pt3Filter_t rcSmoothFilter[4];
+static float rcStickUnfiltered[4];
+static uint16_t rcUpdateFrequency;
+
+uint16_t getRcUpdateFrequency(void) {
+    return rcUpdateFrequency;
 }
 
-void rcInterpolationApply(bool isRXDataNew)
+static int32_t applyRcUpdateFrequencyMedianFilter(int32_t newReading)
 {
+    #define RC_FILTER_SAMPLES_MEDIAN 9
+    static int32_t filterSamples[RC_FILTER_SAMPLES_MEDIAN];
+    static int filterSampleIndex = 0;
+    static bool medianFilterReady = false;
+
+    filterSamples[filterSampleIndex] = newReading;
+    ++filterSampleIndex;
+    if (filterSampleIndex == RC_FILTER_SAMPLES_MEDIAN) {
+        filterSampleIndex = 0;
+        medianFilterReady = true;
+    }
+
+    return medianFilterReady ? quickMedianFilter9(filterSamples) : newReading;
+}
+
+void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
+{
+    // Compute the RC update frequency
+    static timeUs_t previousRcData;
+    static int filterFrequency;
     static bool initDone = false;
-    static float initFilterFreqency = 0;
+
+    const float dT = US2S(getLooptime());
 
     if (isRXDataNew) {
-        if (!initDone || (initFilterFreqency != rxConfig()->rcFilterFrequency)) {
-            rcInterpolationInit(rxConfig()->rcFilterFrequency);
-            initFilterFreqency = rxConfig()->rcFilterFrequency;
+        if (!initDone) {
+
+            filterFrequency = rxConfig()->rcFilterFrequency;
+
+            // Initialize the RC smooth filter
+            for (int stick = 0; stick < 4; stick++) {
+                pt3FilterInit(&rcSmoothFilter[stick], pt3FilterGain(filterFrequency, dT));
+            }
+
             initDone = true;
         }
 
@@ -79,32 +107,40 @@ void rcInterpolationApply(bool isRXDataNew)
         return;
     }
 
+    if (isRXDataNew) {
+        const timeDelta_t delta = cmpTimeUs(currentTimeUs, previousRcData);
+        rcUpdateFrequency = applyRcUpdateFrequencyMedianFilter(1.0f / (delta * 0.000001f));
+        previousRcData = currentTimeUs;
+
+        /*
+         * If auto smoothing is enabled, update the filters
+         */
+        if (rxConfig()->autoSmooth) {
+            const int nyquist = rcUpdateFrequency / 2;
+
+            int newFilterFrequency = scaleRange(
+                rxConfig()->autoSmoothFactor,
+                1,
+                100,
+                nyquist,
+                rcUpdateFrequency / 10
+            );
+            
+            // Do not allow filter frequency to go below RC_INTERPOLATION_MIN_FREQUENCY or above nuyquist frequency.
+            newFilterFrequency = constrain(newFilterFrequency, RC_INTERPOLATION_MIN_FREQUENCY, nyquist);
+
+            if (newFilterFrequency != filterFrequency) {
+
+                for (int stick = 0; stick < 4; stick++) {
+                    pt3FilterUpdateCutoff(&rcSmoothFilter[stick], pt3FilterGain(newFilterFrequency, dT));
+                }
+                filterFrequency = newFilterFrequency;
+            }
+        }
+
+    }
+
     for (int stick = 0; stick < 4; stick++) {
-        rcCommand[stick] = biquadFilterApply(&rcSmoothFilter[stick], rcStickUnfiltered[stick]);
+        rcCommand[stick] = pt3FilterApply(&rcSmoothFilter[stick], rcStickUnfiltered[stick]);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

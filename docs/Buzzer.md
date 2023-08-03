@@ -62,12 +62,14 @@ beeper list
 giving:
 
 ```
-Available:  RUNTIME_CALIBRATION  HW_FAILURE  RX_LOST  RX_LOST_LANDING  DISARMING  ARMING  ARMING_GPS_FIX  BAT_CRIT_LOW  BAT_LOW  GPS_STATUS  RX_SET  ACTION_SUCCESS  ACTION_FAIL  READY_BEEP  MULTI_BEEPS  DISARM_REPEAT  ARMED  SYSTEM_INIT  ON_USB  LAUNCH_MODE  CAM_CONNECTION_OPEN  CAM_CONNECTION_CLOSED  ALL  PREFERED
+Available:  RUNTIME_CALIBRATION  HW_FAILURE  RX_LOST  RX_LOST_LANDING  DISARMING  ARMING  ARMING_GPS_FIX  BAT_CRIT_LOW
+BAT_LOW  GPS_STATUS  RX_SET  ACTION_SUCCESS  ACTION_FAIL  READY_BEEP  MULTI_BEEPS  DISARM_REPEAT  ARMED  SYSTEM_INIT
+ON_USB LAUNCH_MODE  CAM_CONNECTION_OPEN  CAM_CONNECTION_CLOSED  ALL  PREFERED
 ```
 
 The `beeper` command  syntax follows that of the `feature` command; a minus (`-`) in front of a name disables that function.
 
-So to disable the beeper / buzzer when connected to USB (may enhance domestic harmony)
+So to disable the beeper / buzzer when 	powered by USB (may enhance domestic harmony):
 
 ```
 beeper -ON_USB
@@ -78,17 +80,39 @@ Now the `beeper` command will show:
 ```
 # beeper
 Disabled:  ON_USB
+```
+
+*Note: SYSTEM_INIT sequence is not affected by ON_USB setting and will still be played on USB connection. Disable both ON_USB and SYSTEM_INIT to disable buzzer completely when FC is powered from USB.*
+
+*Note: ON_USB setting requires present and configured battery voltage metter.*
+
+To disable all features use:
 
 ```
+beeper -ALL
+```
+
+To store current set to preferences use (preferences also require ```save```):
+
+```
+beeper PREFERED
+```
+
+To restore set from preferences use:
+
+```
+beeper -PREFERED
 
 As with other CLI commands, the `save` command is needed to save the new settings.
 
 ## Types of buzzer supported
 
-The buzzers are enabled/disabled by simply enabling or disabling a GPIO output pin on the board.
+Most FCs require ACTIVE buzzers. Active buzzers are enabled/disabled by simply enabling or disabling a GPIO output pin on the board.
 This means the buzzer must be able to generate its own tone simply by having power applied to it.
 
-Buzzers that need an analog or PWM signal do not work and will make clicking noises or no sound at all.
+Passive buzzers that need an analog or PWM signal do not work and will make clicking noises or no sound at all.
+
+Passive buzzers are supported on FCs which are designed to work with passive buzzers only (so far there is no available, except rare cases like Matek F765-WSE where passive buzzer is preinstalled).
 
 Examples of a known-working buzzers.
 
