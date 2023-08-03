@@ -900,17 +900,14 @@ float pidHeadingHold(float dT)
 {
     float headingHoldRate;
 
+    /* Convert absolute error into relative to current heading */
     int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headingHoldTarget;
 
-    /*
-     * Convert absolute error into relative to current heading
-     */
-    if (error <= -180) {
-        error += 360;
-    }
-
-    if (error >= +180) {
+    /* Convert absolute error into relative to current heading */
+    if (error > 180) {
         error -= 360;
+    } else if (error < -180) {
+        error += 360;
     }
 
     /*
@@ -1124,7 +1121,7 @@ void FAST_CODE pidController(float dT)
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
-        }       
+        }
     }
 
     if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {

@@ -71,7 +71,6 @@ static bool isRollAdjustmentValid = false;
 static bool isYawAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
-static int32_t navHeadingError;
 static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
 bool needToCalculateCircularLoiter;
@@ -440,7 +439,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * Calculate NAV heading error
      * Units are centidegrees
      */
-    navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.cog);
+    int32_t navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.cog);
 
     // Forced turn direction
     // If heading error is close to 180 deg we initiate forced turn and only disable it when heading error goes below 90 deg
@@ -843,11 +842,6 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
         }
     }
-}
-
-int32_t navigationGetHeadingError(void)
-{
-    return navHeadingError;
 }
 
 float navigationGetCrossTrackError(void)

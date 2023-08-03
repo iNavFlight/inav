@@ -2652,6 +2652,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ---
 
+### nav_cruise_yaw_rate
+
+Max YAW rate when NAV CRUISE mode is enabled (set to 0 to disable) [dps]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 0 | 60 |
+
+---
+
 ### nav_disarm_on_landing
 
 If set to ON, INAV disarms the FC after landing
@@ -2739,16 +2749,6 @@ Cruise throttle in GPS assisted modes, this includes RTH. Should be set high eno
 | Default | Min | Max |
 | --- | --- | --- |
 | 1400 | 1000 | 2000 |
-
----
-
-### nav_fw_cruise_yaw_rate
-
-Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 20 | 0 | 60 |
 
 ---
 
