@@ -70,27 +70,10 @@ PG_RESET_TEMPLATE(servoConfig_t, servoConfig,
     .servo_autotrim_rotation_limit = SETTING_SERVO_AUTOTRIM_ROTATION_LIMIT_DEFAULT
 );
 
-// PG_REGISTER_ARRAY_WITH_RESET_FN(servoMixer_t, MAX_SERVO_RULES, customServoMixers, PG_SERVO_MIXER, 1);
-
-// void pgResetFn_customServoMixers(servoMixer_t *instance)
-// {
-//     for (int i = 0; i < MAX_SERVO_RULES; i++) {
-//         RESET_CONFIG(servoMixer_t, &instance[i],
-//             .targetChannel = 0,
-//             .inputSource = 0,
-//             .rate = 0,
-//             .speed = 0
-// #ifdef USE_PROGRAMMING_FRAMEWORK
-//             ,.conditionId = -1
-// #endif
-//         );
-//     }
-// }
 
 void Reset_servoMixers(servoMixer_t *instance)
 {
-    for (int i = 0; i < MAX_SERVO_RULES; i++)
-    {
+    for (int i = 0; i < MAX_SERVO_RULES; i++){
         RESET_CONFIG(servoMixer_t, &instance[i],
             .targetChannel = 0,
             .inputSource = 0,
@@ -170,10 +153,6 @@ void servosInit(void)
     if (servoRuleCount > 0) {
         servoOutputEnabled = true;
         mixerUsesServos = true;
-    }
-    else {
-        servoOutputEnabled = false;
-        mixerUsesServos = false;
     }
 
     for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
