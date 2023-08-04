@@ -2326,41 +2326,56 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 #endif
-
-    case OSD_CROSSHAIRS: // Hud elements are a sub-element of the crosshair
+    /*
+    case OSD_HUD_HOMEPOINT:
+    case OSD_HUD_HOMING:
+    case OSD_HUD_WAYPOINTS:
+    case OSD_HUD_RADAR:
+    */
+    case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
         osdCrosshairPosition(&elemPosX, &elemPosY);
         osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
 
+
         if (STATE(GPS_FIX) && isImuHeadingValid()) {
+
+            if (isOsdElementVisible(OSD_HUD_HOMING)) {
+                osdHudDrawHoming(elemPosX, elemPosY);
+            }
 
             if (isOsdElementVisible(OSD_HUD_HOMEPOINT) || isOsdElementVisible(OSD_HUD_RADAR) ||
              isOsdElementVisible(OSD_HUD_WAYPOINTS)) {
                 osdHudClear();
             }
-        }
 
-        return true;
-        break;
+            // -------- POI : Home point
 
-    case OSD_HUD_HOMEPOINT: // Display the home point (H)
-        // -------- POI : Home point
-        if(isOsdElementVisible(OSD_CROSSHAIRS)) {
-            osdCrosshairPosition(&elemPosX, &elemPosY);
-            osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, SYM_HOME, 0, 0);
-        }
-        break;
-    case OSD_HUD_HOMING:
-        if(isOsdElementVisible(OSD_CROSSHAIRS)) {
-            osdCrosshairPosition(&elemPosX, &elemPosY);
-            osdHudDrawHoming(elemPosX, elemPosY);
-        }
-        break;
-    case OSD_HUD_WAYPOINTS:
-        // -------- POI : Next waypoints from navigation
-        if(isOsdElementVisible(OSD_CROSSHAIRS)) {
-            osdCrosshairPosition(&elemPosX, &elemPosY);
-            if (osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
+            if (isOsdElementVisible(OSD_HUD_HOMEPOINT)) { // Display the home point (H)
+                osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, SYM_HOME, 0 , 0);
+            }
+
+            // -------- POI : Nearby aircrafts from ESP32 radar
+
+            if (isOsdElementVisible(OSD_HUD_RADAR)) { // Display the POI from the radar
+                for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
+                    if (radar_pois[i].gps.lat != 0 && radar_pois[i].gps.lon != 0 && radar_pois[i].state < 2) { // state 2 means POI has been lost and must be skipped
+                        fpVector3_t poi;
+                        geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
+                        radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
+
+                        if (radar_pois[i].distance >= osdConfig()->hud_radar_range_min && radar_pois[i].distance <= osdConfig()->hud_radar_range_max) {
+                            radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
+                            radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
+                            osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, 1, 65 + i, radar_pois[i].heading, radar_pois[i].lq);
+                        }
+                    }
+                }
+            }
+
+            // -------- POI : Next waypoints from navigation
+
+            if (isOsdElementVisible(OSD_HUD_WAYPOINTS) && osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
                 gpsLocation_t wp2;
                 int j;
 
@@ -2384,27 +2399,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
         }
 
-        break;
-
-    case OSD_HUD_RADAR: // Display the POI from the radar
-        // -------- POI : Nearby aircrafts from ESP32 radar
-        if(isOsdElementVisible(OSD_CROSSHAIRS)) {
-            osdCrosshairPosition(&elemPosX, &elemPosY);
-            for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
-                if (radar_pois[i].gps.lat != 0 && radar_pois[i].gps.lon != 0 && radar_pois[i].state < 2) { // state 2 means POI has been lost and must be skipped
-                    fpVector3_t poi;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &radar_pois[i].gps, GEO_ALT_RELATIVE);
-                    radar_pois[i].distance = calculateDistanceToDestination(&poi) / 100; // In meters
-
-                    if (radar_pois[i].distance >= osdConfig()->hud_radar_range_min && radar_pois[i].distance <= osdConfig()->hud_radar_range_max) {
-                        radar_pois[i].direction = calculateBearingToDestination(&poi) / 100; // In °
-                        radar_pois[i].altitude = (radar_pois[i].gps.alt - osdGetAltitudeMsl()) / 100;
-                        osdHudDrawPoi(radar_pois[i].distance, osdGetHeadingAngle(radar_pois[i].direction), radar_pois[i].altitude, 1, 65 + i, radar_pois[i].heading, radar_pois[i].lq);
-                    }
-                }
-            }
-        }
-
+        return true;
         break;
 
     case OSD_ATTITUDE_ROLL:
