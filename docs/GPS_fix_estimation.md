@@ -15,7 +15,7 @@ Plane should have the following sensors:
 - magnethometer
 - pitot (optional)
 
-By befault, all navigation modes are disabled when GPS fix is lost. If RC signal is lost also, plane will not be able to enable RTH. Plane will switch to LANDING instead. When flying above inreachable spaces, plane will be lost.
+By befault, all navigation modes are disabled when GPS fix is lost. If RC signal is lost also, plane will not be able to enable RTH. Plane will switch to LANDING instead. When flying above unreachable spaces, plane will be lost.
 
 GPS fix estimation allows to recover plane using magnetometer and baromener only.
 
