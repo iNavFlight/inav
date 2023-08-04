@@ -96,7 +96,7 @@ To dicrease drift:
 - make sure compass is pointing in nose direction precicely
 - calibrate compass correctly
 
-This video shown real world test where GPS was disabled occasionally. Wind is 10km/h south-west:
+This video shows real world test where GPS was disabled occasionally. Wind is 10km/h south-west:
 
 
 https://github.com/RomanLut/inav/assets/11955117/0599a3c3-df06-4d40-a32a-4d8f96140592
