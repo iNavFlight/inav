@@ -30,6 +30,9 @@
 #include "drivers/time.h"
 #include "common/calibration.h"
 
+#include "common/log.h"
+#include "build/debug.h"        // TODO remove me
+
 void zeroCalibrationStartS(zeroCalibrationScalar_t * s, timeMs_t window, float threshold, bool allowFailure)
 {
     // Reset parameters and state
@@ -75,6 +78,9 @@ void zeroCalibrationAddValueS(zeroCalibrationScalar_t * s, const float v)
     // Check if calibration is complete
     if ((millis() - s->params.startTimeMs) > s->params.windowSizeMs) {
         const float stddev = devStandardDeviation(&s->val.stdDev);
+
+        LOG_DEBUG( PITOT, " ----- CALIB ADD - stddev = %f, threshold = %f, ", (double)(stddev), (double)(s->params.stdDevThreshold) );
+
         if (stddev > s->params.stdDevThreshold) {
             if (!s->params.allowFailure) {
                 // If deviation is too big - restart calibration

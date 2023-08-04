@@ -197,7 +197,9 @@ bool pitotIsCalibrationComplete(void)
 
 void pitotStartCalibration(void)
 {
-    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00001f, false);
+    // problem for ms4525 with threshold  to low when not smoothedd
+//    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00001f, false);
+    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00004f, false);
 }
 
 static void performPitotCalibrationCycle(void)
@@ -215,11 +217,12 @@ STATIC_PROTOTHREAD(pitotThread)
     ptBegin(pitotThread);
 
     static float pitotPressureTmp;
-    static float pitotTemperature;
+    static float pitotTemperatureTmp;
     timeUs_t currentTimeUs;
 
     // Init filter
     pitot.lastMeasurementUs = micros();
+
     pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
@@ -236,7 +239,7 @@ STATIC_PROTOTHREAD(pitotThread)
             }        
         }
 
-        LOG_DEBUG( PITOT, "cur delay = %d, req delay = %d", (int)(millis() - pitot.lastSeenHealthyMs),  (int)US2MS(pitot.dev.delay) );
+        // LOG_DEBUG( PITOT, "cur delay = %d, req delay = %d", (int)(millis() - pitot.lastSeenHealthyMs),  (int)US2MS(pitot.dev.delay) );
 
         // if ( (millis() - pitot.lastSeenHealthyMs) >= 10) {
         if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
@@ -248,19 +251,7 @@ STATIC_PROTOTHREAD(pitotThread)
         }
 
 
-        // // Start measurement
-        // if (pitot.dev.start(&pitot.dev)) {
-        //     pitot.lastSeenHealthyMs = millis();
-        // }
-
-        // ptDelayUs(pitot.dev.delay);
-
-        // // Read and calculate data
-        // if (pitot.dev.get(&pitot.dev)) {
-        //     pitot.lastSeenHealthyMs = millis();
-        // }
-
-        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperature);
+        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
 
 #ifdef USE_SIMULATOR
     	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
@@ -274,16 +265,16 @@ STATIC_PROTOTHREAD(pitotThread)
 #endif
         ptYield();
 
-//         // Filter pressure - NOTE : do not filter during calibration !!!
-//         currentTimeUs = micros();
-//         pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-//         pitot.lastMeasurementUs = currentTimeUs;
-// //        ptDelayUs(pitot.dev.delay);
+        // // Filter pressure - NOTE : do not filter during calibration !!!
+        // currentTimeUs = micros();
+        // pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+        // pitot.lastMeasurementUs = currentTimeUs;
 
-        static int calib_count = 0;
-        static timeMs_t calibPeriod_ms;
-        if ( calib_count == 0 )
-            calibPeriod_ms = millis();
+        // currentTimeUs = micros();
+        // float p = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+        // pitot.pressure = p; //pitotPressureTmp;
+        // pitot.lastMeasurementUs = micros();
+
 
         // Calculate IAS
         if (pitotIsCalibrationComplete()) {
@@ -296,46 +287,59 @@ STATIC_PROTOTHREAD(pitotThread)
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
 
-#if 1
-            {
-                // filter pressure
-                // do filter only when NOT calibrating
-                currentTimeUs = micros();
-                pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-                pitot.lastMeasurementUs = currentTimeUs;
+            // filter pressure
+            // do NOT filter only when calibrating
+            currentTimeUs = micros();
+            pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+            pitot.lastMeasurementUs = currentTimeUs;
 
-                pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
-            }
-#else            
-            {
-                // filter airspeed
-                pitot.pressure = pitotPressureTmp;
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
 
-                float airSpeedTmp = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+// #if 1
+//             {
+//                 // filter pressure
+//                 // do NOT filter only when calibrating
+//                 currentTimeUs = micros();
+//                 pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+//                 pitot.lastMeasurementUs = currentTimeUs;
+//
+//                 pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+//             }
+// #else            
+//             {
+//                 // filter airspeed
+//                 pitot.pressure = pitotPressureTmp;
+//
+//                 float airSpeedTmp = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+//
+//                 // do filter only when NOT calibrating
+//                 currentTimeUs = micros();
+//                 pitot.airSpeed = pt1FilterApply3(&pitot.lpfState, airSpeedTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+//                 pitot.lastMeasurementUs = currentTimeUs;
+//             }
+// #endif            
 
-                // do filter only when NOT calibrating
-                currentTimeUs = micros();
-                pitot.airSpeed = pt1FilterApply3(&pitot.lpfState, airSpeedTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-                pitot.lastMeasurementUs = currentTimeUs;
-            }
-#endif            
 
+            pitot.temperature = pitotTemperatureTmp;   // Kelvin
 
-            pitot.temperature = pitotTemperature;   // Kelvin
+            debug[0] = (int32_t)(pitot.pressure * 1000);
+            debug[1] = (int32_t)(pitot.pressureZero * 1000);
+            debug[2] = (int32_t)((pitot.pressure - pitot.pressureZero) * 1000);
+            debug[3] = (int32_t)(pitot.temperature *1000);
+            // debug[4] = (int32_t)(baro.baroPressure);
 
-            debug[0] = pitot.pressure * 1000;
-            debug[1] = pitot.pressureZero * 1000;
-            debug[2] = (pitot.pressure - pitot.pressureZero) * 1000;
-            debug[3] = pitot.temperature *1000;
-            debug[4] = baro.baroPressure;
+            // LOG_DEBUG( PITOT, " ----- OUT pZero = %f, ", (double)(pitot.pressureZero) );
 
-            LOG_DEBUG( PITOT, "calib_count = %d, period_ms = %d", (int)(calib_count), (int)(millis() - calibPeriod_ms) );
+            // LOG_DEBUG( PITOT, "calib_count = %d, period_ms = %d", (int)(calib_count), (int)(millis() - calibPeriod_ms) );
 
         } else {
             pitot.pressure = pitotPressureTmp;
 
+            // LOG_DEBUG( PITOT, " ----- INSIDE CALIB PART pZero = %f, ", (double)(pitot.pressureZero) );
+
+            debug[0] = pitot.pressure * 1000;
+
             performPitotCalibrationCycle();
-            ++calib_count;
 
             pitot.airSpeed = 0.0f;
         }
