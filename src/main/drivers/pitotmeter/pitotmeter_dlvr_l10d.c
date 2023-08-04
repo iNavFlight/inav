@@ -58,7 +58,7 @@
 #define RANGE_INCH_H2O      10
 #define DLVR_OFFSET         8192.0f
 #define DLVR_SCALE          16384.0f
-#define DLVR_OFFSET_CORR    -9.0f   // check for other samples of DLVR-L10D; should be 0
+#define DLVR_OFFSET_CORR    0.0f   //-9.0f   // check for other samples of DLVR-L10D; should be 0
 
 
 typedef struct __attribute__ ((__packed__)) dlvrCtx_s {
@@ -118,10 +118,9 @@ static bool dlvr_read(pitotDev_t * pitot)
 
     // Data valid, update ut/up values
     ctx->dataValid = true;
-    // ctx->dlvr_up = (dP_raw1 + dP_raw2) / 2;
-    // ctx->dlvr_ut = (dT_raw1 + dT_raw2) / 2;
     ctx->dlvr_up = dP_raw1;
     ctx->dlvr_ut = dT_raw1;
+
     return true;
 }
 
@@ -133,10 +132,10 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     // pressure in inchH2O
     float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR) ) / DLVR_SCALE); 
 
-    LOG_DEBUG( PITOT, "dP_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
+    // LOG_DEBUG( PITOT, "dP_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
 
-    debug[4] = (int32_t)(ctx->dlvr_up *100);
-    debug[5] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
+    debug[6] = (int32_t)(ctx->dlvr_up *100);
+    debug[7] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
 
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     

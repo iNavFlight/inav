@@ -204,9 +204,6 @@ static void performPitotCalibrationCycle(void)
 {
     zeroCalibrationAddValueS(&pitot.zeroCalibration, pitot.pressure);
 
-    // pitot.zeroCalibration.params.sampleCount
-    // pitot.zeroCalibration.val.accumulatedValue
-
     if (zeroCalibrationIsCompleteS(&pitot.zeroCalibration)) {
         zeroCalibrationGetZeroS(&pitot.zeroCalibration, &pitot.pressureZero);
         LOG_DEBUG(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
@@ -275,15 +272,18 @@ STATIC_PROTOTHREAD(pitotThread)
             pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
     	} 
 #endif
-        ptYield();  // CHECKME :: is it necessary ??!
+        ptYield();
 
-        // Filter pressure
-        currentTimeUs = micros();
-        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-        pitot.lastMeasurementUs = currentTimeUs;
-//        ptDelayUs(pitot.dev.delay);
+//         // Filter pressure - NOTE : do not filter during calibration !!!
+//         currentTimeUs = micros();
+//         pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+//         pitot.lastMeasurementUs = currentTimeUs;
+// //        ptDelayUs(pitot.dev.delay);
 
         static int calib_count = 0;
+        static timeMs_t calibPeriod_ms;
+        if ( calib_count == 0 )
+            calibPeriod_ms = millis();
 
         // Calculate IAS
         if (pitotIsCalibrationComplete()) {
@@ -296,25 +296,44 @@ STATIC_PROTOTHREAD(pitotThread)
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
 
-            // // no calibibration 
-            // pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf( 2.0f * fabsf(pitot.pressure) / SSL_AIR_DENSITY) * 100;
-            
-            // with calibration
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+#if 1
+            {
+                // filter pressure
+                // do filter only when NOT calibrating
+                currentTimeUs = micros();
+                pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+                pitot.lastMeasurementUs = currentTimeUs;
+
+                pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+            }
+#else            
+            {
+                // filter airspeed
+                pitot.pressure = pitotPressureTmp;
+
+                float airSpeedTmp = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+
+                // do filter only when NOT calibrating
+                currentTimeUs = micros();
+                pitot.airSpeed = pt1FilterApply3(&pitot.lpfState, airSpeedTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+                pitot.lastMeasurementUs = currentTimeUs;
+            }
+#endif            
+
 
             pitot.temperature = pitotTemperature;   // Kelvin
-
-            int32_t baroPress  = baro.baroPressure;
 
             debug[0] = pitot.pressure * 1000;
             debug[1] = pitot.pressureZero * 1000;
             debug[2] = (pitot.pressure - pitot.pressureZero) * 1000;
-            debug[3] = baroPress;
+            debug[3] = pitot.temperature *1000;
+            debug[4] = baro.baroPressure;
 
-            LOG_DEBUG( PITOT, "calib_count = %d", (int)(calib_count) );
-            // calib_count = 0;
+            LOG_DEBUG( PITOT, "calib_count = %d, period_ms = %d", (int)(calib_count), (int)(millis() - calibPeriod_ms) );
 
         } else {
+            pitot.pressure = pitotPressureTmp;
+
             performPitotCalibrationCycle();
             ++calib_count;
 
