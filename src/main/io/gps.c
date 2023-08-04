@@ -74,7 +74,7 @@ gpsStatistics_t   gpsStats;
 gpsSolutionData_t gpsSol;
 
 // Map gpsBaudRate_e index to baudRate_e
-baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400 };
+baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400, BAUD_460800, BAUD_921600 };
 
 static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     /* NMEA GPS */
@@ -145,6 +145,10 @@ int getGpsBaudrate(void)
             return 9600;
         case GPS_BAUDRATE_230400:
             return 230400;
+        case GPS_BAUDRATE_460800:
+            return 460800;
+        case GPS_BAUDRATE_921600:
+            return 921600;
         default:
             return 0;
     }
