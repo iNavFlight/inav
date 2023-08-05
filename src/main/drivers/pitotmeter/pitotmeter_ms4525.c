@@ -149,7 +149,7 @@ bool ms4525Detect(pitotDev_t * pitot)
 
     // Initialize pitotDev object
     pitot->delay = 10000;
-    pitot->calibThreshold = 0.00004f;   // noisy sensor
+    pitot->calibThreshold = 0.00005f;   // noisy sensor
     pitot->start = ms4525_start;
     pitot->get = ms4525_read;
     pitot->calculate = ms4525_calculate;
