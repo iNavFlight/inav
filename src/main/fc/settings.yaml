@@ -190,6 +190,9 @@ tables:
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
     enum: wpFwTurnSmoothing_e
+  - name: nav_mc_althold_throttle
+    values: ["STICK", "MID_STICK", "HOVER"]
+    enum: navMcAltHoldThrottle_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -2310,11 +2313,11 @@ groups:
         default_value: OFF
         field: general.flags.landing_bump_detection
         type: bool
-      - name: nav_use_midthr_for_althold
-        description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
-        default_value: OFF
-        field: general.flags.use_thr_mid_for_althold
-        type: bool
+      - name: nav_mc_althold_throttle
+        description: "If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively."
+        default_value: "STICK"
+        field: mc.althold_throttle_type
+        table: nav_mc_althold_throttle
       - name: nav_extra_arming_safety
         description: "If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used"
         default_value: "ALLOW_BYPASS"
