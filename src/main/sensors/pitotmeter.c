@@ -49,7 +49,7 @@
 #include "sensors/sensors.h"
 
 
-#include "build/debug.h"
+//#include "build/debug.h"
 
 
 #ifdef USE_PITOT
@@ -267,26 +267,11 @@ STATIC_PROTOTHREAD(pitotThread)
             pitot.lastMeasurementUs = currentTimeUs;
 
             pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
-
             pitot.temperature = pitotTemperatureTmp;   // Kelvin
-
-            // NOTE :: actual density can be calculated using baro pressure and temperature
-
-            // TODO :: remove debug vars
-            debug[0] = (int32_t)(pitot.pressure * 1000);
-            debug[1] = (int32_t)(pitot.pressureZero * 1000);
-            debug[2] = (int32_t)((pitot.pressure - pitot.pressureZero) * 1000);
-            debug[3] = (int32_t)(pitot.temperature *1000);
-            // debug[4] = (int32_t)(baro.baroPressure);
 
         } else {
             pitot.pressure = pitotPressureTmp;
-
-            // TODO :: remove debug vars
-            debug[0] = pitot.pressure * 1000;
-
             performPitotCalibrationCycle();
-
             pitot.airSpeed = 0.0f;
         }
 

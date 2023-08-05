@@ -208,7 +208,7 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_adc.h
     drivers/pitotmeter/pitotmeter_ms4525.c
     drivers/pitotmeter/pitotmeter_ms4525.h
-	drivers/pitotmeter/pitotmeter_dlvr_l10d.c
+    drivers/pitotmeter/pitotmeter_dlvr_l10d.c
     drivers/pitotmeter/pitotmeter_dlvr_l10d.h	
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h

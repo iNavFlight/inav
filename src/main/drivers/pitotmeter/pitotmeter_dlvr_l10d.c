@@ -111,11 +111,6 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     // pressure in inchH2O
     float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR) ) / DLVR_SCALE); 
 
-    // LOG_DEBUG( PITOT, "dP_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
-    // TODO :: remove debug vars
-    debug[6] = (int32_t)(ctx->dlvr_up *100);
-    debug[7] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
-
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
 
