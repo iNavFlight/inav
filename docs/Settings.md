@@ -1222,16 +1222,6 @@ Iterm is not allowed to grow when stick position is above threshold. This solves
 
 ---
 
-### fw_iterm_throw_limit
-
-Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX |
-
----
-
 ### fw_level_pitch_gain
 
 I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations
@@ -1914,7 +1904,7 @@ Calculated 1G of Acc axis Z to use in INS
 
 ### iterm_windup
 
-Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)
+Used to prevent Iterm accumulation on during maneuvers. Iterm accumulation will be dampened when motors are reaching it's limit (when requested motor correction range is close percentage specified by this parameter, when value is set below 50 no accumulation occors when iterm_windup+50 of motor correction range is reached)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4729,6 +4719,16 @@ Output function assignment mode. AUTO assigns outputs according to the default m
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
+
+---
+
+### pid_iterm_limit_percent
+
+Limits max/min I-term value in stabilization PID controller. It solves the problem of servo saturation before take-off/throwing the airplane into the air. Or multirotors with low authority. By default, error accumulated in I-term can not exceed 33% of total pid throw (around 165us on deafult pidsum_limit of pitch/roll). Set 0 to disable completely.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 200 |
 
 ---
 
