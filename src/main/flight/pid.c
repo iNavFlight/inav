@@ -148,6 +148,7 @@ static EXTENDED_FASTRAM float dBoostMaxAtAlleceleration;
 
 static EXTENDED_FASTRAM uint8_t yawLpfHz;
 static EXTENDED_FASTRAM float motorItermWindupPoint;
+static EXTENDED_FASTRAM float motorItermWindupPoint_inv;
 static EXTENDED_FASTRAM float antiWindupScaler;
 #ifdef USE_ANTIGRAVITY
 static EXTENDED_FASTRAM float iTermAntigravityGain;
@@ -799,7 +800,7 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
             const float setpointLpf = pt1FilterApply(&windupLpf[axis], currentPidSetpoint);
             const float setpointHpf = fabsf(currentPidSetpoint - setpointLpf);
 
-            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / MC_ITERM_RELAX_SETPOINT_THRESHOLD);
+            const float itermRelaxFactor = MAX(0, 1 - setpointHpf / (FLIGHT_MODE(ANGLE_MODE) ? (MC_ITERM_RELAX_SETPOINT_THRESHOLD * 0.2f):MC_ITERM_RELAX_SETPOINT_THRESHOLD));
             return itermErrorRate * itermRelaxFactor;
         }
     }
@@ -1037,7 +1038,7 @@ void checkItermLimitingActive(pidState_t *pidState)
         shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
     } else
     {
-        shouldActivate = mixerIsOutputSaturated();
+        shouldActivate = mixerIsOutputSaturated(); //just in case, since it is already managed by itermWindupPointPercent
     }
 
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate;
@@ -1138,8 +1139,8 @@ void FAST_CODE pidController(float dT)
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
 
-    // Prevent strong Iterm accumulation during stick inputs
-    antiWindupScaler = constrainf((1.0f - getMotorMixRange()) * motorItermWindupPoint, 0.0f, 1.0f);
+    // Prevent Iterm accumulation when motors are near its saturation
+    antiWindupScaler = constrainf((1.0f - getMotorMixRange() * MAX(2*motorItermWindupPoint,1)) * motorItermWindupPoint_inv, 0.0f, 1.0f);
 
     for (int axis = 0; axis < 3; axis++) {
         // Apply setpoint rate of change limits
@@ -1181,7 +1182,9 @@ void pidInit(void)
     itermRelax = pidProfile()->iterm_relax;
 
     yawLpfHz = pidProfile()->yaw_lpf_hz;
-    motorItermWindupPoint = 1.0f / (1.0f - (pidProfile()->itermWindupPointPercent / 100.0f));
+    motorItermWindupPoint = 1.0f - (pidProfile()->itermWindupPointPercent / 100.0f);
+    motorItermWindupPoint_inv = 1.0f / motorItermWindupPoint;
+
 
 #ifdef USE_D_BOOST
     dBoostMin = pidProfile()->dBoostMin;
