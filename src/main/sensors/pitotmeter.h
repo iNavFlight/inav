@@ -56,7 +56,6 @@ typedef struct pito_s {
 
     float pressureZero;
     float pressure;
-    
     float temperature;
 } pitot_t;
 

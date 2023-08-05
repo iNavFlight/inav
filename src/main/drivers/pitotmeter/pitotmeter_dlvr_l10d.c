@@ -31,16 +31,6 @@
 #define DLVR_L10D_ADDR                 0x28     // this var is not used !!!
 
 // //---------------------------------------------------
-// //---------------------------------------------------
-// #define C_TO_KELVIN(temp) (temp + 273.15f)
-// #define KELVIN_TO_C(temp) (temp - 273.15f)
-// #define F_TO_KELVIN(temp) C_TO_KELVIN(((temp - 32) * 5/9))
-
-// #define M_PER_SEC_TO_KNOTS 1.94384449f
-// #define KNOTS_TO_M_PER_SEC (1/M_PER_SEC_TO_KNOTS)
-
-// #define KM_PER_HOUR_TO_M_PER_SEC 0.27777778f
-
 // // Gas Constant is from Aerodynamics for Engineering Students, Third Edition, E.L.Houghton and N.B.Carruthers
 // #define ISA_GAS_CONSTANT 287.26f
 // #define ISA_LAPSE_RATE 0.0065f
@@ -50,6 +40,7 @@
 // #define SSL_AIR_DENSITY         1.225f // kg/m^3
 // #define SSL_AIR_PRESSURE 101325.01576f // Pascal
 // #define SSL_AIR_TEMPERATURE    288.15f // K
+// //---------------------------------------------------
 
 #define INCH_OF_H2O_TO_PASCAL   248.84f
 
@@ -58,7 +49,8 @@
 #define RANGE_INCH_H2O      10
 #define DLVR_OFFSET         8192.0f
 #define DLVR_SCALE          16384.0f
-#define DLVR_OFFSET_CORR    0.0f   //-9.0f   // check for other samples of DLVR-L10D; should be 0
+// NOTE :: DLVR_OFFSET_CORR can be used for offset correction. Now firmware relies on zero calibration
+#define DLVR_OFFSET_CORR    0.0f   //-9.0f
 
 
 typedef struct __attribute__ ((__packed__)) dlvrCtx_s {
@@ -78,7 +70,6 @@ static bool dlvr_start(pitotDev_t * pitot)
 static bool dlvr_read(pitotDev_t * pitot)
 {
     uint8_t rxbuf1[4];
-    // uint8_t rxbuf2[4];
 
     dlvrCtx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
     ctx->dataValid = false;
@@ -87,34 +78,22 @@ static bool dlvr_read(pitotDev_t * pitot)
         return false;
     }
 
-    // if (!busReadBuf(pitot->busDev, 0xFF, rxbuf2, 4)) {
-    //     return false;
-    // }
-
     // status = 00 -> ok, new data
 	// status = 01 -> reserved
     // status = 10 -> ok, data stale
     // status = 11 -> error
-	// check the status of the first read:
     const uint8_t status = ((rxbuf1[0] & 0xC0) >> 6);
-    if (status == 2 || status == 3) {
+
+    if (status) {
+        // anything other then 00 in the status bits is an error
+        LOG_DEBUG( PITOT, "DLVR: Bad status read. status = %u", (unsigned int)(status) );
         return false;
     }
 
     int16_t dP_raw1, dT_raw1;
-    // int16_t dP_raw2, dT_raw2;
 
     dP_raw1 = 0x3FFF & ((rxbuf1[0] << 8) + rxbuf1[1]);
     dT_raw1 = (0xFFE0 & ((rxbuf1[2] << 8) + rxbuf1[3])) >> 5;
-    // dP_raw2 = 0x3FFF & ((rxbuf2[0] << 8) + rxbuf2[1]);
-    // dT_raw2 = (0xFFE0 & ((rxbuf2[2] << 8) + rxbuf2[3])) >> 5;
-
-    // // reject any double reads where the value has shifted in the upper more than 0xFF
-    // if (ABS(dP_raw1 - dP_raw2) > 0xFF || ABS(dT_raw1 - dT_raw2) > 0xFF) {
-    //     return false;
-    // }
-
-    // LOG_DEBUG( PITOT, "dP_raw1 = %f; dP_raw2 =  %f", (double)dP_raw1, (double)dP_raw2 );
 
     // Data valid, update ut/up values
     ctx->dataValid = true;
@@ -133,18 +112,16 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
     float dP_inchH2O = 1.25f *  2.0f * RANGE_INCH_H2O  * (((float)ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR) ) / DLVR_SCALE); 
 
     // LOG_DEBUG( PITOT, "dP_adc = %f; dP_inchH2O =  %f; dP_Pa = %f", (double)ctx->dlvr_up, (double)dP_inchH2O, (double)(INCH_H2O_TO_PASCAL( dP_inchH2O)) );
-
+    // TODO :: remove debug vars
     debug[6] = (int32_t)(ctx->dlvr_up *100);
     debug[7] = (int32_t)((ctx->dlvr_up - (DLVR_OFFSET + DLVR_OFFSET_CORR)) *100);
 
     // temperature in deg C
     float T_C = (float)ctx->dlvr_ut * (200.0f / 2047.0f) - 50.0f;     
 
-    //LOG_DEBUG( PITOT, "t_adc = %f; T_C = %f", (double)ctx->dlvr_ut, (double)T_C );
-
-    // result must fit inside the range
+    // result must fit inside the max pressure range
     if ((dP_inchH2O > RANGE_INCH_H2O) || (dP_inchH2O < -RANGE_INCH_H2O)) {
-        // Debug("DLVR: Out of range pressure %f", dP_inchH2O);
+        LOG_DEBUG( PITOT,"DLVR: Out of range. pressure = %f", (double)(dP_inchH2O) );
         return;
     }
 
@@ -184,7 +161,8 @@ bool dlvrDetect(pitotDev_t * pitot)
     ctx->dlvr_up = 0;
 
     // Initialize pitotDev object
-    pitot->delay = 10000;      // 10000
+    pitot->delay = 10000;
+    pitot->calibThreshold = 0.00001f;   // low noise sensor
     pitot->start = dlvr_start;
     pitot->get = dlvr_read;
     pitot->calculate = dlvr_calculate;

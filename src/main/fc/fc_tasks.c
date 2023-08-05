@@ -494,7 +494,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_BARO] = {
         .taskName = "BARO",
         .taskFunc = taskUpdateBaro,
-        .desiredPeriod = TASK_PERIOD_MS(50),        //ASK_PERIOD_HZ(20), SPL06 uses oversampilng - result 16ms ?
+        .desiredPeriod = TASK_PERIOD_MS(50),        // SPL06 uses oversampilng - result 16ms ?
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
@@ -503,8 +503,8 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
-        .desiredPeriod = TASK_PERIOD_MS(20),    //TASK_PERIOD_HZ(100)
-        .staticPriority = TASK_PRIORITY_MEDIUM,    //TASK_PRIORITY_MEDIUM_HIGH, TASK_PRIORITY_MEDIUM,
+        .desiredPeriod = TASK_PERIOD_MS(20),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
 

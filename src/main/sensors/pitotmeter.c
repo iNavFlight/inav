@@ -95,19 +95,8 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
             FALLTHROUGH;
 
         case PITOT_DLVR:
-// #ifdef USE_PITOT_DLVR
-//             if (dlvrDetect(dev)) {
-//                 pitotHardware = PITOT_DLVR;
-//                 break;
-//             }
-// #endif
-//             /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
-//             if (pitotHardwareToUse != PITOT_AUTODETECT) {
-//                 break;
-//             }
-//             FALLTHROUGH;
 
-			// Skip autodetection for DLVR (it is indistinguishable from MS4525), only allow manual config
+			// Skip autodetection for DLVR (it is indistinguishable from MS4525) and allow only manual config
             if (pitotHardwareToUse != PITOT_AUTODETECT && dlvrDetect(dev)) {
                 pitotHardware = PITOT_DLVR;
                 break;
@@ -197,9 +186,7 @@ bool pitotIsCalibrationComplete(void)
 
 void pitotStartCalibration(void)
 {
-    // problem for ms4525 with threshold  to low when not smoothedd
-//    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00001f, false);
-    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00004f, false);
+    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * pitot.dev.calibThreshold, false);
 }
 
 static void performPitotCalibrationCycle(void)
@@ -239,9 +226,6 @@ STATIC_PROTOTHREAD(pitotThread)
             }        
         }
 
-        // LOG_DEBUG( PITOT, "cur delay = %d, req delay = %d", (int)(millis() - pitot.lastSeenHealthyMs),  (int)US2MS(pitot.dev.delay) );
-
-        // if ( (millis() - pitot.lastSeenHealthyMs) >= 10) {
         if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
             if (pitot.dev.get(&pitot.dev))          // read current data
                 pitot.lastSeenHealthyMs = millis();
@@ -265,19 +249,9 @@ STATIC_PROTOTHREAD(pitotThread)
 #endif
         ptYield();
 
-        // // Filter pressure - NOTE : do not filter during calibration !!!
-        // currentTimeUs = micros();
-        // pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-        // pitot.lastMeasurementUs = currentTimeUs;
-
-        // currentTimeUs = micros();
-        // float p = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-        // pitot.pressure = p; //pitotPressureTmp;
-        // pitot.lastMeasurementUs = micros();
-
-
         // Calculate IAS
         if (pitotIsCalibrationComplete()) {
+            // NOTE ::
             // https://en.wikipedia.org/wiki/Indicated_airspeed
             // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
             // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
@@ -287,56 +261,28 @@ STATIC_PROTOTHREAD(pitotThread)
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
 
-            // filter pressure
-            // do NOT filter only when calibrating
+            // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
             pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
             pitot.lastMeasurementUs = currentTimeUs;
 
             pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
 
-// #if 1
-//             {
-//                 // filter pressure
-//                 // do NOT filter only when calibrating
-//                 currentTimeUs = micros();
-//                 pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-//                 pitot.lastMeasurementUs = currentTimeUs;
-//
-//                 pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
-//             }
-// #else            
-//             {
-//                 // filter airspeed
-//                 pitot.pressure = pitotPressureTmp;
-//
-//                 float airSpeedTmp = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
-//
-//                 // do filter only when NOT calibrating
-//                 currentTimeUs = micros();
-//                 pitot.airSpeed = pt1FilterApply3(&pitot.lpfState, airSpeedTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-//                 pitot.lastMeasurementUs = currentTimeUs;
-//             }
-// #endif            
-
-
             pitot.temperature = pitotTemperatureTmp;   // Kelvin
 
+            // NOTE :: actual density can be calculated using baro pressure and temperature
+
+            // TODO :: remove debug vars
             debug[0] = (int32_t)(pitot.pressure * 1000);
             debug[1] = (int32_t)(pitot.pressureZero * 1000);
             debug[2] = (int32_t)((pitot.pressure - pitot.pressureZero) * 1000);
             debug[3] = (int32_t)(pitot.temperature *1000);
             // debug[4] = (int32_t)(baro.baroPressure);
 
-            // LOG_DEBUG( PITOT, " ----- OUT pZero = %f, ", (double)(pitot.pressureZero) );
-
-            // LOG_DEBUG( PITOT, "calib_count = %d, period_ms = %d", (int)(calib_count), (int)(millis() - calibPeriod_ms) );
-
         } else {
             pitot.pressure = pitotPressureTmp;
 
-            // LOG_DEBUG( PITOT, " ----- INSIDE CALIB PART pZero = %f, ", (double)(pitot.pressureZero) );
-
+            // TODO :: remove debug vars
             debug[0] = pitot.pressure * 1000;
 
             performPitotCalibrationCycle();
