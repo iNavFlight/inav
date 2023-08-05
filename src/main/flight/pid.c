@@ -749,7 +749,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     }
 
     if (pidProfile()->pidItermLimitPercent != 0){
-        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent / 100.0f;
+        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
@@ -828,7 +828,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     }
     
     if (pidProfile()->pidItermLimitPercent != 0){
-        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent / 100.0f;
+        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
