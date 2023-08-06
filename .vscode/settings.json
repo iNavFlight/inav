@@ -8,7 +8,5 @@
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.expandTabs": true,
-    "C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "sameLine",
-    "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "newLine",
-    "C_Cpp.vcFormat.newLine.beforeElse": false
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4,  BreakBeforeBraces: Mozilla }"
 }
