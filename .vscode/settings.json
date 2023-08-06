@@ -9,5 +9,6 @@
     "editor.detectIndentation": false,
     "editor.expandTabs": true,
     "C_Cpp.vcFormat.newLine.beforeOpenBrace.block": "sameLine",
-    "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "newLine"
+    "C_Cpp.vcFormat.newLine.beforeOpenBrace.function": "newLine",
+    "C_Cpp.vcFormat.newLine.beforeElse": false
 }
