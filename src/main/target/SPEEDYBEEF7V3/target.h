@@ -149,6 +149,7 @@
 // ********** Optiical Flow adn Lidar **************
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 #define USE_OPFLOW
 #define USE_OPFLOW_MSP
 
