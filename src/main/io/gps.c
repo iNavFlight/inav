@@ -128,10 +128,9 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT
 );
 
-
-int getGpsBaudrate(void)
+int gpsBaudRateToInt(gpsBaudRate_e baudrate)
 {
-    switch(gpsState.baudrateIndex)
+    switch(baudrate)
     {
         case GPS_BAUDRATE_115200:
             return 115200;
@@ -152,6 +151,11 @@ int getGpsBaudrate(void)
         default:
             return 0;
     }
+}
+
+int getGpsBaudrate(void)
+{
+    return gpsBaudRateToInt(gpsState.baudrateIndex);
 }
 
 const char *getGpsHwVersion(void)
