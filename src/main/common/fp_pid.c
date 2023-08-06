@@ -90,7 +90,7 @@ float navPidApply3(
     newFeedForward = setpoint * pid->param.kFF * gainScaler;
 
     /* Pre-calculate output and limit it if actuator is saturating */
-    const float outVal = constrainf(newProportional + newDerivative + newFeedForward, outMin, outMax) + (pid->integrator * gainScaler);
+    const float outVal = constrainf(newProportional + newDerivative + newFeedForward, 2.0f * outMin, 2.0f * outMax) + (pid->integrator * gainScaler);
     const float outValConstrained = constrainf(outVal, outMin, outMax);
 
     pid->proportional = newProportional;
