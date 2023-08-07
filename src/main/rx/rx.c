@@ -65,7 +65,11 @@
 #include "rx/mavlink.h"
 #include "rx/sim.h"
 
+#if (MAX_MAPPABLE_RX_INPUTS == 4)
 const char rcChannelLetters[] = "AERT";
+#else
+const char rcChannelLetters[] = "AERT1234";
+#endif
 
 static uint16_t rssi = 0;                  // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
@@ -111,7 +115,11 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
-    .rcmap = {0, 1, 3, 2},      // Default to AETR map
+#if (MAX_MAPPABLE_RX_INPUTS == 4)
+    .rcmap = {0, 1, 3, 2},                  // Default to AETR map
+#else
+    .rcmap = {0, 1, 3, 2, 4, 5, 6, 7},      // Default to AETR1234 map (woga65:)
+#endif
     .halfDuplex = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
     .serialrx_provider = SERIALRX_PROVIDER,
 #ifdef USE_SPEKTRUM_BIND

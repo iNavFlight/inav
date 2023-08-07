@@ -90,7 +90,7 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
-#define MAX_MAPPABLE_RX_INPUTS 4
+#define MAX_MAPPABLE_RX_INPUTS 8            // woga65: either 4 or 8 (set to 8 for variable pitch aircraft)
 
 #define MAX_INVALID_RX_PULSE_TIME    300
 
