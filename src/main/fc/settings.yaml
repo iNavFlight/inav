@@ -190,6 +190,9 @@ tables:
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
     enum: wpFwTurnSmoothing_e
+  - name: gps_auto_baud_max
+    values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
+    enum: gpsBaudRate_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -1501,6 +1504,7 @@ groups:
         min: 1
         max: 3000
   - name: PG_GPS_CONFIG
+    headers: [ "io/gps.h" ]
     type: gpsConfig_t
     condition: USE_GPS
     members:
@@ -1532,6 +1536,12 @@ groups:
         default_value: ON
         field: autoBaud
         type: bool
+      - name: gps_auto_baud_max_supported
+        description: "Max baudrate supported by GPS unit. This is used during autobaud. M8 supports up to 460400, M10 supports up to 921600 and 230400 is the value used before INAV 7.0"
+        default_value: "230400"
+        table: gps_auto_baud_max
+        field: autoBaudMax
+        type: uint8_t
       - name: gps_ublox_use_galileo
         description: "Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]."
         default_value: OFF
