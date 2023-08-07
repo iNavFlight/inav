@@ -66,15 +66,19 @@
 #include "rx/sim.h"
 
 #if (MAX_MAPPABLE_RX_INPUTS == 4)
-const char rcChannelLetters[] = "AERT";
+  const char rcChannelLetters[] = "AERT";
 #else
-const char rcChannelLetters[] = "AERT1234";
+  #if defined(USE_VARIABLE_PITCH)           // woga65: letters for COLLECTIVE + GYRO_GAIN
+    const char rcChannelLetters[] = "AERT12CG";
+  #else
+    const char rcChannelLetters[] = "AERT1234";
+  #endif
 #endif
 
-static uint16_t rssi = 0;                  // range: [0;1023]
+static uint16_t rssi = 0;                   // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
 
-#define MSP_RSSI_TIMEOUT_US     1500000   // 1.5 sec
+#define MSP_RSSI_TIMEOUT_US     1500000     // 1.5 sec
 #define RX_LQ_INTERVAL_MS       200
 #define RX_LQ_TIMEOUT_MS        1000
 

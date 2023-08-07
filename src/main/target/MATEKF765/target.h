@@ -21,7 +21,7 @@
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 #define USE_TARGET_CONFIG
 
-#if defined(MATEKF765SE)
+#if defined(MATEKF765SE) || defined(MATEKF765SE_VP)   //woga65:
   #define TARGET_BOARD_IDENTIFIER "M7SE"
   #define USBD_PRODUCT_STRING     "MATEKF765SE"
 
@@ -30,6 +30,11 @@
   #define TARGET_BOARD_IDENTIFIER "M765"
   #define USBD_PRODUCT_STRING     "MATEKF765"
 #endif
+
+#if defined(MATEKF765_VP) || defined(MATEKF765SE_VP)  //woga65:
+  #define USE_VARIABLE_PITCH 
+#endif
+
 
 #define LED0                    PD10
 #define LED1                    PD11
@@ -61,7 +66,7 @@
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          PD7
 
-#if defined(MATEKF765SE)
+#if defined(MATEKF765SE) || defined(MATEKF765SE_VP) //woga65:
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI4
@@ -155,7 +160,7 @@
 #define SOFTSERIAL_1_TX_PIN      PC6  //TX6 pad
 #define SOFTSERIAL_1_RX_PIN      PC6  //TX6 pad
 
-#if defined(MATEKF765SE)
+#if defined(MATEKF765SE) || defined(MATEKF765SE_VP) //woga65:
   #define SERIAL_PORT_COUNT       9
   // PD1 and PD0 are used for CAN
 #else
@@ -204,7 +209,7 @@
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 
-#if defined(MATEKF765SE)
+#if defined(MATEKF765SE) || defined(MATEKF765SE_VP) //woga65:
   #define VBAT_SCALE_DEFAULT        2100
   #define CURRENT_METER_SCALE       150
 #else

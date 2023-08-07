@@ -1,2 +1,4 @@
 target_stm32f765xi(MATEKF765)
 target_stm32f765xi(MATEKF765SE)
+target_stm32f765xi(MATEKF765_VP)
+target_stm32f765xi(MATEKF765SE_VP)

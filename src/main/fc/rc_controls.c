@@ -51,6 +51,8 @@
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
+#include "flight/mixer.h"               // woga65: @todo - need access to mixer settings from here or not?
+                                        // (mixerConfig()->platformType) == PLATFORM_HELICOPTER
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -72,7 +74,8 @@
 
 stickPositions_e rcStickPositions;
 
-FASTRAM int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
+FASTRAM int16_t rcCommand[8];           // interval [1000;2000] for THROTTLE and GYRO_GAIN,
+                                        // [-500;+500] for ROLL/PITCH/YAW/COLLECTIVE (woga65:)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 3);
 
@@ -111,6 +114,7 @@ bool isRollPitchStickDeflected(uint8_t deadband)
     return (ABS(rcCommand[ROLL]) > deadband) || (ABS(rcCommand[PITCH]) > deadband);
 }
 
+// woga65: @todo - evaluate whether changes are needed here or not
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
     int value = rxGetChannelValue(THROTTLE);    // THROTTLE_STATUS_TYPE_RC
