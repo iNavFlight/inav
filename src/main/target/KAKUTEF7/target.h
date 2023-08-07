@@ -19,13 +19,17 @@
  */
 
 #pragma once
-
-#ifdef KAKUTEF7MINI
-#define TARGET_BOARD_IDENTIFIER "KF7M"
-#define USBD_PRODUCT_STRING "KakuteF7-Mini"
+// woga65:
+#if defined(KAKUTEF7MINI) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS) || defined (KAKUTEF7MINI_7PWM_VP) || defined (KAKUTEF7MINI_7PWM)   //woga65:
+#   define TARGET_BOARD_IDENTIFIER "KF7M"
+#   define USBD_PRODUCT_STRING "KakuteF7-Mini"
 #else
-#define TARGET_BOARD_IDENTIFIER "KTF7"
-#define USBD_PRODUCT_STRING "KakuteF7"
+#   define TARGET_BOARD_IDENTIFIER "KTF7"
+#   define USBD_PRODUCT_STRING "KakuteF7"
+#endif
+
+#if defined(KAKUTEF7_VP) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7HDV_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_7PWM_VP) || defined(KAKUTEF7_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7_7PWM_VP)     //sibi?
+#   define USE_VARIABLE_PITCH
 #endif
 
 #define LED0                PA2
@@ -102,25 +106,25 @@
 #define SPI4_MOSI_PIN           PE6
 
 
-#ifndef KAKUTEF7HDV
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI2
-#define MAX7456_CS_PIN          SPI2_NSS_PIN
+#if !defined(KAKUTEF7HDV) && !defined(KAKUTEF7HDV_VP)   //woga65:
+#   define USE_MAX7456
+#   define MAX7456_SPI_BUS         BUS_SPI2
+#   define MAX7456_CS_PIN          SPI2_NSS_PIN
 #endif
 
-#if defined(KAKUTEF7MINI)
-#define M25P16_CS_PIN           SPI1_NSS_PIN
-#define M25P16_SPI_BUS          BUS_SPI1
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#if defined(KAKUTEF7MINI) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS) || defined (KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_7PWM) || defined(KAKUTEF7MINI_7PWM_VP)  //woga65:
+#   define M25P16_CS_PIN           SPI1_NSS_PIN
+#   define M25P16_SPI_BUS          BUS_SPI1
+#   define USE_FLASHFS
+#   define USE_FLASH_M25P16
+#   define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #else
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI1
-#define SDCARD_CS_PIN           SPI1_NSS_PIN
-#define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN       PD8
+#   define USE_SDCARD
+#   define USE_SDCARD_SPI
+#   define SDCARD_SPI_BUS          BUS_SPI1
+#   define SDCARD_CS_PIN           SPI1_NSS_PIN
+#   define SDCARD_DETECT_INVERTED
+#   define SDCARD_DETECT_PIN       PD8
 #endif
 
 #define USE_I2C
