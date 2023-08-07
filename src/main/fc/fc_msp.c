@@ -2483,12 +2483,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     if (newFrequency <= VTXCOMMON_MSP_BANDCHAN_CHKVAL) {  //value is band and channel
                         const uint8_t newBand = (newFrequency / 8) + 1;
                         const uint8_t newChannel = (newFrequency % 8) + 1;
+
+                        if(vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
+                            vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
+                        }
+
                         vtxSettingsConfigMutable()->band = newBand;
                         vtxSettingsConfigMutable()->channel = newChannel;
                     }
 
                     if (sbufBytesRemaining(src) > 1) {
-                        vtxSettingsConfigMutable()->power = sbufReadU8(src);
+                        uint8_t newPower = sbufReadU8(src);
+                        uint8_t currentPower = 0;
+                        vtxCommonGetPowerIndex(vtxDevice, &currentPower);
+                        if (newPower != currentPower) {
+                            vtxCommonSetPowerByIndex(vtxDevice, newPower);
+                            vtxSettingsConfigMutable()->power = newPower;
+                        }
+
                         // Delegate pitmode to vtx directly
                         const uint8_t newPitmode = sbufReadU8(src);
                         uint8_t currentPitmode = 0;

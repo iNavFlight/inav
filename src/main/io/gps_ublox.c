@@ -76,6 +76,8 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,19200,0*23\r\n",      // GPS_BAUDRATE_19200
     "$PUBX,41,1,0003,0001,9600,0*16\r\n",       // GPS_BAUDRATE_9600
     "$PUBX,41,1,0003,0001,230400,0*1C\r\n",     // GPS_BAUDRATE_230400
+    "$PUBX,41,1,0003,0001,460800,0*1C\r\n",     // GPS_BAUDRATE_460800
+    "$PUBX,41,1,0003,0001,921600,0*1C\r\n"      // GPS_BAUDRATE_921600
 };
 
 // Packet checksum accumulators

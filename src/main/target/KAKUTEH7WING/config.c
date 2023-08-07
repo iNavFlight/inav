@@ -22,12 +22,24 @@
 #include "fc/fc_msp_box.h"
 #include "fc/config.h"
 
+#include "rx/rx.h"
+
 #include "io/piniobox.h"
 #include "drivers/serial.h"
 #include "io/serial.h"
 
 void targetConfiguration(void)
 {
+    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[1].gps_baudrateIndex = BAUD_115200;
+
+    serialConfigMutable()->portConfigs[5].functionMask = FUNCTION_RX_SERIAL;
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_SBUS;
+
+    serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[6].msp_baudrateIndex = BAUD_115200;
+
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
     pinioBoxConfigMutable()->permanentId[2] = BOX_PERMANENT_ID_USER3;

@@ -31,10 +31,6 @@
 #define HEADING_HOLD_RATE_LIMIT_MAX 250
 #define HEADING_HOLD_RATE_LIMIT_DEFAULT 90
 
-#define FW_ITERM_THROW_LIMIT_DEFAULT 165
-#define FW_ITERM_THROW_LIMIT_MIN 0
-#define FW_ITERM_THROW_LIMIT_MAX 500
-
 #define AXIS_ACCEL_MIN_LIMIT        50
 
 #define HEADING_HOLD_ERROR_LPF_FREQ 2
@@ -47,7 +43,7 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_RATE_I_MULTIPLIER    4.0f
 #define FP_PID_RATE_D_MULTIPLIER    1905.0f
 #define FP_PID_RATE_D_FF_MULTIPLIER   7270.0f
-#define FP_PID_LEVEL_P_MULTIPLIER   6.56f       // Level P gain units is [1/sec] and angle error is [deg] => [deg/s]
+#define FP_PID_LEVEL_P_MULTIPLIER   1.0f / 6.56f       // Level P gain units is [1/sec] and angle error is [deg] => [deg/s]
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
@@ -121,9 +117,9 @@ typedef struct pidProfile_s {
 
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
+    uint16_t pidItermLimitPercent;
 
     // Airplane-specific parameters
-    uint16_t    fixedWingItermThrowLimit;
     float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
     float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
     float       fixedWingCoordinatedPitchGain;    // This is the gain of the pitch rate to keep the pitch angle constant during coordinated turns.

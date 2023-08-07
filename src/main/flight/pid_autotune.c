@@ -187,7 +187,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
     // Use different max rate in ANLGE mode
     if (FLIGHT_MODE(ANGLE_MODE)) {
-        float maxDesiredRateInAngleMode = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[axis] * 1.0f) * pidBank()->pid[PID_LEVEL].P / FP_PID_LEVEL_P_MULTIPLIER;
+        float maxDesiredRateInAngleMode = DECIDEGREES_TO_DEGREES(pidProfile()->max_angle_inclination[axis] * 1.0f) * pidBank()->pid[PID_LEVEL].P * FP_PID_LEVEL_P_MULTIPLIER;
         maxDesiredRate = MIN(maxRateSetting, maxDesiredRateInAngleMode);
     }
 
