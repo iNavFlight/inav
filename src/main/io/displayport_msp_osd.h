@@ -31,6 +31,7 @@ typedef struct displayPort_s displayPort_t;
 
 displayPort_t *mspOsdDisplayPortInit(const videoSystem_e videoSystem);
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn);
+mspPort_t *getMspOsdPort(void);
 
 // MSP displayport V2 attribute byte bit functions
 #define DISPLAYPORT_MSP_ATTR_FONTPAGE   0 // Select bank of 256 characters as per displayPortSeverity_e

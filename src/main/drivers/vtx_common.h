@@ -36,7 +36,7 @@
 #define VTX_SETTINGS_MIN_FREQUENCY_MHZ 0             //min freq (in MHz) for 'vtx_freq' setting
 #define VTX_SETTINGS_MAX_FREQUENCY_MHZ 5999          //max freq (in MHz) for 'vtx_freq' setting
 
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
 
 #define VTX_SETTINGS_POWER_COUNT        5
 #define VTX_SETTINGS_DEFAULT_POWER      1
@@ -63,6 +63,7 @@ typedef enum {
     VTXDEV_SMARTAUDIO = 3,
     VTXDEV_TRAMP      = 4,
     VTXDEV_FFPV       = 5,
+    VTXDEV_MSP        = 6,
     VTXDEV_UNKNOWN    = 0xFF,
 } vtxDevType_e;
 

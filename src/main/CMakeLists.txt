@@ -532,6 +532,8 @@ main_sources(COMMON_SRC
     io/vtx_ffpv24g.h
     io/vtx_control.c
     io/vtx_control.h
+    io/vtx_msp.c
+    io/vtx_msp.h
 
     navigation/navigation.c
     navigation/navigation.h

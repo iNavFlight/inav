@@ -35,7 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),  // S3
     DEF_TIM(TIM3, CH4, PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),  // S4
 
-    DEF_TIM(TIM1, CH1, PB1,  TIM_USE_LED, 0, 0),  // LED
+    DEF_TIM(TIM1, CH3N, PB1,  TIM_USE_LED, 0, 0),  // LED
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
