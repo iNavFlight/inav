@@ -816,6 +816,11 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
     const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
 
+    float backCalc = newOutputLimited - newOutput;//back-calculation anti-windup
+    if (SIGN(backCalc) == SIGN(pidState->errorGyroIf)) {
+        //back calculation anti-windup can only shrink integrator, will not push it to the opposite direction
+        backCalc = 0.0f;
+    }
     float itermErrorRate = applyItermRelax(axis, rateTarget, rateError);
 
 #ifdef USE_ANTIGRAVITY
@@ -824,7 +829,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     if (!pidState->itermFreezeActive) {
         pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
-                                + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
+                                + (backCalc * pidState->kT * antiWindupScaler * dT);
     }
     
     if (pidProfile()->pidItermLimitPercent != 0){
