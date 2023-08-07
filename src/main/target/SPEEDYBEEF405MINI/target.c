@@ -32,8 +32,6 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 0), // S3
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 0), // S4
 
-    DEF_TIM(TIM5, CH3, PA2, TIM_USE_ANY,                            0, 0), //TX2  softserial1_Tx
-
 #ifdef SPEEDYBEEF405MINI_6OUTPUTS
     DEF_TIM(TIM12,  CH1,    PB14,   TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,     1, 0), // CAM_CTRL
     DEF_TIM(TIM1,   CH1,    PA8,    TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,     0, 0), // LED
@@ -42,6 +40,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1,   CH1,    PA8,    TIM_USE_LED,                                                0, 0), // LED
 #endif
 
+    DEF_TIM(TIM5, CH3, PA2, TIM_USE_ANY,                            0, 0), //TX2  softserial1_Tx
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
