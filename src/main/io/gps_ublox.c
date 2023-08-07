@@ -997,6 +997,11 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         // Try sending baud rate switch command at all common baud rates
         gpsSetProtocolTimeout((GPS_BAUD_CHANGE_DELAY + 50) * (GPS_BAUDRATE_COUNT));
         for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
+            if (gpsBaudRateToInt(gpsState.autoBaudrateIndex) > gpsBaudRateToInt(gpsState.gpsConfig->autoBaudMax)) {
+                // trying higher baud rates fails on m8 gps
+                // autoBaudRateIndex is not sorted by baud rate
+                continue;
+            }
             // 2. Set serial port to baud rate and send an $UBX command to switch the baud rate specified by portConfig [baudrateIndex]
             serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudrateIndex]]);
             serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
