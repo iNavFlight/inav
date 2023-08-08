@@ -2654,11 +2654,11 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ### nav_cruise_yaw_rate
 
-Max YAW rate when NAV CRUISE mode is enabled (set to 0 to disable) [dps]
+Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 60 |
+| 20 | 0 | 120 |
 
 ---
 
