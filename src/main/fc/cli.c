@@ -1125,7 +1125,7 @@ static void cliMotorMix(char *cmdline)
 static void printRxRange(uint8_t dumpMask, const rxChannelRangeConfig_t *channelRangeConfigs, const rxChannelRangeConfig_t *defaultChannelRangeConfigs)
 {
     const char *format = "rxrange %u %u %u";
-    for (uint32_t i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+    for (uint32_t i = 0; i < CONTROL_CHANNEL_COUNT; i++) {  // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
         bool equalsDefault = false;
         if (defaultChannelRangeConfigs) {
             equalsDefault = channelRangeConfigs[i].min == defaultChannelRangeConfigs[i].min
@@ -1156,7 +1156,7 @@ static void cliRxRange(char *cmdline)
     } else {
         ptr = cmdline;
         i = fastA2I(ptr);
-        if (i >= 0 && i < NON_AUX_CHANNEL_COUNT) {
+        if (i >= 0 && i < CONTROL_CHANNEL_COUNT) {  // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
             int rangeMin, rangeMax;
 
             ptr = nextArg(ptr);
@@ -1181,7 +1181,7 @@ static void cliRxRange(char *cmdline)
                 channelRangeConfig->max = rangeMax;
             }
         } else {
-            cliShowArgumentRangeError("channel", 0, NON_AUX_CHANNEL_COUNT - 1);
+            cliShowArgumentRangeError("channel", 0, CONTROL_CHANNEL_COUNT - 1); // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
         }
     }
 }

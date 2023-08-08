@@ -143,6 +143,13 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
         return false;
     }
 
+    // woga65: Do not use the collective pitch or gyro gain channels to switch flight modes
+#if defined(USE_VARIABLE_PITCH)
+    if (auxChannelIndex + NON_AUX_CHANNEL_COUNT == COLLECTIVE || auxChannelIndex + NON_AUX_CHANNEL_COUNT == GYRO_GAIN) {
+        return false;
+    }
+#endif
+
     // No need to constrain() here, since we're testing for a closed range defined
     // by the channelRange_t. If channelValue has an invalid value, the test will
     // be false anyway.

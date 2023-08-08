@@ -92,17 +92,24 @@ extern const char rcChannelLetters[];
 
 #define MAX_MAPPABLE_RX_INPUTS 8            // woga65: either 4 or 8 (set to 8 for variable pitch aircraft)
 
-#define MAX_INVALID_RX_PULSE_TIME    300
+#if defined(USE_VARIABLE_PITCH)             // woga65: count of channels that can be controlled by navigation or failsafe
+#   define CONTROL_CHANNEL_COUNT (MAX_MAPPABLE_RX_INPUTS)
+#else
+#   define CONTROL_CHANNEL_COUNT (NON_AUX_CHANNEL_COUNT)
+#endif
+
+#define MAX_INVALID_RX_PULSE_TIME 300
 
 #define RSSI_VISIBLE_VALUE_MIN 0
 #define RSSI_VISIBLE_VALUE_MAX 100
 #define RSSI_VISIBLE_FACTOR (RSSI_MAX_VALUE/(float)RSSI_VISIBLE_VALUE_MAX)
 
+// woga65: Allow rxrange for COLLECTIVE / GYRO_GAIN channels too
 typedef struct rxChannelRangeConfig_s {
     uint16_t min;
     uint16_t max;
 } rxChannelRangeConfig_t;
-PG_DECLARE_ARRAY(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs);
+PG_DECLARE_ARRAY(rxChannelRangeConfig_t, CONTROL_CHANNEL_COUNT, rxChannelRangeConfigs);
 
 typedef struct rxConfig_s {
     uint8_t receiverType;                   // RC receiver type (rxReceiverType_e enum)

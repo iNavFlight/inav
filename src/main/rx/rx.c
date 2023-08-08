@@ -154,18 +154,21 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
 void resetAllRxChannelRangeConfigurations(void)
 {
     // set default calibration to full range and 1:1 mapping
-    for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+    // woga65: replace NON_AUX_CHANNEL_COUNT by CONTROL_CHANNEL_COUNT
+    // to apply PWM_RANGE also to collective pitch + gyro gain channels 
+    for (int i = 0; i < CONTROL_CHANNEL_COUNT; i++) {
         rxChannelRangeConfigsMutable(i)->min = PWM_RANGE_MIN;
         rxChannelRangeConfigsMutable(i)->max = PWM_RANGE_MAX;
     }
 }
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, CONTROL_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);
 
 void pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfig_t *rxChannelRangeConfigs)
 {
     // set default calibration to full range and 1:1 mapping
-    for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+    // woga65: replace NON_AUX_CHANNEL_COUNT by CONTROL_CHANNEL_COUNT
+    for (int i = 0; i < CONTROL_CHANNEL_COUNT; i++) {
         rxChannelRangeConfigs[i].min = PWM_RANGE_MIN;
         rxChannelRangeConfigs[i].max = PWM_RANGE_MAX;
     }
@@ -487,7 +490,8 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         uint16_t sample = (*rxRuntimeConfig.rcReadRawFn)(&rxRuntimeConfig, rawChannel);
 
         // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
+        // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
+        if (channel < CONTROL_CHANNEL_COUNT && sample != 0) {
             sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
             sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
         }
@@ -496,9 +500,10 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         rcChannels[channel].raw = sample;
 
         // Apply invalid pulse value logic
+        // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
         if (!isRxPulseValid(sample)) {
             sample = rcChannels[channel].data;   // hold channel, replace with old value
-            if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < NON_AUX_CHANNEL_COUNT)) {
+            if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < CONTROL_CHANNEL_COUNT)) {
                 rxFlightChannelsValid = false;
             }
         } else {
