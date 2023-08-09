@@ -234,11 +234,12 @@ void hottPrepareGPSResponse(HOTT_GPS_MSG_t *hottGPSMessage)
     const int32_t climbrate3s = MAX(0, 3.0f * getEstimatedActualVelocity(Z) / 100 + 120);
     hottGPSMessage->climbrate3s = climbrate3s & 0xFF;
 
-    if (!(STATE(GPS_FIX)
-#ifdef USE_GPS_FIX_ESTIMATION    
-            || STATE(GPS_ESTIMATED_FIX))
+#ifdef USE_GPS_FIX_ESTIMATION
+    if (!(STATE(GPS_FIX) || STATE(GPS_ESTIMATED_FIX)))
+#else            
+    if (!(STATE(GPS_FIX)))
 #endif
-        ) {
+         {
         hottGPSMessage->gps_fix_char = GPS_FIX_CHAR_NONE;
         return;
     }
