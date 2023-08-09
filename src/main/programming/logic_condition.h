@@ -81,7 +81,9 @@ typedef enum {
     LOGIC_CONDITION_TIMER                       = 49,
     LOGIC_CONDITION_DELTA                       = 50,
     LOGIC_CONDITION_APPROX_EQUAL                = 51,
+#ifdef USE_GPS_FIX_ESTIMATION
     LOGIC_CONDITION_DISABLE_GPS_FIX             = 52,
+#endif
     LOGIC_CONDITION_LAST                        = 53,
 } logicOperation_e;
 
@@ -186,7 +188,9 @@ typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL = (1 << 8),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS = (1 << 9),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS = (1 << 10),
+#ifdef USE_GPS_FIX_ESTIMATION
     LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX = (1 << 11),
+#endif
 } logicConditionsGlobalFlags_t;
 
 typedef enum {

@@ -313,13 +313,13 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
                 loiterCenterPos.x = posControl.activeWaypoint.pos.x + navLoiterRadius * cos_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
                 loiterCenterPos.y = posControl.activeWaypoint.pos.y + navLoiterRadius * sin_approx(CENTIDEGREES_TO_RADIANS(loiterCenterBearing));
 
-            posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
-            posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
+                posErrorX = loiterCenterPos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+                posErrorY = loiterCenterPos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
-            // turn direction to next waypoint
-            loiterTurnDirection = posControl.activeWaypoint.nextTurnAngle > 0 ? 1 : -1;  // 1 = right
+                // turn direction to next waypoint
+                loiterTurnDirection = posControl.activeWaypoint.nextTurnAngle > 0 ? 1 : -1;  // 1 = right
 
-            needToCalculateCircularLoiter = true;
+                needToCalculateCircularLoiter = true;
             }
             posControl.flags.wpTurnSmoothingActive = true;
         }

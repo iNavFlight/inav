@@ -147,7 +147,7 @@ static union {
 bool gpsUbloxHasGalileo(void)
 {
     return (ubx_capabilities.supported & UBX_MON_GNSS_GALILEO_MASK);
-    }
+}
 
 bool gpsUbloxHasBeidou(void)
 {
@@ -622,8 +622,8 @@ static bool gpsParseFrameUBLOX(void)
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
             if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
                 if (_buffer.ver.swVersion[9] > '2' || true) {
-                // check extensions;
-                // after hw + sw vers; each is 30 bytes
+                    // check extensions;
+                    // after hw + sw vers; each is 30 bytes
                     bool found = false;
                     for (int j = 40; j < _payload_length && !found; j += 30)
                     {
@@ -863,8 +863,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
         if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
             configureRATE(hz2rate(5)); // 5Hz
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-    }
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        }
     }
     else {
         // u-Blox 5/6/7/8 or unknown
@@ -901,8 +901,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
             if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
                 configureRATE(hz2rate(5)); // 5Hz
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-        }
+                ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            }
         }
         // u-Blox 5/6 doesn't support PVT, use legacy config
         // UNKNOWN also falls here, use as a last resort
@@ -944,19 +944,19 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
+        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+        if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
             configureGNSS10();
-         } else {
-         configureGNSS();
-         }
-         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+        } else {
+            configureGNSS();
+        }
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
-         if(_ack_state == UBX_ACK_GOT_NAK) {
+        if(_ack_state == UBX_ACK_GOT_NAK) {
             gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
             gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
-    }
+        }
     }
 
     ptEnd(0);
@@ -1019,18 +1019,18 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.baudrateIndex]]);
     }
 
-        // Reset protocol timeout
-        gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
+    // Reset protocol timeout
+    gpsSetProtocolTimeout(MAX(GPS_TIMEOUT, ((GPS_VERSION_RETRY_TIMES + 3) * GPS_CFG_CMD_TIMEOUT_MS)));
 
-        // Attempt to detect GPS hw version
-        gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
-        gpsState.autoConfigStep = 0;
+    // Attempt to detect GPS hw version
+    gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    gpsState.autoConfigStep = 0;
 
-        do {
-            pollVersion();
-            gpsState.autoConfigStep++;
-            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+    do {
+        pollVersion();
+        gpsState.autoConfigStep++;
+        ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
+    } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
 
     gpsState.autoConfigStep = 0;
     ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
@@ -1062,7 +1062,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
                 {
                     pollVersion();
                     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-    }
+                }
 
                 pollGnssCapabilities();
                 ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);

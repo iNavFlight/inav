@@ -82,7 +82,9 @@ PG_RESET_TEMPLATE(failsafeConfig_t, failsafeConfig,
     .failsafe_min_distance = SETTING_FAILSAFE_MIN_DISTANCE_DEFAULT,                     // No minimum distance for failsafe by default
     .failsafe_min_distance_procedure = SETTING_FAILSAFE_MIN_DISTANCE_PROCEDURE_DEFAULT, // default minimum distance failsafe procedure
     .failsafe_mission_delay = SETTING_FAILSAFE_MISSION_DELAY_DEFAULT,                   // Time delay before Failsafe activated during WP mission (s)
+#ifdef USE_GPS_FIX_ESTIMATION
     .failsafe_gps_fix_estimation_delay = SETTING_FAILSAFE_GPS_FIX_ESTIMATION_DELAY_DEFAULT, // Time delay before Failsafe activated when GPS Fix estimation is allied
+#endif    
 );
 
 typedef enum {
@@ -355,7 +357,11 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
     // Craft is closer than minimum failsafe procedure distance (if set to non-zero)
     // GPS must also be working, and home position set
     if (failsafeConfig()->failsafe_min_distance > 0 &&
-            ((sensors(SENSOR_GPS) && STATE(GPS_FIX)) || STATE(GPS_ESTIMATED_FIX)) && STATE(GPS_FIX_HOME)) {
+            ((sensors(SENSOR_GPS) && STATE(GPS_FIX)) 
+#ifdef USE_GPS_FIX_ESTIMATION    
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+                ) && STATE(GPS_FIX_HOME)) {
 
         // get the distance to the original arming point
         uint32_t distance = calculateDistanceToDestination(&original_rth_home);
@@ -368,7 +374,7 @@ static failsafeProcedure_e failsafeChooseFailsafeProcedure(void)
     return failsafeConfig()->failsafe_procedure;
 }
 
-
+#ifdef USE_GPS_FIX_ESTIMATION
 bool checkGPSFixFailsafe(void)
 {
     if (STATE(GPS_ESTIMATED_FIX) && (FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive()) && (failsafeConfig()->failsafe_gps_fix_estimation_delay >= 0)) {
@@ -387,6 +393,7 @@ bool checkGPSFixFailsafe(void)
     }
     return false;
 }
+#endif
 
 
 void failsafeUpdateState(void)
@@ -418,9 +425,12 @@ void failsafeUpdateState(void)
                         failsafeState.throttleLowPeriod = millis() + failsafeConfig()->failsafe_throttle_low_delay * MILLIS_PER_TENTH_SECOND;
                     }
 
+#ifdef USE_GPS_FIX_ESTIMATION
                     if ( checkGPSFixFailsafe() ) {
                         reprocessState = true;
-                    } else if (!receivingRxDataAndNotFailsafeMode) {
+                    } else 
+#endif                    
+                    if (!receivingRxDataAndNotFailsafeMode) {
                         if ((failsafeConfig()->failsafe_throttle_low_delay && (millis() > failsafeState.throttleLowPeriod)) || STATE(NAV_MOTOR_STOP_OR_IDLE)) {
                             // JustDisarm: throttle was LOW for at least 'failsafe_throttle_low_delay' seconds or waiting for launch
                             // Don't disarm at all if `failsafe_throttle_low_delay` is set to zero
@@ -432,7 +442,7 @@ void failsafeUpdateState(void)
                             failsafeState.wpModeDelayedFailsafeStart = 0;
                         }
                         reprocessState = true;
-                    } 		
+                    }
                 } else {
                     // When NOT armed, show rxLinkState of failsafe switch in GUI (failsafe mode)
                     if (!receivingRxDataAndNotFailsafeMode) {
@@ -488,11 +498,14 @@ void failsafeUpdateState(void)
                 } else if (failsafeChooseFailsafeProcedure() != FAILSAFE_PROCEDURE_NONE) {  // trigger new failsafe procedure if changed
                     failsafeState.phase = FAILSAFE_RX_LOSS_DETECTED;
                     reprocessState = true;
-                } else {
+                } 
+#ifdef USE_GPS_FIX_ESTIMATION
+                else {
                     if ( checkGPSFixFailsafe() ) {
                         reprocessState = true;
                     }
                 }
+#endif
 
                 break;
 

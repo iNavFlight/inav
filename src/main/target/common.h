@@ -56,6 +56,7 @@
 #define USE_GPS_PROTO_MSP
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
+#define USE_GPS_FIX_ESTIMATION
 
 // This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10

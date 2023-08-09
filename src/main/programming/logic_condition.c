@@ -471,8 +471,9 @@ static int logicConditionCompute(
             } else {
                 return false;
             }
-            break;    
+            break;
 
+#ifdef USE_GPS_FIX_ESTIMATION
         case LOGIC_CONDITION_DISABLE_GPS_FIX:
             if (operandA > 0) {
                 LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
@@ -480,8 +481,9 @@ static int logicConditionCompute(
                 LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
             }
                 return true;
-            break;    
-        
+            break;
+#endif
+
         default:
             return false;
             break; 
@@ -663,9 +665,12 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
+#ifdef USE_GPS_FIX_ESTIMATION
             if ( STATE(GPS_ESTIMATED_FIX) ){
                 return gpsSol.numSat; //99
-            } else if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
+            } else
+#endif
+            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
                 return 0;
             } else {
                 return gpsSol.numSat;
