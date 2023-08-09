@@ -118,4 +118,8 @@ rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(bool isThrottleLow);
 bool throttleStickIsLow(void);
 
+#if defined(USE_VARIABLE_PITCH)     //woga65:
+bool collectiveStickIsLow(void);
+#endif
+
 int32_t getRcStickDeflection(int32_t axis);

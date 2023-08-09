@@ -3548,7 +3548,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     else {
         applyMulticopterNavigationController(navStateFlags, currentTimeUs);
     }
-
+    //if (mixerConfig()->platformType == PLATFORM_HELICOPTER) { do something }
     /* Consume position data */
     if (posControl.flags.horizontalPositionDataConsumed)
         posControl.flags.horizontalPositionDataNew = false;

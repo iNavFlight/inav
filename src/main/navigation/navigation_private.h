@@ -411,7 +411,11 @@ typedef struct {
     int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
 
     /* Internals & statistics */
+#if defined(USE_VARIABLE_PITCH)                             // woga65: more channels needed for variable pitch
+    int16_t                     rcAdjustment[8];
+#else
     int16_t                     rcAdjustment[4];
+#endif    
     float                       totalTripDistance;
 } navigationPosControl_t;
 

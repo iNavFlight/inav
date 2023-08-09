@@ -136,6 +136,16 @@ bool throttleStickIsLow(void)
     return calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 }
 
+#if defined(USE_VARIABLE_PITCH) // woga65:
+bool FAST_CODE NOINLINE collectiveStickIsLow(void)
+{
+    int value = rxGetChannelValue(COLLECTIVE);
+    const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
+    bool midCollective = value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband);
+    return midCollective;
+}    
+#endif
+
 int16_t throttleStickMixedValue(void)
 {
     int16_t throttleValue;
