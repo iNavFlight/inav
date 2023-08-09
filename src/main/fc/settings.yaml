@@ -1164,27 +1164,27 @@ groups:
         field: mixer_config.outputMode
         table: output_mode
       - name: motorstop_on_low
-        description: "If enabled, motor will stop when throttle is low"
+        description: "If enabled, motor will stop when throttle is low on this mixer_profile"
         default_value: OFF
         field: mixer_config.motorstopOnLow
         type: bool
       - name: mixer_pid_profile_linking
-        description: "If enabled, pid profile index will follow mixer profile index"
+        description: "If enabled, pid profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle PID profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the PID profile switching on a VTOL or mixed platform type setup."
         default_value: OFF
         field: mixer_config.PIDProfileLinking
         type: bool
       - name: mixer_switch_on_rth
-        description: "If set to on, mixer_profile will switch when it is heading home"
+        description: "If set to on, This mixer_profile will try to switch to another mixer_profile when RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius, Only applies if this mixer_profile is a MULTIROTOR or TRICOPTER platform_type."
         default_value: OFF
         field: mixer_config.switchOnRTH
         type: bool
       - name: mixer_switch_on_land
-        description: "If set to on, mixer_profile will switch when Landing"
+        description: "If set to on, This mixer_profile will try to switch to another mixer_profile when RTH landing is requested, Only applies if this mixer_profile is a AIRPLANE platform_type."
         default_value: OFF
         field: mixer_config.switchOnLand
         type: bool
       - name: mixer_switch_trans_timer
-        description: "If swith mixer_profile on failsafe is required, Activate MixerTransion mode for this many decisecond(0.1s) before the actual mixer_profile switch"
+        description: "If switch another mixer_profile is scheduled by mixer_switch_on_rth or mixer_switch_on_land. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch."
         default_value: 0
         field: mixer_config.switchTransitionTimer
         min: 0

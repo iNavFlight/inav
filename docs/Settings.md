@@ -2534,7 +2534,7 @@ This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly 
 
 ### mixer_pid_profile_linking
 
-If enabled, pid profile index will follow mixer profile index
+If enabled, pid profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle PID profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the PID profile switching on a VTOL or mixed platform type setup.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2544,7 +2544,7 @@ If enabled, pid profile index will follow mixer profile index
 
 ### mixer_switch_on_land
 
-If set to on, mixer_profile will switch when Landing
+If set to on, This mixer_profile will try to switch to another mixer_profile when RTH landing is requested, Only applies if this mixer_profile is a AIRPLANE platform_type.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2554,7 +2554,7 @@ If set to on, mixer_profile will switch when Landing
 
 ### mixer_switch_on_rth
 
-If set to on, mixer_profile will switch when it is heading home
+If set to on, This mixer_profile will try to switch to another mixer_profile when RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius, Only applies if this mixer_profile is a MULTIROTOR or TRICOPTER platform_type.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2564,7 +2564,7 @@ If set to on, mixer_profile will switch when it is heading home
 
 ### mixer_switch_trans_timer
 
-If swith mixer_profile on failsafe is required, Activate MixerTransion mode for this many decisecond(0.1s) before the actual mixer_profile switch
+If switch another mixer_profile is scheduled by mixer_switch_on_rth or mixer_switch_on_land. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2634,7 +2634,7 @@ Output frequency (in Hz) for motor pins.  Applies only to brushed motors.
 
 ### motorstop_on_low
 
-If enabled, motor will stop when throttle is low
+If enabled, motor will stop when throttle is low on this mixer_profile
 
 | Default | Min | Max |
 | --- | --- | --- |
