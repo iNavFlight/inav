@@ -15,7 +15,7 @@ Plane should have the following sensors:
 - magnethometer
 - pitot (optional)
 
-By befault, all navigation modes are disabled when GPS fix is lost. If RC signal is lost also, plane will not be able to enable RTH. Plane will switch to LANDING instead. When flying above inreachable spaces, plane will be lost.
+By befault, all navigation modes are disabled when GPS fix is lost. If RC signal is lost also, plane will not be able to enable RTH. Plane will switch to LANDING instead. When flying above unreachable spaces, plane will be lost.
 
 GPS fix estimation allows to recover plane using magnetometer and baromener only.
 
@@ -33,11 +33,11 @@ To navigate without GPS fix, we make the following assumptions:
 - plane is flying in the direction where nose is pointing
 - (if pitot tube is not installed) plane is flying with constant airspeed, specified in settings
 
-It is posible to roughtly estimate position using these assumptions. To increase accuracy, plane will use information about wind direction and speed, estimated before GPS fix was lost. To increase groundspeed estimation accuracy, plane will use pitot tube data(if available).
+It is possible to roughly estimate position using theese assumptions. To increase accuracy, plane will use information about wind direction and speed, estimated before GPS fix was lost. To increase groundspeed estimation accuracy, plane will use pitot tube data(if available).
 
-From estimated heading direction and speed, plane is able to **roughtly** estimate it's position.
+From estimated heading direction and speed, plane is able to **roughty** estimate it's position.
 
-It is assumed, that plane will fly in roughtly estimated direction to home position untill either GPS fix or RC signal is recovered.
+It is assumed, that plane will fly in roughly estimated direction to home position untill either GPS fix or RC signal is recovered.
 
 *Plane has to aquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
 
@@ -96,7 +96,7 @@ To dicrease drift:
 - make sure compass is pointing in nose direction precicely
 - calibrate compass correctly
 
-This video shown real world test where GPS was disabled occasionally. Wind is 10km/h south-west:
+This video shows real world test where GPS was disabled occasionally. Wind is 10km/h south-west:
 
 
 https://github.com/RomanLut/inav/assets/11955117/0599a3c3-df06-4d40-a32a-4d8f96140592
