@@ -1142,8 +1142,18 @@ void FAST_CODE pidController(float dT)
     }
 
     for (int axis = 0; axis < 3; axis++) {
+        int gyro_axis = axis;
+        // float noinvert=1.0f;
+        // if (STATE(TAILSITTER)){
+        //     if (axis == FD_ROLL) {
+        //         gyro_axis = FD_YAW;
+        //     } else if (axis == FD_YAW) {
+        //         gyro_axis = FD_ROLL;
+        //         noinvert=-1.0f;
+        //     }
+        // }
         // Step 1: Calculate gyro rates
-        pidState[axis].gyroRate = gyro.gyroADCf[axis];
+        pidState[axis].gyroRate = gyro.gyroADCf[gyro_axis] * noinvert;
 
         // Step 2: Read target
         float rateTarget;
