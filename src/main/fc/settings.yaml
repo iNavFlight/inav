@@ -111,7 +111,7 @@ tables:
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
   - name: platform_type
-    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
+    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT", "TAILSITTER"]
   - name: output_mode
     values: ["AUTO", "MOTORS", "SERVOS"]
     enum: outputMode_e

@@ -200,8 +200,8 @@ bool checkMixerProfileHotSwitchAvalibility(void)
 #endif
     uint8_t platform_type0 = mixerConfigByIndex(0)->platformType;
     uint8_t platform_type1 = mixerConfigByIndex(1)->platformType;
-    bool platform_type_mc0 = (platform_type0 == PLATFORM_MULTIROTOR) || (platform_type0 == PLATFORM_TRICOPTER);
-    bool platform_type_mc1 = (platform_type1 == PLATFORM_MULTIROTOR) || (platform_type1 == PLATFORM_TRICOPTER);
+    bool platform_type_mc0 = (platform_type0 == PLATFORM_MULTIROTOR) || (platform_type0 == PLATFORM_TRICOPTER || (platform_type0 == PLATFORM_TAILSITTER));
+    bool platform_type_mc1 = (platform_type1 == PLATFORM_MULTIROTOR) || (platform_type1 == PLATFORM_TRICOPTER || (platform_type1 == PLATFORM_TAILSITTER));
     bool is_mcfw_switching = platform_type_mc0 ^ platform_type_mc1;
     if ((!MCFW_hotswap_available) && is_mcfw_switching)
     {

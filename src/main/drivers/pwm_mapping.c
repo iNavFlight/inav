@@ -250,7 +250,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
         }
 
         // Determine if timer belongs to motor/servo
-        if (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER) {
+        if (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER || currentMixerConfig.platformType == PLATFORM_TAILSITTER) {
             // Multicopter
 
             // Make sure first motorCount outputs get assigned to motor
