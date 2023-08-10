@@ -107,9 +107,9 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_HOLD,          // THROTTLE
 #else
     // woga65: cut throttle, hold collective (kind of auto gyro)
-                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE
-                FAILSAFE_CHANNEL_HOLD,          // AUX1
-                FAILSAFE_CHANNEL_HOLD,          // AUX2
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE (cut trottle regardless until sufficiently tested)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
                 FAILSAFE_CHANNEL_HOLD,          // COLLECTIVE
                 FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN
 #endif                
@@ -126,8 +126,8 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE
 #if defined(USE_VARIABLE_PITCH)
     // woga65: cut throttle, center collective 
-                FAILSAFE_CHANNEL_HOLD,          // AUX1
-                FAILSAFE_CHANNEL_HOLD,          // AUX2
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWASY HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
                 FAILSAFE_CHANNEL_NEUTRAL,       // COLLECTIVE
                 FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN
 #endif
@@ -145,9 +145,9 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_HOLD,          // THROTTLE
 #else
     // woga65: cut throttle regardless, hold collective 
-                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE
-                FAILSAFE_CHANNEL_HOLD,          // AUX1
-                FAILSAFE_CHANNEL_HOLD,          // AUX2
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE (cut trottle regardless until sufficiently tested)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
                 FAILSAFE_CHANNEL_HOLD,          // COLLECTIVE
                 FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN    
 #endif                
@@ -165,9 +165,9 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_HOLD,          // THROTTLE
 #else
     // woga65: cut throttle regardless, hold everything else 
-                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE
-                FAILSAFE_CHANNEL_HOLD,          // AUX1
-                FAILSAFE_CHANNEL_HOLD,          // AUX2
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE (cut throttle regardless)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
                 FAILSAFE_CHANNEL_HOLD,          // COLLECTIVE
                 FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN   
 #endif      
@@ -195,10 +195,12 @@ void failsafeReset(void)
     failsafeState.lastGoodRcCommand[ROLL] = 0;
     failsafeState.lastGoodRcCommand[PITCH] = 0;
     failsafeState.lastGoodRcCommand[YAW] = 0;
-    failsafeState.lastGoodRcCommand[THROTTLE] = 1000;
+    failsafeState.lastGoodRcCommand[THROTTLE] = PWM_RANGE_MIN;
 #if defined(USE_VARIABLE_PITCH) //woga65:
-    failsafeState.lastGoodRcCommand[COLLECTIVE] = 0;
-    failsafeState.lastGoodRcCommand[GYRO_GAIN] = 0;
+    failsafeState.lastGoodRcCommand[AUX1] = PWM_RANGE_MIN;
+    failsafeState.lastGoodRcCommand[AUX2] = PWM_RANGE_MIN;
+    failsafeState.lastGoodRcCommand[COLLECTIVE] = PWM_RANGE_MIDDLE;
+    failsafeState.lastGoodRcCommand[GYRO_GAIN] = PWM_RANGE_MIDDLE;
 #endif
 }
 
@@ -306,11 +308,15 @@ void failsafeApplyControlInput(void)
                     case ROLL:
                     case PITCH:
                     case YAW:
-#if defined(USE_VARIABLE_PITCH)     //woga65:
-                    case COLLECTIVE:
-#endif                    
                         rcCommand[idx] = 0;
                         break;
+
+#if defined(USE_VARIABLE_PITCH)     //woga65:
+                    case COLLECTIVE:
+                    case GYRO_GAIN:
+                        rcCommand[idx] = PWM_RANGE_MIDDLE;
+                        break;
+#endif
 
                     case THROTTLE:
                         rcCommand[idx] = feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIDDLE : getThrottleIdleValue();

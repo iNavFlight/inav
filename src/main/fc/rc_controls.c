@@ -51,8 +51,6 @@
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
-#include "flight/mixer.h"               // woga65: @todo - need access to mixer settings from here or not?
-                                        // (mixerConfig()->platformType) == PLATFORM_HELICOPTER
 
 #include "io/gps.h"
 #include "io/beeper.h"

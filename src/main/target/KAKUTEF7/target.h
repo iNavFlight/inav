@@ -20,7 +20,7 @@
 
 #pragma once
 // woga65:
-#if defined(KAKUTEF7MINI) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS) || defined (KAKUTEF7MINI_7PWM_VP) || defined (KAKUTEF7MINI_7PWM)   //woga65:
+#if defined(KAKUTEF7MINI) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS) || defined (KAKUTEF7MINI_7PWM_VP) || defined (KAKUTEF7MINI_7PWM)
 #   define TARGET_BOARD_IDENTIFIER "KF7M"
 #   define USBD_PRODUCT_STRING "KakuteF7-Mini"
 #else
@@ -28,7 +28,8 @@
 #   define USBD_PRODUCT_STRING "KakuteF7"
 #endif
 
-#if defined(KAKUTEF7_VP) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7HDV_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_7PWM_VP) || defined(KAKUTEF7_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7_7PWM_VP)     //sibi?
+// woga65: variable pitch?
+#if defined(KAKUTEF7_VP) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7HDV_VP) || defined(KAKUTEF7MINI_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7MINI_7PWM_VP) || defined(KAKUTEF7_1MOTOR_6SERVOS_VP) || defined(KAKUTEF7_7PWM_VP)
 #   define USE_VARIABLE_PITCH
 #endif
 

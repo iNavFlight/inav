@@ -450,7 +450,7 @@ navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
 void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-void setDesiredSurfaceOffset(float surfaceOffset);
+void setDesiredSurfaceOffset(float surfaceOffset);  // NOT USED
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
 void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode);
 

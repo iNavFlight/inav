@@ -149,13 +149,9 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 #if !defined(USE_VARIABLE_PITCH)    // woga65:
         const float altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
 #else
-        float altTarget;
-        if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-            altTarget = scaleRangef(rcCommand[COLLECTIVE], 1000, 2000, 0, navConfig()->general.max_terrain_follow_altitude);
-        }
-        else {
-            altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
-        }
+        float altTarget = (mixerConfig()->platformType == PLATFORM_HELICOPTER)
+            ? scaleRangef(rcCommand[COLLECTIVE], 1000, 2000, 0, navConfig()->general.max_terrain_follow_altitude)
+            : scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
 #endif
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
@@ -234,7 +230,8 @@ void setupMulticopterAltitudeController(void)           // woga65:
     int16_t rcCmd, maxValue, minValue, rcLookupValue;
     if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         stickIsLow = collectiveStickIsLow();
-        rcCmd = rcLookupValue = rcCommand[COLLECTIVE];
+        rcCmd = rcCommand[COLLECTIVE];
+        rcLookupValue = 1500;
         maxValue = 2000;
         minValue = 1000;        
     }
@@ -252,12 +249,7 @@ void setupMulticopterAltitudeController(void)           // woga65:
     }
     else {
         // If throttle / collective is LOW - use Thr Mid anyway
-        if (stickIsLow) {
-            altHoldThrottleRCZero = rcLookupValue;
-        }
-        else {
-            altHoldThrottleRCZero = rcCmd;
-        }
+        altHoldThrottleRCZero = (stickIsLow) ? rcLookupValue : rcCmd;
     }
 
     // Make sure we are able to satisfy the deadband
@@ -285,12 +277,7 @@ void resetMulticopterAltitudeController(void)
 #if !defined(USE_VARIABLE_PITCH)    //woga65:
     posControl.rcAdjustment[THROTTLE] = 0;
 #else
-    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        posControl.rcAdjustment[COLLECTIVE] = 0;
-    }
-    else {
-        posControl.rcAdjustment[THROTTLE] = 0;
-    }
+    posControl.rcAdjustment[(mixerConfig()->platformType == PLATFORM_HELICOPTER) ? COLLECTIVE : THROTTLE] = 0;
 #endif
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
@@ -892,11 +879,13 @@ bool isMulticopterLandingDetected(void)
 
 #if !defined(USE_VARIABLE_PITCH)    //woga65:
     const uint8_t ALTITUDE = THROTTLE;
+    const uint16_t idleValue = getThrottleIdleValue();
 #else
     const uint8_t ALTITUDE = mixerConfig()->platformType == PLATFORM_HELICOPTER ? COLLECTIVE : THROTTLE;
+    const uint16_t idleValue = mixerConfig()->platformType == PLATFORM_HELICOPTER ? 1000 : getThrottleIdleValue();
 #endif 
 
-    bool throttleIsBelowMidHover = rcCommand[ALTITUDE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+    bool throttleIsBelowMidHover = rcCommand[ALTITUDE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + idleValue));
 
     /* Basic condition to start looking for landing
      * Detection active during Failsafe only if throttle below mid hover throttle
@@ -999,9 +988,9 @@ bool isMulticopterLandingDetected(void)
 static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 {
 #if !defined(USE_VARIABLE_PITCH)    //woga65:
-    uint8_t ALTITUDE = THROTTLE;
+    const uint8_t ALTITUDE = THROTTLE;
 #else
-    uint8_t ALTITUDE = (mixerConfig()->platformType) == PLATFORM_HELICOPTER ? COLLECTIVE : THROTTLE;
+    const uint8_t ALTITUDE = (mixerConfig()->platformType) == PLATFORM_HELICOPTER ? COLLECTIVE : THROTTLE;
 #endif    
 
     static timeUs_t previousTimePositionUpdate = 0;
@@ -1012,11 +1001,14 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
         /* Sensors has gone haywire, attempt to land regardless */
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
-            rcCommand[ALTITUDE] = ALTITUDE == THROTTLE ? getThrottleIdleValue() : 1500;
+            /* woga65: on helicopter center collective pitch */
+            rcCommand[ALTITUDE] = (ALTITUDE == THROTTLE) ? getThrottleIdleValue() : 1500;
         }
         else {
             rcCommand[ALTITUDE] = currentBatteryProfile->failsafe_throttle;
         }
+        /* woga65: on helicopter cut throttle immediately */
+        rcCommand[THROTTLE] = (ALTITUDE == THROTTLE) ? rcCommand[THROTTLE] : 1000;
 
         return;
     }
