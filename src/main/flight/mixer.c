@@ -263,6 +263,12 @@ static uint16_t handleOutputScaling(
 }
 static void applyTurtleModeToMotors(void) {
 
+#if defined(USE_VARIABLE_PITCH)     // woga65: no turtle mode on heli-like aircraft
+    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+        return;
+    }
+#endif    
+
     if (ARMING_FLAG(ARMED)) {
         const float flipPowerFactor = ((float)currentBatteryProfile->motor.turtleModePowerFactor)/100.0f;
         const float stickDeflectionPitchAbs = ABS(((float) rcCommand[PITCH]) / 500.0f);
