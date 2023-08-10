@@ -28,6 +28,7 @@
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
+#include "fc/runtime_config.h"
 
 #include "drivers/sensor.h"
 
@@ -87,7 +88,7 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
 
 void applyBoardAlignment(float *vec)
 {
-    if (standardBoardAlignment) {
+    if (standardBoardAlignment && (!STATE(TAILSITTER))) {
         return;
     }
 
@@ -97,6 +98,11 @@ void applyBoardAlignment(float *vec)
     vec[X] = lrintf(fpVec.x);
     vec[Y] = lrintf(fpVec.y);
     vec[Z] = lrintf(fpVec.z);
+
+    if (STATE(TAILSITTER)) {
+        vec[X] = lrintf(fpVec.z);
+        vec[Z] = -lrintf(fpVec.x);
+    }
 }
 
 void FAST_CODE applySensorAlignment(float * dest, float * src, uint8_t rotation)
