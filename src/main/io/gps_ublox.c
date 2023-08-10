@@ -269,20 +269,6 @@ static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t co
 // Info on protocol used by M8-M9, check UBX-CFG-GNSS for gnss configuration
 // https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
 // https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.32_InterfaceDescription_UBX-22008968.pdf
-/*
-CFG-SIGNAL-SBAS_ENA Enabled/disabled status of the SBAS subsystem
-CFG-SBAS-USE_TESTMODE Allow/disallow SBAS usage from satellites in test mode
-CFG-SBAS-USE_RANGING Use the SBAS satellites for navigation (ranging)
-CFG-SBAS-USE_DIFFCORR Combined enable/disable switch for fast, long-term, and ionosphere corrections
-CFG-SBAS-USE_INTEGRITY Apply integrity information data
-CFG-SBAS-PRNSCANMASK Allows selectively enabling/disabling SBAS satellites
-
-- 0 WAAS
-- 1 EGNOS
-- 2 MSAS
-- 3 GAGAN
-- 16 GPS
-*/
 static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
 {
     gnss_block->gnssId = GNSSID_SBAS;
@@ -396,7 +382,6 @@ static void configureGNSS10(void)
             {UBLOX_CFG_SIGNAL_SBAS_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
             {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
 
-    
             // Galileo
             {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
             {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
