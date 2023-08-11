@@ -114,32 +114,30 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 {
     // Calculate min and max throttle boundaries (to compensate for integral windup)
-    const int16_t thrAdjustmentMin = (int16_t)getThrottleIdleValue() - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t thrCorrectionMax = motorConfig()->maxthrottle - currentBatteryProfile->nav.mc.hover_throttle;
 
-    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
+    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, 0);
 
-    posControl.rcAdjustment[THROTTLE] = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], thrAdjustmentMin, thrAdjustmentMax);
-
-    posControl.rcAdjustment[THROTTLE] = constrain((int16_t)currentBatteryProfile->nav.mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
+    posControl.rcAdjustment[THROTTLE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, getThrottleIdleValue(), motorConfig()->maxthrottle);
 }
 
 #if defined(USE_VARIABLE_PITCH)     // woga65:
 static void updateAltitudeCollectiveController_MC(timeDelta_t deltaMicros)
 {
     // Calculate min and max collective pitch boundaries (to compensate for integral windup)
-    const int16_t collAdjustmentMin = (int16_t)1000 - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t collAdjustmentMax = (int16_t)2000 - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t collCorrectionMin = 1000 - currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t collCorrectionMax = 2000 - currentBatteryProfile->nav.mc.hover_throttle;
 
-    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), collAdjustmentMin, collAdjustmentMax, 0);
+    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), collCorrectionMin, collCorrectionMax, 0);
 
-    posControl.rcAdjustment[COLLECTIVE] = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    int16_t rcCollectiveCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    rcCollectiveCorrection = constrain(rcCollectiveCorrection, collCorrectionMin, collCorrectionMax);
 
-    posControl.rcAdjustment[COLLECTIVE] = constrain(posControl.rcAdjustment[COLLECTIVE], collAdjustmentMin, collAdjustmentMax);
-
-    posControl.rcAdjustment[COLLECTIVE] = constrain((int16_t)currentBatteryProfile->nav.mc.hover_throttle + posControl.rcAdjustment[THROTTLE], 1000, 2000);
+    posControl.rcAdjustment[COLLECTIVE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcCollectiveCorrection, 1000, 2000);
 }
 #endif
 
@@ -275,9 +273,9 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.surface);
 
 #if !defined(USE_VARIABLE_PITCH)    //woga65:
-    posControl.rcAdjustment[THROTTLE] = 0;
+    posControl.rcAdjustment[THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;;
 #else
-    posControl.rcAdjustment[(mixerConfig()->platformType == PLATFORM_HELICOPTER) ? COLLECTIVE : THROTTLE] = 0;
+    posControl.rcAdjustment[(mixerConfig()->platformType == PLATFORM_HELICOPTER) ? COLLECTIVE : THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;
 #endif
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
@@ -997,23 +995,22 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
     /* Attempt to stabilise */
     rcCommand[YAW] = 0;
+    rcCommand[ROLL] = 0;
+    rcCommand[PITCH] = 0;
+    rcCommand[ALTITUDE] = currentBatteryProfile->failsafe_throttle;
 
+    /* Sensors has gone haywire, attempt to land regardless */
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
-        /* Sensors has gone haywire, attempt to land regardless */
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             /* woga65: on helicopter center collective pitch */
             rcCommand[ALTITUDE] = (ALTITUDE == THROTTLE) ? getThrottleIdleValue() : 1500;
+            /* woga65: on helicopter cut throttle immediately */
+            rcCommand[THROTTLE] = (ALTITUDE == THROTTLE) ? rcCommand[THROTTLE] : 1000;
+            return;
         }
-        else {
-            rcCommand[ALTITUDE] = currentBatteryProfile->failsafe_throttle;
-        }
-        /* woga65: on helicopter cut throttle immediately */
-        rcCommand[THROTTLE] = (ALTITUDE == THROTTLE) ? rcCommand[THROTTLE] : 1000;
-
-        return;
     }
 
-    // Normal sensor data
+    // Normal sensor data available, use controlled landing descent
     if (posControl.flags.verticalPositionDataNew) {
         const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
         previousTimePositionUpdate = currentTimeUs;
@@ -1046,9 +1043,6 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     // Hold position if possible
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
         applyMulticopterPositionController(currentTimeUs);
-    } else {
-        rcCommand[ROLL] = 0;
-        rcCommand[PITCH] = 0;
     }
 }
 
