@@ -122,6 +122,21 @@ timeUs_t lastDisarmTimeUs = 0;
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
 
+static bool isAccRequired(void) {
+    return isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
+        isModeActivationConditionPresent(BOXNAVRTH) ||
+        isModeActivationConditionPresent(BOXNAVWP) ||
+        isModeActivationConditionPresent(BOXANGLE) ||
+        isModeActivationConditionPresent(BOXHORIZON) ||
+        isModeActivationConditionPresent(BOXNAVALTHOLD) ||
+        isModeActivationConditionPresent(BOXHEADINGHOLD) ||
+        isModeActivationConditionPresent(BOXNAVLAUNCH) ||
+        isModeActivationConditionPresent(BOXTURNASSIST) ||
+        isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
+        isModeActivationConditionPresent(BOXSOARING) ||
+        failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT;
+}
+
 bool areSensorsCalibrating(void)
 {
 #ifdef USE_BARO
@@ -142,11 +157,11 @@ bool areSensorsCalibrating(void)
     }
 #endif
 
-    if (!navIsCalibrationComplete()) {
+    if (!navIsCalibrationComplete() && isAccRequired()) {
         return true;
     }
 
-    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) {
+    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC) && isAccRequired()) {
         return true;
     }
 
@@ -264,21 +279,7 @@ static void updateArmingStatus(void)
             sensors(SENSOR_ACC) &&
             !STATE(ACCELEROMETER_CALIBRATED) &&
             // Require ACC calibration only if any of the setting might require it
-            (
-                isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
-                isModeActivationConditionPresent(BOXNAVRTH) ||
-                isModeActivationConditionPresent(BOXNAVWP) ||
-                isModeActivationConditionPresent(BOXANGLE) ||
-                isModeActivationConditionPresent(BOXHORIZON) ||
-                isModeActivationConditionPresent(BOXNAVALTHOLD) ||
-                isModeActivationConditionPresent(BOXHEADINGHOLD) ||
-                isModeActivationConditionPresent(BOXNAVLAUNCH) ||
-                isModeActivationConditionPresent(BOXTURNASSIST) ||
-                isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
-                isModeActivationConditionPresent(BOXSOARING) ||
-                failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT
-
-            )
+            isAccRequired()
         ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
