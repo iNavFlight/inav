@@ -1119,6 +1119,11 @@ void FAST_CODE pidController(float dT)
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             //If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
+            
+            //apply 45 deg offset for tailsitter when isMixerTransitionMixing is activated
+            if (STATE(TAILSITTER) && isMixerTransitionMixing && axis == FD_PITCH){
+                angleTarget += DEGREES_TO_DECIDEGREES(45);
+            }
 
             //Apply the Level PID controller
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);

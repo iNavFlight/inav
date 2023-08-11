@@ -46,6 +46,7 @@
 
 static bool standardBoardAlignment = true;     // board orientation correction
 static fpMat3_t boardRotMatrix;
+static fpMat3_t tailRotMatrix;
 
 // no template required since defaults are zero
 PG_REGISTER(boardAlignment_t, boardAlignment, PG_BOARD_ALIGNMENT, 0);
@@ -70,6 +71,11 @@ void initBoardAlignment(void)
 
         rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
     }
+    fp_angles_t rotationAngles;
+    rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(0);
+    rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(900);
+    rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(0);
+    rotationMatrixFromAngles(&tailRotMatrix, &rotationAngles);
 }
 
 void updateBoardAlignment(int16_t roll, int16_t pitch)
@@ -94,15 +100,12 @@ void applyBoardAlignment(float *vec)
 
     fpVector3_t fpVec = { .v = { vec[X], vec[Y], vec[Z] } };
     rotationMatrixRotateVector(&fpVec, &fpVec, &boardRotMatrix);
-
+    if (STATE(TAILSITTER)) {
+        rotationMatrixRotateVector(&fpVec, &fpVec, &tailRotMatrix);
+    }
     vec[X] = lrintf(fpVec.x);
     vec[Y] = lrintf(fpVec.y);
     vec[Z] = lrintf(fpVec.z);
-
-    if (STATE(TAILSITTER)) {
-        vec[X] = lrintf(fpVec.z);
-        vec[Z] = -lrintf(fpVec.x);
-    }
 }
 
 void FAST_CODE applySensorAlignment(float * dest, float * src, uint8_t rotation)

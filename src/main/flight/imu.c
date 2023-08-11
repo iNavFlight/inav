@@ -669,7 +669,7 @@ fpQuaternion_t* getTailSitterQuaternion(bool normal2tail){
         axisAngle.axis.x = 0;
         axisAngle.axis.y = 1;
         axisAngle.axis.z = 0;
-        axisAngle.angle = DEGREES_TO_RADIANS(90);
+        axisAngle.angle = DEGREES_TO_RADIANS(-90);
         axisAngleToQuaternion(&qNormal2Tail, &axisAngle);
         quaternionConjugate(&qTail2Normal, &qNormal2Tail);
         firstRun = false;
