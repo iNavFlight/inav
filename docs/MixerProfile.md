@@ -130,7 +130,7 @@ Note that default profile is profile `1`.
 
 You can use `MAX` servo input to set a fixed input for the tilting servo. Speed setting for `MAX` input is available in the CLI.
 
-It is recommended to have some amount of control surface (elevon / elevator) mapped for stabilisation even in MR mode to get improved authority when airspeed is high.
+It is recommended to have some amount of control surface (elevon / elevator) mapped for stabilization even in MR mode to get improved authority when airspeed is high.
 
 **Double check all settings in CLI with the `diff all` command**; make sure you have set the correct settings. Also check what will change with `mixer_profile`. For example servo output min / max range will not change. But `smix` and `mmix` will change.
 
@@ -147,13 +147,13 @@ The use of Transition Mode is recommended to enable further features and future 
 
 38 is the input source for transition input; use this to tilt motor to gain airspeed.
 
-Example: Increase servo 1 output by +45 with speed of maximum when transition mode is activated for tilted motor setup:
+Example: Increase servo 1 output by +45 with speed of 150 when transition mode is activated for tilted motor setup:
 
 ```
 # rule no; servo index; input source; rate; speed; activate logic function number
-smix 6 1 38 45 0 -1
+smix 6 1 38 45 150 -1
 ```
-Please note there will be a time window that tilting motors is providing up lift but rear motor isn't. Result in a sudden pitch raise on the entering of the mode. A faster tilting servo speed or more forwarded tilting servo position on transition input will reduce the time window. OR lower the throttle on the entering of the FW mode to mitigate the effect.
+Please note there will be a time window that tilting motors is providing up lift but rear motor isn't. Result in a sudden pitch raise on the entering of the mode. More forward tilting servo position on transition input(you can use 'speed' in servo rules to slowly move to this position), A faster tilting servo speed on `MAX` servo input will reduce the time window. OR lower the throttle on the entering of the FW mode to mitigate the effect.
 
 #### Motor
 
@@ -210,5 +210,5 @@ Remember that this is currently an emerging capability:
 
 * Test every thing on bench first.
 * Then try MR or FW mode separately see if there are any problems.
-* Try it somewhere you can recover your model in case of fail-safe. Fail-safe behaviour is unknown at the current stage of development.
-* Use the INAV Discord for help and setup questions; use the Github Issues for reporting bugs and unexpected behaviours. For reporting on Github, a CLI `diff all`, a DVR and a Blackbox log of the incident will assist investigation.
+* Try it somewhere you can recover your model in case of fail-safe. Fail-safe behavior is unknown at the current stage of development.
+* Use the INAV Discord for help and setup questions; use the Github Issues for reporting bugs and unexpected behaviors. For reporting on Github, a CLI `diff all`, a DVR and a Blackbox log of the incident will assist investigation.
