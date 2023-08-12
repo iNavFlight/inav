@@ -4448,34 +4448,6 @@ emergLandState_e getStateOfForcedEmergLanding(void)
     }
 }
 
-
-/*-----------------------------------------------------------
- * Ability to mixer_profile(vtol) switch on external event
- *-----------------------------------------------------------*/
-// void activateMIXERATHelper(void)
-// {
-//     posControl.flags.mixerATHelperActivated = true;
-//     navProcessFSMEvents(selectNavEventFromBoxModeInput());
-// }
-
-// void abortMIXERATHelper(void)
-// {
-//     // Disable emergency landing and make sure we back out of navigation mode to IDLE
-//     // If any navigation mode was active prior to emergency landing it will be re-enabled with next RX update
-//     posControl.flags.mixerATHelperActivated = false;
-//     navProcessFSMEvents(NAV_FSM_EVENT_SWITCH_TO_IDLE);
-// }
-
-// altHoldState_e getStateOfMIXERATHelper(void)
-// {
-//     /* If forced emergency landing activated and in EMERG state */
-//     if (posControl.flags.mixerATHelperActivated && (navGetStateFlags(posControl.navState) & NAV_CTL_ALT)) {
-//         return ALTHOLD_IN_PROGRESS;
-//     } else {
-//         return ALTHOLD_IDLE;
-//     }
-// }
-
 bool isWaypointMissionRTHActive(void)
 {
     return (navGetStateFlags(posControl.navState) & NAV_AUTO_RTH) && IS_RC_MODE_ACTIVE(BOXNAVWP) &&
@@ -4485,13 +4457,6 @@ bool isWaypointMissionRTHActive(void)
 bool navigationIsExecutingAnEmergencyLanding(void)
 {
     return navGetCurrentStateFlags() & NAV_CTL_EMERG;
-}
-
-
-bool navigationInAnyMode(void)
-{
-    navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-    return !(stateFlags == 0);
 }
 
 bool navigationInAutomaticThrottleMode(void)
