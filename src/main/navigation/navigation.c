@@ -2838,7 +2838,13 @@ void updateLandingStatus(timeMs_t currentTimeMs)
 
 bool isLandingDetected(void)
 {
+#if !defined(USE_VARIABLE_PITCH)
     return STATE(AIRPLANE) ? isFixedWingLandingDetected() : isMulticopterLandingDetected();
+#else
+    return STATE(AIRPLANE)
+        ? isFixedWingLandingDetected()
+        : (mixerConfig()->platformType == PLATFORM_HELICOPTER ? isHelicopterLandingDetected() : isMulticopterLandingDetected());
+#endif
 }
 
 void resetLandingDetector(void)
@@ -2849,7 +2855,13 @@ void resetLandingDetector(void)
 
 bool isFlightDetected(void)
 {
+#if !defined(USE_VARIABLE_PITCH)
     return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
+#else
+    return STATE(AIRPLANE)
+        ? isFixedWingFlying()
+        : (mixerConfig()->platformType == PLATFORM_HELICOPTER ? isHelicopterFlying() : isMulticopterFlying());
+#endif    
 }
 
 /*-----------------------------------------------------------
@@ -2926,7 +2938,11 @@ static void resetAltitudeController(bool useTerrainFollowing)
         resetFixedWingAltitudeController();
     }
     else {
+#if !defined(USE_VARIABLE_PITCH)        
         resetMulticopterAltitudeController();
+#else
+        resetHelicopterAltitudeController();
+#endif                
     }
 }
 
@@ -2936,7 +2952,11 @@ static void setupAltitudeController(void)
         setupFixedWingAltitudeController();
     }
     else {
+#if !defined(USE_VARIABLE_PITCH)        
         setupMulticopterAltitudeController();
+#else
+        setupHelicopterAltitudeController();
+#endif                
     }
 }
 
@@ -2946,7 +2966,11 @@ static bool adjustAltitudeFromRCInput(void)
         return adjustFixedWingAltitudeFromRCInput();
     }
     else {
+#if !defined(USE_VARIABLE_PITCH)        
         return adjustMulticopterAltitudeFromRCInput();
+#else
+        return adjustHelicopterAltitudeFromRCInput();
+#endif                
     }
 }
 
@@ -2988,7 +3012,11 @@ static void resetHeadingController(void)
         resetFixedWingHeadingController();
     }
     else {
+#if !defined(USE_VARIABLE_PITCH)
         resetMulticopterHeadingController();
+#else
+        resetHelicopterHeadingController();
+#endif
     }
 }
 
@@ -3546,7 +3574,11 @@ void applyWaypointNavigationAndAltitudeHold(void)
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
     else {
+#if !defined(USE_VARIABLE_PITCH)
         applyMulticopterNavigationController(navStateFlags, currentTimeUs);
+#else
+        applyHelicopterNavigationController(navStateFlags, currentTimeUs);
+#endif
     }
     //if (mixerConfig()->platformType == PLATFORM_HELICOPTER) { do something }
     /* Consume position data */

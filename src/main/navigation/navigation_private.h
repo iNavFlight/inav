@@ -444,7 +444,6 @@ bool isLandingDetected(void);
 void resetLandingDetector(void);
 bool isFlightDetected(void);
 bool isFixedWingFlying(void);
-bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 
@@ -482,8 +481,27 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 bool isMulticopterLandingDetected(void);
+bool isMulticopterFlying(void);
 
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
+
+#if defined(USE_VARIABLE_PITCH)
+
+/* Helicopter-specific functions */
+void setupHelicopterAltitudeController(void);
+bool adjustHelicopterAltitudeFromRCInput(void);
+void applyHelicopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
+
+void resetHelicopterAltitudeController(void);
+void resetHelicopterHeadingController(void);
+
+bool isHelicopterFlying(void);
+bool isHelicopterLandingDetected(void);
+
+/* Multicopter-specific functions used by helicopter navigation */
+void applyMulticopterPositionController(timeUs_t currentTimeUs);
+
+#endif
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);
