@@ -61,7 +61,8 @@ typedef enum {
 
 typedef enum {
     ROC_TO_ALT_RESET,
-    ROC_TO_ALT_NORMAL
+    ROC_TO_ALT_CONSTANT,
+    ROC_TO_ALT_TARGET
 } climbRateToAltitudeControllerMode_e;
 
 typedef enum {
@@ -447,7 +448,7 @@ void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFla
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
-void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
+void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode);
 
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);

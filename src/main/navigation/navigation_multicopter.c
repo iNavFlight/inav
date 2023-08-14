@@ -133,11 +133,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
-            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             posControl.desiredState.pos.z = altTarget;
         }
         else {
-            updateClimbRateToAltitudeController(-50.0f, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
@@ -159,14 +159,14 @@ bool adjustMulticopterAltitudeFromRCInput(void)
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - getThrottleIdleValue() - rcControlsConfig()->alt_hold_deadband);
             }
 
-            updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
             return true;
         }
         else {
             // Adjusting finished - reset desired position to stay exactly where pilot released the stick
             if (posControl.flags.isAdjustingAltitude) {
-                updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+                updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             }
 
             return false;
@@ -720,10 +720,56 @@ bool isMulticopterFlying(void)
 /*-----------------------------------------------------------
  * Multicopter land detector
  *-----------------------------------------------------------*/
+  #if defined(USE_BARO)
+float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue)
+{
+    static float baroAltRate;
+    if (updateValue) {
+        baroAltRate = newBaroAltRate;
+    }
+
+    return baroAltRate;
+}
+
+static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
+{
+    /* Detection based on G bump at touchdown, falling Baro altitude and throttle below hover.
+     * G bump trigger: > 2g then falling back below 1g in < 0.1s.
+     * Baro trigger: rate must be -ve at initial trigger g and < -2 m/s when g falls back below 1g
+     * Throttle trigger: must be below hover throttle with lower threshold for manual throttle control */
+
+    static timeMs_t gSpikeDetectTimeMs = 0;
+    float baroAltRate = updateBaroAltitudeRate(0, false);
+
+    if (!gSpikeDetectTimeMs && acc.accADCf[Z] > 2.0f && baroAltRate < 0.0f) {
+        gSpikeDetectTimeMs = currentTimeMs;
+    } else if (gSpikeDetectTimeMs) {
+        if (currentTimeMs < gSpikeDetectTimeMs + 100) {
+            if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
+                const uint16_t idleThrottle = getThrottleIdleValue();
+                const uint16_t hoverThrottleRange = currentBatteryProfile->nav.mc.hover_throttle - idleThrottle;
+                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
+            }
+        } else if (acc.accADCf[Z] <= 1.0f) {
+            gSpikeDetectTimeMs = 0;
+        }
+    }
+
+    return false;
+}
+#endif
 bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
-    static timeMs_t landingDetectorStartedAt;
+    DEBUG_SET(DEBUG_LANDING, 3, averageAbsGyroRates() * 100);
+
+    const timeMs_t currentTimeMs = millis();
+
+#if defined(USE_BARO)
+    if (sensors(SENSOR_BARO) && navConfig()->general.flags.landing_bump_detection && isLandingGbumpDetected(currentTimeMs)) {
+        return true;    // Landing flagged immediately if landing bump detected
+    }
+#endif
 
     bool throttleIsBelowMidHover = rcCommand[THROTTLE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
 
@@ -734,6 +780,8 @@ bool isMulticopterLandingDetected(void)
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && throttleIsBelowMidHover)
                           || (!navigationIsFlyingAutonomousMode() && throttleStickIsLow());
+
+    static timeMs_t landingDetectorStartedAt;
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
         landingDetectorStartedAt = 0;
@@ -751,7 +799,6 @@ bool isMulticopterLandingDetected(void)
     DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
     bool possibleLandingDetected = false;
-    const timeMs_t currentTimeMs = millis();
 
     if (navGetCurrentStateFlags() & NAV_CTL_LAND) {
         // We have likely landed if throttle is 40 units below average descend throttle
@@ -842,7 +889,8 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+            // target min descent rate 5m above takeoff altitude
+            updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 500.0f, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }

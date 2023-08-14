@@ -232,8 +232,8 @@ static bool icm42605GyroRead(gyroDev_t *gyro)
     }
 
     gyro->gyroADCRaw[X] = (float) int16_val_big_endian(data, 0);
-    gyro->gyroADCRaw[Y] = (float) int16_val_big_endian(data, 0);
-    gyro->gyroADCRaw[Z] = (float) int16_val_big_endian(data, 0);
+    gyro->gyroADCRaw[Y] = (float) int16_val_big_endian(data, 1);
+    gyro->gyroADCRaw[Z] = (float) int16_val_big_endian(data, 2);
 
     return true;
 }
