@@ -72,8 +72,8 @@
 
 stickPositions_e rcStickPositions;
 
-FASTRAM int16_t rcCommand[8];           // interval [1000;2000] for THROTTLE and GYRO_GAIN,
-                                        // [-500;+500] for ROLL/PITCH/YAW/COLLECTIVE (woga65:)
+FASTRAM int16_t rcCommand[8];           // interval [1000;2000] for THROTTLE, COLLECTIVE and GYRO_GAIN,
+                                        // [-500;+500] for ROLL/PITCH/YAW (woga65:)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 3);
 

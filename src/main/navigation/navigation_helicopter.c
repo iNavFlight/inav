@@ -60,8 +60,8 @@
 
 static int16_t rcCommandAdjustedThrottle;
 static int16_t rcCommandAdjustedCollective;
-static int16_t altHoldThrottleRCZero = 1500;
-static pt1Filter_t altholdThrottleFilterState;
+static int16_t altHoldThrustRCZero = 1500;
+static pt1Filter_t altholdThrustFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
 
@@ -120,7 +120,7 @@ static void updateAltitudeThrottleController_HC(timeDelta_t deltaMicros)
 
     float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, 0);
 
-    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrustFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
     posControl.rcAdjustment[THROTTLE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, getThrottleIdleValue(), motorConfig()->maxthrottle);
@@ -134,7 +134,7 @@ static void updateAltitudeCollectiveController_HC(timeDelta_t deltaMicros)
 
     float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), collCorrectionMin, collCorrectionMax, 0);
 
-    int16_t rcCollectiveCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    int16_t rcCollectiveCorrection = pt1FilterApply4(&altholdThrustFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
     rcCollectiveCorrection = constrain(rcCollectiveCorrection, collCorrectionMin, collCorrectionMax);
 
     posControl.rcAdjustment[COLLECTIVE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcCollectiveCorrection, 1000, 2000);
@@ -161,8 +161,8 @@ bool adjustHelicopterAltitudeFromRCInput(void)
     }
     else {
         const int16_t rcThrottleAdjustment = (mixerConfig()->platformType == PLATFORM_HELICOPTER)
-            ? applyDeadbandRescaled(rcCommand[COLLECTIVE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500)
-            : applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);        
+            ? applyDeadbandRescaled(rcCommand[COLLECTIVE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500)
+            : applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);        
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
@@ -172,12 +172,12 @@ bool adjustHelicopterAltitudeFromRCInput(void)
             const int16_t minValue = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? 1000 : getThrottleIdleValue();
 
             if (rcThrottleAdjustment > 0) {
-                // Scaling from altHoldThrottleRCZero to PWM_RANGE_MAX or maxthrottle
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(maxValue - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
+                // Scaling from altHoldThrustRCZero to PWM_RANGE_MAX or maxthrottle
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(maxValue - altHoldThrustRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
-                // Scaling from PWM_RANGE_MIN or minthrottle to altHoldThrottleRCZero
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - minValue - rcControlsConfig()->alt_hold_deadband);
+                // Scaling from PWM_RANGE_MIN or minthrottle to altHoldThrustRCZero
+                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrustRCZero - minValue - rcControlsConfig()->alt_hold_deadband);
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
@@ -195,7 +195,7 @@ bool adjustHelicopterAltitudeFromRCInput(void)
     }
 }
 
-void setupHelicopterAltitudeController(void)           // woga65:
+void setupHelicopterAltitudeController(void)
 {
     bool stickIsLow;
     int16_t rcCmd, maxValue, minValue, rcLookupValue;
@@ -215,15 +215,15 @@ void setupHelicopterAltitudeController(void)           // woga65:
     }
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
-        altHoldThrottleRCZero = rcLookupValue;
+        altHoldThrustRCZero = rcLookupValue;
     }
     else {
         // If throttle / collective is LOW - use Thr Mid anyway
-        altHoldThrottleRCZero = (stickIsLow) ? rcLookupValue : rcCmd;
+        altHoldThrustRCZero = (stickIsLow) ? rcLookupValue : rcCmd;
     }
 
     // Make sure we are able to satisfy the deadband
-    altHoldThrottleRCZero = constrain(altHoldThrottleRCZero,
+    altHoldThrustRCZero = constrain(altHoldThrustRCZero,
                                       minValue + rcControlsConfig()->alt_hold_deadband + 10,
                                       maxValue - rcControlsConfig()->alt_hold_deadband - 10);
 
@@ -250,7 +250,7 @@ void resetHelicopterAltitudeController(void)
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
 
-    pt1FilterReset(&altholdThrottleFilterState, 0.0f);
+    pt1FilterReset(&altholdThrustFilterState, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].error_filter_state, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
 
@@ -292,7 +292,7 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
                 posControl.desiredState.vel.z = -navConfig()->general.max_manual_climb_rate;
                 posControl.desiredState.pos.z = posToUse->pos.z - (navConfig()->general.max_manual_climb_rate / posControl.pids.pos[Z].param.kP);
                 posControl.pids.vel[Z].integrator = -500.0f;
-                pt1FilterReset(&altholdThrottleFilterState, -500.0f);
+                pt1FilterReset(&altholdThrustFilterState, -500.0f);
                 prepareForTakeoffOnReset = false;
             }
 
@@ -428,14 +428,15 @@ bool isHelicopterLandingDetected(void)
             landingDetectorStartedAt = currentTimeMs;
         }
         if (!landingThrSamples) {
-            if (currentTimeMs - landingDetectorStartedAt < S2MS(MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
+            // Wait for 1 second so throttle has stabilized.
+            if (currentTimeMs - landingDetectorStartedAt < S2MS(MC_LAND_THR_STABILISE_DELAY)) {
                 return false;
             } else {
                 landingDetectorStartedAt = currentTimeMs;
             }
         }
         landingThrSamples += 1;
-        landingThrSum += (THRUST == THROTTLE) ? rcCommandAdjustedThrottle : rcCommandAdjustedCollective;  //woga65:
+        landingThrSum += (THRUST == THROTTLE) ? rcCommandAdjustedThrottle : rcCommandAdjustedCollective;
         isAtMinimalThrust = (THRUST == THROTTLE) 
             ? rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE)
             : rcCommandAdjustedCollective < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
@@ -493,9 +494,9 @@ static void applyHelicopterEmergencyLandingController(timeUs_t currentTimeUs)
     /* Sensors have gone haywire, attempt to land regardless */
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
-            /* woga65: on helicopter center collective pitch */
+            /* on helicopter center collective pitch */
             rcCommand[THRUST] = (THRUST == THROTTLE) ? getThrottleIdleValue() : 1500;
-            /* woga65: on helicopter cut throttle immediately */
+            /* on helicopter cut throttle immediately */
             rcCommand[THROTTLE] = (THRUST == THROTTLE) ? rcCommand[THROTTLE] : 1000;
             return;
         }
