@@ -41,10 +41,10 @@
 static uartDevice_t *uartFindDevice(uartPort_t *uartPort)
 {
     for (uint32_t i = 0; i < UART_DEVICE_MAX ; i++) {
-        uartDevice_t *dev = uartHardwareMap[i];
+        uartDevice_t *pDevice = uartHardwareMap[i];
 
-        if (&dev->port == uartPort) {
-            return dev;
+        if (pDevice->dev == uartPort->USARTx) {
+            return pDevice;
         }
     }
     return NULL;
@@ -59,7 +59,7 @@ static void uartConfigurePinSwap(uartPort_t *uartPort)
     }
 
     if (uartDevice->pinSwap == true) {
-    	usart_transmit_receive_pin_swap(uartDevice->port.USARTx,TRUE);
+    	usart_transmit_receive_pin_swap(uartPort->USARTx,TRUE);
     }
 }
 
