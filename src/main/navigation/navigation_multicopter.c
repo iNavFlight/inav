@@ -437,7 +437,7 @@ static void setMulticopterStopPosition(void)
 
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
-    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+    if (navGetMappedFlightModes(posControl.navState) & NAV_COURSE_HOLD_MODE) {
         if (rcPitchAdjustment) {
             return adjustMulticopterCruiseSpeed(rcPitchAdjustment);
         }

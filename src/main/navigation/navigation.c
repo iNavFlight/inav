@@ -487,7 +487,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_CRUISE_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_CRUISE_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_COURSE_HOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -954,7 +954,7 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
     return navFSM[state].stateFlags;
 }
 
-static flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state)
+flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state)
 {
     return navFSM[state].mapToFlightModes;
 }
@@ -1104,12 +1104,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         return NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ;
     }
 
-    int16_t cruiseYawRate = DEGREES_TO_CENTIDEGREES(navConfig()->general.cruise_yaw_rate);
     const bool mcRollStickHeadingAdjustmentActive = STATE(MULTIROTOR) && ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband;
 
     // User demanding yaw -> yaw stick on FW, yaw or roll sticks on MR
     // We record the desired course and change the desired target in the meanwhile
     if (posControl.flags.isAdjustingHeading || mcRollStickHeadingAdjustmentActive) {
+        int16_t cruiseYawRate = DEGREES_TO_CENTIDEGREES(navConfig()->general.cruise_yaw_rate);
         int16_t headingAdjustCommand = rcCommand[YAW];
         if (mcRollStickHeadingAdjustmentActive && ABS(rcCommand[ROLL]) > ABS(headingAdjustCommand)) {
             headingAdjustCommand = -rcCommand[ROLL];
