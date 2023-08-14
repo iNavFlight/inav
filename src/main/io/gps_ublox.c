@@ -55,17 +55,20 @@
 
 
 // SBAS_AUTO, SBAS_EGNOS, SBAS_WAAS, SBAS_MSAS, SBAS_GAGAN, SBAS_NONE
-// note PRNs last upadted 2020-12-18
+// note PRNs last upadted 2023-08-10
+// https://www.gps.gov/technical/prn-codes/L1-CA-PRN-code-assignments-2023-Apr.pdf
 
 #define SBASMASK1_BASE 120
 #define SBASMASK1_BITS(prn) (1 << (prn-SBASMASK1_BASE))
 
 static const uint32_t ubloxScanMode1[] = {
     0x00000000, // AUTO
-    (SBASMASK1_BITS(123) | SBASMASK1_BITS(126) | SBASMASK1_BITS(136)), // SBAS
-    (SBASMASK1_BITS(131) | SBASMASK1_BITS(133) | SBASMASK1_BITS(138)), // WAAS
-    (SBASMASK1_BITS(129) | SBASMASK1_BITS(137)), // MAAS
-    (SBASMASK1_BITS(127) | SBASMASK1_BITS(128)), // GAGAN
+    (SBASMASK1_BITS(121) | SBASMASK1_BITS(123) | SBASMASK1_BITS(126) | SBASMASK1_BITS(136) | SBASMASK1_BITS(150)), // SBAS_EGNOS
+    (SBASMASK1_BITS(131) | SBASMASK1_BITS(133) | SBASMASK1_BITS(135) | SBASMASK1_BITS(138)), // WAAS
+
+    (SBASMASK1_BITS(129) | SBASMASK1_BITS(137) | SBASMASK1_BITS(139)), // MSAS
+
+    (SBASMASK1_BITS(127) | SBASMASK1_BITS(128) | SBASMASK1_BITS(132)), // GAGAN
     0x00000000, // NONE
 };
 
@@ -76,8 +79,8 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,19200,0*23\r\n",      // GPS_BAUDRATE_19200
     "$PUBX,41,1,0003,0001,9600,0*16\r\n",       // GPS_BAUDRATE_9600
     "$PUBX,41,1,0003,0001,230400,0*1C\r\n",     // GPS_BAUDRATE_230400
-    "$PUBX,41,1,0003,0001,460800,0*1C\r\n",     // GPS_BAUDRATE_460800
-    "$PUBX,41,1,0003,0001,921600,0*1C\r\n"      // GPS_BAUDRATE_921600
+    "$PUBX,41,1,0003,0001,460800,0*13\r\n",     // GPS_BAUDRATE_460800
+    "$PUBX,41,1,0003,0001,921600,0*15\r\n"      // GPS_BAUDRATE_921600
 };
 
 // Packet checksum accumulators
@@ -379,9 +382,9 @@ static void configureGNSS10(void)
 {
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
-            {UBLOX_CFG_SIGNAL_SBAS_ENA, 1},
-            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, 1},
-    
+            {UBLOX_CFG_SIGNAL_SBAS_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
+            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
+
             // Galileo
             {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
             {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},

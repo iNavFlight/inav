@@ -403,6 +403,9 @@ static void exchangeData(void)
         constrainToInt16(north.y * 16000.0f),
         constrainToInt16(north.z * 16000.0f)
     );
+
+    free(rfValues.m_currentAircraftStatus);
+    free(response);
 }
 
 static void* soapWorker(void* arg)
@@ -412,9 +415,9 @@ static void* soapWorker(void* arg)
     {     
         if (!isInitalised) {
             startRequest("RestoreOriginalControllerDevice", "<RestoreOriginalControllerDevice><a>1</a><b>2</b></RestoreOriginalControllerDevice>");
-            endRequest();
+            free(endRequest());
             startRequest("InjectUAVControllerInterface", "<InjectUAVControllerInterface><a>1</a><b>2</b></InjectUAVControllerInterface>");
-            endRequest();        
+            free(endRequest());  
             exchangeData();
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
             
