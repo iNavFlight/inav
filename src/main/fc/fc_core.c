@@ -735,10 +735,12 @@ void processRx(timeUs_t currentTimeUs)
         DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
     }
+#if defined(USE_VARIABLE_PITCH)    
     // woga65: On Collective pitch aircraft like helicopters we prevent I-term wind-up all together
     else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         ENABLE_STATE(ANTI_WINDUP);        
     }
+#endif    
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
              if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
