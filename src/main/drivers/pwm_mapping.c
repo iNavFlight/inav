@@ -276,8 +276,20 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             else if (timHw->usageFlags & TIM_USE_MC_MOTOR) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
-        } else {
-            // Fixed wing or HELI (one/two motors and a lot of servos
+        }
+#if defined(USE_VARIABLE_PITCH)        
+        else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+            // HELI or HELI-QUAD (a few motors and a lot of servos)
+            if (timHw->usageFlags & TIM_USE_HC_SERVO) {
+                type = MAP_TO_SERVO_OUTPUT;
+            }
+            else if (timHw->usageFlags & TIM_USE_HC_MOTOR) {
+                type = MAP_TO_MOTOR_OUTPUT;
+            }
+        }
+#endif        
+        else {
+            // Fixed wing or HELI (one/two motors and a lot of servos)
             if (timHw->usageFlags & TIM_USE_FW_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
