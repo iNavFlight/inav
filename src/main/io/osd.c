@@ -2023,9 +2023,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
             if (STATE(MULTIROTOR) && posControl.flags.isAdjustingAltitude) {
-                /* Indicate MR altitude adjustment active with constant "A" if altitude above -99m.
-                 * Alternate "A" on/off with 600ms cycle below -99m to maintain visibility of -ve sign */
-                if (alt > -9900) {
+                /* Indicate MR altitude adjustment active with constant "A" if first field position blank.
+                 * Alternate "A" on/off with 600ms cycle if not blank to maintain visibility of -ve sign */
+                if (buff[0] == SYM_BLANK) {
                     buff[0] = 'A';
                     break;
                 }
