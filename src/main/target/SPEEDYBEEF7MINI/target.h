@@ -19,7 +19,12 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "SBMN"
+
+#ifdef SPEEDYBEEF7MINI2
+#define USBD_PRODUCT_STRING  "SPEEDYBEEF7MINI2"
+#else
 #define USBD_PRODUCT_STRING  "SPEEDYBEEF7MINI"
+#endif
 
 #define LED0                    PA14  //Blue   SWCLK
 
@@ -35,17 +40,19 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW0_DEG
-#define MPU6000_CS_PIN          PB2
-#define MPU6000_SPI_BUS         BUS_SPI1
-
 #ifdef SPEEDYBEEF7MINI2
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW0_DEG
 #define BMI270_CS_PIN           PB2
 #define BMI270_SPI_BUS          BUS_SPI1
+
+#else 
+
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW0_DEG
+#define MPU6000_CS_PIN          PB2
+#define MPU6000_SPI_BUS         BUS_SPI1
 
 #endif
 
