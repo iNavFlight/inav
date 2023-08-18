@@ -180,4 +180,9 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS       6
+// woga65:
+#if defined(KAKUTEF7MINI_7PWM) || defined(KAKUTEF7_7PWM) || defined(KAKUTEF7MINI_7PWM_VP) || defined(KAKUTEF7_7PWM_VP)
+#   define MAX_PWM_OUTPUT_PORTS     7
+#else
+#   define MAX_PWM_OUTPUT_PORTS     6
+#endif
