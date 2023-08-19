@@ -638,6 +638,7 @@ extern int16_t navActualVelocity[3];
 extern int16_t navDesiredVelocity[3];
 extern int32_t navTargetPosition[3];
 extern int32_t navLatestActualPosition[3];
+extern uint16_t navDesiredHeading;
 extern int16_t navActualSurface;
 extern uint16_t navFlags;
 extern uint16_t navEPH;
