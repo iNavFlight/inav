@@ -1512,9 +1512,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_OUTPUT_MAPPING:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
             if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: sbufWriteU8(dst, timerHardware[i].usageFlags);
+                sbufWriteU8(dst, timerHardware[i].usageFlags);      //woga65: kept for backward compaibility
             }
         break;
+
+    case MSP2_INAV_OUTPUT_MAPPING_FULL:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: send the full 32 bits of timer usage flags per timer
+            }
+        break;        
 
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
