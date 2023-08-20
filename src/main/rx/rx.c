@@ -66,12 +66,12 @@
 #include "rx/sim.h"
 
 #if (MAX_MAPPABLE_RX_INPUTS == 4)
-  const char rcChannelLetters[] = "AERT";
+  const char rcChannelLetters[]             = "AERT";
 #else
-  #if defined(USE_VARIABLE_PITCH)           // woga65: letters for COLLECTIVE + GYRO_GAIN
-    const char rcChannelLetters[] = "AERT12CG";
+  #if defined(USE_VARIABLE_PITCH)   // woga65: letters for COLLECTIVE + GYRO_GAIN
+    const char rcChannelLetters[]           = "AERT12CG";
   #else
-    const char rcChannelLetters[] = "AERT1234";
+    const char rcChannelLetters[]           = "AERT1234";
   #endif
 #endif
 
