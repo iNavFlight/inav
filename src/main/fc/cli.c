@@ -2842,7 +2842,7 @@ static void cliMap(char *cmdline)
 
 #if defined(USE_VARIABLE_PITCH)
     // woga65: Also print out the corresponding generic RC-channel mapping to avoid confusion
-    cliPrint("=>  ");
+    cliPrint("=>   ");
     for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++){
         out[rxConfig()->rcmap[i]] = genericLetters[i];
     }
