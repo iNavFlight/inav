@@ -70,6 +70,7 @@
 #else
   #if defined(USE_VARIABLE_PITCH)   // woga65: letters for COLLECTIVE + GYRO_GAIN
     const char rcChannelLetters[]           = "AERT12CG";
+    const char genericLetters[]             = "AERT1234";   // used in fc/cli.c to print out generic mapping too
   #else
     const char rcChannelLetters[]           = "AERT1234";
   #endif

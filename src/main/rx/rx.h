@@ -90,11 +90,15 @@ typedef enum {
 
 extern const char rcChannelLetters[];
 
+#if defined(USE_VARIABLE_PITCH)
+  extern const char genericLetters[];   //woga65:
+#endif
+
 /* woga65: Count of RC-channels that can be controlled 
  * by navigation or failsafe. Also, number of RC-channels 
  * that will be remappable by the user. */
 #if defined(USE_VARIABLE_PITCH)
-#   define MAX_MAPPABLE_RX_INPUTS 8                         /* woga65: either 4 or 8 (set to 8 for variable pitch targets) */
+#   define MAX_MAPPABLE_RX_INPUTS 8                         /* woga65: always set to 8 for variable pitch targets */
 #   define CONTROL_CHANNEL_COUNT (MAX_MAPPABLE_RX_INPUTS)
 #else
 #   define MAX_MAPPABLE_RX_INPUTS 4                         /* woga65: either 4 or 8 (set to 4 for non variable pitch targets) */
