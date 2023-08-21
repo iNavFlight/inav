@@ -410,8 +410,16 @@ static void processPilotAndFailSafeActions(float dT)
 
         }
 
+#if !defined(USE_VARIABLE_PITCH)    // woga65:
         //Compute THROTTLE command
         rcCommand[THROTTLE] = throttleStickMixedValue();
+#else
+        //Compute COLLECTIVE + THROTTLE command
+        if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+            rcCommand[COLLECTIVE] = constrain(rxGetChannelValue(COLLECTIVE), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            rcCommand[THROTTLE]   = constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        }
+#endif
 
         // Signal updated rcCommand values to Failsafe system
         failsafeUpdateRcCommandValues();
@@ -736,59 +744,78 @@ void processRx(timeUs_t currentTimeUs)
         pidResetErrorAccumulators();
     }
 #if defined(USE_VARIABLE_PITCH)    
-    // woga65: On Collective pitch aircraft like helicopters we prevent I-term wind-up all together
+    // woga65: On Collective pitch aircraft like helicopters we ...
     else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        ENABLE_STATE(ANTI_WINDUP);  // if (!isHelicopterFlying()) {ENABLE_STATE(ANTI_WINDUP);}
+        ENABLE_STATE(ANTI_WINDUP);    // ... prevent I-term wind-up all together!
+        /*
+        if (collectiveStickIsLow()) {                               // collective is somewhat centered:
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {         // check airmode && no failsafe 
+                if ((rollPitchStatus == CENTERED)) {                        // sticke centered:
+                    ENABLE_STATE(ANTI_WINDUP);                              // prevent I-term wind-up
+                }
+                else {                                                      // sticks not centered:
+                    DISABLE_STATE(ANTI_WINDUP);                             // disable wind-up protection
+                }
+            }
+            else {                                                      // no airmode or faisafe:
+                DISABLE_STATE(ANTI_WINDUP);                                 // disable wind-up protection
+                pidResetErrorAccumulators();                                // reset what has been wound up
+            }
+        }
+        else {                                                      // collective not around center position:
+            DISABLE_STATE(ANTI_WINDUP);                                 // disable wind-up protection
+        }
+        */
     }
 #endif    
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-             if (rollPitchStatus != CENTERED) {
-                 ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
-             }
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+            if (rollPitchStatus != CENTERED) {
+                ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
+            }
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
-         DISABLE_STATE(ANTI_WINDUP);
-         //This case applies only to MR when Airmode management is throttle threshold activated
-         if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
-             pidResetErrorAccumulators();
-         }
-     }
+        DISABLE_STATE(ANTI_WINDUP);
+        //This case applies only to MR when Airmode management is throttle threshold activated
+        if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
+            pidResetErrorAccumulators();
+        }
+    }
 //---------------------------------------------------------
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
