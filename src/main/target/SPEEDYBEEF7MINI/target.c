@@ -26,7 +26,7 @@
 #include "drivers/pinio.h"
 #include "drivers/sensor.h"
 
-#ifdef SPEEDYBEEF7MINI2
+#ifdef SPEEDYBEEF7MINIV2
 BUSDEV_REGISTER_SPI_TAG(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      NONE,       0,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
 #else
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
