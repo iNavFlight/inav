@@ -610,6 +610,7 @@ const char * fixedWingLaunchStateMessage(void);
 float calculateAverageSpeed(void);
 
 void updateLandingStatus(timeMs_t currentTimeMs);
+bool isProbablyStillFlying(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 

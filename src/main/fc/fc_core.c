@@ -118,6 +118,7 @@ uint8_t motorControlEnable = false;
 static bool isRXDataNew;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
+timeMs_t emergInflightRearmTimeout = 0;
 
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
@@ -176,7 +177,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
-#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914   
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914
     const int16_t value = rawData - PWM_RANGE_MIDDLE;
     if (value < -500) {
         stickDeflection = -500;
@@ -186,9 +187,9 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
         stickDeflection = value;
     }
 #else
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);   
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
 #endif
-    
+
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
     return rcLookup(stickDeflection, rate);
 }
@@ -432,6 +433,7 @@ void disarm(disarmReason_t disarmReason)
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
         lastDisarmTimeUs = micros();
+        emergInflightRearmTimeout = US2MS(lastDisarmTimeUs) + (isProbablyStillFlying() ?  5000 : 0);
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef USE_BLACKBOX
@@ -509,6 +511,11 @@ void releaseSharedTelemetryPorts(void) {
     }
 }
 
+bool emergInflightRearmEnabled(void)
+{
+    return millis() < emergInflightRearmTimeout;
+}
+
 void tryArm(void)
 {
     updateArmingStatus();
@@ -529,9 +536,10 @@ void tryArm(void)
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    if (!isArmingDisabled() || emergencyArmingIsEnabled() || LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
+    if (!isArmingDisabled() || emergencyArmingIsEnabled() || emergInflightRearmEnabled() ||
+        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
 #else
-    if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
+    if (!isArmingDisabled() || emergencyArmingIsEnabled() || emergInflightRearmEnabled()) {
 #endif
         // If nav_extra_arming_safety was bypassed we always
         // allow bypassing it even without the sticks set
@@ -837,7 +845,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
-  
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 

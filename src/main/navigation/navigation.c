@@ -228,6 +228,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
+static bool landingDetectorIsActive;
 
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
@@ -2803,14 +2804,14 @@ void updateLandingStatus(timeMs_t currentTimeMs)
     }
     lastUpdateTimeMs = currentTimeMs;
 
-    static bool landingDetectorIsActive;
-
     DEBUG_SET(DEBUG_LANDING, 0, landingDetectorIsActive);
     DEBUG_SET(DEBUG_LANDING, 1, STATE(LANDING_DETECTED));
 
     if (!ARMING_FLAG(ARMED)) {
-        resetLandingDetector();
-        landingDetectorIsActive = false;
+        if (!emergInflightRearmEnabled()) {
+            resetLandingDetector();
+            landingDetectorIsActive = false;
+        }
         if (!IS_RC_MODE_ACTIVE(BOXARM)) {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
         }
@@ -2850,6 +2851,15 @@ void resetLandingDetector(void)
 bool isFlightDetected(void)
 {
     return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
+}
+
+bool isProbablyStillFlying(void)
+{
+    bool inFlightSanityCheck = false;
+    if (STATE(AIRPLANE)) {
+        inFlightSanityCheck = isGPSHeadingValid();
+    }
+    return landingDetectorIsActive && !STATE(LANDING_DETECTED) && inFlightSanityCheck;
 }
 
 /*-----------------------------------------------------------
@@ -3801,7 +3811,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         canActivateWaypoint = false;
 
         // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
-        canActivateLaunchMode = isNavLaunchEnabled();
+        canActivateLaunchMode = isNavLaunchEnabled() && (!sensors(SENSOR_GPS) || (sensors(SENSOR_GPS) && !isGPSHeadingValid()));
     }
 
     return NAV_FSM_EVENT_SWITCH_TO_IDLE;
