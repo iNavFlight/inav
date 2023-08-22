@@ -1301,6 +1301,16 @@ static void writeSlowFrame(void)
 static void loadSlowState(blackboxSlowState_t *slow)
 {
     memcpy(&slow->flightModeFlags, &rcModeActivationMask, sizeof(slow->flightModeFlags)); //was flightModeFlags;
+    // Also log Nav auto selected flight modes rather than just those selected by boxmode
+    if (!IS_RC_MODE_ACTIVE(BOXANGLE) && FLIGHT_MODE(ANGLE_MODE)) {
+        slow->flightModeFlags |= (1 << BOXANGLE);
+    }
+    if (navigationGetHeadingControlState() == HEADING_HOLD_ENABLED) {
+        slow->flightModeFlags |= (1 << BOXHEADINGHOLD);
+    }
+    if (navigationRequiresTurnAssistance()) {
+        slow->flightModeFlags |= (1 << BOXTURNASSIST);
+    }
     slow->stateFlags = stateFlags;
     slow->failsafePhase = failsafePhase();
     slow->rxSignalReceived = rxIsReceivingSignal();

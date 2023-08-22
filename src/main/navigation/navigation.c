@@ -3836,9 +3836,8 @@ bool navigationRequiresTurnAssistance(void)
         // For airplanes turn assistant is always required when controlling position
         return (currentState & (NAV_CTL_POS | NAV_CTL_ALT));
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
 /**
