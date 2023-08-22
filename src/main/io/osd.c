@@ -2024,8 +2024,8 @@ static bool osdDrawSingleElement(uint8_t item)
             }
 
             if (STATE(MULTIROTOR) && posControl.flags.isAdjustingAltitude) {
-                /* Indicate MR altitude adjustment active with constant "A" at first blank position.
-                 * Alternate "A" on/off with 600ms cycle if first position not blank (to maintain visibility of -ve sign) */
+                /* Indicate MR altitude adjustment active with constant symbol at first blank position.
+                 * Alternate symbol on/off with 600ms cycle if first position not blank (to maintain visibility of -ve sign) */
                 int8_t blankPos;
                 for (blankPos = 2; blankPos >= 0; blankPos--) {
                     if (buff[blankPos] == SYM_BLANK) {
