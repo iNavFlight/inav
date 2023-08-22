@@ -177,17 +177,15 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 void setupMulticopterAltitudeController(void)
 {
     const bool stickIsLow = throttleStickIsLow();
-    int16_t rcCmd = rcCommand[THROTTLE];
-    int16_t rcLookupValue = rcLookupThrottleMid();
-    int16_t maxValue = motorConfig()->maxthrottle;
-    int16_t minValue = getThrottleIdleValue();
+    const int16_t maxValue = motorConfig()->maxthrottle;
+    const int16_t minValue = getThrottleIdleValue();
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
-        altHoldThrottleRCZero = rcLookupValue;
+        altHoldThrottleRCZero = rcLookupThrottleMid();
     }
     else {
         // If throttle is LOW - use Thr Mid anyway
-        altHoldThrottleRCZero = (stickIsLow) ? rcLookupValue : rcCmd;
+        altHoldThrottleRCZero = (stickIsLow) ? rcLookupThrottleMid() : rcCommand[THROTTLE];
     }
 
     // Make sure we are able to satisfy the deadband

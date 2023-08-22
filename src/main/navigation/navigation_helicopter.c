@@ -58,7 +58,6 @@
  *-----------------------------------------------------------*/
 #if defined(USE_VARIABLE_PITCH)
 
-static int16_t rcCommandAdjustedThrottle;
 static int16_t rcCommandAdjustedCollective;
 static int16_t altHoldThrustRCZero = 1500;
 static pt1Filter_t altholdThrustFilterState;
@@ -94,13 +93,15 @@ static void updateAltitudeVelocityController_HC(timeDelta_t deltaMicros)
 
     if (velTargetChange <= -smallVelChange) {
         // Large & Negative - acceleration is _down_. We can't reach more than -1G in any possible condition. Hard limit to 0.8G to stay safe
-        // This should be safe enough for stability since we only reduce throttle
+        // This should be safe enough for stability since we only reduce throttle. 
+        // woga65: @todo change comment to sth. meaningful since we CAN DEFINITIVELY reach more than -1G on colective-pitch aircraft!
         const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS * 0.8f);
         posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
     }
     else if (velTargetChange >= smallVelChange) {
         // Large and positive - acceleration is _up_. We are limited by thrust/weight ratio which is usually about 2:1 (hover around 50% throttle).
-        // T/W ratio = 2 means we are able to reach 1G acceleration in "UP" direction. Hard limit to 0.5G to be on a safe side and avoid abrupt throttle changes
+        // T/W ratio = 2 means we are able to reach 1G acceleration in "UP" direction. Hard limit to 0.5G to be on a safe side and avoid abrupt throttle changes.
+        // woga65: @todo change comment to sth. meaningful: 75% collective might be hovering, 50% might be falling, 25% might be accelerating downwards!
         const float maxVelDifference = US2S(deltaMicros) * (GRAVITY_CMSS * 0.5f);
         posControl.desiredState.vel.z = constrainf(targetVel, posControl.desiredState.vel.z - maxVelDifference, posControl.desiredState.vel.z + maxVelDifference);
     }
@@ -110,20 +111,6 @@ static void updateAltitudeVelocityController_HC(timeDelta_t deltaMicros)
     }
 
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
-}
-
-static void updateAltitudeThrottleController_HC(timeDelta_t deltaMicros)
-{
-    // Calculate min and max throttle boundaries (to compensate for integral windup)
-    const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t thrCorrectionMax = motorConfig()->maxthrottle - currentBatteryProfile->nav.mc.hover_throttle;
-
-    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, 0);
-
-    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrustFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
-    rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
-
-    posControl.rcAdjustment[THROTTLE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, getThrottleIdleValue(), motorConfig()->maxthrottle);
 }
 
 static void updateAltitudeCollectiveController_HC(timeDelta_t deltaMicros)
@@ -143,9 +130,8 @@ static void updateAltitudeCollectiveController_HC(timeDelta_t deltaMicros)
 bool adjustHelicopterAltitudeFromRCInput(void)
 {
     if (posControl.flags.isTerrainFollowEnabled) {
-        float altTarget = (mixerConfig()->platformType == PLATFORM_HELICOPTER)
-            ? scaleRangef(rcCommand[COLLECTIVE], 1000, 2000, 0, navConfig()->general.max_terrain_follow_altitude)
-            : scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
+        float altTarget = scaleRangef(rcCommand[COLLECTIVE], 1000, 2000, 0, navConfig()->general.max_terrain_follow_altitude);
+
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
@@ -160,24 +146,20 @@ bool adjustHelicopterAltitudeFromRCInput(void)
         return true;
     }
     else {
-        const int16_t rcThrustAdjustment = (mixerConfig()->platformType == PLATFORM_HELICOPTER)
-            ? applyDeadbandRescaled(rcCommand[COLLECTIVE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500)
-            : applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);        
+        const int16_t rcThrustAdjustment = applyDeadbandRescaled(rcCommand[COLLECTIVE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);    
+
         if (rcThrustAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
 
             // Make sure we can satisfy max_manual_climb_rate in both up and down directions
-            const int16_t maxValue = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? 2000 : motorConfig()->maxthrottle;
-            const int16_t minValue = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? 1000 : getThrottleIdleValue();
-
             if (rcThrustAdjustment > 0) {
                 // Scaling from altHoldThrustRCZero to PWM_RANGE_MAX or maxthrottle
-                rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(maxValue - altHoldThrustRCZero - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(2000 - altHoldThrustRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
                 // Scaling from PWM_RANGE_MIN or minthrottle to altHoldThrustRCZero
-                rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrustRCZero - minValue - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrustRCZero - 1000 - rcControlsConfig()->alt_hold_deadband);
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
@@ -197,35 +179,20 @@ bool adjustHelicopterAltitudeFromRCInput(void)
 
 void setupHelicopterAltitudeController(void)
 {
-    bool stickIsLow;
-    int16_t rcCmd, maxValue, minValue, rcLookupValue;
-    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        stickIsLow = collectiveStickIsLow();
-        rcCmd = rcCommand[COLLECTIVE];
-        rcLookupValue = 1500;
-        maxValue = 2000;
-        minValue = 1000;        
-    }
-    else { 
-        stickIsLow = throttleStickIsLow();
-        rcCmd = rcCommand[THROTTLE];
-        rcLookupValue = rcLookupThrottleMid();
-        maxValue = motorConfig()->maxthrottle;
-        minValue = getThrottleIdleValue();
-    }
+    const bool stickIsLow = collectiveStickIsLow();;
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
-        altHoldThrustRCZero = rcLookupValue;
+        altHoldThrustRCZero = 1500;
     }
     else {
         // If throttle / collective is LOW - use Thr Mid anyway
-        altHoldThrustRCZero = (stickIsLow) ? rcLookupValue : rcCmd;
+        altHoldThrustRCZero = (stickIsLow) ? 1500 : rcCommand[COLLECTIVE];
     }
 
     // Make sure we are able to satisfy the deadband
     altHoldThrustRCZero = constrain(altHoldThrustRCZero,
-                                      minValue + rcControlsConfig()->alt_hold_deadband + 10,
-                                      maxValue - rcControlsConfig()->alt_hold_deadband - 10);
+                                      1000 + rcControlsConfig()->alt_hold_deadband + 10,
+                                      2000 - rcControlsConfig()->alt_hold_deadband - 10);
 
     // Force AH controller to initialize althold integral for pending takeoff on reset
     // Signal for that is low throttle _and_ low actual altitude
@@ -236,8 +203,6 @@ void setupHelicopterAltitudeController(void)
 
 void resetHelicopterAltitudeController(void)
 {
-    const int8_t THRUST = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? COLLECTIVE : THROTTLE;
-
     const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
     float nav_speed_up = 0.0f;
     float nav_speed_down = 0.0f;
@@ -246,7 +211,7 @@ void resetHelicopterAltitudeController(void)
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
 
-    posControl.rcAdjustment[THRUST] = currentBatteryProfile->nav.mc.hover_throttle;
+    posControl.rcAdjustment[COLLECTIVE] = currentBatteryProfile->nav.mc.hover_throttle;
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
 
@@ -298,9 +263,7 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
 
             // Execute actual altitude controllers
             updateAltitudeVelocityController_HC(deltaMicrosPositionUpdate);
-            (mixerConfig()->platformType == PLATFORM_HELICOPTER)
-                ? updateAltitudeCollectiveController_HC(deltaMicrosPositionUpdate)
-                : updateAltitudeThrottleController_HC(deltaMicrosPositionUpdate);
+            updateAltitudeCollectiveController_HC(deltaMicrosPositionUpdate);
         }
         else {
             // Position update has not occurred in time (first start or glitch), reset altitude controller
@@ -311,23 +274,15 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
         posControl.flags.verticalPositionDataConsumed = true;
     }
 
-    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        rcCommand[COLLECTIVE] = posControl.rcAdjustment[COLLECTIVE];
-        rcCommandAdjustedCollective = rcCommand[COLLECTIVE];
-    }
-    else {
-        rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
-        rcCommandAdjustedThrottle = rcCommand[THROTTLE];
-    }
+    rcCommand[COLLECTIVE] = posControl.rcAdjustment[COLLECTIVE];
+    rcCommandAdjustedCollective = rcCommand[COLLECTIVE];
 }
 
 
 
 bool isHelicopterFlying(void)
 {
-    bool throttleCondition = (mixerConfig()->platformType == PLATFORM_HELICOPTER) 
-        ? rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle
-        : rcCommand[THROTTLE] > currentBatteryProfile->nav.mc.hover_throttle;
+    bool throttleCondition = rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle; 
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
 
     return throttleCondition && gyroCondition;
@@ -354,10 +309,8 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
     } else if (gSpikeDetectTimeMs) {
         if (currentTimeMs < gSpikeDetectTimeMs + 100) {
             if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
-                const uint16_t idleValue = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? 1000 : getThrottleIdleValue();
-                const uint16_t hoverRange = currentBatteryProfile->nav.mc.hover_throttle - idleValue;
-                const uint8_t THRUST = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? COLLECTIVE : THROTTLE;
-                return rcCommand[THRUST] < idleValue + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverRange);
+                const uint16_t hoverCollectiveRange = currentBatteryProfile->nav.mc.hover_throttle - 1000;
+                return rcCommand[COLLECTIVE] < 1000 + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverCollectiveRange);
       }
         } else if (acc.accADCf[Z] <= 1.0f) {
             gSpikeDetectTimeMs = 0;
@@ -381,10 +334,7 @@ bool isHelicopterLandingDetected(void)
     }
 #endif
 
-    const uint8_t THRUST = mixerConfig()->platformType == PLATFORM_HELICOPTER ? COLLECTIVE : THROTTLE;
-    const uint16_t idleValue = mixerConfig()->platformType == PLATFORM_HELICOPTER ? 1000 : getThrottleIdleValue();
-
-    bool throttleIsBelowMidHover = rcCommand[THRUST] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + idleValue));
+    bool throttleIsBelowMidHover = rcCommand[COLLECTIVE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + 1000));
 
     /* Basic condition to start looking for landing
      * Detection active during Failsafe only if throttle below mid hover throttle
@@ -392,7 +342,7 @@ bool isHelicopterLandingDetected(void)
      * Also active in non autonomous flight modes but only when thottle low */
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && throttleIsBelowMidHover)
-                          || (!navigationIsFlyingAutonomousMode() && (THRUST == THROTTLE ? throttleStickIsLow() : collectiveStickIsLow()));
+                          || (!navigationIsFlyingAutonomousMode() && collectiveStickIsLow());
 
     static timeMs_t landingDetectorStartedAt;
 
@@ -414,8 +364,8 @@ bool isHelicopterLandingDetected(void)
     bool possibleLandingDetected = false;
 
     if (navGetCurrentStateFlags() & NAV_CTL_LAND) {
-        // We have likely landed if throttle is 40 units below average descend throttle
-        // We use rcCommandAdjustedThrottle to keep track of NAV corrected throttle (isLandingDetected is executed
+        // We have likely landed if collective is 40 units below average descend collective
+        // We use rcCommandAdjustedCollective to keep track of NAV corrected collective (isLandingDetected is executed
         // from processRx() and rcCommand at that moment holds rc input, not adjusted values from NAV core)
         DEBUG_SET(DEBUG_LANDING, 4, 1);
 
@@ -436,14 +386,12 @@ bool isHelicopterLandingDetected(void)
             }
         }
         landingThrSamples += 1;
-        landingThrSum += (THRUST == THROTTLE) ? rcCommandAdjustedThrottle : rcCommandAdjustedCollective;
-        isAtMinimalThrust = (THRUST == THROTTLE) 
-            ? rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE)
-            : rcCommandAdjustedCollective < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
+        landingThrSum += rcCommandAdjustedCollective;
+        isAtMinimalThrust = rcCommandAdjustedCollective < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
 
         possibleLandingDetected = isAtMinimalThrust && velCondition;
 
-        DEBUG_SET(DEBUG_LANDING, 6, THRUST == THROTTLE ? rcCommandAdjustedThrottle : rcCommandAdjustedCollective);
+        DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedCollective);
         DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
     } else {    // non autonomous and emergency landing
         DEBUG_SET(DEBUG_LANDING, 4, 2);
@@ -481,23 +429,21 @@ bool isHelicopterLandingDetected(void)
  *-----------------------------------------------------------*/
 static void applyHelicopterEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    const uint8_t THRUST = (mixerConfig()->platformType) == PLATFORM_HELICOPTER ? COLLECTIVE : THROTTLE;
-
     static timeUs_t previousTimePositionUpdate = 0;
 
     /* Attempt to stabilise */
     rcCommand[YAW] = 0;
     rcCommand[ROLL] = 0;
     rcCommand[PITCH] = 0;
-    rcCommand[THRUST] = currentBatteryProfile->failsafe_throttle;
+    rcCommand[COLLECTIVE] = currentBatteryProfile->failsafe_throttle;
 
     /* Sensors have gone haywire, attempt to land regardless */
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             /* on helicopter center collective pitch */
-            rcCommand[THRUST] = (THRUST == THROTTLE) ? getThrottleIdleValue() : 1500;
+            rcCommand[COLLECTIVE] = 1500;
             /* on helicopter cut throttle immediately */
-            rcCommand[THROTTLE] = (THRUST == THROTTLE) ? rcCommand[THROTTLE] : 1000;
+            rcCommand[THROTTLE] = 1000;
             return;
         }
     }
@@ -512,9 +458,7 @@ static void applyHelicopterEmergencyLandingController(timeUs_t currentTimeUs)
             // target min descent rate 5m above takeoff altitude
             updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 500.0f, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_HC(deltaMicrosPositionUpdate);     
-            (THRUST == THROTTLE)
-                ? updateAltitudeThrottleController_HC(deltaMicrosPositionUpdate)
-                : updateAltitudeCollectiveController_HC(deltaMicrosPositionUpdate);
+            updateAltitudeCollectiveController_HC(deltaMicrosPositionUpdate);
         }
         else {
             // due to some glitch position update has not occurred in time, reset altitude controller
@@ -526,7 +470,7 @@ static void applyHelicopterEmergencyLandingController(timeUs_t currentTimeUs)
     }
 
     // Update throttle controller
-    rcCommand[THRUST] = posControl.rcAdjustment[THRUST];
+    rcCommand[COLLECTIVE] = posControl.rcAdjustment[COLLECTIVE];
 
     // Hold position if possible
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
