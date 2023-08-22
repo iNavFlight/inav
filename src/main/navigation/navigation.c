@@ -40,8 +40,8 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #ifdef USE_MULTI_MISSION
-#include "fc/rc_adjustments.h"
-#include "fc/cli.h"
+#  include "fc/rc_adjustments.h"
+#  include "fc/cli.h"
 #endif
 #include "fc/settings.h"
 
@@ -2829,7 +2829,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             disarm(DISARM_LANDING);
         } else if (!navigationInAutomaticThrottleMode()) {
             // for multirotor only - reactivate landing detector without disarm when throttle raised toward hover throttle
-            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));    //woga65: @todo
         }
     } else if (isLandingDetected()) {
         ENABLE_STATE(LANDING_DETECTED);
@@ -2937,12 +2937,13 @@ static void resetAltitudeController(bool useTerrainFollowing)
     if (STATE(FIXED_WING_LEGACY)) {
         resetFixedWingAltitudeController();
     }
-    else {
-#if !defined(USE_VARIABLE_PITCH)        
-        resetMulticopterAltitudeController();
-#else
+#if defined(USE_VARIABLE_PITCH)
+    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         resetHelicopterAltitudeController();
-#endif                
+    } 
+#endif
+    else {
+        resetMulticopterAltitudeController();
     }
 }
 
@@ -2951,12 +2952,13 @@ static void setupAltitudeController(void)
     if (STATE(FIXED_WING_LEGACY)) {
         setupFixedWingAltitudeController();
     }
-    else {
-#if !defined(USE_VARIABLE_PITCH)        
-        setupMulticopterAltitudeController();
-#else
+#if defined(USE_VARIABLE_PITCH)
+    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         setupHelicopterAltitudeController();
-#endif                
+    }
+#endif
+    else {
+        setupMulticopterAltitudeController();
     }
 }
 
@@ -2965,12 +2967,13 @@ static bool adjustAltitudeFromRCInput(void)
     if (STATE(FIXED_WING_LEGACY)) {
         return adjustFixedWingAltitudeFromRCInput();
     }
-    else {
-#if !defined(USE_VARIABLE_PITCH)        
-        return adjustMulticopterAltitudeFromRCInput();
-#else
+#if defined(USE_VARIABLE_PITCH)
+    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         return adjustHelicopterAltitudeFromRCInput();
-#endif                
+    }
+#endif
+    else {
+        return adjustMulticopterAltitudeFromRCInput();
     }
 }
 
@@ -3011,12 +3014,13 @@ static void resetHeadingController(void)
     if (STATE(FIXED_WING_LEGACY)) {
         resetFixedWingHeadingController();
     }
-    else {
-#if !defined(USE_VARIABLE_PITCH)
-        resetMulticopterHeadingController();
-#else
+#if defined(USE_VARIABLE_PITCH)
+    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         resetHelicopterHeadingController();
+    } 
 #endif
+    else {
+        resetMulticopterHeadingController();
     }
 }
 
@@ -3573,14 +3577,15 @@ void applyWaypointNavigationAndAltitudeHold(void)
     } else if (STATE(FIXED_WING_LEGACY)) {
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
-    else {
-#if !defined(USE_VARIABLE_PITCH)
-        applyMulticopterNavigationController(navStateFlags, currentTimeUs);
-#else
+#if defined(USE_VARIABLE_PITCH)
+    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         applyHelicopterNavigationController(navStateFlags, currentTimeUs);
-#endif
     }
-    //if (mixerConfig()->platformType == PLATFORM_HELICOPTER) { do something }
+#endif
+    else {
+        applyMulticopterNavigationController(navStateFlags, currentTimeUs);
+    }
+
     /* Consume position data */
     if (posControl.flags.horizontalPositionDataConsumed)
         posControl.flags.horizontalPositionDataNew = false;

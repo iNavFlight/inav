@@ -927,10 +927,24 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         }
 
         if (thrTiltCompStrength) {
+#if defined(USE_VARIABLE_PITCH)
+            if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+                rcCommand[COLLECTIVE] = constrain(PWM_RANGE_MIN
+                                                + (rcCommand[COLLECTIVE] - PWM_RANGE_MIN) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                                PWM_RANGE_MIN,
+                                                PWM_RANGE_MAX);                 //woga65: calculate tilt compensation on base of collective pitch
+            } else {
+                rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
+                                                + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                                getThrottleIdleValue(),
+                                                motorConfig()->maxthrottle);    //woga65: calculate tilt compensation on base of throttle
+            }
+#else
             rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
                                             + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
                                             getThrottleIdleValue(),
                                             motorConfig()->maxthrottle);
+#endif
         }
     }
     else {

@@ -160,10 +160,10 @@ bool adjustHelicopterAltitudeFromRCInput(void)
         return true;
     }
     else {
-        const int16_t rcThrottleAdjustment = (mixerConfig()->platformType == PLATFORM_HELICOPTER)
+        const int16_t rcThrustAdjustment = (mixerConfig()->platformType == PLATFORM_HELICOPTER)
             ? applyDeadbandRescaled(rcCommand[COLLECTIVE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500)
             : applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrustRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);        
-        if (rcThrottleAdjustment) {
+        if (rcThrustAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
 
@@ -171,13 +171,13 @@ bool adjustHelicopterAltitudeFromRCInput(void)
             const int16_t maxValue = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? 2000 : motorConfig()->maxthrottle;
             const int16_t minValue = (mixerConfig()->platformType == PLATFORM_HELICOPTER) ? 1000 : getThrottleIdleValue();
 
-            if (rcThrottleAdjustment > 0) {
+            if (rcThrustAdjustment > 0) {
                 // Scaling from altHoldThrustRCZero to PWM_RANGE_MAX or maxthrottle
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(maxValue - altHoldThrustRCZero - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(maxValue - altHoldThrustRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
                 // Scaling from PWM_RANGE_MIN or minthrottle to altHoldThrustRCZero
-                rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrustRCZero - minValue - rcControlsConfig()->alt_hold_deadband);
+                rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrustRCZero - minValue - rcControlsConfig()->alt_hold_deadband);
             }
 
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
@@ -298,7 +298,7 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
 
             // Execute actual altitude controllers
             updateAltitudeVelocityController_HC(deltaMicrosPositionUpdate);
-            mixerConfig()->platformType == PLATFORM_HELICOPTER 
+            (mixerConfig()->platformType == PLATFORM_HELICOPTER)
                 ? updateAltitudeCollectiveController_HC(deltaMicrosPositionUpdate)
                 : updateAltitudeThrottleController_HC(deltaMicrosPositionUpdate);
         }
