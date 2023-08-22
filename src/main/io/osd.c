@@ -2022,22 +2022,22 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
+
             if (STATE(MULTIROTOR) && posControl.flags.isAdjustingAltitude) {
                 /* Indicate MR altitude adjustment active with constant "A" at first blank position.
                  * Alternate "A" on/off with 600ms cycle if first position not blank (to maintain visibility of -ve sign) */
-                if (buff[2] == SYM_BLANK) {
-                    buff[2] = 'A';
-                    break;
-                } else if (buff[1] == SYM_BLANK) {
-                    buff[1] = 'A';
-                    break;
-                } else if (buff[0] == SYM_BLANK) {
-                    buff[0] = 'A';
-                    break;
+                int8_t blankPos;
+                for (blankPos = 2; blankPos >= 0; blankPos--) {
+                    if (buff[blankPos] == SYM_BLANK) {
+                        break;
+                    }
                 }
-                buff[0] = OSD_ALTERNATING_CHOICES(600, 2) == 0 ? 'A' : buff[0];
+                if (blankPos >= 0 || OSD_ALTERNATING_CHOICES(600, 2) == 0) {
+                    blankPos = blankPos < 0 ? 0 : blankPos;
+                    displayWriteChar(osdDisplayPort, elemPosX + blankPos, elemPosY, SYM_TERRAIN_FOLLOWING);
+                }
             }
-            break;
+            return true;
         }
 
     case OSD_ALTITUDE_MSL:
@@ -4903,9 +4903,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                     if (STATE(LANDING_DETECTED)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
-                    }
-                    if (STATE(MULTIROTOR) && posControl.flags.isAdjustingAltitude) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALT_ADJUST);
                     }
                 }
             }
