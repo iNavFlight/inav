@@ -1305,7 +1305,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
     if (!IS_RC_MODE_ACTIVE(BOXANGLE) && FLIGHT_MODE(ANGLE_MODE)) {
         slow->flightModeFlags |= (1 << BOXANGLE);
     }
-    if (navigationGetHeadingControlState() == HEADING_HOLD_ENABLED) {
+    if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {
         slow->flightModeFlags |= (1 << BOXHEADINGHOLD);
     }
     if (navigationRequiresTurnAssistance()) {
