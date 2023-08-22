@@ -4355,8 +4355,18 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     displayCommitTransaction(osdDisplayPort);
 }
 
-// called when motors armed
-static void osdShowArmed(void)
+// HD arming screen. based on the minimum HD OSD grid size of 50 x 18
+static void osdShowHDArmScreen(void)
+{
+    dateTime_t dt;
+    char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
+    char craftNameBuf[MAX_NAME_LENGTH];
+    char versionBuf[30];
+    char *date;
+    char *time;
+}
+
+static void osdShowSDArmScreen(void)
 {
     dateTime_t dt;
     char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
@@ -4367,7 +4377,6 @@ static void osdShowArmed(void)
     // We need 12 visible rows, start row never < first fully visible row 1
     uint8_t y = osdDisplayPort->rows > 13 ? (osdDisplayPort->rows - 12) / 2 : 1;
 
-    displayClearScreen(osdDisplayPort);
     strcpy(buf, "ARMED");
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, y, buf);
     y += 2;
@@ -4434,6 +4443,18 @@ static void osdShowArmed(void)
 
     tfp_sprintf(versionBuf, "INAV VERSION: %s", FC_VERSION_STRING);
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(versionBuf)) / 2, y, versionBuf);
+}
+
+// called when motors armed
+static void osdShowArmed(void)
+{
+    displayClearScreen(osdDisplayPort);
+
+    if (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS) {
+        osdShowHDArmScreen();
+    } else {
+        osdShowSDArmScreen();
+    }
 }
 
 static void osdFilterData(timeUs_t currentTimeUs) {
