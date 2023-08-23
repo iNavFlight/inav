@@ -3282,6 +3282,16 @@ Max allowed above the ground altitude for terrain following mode
 
 ---
 
+### nav_mc_althold_throttle
+
+If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| STICK |  |  |
+
+---
+
 ### nav_mc_bank_angle
 
 Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
@@ -3745,16 +3755,6 @@ If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en 
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### nav_use_midthr_for_althold
-
-If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude
 
 | Default | Min | Max |
 | --- | --- | --- |

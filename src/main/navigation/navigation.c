@@ -107,7 +107,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
 
         .flags = {
-            .use_thr_mid_for_althold = SETTING_NAV_USE_MIDTHR_FOR_ALTHOLD_DEFAULT,
             .extra_arming_safety = SETTING_NAV_EXTRA_ARMING_SAFETY_DEFAULT,
             .user_control_mode = SETTING_NAV_USER_CONTROL_MODE_DEFAULT,
             .rth_alt_control_mode = SETTING_NAV_RTH_ALT_MODE_DEFAULT,
@@ -176,9 +175,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                        // Max braking angle
 #endif
 
-        .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,          // posDecelerationTime * 100
-        .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                           // posResponseExpo * 100
+        .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,        // posDecelerationTime * 100
+        .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                         // posResponseExpo * 100
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,
+        .althold_throttle_type = SETTING_NAV_MC_ALTHOLD_THROTTLE_DEFAULT,           // STICK
     },
 
     // Fixed wing
