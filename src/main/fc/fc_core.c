@@ -104,6 +104,7 @@ enum {
 #define EMERGENCY_ARMING_TIME_WINDOW_MS 10000
 #define EMERGENCY_ARMING_COUNTER_STEP_MS 1000
 #define EMERGENCY_ARMING_MIN_ARM_COUNT 10
+#define EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS 5000
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
@@ -119,6 +120,7 @@ static bool isRXDataNew;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
 timeMs_t emergInflightRearmTimeout = 0;
+timeMs_t mcEmergRearmStabiliseTimeout = 0;
 
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
@@ -314,11 +316,11 @@ static void updateArmingStatus(void)
 
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
-	       ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
-	    }
+           ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+        }
         else {
-	       DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
-	    }
+           DISABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
+        }
 
 #ifdef USE_DSHOT
         /* CHECK: Don't arm if the DShot beeper was used recently, as there is a minimum delay before sending the next DShot command */
@@ -433,7 +435,7 @@ void disarm(disarmReason_t disarmReason)
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
         lastDisarmTimeUs = micros();
-        emergInflightRearmTimeout = US2MS(lastDisarmTimeUs) + (isProbablyStillFlying() ?  5000 : 0);
+        emergInflightRearmTimeout = US2MS(lastDisarmTimeUs) + (isProbablyStillFlying() ?  EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS : 0);
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef USE_BLACKBOX
@@ -501,19 +503,20 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
-
-void releaseSharedTelemetryPorts(void) {
-    serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
-    while (sharedPort) {
-        mspSerialReleasePortIfAllocated(sharedPort);
-        sharedPort = findNextSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
-    }
-}
-
 bool emergInflightRearmEnabled(void)
 {
-    return millis() < emergInflightRearmTimeout;
+    /* Emergency rearm allowed within emergInflightRearmTimeout window.
+     * On MR emergency rearm only allowed after 1.5s if MR dropping after disarm, i.e. still in flight */
+    timeMs_t currentTimeMs = millis();
+    if (STATE(MULTIROTOR)) {
+        uint16_t mcFlightSanityCheckTime = EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS - 1500;  // check MR vertical speed at least 2 sec after disarm
+        if (getEstimatedActualVelocity(Z) > -100.0f && (emergInflightRearmTimeout - currentTimeMs < mcFlightSanityCheckTime)) {
+            emergInflightRearmTimeout = currentTimeMs;      // MR doesn't appear to be flying so don't allow emergency rearm
+        } else {
+            mcEmergRearmStabiliseTimeout = currentTimeMs + 5000;    // activate Angle mode for 5s after rearm to help stabilise MR
+        }
+    }
+    return currentTimeMs < emergInflightRearmTimeout;
 }
 
 void tryArm(void)
@@ -594,6 +597,16 @@ void tryArm(void)
     }
 }
 
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+
+void releaseSharedTelemetryPorts(void) {
+    serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
+    while (sharedPort) {
+        mspSerialReleasePortIfAllocated(sharedPort);
+        sharedPort = findNextSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
+    }
+}
+
 void processRx(timeUs_t currentTimeUs)
 {
     // Calculate RPY channel data
@@ -644,9 +657,12 @@ void processRx(timeUs_t currentTimeUs)
         processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
     }
 
+    // Angle mode forced on briefly after multirotor emergency in flight rearm to help stabilise attitude
+    bool mcEmergRearmAngleEnforce = STATE(MULTIROTOR) && mcEmergRearmStabiliseTimeout > millis();
+    bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || mcEmergRearmAngleEnforce;
     bool canUseHorizonMode = true;
 
-    if ((IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || navigationRequiresAngleMode()) && sensors(SENSOR_ACC)) {
+    if (sensors(SENSOR_ACC) && (IS_RC_MODE_ACTIVE(BOXANGLE) || autoEnableAngle)) {
         // bumpless transfer to Level mode
         canUseHorizonMode = false;
 
@@ -813,7 +829,6 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 #endif
-
 }
 
 // Function for loop trigger
@@ -929,15 +944,15 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
 
 #ifdef USE_SIMULATOR
-	if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-	    if (isServoOutputEnabled()) {
-	        writeServos();
-	    }
+    if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        if (isServoOutputEnabled()) {
+            writeServos();
+        }
 
-	    if (motorControlEnable) {
-	        writeMotors();
-	    }
-	}
+        if (motorControlEnable) {
+            writeMotors();
+        }
+    }
 #else
     if (isServoOutputEnabled()) {
         writeServos();

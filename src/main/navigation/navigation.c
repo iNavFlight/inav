@@ -2855,10 +2855,9 @@ bool isFlightDetected(void)
 
 bool isProbablyStillFlying(void)
 {
-    bool inFlightSanityCheck = false;
-    if (STATE(AIRPLANE)) {
-        inFlightSanityCheck = isGPSHeadingValid();
-    }
+    // Multirotor flight sanity checked after disarm so always true here
+    bool inFlightSanityCheck = STATE(MULTIROTOR) || (STATE(AIRPLANE) && isGPSHeadingValid());
+
     return landingDetectorIsActive && !STATE(LANDING_DETECTED) && inFlightSanityCheck;
 }
 
