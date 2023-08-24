@@ -288,13 +288,26 @@ bool isHelicopterFlying(void)
     return collectiveCondition && gyroCondition;
 }
 
+bool isHelicopterFlyingUpright(void)
+{
+    bool collectiveCondition = rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle; 
+    bool gyroCondition = averageAbsGyroRates() > 7.0f;
+    bool uprightCondition = attitude.values.roll < 900 || attitude.values.roll > -900;
+
+    return (accIsCalibrationComplete()) 
+        ? gyroCondition && uprightCondition
+        : gyroCondition && collectiveCondition;
+}
 
 bool isHelicopterFlyingInverted(void)
 {
     bool collectiveCondition = rcCommand[COLLECTIVE] < (1500 - (currentBatteryProfile->nav.mc.hover_throttle - 1500)); 
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
+    bool invertedCondition = attitude.values.roll > 900 || attitude.values.roll < -900;
 
-    return collectiveCondition && gyroCondition;
+    return (accIsCalibrationComplete()) 
+        ? gyroCondition && invertedCondition
+        : gyroCondition && collectiveCondition;
 }
 
 

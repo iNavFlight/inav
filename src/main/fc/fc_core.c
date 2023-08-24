@@ -747,11 +747,14 @@ void processRx(timeUs_t currentTimeUs)
 #if defined(USE_VARIABLE_PITCH)
     // On Helicopters we prevent I-term wind-up as long as the aircraft is sitting on the ground.
     // The helicopter is deemed sitting on the ground if neither upright flying nor inverted flying
-    // is detected. This is the case if the gyro is sitting idle and COLLECTIVE pitch is below
-    // positive hover pitch and above negative hover pitch.  
+    // is detected. 
+    // This is the case if the gyro is sitting idle and COLLECTIVE pitch is below positive hover pitch
+    // and above negative hover pitch. 
+    // If an accelerometer is present and calibrated, it is used instead of the position of the 
+    // COLLECTIVE stick to determine whether the craft's position is upright or inverted. 
     else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {  //woga65:
 
-        if (!isHelicopterFlying() && !isHelicopterFlyingInverted()) {
+        if (!isHelicopterFlyingUpright() && !isHelicopterFlyingInverted()) {
             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
                 ENABLE_STATE(ANTI_WINDUP);
             }
