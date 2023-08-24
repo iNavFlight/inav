@@ -68,6 +68,11 @@ static void processAirmodeAirplane(void) {
 }
 
 static void processAirmodeMultirotor(void) {
+#if defined(USE_VARIABLE_PITCH)     // woga65:
+    uint8_t THRUST = STATE(HELICOPTER) ? COLLECTIVE : THROTTLE;
+#else
+    uint8_t THRUST = THROTTLE;
+#endif
     if ((rcControlsConfig()->airmodeHandlingType == STICK_CENTER) || (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE)) {
         if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
             ENABLE_STATE(AIRMODE_ACTIVE);
@@ -83,7 +88,7 @@ static void processAirmodeMultirotor(void) {
             DISABLE_STATE(AIRMODE_ACTIVE);
         } else if (
             !STATE(AIRMODE_ACTIVE) &&
-            rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
+            rcCommand[THRUST] > rcControlsConfig()->airmodeThrottleThreshold &&     // woga65:
             (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
         ) {
             /*
@@ -111,7 +116,7 @@ void processAirmode(void) {
 
     if (STATE(AIRPLANE)) {
         processAirmodeAirplane();
-    } else if (STATE(MULTIROTOR)) {
+    } else if (STATE(MULTIROTOR)) {     // woga65: STATE(HELICOPTER) inherits STATE(MULTIROTOR)
         processAirmodeMultirotor();
     }
 

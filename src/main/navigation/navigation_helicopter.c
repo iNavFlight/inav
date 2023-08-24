@@ -282,10 +282,19 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
 
 bool isHelicopterFlying(void)
 {
-    bool throttleCondition = rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle; 
+    bool collectiveCondition = rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle; 
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
 
-    return throttleCondition && gyroCondition;
+    return collectiveCondition && gyroCondition;
+}
+
+
+bool isHelicopterFlyingInverted(void)
+{
+    bool collectiveCondition = rcCommand[COLLECTIVE] < (1500 - (currentBatteryProfile->nav.mc.hover_throttle - 1500)); 
+    bool gyroCondition = averageAbsGyroRates() > 7.0f;
+
+    return collectiveCondition && gyroCondition;
 }
 
 

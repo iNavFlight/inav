@@ -123,6 +123,7 @@ typedef enum {
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
     COMPASS_CALIBRATED                  = (1 << 8),
     ACCELEROMETER_CALIBRATED            = (1 << 9),
+    HELICOPTER                          = (1 << 10),    // woga65:
     NAV_CRUISE_BRAKING                  = (1 << 11),
     NAV_CRUISE_BRAKING_BOOST            = (1 << 12),
     NAV_CRUISE_BRAKING_LOCKED           = (1 << 13),

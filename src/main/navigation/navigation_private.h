@@ -496,6 +496,7 @@ void resetHelicopterAltitudeController(void);
 void resetHelicopterHeadingController(void);
 
 bool isHelicopterFlying(void);
+bool isHelicopterFlyingInverted(void);
 bool isHelicopterLandingDetected(void);
 
 /* Multicopter-specific functions used by helicopter navigation */

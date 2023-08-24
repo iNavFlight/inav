@@ -72,6 +72,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -743,31 +744,29 @@ void processRx(timeUs_t currentTimeUs)
         DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
     }
-#if defined(USE_VARIABLE_PITCH)    
-    // woga65: On Collective pitch aircraft like helicopters we ...
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        ENABLE_STATE(ANTI_WINDUP);    // ... prevent I-term wind-up all together!
-        /*
-        if (collectiveStickIsLow()) {                               // collective is somewhat centered:
-            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {         // check airmode && no failsafe 
-                if ((rollPitchStatus == CENTERED)) {                        // sticke centered:
-                    ENABLE_STATE(ANTI_WINDUP);                              // prevent I-term wind-up
-                }
-                else {                                                      // sticks not centered:
-                    DISABLE_STATE(ANTI_WINDUP);                             // disable wind-up protection
-                }
+#if defined(USE_VARIABLE_PITCH)
+    // On Helicopters we prevent I-term wind-up as long as the aircraft is sitting on the ground.
+    // The helicopter is deemed sitting on the ground if neither upright flying nor inverted flying
+    // is detected. This is the case if the gyro is sitting idle and COLLECTIVE pitch is below
+    // positive hover pitch and above negative hover pitch.  
+    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {  //woga65:
+
+        if (!isHelicopterFlying() && !isHelicopterFlyingInverted()) {
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                ENABLE_STATE(ANTI_WINDUP);
             }
-            else {                                                      // no airmode or faisafe:
-                DISABLE_STATE(ANTI_WINDUP);                                 // disable wind-up protection
-                pidResetErrorAccumulators();                                // reset what has been wound up
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
             }
         }
-        else {                                                      // collective not around center position:
-            DISABLE_STATE(ANTI_WINDUP);                                 // disable wind-up protection
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
         }
-        */
+
     }
-#endif    
+#endif
+
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
