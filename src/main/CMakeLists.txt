@@ -335,6 +335,8 @@ main_sources(COMMON_SRC
     flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
+    flight/variable_pitch.c
+    flight/variable_pitch.h
 
     io/beeper.c
     io/beeper.h

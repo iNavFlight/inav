@@ -3964,3 +3964,27 @@ groups:
           max: 1
           default_value: 1
           type: float
+
+  - name: PG_HELICOPTER_CONFIG
+    type: helicopterConfig_t
+    headers: ["flight/variable_pitch.h"]
+    condition: USE_VARIABLE_PITCH
+    members:
+        - name: nav_hc_hover_collective_normal
+          field: nav_hc_hover_collective[0]
+          min: 1000
+          max: 2000
+          default_value: 1600
+          type: uint16_t
+        - name: nav_hc_hover_collective_idleup_1
+          field: nav_hc_hover_collective[1]
+          min: 1000
+          max: 2000
+          default_value: 1550
+          type: uint16_t
+        - name: nav_hc_hover_collective_idleup_2
+          field: nav_hc_hover_collective[2]
+          min: 1000
+          max: 2000
+          default_value: 1525
+          type: uint16_t

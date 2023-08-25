@@ -119,8 +119,9 @@
 #define PG_UNUSED_1 1029
 #define PG_POWER_LIMITS_CONFIG 1030
 #define PG_OSD_COMMON_CONFIG 1031
-#define PG_PID_SCALING 1032 //woga65: scale PID to meet the aircraft type's needs
-#define PG_INAV_END 1032
+#define PG_PID_SCALING 1032         //woga65: scale PID to meet the aircraft type's needs
+#define PG_HELICOPTER_CONFIG 1033   //woga65: helicopter specific settings
+#define PG_INAV_END 1033
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047
