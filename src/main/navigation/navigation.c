@@ -235,10 +235,10 @@ EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 int16_t navCurrentState;
 int16_t navActualVelocity[3];
 int16_t navDesiredVelocity[3];
-int16_t navActualHeading;
-int16_t navDesiredHeading;
 int32_t navTargetPosition[3];
 int32_t navLatestActualPosition[3];
+int16_t navActualHeading;
+uint16_t navDesiredHeading;
 int16_t navActualSurface;
 uint16_t navFlags;
 uint16_t navEPH;
@@ -3564,6 +3564,8 @@ void applyWaypointNavigationAndAltitudeHold(void)
     navTargetPosition[X] = lrintf(posControl.desiredState.pos.x);
     navTargetPosition[Y] = lrintf(posControl.desiredState.pos.y);
     navTargetPosition[Z] = lrintf(posControl.desiredState.pos.z);
+
+    navDesiredHeading = wrap_36000(posControl.desiredState.yaw);
 }
 
 /*-----------------------------------------------------------
@@ -3834,9 +3836,8 @@ bool navigationRequiresTurnAssistance(void)
         // For airplanes turn assistant is always required when controlling position
         return (currentState & (NAV_CTL_POS | NAV_CTL_ALT));
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
 /**
