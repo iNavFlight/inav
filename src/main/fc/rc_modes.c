@@ -148,17 +148,22 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
         return false;
     }
 
-    // woga65: Do not use the collective pitch or gyro gain channels to switch flight modes
+    uint8_t channelIndex = auxChannelIndex + NON_AUX_CHANNEL_COUNT;
+
+    // On helicopter like aircraft, the throttle RC-channel is used 
+    // to indicate the headspeed to the FC. For this, AUX3 is mapped 
+    // to the throttle RC-channel. The headspeed is used to determine,
+    // which amount of collective pitch is needed to hover. woga65:
 #if defined(USE_VARIABLE_PITCH)
-    if (auxChannelIndex + NON_AUX_CHANNEL_COUNT == COLLECTIVE || auxChannelIndex + NON_AUX_CHANNEL_COUNT == GYRO_GAIN) {
-        return false;
+    if (STATE(HELICOPTER) && auxChannelIndex + NON_AUX_CHANNEL_COUNT == AUX3) {
+        channelIndex = THROTTLE;
     }
 #endif
 
     // No need to constrain() here, since we're testing for a closed range defined
     // by the channelRange_t. If channelValue has an invalid value, the test will
     // be false anyway.
-    uint16_t channelValue = rxGetChannelValue(auxChannelIndex + NON_AUX_CHANNEL_COUNT);
+    uint16_t channelValue = rxGetChannelValue(channelIndex);
     return (channelValue >= CHANNEL_RANGE_MIN + (range->startStep * CHANNEL_RANGE_STEP_WIDTH) &&
             channelValue < CHANNEL_RANGE_MIN + (range->endStep * CHANNEL_RANGE_STEP_WIDTH));
 }

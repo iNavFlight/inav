@@ -104,6 +104,9 @@ typedef enum {
     TURN_ASSISTANT        = (1 << 14),
     TURTLE_MODE           = (1 << 15),
     SOARING_MODE          = (1 << 16),
+    HC_NORMAL             = (1 << 17),  // Lightspeed
+    HC_IDLE_UP_1          = (1 << 18),  // Ridiculous speed
+    HC_IDLE_UP_2          = (1 << 19)   // Ludicrous speed  (woga65: helicopter headspeeds)
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;

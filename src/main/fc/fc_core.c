@@ -675,6 +675,18 @@ void processRx(timeUs_t currentTimeUs)
         LED1_OFF;
     }
 
+#if defined(USE_VARIABLE_PITCH)     // woga65: for testing ( BOXHELINORMAL | BOXHELIIDLEUP1 | BOXHELIIDLEUP2 )
+
+    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+        if (IS_RC_MODE_ACTIVE(BOXHELIIDLEUP1)) {
+            LED1_ON;
+        } else {
+            LED1_OFF;
+        }
+    } 
+
+#endif
+
     /* Flaperon mode */
     if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FLAPERON_AVAILABLE)) {
         if (!FLIGHT_MODE(FLAPERON)) {

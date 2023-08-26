@@ -98,6 +98,11 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
     { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },
     { .boxId = BOXBEEPERMUTE,       .boxName = "BEEPER MUTE",       .permanentId = 60 },
+#if defined(USE_VARIABLE_PITCH)
+    { .boxId = BOXHELINORMAL,       .boxName = "HS NORMAL",         .permanentId = 70 },    // woga65:
+    { .boxId = BOXHELIIDLEUP1,      .boxName = "HS IDLE-UP 1",      .permanentId = 71 },
+    { .boxId = BOXHELIIDLEUP2,      .boxName = "HS IDLE-UP 2",      .permanentId = 72 },
+#endif
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -205,6 +210,14 @@ void initActiveBoxIds(void)
         }
         ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
     }
+
+#if defined(USE_VARIABLE_PITCH)     // woga65:
+    if (STATE(HELICOPTER)) {
+        ADD_ACTIVE_BOX(BOXHELINORMAL);
+        ADD_ACTIVE_BOX(BOXHELIIDLEUP1);
+        ADD_ACTIVE_BOX(BOXHELIIDLEUP2);
+    }
+#endif    
 
     bool navReadyAltControl = sensors(SENSOR_BARO);
 #ifdef USE_GPS
@@ -342,7 +355,7 @@ void initActiveBoxIds(void)
 #endif
 
 #ifdef USE_DSHOT
-    if(STATE(MULTIROTOR) && isMotorProtocolDshot()) {
+    if(STATE(MULTIROTOR) && isMotorProtocolDshot() && !STATE(HELICOPTER)) {     // woga65: no turte with helicopter
         ADD_ACTIVE_BOX(BOXTURTLE);
     }
 #endif
@@ -411,6 +424,11 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXSOARING)),         BOXSOARING);
 #ifdef USE_MULTI_MISSION
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)),   BOXCHANGEMISSION);
+#endif
+#if defined(USE_VARIABLE_PITCH)
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHELINORMAL)),      BOXHELINORMAL);     // woga65;
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHELIIDLEUP1)),     BOXHELIIDLEUP1);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHELIIDLEUP2)),     BOXHELIIDLEUP2);
 #endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));

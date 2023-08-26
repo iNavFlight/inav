@@ -78,6 +78,11 @@ typedef enum {
     BOXUSER4         = 49,
     BOXCHANGEMISSION = 50,
     BOXBEEPERMUTE    = 51,
+#if defined(USE_VARIABLE_PITCH)    
+    BOXHELINORMAL    = 52,  // woga65:
+    BOXHELIIDLEUP1   = 53,
+    BOXHELIIDLEUP2   = 54,
+#endif    
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
