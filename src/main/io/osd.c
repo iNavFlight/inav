@@ -1842,33 +1842,35 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
-    case OSD_ODOMETER:
-#ifdef USE_STATS    
+    case OSD_ODOMETER:    
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            int odometerDist = (int)statsConfig()->stats_total_dist + (getTotalTravelDistance() / 100);
+            uint32_t odometerDist = getTotalTravelDistance() / 100;
+#ifdef USE_STATS
+            odometerDist+= statsConfig()->stats_total_dist;
+#endif
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    tfp_sprintf(buff+1, "%7d", (int)(odometerDist / METERS_PER_MILE));
-                    buff[6] = SYM_MI;
+                    tfp_sprintf(buff, "%5d", (int)(odometerDist / METERS_PER_MILE));
+                    buff[5] = SYM_MI;
                     break;
                 default:
                 case OSD_UNIT_GA:
-                    tfp_sprintf(buff+1, "%7d", (int)(odometerDist / METERS_PER_NAUTICALMILE));
-                    buff[6] = SYM_NM;
+                    tfp_sprintf(buff, "%5d", (int)(odometerDist / METERS_PER_NAUTICALMILE));
+                    buff[5] = SYM_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    tfp_sprintf(buff+1, "%7d", (int)(odometerDist / METERS_PER_KILOMETER));
-                    buff[6] = SYM_KM;
+                    tfp_sprintf(buff, "%5d", (int)(odometerDist / METERS_PER_KILOMETER));
+                    buff[5] = SYM_KM;
                     break;
             }
-            buff[7] = '\0';
+            buff[6] = '\0';
+            elemPosX++;
         }
-#endif
         break;
 
     case OSD_GROUND_COURSE:
