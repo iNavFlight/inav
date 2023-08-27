@@ -119,8 +119,7 @@ uint8_t motorControlEnable = false;
 static bool isRXDataNew;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
-timeMs_t emergInflightRearmTimeout = 0;
-timeMs_t mcEmergRearmStabiliseTimeout = 0;
+timeMs_t emergRearmStabiliseTimeout = 0;
 
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
@@ -435,10 +434,6 @@ void disarm(disarmReason_t disarmReason)
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
         lastDisarmTimeUs = micros();
-        if (disarmReason == DISARM_SWITCH || disarmReason == DISARM_KILLSWITCH) {
-            emergInflightRearmTimeout = isProbablyStillFlying() ? US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS : 0;
-        }
-
         DISABLE_ARMING_FLAG(ARMED);
 
 #ifdef USE_BLACKBOX
@@ -508,24 +503,24 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
 
 bool emergInflightRearmEnabled(void)
 {
-    /* Emergency rearm allowed within emergInflightRearmTimeout window.
-     * On MR emergency rearm only allowed after 1.5s if MR dropping or climbing after disarm, i.e. still in flight */
-
+    /* Emergency rearm allowed within 5s timeout period after disarm if craft still flying */
     timeMs_t currentTimeMs = millis();
-    if (!emergInflightRearmTimeout || currentTimeMs > emergInflightRearmTimeout) {
+    emergRearmStabiliseTimeout = 0;
+
+    if ((lastDisarmReason != DISARM_SWITCH && lastDisarmReason != DISARM_KILLSWITCH) ||
+        (currentTimeMs > US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS)) {
         return false;
     }
 
-    if (STATE(MULTIROTOR)) {
-        uint16_t mcFlightSanityCheckTime = EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS - 1500;  // check MR vertical speed at least 1.5 sec after disarm
-        if (fabsf(getEstimatedActualVelocity(Z)) < 100.0f && (emergInflightRearmTimeout - currentTimeMs < mcFlightSanityCheckTime)) {
-            return false;       // MR doesn't appear to be flying so don't allow emergency rearm
-        } else {
-            mcEmergRearmStabiliseTimeout = currentTimeMs + 5000;    // activate Angle mode for 5s after rearm to help stabilise MR
-        }
+    if (isProbablyStillFlying()) {
+        emergRearmStabiliseTimeout = currentTimeMs + 5000; // activate Angle mode for 5s after rearm to help stabilise craft
+        return true;
+    } else if (STATE(MULTIROTOR) && (currentTimeMs > US2MS(lastDisarmTimeUs) + 1500) && fabsf(getEstimatedActualVelocity(Z)) > 100.0f) {
+        // allow emergency rearm if MR has vertical speed at least 1.5 sec after disarm indicating still flying
+        return true;
     }
 
-    return true;
+    return false;   // craft doesn't appear to be flying, don't allow emergency rearm
 }
 
 void tryArm(void)
@@ -564,7 +559,6 @@ void tryArm(void)
         }
 
         lastDisarmReason = DISARM_NONE;
-        emergInflightRearmTimeout = 0;
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
@@ -667,9 +661,9 @@ void processRx(timeUs_t currentTimeUs)
         processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
     }
 
-    // Angle mode forced on briefly after multirotor emergency inflight rearm to help stabilise attitude
-    bool mcEmergRearmAngleEnforce = STATE(MULTIROTOR) && mcEmergRearmStabiliseTimeout > millis();
-    bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || mcEmergRearmAngleEnforce;
+    // Angle mode forced on briefly after emergency inflight rearm to help stabilise attitude (currently limited to MR)
+    bool emergRearmAngleEnforce = STATE(MULTIROTOR) && emergRearmStabiliseTimeout > US2MS(currentTimeUs);
+    bool autoEnableAngle = failsafeRequiresAngleMode() || navigationRequiresAngleMode() || emergRearmAngleEnforce;
     bool canUseHorizonMode = true;
 
     if (sensors(SENSOR_ACC) && (IS_RC_MODE_ACTIVE(BOXANGLE) || autoEnableAngle)) {

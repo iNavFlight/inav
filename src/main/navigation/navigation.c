@@ -61,6 +61,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/boardalignment.h"
 #include "sensors/battery.h"
+#include "sensors/gyro.h"
 
 #include "programming/global_variables.h"
 
@@ -2808,13 +2809,16 @@ void updateLandingStatus(timeMs_t currentTimeMs)
     DEBUG_SET(DEBUG_LANDING, 1, STATE(LANDING_DETECTED));
 
     if (!ARMING_FLAG(ARMED)) {
-        resetLandingDetector();
-        landingDetectorIsActive = false;
-
+        if (STATE(LANDING_DETECTED)) {
+            resetLandingDetector();
+            landingDetectorIsActive = false;
+        }
         if (!IS_RC_MODE_ACTIVE(BOXARM)) {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
         }
         return;
+    } else if (getArmTime() < 0.25f && landingDetectorIsActive) {  // force reset landing detector immediately after arming
+        landingDetectorIsActive = false;
     }
 
     if (!landingDetectorIsActive) {
@@ -2854,10 +2858,14 @@ bool isFlightDetected(void)
 
 bool isProbablyStillFlying(void)
 {
-    // Multirotor flight sanity checked after disarm so always true here
-    bool inFlightSanityCheck = STATE(MULTIROTOR) || (STATE(AIRPLANE) && isGPSHeadingValid());
+    bool inFlightSanityCheck;
+    if (STATE(MULTIROTOR)) {
+        inFlightSanityCheck = posControl.actualState.velXY > MC_LAND_CHECK_VEL_XY_MOVING || averageAbsGyroRates() > 4.0f;
+    } else {
+        inFlightSanityCheck = isGPSHeadingValid();
+    }
 
-    return landingDetectorIsActive && !STATE(LANDING_DETECTED) && inFlightSanityCheck;
+    return landingDetectorIsActive && inFlightSanityCheck;
 }
 
 /*-----------------------------------------------------------
