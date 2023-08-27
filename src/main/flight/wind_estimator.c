@@ -41,7 +41,8 @@
 #include "io/gps.h"
 
 
-#define WINDESTIMATOR_TIMEOUT       60 //60s
+#define WINDESTIMATOR_TIMEOUT       60*15 // 15min with out altitude change
+#define WINDESTIMATOR_ALTITUDE_SCALE WINDESTIMATOR_TIMEOUT/500.0f //or 500m altitude change
 // Based on WindEstimation.pdf paper
 
 static bool hasValidWindEstimate = false;
@@ -79,8 +80,10 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 {
     static timeUs_t lastUpdateUs = 0;
     static timeUs_t lastValidWindEstimate = 0;
+    static float lastValidEstimateAltitude = 0.0f;
+    float currentAltitude = gpsSol.llh.alt / 100.0f; // altitude in m
 
-    if (US2S(currentTimeUs - lastValidWindEstimate) > WINDESTIMATOR_TIMEOUT)
+    if ((US2S(currentTimeUs - lastValidWindEstimate) + WINDESTIMATOR_ALTITUDE_SCALE * fabsf(currentAltitude - lastValidEstimateAltitude)) > WINDESTIMATOR_TIMEOUT)
     {
         hasValidWindEstimate = false;
     }
@@ -165,6 +168,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         float prevWindLength = calc_length_pythagorean_3D(estimatedWind[X], estimatedWind[Y], estimatedWind[Z]);
         float windLength = calc_length_pythagorean_3D(wind[X], wind[Y], wind[Z]);
 
+        //is this really needed? The reason it is here might be above equation was wrong in early implementations
         if (windLength < prevWindLength + 4000) {
             // TODO: Better filtering
             estimatedWind[X] = estimatedWind[X] * 0.98f + wind[X] * 0.02f;
@@ -175,6 +179,7 @@ void updateWindEstimator(timeUs_t currentTimeUs)
         lastUpdateUs = currentTimeUs;
         lastValidWindEstimate = currentTimeUs;
         hasValidWindEstimate = true;
+        lastValidEstimateAltitude = currentAltitude;
     }
 }
 

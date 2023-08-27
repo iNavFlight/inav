@@ -58,18 +58,15 @@ static int32_t virtualRangefinderGetDistance(rangefinderDev_t * dev)
     return highLevelDeviceVTable->read();
 }
 
-#define VIRTUAL_MAX_RANGE_CM                250
-#define VIRTUAL_DETECTION_CONE_DECIDEGREES  900
-
 bool virtualRangefinderDetect(rangefinderDev_t * dev, const virtualRangefinderVTable_t * vtable)
 {
     if (vtable && vtable->detect()) {
         highLevelDeviceVTable = vtable;
 
         dev->delayMs = RANGEFINDER_VIRTUAL_TASK_PERIOD_MS;
-        dev->maxRangeCm = VIRTUAL_MAX_RANGE_CM;
-        dev->detectionConeDeciDegrees = VIRTUAL_DETECTION_CONE_DECIDEGREES;
-        dev->detectionConeExtendedDeciDegrees = VIRTUAL_DETECTION_CONE_DECIDEGREES;
+        dev->maxRangeCm = RANGEFINDER_VIRTUAL_MAX_RANGE_CM;
+        dev->detectionConeDeciDegrees = RANGEFINDER_VIRTUAL_DETECTION_CONE_DECIDEGREES;
+        dev->detectionConeExtendedDeciDegrees = RANGEFINDER_VIRTUAL_DETECTION_CONE_DECIDEGREES;
 
         dev->init = &virtualRangefinderInit;
         dev->update = &virtualRangefinderUpdate;

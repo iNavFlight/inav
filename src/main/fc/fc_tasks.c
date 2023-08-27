@@ -64,6 +64,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
+#include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
@@ -109,6 +110,9 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #ifdef USE_MSP_OSD
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
+#ifdef USE_VTX_MSP
+    mspVtxSerialProcess(mspFcProcessCommand);
+#endif
 #endif
 
 }
@@ -200,7 +204,10 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
     }
 
     pitotUpdate();
-    updatePositionEstimator_PitotTopic(currentTimeUs);
+
+    if ( pitotIsHealthy()) {
+        updatePositionEstimator_PitotTopic(currentTimeUs);
+    }
 }
 #endif
 
@@ -306,7 +313,7 @@ void taskUpdateAux(timeUs_t currentTimeUs)
     updatePIDCoefficients();
     dynamicLpfGyroTask();
 #ifdef USE_SIMULATOR
-    if (!ARMING_FLAG(SIMULATOR_MODE)) {
+    if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         updateFixedWingLevelTrim(currentTimeUs);
     }
 #else

@@ -17,9 +17,13 @@
 
 #pragma once
 
+#ifdef SKYSTARSF7MINIHD
+#define TARGET_BOARD_IDENTIFIER "SS7M"
+#define USBD_PRODUCT_STRING  "SkystarsF722MiniHD"
+#else
 #define TARGET_BOARD_IDENTIFIER "SS7D"
-
 #define USBD_PRODUCT_STRING  "SkystarsF722HD"
+#endif
 
 #define LED0                    PC14 // green
 #define LED1                    PC15 // blue
@@ -35,11 +39,19 @@
 #define SPI1_MISO_PIN	        PA6
 #define SPI1_MOSI_PIN	        PA7
 
+#ifdef SKYSTARSF722MINIHD
+#define MPU6000_CS_PIN          PA4
+#define MPU6000_SPI_BUS         BUS_SPI1
+
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
+#else
 #define BMI270_CS_PIN           PA4
 #define BMI270_SPI_BUS          BUS_SPI1
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW90_DEG_FLIP
+#endif
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS

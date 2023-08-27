@@ -22,7 +22,10 @@
 
 #include "platform.h"
 
+#if !defined(SITL_BUILD)
 #include "build/atomic.h"
+#endif
+
 #include "build/build_config.h"
 
 #include "common/log.h"

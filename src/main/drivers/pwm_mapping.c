@@ -21,6 +21,8 @@
 
 #include "platform.h"
 
+#if !defined(SITL_BUILD)
+
 #include "build/debug.h"
 #include "common/log.h"
 #include "common/memory.h"
@@ -190,6 +192,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 #endif
 #if defined(ADC_CHANNEL_4_PIN)
     if (timHw->tag == IO_TAG(ADC_CHANNEL_4_PIN)) {
+        return true;
+    }
+#endif
+#if defined(ADC_CHANNEL_5_PIN)
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_5_PIN)) {
+        return true;
+    }
+#endif
+#if defined(ADC_CHANNEL_6_PIN)
+    if (timHw->tag == IO_TAG(ADC_CHANNEL_6_PIN)) {
         return true;
     }
 #endif
@@ -396,3 +408,5 @@ bool pwmMotorAndServoInit(void)
 
     return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
+
+#endif

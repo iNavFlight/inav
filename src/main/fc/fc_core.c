@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -104,19 +102,8 @@ enum {
 };
 
 #define EMERGENCY_ARMING_TIME_WINDOW_MS 10000
-#define EMERGENCY_ARMING_COUNTER_STEP_MS 100
-
-typedef struct emergencyArmingState_s {
-    bool armingSwitchWasOn;
-    // Each entry in the queue is an offset from start,
-    // in 0.1s increments. This lets us represent up to 25.5s
-    // so it will work fine as long as the window for the triggers
-    // is smaller (see EMERGENCY_ARMING_TIME_WINDOW_MS). First
-    // entry of the queue is implicit.
-    timeMs_t start;
-    uint8_t queue[9];
-    uint8_t queueCount;
-} emergencyArmingState_t;
+#define EMERGENCY_ARMING_COUNTER_STEP_MS 1000
+#define EMERGENCY_ARMING_MIN_ARM_COUNT 10
 
 timeDelta_t cycleTime = 0;         // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 static timeUs_t flightTime = 0;
@@ -131,10 +118,24 @@ uint8_t motorControlEnable = false;
 static bool isRXDataNew;
 static disarmReason_t lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
-static emergencyArmingState_t emergencyArming;
 
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
+
+static bool isAccRequired(void) {
+    return isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
+        isModeActivationConditionPresent(BOXNAVRTH) ||
+        isModeActivationConditionPresent(BOXNAVWP) ||
+        isModeActivationConditionPresent(BOXANGLE) ||
+        isModeActivationConditionPresent(BOXHORIZON) ||
+        isModeActivationConditionPresent(BOXNAVALTHOLD) ||
+        isModeActivationConditionPresent(BOXHEADINGHOLD) ||
+        isModeActivationConditionPresent(BOXNAVLAUNCH) ||
+        isModeActivationConditionPresent(BOXTURNASSIST) ||
+        isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
+        isModeActivationConditionPresent(BOXSOARING) ||
+        failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT;
+}
 
 bool areSensorsCalibrating(void)
 {
@@ -156,11 +157,11 @@ bool areSensorsCalibrating(void)
     }
 #endif
 
-    if (!navIsCalibrationComplete()) {
+    if (!navIsCalibrationComplete() && isAccRequired()) {
         return true;
     }
 
-    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) {
+    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC) && isAccRequired()) {
         return true;
     }
 
@@ -173,11 +174,22 @@ bool areSensorsCalibrating(void)
 
 int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
-    int16_t stickDeflection;
+    int16_t stickDeflection = 0;
 
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914   
+    const int16_t value = rawData - PWM_RANGE_MIDDLE;
+    if (value < -500) {
+        stickDeflection = -500;
+    } else if (value > 500) {
+        stickDeflection = 500;
+    } else {
+        stickDeflection = value;
+    }
+#else
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);   
+#endif
+    
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
-
     return rcLookup(stickDeflection, rate);
 }
 
@@ -267,21 +279,7 @@ static void updateArmingStatus(void)
             sensors(SENSOR_ACC) &&
             !STATE(ACCELEROMETER_CALIBRATED) &&
             // Require ACC calibration only if any of the setting might require it
-            (
-                isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
-                isModeActivationConditionPresent(BOXNAVRTH) ||
-                isModeActivationConditionPresent(BOXNAVWP) ||
-                isModeActivationConditionPresent(BOXANGLE) ||
-                isModeActivationConditionPresent(BOXHORIZON) ||
-                isModeActivationConditionPresent(BOXNAVALTHOLD) ||
-                isModeActivationConditionPresent(BOXHEADINGHOLD) ||
-                isModeActivationConditionPresent(BOXNAVLAUNCH) ||
-                isModeActivationConditionPresent(BOXTURNASSIST) ||
-                isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
-                isModeActivationConditionPresent(BOXSOARING) ||
-                failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT
-
-            )
+            isAccRequired()
         ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
@@ -368,14 +366,6 @@ static void updateArmingStatus(void)
     }
 }
 
-static bool emergencyArmingIsTriggered(void)
-{
-    int threshold = (EMERGENCY_ARMING_TIME_WINDOW_MS / EMERGENCY_ARMING_COUNTER_STEP_MS);
-    return emergencyArming.queueCount == ARRAYLEN(emergencyArming.queue) + 1 &&
-        emergencyArming.queue[ARRAYLEN(emergencyArming.queue) - 1] < threshold &&
-        emergencyArming.start >= millis() - EMERGENCY_ARMING_TIME_WINDOW_MS;
-}
-
 static bool emergencyArmingCanOverrideArmingDisabled(void)
 {
     uint32_t armingPrevention = armingFlags & ARMING_DISABLED_ALL_FLAGS;
@@ -385,7 +375,7 @@ static bool emergencyArmingCanOverrideArmingDisabled(void)
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingIsTriggered() && emergencyArmingCanOverrideArmingDisabled();
+    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
 }
 
 static void processPilotAndFailSafeActions(float dT)
@@ -477,40 +467,39 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
-void emergencyArmingUpdate(bool armingSwitchIsOn)
+bool emergencyArmingUpdate(bool armingSwitchIsOn)
 {
-    if (armingSwitchIsOn == emergencyArming.armingSwitchWasOn) {
-        return;
+    if (ARMING_FLAG(ARMED)) {
+        return false;
     }
-    if (armingSwitchIsOn) {
-        timeMs_t now = millis();
-        if (emergencyArming.queueCount == 0) {
-            emergencyArming.queueCount = 1;
-            emergencyArming.start = now;
-        } else {
-            while (emergencyArming.start < now - EMERGENCY_ARMING_TIME_WINDOW_MS || emergencyArmingIsTriggered()) {
-                if (emergencyArming.queueCount > 1) {
-                    uint8_t delta = emergencyArming.queue[0];
-                    emergencyArming.start += delta * EMERGENCY_ARMING_COUNTER_STEP_MS;
-                    for (int ii = 0; ii < emergencyArming.queueCount - 2; ii++) {
-                        emergencyArming.queue[ii] = emergencyArming.queue[ii + 1] - delta;
-                    }
-                    emergencyArming.queueCount--;
-                } else {
-                    emergencyArming.start = now;
-                }
-            }
-            uint8_t delta = (now - emergencyArming.start) / EMERGENCY_ARMING_COUNTER_STEP_MS;
-            if (delta > 0) {
-                emergencyArming.queue[emergencyArming.queueCount - 1] = delta;
-                emergencyArming.queueCount++;
-            }
+
+    static timeMs_t timeout = 0;
+    static int8_t counter = 0;
+    static bool toggle;
+    timeMs_t currentTimeMs = millis();
+
+    if (timeout && currentTimeMs > timeout) {
+        timeout += EMERGENCY_ARMING_COUNTER_STEP_MS;
+        counter -= counter ? 1 : 0;
+        if (!counter) {
+            timeout = 0;
         }
     }
-    emergencyArming.armingSwitchWasOn = !emergencyArming.armingSwitchWasOn;
+
+    if (armingSwitchIsOn) {
+        if (!timeout && toggle) {
+            timeout = currentTimeMs + EMERGENCY_ARMING_TIME_WINDOW_MS;
+        }
+        counter += toggle;
+        toggle = false;
+    } else {
+        toggle = true;
+    }
+
+    return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
@@ -524,15 +513,14 @@ void tryArm(void)
 {
     updateArmingStatus();
 
+    if (ARMING_FLAG(ARMED)) {
+        return;
+    }
+
 #ifdef USE_DSHOT
-    if (
-            STATE(MULTIROTOR) &&
-            IS_RC_MODE_ACTIVE(BOXTURTLE) &&
-            emergencyArmingCanOverrideArmingDisabled() &&
-            isMotorProtocolDshot() &&
-            !ARMING_FLAG(ARMED) &&
-            !FLIGHT_MODE(TURTLE_MODE)
-            ) {
+    if (STATE(MULTIROTOR) && IS_RC_MODE_ACTIVE(BOXTURTLE) && !FLIGHT_MODE(TURTLE_MODE) &&
+        emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
+        ) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         enableFlightMode(TURTLE_MODE);
@@ -541,21 +529,10 @@ void tryArm(void)
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    if (
-        !isArmingDisabled() ||
-        emergencyArmingIsEnabled() ||
-        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)
-    ) {
+    if (!isArmingDisabled() || emergencyArmingIsEnabled() || LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
 #else
-    if (
-        !isArmingDisabled() ||
-        emergencyArmingIsEnabled()
-    ) {
+    if (!isArmingDisabled() || emergencyArmingIsEnabled()) {
 #endif
-        if (ARMING_FLAG(ARMED)) {
-            return;
-        }
-
         // If nav_extra_arming_safety was bypassed we always
         // allow bypassing it even without the sticks set
         // in the correct position to allow re-arming quickly
@@ -860,6 +837,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+  
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -868,14 +846,25 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         armTime += cycleTime;
         updateAccExtremes();
     }
+
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
+
+        processDelayedSave();
     }
+
+#if defined(SITL_BUILD)
+    if (lockMainPID()) {
+#endif
 
     gyroFilter();
 
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
+
+#if defined(SITL_BUILD)
+    }
+#endif
 
     processPilotAndFailSafeActions(dT);
 
@@ -888,7 +877,6 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (isRXDataNew) {
         updateWaypointsAndNavigationMode();
     }
-
     isRXDataNew = false;
 
     updatePositionEstimator();
@@ -932,8 +920,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
 
-#ifdef USE_SMULATOR
-	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+#ifdef USE_SIMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
 	    if (isServoOutputEnabled()) {
 	        writeServos();
 	    }
@@ -951,10 +939,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         writeMotors();
     }
 #endif
-
     // Check if landed, FW and MR
     if (STATE(ALTITUDE_CONTROL)) {
-        updateLandingStatus();
+        updateLandingStatus(US2MS(currentTimeUs));
     }
 
 #ifdef USE_BLACKBOX
@@ -997,12 +984,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime()
+float getFlightTime(void)
 {
     return US2S(flightTime);
 }
 
-float getArmTime()
+float getArmTime(void)
 {
     return US2S(armTime);
 }
