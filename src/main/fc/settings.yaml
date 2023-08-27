@@ -25,7 +25,7 @@ tables:
     values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK", "FBUS"]
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol
@@ -59,7 +59,7 @@ tables:
   - name: nav_user_control_mode
     values: ["ATTI", "CRUISE"]
   - name: nav_rth_alt_mode
-    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST", "AT_LEAST_LINEAR_DESCENT"]
+    values: ["CURRENT", "EXTRA", "FIXED", "MAX", "AT_LEAST"]
   - name: nav_rth_climb_first_stage_modes
     values: ["AT_LEAST", "EXTRA"]
   - name: osd_unit
@@ -190,6 +190,12 @@ tables:
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
     enum: wpFwTurnSmoothing_e
+  - name: gps_auto_baud_max
+    values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
+    enum: gpsBaudRate_e
+  - name: nav_mc_althold_throttle
+    values: ["STICK", "MID_STICK", "HOVER"]
+    enum: navMcAltHoldThrottle_e    
 
 constants:
   RPYL_PID_MIN: 0
@@ -1501,6 +1507,7 @@ groups:
         min: 1
         max: 3000
   - name: PG_GPS_CONFIG
+    headers: [ "io/gps.h" ]
     type: gpsConfig_t
     condition: USE_GPS
     members:
@@ -1532,10 +1539,26 @@ groups:
         default_value: ON
         field: autoBaud
         type: bool
+      - name: gps_auto_baud_max_supported
+        description: "Max baudrate supported by GPS unit. This is used during autobaud. M8 supports up to 460400, M10 supports up to 921600 and 230400 is the value used before INAV 7.0"
+        default_value: "230400"
+        table: gps_auto_baud_max
+        field: autoBaudMax
+        type: uint8_t
       - name: gps_ublox_use_galileo
         description: "Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]."
         default_value: OFF
         field: ubloxUseGalileo
+        type: bool
+      - name: gps_ublox_use_beidou
+        description: "Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseBeidou
+        type: bool
+      - name: gps_ublox_use_glonass
+        description: "Enable use of Glonass satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps haardware support [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseGlonass
         type: bool
       - name: gps_min_sats
         description: "Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS position valid. Some GPS receivers appeared to be very inaccurate with low satellite count."
@@ -1543,6 +1566,14 @@ groups:
         field: gpsMinSats
         min: 5
         max: 10
+      - name: gps_ublox_nav_hz
+        description: "Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
+        default_value: 10
+        field: ubloxNavHz
+        type: uint8_t
+        min: 5
+        max: 200
+
 
   - name: PG_RC_CONTROLS_CONFIG
     type: rcControlsConfig_t
@@ -2287,11 +2318,16 @@ groups:
         field: general.land_detect_sensitivity
         min: 1
         max: 15
-      - name: nav_use_midthr_for_althold
-        description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
+      - name: nav_landing_bump_detection
+        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors."
         default_value: OFF
-        field: general.flags.use_thr_mid_for_althold
+        field: general.flags.landing_bump_detection
         type: bool
+      - name: nav_mc_althold_throttle
+        description: "If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively."
+        default_value: "STICK"
+        field: mc.althold_throttle_type
+        table: nav_mc_althold_throttle
       - name: nav_extra_arming_safety
         description: "If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used"
         default_value: "ALLOW_BYPASS"
@@ -2510,6 +2546,17 @@ groups:
         default_value: 0
         field: general.rth_home_altitude
         max: 65000
+      - name: nav_rth_linear_descent_start_distance
+        description: The distance [m] away from home to start the linear descent. 0 = immediately (original linear descent behaviour)
+        default_value: 0
+        min: 0
+        max: 10000
+        field: general.rth_linear_descent_start_distance
+      - name: nav_rth_use_linear_descent
+        description: If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en route. The distance from home to start the descent can be set with `nav_rth_linear_descent_start_distance`.
+        default_value: OFF
+        type: bool
+        field: general.flags.rth_use_linear_descent
       - name: nav_rth_trackback_mode
         description: "Useage modes for RTH Trackback. OFF = disabled, ON = Normal and Failsafe RTH, FS = Failsafe RTH only."
         default_value: "OFF"

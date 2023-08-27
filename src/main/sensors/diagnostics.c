@@ -62,12 +62,17 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
 
 hardwareSensorStatus_e getHwCompassStatus(void)
 {
+#if defined(USE_MAG)
 #ifdef USE_SIMULATOR
 	if ((ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) && sensors(SENSOR_MAG)) {
-		return HW_SENSOR_OK;
+        if (compassIsHealthy()) {
+            return HW_SENSOR_OK;
+        }
+        else {
+            return HW_SENSOR_UNHEALTHY;
+        }
 	}
 #endif
-#if defined(USE_MAG)
     if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
         if (compassIsHealthy()) {
             return HW_SENSOR_OK;
@@ -94,6 +99,17 @@ hardwareSensorStatus_e getHwCompassStatus(void)
 hardwareSensorStatus_e getHwBarometerStatus(void)
 {
 #if defined(USE_BARO)
+#ifdef USE_SIMULATOR
+	if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
+        if (requestedSensors[SENSOR_INDEX_BARO] == BARO_NONE) {
+            return HW_SENSOR_NONE;
+        } else if (baroIsHealthy()) {
+            return HW_SENSOR_OK;
+        } else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+	}
+#endif
     if (detectedSensors[SENSOR_INDEX_BARO] != BARO_NONE) {
         if (baroIsHealthy()) {
             return HW_SENSOR_OK;

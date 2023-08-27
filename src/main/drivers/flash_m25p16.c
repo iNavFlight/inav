@@ -27,13 +27,20 @@
 #include "drivers/bus.h"
 #include "drivers/time.h"
 
+#if defined(USE_QUADSPI)
+#include "drivers/bus_quadspi.h"
+#include "drivers/bus_quadspi_impl.h"
+#endif
+
 #define M25P16_INSTRUCTION_RDID             0x9F
 #define M25P16_INSTRUCTION_READ_BYTES       0x03
+#define M25P16_INSTRUCTION_QUAD_READ        0x6B
 #define M25P16_INSTRUCTION_READ_STATUS_REG  0x05
 #define M25P16_INSTRUCTION_WRITE_STATUS_REG 0x01
 #define M25P16_INSTRUCTION_WRITE_ENABLE     0x06
 #define M25P16_INSTRUCTION_WRITE_DISABLE    0x04
 #define M25P16_INSTRUCTION_PAGE_PROGRAM     0x02
+#define M25P16_INSTRUCTION_QPAGE_PROGRAM    0x32
 #define M25P16_INSTRUCTION_SECTOR_ERASE     0xD8
 #define M25P16_INSTRUCTION_BULK_ERASE       0xC7
 
@@ -42,22 +49,74 @@
 
 #define W25Q256_INSTRUCTION_ENTER_4BYTE_ADDRESS_MODE 0xB7
 
-// Format is manufacturer, memory type, then capacity
-#define JEDEC_ID_MACRONIX_MX25L3206E   0xC22016
-#define JEDEC_ID_MACRONIX_MX25L6406E   0xC22017
-#define JEDEC_ID_MACRONIX_MX25L25635E  0xC22019
-#define JEDEC_ID_MICRON_M25P16         0x202015
-#define JEDEC_ID_MICRON_N25Q064        0x20BA17
-#define JEDEC_ID_MICRON_N25Q128        0x20ba18
-#define JEDEC_ID_WINBOND_W25Q16        0xEF4015
-#define JEDEC_ID_WINBOND_W25Q64        0xEF4017
-#define JEDEC_ID_WINBOND_W25Q128       0xEF4018
-#define JEDEC_ID_WINBOND_W25Q256       0xEF4019
-#define JEDEC_ID_SPANSION_S25FL116     0x014015
-#define JEDEC_ID_EON_W25Q64            0x1C3017
-#define JEDEC_ID_CYPRESS_S25FL128L     0x016018
-#define JEDEC_ID_WINBOND_W25Q128_2     0xEF7018
+#define M25P16_FAST_READ_DUMMY_CYCLES       8
 
+struct {
+    uint32_t        jedecID;
+    flashSector_t   sectors;
+    uint16_t        pagesPerSector;
+} m25p16FlashConfig[] = {
+    // Macronix MX25L3206E
+    // Datasheet: https://docs.rs-online.com/5c85/0900766b814ac6f9.pdf
+    {0xC22016, 64, 256},
+    // Macronix MX25L6406E
+    // Datasheet: https://www.macronix.com/Lists/Datasheet/Attachments/7370/MX25L6406E,%203V,%2064Mb,%20v1.9.pdf
+    {0xC22017, 128, 256},
+    // Macronix MX25L25635E
+    // Datasheet: https://www.macronix.com/Lists/Datasheet/Attachments/7331/MX25L25635E,%203V,%20256Mb,%20v1.3.pdf
+    {0xC22019, 512, 256},
+    // Micron M25P16
+    // Datasheet: https://www.micron.com/-/media/client/global/documents/products/data-sheet/nor-flash/serial-nor/m25p/m25p16.pdf
+    {0x202015, 32, 256},
+    // Micron N25Q064
+    // Datasheet: https://www.micron.com/-/media/client/global/documents/products/data-sheet/nor-flash/serial-nor/n25q/n25q_64a_3v_65nm.pdf
+    {0x20BA17, 128, 256},
+    // Micron N25Q128
+    // Datasheet: https://www.micron.com/-/media/client/global/documents/products/data-sheet/nor-flash/serial-nor/n25q/n25q_128mb_1_8v_65nm.pdf
+    {0x20ba18, 256, 256},
+    // Winbond W25Q80
+    // Datasheet: https://www.winbond.com/resource-files/w25q80dv%20dl_revh_10022015.pdf
+    {0xEF4014, 16, 256},
+    // Winbond W25Q16
+    // Datasheet: https://www.winbond.com/resource-files/w25q16dv_revi_nov1714_web.pdf
+    {0xEF4015, 32, 256},
+    // Winbond W25X32
+    // Datasheet: https://www.winbond.com/resource-files/w25x32a_revb_080709.pdf
+    {0xEF3016, 64, 256},
+    // Winbond W25Q32
+    // Datasheet: https://www.winbond.com/resource-files/w25q32jv%20dtr%20revf%2002242017.pdf?__locale=zh_TW
+    {0xEF4016, 64, 256},
+    // Winbond W25Q64
+    // Datasheet: https://www.winbond.com/resource-files/w25q64jv%20spi%20%20%20revc%2006032016%20kms.pdf
+    {0xEF4017, 128, 256}, // W25Q64JV-IQ/JQ
+    {0xEF7017, 128, 256}, // W25Q64JV-IM/JM*
+    // Winbond W25Q128
+    // Datasheet: https://www.winbond.com/resource-files/w25q128fv%20rev.l%2008242015.pdf
+    {0xEF4018, 256, 256},
+    // Zbit ZB25VQ128
+    // Datasheet: http://zbitsemi.com/upload/file/20201010/20201010174048_82182.pdf
+    {0x5E4018, 256, 256},
+    // Winbond W25Q128_DTR
+    // Datasheet: https://www.winbond.com/resource-files/w25q128jv%20dtr%20revb%2011042016.pdf
+    {0xEF7018, 256, 256},
+    // Winbond W25Q256
+    // Datasheet: https://www.winbond.com/resource-files/w25q256jv%20spi%20revb%2009202016.pdf
+    {0xEF4019, 512, 256},
+    // Cypress S25FL064L
+    // Datasheet: https://www.cypress.com/file/316661/download
+    {0x016017, 128, 256},
+    // Cypress S25FL128L
+    // Datasheet: https://www.cypress.com/file/316171/download
+    {0x016018, 256, 256},
+    // BergMicro W25Q32
+    // Datasheet: https://www.winbond.com/resource-files/w25q32jv%20dtr%20revf%2002242017.pdf?__locale=zh_TW
+    {0xE04016, 1024, 16},
+    // JEDEC_ID_EON_W25Q64
+    {0x1C3017, 128, 256},
+    // JEDEC_ID_SPANSION_S25FL116
+    {0x014015, 32, 256 },
+    // End of list
+    {0x000000, 0, 0}};
 
 // The timeout we expect between being able to issue page program instructions
 #define DEFAULT_TIMEOUT_MILLIS       6
@@ -68,7 +127,12 @@
 
 static flashGeometry_t geometry = {.pageSize = M25P16_PAGESIZE};
 
+#if !defined(M25P16_QUADSPI_DEVICE)
 static busDevice_t * busDev = NULL;
+#else
+static QUADSPI_TypeDef * qspi = NULL;
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
+
 static bool isLargeFlash = false;
 static uint32_t timeoutAt = 0;
 
@@ -84,7 +148,11 @@ static bool couldBeBusy = false;
  */
 static void m25p16_performOneByteCommand(uint8_t command)
 {
+#if !defined(M25P16_QUADSPI_DEVICE)
     busTransfer(busDev, NULL, &command, 1);
+#else
+    quadSpiTransmit1LINE(qspi, command, 0, NULL, 0);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 }
 
 /**
@@ -101,12 +169,18 @@ static void m25p16_writeEnable(void)
 
 static uint8_t m25p16_readStatus(void)
 {
+    uint8_t status;
+#if !defined(M25P16_QUADSPI_DEVICE)
     uint8_t command[2] = { M25P16_INSTRUCTION_READ_STATUS_REG, 0 };
     uint8_t in[2];
 
     busTransfer(busDev, in, command, sizeof(command));
+    status = in[1];
+#else
+    quadSpiReceive1LINE(qspi, M25P16_INSTRUCTION_READ_STATUS_REG, 0, &status, 1);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
-    return in[1];
+    return status;
 }
 
 bool m25p16_isReady(void)
@@ -151,7 +225,6 @@ bool m25p16_waitForReady(uint32_t timeoutMillis)
  */
 static bool m25p16_readIdentification(void)
 {
-    uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
     uint8_t in[4];
     uint32_t chipID;
 
@@ -162,59 +235,38 @@ static bool m25p16_readIdentification(void)
      */
     in[1] = 0;
 
+#if !defined(M25P16_QUADSPI_DEVICE)
+    uint8_t out[] = { M25P16_INSTRUCTION_RDID, 0, 0, 0 };
+
     busTransfer(busDev, in, out, sizeof(out));
+#else
+    bool status = quadSpiReceive1LINE(qspi, M25P16_INSTRUCTION_RDID, 0, &in[1], sizeof(in) - 1);
+    if (!status) {
+        return false;
+    }
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     // Manufacturer, memory type, and capacity
     chipID = (in[1] << 16) | (in[2] << 8) | (in[3]);
 
-    // All supported chips use the same pagesize of 256 bytes
+    geometry.sectors = 0;
+    geometry.pagesPerSector = 0;
+    geometry.sectorSize = 0;
+    geometry.totalSize = 0;
 
-    switch (chipID) {
-        case JEDEC_ID_MICRON_M25P16:
-        case JEDEC_ID_SPANSION_S25FL116:
-        case JEDEC_ID_WINBOND_W25Q16:
-            geometry.sectors = 32;
-            geometry.pagesPerSector = 256;
-            break;
+    for(int i = 0; m25p16FlashConfig[i].jedecID != 0; ++i) {
+        if(m25p16FlashConfig[i].jedecID == chipID) {
+            geometry.sectors = m25p16FlashConfig[i].sectors;
+            geometry.pagesPerSector = m25p16FlashConfig[i].pagesPerSector;
+        }
+    }
 
-        case JEDEC_ID_MACRONIX_MX25L3206E:
-            geometry.sectors = 64;
-            geometry.pagesPerSector = 256;
-            break;
-
-        case JEDEC_ID_MICRON_N25Q064:
-        case JEDEC_ID_WINBOND_W25Q64:
-        case JEDEC_ID_MACRONIX_MX25L6406E:
-        case JEDEC_ID_EON_W25Q64:
-            geometry.sectors = 128;
-            geometry.pagesPerSector = 256;
-            break;
-
-        case JEDEC_ID_MICRON_N25Q128:
-        case JEDEC_ID_WINBOND_W25Q128:
-	    case JEDEC_ID_CYPRESS_S25FL128L:
-        case JEDEC_ID_WINBOND_W25Q128_2:
-            geometry.sectors = 256;
-            geometry.pagesPerSector = 256;
-            break;
-
-        case JEDEC_ID_WINBOND_W25Q256:
-        case JEDEC_ID_MACRONIX_MX25L25635E:
-            geometry.sectors = 512;
-            geometry.pagesPerSector = 256;
-            break;
-
-        default:
-            // Unsupported chip or not an SPI NOR flash
-            geometry.sectors = 0;
-            geometry.pagesPerSector = 0;
-
-            geometry.sectorSize = 0;
-            geometry.totalSize = 0;
-            return false;
+    if(geometry.sectors == 0) {
+        return false;
     }
 
     geometry.flashType = FLASH_TYPE_NOR;
+    geometry.pageSize = M25P16_PAGESIZE;
     geometry.sectorSize = geometry.pagesPerSector * geometry.pageSize;
     geometry.totalSize = geometry.sectorSize * geometry.sectors;
 
@@ -236,6 +288,9 @@ static bool m25p16_readIdentification(void)
  */
 bool m25p16_init(int flashNumToUse)
 {
+    bool detected;
+#if !defined(M25P16_QUADSPI_DEVICE)
+    // SPI Mode
     busDev = busDeviceInit(BUSTYPE_SPI, DEVHW_M25P16, flashNumToUse, OWNER_FLASH);
     if (busDev == NULL) {
         return false;
@@ -244,8 +299,25 @@ bool m25p16_init(int flashNumToUse)
 #ifndef M25P16_SPI_SHARED
     busSetSpeed(busDev, BUS_SPEED_FAST);
 #endif
+#else
+    // QUADSPI Mode
+    UNUSED(flashNumToUse);
+    quadSpiPinConfigure(M25P16_QUADSPI_DEVICE);
+    quadSpiInitDevice(M25P16_QUADSPI_DEVICE);
 
-    return m25p16_readIdentification();
+    qspi = quadSpiInstanceByDevice(M25P16_QUADSPI_DEVICE);
+    quadSpiSetDivisor(qspi, QUADSPI_CLOCK_INITIALISATION);
+#endif /* M25P16_QUADSPI_DEVICE */
+
+    detected = m25p16_readIdentification();
+
+#if defined(M25P16_QUADSPI_DEVICE)
+    if (detected) {
+        quadSpiSetDivisor(qspi, QUADSPI_CLOCK_ULTRAFAST);
+    }
+#endif
+
+    return detected;
 }
 
 void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLongAddress)
@@ -264,17 +336,20 @@ void m25p16_setCommandAddress(uint8_t *buf, uint32_t address, bool useLongAddres
  */
 void m25p16_eraseSector(uint32_t address)
 {
-    uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
-
-    m25p16_setCommandAddress(&out[1], address, isLargeFlash);
-
     if (!m25p16_waitForReady(0)) {
         return;
     }
 
     m25p16_writeEnable();
 
+#if !defined(M25P16_QUADSPI_DEVICE)
+    uint8_t out[5] = { M25P16_INSTRUCTION_SECTOR_ERASE };
+    m25p16_setCommandAddress(&out[1], address, isLargeFlash);
+
     busTransfer(busDev, NULL, out, isLargeFlash ? 5 : 4);
+#else
+    quadSpiInstructionWithAddress1LINE(qspi, M25P16_INSTRUCTION_SECTOR_ERASE, 0, address, isLargeFlash ? 32 : 24);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     m25p16_setTimeout(SECTOR_ERASE_TIMEOUT_MILLIS);
 }
@@ -309,6 +384,14 @@ void m25p16_eraseCompletely(void)
  */
 uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 {
+    if (!m25p16_waitForReady(0)) {
+        // return same address to indicate timeout
+        return address;
+    }
+
+    m25p16_writeEnable();
+
+#if !defined(M25P16_QUADSPI_DEVICE)
     uint8_t command[5] = { M25P16_INSTRUCTION_PAGE_PROGRAM };
 
     busTransferDescriptor_t txn[2] = {
@@ -318,14 +401,10 @@ uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
 
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
-    if (!m25p16_waitForReady(0)) {
-        // return same address to indicate timeout
-        return address;
-    }
-
-    m25p16_writeEnable();
-
     busTransferMultiple(busDev, txn, 2);
+#else
+    quadSpiTransmitWithAddress4LINES(qspi, M25P16_INSTRUCTION_QPAGE_PROGRAM, 0, address, isLargeFlash ? 32 : 24, data, length);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     m25p16_setTimeout(DEFAULT_TIMEOUT_MILLIS);
 
@@ -342,6 +421,11 @@ uint32_t m25p16_pageProgram(uint32_t address, const uint8_t *data, int length)
  */
 int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 {
+    if (!m25p16_waitForReady(0)) {
+        return 0;
+    }
+
+#if !defined(M25P16_QUADSPI_DEVICE)
     uint8_t command[5] = { M25P16_INSTRUCTION_READ_BYTES };
 
     busTransferDescriptor_t txn[2] = {
@@ -351,11 +435,11 @@ int m25p16_readBytes(uint32_t address, uint8_t *buffer, int length)
 
     m25p16_setCommandAddress(&command[1], address, isLargeFlash);
 
-    if (!m25p16_waitForReady(0)) {
-        return 0;
-    }
-
     busTransferMultiple(busDev, txn, 2);
+#else
+    quadSpiReceiveWithAddress4LINES(qspi, M25P16_INSTRUCTION_QUAD_READ, M25P16_FAST_READ_DUMMY_CYCLES,
+                                    address, isLargeFlash ? 32 : 24, buffer, length);
+#endif /* !defined(M25P16_QUADSPI_DEVICE) */
 
     return length;
 }

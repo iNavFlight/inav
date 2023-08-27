@@ -199,7 +199,7 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 void batteryInit(void)
 {
     batteryState = BATTERY_NOT_PRESENT;
-    batteryCellCount = 1;
+    batteryCellCount = 0;
     batteryFullVoltage = 0;
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
@@ -716,11 +716,11 @@ uint16_t getPowerSupplyImpedance(void) {
 }
 
 // returns cW (0.01W)
-int32_t calculateAveragePower() {
+int32_t calculateAveragePower(void) {
     return (int64_t)mWhDrawn * 360 / getFlightTime();
 }
 
 // returns mWh / meter
-int32_t calculateAverageEfficiency() {
+int32_t calculateAverageEfficiency(void) {
     return getFlyingEnergy() * 100 / getTotalTravelDistance();
 }

@@ -32,7 +32,7 @@
 
 #ifdef USE_IMU_FAKE
 
-static int16_t fakeGyroADC[XYZ_AXIS_COUNT];
+static float fakeGyroADC[XYZ_AXIS_COUNT];
 
 static void fakeGyroInit(gyroDev_t *gyro)
 {

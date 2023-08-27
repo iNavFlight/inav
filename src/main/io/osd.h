@@ -112,7 +112,7 @@
 #define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
 #define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
 #define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
-#define OSD_MSG_AUTOLEVEL           "(AUTOLEVEL)"
+#define OSD_MSG_AUTOLEVEL           "(AUTO LEVEL TRIM)"
 #define OSD_MSG_HEADFREE            "(HEADFREE)"
 #define OSD_MSG_NAV_SOARING         "(SOARING)"
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
@@ -162,7 +162,7 @@ typedef enum {
     OSD_MESSAGES,
     OSD_GPS_HDOP,
     OSD_MAIN_BATT_CELL_VOLTAGE,
-    OSD_THROTTLE_POS_AUTO_THR,
+    OSD_SCALED_THROTTLE_POS,
     OSD_HEADING_GRAPH,
     OSD_EFFICIENCY_MAH_PER_KM,
     OSD_WH_DRAWN,
@@ -476,6 +476,8 @@ displayCanvas_t *osdGetDisplayPortCanvas(void);
 
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
+
+bool osdUsingScaledThrottle(void);
 
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);

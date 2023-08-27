@@ -190,8 +190,8 @@ static const OSD_Entry menuOsdElemsEntries[] =
     OSD_ELEMENT_ENTRY("TIME (HOUR)", OSD_RTC_TIME),
     OSD_ELEMENT_ENTRY("FLY MODE", OSD_FLYMODE),
     OSD_ELEMENT_ENTRY("NAME", OSD_CRAFT_NAME),
-    OSD_ELEMENT_ENTRY("THR. (MANU)", OSD_THROTTLE_POS),
-    OSD_ELEMENT_ENTRY("THR. (MANU/AUTO)", OSD_THROTTLE_POS_AUTO_THR),
+    OSD_ELEMENT_ENTRY("THR. ", OSD_THROTTLE_POS),
+    OSD_ELEMENT_ENTRY("THR. (SCALED)", OSD_SCALED_THROTTLE_POS),
     OSD_ELEMENT_ENTRY("SYS MESSAGES", OSD_MESSAGES),
     OSD_ELEMENT_ENTRY("VTX CHAN", OSD_VTX_CHANNEL),
     OSD_ELEMENT_ENTRY("CURRENT (A)", OSD_CURRENT_DRAW),
@@ -329,13 +329,6 @@ static const OSD_Entry menuOsdElemsEntries[] =
 
     OSD_BACK_AND_END_ENTRY,
 };
-
-#if defined(USE_GPS) && defined(USE_BARO) && defined(USE_PITOT) && defined(USE_TEMPERATURE_SENSOR) && defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-// All CMS OSD elements should be enabled in this case. The menu has 2 extra
-// elements (label, back+end), but there's an OSD element that we intentionally
-// don't show here (OSD_DEBUG).
-_Static_assert(ARRAYLEN(menuOsdElemsEntries) - 2 + 1 == OSD_ITEM_COUNT, "missing OSD elements in CMS");
-#endif
 
 const CMS_Menu menuOsdElements = {
 #ifdef CMS_MENU_DEBUG

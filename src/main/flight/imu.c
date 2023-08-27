@@ -23,8 +23,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "blackbox/blackbox.h"
 
 #include "build/build_config.h"
@@ -279,7 +277,7 @@ static void imuResetOrientationQuaternion(const fpVector3_t * accBF)
 
 static bool imuValidateQuaternion(const fpQuaternion_t * quat)
 {
-    const float check = fabs(quat->q0) + fabs(quat->q1) + fabs(quat->q2) + fabs(quat->q3);
+    const float check = fabsf(quat->q0) + fabsf(quat->q1) + fabsf(quat->q2) + fabsf(quat->q3);
 
     if (!isnan(check) && !isinf(check)) {
         return true;
@@ -482,7 +480,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     const float thetaMagnitudeSq = vectorNormSquared(&vTheta);
 
     // If calculated rotation is zero - don't update quaternion
-    if (thetaMagnitudeSq >= 1e-20) {
+    if (thetaMagnitudeSq >= 1e-20f) {
         // Calculate quaternion delta:
         // Theta is a axis/angle rotation. Direction of a vector is axis, magnitude is angle/2.
         // Proper quaternion from axis/angle involves computing sin/cos, but the formula becomes numerically unstable as Theta approaches zero.
