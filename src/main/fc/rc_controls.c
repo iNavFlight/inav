@@ -192,9 +192,21 @@ static void updateRcStickPositions(void)
     tmp |= ((rxGetChannelValue(YAW) > rxConfig()->mincheck) ? 0x02 : 0x00) << (YAW * 2);
     tmp |= ((rxGetChannelValue(YAW) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (YAW * 2);
 
+#if !defined(USE_VARIABLE_PITCH)
     tmp |= ((rxGetChannelValue(THROTTLE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
     tmp |= ((rxGetChannelValue(THROTTLE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);
-
+#else
+    // woga65: On helicopter, use COLLECTIVE RC-channel value because it is assigned
+    // to the throttle stick while THROTTLE is most likely assigned to a switch.
+    // Keep '<< (THROTTLE * 2)' to not overly complicate things.
+    if (STATE(HELICOPTER)) {
+        tmp |= ((rxGetChannelValue(COLLECTIVE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
+        tmp |= ((rxGetChannelValue(COLLECTIVE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);        
+    } else {
+        tmp |= ((rxGetChannelValue(THROTTLE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
+        tmp |= ((rxGetChannelValue(THROTTLE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);
+    }
+#endif
     rcStickPositions = tmp;
 }
 
