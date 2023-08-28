@@ -35,6 +35,6 @@ typedef struct helicopterConfig_s {             // woga65: helicopter specific s
 
 PG_DECLARE(helicopterConfig_t, helicopterConfig);   // woga65:
 
-uint16_t helicopterGetHoverCollective(uint8_t flightMode);
+uint16_t getHoverCollectivePitch(void);
 
 #endif

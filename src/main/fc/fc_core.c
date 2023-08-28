@@ -675,13 +675,32 @@ void processRx(timeUs_t currentTimeUs)
         LED1_OFF;
     }
 
-#if defined(USE_VARIABLE_PITCH)     // woga65: for testing ( BOXHELINORMAL | BOXHELIIDLEUP1 | BOXHELIIDLEUP2 )
+#if defined(USE_VARIABLE_PITCH)
 
+    // woga65: box headspeed ( BOXHELINORMAL | BOXHELIIDLEUP1 | BOXHELIIDLEUP2 )
+    // set helicopter flight mode accordingly ( HC_NORMAL | HC_IDLE_UP_1 | HC_IDLE_UP_2 )
     if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         if (IS_RC_MODE_ACTIVE(BOXHELIIDLEUP1)) {
-            LED1_ON;
-        } else {
-            LED1_OFF;
+            if (!FLIGHT_MODE(HC_IDLE_UP_1)) {
+                ENABLE_FLIGHT_MODE(HC_IDLE_UP_1);
+                DISABLE_FLIGHT_MODE(HC_NORMAL);
+                DISABLE_FLIGHT_MODE(HC_IDLE_UP_2);
+                LED1_ON;    // for degugging
+            }
+        } 
+        else if (IS_RC_MODE_ACTIVE(BOXHELIIDLEUP2)) {
+            if (!FLIGHT_MODE(HC_IDLE_UP_2)) {
+                ENABLE_FLIGHT_MODE(HC_IDLE_UP_2);
+                DISABLE_FLIGHT_MODE(HC_NORMAL);
+                DISABLE_FLIGHT_MODE(HC_IDLE_UP_1);
+                LED1_ON;    // for degugging
+            }
+        }
+        else {
+            ENABLE_FLIGHT_MODE(HC_NORMAL);
+            DISABLE_FLIGHT_MODE(HC_IDLE_UP_1);
+            DISABLE_FLIGHT_MODE(HC_IDLE_UP_2);
+            LED1_OFF;       // for degugging
         }
     } 
 

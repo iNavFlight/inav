@@ -43,7 +43,7 @@
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
-#define MC_LAND_SAFE_SURFACE                5.0f    // cm
+#define MC_LAND_SAFE_SURFACE                10.0f   // cm
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 

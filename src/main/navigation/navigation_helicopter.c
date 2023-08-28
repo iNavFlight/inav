@@ -46,6 +46,7 @@
 #include "flight/imu.h"
 #include "flight/failsafe.h"
 #include "flight/mixer.h"
+#include "flight/variable_pitch.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -53,10 +54,12 @@
 
 #include "sensors/battery.h"
 
+#if defined(USE_VARIABLE_PITCH)
+
+
 /*-----------------------------------------------------------
  * Altitude controller for helicopter aircraft
  *-----------------------------------------------------------*/
-#if defined(USE_VARIABLE_PITCH)
 
 static int16_t rcCommandAdjustedCollective;
 static int16_t altHoldThrustRCZero = 1500;
@@ -116,15 +119,15 @@ static void updateAltitudeVelocityController_HC(timeDelta_t deltaMicros)
 static void updateAltitudeCollectiveController_HC(timeDelta_t deltaMicros)
 {
     // Calculate min and max collective pitch boundaries (to compensate for integral windup)
-    const int16_t collCorrectionMin = 1000 - currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t collCorrectionMax = 2000 - currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t collCorrectionMin = 1000 - getHoverCollectivePitch();
+    const int16_t collCorrectionMax = 2000 - getHoverCollectivePitch();
 
     float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), collCorrectionMin, collCorrectionMax, 0);
 
     int16_t rcCollectiveCorrection = pt1FilterApply4(&altholdThrustFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
     rcCollectiveCorrection = constrain(rcCollectiveCorrection, collCorrectionMin, collCorrectionMax);
 
-    posControl.rcAdjustment[COLLECTIVE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcCollectiveCorrection, 1000, 2000);
+    posControl.rcAdjustment[COLLECTIVE] = constrain(getHoverCollectivePitch() + rcCollectiveCorrection, 1000, 2000);
 }
 
 bool adjustHelicopterAltitudeFromRCInput(void)
@@ -134,7 +137,7 @@ bool adjustHelicopterAltitudeFromRCInput(void)
 
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
-            // We have solid terrain sensor signal - directly map throttle to altitude
+            // We have solid terrain sensor signal - directly map collective to altitude
             updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             posControl.desiredState.pos.z = altTarget;
         }
@@ -154,11 +157,11 @@ bool adjustHelicopterAltitudeFromRCInput(void)
 
             // Make sure we can satisfy max_manual_climb_rate in both up and down directions
             if (rcThrustAdjustment > 0) {
-                // Scaling from altHoldThrustRCZero to PWM_RANGE_MAX or maxthrottle
+                // Scaling from altHoldThrustRCZero to PWM_RANGE_MAX
                 rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(2000 - altHoldThrustRCZero - rcControlsConfig()->alt_hold_deadband);
             }
             else {
-                // Scaling from PWM_RANGE_MIN or minthrottle to altHoldThrustRCZero
+                // Scaling from PWM_RANGE_MIN to altHoldThrustRCZero
                 rcClimbRate = rcThrustAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrustRCZero - 1000 - rcControlsConfig()->alt_hold_deadband);
             }
 
@@ -179,13 +182,13 @@ bool adjustHelicopterAltitudeFromRCInput(void)
 
 void setupHelicopterAltitudeController(void)
 {
-    const bool stickIsLow = collectiveStickIsLow();;
+    const bool stickIsLow = collectiveStickIsLow();
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
         altHoldThrustRCZero = 1500;
     }
     else {
-        // If throttle / collective is LOW - use Thr Mid anyway
+        // If collective stick is about centered - use mid range anyway
         altHoldThrustRCZero = (stickIsLow) ? 1500 : rcCommand[COLLECTIVE];
     }
 
@@ -195,7 +198,7 @@ void setupHelicopterAltitudeController(void)
                                       2000 - rcControlsConfig()->alt_hold_deadband - 10);
 
     // Force AH controller to initialize althold integral for pending takeoff on reset
-    // Signal for that is low throttle _and_ low actual altitude
+    // Signal for that is mid collective pitch _and_ low actual altitude
     if (stickIsLow && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
         prepareForTakeoffOnReset = true;
     }
@@ -211,7 +214,7 @@ void resetHelicopterAltitudeController(void)
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
 
-    posControl.rcAdjustment[COLLECTIVE] = currentBatteryProfile->nav.mc.hover_throttle;
+    posControl.rcAdjustment[COLLECTIVE] = getHoverCollectivePitch();
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
 
@@ -250,14 +253,18 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            // If we are preparing for takeoff - start with lowset possible climb rate, adjust alt target and make sure throttle doesn't jump
+            // If we are preparing for takeoff - start with lowset reasonable climb rate
             if (prepareForTakeoffOnReset) {
                 const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
 
-                posControl.desiredState.vel.z = -navConfig()->general.max_manual_climb_rate;
-                posControl.desiredState.pos.z = posToUse->pos.z - (navConfig()->general.max_manual_climb_rate / posControl.pids.pos[Z].param.kP);
-                posControl.pids.vel[Z].integrator = -500.0f;
-                pt1FilterReset(&altholdThrustFilterState, -500.0f);
+                // default manual climb rate = 200 cm/s divided by two = 100 cm/s
+                posControl.desiredState.vel.z = navConfig()->general.max_manual_climb_rate / 2;  //posToUse->vel.z;
+                // use the actual altitude
+                posControl.desiredState.pos.z = posToUse->pos.z;
+                // we don't want collective pitch to go full negative
+                posControl.pids.vel[Z].integrator = 0.0f;
+                pt1FilterReset(&altholdThrustFilterState, 0.0f);
+                // takeoff preparation done
                 prepareForTakeoffOnReset = false;
             }
 
@@ -282,7 +289,7 @@ static void applyHelicopterAltitudeController(timeUs_t currentTimeUs)
 
 bool isHelicopterFlying(void)
 {
-    bool collectiveCondition = rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle; 
+    bool collectiveCondition = rcCommand[COLLECTIVE] > getHoverCollectivePitch();
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
 
     return collectiveCondition && gyroCondition;
@@ -290,7 +297,7 @@ bool isHelicopterFlying(void)
 
 bool isHelicopterFlyingUpright(void)
 {
-    bool collectiveCondition = rcCommand[COLLECTIVE] > currentBatteryProfile->nav.mc.hover_throttle; 
+    bool collectiveCondition = rcCommand[COLLECTIVE] > getHoverCollectivePitch();
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
     bool uprightCondition = attitude.values.roll < 900 || attitude.values.roll > -900;
 
@@ -301,13 +308,14 @@ bool isHelicopterFlyingUpright(void)
 
 bool isHelicopterFlyingInverted(void)
 {
-    bool collectiveCondition = rcCommand[COLLECTIVE] < (1500 - (currentBatteryProfile->nav.mc.hover_throttle - 1500)); 
+    bool collectiveConditionValid = getHoverCollectivePitch() > 1500; 
+    bool collectiveCondition = rcCommand[COLLECTIVE] < (1500 - (getHoverCollectivePitch() - 1500));
     bool gyroCondition = averageAbsGyroRates() > 7.0f;
     bool invertedCondition = attitude.values.roll > 900 || attitude.values.roll < -900;
 
     return (accIsCalibrationComplete()) 
         ? gyroCondition && invertedCondition
-        : gyroCondition && collectiveCondition;
+        : gyroCondition && collectiveConditionValid && collectiveCondition;
 }
 
 
@@ -318,10 +326,10 @@ bool isHelicopterFlyingInverted(void)
 
 static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
 {
-    /* Detection based on G bump at touchdown, falling Baro altitude and throttle below hover.
+    /* Detection based on G bump at touchdown, falling Baro altitude and collective pitch below hover.
      * G bump trigger: > 2g then falling back below 1g in < 0.1s.
      * Baro trigger: rate must be -ve at initial trigger g and < -2 m/s when g falls back below 1g
-     * Throttle trigger: must be below hover throttle with lower threshold for manual throttle control */
+     * Collective trigger: must be below hover collective pitch with lower threshold for manual collective control */
 
     static timeMs_t gSpikeDetectTimeMs = 0;
     float baroAltRate = updateBaroAltitudeRate(0, false);
@@ -331,7 +339,7 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
     } else if (gSpikeDetectTimeMs) {
         if (currentTimeMs < gSpikeDetectTimeMs + 100) {
             if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
-                const uint16_t hoverCollectiveRange = currentBatteryProfile->nav.mc.hover_throttle - 1000;
+                const uint16_t hoverCollectiveRange = getHoverCollectivePitch() - 1000;
                 return rcCommand[COLLECTIVE] < 1000 + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverCollectiveRange);
       }
         } else if (acc.accADCf[Z] <= 1.0f) {
@@ -356,12 +364,12 @@ bool isHelicopterLandingDetected(void)
     }
 #endif
 
-    bool throttleIsBelowMidHover = rcCommand[COLLECTIVE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + 1000));
+    bool throttleIsBelowMidHover = rcCommand[COLLECTIVE] < (0.5 * (getHoverCollectivePitch() + 1000));      //currentBatteryProfile->nav.mc.hover_throttle + 1000));
 
     /* Basic condition to start looking for landing
-     * Detection active during Failsafe only if throttle below mid hover throttle
+     * Detection active during Failsafe only if collective pitch below mid hover collective pitch
      * and WP mission not active (except landing states).
-     * Also active in non autonomous flight modes but only when thottle low */
+     * Also active in non autonomous flight modes but only when collective low */
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && throttleIsBelowMidHover)
                           || (!navigationIsFlyingAutonomousMode() && collectiveStickIsLow());
@@ -429,7 +437,7 @@ bool isHelicopterLandingDetected(void)
     if ((posControl.flags.estAglStatus == EST_TRUSTED) && (posControl.actualState.agl.pos.z >= 0)) {
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
         // TODO: Out of range sonar may give reading that looks like we landed, find a way to check if sonar is healthy.
-        // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
+        // surfaceMin is our ground reference. If we are less than 10cm above the ground - we are likely landed
         possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + MC_LAND_SAFE_SURFACE));
     }
     DEBUG_SET(DEBUG_LANDING, 5, possibleLandingDetected);
@@ -457,7 +465,7 @@ static void applyHelicopterEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[YAW] = 0;
     rcCommand[ROLL] = 0;
     rcCommand[PITCH] = 0;
-    rcCommand[COLLECTIVE] = currentBatteryProfile->failsafe_throttle;
+    rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     /* Sensors have gone haywire, attempt to land regardless */
     if ((posControl.flags.estAltStatus < EST_USABLE)) {
@@ -499,6 +507,7 @@ static void applyHelicopterEmergencyLandingController(timeUs_t currentTimeUs)
         applyMulticopterPositionController(currentTimeUs);
     }
 }
+
 
 
 void resetHelicopterHeadingController(void)

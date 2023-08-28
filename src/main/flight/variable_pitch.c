@@ -29,6 +29,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "fc/settings.h"
+#include "fc/runtime_config.h"
 
 //woga65: helicopter specific settings
 PG_REGISTER_WITH_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig, PG_HELICOPTER_CONFIG, 0);
@@ -40,8 +41,9 @@ PG_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig,
 );
 
 
-uint16_t helicopterGetHoverCollective(uint8_t flightMode) {
-    return helicopterConfig()->nav_hc_hover_collective[flightMode];
-} 
+uint16_t getHoverCollectivePitch(void) {
+    const uint8_t headspeed = FLIGHT_MODE(HC_IDLE_UP_2) ? 2 : FLIGHT_MODE(HC_IDLE_UP_1) ? 1 : 0;
+    return helicopterConfig()->nav_hc_hover_collective[headspeed];
+}
 
 #endif
