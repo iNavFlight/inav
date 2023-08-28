@@ -29,11 +29,11 @@
 //#define VERY_FAST_MATH      // order 7 approximation
 
 // Use floating point M_PI instead explicitly.
-#define M_PIf       3.14159265358979323846f
-#define M_LN2f      0.69314718055994530942f
-#define M_Ef        2.71828182845904523536f
+#define M_PIf	3.14159265358979323846f
+#define M_LN2f	0.69314718055994530942f
+#define M_Ef	2.71828182845904523536f
 
-#define RAD    (M_PIf / 180.0f)
+#define RAD (M_PIf / 180.0f)
 
 #define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
 #define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100.0f)
@@ -56,47 +56,47 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048f)
-#define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48f)
-#define CENTIMETERS_TO_METERS(cm)               (cm / 100.0f)
+#define CENTIMETERS_TO_CENTIFEET(cm)	(cm / 0.3048f)
+#define CENTIMETERS_TO_FEET(cm)			(cm / 30.48f)
+#define CENTIMETERS_TO_METERS(cm)		(cm / 100.0f)
 
-#define METERS_TO_CENTIMETERS(m)                (m * 100)
+#define METERS_TO_CENTIMETERS(m)		(m * 100)
 
-#define CMSEC_TO_CENTIMPH(cms)      (cms * 2.2369363f)
-#define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6f)
-#define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845f)
+#define CMSEC_TO_CENTIMPH(cms)			(cms * 2.2369363f)
+#define CMSEC_TO_CENTIKPH(cms)			(cms * 3.6f)
+#define CMSEC_TO_CENTIKNOTS(cms)		(cms * 1.943845f)
 
 #define C_TO_KELVIN(temp) (temp + 273.15f)
 
 // Standard Sea Level values
 // Ref:https://en.wikipedia.org/wiki/Standard_sea_level
-#define SSL_AIR_DENSITY         1.225f // kg/m^3
-#define SSL_AIR_PRESSURE 101325.01576f // Pascal
-#define SSL_AIR_TEMPERATURE    288.15f // K
+#define SSL_AIR_DENSITY		1.225f // kg/m^3
+#define SSL_AIR_PRESSURE	101325.01576f // Pascal
+#define SSL_AIR_TEMPERATURE	288.15f // K
 
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
-#define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
-    ( __extension__ ({                                      \
-            __typeof__(lexpr) lvar = (lexpr);               \
-            __typeof__(rexpr) rvar = (rexpr);               \
-            lvar binoper rvar ? lvar : rvar;                \
-        }))
+#define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)	\
+	( __extension__ ({								\
+		__typeof__(lexpr) lvar = (lexpr);			\
+		__typeof__(rexpr) rvar = (rexpr);			\
+		lvar binoper rvar ? lvar : rvar;			\
+	}))
 #define _CHOOSE_VAR2(prefix, unique) prefix##unique
 #define _CHOOSE_VAR(prefix, unique) _CHOOSE_VAR2(prefix, unique)
-#define _CHOOSE(binoper, lexpr, rexpr)                   \
-    _CHOOSE2(                                            \
-        binoper,                                         \
-        lexpr, _CHOOSE_VAR(_left, __COUNTER__),          \
-        rexpr, _CHOOSE_VAR(_right, __COUNTER__)          \
-        )
+#define _CHOOSE(binoper, lexpr, rexpr)			\
+	_CHOOSE2(									\
+		binoper,								\
+		lexpr, _CHOOSE_VAR(_left, __COUNTER__),	\
+		rexpr, _CHOOSE_VAR(_right, __COUNTER__)	\
+		)
 #define MIN(a, b) _CHOOSE(<, a, b)
 #define MAX(a, b) _CHOOSE(>, a, b)
 
-#define _ABS_II(x, var)                           \
-    ( __extension__ ({                            \
-        __typeof__(x) var = (x);                  \
-        var < 0 ? -var : var;                     \
-    }))
+#define _ABS_II(x, var)				\
+	( __extension__ ({				\
+		__typeof__(x) var = (x);	\
+		var < 0 ? -var : var;		\
+	}))
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
 
@@ -104,36 +104,35 @@
 
 // Floating point Euler angles.
 typedef struct fp_angles {
-    float roll;
-    float pitch;
-    float yaw;
+	float roll;
+	float pitch;
+	float yaw;
 } fp_angles_def;
 
 typedef union {
-    float raw[3];
-    fp_angles_def angles;
+	float raw[3];
+	fp_angles_def angles;
 } fp_angles_t;
 
-typedef struct stdev_s
-{
-    float m_oldM, m_newM, m_oldS, m_newS;
-    int m_n;
+typedef struct stdev_s {
+	float m_oldM, m_newM, m_oldS, m_newS;
+	int m_n;
 } stdev_t;
 
 typedef struct filterWithBufferSample_s {
-    float value;
-    uint32_t timestamp;
+	float value;
+	uint32_t timestamp;
 } filterWithBufferSample_t;
 
 typedef struct filterWithBufferState_s {
-    uint16_t filter_size;
-    uint16_t sample_index;
-    filterWithBufferSample_t * samples;
+	uint16_t filter_size;
+	uint16_t sample_index;
+	filterWithBufferSample_t * samples;
 } filterWithBufferState_t;
 
 typedef struct {
-    float XtY[4];
-    float XtX[4][4];
+	float XtY[4];
+	float XtX[4][4];
 } sensorCalibrationState_t;
 
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
