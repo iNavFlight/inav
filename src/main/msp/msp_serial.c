@@ -530,7 +530,7 @@ int mspSerialPushPort(uint16_t cmd, const uint8_t *data, int datalen, mspPort_t 
     return mspSerialEncode(mspPort, &push, version);
 }
 
-int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
+int mspSerialPushVersion(uint8_t cmd, const uint8_t *data, int datalen, mspVersion_e version)
 {
     int ret = 0;
 
@@ -545,33 +545,19 @@ int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
             continue;
         }
 
-        ret = mspSerialPushPort(cmd, data, datalen, mspPort, MSP_V1);
+        ret = mspSerialPushPort(cmd, data, datalen, mspPort, version);
     }
     return ret; // return the number of bytes written
 }
 
-uint32_t mspSerialTxBytesFree(void)
+int mspSerialPush(uint8_t cmd, const uint8_t *data, int datalen)
 {
-    uint32_t ret = UINT32_MAX;
+    return mspSerialPushVersion(cmd, data, datalen, MSP_V1);
+}
 
-    for (int portIndex = 0; portIndex < MAX_MSP_PORT_COUNT; portIndex++) {
-        mspPort_t * const mspPort = &mspPorts[portIndex];
-        if (!mspPort->port) {
-            continue;
-        }
-
-        // XXX Kludge!!! Avoid zombie VCP port (avoid VCP entirely for now)
-        if (mspPort->port->identifier == SERIAL_PORT_USB_VCP) {
-            continue;
-        }
-
-        const uint32_t bytesFree = serialTxBytesFree(mspPort->port);
-        if (bytesFree < ret) {
-            ret = bytesFree;
-        }
-    }
-
-    return ret;
+uint32_t mspSerialTxBytesFree(serialPort_t *port)
+{
+   return serialTxBytesFree(port);
 }
 
 mspPort_t * mspSerialPortFind(const serialPort_t *serialPort)

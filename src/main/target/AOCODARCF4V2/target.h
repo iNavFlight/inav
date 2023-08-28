@@ -60,9 +60,12 @@
 #define USE_MAG
 #define MAG_I2C_BUS                     DEFAULT_I2C_BUS
 
+#define USE_MAG_AK8975
 #define USE_MAG_HMC5883
 #define USE_MAG_QMC5883
-#define USE_MAG_LIS3MDL
+#define USE_MAG_IST8310
+#define USE_MAG_IST8308
+#define USE_MAG_MAG3110
 
 // ******* SERIAL ********
 #define USE_VCP
@@ -78,16 +81,16 @@
 #define UART2_RX_PIN                    PA3
 
 #define USE_UART3
-#define UART3_TX_PIN                    PC11
-#define UART3_RX_PIN                    PC10
+#define UART3_TX_PIN                    PC10
+#define UART3_RX_PIN                    PC11
 
 #define USE_UART4
 #define UART4_TX_PIN                    PA0
 #define UART4_RX_PIN                    PA1
 
 #define USE_UART5
-#define UART5_TX_PIN                    PC12
-#define UART5_RX_PIN                    PD2
+#define UART5_TX_PIN                   PD2
+#define UART5_RX_PIN                   PC12
 
 
 #define SERIAL_PORT_COUNT              6

@@ -1372,6 +1372,16 @@ Automatic configuration of GPS baudrate(The specified baudrate in configured in 
 
 ---
 
+### gps_auto_baud_max_supported
+
+Max baudrate supported by GPS unit. This is used during autobaud. M8 supports up to 460400, M10 supports up to 921600 and 230400 is the value used before INAV 7.0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 230400 |  |  |
+
+---
+
 ### gps_auto_config
 
 Enable automatic configuration of UBlox GPS receivers.
@@ -1422,9 +1432,39 @@ Which SBAS mode to be used
 
 ---
 
+### gps_ublox_nav_hz
+
+Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 5 | 200 |
+
+---
+
+### gps_ublox_use_beidou
+
+Enable use of Beidou satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps hardware support [OFF/ON].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gps_ublox_use_galileo
 
 Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### gps_ublox_use_glonass
+
+Enable use of Glonass satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires gps haardware support [OFF/ON].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3182,6 +3222,16 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ---
 
+### nav_landing_bump_detection
+
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_manual_climb_rate
 
 Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
@@ -3229,6 +3279,16 @@ Max allowed above the ground altitude for terrain following mode
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 |  | 1000 |
+
+---
+
+### nav_mc_althold_throttle
+
+If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| STICK |  |  |
 
 ---
 
@@ -3695,16 +3755,6 @@ If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en 
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### nav_use_midthr_for_althold
-
-If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude
 
 | Default | Min | Max |
 | --- | --- | --- |

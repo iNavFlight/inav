@@ -194,6 +194,13 @@ STATIC_PROTOTHREAD(pitotThread)
     pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
+#ifdef USE_SIMULATOR
+    	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
+        {
+            ptDelayUs(10000);
+    	}
+#endif
+
         // Start measurement
         if (pitot.dev.start(&pitot.dev)) {
             pitot.lastSeenHealthyMs = millis();
@@ -208,17 +215,14 @@ STATIC_PROTOTHREAD(pitotThread)
 
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
 #ifdef USE_SIMULATOR
-        float airSpeed;
-        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-             airSpeed = simulatorData.airSpeed;
-#if defined(USE_PITOT_FAKE)
-        } else if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
-        	airSpeed = fakePitotGetAirspeed();
+    	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+        	pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
+    	}
 #endif
-    	} else {
-            airSpeed = 0;
-        }
-        pitotPressureTmp = sq(airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+#if defined(USE_PITOT_FAKE)
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+    	} 
 #endif
         ptYield();
 
@@ -244,15 +248,14 @@ STATIC_PROTOTHREAD(pitotThread)
             pitot.airSpeed = 0.0f;
         }
 #ifdef USE_SIMULATOR
-        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+    	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
             pitot.airSpeed = simulatorData.airSpeed;
-#if defined(USE_PITOT_FAKE)
-        } else if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
-            pitot.airSpeed = fakePitotGetAirspeed();
+    	}
 #endif
-        } else {
-            pitot.airSpeed = 0;
-        }
+#if defined(USE_PITOT_FAKE)
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitot.airSpeed = fakePitotGetAirspeed();
+    }
 #endif
     }
 

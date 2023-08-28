@@ -22,8 +22,6 @@
 #include "drivers/osd_symbols.h"
 #include "io/displayport_msp_bf_compat.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #if defined(USE_OSD) || defined(OSD_UNIT_TEST)
 
 int digitCount(int32_t value)

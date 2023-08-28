@@ -24,8 +24,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include <math.h>
 #include "common/fp_pid.h"
 

@@ -23,8 +23,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #ifdef USE_MAX7456
 
 #if defined(MAX7456_USE_BOUNDS_CHECKS)

@@ -36,7 +36,7 @@ static uint32_t arm_distance_cm;
 static uint32_t arm_mWhDrawn;
 static uint32_t flyingEnergy; // energy drawn during flying up to last disarm (ARMED) mWh
 
-uint32_t getFlyingEnergy() {
+uint32_t getFlyingEnergy(void) {
     return flyingEnergy;
 }
 #endif

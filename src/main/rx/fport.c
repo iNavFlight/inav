@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_SERIAL_RX)
 

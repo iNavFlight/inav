@@ -87,7 +87,7 @@
         { .dev = NULL },    // No SPI1
     #endif
     #ifdef USE_SPI_DEVICE_2
-        { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_MUX_6, .divisorMap = spiDivisorMapSlow },
+        { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_MUX_5, .divisorMap = spiDivisorMapSlow },
     #else
         { .dev = NULL },    // No SPI2
     #endif
