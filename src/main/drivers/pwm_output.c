@@ -61,6 +61,7 @@
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 #define MAX_DMA_TIMERS          8
 
+#define DSHOT_COMMAND_DELAY_US 1000
 #define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
 #define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
@@ -434,6 +435,7 @@ static void executeDShotCommands(void){
         return;
         }  
     }
+    delayMicroseconds(DSHOT_COMMAND_DELAY_US);
     for (uint8_t i = 0; i < getMotorCount(); i++) {
          motors[i].requestTelemetry = true;
          motors[i].value = currentExecutingCommand.cmd;
