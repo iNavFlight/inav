@@ -30,11 +30,13 @@
 #if defined(USE_VARIABLE_PITCH)
 
 typedef struct helicopterConfig_s {             // woga65: helicopter specific settings
-    int16_t nav_hc_hover_collective[3];         // On helicopters the amount of collective-pitch needed to hover at a certain head speed
+    uint16_t nav_hc_hover_collective[3];         // On helicopters the amount of collective-pitch needed to hover at a certain head speed
+    uint8_t hc_rotor_spoolup_time;
 } helicopterConfig_t;
 
 PG_DECLARE(helicopterConfig_t, helicopterConfig);   // woga65:
 
 uint16_t getHoverCollectivePitch(void);
+uint8_t getSpoolupTime(void);
 
 #endif

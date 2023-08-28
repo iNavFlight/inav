@@ -419,6 +419,8 @@ static void processPilotAndFailSafeActions(float dT)
         if (STATE(HELICOPTER)) {
             rcCommand[COLLECTIVE] = constrain(rxGetChannelValue(COLLECTIVE), PWM_RANGE_MIN, PWM_RANGE_MAX);
             rcCommand[THROTTLE]   = constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        } else {
+            rcCommand[THROTTLE] = throttleStickMixedValue();
         }
 #endif
 

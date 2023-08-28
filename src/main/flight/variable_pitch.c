@@ -38,12 +38,17 @@ PG_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig,
     .nav_hc_hover_collective[0] = 1600,     // normal
     .nav_hc_hover_collective[1] = 1550,     // idle-up 1
     .nav_hc_hover_collective[2] = 1525,     // idle-up 2
+    .hc_rotor_spoolup_time = 10,            // time for the rotor(s) to spool up
 );
 
 
 uint16_t getHoverCollectivePitch(void) {
     const uint8_t headspeed = FLIGHT_MODE(HC_IDLE_UP_2) ? 2 : FLIGHT_MODE(HC_IDLE_UP_1) ? 1 : 0;
     return helicopterConfig()->nav_hc_hover_collective[headspeed];
+}
+
+uint8_t getSpoolupTime(void) {
+    return helicopterConfig()->hc_rotor_spoolup_time;
 }
 
 #endif

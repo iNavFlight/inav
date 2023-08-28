@@ -126,7 +126,7 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE
 #if defined(USE_VARIABLE_PITCH)
     // woga65: cut throttle, center collective 
-                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWASY HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
                 FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
                 FAILSAFE_CHANNEL_NEUTRAL,       // COLLECTIVE
                 FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN
