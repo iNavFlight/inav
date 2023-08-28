@@ -2843,7 +2843,7 @@ bool isLandingDetected(void)
 #else
     return STATE(AIRPLANE)
         ? isFixedWingLandingDetected()
-        : (mixerConfig()->platformType == PLATFORM_HELICOPTER ? isHelicopterLandingDetected() : isMulticopterLandingDetected());
+        : (STATE(HELICOPTER) ? isHelicopterLandingDetected() : isMulticopterLandingDetected());
 #endif
 }
 
@@ -2860,7 +2860,7 @@ bool isFlightDetected(void)
 #else
     return STATE(AIRPLANE)
         ? isFixedWingFlying()
-        : (mixerConfig()->platformType == PLATFORM_HELICOPTER ? isHelicopterFlying() : isMulticopterFlying());
+        : (STATE(HELICOPTER) ? isHelicopterFlying() : isMulticopterFlying());
 #endif    
 }
 
@@ -2938,7 +2938,7 @@ static void resetAltitudeController(bool useTerrainFollowing)
         resetFixedWingAltitudeController();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    else if (STATE(HELICOPTER)) {
         resetHelicopterAltitudeController();
     } 
 #endif
@@ -2953,7 +2953,7 @@ static void setupAltitudeController(void)
         setupFixedWingAltitudeController();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    else if (STATE(HELICOPTER)) {
         setupHelicopterAltitudeController();
     }
 #endif
@@ -2968,7 +2968,7 @@ static bool adjustAltitudeFromRCInput(void)
         return adjustFixedWingAltitudeFromRCInput();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    else if (STATE(HELICOPTER)) {
         return adjustHelicopterAltitudeFromRCInput();
     }
 #endif
@@ -3015,7 +3015,7 @@ static void resetHeadingController(void)
         resetFixedWingHeadingController();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    else if (STATE(HELICOPTER)) {
         resetHelicopterHeadingController();
     } 
 #endif
@@ -3578,7 +3578,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    else if (STATE(HELICOPTER)) {
         applyHelicopterNavigationController(navStateFlags, currentTimeUs);
     }
 #endif

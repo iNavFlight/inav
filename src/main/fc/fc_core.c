@@ -416,7 +416,7 @@ static void processPilotAndFailSafeActions(float dT)
         rcCommand[THROTTLE] = throttleStickMixedValue();
 #else
         //Compute COLLECTIVE + THROTTLE command
-        if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+        if (STATE(HELICOPTER)) {
             rcCommand[COLLECTIVE] = constrain(rxGetChannelValue(COLLECTIVE), PWM_RANGE_MIN, PWM_RANGE_MAX);
             rcCommand[THROTTLE]   = constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
@@ -679,7 +679,7 @@ void processRx(timeUs_t currentTimeUs)
 
     // woga65: box headspeed ( BOXHELINORMAL | BOXHELIIDLEUP1 | BOXHELIIDLEUP2 )
     // set helicopter flight mode accordingly ( HC_NORMAL | HC_IDLE_UP_1 | HC_IDLE_UP_2 )
-    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    if (STATE(HELICOPTER)) {
         if (IS_RC_MODE_ACTIVE(BOXHELIIDLEUP1)) {
             if (!FLIGHT_MODE(HC_IDLE_UP_1)) {
                 ENABLE_FLIGHT_MODE(HC_IDLE_UP_1);
@@ -783,7 +783,7 @@ void processRx(timeUs_t currentTimeUs)
     // and above negative hover pitch. 
     // If an accelerometer is present and calibrated, it is used instead of the position of the 
     // COLLECTIVE stick to determine whether the craft's position is upright or inverted. 
-    else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {  //woga65:
+    else if (STATE(HELICOPTER)) {  //woga65:
 
         if (!isHelicopterFlyingUpright() && !isHelicopterFlyingInverted()) {
             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
@@ -961,7 +961,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
         if (thrTiltCompStrength) {
 #if defined(USE_VARIABLE_PITCH)
-            if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+            if (STATE(HELICOPTER)) {
                 rcCommand[COLLECTIVE] = constrain(PWM_RANGE_MIN
                                                 + (rcCommand[COLLECTIVE] - PWM_RANGE_MIN) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
                                                 PWM_RANGE_MIN,

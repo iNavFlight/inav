@@ -265,7 +265,7 @@ static uint16_t handleOutputScaling(
 static void applyTurtleModeToMotors(void) {
 
 #if defined(USE_VARIABLE_PITCH)     // woga65: no turtle mode on heli-like aircraft
-    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+    if (STATE(HELICOPTER)) {
         return;
     }
 #endif    

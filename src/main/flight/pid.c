@@ -1204,7 +1204,7 @@ void pidInit(void)
     // woga65: initialize PID adjustment factor, get GYRO_GAIN channel (0 => disabled)
     pidAdjustmentFactor = 1;
 #if defined(USE_VARIABLE_PITCH)    
-    pidAdjustmentChannel = mixerConfig()->platformType == PLATFORM_HELICOPTER ? GYRO_GAIN : 0;
+    pidAdjustmentChannel = STATE(HELICOPTER) ? GYRO_GAIN : 0;
 #endif
 
     // Calculate max overall tilt (max pitch + max roll combined) as a limit to heading hold
