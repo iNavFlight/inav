@@ -558,6 +558,8 @@ void tryArm(void)
             ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
         }
 
+        resetLandingDetectorActiveState();  // reset landing detector after arming to avoid false detection before flight
+
         lastDisarmReason = DISARM_NONE;
 
         ENABLE_ARMING_FLAG(ARMED);
