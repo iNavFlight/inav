@@ -71,7 +71,7 @@ uint8_t getSpoolupTime(void) {
 uint16_t spoolupRotors(uint16_t throttleSetpoint) {
 
     // Nothing to do? Return throttle as is.
-    if (!shallSpoolUp || (!isSpoolingUp && throttleSetpoint == 1000)) {
+    if (!shallSpoolUp || (!isSpoolingUp && throttleSetpoint == 1000) || getSpoolupTime() == 0) {
         return throttleSetpoint;
     }
 

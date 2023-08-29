@@ -3971,26 +3971,30 @@ groups:
     condition: USE_VARIABLE_PITCH
     members:
         - name: nav_hc_hover_collective_normal
+          description: "Helicopter hover collective (normal/low head-speed) hint for altitude controller. Should be set to approximate throttle value when heli is hovering."
           field: nav_hc_hover_collective[0]
           min: 1000
           max: 2000
           default_value: 1600
           type: uint16_t
         - name: nav_hc_hover_collective_idleup_1
+          description: "Helicopter hover collective (idle-up 1) hint for altitude controller. Should be set to approximate throttle value when heli is hovering."
           field: nav_hc_hover_collective[1]
           min: 1000
           max: 2000
           default_value: 1550
           type: uint16_t
         - name: nav_hc_hover_collective_idleup_2
+          description: "Helicopter hover collective (idle-up 2) hint for altitude controller. Should be set to approximate throttle value when heli is hovering."
           field: nav_hc_hover_collective[2]
           min: 1000
           max: 2000
           default_value: 1525
           type: uint16_t
         - name: hc_rotor_spoolup_time
+          description: "The time in seconds for the rotor(s) to spool up (0 = soft spool-up disabled)"
           field: hc_rotor_spoolup_time
-          min: 5
+          min: 0
           max: 20
           default_value: 10
           type: uint8_t
