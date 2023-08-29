@@ -23,6 +23,7 @@
 
 #if defined(USE_VARIABLE_PITCH)
 
+#include "drivers/time.h"
 #include "flight/variable_pitch.h"
 
 #include "config/parameter_group.h"
@@ -31,7 +32,10 @@
 #include "fc/settings.h"
 #include "fc/runtime_config.h"
 
-//woga65: helicopter specific settings
+#include "common/maths.h"
+
+
+// woga65: helicopter specific settings
 PG_REGISTER_WITH_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig, PG_HELICOPTER_CONFIG, 0);
 
 PG_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig,
@@ -41,14 +45,84 @@ PG_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig,
     .hc_rotor_spoolup_time = 10,            // time for the rotor(s) to spool up
 );
 
+// woga65: soft spool-up related variables
+bool shallSpoolUp = false;
+bool isSpoolingUp = false;
+
+float spoolUpSteps = 0;
+float currentThrottle = 1000;
+
+timeMs_t spoolUpEndTime = 0;
+timeMs_t spoolUpStartTime = 0;
+timeMs_t deltaTime = 0;
+
 
 uint16_t getHoverCollectivePitch(void) {
     const uint8_t headspeed = FLIGHT_MODE(HC_IDLE_UP_2) ? 2 : FLIGHT_MODE(HC_IDLE_UP_1) ? 1 : 0;
     return helicopterConfig()->nav_hc_hover_collective[headspeed];
 }
 
+
 uint8_t getSpoolupTime(void) {
     return helicopterConfig()->hc_rotor_spoolup_time;
+}
+
+
+uint16_t spoolupRotors(uint16_t throttleSetpoint) {
+
+    // Nothing to do? Return throttle as is.
+    if (!shallSpoolUp || (!isSpoolingUp && throttleSetpoint == 1000)) {
+        return throttleSetpoint;
+    }
+
+    // Setup starting conditions for spool-up.
+    if (!isSpoolingUp) {
+        deltaTime = 0;
+        currentThrottle = 1000;
+        spoolUpEndTime = millis() + (getSpoolupTime() * 1000);
+        spoolUpStartTime = millis();
+        spoolUpSteps = (throttleSetpoint - currentThrottle) / ((spoolUpEndTime - spoolUpStartTime) * 0.2f);
+        isSpoolingUp = true;
+    }
+
+    // Spool-Up has been interrupted. Start over again.
+    if (throttleSetpoint == 1000) {
+        isSpoolingUp = false;
+        return throttleSetpoint;
+    }
+
+    // Spool-Up is finished because setpoint has been lowered. 
+    if (throttleSetpoint <= currentThrottle) {
+        shallSpoolUp = false;
+        isSpoolingUp = false;
+        currentThrottle = 1000;
+        return throttleSetpoint;
+    }
+
+    // Last call less than 200ms ago
+    if (millis() < deltaTime) {
+        return (uint16_t)(currentThrottle + 0.5f);
+    }
+
+    // Increase throttle every 200ms
+    currentThrottle += spoolUpSteps;
+    deltaTime = millis() + 5;           // Should be millis() + 200! Why is it just 5?
+
+    // Spool-up is finished
+    if (currentThrottle >= throttleSetpoint) {
+        shallSpoolUp = false;
+        isSpoolingUp = false;
+        currentThrottle = 1000;
+        return throttleSetpoint;
+    }
+
+    return (uint16_t)(currentThrottle + 0.5f);
+}
+
+
+void prepareSoftSpoolup(void) {
+    currentThrottle = 1000;
+    shallSpoolUp = true;
 }
 
 #endif

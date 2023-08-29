@@ -90,6 +90,10 @@
 #include "flight/failsafe.h"
 #include "flight/power_limits.h"
 
+#ifdef USE_VARIABLE_PITCH
+#  include "flight/variable_pitch.h"
+#endif
+
 #include "config/feature.h"
 #include "common/vector.h"
 #include "programming/pid.h"
@@ -379,6 +383,14 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
 }
 
+#if defined(USE_VARIABLE_PITCH)
+static void ensureSoftSpoolupOnGround(void) {
+    if (!isHelicopterFlyingUpright() && !isHelicopterFlyingInverted() && throttleStickIsLow()) {
+        prepareSoftSpoolup();
+    }
+}
+#endif
+
 static void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
@@ -417,8 +429,9 @@ static void processPilotAndFailSafeActions(float dT)
 #else
         //Compute COLLECTIVE + THROTTLE command
         if (STATE(HELICOPTER)) {
+            ensureSoftSpoolupOnGround();
             rcCommand[COLLECTIVE] = constrain(rxGetChannelValue(COLLECTIVE), PWM_RANGE_MIN, PWM_RANGE_MAX);
-            rcCommand[THROTTLE]   = constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            rcCommand[THROTTLE]   = spoolupRotors(constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX));
         } else {
             rcCommand[THROTTLE] = throttleStickMixedValue();
         }
@@ -586,6 +599,12 @@ void tryArm(void)
         } else {
             beeper(BEEPER_ARMING);
         }
+
+#if defined(USE_VARIABLE_PITCH)
+        if (STATE(HELICOPTER)) {
+            prepareSoftSpoolup();
+        }
+#endif
 
         statsOnArm();
 
