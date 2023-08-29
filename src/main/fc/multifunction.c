@@ -34,7 +34,9 @@
 #include "io/osd.h"
 #include "navigation/navigation.h"
 
+multi_function_e selectedItem = MULTI_FUNC_NONE;
 uint8_t multiFunctionFlags;
+bool nextItemIsAvailable = false;
 
 static void multiFunctionApply(multi_function_e selectedItem)
 {
@@ -75,11 +77,20 @@ static void multiFunctionApply(multi_function_e selectedItem)
     }
 }
 
+bool isNextMultifunctionItemAvailable(void)
+{
+    return nextItemIsAvailable;
+}
+
+void incrementMultifunctionSelection(void)
+{
+    selectedItem = selectedItem == MULTI_FUNC_END - 1 ? MULTI_FUNC_1 : selectedItem + 1;
+}
+
 multi_function_e multiFunctionSelection(void)
 {
     static timeMs_t startTimer;
     static timeMs_t selectTimer;
-    static multi_function_e selectedItem = MULTI_FUNC_NONE;
     static bool toggle = true;
     const timeMs_t currentTime = millis();
 
@@ -95,19 +106,21 @@ multi_function_e multiFunctionSelection(void)
                 selectedItem++;
             } else {
                 selectTimer = currentTime;
+                nextItemIsAvailable = true;
             }
         }
         startTimer = currentTime;
         toggle = false;
     } else if (startTimer) {
         if (!toggle && selectTimer) {
-            selectedItem = selectedItem == MULTI_FUNC_END - 1 ? MULTI_FUNC_1 : selectedItem + 1;
+            incrementMultifunctionSelection();
+            nextItemIsAvailable = false;
         }
-        selectTimer = 0;
         if (currentTime - startTimer > 3000) {      // 3s reset delay after mode deselected
             startTimer = 0;
             selectedItem = MULTI_FUNC_NONE;
         }
+        selectTimer = 0;
         toggle = true;
     }
 
