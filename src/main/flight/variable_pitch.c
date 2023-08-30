@@ -79,9 +79,9 @@ uint16_t spoolupRotors(uint16_t throttleSetpoint) {
     if (!isSpoolingUp) {
         deltaTime = 0;
         currentThrottle = 1000;
-        spoolUpEndTime = millis() + (getSpoolupTime() * 1000);
         spoolUpStartTime = millis();
-        spoolUpSteps = (throttleSetpoint - currentThrottle) / ((spoolUpEndTime - spoolUpStartTime) * 0.2f);
+        spoolUpEndTime = spoolUpStartTime + (getSpoolupTime() * 1000);
+        spoolUpSteps = (throttleSetpoint - currentThrottle) / ((spoolUpEndTime - spoolUpStartTime) * 0.005f);
         isSpoolingUp = true;
     }
 
@@ -99,21 +99,18 @@ uint16_t spoolupRotors(uint16_t throttleSetpoint) {
         return throttleSetpoint;
     }
 
-    // Last call less than 200ms ago
-    if (millis() < deltaTime) {
-        return (uint16_t)(currentThrottle + 0.5f);
-    }
-
     // Increase throttle every 200ms
-    currentThrottle += spoolUpSteps;
-    deltaTime = millis() + 5;           // Should be millis() + 200! Why is it just 5?
-
-    // Spool-up is finished
-    if (currentThrottle >= throttleSetpoint) {
-        shallSpoolUp = false;
-        isSpoolingUp = false;
-        currentThrottle = 1000;
-        return throttleSetpoint;
+    if (millis() >= deltaTime) {
+        currentThrottle += spoolUpSteps;
+        deltaTime = millis() + 200;
+    
+        // Is spool-up finished?
+        if (currentThrottle >= throttleSetpoint) {
+            shallSpoolUp = false;
+            isSpoolingUp = false;
+            currentThrottle = 1000;
+            return throttleSetpoint;
+        }
     }
 
     return (uint16_t)(currentThrottle + 0.5f);
