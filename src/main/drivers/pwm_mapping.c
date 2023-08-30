@@ -237,6 +237,28 @@ static void timerHardwareOverride(timerHardware_t * timer) {
     }
 }
 
+bool pwmHasMotorOnTimer(timMotorServoHardware_t * timOutputs, TIM_TypeDef *tim)
+{
+    for (int i = 0; i < timOutputs->maxTimMotorCount; ++i) {
+        if (timOutputs->timMotors[i]->tim == tim) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool pwmHasServoOnTimer(timMotorServoHardware_t * timOutputs, TIM_TypeDef *tim)
+{
+    for (int i = 0; i < timOutputs->maxTimServoCount; ++i) {
+        if (timOutputs->timServos[i]->tim == tim) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
 {
     timOutputs->maxTimMotorCount = 0;
@@ -269,19 +291,19 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
                 motorIdx += 1;
             }
 
-            // We enable mapping to servos if mixer is actually using them
-            if (isMixerUsingServos && timHw->usageFlags & TIM_USE_MC_SERVO) {
+            // We enable mapping to servos if mixer is actually using them and it does not conflict with used motors
+            if (isMixerUsingServos && timHw->usageFlags & TIM_USE_MC_SERVO && !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
-            else if (timHw->usageFlags & TIM_USE_MC_MOTOR) {
+            else if (timHw->usageFlags & TIM_USE_MC_MOTOR && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
         } else {
             // Fixed wing or HELI (one/two motors and a lot of servos
-            if (timHw->usageFlags & TIM_USE_FW_SERVO) {
+            if (timHw->usageFlags & TIM_USE_FW_SERVO && !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
                 type = MAP_TO_SERVO_OUTPUT;
             }
-            else if (timHw->usageFlags & TIM_USE_FW_MOTOR) {
+            else if (timHw->usageFlags & TIM_USE_FW_MOTOR && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
         }
