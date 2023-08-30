@@ -177,7 +177,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
-#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914   
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914
     const int16_t value = rawData - PWM_RANGE_MIDDLE;
     if (value < -500) {
         stickDeflection = -500;
@@ -187,9 +187,9 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
         stickDeflection = value;
     }
 #else
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);   
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
 #endif
-    
+
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
     return rcLookup(stickDeflection, rate);
 }
@@ -523,9 +523,12 @@ void tryArm(void)
     }
 
 #ifdef USE_DSHOT
-    if (STATE(MULTIROTOR) && (IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE)) && !FLIGHT_MODE(TURTLE_MODE) &&
-        emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
-        ) {
+#ifdef USE_MULTI_FUNCTIONS
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE);
+#else
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
+#endif
+    if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         enableFlightMode(TURTLE_MODE);
@@ -842,7 +845,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
-  
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 

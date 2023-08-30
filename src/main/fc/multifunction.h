@@ -24,6 +24,8 @@
 
 #pragma once
 
+#ifdef USE_MULTI_FUNCTIONS
+
 extern uint8_t multiFunctionFlags;
 
 #define MULTI_FUNC_FLAG_DISABLE(mask) (multiFunctionFlags &= ~(mask))
@@ -50,3 +52,4 @@ typedef enum {
 multi_function_e multiFunctionSelection(void);
 bool isNextMultifunctionItemAvailable(void);
 void setMultifunctionSelection(multi_function_e item);
+#endif

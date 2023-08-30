@@ -26,6 +26,8 @@
 #include "build/debug.h"
 #include "drivers/time.h"
 
+#ifdef USE_MULTI_FUNCTIONS
+
 #include "fc/fc_core.h"
 #include "fc/multifunction.h"
 #include "fc/rc_modes.h"
@@ -127,3 +129,4 @@ multi_function_e multiFunctionSelection(void)
 
     return selectedItem;
 }
+#endif

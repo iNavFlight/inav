@@ -180,7 +180,9 @@ void initActiveBoxIds(void)
     RESET_BOX_ID_COUNT;
     ADD_ACTIVE_BOX(BOXARM);
     ADD_ACTIVE_BOX(BOXPREARM);
+#ifdef USE_MULTI_FUNCTIONS
     ADD_ACTIVE_BOX(BOXMULTIFUNCTION);
+#endif
 
     if (sensors(SENSOR_ACC) && STATE(ALTITUDE_CONTROL)) {
         ADD_ACTIVE_BOX(BOXANGLE);
@@ -414,8 +416,9 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #ifdef USE_MULTI_MISSION
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)),   BOXCHANGEMISSION);
 #endif
+#ifdef USE_MULTI_FUNCTIONS
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)),   BOXMULTIFUNCTION);
-
+#endif
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {
