@@ -41,10 +41,8 @@ timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 
 uint8_t timer2id(const HAL_Timer_t *tim)
 {
-    for(int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i)
-    {
-        if(timerDefinitions[i].tim == tim)
-            return i;
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        if (timerDefinitions[i].tim == tim) return i;
     }
 
     return (uint8_t)-1;
