@@ -82,9 +82,10 @@ bool isNextMultifunctionItemAvailable(void)
     return nextItemIsAvailable;
 }
 
-void incrementMultifunctionSelection(void)
+void setMultifunctionSelection(multi_function_e item)
 {
-    selectedItem = selectedItem == MULTI_FUNC_END - 1 ? MULTI_FUNC_1 : selectedItem + 1;
+    selectedItem = item == MULTI_FUNC_END ? MULTI_FUNC_1 : item;
+    nextItemIsAvailable = false;
 }
 
 multi_function_e multiFunctionSelection(void)
@@ -100,6 +101,7 @@ multi_function_e multiFunctionSelection(void)
                 multiFunctionApply(selectedItem);
                 selectTimer = 0;
                 selectedItem = MULTI_FUNC_NONE;
+                nextItemIsAvailable = false;
             }
         } else if (toggle) {
             if (selectedItem == MULTI_FUNC_NONE) {
@@ -113,10 +115,9 @@ multi_function_e multiFunctionSelection(void)
         toggle = false;
     } else if (startTimer) {
         if (!toggle && selectTimer) {
-            incrementMultifunctionSelection();
-            nextItemIsAvailable = false;
+            setMultifunctionSelection(++selectedItem);
         }
-        if (currentTime - startTimer > 3000) {      // 3s reset delay after mode deselected
+        if (currentTime - startTimer > 4000) {      // 4s reset delay after mode deselected
             startTimer = 0;
             selectedItem = MULTI_FUNC_NONE;
         }

@@ -49,4 +49,4 @@ typedef enum {
 
 multi_function_e multiFunctionSelection(void);
 bool isNextMultifunctionItemAvailable(void);
-void incrementMultifunctionSelection(void);
+void setMultifunctionSelection(multi_function_e item);
