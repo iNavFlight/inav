@@ -38,8 +38,20 @@
 
 timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 
+
+uint8_t timer2id(const HAL_Timer_t *tim)
+{
+    for(int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i)
+    {
+        if(timerDefinitions[i].tim == tim)
+            return i;
+    }
+
+    return (uint8_t)-1;
+}
+
 #if defined(AT32F43x)
-uint8_t lookupTimerIndex(const tmr_type *tim)
+uint8_t lookupTimerIndex(const HAL_Timer_t *tim)
 {
     int i;
 
@@ -54,7 +66,7 @@ uint8_t lookupTimerIndex(const tmr_type *tim)
 }
 #else
 // return index of timer in timer table. Lowest timer has index 0
-uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
+uint8_t lookupTimerIndex(const HAL_Timer_t *tim)
 {
     int i;
 
