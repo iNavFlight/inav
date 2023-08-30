@@ -4722,6 +4722,16 @@ IMPERIAL, METRIC, UK
 
 ---
 
+### osd_use_pilot_logo
+
+Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`

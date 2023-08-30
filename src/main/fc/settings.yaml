@@ -3480,6 +3480,12 @@ groups:
         max: 6
         default_value: 4
 
+      - name: osd_use_pilot_logo
+        description: Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
+        field: use_pilot_logo
+        type: bool
+        default_value: OFF
+
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
