@@ -163,7 +163,7 @@ void resetAllRxChannelRangeConfigurations(void)
     }
 }
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, CONTROL_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, CONTROL_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);   //woga65:
 
 void pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfig_t *rxChannelRangeConfigs)
 {

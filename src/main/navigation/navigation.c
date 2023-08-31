@@ -2843,7 +2843,7 @@ bool isLandingDetected(void)
 #else
     return STATE(AIRPLANE)
         ? isFixedWingLandingDetected()
-        : (STATE(HELICOPTER) ? isHelicopterLandingDetected() : isMulticopterLandingDetected());
+        : (STATE(HELICOPTER) ? isHelicopterLandingDetected() : isMulticopterLandingDetected()); //woga65:
 #endif
 }
 
@@ -2860,7 +2860,7 @@ bool isFlightDetected(void)
 #else
     return STATE(AIRPLANE)
         ? isFixedWingFlying()
-        : (STATE(HELICOPTER) ? isHelicopterFlying() : isMulticopterFlying());
+        : (STATE(HELICOPTER) ? isHelicopterFlying() : isMulticopterFlying());   //woga65:
 #endif    
 }
 
@@ -2938,7 +2938,7 @@ static void resetAltitudeController(bool useTerrainFollowing)
         resetFixedWingAltitudeController();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (STATE(HELICOPTER)) {
+    else if (STATE(HELICOPTER)) {       //woga65:
         resetHelicopterAltitudeController();
     } 
 #endif
@@ -2953,7 +2953,7 @@ static void setupAltitudeController(void)
         setupFixedWingAltitudeController();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (STATE(HELICOPTER)) {
+    else if (STATE(HELICOPTER)) {       //woga65:
         setupHelicopterAltitudeController();
     }
 #endif
@@ -2968,7 +2968,7 @@ static bool adjustAltitudeFromRCInput(void)
         return adjustFixedWingAltitudeFromRCInput();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (STATE(HELICOPTER)) {
+    else if (STATE(HELICOPTER)) {       //woga65:
         return adjustHelicopterAltitudeFromRCInput();
     }
 #endif
@@ -3015,7 +3015,7 @@ static void resetHeadingController(void)
         resetFixedWingHeadingController();
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (STATE(HELICOPTER)) {
+    else if (STATE(HELICOPTER)) {       //woga65:
         resetHelicopterHeadingController();
     } 
 #endif
@@ -3578,7 +3578,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
 #if defined(USE_VARIABLE_PITCH)
-    else if (STATE(HELICOPTER)) {
+    else if (STATE(HELICOPTER)) {       //woga65:
         applyHelicopterNavigationController(navStateFlags, currentTimeUs);
     }
 #endif

@@ -110,7 +110,7 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
 }
 
-void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
+static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 {
     // Calculate min and max throttle boundaries (to compensate for integral windup)
     const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
@@ -176,26 +176,29 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 
 void setupMulticopterAltitudeController(void)
 {
-    const bool stickIsLow = throttleStickIsLow();
-    const int16_t maxValue = motorConfig()->maxthrottle;
-    const int16_t minValue = getThrottleIdleValue();
+    const bool throttleIsLow = throttleStickIsLow();
 
     if (navConfig()->general.flags.use_thr_mid_for_althold) {
         altHoldThrottleRCZero = rcLookupThrottleMid();
     }
     else {
         // If throttle is LOW - use Thr Mid anyway
-        altHoldThrottleRCZero = (stickIsLow) ? rcLookupThrottleMid() : rcCommand[THROTTLE];
+        if (throttleIsLow) {
+            altHoldThrottleRCZero = rcLookupThrottleMid();
+        }
+        else {
+            altHoldThrottleRCZero = rcCommand[THROTTLE];
+        }
     }
 
     // Make sure we are able to satisfy the deadband
     altHoldThrottleRCZero = constrain(altHoldThrottleRCZero,
-                                      minValue + rcControlsConfig()->alt_hold_deadband + 10,
-                                      maxValue - rcControlsConfig()->alt_hold_deadband - 10);
+                                      getThrottleIdleValue() + rcControlsConfig()->alt_hold_deadband + 10,
+                                      motorConfig()->maxthrottle - rcControlsConfig()->alt_hold_deadband - 10);
 
     // Force AH controller to initialize althold integral for pending takeoff on reset
     // Signal for that is low throttle _and_ low actual altitude
-    if (stickIsLow && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
+    if (throttleIsLow && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
         prepareForTakeoffOnReset = true;
     }
 }
@@ -659,7 +662,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
 }
 
-void applyMulticopterPositionController(timeUs_t currentTimeUs)
+void applyMulticopterPositionController(timeUs_t currentTimeUs)     // woga65: used also in helicopter navigation
 {
     static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ GPS update rate
     bool bypassPositionController;
@@ -713,7 +716,6 @@ bool isMulticopterFlying(void)
 
     return throttleCondition && gyroCondition;
 }
-
 
 /*-----------------------------------------------------------
  * Multicopter land detector

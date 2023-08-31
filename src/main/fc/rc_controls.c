@@ -72,8 +72,8 @@
 
 stickPositions_e rcStickPositions;
 
-FASTRAM int16_t rcCommand[8];           // interval [1000;2000] for THROTTLE, COLLECTIVE and GYRO_GAIN,
-                                        // [-500;+500] for ROLL/PITCH/YAW (woga65:)
+FASTRAM int16_t rcCommand[8];           // interval [1000;2000] for THROTTLE and GYRO_GAIN,
+                                        // [-500;+500] for ROLL/PITCH/YAW/COLLECTIVE (woga65:)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 3);
 
@@ -112,7 +112,6 @@ bool isRollPitchStickDeflected(uint8_t deadband)
     return (ABS(rcCommand[ROLL]) > deadband) || (ABS(rcCommand[PITCH]) > deadband);
 }
 
-// woga65: @todo - evaluate whether changes are needed here or not
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
 {
     int value = rxGetChannelValue(THROTTLE);    // THROTTLE_STATUS_TYPE_RC

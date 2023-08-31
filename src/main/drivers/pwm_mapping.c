@@ -279,7 +279,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
         }
 #if defined(USE_VARIABLE_PITCH)        
         else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-            // HELI or HELI-QUAD (a few motors and a lot of servos)
+            // HELI or HELI-QUAD (a few motors and a lot of servos) woga65:
             if (timHw->usageFlags & TIM_USE_HC_SERVO) {
                 type = MAP_TO_SERVO_OUTPUT;
             }

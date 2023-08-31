@@ -92,7 +92,7 @@ typedef enum {
 typedef struct {
     bool                        bypassNavigation;
     bool                        forceAngleMode;
-    failsafeChannelBehavior_e   channelBehavior[CONTROL_CHANNEL_COUNT];
+    failsafeChannelBehavior_e   channelBehavior[CONTROL_CHANNEL_COUNT];     //woga65:
 } failsafeProcedureLogic_t;
 
 static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
@@ -374,7 +374,7 @@ static bool failsafeCheckStickMotion(void)
         totalRcDelta += ABS(rxGetChannelValue(PITCH) - PWM_RANGE_MIDDLE);
         totalRcDelta += ABS(rxGetChannelValue(YAW) - PWM_RANGE_MIDDLE);
 #if defined(USE_VARIABLE_PITCH)
-        totalRcDelta += ABS(rxGetChannelValue(COLLECTIVE) - PWM_RANGE_MIDDLE);
+        totalRcDelta += ABS(rxGetChannelValue(COLLECTIVE) - PWM_RANGE_MIDDLE);  //woga65:
 #endif        
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }

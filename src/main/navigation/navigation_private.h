@@ -487,7 +487,7 @@ void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
 
 #if defined(USE_VARIABLE_PITCH)
 
-/* Helicopter-specific functions */
+/* Helicopter-specific functions */     //woga65:
 void setupHelicopterAltitudeController(void);
 bool adjustHelicopterAltitudeFromRCInput(void);
 void applyHelicopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);

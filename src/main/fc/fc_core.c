@@ -72,7 +72,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
-#include "navigation/navigation_private.h"
+#include "navigation/navigation_private.h"  //woga65:
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -91,7 +91,7 @@
 #include "flight/power_limits.h"
 
 #ifdef USE_VARIABLE_PITCH
-#  include "flight/variable_pitch.h"
+#  include "flight/variable_pitch.h"    //woga65:
 #endif
 
 #include "config/feature.h"
@@ -384,7 +384,7 @@ static bool emergencyArmingIsEnabled(void)
 }
 
 #if defined(USE_VARIABLE_PITCH)
-static void ensureSoftSpoolupOnGround(void) {
+static void ensureSoftSpoolupOnGround(void) {   //woga65:
     if (!isHelicopterFlyingUpright() && !isHelicopterFlyingInverted() && throttleStickIsLow()) {
         prepareSoftSpoolup();
     }
@@ -601,7 +601,7 @@ void tryArm(void)
         }
 
 #if defined(USE_VARIABLE_PITCH)
-        if (STATE(HELICOPTER)) {
+        if (STATE(HELICOPTER)) {    //woga65:
             prepareSoftSpoolup();
         }
 #endif
