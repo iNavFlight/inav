@@ -22,30 +22,34 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "flight/dynamic_lpf.h"
-#include "sensors/gyro.h"
-#include "flight/mixer.h"
-#include "fc/rc_controls.h"
-#include "build/debug.h"
+#pragma once
 
-static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo) {
-    const float expof = expo / 10.0f;
-    static float curve;
-    curve = throttle * (1 - throttle) * expof + throttle;
-    return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
-}
+#ifdef USE_MULTI_FUNCTIONS
 
-void dynamicLpfGyroTask(void) {
+extern uint8_t multiFunctionFlags;
 
-    if (!gyroConfig()->useDynamicLpf) {
-        return;
-    }
+#define MULTI_FUNC_FLAG_DISABLE(mask) (multiFunctionFlags &= ~(mask))
+#define MULTI_FUNC_FLAG_ENABLE(mask) (multiFunctionFlags |= (mask))
+#define MULTI_FUNC_FLAG(mask) (multiFunctionFlags & (mask))
 
-    const float throttleConstrained = (float) constrain(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
-    const float throttle = scaleRangef(throttleConstrained, getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
-    const float cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
+typedef enum {
+    MF_SUSPEND_SAFEHOMES    = (1 << 0),
+    MF_SUSPEND_TRACKBACK    = (1 << 1),
+    MF_TURTLE_MODE          = (1 << 2),
+} multiFunctionFlags_e;
 
-    DEBUG_SET(DEBUG_DYNAMIC_GYRO_LPF, 0, cutoffFreq);
+typedef enum {
+    MULTI_FUNC_NONE,
+    MULTI_FUNC_1,
+    MULTI_FUNC_2,
+    MULTI_FUNC_3,
+    MULTI_FUNC_4,
+    MULTI_FUNC_5,
+    MULTI_FUNC_6,
+    MULTI_FUNC_END,
+} multi_function_e;
 
-    gyroUpdateDynamicLpf(cutoffFreq);
-}
+multi_function_e multiFunctionSelection(void);
+bool isNextMultifunctionItemAvailable(void);
+void setMultifunctionSelection(multi_function_e item);
+#endif

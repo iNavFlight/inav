@@ -176,18 +176,15 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 void setupMulticopterAltitudeController(void)
 {
     const bool throttleIsLow = throttleStickIsLow();
+    const uint8_t throttleType = navConfig()->mc.althold_throttle_type;
 
-    if (navConfig()->general.flags.use_thr_mid_for_althold) {
+    if (throttleType == MC_ALT_HOLD_STICK && !throttleIsLow) {
+        // Only use current throttle if not LOW - use Thr Mid otherwise
+        altHoldThrottleRCZero = rcCommand[THROTTLE];
+    } else if (throttleType == MC_ALT_HOLD_HOVER) {
+        altHoldThrottleRCZero = currentBatteryProfile->nav.mc.hover_throttle;
+    } else {
         altHoldThrottleRCZero = rcLookupThrottleMid();
-    }
-    else {
-        // If throttle is LOW - use Thr Mid anyway
-        if (throttleIsLow) {
-            altHoldThrottleRCZero = rcLookupThrottleMid();
-        }
-        else {
-            altHoldThrottleRCZero = rcCommand[THROTTLE];
-        }
     }
 
     // Make sure we are able to satisfy the deadband

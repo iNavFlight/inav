@@ -273,6 +273,7 @@ typedef enum {
     OSD_CROSS_TRACK_ERROR,
     OSD_PILOT_NAME,
     OSD_PAN_SERVO_CENTRED,
+    OSD_MULTI_FUNCTION,
     // HUD ELEMENTS
     OSD_HUD_HOMING, // osd_hud_homing
     OSD_HUD_HOMEPOINT, // osd_hud_homepoint
@@ -490,6 +491,8 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
+
+void osdResetWarningFlags(void);
 
 int16_t osdGetPanServoOffset(void);
 
