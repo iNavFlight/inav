@@ -2198,6 +2198,12 @@ static bool osdDrawSingleElement(uint8_t item)
 		osdFormatPilotName(buff);
 		break;
 
+	case OSD_PILOT_LOGO:
+		displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_PILOT_LOGO_SML_L);
+		displayWriteChar(osdDisplayPort, elemPosX+1, elemPosY, SYM_PILOT_LOGO_SML_C);
+		displayWriteChar(osdDisplayPort, elemPosX+2, elemPosY, SYM_PILOT_LOGO_SML_R);
+		break;
+
 	case OSD_THROTTLE_POS:
 	{
 		osdFormatThrottlePosition(buff, false, &elemAttr);
@@ -3673,7 +3679,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 	.system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
 	.units = SETTING_OSD_UNITS_DEFAULT,
 	.main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
-    .use_pilot_logo = SETTINGS_OSD_USE_PILOT_LOGO_DEFAULT
+	.use_pilot_logo = SETTING_OSD_USE_PILOT_LOGO_DEFAULT,
 
 #ifdef USE_WIND_ESTIMATOR
 	.estimations_wind_compensation = SETTING_OSD_ESTIMATIONS_WIND_COMPENSATION_DEFAULT,
@@ -3746,6 +3752,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
 	osdLayoutsConfig->item_pos[0][OSD_CRAFT_NAME] = OSD_POS(20, 2);
 	osdLayoutsConfig->item_pos[0][OSD_PILOT_NAME] = OSD_POS(20, 3);
+	osdLayoutsConfig->item_pos[0][OSD_PILOT_LOGO] = OSD_POS(20, 3);
 	osdLayoutsConfig->item_pos[0][OSD_VTX_CHANNEL] = OSD_POS(8, 6);
 
 #ifdef USE_SERIALRX_CRSF

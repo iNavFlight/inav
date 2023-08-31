@@ -273,6 +273,7 @@ typedef enum {
 	OSD_CROSS_TRACK_ERROR,
 	OSD_PILOT_NAME,
 	OSD_PAN_SERVO_CENTRED,
+    OSD_PILOT_LOGO,
 	OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -408,8 +409,8 @@ typedef struct osdConfig_s {
 	uint8_t			stats_min_voltage_unit;				// from osd_stats_min_voltage_unit_e
 	uint8_t			stats_page_auto_swap_time;			// stats page auto swap interval time (seconds)
 
-#ifdef USE_WIND_	ESTIMATOR
-	bool				estimations_wind_compensation;		// use wind compensation for estimated remaining flight/distance
+#ifdef USE_WIND_ESTIMATOR
+	bool			estimations_wind_compensation;		// use wind compensation for estimated remaining flight/distance
 #endif	
 	uint8_t			coordinate_digits;
 	bool			osd_failsafe_switch_layout;
