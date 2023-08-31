@@ -277,11 +277,6 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
     uint8_t motorOnlyOutputs = 0;
     uint8_t mcMotorOnlyOutputs = 0;
 
-    if(motorCount == 0)
-    {
-        motorCount = 2;
-    }
-
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
 
@@ -291,13 +286,11 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
             continue;
         }
 
-        if (timHw->usageFlags & (TIM_USE_MC_MOTOR) &&
-            !(timHw->usageFlags & (TIM_USE_MC_SERVO))) {
+        if (timHw->usageFlags & (TIM_USE_MC_MOTOR) && !(timHw->usageFlags & (TIM_USE_MC_SERVO))) {
             mcMotorOnlyOutputs++;
             mcMotorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
         }
-        if (timHw->usageFlags & (TIM_USE_FW_MOTOR) &&
-            !(timHw->usageFlags & (TIM_USE_FW_SERVO))) {
+        if (timHw->usageFlags & (TIM_USE_FW_MOTOR) && !(timHw->usageFlags & (TIM_USE_FW_SERVO))) {
             motorOnlyOutputs++;
             motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
         }
@@ -346,13 +339,9 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
     uint8_t motorCount = getMotorCount();
     uint8_t motorIdx = 0;
 
-    if(motorCount == 0)
-        motorCount = 2;
-
     pwmEnsureEnoughtMotors(motorCount);
 
     for (int idx = 0; idx < timerHardwareCount; idx++) {
-
         timerHardware_t *timHw = &timerHardware[idx];
 
         timerHardwareOverride(timHw);
