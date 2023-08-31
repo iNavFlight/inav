@@ -27,11 +27,17 @@
 
 #include "config/parameter_group.h"
 
-#if defined(USE_VARIABLE_PITCH)
+typedef enum {
+    HC_ALT_HOLD_STICK,
+    HC_ALT_HOLD_MID,
+    HC_ALT_HOLD_HOVER,
+} navHcAltHoldCollective_e;
 
+#if defined(USE_VARIABLE_PITCH)
 
 typedef struct helicopterConfig_s {              // woga65: helicopter specific settings
     uint16_t nav_hc_hover_collective[3];         // On helicopters the amount of collective-pitch needed to hover at a certain head speed
+    uint8_t hc_althold_collective_type;
     uint8_t hc_rotor_spoolup_time;
 } helicopterConfig_t;
 

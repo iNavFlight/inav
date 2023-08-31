@@ -183,13 +183,15 @@ bool adjustHelicopterAltitudeFromRCInput(void)
 void setupHelicopterAltitudeController(void)
 {
     const bool stickIsLow = collectiveStickIsLow();
+    const uint8_t thrustType = helicopterConfig()->hc_althold_collective_type;
 
-    if (navConfig()->general.flags.use_thr_mid_for_althold) {
-        altHoldThrustRCZero = 1500;
-    }
-    else {
-        // If collective stick is about centered - use mid range anyway
-        altHoldThrustRCZero = (stickIsLow) ? 1500 : rcCommand[COLLECTIVE];
+    // Use use the actual collective pitch only if the collective stick is not centered
+    if (thrustType == HC_ALT_HOLD_STICK && !stickIsLow) {
+        altHoldThrustRCZero = rcCommand[COLLECTIVE];
+    } else {
+        altHoldThrustRCZero = (thrustType == HC_ALT_HOLD_HOVER)
+            ? getHoverCollectivePitch()     // use the flight mode's hover setting
+            : 1500;                         // use collective mid
     }
 
     // Make sure we are able to satisfy the deadband

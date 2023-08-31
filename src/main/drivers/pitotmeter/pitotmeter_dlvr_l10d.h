@@ -16,18 +16,5 @@
  */
 
 #pragma once
-#include "drivers/bus.h"
 
-struct pitotDev_s;
-
-typedef bool (*pitotOpFuncPtr)(struct pitotDev_s * pitot);                       // pitot start operation
-typedef void (*pitotCalculateFuncPtr)(struct pitotDev_s * pitot, float *pressure, float *temperature); // airspeed calculation (filled params are pressure and temperature)
-
-typedef struct pitotDev_s {
-    busDevice_t * busDev;
-    uint16_t delay;
-    float calibThreshold;
-    pitotOpFuncPtr start;
-    pitotOpFuncPtr get;
-    pitotCalculateFuncPtr calculate;
-} pitotDev_t;
+bool dlvrDetect(pitotDev_t *pitot);

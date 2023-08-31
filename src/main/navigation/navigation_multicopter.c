@@ -177,18 +177,15 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 void setupMulticopterAltitudeController(void)
 {
     const bool throttleIsLow = throttleStickIsLow();
+    const uint8_t throttleType = navConfig()->mc.althold_throttle_type;
 
-    if (navConfig()->general.flags.use_thr_mid_for_althold) {
+    if (throttleType == MC_ALT_HOLD_STICK && !throttleIsLow) {
+        // Only use current throttle if not LOW - use Thr Mid otherwise
+        altHoldThrottleRCZero = rcCommand[THROTTLE];
+    } else if (throttleType == MC_ALT_HOLD_HOVER) {
+        altHoldThrottleRCZero = currentBatteryProfile->nav.mc.hover_throttle;
+    } else {
         altHoldThrottleRCZero = rcLookupThrottleMid();
-    }
-    else {
-        // If throttle is LOW - use Thr Mid anyway
-        if (throttleIsLow) {
-            altHoldThrottleRCZero = rcLookupThrottleMid();
-        }
-        else {
-            altHoldThrottleRCZero = rcCommand[THROTTLE];
-        }
     }
 
     // Make sure we are able to satisfy the deadband
@@ -213,7 +210,7 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
 
-    posControl.rcAdjustment[THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;;
+    posControl.rcAdjustment[THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
 
@@ -873,12 +870,13 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[PITCH] = 0;
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
-    /* Sensors have gone haywire, attempt to land regardless */
-    if ((posControl.flags.estAltStatus < EST_USABLE)) {
+    /* Altitude sensors gone haywire, attempt to land regardless */
+    if (posControl.flags.estAltStatus < EST_USABLE) {
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             rcCommand[THROTTLE] = getThrottleIdleValue();
             return;
         }
+        return;
     }
 
     // Normal sensor data available, use controlled landing descent
@@ -902,7 +900,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         posControl.flags.verticalPositionDataConsumed = true;
     }
 
-    // Update throttle controller
+    // Update throttle
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
 
     // Hold position if possible

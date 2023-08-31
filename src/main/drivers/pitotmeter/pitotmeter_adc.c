@@ -67,6 +67,7 @@ static void adcPitotCalculate(pitotDev_t *pitot, float *pressure, float *tempera
 bool adcPitotDetect(pitotDev_t *pitot)
 {
     pitot->delay = 10000;
+    pitot->calibThreshold = 0.00001f;   // TODO :: should be tested !!!
     pitot->start = adcPitotStart;
     pitot->get = adcPitotRead;
     pitot->calculate = adcPitotCalculate;

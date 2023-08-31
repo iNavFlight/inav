@@ -6,6 +6,7 @@
 *.bak
 *.uvgui.*
 .project
+.gitignore
 .settings
 .cproject
 .cache/
@@ -31,3 +32,4 @@ README.pdf
 
 # local changes only
 make/local.mk
+launch.json

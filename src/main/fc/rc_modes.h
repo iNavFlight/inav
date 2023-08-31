@@ -83,6 +83,7 @@ typedef enum {
     BOXHELIIDLEUP1   = 53,
     BOXHELIIDLEUP2   = 54,
 #endif    
+    BOXMULTIFUNCTION = 55,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

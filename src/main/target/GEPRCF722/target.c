@@ -1,5 +1,5 @@
 /*
-* This file is part of Cleanflight.
+* This file is part of INAV Project.
 *
 * Cleanflight is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -23,17 +23,22 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
+#include "drivers/sensor.h"
+
 
 timerHardware_t timerHardware[] = {
+    DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM,                         0, 0),
 
-    DEF_TIM(TMR1, CH1, PA8,  TIM_USE_ANY |TIM_USE_LED, 0,7),            // PWM1 - LED MCO1 DMA1 CH2
+    DEF_TIM(TIM3, CH1, PB4, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),
+    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),
+    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),
+    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),
+    DEF_TIM(TIM4, CH1, PB6, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),
+    DEF_TIM(TIM4, CH2, PB7, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),
 
-    DEF_TIM(TMR4, CH1, PB6,  TIM_USE_MC_MOTOR|TIM_USE_FW_MOTOR, 0,0),   // motor1 DMA2 CH7
-    DEF_TIM(TMR4, CH2, PB7,  TIM_USE_MC_MOTOR|TIM_USE_FW_MOTOR, 0,2),   // motor2 DMA2 CH6
-    DEF_TIM(TMR2, CH4, PA3,  TIM_USE_MC_MOTOR|TIM_USE_FW_SERVO, 0,1),   // motor3 DMA2 CH5
-    DEF_TIM(TMR3, CH4, PB1,  TIM_USE_MC_MOTOR|TIM_USE_FW_SERVO, 0,3),   // motor4 DMA2 CH4
+    DEF_TIM(TIM1, CH1, PA8, TIM_USE_LED,                         0, 0),
 
+    
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
-  
