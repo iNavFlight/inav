@@ -772,8 +772,7 @@ bool isMulticopterLandingDetected(void)
     }
 #endif
 
-    const uint16_t idleValue = getThrottleIdleValue();
-    bool throttleIsBelowMidHover = rcCommand[THROTTLE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + idleValue));
+    bool throttleIsBelowMidHover = rcCommand[THROTTLE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
 
     /* Basic condition to start looking for landing
      * Detection active during Failsafe only if throttle below mid hover throttle
