@@ -54,8 +54,6 @@ Edit file `./.vscode/c_cpp_properties.json` to setup enabled `defines`
                 "USE_RPM_FILTER",
                 "USE_GLOBAL_FUNCTIONS",
                 "USE_DYNAMIC_FILTERS",
-                "USE_IMU_BNO055",
-                "USE_SECONDARY_IMU",
                 "USE_DSHOT",
                 "FLASH_SIZE 480",
                 "USE_I2C_IO_EXPANDER",

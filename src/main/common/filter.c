@@ -22,11 +22,10 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "common/filter.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/time.h"
 
 // NULL filter
 float nullFilterApply(void *filter, float input)
@@ -317,9 +316,8 @@ FAST_CODE void biquadFilterUpdate(biquadFilter_t *filter, float filterFreq, uint
     filter->y2 = y2;
 }
 
-FUNCTION_COMPILE_FOR_SIZE
 void initFilter(const uint8_t filterType, filter_t *filter, const float cutoffFrequency, const uint32_t refreshRate) {
-    const float dT = refreshRate * 1e-6f;
+    const float dT = US2S(refreshRate);
 
     if (cutoffFrequency) {
         if (filterType == FILTER_PT1) {
@@ -334,7 +332,6 @@ void initFilter(const uint8_t filterType, filter_t *filter, const float cutoffFr
     }
 }
 
-FUNCTION_COMPILE_FOR_SIZE
 void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyFnPtr *applyFn) {
     *applyFn = nullFilterApply;
     if (cutoffFrequency) {

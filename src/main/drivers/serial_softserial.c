@@ -18,7 +18,7 @@
 /*
  * Cleanflight (or Baseflight): original
  * jflyper: Mono-timer and single-wire half-duplex
- * jflyper: Ported to iNav
+ * jflyper: Ported to INAV
  */
 
 #include <stdbool.h>

@@ -24,8 +24,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SIZE
-
 #include "build/debug.h"
 
 #include "common/utils.h"

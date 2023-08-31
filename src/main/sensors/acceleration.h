@@ -35,7 +35,6 @@
 typedef enum {
     ACC_NONE = 0,
     ACC_AUTODETECT,
-    ACC_MPU6050,
     ACC_MPU6000,
     ACC_MPU6500,
     ACC_MPU9250,
@@ -44,6 +43,7 @@ typedef enum {
     ACC_BMI088,
     ACC_ICM42605,
     ACC_BMI270,
+    ACC_LSM6DXX,
     ACC_FAKE,
     ACC_MAX = ACC_FAKE
 } accelerationSensor_e;

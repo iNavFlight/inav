@@ -1,5 +1,5 @@
 /*
- * This file is part of iNav.
+ * This file is part of INAV.
  *
  * Cleanflight and Betaflight are free software. You can redistribute
  * this software and/or modify this software under the terms of the
@@ -18,7 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  *
  * BMP388 Driver author: Dominic Clifton
- * iNav port: Michel Pastor
+ * INAV port: Michel Pastor
  */
 
 #include <stdbool.h>

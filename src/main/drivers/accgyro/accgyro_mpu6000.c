@@ -34,7 +34,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -75,8 +74,6 @@ static void mpu6000AccAndGyroInit(gyroDev_t *gyro)
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
-    gyroIntExtiInit(gyro);
-
     busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
 
     // Device Reset
@@ -109,14 +106,6 @@ static void mpu6000AccAndGyroInit(gyroDev_t *gyro)
     // Accel +/- 16 G Full Scale
     busWrite(busDev, MPU_RA_ACCEL_CONFIG, INV_FSR_16G << 3);
     delayMicroseconds(15);
-
-    busWrite(busDev, MPU_RA_INT_PIN_CFG, 0 << 7 | 0 << 6 | 0 << 5 | 1 << 4 | 0 << 3 | 0 << 2 | 0 << 1 | 0 << 0);  // INT_ANYRD_2CLEAR
-    delayMicroseconds(15);
-
-#ifdef USE_MPU_DATA_READY_SIGNAL
-    busWrite(busDev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
-    delayMicroseconds(15);
-#endif
 
     // Accel and Gyro DLPF Setting
     busWrite(busDev, MPU_RA_CONFIG, config->gyroConfigValues[0]);

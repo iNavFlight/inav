@@ -161,7 +161,7 @@ void rpmFiltersInit(void)
 {
     for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
     {
-        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, RPM_FILTER_UPDATE_RATE_US * 1e-6f);
+        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
@@ -190,10 +190,6 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
     {
         const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
         const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
-
-        if (i < 4) {
-            DEBUG_SET(DEBUG_RPM_FREQ, i, (int)baseFrequency);
-        }
 
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
     }

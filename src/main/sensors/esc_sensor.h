@@ -26,7 +26,7 @@
 
 typedef struct {
     uint8_t dataAge;
-    int8_t temperature;
+    int16_t temperature;
     int16_t voltage;
     int32_t current;
     uint32_t rpm;

@@ -27,4 +27,4 @@ I2C solutions like `VL53L0X` or `INAV_I2C` can be connected to I2C port and used
 
 #### Constraints
 
-iNav does not support `HC-SR04` and `US-100`. No constrains for I2C like `VL53L0X` or `INAV_I2C`.
+INAV does not support `HC-SR04` and `US-100`. No constrains for I2C like `VL53L0X` or `INAV_I2C`.

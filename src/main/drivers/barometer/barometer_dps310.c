@@ -20,8 +20,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright: INAVFLIGHT OU
  */
 
 #include <stdbool.h>
@@ -39,6 +37,8 @@
 #include "drivers/time.h"
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_dps310.h"
+
+// See datasheet at https://www.infineon.com/dgdl/Infineon-DPS310-DataSheet-v01_02-EN.pdf?fileId=5546d462576f34750157750826c42242
 
 #if defined(USE_BARO) && defined(USE_BARO_DPS310)
 
@@ -77,7 +77,7 @@
 #define DPS310_PRS_CFG_BIT_PM_RATE_32HZ (0x50)      //  101 - 32 measurements pr. sec.
 #define DPS310_PRS_CFG_BIT_PM_PRC_16    (0x04)      // 0100 - 16 times (Standard).
 
-#define DPS310_TMP_CFG_BIT_TMP_EXT          (0x80)  //
+#define DPS310_TMP_CFG_BIT_TMP_EXT          (0x80)
 #define DPS310_TMP_CFG_BIT_TMP_RATE_32HZ    (0x50)  //  101 - 32 measurements pr. sec.
 #define DPS310_TMP_CFG_BIT_TMP_PRC_16       (0x04)  // 0100 - 16 times (Standard).
 
@@ -188,7 +188,7 @@ static bool deviceConfigure(busDevice_t * busDev)
     baroState.calib.c01 = getTwosComplement(((uint32_t)coef[8] << 8) | (uint32_t)coef[9], 16);
 
     // 0x1A c11 [15:8] + 0x1B c11 [7:0]
-    baroState.calib.c11 = getTwosComplement(((uint32_t)coef[8] << 8) | (uint32_t)coef[9], 16);
+    baroState.calib.c11 = getTwosComplement(((uint32_t)coef[10] << 8) | (uint32_t)coef[11], 16);
 
     // 0x1C c20 [15:8] + 0x1D c20 [7:0]
     baroState.calib.c20 = getTwosComplement(((uint32_t)coef[12] << 8) | (uint32_t)coef[13], 16);
@@ -266,10 +266,13 @@ static bool deviceReadMeasurement(baroDev_t *baro)
     const float c21 = baroState.calib.c21;
     const float c30 = baroState.calib.c30;
 
+    // See section 4.9.1, How to Calculate Compensated Pressure Values, of datasheet
+    baroState.pressure = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 + Traw_sc * Praw_sc * (c11 + Praw_sc * c21);
+
     const float c0 = baroState.calib.c0;
     const float c1 = baroState.calib.c1;
-
-    baroState.pressure = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 + Traw_sc * Praw_sc * (c11 + Praw_sc * c21);
+    
+    // See section 4.9.2, How to Calculate Compensated Temperature Values, of datasheet
     baroState.temperature = c0 * 0.5f + c1 * Traw_sc;
 
     return true;

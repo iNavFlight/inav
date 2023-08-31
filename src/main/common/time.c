@@ -35,6 +35,10 @@
 
 #include "fc/settings.h"
 
+#ifdef SITL_BUILD
+#include <time.h>
+#endif
+
 // For the "modulo 4" arithmetic to work, we need a leap base year
 #define REFERENCE_YEAR 2000
 // Offset (seconds) from the UNIX epoch (1970-01-01) to 2000-01-01
@@ -310,11 +314,16 @@ bool rtcHasTime(void)
 
 bool rtcGet(rtcTime_t *t)
 {
+#ifdef SITL_BUILD
+    *t = (rtcTime_t)(time(NULL) * 1000);
+    return true;
+#else 
     if (!rtcHasTime()) {
         return false;
     }
     *t = started + millis();
     return true;
+#endif
 }
 
 bool rtcSet(rtcTime_t *t)
@@ -322,6 +331,7 @@ bool rtcSet(rtcTime_t *t)
     started = *t - millis();
     return true;
 }
+
 
 bool rtcGetDateTime(dateTime_t *dt)
 {

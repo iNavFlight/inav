@@ -45,10 +45,6 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PA1
-#define USE_MPU_DATA_READY_SIGNAL
-
 // *************** SPI2 OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
@@ -121,7 +117,6 @@
 #define USE_BARO_SPL06
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1

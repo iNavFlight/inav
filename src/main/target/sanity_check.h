@@ -29,7 +29,7 @@
 #error "Unnecessary USE_ACC and/or USE_GYRO"
 #endif
 
-#if defined (USE_GYRO_MPU6000) || defined (USE_ACC_MPU6000) || defined (USE_GYRO_MPU6050) || defined (USE_ACC_MPU6050)
+#if defined (USE_GYRO_MPU6000) || defined (USE_ACC_MPU6000)
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
 #endif
 
@@ -47,11 +47,6 @@
 
 #if defined (USE_ACC_BMI160)
 #error "Replace USE_GYRO_xxx and USE_ACC_xxx with USE_IMU_xxx"
-#endif
-
-// Make sure IMU alignments are migrated to IMU_xxx_ALIGN
-#if defined (GYRO_MPU6050_ALIGN) || defined (ACC_MPU6050_ALIGN)
-#error "Replace GYRO_MPU6050_ALIGN and ACC_MPU6050_ALIGN with IMU_MPU6050_ALIGN"
 #endif
 
 #if defined (GYRO_MPU6000_ALIGN) || defined (ACC_MPU6000_ALIGN)

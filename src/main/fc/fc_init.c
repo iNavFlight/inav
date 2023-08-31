@@ -51,7 +51,6 @@
 #include "drivers/bus.h"
 #include "drivers/dma.h"
 #include "drivers/exti.h"
-#include "drivers/flash_m25p16.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
 #include "drivers/light_led.h"
@@ -73,7 +72,6 @@
 #include "drivers/timer.h"
 #include "drivers/uart_inverter.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/vtx_common.h"
 #ifdef USE_USB_MSC
 #include "drivers/usb_msc.h"
@@ -98,7 +96,6 @@
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
@@ -107,7 +104,7 @@
 #include "io/displayport_frsky_osd.h"
 #include "io/displayport_msp.h"
 #include "io/displayport_max7456.h"
-#include "io/displayport_hdzero_osd.h"
+#include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -122,6 +119,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
 
@@ -177,7 +175,7 @@ void flashLedsAndBeep(void)
         LED1_TOGGLE;
         LED0_TOGGLE;
         delay(25);
-        if (!(getPreferredBeeperOffMask() & (1 << (BEEPER_SYSTEM_INIT - 1))))
+        if (!(getBeeperOffMask() & (1 << (BEEPER_SYSTEM_INIT - 1))))
             BEEP_ON;
         delay(25);
         BEEP_OFF;
@@ -188,7 +186,7 @@ void flashLedsAndBeep(void)
 
 void init(void)
 {
-#if defined(USE_FLASHFS) && defined(USE_FLASH_M25P16)
+#if defined(USE_FLASHFS)
     bool flashDeviceInitialized = false;
 #endif
 
@@ -202,7 +200,9 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
+#if !defined(SITL_BUILD)
     __enable_irq();
+#endif
 
     // initialize IO (needed for all IO operations)
     IOInitGlobal();
@@ -224,7 +224,9 @@ void init(void)
 
     initEEPROM();
     ensureEEPROMContainsValidData();
+    suspendRxSignal();
     readEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_UNDERCLOCK
     // Re-initialize system clock to their final values (if necessary)
@@ -249,8 +251,7 @@ void init(void)
     latchActiveFeatures();
 
     ledInit(false);
-
-#ifdef USE_EXTI
+#if !defined(SITL_BUILD)
     EXTIInit();
 #endif
 
@@ -314,7 +315,7 @@ void init(void)
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
-
+#if !defined(SITL_BUILD)
     // Initialize motor and servo outpus
     if (pwmMotorAndServoInit()) {
         DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
@@ -322,7 +323,9 @@ void init(void)
     else {
         ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
     }
-
+#else
+    DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+#endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
 #ifdef USE_ESC_SENSOR
@@ -381,13 +384,10 @@ void init(void)
         // it to identify the log files *before* starting the USB device to
         // prevent timeouts of the mass storage device.
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
-#ifdef USE_FLASH_M25P16
             // Must initialise the device to read _anything_
-            /*m25p16_init(0);*/
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
             emfat_init_files();
         }
 #endif
@@ -551,9 +551,9 @@ void init(void)
             osdDisplayPort = frskyOSDDisplayPortInit(osdConfig()->video_system);
         }
 #endif
-#ifdef USE_HDZERO_OSD
+#ifdef USE_MSP_OSD
         if (!osdDisplayPort) {
-            osdDisplayPort = hdzeroOsdDisplayPortInit();
+            osdDisplayPort = mspOsdDisplayPortInit(osdConfig()->video_system);
         }
 #endif
 #if defined(USE_MAX7456)
@@ -615,12 +615,13 @@ void init(void)
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
         case BLACKBOX_DEVICE_FLASH:
-#ifdef USE_FLASH_M25P16
             if (!flashDeviceInitialized) {
                 flashDeviceInitialized = flashInit();
             }
-#endif
-            flashfsInit();
+            if (flashDeviceInitialized) {
+                // do not initialize flashfs if no flash was found
+                flashfsInit();
+            }
             break;
 #endif
 
@@ -665,6 +666,10 @@ void init(void)
     vtxFuriousFPVInit();
 #endif
 
+#ifdef USE_VTX_MSP
+    vtxMspInit();
+#endif
+
 #endif // USE_VTX_CONTROL
 
     // Now that everything has powered up the voltage and cell count be determined.
@@ -683,9 +688,6 @@ void init(void)
     latchActiveFeatures();
     motorControlEnable = true;
 
-#ifdef USE_SECONDARY_IMU
-    secondaryImuInit();
-#endif
     fcTasksInit();
 
 #ifdef USE_OSD
@@ -710,8 +712,10 @@ void init(void)
     powerLimiterInit();
 #endif
 
+#if !defined(SITL_BUILD)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
+#endif
 
     systemState |= SYSTEM_STATE_READY;
 }

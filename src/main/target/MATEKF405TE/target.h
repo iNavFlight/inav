@@ -45,16 +45,13 @@
 #define IMU_ICM42605_ALIGN      CW270_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PC14
-#define ICM42605_EXTI_PIN       PC15
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW270_DEG_FLIP
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PC14
-#define BMI270_EXTI_PIN         PC15
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
@@ -106,7 +103,6 @@
 #define RANGEFINDER_I2C_BUS     BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 // *************** UART *****************************
 #define USE_VCP

@@ -44,12 +44,6 @@
 #define USE_IMU_MPU9250
 #define IMU_MPU9250_ALIGN       CW180_DEG
 
-// MPU6500 interrupts
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 // *************** Compass *****************************
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -63,8 +57,6 @@
 
 // *************** Temperature sensor *****************
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-
-#define BNO055_I2C_BUS          BUS_I2C1
 
 // *************** BARO *****************************
 #define USE_BARO
@@ -112,7 +104,6 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 
-// provide for xBUS Receiver
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2

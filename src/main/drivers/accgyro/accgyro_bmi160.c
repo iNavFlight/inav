@@ -35,7 +35,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/sensor.h"
@@ -106,8 +105,8 @@ typedef struct __attribute__ ((__packed__)) bmi160ContextData_s {
 STATIC_ASSERT(sizeof(bmi160ContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
 static const gyroFilterAndRateConfig_t gyroConfigs[] = {
-    { GYRO_LPF_256HZ,   3200,   { BMI160_BWP_NORMAL | BMI160_ODR_3200_Hz} },
-    { GYRO_LPF_256HZ,   1600,   { BMI160_BWP_NORMAL | BMI160_ODR_1600_Hz} },
+    { GYRO_LPF_256HZ,   3200,   { BMI160_BWP_OSR4 | BMI160_ODR_3200_Hz} },
+    { GYRO_LPF_256HZ,   1600,   { BMI160_BWP_OSR2 | BMI160_ODR_1600_Hz} },
     { GYRO_LPF_256HZ,    800,   { BMI160_BWP_NORMAL | BMI160_ODR_800_Hz } },
 
     { GYRO_LPF_188HZ,    800,   { BMI160_BWP_OSR2   | BMI160_ODR_800_Hz } },  // ODR = 800 Hz, LPF = 128 Hz
@@ -123,8 +122,7 @@ static const gyroFilterAndRateConfig_t gyroConfigs[] = {
 static void bmi160AccAndGyroInit(gyroDev_t *gyro)
 {
     uint8_t value;
-    gyroIntExtiInit(gyro);
-
+    
     busSetSpeed(gyro->busDev, BUS_SPEED_INITIALIZATION);
 
     // Normal power mode, can take up to 80+3.8ms
@@ -182,9 +180,9 @@ bool bmi160GyroReadScratchpad(gyroDev_t *gyro)
     ctx->lastReadStatus = busReadBuf(gyro->busDev, BMI160_REG_GYR_DATA_X_LSB, ctx->gyroRaw, 6 + 6);
 
     if (ctx->lastReadStatus) {
-        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[1] << 8) | ctx->gyroRaw[0]);
-        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[3] << 8) | ctx->gyroRaw[2]);
-        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[5] << 8) | ctx->gyroRaw[4]);
+        gyro->gyroADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
 
         return true;
     }
@@ -197,9 +195,9 @@ bool bmi160AccReadScratchpad(accDev_t *acc)
     bmi160ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[1] << 8) | ctx->accRaw[0]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[3] << 8) | ctx->accRaw[2]);
-        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[5] << 8) | ctx->accRaw[4]);
+        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
+        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
+        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
         return true;
     }
 

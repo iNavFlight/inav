@@ -35,10 +35,10 @@
 #define MAX_PROGRAMMING_PID_COUNT 4
 
 typedef struct programmingPid_s {
-    uint8_t enabled;
     logicOperand_t setpoint;
     logicOperand_t measurement;
     pid8_t gains;
+    uint8_t enabled;
 } programmingPid_t;
 
 PG_DECLARE_ARRAY(programmingPid_t, MAX_PROGRAMMING_PID_COUNT, programmingPids);

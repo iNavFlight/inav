@@ -29,16 +29,11 @@
 
 #define BEEPER                  PC9
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define USE_IMU_MPU9250
 #define IMU_MPU9250_ALIGN       CW270_DEG
 
 #define MPU9250_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PC4
-#define GYRO_INT_EXTI            PC5
 
 #define USE_MAG
 #define USE_MAG_MPU9250
@@ -52,7 +47,6 @@
 #define USE_MAG_LIS3MDL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define BNO055_I2C_BUS          BUS_I2C1
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
