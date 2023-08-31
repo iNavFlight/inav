@@ -195,7 +195,10 @@ tables:
     enum: gpsBaudRate_e
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
-    enum: navMcAltHoldThrottle_e    
+    enum: navMcAltHoldThrottle_e
+  - name: nav_hc_althold_collective
+    values: ["STICK", "MID_STICK", "HOVER"]
+    enum: navHcAltHoldCollective_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -3909,3 +3912,100 @@ groups:
         default_value: 1.2
         field: attnFilterCutoff
         max: 100
+
+  - name: PG_PID_SCALING
+    type: pidScaling_t
+    members:
+        - name: pid_scaling_factor_p_roll
+          field: pid_scaling_factor_p[FD_ROLL]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_p_pitch
+          field: pid_scaling_factor_p[FD_PITCH]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_p_yaw
+          field: pid_scaling_factor_p[FD_YAW]
+          min: 0
+          max: 2
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_i_roll
+          field: pid_scaling_factor_i[FD_ROLL]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_i_pitch
+          field: pid_scaling_factor_i[FD_PITCH]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_i_yaw
+          field: pid_scaling_factor_i[FD_YAW]
+          min: 0
+          max: 2
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_d_roll
+          field: pid_scaling_factor_d[FD_ROLL]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_d_pitch
+          field: pid_scaling_factor_d[FD_PITCH]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+        - name: pid_scaling_factor_d_yaw
+          field: pid_scaling_factor_d[FD_YAW]
+          min: 0
+          max: 1
+          default_value: 1
+          type: float
+
+  - name: PG_HELICOPTER_CONFIG
+    type: helicopterConfig_t
+    headers: ["flight/variable_pitch.h"]
+    condition: USE_VARIABLE_PITCH
+    members:
+        - name: nav_hc_hover_collective_normal
+          description: "Helicopter hover collective (normal/low head-speed) hint for altitude controller. Should be set to approximate throttle value when heli is hovering."
+          field: nav_hc_hover_collective[0]
+          min: 1000
+          max: 2000
+          default_value: 1600
+          type: uint16_t
+        - name: nav_hc_hover_collective_idleup_1
+          description: "Helicopter hover collective (idle-up 1) hint for altitude controller. Should be set to approximate throttle value when heli is hovering."
+          field: nav_hc_hover_collective[1]
+          min: 1000
+          max: 2000
+          default_value: 1550
+          type: uint16_t
+        - name: nav_hc_hover_collective_idleup_2
+          description: "Helicopter hover collective (idle-up 2) hint for altitude controller. Should be set to approximate throttle value when heli is hovering."
+          field: nav_hc_hover_collective[2]
+          min: 1000
+          max: 2000
+          default_value: 1525
+          type: uint16_t
+        - name: nav_hc_althold_collective_type
+          description: "If set to STICK the FC remembers the collective stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover collective position respectively."
+          default_value: "STICK"
+          field: hc_althold_collective_type
+          table: nav_hc_althold_collective
+        - name: hc_rotor_spoolup_time
+          description: "The time in seconds for the rotor(s) to spool up (0 = soft spool-up disabled)"
+          field: hc_rotor_spoolup_time
+          min: 0
+          max: 20
+          default_value: 10
+          type: uint8_t

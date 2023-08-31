@@ -28,7 +28,7 @@ void targetConfiguration(void)
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 
-    #if defined(MATEKF765SE)
+    #if defined(MATEKF765SE) || defined(MATEKF765SE_VP) //woga65:
     beeperConfigMutable()->pwmMode = true;
     #endif
 }

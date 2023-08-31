@@ -19,13 +19,18 @@
  */
 
 #pragma once
-
-#ifdef KAKUTEF7MINI
-#define TARGET_BOARD_IDENTIFIER "KF7M"
-#define USBD_PRODUCT_STRING "KakuteF7-Mini"
+// woga65: mini?
+#if defined(KAKUTEF7MINI) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7MINI_MOTORS_LAST_VP) || defined (KAKUTEF7MINI_7PWM) || defined (KAKUTEF7MINI_7PWM_VP)
+#   define TARGET_BOARD_IDENTIFIER "KF7M"
+#   define USBD_PRODUCT_STRING "KakuteF7-Mini"
 #else
-#define TARGET_BOARD_IDENTIFIER "KTF7"
-#define USBD_PRODUCT_STRING "KakuteF7"
+#   define TARGET_BOARD_IDENTIFIER "KTF7"
+#   define USBD_PRODUCT_STRING "KakuteF7"
+#endif
+
+// woga65: variable pitch?
+#if defined(KAKUTEF7_VP) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7HDV_VP) || defined(KAKUTEF7MINI_MOTORS_LAST_VP) || defined(KAKUTEF7_MOTORS_LAST_VP) || defined(KAKUTEF7MINI_7PWM_VP) || defined(KAKUTEF7_7PWM_VP)
+#   define USE_VARIABLE_PITCH
 #endif
 
 #define LED0                PA2
@@ -101,26 +106,27 @@
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
 
-
-#ifndef KAKUTEF7HDV
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI2
-#define MAX7456_CS_PIN          SPI2_NSS_PIN
+//woga65: HDV?
+#if !defined(KAKUTEF7HDV) && !defined(KAKUTEF7HDV_VP)
+#   define USE_MAX7456
+#   define MAX7456_SPI_BUS         BUS_SPI2
+#   define MAX7456_CS_PIN          SPI2_NSS_PIN
 #endif
 
-#if defined(KAKUTEF7MINI)
-#define M25P16_CS_PIN           SPI1_NSS_PIN
-#define M25P16_SPI_BUS          BUS_SPI1
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+//woga65: mini?
+#if defined(KAKUTEF7MINI) || defined(KAKUTEF7MINI_VP) || defined(KAKUTEF7MINI_MOTORS_LAST_VP) || defined(KAKUTEF7MINI_7PWM) || defined(KAKUTEF7MINI_7PWM_VP)
+#   define M25P16_CS_PIN           SPI1_NSS_PIN
+#   define M25P16_SPI_BUS          BUS_SPI1
+#   define USE_FLASHFS
+#   define USE_FLASH_M25P16
+#   define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 #else
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI1
-#define SDCARD_CS_PIN           SPI1_NSS_PIN
-#define SDCARD_DETECT_INVERTED
-#define SDCARD_DETECT_PIN       PD8
+#   define USE_SDCARD
+#   define USE_SDCARD_SPI
+#   define SDCARD_SPI_BUS          BUS_SPI1
+#   define SDCARD_CS_PIN           SPI1_NSS_PIN
+#   define SDCARD_DETECT_INVERTED
+#   define SDCARD_DETECT_PIN       PD8
 #endif
 
 #define USE_I2C
@@ -174,4 +180,9 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS       6
+// woga65:
+#if defined(KAKUTEF7MINI_7PWM) || defined(KAKUTEF7_7PWM) || defined(KAKUTEF7MINI_7PWM_VP) || defined(KAKUTEF7_7PWM_VP)
+#   define MAX_PWM_OUTPUT_PORTS     7
+#else
+#   define MAX_PWM_OUTPUT_PORTS     6
+#endif

@@ -41,8 +41,8 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #ifdef USE_MULTI_MISSION
-#include "fc/rc_adjustments.h"
-#include "fc/cli.h"
+#  include "fc/rc_adjustments.h"
+#  include "fc/cli.h"
 #endif
 #include "fc/settings.h"
 
@@ -2828,7 +2828,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             disarm(DISARM_LANDING);
         } else if (!navigationInAutomaticThrottleMode()) {
             // for multirotor only - reactivate landing detector without disarm when throttle raised toward hover throttle
-            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));    //woga65: @todo
         }
     } else if (isLandingDetected()) {
         ENABLE_STATE(LANDING_DETECTED);
@@ -2837,7 +2837,13 @@ void updateLandingStatus(timeMs_t currentTimeMs)
 
 bool isLandingDetected(void)
 {
+#if !defined(USE_VARIABLE_PITCH)
     return STATE(AIRPLANE) ? isFixedWingLandingDetected() : isMulticopterLandingDetected();
+#else
+    return STATE(AIRPLANE)
+        ? isFixedWingLandingDetected()
+        : (STATE(HELICOPTER) ? isHelicopterLandingDetected() : isMulticopterLandingDetected()); //woga65:
+#endif
 }
 
 void resetLandingDetector(void)
@@ -2848,7 +2854,13 @@ void resetLandingDetector(void)
 
 bool isFlightDetected(void)
 {
+#if !defined(USE_VARIABLE_PITCH)
     return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
+#else
+    return STATE(AIRPLANE)
+        ? isFixedWingFlying()
+        : (STATE(HELICOPTER) ? isHelicopterFlying() : isMulticopterFlying());   //woga65:
+#endif    
 }
 
 /*-----------------------------------------------------------
@@ -2924,6 +2936,11 @@ static void resetAltitudeController(bool useTerrainFollowing)
     if (STATE(FIXED_WING_LEGACY)) {
         resetFixedWingAltitudeController();
     }
+#if defined(USE_VARIABLE_PITCH)
+    else if (STATE(HELICOPTER)) {       //woga65:
+        resetHelicopterAltitudeController();
+    } 
+#endif
     else {
         resetMulticopterAltitudeController();
     }
@@ -2934,6 +2951,11 @@ static void setupAltitudeController(void)
     if (STATE(FIXED_WING_LEGACY)) {
         setupFixedWingAltitudeController();
     }
+#if defined(USE_VARIABLE_PITCH)
+    else if (STATE(HELICOPTER)) {       //woga65:
+        setupHelicopterAltitudeController();
+    }
+#endif
     else {
         setupMulticopterAltitudeController();
     }
@@ -2944,6 +2966,11 @@ static bool adjustAltitudeFromRCInput(void)
     if (STATE(FIXED_WING_LEGACY)) {
         return adjustFixedWingAltitudeFromRCInput();
     }
+#if defined(USE_VARIABLE_PITCH)
+    else if (STATE(HELICOPTER)) {       //woga65:
+        return adjustHelicopterAltitudeFromRCInput();
+    }
+#endif
     else {
         return adjustMulticopterAltitudeFromRCInput();
     }
@@ -2986,6 +3013,11 @@ static void resetHeadingController(void)
     if (STATE(FIXED_WING_LEGACY)) {
         resetFixedWingHeadingController();
     }
+#if defined(USE_VARIABLE_PITCH)
+    else if (STATE(HELICOPTER)) {       //woga65:
+        resetHelicopterHeadingController();
+    } 
+#endif
     else {
         resetMulticopterHeadingController();
     }
@@ -3544,6 +3576,11 @@ void applyWaypointNavigationAndAltitudeHold(void)
     } else if (STATE(FIXED_WING_LEGACY)) {
         applyFixedWingNavigationController(navStateFlags, currentTimeUs);
     }
+#if defined(USE_VARIABLE_PITCH)
+    else if (STATE(HELICOPTER)) {       //woga65:
+        applyHelicopterNavigationController(navStateFlags, currentTimeUs);
+    }
+#endif
     else {
         applyMulticopterNavigationController(navStateFlags, currentTimeUs);
     }

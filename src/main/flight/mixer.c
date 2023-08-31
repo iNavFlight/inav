@@ -170,6 +170,7 @@ void mixerUpdateStateFlags(void)
         ENABLE_STATE(ALTITUDE_CONTROL);
     } else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
         ENABLE_STATE(MULTIROTOR);
+        ENABLE_STATE(HELICOPTER);
         ENABLE_STATE(ALTITUDE_CONTROL);
     }
 
@@ -262,6 +263,12 @@ static uint16_t handleOutputScaling(
     return value;
 }
 static void applyTurtleModeToMotors(void) {
+
+#if defined(USE_VARIABLE_PITCH)     // woga65: no turtle mode on heli-like aircraft
+    if (STATE(HELICOPTER)) {
+        return;
+    }
+#endif    
 
     if (ARMING_FLAG(ARMED)) {
         const float flipPowerFactor = ((float)currentBatteryProfile->motor.turtleModePowerFactor)/100.0f;

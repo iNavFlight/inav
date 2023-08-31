@@ -479,7 +479,7 @@ uint32_t getEscUpdateFrequency(void) {
         case PWM_TYPE_BRUSHED:
             return motorConfig()->motorPwmRate;
 
-        case PWM_TYPE_STANDARD:
+        case PWM_TYPE_STANDARD:     // woga65: perhaps return motorConfig()->motorPwmRate for old brushless ESC
             return 400;
 
         case PWM_TYPE_MULTISHOT:

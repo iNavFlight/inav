@@ -144,6 +144,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
     }
     else {
         const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+      
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
@@ -156,7 +157,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             else {
                 // Scaling from minthrottle to altHoldThrottleRCZero
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - getThrottleIdleValue() - rcControlsConfig()->alt_hold_deadband);
-            }
+            }         
 
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
@@ -261,7 +262,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
 
             // Execute actual altitude controllers
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
-            updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
+            updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);     
         }
         else {
             // Position update has not occurred in time (first start or glitch), reset altitude controller
@@ -276,7 +277,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
 
     // Save processed throttle for future use
-    rcCommandAdjustedThrottle = rcCommand[THROTTLE];
+    rcCommandAdjustedThrottle = rcCommand[THROTTLE]; 
 }
 
 /*-----------------------------------------------------------
@@ -658,7 +659,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
 }
 
-static void applyMulticopterPositionController(timeUs_t currentTimeUs)
+void applyMulticopterPositionController(timeUs_t currentTimeUs)     // woga65: used also in helicopter navigation
 {
     static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ GPS update rate
     bool bypassPositionController;
@@ -744,8 +745,8 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
             if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
                 const uint16_t idleThrottle = getThrottleIdleValue();
                 const uint16_t hoverThrottleRange = currentBatteryProfile->nav.mc.hover_throttle - idleThrottle;
-                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
-            }
+                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);              
+      }
         } else if (acc.accADCf[Z] <= 1.0f) {
             gSpikeDetectTimeMs = 0;
         }
@@ -754,6 +755,7 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
     return false;
 }
 #endif
+
 bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
@@ -820,7 +822,6 @@ bool isMulticopterLandingDetected(void)
         landingThrSamples += 1;
         landingThrSum += rcCommandAdjustedThrottle;
         isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
-
         possibleLandingDetected = isAtMinimalThrust && velCondition;
 
         DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedThrottle);
@@ -873,6 +874,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     if (posControl.flags.estAltStatus < EST_USABLE) {
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             rcCommand[THROTTLE] = getThrottleIdleValue();
+            return;
         }
         return;
     }

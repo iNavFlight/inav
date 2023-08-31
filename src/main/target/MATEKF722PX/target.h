@@ -75,7 +75,7 @@
 #define SPI2_MOSI_PIN           PC3
 
 //F722-PX,F722-HD
-#if defined(MATEKF722PX)
+#if defined(MATEKF722PX) || defined(MATEKF722PX_VP) || defined(MATEKF722PX_MOTORS_LAST_VP)     //woga65:
  #define USE_FLASHFS
  #define USE_FLASH_M25P16
  #define M25P16_SPI_BUS          BUS_SPI2
@@ -88,6 +88,11 @@
  #define SDCARD_SPI_BUS          BUS_SPI2
  #define SDCARD_CS_PIN           PC15
  #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#endif
+
+//woga65: variable pitch?
+#if defined(MATEKF722WPX_VP) || defined(MATEKF722PX_VP) || defined(MATEKF722PX_MOTORS_LAST_VP) || defined(MATEKF722WPX_MOTORS_LAST_VP)
+ #define USE_VARIABLE_PITCH
 #endif
 
 // *************** UART *****************************

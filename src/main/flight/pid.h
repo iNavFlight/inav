@@ -181,6 +181,14 @@ typedef enum {
 PG_DECLARE_PROFILE(pidProfile_t, pidProfile);
 PG_DECLARE(pidAutotuneConfig_t, pidAutotuneConfig);
 
+typedef struct pidScaling_s {                   // woga65:
+    float   pid_scaling_factor_p[3];            // On helicopters the required P gain can be very low, especially on the roll axis. Let's scale it to allow for fine adjustment.
+    float   pid_scaling_factor_i[3];            // We already have a need for scaling P and D, so let's do the same for I too to make the setup consistent. 
+    float   pid_scaling_factor_d[3];            // Variable pitch vehicles respond violently to even a little too high D gain. Let's scale it down to allow for fine adjustment
+} pidScaling_t;
+
+PG_DECLARE(pidScaling_t, pidScaling);           // woga65:
+
 const pidBank_t * pidBank(void);
 pidBank_t * pidBankMutable(void);
 

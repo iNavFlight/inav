@@ -65,12 +65,21 @@
 #include "rx/mavlink.h"
 #include "rx/sim.h"
 
-const char rcChannelLetters[] = "AERT";
+#if (MAX_MAPPABLE_RX_INPUTS == 4)
+  const char rcChannelLetters[]             = "AERT";
+#else
+  #if defined(USE_VARIABLE_PITCH)   // woga65: letters for COLLECTIVE + GYRO_GAIN
+    const char rcChannelLetters[]           = "AERT12CG";
+    const char genericLetters[]             = "AERT1234";   // used in fc/cli.c to print out generic mapping too
+  #else
+    const char rcChannelLetters[]           = "AERT1234";
+  #endif
+#endif
 
-static uint16_t rssi = 0;                  // range: [0;1023]
+static uint16_t rssi = 0;                   // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
 
-#define MSP_RSSI_TIMEOUT_US     1500000   // 1.5 sec
+#define MSP_RSSI_TIMEOUT_US     1500000     // 1.5 sec
 #define RX_LQ_INTERVAL_MS       200
 #define RX_LQ_TIMEOUT_MS        1000
 
@@ -111,7 +120,11 @@ PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
 #define RX_MIN_USEX 885
 PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .receiverType = DEFAULT_RX_TYPE,
-    .rcmap = {0, 1, 3, 2},      // Default to AETR map
+#if (MAX_MAPPABLE_RX_INPUTS == 4)
+    .rcmap = {0, 1, 3, 2},                  // Default to AETR map
+#else
+    .rcmap = {0, 1, 3, 2, 4, 5, 6, 7},      // Default to AETR1234 map (woga65:)
+#endif
     .halfDuplex = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
     .serialrx_provider = SERIALRX_PROVIDER,
 #ifdef USE_SPEKTRUM_BIND
@@ -142,18 +155,21 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
 void resetAllRxChannelRangeConfigurations(void)
 {
     // set default calibration to full range and 1:1 mapping
-    for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+    // woga65: replace NON_AUX_CHANNEL_COUNT by CONTROL_CHANNEL_COUNT
+    // to apply PWM_RANGE also to collective pitch + gyro gain channels 
+    for (int i = 0; i < CONTROL_CHANNEL_COUNT; i++) {
         rxChannelRangeConfigsMutable(i)->min = PWM_RANGE_MIN;
         rxChannelRangeConfigsMutable(i)->max = PWM_RANGE_MAX;
     }
 }
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, NON_AUX_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(rxChannelRangeConfig_t, CONTROL_CHANNEL_COUNT, rxChannelRangeConfigs, PG_RX_CHANNEL_RANGE_CONFIG, 0);   //woga65:
 
 void pgResetFn_rxChannelRangeConfigs(rxChannelRangeConfig_t *rxChannelRangeConfigs)
 {
     // set default calibration to full range and 1:1 mapping
-    for (int i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+    // woga65: replace NON_AUX_CHANNEL_COUNT by CONTROL_CHANNEL_COUNT
+    for (int i = 0; i < CONTROL_CHANNEL_COUNT; i++) {
         rxChannelRangeConfigs[i].min = PWM_RANGE_MIN;
         rxChannelRangeConfigs[i].max = PWM_RANGE_MAX;
     }
@@ -475,7 +491,8 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         uint16_t sample = (*rxRuntimeConfig.rcReadRawFn)(&rxRuntimeConfig, rawChannel);
 
         // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
+        // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
+        if (channel < CONTROL_CHANNEL_COUNT && sample != 0) {
             sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
             sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
         }
@@ -484,9 +501,10 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         rcChannels[channel].raw = sample;
 
         // Apply invalid pulse value logic
+        // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
         if (!isRxPulseValid(sample)) {
             sample = rcChannels[channel].data;   // hold channel, replace with old value
-            if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < NON_AUX_CHANNEL_COUNT)) {
+            if ((currentTimeMs > rcChannels[channel].expiresAt) && (channel < CONTROL_CHANNEL_COUNT)) {
                 rxFlightChannelsValid = false;
             }
         } else {

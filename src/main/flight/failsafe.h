@@ -152,8 +152,8 @@ typedef struct failsafeState_s {
     failsafeProcedure_e activeProcedure;
     failsafePhase_e phase;
     failsafeRxLinkState_e rxLinkState;
-    int16_t lastGoodRcCommand[4];
-} failsafeState_t;
+    int16_t lastGoodRcCommand[8];           // woga65: failsafe needs to handle at least two additional
+} failsafeState_t;                          // channels which default to rc-channels seven and eight
 
 void failsafeInit(void);
 void failsafeReset(void);

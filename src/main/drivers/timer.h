@@ -111,6 +111,8 @@ typedef enum {
     TIM_USE_MC_CHNFW        = (1 << 4),     // Deprecated and not used after removal of CHANNEL_FORWARDING feature
     TIM_USE_FW_MOTOR        = (1 << 5),
     TIM_USE_FW_SERVO        = (1 << 6),
+    TIM_USE_HC_MOTOR        = (1 << 7),     // woga65: Helicopter motor output
+    TIM_USE_HC_SERVO        = (1 << 8),     // woga65: Helicopter servo output    
     TIM_USE_LED             = (1 << 24),
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;

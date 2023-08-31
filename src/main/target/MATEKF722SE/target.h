@@ -18,13 +18,20 @@
 
 #pragma once
 
-#if defined(MATEKF722MINI)
+#if defined(MATEKF722MINI) || defined(MATEKF722MINI_VP) //woga65:
 #   define TARGET_BOARD_IDENTIFIER "MF7M"
 #   define USBD_PRODUCT_STRING  "MatekF722Mini"
 #else
 #   define TARGET_BOARD_IDENTIFIER "MF7S"
 #   define USBD_PRODUCT_STRING  "MatekF722SE"
 #endif
+
+// woga65: variable pitch?
+#if defined(MATEKF722SE_VP) || defined(MATEKF722MINI_VP)
+#   define USE_VARIABLE_PITCH
+#endif
+
+
 
 #define LED0                    PA14  //Blue   SWCLK
 #define LED1                    PA13  //Green  SWDIO
@@ -99,7 +106,7 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
-#if defined(MATEKF722MINI)
+#if defined(MATEKF722MINI) || defined(MATEKF722MINI_VP) //woga65:
 #   define USE_FLASHFS
 #   define USE_FLASH_M25P16
 #   define M25P16_SPI_BUS          BUS_SPI3

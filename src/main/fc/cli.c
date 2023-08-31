@@ -1125,7 +1125,7 @@ static void cliMotorMix(char *cmdline)
 static void printRxRange(uint8_t dumpMask, const rxChannelRangeConfig_t *channelRangeConfigs, const rxChannelRangeConfig_t *defaultChannelRangeConfigs)
 {
     const char *format = "rxrange %u %u %u";
-    for (uint32_t i = 0; i < NON_AUX_CHANNEL_COUNT; i++) {
+    for (uint32_t i = 0; i < CONTROL_CHANNEL_COUNT; i++) {  // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
         bool equalsDefault = false;
         if (defaultChannelRangeConfigs) {
             equalsDefault = channelRangeConfigs[i].min == defaultChannelRangeConfigs[i].min
@@ -1156,7 +1156,7 @@ static void cliRxRange(char *cmdline)
     } else {
         ptr = cmdline;
         i = fastA2I(ptr);
-        if (i >= 0 && i < NON_AUX_CHANNEL_COUNT) {
+        if (i >= 0 && i < CONTROL_CHANNEL_COUNT) {  // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
             int rangeMin, rangeMax;
 
             ptr = nextArg(ptr);
@@ -1181,7 +1181,7 @@ static void cliRxRange(char *cmdline)
                 channelRangeConfig->max = rangeMax;
             }
         } else {
-            cliShowArgumentRangeError("channel", 0, NON_AUX_CHANNEL_COUNT - 1);
+            cliShowArgumentRangeError("channel", 0, CONTROL_CHANNEL_COUNT - 1); // woga65: NON_AUX_CHANNEL_COUNT => CONTROL_CHANNEL_COUNT
         }
     }
 }
@@ -2815,6 +2815,11 @@ static void cliMap(char *cmdline)
         // uppercase it
         for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
+#if defined(USE_VARIABLE_PITCH)
+            //woga65: allow for generic channel letters (and translate them) in case platform is not helicopter
+            cmdline[i] = cmdline[i] == '3' ? rcChannelLetters[6] : cmdline[i];  //woga65: AUX3 => (G)yro gain
+            cmdline[i] = cmdline[i] == '4' ? rcChannelLetters[7] : cmdline[i];  //woga65: AUX4 => (C)ollective pitch
+#endif            
         }
         for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
             if (strchr(rcChannelLetters, cmdline[i]) && !strchr(cmdline + i + 1, cmdline[i])) {
@@ -2834,6 +2839,16 @@ static void cliMap(char *cmdline)
     }
     out[i] = '\0';
     cliPrintLinef("%s", out);
+
+#if defined(USE_VARIABLE_PITCH)
+    // woga65: Also print out the corresponding generic RC-channel mapping to avoid confusion
+    cliPrint("=>   ");
+    for (i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++){
+        out[rxConfig()->rcmap[i]] = genericLetters[i];
+    }
+    out[i] = '\0';
+    cliPrintLinef("%s", out);
+#endif    
 }
 
 static const char *checkCommand(const char *cmdLine, const char *command)
