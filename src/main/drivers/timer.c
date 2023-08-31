@@ -294,8 +294,8 @@ bool timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * 
     return impl_timerPWMConfigDMABurst(burstDmaTimer, tch, dmaBuffer, dmaBufferElementSize, dmaBufferElementCount);
 }
 
-void pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstBaseAddress, uint32_t BurstUnit, uint32_t BurstLength)
+void pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength)
 {
-    impl_pwmBurstDMAStart(burstDmaTimer, BurstBaseAddress, BurstUnit, BurstLength);
+    impl_pwmBurstDMAStart(burstDmaTimer, BurstLength);
 }
 #endif

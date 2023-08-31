@@ -446,11 +446,11 @@ bool impl_timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, vo
     return true;
 }
 
-void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstBaseAddress, uint32_t BurstUnit, uint32_t BurstLength)
+void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength)
 {
     DMA_SetCurrDataCounter(burstDmaTimer->dmaBurstStream, BurstLength);
     DMA_Cmd(burstDmaTimer->dmaBurstStream, ENABLE);
-    TIM_DMAConfig(burstDmaTimer->timer, BurstBaseAddress, BurstUnit);
+    TIM_DMAConfig(burstDmaTimer->timer, TIM_DMABase_CCR1, TIM_DMABurstLength_4Transfers);
     TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
 }
 #endif

@@ -175,7 +175,12 @@ extern const int timerHardwareCount;
 #ifdef USE_DSHOT_DMAR
 typedef struct {
     TIM_TypeDef *timer;
+#ifdef USE_HAL_DRIVER
+    DMA_TypeDef *dma;
+    uint32_t streamLL;
+#else
     DMA_Stream_TypeDef *dmaBurstStream;
+#endif
     timerDMASafeType_t *dmaBurstBuffer;
     uint16_t burstRequestSource;
 } burstDmaTimer_t;
@@ -245,5 +250,5 @@ volatile timCCR_t *timerCCR(TCH_t * tch);
 
 #ifdef USE_DSHOT_DMAR
 bool timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
-void pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstBaseAddress, uint32_t BurstUnit, uint32_t BurstLength);
+void pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength);
 #endif

@@ -477,7 +477,7 @@ void pwmCompleteMotorUpdate(void) {
 
         for (int burstDmaTimerIndex = 0; burstDmaTimerIndex < burstDmaTimersCount; burstDmaTimerIndex++) {
             burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
-            pwmBurstDMAStart(burstDmaTimer, TIM_DMABase_CCR1, TIM_DMABurstLength_4Transfers, DSHOT_DMA_BUFFER_SIZE * 4);
+            pwmBurstDMAStart(burstDmaTimer, DSHOT_DMA_BUFFER_SIZE * 4);
         }
 #else
         // Generate DMA buffers
