@@ -77,6 +77,9 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#ifdef USE_VARIABLE_PITCH
+#  include "flight/variable_pitch.h"
+#endif
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
