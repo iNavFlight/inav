@@ -39,10 +39,11 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig, PG_HELICOPTER_CONFIG, 0);
 
 PG_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig,
-    .nav_hc_hover_collective[0] = 1600,     // normal
-    .nav_hc_hover_collective[1] = 1550,     // idle-up 1
-    .nav_hc_hover_collective[2] = 1525,     // idle-up 2
-    .hc_rotor_spoolup_time = 10,            // time for the rotor(s) to spool up
+    .nav_hc_hover_collective[0] = 1600,                 // normal
+    .nav_hc_hover_collective[1] = 1550,                 // idle-up 1
+    .nav_hc_hover_collective[2] = 1525,                 // idle-up 2
+    .hc_althold_collective_type = HC_ALT_HOLD_STICK,    // ALTHOLD colective stick behaviour
+    .hc_rotor_spoolup_time = 10,                        // time for the rotor(s) to spool up
 );
 
 // woga65: soft spool-up related variables
