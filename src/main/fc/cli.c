@@ -156,6 +156,13 @@ static const char * const featureNames[] = {
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
+static const char * outputModeNames[] = {
+    "AUTO",
+    "MOTORS",
+    "SERVOS",
+    NULL
+};
+
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
     "NAV_ACC",
@@ -2514,29 +2521,15 @@ static void cliOsdLayout(char *cmdline)
 
 #endif
 
-static char *outputModeName(outputMode_e outputMode)
-{
-    switch (outputMode) {
-        default:
-            FALLTHROUGH;
-        case OUTPUT_MODE_AUTO:
-            return "AUTO";
-        case OUTPUT_MODE_MOTORS:
-            return "MOTORS";
-        case OUTPUT_MODE_SERVOS:
-            return "SERVOS";
-    }
-}
-
-static void printTimerOutputModes(dumpFlags_e dumpFlags, int timer)
+static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, int timer)
 {
     for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
         if (timer < 0 || timer == i) {
-            outputMode_e mode = timerOverrides(i)->outputMode;
+            outputMode_e mode = to[i].outputMode;
             cliDefaultPrintLinef(dumpFlags, mode == OUTPUT_MODE_AUTO,
-                                 "timer_output_mode %d %s", i, outputModeName(mode));
+                                 "timer_output_mode %d %s", i, outputModeNames[mode]);
             cliDumpPrintLinef(dumpFlags, mode != OUTPUT_MODE_AUTO,
-                                 "timer_output_mode %d %s", i, outputModeName(mode));
+                                 "timer_output_mode %d %s", i, outputModeNames[mode]);
         }
     }
 }
@@ -2585,10 +2578,11 @@ static void cliTimerOutputMode(char *cmdline)
             // No args, or just timer. If any of them not provided,
             // it will be the -1 that we used during initialization, so printOsdLayout()
             // won't use them for filtering.
-            printTimerOutputModes(DUMP_MASTER, timer);
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), timer);
             break;
         case 2:
             timerOverridesMutable(timer)->outputMode = mode;
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), timer);
             break;
         default:
             // Unhandled
@@ -3737,7 +3731,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("Timer overrides");
-        printTimerOutputModes(dumpMask, -1);
+        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, -1);
 
         cliPrintHashLine("Mixer: motor mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
