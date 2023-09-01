@@ -103,7 +103,16 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
+PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_MIXER_CONFIG, 0);
+
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
+
+void pgResetFn_timerOverrides(timerOverride_t *instance)
+{
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        instance[i].outputMode = OUTPUT_MODE_AUTO;
+    }
+}
 
 int getThrottleIdleValue(void)
 {
