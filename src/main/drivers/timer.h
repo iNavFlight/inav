@@ -119,6 +119,7 @@ typedef enum {
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
+#define TIM_USE_OUTPUT_AUTO (TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR | TIM_USE_FW_SERVO)
 
 enum {
     TIMER_OUTPUT_NONE = 0x00,
