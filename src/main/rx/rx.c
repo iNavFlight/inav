@@ -69,10 +69,10 @@
   const char rcChannelLetters[]             = "AERT";
 #else
   #if defined(USE_VARIABLE_PITCH)   // woga65: letters for COLLECTIVE + GYRO_GAIN
-    const char rcChannelLetters[]           = "AERT12CG";
-    const char genericLetters[]             = "AERT1234";   // used in fc/cli.c to print out generic mapping too
+    const char rcChannelLetters[]           = "AERT56CG";   // "AERT12CG"
+    const char genericLetters[]             = "AERT5678";   // "AERT1234" used in fc/cli.c to print out generic mapping too
   #else
-    const char rcChannelLetters[]           = "AERT1234";
+    const char rcChannelLetters[]           = "AERT5678";   // "AERT1234"
   #endif
 #endif
 
@@ -123,7 +123,7 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
 #if (MAX_MAPPABLE_RX_INPUTS == 4)
     .rcmap = {0, 1, 3, 2},                  // Default to AETR map
 #else
-    .rcmap = {0, 1, 3, 2, 4, 5, 6, 7},      // Default to AETR1234 map (woga65:)
+    .rcmap = {0, 1, 3, 2, 4, 5, 6, 7},      // Default to AETR5678 map (woga65:)
 #endif
     .halfDuplex = SETTING_SERIALRX_HALFDUPLEX_DEFAULT,
     .serialrx_provider = SERIALRX_PROVIDER,

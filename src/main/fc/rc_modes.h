@@ -79,7 +79,7 @@ typedef enum {
     BOXCHANGEMISSION = 50,
     BOXBEEPERMUTE    = 51,
 #if defined(USE_VARIABLE_PITCH)    
-    BOXHELINORMAL    = 52,  // woga65:
+    BOXHELINORMAL    = 52,  // woga65: helicopter flight modes / headspeeds
     BOXHELIIDLEUP1   = 53,
     BOXHELIIDLEUP2   = 54,
 #endif    

@@ -2817,8 +2817,8 @@ static void cliMap(char *cmdline)
             cmdline[i] = sl_toupper((unsigned char)cmdline[i]);
 #if defined(USE_VARIABLE_PITCH)
             //woga65: allow for generic channel letters (and translate them) in case platform is not helicopter
-            cmdline[i] = cmdline[i] == '3' ? rcChannelLetters[6] : cmdline[i];  //woga65: AUX3 => (G)yro gain
-            cmdline[i] = cmdline[i] == '4' ? rcChannelLetters[7] : cmdline[i];  //woga65: AUX4 => (C)ollective pitch
+            cmdline[i] = cmdline[i] == '7' ? rcChannelLetters[6] : cmdline[i];  //== '3' woga65: AUX3 => (G)yro gain
+            cmdline[i] = cmdline[i] == '8' ? rcChannelLetters[7] : cmdline[i];  //== '4' woga65: AUX4 => (C)ollective pitch
 #endif            
         }
         for (uint32_t i = 0; i < MAX_MAPPABLE_RX_INPUTS; i++) {
