@@ -417,11 +417,7 @@ static void* soapWorker(void* arg)
             startRequest("RestoreOriginalControllerDevice", "<RestoreOriginalControllerDevice><a>1</a><b>2</b></RestoreOriginalControllerDevice>");
             free(endRequest());
             startRequest("InjectUAVControllerInterface", "<InjectUAVControllerInterface><a>1</a><b>2</b></InjectUAVControllerInterface>");
-<<<<<<< HEAD
-            free(endRequest());
-=======
             free(endRequest());  
->>>>>>> master
             exchangeData();
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
             
