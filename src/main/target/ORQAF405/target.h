@@ -24,9 +24,11 @@
 #define LED1                    PB4
 
 // *************** Beeper **********************
+#define USE_BEEPER
 #define BEEPER                  PA8
 #define BEEPER_PWM_FREQUENCY    4000
 #define BEEPER_INVERTED
+#define BEEPER_OD               false
 
 // *************** Gyro & ACC **********************
 #define USE_SPI
@@ -45,9 +47,9 @@
 
 // *************** W25Q128 flash ********************
 #define USE_FLASHFS
-#define USE_FLASH_W25Q128
-#define W25Q128_SPI_BUS          BUS_SPI3
-#define W25Q128_CS_PIN           PB3
+#define USE_FLASH_M25P16
+#define M25P16_SPI_BUS          BUS_SPI3
+#define M25P16_CS_PIN           PB3
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
