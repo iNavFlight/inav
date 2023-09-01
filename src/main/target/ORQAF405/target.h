@@ -24,11 +24,9 @@
 #define LED1                    PB4
 
 // *************** Beeper **********************
-#define USE_BEEPER
 #define BEEPER                  PA8
 #define BEEPER_PWM_FREQUENCY    4000
 #define BEEPER_INVERTED
-#define BEEPER_OD               false
 
 // *************** Gyro & ACC **********************
 #define USE_SPI
