@@ -2284,7 +2284,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
             navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
             navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
-            currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
             helicopterConfigMutable()->nav_hc_hover_collective[0] = sbufReadU16(src);
             //helicopterConfigMutable()->nav_hc_hover_collective[1] = sbufReadU16(src);
             //helicopterConfigMutable()->nav_hc_hover_collective[2] = sbufReadU16(src);
