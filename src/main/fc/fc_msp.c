@@ -1290,7 +1290,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
         sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
+#if !defined(USE_VARIABLE_PITCH)    //woga65:
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
+#else
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[0]);
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[1]);
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[2]);
+#endif
         break;
 
     case MSP_RTH_AND_LAND_CONFIG:
@@ -2254,6 +2260,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#if !defined(USE_VARIABLE_PITCH)    //woga65:
     case MSP_SET_NAV_POSHOLD:
         if (dataSize == 13) {
             navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
@@ -2267,6 +2274,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+#else
+    case MSP_SET_NAV_POSHOLD:
+        if (dataSize == 13) {   //woga65: (datasize == 17)
+            navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
+            navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
+            navConfigMutable()->general.max_auto_climb_rate = sbufReadU16(src);
+            navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
+            navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
+            navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
+            navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
+            currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
+            helicopterConfigMutable()->nav_hc_hover_collective[0] = sbufReadU16(src);
+            //helicopterConfigMutable()->nav_hc_hover_collective[1] = sbufReadU16(src);
+            //helicopterConfigMutable()->nav_hc_hover_collective[2] = sbufReadU16(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;        
+#endif
 
     case MSP_SET_RTH_AND_LAND_CONFIG:
         if (dataSize == 21) {
