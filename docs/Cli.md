@@ -173,7 +173,7 @@ serial 0 -4
 
 ### `timer_output_mode`
 
-Since INAV 7, the firmware can dynamically allocate servo and motor outputs. This removes the need for bespoke targets for special cases (e.g. `MATEKF405` and `MATEKF405_S6SERVO`.
+Since INAV 7, the firmware can dynamically allocate servo and motor outputs. This removes the need for bespoke targets for special cases (e.g. `MATEKF405` and `MATEKF405_SERVOS6`).
 
 #### Syntax
 
@@ -194,7 +194,7 @@ Motors are allocated first, hence having a servo before a motor may require use 
 
 #### Example
 
-The original `MATEKF405` target defined a multi-rotor (MR) servo on output S1. The later `MATEKF405_S6SERVO` target defined (for MR) S1 as a motor and S6 as a servo. This was more logical, but annoying for anyone who had a legacy `MATEKF405` tricopter with the servo on S1.
+The original `MATEKF405` target defined a multi-rotor (MR) servo on output S1. The later `MATEKF405_SERVOS6` target defined (for MR) S1 as a motor and S6 as a servo. This was more logical, but annoying for anyone who had a legacy `MATEKF405` tricopter with the servo on S1.
 
 #### Solution
 
@@ -227,7 +227,7 @@ C08: MOTOR2 OUT
 C09: MOTOR3 OUT
 ```
 
-Note that the `timer_id` **index** in the `timer_output_mode` line is one less than the mnemonic in `target.c`, `timer_id` of 2 for `TIM3`.
+Note that the `timer` **index** in the `timer_output_mode` line is one less than the mnemonic in `target.c`, `timer` of 2 for `TIM3`.
 
 Note that the usual caveat that one should not share a timer with both a motor and a servo still apply.
 
