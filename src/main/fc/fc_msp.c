@@ -3673,9 +3673,10 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
 #endif
+#ifndef SITL_BUILD
     case MSP2_INAV_TIMER_OUTPUT_MODE:
         if (dataSize == 0) {
-            for(int i =0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
                 sbufWriteU8(dst, i);
                 sbufWriteU8(dst, timerOverrides(i)->outputMode);
             }
@@ -3707,7 +3708,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             *ret = MSP_RESULT_ERROR;
         }
         break;
- 
+#endif 
     
     default:
         // Not handled
