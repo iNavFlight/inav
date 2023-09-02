@@ -54,7 +54,7 @@ extern "C" {
     #include "rx/rx.h"
 
     int16_t rcData[MAX_SUPPORTED_RC_CHANNEL_COUNT];     // interval [1000;2000]
-    int16_t rcCommand[4];
+    int16_t rcCommand[8];   // woga65: Has been rcCommand[4] before. Is now [8] to allow for helicopter stuff. 
     uint32_t stateFlags;
     rcControlsConfig_t rcControlsConfig_System;
 
