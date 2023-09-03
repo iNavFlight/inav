@@ -102,7 +102,7 @@ For testing purposes, it is possible to disable GPS sensor fix from RC controlle
 
 Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation. RTH is trigerred regradless of failsafe procedure selected in configurator.
 
-# Expected error
+# Expected error (mag + baro)
 
 Realistic expected error is up to 200m per 1km of flight path. In tests, 500m drift per 5km path was seen. 
 
