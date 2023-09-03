@@ -41,7 +41,7 @@ It is assumed, that plane will fly in roughly estimated direction to home positi
 
 *Plane has to aquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
 
-# Navigation without magnethometer
+# Estimation without magnethometer
 
 Without magnethometer, navigation accuracy is very poor. The problem is heading drift. 
 
