@@ -93,6 +93,7 @@
 #define USE_PITOT
 #define USE_PITOT_MS4525
 #define USE_PITOT_MSP
+#define USE_PITOT_DLVR
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482
@@ -162,6 +163,7 @@
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
 #define USE_MULTI_MISSION
+#define USE_MULTI_FUNCTIONS  // defines functions only, warnings always defined
 
 //Enable VTX control
 #define USE_VTX_CONTROL

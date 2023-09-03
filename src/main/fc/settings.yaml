@@ -19,7 +19,7 @@ tables:
     values: ["NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"]
     enum: baroSensor_e
   - name: pitot_hardware
-    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP"]
+    values: ["NONE", "AUTO", "MS4525", "ADC", "VIRTUAL", "FAKE", "MSP", "DLVR-L10D"]
     enum: pitotSensor_e
   - name: receiver_type
     values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
@@ -190,6 +190,12 @@ tables:
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
     enum: wpFwTurnSmoothing_e
+  - name: gps_auto_baud_max
+    values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
+    enum: gpsBaudRate_e
+  - name: nav_mc_althold_throttle
+    values: ["STICK", "MID_STICK", "HOVER"]
+    enum: navMcAltHoldThrottle_e    
 
 constants:
   RPYL_PID_MIN: 0
@@ -1507,6 +1513,7 @@ groups:
         min: 1
         max: 3000
   - name: PG_GPS_CONFIG
+    headers: [ "io/gps.h" ]
     type: gpsConfig_t
     condition: USE_GPS
     members:
@@ -1538,6 +1545,12 @@ groups:
         default_value: ON
         field: autoBaud
         type: bool
+      - name: gps_auto_baud_max_supported
+        description: "Max baudrate supported by GPS unit. This is used during autobaud. M8 supports up to 460400, M10 supports up to 921600 and 230400 is the value used before INAV 7.0"
+        default_value: "230400"
+        table: gps_auto_baud_max
+        field: autoBaudMax
+        type: uint8_t
       - name: gps_ublox_use_galileo
         description: "Enable use of Galileo satellites. This is at the expense of other regional constellations, so benefit may also be regional. Requires M8N and Ublox firmware 3.x (or later) [OFF/ON]."
         default_value: OFF
@@ -2322,11 +2335,11 @@ groups:
         default_value: OFF
         field: general.flags.landing_bump_detection
         type: bool
-      - name: nav_use_midthr_for_althold
-        description: "If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude"
-        default_value: OFF
-        field: general.flags.use_thr_mid_for_althold
-        type: bool
+      - name: nav_mc_althold_throttle
+        description: "If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively."
+        default_value: "STICK"
+        field: mc.althold_throttle_type
+        table: nav_mc_althold_throttle
       - name: nav_extra_arming_safety
         description: "If set to ON drone won't arm if no GPS fix and any navigation mode like RTH or POSHOLD is configured. ALLOW_BYPASS allows the user to momentarily disable this check by holding yaw high (left stick held at the bottom right in mode 2) when switch arming is used"
         default_value: "ALLOW_BYPASS"
