@@ -226,14 +226,13 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
 #ifdef USE_GPS_FIX_ESTIMATION
 bool canEstimateGPSFix(void)
 {
-#if defined(USE_GPS) && defined(USE_MAG) && defined(USE_BARO)
+#if defined(USE_GPS) && && defined(USE_BARO)
 
     //we do not check neither sensors(SENSOR_GPS) nor FEATURE(FEATURE_GPS) because:
     //1) checking STATE(GPS_FIX_HOME) is enough to ensure that GPS sensor was initialized once
     //2) sensors(SENSOR_GPS) is false on GPS timeout. We also want to support GPS timeouts, not just lost fix
     return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && 
         sensors(SENSOR_BARO) && baroIsHealthy() &&
-        sensors(SENSOR_MAG) && compassIsHealthy() &&
         ARMING_FLAG(WAS_EVER_ARMED) && STATE(GPS_FIX_HOME);
         
 #else
