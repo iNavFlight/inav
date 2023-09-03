@@ -48,7 +48,7 @@ Without magnethometer, navigation accuracy is very poor. The problem is heading 
 The longer plane flies without magnethometer or GPS, the bigger is course estimation error.
 
 After few minutes and few turns, "North" direction estimation can be completely broken.
-In general, accuracy is enought to perform RTH U-turn when both RC controls and GPS are lost, and roughtly keep RTH direction in areas with accasional GPS outages.
+In general, accuracy is enough to perform RTH U-turn when both RC controls and GPS are lost, and roughtly keep RTH direction in areas with accasional GPS outages.
 
 ![image](https://github.com/RomanLut/inav/assets/11955117/3d5c5d10-f43a-45f9-a647-af3cca87c4da)
 
