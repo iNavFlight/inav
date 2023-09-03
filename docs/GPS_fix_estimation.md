@@ -12,7 +12,7 @@ Plane should have the following sensors:
 - acceleromenter, gyroscope
 - barometer
 - GPS
-- magnethometer
+- magnethometer (optional, highly recommended)
 - pitot (optional)
 
 By befault, all navigation modes are disabled when GPS fix is lost. If RC signal is lost also, plane will not be able to enable RTH. Plane will switch to LANDING instead. When flying above unreachable spaces, plane will be lost.
@@ -40,6 +40,23 @@ From estimated heading direction and speed, plane is able to **roughty** estimat
 It is assumed, that plane will fly in roughly estimated direction to home position untill either GPS fix or RC signal is recovered.
 
 *Plane has to aquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
+
+# Estimation without magnethometer
+
+Without magnethometer, navigation accuracy is very poor. The problem is heading drift. 
+
+The longer plane flies without magnethometer or GPS, the bigger is course estimation error.
+
+After few minutes and few turns, "North" direction estimation can be completely broken.
+In general, accuracy is enough to perform RTH U-turn when both RC controls and GPS are lost, and roughtly keep RTH direction in areas with occasional GPS outages.
+
+![image](https://github.com/RomanLut/inav/assets/11955117/3d5c5d10-f43a-45f9-a647-af3cca87c4da)
+
+(purple line - estimated position, black line - real position).
+
+It is recommened to use GPS fix estimation without magnethometer as last resort only. For example, if plane is flying above lake, landing means loss of plane. With GPS Fix estimation, plane will try to do RTH in very rought direction, instead of landing.
+
+It is up to user to estimate the risk of fly-away.
 
 
 # Settings
@@ -75,7 +92,7 @@ Example: 100 km/h = 100 * 27.77 = 2777 cm/s
 
 ![](Screenshots/programming_disable_gps_sensor_fix.png) 
 
-For testing purpoces, it is possible to disable GPS sensor fix from RC controller in programming tab:
+For testing purposes, it is possible to disable GPS sensor fix from RC controller in programming tab:
 
 *GPS can be disabled only after: 1) initial GPS fix is acquired 2) in ARMED mode.*
 
@@ -85,7 +102,7 @@ For testing purpoces, it is possible to disable GPS sensor fix from RC controlle
 
 Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation. RTH is trigerred regradless of failsafe procedure selected in configurator.
 
-# Expected error
+# Expected error (mag + baro)
 
 Realistic expected error is up to 200m per 1km of flight path. In tests, 500m drift per 5km path was seen. 
 
