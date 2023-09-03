@@ -258,10 +258,10 @@
 #define SYM_SERVO_PAN_IS_OFFSET_L   0x1C7 // 455 Pan servo is offset left
 #define SYM_SERVO_PAN_IS_OFFSET_R   0x1C8 // 456 Pan servo is offset right
 
-#define SYM_PILOT_LOGO_SML_L		0x1D6 // 470 small Pilot logo Left
-#define SYM_PILOT_LOGO_SML_C		0x1D7 // 471 small Pilot logo Centre
-#define SYM_PILOT_LOGO_SML_R		0x1D8 // 472 small Pilot logo Right
-#define SYM_PILOT_LOGO_LRG_START	0x1D9 // 473 to 511, Pilot logo
+#define SYM_PILOT_LOGO_SML_L		0x1D5 // 469 small Pilot logo Left
+#define SYM_PILOT_LOGO_SML_C		0x1D6 // 470 small Pilot logo Centre
+#define SYM_PILOT_LOGO_SML_R		0x1D7 // 471 small Pilot logo Right
+#define SYM_PILOT_LOGO_LRG_START	0x1D8 // 472 to 511, Pilot logo
 
 #else
 
