@@ -174,6 +174,7 @@
 #define SYM_FLIGHT_MINS_REMAINING   0xDA  // 218 Flight time (mins) remaining
 #define SYM_FLIGHT_HOURS_REMAINING  0xDB  // 219 Flight time (hours) remaining
 #define SYM_GROUND_COURSE           0xDC  // 220 Ground course
+#define SYM_ALERT                   0xDD  // 221 General alert symbol
 
 #define SYM_TERRAIN_FOLLOWING       0xFB  // 251 Terrain following (also Alt adjust)
 #define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
