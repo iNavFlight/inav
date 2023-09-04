@@ -129,7 +129,6 @@
 #define STATS_PAGE1 (checkStickPosition(ROL_LO))
 
 #define SPLASH_SCREEN_DISPLAY_TIME 4000 // ms
-#define ARMED_SCREEN_DISPLAY_TIME 1500 // ms
 #define STATS_SCREEN_DISPLAY_TIME 60000 // ms
 
 #define EFFICIENCY_UPDATE_INTERVAL (5 * 1000)
@@ -3680,6 +3679,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 	.units = SETTING_OSD_UNITS_DEFAULT,
 	.main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 	.use_pilot_logo = SETTING_OSD_USE_PILOT_LOGO_DEFAULT,
+	.arm_screen_display_time = SETTING_OSD_ARM_SCREEN_DISPLAY_TIME_DEFAULT,
 
 #ifdef USE_WIND_ESTIMATOR
 	.estimations_wind_compensation = SETTING_OSD_ESTIMATIONS_WIND_COMPENSATION_DEFAULT,
@@ -3909,7 +3909,7 @@ static void osdCompleteAsyncInitialization(void)
 
 	if (fontHasMetadata && metadata.charCount > 256) {
 		hasExtendedFont = true;
-		unsigned logo_c = SYM_LOGO_START;
+		unsigned logo_c = (osdConfig()->use_pilot_logo) ? SYM_PILOT_LOGO_LRG_START : SYM_LOGO_START;
 		unsigned logo_x = OSD_CENTER_LEN(SYM_LOGO_WIDTH);
 		for (unsigned ii = 0; ii < SYM_LOGO_HEIGHT; ii++) {
 			for (unsigned jj = 0; jj < SYM_LOGO_WIDTH; jj++) {
@@ -3920,8 +3920,7 @@ static void osdCompleteAsyncInitialization(void)
 		y++;
 	} else if (!fontHasMetadata) {
 		const char *m = "INVALID FONT";
-		displayWrite(osdDisplayPort, OSD_CENTER_S(m), 3, m);
-		y = 4;
+		displayWrite(osdDisplayPort, OSD_CENTER_S(m), y++, m);
 	}
 
 	if (fontHasMetadata && metadata.version < OSD_MIN_FONT_VERSION) {
@@ -3934,13 +3933,12 @@ static void osdCompleteAsyncInitialization(void)
 	uint8_t xPos = osdDisplayIsHD() ? 15 : 5;
 	displayWrite(osdDisplayPort, xPos, y++, string_buffer);
 #ifdef USE_CMS
-	displayWrite(osdDisplayPort, xPos+2, y++,  CMS_STARTUP_HELP_TEXT1);
+	displayWrite(osdDisplayPort, xPos+2, y++, CMS_STARTUP_HELP_TEXT1);
 	displayWrite(osdDisplayPort, xPos+6, y++, CMS_STARTUP_HELP_TEXT2);
 	displayWrite(osdDisplayPort, xPos+6, y++, CMS_STARTUP_HELP_TEXT3);
 #endif
+
 #ifdef USE_STATS
-
-
 	uint8_t statNameX = osdDisplayIsHD() ? 14 : 4;
 	uint8_t statValueX = osdDisplayIsHD() ? 34 : 24;
 
@@ -3970,15 +3968,15 @@ static void osdCompleteAsyncInitialization(void)
 
 		displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL TIME:");
 		uint32_t tot_mins = statsConfig()->stats_total_time / 60;
-		tfp_sprintf(string_buffer, "%2d:%02dHM", (int)(tot_mins / 60), (int)(tot_mins % 60));
+		tfp_sprintf(string_buffer, "%2d:%02dH:M", (int)(tot_mins / 60), (int)(tot_mins % 60));
 		displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
 
 #ifdef USE_ADC
 		if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
 			displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL ENERGY:");
 			osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
-			strcat(string_buffer, "\xAB"); // SYM_WH
 			displayWrite(osdDisplayPort, statValueX-4, y,  string_buffer);
+			displayWriteChar(osdDisplayPort, statValueX, y, SYM_WH);
 
 			displayWrite(osdDisplayPort, statNameX, ++y, "AVG EFFICIENCY:");
 			if (statsConfig()->stats_total_dist) {
@@ -4014,7 +4012,7 @@ static void osdCompleteAsyncInitialization(void)
 
 	displayCommitTransaction(osdDisplayPort);
 	displayResync(osdDisplayPort);
-	osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
+	osdSetNextRefreshIn(10000);//SPLASH_SCREEN_DISPLAY_TIME); // TEMPORARY - PUT BACK ONCE TESTING IS FINISHED!
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
@@ -4390,7 +4388,7 @@ static void osdShowHDArmScreen(void)
 		logoRow++;
 	}
 
-	// if (using pilot logo) {
+	if (osdConfig()->use_pilot_logo) {
 		logo_c = SYM_PILOT_LOGO_LRG_START;
 		logo_x = (logoColOffset * 2) + ((osdDisplayPort->cols % 2 == 0) ? 0 : 1); // Add extra 1 px space between logos, if the OSD has an odd number of columns
 		logoRow = armScreenRow;
@@ -4400,7 +4398,7 @@ static void osdShowHDArmScreen(void)
 			}
 			logoRow++;
 		}
-	// } // using pilot logo
+	}
 	
 	armScreenRow = logoRow + 2;
 
@@ -4556,7 +4554,7 @@ static void osdShowArmed(void)
 {
 	displayClearScreen(osdDisplayPort);
 
-	if (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS) {
+	if (osdDisplayIsHD()) {
 		osdShowHDArmScreen();
 	} else {
 		osdShowSDArmScreen();
@@ -4661,7 +4659,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 			statsDisplayed = false;
 			osdResetStats();
 			osdShowArmed();
-			uint32_t delay = ARMED_SCREEN_DISPLAY_TIME;
+			uint32_t delay = osdConfig()->arm_screen_display_time;
 #if defined(USE_SAFE_HOME)
 			if (safehome_distance)
 				delay *= 3;

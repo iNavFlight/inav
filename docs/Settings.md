@@ -3972,6 +3972,16 @@ Value above which to make the OSD relative altitude indicator blink (meters)
 
 ---
 
+### osd_arm_screen_display_time
+
+Amount of time to display the arm screen [ms]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 1000 | 5000 |
+
+---
+
 ### osd_baro_temp_alarm_max
 
 Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade)
