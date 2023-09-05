@@ -287,3 +287,15 @@ bool timerPWMDMAInProgress(TCH_t * tch)
 {
     return tch->dmaState != TCH_DMA_IDLE;
 }
+
+#ifdef USE_DSHOT_DMAR
+bool timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
+{
+    return impl_timerPWMConfigDMABurst(burstDmaTimer, tch, dmaBuffer, dmaBufferElementSize, dmaBufferElementCount);
+}
+
+void pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength)
+{
+    impl_pwmBurstDMAStart(burstDmaTimer, BurstLength);
+}
+#endif

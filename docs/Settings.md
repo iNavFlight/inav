@@ -1372,6 +1372,16 @@ Automatic configuration of GPS baudrate(The specified baudrate in configured in 
 
 ---
 
+### gps_auto_baud_max_supported
+
+Max baudrate supported by GPS unit. This is used during autobaud. M8 supports up to 460400, M10 supports up to 921600 and 230400 is the value used before INAV 7.0
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 230400 |  |  |
+
+---
+
 ### gps_auto_config
 
 Enable automatic configuration of UBlox GPS receivers.
@@ -3272,6 +3282,16 @@ Max allowed above the ground altitude for terrain following mode
 
 ---
 
+### nav_mc_althold_throttle
+
+If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| STICK |  |  |
+
+---
+
 ### nav_mc_bank_angle
 
 Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
@@ -3735,16 +3755,6 @@ If enabled, the aircraft will gradually descent to the nav_rth_home_altitude en 
 ### nav_use_fw_yaw_control
 
 Enables or Disables the use of the heading PID controller on fixed wing. Heading PID controller is always enabled for rovers and boats
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### nav_use_midthr_for_althold
-
-If set to OFF, the FC remembers your throttle stick position when enabling ALTHOLD and treats it as a neutral midpoint for holding altitude
 
 | Default | Min | Max |
 | --- | --- | --- |

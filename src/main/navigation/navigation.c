@@ -36,6 +36,7 @@
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
+#include "fc/multifunction.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
@@ -81,17 +82,10 @@ gpsLocation_t GPS_home;
 uint32_t      GPS_distanceToHome;        // distance to home point in meters
 int16_t       GPS_directionToHome;       // direction to home point in degrees
 
-fpVector3_t   original_rth_home;         // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
-
 radar_pois_t radar_pois[RADAR_MAX_POIS];
+
 #if defined(USE_SAFE_HOME)
-int8_t safehome_index = -1;               // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
-uint32_t safehome_distance = 0;           // distance to the nearest safehome
-fpVector3_t nearestSafeHome;              // The nearestSafeHome found during arming
-bool safehome_applied = false;            // whether the safehome has been applied to home.
-
 PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
-
 #endif
 
 // waypoint 254, 255 are special waypoints
@@ -107,7 +101,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
 
         .flags = {
-            .use_thr_mid_for_althold = SETTING_NAV_USE_MIDTHR_FOR_ALTHOLD_DEFAULT,
             .extra_arming_safety = SETTING_NAV_EXTRA_ARMING_SAFETY_DEFAULT,
             .user_control_mode = SETTING_NAV_USER_CONTROL_MODE_DEFAULT,
             .rth_alt_control_mode = SETTING_NAV_RTH_ALT_MODE_DEFAULT,
@@ -177,9 +170,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                        // Max braking angle
 #endif
 
-        .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,          // posDecelerationTime * 100
-        .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                           // posResponseExpo * 100
+        .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,        // posDecelerationTime * 100
+        .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                         // posResponseExpo * 100
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,
+        .althold_throttle_type = SETTING_NAV_MC_ALTHOLD_THROTTLE_DEFAULT,           // STICK
     },
 
     // Fixed wing
@@ -235,10 +229,10 @@ EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 int16_t navCurrentState;
 int16_t navActualVelocity[3];
 int16_t navDesiredVelocity[3];
-int16_t navActualHeading;
-int16_t navDesiredHeading;
 int32_t navTargetPosition[3];
 int32_t navLatestActualPosition[3];
+int16_t navActualHeading;
+uint16_t navDesiredHeading;
 int16_t navActualSurface;
 uint16_t navFlags;
 uint16_t navEPH;
@@ -1298,17 +1292,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         }
 
         // Climb to safe altitude and turn to correct direction
+        // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
+        // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
         if (STATE(FIXED_WING_LEGACY)) {
-            if (navConfig()->general.flags.rth_climb_first == RTH_CLIMB_ON_FW_SPIRAL) {
-                float altitudeChangeDirection = (tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM) > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
-                updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
-            } else {
-                tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
-                setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-            }
+            tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
+            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
         } else {
-            // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
-            // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
             tmpHomePos->z += MR_RTH_CLIMB_OVERSHOOT_CM;
 
             if (navConfig()->general.flags.rth_tail_first) {
@@ -1333,8 +1322,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_TRACKBACK(navigatio
 
     if (posControl.flags.estPosStatus >= EST_USABLE) {
         const int32_t distFromStartTrackback = calculateDistanceToDestination(&posControl.rthTBPointsList[posControl.rthTBLastSavedIndex]) / 100;
+#ifdef USE_MULTI_FUNCTIONS
+        const bool overrideTrackback = rthAltControlStickOverrideCheck(ROLL) || MULTI_FUNC_FLAG(MF_SUSPEND_TRACKBACK);
+#else
+        const bool overrideTrackback = rthAltControlStickOverrideCheck(ROLL);
+#endif
         const bool cancelTrackback = distFromStartTrackback > navConfig()->general.rth_trackback_distance ||
-                                     (rthAltControlStickOverrideCheck(ROLL) && !posControl.flags.forcedRTHActivated);
+                                     (overrideTrackback && !posControl.flags.forcedRTHActivated);
 
         if (posControl.activeRthTBPointIndex < 0 || cancelTrackback) {
             posControl.rthTBWrapAroundCounter = posControl.activeRthTBPointIndex = -1;
@@ -1420,7 +1414,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
     if ((ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY)) {
         resetLandingDetector();     // force reset landing detector just in case
-        updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
         return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
     } else {
         fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
@@ -1439,21 +1433,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(na
     }
 
     fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_FINAL_HOVER);
-
-    if (navConfig()->general.rth_home_altitude) {
-        float timeToReachHomeAltitude = fabsf(tmpHomePos->z - navGetCurrentActualPositionAndVelocity()->pos.z) / navConfig()->general.max_auto_climb_rate;
-
-        if (timeToReachHomeAltitude < 1) {
-            // we almost reached the target home altitude so set the desired altitude to the desired home altitude
-            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-        } else {
-            float altitudeChangeDirection = tmpHomePos->z > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
-            updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
-        }
-    }
-    else {
-        setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
-    }
+    setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1495,7 +1475,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
-    updateClimbRateToAltitudeController(-descentVelLimited, ROC_TO_ALT_NORMAL);
+    updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1518,7 +1498,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     UNUSED(previousState);
 
     if (STATE(ALTITUDE_CONTROL)) {
-        updateClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, ROC_TO_ALT_NORMAL);  // FIXME
+        updateClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, 0, ROC_TO_ALT_CONSTANT);  // FIXME
     }
 
     // Prevent I-terms growing when already landed
@@ -1721,12 +1701,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
 
     if (navConfig()->general.waypoint_enforce_altitude && !posControl.wpAltitudeReached) {
         // Adjust altitude to waypoint setting
-        if (STATE(AIRPLANE)) {
-            int8_t altitudeChangeDirection = posControl.activeWaypoint.pos.z > navGetCurrentActualPositionAndVelocity()->pos.z ? 1 : -1;
-            updateClimbRateToAltitudeController(altitudeChangeDirection * navConfig()->general.max_auto_climb_rate, ROC_TO_ALT_NORMAL);
-        } else {
-            setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_Z);
-        }
+        setDesiredPosition(&posControl.activeWaypoint.pos, 0, NAV_POS_UPDATE_Z);
 
         posControl.wpAltitudeReached = isWaypointAltitudeReached();
 
@@ -2087,7 +2062,7 @@ void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelVali
 /*-----------------------------------------------------------
  * Processes an update to Z-position and velocity
  *-----------------------------------------------------------*/
-void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus)
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError)
 {
     posControl.actualState.abs.pos.z = newAltitude;
     posControl.actualState.abs.vel.z = newVelocity;
@@ -2110,11 +2085,14 @@ void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, flo
         posControl.flags.estAltStatus = EST_TRUSTED;
         posControl.flags.verticalPositionDataNew = true;
         posControl.lastValidAltitudeTimeMs = millis();
+        /* flag set if mismatch between relative GPS and estimated altitude exceeds 20m */
+        posControl.flags.gpsCfEstimatedAltitudeMismatch = fabsf(gpsCfEstimatedAltitudeError) > 2000;
     }
     else {
         posControl.flags.estAltStatus = EST_NONE;
         posControl.flags.estAglStatus = EST_NONE;
         posControl.flags.verticalPositionDataNew = false;
+        posControl.flags.gpsCfEstimatedAltitudeMismatch = false;
     }
 
     if (ARMING_FLAG(ARMED)) {
@@ -2479,12 +2457,13 @@ static navigationHomeFlags_t navigationActualStateHomeValidity(void)
 }
 
 #if defined(USE_SAFE_HOME)
-
 void checkSafeHomeState(bool shouldBeEnabled)
 {
-    const bool safehomeNotApplicable = navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF ||
-                                       posControl.flags.rthTrackbackActive ||
-                                       (!safehome_applied && posControl.homeDistance < navConfig()->general.min_rth_distance);
+    bool safehomeNotApplicable = navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF || posControl.flags.rthTrackbackActive ||
+                                 (!posControl.safehomeState.isApplied && posControl.homeDistance < navConfig()->general.min_rth_distance);
+#ifdef USE_MULTI_FUNCTIONS
+    safehomeNotApplicable = safehomeNotApplicable || (MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) && !posControl.flags.forcedRTHActivated);
+#endif
 
     if (safehomeNotApplicable) {
         shouldBeEnabled = false;
@@ -2494,19 +2473,19 @@ void checkSafeHomeState(bool shouldBeEnabled)
         shouldBeEnabled = posControl.flags.forcedRTHActivated;
     }
     // no safe homes found when arming or safehome feature in the correct state, then we don't need to do anything
-    if (safehome_distance == 0 || (safehome_applied == shouldBeEnabled)) {
-        return;
-    }
+	if (posControl.safehomeState.distance == 0 || posControl.safehomeState.isApplied == shouldBeEnabled) {
+		return;
+	}
     if (shouldBeEnabled) {
-        // set home to safehome
-        setHomePosition(&nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-        safehome_applied = true;
-    } else {
-        // set home to original arming point
-        setHomePosition(&original_rth_home, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
-        safehome_applied = false;
-    }
-    // if we've changed the home position, update the distance and direction
+		// set home to safehome
+        setHomePosition(&posControl.safehomeState.nearestSafeHome, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+		posControl.safehomeState.isApplied = true;
+	} else {
+		// set home to original arming point
+        setHomePosition(&posControl.rthState.originalHomePosition, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
+		posControl.safehomeState.isApplied = false;
+	}
+	// if we've changed the home position, update the distance and direction
     updateHomePosition();
 }
 
@@ -2516,7 +2495,7 @@ void checkSafeHomeState(bool shouldBeEnabled)
  **********************************************************/
 bool findNearestSafeHome(void)
 {
-    safehome_index = -1;
+    posControl.safehomeState.index = -1;
     uint32_t nearest_safehome_distance = navConfig()->general.safehome_max_distance + 1;
     uint32_t distance_to_current;
     fpVector3_t currentSafeHome;
@@ -2532,19 +2511,17 @@ bool findNearestSafeHome(void)
         distance_to_current = calculateDistanceToDestination(&currentSafeHome);
         if (distance_to_current < nearest_safehome_distance) {
              // this safehome is the nearest so far - keep track of it.
-             safehome_index = i;
+             posControl.safehomeState.index = i;
              nearest_safehome_distance = distance_to_current;
-             nearestSafeHome.x = currentSafeHome.x;
-             nearestSafeHome.y = currentSafeHome.y;
-             nearestSafeHome.z = currentSafeHome.z;
+             posControl.safehomeState.nearestSafeHome = currentSafeHome;
         }
     }
-    if (safehome_index >= 0) {
-        safehome_distance = nearest_safehome_distance;
+    if (posControl.safehomeState.index >= 0) {
+		posControl.safehomeState.distance = nearest_safehome_distance;
     } else {
-        safehome_distance = 0;
+        posControl.safehomeState.distance = 0;
     }
-    return safehome_distance > 0;
+    return posControl.safehomeState.distance > 0;
 }
 #endif
 
@@ -2574,9 +2551,7 @@ void updateHomePosition(void)
 #endif
                 setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING, navigationActualStateHomeValidity());
                 // save the current location in case it is replaced by a safehome or HOME_RESET
-                original_rth_home.x = posControl.rthState.homePosition.pos.x;
-                original_rth_home.y = posControl.rthState.homePosition.pos.y;
-                original_rth_home.z = posControl.rthState.homePosition.pos.z;
+                posControl.rthState.originalHomePosition = posControl.rthState.homePosition.pos;
             }
         }
     }
@@ -2805,7 +2780,7 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
 
     // Z-position
     if ((useMask & NAV_POS_UPDATE_Z) != 0) {
-        updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);   // Reset RoC/RoD -> altitude controller
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);   // Reset RoC/RoD -> altitude controller
         posControl.desiredState.pos.z = pos->z;
     }
 
@@ -2896,28 +2871,36 @@ bool isFlightDetected(void)
 /*-----------------------------------------------------------
  * Z-position controller
  *-----------------------------------------------------------*/
-void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode)
+void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
 {
+#define MIN_TARGET_CLIMB_RATE   100.0f  // cm/s
+
     static timeUs_t lastUpdateTimeUs;
     timeUs_t currentTimeUs = micros();
 
     // Terrain following uses different altitude measurement
     const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
 
-    if (mode == ROC_TO_ALT_RESET) {
-        lastUpdateTimeUs = currentTimeUs;
-        posControl.desiredState.pos.z = altitudeToUse;
-    }
-    else {      // ROC_TO_ALT_NORMAL
+    if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
+        /* ROC_TO_ALT_CONSTANT - constant climb rate
+         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
+         * Rate reduction starts at distance from target altitude of 5 x climb rate for FW, 1 x climb rate for MC */
+
+        if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > MIN_TARGET_CLIMB_RATE) {
+            const int8_t direction = desiredClimbRate > 0 ? 1 : -1;
+            const float absClimbRate = fabsf(desiredClimbRate);
+            const uint16_t maxRateCutoffAlt = STATE(AIRPLANE) ? absClimbRate * 5 : absClimbRate;
+            const float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
+                                            0.0f, -maxRateCutoffAlt * direction, MIN_TARGET_CLIMB_RATE, absClimbRate);
+
+            desiredClimbRate = direction * constrainf(verticalVelScaled, MIN_TARGET_CLIMB_RATE, absClimbRate);
+        }
 
         /*
          * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
          * In other words, when altitude is reached, allow it only to shrink
          */
-        if (navConfig()->general.max_altitude > 0 &&
-            altitudeToUse >= navConfig()->general.max_altitude &&
-            desiredClimbRate > 0
-        ) {
+        if (navConfig()->general.max_altitude > 0 && altitudeToUse >= navConfig()->general.max_altitude && desiredClimbRate > 0) {
             desiredClimbRate = 0;
         }
 
@@ -2943,9 +2926,11 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAlti
             // Multicopter climb-rate control is closed-loop, it's possible to directly calculate desired altitude setpoint to yield the required RoC/RoD
             posControl.desiredState.pos.z = altitudeToUse + (desiredClimbRate / posControl.pids.pos[Z].param.kP);
         }
-
-        lastUpdateTimeUs = currentTimeUs;
+    } else {    // ROC_TO_ALT_RESET or zero desired climbrate
+        posControl.desiredState.pos.z = altitudeToUse;
     }
+
+    lastUpdateTimeUs = currentTimeUs;
 }
 
 static void resetAltitudeController(bool useTerrainFollowing)
@@ -3588,6 +3573,8 @@ void applyWaypointNavigationAndAltitudeHold(void)
     navTargetPosition[X] = lrintf(posControl.desiredState.pos.x);
     navTargetPosition[Y] = lrintf(posControl.desiredState.pos.y);
     navTargetPosition[Z] = lrintf(posControl.desiredState.pos.z);
+
+    navDesiredHeading = wrap_36000(posControl.desiredState.yaw);
 }
 
 /*-----------------------------------------------------------
@@ -3624,7 +3611,7 @@ static bool isWaypointMissionValid(void)
     return posControl.waypointListValid && (posControl.waypointCount > 0);
 }
 
-static void checkManualEmergencyLandingControl(void)
+void checkManualEmergencyLandingControl(bool forcedActivation)
 {
     static timeMs_t timeout = 0;
     static int8_t counter = 0;
@@ -3649,7 +3636,7 @@ static void checkManualEmergencyLandingControl(void)
     }
 
     // Emergency landing toggled ON or OFF after 5 cycles of Poshold mode @ 1Hz minimum rate
-    if (counter >= 5) {
+    if (counter >= 5 || forcedActivation) {
         counter = 0;
         posControl.flags.manualEmergLandActive = !posControl.flags.manualEmergLandActive;
 
@@ -3686,7 +3673,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         /* Emergency landing controlled manually by rapid switching of Poshold mode.
          * Landing toggled ON or OFF for each Poshold activation sequence */
-        checkManualEmergencyLandingControl();
+        checkManualEmergencyLandingControl(false);
 
         /* Emergency landing triggered by failsafe Landing or manually initiated */
         if (posControl.flags.forcedEmergLandingActivated || posControl.flags.manualEmergLandActive) {
@@ -3858,9 +3845,8 @@ bool navigationRequiresTurnAssistance(void)
         // For airplanes turn assistant is always required when controlling position
         return (currentState & (NAV_CTL_POS | NAV_CTL_ALT));
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
 /**
@@ -4208,6 +4194,7 @@ void navigationInit(void)
     posControl.wpPlannerActiveWPIndex = 0;
     posControl.flags.wpMissionPlannerActive = false;
     posControl.startWpIndex = 0;
+    posControl.safehomeState.isApplied = false;
 #ifdef USE_MULTI_MISSION
     posControl.multiMissionCount = 0;
 #endif
