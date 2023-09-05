@@ -2584,6 +2584,12 @@ groups:
         default_value: ON
         field: general.flags.mission_planner_reset
         type: bool
+      - name: nav_cruise_yaw_rate
+        description: "Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]"
+        default_value: 20
+        field: general.cruise_yaw_rate
+        min: 0
+        max: 120
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 30
@@ -2819,12 +2825,6 @@ groups:
         field: fw.launch_abort_deadband
         min: 2
         max: 250
-      - name: nav_fw_cruise_yaw_rate
-        description: "Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]"
-        default_value: 20
-        field: fw.cruise_yaw_rate
-        min: 0
-        max: 60
       - name: nav_fw_allow_manual_thr_increase
         description: "Enable the possibility to manually increase the throttle in auto throttle controlled modes for fixed wing"
         default_value: OFF
