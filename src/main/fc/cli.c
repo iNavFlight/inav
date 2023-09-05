@@ -2521,15 +2521,20 @@ static void cliOsdLayout(char *cmdline)
 
 #endif
 
-static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, int timer)
+static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, const timerOverride_t* defaultTimerOverride, int timer)
 {
+    const char *format = "timer_output_mode %d %s";
+
     for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
         if (timer < 0 || timer == i) {
             outputMode_e mode = to[i].outputMode;
-            cliDefaultPrintLinef(dumpFlags, mode == OUTPUT_MODE_AUTO,
-                                 "timer_output_mode %d %s", i, outputModeNames[mode]);
-            cliDumpPrintLinef(dumpFlags, mode != OUTPUT_MODE_AUTO,
-                                 "timer_output_mode %d %s", i, outputModeNames[mode]);
+            bool equalsDefault = false;
+            if(defaultTimerOverride) {
+                outputMode_e defaultMode = defaultTimerOverride[i].outputMode;
+                equalsDefault = mode == defaultMode;
+                cliDefaultPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[defaultMode]);
+            }
+            cliDumpPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[mode]);
         }
     }
 }
@@ -2578,11 +2583,11 @@ static void cliTimerOutputMode(char *cmdline)
             // No args, or just timer. If any of them not provided,
             // it will be the -1 that we used during initialization, so printOsdLayout()
             // won't use them for filtering.
-            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), timer);
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
             break;
         case 2:
             timerOverridesMutable(timer)->outputMode = mode;
-            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), timer);
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
             break;
         default:
             // Unhandled
@@ -3731,7 +3736,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("Timer overrides");
-        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, -1);
+        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, timerOverrides(0), -1);
 
         cliPrintHashLine("Mixer: motor mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
