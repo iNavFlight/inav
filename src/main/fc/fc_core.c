@@ -512,11 +512,11 @@ bool emergInflightRearmEnabled(void)
         return false;
     }
 
-    if (isProbablyStillFlying()) {
-        emergRearmStabiliseTimeout = currentTimeMs + 5000; // activate Angle mode for 5s after rearm to help stabilise craft
-        return true;
-    } else if (STATE(MULTIROTOR) && (currentTimeMs > US2MS(lastDisarmTimeUs) + 1500) && fabsf(getEstimatedActualVelocity(Z)) > 100.0f) {
-        // allow emergency rearm if MR has vertical speed at least 1.5 sec after disarm indicating still flying
+    // allow emergency rearm if MR has vertical speed at least 1.5 sec after disarm indicating still flying
+    bool mcDisarmVertVelCheck = STATE(MULTIROTOR) && (currentTimeMs > US2MS(lastDisarmTimeUs) + 1500) && fabsf(getEstimatedActualVelocity(Z)) > 100.0f;
+
+    if (isProbablyStillFlying() || mcDisarmVertVelCheck) {
+        emergRearmStabiliseTimeout = currentTimeMs + 5000;  // activate Angle mode for 5s after rearm to help stabilise craft
         return true;
     }
 
