@@ -23,15 +23,15 @@
 #define TARGET_BOARD_IDENTIFIER "BHER"
 #define USBD_PRODUCT_STRING     "BETAFPVF435"
 
-#define LED0_PIN                PB5
+#define LED0                PB5
 
 #define USE_BEEPER
-#define BEEPER_PIN              PB4
+#define BEEPER              PB4
 #define BEEPER_INVERTED
 
 //#define ENABLE_DSHOT_DMAR       DSHOT_DMAR_AUTO
 //#define DSHOT_BITBANG_DEFAULT   DSHOT_BITBANG_AUTO
-#define ENABLE_DSHOT
+//#define ENABLE_DSHOT
 
 // *************** Gyro & ACC **********************
 #define USE_SPI
@@ -110,13 +110,30 @@
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
 
+#if 0
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
+#endif
+
+#if 0
+// I2C
+#define USE_I2C
+#define USE_I2C_DEVICE_2
+#define I2C2_SCL                PB10        // SCL pad
+#define I2C2_SDA                PB11        // SDA pad
+#define USE_I2C_PULLUP
+#endif
+
+#define USE_BARO
+#define BARO_I2C_BUS            BUS_I2C2
+#define USE_BARO_BMP280
+#define USE_BARO_DPS310
 
 // *************** UART *****************************
 #define USE_VCP
 #define USE_USB_DETECT
+//#define USB_DETECT_PIN          PC5
 
 
 #define USE_UART1
@@ -126,8 +143,9 @@
 #define USE_UART3
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
-//#define USE_UART_INVERTER
-//#define INVERTER_PIN_UART3_RX      PC9
+#define USE_UART_INVERTER
+#define INVERTER_PIN_UART3_RX   PC9
+#define INVERTER_PIN_USART3_RX   PC9
 
 #define USE_UART4
 #define UART4_RX_PIN            PA1
@@ -150,14 +168,18 @@
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
-#define ADC1_DMA_OPT            11
+#define ADC1_DMA_STREAM             DMA2_CHANNEL5
+#define ADC_CHANNEL1_PIN        PC2
+#define ADC_CHANNEL2_PIN        PC1
+#define ADC_CHANNEL3_PIN        PC0
+#define VBAT_ADC_CHANNEL            ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+#define RSSI_ADC_CHANNEL        ADC_CHN_3
 
-#define VBAT_ADC_PIN            PC2
-#define CURRENT_METER_ADC_PIN   PC1
+#define USE_LED_STRIP
+#define WS2811_PIN              PB6
 
-#define USE_ESCSERIAL
-
-#define DEFAULT_FEATURES                (FEATURE_OSD | FEATURE_LED_STRIP)
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP )
 #define DEFAULT_VOLTAGE_METER_SOURCE    VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE    CURRENT_METER_ADC
 
@@ -170,5 +192,10 @@
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         BIT(2)
 
-#define MAX_PWM_OUTPUT_PORTS    28
-#define USED_TIMERS             ( TIM_N(1) | TIM_N(2) | TIM_N(3) | TIM_N(4) | TIM_N(5) | TIM_N(6) | TIM_N(7) | TIM_N(8) )
+
+#define MAX_PWM_OUTPUT_PORTS    8
+
+//#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+//#define USE_DSHOT
+//#define USE_ESC_SENSOR
+//#define USE_ESCSERIAL
