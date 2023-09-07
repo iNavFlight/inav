@@ -189,19 +189,19 @@ It is also possible to set it as 4 state switch by adding FW(profile1) with tran
 
 ### Automated Transition
 This feature is mainly for RTH in a failsafe event. When set properly, model will use the FW mode to fly home efficiently, And land in the MC mode for easier landing.
-Set `mixer_switch_on_rth` to `ON` in mixer_profile for MC mode. Set `mixer_switch_trans_timer` in mixer_profile for MC mode for the time required to gain airspeed for your model before entering to FW mode, for example, 50 ds. And set `mixer_switch_on_land` to `ON` in mixer_profile for FW mode to let the model land in MC mode.
+Set `mixer_automated_switch` to `ON` in mixer_profile for MC mode. Set `mixer_switch_trans_timer` in mixer_profile for MC mode for the time required to gain airspeed for your model before entering to FW mode, for example, 50 ds. Finally set `mixer_automated_switch` to `ON` in mixer_profile for FW mode to let the model land in MC mode.
 ```
 mixer_profile 2
-set mixer_switch_on_rth = ON
+set mixer_automated_switch = ON
 set mixer_switch_trans_timer = 50
 mixer_profile 1
-set mixer_switch_on_land = ON
+set mixer_automated_switch = ON
 save
 ```
 
-`ON` for a mixer_profile\`s `mixer_switch_on_rth` or `mixer_switch_on_land` means to schedule a Automated Transition when RTH head home or RTH Land is requested by navigation controller. We need to schedule a Automated Transition in MC mode when it is heading home, So set `mixer_switch_on_rth` to `ON` for MC mixer_profile. We do not need a Automated Transition in FW mode when it is heading home, So set `mixer_switch_on_rth` to `OFF` for FW mixer_profile.
+`ON` for a mixer_profile\`s `mixer_automated_switch` means to schedule a Automated Transition when RTH head home(applies for MC mixer_profile) or RTH Land(applies for FW mixer_profile) is requested by navigation controller.
 
-When `mixer_switch_on_rth`:`OFF` and `mixer_switch_on_land`:`OFF` is set for all mixer_profiles(defaults). Model will not perform automated transition at all.
+When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Model will not perform automated transition at all.
 
 
 ## Happy flying
