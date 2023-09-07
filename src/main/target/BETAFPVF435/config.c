@@ -28,7 +28,9 @@
 
 void targetConfiguration(void)
 {
-    DEFINE_LED(ledStripConfigMutable()->ledConfigs, 0, 0, COLOR_GREEN, 0, LED_FUNCTION_ARM_STATE, LED_FLAG_OVERLAY(LED_OVERLAY_WARNING), 0);
-    DEFINE_LED(ledStripConfigMutable()->ledConfigs+1, 0, 1, COLOR_GREEN, 0, LED_FUNCTION_ARM_STATE, LED_FLAG_OVERLAY(LED_OVERLAY_WARNING), 0);
+    ledStripConfig_t *config = ledStripConfigMutable();
+    ledConfig_t *lc = config->ledConfigs;
+    DEFINE_LED(lc, 0, 0, COLOR_RED, 0, LED_FUNCTION_COLOR, LED_FLAG_OVERLAY(LED_OVERLAY_STROBE), 0);
+    DEFINE_LED(lc+1, 0, 1, COLOR_GREEN, 0, LED_FUNCTION_COLOR, LED_FLAG_OVERLAY(LED_OVERLAY_STROBE), 0);
 }
 
