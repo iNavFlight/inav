@@ -831,13 +831,14 @@ static const char * osdArmingDisabledReasonMessage(void)
             // See handling of FAILSAFE_RX_LOSS_MONITORING in failsafe.c
             if (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) {
                 if (failsafeIsReceivingRxData()) {
-                    // If we're not using sticks, it means the ARM switch
-                    // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
-                    // yet
-                    return OSD_MESSAGE_STR(OSD_MSG_TURN_ARM_SW_OFF);
+                    // reminder to disarm to exit FAILSAFE_RX_LOSS_MONITORING once timeout period ends
+                    if (IS_RC_MODE_ACTIVE(BOXARM)) {
+                        return OSD_MESSAGE_STR(OSD_MSG_TURN_ARM_SW_OFF);
+                    }
+                } else {
+                    // Not receiving RX data
+                    return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
                 }
-                // Not receiving RX data
-                return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
             }
             return OSD_MESSAGE_STR(OSD_MSG_DISABLED_BY_FS);
         case ARMING_DISABLED_NOT_LEVEL:

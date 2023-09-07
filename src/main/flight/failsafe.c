@@ -146,6 +146,10 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
  */
 void failsafeReset(void)
 {
+    if (failsafeState.active) {  // can't reset if still active
+        return;
+    }
+
     failsafeState.rxDataFailurePeriod = PERIOD_RXDATA_FAILURE + failsafeConfig()->failsafe_delay * MILLIS_PER_TENTH_SECOND;
     failsafeState.rxDataRecoveryPeriod = PERIOD_RXDATA_RECOVERY + failsafeConfig()->failsafe_recovery_delay * MILLIS_PER_TENTH_SECOND;
     failsafeState.validRxDataReceivedAt = 0;
@@ -157,6 +161,7 @@ void failsafeReset(void)
     failsafeState.phase = FAILSAFE_IDLE;
     failsafeState.rxLinkState = FAILSAFE_RXLINK_DOWN;
     failsafeState.activeProcedure = failsafeConfig()->failsafe_procedure;
+    failsafeState.controlling = false;
 
     failsafeState.lastGoodRcCommand[ROLL] = 0;
     failsafeState.lastGoodRcCommand[PITCH] = 0;
