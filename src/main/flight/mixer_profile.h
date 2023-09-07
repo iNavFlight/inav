@@ -17,8 +17,7 @@ typedef struct mixerConfig_s {
     uint8_t outputMode;
     bool motorstopOnLow;
     bool PIDProfileLinking;
-    bool switchOnRTH;
-    bool switchOnLand;
+    bool automated_switch;
     int16_t switchTransitionTimer;
 } mixerConfig_t;
 typedef struct mixerProfile_s {

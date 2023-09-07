@@ -51,8 +51,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
                          .motorstopOnLow = SETTING_MOTORSTOP_ON_LOW_DEFAULT,
                          .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT,
-                         .switchOnRTH = SETTING_MIXER_SWITCH_ON_RTH_DEFAULT,
-                         .switchOnLand = SETTING_MIXER_SWITCH_ON_LAND_DEFAULT,
+                         .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
                      });
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++)
@@ -93,7 +92,7 @@ void mixerConfigInit(void)
         setConfigProfile(getConfigMixerProfile());
         pidInit();
         pidInitFilters();
-        // pidResetErrorAccumulators();
+        pidResetErrorAccumulators(); //should be safer to reset error accumulators
         schedulePidGainsUpdate();
         navigationUsePIDs(); // set navigation pid gains
     }
@@ -118,16 +117,15 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
         return false;
     }
 
-    if ((required_action == MIXERAT_REQUEST_RTH) && (currentMixerConfig.switchOnRTH) && STATE(MULTIROTOR))
-    {
-        //check next mixer_profile setting is valid, need to be false
-        return mixerConfigByIndex(nextProfileIndex)->switchOnRTH? false:true; 
-
-    }
-    else if ((required_action == MIXERAT_REQUEST_LAND) && (currentMixerConfig.switchOnLand) && STATE(AIRPLANE))
-    {
-        //check next mixer_profile setting is valid, need to be false
-        return mixerConfigByIndex(nextProfileIndex)->switchOnLand? false:true; 
+    if(currentMixerConfig.automated_switch){
+        if ((required_action == MIXERAT_REQUEST_RTH) && STATE(MULTIROTOR))
+        {
+            return true;
+        }
+        if ((required_action == MIXERAT_REQUEST_LAND) && STATE(AIRPLANE))
+        {
+            return true;
+        }
     }
     return false;
 }

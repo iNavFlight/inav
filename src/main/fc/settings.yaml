@@ -1179,18 +1179,13 @@ groups:
         default_value: OFF
         field: mixer_config.PIDProfileLinking
         type: bool
-      - name: mixer_switch_on_rth
-        description: "If set to on, This mixer_profile will try to switch to another mixer_profile when RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius, Only applies if this mixer_profile is a MULTIROTOR or TRICOPTER platform_type."
+      - name: mixer_automated_switch
+        description: "If set to on, This mixer_profile will try to switch to another mixer_profile when 1.RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius on mixer_profile is a MULTIROTOR or TRICOPTER platform_type. 2. RTH landing is requested on this mixer_profile is a AIRPLANE platform_type"
         default_value: OFF
-        field: mixer_config.switchOnRTH
-        type: bool
-      - name: mixer_switch_on_land
-        description: "If set to on, This mixer_profile will try to switch to another mixer_profile when RTH landing is requested, Only applies if this mixer_profile is a AIRPLANE platform_type."
-        default_value: OFF
-        field: mixer_config.switchOnLand
+        field: mixer_config.automated_switch
         type: bool
       - name: mixer_switch_trans_timer
-        description: "If switch another mixer_profile is scheduled by mixer_switch_on_rth or mixer_switch_on_land. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch."
+        description: "If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch."
         default_value: 0
         field: mixer_config.switchTransitionTimer
         min: 0
