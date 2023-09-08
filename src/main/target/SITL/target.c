@@ -242,13 +242,12 @@ void parseArguments(int argc, char *argv[])
                     fprintf(stderr, "[EEPROM] Invalid path, using eeprom file in program directory\n.");
                 }
                 break;
-            case 'h':
-                printCmdLineOptions();
-                exit(0);
-                break;
 	    case 'v':
 		printVersion();
 		exit(0);
+	    default:
+                printCmdLineOptions();
+                exit(0);
         }
     }
 
