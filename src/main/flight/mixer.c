@@ -625,6 +625,17 @@ int16_t getThrottlePercent(bool useScaled)
     return thr;
 }
 
+uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop)
+{
+    const uint16_t throttleIdleValue = getThrottleIdleValue();
+
+    if (allowMotorStop && throttle < throttleIdleValue) {
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+        return throttle;
+    }
+    return constrain(throttle, throttleIdleValue, motorConfig()->maxthrottle);
+}
+
 motorStatus_e getMotorStatus(void)
 {
     if (STATE(NAV_MOTOR_STOP_OR_IDLE)) {

@@ -51,7 +51,6 @@
 
 #include "flight/pid.h"
 #include "flight/failsafe.h"
-#include "flight/mixer.h"
 
 #include "io/gps.h"
 #include "io/beeper.h"
@@ -110,17 +109,6 @@ bool areSticksDeflected(void)
 bool isRollPitchStickDeflected(uint8_t deadband)
 {
     return (ABS(rcCommand[ROLL]) > deadband) || (ABS(rcCommand[PITCH]) > deadband);
-}
-
-uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop)
-{
-    const uint16_t throttleIdleValue = getThrottleIdleValue();
-
-    if (allowMotorStop && throttle < throttleIdleValue) {
-        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
-        return throttle;
-    }
-    return constrain(throttle, throttleIdleValue, motorConfig()->maxthrottle);
 }
 
 throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e type)
