@@ -93,7 +93,9 @@ static int logicConditionCompute(
     uint8_t lcIndex
 ) {
     int temporaryValue;
+#if defined(USE_VTX_CONTROL)
     vtxDeviceCapability_t vtxDeviceCapability;
+#endif    
 
     switch (operation) {
 
@@ -284,7 +286,8 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_CONTROL) 
+#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
             if (
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
@@ -324,7 +327,7 @@ static int logicConditionCompute(
                 return false;
             }
             break;
-        
+#endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
             return true;

@@ -1,18 +1,22 @@
 # Betaflight 4.3 compatible MSP DisplayPort OSD (DJI O3 "Canvas Mode")
 
-INAV 6.0 includes a special mode for MSP DisplayPort that supports incomplete implementations of MSP DisplayPort that only support BetaFlight, like the DJI O3 Air Unit.
+INAV 6.0 includes a special mode for MSP DisplayPort that supports incomplete implementations of MSP DisplayPort that only support BetaFlight, like the DJI O3 Air Unit. INAV 6.1 expands this to include HD canvas sizes from BetaFlight 4.4.
 
 Different flight controllers have different OSD symbols and elements and require different fonts. BetaFlight's font is a single page and supports a maximum of 256 glyphs, INAV's font is currently 2 pages and supports up to 512 different glyphs.
 
 While there is some overlap between the glyphs in BetaFlight and INAV, it is not possible to perform a 1 to 1 mapping for all the them. In cases where there is no suitable glyph in the BetaFlight font, a question mark `?` will be displayed.
 
-This mode can be enabled by selecting BF43COMPAT as video format in the OSD tab of the configurator or by typing the following command on the CLI:
+This mode can be enabled by selecting BF43COMPAT or BFHDCOMPAT as video format in the OSD tab of the configurator or by typing the following command on the CLI:
 
 `set osd_video_system = BF43COMPAT`
 
+or
+
+`set osd_video_system = BFHDCOMPAT`
+
 ## Limitations
 
-* Canvas size is limited to PAL's canvas size.
+* Canvas size needs to be manually changed to HD on the Display menu in DJI's goggles (you may need a firmware update) and set as BFHDCOMPAT in the OSD tab of the configurator.
 * Unsupported Glyphs show up as `?`
 
 ## FAQ

@@ -84,7 +84,7 @@ typedef enum {
     DEVHW_ICM20689,
     DEVHW_ICM42605,
     DEVHW_BMI270,
-
+    DEVHW_LSM6D,
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
 
@@ -138,6 +138,7 @@ typedef enum {
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
+    DEVHW_DLVR,         // Pitot meter
     DEVHW_M25P16,       // SPI NOR flash
     DEVHW_W25N01G,      // SPI 128MB flash
     DEVHW_UG2864,       // I2C OLED display
@@ -286,6 +287,7 @@ bool i2cBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * dat
 bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
+bool i2cBusBusy(const busDevice_t *dev, bool *error);
 
 bool spiBusInitHost(const busDevice_t * dev);
 bool spiBusIsBusy(const busDevice_t * dev);

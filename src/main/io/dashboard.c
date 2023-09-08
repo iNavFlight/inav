@@ -400,7 +400,7 @@ static void showStatusPage(void)
 
 #ifdef USE_MAG
     if (sensors(SENSOR_MAG)) {
-        tfp_sprintf(lineBuffer, "HDG: %d", DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+        tfp_sprintf(lineBuffer, "HDG: %d", (int)DECIDEGREES_TO_DEGREES(attitude.values.yaw));
         padHalfLineBuffer();
         i2c_OLED_set_line(rowIndex);
         i2c_OLED_send_string(lineBuffer);

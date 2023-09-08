@@ -315,16 +315,16 @@ void osdGridDrawSidebars(displayPort_t *display)
     // Arrows
     if (osdConfig()->sidebar_scroll_arrows) {
         displayWriteChar(display, elemPosX - hudwidth, elemPosY - hudheight - 1,
-            left.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DECORATION_UP : SYM_BLANK);
+            left.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DIRECTION_UP : SYM_BLANK);
 
         displayWriteChar(display, elemPosX + hudwidth, elemPosY - hudheight - 1,
-            right.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DECORATION_UP : SYM_BLANK);
+            right.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DIRECTION_UP : SYM_BLANK);
 
         displayWriteChar(display, elemPosX - hudwidth, elemPosY + hudheight + 1,
-            left.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DECORATION_DOWN : SYM_BLANK);
+            left.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DIRECTION_DOWN : SYM_BLANK);
 
         displayWriteChar(display, elemPosX + hudwidth, elemPosY + hudheight + 1,
-            right.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DECORATION_DOWN : SYM_BLANK);
+            right.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DIRECTION_DOWN : SYM_BLANK);
     }
 
     // Draw AH sides

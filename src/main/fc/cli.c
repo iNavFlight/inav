@@ -89,6 +89,7 @@ bool cliMode = false;
 #include "io/beeper.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
@@ -120,7 +121,6 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
-#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
 
@@ -156,6 +156,13 @@ static const char * const featureNames[] = {
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
+static const char * outputModeNames[] = {
+    "AUTO",
+    "MOTORS",
+    "SERVOS",
+    NULL
+};
+
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
     "NAV_ACC",
@@ -177,7 +184,7 @@ static const char * const blackboxIncludeFlagNames[] = {
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -1690,7 +1697,7 @@ static void cliDelay(char* cmdLine) {
         cliPrintLine("CLI delay deactivated");
         return;
     }
-    
+
     ms = fastA2I(cmdLine);
     if (ms) {
         cliDelayMs = ms;
@@ -1699,7 +1706,7 @@ static void cliDelay(char* cmdLine) {
     } else {
         cliShowParseError();
     }
-    
+
 }
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
@@ -2288,7 +2295,7 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
@@ -2323,12 +2330,12 @@ static void cliFlashErase(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
     }
-    
+
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -2513,6 +2520,82 @@ static void cliOsdLayout(char *cmdline)
 }
 
 #endif
+
+static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, const timerOverride_t* defaultTimerOverride, int timer)
+{
+    const char *format = "timer_output_mode %d %s";
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        if (timer < 0 || timer == i) {
+            outputMode_e mode = to[i].outputMode;
+            bool equalsDefault = false;
+            if(defaultTimerOverride) {
+                outputMode_e defaultMode = defaultTimerOverride[i].outputMode;
+                equalsDefault = mode == defaultMode;
+                cliDefaultPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[defaultMode]);
+            }
+            cliDumpPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[mode]);
+        }
+    }
+}
+
+static void cliTimerOutputMode(char *cmdline)
+{
+    char * saveptr;
+
+    int timer = -1;
+    uint8_t mode;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    int ii;
+
+    for (ii = 0; tok != NULL; ii++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ii) {
+            case 0:
+                timer = fastA2I(tok);
+                if (timer < 0 || timer >= HARDWARE_TIMER_DEFINITION_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                if(!sl_strcasecmp("AUTO", tok)) {
+                    mode =  OUTPUT_MODE_AUTO;
+                } else if(!sl_strcasecmp("MOTORS", tok)) {
+                    mode = OUTPUT_MODE_MOTORS;
+                } else if(!sl_strcasecmp("SERVOS", tok)) {
+                    mode = OUTPUT_MODE_SERVOS;
+                } else {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+           default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (ii) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            // No args, or just timer. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        case 2:
+            timerOverridesMutable(timer)->outputMode = mode;
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
+    }
+
+}
 
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
 {
@@ -3099,7 +3182,9 @@ static void cliSave(char *cmdline)
 
     cliPrint("Saving");
     //copyCurrentProfileToProfileSlot(getConfigProfile();
+    suspendRxSignal();
     writeEEPROM();
+    resumeRxSignal();
     cliReboot();
 }
 
@@ -3109,6 +3194,9 @@ static void cliDefaults(char *cmdline)
 
     cliPrint("Resetting to defaults");
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_CLI_BATCH
     commandBatchError = false;
@@ -3194,8 +3282,10 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
+                    // Convert strings to uppercase. Lower case is not supported by the OSD.
+                    sl_toupperptr(eqptr);
                     // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
                         settingSetString(val, eqptr + 1, strlen(eqptr)-2);
                     } else {
                         settingSetString(val, eqptr, strlen(eqptr));
@@ -3306,7 +3396,17 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-
+#if !defined(SITL_BUILD)
+#if defined(AT32F43x)
+    cliPrintLine("AT32 system clocks:");
+    crm_clocks_freq_type clocks;
+    crm_clocks_freq_get(&clocks); 
+    
+    cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
+    cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
+    cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
+    cliPrintLinef("  ABP2   = %d MHz", clocks.apb2_freq / 1000000);
+#else
     cliPrintLine("STM32 system clocks:");
 #if defined(USE_HAL_DRIVER)
     cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -3321,6 +3421,8 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
+#endif // for if at32
+#endif // for SITL
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
@@ -3349,18 +3451,19 @@ static void cliStatus(char *cmdline)
 #endif
 #ifdef USE_I2C
     const uint16_t i2cErrorCounter = i2cGetErrorCounter();
-#else
+#elif !defined(SITL_BUILD)
     const uint16_t i2cErrorCounter = 0;
 #endif
 
 #ifdef STACK_CHECK
     cliPrintf("Stack used: %d, ", stackUsedSize());
 #endif
+#if !defined(SITL_BUILD)
     cliPrintLinef("Stack size: %d, Stack address: 0x%x, Heap available: %d", stackTotalSize(), stackHighMem(), memGetAvailableBytes());
 
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
-
-#ifdef USE_ADC
+#endif
+#if defined(USE_ADC) && !defined(SITL_BUILD)
     static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
     cliPrintLine("ADC channel usage:");
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -3414,8 +3517,12 @@ static void cliStatus(char *cmdline)
     cliPrint("OSD: ");
 #if defined(USE_OSD)
     displayPort_t *osdDisplayPort = osdGetDisplayPort();
-    cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
-#else 
+    if (osdDisplayPort != NULL) {
+        cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
+    } else {
+        cliPrint("not enabled");
+    }
+#else
     cliPrint("not used");
 #endif
     cliPrintLinefeed();
@@ -3444,6 +3551,23 @@ static void cliStatus(char *cmdline)
 
     cliPrintLinefeed();
 #endif
+
+    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+        cliPrint("GPS: ");
+        cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
+        cliPrintLinefeed();
+        //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
+        cliPrintLinef("  GNSS Capabilities:");
+        cliPrintLine("    GNSS Provider active/default");
+        cliPrintLine("    GPS 1/1");
+        if(gpsUbloxHasGalileo())
+            cliPrintLinef("    Galileo %d/%d", gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
+        if(gpsUbloxHasBeidou())
+            cliPrintLinef("    BeiDou %d/%d", gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
+        if(gpsUbloxHasGlonass())
+            cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
+        cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
+    }
 
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
@@ -3515,7 +3639,7 @@ static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
     cliPrintLinef("IO:\r\n----------------------");
-    for (unsigned i = 0; i < DEFIO_IO_USED_COUNT; i++) {
+    for (int i = 0; i < DEFIO_IO_USED_COUNT; i++) {
         const char* owner;
         owner = ownerNames[ioRecs[i].owner];
 
@@ -3610,6 +3734,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
+
+        cliPrintHashLine("Timer overrides");
+        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, timerOverrides(0), -1);
 
         cliPrintHashLine("Mixer: motor mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
@@ -3927,6 +4054,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)

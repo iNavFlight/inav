@@ -12,10 +12,10 @@ Schematic : https://pixhawk.org/_media/modules/pixracer-r14.pdf
 
 ## How to Flash
 PixRacer comes with NuttX Bootloader installed.
-To flash inav follow the steps below
+To flash INAV follow the steps below
 * Short 3.3 V pad and GND pad located at Top(near Motor Pins)
 * Plug in via USB
-* Either use ziadag to get the correct the drivers for inav based firmware flashing or use Dfuse to flash the correct firmware.
+* Either use ziadag to get the correct the drivers for INAV based firmware flashing or use Dfuse to flash the correct firmware.
 If you want to revert back then PixRacer factory Loaded Bootloader Bin File for Dfuse : https://github.com/mkschreder/ardupilot/tree/master/mk/PX4/bootloader (download px4fmu4_bl.bin) or Build your own from :https://github.com/PX4/Bootloader
 Then follow this : https://pixhawk.org/dev/bootloader_update
 

@@ -71,7 +71,6 @@ static bool isRollAdjustmentValid = false;
 static bool isYawAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
-static int32_t navHeadingError;
 static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
 bool needToCalculateCircularLoiter;
@@ -117,13 +116,13 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     if (rcAdjustment) {
         // set velocity proportional to stick movement
         float rcClimbRate = -rcAdjustment * navConfig()->general.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
-        updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
+        updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
         return true;
     }
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingAltitude) {
-            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
         }
         return false;
     }
@@ -157,8 +156,13 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     const float pitchGainInv = 1.0f / 1.0f;
 
     // Here we use negative values for dive for better clarity
-    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+    float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
     const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
+
+    // Reduce max allowed climb pitch if performing loiter (stall prevention)
+    if (needToCalculateCircularLoiter) {
+        maxClimbDeciDeg = maxClimbDeciDeg * 0.67f;
+    }
 
     // PID controller to translate energy balance error [J] into pitch angle [decideg]
     float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv, 1.0f);
@@ -440,7 +444,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * Calculate NAV heading error
      * Units are centidegrees
      */
-    navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.cog);
+    int32_t navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.cog);
 
     // Forced turn direction
     // If heading error is close to 180 deg we initiate forced turn and only disable it when heading error goes below 90 deg
@@ -670,7 +674,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 #endif
 }
 
-bool isFixedWingAutoThrottleManuallyIncreased()
+bool isFixedWingAutoThrottleManuallyIncreased(void)
 {
     return isAutoThrottleManuallyIncreased;
 }
@@ -679,7 +683,9 @@ bool isFixedWingFlying(void)
 {
     float airspeed = 0.0f;
 #ifdef USE_PITOT
-    airspeed = getAirspeedEstimate();
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        airspeed = getAirspeedEstimate();
+    }
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
@@ -758,7 +764,8 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
-        updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+        // target min descent rate 10m above takeoff altitude
+        updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000.0f, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
@@ -841,11 +848,6 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
         }
     }
-}
-
-int32_t navigationGetHeadingError(void)
-{
-    return navHeadingError;
 }
 
 float navigationGetCrossTrackError(void)

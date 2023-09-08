@@ -98,8 +98,11 @@ void uartInverterInit(void)
 #endif
 
 }
-
+ #if defined(AT32F43x) 
+void uartInverterSet(usart_type *USARTx, uartInverterLine_e line, bool enable)
+#else
 void uartInverterSet(USART_TypeDef *USARTx, uartInverterLine_e line, bool enable)
+#endif
 {
     IO_t rx_pin = IO_NONE;
     IO_t tx_pin = IO_NONE;

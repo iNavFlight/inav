@@ -46,9 +46,7 @@
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
-#if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
-#endif
 
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
@@ -58,13 +56,9 @@
 #define USE_GPS_PROTO_MSP
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
-#define USE_TELEMETRY_FRSKY
 
-#if defined(STM_FAST_TARGET)
+// This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10
-#else
-#define SCHEDULER_DELAY_LIMIT           100
-#endif
 
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
@@ -98,6 +92,7 @@
 #define USE_PITOT
 #define USE_PITOT_MS4525
 #define USE_PITOT_MSP
+#define USE_PITOT_DLVR
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482
@@ -167,11 +162,13 @@
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
 #define USE_MULTI_MISSION
+#define USE_MULTI_FUNCTIONS  // defines functions only, warnings always defined
 
 //Enable VTX control
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
+#define USE_VTX_MSP
 
 #define USE_PROGRAMMING_FRAMEWORK
 #define USE_CLI_BATCH
@@ -183,6 +180,9 @@
 
 #define USE_SIMULATOR
 #define USE_PITOT_VIRTUAL
+#define USE_FAKE_BATT_SENSOR
+
+#define USE_CMS_FONT_PREVIEW
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)

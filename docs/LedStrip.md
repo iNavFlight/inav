@@ -237,6 +237,12 @@ The mapping between modes led placement and colors is currently fixed and cannot
 
 #### Indicator
 
+##### For fixed wing (INAV 6.1 onwards)
+
+This mode flashes LEDs that correspond to the roll stick position. Rolling left will flash any `indicator` LED on the left half of the grid. Rolling right will flash any `indicator` on the right side of the grid.
+
+##### For other platforms (all platforms pre INAV 6.1)
+
 This mode flashes LEDs that correspond to roll and pitch stick positions.  i.e.  they indicate the direction the craft is going to turn.
 
 | Mode | Direction | LED Color |

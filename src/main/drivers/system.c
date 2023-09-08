@@ -29,7 +29,7 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 
-#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)||defined(AT32F43x)
 // See "RM CoreSight Architecture Specification"
 // B2.3.10  "LSR and LAR, Software Lock Status Register and Software Lock Access Register"
 // "E1.2.11  LAR, Lock Access Register"
@@ -43,24 +43,33 @@ void cycleCounterInit(void)
 {
     extern uint32_t usTicks; // From drivers/time.h
 
-#if defined(USE_HAL_DRIVER)
-    // We assume that SystemCoreClock is already set to a correct value by init code
-    usTicks = SystemCoreClock / 1000000;
-#else
-    RCC_ClocksTypeDef clocks;
-    RCC_GetClocksFreq(&clocks);
-    usTicks = clocks.SYSCLK_Frequency / 1000000;
-#endif
-
+    #if defined(AT32F43x)
+        //crm_clocks_freq_type clocks;
+        //crm_clocks_freq_get(&clocks); 
+        //usTicks = clocks.sclk_freq / 1000000;
+        usTicks = SystemCoreClock / 1000000;
+    #else
+        #if defined(USE_HAL_DRIVER)
+            // We assume that SystemCoreClock is already set to a correct value by init code
+            usTicks = SystemCoreClock / 1000000;
+        #else
+            RCC_ClocksTypeDef clocks;
+            RCC_GetClocksFreq(&clocks);
+            usTicks = clocks.SYSCLK_Frequency / 1000000;
+        #endif
+     #endif
+     
     // Enable DWT for precision time measurement
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
-#if defined(STM32F7) || defined(STM32H7)
-    DWT->LAR = DWT_LAR_UNLOCK_VALUE;
-#elif defined(STM32F4)
-    volatile uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
-    *(DWTLAR) = DWT_LAR_UNLOCK_VALUE;
-#endif
+    #if defined(STM32F7) || defined(STM32H7)
+        DWT->LAR = DWT_LAR_UNLOCK_VALUE;
+    #elif defined(AT32F43x)
+      ITM->LAR = DWT_LAR_UNLOCK_VALUE;
+    #elif defined(STM32F4)
+        volatile uint32_t *DWTLAR = (uint32_t *)(DWT_BASE + 0x0FB0);
+        *(DWTLAR) = DWT_LAR_UNLOCK_VALUE;
+    #endif
 
     DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
@@ -115,6 +124,8 @@ void checkForBootLoaderRequest(void)
     volatile isrVector_t *bootloaderVector = (isrVector_t *)systemBootloaderAddress();
     __set_MSP(bootloaderVector->stackEnd);
     bootloaderVector->resetHandler();
+
+
     while (1);
 }
 
@@ -168,7 +179,7 @@ void failureMode(failureMode_e mode)
 #endif
 #endif //UNIT_TEST
 }
-
+// Tightly-Coupled Memory for instruction AT32 not enabled, can optimize preloading
 void initialiseMemorySections(void)
 {
 #ifdef USE_ITCM_RAM

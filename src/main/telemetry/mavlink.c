@@ -644,7 +644,7 @@ void mavlinkSendHUDAndHeartbeat(void)
 #endif
 
 #if defined(USE_PITOT)
-    if (sensors(SENSOR_PITOT)) {
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
         mavAirSpeed = getAirspeedEstimate() / 100.0f;
     }
 #endif
@@ -653,7 +653,7 @@ void mavlinkSendHUDAndHeartbeat(void)
     mavAltitude = getEstimatedActualPosition(Z) / 100.0f;
     mavClimbRate = getEstimatedActualVelocity(Z) / 100.0f;
 
-    int16_t thr = getThrottlePercent();
+    int16_t thr = getThrottlePercent(osdUsingScaledThrottle());
     mavlink_msg_vfr_hud_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // airspeed Current airspeed in m/s
         mavAirSpeed,

@@ -241,7 +241,7 @@ void onNewGPSData(void)
 
                 /* Use VELNED provided by GPS if available, calculate from coordinates otherwise */
                 float gpsScaleLonDown = constrainf(cos_approx((ABS(gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
+                if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
                     posEstimator.gps.vel.x = gpsSol.velNED[X];
                     posEstimator.gps.vel.y = gpsSol.velNED[Y];
                 }
@@ -322,6 +322,12 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
 
         if (baroDtUs <= MS2US(INAV_BARO_TIMEOUT_MS)) {
             posEstimator.baro.alt = pt1FilterApply3(&posEstimator.baro.avgFilter, posEstimator.baro.alt, US2S(baroDtUs));
+
+            // baro altitude rate
+            static float baroAltPrevious = 0;
+            posEstimator.baro.baroAltRate = (posEstimator.baro.alt - baroAltPrevious) / US2S(baroDtUs);
+            baroAltPrevious = posEstimator.baro.alt;
+            updateBaroAltitudeRate(posEstimator.baro.baroAltRate, true);
         }
     }
     else {
@@ -446,7 +452,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         /* If calibration is incomplete - report zero acceleration */
         if (gravityCalibrationComplete()) {
 #ifdef USE_SIMULATOR
-            if (ARMING_FLAG(SIMULATOR_MODE)) {
+            if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
                 posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
             }
 #endif
@@ -810,11 +816,12 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 
         /* Publish altitude update and set altitude validity */
         if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
+            const float gpsCfEstimatedAltitudeError = STATE(GPS_FIX) ? posEstimator.gps.pos.z - posEstimator.est.pos.z : 0;
             navigationEstimateStatus_e aglStatus = (posEstimator.est.aglQual == SURFACE_QUAL_LOW) ? EST_USABLE : EST_TRUSTED;
-            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.z, posEstimator.est.vel.z, posEstimator.est.aglAlt, posEstimator.est.aglVel, aglStatus);
+            updateActualAltitudeAndClimbRate(true, posEstimator.est.pos.z, posEstimator.est.vel.z, posEstimator.est.aglAlt, posEstimator.est.aglVel, aglStatus, gpsCfEstimatedAltitudeError);
         }
         else {
-            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE);
+            updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE, 0);
         }
 
         //Update Blackbox states

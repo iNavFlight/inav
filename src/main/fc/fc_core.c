@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "blackbox/blackbox.h"
 
 #include "build/debug.h"
@@ -56,6 +54,7 @@ FILE_COMPILE_FOR_SPEED
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
 #include "fc/rc_controls.h"
@@ -124,6 +123,21 @@ timeUs_t lastDisarmTimeUs = 0;
 static bool prearmWasReset = false; // Prearm must be reset (RC Mode not active) before arming is possible
 static timeMs_t prearmActivationTime = 0;
 
+static bool isAccRequired(void) {
+    return isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
+        isModeActivationConditionPresent(BOXNAVRTH) ||
+        isModeActivationConditionPresent(BOXNAVWP) ||
+        isModeActivationConditionPresent(BOXANGLE) ||
+        isModeActivationConditionPresent(BOXHORIZON) ||
+        isModeActivationConditionPresent(BOXNAVALTHOLD) ||
+        isModeActivationConditionPresent(BOXHEADINGHOLD) ||
+        isModeActivationConditionPresent(BOXNAVLAUNCH) ||
+        isModeActivationConditionPresent(BOXTURNASSIST) ||
+        isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
+        isModeActivationConditionPresent(BOXSOARING) ||
+        failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT;
+}
+
 bool areSensorsCalibrating(void)
 {
 #ifdef USE_BARO
@@ -144,11 +158,11 @@ bool areSensorsCalibrating(void)
     }
 #endif
 
-    if (!navIsCalibrationComplete()) {
+    if (!navIsCalibrationComplete() && isAccRequired()) {
         return true;
     }
 
-    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) {
+    if (!accIsCalibrationComplete() && sensors(SENSOR_ACC) && isAccRequired()) {
         return true;
     }
 
@@ -161,11 +175,22 @@ bool areSensorsCalibrating(void)
 
 int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
-    int16_t stickDeflection;
+    int16_t stickDeflection = 0;
 
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914
+    const int16_t value = rawData - PWM_RANGE_MIDDLE;
+    if (value < -500) {
+        stickDeflection = -500;
+    } else if (value > 500) {
+        stickDeflection = 500;
+    } else {
+        stickDeflection = value;
+    }
+#else
     stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
-    stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
+#endif
 
+    stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
     return rcLookup(stickDeflection, rate);
 }
 
@@ -255,21 +280,7 @@ static void updateArmingStatus(void)
             sensors(SENSOR_ACC) &&
             !STATE(ACCELEROMETER_CALIBRATED) &&
             // Require ACC calibration only if any of the setting might require it
-            (
-                isModeActivationConditionPresent(BOXNAVPOSHOLD) ||
-                isModeActivationConditionPresent(BOXNAVRTH) ||
-                isModeActivationConditionPresent(BOXNAVWP) ||
-                isModeActivationConditionPresent(BOXANGLE) ||
-                isModeActivationConditionPresent(BOXHORIZON) ||
-                isModeActivationConditionPresent(BOXNAVALTHOLD) ||
-                isModeActivationConditionPresent(BOXHEADINGHOLD) ||
-                isModeActivationConditionPresent(BOXNAVLAUNCH) ||
-                isModeActivationConditionPresent(BOXTURNASSIST) ||
-                isModeActivationConditionPresent(BOXNAVCOURSEHOLD) ||
-                isModeActivationConditionPresent(BOXSOARING) ||
-                failsafeConfig()->failsafe_procedure != FAILSAFE_PROCEDURE_DROP_IT
-
-            )
+            isAccRequired()
         ) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
@@ -365,7 +376,7 @@ static bool emergencyArmingCanOverrideArmingDisabled(void)
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
+    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
 static void processPilotAndFailSafeActions(float dT)
@@ -457,7 +468,7 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
-bool emergencyArmingUpdate(bool armingSwitchIsOn)
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
 {
     if (ARMING_FLAG(ARMED)) {
         return false;
@@ -486,10 +497,14 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
         toggle = true;
     }
 
+    if (forceArm) {
+        counter = EMERGENCY_ARMING_MIN_ARM_COUNT;
+    }
+
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
-#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_FRSKY | FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
+#define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)
 
 void releaseSharedTelemetryPorts(void) {
     serialPort_t *sharedPort = findSharedSerialPort(TELEMETRY_FUNCTION_MASK, FUNCTION_MSP);
@@ -508,9 +523,12 @@ void tryArm(void)
     }
 
 #ifdef USE_DSHOT
-    if (STATE(MULTIROTOR) && IS_RC_MODE_ACTIVE(BOXTURTLE) && !FLIGHT_MODE(TURTLE_MODE) &&
-        emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
-        ) {
+#ifdef USE_MULTI_FUNCTIONS
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE);
+#else
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
+#endif
+    if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         enableFlightMode(TURTLE_MODE);
@@ -827,6 +845,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -842,10 +861,18 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         processDelayedSave();
     }
 
+#if defined(SITL_BUILD)
+    if (lockMainPID()) {
+#endif
+
     gyroFilter();
 
     imuUpdateAccelerometer();
     imuUpdateAttitude(currentTimeUs);
+
+#if defined(SITL_BUILD)
+    }
+#endif
 
     processPilotAndFailSafeActions(dT);
 
@@ -901,8 +928,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     //Servos should be filtered or written only when mixer is using servos or special feaures are enabled
 
-#ifdef USE_SMULATOR
-	if (!ARMING_FLAG(SIMULATOR_MODE)) {
+#ifdef USE_SIMULATOR
+	if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
 	    if (isServoOutputEnabled()) {
 	        writeServos();
 	    }
@@ -965,12 +992,12 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 }
 
 // returns seconds
-float getFlightTime()
+float getFlightTime(void)
 {
     return US2S(flightTime);
 }
 
-float getArmTime()
+float getArmTime(void)
 {
     return US2S(armTime);
 }

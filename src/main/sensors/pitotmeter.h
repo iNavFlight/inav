@@ -31,6 +31,7 @@ typedef enum {
     PITOT_VIRTUAL = 4,
     PITOT_FAKE = 5,
     PITOT_MSP = 6,
+    PITOT_DLVR = 7,
 } pitotSensor_e;
 
 #define PITOT_MAX  PITOT_FAKE
@@ -55,6 +56,7 @@ typedef struct pito_s {
 
     float pressureZero;
     float pressure;
+    float temperature;
 } pitot_t;
 
 #ifdef USE_PITOT

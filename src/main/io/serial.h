@@ -33,7 +33,7 @@ typedef enum {
     FUNCTION_NONE                       = 0,
     FUNCTION_MSP                        = (1 << 0), // 1
     FUNCTION_GPS                        = (1 << 1), // 2
-    FUNCTION_TELEMETRY_FRSKY            = (1 << 2), // 4
+    FUNCTION_UNUSED_3                   = (1 << 2), // 4 //Was FUNCTION_TELEMETRY_FRSKY
     FUNCTION_TELEMETRY_HOTT             = (1 << 3), // 8
     FUNCTION_TELEMETRY_LTM              = (1 << 4), // 16
     FUNCTION_TELEMETRY_SMARTPORT        = (1 << 5), // 32
@@ -58,6 +58,8 @@ typedef enum {
     FUNCTION_UNUSED_2                   = (1 << 24), // 16777216
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
 } serialPortFunction_e;
+
+#define FUNCTION_VTX_MSP FUNCTION_MSP_OSD
 
 typedef enum {
     BAUD_AUTO = 0,

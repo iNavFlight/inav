@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "build/debug.h"
 
 #include "common/axis.h"
@@ -30,6 +28,7 @@ FILE_COMPILE_FOR_SPEED
 #include "common/maths.h"
 #include "common/utils.h"
 
+#include "config/config_reset.h"
 #include "config/feature.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -105,7 +104,16 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
+PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
+
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
+
+void pgResetFn_timerOverrides(timerOverride_t *instance)
+{
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        RESET_CONFIG(timerOverride_t, &instance[i], .outputMode = OUTPUT_MODE_AUTO);
+    }
+}
 
 int getThrottleIdleValue(void)
 {
@@ -340,6 +348,7 @@ static void applyTurtleModeToMotors(void) {
 
 void FAST_CODE writeMotors(void)
 {
+#if !defined(SITL_BUILD)
     for (int i = 0; i < motorCount; i++) {
         uint16_t motorValue;
 
@@ -422,6 +431,7 @@ void FAST_CODE writeMotors(void)
 
         pwmWriteMotor(i, motorValue);
     }
+#endif
 }
 
 void writeAllMotors(int16_t mc)
@@ -442,7 +452,10 @@ void stopMotors(void)
 
 void stopPwmAllMotors(void)
 {
+#if !defined(SITL_BUILD)
     pwmShutdownPulsesForAllMotors(motorCount);
+#endif
+
 }
 
 static int getReversibleMotorsThrottleDeadband(void)
@@ -458,7 +471,7 @@ static int getReversibleMotorsThrottleDeadband(void)
     return feature(FEATURE_MOTOR_STOP) ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
-void FAST_CODE mixTable()
+void FAST_CODE mixTable(void)
 {
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {
@@ -609,9 +622,16 @@ void FAST_CODE mixTable()
     }
 }
 
-int16_t getThrottlePercent(void)
+int16_t getThrottlePercent(bool useScaled)
 {
-    int16_t thr = (constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX ) - getThrottleIdleValue()) * 100 / (motorConfig()->maxthrottle - getThrottleIdleValue());
+    int16_t thr = constrain(rcCommand[THROTTLE], PWM_RANGE_MIN, PWM_RANGE_MAX);
+    const int idleThrottle = getThrottleIdleValue();
+    
+    if (useScaled) {
+       thr = (thr - idleThrottle) * 100 / (motorConfig()->maxthrottle - idleThrottle);
+    } else {
+        thr = (rxGetChannelValue(THROTTLE) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
+    }
     return thr;
 }
 
