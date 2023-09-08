@@ -28,6 +28,7 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
+#include "config/config_reset.h"
 #include "config/feature.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
@@ -103,7 +104,16 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 
 PG_REGISTER_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer, PG_MOTOR_MIXER, 0);
 
+PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
+
 #define CRASH_OVER_AFTER_CRASH_FLIP_STICK_MIN 0.15f
+
+void pgResetFn_timerOverrides(timerOverride_t *instance)
+{
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        RESET_CONFIG(timerOverride_t, &instance[i], .outputMode = OUTPUT_MODE_AUTO);
+    }
+}
 
 int getThrottleIdleValue(void)
 {
