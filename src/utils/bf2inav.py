@@ -239,10 +239,12 @@ def writeTargetH(folder, map):
         else:
             continue
 
-        if txpin:
-            file.write("#define UART%i_TX_PIN %s\n" % (i, txpin))
         if rxpin:
             file.write("#define UART%i_RX_PIN %s\n" % (i, rxpin))
+        if txpin:
+            file.write("#define UART%i_TX_PIN %s\n" % (i, txpin))
+        else:
+            file.write("#define UART%i_TX_PIN %s\n" % (i, rxpin))
 
     # soft serial
     for i in range(11, 19):
