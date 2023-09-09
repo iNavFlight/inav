@@ -199,6 +199,9 @@ tables:
   - name: nav_hc_althold_collective
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navHcAltHoldCollective_e
+  - name: hc_governor
+    values: ["OFF", "SIMPLE", "SET"]
+    enum: hcGovernorType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -4009,3 +4012,51 @@ groups:
           max: 20
           default_value: 10
           type: uint8_t
+        - name: hc_governor_type
+          description: "OFF = no governor in use | SIMPLE = hold RPM based on throttle | SET = fixed RPM per flight mode"
+          field: hc_governor_type
+          table: hc_governor
+          default_value: "OFF"
+        - name: hc_main_motor_number
+          description: "The number of the motor, that drives the main rotor. This is the motor taken care of by the governor. Usually motor No 0."
+          field: hc_main_motor_number
+          min: 0
+          max: 3
+          default_value: 0
+          type: uint8_t
+        - name: hc_governor_rpm_normal
+          field: hc_governor_rpm[0]
+          min: 500
+          max: 30000
+          default_value: 1200
+          type: uint16_t
+        - name: hc_governor_rpm_idleup_1
+          field: hc_governor_rpm[1]
+          min: 500
+          max: 30000
+          default_value: 1400
+          type: uint16_t
+        - name: hc_governor_rpm_idleup_2
+          field: hc_governor_rpm[2]
+          min: 500
+          max: 30000
+          default_value: 1600
+          type: uint16_t
+        - name: hc_gov_pid_p
+          field: hc_gov_pid_P
+          default_value: 40
+          min: 2
+          max: 255
+          type: float
+        - name: hc_gov_pid_i
+          field: hc_gov_pid_I
+          default_value: 20
+          min: 2
+          max: 255
+          type: float
+        - name: hc_gov_pid_d
+          field: hc_gov_pid_D
+          default_value: 4
+          min: 0
+          max: 255
+          type: float

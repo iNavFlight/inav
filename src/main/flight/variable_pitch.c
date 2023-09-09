@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-#if defined(USE_VARIABLE_PITCH)
-
 #include "drivers/time.h"
 #include "flight/variable_pitch.h"
 
@@ -32,8 +30,11 @@
 #include "fc/settings.h"
 #include "fc/runtime_config.h"
 
+#include "sensors/esc_sensor.h"
+
 #include "common/maths.h"
 
+#if defined(USE_VARIABLE_PITCH)
 
 // woga65: helicopter specific settings
 PG_REGISTER_WITH_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig, PG_HELICOPTER_CONFIG, 0);
@@ -44,11 +45,21 @@ PG_RESET_TEMPLATE(helicopterConfig_t, helicopterConfig,
     .nav_hc_hover_collective[2] = 1525,                 // idle-up 2
     .hc_althold_collective_type = HC_ALT_HOLD_STICK,    // ALTHOLD colective stick behaviour
     .hc_rotor_spoolup_time = 10,                        // time for the rotor(s) to spool up
+    .hc_governor_type = HC_GOVERNOR_OFF,                // type of governor to use
+    .hc_main_motor_number = 0,                          // the motor that the governor takes care of
+    .hc_governor_rpm[0] = 1200,                         // normal
+    .hc_governor_rpm[1] = 1400,                         // idle-up 1
+    .hc_governor_rpm[2] = 1600,                         // idle-up 2
+    .hc_gov_pid_P = 40.0f,                              // PID gains for the governor
+    .hc_gov_pid_I = 20.0f,
+    .hc_gov_pid_D = 4.0f,
 );
 
 // woga65: soft spool-up related variables
 bool shallSpoolUp = false;
 bool isSpoolingUp = false;
+bool hasSpooledUp = false;
+bool rpmSettled   = false;
 
 float spoolUpSteps = 0;
 float currentThrottle = 1000;
@@ -57,10 +68,22 @@ timeMs_t spoolUpEndTime = 0;
 timeMs_t spoolUpStartTime = 0;
 timeMs_t deltaTime = 0;
 
+static bool setGovernorMaxRpm(void);
+
 
 uint16_t getHoverCollectivePitch(void) {
     const uint8_t headspeed = FLIGHT_MODE(HC_IDLE_UP_2) ? 2 : FLIGHT_MODE(HC_IDLE_UP_1) ? 1 : 0;
     return helicopterConfig()->nav_hc_hover_collective[headspeed];
+}
+
+
+uint8_t getHelicopterFlightMode(void) {
+    return FLIGHT_MODE(HC_IDLE_UP_2) ? 2 : FLIGHT_MODE(HC_IDLE_UP_1) ? 1 : 0;
+}
+
+
+uint16_t getHelicopterDesiredHeadspeed(void) {
+    return helicopterConfig()->hc_governor_rpm[getHelicopterFlightMode()];
 }
 
 
@@ -71,12 +94,19 @@ uint8_t getSpoolupTime(void) {
 
 uint16_t spoolupRotors(uint16_t throttleSetpoint) {
 
-    // Nothing to do? Return throttle as is.
+    /* Spool-up has finished before or is not used or throttle has been cut? */
     if (!shallSpoolUp || (!isSpoolingUp && throttleSetpoint == 1000) || getSpoolupTime() == 0) {
+        hasSpooledUp = (getSpoolupTime() == 0) ? true : hasSpooledUp;
+
+        /* Is SET governor configured and has reached the desired RPM during spool-up? */
+        if (setGovernorMaxRpm()) {
+            return currentThrottle + 0.5f;
+        }
+        /* If not, return throttle as is. */
         return throttleSetpoint;
     }
 
-    // Setup starting conditions for spool-up.
+    /* Setup starting conditions for spool-up. */
     if (!isSpoolingUp) {
         deltaTime = 0;
         currentThrottle = 1000;
@@ -86,31 +116,31 @@ uint16_t spoolupRotors(uint16_t throttleSetpoint) {
         isSpoolingUp = true;
     }
 
-    // Spool-Up has been interrupted. Start over again.
+    /* Spool-Up has been interrupted. Start over again. */
     if (throttleSetpoint == 1000) {
         isSpoolingUp = false;
         return throttleSetpoint;
     }
 
-    // Spool-Up is finished because setpoint has been lowered. 
+    /* Spool-Up is finished because setpoint has been lowered. */ 
     if (throttleSetpoint <= currentThrottle) {
         shallSpoolUp = false;
         isSpoolingUp = false;
+        hasSpooledUp = true;
         currentThrottle = 1000;
         return throttleSetpoint;
     }
 
-    // Increase throttle every 200ms
+    /* Increase throttle every 200ms */
     if (millis() >= deltaTime) {
         currentThrottle += spoolUpSteps;
         deltaTime = millis() + 200;
     
-        // Is spool-up finished?
-        if (currentThrottle >= throttleSetpoint) {
+        /* Is spool-up finished? */
+        if (currentThrottle >= throttleSetpoint || setGovernorMaxRpm()) {
             shallSpoolUp = false;
             isSpoolingUp = false;
-            currentThrottle = 1000;
-            return throttleSetpoint;
+            hasSpooledUp = true;
         }
     }
 
@@ -121,6 +151,35 @@ uint16_t spoolupRotors(uint16_t throttleSetpoint) {
 void prepareSoftSpoolup(void) {
     currentThrottle = 1000;
     shallSpoolUp = true;
+    hasSpooledUp = false;
+    rpmSettled = false;
+}
+
+
+bool hasFullySpooledUp(void) {
+    if (!rpmSettled) {
+        rpmSettled = (millis() >= deltaTime) ? true : false;
+    }
+    return (rpmSettled) ? hasSpooledUp : false;
+}
+
+
+uint8_t getMainMotorNumber(void) {
+    return helicopterConfig()->hc_main_motor_number;
+}
+
+
+static bool setGovernorMaxRpm(void) {
+#ifdef USE_ESC_SENSOR
+    const escSensorData_t * escSensor = getEscTelemetry(getMainMotorNumber());
+    return (
+        helicopterConfig()->hc_governor_type == HC_GOVERNOR_SET &&
+        escSensor->dataAge <= ESC_DATA_MAX_AGE && 
+        escSensor->rpm >= getHelicopterDesiredHeadspeed()
+        );
+#else
+    return false;
+#endif
 }
 
 #endif

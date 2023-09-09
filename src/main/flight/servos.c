@@ -323,8 +323,8 @@ void servoMixer(float dT)
 #undef GET_RX_CHANNEL_INPUT
 
 #if defined(USE_VARIABLE_PITCH)
-    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
-        input[INPUT_RC_CH7] = rcCommand[COLLECTIVE] - PWM_RANGE_MIDDLE;     // woga65:
+    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {               // woga65:
+        input[INPUT_RC_CH7] = rcCommand[COLLECTIVE] - PWM_RANGE_MIDDLE;     // Derives from rcCommand, interval [1000:2000] and must be [-500:+500] here
     }
 #endif
 
