@@ -1297,8 +1297,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
 #else
         sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[0]);
-        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[1]);
-        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[2]);
+        //sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[1]);
+        //sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[2]);
 #endif
         break;
 

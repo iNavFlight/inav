@@ -92,7 +92,8 @@
 #include "flight/power_limits.h"
 
 #ifdef USE_VARIABLE_PITCH
-#  include "flight/variable_pitch.h"    //woga65:
+#include "flight/variable_pitch.h"    //woga65:
+#include "flight/governor.h"          //woga65:
 #endif
 
 #include "config/feature.h"
@@ -433,6 +434,9 @@ static void processPilotAndFailSafeActions(float dT)
             ensureSoftSpoolupOnGround();
             rcCommand[COLLECTIVE] = constrain(rxGetChannelValue(COLLECTIVE), PWM_RANGE_MIN, PWM_RANGE_MAX);
             rcCommand[THROTTLE]   = spoolupRotors(constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX));
+#ifdef USE_ESC_SENSOR            
+            rcCommand[THROTTLE]   = governorApply(rcCommand[THROTTLE]);
+#endif        
         } else {
             rcCommand[THROTTLE] = throttleStickMixedValue();
         }

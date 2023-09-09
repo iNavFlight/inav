@@ -341,6 +341,8 @@ main_sources(COMMON_SRC
     flight/dynamic_lpf.h
     flight/variable_pitch.c
     flight/variable_pitch.h
+    flight/governor.c
+    flight/governor.h
 
     io/beeper.c
     io/beeper.h

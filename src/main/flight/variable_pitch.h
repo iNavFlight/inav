@@ -33,20 +33,32 @@ typedef enum {
     HC_ALT_HOLD_HOVER,
 } navHcAltHoldCollective_e;
 
-#if defined(USE_VARIABLE_PITCH)
+typedef enum {
+    HC_GOVERNOR_OFF,
+    HC_GOVERNOR_SIMPLE,
+    HC_GOVERNOR_SET,
+} hcGovernorType_e;
 
 typedef struct helicopterConfig_s {              // woga65: helicopter specific settings
     uint16_t nav_hc_hover_collective[3];         // On helicopters the amount of collective-pitch needed to hover at a certain head speed
     uint8_t hc_althold_collective_type;
     uint8_t hc_rotor_spoolup_time;
+    uint8_t hc_governor_type;
+    uint8_t hc_main_motor_number;
+    uint16_t hc_governor_rpm[3];
+    float hc_gov_pid_P;
+    float hc_gov_pid_I;
+    float hc_gov_pid_D;
 } helicopterConfig_t;
 
 PG_DECLARE(helicopterConfig_t, helicopterConfig);   // woga65:
 
 uint16_t getHoverCollectivePitch(void);
+uint8_t getHelicopterFlightMode(void);
+uint8_t getMainMotorNumber(void);
+uint16_t getHelicopterDesiredHeadspeed(void);
 
 uint8_t  getSpoolupTime(void);
 uint16_t spoolupRotors(uint16_t throttleSetpoint);
 void prepareSoftSpoolup(void);
-
-#endif
+bool hasFullySpooledUp(void);

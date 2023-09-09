@@ -1622,6 +1622,86 @@ Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is
 
 ---
 
+### hc_gov_pid_d
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 0 | 255 |
+
+---
+
+### hc_gov_pid_i
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 2 | 255 |
+
+---
+
+### hc_gov_pid_p
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 2 | 255 |
+
+---
+
+### hc_governor_rpm_idleup_1
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1400 | 500 | 30000 |
+
+---
+
+### hc_governor_rpm_idleup_2
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1600 | 500 | 30000 |
+
+---
+
+### hc_governor_rpm_normal
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1200 | 500 | 30000 |
+
+---
+
+### hc_governor_type
+
+OFF = no governor in use | SIMPLE = hold RPM based on throttle | SET = fixed RPM per flight mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
+### hc_main_motor_number
+
+The number of the motor, that drives the main rotor. This is the motor taken care of by the governor. Usually motor No 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+
+---
+
 ### hc_rotor_spoolup_time
 
 The time in seconds for the rotor(s) to spool up (0 = soft spool-up disabled)
