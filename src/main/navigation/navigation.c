@@ -41,8 +41,8 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #ifdef USE_MULTI_MISSION
-#  include "fc/rc_adjustments.h"
-#  include "fc/cli.h"
+#include "fc/rc_adjustments.h"
+#include "fc/cli.h"
 #endif
 #include "fc/settings.h"
 
