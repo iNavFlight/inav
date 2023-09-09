@@ -2837,13 +2837,12 @@ void updateLandingStatus(timeMs_t currentTimeMs)
 
 bool isLandingDetected(void)
 {
-#if !defined(USE_VARIABLE_PITCH)
-    return STATE(AIRPLANE) ? isFixedWingLandingDetected() : isMulticopterLandingDetected();
-#else
-    return STATE(AIRPLANE)
-        ? isFixedWingLandingDetected()
-        : (STATE(HELICOPTER) ? isHelicopterLandingDetected() : isMulticopterLandingDetected()); //woga65:
+#if defined(USE_VARIABLE_PITCH)
+    if (STATE(HELICOPTER)) {
+        return isHelicopterLandingDetected();   //woga65:
+    }
 #endif
+    return STATE(AIRPLANE) ? isFixedWingLandingDetected() : isMulticopterLandingDetected();
 }
 
 void resetLandingDetector(void)
@@ -2854,13 +2853,12 @@ void resetLandingDetector(void)
 
 bool isFlightDetected(void)
 {
-#if !defined(USE_VARIABLE_PITCH)
-    return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
-#else
-    return STATE(AIRPLANE)
-        ? isFixedWingFlying()
-        : (STATE(HELICOPTER) ? isHelicopterFlying() : isMulticopterFlying());   //woga65:
-#endif    
+#if defined(USE_VARIABLE_PITCH)
+    if (STATE(HELICOPTER)) {
+        return isHelicopterFlying();   //woga65:
+    }
+#endif
+    return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();   
 }
 
 /*-----------------------------------------------------------
