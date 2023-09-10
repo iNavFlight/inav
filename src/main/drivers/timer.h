@@ -128,8 +128,8 @@ typedef enum {
 
 #define TIM_USE_OUTPUT_AUTO (TIM_USE_MOTOR | TIM_USE_SERVO)
 
-#define TIM_IS_MOTOR(flags) ((flags) & (TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR))
-#define TIM_IS_SERVO(flags) ((flags) & (TIM_USE_MC_SERVO | TIM_USE_FW_SERVO))
+#define TIM_IS_MOTOR(flags) ((flags) & TIM_USE_MOTOR)
+#define TIM_IS_SERVO(flags) ((flags) & TIM_USE_SERVO)
 
 #define TIM_IS_MOTOR_ONLY(flags) (TIM_IS_MOTOR(flags) && !TIM_IS_SERVO(flags))
 #define TIM_IS_SERVO_ONLY(flags) (!TIM_IS_MOTOR(flags) && TIM_IS_SERVO(flags))
