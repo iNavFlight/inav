@@ -19,6 +19,8 @@
 
 #include "config/parameter_group.h"
 
+#include "drivers/timer.h"
+
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_SUPPORTED_MOTORS TARGET_MOTOR_COUNT
 #else
@@ -61,6 +63,13 @@ typedef struct motorMixer_s {
     float pitch;
     float yaw;
 } motorMixer_t;
+
+
+typedef struct timerOverride_s {
+    uint8_t outputMode;
+} timerOverride_t;
+
+PG_DECLARE_ARRAY(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides);
 
 typedef struct reversibleMotorsConfig_s {
     uint16_t deadband_low;                // min 3d value

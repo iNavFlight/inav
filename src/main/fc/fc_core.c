@@ -54,6 +54,7 @@
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
 #include "fc/rc_controls.h"
@@ -177,7 +178,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
-#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914   
+#if defined(SITL_BUILD) // Workaround due to strange bug in GCC > 10.2 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108914
     const int16_t value = rawData - PWM_RANGE_MIDDLE;
     if (value < -500) {
         stickDeflection = -500;
@@ -187,9 +188,9 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
         stickDeflection = value;
     }
 #else
-    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);   
+    stickDeflection = constrain(rawData - PWM_RANGE_MIDDLE, -500, 500);
 #endif
-    
+
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
     return rcLookup(stickDeflection, rate);
 }
@@ -376,7 +377,7 @@ static bool emergencyArmingCanOverrideArmingDisabled(void)
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
+    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
 static void processPilotAndFailSafeActions(float dT)
@@ -468,7 +469,7 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
-bool emergencyArmingUpdate(bool armingSwitchIsOn)
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
 {
     if (ARMING_FLAG(ARMED)) {
         return false;
@@ -497,6 +498,10 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
         toggle = true;
     }
 
+    if (forceArm) {
+        counter = EMERGENCY_ARMING_MIN_ARM_COUNT;
+    }
+
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
@@ -519,9 +524,12 @@ void tryArm(void)
     }
 
 #ifdef USE_DSHOT
-    if (STATE(MULTIROTOR) && IS_RC_MODE_ACTIVE(BOXTURTLE) && !FLIGHT_MODE(TURTLE_MODE) &&
-        emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
-        ) {
+#ifdef USE_MULTI_FUNCTIONS
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE);
+#else
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
+#endif
+    if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         enableFlightMode(TURTLE_MODE);
@@ -838,7 +846,7 @@ static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompens
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
-  
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
