@@ -198,7 +198,7 @@ static void updateRcStickPositions(void)
     // woga65: On helicopter, use COLLECTIVE RC-channel value because it is assigned
     // to the throttle stick while THROTTLE is most likely assigned to a switch.
     // Keep '<< (THROTTLE * 2)' to not overly complicate things.
-    if (STATE(HELICOPTER)) {
+    if (STATE(HELICOPTER) && rxGetChannelValue(THROTTLE) <= PWM_RANGE_MIN) {
         tmp |= ((rxGetChannelValue(COLLECTIVE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
         tmp |= ((rxGetChannelValue(COLLECTIVE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);        
     } else {
