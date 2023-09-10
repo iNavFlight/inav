@@ -244,6 +244,20 @@ static void timerHardwareOverride(timerHardware_t * timer) {
     }
 }
 
+bool check_pwm_assigned_to_motor_or_servo(void)
+{  
+    // Check TIM_USE_FW_* and TIM_USE_MC_* is consistent, If so, return true, means the pwm mapping will remain same between FW and MC
+    bool pwm_assigned_to_motor_or_servo = true;
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        timerHardware_t *timHw = &timerHardware[idx];
+        if (timHw->usageFlags & (TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_SERVO)) {
+            pwm_assigned_to_motor_or_servo &= (timHw->usageFlags == TIM_USE_VTOL_SERVO) | (timHw->usageFlags == TIM_USE_VTOL_MOTOR);
+        }
+    }
+    return pwm_assigned_to_motor_or_servo;
+}
+
+
 bool pwmHasMotorOnTimer(timMotorServoHardware_t * timOutputs, HAL_Timer_t *tim)
 {
     for (int i = 0; i < timOutputs->maxTimMotorCount; ++i) {

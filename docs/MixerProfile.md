@@ -11,83 +11,18 @@ Please note that this is an emerging / experimental capability that will require
 ## Setup for VTOL
 
 - For mixer profile switching it is necessary to keep motor and servo PWM mapping consistent between Fixed-Wing (FW) and Multi-rotor (MR) profiles
-- Traditionally, FW and MR have had different enumerations to define the PWM mappings. For VTOL operation it is necessary to change the source code  `timerHardware` table to allow a consistent enumeration and thus mapping between MR and FW modes.
-- For this reason, a **VTOL specific FC target is required**. This means that the pilot must build a custom target. In future there may be official VTOL FC targets.
+- Traditionally, FW and MR have had different enumerations to define the PWM mappings. For VTOL operation it is necessary to set the `timer_output_mode` overrides to allow a consistent enumeration and thus mapping between MR and FW modes.
+- A VTOL specific FC target was required in the early stage of the development, but thanks to `timer_output_mode` overrides, It is not needed anymore.
 - In operation, it is necessary to set the `mixer_profile` and the `pid_profile` separately and to set a [RC mode](#rc-mode-settings) to switch between them.
 
-## FC target
-
-In order to keep motor and servo PWM mapping consistent and enable hot switching, the steps below are required.
-
-The following sections use a MATEKF405TE\_SD board (folder name `MATEKF405TE`) configured for VTOL as a example.
-
-The target name for VTOL build is `MATEKF405TE_SD_VTOL`, the standard target folder name is `MATEKF405TE`.
-
-### CMakeLists.text modifications
-
-#### Adding the VTOL target
-
-Add the VTOL target definition to `CMakeLists.txt`, i.e. the third line below.
-
-```c
-target_stm32f405xg(MATEKF405TE)
-target_stm32f405xg(MATEKF405TE_SD)
-target_stm32f405xg(MATEKF405TE_SD_VTOL) //new target added
-```
-### target.c modifications
-
-Two new enumerations are available to define the motors and servos used for VTOL.
-
-It is **important** to map all the PWM outputs to `TIM_USE_VTOL_MOTOR` or `TIM_USE_VTOL_SERVO` to ensure consistency between the MR mapping and FW mapping.
-
-For example, add the new section, encapsulated below by the `#ifdef MATEKF405TE_SD_VTOL` ... `else` section :
-
-```c
-timerHardware_t timerHardware[] = {
-#ifdef MATEKF405TE_SD_VTOL
-    // VTOL target specific mapping start from there
-    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_VTOL_MOTOR,   0, 0), // S1 for motor
-    DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_VTOL_MOTOR,   0, 0), // S2 for motor
-    DEF_TIM(TIM1,  CH3N, PB15, TIM_USE_VTOL_MOTOR,   0, 0), // S3 for motor
-    DEF_TIM(TIM1,  CH1,  PA8,  TIM_USE_VTOL_MOTOR,   0, 1), // S4 for motor
-
-    DEF_TIM(TIM2,  CH4,  PB11, TIM_USE_VTOL_SERVO,   0, 0), // S5 for servo
-    DEF_TIM(TIM2,  CH3,  PB10, TIM_USE_VTOL_SERVO,   0, 0), // S6 for servo
-    DEF_TIM(TIM2,  CH2,  PB3,  TIM_USE_VTOL_SERVO,   0, 0), // S7 for servo
-    DEF_TIM(TIM2,  CH1,  PA15, TIM_USE_VTOL_SERVO,   0, 0), // S8 for servo
-
-    DEF_TIM(TIM12, CH1,  PB14, TIM_USE_VTOL_SERVO,   0, 0), // S9  for servo
-    DEF_TIM(TIM13, CH1,  PA6,  TIM_USE_VTOL_SERVO,   0, 0), // S10 for servo
-    DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_VTOL_MOTOR,   0, 0), // S11 for motor
-	// VTOL target specific mapping ends here
-#else 
-    // Non VOTL target start from here
-	// .........omitted for brevity
-#endif
-    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_LED,    0, 0), // 2812LED  D(1,2,5)
-    DEF_TIM(TIM11, CH1,  PB9,  TIM_USE_BEEPER, 0, 0), // BEEPER PWM
-
-    DEF_TIM(TIM9,  CH2,  PA3,  TIM_USE_PPM,    0, 0), //RX2
-    DEF_TIM(TIM5,  CH3,  PA2,  TIM_USE_ANY,    0, 0), //TX2  softserial1_Tx
-};
-```
-
-Note that using the VTOL enumerations does not affect the normal INAV requirement on the use of discrete timers for motors and servos.
-
-### target.h modification
-
-In `target.h`, define `ENABLE_MIXER_PROFILE_MCFW_HOTSWAP` to enable `mixer_profile` hot switching once you have set the `timer.c` PWM mapping:
-
-```c
-#ifdef MATEKF405TE_SD_VTOL
-#define ENABLE_MIXER_PROFILE_MCFW_HOTSWAP //Enable hot swap
-#define MATEKF405TE_SD //Define the original target name keep its original configuration such as USBD_PRODUCT_STRING
-#endif
-```
-
-Once the target is built, it can be flashed to the FC.
-
 ## Configuration
+### Timer overrides
+![Alt text](Screenshots/timer_outputs.png)
+
+Set Output mode to `AUTO`. And set all servo/motor Timer outputs  to `MOTORS` or `SERVOS`. This will result in a consistent mapping between MR and FW modes.
+A Sanity check on timer overrides settings could potentially block Profile Switch for safety reasons.
+
+For SITL builds, is not necessary to set timer overrides.
 
 ### Profile Switch
 
@@ -95,7 +30,7 @@ Setup the FW mode and MR mode separately in two different mixer profiles:
 
 In this example, FW mode is `mixer_profile` 1 and MR mode is `mixer_profile` 2.
 
-Currently, the INAV Configurator does not support `mixer_profile`, so some of the settings have to be done in CLI.
+Currently, the INAV Configurator does not fully support `mixer_profile`, so some of the settings have to be done in CLI.
 
 Add `set mixer_pid_profile_linking = ON` in order to enable `pid_profile` auto handling. It will change the `pid profile` index according to the `mixer_profile` index on FC boot and allow `mixer_profile` hot switching (this is recommended usage).
 
@@ -209,6 +144,7 @@ When `mixer_automated_switch`:`OFF` is set for all mixer_profiles(defaults). Mod
 Remember that this is currently an emerging capability:
 
 * Test every thing on bench first.
+* Remove the props and try `MIXER PROFILE 2`, `MIXER TRANSITION` RC modes while arming.
 * Then try MR or FW mode separately see if there are any problems.
 * Try it somewhere you can recover your model in case of fail-safe. Fail-safe behavior is unknown at the current stage of development.
 * Use the INAV Discord for help and setup questions; use the Github Issues for reporting bugs and unexpected behaviors. For reporting on Github, a CLI `diff all`, a DVR and a Blackbox log of the incident will assist investigation.

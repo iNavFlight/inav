@@ -305,7 +305,6 @@ void init(void)
     // Initialize servo and motor mixers
     // This needs to be called early to set up platform type correctly and count required motors & servos
     mixerConfigInit();
-    checkMixerProfileHotSwitchAvalibility();
 
     // Some sanity checking
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
