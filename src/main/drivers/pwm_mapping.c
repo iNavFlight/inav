@@ -279,7 +279,6 @@ uint8_t pwmClaimTimer(HAL_Timer_t *tim, uint32_t usageFlags) {
 void pwmEnsureEnoughtMotors(uint8_t motorCount)
 {
     uint8_t motorOnlyOutputs = 0;
-    uint8_t mcMotorOnlyOutputs = 0;
 
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
@@ -290,49 +289,28 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
             continue;
         }
 
-        if (timHw->usageFlags & (TIM_USE_MC_MOTOR) && !(timHw->usageFlags & (TIM_USE_MC_SERVO))) {
-            mcMotorOnlyOutputs++;
-            mcMotorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
-        }
-        if (timHw->usageFlags & (TIM_USE_FW_MOTOR) && !(timHw->usageFlags & (TIM_USE_FW_SERVO))) {
+        if (TIM_IS_MOTOR_ONLY(timHw->usageFlags)) {
             motorOnlyOutputs++;
             motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
         }
     }
 
-    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR ||
-        mixerConfig()->platformType == PLATFORM_TRICOPTER) {
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        timerHardware_t *timHw = &timerHardware[idx];
 
-        for (int idx = 0; mcMotorOnlyOutputs < motorCount && idx < timerHardwareCount; idx++) {
-            timerHardware_t *timHw = &timerHardware[idx];
-
-            if (checkPwmTimerConflicts(timHw)) {
-                continue;
-            }
-
-            uint32_t mcFlags = timHw->usageFlags & (TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO);
-
-            if (mcFlags && mcFlags != TIM_USE_MC_MOTOR) {
-                timHw->usageFlags &= ~TIM_USE_MC_SERVO;
-                timHw->usageFlags |= TIM_USE_MC_MOTOR;
-                mcMotorOnlyOutputs++;
-                mcMotorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
-            }
+        if (checkPwmTimerConflicts(timHw)) {
+            continue;
         }
-    } else {
-        for (int idx = 0; motorOnlyOutputs < motorCount && idx < timerHardwareCount; idx++) {
-            timerHardware_t *timHw = &timerHardware[idx];
 
-            if (checkPwmTimerConflicts(timHw)) {
-                continue;
-            }
-
-            uint32_t fwFlags = timHw->usageFlags & (TIM_USE_FW_MOTOR | TIM_USE_FW_SERVO);
-            if (fwFlags && fwFlags != TIM_USE_FW_MOTOR) {
-                timHw->usageFlags &= ~TIM_USE_FW_SERVO;
-                timHw->usageFlags |= TIM_USE_FW_MOTOR;
+        if (TIM_IS_MOTOR(timHw->usageFlags) && !TIM_IS_MOTOR_ONLY(timHw->usageFlags)) {
+            if (motorOnlyOutputs < motorCount) {
+                timHw->usageFlags &= ~TIM_USE_SERVO;
+                timHw->usageFlags |= TIM_USE_MOTOR;
                 motorOnlyOutputs++;
                 motorOnlyOutputs += pwmClaimTimer(timHw->tim, timHw->usageFlags);
+            } else {
+                timHw->usageFlags &= ~TIM_USE_MOTOR;
+                pwmClaimTimer(timHw->tim, timHw->usageFlags);
             }
         }
     }
@@ -340,6 +318,7 @@ void pwmEnsureEnoughtMotors(uint8_t motorCount)
 
 void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerUsingServos)
 {
+    UNUSED(isMixerUsingServos);
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
@@ -351,7 +330,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
 
-        timerHardwareOverride(timHw);
+        //timerHardwareOverride(timHw);
 
         int type = MAP_TO_NONE;
 
@@ -361,6 +340,20 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             continue;
         }
 
+        // Make sure first motorCount motor outputs get assigned to motor
+        if (TIM_IS_MOTOR(timHw->usageFlags) && (motorIdx < motorCount)) {
+            timHw->usageFlags = timHw->usageFlags & ~TIM_USE_SERVO;
+            pwmClaimTimer(timHw->tim, timHw->usageFlags);
+            motorIdx += 1;
+        }
+
+        if (TIM_IS_SERVO(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim)) {
+            type = MAP_TO_SERVO_OUTPUT;
+        } else if (TIM_IS_MOTOR(timHw->usageFlags) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
+            type = MAP_TO_MOTOR_OUTPUT;
+        }
+
+#if 0
         // Determine if timer belongs to motor/servo
         if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || mixerConfig()->platformType == PLATFORM_TRICOPTER) {
             // Multicopter
@@ -393,6 +386,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
                 type = MAP_TO_MOTOR_OUTPUT;
             }
         }
+#endif
 
         switch(type) {
             case MAP_TO_MOTOR_OUTPUT:
