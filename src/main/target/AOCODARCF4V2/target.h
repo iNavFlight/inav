@@ -17,7 +17,6 @@
 
 #pragma once
 
-#define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER         "AOF4V2"
 #define USBD_PRODUCT_STRING             "AocodaRCF4V2"
