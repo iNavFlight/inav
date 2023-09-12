@@ -22,15 +22,15 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 1), // S1 D(2,2,7)
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 1), // S2 D(2,3,7)
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 1), // S3 D(2,4,7)
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 0), // S4 D(2,7,7)
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 0), // S5 D(1,7,5)
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   1, 0), // S6 D(1,2,5)
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 1), // S1 D(2,2,7)
+    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 1), // S2 D(2,3,7)
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 1), // S3 D(2,4,7)
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 0), // S4 D(2,7,7)
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 0), // S5 D(1,7,5)
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 0), // S6 D(1,2,5)
 
-    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   1, 0), // S7 D(1,0,2)
-    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   1, 0), // S8 D(1,3,2)
+    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 0), // S7 D(1,0,2) // used to be fw motor
+    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 0), // S8 D(1,3,2) // used to be fw motor
 
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_BEEPER,  0, 0), // BEEPER PWM
 

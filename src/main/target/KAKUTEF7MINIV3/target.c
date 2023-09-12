@@ -31,12 +31,12 @@
 #include "drivers/pwm_mapping.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0),      // S1
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0),      // S2
-    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0),      // S3
-    DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,  0, 0),      // S4
-    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,  0, 0),      // S5
-    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_MC_SERVO | TIM_USE_FW_SERVO,  0, 0),      // S6
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0),      // S1
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0),      // S2
+    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0),      // S3
+    DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0),      // S4
+    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0),      // S5
+    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_SERVO | TIM_USE_SERVO,  0, 0),      // S6
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED,                          0, 0),      // LED STRIP
     DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM,                          0, 0),      // RX2
 };

@@ -39,10 +39,10 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH4, PA3,  TIM_USE_PPM,           0, 0 ), // UART2_RX, joined with PE13
     // DEF_TIM(TIM1, CH3, PE13, TIM_USE_NONE,          0, 0 ), // RC1 / PPM, unusable
 
-    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR,         0, 0 ), // M1
-    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MC_MOTOR    | TIM_USE_FW_MOTOR,         0, 0 ), // M2
-    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_MC_MOTOR    | TIM_USE_FW_SERVO,         0, 2 ), // M3
-    DEF_TIM(TIM1, CH2, PE11, TIM_USE_MC_MOTOR    | TIM_USE_FW_SERVO,         0, 1 ), // M4
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MOTOR    | TIM_USE_SERVO,         0, 0 ), // M1
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MOTOR    | TIM_USE_SERVO,         0, 0 ), // M2
+    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_MOTOR    | TIM_USE_SERVO,         0, 2 ), // M3
+    DEF_TIM(TIM1, CH2, PE11, TIM_USE_MOTOR    | TIM_USE_SERVO,         0, 1 ), // M4
 
     DEF_TIM(TIM4, CH1, PD12, TIM_USE_LED,           0, 0 ), // LED
 };

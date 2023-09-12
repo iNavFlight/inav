@@ -39,13 +39,13 @@ BUSDEV_REGISTER_SPI_TAG(busdev_hmc5983_spi, DEVHW_HMC5883,      MPU9250_SPI_BUS,
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PPM,         0, 0 ),   // PPM shared uart6 pc7
 
-    DEF_TIM(TIM1, CH4, PE14,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S1_OUT
-    DEF_TIM(TIM1, CH3, PE13,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S2_OUT
-    DEF_TIM(TIM1, CH2, PE11,    TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S3_OUT
-    DEF_TIM(TIM1, CH1, PE9,     TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,         0, 0 ),   // S4_OUT
+    DEF_TIM(TIM1, CH4, PE14,    TIM_USE_MOTOR | TIM_USE_SERVO,         0, 0 ),   // S1_OUT
+    DEF_TIM(TIM1, CH3, PE13,    TIM_USE_MOTOR | TIM_USE_SERVO,         0, 0 ),   // S2_OUT
+    DEF_TIM(TIM1, CH2, PE11,    TIM_USE_MOTOR | TIM_USE_SERVO,         0, 0 ),   // S3_OUT
+    DEF_TIM(TIM1, CH1, PE9,     TIM_USE_MOTOR | TIM_USE_SERVO,         0, 0 ),   // S4_OUT
 
-    DEF_TIM(TIM4, CH2, PD13,    TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,         0, 0 ),   // S5_OUT
-    DEF_TIM(TIM4, CH3, PD14,    TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR,         0, 0 ),   // S6_OUT
+    DEF_TIM(TIM4, CH2, PD13,    TIM_USE_MOTOR | TIM_USE_SERVO,         0, 0 ),   // S5_OUT // used to be fw motor
+    DEF_TIM(TIM4, CH3, PD14,    TIM_USE_MOTOR | TIM_USE_SERVO,         0, 0 ),   // S6_OUT // used to be fw motor
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
