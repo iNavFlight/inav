@@ -330,8 +330,6 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
     for (int idx = 0; idx < timerHardwareCount; idx++) {
         timerHardware_t *timHw = &timerHardware[idx];
 
-        //timerHardwareOverride(timHw);
-
         int type = MAP_TO_NONE;
 
         // Check for known conflicts (i.e. UART, LEDSTRIP, Rangefinder and ADC)
