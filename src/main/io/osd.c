@@ -3873,6 +3873,133 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 	}
 }
 
+uint8_t drawLogos(bool singular, uint8_t row) {
+	uint8_t logoRow = row;
+	uint8_t logoColOffset = 0;
+	bool usePilotLogo = (osdConfig()->use_pilot_logo && osdDisplayIsHD());
+
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is in use, the pilot logo cannot be used, due to font issues.
+	if (isBfCompatibleVideoSystem(osdConfig()))
+		usePilotLogo = false;
+#endif
+
+	// Draw Logo(s)
+	if (usePilotLogo && !singular) {
+		logoColOffset = floor((osdDisplayPort->cols - (SYM_LOGO_WIDTH * 2)) / 3.0f);
+	} else {
+		logoColOffset = floor((osdDisplayPort->cols - SYM_LOGO_WIDTH) / 2.0f);
+	}
+
+	// Draw INAV logo
+	if ((singular && !usePilotLogo) || !singular) {
+		unsigned logo_c = SYM_LOGO_START;
+		uint8_t logo_x = logoColOffset;
+		for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
+			for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
+				displayWriteChar(osdDisplayPort, logo_x + lCol, logoRow, logo_c++);
+			}
+			logoRow++;
+		}
+	}
+
+	// Draw the pilot logo
+	if (usePilotLogo) {
+		unsigned logo_c = SYM_PILOT_LOGO_LRG_START;
+		uint8_t logo_x = 0;
+		logoRow = row;
+		if (singular) {
+			logo_x = logoColOffset;
+		} else {
+			logo_x = (logoColOffset * 2) + SYM_LOGO_WIDTH + ((osdDisplayPort->cols % 2 == 0) ? 0 : 1); // Add extra 1 px space between logos, if the OSD has an odd number of columns
+		}
+		
+		for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
+			for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
+				displayWriteChar(osdDisplayPort, logo_x + lCol, logoRow, logo_c++);
+			}
+			logoRow++;
+		}
+	}
+
+	return logoRow;
+}
+
+uint8_t drawStats(uint8_t row) {
+#ifdef USE_STATS
+	char string_buffer[30];
+	uint8_t statNameX = (osdDisplayPort->cols - 22) / 2;
+	uint8_t statValueX = statNameX + 21;
+
+	if (statsConfig()->stats_enabled) {
+		displayWrite(osdDisplayPort, statNameX, row, "ODOMETER:");
+		switch (osdConfig()->units) {
+			case OSD_UNIT_UK:
+				FALLTHROUGH;
+			case OSD_UNIT_IMPERIAL:
+				tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_MILE));
+				string_buffer[5] = SYM_MI;
+				break;
+			default:
+			case OSD_UNIT_GA:
+				tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_NAUTICALMILE));
+				string_buffer[5] = SYM_NM;
+				break;
+			case OSD_UNIT_METRIC_MPH:
+				FALLTHROUGH;
+			case OSD_UNIT_METRIC:
+				tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_KILOMETER));
+				string_buffer[5] = SYM_KM;
+				break;
+		}
+		string_buffer[6] = '\0';
+		displayWrite(osdDisplayPort, statValueX-5, row,  string_buffer);
+
+		displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL TIME:");
+		uint32_t tot_mins = statsConfig()->stats_total_time / 60;
+		tfp_sprintf(string_buffer, "%2d:%02dH:M", (int)(tot_mins / 60), (int)(tot_mins % 60));
+		displayWrite(osdDisplayPort, statValueX-7, row,  string_buffer);
+
+#ifdef USE_ADC
+		if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
+			displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL ENERGY:");
+			osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
+			displayWrite(osdDisplayPort, statValueX-4, row,  string_buffer);
+			displayWriteChar(osdDisplayPort, statValueX, row, SYM_WH);
+
+			displayWrite(osdDisplayPort, statNameX, ++row, "AVG EFFICIENCY:");
+			if (statsConfig()->stats_total_dist) {
+				uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
+				switch (osdConfig()->units) {
+					case OSD_UNIT_UK:
+						FALLTHROUGH;
+					case OSD_UNIT_IMPERIAL:
+						osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
+						string_buffer[3] = SYM_WH_MI;
+						break;
+					case OSD_UNIT_GA:
+						osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
+						string_buffer[3] = SYM_WH_NM;
+						break;
+					default:
+					case OSD_UNIT_METRIC_MPH:
+						FALLTHROUGH;
+					case OSD_UNIT_METRIC:
+						osdFormatCentiNumber(string_buffer, avg_efficiency / 10000 * METERS_PER_MILE, 0, 2, 0, 3);
+						string_buffer[3] = SYM_WH_KM;
+						break;
+				}
+			} else {
+				string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
+			}
+			string_buffer[4] = '\0';
+			displayWrite(osdDisplayPort, statValueX-3, row++,  string_buffer);
+		}
+#endif // USE_ADC
+	}
+#endif // USE_STATS
+	return row;
+}
+
 static void osdSetNextRefreshIn(uint32_t timeMs) {
 	resumeRefreshAt = micros() + timeMs * 1000;
 	refreshWaitForResumeCmdRelease = true;
@@ -3909,14 +4036,8 @@ static void osdCompleteAsyncInitialization(void)
 
 	if (fontHasMetadata && metadata.charCount > 256) {
 		hasExtendedFont = true;
-		unsigned logo_c = (osdConfig()->use_pilot_logo) ? SYM_PILOT_LOGO_LRG_START : SYM_LOGO_START;
-		unsigned logo_x = OSD_CENTER_LEN(SYM_LOGO_WIDTH);
-		for (unsigned ii = 0; ii < SYM_LOGO_HEIGHT; ii++) {
-			for (unsigned jj = 0; jj < SYM_LOGO_WIDTH; jj++) {
-				displayWriteChar(osdDisplayPort, logo_x + jj, y, logo_c++);
-			}
-			y++;
-		}
+	
+		y = drawLogos(true, y);
 		y++;
 	} else if (!fontHasMetadata) {
 		const char *m = "INVALID FONT";
@@ -3930,7 +4051,7 @@ static void osdCompleteAsyncInitialization(void)
 
 	char string_buffer[30];
 	tfp_sprintf(string_buffer, "INAV VERSION: %s", FC_VERSION_STRING);
-	uint8_t xPos = osdDisplayIsHD() ? 15 : 5;
+	uint8_t xPos = (osdDisplayPort->cols - 19) / 2; // Automatically centre, regardless of resolution. In the case of odd number screens, bias to the left.
 	displayWrite(osdDisplayPort, xPos, y++, string_buffer);
 #ifdef USE_CMS
 	displayWrite(osdDisplayPort, xPos+2, y++, CMS_STARTUP_HELP_TEXT1);
@@ -3939,80 +4060,12 @@ static void osdCompleteAsyncInitialization(void)
 #endif
 
 #ifdef USE_STATS
-	uint8_t statNameX = osdDisplayIsHD() ? 14 : 4;
-	uint8_t statValueX = osdDisplayIsHD() ? 34 : 24;
-
-	if (statsConfig()->stats_enabled) {
-		displayWrite(osdDisplayPort, statNameX, ++y, "ODOMETER:");
-		switch (osdConfig()->units) {
-			case OSD_UNIT_UK:
-				FALLTHROUGH;
-			case OSD_UNIT_IMPERIAL:
-				tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_MILE));
-				string_buffer[5] = SYM_MI;
-				break;
-			default:
-			case OSD_UNIT_GA:
-				tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_NAUTICALMILE));
-				string_buffer[5] = SYM_NM;
-				break;
-			case OSD_UNIT_METRIC_MPH:
-				FALLTHROUGH;
-			case OSD_UNIT_METRIC:
-				tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_KILOMETER));
-				string_buffer[5] = SYM_KM;
-				break;
-		}
-		string_buffer[6] = '\0';
-		displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
-
-		displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL TIME:");
-		uint32_t tot_mins = statsConfig()->stats_total_time / 60;
-		tfp_sprintf(string_buffer, "%2d:%02dH:M", (int)(tot_mins / 60), (int)(tot_mins % 60));
-		displayWrite(osdDisplayPort, statValueX-5, y,  string_buffer);
-
-#ifdef USE_ADC
-		if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
-			displayWrite(osdDisplayPort, statNameX, ++y, "TOTAL ENERGY:");
-			osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4);
-			displayWrite(osdDisplayPort, statValueX-4, y,  string_buffer);
-			displayWriteChar(osdDisplayPort, statValueX, y, SYM_WH);
-
-			displayWrite(osdDisplayPort, statNameX, ++y, "AVG EFFICIENCY:");
-			if (statsConfig()->stats_total_dist) {
-				uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
-				switch (osdConfig()->units) {
-					case OSD_UNIT_UK:
-						FALLTHROUGH;
-					case OSD_UNIT_IMPERIAL:
-						osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
-						string_buffer[3] = SYM_WH_MI;
-						break;
-					case OSD_UNIT_GA:
-						osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3);
-						string_buffer[3] = SYM_WH_NM;
-						break;
-					default:
-					case OSD_UNIT_METRIC_MPH:
-						FALLTHROUGH;
-					case OSD_UNIT_METRIC:
-						osdFormatCentiNumber(string_buffer, avg_efficiency / 10000 * METERS_PER_MILE, 0, 2, 0, 3);
-						string_buffer[3] = SYM_WH_KM;
-						break;
-				}
-			} else {
-				string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
-			}
-			string_buffer[4] = '\0';
-			displayWrite(osdDisplayPort, statValueX-3, y,  string_buffer);
-		}
-#endif // USE_ADC
-	}
+	y = drawStats(++y);
 #endif
 
 	displayCommitTransaction(osdDisplayPort);
 	displayResync(osdDisplayPort);
-	osdSetNextRefreshIn(10000);//SPLASH_SCREEN_DISPLAY_TIME); // TEMPORARY - PUT BACK ONCE TESTING IS FINISHED!
+	osdSetNextRefreshIn(SPLASH_SCREEN_DISPLAY_TIME);
 }
 
 void osdInit(displayPort_t *osdDisplayPortToUse)
@@ -4372,35 +4425,10 @@ static void osdShowHDArmScreen(void)
 	char *time;
 
 	uint8_t armScreenRow = 2; // Start at row 2
-
-	// Draw Logo(s)
-	uint8_t logoColOffset = floor((osdDisplayPort->cols - SYM_LOGO_WIDTH) / 2.0f);
-	// uint8_t logoColOffset = floor((osdDisplayPort->cols - ((using pilot logo) ? (SYM_LOGO_WIDTH * 2) : SYM_LOGO_WIDTH)) / 2.0f);
-
-	// Draw INAV logo
-	unsigned logo_c = SYM_LOGO_START;
-	uint8_t logo_x = logoColOffset;
-	uint8_t logoRow = armScreenRow;
-	for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
-		for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
-			displayWriteChar(osdDisplayPort, logo_x + lCol, logoRow, logo_c++);
-		}
-		logoRow++;
-	}
-
-	if (osdConfig()->use_pilot_logo) {
-		logo_c = SYM_PILOT_LOGO_LRG_START;
-		logo_x = (logoColOffset * 2) + ((osdDisplayPort->cols % 2 == 0) ? 0 : 1); // Add extra 1 px space between logos, if the OSD has an odd number of columns
-		logoRow = armScreenRow;
-		for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
-			for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
-				displayWriteChar(osdDisplayPort, logo_x + lCol, logoRow, logo_c++);
-			}
-			logoRow++;
-		}
-	}
 	
-	armScreenRow = logoRow + 2;
+	
+	armScreenRow = drawLogos(false, armScreenRow);
+	armScreenRow++;
 
 	strcpy(buf, "ARMED");
 	displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow, buf);
@@ -4467,7 +4495,11 @@ static void osdShowHDArmScreen(void)
 	}
 
 	tfp_sprintf(versionBuf, "INAV VERSION: %s", FC_VERSION_STRING);
-	displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(versionBuf)) / 2, armScreenRow, versionBuf);
+	displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(versionBuf)) / 2, armScreenRow++, versionBuf);
+
+#ifdef USE_STATS
+	armScreenRow = drawStats(++armScreenRow);
+#endif // USE_STATS
 }
 
 static void osdShowSDArmScreen(void)
@@ -4662,7 +4694,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 			uint32_t delay = osdConfig()->arm_screen_display_time;
 #if defined(USE_SAFE_HOME)
 			if (safehome_distance)
-				delay *= 3;
+				delay+= 3000;
 #endif
 			osdSetNextRefreshIn(delay);
 		} else {
