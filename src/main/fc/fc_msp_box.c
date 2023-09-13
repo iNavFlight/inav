@@ -99,6 +99,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },
     { .boxId = BOXBEEPERMUTE,       .boxName = "BEEPER MUTE",       .permanentId = 60 },
     { .boxId = BOXMULTIFUNCTION,    .boxName = "MULTI FUNCTION",    .permanentId = 61 },
+    { .boxId = BOXATTIHOLD,         .boxName = "ATTITUDE HOLD",     .permanentId = 62 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -275,6 +276,9 @@ void initActiveBoxIds(void)
         if (sensors(SENSOR_BARO)) {
             ADD_ACTIVE_BOX(BOXAUTOLEVEL);
         }
+        if (sensors(SENSOR_ACC)) {
+            ADD_ACTIVE_BOX(BOXATTIHOLD);
+        }
     }
 
     /*
@@ -419,6 +423,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #ifdef USE_MULTI_FUNCTIONS
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)),   BOXMULTIFUNCTION);
 #endif
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXATTIHOLD)),        BOXATTIHOLD);
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {
