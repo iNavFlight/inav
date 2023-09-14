@@ -804,7 +804,8 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 #endif
-
+    // Sound a beeper if the flight mode state has changed
+    updateFlightModeChangeBeeper();
 }
 
 // Function for loop trigger
