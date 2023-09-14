@@ -742,52 +742,52 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-             if (rollPitchStatus != CENTERED) {
-                 ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
-             }
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+            if (rollPitchStatus != CENTERED) {
+                ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
+            }
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
-         DISABLE_STATE(ANTI_WINDUP);
-         //This case applies only to MR when Airmode management is throttle threshold activated
-         if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
-             pidResetErrorAccumulators();
-         }
-     }
+        DISABLE_STATE(ANTI_WINDUP);
+        //This case applies only to MR when Airmode management is throttle threshold activated
+        if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
+            pidResetErrorAccumulators();
+        }
+    }
 //---------------------------------------------------------
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);

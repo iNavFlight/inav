@@ -1108,51 +1108,46 @@ void FAST_CODE pidController(float dT)
     }
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ATTI_MODE
+    const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
     static bool restartAttiMode = true;
     bool attiModeActive = false;
 
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || isFlightAxisAngleOverrideActive(axis)) {
-            const float horizonRateMagnitude = calcHorizonRateMagnitude();
-
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ATTIHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
+
+            if (FLIGHT_MODE(ATTIHOLD_MODE) && !isFlightAxisAngleOverrideActive(axis)) {
+                static int16_t attiHoldTarget[2];
+                attiModeActive = true;
+
+                if (restartAttiMode) {      // set target attitude to current attitude when initialised
+                    attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
+                    attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
+                    restartAttiMode = false;
+                }
+
+                uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
+                if (calculateRollPitchCenterStatus() == CENTERED) {
+                    angleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
+                } else {
+                    angleTarget = constrain(attitude.raw[axis] + angleTarget, -bankLimit, bankLimit);
+                    attiHoldTarget[axis] = attitude.raw[axis];
+                }
+            }
 
             // Apply the Level PID controller
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
         }
-        else if (FLIGHT_MODE(ATTIHOLD_MODE)) {
-            static int16_t attiHoldTarget[2];
-            attiModeActive = true;
-
-            // set target attitude to current attitude when initialised
-            if (restartAttiMode) {
-                attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
-                attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
-                restartAttiMode = false;
-            }
-
-            uint16_t attiAngleTarget;
-            uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
-
-            if (calculateRollPitchCenterStatus() == CENTERED) {
-                attiAngleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
-            } else {
-                attiAngleTarget = constrain(attitude.raw[axis] + (bankLimit * rcCommand[axis] / 500), -bankLimit, bankLimit);
-                attiHoldTarget[axis] = attitude.raw[axis];
-            }
-            pidLevel(attiAngleTarget, &pidState[axis], axis, 0, dT);
-        }
     }
-    // set restart flag if attihold_mode not active on previous loop
-    if (!restartAttiMode) {
+    if (!restartAttiMode) {     // set restart flag if attihold_mode not active on previous loop
         restartAttiMode = !attiModeActive;
     }
 
-    // apply Turn Assistance
+    // Apply Turn Assistance
     if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
         float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
         float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]));
@@ -1160,7 +1155,7 @@ void FAST_CODE pidController(float dT)
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
-    // apply FPV camera mix
+    // Apply FPV camera mix
     if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees) {
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
