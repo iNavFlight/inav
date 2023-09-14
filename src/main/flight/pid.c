@@ -1110,8 +1110,11 @@ void FAST_CODE pidController(float dT)
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ATTI_MODE
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
+
     static bool restartAttiMode = true;
-    bool attiModeActive = false;
+    if (!restartAttiMode) {
+        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE);  // set restart flag if attihold_mode not active
+    }
 
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ATTIHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
@@ -1120,7 +1123,6 @@ void FAST_CODE pidController(float dT)
 
             if (FLIGHT_MODE(ATTIHOLD_MODE) && !isFlightAxisAngleOverrideActive(axis)) {
                 static int16_t attiHoldTarget[2];
-                attiModeActive = true;
 
                 if (restartAttiMode) {      // set target attitude to current attitude when initialised
                     attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
@@ -1142,9 +1144,6 @@ void FAST_CODE pidController(float dT)
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
         }
-    }
-    if (!restartAttiMode) {     // set restart flag if attihold_mode not active on previous loop
-        restartAttiMode = !attiModeActive;
     }
 
     // Apply Turn Assistance

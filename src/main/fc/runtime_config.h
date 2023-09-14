@@ -162,6 +162,7 @@ typedef enum {
     FLM_CRUISE,
     FLM_LAUNCH,
     FLM_FAILSAFE,
+    FLM_ATTIHOLD,
     FLM_COUNT
 } flightModeForTelemetry_e;
 
