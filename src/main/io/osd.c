@@ -3679,6 +3679,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 	.units = SETTING_OSD_UNITS_DEFAULT,
 	.main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 	.use_pilot_logo = SETTING_OSD_USE_PILOT_LOGO_DEFAULT,
+    .inav_to_pilot_logo_spacing = SETTING_OSD_INAV_TO_PILOT_LOGO_SPACING_DEFAULT,
 	.arm_screen_display_time = SETTING_OSD_ARM_SCREEN_DISPLAY_TIME_DEFAULT,
 
 #ifdef USE_WIND_ESTIMATOR
@@ -3873,6 +3874,13 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 	}
 }
 
+/**
+ * @brief Draws the INAV and/or pilot logos on the display
+ * 
+ * @param singular If true, only one logo will be drawn. If false, both logos will be drawn, separated by osdConfig()->inav_to_pilot_logo_spacing characters
+ * @param row The row number to start drawing the logos. If not singular, both logos are drawn on the same rows.
+ * @return uint8_t The row number after the logo(s).
+ */
 uint8_t drawLogos(bool singular, uint8_t row) {
 	uint8_t logoRow = row;
 	uint8_t logoColOffset = 0;
@@ -3883,9 +3891,15 @@ uint8_t drawLogos(bool singular, uint8_t row) {
 		usePilotLogo = false;
 #endif
 
+    uint8_t logoSpacing = osdConfig()->inav_to_pilot_logo_spacing;
+
+    if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
+        logoSpacing++; // Add extra 1 character space between logos, if the odd/even of the OSD cols doesn't match the odd/even of the logo spacing
+    }
+
 	// Draw Logo(s)
 	if (usePilotLogo && !singular) {
-		logoColOffset = floor((osdDisplayPort->cols - (SYM_LOGO_WIDTH * 2)) / 3.0f);
+		logoColOffset = ((osdDisplayPort->cols - (SYM_LOGO_WIDTH * 2)) - logoSpacing) / 2;
 	} else {
 		logoColOffset = floor((osdDisplayPort->cols - SYM_LOGO_WIDTH) / 2.0f);
 	}
@@ -3910,7 +3924,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
 		if (singular) {
 			logo_x = logoColOffset;
 		} else {
-			logo_x = (logoColOffset * 2) + SYM_LOGO_WIDTH + ((osdDisplayPort->cols % 2 == 0) ? 0 : 1); // Add extra 1 px space between logos, if the OSD has an odd number of columns
+			logo_x = logoColOffset + SYM_LOGO_WIDTH + logoSpacing;
 		}
 		
 		for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
@@ -4037,7 +4051,7 @@ static void osdCompleteAsyncInitialization(void)
 	if (fontHasMetadata && metadata.charCount > 256) {
 		hasExtendedFont = true;
 	
-		y = drawLogos(true, y);
+		y = drawLogos(false, y);
 		y++;
 	} else if (!fontHasMetadata) {
 		const char *m = "INVALID FONT";

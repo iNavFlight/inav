@@ -4312,6 +4312,16 @@ Temperature under which the IMU temperature OSD element will start blinking (dec
 
 ---
 
+### osd_inav_to_pilot_logo_spacing
+
+The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | 0 | 20 |
+
+---
+
 ### osd_left_sidebar_scroll
 
 _// TODO_

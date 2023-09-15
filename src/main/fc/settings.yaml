@@ -3486,6 +3486,13 @@ groups:
         type: bool
         default_value: OFF
 
+      - name: osd_inav_to_pilot_logo_spacing
+        description: The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
+        field: inav_to_pilot_logo_spacing
+        min: 0
+        max: 20
+        default_value: 8
+
       - name: osd_arm_screen_display_time
         description: Amount of time to display the arm screen [ms]
         field: arm_screen_display_time

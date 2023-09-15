@@ -446,7 +446,8 @@ typedef struct osdConfig_s {
 	char			osd_switch_indicator3_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1];      // Name to use for switch indicator 3.
 	uint8_t			osd_switch_indicator3_channel;		// RC Channel to use for switch indicator 3.
 	bool			osd_switch_indicators_align_left;	// Align switch indicator name to left of the switch.
-	bool			use_pilot_logo;						// If enabled, the pilot logo (last 40 characters of page 2 font) will be used with/instead of the INAV logo
+	bool			use_pilot_logo;						// If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
+	uint8_t			inav_to_pilot_logo_spacing;			// The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
 	uint16_t		arm_screen_display_time;			// Length of time the arm screen is displayed
 } osdConfig_t;
 
