@@ -3679,7 +3679,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 	.units = SETTING_OSD_UNITS_DEFAULT,
 	.main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
 	.use_pilot_logo = SETTING_OSD_USE_PILOT_LOGO_DEFAULT,
-    .inav_to_pilot_logo_spacing = SETTING_OSD_INAV_TO_PILOT_LOGO_SPACING_DEFAULT,
+	.inav_to_pilot_logo_spacing = SETTING_OSD_INAV_TO_PILOT_LOGO_SPACING_DEFAULT,
 	.arm_screen_display_time = SETTING_OSD_ARM_SCREEN_DISPLAY_TIME_DEFAULT,
 
 #ifdef USE_WIND_ESTIMATOR
@@ -3891,11 +3891,11 @@ uint8_t drawLogos(bool singular, uint8_t row) {
 		usePilotLogo = false;
 #endif
 
-    uint8_t logoSpacing = osdConfig()->inav_to_pilot_logo_spacing;
+	uint8_t logoSpacing = osdConfig()->inav_to_pilot_logo_spacing;
 
-    if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
-        logoSpacing++; // Add extra 1 character space between logos, if the odd/even of the OSD cols doesn't match the odd/even of the logo spacing
-    }
+	if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
+		logoSpacing++; // Add extra 1 character space between logos, if the odd/even of the OSD cols doesn't match the odd/even of the logo spacing
+	}
 
 	// Draw Logo(s)
 	if (usePilotLogo && !singular) {
@@ -4433,25 +4433,28 @@ static void osdShowHDArmScreen(void)
 {
 	dateTime_t dt;
 	char buf[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
+	char buf2[MAX(32, FORMATTED_DATE_TIME_BUFSIZE)];
 	char craftNameBuf[MAX_NAME_LENGTH];
 	char versionBuf[30];
 	char *date;
 	char *time;
-
+	uint8_t safehomeRow = 0;
 	uint8_t armScreenRow = 2; // Start at row 2
-	
-	
+
 	armScreenRow = drawLogos(false, armScreenRow);
 	armScreenRow++;
 
-	strcpy(buf, "ARMED");
-	displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow, buf);
-	armScreenRow += 2;
-
 	if (strlen(systemConfig()->craftName) > 0) {
 		osdFormatCraftName(craftNameBuf);
-		displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig()->craftName)) / 2, armScreenRow++, craftNameBuf );
+		strcpy(buf2, "ARMED!");
+		tfp_sprintf(buf, "%s - %s", craftNameBuf, buf2);
+	} else {
+		strcpy(buf, "ARMED!");
 	}
+
+	displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+	safehomeRow = armScreenRow;
+	armScreenRow++;
 
 	if (posControl.waypointListValid && posControl.waypointCount > 0) {
 #ifdef USE_MULTI_MISSION
@@ -4469,26 +4472,37 @@ static void osdShowHDArmScreen(void)
 		if (STATE(GPS_FIX_HOME)) {
 			if (osdConfig()->osd_home_position_arm_screen){
 				osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
-				displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
-				osdFormatCoordinate(buf, SYM_LON, GPS_home.lon);
-				displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+				osdFormatCoordinate(buf2, SYM_LON, GPS_home.lon);
+				uint8_t gap = 1;
+				uint8_t col = strlen(buf) + strlen(buf2) + gap;
+
+				if ((osdDisplayPort->cols %2) != (col %2)) {
+					gap++;
+					col++;
+				}
+
+				col = (osdDisplayPort->cols - col) / 2;
+
+				displayWrite(osdDisplayPort, col, armScreenRow, buf);
+				displayWrite(osdDisplayPort, col + strlen(buf) + gap, armScreenRow++, buf2);
+				
 				int digits = osdConfig()->plus_code_digits;
 				olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
 				displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
 			}
 			armScreenRow++;
+			
 #if defined (USE_SAFE_HOME)
 			if (safehome_distance) { // safehome found during arming
 				if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
 					strcpy(buf, "SAFEHOME FOUND; MODE OFF");
 				} else {
-					char buf2[12]; // format the distance first
 					osdFormatDistanceStr(buf2, safehome_distance);
 					tfp_sprintf(buf, "%c - %s -> SAFEHOME %u", SYM_HOME, buf2, safehome_index);
 				}
 				textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
-				// write this message above the ARMED message to make it obvious (3rd parameter - row 7)
-				displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, 7, buf, elemAttr);
+				// write this message below the ARMED message to make it obvious
+				displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, safehomeRow, buf, elemAttr);
 			}
 #endif
 		} else {
@@ -4499,21 +4513,25 @@ static void osdShowHDArmScreen(void)
 	}
 #endif
 
-	if (rtcGetDateTime(&dt)) {
-		dateTimeFormatLocal(buf, &dt);
-		dateTimeSplitFormatted(buf, &date, &time);
+	if (rtcGetDateTimeLocal(&dt)) {
+		tfp_sprintf(buf, "%04u-%02u-%02u  %02u:%02u:%02u", dt.year, dt.month, dt.day, dt.hours, dt.minutes, dt.seconds);
+		displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+		armScreenRow++;
 
-		displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(date)) / 2, armScreenRow, date);
-		displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(time)) / 2, armScreenRow++, time);
-		armScreenRow += 2;
+		//dateTimeFormatLocal(buf2, &dt);
+		//dateTimeSplitFormatted(buf2, &date, &time);
+
+		//displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(date)) / 2, armScreenRow, date);
+		//displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(time)) / 2, armScreenRow++, time);
+		//armScreenRow += 2;
 	}
 
 	tfp_sprintf(versionBuf, "INAV VERSION: %s", FC_VERSION_STRING);
 	displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(versionBuf)) / 2, armScreenRow++, versionBuf);
 
-#ifdef USE_STATS
-	armScreenRow = drawStats(++armScreenRow);
-#endif // USE_STATS
+// #ifdef USE_STATS
+//	armScreenRow = drawStats(++armScreenRow);
+// #endif // USE_STATS
 }
 
 static void osdShowSDArmScreen(void)
