@@ -5,7 +5,7 @@
         "ranges": "c"
     },
     "editor.tabSize": 4,
-    "editor.insertSpaces": false,
+    "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.expandTabs": true,
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4,  BreakBeforeBraces: Mozilla }"
