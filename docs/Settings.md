@@ -2752,6 +2752,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ---
 
+### nav_cruise_yaw_rate
+
+Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 0 | 120 |
+
+---
+
 ### nav_disarm_on_landing
 
 If set to ON, INAV disarms the FC after landing
@@ -2839,16 +2849,6 @@ Cruise throttle in GPS assisted modes, this includes RTH. Should be set high eno
 | Default | Min | Max |
 | --- | --- | --- |
 | 1400 | 1000 | 2000 |
-
----
-
-### nav_fw_cruise_yaw_rate
-
-Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 20 | 0 | 60 |
 
 ---
 
@@ -5058,7 +5058,7 @@ Selection of pitot hardware.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| NONE |  |  |
+| VIRTUAL |  |  |
 
 ---
 
