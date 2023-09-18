@@ -158,7 +158,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 7             | HORIZON           | `true` when you are in the **Horizon** flight mode. |
 | 8             | AIR               | `true` when you the **Airmode** flight mode modifier is active. |
 | 9             | USER1             | `true` when the **USER 1** mode is active. |
-| 10            | USER2             | `true` when the **USER 21** mode is active. |
+| 10            | USER2             | `true` when the **USER 2** mode is active. |
 | 11            | COURSE_HOLD       | `true` when you are in the **Course Hold** flight mode. |
 | 12            | USER3             | `true` when the **USER 3** mode is active. |
 | 13            | USER4             | `true` when the **USER 4** mode is active. |

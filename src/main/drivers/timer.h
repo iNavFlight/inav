@@ -25,6 +25,8 @@
 #include "drivers/rcc_types.h"
 #include "drivers/timer_def.h"
 
+#include "platform.h"
+
 #define CC_CHANNELS_PER_TIMER       4   // TIM_Channel_1..4
 
 typedef uint16_t captureCompare_t;        // 16 bit on both 103 and 303, just register access must be 32bit sometimes (use timCCR_t)
@@ -63,8 +65,9 @@ typedef uint32_t timCNT_t;
 #endif
 //  tmr_type instead in AT32 
 #if defined(AT32F43x)
+typedef tmr_type HAL_Timer_t;
 typedef struct timerDef_s {
-    tmr_type   * tim;
+    HAL_Timer_t   * tim;
     rccPeriphTag_t  rcc;
     uint8_t         irq;
     uint8_t         secondIrq;
@@ -82,8 +85,9 @@ typedef struct timerHardware_s {
     uint32_t dmaMuxid; //DMAMUX ID
 } timerHardware_t;
 #else
+typedef TIM_TypeDef HAL_Timer_t;
 typedef struct timerDef_s {
-    TIM_TypeDef   * tim;
+    HAL_Timer_t * tim;
     rccPeriphTag_t  rcc;
     uint8_t         irq;
     uint8_t         secondIrq;
@@ -115,6 +119,7 @@ typedef enum {
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
+#define TIM_USE_OUTPUT_AUTO (TIM_USE_MC_MOTOR | TIM_USE_MC_SERVO | TIM_USE_FW_MOTOR | TIM_USE_FW_SERVO)
 
 enum {
     TIMER_OUTPUT_NONE = 0x00,
@@ -247,6 +252,8 @@ void timerPWMStopDMA(TCH_t * tch);
 bool timerPWMDMAInProgress(TCH_t * tch);
 
 volatile timCCR_t *timerCCR(TCH_t * tch);
+
+uint8_t timer2id(const HAL_Timer_t *tim);
 
 #ifdef USE_DSHOT_DMAR
 bool timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
