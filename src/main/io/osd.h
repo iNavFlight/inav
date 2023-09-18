@@ -32,19 +32,19 @@
 // 00vb yyyy yyxx xxxx
 // (visible)(blink)(yCoord)(xCoord)
 
-#define OSD_VISIBLE_FLAG	0x2000
-#define OSD_VISIBLE(x)		((x) & OSD_VISIBLE_FLAG)
+#define OSD_VISIBLE_FLAG    0x2000
+#define OSD_VISIBLE(x)      ((x) & OSD_VISIBLE_FLAG)
 
-#define OSD_POS(x,y)		(((x) & 0x3F) | (((y) & 0x3F) << 6))
-#define OSD_X(x)			((x) & 0x3F)
-#define OSD_Y(x)			(((x) >> 6) & 0x3F)
-#define OSD_POS_MAX			0xFFF
+#define OSD_POS(x,y)        (((x) & 0x3F) | (((y) & 0x3F) << 6))
+#define OSD_X(x)            ((x) & 0x3F)
+#define OSD_Y(x)            (((x) >> 6) & 0x3F)
+#define OSD_POS_MAX         0xFFF
 
 // For DJI compatibility
 #define OSD_VISIBLE_FLAG_SD 0x0800
-#define OSD_POS_SD(x,y)		(((x) & 0x1F) | (((y) & 0x1F) << 5))
+#define OSD_POS_SD(x,y)     (((x) & 0x1F) | (((y) & 0x1F) << 5))
 
-#define OSD_POS_MAX_CLI		(OSD_POS_MAX | OSD_VISIBLE_FLAG)
+#define OSD_POS_MAX_CLI     (OSD_POS_MAX | OSD_VISIBLE_FLAG)
 
 #define OSD_HOMING_LIM_H1 6
 #define OSD_HOMING_LIM_H2 16
@@ -54,78 +54,78 @@
 #define OSD_HOMING_LIM_V3 15
 
 // Message defines to be use in OSD and/or telemetry exports
-#define OSD_MSG_RC_RX_LINK_LOST		"!RC RX LINK LOST!"
-#define OSD_MSG_TURN_ARM_SW_OFF		"TURN ARM SWITCH OFF"
-#define OSD_MSG_DISABLED_BY_FS		"DISABLED BY FAILSAFE"
-#define OSD_MSG_AIRCRAFT_UNLEVEL	"AIRCRAFT IS NOT LEVEL"
-#define OSD_MSG_SENSORS_CAL			"SENSORS CALIBRATING"
-#define OSD_MSG_SYS_OVERLOADED		"SYSTEM OVERLOADED"
-#define OSD_MSG_WAITING_GPS_FIX		"WAITING FOR GPS FIX"
-#define OSD_MSG_DISABLE_NAV_FIRST	"DISABLE NAVIGATION FIRST"
-#define OSD_MSG_JUMP_WP_MISCONFIG	"JUMP WAYPOINT MISCONFIGURED"
-#define OSD_MSG_MAG_NOT_CAL			"COMPASS NOT CALIBRATED"
-#define OSD_MSG_ACC_NOT_CAL			"ACCELEROMETER NOT CALIBRATED"
-#define OSD_MSG_DISARM_1ST			"DISABLE ARM SWITCH FIRST"
-#define OSD_MSG_GYRO_FAILURE		"GYRO FAILURE"
-#define OSD_MSG_ACC_FAIL			"ACCELEROMETER FAILURE"
-#define OSD_MSG_MAG_FAIL			"COMPASS FAILURE"
-#define OSD_MSG_BARO_FAIL			"BAROMETER FAILURE"
-#define OSD_MSG_GPS_FAIL			"GPS FAILURE"
-#define OSD_MSG_RANGEFINDER_FAIL	"RANGE FINDER FAILURE"
-#define OSD_MSG_PITOT_FAIL			"PITOT METER FAILURE"
-#define OSD_MSG_HW_FAIL				"HARDWARE FAILURE"
-#define OSD_MSG_FS_EN				"FAILSAFE MODE ENABLED"
-#define OSD_MSG_KILL_SW_EN			"KILLSWITCH MODE ENABLED"
-#define OSD_MSG_NO_RC_LINK			"NO RC LINK"
-#define OSD_MSG_THROTTLE_NOT_LOW	"THROTTLE IS NOT LOW"
-#define OSD_MSG_ROLLPITCH_OFFCENTER	"ROLLPITCH NOT CENTERED"
-#define OSD_MSG_AUTOTRIM_ACTIVE		"AUTOTRIM IS ACTIVE"
-#define OSD_MSG_NOT_ENOUGH_MEMORY	"NOT ENOUGH MEMORY"
-#define OSD_MSG_INVALID_SETTING		"INVALID SETTING"
-#define OSD_MSG_CLI_ACTIVE			"CLI IS ACTIVE"
-#define OSD_MSG_PWM_INIT_ERROR		"PWM INIT ERROR"
-#define OSD_MSG_NO_PREARM			"NO PREARM"
-#define OSD_MSG_DSHOT_BEEPER		"MOTOR BEEPER ACTIVE"
-#define OSD_MSG_RTH_FS				"(RTH)"
-#define OSD_MSG_EMERG_LANDING_FS	"(EMERGENCY LANDING)"
-#define OSD_MSG_MOVE_EXIT_FS		"!MOVE STICKS TO EXIT FS!"
-#define OSD_MSG_STARTING_RTH		"STARTING RTH"
-#define OSD_MSG_RTH_CLIMB			"ADJUSTING RTH ALTITUDE"
-#define OSD_MSG_RTH_TRACKBACK		"RTH BACK TRACKING"
-#define OSD_MSG_HEADING_HOME		"EN ROUTE TO HOME"
-#define OSD_MSG_WP_FINISHED			"WP END>HOLDING POSITION"
-#define OSD_MSG_WP_LANDED			"WP END>LANDED"
-#define OSD_MSG_PREPARE_NEXT_WP		"PREPARING FOR NEXT WAYPOINT"
-#define OSD_MSG_ADJUSTING_WP_ALT	"ADJUSTING WP ALTITUDE"
-#define OSD_MSG_MISSION_PLANNER		"(WP MISSION PLANNER)"
-#define OSD_MSG_WP_RTH_CANCEL		"CANCEL WP TO EXIT RTH"
-#define OSD_MSG_WP_MISSION_LOADED	"* MISSION LOADED *"
-#define OSD_MSG_EMERG_LANDING		"EMERGENCY LANDING"
-#define OSD_MSG_LANDING				"LANDING"
-#define OSD_MSG_LOITERING_HOME		"LOITERING AROUND HOME"
-#define OSD_MSG_HOVERING			"HOVERING"
-#define OSD_MSG_LANDED				"LANDED"
-#define OSD_MSG_PREPARING_LAND		"PREPARING TO LAND"
-#define OSD_MSG_AUTOLAUNCH			"AUTOLAUNCH"
-#define OSD_MSG_AUTOLAUNCH_MANUAL	"AUTOLAUNCH (MANUAL)"
-#define OSD_MSG_ALTITUDE_HOLD		"(ALTITUDE HOLD)"
-#define OSD_MSG_AUTOTRIM			"(AUTOTRIM)"
-#define OSD_MSG_AUTOTUNE			"(AUTOTUNE)"
-#define OSD_MSG_AUTOTUNE_ACRO		"SWITCH TO ACRO"
-#define OSD_MSG_AUTOLEVEL			"(AUTO LEVEL TRIM)"
-#define OSD_MSG_HEADFREE			"(HEADFREE)"
-#define OSD_MSG_NAV_SOARING			"(SOARING)"
-#define OSD_MSG_UNABLE_ARM			"UNABLE TO ARM"
-#define OSD_MSG_SAVING_SETTNGS		"** SAVING SETTINGS **"
-#define OSD_MSG_SETTINGS_SAVED		"** SETTINGS SAVED **"
+#define OSD_MSG_RC_RX_LINK_LOST     "!RC RX LINK LOST!"
+#define OSD_MSG_TURN_ARM_SW_OFF     "TURN ARM SWITCH OFF"
+#define OSD_MSG_DISABLED_BY_FS      "DISABLED BY FAILSAFE"
+#define OSD_MSG_AIRCRAFT_UNLEVEL    "AIRCRAFT IS NOT LEVEL"
+#define OSD_MSG_SENSORS_CAL         "SENSORS CALIBRATING"
+#define OSD_MSG_SYS_OVERLOADED      "SYSTEM OVERLOADED"
+#define OSD_MSG_WAITING_GPS_FIX     "WAITING FOR GPS FIX"
+#define OSD_MSG_DISABLE_NAV_FIRST   "DISABLE NAVIGATION FIRST"
+#define OSD_MSG_JUMP_WP_MISCONFIG   "JUMP WAYPOINT MISCONFIGURED"
+#define OSD_MSG_MAG_NOT_CAL         "COMPASS NOT CALIBRATED"
+#define OSD_MSG_ACC_NOT_CAL         "ACCELEROMETER NOT CALIBRATED"
+#define OSD_MSG_DISARM_1ST          "DISABLE ARM SWITCH FIRST"
+#define OSD_MSG_GYRO_FAILURE        "GYRO FAILURE"
+#define OSD_MSG_ACC_FAIL            "ACCELEROMETER FAILURE"
+#define OSD_MSG_MAG_FAIL            "COMPASS FAILURE"
+#define OSD_MSG_BARO_FAIL           "BAROMETER FAILURE"
+#define OSD_MSG_GPS_FAIL            "GPS FAILURE"
+#define OSD_MSG_RANGEFINDER_FAIL    "RANGE FINDER FAILURE"
+#define OSD_MSG_PITOT_FAIL          "PITOT METER FAILURE"
+#define OSD_MSG_HW_FAIL             "HARDWARE FAILURE"
+#define OSD_MSG_FS_EN               "FAILSAFE MODE ENABLED"
+#define OSD_MSG_KILL_SW_EN          "KILLSWITCH MODE ENABLED"
+#define OSD_MSG_NO_RC_LINK          "NO RC LINK"
+#define OSD_MSG_THROTTLE_NOT_LOW    "THROTTLE IS NOT LOW"
+#define OSD_MSG_ROLLPITCH_OFFCENTER "ROLLPITCH NOT CENTERED"
+#define OSD_MSG_AUTOTRIM_ACTIVE     "AUTOTRIM IS ACTIVE"
+#define OSD_MSG_NOT_ENOUGH_MEMORY   "NOT ENOUGH MEMORY"
+#define OSD_MSG_INVALID_SETTING     "INVALID SETTING"
+#define OSD_MSG_CLI_ACTIVE          "CLI IS ACTIVE"
+#define OSD_MSG_PWM_INIT_ERROR      "PWM INIT ERROR"
+#define OSD_MSG_NO_PREARM           "NO PREARM"
+#define OSD_MSG_DSHOT_BEEPER        "MOTOR BEEPER ACTIVE"
+#define OSD_MSG_RTH_FS              "(RTH)"
+#define OSD_MSG_EMERG_LANDING_FS    "(EMERGENCY LANDING)"
+#define OSD_MSG_MOVE_EXIT_FS        "!MOVE STICKS TO EXIT FS!"
+#define OSD_MSG_STARTING_RTH        "STARTING RTH"
+#define OSD_MSG_RTH_CLIMB           "ADJUSTING RTH ALTITUDE"
+#define OSD_MSG_RTH_TRACKBACK       "RTH BACK TRACKING"
+#define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
+#define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
+#define OSD_MSG_WP_LANDED           "WP END>LANDED"
+#define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
+#define OSD_MSG_ADJUSTING_WP_ALT    "ADJUSTING WP ALTITUDE"
+#define OSD_MSG_MISSION_PLANNER     "(WP MISSION PLANNER)"
+#define OSD_MSG_WP_RTH_CANCEL       "CANCEL WP TO EXIT RTH"
+#define OSD_MSG_WP_MISSION_LOADED   "* MISSION LOADED *"
+#define OSD_MSG_EMERG_LANDING       "EMERGENCY LANDING"
+#define OSD_MSG_LANDING             "LANDING"
+#define OSD_MSG_LOITERING_HOME      "LOITERING AROUND HOME"
+#define OSD_MSG_HOVERING            "HOVERING"
+#define OSD_MSG_LANDED              "LANDED"
+#define OSD_MSG_PREPARING_LAND      "PREPARING TO LAND"
+#define OSD_MSG_AUTOLAUNCH          "AUTOLAUNCH"
+#define OSD_MSG_AUTOLAUNCH_MANUAL   "AUTOLAUNCH (MANUAL)"
+#define OSD_MSG_ALTITUDE_HOLD       "(ALTITUDE HOLD)"
+#define OSD_MSG_AUTOTRIM            "(AUTOTRIM)"
+#define OSD_MSG_AUTOTUNE            "(AUTOTUNE)"
+#define OSD_MSG_AUTOTUNE_ACRO       "SWITCH TO ACRO"
+#define OSD_MSG_AUTOLEVEL           "(AUTO LEVEL TRIM)"
+#define OSD_MSG_HEADFREE            "(HEADFREE)"
+#define OSD_MSG_NAV_SOARING         "(SOARING)"
+#define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
+#define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
+#define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
 
 #ifdef USE_DEV_TOOLS
-#define OSD_MSG_GRD_TEST_MODE		"GRD TEST > MOTORS DISABLED"
+#define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
 #endif
 
 #if defined(USE_SAFE_HOME)
-#define OSD_MSG_DIVERT_SAFEHOME		"DIVERTING TO SAFEHOME"
-#define OSD_MSG_LOITERING_SAFEHOME	"LOITERING AROUND SAFEHOME"
+#define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
+#define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
 #endif
 
 typedef enum {
@@ -343,12 +343,12 @@ PG_DECLARE(osdLayoutsConfig_t, osdLayoutsConfig);
 
 typedef struct osdConfig_s {
     // Alarms
-    uint8_t         rssi_alarm;							// rssi %
-    uint16_t        time_alarm;							// fly minutes
-    uint16_t        alt_alarm;							// positive altitude in m
-    uint16_t        dist_alarm;							// home distance in m
-    uint16_t        neg_alt_alarm;						// abs(negative altitude) in m
-    uint8_t         current_alarm;						// current consumption in A
+    uint8_t         rssi_alarm;                         // rssi %
+    uint16_t        time_alarm;                         // fly minutes
+    uint16_t        alt_alarm;                          // positive altitude in m
+    uint16_t        dist_alarm;                         // home distance in m
+    uint16_t        neg_alt_alarm;                      // abs(negative altitude) in m
+    uint8_t         current_alarm;                      // current consumption in A
     int16_t         imu_temp_alarm_min;
     int16_t         imu_temp_alarm_max;
     int16_t         esc_temp_alarm_min;
@@ -357,11 +357,11 @@ typedef struct osdConfig_s {
     float           gforce_axis_alarm_min;
     float           gforce_axis_alarm_max;
 #ifdef USE_SERIALRX_CRSF
-    int8_t          snr_alarm;							//CRSF SNR alarm in dB
+    int8_t          snr_alarm;                          //CRSF SNR alarm in dB
     int8_t          link_quality_alarm;
-    int16_t         rssi_dbm_alarm;						// in dBm
-    int16_t         rssi_dbm_max;						// Perfect RSSI. Set to High end of curve. RSSI at 100%
-    int16_t         rssi_dbm_min;						// Worst RSSI. Set to low end of curve or RX sensitivity level. RSSI at 0%
+    int16_t         rssi_dbm_alarm;                     // in dBm
+    int16_t         rssi_dbm_max;                       // Perfect RSSI. Set to High end of curve. RSSI at 100%
+    int16_t         rssi_dbm_min;                       // Worst RSSI. Set to low end of curve or RX sensitivity level. RSSI at 0%
 #endif
 #ifdef USE_BARO
     int16_t         baro_temp_alarm_min;
@@ -383,7 +383,7 @@ typedef struct osdConfig_s {
     uint8_t         main_voltage_decimals;
     uint8_t         ahi_reverse_roll;
     uint8_t         ahi_max_pitch;
-    uint8_t         crosshairs_style;					// from osd_crosshairs_style_e
+    uint8_t         crosshairs_style;                   // from osd_crosshairs_style_e
     int8_t          horizon_offset;
     int8_t          camera_uptilt;
     bool            ahi_camera_uptilt_comp;
@@ -400,55 +400,55 @@ typedef struct osdConfig_s {
     uint8_t         hud_radar_distance_display_time;
     uint8_t         hud_wp_disp;
 
-    uint8_t         left_sidebar_scroll;				// from osd_sidebar_scroll_e
-    uint8_t         right_sidebar_scroll;				// from osd_sidebar_scroll_e
+    uint8_t         left_sidebar_scroll;                // from osd_sidebar_scroll_e
+    uint8_t         right_sidebar_scroll;               // from osd_sidebar_scroll_e
     uint8_t         sidebar_scroll_arrows;
 
-    uint8_t         units;								// from osd_unit_e
-    uint8_t         stats_energy_unit;					// from osd_stats_energy_unit_e
-    uint8_t         stats_min_voltage_unit;				// from osd_stats_min_voltage_unit_e
-    uint8_t         stats_page_auto_swap_time;			// stats page auto swap interval time (seconds)
+    uint8_t         units;                              // from osd_unit_e
+    uint8_t         stats_energy_unit;                  // from osd_stats_energy_unit_e
+    uint8_t         stats_min_voltage_unit;             // from osd_stats_min_voltage_unit_e
+    uint8_t         stats_page_auto_swap_time;          // stats page auto swap interval time (seconds)
 
 #ifdef USE_WIND_ESTIMATOR
-    bool            estimations_wind_compensation;		// use wind compensation for estimated remaining flight/distance
+    bool            estimations_wind_compensation;      // use wind compensation for estimated remaining flight/distance
 #endif	
     uint8_t         coordinate_digits;
     bool            osd_failsafe_switch_layout;
-    uint8_t         plus_code_digits;					// Number of digits to use in OSD_PLUS_CODE
+    uint8_t         plus_code_digits;                   // Number of digits to use in OSD_PLUS_CODE
     uint8_t         plus_code_short;
     uint8_t         ahi_style;
-    uint8_t         force_grid;							// Force a pixel based OSD to use grid mode.
-    uint8_t         ahi_bordered;						// Only used by the AHI widget
-    uint8_t         ahi_width;							// In pixels, only used by the AHI widget
-    uint8_t         ahi_height;							// In pixels, only used by the AHI widget
-    int8_t          ahi_vertical_offset;				// Offset from center in pixels. Positive moves the AHI down. Widget only.
-    int8_t          sidebar_horizontal_offset;			// Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
-    uint8_t         left_sidebar_scroll_step;			// How many units each sidebar step represents. 0 means the default value for the scroll type.
-    uint8_t         right_sidebar_scroll_step;			// Same as left_sidebar_scroll_step, but for the right sidebar.
+    uint8_t         force_grid;                         // Force a pixel based OSD to use grid mode.
+    uint8_t         ahi_bordered;                       // Only used by the AHI widget
+    uint8_t         ahi_width;                          // In pixels, only used by the AHI widget
+    uint8_t         ahi_height;                         // In pixels, only used by the AHI widget
+    int8_t          ahi_vertical_offset;                // Offset from center in pixels. Positive moves the AHI down. Widget only.
+    int8_t          sidebar_horizontal_offset;          // Horizontal offset from default position. Units are grid slots for grid OSDs, pixels for pixel based OSDs. Positive values move sidebars closer to the edges.
+    uint8_t         left_sidebar_scroll_step;           // How many units each sidebar step represents. 0 means the default value for the scroll type.
+    uint8_t         right_sidebar_scroll_step;          // Same as left_sidebar_scroll_step, but for the right sidebar.
     bool            osd_home_position_arm_screen;
-    uint8_t         pan_servo_index;					// Index of the pan servo used for home direction offset
-    int8_t          pan_servo_pwm2centideg;				// Centidegrees of servo rotation per us pwm
-    uint8_t         pan_servo_offcentre_warning;		// Degrees around the centre, that is assumed camera is wanted to be facing forwards, but isn't centred
-    bool            pan_servo_indicator_show_degrees;	// Show the degrees of offset for the pan servo
+    uint8_t         pan_servo_index;                    // Index of the pan servo used for home direction offset
+    int8_t          pan_servo_pwm2centideg;             // Centidegrees of servo rotation per us pwm
+    uint8_t         pan_servo_offcentre_warning;        // Degrees around the centre, that is assumed camera is wanted to be facing forwards, but isn't centred
+    bool            pan_servo_indicator_show_degrees;   // Show the degrees of offset for the pan servo
     uint8_t         crsf_lq_format;
-    uint8_t         sidebar_height;						// sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
-    uint8_t         telemetry;							// use telemetry on displayed pixel line 0
-    uint8_t         esc_rpm_precision;					// Number of characters used for the RPM numbers.
-    uint16_t        system_msg_display_time;			// system message display time for multiple messages (ms)
-    uint8_t         mAh_used_precision;					// Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
-    uint8_t         ahi_pitch_interval;					// redraws AHI at set pitch interval (Not pixel OSD)
+    uint8_t         sidebar_height;                     // sidebar height in rows, 0 turns off sidebars leaving only level indicator arrows
+    uint8_t         telemetry;                          // use telemetry on displayed pixel line 0
+    uint8_t         esc_rpm_precision;                  // Number of characters used for the RPM numbers.
+    uint16_t        system_msg_display_time;            // system message display time for multiple messages (ms)
+    uint8_t         mAh_used_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
+    uint8_t         ahi_pitch_interval;                 // redraws AHI at set pitch interval (Not pixel OSD)
     char            osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1]; // Name to use for switch indicator 0.
-    uint8_t         osd_switch_indicator0_channel;		// RC Channel to use for switch indicator 0.
+    uint8_t         osd_switch_indicator0_channel;      // RC Channel to use for switch indicator 0.
     char            osd_switch_indicator1_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1]; // Name to use for switch indicator 1.
-    uint8_t         osd_switch_indicator1_channel;		// RC Channel to use for switch indicator 1.
+    uint8_t         osd_switch_indicator1_channel;      // RC Channel to use for switch indicator 1.
     char            osd_switch_indicator2_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1]; // Name to use for switch indicator 2.
-    uint8_t         osd_switch_indicator2_channel;		// RC Channel to use for switch indicator 2.
+    uint8_t         osd_switch_indicator2_channel;      // RC Channel to use for switch indicator 2.
     char            osd_switch_indicator3_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1]; // Name to use for switch indicator 3.
-    uint8_t         osd_switch_indicator3_channel;		// RC Channel to use for switch indicator 3.
-    bool            osd_switch_indicators_align_left;	// Align switch indicator name to left of the switch.
-    bool            use_pilot_logo;						// If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
-    uint8_t         inav_to_pilot_logo_spacing;			// The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
-    uint16_t        arm_screen_display_time;			// Length of time the arm screen is displayed
+    uint8_t         osd_switch_indicator3_channel;      // RC Channel to use for switch indicator 3.
+    bool            osd_switch_indicators_align_left;   // Align switch indicator name to left of the switch.
+    bool            use_pilot_logo;                     // If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
+    uint8_t         inav_to_pilot_logo_spacing;         // The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
+    uint16_t        arm_screen_display_time;            // Length of time the arm screen is displayed
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
