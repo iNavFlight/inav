@@ -159,12 +159,6 @@
 #define USE_LED_STRIP
 #define WS2811_PIN PA8
 
-// ********** Optiical Flow adn Lidar **************
-#define USE_RANGEFINDER
-#define USE_RANGEFINDER_MSP
-#define USE_OPFLOW
-#define USE_OPFLOW_MSP
-
 #define DEFAULT_FEATURES                (FEATURE_TX_PROF_SEL  | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT  | FEATURE_BLACKBOX | FEATURE_TELEMETRY)
 #define CURRENT_METER_SCALE     400
 
