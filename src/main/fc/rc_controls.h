@@ -38,8 +38,8 @@ typedef enum rc_alias {
     AUX10,
     AUX11,
     AUX12,
-    COLLECTIVE = AUX3,              //woga65: for heli-like aircraft
-    GYRO_GAIN = AUX4                //...
+    COLLECTIVE = AUX2,              //woga65: for heli-like aircraft
+    GYRO_GAIN = AUX3                //...
 } rc_alias_e;
 
 typedef enum {
