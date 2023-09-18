@@ -151,11 +151,12 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
     uint8_t channelIndex = auxChannelIndex + NON_AUX_CHANNEL_COUNT;
 
     // On helicopter like aircraft, the throttle RC-channel is used 
-    // to indicate the headspeed to the FC. For this, AUX3 is mapped 
-    // to the throttle RC-channel. The headspeed is used to determine,
-    // which amount of collective pitch is needed to hover. woga65:
+    // to indicate the headspeed to the FC. For this, AUX2 which is
+    // assigned to the collective pitch is mapped to the throttle 
+    // RC-channel. The headspeed is used to determine,which amount
+    // of collective pitch is needed to hover. woga65:
 #if defined(USE_VARIABLE_PITCH)
-    if (STATE(HELICOPTER) && auxChannelIndex + NON_AUX_CHANNEL_COUNT == AUX3) {
+    if (STATE(HELICOPTER) && auxChannelIndex + NON_AUX_CHANNEL_COUNT == COLLECTIVE) {
         channelIndex = THROTTLE;
     }
 #endif
