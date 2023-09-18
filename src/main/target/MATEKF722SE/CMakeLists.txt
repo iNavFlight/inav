@@ -1,3 +1,5 @@
 target_stm32f722xe(MATEKF722SE)
 target_stm32f722xe(MATEKF722MINI)
 target_stm32f722xe(MATEKF722SE_8MOTOR)
+target_stm32f722xe(MATEKF722SE_VP)
+target_stm32f722xe(MATEKF722MINI_VP)

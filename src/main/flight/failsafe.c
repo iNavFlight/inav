@@ -92,7 +92,7 @@ typedef enum {
 typedef struct {
     bool                        bypassNavigation;
     bool                        forceAngleMode;
-    failsafeChannelBehavior_e   channelBehavior[4];
+    failsafeChannelBehavior_e   channelBehavior[CONTROL_CHANNEL_COUNT];     //woga65:
 } failsafeProcedureLogic_t;
 
 static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
@@ -103,7 +103,16 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
                 FAILSAFE_CHANNEL_NEUTRAL,       // PITCH
                 FAILSAFE_CHANNEL_NEUTRAL,       // YAW
-                FAILSAFE_CHANNEL_HOLD           // THROTTLE
+#if !defined(USE_VARIABLE_PITCH)
+                FAILSAFE_CHANNEL_HOLD,          // THROTTLE
+#else
+    // woga65: cut throttle, hold collective (kind of auto gyro)
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE (cut trottle regardless until sufficiently tested)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // COLLECTIVE
+                FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN
+#endif                
             }
     },
 
@@ -114,7 +123,14 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
                 FAILSAFE_CHANNEL_NEUTRAL,       // PITCH
                 FAILSAFE_CHANNEL_NEUTRAL,       // YAW
-                FAILSAFE_CHANNEL_NEUTRAL        // THROTTLE
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE
+#if defined(USE_VARIABLE_PITCH)
+    // woga65: cut throttle, center collective 
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_NEUTRAL,       // COLLECTIVE
+                FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN
+#endif
             }
     },
 
@@ -125,7 +141,16 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_NEUTRAL,       // ROLL
                 FAILSAFE_CHANNEL_NEUTRAL,       // PITCH
                 FAILSAFE_CHANNEL_NEUTRAL,       // YAW
-                FAILSAFE_CHANNEL_HOLD           // THROTTLE
+#if !defined(USE_VARIABLE_PITCH)
+                FAILSAFE_CHANNEL_HOLD,          // THROTTLE
+#else
+    // woga65: cut throttle regardless, hold collective 
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE (cut trottle regardless until sufficiently tested)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // COLLECTIVE
+                FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN    
+#endif                
             }
     },
 
@@ -136,7 +161,16 @@ static const failsafeProcedureLogic_t failsafeProcedureLogic[] = {
                 FAILSAFE_CHANNEL_HOLD,          // ROLL
                 FAILSAFE_CHANNEL_HOLD,          // PITCH
                 FAILSAFE_CHANNEL_HOLD,          // YAW
-                FAILSAFE_CHANNEL_HOLD           // THROTTLE
+#if !defined(USE_VARIABLE_PITCH)
+                FAILSAFE_CHANNEL_HOLD,          // THROTTLE
+#else
+    // woga65: cut throttle regardless, hold everything else 
+                FAILSAFE_CHANNEL_NEUTRAL,       // THROTTLE (cut throttle regardless)
+                FAILSAFE_CHANNEL_HOLD,          // AUX1 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // AUX2 (NOT USED / ALWAYS HOLD)
+                FAILSAFE_CHANNEL_HOLD,          // COLLECTIVE
+                FAILSAFE_CHANNEL_HOLD           // GYRO_GAIN   
+#endif      
             }
     }
 };
@@ -166,7 +200,13 @@ void failsafeReset(void)
     failsafeState.lastGoodRcCommand[ROLL] = 0;
     failsafeState.lastGoodRcCommand[PITCH] = 0;
     failsafeState.lastGoodRcCommand[YAW] = 0;
-    failsafeState.lastGoodRcCommand[THROTTLE] = 1000;
+    failsafeState.lastGoodRcCommand[THROTTLE] = PWM_RANGE_MIN;
+#if defined(USE_VARIABLE_PITCH) //woga65:
+    failsafeState.lastGoodRcCommand[AUX1] = PWM_RANGE_MIN;
+    failsafeState.lastGoodRcCommand[AUX2] = PWM_RANGE_MIN;
+    failsafeState.lastGoodRcCommand[COLLECTIVE] = PWM_RANGE_MIDDLE;
+    failsafeState.lastGoodRcCommand[GYRO_GAIN] = PWM_RANGE_MIDDLE;
+#endif
 }
 
 void failsafeInit(void)
@@ -253,7 +293,7 @@ static void failsafeActivate(failsafePhase_e newPhase)
 void failsafeUpdateRcCommandValues(void)
 {
     if (!failsafeState.active) {
-        for (int idx = 0; idx < 4; idx++) {
+        for (int idx = 0; idx < CONTROL_CHANNEL_COUNT; idx++) {     //woga65:
             failsafeState.lastGoodRcCommand[idx] = rcCommand[idx];
         }
     }
@@ -262,7 +302,7 @@ void failsafeUpdateRcCommandValues(void)
 void failsafeApplyControlInput(void)
 {
     // Apply channel values
-    for (int idx = 0; idx < 4; idx++) {
+    for (int idx = 0; idx < CONTROL_CHANNEL_COUNT; idx++) {         //woga65:
         switch (failsafeProcedureLogic[failsafeState.activeProcedure].channelBehavior[idx]) {
             case FAILSAFE_CHANNEL_HOLD:
                 rcCommand[idx] = failsafeState.lastGoodRcCommand[idx];
@@ -275,6 +315,13 @@ void failsafeApplyControlInput(void)
                     case YAW:
                         rcCommand[idx] = 0;
                         break;
+
+#if defined(USE_VARIABLE_PITCH)     //woga65:
+                    case COLLECTIVE:
+                    case GYRO_GAIN:
+                        rcCommand[idx] = PWM_RANGE_MIDDLE;
+                        break;
+#endif
 
                     case THROTTLE:
                         rcCommand[idx] = feature(FEATURE_REVERSIBLE_MOTORS) ? PWM_RANGE_MIDDLE : getThrottleIdleValue();
@@ -331,7 +378,9 @@ static bool failsafeCheckStickMotion(void)
         totalRcDelta += ABS(rxGetChannelValue(ROLL) - PWM_RANGE_MIDDLE);
         totalRcDelta += ABS(rxGetChannelValue(PITCH) - PWM_RANGE_MIDDLE);
         totalRcDelta += ABS(rxGetChannelValue(YAW) - PWM_RANGE_MIDDLE);
-
+#if defined(USE_VARIABLE_PITCH)
+        totalRcDelta += ABS(rxGetChannelValue(COLLECTIVE) - PWM_RANGE_MIDDLE);  //woga65:
+#endif        
         return totalRcDelta >= failsafeConfig()->failsafe_stick_motion_threshold;
     }
     else {

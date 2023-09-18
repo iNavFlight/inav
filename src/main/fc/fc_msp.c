@@ -77,6 +77,9 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#ifdef USE_VARIABLE_PITCH
+#  include "flight/variable_pitch.h"
+#endif
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -1291,6 +1294,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
         sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
+#if defined(USE_VARIABLE_PITCH)    //woga65:
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[0]);
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[1]);
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[2]);
+#endif
         break;
 
     case MSP_RTH_AND_LAND_CONFIG:
@@ -1512,9 +1520,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_INAV_OUTPUT_MAPPING:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
             if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                sbufWriteU8(dst, timerHardware[i].usageFlags);
+                sbufWriteU8(dst, timerHardware[i].usageFlags);      //woga65: kept for backward compaibility
             }
-        break;
+        break;     
 
     case MSP2_INAV_OUTPUT_MAPPING_EXT:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
@@ -1527,7 +1535,29 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
             }
         break;
-    
+
+    /* @todo: Waste of memory. 32 bit timer usage should be  *
+     * included in MSP2_INAV_OUTPUT_MAPPING_EXT above.       */
+    case MSP2_INAV_OUTPUT_MAPPING_FULL:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: send the full 32 bits of timer usage flags per timer
+            }
+        break;
+
+    case MSP2_INAV_OUTPUT_MAPPING_FULL_EXT:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                #if defined(SITL_BUILD)
+                sbufWriteU8(dst, i);
+                #else
+                sbufWriteU8(dst, timer2id(timerHardware[i].tim));
+                #endif
+                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: send the full 32 bits of timer usage flags per timer
+            }
+        break;
+    /* ---------------------------------------------------- */
+
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
@@ -2259,6 +2289,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#if !defined(USE_VARIABLE_PITCH)    //woga65:
     case MSP_SET_NAV_POSHOLD:
         if (dataSize == 13) {
             navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
@@ -2272,6 +2303,24 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+#else
+    case MSP_SET_NAV_POSHOLD:
+        if (dataSize == 19) {   //woga65:
+            navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
+            navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
+            navConfigMutable()->general.max_auto_climb_rate = sbufReadU16(src);
+            navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
+            navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
+            navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
+            navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
+            currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
+            helicopterConfigMutable()->nav_hc_hover_collective[0] = sbufReadU16(src);
+            helicopterConfigMutable()->nav_hc_hover_collective[1] = sbufReadU16(src);
+            helicopterConfigMutable()->nav_hc_hover_collective[2] = sbufReadU16(src);
+        } else
+            return MSP_RESULT_ERROR;
+        break;        
+#endif
 
     case MSP_SET_RTH_AND_LAND_CONFIG:
         if (dataSize == 21) {

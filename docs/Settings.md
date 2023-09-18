@@ -1622,6 +1622,96 @@ Defines is UAV is capable of having flaps. If ON and AIRPLANE `platform_type` is
 
 ---
 
+### hc_gov_pid_d
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 0 | 255 |
+
+---
+
+### hc_gov_pid_i
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 2 | 255 |
+
+---
+
+### hc_gov_pid_p
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 2 | 255 |
+
+---
+
+### hc_governor_rpm_idleup_1
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1400 | 500 | 30000 |
+
+---
+
+### hc_governor_rpm_idleup_2
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1600 | 500 | 30000 |
+
+---
+
+### hc_governor_rpm_normal
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1200 | 500 | 30000 |
+
+---
+
+### hc_governor_type
+
+OFF = no governor in use | SIMPLE = hold RPM based on throttle | SET = fixed RPM per flight mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF |  |  |
+
+---
+
+### hc_main_motor_number
+
+The number of the motor, that drives the main rotor. This is the motor taken care of by the governor. Usually motor No 0.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
+
+---
+
+### hc_rotor_spoolup_time
+
+The time in seconds for the rotor(s) to spool up (0 = soft spool-up disabled)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 20 |
+
+---
+
 ### heading_hold_rate_limit
 
 This setting limits yaw rotation rate that HEADING_HOLD controller can request from PID inner loop controller. It is independent from manual yaw rate and used only when HEADING_HOLD flight mode is enabled by pilot, RTH or WAYPOINT modes.
@@ -3169,6 +3259,46 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 90 |
+
+---
+
+### nav_hc_althold_collective_type
+
+If set to STICK the FC remembers the collective stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover collective position respectively.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| STICK |  |  |
+
+---
+
+### nav_hc_hover_collective_idleup_1
+
+Helicopter hover collective (idle-up 1) hint for altitude controller. Should be set to approximate throttle value when heli is hovering.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1550 | 1000 | 2000 |
+
+---
+
+### nav_hc_hover_collective_idleup_2
+
+Helicopter hover collective (idle-up 2) hint for altitude controller. Should be set to approximate throttle value when heli is hovering.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1525 | 1000 | 2000 |
+
+---
+
+### nav_hc_hover_collective_normal
+
+Helicopter hover collective (normal/low head-speed) hint for altitude controller. Should be set to approximate throttle value when heli is hovering.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1600 | 1000 | 2000 |
 
 ---
 
@@ -4739,6 +4869,96 @@ Output function assignment mode. AUTO assigns outputs according to the default m
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
+
+---
+
+### pid_scaling_factor_d_pitch
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_d_roll
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_d_yaw
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_i_pitch
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_i_roll
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_i_yaw
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 2 |
+
+---
+
+### pid_scaling_factor_p_pitch
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_p_roll
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 1 |
+
+---
+
+### pid_scaling_factor_p_yaw
+
+_// TODO_
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 2 |
 
 ---
 

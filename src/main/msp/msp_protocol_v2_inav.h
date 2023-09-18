@@ -92,3 +92,5 @@
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
 
+#define MSP2_INAV_OUTPUT_MAPPING_FULL           0x2050  // woga65: send the full 32 bits of timer usage flags
+#define MSP2_INAV_OUTPUT_MAPPING_FULL_EXT       0x2051  // same with timer ID (0x2000 - 0x200F were already in use)

@@ -73,6 +73,7 @@
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_private.h"  //woga65:
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -89,6 +90,11 @@
 
 #include "flight/failsafe.h"
 #include "flight/power_limits.h"
+
+#ifdef USE_VARIABLE_PITCH
+#include "flight/variable_pitch.h"    //woga65:
+#include "flight/governor.h"          //woga65:
+#endif
 
 #include "config/feature.h"
 #include "common/vector.h"
@@ -379,6 +385,14 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
+#if defined(USE_VARIABLE_PITCH)
+static void ensureSoftSpoolupOnGround(void) {   //woga65:
+    if (!isHelicopterFlyingUpright() && !isHelicopterFlyingInverted() && throttleStickIsLow()) {
+        prepareSoftSpoolup();
+    }
+}
+#endif
+
 static void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
@@ -411,8 +425,22 @@ static void processPilotAndFailSafeActions(float dT)
 
         }
 
+#if !defined(USE_VARIABLE_PITCH)    // woga65:
         //Compute THROTTLE command
         rcCommand[THROTTLE] = throttleStickMixedValue();
+#else
+        //Compute COLLECTIVE + THROTTLE command
+        if (STATE(HELICOPTER)) {
+            ensureSoftSpoolupOnGround();
+            rcCommand[COLLECTIVE] = constrain(rxGetChannelValue(COLLECTIVE), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            rcCommand[THROTTLE]   = spoolupRotors(constrain(rxGetChannelValue(THROTTLE), PWM_RANGE_MIN, PWM_RANGE_MAX));
+#ifdef USE_ESC_SENSOR            
+            rcCommand[THROTTLE]   = governorApply(rcCommand[THROTTLE]);
+#endif        
+        } else {
+            rcCommand[THROTTLE] = throttleStickMixedValue();
+        }
+#endif
 
         // Signal updated rcCommand values to Failsafe system
         failsafeUpdateRcCommandValues();
@@ -584,6 +612,12 @@ void tryArm(void)
             beeper(BEEPER_ARMING);
         }
 
+#if defined(USE_VARIABLE_PITCH)
+        if (STATE(HELICOPTER)) {    //woga65:
+            prepareSoftSpoolup();
+        }
+#endif
+
         statsOnArm();
 
         return;
@@ -674,6 +708,37 @@ void processRx(timeUs_t currentTimeUs)
         LED1_OFF;
     }
 
+#if defined(USE_VARIABLE_PITCH)
+
+    // woga65: box headspeed ( BOXHELINORMAL | BOXHELIIDLEUP1 | BOXHELIIDLEUP2 )
+    // set helicopter flight mode accordingly ( HC_NORMAL | HC_IDLE_UP_1 | HC_IDLE_UP_2 )
+    if (STATE(HELICOPTER)) {
+        if (IS_RC_MODE_ACTIVE(BOXHELIIDLEUP1)) {
+            if (!FLIGHT_MODE(HC_IDLE_UP_1)) {
+                ENABLE_FLIGHT_MODE(HC_IDLE_UP_1);
+                DISABLE_FLIGHT_MODE(HC_NORMAL);
+                DISABLE_FLIGHT_MODE(HC_IDLE_UP_2);
+                LED1_ON;    // for degugging
+            }
+        } 
+        else if (IS_RC_MODE_ACTIVE(BOXHELIIDLEUP2)) {
+            if (!FLIGHT_MODE(HC_IDLE_UP_2)) {
+                ENABLE_FLIGHT_MODE(HC_IDLE_UP_2);
+                DISABLE_FLIGHT_MODE(HC_NORMAL);
+                DISABLE_FLIGHT_MODE(HC_IDLE_UP_1);
+                LED1_ON;    // for degugging
+            }
+        }
+        else {
+            ENABLE_FLIGHT_MODE(HC_NORMAL);
+            DISABLE_FLIGHT_MODE(HC_IDLE_UP_1);
+            DISABLE_FLIGHT_MODE(HC_IDLE_UP_2);
+            LED1_OFF;       // for degugging
+        }
+    } 
+
+#endif
+
     /* Flaperon mode */
     if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FLAPERON_AVAILABLE)) {
         if (!FLIGHT_MODE(FLAPERON)) {
@@ -743,54 +808,80 @@ void processRx(timeUs_t currentTimeUs)
         DISABLE_STATE(ANTI_WINDUP);
         pidResetErrorAccumulators();
     }
+#if defined(USE_VARIABLE_PITCH)
+    // On Helicopters we prevent I-term wind-up as long as the aircraft is sitting on the ground.
+    // The helicopter is deemed sitting on the ground if neither upright flying nor inverted flying
+    // is detected. 
+    // This is the case if the gyro is sitting idle and COLLECTIVE pitch is below positive hover pitch
+    // and above negative hover pitch. 
+    // If an accelerometer is present and calibrated, it is used instead of the position of the 
+    // COLLECTIVE stick to determine whether the craft's position is upright or inverted. 
+    else if (STATE(HELICOPTER)) {  //woga65:
+
+        if (!isHelicopterFlyingUpright() && !isHelicopterFlyingInverted()) {
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                ENABLE_STATE(ANTI_WINDUP);
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
+
+    }
+#endif
+
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
-                     ENABLE_STATE(ANTI_WINDUP);
-                 }
-                 else {
-                     DISABLE_STATE(ANTI_WINDUP);
-                 }
-             }
-             else {
-                 DISABLE_STATE(ANTI_WINDUP);
-                 pidResetErrorAccumulators();
-             }
-         }
-         else {
-             DISABLE_STATE(ANTI_WINDUP);
-             if (rollPitchStatus != CENTERED) {
-                 ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
-             }
-         }
+            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+                if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
+                    ENABLE_STATE(ANTI_WINDUP);
+                }
+                else {
+                    DISABLE_STATE(ANTI_WINDUP);
+                }
+            }
+            else {
+                DISABLE_STATE(ANTI_WINDUP);
+                pidResetErrorAccumulators();
+            }
+        }
+        else {
+            DISABLE_STATE(ANTI_WINDUP);
+            if (rollPitchStatus != CENTERED) {
+                ENABLE_STATE(ANTI_WINDUP_DEACTIVATED);
+            }
+        }
     }
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
-         DISABLE_STATE(ANTI_WINDUP);
-         //This case applies only to MR when Airmode management is throttle threshold activated
-         if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
-             pidResetErrorAccumulators();
-         }
-     }
+        DISABLE_STATE(ANTI_WINDUP);
+        //This case applies only to MR when Airmode management is throttle threshold activated
+        if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
+            pidResetErrorAccumulators();
+        }
+    }
 //---------------------------------------------------------
     if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
@@ -902,10 +993,24 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         }
 
         if (thrTiltCompStrength) {
+#if defined(USE_VARIABLE_PITCH)
+            if (STATE(HELICOPTER)) {
+                rcCommand[COLLECTIVE] = constrain(PWM_RANGE_MIN
+                                                + (rcCommand[COLLECTIVE] - PWM_RANGE_MIN) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                                PWM_RANGE_MIN,
+                                                PWM_RANGE_MAX);                 //woga65: calculate tilt compensation on base of collective pitch
+            } else {
+                rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
+                                                + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
+                                                getThrottleIdleValue(),
+                                                motorConfig()->maxthrottle);    //woga65: calculate tilt compensation on base of throttle
+            }
+#else
             rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
                                             + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
                                             getThrottleIdleValue(),
                                             motorConfig()->maxthrottle);
+#endif
         }
     }
     else {

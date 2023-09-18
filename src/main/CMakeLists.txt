@@ -339,6 +339,10 @@ main_sources(COMMON_SRC
     flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
+    flight/variable_pitch.c
+    flight/variable_pitch.h
+    flight/governor.c
+    flight/governor.h
 
     io/beeper.c
     io/beeper.h
@@ -545,6 +549,7 @@ main_sources(COMMON_SRC
     navigation/navigation_fw_launch.c
     navigation/navigation_geo.c
     navigation/navigation_multicopter.c
+    navigation/navigation_helicopter.c
     navigation/navigation_pos_estimator.c
     navigation/navigation_pos_estimator_private.h
     navigation/navigation_pos_estimator_agl.c

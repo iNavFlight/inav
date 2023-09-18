@@ -72,7 +72,8 @@
 
 stickPositions_e rcStickPositions;
 
-FASTRAM int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
+FASTRAM int16_t rcCommand[8];           // interval [1000;2000] for THROTTLE, COLLECTIVE and GYRO_GAIN,
+                                        // [-500;+500] for ROLL/PITCH/YAW (woga65:)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 3);
 
@@ -132,6 +133,16 @@ bool throttleStickIsLow(void)
     return calculateThrottleStatus(feature(FEATURE_REVERSIBLE_MOTORS) ? THROTTLE_STATUS_TYPE_COMMAND : THROTTLE_STATUS_TYPE_RC) == THROTTLE_LOW;
 }
 
+#if defined(USE_VARIABLE_PITCH) // woga65:
+bool FAST_CODE NOINLINE collectiveStickIsLow(void)
+{
+    int value = rxGetChannelValue(COLLECTIVE);
+    const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
+    bool midCollective = value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband);
+    return midCollective;
+}    
+#endif
+
 int16_t throttleStickMixedValue(void)
 {
     int16_t throttleValue;
@@ -180,9 +191,21 @@ static void updateRcStickPositions(void)
     tmp |= ((rxGetChannelValue(YAW) > rxConfig()->mincheck) ? 0x02 : 0x00) << (YAW * 2);
     tmp |= ((rxGetChannelValue(YAW) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (YAW * 2);
 
+#if !defined(USE_VARIABLE_PITCH)
     tmp |= ((rxGetChannelValue(THROTTLE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
     tmp |= ((rxGetChannelValue(THROTTLE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);
-
+#else
+    // woga65: On helicopter, use COLLECTIVE RC-channel value because it is assigned
+    // to the throttle stick while THROTTLE is most likely assigned to a switch.
+    // Keep '<< (THROTTLE * 2)' to not overly complicate things.
+    if (STATE(HELICOPTER) && rxGetChannelValue(THROTTLE) <= PWM_RANGE_MIN) {
+        tmp |= ((rxGetChannelValue(COLLECTIVE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
+        tmp |= ((rxGetChannelValue(COLLECTIVE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);        
+    } else {
+        tmp |= ((rxGetChannelValue(THROTTLE) > rxConfig()->mincheck) ? 0x02 : 0x00) << (THROTTLE * 2);
+        tmp |= ((rxGetChannelValue(THROTTLE) < rxConfig()->maxcheck) ? 0x01 : 0x00) << (THROTTLE * 2);
+    }
+#endif
     rcStickPositions = tmp;
 }
 

@@ -37,12 +37,15 @@ typedef enum rc_alias {
     AUX9,
     AUX10,
     AUX11,
-    AUX12
+    AUX12,
+    COLLECTIVE = AUX2,              //woga65: for heli-like aircraft
+    GYRO_GAIN = AUX3                //...
 } rc_alias_e;
 
 typedef enum {
     THROTTLE_LOW = 0,
-    THROTTLE_HIGH
+    THROTTLE_HIGH,
+    COLLECTIVE_MID                  //woga65: for heli-like aircraft
 } throttleStatus_e;
 
 typedef enum {
@@ -79,7 +82,7 @@ typedef enum {
     THR_HI = (2 << (2 * THROTTLE))
 } stickPositions_e;
 
-extern int16_t rcCommand[4];
+extern int16_t rcCommand[8];                // woga65: handle up to 8 channels by failsafe / navigation
 
 typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
@@ -114,5 +117,9 @@ int16_t throttleStickMixedValue(void);
 rollPitchStatus_e calculateRollPitchCenterStatus(void);
 void processRcStickPositions(bool isThrottleLow);
 bool throttleStickIsLow(void);
+
+#if defined(USE_VARIABLE_PITCH)     //woga65:
+bool collectiveStickIsLow(void);
+#endif
 
 int32_t getRcStickDeflection(int32_t axis);

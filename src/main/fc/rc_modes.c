@@ -68,6 +68,11 @@ static void processAirmodeAirplane(void) {
 }
 
 static void processAirmodeMultirotor(void) {
+#if defined(USE_VARIABLE_PITCH)     // woga65:
+    uint8_t THRUST = STATE(HELICOPTER) ? COLLECTIVE : THROTTLE;
+#else
+    uint8_t THRUST = THROTTLE;
+#endif
     if ((rcControlsConfig()->airmodeHandlingType == STICK_CENTER) || (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE)) {
         if (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE)) {
             ENABLE_STATE(AIRMODE_ACTIVE);
@@ -83,7 +88,7 @@ static void processAirmodeMultirotor(void) {
             DISABLE_STATE(AIRMODE_ACTIVE);
         } else if (
             !STATE(AIRMODE_ACTIVE) &&
-            rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold &&
+            rcCommand[THRUST] > rcControlsConfig()->airmodeThrottleThreshold &&     // woga65:
             (feature(FEATURE_AIRMODE) || IS_RC_MODE_ACTIVE(BOXAIRMODE))
         ) {
             /*
@@ -111,7 +116,7 @@ void processAirmode(void) {
 
     if (STATE(AIRPLANE)) {
         processAirmodeAirplane();
-    } else if (STATE(MULTIROTOR)) {
+    } else if (STATE(MULTIROTOR)) {     // woga65: STATE(HELICOPTER) inherits STATE(MULTIROTOR)
         processAirmodeMultirotor();
     }
 
@@ -143,10 +148,23 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range)
         return false;
     }
 
+    uint8_t channelIndex = auxChannelIndex + NON_AUX_CHANNEL_COUNT;
+
+    // On helicopter like aircraft, the throttle RC-channel is used 
+    // to indicate the headspeed to the FC. For this, AUX2 which is
+    // assigned to the collective pitch is mapped to the throttle 
+    // RC-channel. The headspeed is used to determine,which amount
+    // of collective pitch is needed to hover. woga65:
+#if defined(USE_VARIABLE_PITCH)
+    if (STATE(HELICOPTER) && auxChannelIndex + NON_AUX_CHANNEL_COUNT == COLLECTIVE) {
+        channelIndex = THROTTLE;
+    }
+#endif
+
     // No need to constrain() here, since we're testing for a closed range defined
     // by the channelRange_t. If channelValue has an invalid value, the test will
     // be false anyway.
-    uint16_t channelValue = rxGetChannelValue(auxChannelIndex + NON_AUX_CHANNEL_COUNT);
+    uint16_t channelValue = rxGetChannelValue(channelIndex);
     return (channelValue >= CHANNEL_RANGE_MIN + (range->startStep * CHANNEL_RANGE_STEP_WIDTH) &&
             channelValue < CHANNEL_RANGE_MIN + (range->endStep * CHANNEL_RANGE_STEP_WIDTH));
 }

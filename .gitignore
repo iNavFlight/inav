@@ -6,13 +6,14 @@
 *.bak
 *.uvgui.*
 .project
+.gitignore
 .settings
 .cproject
 .cache/
 __pycache__
 startup_stm32f10x_md_gcc.s
 .vagrant/
-#.vscode/
+.vscode/
 cov-int*
 /build/
 /obj/
@@ -32,5 +33,3 @@ README.pdf
 # local changes only
 make/local.mk
 launch.json
-.vscode/tasks.json
-.vscode/c_cpp_properties.json

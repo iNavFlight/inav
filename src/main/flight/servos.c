@@ -322,6 +322,12 @@ void servoMixer(float dT)
     input[INPUT_RC_CH16]     = GET_RX_CHANNEL_INPUT(AUX12);
 #undef GET_RX_CHANNEL_INPUT
 
+#if defined(USE_VARIABLE_PITCH)
+    if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {               // woga65:
+        input[INPUT_RC_CH7] = rcCommand[COLLECTIVE] - PWM_RANGE_MIDDLE;     // Derives from rcCommand, interval [1000:2000] and must be [-500:+500] here
+    }
+#endif
+
 #ifdef USE_SIMULATOR
 	simulatorData.input[INPUT_STABILIZED_ROLL] = input[INPUT_STABILIZED_ROLL];
 	simulatorData.input[INPUT_STABILIZED_PITCH] = input[INPUT_STABILIZED_PITCH];

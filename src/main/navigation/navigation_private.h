@@ -43,7 +43,7 @@
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
-#define MC_LAND_SAFE_SURFACE                5.0f    // cm
+#define MC_LAND_SAFE_SURFACE                10.0f   // cm
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
@@ -422,7 +422,11 @@ typedef struct {
     int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
 
     /* Internals & statistics */
+#if defined(USE_VARIABLE_PITCH)                             // woga65: more channels needed for variable pitch
+    int16_t                     rcAdjustment[8];
+#else
     int16_t                     rcAdjustment[4];
+#endif    
     float                       totalTripDistance;
 } navigationPosControl_t;
 
@@ -451,14 +455,13 @@ bool isLandingDetected(void);
 void resetLandingDetector(void);
 bool isFlightDetected(void);
 bool isFixedWingFlying(void);
-bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
 flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state);
 
 void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-void setDesiredSurfaceOffset(float surfaceOffset);
+void setDesiredSurfaceOffset(float surfaceOffset);  // NOT USED
 void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
 void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode);
 
@@ -490,8 +493,29 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 
 bool isMulticopterLandingDetected(void);
+bool isMulticopterFlying(void);
 
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
+
+#if defined(USE_VARIABLE_PITCH)
+
+/* Helicopter-specific functions */     //woga65:
+void setupHelicopterAltitudeController(void);
+bool adjustHelicopterAltitudeFromRCInput(void);
+void applyHelicopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
+
+void resetHelicopterAltitudeController(void);
+void resetHelicopterHeadingController(void);
+
+bool isHelicopterFlying(void);
+bool isHelicopterFlyingUpright(void);
+bool isHelicopterFlyingInverted(void);
+bool isHelicopterLandingDetected(void);
+
+/* Multicopter-specific functions used by helicopter navigation */
+void applyMulticopterPositionController(timeUs_t currentTimeUs);
+
+#endif
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);

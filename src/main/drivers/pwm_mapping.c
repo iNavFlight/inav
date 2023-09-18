@@ -378,7 +378,19 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             } else if (timHw->usageFlags & TIM_USE_MC_MOTOR && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
                 type = MAP_TO_MOTOR_OUTPUT;
             }
-        } else {
+        }
+#if defined(USE_VARIABLE_PITCH)        
+        else if (mixerConfig()->platformType == PLATFORM_HELICOPTER) {
+            // HELI or HELI-QUAD (a few motors and a lot of servos) woga65:
+            if (timHw->usageFlags & TIM_USE_HC_SERVO) {
+                type = MAP_TO_SERVO_OUTPUT;
+            }
+            else if (timHw->usageFlags & TIM_USE_HC_MOTOR) {
+                type = MAP_TO_MOTOR_OUTPUT;
+            }
+        }
+#endif        
+        else {
             // Make sure first motorCount motor outputs get assigned to motor
             if ((timHw->usageFlags & TIM_USE_FW_MOTOR) && (motorIdx < motorCount)) {
                 timHw->usageFlags = timHw->usageFlags & ~TIM_USE_FW_SERVO;

@@ -78,7 +78,12 @@ typedef enum {
     BOXUSER4         = 49,
     BOXCHANGEMISSION = 50,
     BOXBEEPERMUTE    = 51,
-    BOXMULTIFUNCTION = 52,
+#if defined(USE_VARIABLE_PITCH)    
+    BOXHELINORMAL    = 52,  // woga65: helicopter flight modes / headspeeds
+    BOXHELIIDLEUP1   = 53,
+    BOXHELIIDLEUP2   = 54,
+#endif    
+    BOXMULTIFUNCTION = 55,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -103,7 +108,7 @@ typedef struct boxBitmask_s { BITARRAY_DECLARE(bits, CHECKBOX_ITEM_COUNT); } box
 // steps are 25 apart
 // a value of 0 corresponds to a channel value of 900 or less
 // a value of 48 corresponds to a channel value of 2100 or more
-// 48 steps between 900 and 1200
+// 48 steps correspond to a range of 1200 between 900 and 2100
 typedef struct channelRange_s {
     uint8_t startStep;
     uint8_t endStep;
