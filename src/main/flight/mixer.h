@@ -77,7 +77,6 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
-    uint8_t outputMode;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
