@@ -7,14 +7,14 @@
 #include "cms/cms_types.h"
 
 typedef enum {
-	CMS_KEY_NONE,
-	CMS_KEY_UP,
-	CMS_KEY_DOWN,
-	CMS_KEY_LEFT,
-	CMS_KEY_RIGHT,
-	CMS_KEY_ESC,
-	CMS_KEY_MENU,
-	CMS_KEY_SAVEMENU
+    CMS_KEY_NONE,
+    CMS_KEY_UP,
+    CMS_KEY_DOWN,
+    CMS_KEY_LEFT,
+    CMS_KEY_RIGHT,
+    CMS_KEY_ESC,
+    CMS_KEY_MENU,
+    CMS_KEY_SAVEMENU
 } cms_key_e;
 
 
