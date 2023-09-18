@@ -1522,14 +1522,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
                 sbufWriteU8(dst, timerHardware[i].usageFlags);      //woga65: kept for backward compaibility
             }
-        break;
-
-    case MSP2_INAV_OUTPUT_MAPPING_FULL:
-        for (uint8_t i = 0; i < timerHardwareCount; ++i)
-            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
-                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: send the full 32 bits of timer usage flags per timer
-            }
-        break;        
+        break;     
 
     case MSP2_INAV_OUTPUT_MAPPING_EXT:
         for (uint8_t i = 0; i < timerHardwareCount; ++i)
@@ -1542,7 +1535,29 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
             }
         break;
-    
+
+    /* @todo: Waste of memory. 32 bit timer usage should be  *
+     * included in MSP2_INAV_OUTPUT_MAPPING_EXT above.       */
+    case MSP2_INAV_OUTPUT_MAPPING_FULL:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: send the full 32 bits of timer usage flags per timer
+            }
+        break;
+
+    case MSP2_INAV_OUTPUT_MAPPING_FULL_EXT:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                #if defined(SITL_BUILD)
+                sbufWriteU8(dst, i);
+                #else
+                sbufWriteU8(dst, timer2id(timerHardware[i].tim));
+                #endif
+                sbufWriteU32(dst, timerHardware[i].usageFlags);     //woga65: send the full 32 bits of timer usage flags per timer
+            }
+        break;
+    /* ---------------------------------------------------- */
+
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
