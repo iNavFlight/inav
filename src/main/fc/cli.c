@@ -156,6 +156,13 @@ static const char * const featureNames[] = {
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
+static const char * outputModeNames[] = {
+    "AUTO",
+    "MOTORS",
+    "SERVOS",
+    NULL
+};
+
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
     "NAV_ACC",
@@ -2514,6 +2521,82 @@ static void cliOsdLayout(char *cmdline)
 
 #endif
 
+static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, const timerOverride_t* defaultTimerOverride, int timer)
+{
+    const char *format = "timer_output_mode %d %s";
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        if (timer < 0 || timer == i) {
+            outputMode_e mode = to[i].outputMode;
+            bool equalsDefault = false;
+            if(defaultTimerOverride) {
+                outputMode_e defaultMode = defaultTimerOverride[i].outputMode;
+                equalsDefault = mode == defaultMode;
+                cliDefaultPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[defaultMode]);
+            }
+            cliDumpPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[mode]);
+        }
+    }
+}
+
+static void cliTimerOutputMode(char *cmdline)
+{
+    char * saveptr;
+
+    int timer = -1;
+    uint8_t mode;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    int ii;
+
+    for (ii = 0; tok != NULL; ii++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ii) {
+            case 0:
+                timer = fastA2I(tok);
+                if (timer < 0 || timer >= HARDWARE_TIMER_DEFINITION_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                if(!sl_strcasecmp("AUTO", tok)) {
+                    mode =  OUTPUT_MODE_AUTO;
+                } else if(!sl_strcasecmp("MOTORS", tok)) {
+                    mode = OUTPUT_MODE_MOTORS;
+                } else if(!sl_strcasecmp("SERVOS", tok)) {
+                    mode = OUTPUT_MODE_SERVOS;
+                } else {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+           default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (ii) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            // No args, or just timer. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        case 2:
+            timerOverridesMutable(timer)->outputMode = mode;
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
+    }
+
+}
+
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
 {
     uint32_t mask = featureConfig->enabledFeatures;
@@ -3667,6 +3750,9 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
+        cliPrintHashLine("Timer overrides");
+        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, timerOverrides(0), -1);
+
         cliPrintHashLine("Mixer: motor mixer");
         cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
 
@@ -3983,6 +4069,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)

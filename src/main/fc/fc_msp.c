@@ -1293,12 +1293,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
         sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
-#if !defined(USE_VARIABLE_PITCH)    //woga65:
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
-#else
+#if defined(USE_VARIABLE_PITCH)    //woga65:
         sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[0]);
-        //sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[1]);
-        //sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[2]);
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[1]);
+        sbufWriteU16(dst, helicopterConfig()->nav_hc_hover_collective[2]);
 #endif
         break;
 
@@ -1532,6 +1531,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         break;        
 
+    case MSP2_INAV_OUTPUT_MAPPING_EXT:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                #if defined(SITL_BUILD)
+                sbufWriteU8(dst, i);
+                #else
+                sbufWriteU8(dst, timer2id(timerHardware[i].tim));
+                #endif
+                sbufWriteU8(dst, timerHardware[i].usageFlags);
+            }
+        break;
+    
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
@@ -2279,7 +2290,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #else
     case MSP_SET_NAV_POSHOLD:
-        if (dataSize == 13) {   //woga65: (datasize == 17)
+        if (dataSize == 19) {   //woga65:
             navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
             navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
             navConfigMutable()->general.max_auto_climb_rate = sbufReadU16(src);
@@ -2287,9 +2298,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
             navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
             navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
+            currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
             helicopterConfigMutable()->nav_hc_hover_collective[0] = sbufReadU16(src);
-            //helicopterConfigMutable()->nav_hc_hover_collective[1] = sbufReadU16(src);
-            //helicopterConfigMutable()->nav_hc_hover_collective[2] = sbufReadU16(src);
+            helicopterConfigMutable()->nav_hc_hover_collective[1] = sbufReadU16(src);
+            helicopterConfigMutable()->nav_hc_hover_collective[2] = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
         break;        
@@ -3695,7 +3707,43 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
 #endif
-
+#ifndef SITL_BUILD
+    case MSP2_INAV_TIMER_OUTPUT_MODE:
+        if (dataSize == 0) {
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+                sbufWriteU8(dst, i);
+                sbufWriteU8(dst, timerOverrides(i)->outputMode);
+            }
+            *ret = MSP_RESULT_ACK;
+        } else if(dataSize == 1) {
+            uint8_t timer = sbufReadU8(src);
+            if(timer < HARDWARE_TIMER_DEFINITION_COUNT) {
+                sbufWriteU8(dst, timer);
+                sbufWriteU8(dst, timerOverrides(timer)->outputMode);
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+        } else {
+            *ret = MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_SET_TIMER_OUTPUT_MODE:
+        if(dataSize == 2) {
+            uint8_t timer = sbufReadU8(src);
+            uint8_t outputMode = sbufReadU8(src);
+            if(timer < HARDWARE_TIMER_DEFINITION_COUNT) {
+                timerOverridesMutable(timer)->outputMode = outputMode;
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+        } else {
+            *ret = MSP_RESULT_ERROR;
+        }
+        break;
+#endif 
+    
     default:
         // Not handled
         return false;
