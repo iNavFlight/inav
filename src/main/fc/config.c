@@ -64,6 +64,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
+#include "flight/ez_tune.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
