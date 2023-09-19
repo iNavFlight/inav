@@ -504,7 +504,6 @@ main_sources(COMMON_SRC
     io/gps.h
     io/gps_ublox.c
     io/gps_ublox_utils.c
-    io/gps_nmea.c
     io/gps_msp.c
     io/gps_fake.c
     io/gps_private.h
