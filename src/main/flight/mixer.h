@@ -119,6 +119,7 @@ extern int mixerThrottleCommand;
 
 int getThrottleIdleValue(void);
 int16_t getThrottlePercent(bool);
+uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
