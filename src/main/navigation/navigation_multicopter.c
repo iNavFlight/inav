@@ -121,7 +121,7 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    posControl.rcAdjustment[THROTTLE] = constrain(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, getThrottleIdleValue(), motorConfig()->maxthrottle);
+    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, false);
 }
 
 bool adjustMulticopterAltitudeFromRCInput(void)
@@ -914,13 +914,14 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[YAW] = 0;
     rcCommand[ROLL] = 0;
     rcCommand[PITCH] = 0;
-    rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
 
     /* Altitude sensors gone haywire, attempt to land regardless */
     if (posControl.flags.estAltStatus < EST_USABLE) {
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             rcCommand[THROTTLE] = getThrottleIdleValue();
+            return;
         }
+        rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->failsafe_throttle, true);
         return;
     }
 

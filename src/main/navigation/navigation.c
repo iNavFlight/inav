@@ -95,7 +95,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 5);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -1806,8 +1806,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 {
     UNUSED(previousState);
 
-    disarm(DISARM_NAVIGATION);
-
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -2840,7 +2838,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
         }
     } else if (STATE(LANDING_DETECTED)) {
         pidResetErrorAccumulators();
-        if (navConfig()->general.flags.disarm_on_landing) {
+        if (navConfig()->general.flags.disarm_on_landing && !FLIGHT_MODE(FAILSAFE_MODE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
             disarm(DISARM_LANDING);
         } else if (!navigationInAutomaticThrottleMode()) {

@@ -19,6 +19,8 @@
 
 #include "config/parameter_group.h"
 
+#include "drivers/timer.h"
+
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_SUPPORTED_MOTORS TARGET_MOTOR_COUNT
 #else
@@ -64,12 +66,17 @@ typedef struct motorMixer_s {
 
 PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
+typedef struct timerOverride_s {
+    uint8_t outputMode;
+} timerOverride_t;
+
+PG_DECLARE_ARRAY(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides);
+
 typedef struct mixerConfig_s {
     int8_t motorDirectionInverted;
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
-    uint8_t outputMode;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -112,6 +119,7 @@ extern int mixerThrottleCommand;
 
 int getThrottleIdleValue(void);
 int16_t getThrottlePercent(bool);
+uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
