@@ -26,7 +26,7 @@ Install Git, Make, gcc and Ruby
 -  `sudo apt-get install git make cmake ruby`
 
 Install python and python-yaml to allow updates to settings.md
--  `sudo apt-get install python3 python-yaml`
+-  `sudo apt-get install python3`
 
 ### CMAKE and Ubuntu 18_04
 

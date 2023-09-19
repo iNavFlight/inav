@@ -138,6 +138,7 @@ typedef enum {
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
+    DEVHW_DLVR,         // Pitot meter
     DEVHW_M25P16,       // SPI NOR flash
     DEVHW_W25N01G,      // SPI 128MB flash
     DEVHW_UG2864,       // I2C OLED display
