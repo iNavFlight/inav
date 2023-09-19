@@ -48,7 +48,6 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
                          .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
                          .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, // This flag is not available in CLI and used by Configurator only
-                         .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
                          .motorstopOnLow = SETTING_MOTORSTOP_ON_LOW_DEFAULT,
                          .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT,
                          .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,

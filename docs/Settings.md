@@ -4762,16 +4762,6 @@ Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF'
 
 ---
 
-### output_mode
-
-Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
-
-| Default | Min | Max |
-| --- | --- | --- |
-| AUTO |  |  |
-
----
-
 ### pid_iterm_limit_percent
 
 Limits max/min I-term value in stabilization PID controller. It solves the problem of servo saturation before take-off/throwing the airplane into the air. Or multirotors with low authority. By default, error accumulated in I-term can not exceed 33% of total pid throw (around 165us on deafult pidsum_limit of pitch/roll). Set 0 to disable completely.
@@ -4878,7 +4868,7 @@ Selection of pitot hardware.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| NONE |  |  |
+| VIRTUAL |  |  |
 
 ---
 

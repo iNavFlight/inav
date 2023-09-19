@@ -1874,8 +1874,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 {
     UNUSED(previousState);
 
-    disarm(DISARM_NAVIGATION);
-
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -2972,7 +2970,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
         }
     } else if (STATE(LANDING_DETECTED)) {
         pidResetErrorAccumulators();
-        if (navConfig()->general.flags.disarm_on_landing) {
+        if (navConfig()->general.flags.disarm_on_landing && !FLIGHT_MODE(FAILSAFE_MODE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
             disarm(DISARM_LANDING);
         } else if (!navigationInAutomaticThrottleMode()) {

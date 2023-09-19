@@ -112,9 +112,6 @@ tables:
     enum: smartportFuelUnit_e
   - name: platform_type
     values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
-  - name: output_mode
-    values: ["AUTO", "MOTORS", "SERVOS"]
-    enum: outputMode_e
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
@@ -588,7 +585,7 @@ groups:
     members:
       - name: pitot_hardware
         description: "Selection of pitot hardware."
-        default_value: "NONE"
+        default_value: "VIRTUAL"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
         min: 0
@@ -1164,11 +1161,6 @@ groups:
         field: mixer_config.appliedMixerPreset
         min: -1
         max: INT16_MAX
-      - name: output_mode
-        description: "Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors"
-        default_value: "AUTO"
-        field: mixer_config.outputMode
-        table: output_mode
       - name: motorstop_on_low
         description: "If enabled, motor will stop when throttle is low on this mixer_profile"
         default_value: OFF
