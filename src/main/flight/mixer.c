@@ -89,10 +89,9 @@ PG_RESET_TEMPLATE(mixerConfig_t, mixerConfig,
     .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
     .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
     .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, //This flag is not available in CLI and used by Configurator only
-    .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 10);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = SETTING_MOTOR_PWM_PROTOCOL_DEFAULT,
