@@ -1072,6 +1072,16 @@ S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer da
 
 ---
 
+### fw_acro_atti_stab
+
+Activates attitude stabilisation for ACRO mode when stick centered and roll/pitch angles within ANGLE mode bank angle limits (non inverted flight only)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.

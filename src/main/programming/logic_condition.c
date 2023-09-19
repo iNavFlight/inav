@@ -835,10 +835,6 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(HORIZON_MODE);
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ATTIMODE:
-            return (bool) FLIGHT_MODE(ATTIHOLD_MODE);
-            break;
-
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
             return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
             break;

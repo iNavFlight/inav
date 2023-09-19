@@ -104,7 +104,6 @@ typedef enum {
     TURN_ASSISTANT        = (1 << 14),
     TURTLE_MODE           = (1 << 15),
     SOARING_MODE          = (1 << 16),
-    ATTIHOLD_MODE         = (1 << 17),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
@@ -162,7 +161,6 @@ typedef enum {
     FLM_CRUISE,
     FLM_LAUNCH,
     FLM_FAILSAFE,
-    FLM_ATTIHOLD,
     FLM_COUNT
 } flightModeForTelemetry_e;
 

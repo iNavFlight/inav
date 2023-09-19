@@ -195,7 +195,7 @@ tables:
     enum: gpsBaudRate_e
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
-    enum: navMcAltHoldThrottle_e    
+    enum: navMcAltHoldThrottle_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -2149,6 +2149,11 @@ groups:
         field: fixedWingLevelTrimGain
         min: 0
         max: 20
+      - name: fw_acro_atti_stab
+        description: "Activates attitude stabilisation for ACRO mode when stick centered and roll/pitch angles within ANGLE mode bank angle limits (non inverted flight only)"
+        default_value: OFF
+        field: fixedWingAcroAttiStab
+        type: bool
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
