@@ -1058,7 +1058,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             legacyLedConfig |= ledConfig->led_function << shiftCount;
             shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_overlay & 0x3F) << (shiftCount);
-            shiftCount += 6; 
+            shiftCount += 6;
             legacyLedConfig |= (ledConfig->led_color) << (shiftCount);
             shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_direction) << (shiftCount);
@@ -1289,7 +1289,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.max_manual_speed);
         sbufWriteU16(dst, navConfig()->general.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
-        sbufWriteU8(dst, navConfig()->general.flags.use_thr_mid_for_althold);
+        sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
         break;
 
@@ -1516,6 +1516,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         break;
 
+    case MSP2_INAV_OUTPUT_MAPPING_EXT:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                #if defined(SITL_BUILD)
+                sbufWriteU8(dst, i);
+                #else
+                sbufWriteU8(dst, timer2id(timerHardware[i].tim));
+                #endif
+                sbufWriteU8(dst, timerHardware[i].usageFlags);
+            }
+        break;
+    
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
@@ -2255,7 +2267,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
             navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
             navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
-            navConfigMutable()->general.flags.use_thr_mid_for_althold = sbufReadU8(src);
+            navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
             currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
@@ -2757,7 +2769,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             ledConfig->led_position = legacyConfig & 0xFF;
             ledConfig->led_function = (legacyConfig >> 8) & 0xF;
             ledConfig->led_overlay = (legacyConfig >> 12) & 0x3F;
-            ledConfig->led_color = (legacyConfig >> 18) & 0xF; 
+            ledConfig->led_color = (legacyConfig >> 18) & 0xF;
             ledConfig->led_direction = (legacyConfig >> 22) & 0x3F;
             ledConfig->led_params = (legacyConfig >> 28) & 0xF;
 
@@ -3484,7 +3496,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
-        
+
         // Check the MSP version of simulator
 		if (tmp_u8 != SIMULATOR_MSP_VERSION) {
             break;
@@ -3510,7 +3522,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 // Review: Many states were affected. Reboot?
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
-			}   
+			}
         } else {
 			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
@@ -3520,7 +3532,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                     DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
 				    baroStartCalibration();
                 }
-#endif			
+#endif
 
 #ifdef USE_MAG
 				if (compassConfig()->mag_hardware != MAG_NONE) {
@@ -3580,7 +3592,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				} else {
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
-                
+
                 // Get the acceleration in 1G units
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
@@ -3588,7 +3600,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				acc.accVibeSq[X] = 0.0f;
 				acc.accVibeSq[Y] = 0.0f;
 				acc.accVibeSq[Z] = 0.0f;
-                
+
                 // Get the angular velocity in DPS
 				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
@@ -3623,7 +3635,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                     simulatorData.airSpeed = sbufReadU16(src);
 			    } else {
                     if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
-                        sbufReadU16(src); 
+                        sbufReadU16(src);
                     }
                 }
 
@@ -3663,7 +3675,43 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
 #endif
-
+#ifndef SITL_BUILD
+    case MSP2_INAV_TIMER_OUTPUT_MODE:
+        if (dataSize == 0) {
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+                sbufWriteU8(dst, i);
+                sbufWriteU8(dst, timerOverrides(i)->outputMode);
+            }
+            *ret = MSP_RESULT_ACK;
+        } else if(dataSize == 1) {
+            uint8_t timer = sbufReadU8(src);
+            if(timer < HARDWARE_TIMER_DEFINITION_COUNT) {
+                sbufWriteU8(dst, timer);
+                sbufWriteU8(dst, timerOverrides(timer)->outputMode);
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+        } else {
+            *ret = MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_SET_TIMER_OUTPUT_MODE:
+        if(dataSize == 2) {
+            uint8_t timer = sbufReadU8(src);
+            uint8_t outputMode = sbufReadU8(src);
+            if(timer < HARDWARE_TIMER_DEFINITION_COUNT) {
+                timerOverridesMutable(timer)->outputMode = outputMode;
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+        } else {
+            *ret = MSP_RESULT_ERROR;
+        }
+        break;
+#endif 
+    
     default:
         // Not handled
         return false;
