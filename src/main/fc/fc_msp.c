@@ -696,6 +696,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
             sbufWriteU8(dst, constrain(pidBank()->pid[i].FF, 0, 255));
         }
+        #ifdef USE_EZ_TUNE
+            ezTuneUpdate();
+        #endif
         break;
 
     case MSP_PIDNAMES:

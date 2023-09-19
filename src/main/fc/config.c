@@ -423,6 +423,9 @@ bool setConfigProfile(uint8_t profileIndex)
     systemConfigMutable()->current_profile_index = profileIndex;
     // set the control rate profile to match
     setControlRateProfile(profileIndex);
+#ifdef USE_EZ_TUNE
+    ezTuneUpdate();
+#endif
     return ret;
 }
 
