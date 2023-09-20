@@ -1466,7 +1466,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
-        sbufWriteU16(dst, 0);
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, mixerConfig()->motorstopOnLow);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
@@ -2867,7 +2868,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_SET_MIXER:
         if (dataSize == 9) {
 	    mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
-	    sbufReadU16(src); // Was yaw_jump_prevention_limit
+	    sbufReadU8(src); // Was yaw_jump_prevention_limit
+        mixerConfigMutable()->motorstopOnLow = sbufReadU8(src);
 	    mixerConfigMutable()->platformType = sbufReadU8(src);
 	    mixerConfigMutable()->hasFlaps = sbufReadU8(src);
 	    mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);

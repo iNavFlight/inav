@@ -73,7 +73,7 @@ typedef struct {
 } motorProtocolProperties_t;
 
 bool pwmMotorAndServoInit(void);
-bool check_pwm_assigned_to_motor_or_servo(void);
+bool checkPwmAssignedToMotorOrServo(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);

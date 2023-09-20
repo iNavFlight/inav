@@ -193,7 +193,7 @@ bool checkMixerProfileHotSwitchAvalibility(void)
 #if defined(SITL_BUILD)
     bool MCFW_pwm_settings_valid = true;
 #else
-    bool MCFW_pwm_settings_valid = check_pwm_assigned_to_motor_or_servo();
+    bool MCFW_pwm_settings_valid = checkPwmAssignedToMotorOrServo();
 #endif
     uint8_t platform_type0 = mixerConfigByIndex(0)->platformType;
     uint8_t platform_type1 = mixerConfigByIndex(1)->platformType;

@@ -228,7 +228,7 @@ static void timerHardwareOverride(timerHardware_t * timer) {
     }
 }
 
-bool check_pwm_assigned_to_motor_or_servo(void)
+bool checkPwmAssignedToMotorOrServo(void)
 {  
     // Check TIM_USE_FW_* and TIM_USE_MC_* is consistent, If so, return true, means the pwm mapping will remain same between FW and MC
     bool pwm_assigned_to_motor_or_servo = true;
