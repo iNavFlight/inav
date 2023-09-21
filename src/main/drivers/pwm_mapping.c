@@ -211,20 +211,6 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 }
 
 static void timerHardwareOverride(timerHardware_t * timer) {
-    if (mixerConfig()->outputMode == OUTPUT_MODE_SERVOS) {
-        //Motors are rewritten as servos
-        if (TIM_IS_MOTOR(timer->usageFlags)) {
-            timer->usageFlags &= ~TIM_USE_MOTOR;
-            timer->usageFlags |= TIM_USE_SERVO;
-        }
-    } else if (mixerConfig()->outputMode == OUTPUT_MODE_MOTORS) {
-        // Servos are rewritten as motors
-        if (TIM_IS_SERVO(timer->usageFlags)) {
-            timer->usageFlags &= ~TIM_USE_SERVO;
-            timer->usageFlags |= TIM_USE_MOTOR;
-        }
-    }
-
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
             if (TIM_IS_SERVO(timer->usageFlags)) {
