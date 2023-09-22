@@ -43,7 +43,8 @@ timerHardware_t timerHardware[] = {
 
     // { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM9, TIM_USE_MOTOR                    | TIM_USE_SERVO }, // MOTOR_3
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !(defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_SERVO                0, 0), // S5_OUT
+
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S5_OUT
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S6_OUT
 #elif defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_ANY,                                                           0, 0), // S5_OUT SOFTSERIAL
