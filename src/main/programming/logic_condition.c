@@ -704,6 +704,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(attitude.values.pitch / 10, -180, 180);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW: // deg
+            return constrain(attitude.values.yaw / 10, 0, 360);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ARMED: // 0/1
             return ARMING_FLAG(ARMED) ? 1 : 0;
             break;
