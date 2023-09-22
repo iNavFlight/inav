@@ -167,7 +167,7 @@ static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 6);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -297,8 +297,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .fixedWingLevelTrim = SETTING_FW_LEVEL_PITCH_TRIM_DEFAULT,
         .fixedWingLevelTrimGain = SETTING_FW_LEVEL_PITCH_GAIN_DEFAULT,
-
-        .fixedWingAcroAttiStab = SETTING_FW_ACRO_ATTI_STAB_DEFAULT,
 
 #ifdef USE_SMITH_PREDICTOR
         .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,
@@ -1109,39 +1107,42 @@ void FAST_CODE pidController(float dT)
 #endif
     }
 
-    // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ACRO attitude stabilisation
+    // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ATTI_MODE
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
-    static bool resetAcroStab = true;
+
+    static bool restartAttiMode = true;
+    if (!restartAttiMode) {
+        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE);  // set restart flag if attihold_mode not active
+    }
 
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || isFlightAxisAngleOverrideActive(axis)) {
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ATTIHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
+
+            if (FLIGHT_MODE(ATTIHOLD_MODE) && !isFlightAxisAngleOverrideActive(axis)) {
+                static int16_t attiHoldTarget[2];
+
+                if (restartAttiMode) {      // set target attitude to current attitude when initialised
+                    attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
+                    attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
+                    restartAttiMode = false;
+                }
+
+                uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
+                if (calculateRollPitchCenterStatus() == CENTERED) {
+                    angleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
+                } else {
+                    angleTarget = constrain(attitude.raw[axis] + angleTarget, -bankLimit, bankLimit);
+                    attiHoldTarget[axis] = attitude.raw[axis];
+                }
+            }
 
             // Apply the Level PID controller
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
-            resetAcroStab = true;
-        } else if (STATE(AIRPLANE) && pidProfile()->fixedWingAcroAttiStab) {
-            /* Provides fixed wing acro attitude stabilisation to avoid attitude drift at zero rates
-             * Only active for non inverted flight within Angle mode bank angle limits */
-            static int16_t attiHoldTarget[2];
-
-            if (resetAcroStab) {    // set target attitude to current attitude when initialised
-                attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
-                attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
-                resetAcroStab = false;
-            }
-
-            uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
-            bool isNotinverted = ABS(attitude.raw[FD_ROLL]) < pidProfile()->max_angle_inclination[FD_ROLL];
-            if (calculateRollPitchCenterStatus() == CENTERED && ABS(attitude.raw[axis]) <= bankLimit && isNotinverted) {
-                pidLevel(constrain(attiHoldTarget[axis], -bankLimit, bankLimit), &pidState[axis], axis, horizonRateMagnitude, dT);
-            } else {
-                attiHoldTarget[axis] = attitude.raw[axis];
-            }
         }
     }
 

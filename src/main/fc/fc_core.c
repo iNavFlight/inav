@@ -644,15 +644,18 @@ void processRx(timeUs_t currentTimeUs)
         processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
     }
 
-    /* Disable modes initially, will be enabled as required with priority ANGLE > HORIZON */
+    /* Disable modes initially, will be enabled as required with priority ANGLE > HORIZON > ATTITUDE HOLD */
     DISABLE_FLIGHT_MODE(ANGLE_MODE);
     DISABLE_FLIGHT_MODE(HORIZON_MODE);
+    DISABLE_FLIGHT_MODE(ATTIHOLD_MODE);
 
     if (sensors(SENSOR_ACC)) {
         if (IS_RC_MODE_ACTIVE(BOXANGLE) || failsafeRequiresAngleMode() || navigationRequiresAngleMode()) {
             ENABLE_FLIGHT_MODE(ANGLE_MODE);
         } else if (IS_RC_MODE_ACTIVE(BOXHORIZON)) {
             ENABLE_FLIGHT_MODE(HORIZON_MODE);
+        } else if (STATE(AIRPLANE) && IS_RC_MODE_ACTIVE(BOXATTIHOLD)) {
+            ENABLE_FLIGHT_MODE(ATTIHOLD_MODE);
         }
     }
 
