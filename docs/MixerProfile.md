@@ -9,21 +9,15 @@ By default, switching between profiles requires reboot to take affect. However, 
 Please note that this is an emerging / experimental capability that will require some effort by the pilot to implement.
 
 ## Setup for VTOL
-
-- For mixer profile switching it is necessary to keep motor and servo PWM mapping consistent between Fixed-Wing (FW) and Multi-rotor (MR) profiles
-- Traditionally, FW and MR have had different enumerations to define the PWM mappings. For VTOL operation it is necessary to set the `timer_output_mode` overrides to allow a consistent enumeration and thus mapping between MR and FW modes.
-- A VTOL specific FC target was required in the early stage of the development, but thanks to `timer_output_mode` overrides, It is not needed anymore.
-- In operation, it is necessary to set the `mixer_profile` and the `pid_profile` separately and to set a [RC mode](#rc-mode-settings) to switch between them.
-
+- A VTOL specific FC target or `timer_output_mode` overrides was required in the early stage of the development, But since unified mapping introduced in INAV 7.0 It is not needed anymore.
+- ~~For mixer profile switching it is necessary to keep motor and servo PWM mapping consistent between Fixed-Wing (FW) and Multi-rotor (MR) profiles~~
+- ~~Traditionally, FW and MR have had different enumerations to define the PWM mappings. For VTOL operation it is necessary to set the `timer_output_mode` overrides to allow a consistent enumeration and thus mapping between MR and FW modes.~~
+- ~~In operation, it is necessary to set the `mixer_profile` and the `pid_profile` separately and to set a [RC mode](#rc-mode-settings) to switch between them.~~
 ## Configuration
 ### Timer overrides
-![Alt text](Screenshots/timer_outputs.png)
-
-Set Output mode to `AUTO`. And set all servo/motor Timer outputs  to `MOTORS` or `SERVOS`. This will result in a consistent mapping between MR and FW modes.
-A Sanity check on timer overrides settings could potentially block Profile Switch for safety reasons.
-
+Set the timer overrides for the outputs that you are intended to use.
 For SITL builds, is not necessary to set timer overrides.
-
+Please note that there are some display issues on the configurator that will show wrong mapping on the mixer_profile which has less motor/servo compared with the another
 ### Profile Switch
 
 Setup the FW mode and MR mode separately in two different mixer profiles:
