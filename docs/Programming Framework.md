@@ -1,17 +1,28 @@
 # INAV Programming Framework
 
-INAV Programming Framework (abbr. IPF) is a mechanism that allows to evaluate cenrtain flight parameters (RC channels, switches, altitude, distance, timers, other logic conditions) and use the value of evaluated expression in different places of INAV. Currently, the result of LCs can be used in:
+INAV Programming Framework (IPF) is a mechanism that allows you to to create 
+custom functionality in INAV. You can choose for certain actions to be done,
+based on custom conditions you select.
+
+Logic conditions can be based on things such as RC channel values, switches, altitude, 
+distance, timers, etc. The conditions you create  can also make use of other conditions
+you've entered previously.
+The results can be used in:
 
 * [Servo mixer](Mixer.md) to activate/deactivate certain servo mix rulers
 * To activate/deactivate system overrides
 
-INAV Programming Framework coinsists of:
+INAV Programming Framework consists of:
 
-* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code
-* Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
+* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code. Each logic condition consists of:
+	* an operator (action), such as "plus" or "set vtx power"
+	* one or two operands (nouns), which the action acts upon. Operands are often numbers, such as a channel value or the distance to home.
+	* "activator" condition - optional. This condition is only active when another condition is true
+* Global Variables - variables that can store values from and for Logic Conditions and servo mixer
 * Programming PID - general purpose, user configurable PID controllers
 
-IPF can be edited using INAV Configurator user interface, or via CLI
+IPF can be edited using INAV Configurator user interface, or via CLI. To use COnfigurator, click the tab labeled
+"Programming". The various options shown in Configurator are described below.
 
 ## Logic Conditions
 
@@ -158,7 +169,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 7             | HORIZON           | `true` when you are in the **Horizon** flight mode. |
 | 8             | AIR               | `true` when you the **Airmode** flight mode modifier is active. |
 | 9             | USER1             | `true` when the **USER 1** mode is active. |
-| 10            | USER2             | `true` when the **USER 21** mode is active. |
+| 10            | USER2             | `true` when the **USER 2** mode is active. |
 | 11            | COURSE_HOLD       | `true` when you are in the **Course Hold** flight mode. |
 | 12            | USER3             | `true` when the **USER 3** mode is active. |
 | 13            | USER4             | `true` when the **USER 4** mode is active. |
@@ -310,3 +321,14 @@ Steps:
 2. Scale range [0:1000] to [0:3]
 3. Increase range by `1` to have the range of [1:4]
 4. Assign LC#2 to VTX power function
+
+## Common issues / questions about IPF
+
+One common mistake involves setting RC channel values. To override (set) the 
+value of a specific RC channel, choose "Override RC value", then for operand A
+choose *value* and enter the channel number. Choosing "get RC value" is a common mistake,
+which does something other than what you probably want.
+
+![screenshot of override an RC channel with a value](./assets/images/ipf_set_get_rc_channel.png)
+
+

@@ -77,7 +77,6 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
-    uint8_t outputMode;
 } mixerConfig_t;
 
 PG_DECLARE(mixerConfig_t, mixerConfig);
@@ -120,6 +119,7 @@ extern int mixerThrottleCommand;
 
 int getThrottleIdleValue(void);
 int16_t getThrottlePercent(bool);
+uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);
