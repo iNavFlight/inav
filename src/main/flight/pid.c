@@ -1111,9 +1111,12 @@ void FAST_CODE pidController(float dT)
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
 
+    // Pitch hold enabled during Course Hold mode if AttiHold mode selected (but not active since Angle has priority)
+    bool navPitchHoldActive = IS_RC_MODE_ACTIVE(BOXATTIHOLD) && FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !FLIGHT_MODE(NAV_ALTHOLD_MODE);
+
     static bool restartAttiMode = true;
     if (!restartAttiMode) {
-        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE);  // set restart flag if attihold_mode not active
+        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE) && !navPitchHoldActive;   // set restart flag if attitude hold not active
     }
 
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
@@ -1121,16 +1124,19 @@ void FAST_CODE pidController(float dT)
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
 
-            if (FLIGHT_MODE(ATTIHOLD_MODE) && !isFlightAxisAngleOverrideActive(axis)) {
+            if (STATE(AIRPLANE) && (FLIGHT_MODE(ATTIHOLD_MODE) || (navPitchHoldActive && axis == FD_PITCH)) && !isFlightAxisAngleOverrideActive(axis)) {
                 static int16_t attiHoldTarget[2];
 
-                if (restartAttiMode) {      // set target attitude to current attitude when initialised
+                if (restartAttiMode) {  // set target attitude to current attitude when initialised
                     attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
                     attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
                     restartAttiMode = false;
                 }
 
                 uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
+                if (navPitchHoldActive) {   // use Nav bank limits if Nav active, limited to pitch only
+                    bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+                }
                 if (calculateRollPitchCenterStatus() == CENTERED) {
                     angleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
                 } else {

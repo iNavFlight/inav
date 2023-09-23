@@ -91,24 +91,6 @@ armingFlag_e isArmingDisabledReason(void)
 }
 
 /**
- * Enables the given flight mode. Returns the new 'flightModeFlags' value.
- */
-uint32_t enableFlightMode(flightModeFlags_e mask)
-{
-    flightModeFlags |= (mask);
-    return flightModeFlags;
-}
-
-/**
- * Disables the given flight mode. Returns the new 'flightModeFlags' value.
- */
-uint32_t disableFlightMode(flightModeFlags_e mask)
-{
-    flightModeFlags &= ~(mask);
-    return flightModeFlags;
-}
-
-/**
  * Called at Rx update rate. Beeper sounded if flight mode state has changed.
  */
 void updateFlightModeChangeBeeper(void)

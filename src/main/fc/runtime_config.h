@@ -109,8 +109,8 @@ typedef enum {
 
 extern uint32_t flightModeFlags;
 
-#define DISABLE_FLIGHT_MODE(mask) disableFlightMode(mask)
-#define ENABLE_FLIGHT_MODE(mask) enableFlightMode(mask)
+#define DISABLE_FLIGHT_MODE(mask) (flightModeFlags &= ~(mask))
+#define ENABLE_FLIGHT_MODE(mask) (flightModeFlags |= (mask))
 #define FLIGHT_MODE(mask) (flightModeFlags & (mask))
 
 typedef enum {
@@ -201,8 +201,6 @@ extern simulatorData_t simulatorData;
 
 #endif
 
-uint32_t enableFlightMode(flightModeFlags_e mask);
-uint32_t disableFlightMode(flightModeFlags_e mask);
 void updateFlightModeChangeBeeper(void);
 
 bool sensors(uint32_t mask);

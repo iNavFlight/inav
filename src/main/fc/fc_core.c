@@ -531,7 +531,7 @@ void tryArm(void)
     if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
-        enableFlightMode(TURTLE_MODE);
+        ENABLE_FLIGHT_MODE(TURTLE_MODE);
         return;
     }
 #endif
@@ -667,18 +667,14 @@ void processRx(timeUs_t currentTimeUs)
 
     /* Flaperon mode */
     if (IS_RC_MODE_ACTIVE(BOXFLAPERON) && STATE(FLAPERON_AVAILABLE)) {
-        if (!FLIGHT_MODE(FLAPERON)) {
-            ENABLE_FLIGHT_MODE(FLAPERON);
-        }
+        ENABLE_FLIGHT_MODE(FLAPERON);
     } else {
         DISABLE_FLIGHT_MODE(FLAPERON);
     }
 
     /* Turn assistant mode */
     if (IS_RC_MODE_ACTIVE(BOXTURNASSIST)) {
-        if (!FLIGHT_MODE(TURN_ASSISTANT)) {
-            ENABLE_FLIGHT_MODE(TURN_ASSISTANT);
-        }
+         ENABLE_FLIGHT_MODE(TURN_ASSISTANT);
     } else {
         DISABLE_FLIGHT_MODE(TURN_ASSISTANT);
     }
@@ -697,9 +693,7 @@ void processRx(timeUs_t currentTimeUs)
 #if defined(USE_MAG)
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
         if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
-            if (!FLIGHT_MODE(HEADFREE_MODE)) {
-                ENABLE_FLIGHT_MODE(HEADFREE_MODE);
-            }
+            ENABLE_FLIGHT_MODE(HEADFREE_MODE);
         } else {
             DISABLE_FLIGHT_MODE(HEADFREE_MODE);
         }

@@ -3727,9 +3727,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             /* Soaring mode, disables altitude control in Position hold and Course hold modes.
              * Pitch allowed to freefloat within defined Angle mode deadband */
             if (IS_RC_MODE_ACTIVE(BOXSOARING) && (FLIGHT_MODE(NAV_POSHOLD_MODE) || FLIGHT_MODE(NAV_COURSE_HOLD_MODE))) {
-                if (!FLIGHT_MODE(SOARING_MODE)) {
-                    ENABLE_FLIGHT_MODE(SOARING_MODE);
-                }
+                ENABLE_FLIGHT_MODE(SOARING_MODE);
             } else {
                 DISABLE_FLIGHT_MODE(SOARING_MODE);
             }

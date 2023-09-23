@@ -192,7 +192,7 @@ tables:
     enum: gpsBaudRate_e
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
-    enum: navMcAltHoldThrottle_e    
+    enum: navMcAltHoldThrottle_e
 
 constants:
   RPYL_PID_MIN: 0
