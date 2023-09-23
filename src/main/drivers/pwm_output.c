@@ -42,6 +42,9 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 
+#include "drivers/timer_impl.h"
+#include "drivers/timer.h"
+
 #define MULTISHOT_5US_PW    (MULTISHOT_TIMER_HZ * 5 / 1000000.0f)
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
@@ -56,13 +59,19 @@
 #define DSHOT_MOTOR_BITLENGTH   20
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
+#define MAX_DMA_TIMERS          8
 
+#define DSHOT_COMMAND_DELAY_US 1000
 #define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
 #define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
+
+#ifdef USE_DSHOT_DMAR
+    timerDMASafeType_t dmaBurstBuffer[MAX_DMA_TIMERS][DSHOT_DMA_BUFFER_SIZE * 4];
+#endif
 
 typedef struct {
     TCH_t * tch;
@@ -77,6 +86,9 @@ typedef struct {
 #ifdef USE_DSHOT
     // DSHOT parameters
     timerDMASafeType_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
+#ifdef USE_DSHOT_DMAR
+    timerDMASafeType_t *dmaBurstBuffer;
+#endif
 #endif
 } pwmOutputPort_t;
 
@@ -249,6 +261,22 @@ uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
     }
 }
 
+#ifdef USE_DSHOT_DMAR
+burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
+uint8_t burstDmaTimersCount = 0;
+
+static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
+{
+    for (int i = 0; i < burstDmaTimersCount; i++) {
+        if (burstDmaTimers[i].timer == timer) {
+            return i;
+        }
+    }
+    burstDmaTimers[burstDmaTimersCount++].timer = timer;
+    return burstDmaTimersCount - 1;
+}
+#endif
+
 static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware, uint32_t dshotHz, bool enableOutput)
 {
     // Try allocating new port
@@ -259,15 +287,43 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
     }
 
     // Configure timer DMA
+#ifdef USE_DSHOT_DMAR
+    //uint8_t timerIndex = lookupTimerIndex(timerHardware->tim);
+    uint8_t burstDmaTimerIndex = getBurstDmaTimerIndex(timerHardware->tim);
+    if (burstDmaTimerIndex >= MAX_DMA_TIMERS) {
+        return NULL;
+    }
+
+    port->dmaBurstBuffer = &dmaBurstBuffer[burstDmaTimerIndex][0];
+    burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
+    burstDmaTimer->dmaBurstBuffer = port->dmaBurstBuffer;
+
+    if (timerPWMConfigDMABurst(burstDmaTimer, port->tch, port->dmaBurstBuffer, sizeof(port->dmaBurstBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
+        port->configured = true;
+    }
+#else
     if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
         ZERO_FARRAY(port->dmaBuffer);
         port->configured = true;
     }
+#endif
 
     return port;
 }
 
+#ifdef USE_DSHOT_DMAR
+static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet)
+{
+    int i;
+    for (i = 0; i < 16; i++) {
+        dmaBuffer[i * stride] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
+        packet <<= 1;
+    }
+    dmaBuffer[i++ * stride] = 0;
+    dmaBuffer[i++ * stride] = 0;
+}
+#else
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
@@ -275,6 +331,7 @@ static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
         packet <<= 1;
     }
 }
+#endif
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
 {
@@ -378,6 +435,7 @@ static void executeDShotCommands(void){
         return;
         }  
     }
+    delayMicroseconds(DSHOT_COMMAND_DELAY_US);
     for (uint8_t i = 0; i < getMotorCount(); i++) {
          motors[i].requestTelemetry = true;
          motors[i].value = currentExecutingCommand.cmd;
@@ -408,6 +466,20 @@ void pwmCompleteMotorUpdate(void) {
 
         executeDShotCommands();
 
+#ifdef USE_DSHOT_DMAR
+        for (int index = 0; index < motorCount; index++) {
+            if (motors[index].pwmPort && motors[index].pwmPort->configured) {
+                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
+                loadDmaBufferDshotStride(&motors[index].pwmPort->dmaBurstBuffer[motors[index].pwmPort->tch->timHw->channelIndex], 4, packet);
+                motors[index].requestTelemetry = false;
+            }
+        }
+
+        for (int burstDmaTimerIndex = 0; burstDmaTimerIndex < burstDmaTimersCount; burstDmaTimerIndex++) {
+            burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
+            pwmBurstDMAStart(burstDmaTimer, DSHOT_DMA_BUFFER_SIZE * 4);
+        }
+#else
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
@@ -424,6 +496,7 @@ void pwmCompleteMotorUpdate(void) {
                 timerPWMStartDMA(motors[index].pwmPort->tch);
             }
         }
+#endif
     }
 #endif
 }

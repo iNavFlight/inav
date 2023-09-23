@@ -76,6 +76,7 @@
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
 #include "fc/fc_tasks.h"
+#include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -99,6 +100,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/boardalignment.h"
+#include "sensors/compass.h"
 #include "sensors/diagnostics.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
@@ -184,6 +186,9 @@ static bool refreshWaitForResumeCmdRelease;
 static bool fullRedraw = false;
 
 static uint8_t armState;
+
+static textAttributes_t osdGetMultiFunctionMessage(char *buff);
+static uint8_t osdWarningsFlags = 0;
 
 typedef struct osdMapData_s {
     uint32_t scale;
@@ -541,7 +546,7 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         buff[0] = ' ';
     }
 
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values  
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
     if (isBfCompatibleVideoSystem(osdConfig())) {
         totalDigits++;
         digits++;
@@ -635,8 +640,8 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
     }
 }
 
-/** 
- * Trim whitespace from string. 
+/**
+ * Trim whitespace from string.
  * Used in Stats screen on lines with multiple values.
 */
 char *osdFormatTrimWhiteSpace(char *buff)
@@ -647,7 +652,7 @@ char *osdFormatTrimWhiteSpace(char *buff)
     while(isspace((unsigned char)*buff)) buff++;
 
     // All spaces?
-    if(*buff == 0)  
+    if(*buff == 0)
     return buff;
 
     // Trim trailing spaces
@@ -825,13 +830,14 @@ static const char * osdArmingDisabledReasonMessage(void)
             // See handling of FAILSAFE_RX_LOSS_MONITORING in failsafe.c
             if (failsafePhase() == FAILSAFE_RX_LOSS_MONITORING) {
                 if (failsafeIsReceivingRxData()) {
-                    // If we're not using sticks, it means the ARM switch
-                    // hasn't been off since entering FAILSAFE_RX_LOSS_MONITORING
-                    // yet
-                    return OSD_MESSAGE_STR(OSD_MSG_TURN_ARM_SW_OFF);
+                    // reminder to disarm to exit FAILSAFE_RX_LOSS_MONITORING once timeout period ends
+                    if (IS_RC_MODE_ACTIVE(BOXARM)) {
+                        return OSD_MESSAGE_STR(OSD_MSG_TURN_ARM_SW_OFF);
+                    }
+                } else {
+                    // Not receiving RX data
+                    return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
                 }
-                // Not receiving RX data
-                return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
             }
             return OSD_MESSAGE_STR(OSD_MSG_DISABLED_BY_FS);
         case ARMING_DISABLED_NOT_LEVEL:
@@ -985,7 +991,7 @@ static const char * osdFailsafeInfoMessage(void)
 #if defined(USE_SAFE_HOME)
 static const char * divertingToSafehomeMessage(void)
 {
-    if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && safehome_applied) {
+    if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied) {
         return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
     }
     return NULL;
@@ -1031,7 +1037,7 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_HOVER_ABOVE_HOME:
             if (STATE(FIXED_WING_LEGACY)) {
 #if defined(USE_SAFE_HOME)
-                if (safehome_applied) {
+                if (posControl.safehomeState.isApplied) {
                     return OSD_MESSAGE_STR(OSD_MSG_LOITERING_SAFEHOME);
                 }
 #endif
@@ -1093,7 +1099,7 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
  * Check if this OSD layout is using scaled or unscaled throttle.
  * If both are used, it will default to scaled.
  */
-bool osdUsingScaledThrottle(void) 
+bool osdUsingScaledThrottle(void)
 {
     bool usingScaledThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_SCALED_THROTTLE_POS]);
     bool usingRCThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_THROTTLE_POS]);
@@ -1110,11 +1116,7 @@ bool osdUsingScaledThrottle(void)
  **/
 static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes_t *elemAttr)
 {
-    if (useScaled) {
-        buff[0] = SYM_SCALE;
-    } else {
-        buff[0] = SYM_BLANK;
-    }
+    buff[0] = SYM_BLANK;
     buff[1] = SYM_THR;
     if (navigationIsControllingThrottle()) {
         buff[0] = SYM_AUTO_THR0;
@@ -1129,7 +1131,14 @@ static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes
         TEXT_ATTRIBUTES_ADD_BLINK(*elemAttr);
     }
 #endif
-    tfp_sprintf(buff + 2, "%3d", getThrottlePercent(useScaled));
+    int8_t throttlePercent = getThrottlePercent(useScaled);
+    if ((useScaled && throttlePercent <= 0) || !ARMING_FLAG(ARMED)) {
+        const char* message = ARMING_FLAG(ARMED) ? throttlePercent == 0 ? "IDLE" : "STOP" : "DARM";
+        buff[0] = SYM_THR;
+        strcpy(buff + 1, message);
+        return;
+    }
+    tfp_sprintf(buff + 2, "%3d", throttlePercent);
 }
 
 /**
@@ -1786,8 +1795,10 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
         if (!STATE(GPS_FIX)) {
-            if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
-                strcpy(buff + 2, "X!");
+            hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
+            if (sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY) {
+                buff[2] = SYM_ALERT;
+                buff[3] = '\0';
             }
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
@@ -2021,7 +2032,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
-            break;
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+
+            if (STATE(MULTIROTOR) && posControl.flags.isAdjustingAltitude) {
+                /* Indicate MR altitude adjustment active with constant symbol at first blank position.
+                 * Alternate symbol on/off with 600ms cycle if first position not blank (to maintain visibility of -ve sign) */
+                int8_t blankPos;
+                for (blankPos = 2; blankPos >= 0; blankPos--) {
+                    if (buff[blankPos] == SYM_BLANK) {
+                        break;
+                    }
+                }
+                if (blankPos >= 0 || OSD_ALTERNATING_CHOICES(600, 2) == 0) {
+                    blankPos = blankPos < 0 ? 0 : blankPos;
+                    displayWriteChar(osdDisplayPort, elemPosX + blankPos, elemPosY, SYM_TERRAIN_FOLLOWING);
+                }
+            }
+            return true;
         }
 
     case OSD_ALTITUDE_MSL:
@@ -2984,7 +3011,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in BFCOMPAT mode
                         buff[digits + 1] = SYM_MAH_MI_1;
                         buff[digits + 2] = '\0';
@@ -2998,7 +3025,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_NM_0;
                         buff[digits + 1] = SYM_MAH_NM_1;
                         buff[digits + 2] = '\0';
@@ -3014,7 +3041,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_KM_0;
                         buff[digits + 1] = SYM_MAH_KM_1;
                         buff[digits + 2] = '\0';
@@ -3463,6 +3490,21 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif // USE_ADC
 #endif // USE_POWER_LIMITS
+    case OSD_MULTI_FUNCTION:
+        {
+            // message shown infrequently so only write when needed
+            static bool clearMultiFunction = true;
+            elemAttr = osdGetMultiFunctionMessage(buff);
+            if (buff[0] == 0) {
+                if (clearMultiFunction) {
+                    displayWrite(osdDisplayPort, elemPosX, elemPosY, "          ");
+                    clearMultiFunction = false;
+                }
+                return true;
+            }
+            clearMultiFunction = true;
+            break;
+        }
 
     default:
         return false;
@@ -3844,6 +3886,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_2] = OSD_POS(1, 3);
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
 
+    osdLayoutsConfig->item_pos[0][OSD_MULTI_FUNCTION] = OSD_POS(1, 4);
+
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_0] = OSD_POS(2, 7);
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_1] = OSD_POS(2, 8);
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
@@ -4167,7 +4211,7 @@ static void osdUpdateStats(void)
 static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
-    uint8_t top = 1;  // Start one line down leaving space at the top of the screen. 
+    uint8_t top = 1;  // Start one line down leaving space at the top of the screen.
     size_t multiValueLengthOffset = 0;
 
     const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
@@ -4189,14 +4233,14 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     }
 
     if (isSinglePageStatsCompatible || page == 0) {
-        if (feature(FEATURE_GPS)) {            
+        if (feature(FEATURE_GPS)) {
             if (isSinglePageStatsCompatible) {
                 displayWrite(osdDisplayPort, statNameX, top, "MAX/AVG SPEED    :");
                 osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
                 osdLeftAlignString(buff);
                 strcat(osdFormatTrimWhiteSpace(buff),"/");
                 multiValueLengthOffset = strlen(buff);
-                displayWrite(osdDisplayPort, statValuesX, top, buff);            
+                displayWrite(osdDisplayPort, statValuesX, top, buff);
                 osdGenerateAverageVelocityStr(buff);
                 osdLeftAlignString(buff);
                 displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
@@ -4233,7 +4277,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                     osdLeftAlignString(buff);
                     strcat(osdFormatTrimWhiteSpace(buff), "%/");
                     multiValueLengthOffset = strlen(buff);
-                    displayWrite(osdDisplayPort, statValuesX, top, buff);                
+                    displayWrite(osdDisplayPort, statValuesX, top, buff);
                     itoa(stats.min_rssi_dbm, buff, 10);
                     tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
                     osdLeftAlignString(buff);
@@ -4248,7 +4292,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                     itoa(stats.min_rssi_dbm, buff, 10);
                     tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
                     displayWrite(osdDisplayPort, statValuesX, top++, buff);
-                } 
+                }
 
                 displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
                 itoa(stats.min_lq, buff, 10);
@@ -4274,7 +4318,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
         displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
     }
-    
+
     if (isSinglePageStatsCompatible || page == 1) {
         if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
             displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
@@ -4396,20 +4440,20 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
             }
         }
 
-        const float max_gforce = accGetMeasuredMaxG();    
+        const float max_gforce = accGetMeasuredMaxG();
         displayWrite(osdDisplayPort, statNameX, top, "MAX G-FORCE      :");
         osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3);
         displayWrite(osdDisplayPort, statValuesX, top++, buff);
 
-        const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();        
+        const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
         const float acc_extremes_min = acc_extremes[Z].min;
         const float acc_extremes_max = acc_extremes[Z].max;
         displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
         osdFormatCentiNumber(buff, acc_extremes_min * 100, 0, 2, 0, 4);
         osdLeftAlignString(buff);
-        strcat(osdFormatTrimWhiteSpace(buff),"/"); 
-        multiValueLengthOffset = strlen(buff);        
-        displayWrite(osdDisplayPort, statValuesX, top, buff);        
+        strcat(osdFormatTrimWhiteSpace(buff),"/");
+        multiValueLengthOffset = strlen(buff);
+        displayWrite(osdDisplayPort, statValuesX, top, buff);
         osdFormatCentiNumber(buff, acc_extremes_max * 100, 0, 2, 0, 3);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
@@ -4496,12 +4540,12 @@ static void osdShowHDArmScreen(void)
             }
             
 #if defined (USE_SAFE_HOME)
-            if (safehome_distance) { // safehome found during arming
+            if (posControl.safehomeState.distance) { // safehome found during arming
                 if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
                     strcpy(buf, "SAFEHOME FOUND; MODE OFF");
                 } else {
-                    osdFormatDistanceStr(buf2, safehome_distance);
-                    tfp_sprintf(buf, "%c SAFEHOME %u @ %s", SYM_HOME, safehome_index, buf2);
+                    osdFormatDistanceStr(buf2, posControl.safehomeState.distance);
+                    tfp_sprintf(buf, "%c SAFEHOME %u @ %s", SYM_HOME, posControl.safehomeState.index, buf2);
                 }
                 textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
                 // write this message below the ARMED message to make it obvious
@@ -4729,9 +4773,9 @@ static void osdRefresh(timeUs_t currentTimeUs)
             osdShowArmed();
             uint32_t delay = osdConfig()->arm_screen_display_time;
 #if defined(USE_SAFE_HOME)
-            if (safehome_distance)
+            if (posControl.safehomeState.distance)
                 delay+= 3000;
-#endif
+
             osdSetNextRefreshIn(delay);
         } else {
             // Display the "Stats" screen
@@ -4739,41 +4783,41 @@ static void osdRefresh(timeUs_t currentTimeUs)
             statsCurrentPage = 0;
             statsAutoPagingEnabled = osdConfig()->stats_page_auto_swap_time > 0 ? true : false;
             osdShowStats(statsSinglePageCompatible, statsCurrentPage);
-            osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);            
+            osdSetNextRefreshIn(STATS_SCREEN_DISPLAY_TIME);
         }
 
         armState = ARMING_FLAG(ARMED);
     }
 
     // This block is entered when we're showing the "Splash", "Armed" or "Stats" screens
-    if (resumeRefreshAt) {   
-                                
+    if (resumeRefreshAt) {
+
         // Handle events only when the "Stats" screen is being displayed.
         if (statsDisplayed) {
 
              // Manual paging stick commands are only applicable to multi-page stats.
              // ******************************
-             // For single-page stats, this effectively disables the ability to cancel the 
+             // For single-page stats, this effectively disables the ability to cancel the
              // automatic paging/updates with the stick commands. So unless stats_page_auto_swap_time
-             // is set to 0 or greater than 4 (saved settings display interval is 5 seconds), then 
-             // "Saved Settings" should display if it is active within the refresh interval. 
+             // is set to 0 or greater than 4 (saved settings display interval is 5 seconds), then
+             // "Saved Settings" should display if it is active within the refresh interval.
              // ******************************
              // With multi-page stats, "Saved Settings" could also be missed if the user
-             // has canceled automatic paging using the stick commands, because that is only 
-             // updated when osdShowStats() is called. So, in that case, they would only see 
-             // the "Saved Settings" message if they happen to manually change pages using the 
-             // stick commands within the interval the message is displayed. 
+             // has canceled automatic paging using the stick commands, because that is only
+             // updated when osdShowStats() is called. So, in that case, they would only see
+             // the "Saved Settings" message if they happen to manually change pages using the
+             // stick commands within the interval the message is displayed.
             bool manualPageUpRequested = false;
-            bool manualPageDownRequested = false;       
+            bool manualPageDownRequested = false;
             if (!statsSinglePageCompatible) {
                 // These methods ensure the paging stick commands are held for a brief period
-                // Otherwise it can result in a race condition where the stats are 
-                // updated too quickly and can result in partial blanks, etc. 
-                if (osdIsPageUpStickCommandHeld()) {               
+                // Otherwise it can result in a race condition where the stats are
+                // updated too quickly and can result in partial blanks, etc.
+                if (osdIsPageUpStickCommandHeld()) {
                     manualPageUpRequested = true;
                     statsAutoPagingEnabled = false;
                 } else if (osdIsPageDownStickCommandHeld()) {
-                    manualPageDownRequested = true;                
+                    manualPageDownRequested = true;
                     statsAutoPagingEnabled = false;
                 }
             }
@@ -4796,7 +4840,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 // Process manual page change events for multi-page stats.
                 if (manualPageUpRequested) {
                     osdShowStats(statsSinglePageCompatible, 1);
-                    statsCurrentPage = 1;                   
+                    statsCurrentPage = 1;
                 } else if (manualPageDownRequested) {
                     osdShowStats(statsSinglePageCompatible, 0);
                     statsCurrentPage = 0;
@@ -4805,7 +4849,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         }
 
         // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
-        if ((currentTimeUs > resumeRefreshAt) || OSD_RESUME_UPDATES_STICK_COMMAND) { 
+        if ((currentTimeUs > resumeRefreshAt) || OSD_RESUME_UPDATES_STICK_COMMAND) {
             // Time elapsed or canceled by stick commands.
             // Exit to normal OSD operation.
             displayClearScreen(osdDisplayPort);
@@ -4815,7 +4859,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
             // Continue "Splash", "Armed" or "Stats" screens.
             displayHeartbeat(osdDisplayPort);
         }
-        
+
         return;
     }
 
@@ -5058,6 +5102,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         // by OSD_FLYMODE.
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
                     }
+                    if (STATE(MULTIROTOR) && FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+                        if (posControl.cruise.multicopterSpeed >= 50.0f) {
+                            char buf[6];
+                            osdFormatVelocityStr(buf, posControl.cruise.multicopterSpeed, false, false);
+                            tfp_sprintf(messageBuf, "(SPD %s)", buf);
+                        } else {
+                            strcpy(messageBuf, "(HOLD)");
+                        }
+                        messages[messageCount++] = messageBuf;
+                    }
                     if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTRIM);
                     }
@@ -5128,12 +5182,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             }
         }
 
-#ifdef USE_DEV_TOOLS
-        if (systemConfig()->groundTestMode) {
-            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_GRD_TEST_MODE);
-        }
-#endif
-
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
             if (message == failsafeInfoMessage) {
@@ -5156,4 +5204,191 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
     return elemAttr;
 }
 
+void osdResetWarningFlags(void)
+{
+    osdWarningsFlags = 0;
+}
+
+static bool osdCheckWarning(bool condition, uint8_t warningFlag, uint8_t *warningsCount)
+{
+#define WARNING_REDISPLAY_DURATION 5000;    // milliseconds
+
+    const timeMs_t currentTimeMs = millis();
+    static timeMs_t warningDisplayStartTime = 0;
+    static timeMs_t redisplayStartTimeMs = 0;
+    static uint16_t osdWarningTimerDuration;
+    static uint8_t newWarningFlags;
+
+    if (condition) {    // condition required to trigger warning
+        if (!(osdWarningsFlags & warningFlag)) {
+            osdWarningsFlags |= warningFlag;
+            newWarningFlags |= warningFlag;
+            redisplayStartTimeMs = 0;
+        }
+#ifdef USE_DEV_TOOLS
+        if (systemConfig()->groundTestMode) {
+            return true;
+        }
+#endif
+        /* Warnings displayed in full for set time before shrinking down to alert symbol with warning count only.
+         * All current warnings then redisplayed for 5s on 30s rolling cycle.
+         * New warnings dislayed individually for 10s */
+        if (currentTimeMs > redisplayStartTimeMs) {
+            warningDisplayStartTime = currentTimeMs;
+            osdWarningTimerDuration = newWarningFlags ? 10000 : WARNING_REDISPLAY_DURATION;
+            redisplayStartTimeMs = currentTimeMs + osdWarningTimerDuration + 30000;
+        }
+
+        if (currentTimeMs - warningDisplayStartTime < osdWarningTimerDuration) {
+            return (newWarningFlags & warningFlag) || osdWarningTimerDuration == WARNING_REDISPLAY_DURATION;
+        } else {
+            newWarningFlags = 0;
+        }
+        *warningsCount += 1;
+    } else if (osdWarningsFlags & warningFlag) {
+        osdWarningsFlags &= ~warningFlag;
+    }
+
+    return false;
+}
+
+static textAttributes_t osdGetMultiFunctionMessage(char *buff)
+{
+    /* Message length limit 10 char max */
+
+    textAttributes_t elemAttr = TEXT_ATTRIBUTES_NONE;
+    static uint8_t warningsCount;
+    const char *message = NULL;
+
+#ifdef USE_MULTI_FUNCTIONS
+    /* --- FUNCTIONS --- */
+    multi_function_e selectedFunction = multiFunctionSelection();
+
+    if (selectedFunction) {
+        multi_function_e activeFunction = selectedFunction;
+
+        switch (selectedFunction) {
+        case MULTI_FUNC_NONE:
+        case MULTI_FUNC_1:
+            message = warningsCount ? "WARNINGS !" : "0 WARNINGS";
+            break;
+        case MULTI_FUNC_2:
+            message = posControl.flags.manualEmergLandActive ? "ABORT LAND" : "EMERG LAND";
+            break;
+        case MULTI_FUNC_3:
+#if defined(USE_SAFE_HOME)
+            if (navConfig()->general.flags.safehome_usage_mode != SAFEHOME_USAGE_OFF) {
+                message = MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) ? "USE SFHOME" : "SUS SFHOME";
+                break;
+            }
+#endif
+            activeFunction++;
+            FALLTHROUGH;
+        case MULTI_FUNC_4:
+            if (navConfig()->general.flags.rth_trackback_mode != RTH_TRACKBACK_OFF) {
+                message = MULTI_FUNC_FLAG(MF_SUSPEND_TRACKBACK) ? "USE TKBACK" : "SUS TKBACK";
+                break;
+            }
+            activeFunction++;
+            FALLTHROUGH;
+        case MULTI_FUNC_5:
+#ifdef USE_DSHOT
+            if (STATE(MULTIROTOR)) {
+                message = MULTI_FUNC_FLAG(MF_TURTLE_MODE) ? "END TURTLE" : "USE TURTLE";
+                break;
+            }
+#endif
+            activeFunction++;
+            FALLTHROUGH;
+        case MULTI_FUNC_6:
+            message = ARMING_FLAG(ARMED) ? "NOW ARMED " : "EMERG ARM ";
+            break;
+        case MULTI_FUNC_END:
+            break;
+        }
+
+        if (activeFunction != selectedFunction) {
+            setMultifunctionSelection(activeFunction);
+        }
+
+        strcpy(buff, message);
+
+        if (isNextMultifunctionItemAvailable()) {
+            // provides feedback indicating when a new selection command has been received by flight controller
+            buff[9] = '>';
+        }
+
+        return elemAttr;
+    }
+#endif  // MULTIFUNCTION - functions only, warnings always defined
+
+    /* --- WARNINGS --- */
+    const char *messages[7];
+    uint8_t messageCount = 0;
+    bool warningCondition = false;
+    warningsCount = 0;
+    uint8_t warningFlagID = 1;
+
+    // Low Battery
+    const batteryState_e batteryState = getBatteryState();
+    warningCondition = batteryState == BATTERY_CRITICAL || batteryState == BATTERY_WARNING;
+    if (osdCheckWarning(warningCondition, warningFlagID, &warningsCount)) {
+        messages[messageCount++] = batteryState == BATTERY_CRITICAL ? "BATT EMPTY" : "BATT LOW !";
+    }
+
+#if defined(USE_GPS)
+    // GPS Fix and Failure
+    if (feature(FEATURE_GPS)) {
+        if (osdCheckWarning(!STATE(GPS_FIX), warningFlagID <<= 1, &warningsCount)) {
+            bool gpsFailed = getHwGPSStatus() == HW_SENSOR_UNAVAILABLE;
+            messages[messageCount++] = gpsFailed ? "GPS FAILED" : "NO GPS FIX";
+        }
+    }
+
+    // RTH sanity (warning if RTH heads 200m further away from home than closest point)
+    warningCondition = NAV_Status.state == MW_NAV_STATE_RTH_ENROUTE && !posControl.flags.rthTrackbackActive &&
+                       (posControl.homeDistance - posControl.rthSanityChecker.minimalDistanceToHome) > 20000;
+    if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+        messages[messageCount++] = "RTH SANITY";
+    }
+
+    // Altitude sanity (warning if significant mismatch between estimated and GPS altitude)
+    if (osdCheckWarning(posControl.flags.gpsCfEstimatedAltitudeMismatch, warningFlagID <<= 1, &warningsCount)) {
+        messages[messageCount++] = "ALT SANITY";
+    }
+#endif
+
+#if defined(USE_MAG)
+    // Magnetometer failure
+    if (requestedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
+        hardwareSensorStatus_e magStatus = getHwCompassStatus();
+        if (osdCheckWarning(magStatus == HW_SENSOR_UNAVAILABLE || magStatus == HW_SENSOR_UNHEALTHY, warningFlagID <<= 1, &warningsCount)) {
+            messages[messageCount++] = "MAG FAILED";
+        }
+    }
+#endif
+    // Vibration levels   TODO - needs better vibration measurement to be useful
+    // const float vibrationLevel = accGetVibrationLevel();
+    // warningCondition = vibrationLevel > 1.5f;
+    // if (osdCheckWarning(warningCondition, warningFlagID <<= 1, &warningsCount)) {
+        // messages[messageCount++] = vibrationLevel > 2.5f ? "BAD VIBRTN" : "VIBRATION!";
+    // }
+
+#ifdef USE_DEV_TOOLS
+    if (osdCheckWarning(systemConfig()->groundTestMode, warningFlagID <<= 1, &warningsCount)) {
+        messages[messageCount++] = "GRD TEST !";
+    }
+#endif
+
+    if (messageCount) {
+        message = messages[OSD_ALTERNATING_CHOICES(1000, messageCount)];    // display each warning on 1s cycle
+        strcpy(buff, message);
+        TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+    } else if (warningsCount) {
+        buff[0] = SYM_ALERT;
+        tfp_sprintf(buff + 1, "%u        ", warningsCount);
+    }
+
+    return elemAttr;
+}
 #endif // OSD
