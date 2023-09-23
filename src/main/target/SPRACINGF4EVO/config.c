@@ -23,6 +23,7 @@
 #include "io/serial.h"
 #include "sensors/barometer.h"
 #include "telemetry/telemetry.h"
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
@@ -31,5 +32,5 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
 
     // To improve backwards compatibility with INAV versions 6.x and older
-    timerOverridesMutable(timer2id(TIM1))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
 }
