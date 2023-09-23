@@ -106,7 +106,7 @@ Profile files Switching is not available until the runtime sensor calibration is
 
 `mixer_profile` 1 will be used as default, `mixer_profile` 2 will be used when the `MIXER PROFILE 2` mode box is activated. Once successfully set, you can see the profiles / model preview etc. will switch accordingly when you view the relevant INAV Configurator tabs. Checking these tabs in the INAV Configurator will help make the setup easier.
 
-Set `MIXER TRANSITION` accordingly when you want to use `MIXER TRANSITION` input for motors and servos, Here is sample of using the `MIXER TRANSITION` mode:
+Set `MIXER TRANSITION` accordingly when you want to use `MIXER TRANSITION` input for motors and servos. Here is sample of using the `MIXER TRANSITION` mode:
 
 ![Alt text](Screenshots/mixer_profile.png)
 
