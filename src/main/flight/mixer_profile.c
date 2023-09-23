@@ -189,7 +189,9 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     // transition mode input for servo mix and motor mix
     if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse))
     {
-        outputProfileHotSwitch((int)IS_RC_MODE_ACTIVE(BOXMIXERPROFILE));
+        if (isModeActivationConditionPresent(BOXMIXERPROFILE)){
+            outputProfileHotSwitch(IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1);
+        }
         isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
     }
     isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) || mixerAT_inuse ||(posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
