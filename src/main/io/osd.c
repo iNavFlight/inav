@@ -4496,7 +4496,7 @@ static void osdShowHDArmScreen(void)
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
 #if defined(USE_GPS)
 #if defined (USE_SAFE_HOME)
-    if (safehome_distance) {
+    if (posControl.safehomeState.distance) {
         safehomeRow = armScreenRow;
         armScreenRow++;
     }
@@ -4625,12 +4625,12 @@ static void osdShowSDArmScreen(void)
             }
 
 #if defined (USE_SAFE_HOME)
-            if (safehome_distance) { // safehome found during arming
+            if (posControl.safehomeState.distance) { // safehome found during arming
                 if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
                     strcpy(buf, "SAFEHOME FOUND; MODE OFF");
                 } else {
-                    osdFormatDistanceStr(buf2, safehome_distance);
-                    tfp_sprintf(buf, "%c SAFEHOME %u @ %s", SYM_HOME, safehome_index, buf2);
+                    osdFormatDistanceStr(buf2, posControl.safehomeState.distance);
+                    tfp_sprintf(buf, "%c SAFEHOME %u @ %s", SYM_HOME, posControl.safehomeState.index, buf2);
                 }
                 textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
                 // write this message below the ARMED message to make it obvious
@@ -4775,7 +4775,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
 #if defined(USE_SAFE_HOME)
             if (posControl.safehomeState.distance)
                 delay+= 3000;
-
+#endif
             osdSetNextRefreshIn(delay);
         } else {
             // Display the "Stats" screen
@@ -5391,4 +5391,5 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
 
     return elemAttr;
 }
+
 #endif // OSD
