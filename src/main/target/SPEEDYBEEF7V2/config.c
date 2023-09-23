@@ -24,7 +24,7 @@
 
 #include "platform.h"
 
-#include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 
 #include "fc/fc_msp_box.h"
 
