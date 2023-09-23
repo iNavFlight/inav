@@ -24,10 +24,10 @@
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH1, PB4,  TIM_USE_PPM,   0, 0),
 
-    DEF_TIM(TIM8, CH3, PC8,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // TIM3_CH3 / TIM8_CH3
-    DEF_TIM(TIM8, CH4, PC9,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // TIM3_CH4 / TIM8_CH4
-    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // TIM4_CH1
-    DEF_TIM(TIM4, CH2, PB7,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // TIM4_CH2 // used to be fw motor
+    DEF_TIM(TIM8, CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 0), // TIM3_CH3 / TIM8_CH3
+    DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 0), // TIM3_CH4 / TIM8_CH4
+    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_OUTPUT_AUTO, 0, 0), // TIM4_CH1
+    DEF_TIM(TIM4, CH2, PB7,  TIM_USE_OUTPUT_AUTO, 0, 0), // TIM4_CH2 // used to be fw motor, but would have a timer conflict with the line above
 
     DEF_TIM(TIM2, CH2, PB3,  TIM_USE_LED, 0, 0),
 };

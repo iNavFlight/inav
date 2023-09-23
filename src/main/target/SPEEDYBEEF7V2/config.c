@@ -24,6 +24,8 @@
 
 #include "platform.h"
 
+#include "drivers/pwm_output.h"
+
 #include "fc/fc_msp_box.h"
 
 #include "io/piniobox.h"
@@ -32,4 +34,7 @@
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
 }

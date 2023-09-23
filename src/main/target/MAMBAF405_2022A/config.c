@@ -28,6 +28,7 @@
 #include "drivers/sensor.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/serial.h"
 
 #include "fc/rc_controls.h"
