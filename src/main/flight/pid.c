@@ -1071,7 +1071,7 @@ void FAST_CODE pidController(float dT)
     // In case Yaw override is active, we engage the Heading Hold state
     if (isFlightAxisAngleOverrideActive(FD_YAW)) {
         headingHoldState = HEADING_HOLD_ENABLED;
-        headingHoldTarget = getFlightAxisAngleOverride(FD_YAW, 0);
+        headingHoldTarget = DECIDEGREES_TO_DEGREES(getFlightAxisAngleOverride(FD_YAW, 0));
     }
 
     if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
