@@ -25,5 +25,5 @@
 void targetConfiguration(void)
 {
     // To improve backwards compatibility with INAV versions 6.x and older
-    timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM4))->outputMode = OUTPUT_MODE_MOTORS;
 }
