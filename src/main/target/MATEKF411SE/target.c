@@ -30,7 +30,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 1), // S4  D(2,2,6)
     DEF_TIM(TIM1,  CH3, PA10, TIM_USE_MOTOR | TIM_USE_SERVO, 0, 1), // S5  D(2,6,6)
 #ifndef MATEKF411SE_SS2_CH6
-    DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_SERVO | TIM_USE_SERVO, 0, 0), // S6  D(1,7,2)
+    DEF_TIM(TIM4,  CH3, PB8,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // S6  D(1,7,2)
 
     DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_ANY, 0, 0), //TX2 pad - softserial_tx2
 #else
