@@ -26,5 +26,5 @@ void targetConfiguration(void)
 {
     // To improve backwards compatibility with INAV versions 6.x and older
     // Keeps m1-m4 on first 4 outputs in mc, otherwise would be s1, s2, s5, s6
-    timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
 }
