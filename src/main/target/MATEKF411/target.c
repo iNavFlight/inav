@@ -30,9 +30,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4, CH1, PB6,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0), // S3  D(1,0,2)
     DEF_TIM(TIM4, CH2, PB7,  TIM_USE_MOTOR | TIM_USE_SERVO,  0, 0), // S4  D(1,3,2)
 
-    DEF_TIM(TIM2, CH2, PB3,  TIM_USE_SERVO | TIM_USE_SERVO, 0, 0), // S5  D(1,6,3)
-    DEF_TIM(TIM2, CH3, PB10, TIM_USE_SERVO | TIM_USE_SERVO, 0, 0), // S6  D(1,1,3)
-    DEF_TIM(TIM2, CH1, PA15, TIM_USE_SERVO | TIM_USE_SERVO, 0, 0), // S7  D(1,5,3) - clash with S2
+    DEF_TIM(TIM2, CH2, PB3,  TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // S5  D(1,6,3)
+    DEF_TIM(TIM2, CH3, PB10, TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // S6  D(1,1,3)
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0), // S7  D(1,5,3) - clash with S2
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_ANY,   0, 0), //softserial_tx2 - 2812LED TIM_USE_LED   D(2,1,6)
     DEF_TIM(TIM5, CH1, PA0,  TIM_USE_PPM,   0, 0), //use rssi pad for PPM/softserial_tx1
