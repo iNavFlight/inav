@@ -36,28 +36,28 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_ANY,                 0, 0), // S5_IN // pad labelled CH5 on OMNIBUSF4PRO
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_ANY,                 0, 0), // S6_IN // pad labelled CH6 on OMNIBUSF4PRO
 
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR | TIM_USE_SERVO,               0, 0), // S1_OUT D1_ST7
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR | TIM_USE_SERVO,               0, 0), // S2_OUT D1_ST2
-    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_MOTOR | TIM_USE_SERVO,               0, 1), // S3_OUT D1_ST6
-    DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_MOTOR | TIM_USE_SERVO,               0, 0), // S4_OUT D1_ST1
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_OUTPUT_AUTO,               0, 0), // S1_OUT D1_ST7
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_OUTPUT_AUTO,               0, 0), // S2_OUT D1_ST2
+    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_OUTPUT_AUTO,               0, 1), // S3_OUT D1_ST6
+    DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_OUTPUT_AUTO,               0, 0), // S4_OUT D1_ST1
 
     // { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM9, TIM_USE_MOTOR                    | TIM_USE_SERVO }, // MOTOR_3
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !(defined(OMNIBUSF4PRO_LEDSTRIPM5) || defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
 
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S5_OUT
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S6_OUT
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,                0, 0), // S5_OUT
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,                0, 0), // S6_OUT
 #elif defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_ANY,                                                           0, 0), // S5_OUT SOFTSERIAL
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY,                                                           0, 0), // S6_OUT SOFTSERIAL
 #elif defined(OMNIBUSF4V3_S6_SS)
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S5_OUT
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,                0, 0), // S5_OUT
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY,                                                           0, 0), // S6_OUT SOFTSERIAL
 #elif defined(OMNIBUSF4PRO_LEDSTRIPM5)
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_LED,                                                           0, 0), // S5_OUT LED strip
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S6_OUT
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,                0, 0), // S6_OUT
 #else
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_SERVO | TIM_USE_LED,  0, 0), // S5_OUT MOTOR, SERVO or LED
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_MOTOR | TIM_USE_SERVO,                0, 0), // S6_OUT
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO | TIM_USE_LED,  0, 0), // S5_OUT MOTOR, SERVO or LED
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,                0, 0), // S6_OUT
 #endif
 
 #if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)

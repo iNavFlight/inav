@@ -28,10 +28,10 @@
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TIM3, CH1, PB4,     TIM_USE_MOTOR | TIM_USE_SERVO, 0, 0),   // S1  
-    DEF_TIM(TIM3, CH2, PB5,     TIM_USE_MOTOR | TIM_USE_SERVO, 0, 1),   // S2
-    DEF_TIM(TIM3, CH3, PB0,     TIM_USE_MOTOR | TIM_USE_SERVO, 0, 2),   // S3
-    DEF_TIM(TIM3, CH4, PB1,     TIM_USE_MOTOR | TIM_USE_SERVO, 0, 3),   // S4
+    DEF_TIM(TIM3, CH1, PB4,     TIM_USE_OUTPUT_AUTO, 0, 0),   // S1  
+    DEF_TIM(TIM3, CH2, PB5,     TIM_USE_OUTPUT_AUTO, 0, 1),   // S2
+    DEF_TIM(TIM3, CH3, PB0,     TIM_USE_OUTPUT_AUTO, 0, 2),   // S3
+    DEF_TIM(TIM3, CH4, PB1,     TIM_USE_OUTPUT_AUTO, 0, 3),   // S4
 
     DEF_TIM(TIM4, CH1, PD12,    TIM_USE_SERVO | TIM_USE_SERVO, 0, 4),   // S5
     DEF_TIM(TIM4, CH2, PD13,    TIM_USE_SERVO | TIM_USE_SERVO, 0, 5),   // S6

@@ -33,8 +33,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_MOTOR  | TIM_USE_SERVO,   1, 0), // S4
 
 #ifdef SPEEDYBEEF405MINI_6OUTPUTS
-    DEF_TIM(TIM12,  CH1,    PB14,   TIM_USE_MOTOR | TIM_USE_SERVO,     1, 0), // CAM_CTRL
-    DEF_TIM(TIM1,   CH1,    PA8,    TIM_USE_MOTOR | TIM_USE_SERVO,     0, 0), // LED
+    DEF_TIM(TIM12,  CH1,    PB14,   TIM_USE_OUTPUT_AUTO,     1, 0), // CAM_CTRL
+    DEF_TIM(TIM1,   CH1,    PA8,    TIM_USE_OUTPUT_AUTO,     0, 0), // LED
 #else
     DEF_TIM(TIM12,  CH1,    PB14,   TIM_USE_ANY,                                                1, 0), // CAM_CTRL
     DEF_TIM(TIM1,   CH1,    PA8,    TIM_USE_LED,                                                0, 0), // LED

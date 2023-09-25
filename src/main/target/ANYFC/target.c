@@ -30,16 +30,16 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_PWM,                                    0, 0), // S6_IN
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_PWM,                                    0, 0), // S5_IN
 
-    DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S10_OUT 16
-    DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S6_OUT 12
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S5_OUT 11
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S1_OUT 7
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S2_OUT 8
-    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S3_OUT 9
-    DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S4_OUT 10
-    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S7_OUT 13
-    DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S8_OUT 14
-    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_MOTOR | TIM_USE_SERVO,                  0, 0), // S9_OUT 15
+    DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S10_OUT 16
+    DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S6_OUT 12
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S5_OUT 11
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S1_OUT 7
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S2_OUT 8
+    DEF_TIM(TIM2,  CH4, PA3,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S3_OUT 9
+    DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S4_OUT 10
+    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_OUTPUT_AUTO,                  0, 0), // S7_OUT 13
+    DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S8_OUT 14
+    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,                  0, 0), // S9_OUT 15
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
