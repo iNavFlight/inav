@@ -37,10 +37,10 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PC8, TIM_USE_OUTPUT_AUTO, 0, 0),        // S3   D(2, 4, 7)
     DEF_TIM(TIM3, CH4, PC9, TIM_USE_OUTPUT_AUTO, 0, 0),        // S4   D(2, 7, 7)
 
-    DEF_TIM(TIM8, CH2N, PB0, TIM_USE_MOTOR |TIM_USE_SERVO, 0, 0),        // S5   D(1, 7, 5)
-    DEF_TIM(TIM8, CH3N, PB1, TIM_USE_MOTOR |TIM_USE_SERVO, 0, 0),        // S6   D(1, 2, 5)
-    DEF_TIM(TIM4, CH1, PB6, TIM_USE_MOTOR  |TIM_USE_SERVO, 0, 0),        // S7   D(1, 0, 2)
-    DEF_TIM(TIM4, CH2, PB7, TIM_USE_MOTOR  |TIM_USE_SERVO, 0, 0),        // S8   D(1, 3, 2)
+    DEF_TIM(TIM8, CH2N, PB0, TIM_USE_OUTPUT_AUTO, 0, 0),        // S5   D(1, 7, 5)
+    DEF_TIM(TIM8, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 0, 0),        // S6   D(1, 2, 5)
+    DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),        // S7   D(1, 0, 2)
+    DEF_TIM(TIM4, CH2, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),        // S8   D(1, 3, 2)
 
     DEF_TIM(TIM2, CH1, PA0, TIM_USE_LED, 0, 0),    // LED_TRIP
 };
