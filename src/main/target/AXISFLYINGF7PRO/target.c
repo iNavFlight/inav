@@ -23,8 +23,8 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MOTOR | TIM_USE_MOTOR, 0, 0),  // S1
-    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MOTOR | TIM_USE_MOTOR, 0, 0),  // S2
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S1
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S2
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 1),  // S3
     DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S4
     DEF_TIM(TIM4, CH1, PB6,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S5

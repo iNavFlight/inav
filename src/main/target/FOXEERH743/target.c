@@ -33,13 +33,13 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0,     TIM_USE_OUTPUT_AUTO, 0, 2),   // S3
     DEF_TIM(TIM3, CH4, PB1,     TIM_USE_OUTPUT_AUTO, 0, 3),   // S4
 
-    DEF_TIM(TIM4, CH1, PD12,    TIM_USE_SERVO | TIM_USE_SERVO, 0, 4),   // S5
-    DEF_TIM(TIM4, CH2, PD13,    TIM_USE_SERVO | TIM_USE_SERVO, 0, 5),   // S6
-    DEF_TIM(TIM8, CH3, PC8,     TIM_USE_SERVO | TIM_USE_SERVO, 0, 6),   // S7 // used to be fw motor
-    DEF_TIM(TIM8, CH4, PC9,     TIM_USE_SERVO | TIM_USE_SERVO, 0, 7),   // S8 // used to be fw motor
+    DEF_TIM(TIM4, CH1, PD12,    TIM_USE_OUTPUT_AUTO, 0, 4),   // S5
+    DEF_TIM(TIM4, CH2, PD13,    TIM_USE_OUTPUT_AUTO, 0, 5),   // S6
+    DEF_TIM(TIM8, CH3, PC8,     TIM_USE_OUTPUT_AUTO, 0, 6),   // S7 // used to be fw motor
+    DEF_TIM(TIM8, CH4, PC9,     TIM_USE_OUTPUT_AUTO, 0, 7),   // S8 // used to be fw motor
 
-    DEF_TIM(TIM15, CH1, PE5,    TIM_USE_SERVO | TIM_USE_SERVO, 0, 0),   // S9
-    DEF_TIM(TIM15, CH2, PE6,    TIM_USE_SERVO | TIM_USE_SERVO, 0, 0),   // S10
+    DEF_TIM(TIM15, CH1, PE5,    TIM_USE_OUTPUT_AUTO, 0, 0),   // S9
+    DEF_TIM(TIM15, CH2, PE6,    TIM_USE_OUTPUT_AUTO, 0, 0),   // S10
 
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED, 0, 9),    // LED_2812
 };
