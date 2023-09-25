@@ -54,6 +54,7 @@
 #include "fc/cli.h"
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
 #include "fc/rc_controls.h"
@@ -377,7 +378,7 @@ static bool emergencyArmingCanOverrideArmingDisabled(void)
 
 static bool emergencyArmingIsEnabled(void)
 {
-    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM)) && emergencyArmingCanOverrideArmingDisabled();
+    return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
 static void processPilotAndFailSafeActions(float dT)
@@ -469,7 +470,7 @@ disarmReason_t getDisarmReason(void)
     return lastDisarmReason;
 }
 
-bool emergencyArmingUpdate(bool armingSwitchIsOn)
+bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
 {
     if (ARMING_FLAG(ARMED)) {
         return false;
@@ -496,6 +497,10 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn)
         toggle = false;
     } else {
         toggle = true;
+    }
+
+    if (forceArm) {
+        counter = EMERGENCY_ARMING_MIN_ARM_COUNT;
     }
 
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
@@ -532,9 +537,12 @@ void tryArm(void)
     }
 
 #ifdef USE_DSHOT
-    if (STATE(MULTIROTOR) && IS_RC_MODE_ACTIVE(BOXTURTLE) && !FLIGHT_MODE(TURTLE_MODE) &&
-        emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()
-        ) {
+#ifdef USE_MULTI_FUNCTIONS
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE);
+#else
+    const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
+#endif
+    if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         enableFlightMode(TURTLE_MODE);
@@ -854,13 +862,25 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength)
+static void applyThrottleTiltCompensation(void)
 {
-    if (throttleTiltCompensationStrength) {
-        float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
-        return 1.0f + (tiltCompFactor - 1.0f) * (throttleTiltCompensationStrength / 100.f);
-    } else {
-        return 1.0f;
+    if (STATE(MULTIROTOR)) {
+        int16_t thrTiltCompStrength = 0;
+
+        if (navigationRequiresThrottleTiltCompensation()) {
+            thrTiltCompStrength = 100;
+        }
+        else if (systemConfig()->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+            thrTiltCompStrength = systemConfig()->throttle_tilt_compensation_strength;
+        }
+
+        if (thrTiltCompStrength) {
+            const int throttleIdleValue = getThrottleIdleValue();
+            float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
+            tiltCompFactor = 1.0f + (tiltCompFactor - 1.0f) * (thrTiltCompStrength / 100.f);
+
+            rcCommand[THROTTLE] = setDesiredThrottle(throttleIdleValue + (rcCommand[THROTTLE] - throttleIdleValue) * tiltCompFactor, false);
+        }
     }
 }
 
@@ -912,26 +932,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     applyWaypointNavigationAndAltitudeHold();
 
     // Apply throttle tilt compensation
-    if (!STATE(FIXED_WING_LEGACY)) {
-        int16_t thrTiltCompStrength = 0;
-
-        if (navigationRequiresThrottleTiltCompensation()) {
-            thrTiltCompStrength = 100;
-        }
-        else if (systemConfig()->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            thrTiltCompStrength = systemConfig()->throttle_tilt_compensation_strength;
-        }
-
-        if (thrTiltCompStrength) {
-            rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
-                                            + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
-                                            getThrottleIdleValue(),
-                                            motorConfig()->maxthrottle);
-        }
-    }
-    else {
-        // FIXME: throttle pitch comp for FW
-    }
+    applyThrottleTiltCompensation();
 
 #ifdef USE_POWER_LIMITS
     powerLimiterApply(&rcCommand[THROTTLE]);

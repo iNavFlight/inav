@@ -35,7 +35,6 @@
 extern gpsLocation_t        GPS_home;
 extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
 extern int16_t              GPS_directionToHome;       // direction to home point in degrees
-extern fpVector3_t          original_rth_home;         // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
 
 extern bool autoThrottleManuallyIncreased;
 
@@ -59,13 +58,8 @@ typedef enum {
 
 PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
 
-extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
-extern uint32_t safehome_distance;               // distance to the nearest safehome
-extern bool safehome_applied;                    // whether the safehome has been applied to home.
-
-void resetSafeHomes(void);                       // remove all safehomes
-bool findNearestSafeHome(void);                  // Find nearest safehome
-
+void resetSafeHomes(void);           // remove all safehomes
+bool findNearestSafeHome(void);      // Find nearest safehome
 #endif // defined(USE_SAFE_HOME)
 
 #ifndef NAV_MAX_WAYPOINTS
@@ -175,6 +169,12 @@ typedef enum {
     WP_TURN_SMOOTHING_CUT,
 } wpFwTurnSmoothing_e;
 
+typedef enum {
+    MC_ALT_HOLD_STICK,
+    MC_ALT_HOLD_MID,
+    MC_ALT_HOLD_HOVER,
+} navMcAltHoldThrottle_e;
+
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
     uint8_t reset_altitude_type; // from nav_reset_type_e
@@ -217,7 +217,6 @@ typedef struct navConfig_s {
 
     struct {
         struct {
-            uint8_t use_thr_mid_for_althold;        // Don't remember throttle when althold was initiated, assume that throttle is at Thr Mid = zero climb rate
             uint8_t extra_arming_safety;            // from navExtraArmingSafety_e
             uint8_t user_control_mode;              // NAV_GPS_ATTI or NAV_GPS_CRUISE
             uint8_t rth_alt_control_mode;           // Controls the logic for choosing the RTH altitude
@@ -268,6 +267,7 @@ typedef struct navConfig_s {
         uint8_t  land_detect_sensitivity;           // Sensitivity of landing detector
         uint16_t auto_disarm_delay;                 // safety time delay for landing detector
         uint16_t rth_linear_descent_start_distance; // Distance from home to start the linear descent (0 = immediately)
+        uint8_t  cruise_yaw_rate;                   // Max yaw rate (dps) when CRUISE MODE is enabled
     } general;
 
     struct {
@@ -286,7 +286,8 @@ typedef struct navConfig_s {
 
         uint8_t posDecelerationTime;            // Brake time parameter
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
-        bool slowDownForTurning;             // Slow down during WP missions when changing heading on next waypoint
+        bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
+        uint8_t althold_throttle_type;          // throttle zero datum type for alt hold
     } mc;
 
     struct {
@@ -315,7 +316,6 @@ typedef struct navConfig_s {
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         bool     launch_manual_throttle;     // Allows launch with manual throttle control
         uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
-        uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
@@ -624,6 +624,7 @@ bool isAdjustingHeading(void);
 float getEstimatedAglPosition(void);
 bool isEstimatedAglTrusted(void);
 
+void checkManualEmergencyLandingControl(bool forcedActivation);
 float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
 
 /* Returns the heading recorded when home position was acquired.
@@ -640,6 +641,7 @@ extern int16_t navActualVelocity[3];
 extern int16_t navDesiredVelocity[3];
 extern int32_t navTargetPosition[3];
 extern int32_t navLatestActualPosition[3];
+extern uint16_t navDesiredHeading;
 extern int16_t navActualSurface;
 extern uint16_t navFlags;
 extern uint16_t navEPH;

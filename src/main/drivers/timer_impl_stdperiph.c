@@ -357,6 +357,104 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     return true;
 }
 
+#ifdef USE_DSHOT_DMAR
+bool impl_timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
+{
+    DMA_InitTypeDef DMA_InitStructure;
+    TIM_TypeDef * timer = tch->timHw->tim;
+    
+    if (!tch->timCtx->dmaBurstRef) {
+        tch->dma = dmaGetByTag(tch->timHw->dmaTag);
+        if (tch->dma == NULL) {
+            return false;
+        }
+
+        // If DMA is already in use - abort
+        if (tch->dma->owner != OWNER_FREE) {
+            return false;
+        }
+    }
+
+    // We assume that timer channels are already initialized by calls to:
+    //  timerConfigBase
+    //  timerPWMConfigChannel
+
+    TIM_CtrlPWMOutputs(timer, ENABLE);
+    TIM_ARRPreloadConfig(timer, ENABLE);
+
+    TIM_CCxCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCx_Enable);
+    TIM_Cmd(timer, ENABLE);
+
+    if (!tch->timCtx->dmaBurstRef) {
+        dmaInit(tch->dma, OWNER_TIMER, 0);
+        dmaSetHandler(tch->dma, impl_timerDMA_IRQHandler, NVIC_PRIO_TIMER_DMA, (uint32_t)tch);
+
+        DMA_DeInit(tch->dma->ref);
+        DMA_Cmd(tch->dma->ref, DISABLE);
+
+        DMA_StructInit(&DMA_InitStructure);
+
+        DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)&tch->timHw->tim->DMAR;
+        DMA_InitStructure.DMA_BufferSize = dmaBufferElementCount;
+        DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+        DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+        DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+
+        switch (dmaBufferElementSize) {
+            case 1:
+                DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+                DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+                break;
+            case 2:
+                DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
+                DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
+                break;
+            case 4:
+                DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Word;
+                DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Word;
+                break;
+            default:
+                // Programmer error
+                while(1) {
+
+                }
+        }
+
+#ifdef STM32F4
+        DMA_InitStructure.DMA_Channel = dmaGetChannelByTag(tch->timHw->dmaTag);
+        DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)dmaBuffer;
+        DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+        DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+#else // F3
+        DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t)dmaBuffer;
+        DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+        DMA_InitStructure.DMA_Priority = DMA_Priority_High;
+        DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+#endif
+
+        DMA_Init(tch->dma->ref, &DMA_InitStructure);
+        DMA_ITConfig(tch->dma->ref, DMA_IT_TC, ENABLE);
+
+        tch->timCtx->dmaBurstRef = tch->dma;
+        tch->timCtx->DMASource = lookupDMASourceTable[tch->timHw->channelIndex];
+        burstDmaTimer->dmaBurstStream = tch->timCtx->dmaBurstRef->ref;
+        burstDmaTimer->burstRequestSource = tch->timCtx->DMASource;
+        
+        tch->dmaState = TCH_DMA_READY;
+    }
+
+    return true;
+}
+
+void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength)
+{
+    DMA_SetCurrDataCounter(burstDmaTimer->dmaBurstStream, BurstLength);
+    DMA_Cmd(burstDmaTimer->dmaBurstStream, ENABLE);
+    TIM_DMAConfig(burstDmaTimer->timer, TIM_DMABase_CCR1, TIM_DMABurstLength_4Transfers);
+    TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
+}
+#endif
+
 void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount)
 {
     // Make sure we terminate any DMA transaction currently in progress
