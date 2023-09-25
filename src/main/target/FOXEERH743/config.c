@@ -28,6 +28,7 @@
 #include "drivers/sensor.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/serial.h"
 
 #include "fc/rc_controls.h"
@@ -53,5 +54,7 @@ void targetConfiguration(void)
      * UART1 is SerialRX
      */
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_RX_SERIAL;
-   
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
 }
