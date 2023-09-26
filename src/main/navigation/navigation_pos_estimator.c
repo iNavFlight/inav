@@ -108,15 +108,35 @@ static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t cur
     }
 }
 
-static bool shouldResetReferenceAltitude(void)
+static bool shouldResetReferenceAltitude(uint8_t updateSource)
 {
-    switch ((nav_reset_type_e)positionEstimationConfig()->reset_altitude_type) {
-        case NAV_RESET_NEVER:
-            return false;
-        case NAV_RESET_ON_FIRST_ARM:
-            return !ARMING_FLAG(ARMED) && !ARMING_FLAG(WAS_EVER_ARMED);
-        case NAV_RESET_ON_EACH_ARM:
-            return !ARMING_FLAG(ARMED);
+    /* Altitude reference reset constantly before first arm.
+     * After first arm altitude ref only reset immediately after arming (to avoid reset after emerg in flight rearm)
+     * Need to check reset status for both altitude sources immediately after rearming before reset complete */
+
+    static bool resetAltitudeOnArm = false;
+    if (ARMING_FLAG(ARMED) && resetAltitudeOnArm) {
+        static uint8_t sourceCheck = 0;
+        sourceCheck |= updateSource;
+        bool allAltitudeSources = STATE(GPS_FIX) && sensors(SENSOR_BARO);
+
+        if ((allAltitudeSources && sourceCheck > SENSOR_GPS) || (!allAltitudeSources && sourceCheck)) {
+            resetAltitudeOnArm = false;
+            sourceCheck = 0;
+        }
+        return !STATE(IN_FLIGHT_EMERG_REARM);
+    }
+
+    if (!ARMING_FLAG(ARMED)) {
+        switch ((nav_reset_type_e)positionEstimationConfig()->reset_altitude_type) {
+            case NAV_RESET_NEVER:
+                return false;
+            case NAV_RESET_ON_FIRST_ARM:
+                break;
+            case NAV_RESET_ON_EACH_ARM:
+                resetAltitudeOnArm = true;
+        }
+        return !ARMING_FLAG(WAS_EVER_ARMED);
     }
 
     return false;
@@ -226,7 +246,7 @@ void onNewGPSData(void)
         if (!posControl.gpsOrigin.valid) {
             geoSetOrigin(&posControl.gpsOrigin, &newLLH, GEO_ORIGIN_SET);
         }
-        else if (shouldResetReferenceAltitude()) {
+        else if (shouldResetReferenceAltitude(SENSOR_GPS)) {
             /* If we were never armed - keep altitude at zero */
             geoSetOrigin(&posControl.gpsOrigin, &newLLH, GEO_ORIGIN_RESET_ALTITUDE);
         }
@@ -309,7 +329,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
     float newBaroAlt = baroCalculateAltitude();
 
     /* If we are required - keep altitude at zero */
-    if (shouldResetReferenceAltitude()) {
+    if (shouldResetReferenceAltitude(SENSOR_BARO)) {
         initialBaroAltitudeOffset = newBaroAlt;
     }
 
