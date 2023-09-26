@@ -39,6 +39,6 @@ void targetConfiguration(void)
    
    // barometerConfigMutable()->baro_hardware = BARO_DPS310;
 
-   // boardAlignmentMutable()->rollDeciDegrees = -1800;
+   boardAlignmentMutable()->rollDeciDegrees = -450;
 
 }
