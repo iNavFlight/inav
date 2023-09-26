@@ -776,6 +776,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return currentMixerProfileIndex + 1;
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE: //0,1
+            return isMixerTransitionMixing ? 1 : 0;
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
             return getLoiterRadius(navConfig()->fw.loiter_radius);
 
