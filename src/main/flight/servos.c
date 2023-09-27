@@ -376,8 +376,9 @@ void servoMixer(float dT)
             const uint8_t target = currentServoMixer[i].targetChannel;
             const uint8_t from = currentServoMixer[i].inputSource;
 
+            // Translate minimum throttle values to -500 ... +500 servo range for use below.
             if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
-                servo[target] = motorConfig()->mincommand;
+                servo[target] = motorConfig()->mincommand - servoParams(target)->middle;
             }
         }
     }
