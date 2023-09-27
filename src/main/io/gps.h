@@ -47,6 +47,7 @@ typedef enum {
     SBAS_WAAS,
     SBAS_MSAS,
     SBAS_GAGAN,
+    SBAS_SPAN,
     SBAS_NONE
 } sbasMode_e;
 

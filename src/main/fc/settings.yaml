@@ -47,7 +47,7 @@ tables:
     values: ["NMEA", "UBLOX", "UBLOX7", "MSP", "FAKE"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
-    values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "NONE"]
+    values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
     enum: sbasMode_e
   - name: gps_dyn_model
     values: ["PEDESTRIAN", "AIR_1G", "AIR_4G"]
