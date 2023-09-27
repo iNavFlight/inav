@@ -125,8 +125,7 @@ Conduct a bench test on the model (without props attached). The model can now sw
 # Transition Mixing (Multi-Rotor Profile)
 The 'transition input' is typically useful in MR (Multi-Rotor) mode to gain airspeed. Both the servo mixer and motor mixer can accept the `MIXER TRANSITION` as an input. When the transition mode is activated, the associated motor or servo will move accordingly. Please note that transition input is disabled when a navigation mode is activated. The use of Transition input is necessary to enable additional features such as VTOL RTH.
 ## Servo 'Transition Input'
-Add new servo mixer rules, select 'Mixer Transition' in input. This will allow tilt the motor 45 deg in tilting rotor setup.
-It 
+Add new servo mixer rules, and select 'Mixer Transition' in input. This will allow tilting the motor for the desired angle for the tilting rotor model.
 
 In some tilting motor models, you may experience roll or yaw oscillations when `MIXER TRANSITION` is activated. To address this issue, you can add servo mixing rules with an opposite rate to compensate. Use a logic condition to ensure that these compensation servo mixing rules are active only when `MIXER TRANSITION` is activated.
 
@@ -156,7 +155,7 @@ recommended settings
 set nav_disarm_on_landing = OFF
 set airmode_type = STICK_CENTER_ONCE 
 set ahrs_inertia_comp_method = VELNED
-set tpa_on_yaw = ON ##for yaw by tilting motor on the mc pid_profile
+set tpa_on_yaw = ON ##for yaw by tilting the motor on the mc pid_profile
 ```
 
 # Automated Switching (RTH):
