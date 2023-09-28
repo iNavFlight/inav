@@ -419,7 +419,7 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     return repeats;
 }
 
-static void executeDShotCommands(void){
+static bool executeDShotCommands(void){
     
     timeUs_t tNow = micros();
 
@@ -432,16 +432,20 @@ static void executeDShotCommands(void){
             currentExecutingCommand.cmd = cmd;
             currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);           
         } else {
-        return;
+            return true;
         }  
     }
-    delayMicroseconds(DSHOT_COMMAND_DELAY_US);
     for (uint8_t i = 0; i < getMotorCount(); i++) {
          motors[i].requestTelemetry = true;
          motors[i].value = currentExecutingCommand.cmd;
     }
-    currentExecutingCommand.remainingRepeats--; 
-    lastCommandSent = tNow;
+    if (tNow - lastCommandSent >= DSHOT_COMMAND_DELAY_US) {
+        currentExecutingCommand.remainingRepeats--; 
+        lastCommandSent = tNow;
+        return true;
+    } else {
+        return false;
+    }
 }
 #endif
 
@@ -464,7 +468,9 @@ void pwmCompleteMotorUpdate(void) {
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
 
-        executeDShotCommands();
+        if (!executeDShotCommands()) {
+            return;
+        }
 
 #ifdef USE_DSHOT_DMAR
         for (int index = 0; index < motorCount; index++) {
