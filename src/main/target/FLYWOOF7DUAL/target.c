@@ -40,12 +40,12 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_2,   DEVHW_MPU6500,  GYRO_2_SPI_BUS, GYRO
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS  
 
-    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),      // S1 - D(1,2)
-    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_MC_MOTOR | TIM_USE_FW_MOTOR, 0, 0),      // S2 - D(1,4)
-    DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),      // S3 - D(1,6)
-    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),      // S4 - D(1,5)  
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),      // S5 - D(2,4) 
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO, 0, 0),      // S6 - D(2,1)
+    DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S1 - D(1,2)
+    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S2 - D(1,4)
+    DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S3 - D(1,6)
+    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_OUTPUT_AUTO, 0, 0),      // S4 - D(1,5)  
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S5 - D(2,4) 
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S6 - D(2,1)
 
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED,                          0, 0),  // LED STRIP(1,5)
 };

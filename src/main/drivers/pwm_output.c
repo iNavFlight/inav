@@ -119,6 +119,7 @@ static bool pwmMotorsEnabled = true;
 static timeUs_t digitalMotorUpdateIntervalUs = 0;
 static timeUs_t digitalMotorLastUpdateUs;
 static timeUs_t lastCommandSent = 0;
+static timeUs_t commandPostDelay = 0;
     
 static circularBuffer_t commandsCircularBuffer;
 static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
@@ -419,7 +420,7 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     return repeats;
 }
 
-static void executeDShotCommands(void){
+static bool executeDShotCommands(void){
     
     timeUs_t tNow = micros();
 
@@ -430,18 +431,30 @@ static void executeDShotCommands(void){
             dshotCommands_e cmd;
             circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
             currentExecutingCommand.cmd = cmd;
-            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);           
+            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
+            commandPostDelay = DSHOT_COMMAND_INTERVAL_US;
         } else {
-        return;
+            if (commandPostDelay) {
+                if (tNow - lastCommandSent < commandPostDelay) {
+                    return false;
+                }
+                commandPostDelay = 0;
+            }
+
+            return true;
         }  
     }
-    delayMicroseconds(DSHOT_COMMAND_DELAY_US);
     for (uint8_t i = 0; i < getMotorCount(); i++) {
          motors[i].requestTelemetry = true;
          motors[i].value = currentExecutingCommand.cmd;
     }
-    currentExecutingCommand.remainingRepeats--; 
-    lastCommandSent = tNow;
+    if (tNow - lastCommandSent >= DSHOT_COMMAND_DELAY_US) {
+        currentExecutingCommand.remainingRepeats--; 
+        lastCommandSent = tNow;
+        return true;
+    } else {
+        return false;
+    }
 }
 #endif
 
@@ -464,7 +477,9 @@ void pwmCompleteMotorUpdate(void) {
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
 
-        executeDShotCommands();
+        if (!executeDShotCommands()) {
+            return;
+        }
 
 #ifdef USE_DSHOT_DMAR
         for (int index = 0; index < motorCount; index++) {
