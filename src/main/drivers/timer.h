@@ -119,13 +119,6 @@ typedef enum {
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
-
-// Compability
-#define TIM_USE_MC_MOTOR    TIM_USE_MOTOR
-#define TIM_USE_MC_SERVO    TIM_USE_SERVO
-#define TIM_USE_FW_MOTOR    TIM_USE_MOTOR
-#define TIM_USE_FW_SERVO    TIM_USE_SERVO
-
 #define TIM_USE_OUTPUT_AUTO (TIM_USE_MOTOR | TIM_USE_SERVO)
 
 #define TIM_IS_MOTOR(flags) ((flags) & TIM_USE_MOTOR)
