@@ -21,18 +21,18 @@ Please be aware that both the setup procedure and firmware may change in respons
 We highly value your feedback as it plays a crucial role in the development and refinement of INAV VTOL capabilities. Please share your experiences, suggestions, and any issues you encounter during testing. Your insights are invaluable in making INAV VTOL better for everyone.
 
 # VTOL Configuration Steps
-The VTOL functionality is achieved by transitioning between two mixer profiles with associated PID profiles.
-1. **Profile 1:**
-   - Configure it as a normal FixedWing/multi-copter.
+### The VTOL functionality is achieved by transitioning between two mixer profiles with associated PID profiles. One profile is for fixed-wing(FW), One is for multi-copter(MC) <- Once you understand this, Configuration will be straight forward
+1. **Setup Profile 1:**
+   - Configure it as a normal fixed-wing/multi-copter.
 
-2. **Profile 2:**
-   - Configure it as a normal multi-copter/FixedWing.
+2. **Setup Profile 2:**
+   - Configure it as a normal multi-copter/fixed-wing.
 
 3. **Mode Tab Settings:**
    - Set up switching in the mode tab.
 
 4. *(Recommended)* **Transition Mixing (Multi-Rotor Profile):**
-   - Configure transition mixing in the multi-rotor profile.
+   - Configure transition mixing to gain airspeed in the multi-rotor profile.
 
 5. *(Recommended)* **VTOL-Specific Settings:**
    - Configure VTOL-specific settings.
@@ -40,8 +40,8 @@ The VTOL functionality is achieved by transitioning between two mixer profiles w
 6. *(Optional)* **Automated Switching (RTH):**
    - Optionally, set up automated switching in case of failsafe.
 
-# Parameter Configuration (Partial List)
-
+# Parameter list (Partial List)
+###  Please be aware of what parameter is shared and what isn't. 
 ## Shared Parameters
 
 - **Timer Overrides**
@@ -68,22 +68,22 @@ The VTOL functionality is achieved by transitioning between two mixer profiles w
   - PIDs for Navigation Modes
   - TPA (Throttle PID Attenuation) Settings
   - Rate Settings
-- ·······
+  - ·······
 
-# Configuring as a Normal FixedWing/Multi-Copter in two profiles
+# STEP1&2: Configuring as a Normal fixed-wing/Multi-Copter in two profiles separately
 
-To set up your vehicle as a normal FixedWing or multi-copter, follow these steps:
+To set up your model as a normal fixed-wing or multi-copter in the first profile, follow these steps:
 
 1. **Select the Mixer Profile and PID Profile:**
    - In the CLI, switch to the mixer_profile and pid_profile you wish to set first:
      ```
-     mixer_profile 1
+     mixer_profile 1 #in this example, we set profile 1 first
      set mixer_pid_profile_linking = ON  # Let the mixer_profile handle the pid_profile on this mixer_profile
      save
      ```
 
-2. **Configure the FixedWing/Multi-Copter:**
-   - Configure your vehicle as you normally would, or you can copy and paste default settings to expedite the process.
+2. **Configure the fixed-wing/Multi-Copter:**
+   - Configure your fixed-wing/Multi-Copter as you normally would, or you can copy and paste default settings to expedite the process.
    - Consider conducting a test flight to ensure that everything operates as expected. And tune the settings, trim the servos.
    - You may encoter display probelms in the output mapping of the configurator, it differs from the actual mapping in FC. You can add a dummy motormix (throttle=0.01,props removed) or dummy servomix (rate=1) if needed, and delete them once all settings are finalized.
 
@@ -95,45 +95,45 @@ To set up your vehicle as a normal FixedWing or multi-copter, follow these steps
      save
      ```
 
-4. **Configure the Multi-Copter/FixedWing:**
-   - Set up your multi-copter/FixedWing as usual, this time for mixer_profile 2 and pid_profile 2.
+4. **Configure the Multi-Copter/fixed-wing:**
+   - Set up your multi-copter/fixed-wing as usual, this time for mixer_profile 2 and pid_profile 2.
    - Utilize the 'MAX' input in the servo mixer to tilt the motors without altering the servo midpoint.
    - At this stage, focus on configuring profile-specific settings. You can streamline this process by copying and pasting the default PID settings.
+   - compass is required to enable navigation modes for multi-rotor profile.
    - Consider conducting a test flight to ensure that everything operates as expected. And tune the settings.
-   - It is advisable to have a certain degree of control surface (elevon / elevator) mapping for stabilization even in MR mode. This helps improve control authority, especially when airspeed is high.
+   - It is advisable to have a certain degree of control surface (elevon / elevator) mapping for stabilization even in multi-copter mode. This helps improve control authority when airspeed is high.
 
-# Mode Tab Settings:
+# STEP3: Mode Tab Settings:
+### We recommend using an 3-pos switch on you radio to activate these modes, So pilot can jump in or bell out at any moment.
 Here is a example:
 ![Alt text](Screenshots/mixer_profile.png)
 |  1000~1300 |  1300~1700  | 1700~2000 |
 | :-- | :-- | :-- |
-| FW(profile1) with transition off |  MC(profile2) with transition on  | MC(profile2) with transition off |
+| Profile1(FW) with transition off |  Profile2(MC) with transition on  | Profile2(MC) with transition off |
 
-We recommend using an RC mode switch to activate modes or switch profiles. Please note the following important considerations:
 
+Please note the following considerations:
 
 - Profile file switching becomes available after completing the runtime sensor calibration(15-30s after booting). And It is **not available** when a navigation mode or position hold is active.
 
-- By default, `mixer_profile 1` is used, while `mixer_profile 2` is activated when the `MIXER PROFILE 2` mode box is selected. Once configured successfully, you will notice that the profiles and model preview automatically switch when you reflash the relevant INAV Configurator tabs. 
+- By default, `mixer_profile 1` is used. `mixer_profile 2` is used when the `MIXER PROFILE 2` mode is activate. Once configured successfully, you will notice that the profiles and model preview changes accordingly when you refresh the relevant INAV Configurator tabs. 
 
-- Use the `MIXER TRANSITION` to gain airspeed in MC profile, set `MIXER TRANSITION` accordingly.
+- Use the `MIXER TRANSITION` mode to gain airspeed in MC profile, set `MIXER TRANSITION` accordingly.
 
-- Additionally, you can configure it as a 4-state switch by adding FW (profile 1) with  `MIXER TRANSITION`.
+- Additionally, you can configure it as a 4-state switch by adding FW (profile 1) with `MIXER TRANSITION`.
 
-Conduct a bench test on the model (without props attached). The model can now switch between FixedWing and multi-copter modes while armed. Furthermore, it is capable of mid-air switching, resulting in an immediate stall upon entering fixed-wing mode
+Conduct a bench test on the model (without props attached). The model can now switch between fixed-wing and multi-copter modes while armed. Furthermore, it is capable of mid-air switching, resulting in an immediate stall upon entering fixed-wing profile
 
-# Transition Mixing (Multi-Rotor Profile)
-The 'transition input' is typically useful in MR (Multi-Rotor) mode to gain airspeed. Both the servo mixer and motor mixer can accept the `MIXER TRANSITION` as an input. When the transition mode is activated, the associated motor or servo will move accordingly. Please note that transition input is disabled when a navigation mode is activated. The use of Transition input is necessary to enable additional features such as VTOL RTH.
-## Servo 'Transition Input'
-Add new servo mixer rules, and select 'Mixer Transition' in input. This will allow tilting the motor for the desired angle for the tilting rotor model.
+# STEP4: Transition Mixing (Multi-Rotor Profile)(Recommended)
+### Transition Mixing is typically useful in multi-copter profile to gain airspeed in prior to entering the fixed-wing profile. When the `MIXER TRANSITION` mode is activated, the associated motor or servo will move according to your configured Transition Mixing. 
 
-In some tilting motor models, you may experience roll or yaw oscillations when `MIXER TRANSITION` is activated. To address this issue, you can add servo mixing rules with an opposite rate to compensate. Use a logic condition to ensure that these compensation servo mixing rules are active only when `MIXER TRANSITION` is activated.
+Please note that transition input is disabled when a navigation mode is activated. The use of Transition Mixing is necessary to enable additional features such as VTOL RTH with out stalling.
+## Servo 'Transition Mixing': Tilting rotor configuration.
+Add new servo mixer rules, and select 'Mixer Transition' in input. Set the weight/rate according to your desired angle. This will allow tilting the motor for tilting rotor model.
 
-You can achieve this by checking the value of 'Flight:MixerTransition Active,' which is set to 1 when `MIXER TRANSITION` is activated, either by the user or through automated transition.
-
-## Motor 'Transition Input'
-
-The motor 'transition input' is used for a dedicated forward motor in a fixed-wing mode setup. Please note that it is not fully supported by the configurator at this time.
+(Optional) In some tilting motor models, you may experience roll or yaw oscillations when `MIXER TRANSITION` is activated. To address this issue, you can add servo mixing rules with an opposite weight/rate to compensate excessive control input. Use a logic condition to ensure that these compensation servo mixing rules are active only when `MIXER TRANSITION` is activated. You can achieve this by checking the value of 'Flight:MixerTransition Active' in programming tab.
+## Motor 'Transition Mixing': Dedicated forward motor configuration
+Please note that it is not fully supported by the configurator at this time. Setting is only available in cli and. Save and reboot in the mixer tab will delete Motor Transition Mixing.
 
 The default `mmix` throttle value is 0.0. It will not appear in the `diff` command when the throttle value is 0.0 (unused), which causes the motor to stop.
 
@@ -141,33 +141,47 @@ The default `mmix` throttle value is 0.0. It will not appear in the `diff` comma
 - -1.0 < throttle <= 0.0: Motor stop (default value 0)
 - -2.0 < throttle < -1.0: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` when Mixer Transition is activated.
 
-Here's an example: This configuration will spin motor number 5 (counting from 1) at 20% throttle, but only in transition mode. This setup is useful for gaining speed in a "4 rotor 1 pusher" configuration:
+Here's an example: This configuration will spin motor number 5 (counting from 1) at 20% throttle only in `MIXER TRANSITION` mode. For gaining speed in a "4 rotor 1 pusher" configuration:
 
 ```
 mmix 4 -1.200 0.000 0.000 0.000
 ```
+## TailSitter 'Transition Mixing': 
+Work in progress, having promising results in simulator.
 
-After these settings, your model should be able to enter FixedWing mode without stalling.
+### With aforementioned settings, your model should be able to enter fixed-wing profile without stalling.
 
-# VTOL-Specific Settings
-recommended settings
+# STEP5: VTOL-Specific Settings (Recommended):
+### recommended settings, more based on field experience are coming
 ```
-set nav_disarm_on_landing = OFF
-set airmode_type = STICK_CENTER_ONCE 
-set ahrs_inertia_comp_method = VELNED
-set tpa_on_yaw = ON ##for yaw by tilting the motor on the mc pid_profile
+set nav_disarm_on_landing = OFF #band-aid for false landing detection in NAV landing of multi-copter
+set airmode_type = STICK_CENTER_ONCE
+set ahrs_inertia_comp_method = VELNED # a method work for both FW and MC
+set tpa_on_yaw = ON #For yaw control by tilting the motor on the MC pid_profile
 ```
 
-# Automated Switching (RTH):
-This is one of the least tested features. This feature is primarily designed for Return to Home (RTH) in the event of a failsafe. When configured correctly, the model will use the Fixed-Wing (FW) mode to efficiently return home and then transition to Multi-Copter (MC) mode for easier landing.
+# Automated Switching (RTH) (Optional):
+### This is one of the least tested features. This feature is primarily designed for Return to Home (RTH) in the event of a failsafe. 
+When configured correctly, the model will use the Fixed-Wing (FW) mode to efficiently return home and then transition to Multi-Copter (MC) mode for easier landing.
 
 To enable this feature, type follwoing command in cli
 
-1. In your MC mode mixer profile (e.g., mixer_profile 2), set `mixer_automated_switch` to `ON`.
-2. Set `mixer_switch_trans_timer` in the MC mode mixer profile to specify the time required for your model to gain sufficient airspeed before transitioning to FW mode. For example, you can set it to 30 decaseconds (30 ds).
-3. In your FW mode mixer profile (e.g., mixer_profile 1), also set `mixer_automated_switch` to `ON`.
-4. Save your settings.
+1. In your MC mode mixer profile (e.g., mixer_profile 2), set `mixer_automated_switch` to `ON`. leave it to `OFF` if burning remaining battery capacity on the way home is acceptable.
+```
+mixer_profile 2or1
+set mixer_automated_switch= ON
+```
 
-When `mixer_automated_switch` is set to `ON` for a mixer profile, it means that the model will automatically schedule a transition when a request is made by the navigation controller, such as during an RTH operation when heading home (applies to MC mixer_profile) or when landing (applies to FW mixer_profile).
+2. Set `mixer_switch_trans_timer` ds in cli in the MC mode mixer profile to specify the time required for your model to gain sufficient airspeed before transitioning to FW mode. 
+```
+mixer_profile 2or1
+set mixer_switch_trans_timer = 30 # 3s, 3000ms
+```
+3. In your FW mode mixer profile (e.g., mixer_profile 1), also set `mixer_automated_switch` to `ON`. leave it to `OFF` if automated landing in fixed-wing is acceptable.
+```
+mixer_profile 1or2
+set mixer_automated_switch = ON
+```
+4. Save your settings. type `save` in cli. 
 
-If you set `mixer_automated_switch` to `OFF` for all mixer profiles (the default setting), the model will not perform automated transitions.
+If you set `mixer_automated_switch` to `OFF` for all mixer profiles (the default setting), the model will not perform automated transitions. You can always enable navigation modes after performing a manual transition.
