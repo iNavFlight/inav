@@ -472,7 +472,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         fpVector3_t rotated;
 
         rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
-
+        applyTailSitterAlignment(&rotated);
          mag.magADC[X] = rotated.x;
          mag.magADC[Y] = rotated.y;
          mag.magADC[Z] = rotated.z;
