@@ -121,6 +121,9 @@ static bool shouldResetReferenceAltitude(uint8_t updateSource)
         bool allAltitudeSources = STATE(GPS_FIX) && sensors(SENSOR_BARO);
 
         if ((allAltitudeSources && sourceCheck > SENSOR_GPS) || (!allAltitudeSources && sourceCheck)) {
+            if (positionEstimationConfig()->reset_home_type == NAV_RESET_ON_EACH_ARM) {
+                posControl.rthState.homePosition.pos.z = 0;
+            }
             resetAltitudeOnArm = false;
             sourceCheck = 0;
         }

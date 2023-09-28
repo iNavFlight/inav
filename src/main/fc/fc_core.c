@@ -553,10 +553,10 @@ void tryArm(void)
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    if (!isArmingDisabled() || emergencyArmingIsEnabled() || emergInflightRearmEnabled() ||
+    if (emergInflightRearmEnabled() || !isArmingDisabled() || emergencyArmingIsEnabled() ||
         LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
 #else
-    if (!isArmingDisabled() || emergencyArmingIsEnabled() || emergInflightRearmEnabled()) {
+    if (emergInflightRearmEnabled() || !isArmingDisabled() || emergencyArmingIsEnabled()) {
 #endif
         // If nav_extra_arming_safety was bypassed we always
         // allow bypassing it even without the sticks set
@@ -568,8 +568,6 @@ void tryArm(void)
             ENABLE_STATE(NAV_EXTRA_ARMING_SAFETY_BYPASSED);
         }
 
-        resetLandingDetectorActiveState();  // reset landing detector after arming to avoid false detection before flight
-
         lastDisarmReason = DISARM_NONE;
 
         ENABLE_ARMING_FLAG(ARMED);
@@ -578,6 +576,7 @@ void tryArm(void)
         ENABLE_STATE(SET_REVERSIBLE_MOTORS_FORWARD);
 
         if (!STATE(IN_FLIGHT_EMERG_REARM)) {
+            resetLandingDetectorActiveState();  // reset landing detector after arming to avoid false detection before flight
             logicConditionReset();
 #ifdef USE_PROGRAMMING_FRAMEWORK
             programmingPidReset();

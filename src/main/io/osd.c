@@ -1202,7 +1202,7 @@ int32_t osdGetAltitude(void)
 
 static inline int32_t osdGetAltitudeMsl(void)
 {
-    return getEstimatedActualPosition(Z)+GPS_home.alt;
+    return getEstimatedActualPosition(Z) + posControl.gpsOrigin.alt;
 }
 
 uint16_t osdGetRemainingGlideTime(void) {
