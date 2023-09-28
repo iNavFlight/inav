@@ -190,5 +190,6 @@
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
-
+#else
+#define MAX_MIXER_PROFILE_COUNT 1
 #endif
