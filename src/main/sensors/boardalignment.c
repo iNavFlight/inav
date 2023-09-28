@@ -92,6 +92,14 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
+void applyTailSitterAlignment(fpVector3_t *fpVec)
+{
+    if (!STATE(TAILSITTER)) {
+        return;
+    }
+    rotationMatrixRotateVector(fpVec, fpVec, &tailRotMatrix);
+}
+
 void applyBoardAlignment(float *vec)
 {
     if (standardBoardAlignment && (!STATE(TAILSITTER))) {
@@ -100,9 +108,7 @@ void applyBoardAlignment(float *vec)
 
     fpVector3_t fpVec = { .v = { vec[X], vec[Y], vec[Z] } };
     rotationMatrixRotateVector(&fpVec, &fpVec, &boardRotMatrix);
-    if (STATE(TAILSITTER)) {
-        rotationMatrixRotateVector(&fpVec, &fpVec, &tailRotMatrix);
-    }
+    applyTailSitterAlignment(&fpVec);
     vec[X] = lrintf(fpVec.x);
     vec[Y] = lrintf(fpVec.y);
     vec[Z] = lrintf(fpVec.z);
