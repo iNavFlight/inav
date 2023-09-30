@@ -48,7 +48,7 @@ If default voltages does not work with your camera model, then you have to measu
 2. Measure voltages on OSD pin while each key is pressed.
 3. Connect camera to FC throught RC filter as shown on schematix above.
 4. Enable OSD Joystick emulation (see "Enabling OSD Joystick emulation" above)
-4. Use cli ```command led_pin_pwm <value>```, value = 0...100 to find out PWM values for each voltage.
+4. Use cli command ```led_pin_pwm <value>```, value = 0...100 to find out PWM values for each voltage.
 5. Specify PWM values in configuration and save:
 
 ```set osd_joystick_down=0```
