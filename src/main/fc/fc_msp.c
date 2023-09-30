@@ -3279,7 +3279,7 @@ bool isOSDTypeSupportedBySimulator(void)
 {
 #ifdef USE_OSD
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
-	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+	return (!!osdDisplayPort && !!osdDisplayPort->vTable->readChar);
 #else
     return false;
 #endif
@@ -3291,18 +3291,25 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	//scan displayBuffer iteratively
 	//no more than 80+3+2 bytes output in single run
 	//0 and 255 are special symbols
-	//255 - font bank switch
-	//0  - font bank switch, blink switch and character repeat
+	//255 [char] - font bank switch
+	//0 [flags,count] [char] - font bank switch, blink switch and character repeat
+    //original 0 is sent as 32
+    //original 0xff, 0x100 and 0x1ff are forcibly sent inside command 0
 
 	static uint8_t osdPos_y = 0;
 	static uint8_t osdPos_x = 0;
 
+    //indicate new format hitl 1.4.0
+	sbufWriteU8(dst, 255);  
 
 	if (isOSDTypeSupportedBySimulator())
 	{
 		displayPort_t *osdDisplayPort = osdGetDisplayPort();
 
-		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
+		sbufWriteU8(dst, osdDisplayPort->rows);
+		sbufWriteU8(dst, osdDisplayPort->cols);
+
+		sbufWriteU8(dst, osdPos_y);
 		sbufWriteU8(dst, osdPos_x);
 
 		int bytesCount = 0;
@@ -3313,7 +3320,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		bool blink = false;
 		int count = 0;
 
-		int processedRows = 16;
+		int processedRows = osdDisplayPort->rows;
 
 		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
 		{
@@ -3324,7 +3331,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			while ( true )
 			{
 				displayReadCharWithAttr(osdDisplayPort, osdPos_x, osdPos_y, &c, &attr);
-				if (c == 0 || c == 255) c = 32;
+				if (c == 0) c = 32;
 
 				//REVIEW: displayReadCharWithAttr() should return mode with _TEXT_ATTRIBUTES_BLINK_BIT !
 				//for max7456 it returns mode with MAX7456_MODE_BLINK instead (wrong)
@@ -3339,7 +3346,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 					lastChar = c;
 					blink1 = blink2;
 				}
-				else if (lastChar != c || blink2 != blink1 || count == 63)
+				else if ((lastChar != c) || (blink2 != blink1) || (count == 63))
 				{
 					break;
 				}
@@ -3347,12 +3354,12 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 				count++;
 
 				osdPos_x++;
-				if (osdPos_x == 30)
+				if (osdPos_x == osdDisplayPort->cols)
 				{
 					osdPos_x = 0;
 					osdPos_y++;
 					processedRows--;
-					if (osdPos_y == 16)
+					if (osdPos_y == osdDisplayPort->rows)
 					{
 						osdPos_y = 0;
 					}
@@ -3360,6 +3367,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			}
 
 			uint8_t cmd = 0;
+            uint8_t lastCharLow = (uint8_t)(lastChar & 0xff);
 			if (blink1 != blink)
 			{
 				cmd |= 128;//switch blink attr
@@ -3375,27 +3383,27 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 			if (count == 1 && cmd == 64)
 			{
-				sbufWriteU8(dst, 255);  //short command for bank switch
+				sbufWriteU8(dst, 255);  //short command for bank switch with char following
 				sbufWriteU8(dst, lastChar & 0xff);
 				bytesCount += 2;
 			}
-			else if (count > 2 || cmd !=0 )
+			else if ((count > 2) || (cmd !=0) || (lastChar == 255) || (lastChar == 0x100) || (lastChar == 0x1ff))
 			{
 				cmd |= count;  //long command for blink/bank switch and symbol repeat
 				sbufWriteU8(dst, 0);
 				sbufWriteU8(dst, cmd);
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount += 3;
 			}
 			else if (count == 2)  //cmd == 0 here
 			{
-				sbufWriteU8(dst, lastChar & 0xff);
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount+=2;
 			}
 			else
 			{
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount++;
 			}
 
@@ -3409,7 +3417,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	}
 	else
 	{
-		sbufWriteU8(dst, 255);
+		sbufWriteU8(dst, 0);
 	}
 }
 #endif
