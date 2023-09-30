@@ -47,7 +47,7 @@
 #include "fc/settings.h"
 
 #include "flight/imu.h"
-#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 
 #include "io/beeper.h"
@@ -69,6 +69,7 @@
 #define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
 #define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
 #define MR_RTH_CLIMB_MARGIN_PERCENT 15   // on high RTH altitudes use even bigger margin - percent of the altitude set
+#define MR_RTH_LAND_MARGIN_CM       2000 // pause landing if this amount of cm *before* remaining to the home point (2D distance)
 
 // Planes:
 #define FW_RTH_CLIMB_OVERSHOOT_CM   100
@@ -95,7 +96,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 5);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -152,6 +153,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .land_detect_sensitivity = SETTING_NAV_LAND_DETECT_SENSITIVITY_DEFAULT,                 // Changes sensitivity of landing detection
         .auto_disarm_delay = SETTING_NAV_AUTO_DISARM_DELAY_DEFAULT,                             // 2000 ms - time delay to disarm when auto disarm after landing enabled
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
+        .cruise_yaw_rate  = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                // 20dps
     },
 
     // MC-specific
@@ -207,7 +209,6 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_manual_throttle = SETTING_NAV_FW_LAUNCH_MANUAL_THROTTLE_DEFAULT,// OFF
         .launch_abort_deadband = SETTING_NAV_FW_LAUNCH_ABORT_DEADBAND_DEFAULT,  // 100 us
 
-        .cruise_yaw_rate  = SETTING_NAV_FW_CRUISE_YAW_RATE_DEFAULT,             // 20dps
         .allow_manual_thr_increase = SETTING_NAV_FW_ALLOW_MANUAL_THR_INCREASE_DEFAULT,
         .useFwNavYawControl = SETTING_NAV_USE_FW_YAW_CONTROL_DEFAULT,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
@@ -308,6 +309,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_WAIT(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState);
 
 static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     /** Idle state ******************************************************/
@@ -328,6 +332,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_LAUNCH]               = NAV_STATE_LAUNCH_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -422,7 +427,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_COURSE_HOLD_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_YAW,
+        .stateFlags = NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_COURSE_HOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -481,7 +486,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_CRUISE_IN_PROGRESS,
         .onEntry = navOnEnteringState_NAV_STATE_CRUISE_IN_PROGRESS,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_RC_POS | NAV_RC_YAW | NAV_RC_ALT,
         .mapToFlightModes = NAV_ALTHOLD_MODE | NAV_COURSE_HOLD_MODE,
         .mwState = MW_NAV_STATE_NONE,
         .mwError = MW_NAV_ERROR_NONE,
@@ -596,6 +601,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -654,6 +660,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -807,6 +814,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]          = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]               = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_MIXERAT]              = NAV_STATE_MIXERAT_INITIALIZE,
         }
     },
 
@@ -941,6 +949,52 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
         }
     },
+    
+    /** MIXER AUTOMATED TRANSITION mode, alternated althod ***************************************************/
+    [NAV_STATE_MIXERAT_INITIALIZE] = {
+        .persistentId = NAV_PERSISTENT_ID_MIXERAT_INITIALIZE,
+        .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE,
+        .timeoutMs = 0,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_MIXERAT,
+        .mapToFlightModes = NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_NONE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_MIXERAT_IN_PROGRESS,
+            [NAV_FSM_EVENT_ERROR]                          = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
+        }
+    },
+
+    [NAV_STATE_MIXERAT_IN_PROGRESS] = {
+        .persistentId = NAV_PERSISTENT_ID_MIXERAT_IN_PROGRESS,
+        .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS,
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT | NAV_MIXERAT,
+        .mapToFlightModes = NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_NONE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_MIXERAT_IN_PROGRESS,    // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_MIXERAT_ABORT,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME]        = NAV_STATE_RTH_HEAD_HOME, //switch to its pending state
+            [NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING]          = NAV_STATE_RTH_LANDING, //switch to its pending state
+        }
+    },
+    [NAV_STATE_MIXERAT_ABORT] = {
+        .persistentId = NAV_PERSISTENT_ID_MIXERAT_ABORT,
+        .onEntry = navOnEnteringState_NAV_STATE_MIXERAT_ABORT, //will not switch to its pending state
+        .timeoutMs = 10,
+        .stateFlags = NAV_CTL_ALT | NAV_REQUIRE_ANGLE | NAV_REQUIRE_THRTILT,
+        .mapToFlightModes = NAV_ALTHOLD_MODE,
+        .mwState = MW_NAV_STATE_NONE,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
+            
+        }
+    },
 };
 
 static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
@@ -948,7 +1002,7 @@ static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
     return navFSM[state].stateFlags;
 }
 
-static flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state)
+flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state)
 {
     return navFSM[state].mapToFlightModes;
 }
@@ -1055,7 +1109,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(
 {
     UNUSED(previousState);
 
-    if (!STATE(FIXED_WING_LEGACY)) {    // Only on FW for now
+    if (STATE(MULTIROTOR) && !navConfig()->general.cruise_yaw_rate) {  // course hold not possible on MR without yaw control
         return NAV_FSM_EVENT_ERROR;
     }
 
@@ -1067,7 +1121,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(
 
     resetPositionController();
 
-    posControl.cruise.course = posControl.actualState.cog;  // Store the course to follow
+    if (STATE(AIRPLANE)) {
+        posControl.cruise.course = posControl.actualState.cog;  // Store the course to follow
+    } else {    // Multicopter
+        posControl.cruise.course = posControl.actualState.yaw;
+        posControl.cruise.multicopterSpeed = constrainf(posControl.actualState.velXY, 10.0f, navConfig()->general.max_manual_speed);
+        posControl.desiredState.pos = posControl.actualState.abs.pos;
+    }
     posControl.cruise.previousCourse = posControl.cruise.course;
     posControl.cruise.lastCourseAdjustmentTime = 0;
 
@@ -1088,15 +1148,24 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
     DEBUG_SET(DEBUG_CRUISE, 0, 2);
     DEBUG_SET(DEBUG_CRUISE, 2, 0);
 
-    if (posControl.flags.isAdjustingPosition) {
+    if (STATE(AIRPLANE) && posControl.flags.isAdjustingPosition) {  // inhibit for MR, pitch/roll only adjusts speed using pitch
         return NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ;
     }
 
-    // User is yawing. We record the desidered yaw and we change the desidered target in the meanwhile
-    if (posControl.flags.isAdjustingHeading) {
+    const bool mcRollStickHeadingAdjustmentActive = STATE(MULTIROTOR) && ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband;
+
+    // User demanding yaw -> yaw stick on FW, yaw or roll sticks on MR
+    // We record the desired course and change the desired target in the meanwhile
+    if (posControl.flags.isAdjustingHeading || mcRollStickHeadingAdjustmentActive) {
+        int16_t cruiseYawRate = DEGREES_TO_CENTIDEGREES(navConfig()->general.cruise_yaw_rate);
+        int16_t headingAdjustCommand = rcCommand[YAW];
+        if (mcRollStickHeadingAdjustmentActive && ABS(rcCommand[ROLL]) > ABS(headingAdjustCommand)) {
+            headingAdjustCommand = -rcCommand[ROLL];
+        }
+
         timeMs_t timeDifference = currentTimeMs - posControl.cruise.lastCourseAdjustmentTime;
         if (timeDifference > 100) timeDifference = 0;   // if adjustment was called long time ago, reset the time difference.
-        float rateTarget = scaleRangef((float)rcCommand[YAW], -500.0f, 500.0f, -DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate), DEGREES_TO_CENTIDEGREES(navConfig()->fw.cruise_yaw_rate));
+        float rateTarget = scaleRangef((float)headingAdjustCommand, -500.0f, 500.0f, -cruiseYawRate, cruiseYawRate);
         float centidegsPerIteration = rateTarget * MS2S(timeDifference);
         posControl.cruise.course = wrap_36000(posControl.cruise.course - centidegsPerIteration);
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
@@ -1129,7 +1198,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_ADJUSTING(n
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_CRUISE_INITIALIZE(navigationFSMState_t previousState)
 {
-    if (!STATE(FIXED_WING_LEGACY)) { return NAV_FSM_EVENT_ERROR; } // only on FW for now
+    if (STATE(MULTIROTOR) && !navConfig()->general.cruise_yaw_rate) {  // course hold not possible on MR without yaw control
+        return NAV_FSM_EVENT_ERROR;
+    }
 
     navOnEnteringState_NAV_STATE_ALTHOLD_INITIALIZE(previousState);
 
@@ -1349,6 +1420,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
+    if (checkMixerATRequired(MIXERAT_REQUEST_RTH) && (calculateDistanceToDestination(&posControl.rthState.homePosition.pos) > (navConfig()->fw.loiter_radius * 3))){
+        return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+    }
+
     if (navConfig()->general.flags.rth_use_linear_descent && navConfig()->general.rth_home_altitude > 0) {
         // Check linear descent status
         uint32_t homeDistance = calculateDistanceToDestination(&posControl.rthState.homePosition.pos);
@@ -1439,12 +1514,22 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
+    
+    if (checkMixerATRequired(MIXERAT_REQUEST_LAND)){
+        return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
+    }
 
     float descentVelLimited = 0;
-    int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
 
+    fpVector3_t tmpHomePos = posControl.rthState.homeTmpWaypoint;
+    uint32_t remaning_distance = calculateDistanceToDestination(&tmpHomePos);
+
+    int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
+    if(STATE(MULTIROTOR) && (remaning_distance>MR_RTH_LAND_MARGIN_CM)){
+        descentVelLimited = navConfig()->general.land_minalt_vspd;
+    }
     // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
-    if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
+    else if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
         // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
         // Do not allow descent velocity slower than -30cm/s so the landing detector works.
         descentVelLimited = navConfig()->general.land_minalt_vspd;
@@ -1789,8 +1874,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_FINIS
 {
     UNUSED(previousState);
 
-    disarm(DISARM_NAVIGATION);
-
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -1837,6 +1920,70 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     }
 
     return NAV_FSM_EVENT_NONE;
+}
+
+navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState)
+{
+    const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
+
+    // Prepare altitude controller if idle, RTH or WP modes active or surface mode status changed
+    if (!(prevFlags & NAV_CTL_ALT) || (prevFlags & NAV_AUTO_RTH) || (prevFlags & NAV_AUTO_WP)) {
+        resetAltitudeController(false);
+        setupAltitudeController();
+    }
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+    navMixerATPendingState = previousState;
+    return NAV_FSM_EVENT_SUCCESS;
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+    mixerProfileATRequest_e required_action;
+    switch (navMixerATPendingState)
+    {
+    case NAV_STATE_RTH_HEAD_HOME:
+        required_action = MIXERAT_REQUEST_RTH;
+        break;
+    case NAV_STATE_RTH_LANDING:
+        required_action = MIXERAT_REQUEST_LAND;
+        break;
+    default:
+        required_action = MIXERAT_REQUEST_NONE;
+        break;
+    }
+    if (mixerATUpdateState(required_action)){
+        // MixerAT is done, switch to next state
+        resetPositionController();
+        resetAltitudeController(false);     // Make sure surface tracking is not enabled uses global altitude, not AGL
+        mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+        switch (navMixerATPendingState)
+        {
+        case NAV_STATE_RTH_HEAD_HOME:
+            setupAltitudeController();
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME;
+            break;
+        case NAV_STATE_RTH_LANDING:
+            setupAltitudeController();
+            return NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING;
+            break;
+        default:
+            return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+            break;
+        }
+    }
+
+    setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, posControl.actualState.yaw, NAV_POS_UPDATE_Z);
+
+    return NAV_FSM_EVENT_NONE;
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+    mixerATUpdateState(MIXERAT_REQUEST_ABORT);
+    return NAV_FSM_EVENT_SUCCESS;
 }
 
 static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
@@ -2459,13 +2606,13 @@ void checkSafeHomeState(bool shouldBeEnabled)
     safehomeNotApplicable = safehomeNotApplicable || (MULTI_FUNC_FLAG(MF_SUSPEND_SAFEHOMES) && !posControl.flags.forcedRTHActivated);
 #endif
 
-	if (safehomeNotApplicable) {
-		shouldBeEnabled = false;
-	} else if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_RTH_FS && shouldBeEnabled) {
-		// if safehomes are only used with failsafe and we're trying to enable safehome
-		// then enable the safehome only with failsafe
-		shouldBeEnabled = posControl.flags.forcedRTHActivated;
-	}
+    if (safehomeNotApplicable) {
+        shouldBeEnabled = false;
+    } else if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_RTH_FS && shouldBeEnabled) {
+        // if safehomes are only used with failsafe and we're trying to enable safehome
+        // then enable the safehome only with failsafe
+        shouldBeEnabled = posControl.flags.forcedRTHActivated;
+    }
     // no safe homes found when arming or safehome feature in the correct state, then we don't need to do anything
 	if (posControl.safehomeState.distance == 0 || posControl.safehomeState.isApplied == shouldBeEnabled) {
 		return;
@@ -2496,8 +2643,8 @@ bool findNearestSafeHome(void)
     gpsLocation_t shLLH;
     shLLH.alt = 0;
     for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
-		if (!safeHomeConfig(i)->enabled)
-		    continue;
+        if (!safeHomeConfig(i)->enabled)
+            continue;
 
         shLLH.lat = safeHomeConfig(i)->lat;
         shLLH.lon = safeHomeConfig(i)->lon;
@@ -2834,7 +2981,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
         }
     } else if (STATE(LANDING_DETECTED)) {
         pidResetErrorAccumulators();
-        if (navConfig()->general.flags.disarm_on_landing) {
+        if (navConfig()->general.flags.disarm_on_landing && !FLIGHT_MODE(FAILSAFE_MODE)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
             disarm(DISARM_LANDING);
         } else if (!navigationInAutomaticThrottleMode()) {
@@ -3437,33 +3584,34 @@ bool isNavHoldPositionActive(void)
             navigationIsExecutingAnEmergencyLanding();
 }
 
-float getActiveWaypointSpeed(void)
+float getActiveSpeed(void)
 {
-    if (posControl.flags.isAdjustingPosition) {
-        // In manual control mode use different cap for speed
+    /* Currently only applicable for multicopter */
+
+    // Speed limit for modes where speed manually controlled
+    if (posControl.flags.isAdjustingPosition || FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
         return navConfig()->general.max_manual_speed;
     }
-    else {
-        uint16_t waypointSpeed = navConfig()->general.auto_speed;
 
-        if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP) {
-            if (posControl.waypointCount > 0 && (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND)) {
-                float wpSpecificSpeed = 0.0f;
-                if(posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME)
-                    wpSpecificSpeed = posControl.waypointList[posControl.activeWaypointIndex].p2; // P1 is hold time
-                else
-                    wpSpecificSpeed = posControl.waypointList[posControl.activeWaypointIndex].p1; // default case
+    uint16_t waypointSpeed = navConfig()->general.auto_speed;
 
-                if (wpSpecificSpeed >= 50.0f && wpSpecificSpeed <= navConfig()->general.max_auto_speed) {
-                    waypointSpeed = wpSpecificSpeed;
-                } else if (wpSpecificSpeed > navConfig()->general.max_auto_speed) {
-                    waypointSpeed = navConfig()->general.max_auto_speed;
-                }
+    if (navGetStateFlags(posControl.navState) & NAV_AUTO_WP) {
+        if (posControl.waypointCount > 0 && (posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_WAYPOINT || posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME || posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_LAND)) {
+            float wpSpecificSpeed = 0.0f;
+            if(posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME)
+                wpSpecificSpeed = posControl.waypointList[posControl.activeWaypointIndex].p2; // P1 is hold time
+            else
+                wpSpecificSpeed = posControl.waypointList[posControl.activeWaypointIndex].p1; // default case
+
+            if (wpSpecificSpeed >= 50.0f && wpSpecificSpeed <= navConfig()->general.max_auto_speed) {
+                waypointSpeed = wpSpecificSpeed;
+            } else if (wpSpecificSpeed > navConfig()->general.max_auto_speed) {
+                waypointSpeed = navConfig()->general.max_auto_speed;
             }
         }
-
-        return waypointSpeed;
     }
+
+    return waypointSpeed;
 }
 
 bool isWaypointNavTrackingActive(void)
@@ -3482,29 +3630,21 @@ static void processNavigationRCAdjustments(void)
 {
     /* Process pilot's RC input. Disable all pilot's input when in FAILSAFE_MODE */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
-    if ((navStateFlags & NAV_RC_ALT) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        posControl.flags.isAdjustingAltitude = adjustAltitudeFromRCInput();
-    }
-    else {
-        posControl.flags.isAdjustingAltitude = false;
-    }
 
-    if (navStateFlags & NAV_RC_POS) {
-        posControl.flags.isAdjustingPosition = adjustPositionFromRCInput() && !FLIGHT_MODE(FAILSAFE_MODE);
-        if (STATE(MULTIROTOR) && FLIGHT_MODE(FAILSAFE_MODE)) {
+    if (FLIGHT_MODE(FAILSAFE_MODE)) {
+        if (STATE(MULTIROTOR) && navStateFlags & NAV_RC_POS) {
             resetMulticopterBrakingMode();
         }
-    }
-    else {
+        posControl.flags.isAdjustingAltitude = false;
         posControl.flags.isAdjustingPosition = false;
+        posControl.flags.isAdjustingHeading = false;
+
+        return;
     }
 
-    if ((navStateFlags & NAV_RC_YAW) && (!FLIGHT_MODE(FAILSAFE_MODE))) {
-        posControl.flags.isAdjustingHeading = adjustHeadingFromRCInput();
-    }
-    else {
-        posControl.flags.isAdjustingHeading = false;
-    }
+    posControl.flags.isAdjustingAltitude = (navStateFlags & NAV_RC_ALT) && adjustAltitudeFromRCInput();
+    posControl.flags.isAdjustingPosition = (navStateFlags & NAV_RC_POS) && adjustPositionFromRCInput();
+    posControl.flags.isAdjustingHeading = (navStateFlags & NAV_RC_YAW) && adjustHeadingFromRCInput();
 }
 
 /*-----------------------------------------------------------
@@ -3787,14 +3927,14 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // CRUISE has priority over COURSE_HOLD and AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE) && STATE(AIRPLANE)) {
             if ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
         }
 
         // PH has priority over COURSE_HOLD
         // CRUISE has priority on AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) && STATE(AIRPLANE)) {
             if (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))) {
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
             }
@@ -3861,17 +4001,16 @@ int8_t navigationGetHeadingControlState(void)
     }
 
     // For multirotors it depends on navigation system mode
+    // Course hold requires Auto Control to update heading hold target whilst RC adjustment active
     if (navGetStateFlags(posControl.navState) & NAV_REQUIRE_MAGHOLD) {
-        if (posControl.flags.isAdjustingHeading) {
+        if (posControl.flags.isAdjustingHeading && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
             return NAV_HEADING_CONTROL_MANUAL;
         }
-        else {
-            return NAV_HEADING_CONTROL_AUTO;
-        }
+
+        return NAV_HEADING_CONTROL_AUTO;
     }
-    else {
-        return NAV_HEADING_CONTROL_NONE;
-    }
+
+    return NAV_HEADING_CONTROL_NONE;
 }
 
 bool navigationTerrainFollowingEnabled(void)
@@ -4213,15 +4352,6 @@ void navigationInit(void)
     /* Use system config */
     navigationUsePIDs();
 
-    if (
-        mixerConfig()->platformType == PLATFORM_BOAT ||
-        mixerConfig()->platformType == PLATFORM_ROVER ||
-        navConfig()->fw.useFwNavYawControl
-    ) {
-        ENABLE_STATE(FW_HEADING_USE_YAW);
-    } else {
-        DISABLE_STATE(FW_HEADING_USE_YAW);
-    }
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE)
     /* configure WP missions at boot */
 #ifdef USE_MULTI_MISSION
@@ -4282,7 +4412,7 @@ void abortForcedRTH(void)
 rthState_e getStateOfForcedRTH(void)
 {
     /* If forced RTH activated and in AUTO_RTH or EMERG state */
-    if (posControl.flags.forcedRTHActivated && (navGetStateFlags(posControl.navState) & (NAV_AUTO_RTH | NAV_CTL_EMERG))) {
+    if (posControl.flags.forcedRTHActivated && (navGetStateFlags(posControl.navState) & (NAV_AUTO_RTH | NAV_CTL_EMERG | NAV_MIXERAT))) {
         if (posControl.navState == NAV_STATE_RTH_FINISHED || posControl.navState == NAV_STATE_EMERGENCY_LANDING_FINISHED) {
             return RTH_HAS_LANDED;
         }
@@ -4377,7 +4507,7 @@ bool navigationRTHAllowsLanding(void)
 
 bool isNavLaunchEnabled(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH);
+    return (IS_RC_MODE_ACTIVE(BOXNAVLAUNCH) || feature(FEATURE_FW_LAUNCH)) && STATE(AIRPLANE);
 }
 
 bool abortLaunchAllowed(void)
@@ -4412,4 +4542,9 @@ bool isAdjustingHeading(void) {
 
 int32_t getCruiseHeadingAdjustment(void) {
     return wrap_18000(posControl.cruise.course - posControl.cruise.previousCourse);
+}
+
+int32_t navigationGetHeadingError(void)
+{
+    return wrap_18000(posControl.desiredState.yaw - posControl.actualState.cog);
 }

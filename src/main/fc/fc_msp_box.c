@@ -30,6 +30,7 @@
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 
 #include "io/osd.h"
 
@@ -99,6 +100,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },
     { .boxId = BOXBEEPERMUTE,       .boxName = "BEEPER MUTE",       .permanentId = 60 },
     { .boxId = BOXMULTIFUNCTION,    .boxName = "MULTI FUNCTION",    .permanentId = 61 },
+    { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
+    { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -231,6 +234,8 @@ void initActiveBoxIds(void)
         if (!STATE(ALTITUDE_CONTROL) || (STATE(ALTITUDE_CONTROL) && navReadyAltControl)) {
             ADD_ACTIVE_BOX(BOXNAVRTH);
             ADD_ACTIVE_BOX(BOXNAVWP);
+            ADD_ACTIVE_BOX(BOXNAVCRUISE);
+            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
             ADD_ACTIVE_BOX(BOXHOMERESET);
             ADD_ACTIVE_BOX(BOXGCSNAV);
             ADD_ACTIVE_BOX(BOXPLANWPMISSION);
@@ -240,8 +245,6 @@ void initActiveBoxIds(void)
         }
 
         if (STATE(AIRPLANE)) {
-            ADD_ACTIVE_BOX(BOXNAVCRUISE);
-            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
             ADD_ACTIVE_BOX(BOXSOARING);
         }
     }
@@ -350,6 +353,11 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXTURTLE);
     }
 #endif
+
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    ADD_ACTIVE_BOX(BOXMIXERPROFILE);
+    ADD_ACTIVE_BOX(BOXMIXERTRANSITION);
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -418,6 +426,10 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #endif
 #ifdef USE_MULTI_FUNCTIONS
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)),   BOXMULTIFUNCTION);
+#endif
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    CHECK_ACTIVE_BOX(IS_ENABLED(currentMixerProfileIndex),              BOXMIXERPROFILE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

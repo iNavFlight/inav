@@ -157,6 +157,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD,
     NAV_FSM_EVENT_SWITCH_TO_CRUISE,
     NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
+    NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -164,6 +165,7 @@ typedef enum {
     NAV_FSM_EVENT_STATE_SPECIFIC_4,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_5,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_6,             // State-specific event
+    NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
@@ -228,6 +230,9 @@ typedef enum {
     NAV_PERSISTENT_ID_UNUSED_4                                  = 37, // was NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME
     NAV_PERSISTENT_ID_RTH_TRACKBACK                             = 38,
 
+    NAV_PERSISTENT_ID_MIXERAT_INITIALIZE                        = 39,
+    NAV_PERSISTENT_ID_MIXERAT_IN_PROGRESS                       = 40,
+    NAV_PERSISTENT_ID_MIXERAT_ABORT                             = 41,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -275,6 +280,10 @@ typedef enum {
     NAV_STATE_CRUISE_IN_PROGRESS,
     NAV_STATE_CRUISE_ADJUSTING,
 
+    NAV_STATE_MIXERAT_INITIALIZE,
+    NAV_STATE_MIXERAT_IN_PROGRESS,
+    NAV_STATE_MIXERAT_ABORT,
+
     NAV_STATE_COUNT,
 } navigationFSMState_t;
 
@@ -304,6 +313,8 @@ typedef enum {
     /* Additional flags */
     NAV_CTL_LAND            = (1 << 14),
     NAV_AUTO_WP_DONE        = (1 << 15),    //Waypoint mission reached the last waypoint and is idling
+
+    NAV_MIXERAT             = (1 << 16),    //MIXERAT in progress
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -327,6 +338,7 @@ typedef struct {
     int32_t                     course;
     int32_t                     previousCourse;
     timeMs_t                    lastCourseAdjustmentTime;
+    float                       multicopterSpeed;
 } navCruise_t;
 
 typedef struct {
@@ -453,6 +465,7 @@ bool isFixedWingFlying(void);
 bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
+flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state);
 
 void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
@@ -462,7 +475,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
 
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
-float getActiveWaypointSpeed(void);
+float getActiveSpeed(void);
 bool isWaypointNavTrackingActive(void);
 
 void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);

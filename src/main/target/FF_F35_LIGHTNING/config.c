@@ -19,7 +19,7 @@
 
 #include <platform.h>
 #include "config/config_master.h"
-#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "rx/rx.h"
 #include "io/serial.h"
 #include "telemetry/telemetry.h"

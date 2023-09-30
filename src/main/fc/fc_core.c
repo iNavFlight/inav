@@ -81,6 +81,7 @@
 
 #include "telemetry/telemetry.h"
 
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
@@ -618,7 +619,7 @@ void processRx(timeUs_t currentTimeUs)
     const bool throttleIsLow = throttleStickIsLow();
 
     // When armed and motors aren't spinning, do beeps periodically
-    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
+    if (ARMING_FLAG(ARMED) && ifMotorstopFeatureEnabled() && !STATE(FIXED_WING_LEGACY)) {
         static bool armedBeeperOn = false;
 
         if (throttleIsLow) {
@@ -705,14 +706,14 @@ void processRx(timeUs_t currentTimeUs)
 
 #if defined(USE_MAG)
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
-        if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
+        if (IS_RC_MODE_ACTIVE(BOXHEADFREE) && STATE(MULTIROTOR)) {
             if (!FLIGHT_MODE(HEADFREE_MODE)) {
                 ENABLE_FLIGHT_MODE(HEADFREE_MODE);
             }
         } else {
             DISABLE_FLIGHT_MODE(HEADFREE_MODE);
         }
-        if (IS_RC_MODE_ACTIVE(BOXHEADADJ)) {
+        if (IS_RC_MODE_ACTIVE(BOXHEADADJ) && STATE(MULTIROTOR)) {
             headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw); // acquire new heading
         }
     }
@@ -745,8 +746,8 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                 if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+             if (STATE(AIRMODE_ACTIVE)) {
+                 if ((rollPitchStatus == CENTERED) || (ifMotorstopFeatureEnabled() && !STATE(FIXED_WING_LEGACY))) {
                      ENABLE_STATE(ANTI_WINDUP);
                  }
                  else {
@@ -764,7 +765,7 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         if (throttleIsLow) {
-             if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+             if (STATE(AIRMODE_ACTIVE)) {
                  if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
                      ENABLE_STATE(ANTI_WINDUP);
                  }
@@ -792,7 +793,7 @@ void processRx(timeUs_t currentTimeUs)
          }
      }
 //---------------------------------------------------------
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 
@@ -833,13 +834,25 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-static float calculateThrottleTiltCompensationFactor(uint8_t throttleTiltCompensationStrength)
+static void applyThrottleTiltCompensation(void)
 {
-    if (throttleTiltCompensationStrength) {
-        float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
-        return 1.0f + (tiltCompFactor - 1.0f) * (throttleTiltCompensationStrength / 100.f);
-    } else {
-        return 1.0f;
+    if (STATE(MULTIROTOR)) {
+        int16_t thrTiltCompStrength = 0;
+
+        if (navigationRequiresThrottleTiltCompensation()) {
+            thrTiltCompStrength = 100;
+        }
+        else if (systemConfig()->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+            thrTiltCompStrength = systemConfig()->throttle_tilt_compensation_strength;
+        }
+
+        if (thrTiltCompStrength) {
+            const int throttleIdleValue = getThrottleIdleValue();
+            float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
+            tiltCompFactor = 1.0f + (tiltCompFactor - 1.0f) * (thrTiltCompStrength / 100.f);
+
+            rcCommand[THROTTLE] = setDesiredThrottle(throttleIdleValue + (rcCommand[THROTTLE] - throttleIdleValue) * tiltCompFactor, false);
+        }
     }
 }
 
@@ -891,26 +904,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     applyWaypointNavigationAndAltitudeHold();
 
     // Apply throttle tilt compensation
-    if (!STATE(FIXED_WING_LEGACY)) {
-        int16_t thrTiltCompStrength = 0;
-
-        if (navigationRequiresThrottleTiltCompensation()) {
-            thrTiltCompStrength = 100;
-        }
-        else if (systemConfig()->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            thrTiltCompStrength = systemConfig()->throttle_tilt_compensation_strength;
-        }
-
-        if (thrTiltCompStrength) {
-            rcCommand[THROTTLE] = constrain(getThrottleIdleValue()
-                                            + (rcCommand[THROTTLE] - getThrottleIdleValue()) * calculateThrottleTiltCompensationFactor(thrTiltCompStrength),
-                                            getThrottleIdleValue(),
-                                            motorConfig()->maxthrottle);
-        }
-    }
-    else {
-        // FIXME: throttle pitch comp for FW
-    }
+    applyThrottleTiltCompensation();
 
 #ifdef USE_POWER_LIMITS
     powerLimiterApply(&rcCommand[THROTTLE]);

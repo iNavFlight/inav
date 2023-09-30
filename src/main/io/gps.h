@@ -33,8 +33,7 @@
 #define GPS_DEGREES_DIVIDER 10000000L
 
 typedef enum {
-    GPS_NMEA = 0,
-    GPS_UBLOX,
+    GPS_UBLOX = 0,
     GPS_UBLOX7PLUS,
     GPS_MSP,
     GPS_FAKE,
@@ -47,6 +46,7 @@ typedef enum {
     SBAS_WAAS,
     SBAS_MSAS,
     SBAS_GAGAN,
+    SBAS_SPAN,
     SBAS_NONE
 } sbasMode_e;
 

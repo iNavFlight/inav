@@ -25,6 +25,8 @@
 #include "drivers/rcc_types.h"
 #include "drivers/timer_def.h"
 
+#include "platform.h"
+
 #define CC_CHANNELS_PER_TIMER       4   // TIM_Channel_1..4
 
 typedef uint16_t captureCompare_t;        // 16 bit on both 103 and 303, just register access must be 32bit sometimes (use timCCR_t)
@@ -63,8 +65,9 @@ typedef uint32_t timCNT_t;
 #endif
 //  tmr_type instead in AT32 
 #if defined(AT32F43x)
+typedef tmr_type HAL_Timer_t;
 typedef struct timerDef_s {
-    tmr_type   * tim;
+    HAL_Timer_t   * tim;
     rccPeriphTag_t  rcc;
     uint8_t         irq;
     uint8_t         secondIrq;
@@ -82,8 +85,9 @@ typedef struct timerHardware_s {
     uint32_t dmaMuxid; //DMAMUX ID
 } timerHardware_t;
 #else
+typedef TIM_TypeDef HAL_Timer_t;
 typedef struct timerDef_s {
-    TIM_TypeDef   * tim;
+    HAL_Timer_t * tim;
     rccPeriphTag_t  rcc;
     uint8_t         irq;
     uint8_t         secondIrq;
@@ -106,15 +110,22 @@ typedef enum {
     TIM_USE_ANY             = 0,
     TIM_USE_PPM             = (1 << 0),
     TIM_USE_PWM             = (1 << 1),
-    TIM_USE_MC_MOTOR        = (1 << 2),     // Multicopter motor output
-    TIM_USE_MC_SERVO        = (1 << 3),     // Multicopter servo output (i.e. TRI)
+    TIM_USE_MOTOR           = (1 << 2),     // Motor output
+    TIM_USE_SERVO           = (1 << 3),     // Servo output
     TIM_USE_MC_CHNFW        = (1 << 4),     // Deprecated and not used after removal of CHANNEL_FORWARDING feature
-    TIM_USE_FW_MOTOR        = (1 << 5),
-    TIM_USE_FW_SERVO        = (1 << 6),
+    //TIM_USE_FW_MOTOR        = (1 << 5),   // We no longer differentiate mc from fw on pwm allocation
+    //TIM_USE_FW_SERVO        = (1 << 6),
     TIM_USE_LED             = (1 << 24),
     TIM_USE_BEEPER          = (1 << 25),
 } timerUsageFlag_e;
 
+#define TIM_USE_OUTPUT_AUTO (TIM_USE_MOTOR | TIM_USE_SERVO)
+
+#define TIM_IS_MOTOR(flags) ((flags) & TIM_USE_MOTOR)
+#define TIM_IS_SERVO(flags) ((flags) & TIM_USE_SERVO)
+
+#define TIM_IS_MOTOR_ONLY(flags) (TIM_IS_MOTOR(flags) && !TIM_IS_SERVO(flags))
+#define TIM_IS_SERVO_ONLY(flags) (!TIM_IS_MOTOR(flags) && TIM_IS_SERVO(flags))
 
 enum {
     TIMER_OUTPUT_NONE = 0x00,
@@ -247,6 +258,8 @@ void timerPWMStopDMA(TCH_t * tch);
 bool timerPWMDMAInProgress(TCH_t * tch);
 
 volatile timCCR_t *timerCCR(TCH_t * tch);
+
+uint8_t timer2id(const HAL_Timer_t *tim);
 
 #ifdef USE_DSHOT_DMAR
 bool timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
