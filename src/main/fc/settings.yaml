@@ -3287,22 +3287,12 @@ groups:
         field: hud_margin_v
         min: 1
         max: 3
-      - name: osd_hud_homing
-        description: "To display little arrows around the crossair showing where the home point is in the hud"
-        default_value: OFF
-        field: hud_homing
-        type: bool
-      - name: osd_hud_homepoint
-        description: "To 3D-display the home point location in the hud"
-        default_value: OFF
-        field: hud_homepoint
-        type: bool
       - name: osd_hud_radar_disp
-        description: "Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc"
-        default_value: 0
+        description: "Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an INAV Radar compatible MSP device. The nearby aircrafts will appear as markers A, B, C, etc"
+        default_value: 3
         field: hud_radar_disp
-        min: 0
-        max: 4
+        min: 1
+        max: 6
       - name: osd_hud_radar_range_min
         description: "In meters, radar aircrafts closer than this will not be displayed in the hud"
         default_value: 3
@@ -3328,10 +3318,10 @@ groups:
         max: 10
         default_value: 3
       - name: osd_hud_wp_disp
-        description: "How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
-        default_value: 0
+        description: "How many navigation waypoints are displayed. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)"
+        default_value: 2
         field: hud_wp_disp
-        min: 0
+        min: 1
         max: 3
       - name: osd_left_sidebar_scroll
         field: left_sidebar_scroll

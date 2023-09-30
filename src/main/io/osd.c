@@ -221,7 +221,10 @@ void osdShowEEPROMSavedNotification(void) {
     notify_settings_saved = millis() + 5000;
 }
 
-
+bool isOsdElementVisible(osd_items_e item)
+{
+    return OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][item]);
+}
 
 bool osdDisplayIsPAL(void)
 {
@@ -2350,31 +2353,38 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 #endif
-
+    /*
+    case OSD_HUD_HOMEPOINT:
+    case OSD_HUD_HOMING:
+    case OSD_HUD_WAYPOINTS:
+    case OSD_HUD_RADAR:
+    */
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
         osdCrosshairPosition(&elemPosX, &elemPosY);
         osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
 
-        if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
-            osdHudDrawHoming(elemPosX, elemPosY);
-        }
 
         if (STATE(GPS_FIX) && isImuHeadingValid()) {
 
-            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
-                    osdHudClear();
+            if (isOsdElementVisible(OSD_HUD_HOMING)) {
+                osdHudDrawHoming(elemPosX, elemPosY);
+            }
+
+            if (isOsdElementVisible(OSD_HUD_HOMEPOINT) || isOsdElementVisible(OSD_HUD_RADAR) ||
+             isOsdElementVisible(OSD_HUD_WAYPOINTS)) {
+                osdHudClear();
             }
 
             // -------- POI : Home point
 
-            if (osdConfig()->hud_homepoint) { // Display the home point (H)
+            if (isOsdElementVisible(OSD_HUD_HOMEPOINT)) { // Display the home point (H)
                 osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, SYM_HOME, 0 , 0);
             }
 
             // -------- POI : Nearby aircrafts from ESP32 radar
 
-            if (osdConfig()->hud_radar_disp > 0) { // Display the POI from the radar
+            if (isOsdElementVisible(OSD_HUD_RADAR)) { // Display the POI from the radar
                 for (uint8_t i = 0; i < osdConfig()->hud_radar_disp; i++) {
                     if (radar_pois[i].gps.lat != 0 && radar_pois[i].gps.lon != 0 && radar_pois[i].state < 2) { // state 2 means POI has been lost and must be skipped
                         fpVector3_t poi;
@@ -2392,7 +2402,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             // -------- POI : Next waypoints from navigation
 
-            if (osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
+            if (isOsdElementVisible(OSD_HUD_WAYPOINTS) && osdConfig()->hud_wp_disp > 0 && posControl.waypointListValid && posControl.waypointCount > 0) { // Display the next waypoints
                 gpsLocation_t wp2;
                 int j;
 
@@ -3680,8 +3690,6 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .camera_fov_v = SETTING_OSD_CAMERA_FOV_V_DEFAULT,
     .hud_margin_h = SETTING_OSD_HUD_MARGIN_H_DEFAULT,
     .hud_margin_v = SETTING_OSD_HUD_MARGIN_V_DEFAULT,
-    .hud_homing = SETTING_OSD_HUD_HOMING_DEFAULT,
-    .hud_homepoint = SETTING_OSD_HUD_HOMEPOINT_DEFAULT,
     .hud_radar_disp = SETTING_OSD_HUD_RADAR_DISP_DEFAULT,
     .hud_radar_range_min = SETTING_OSD_HUD_RADAR_RANGE_MIN_DEFAULT,
     .hud_radar_range_max = SETTING_OSD_HUD_RADAR_RANGE_MAX_DEFAULT,
@@ -4799,7 +4807,11 @@ bool osdItemIsFixed(osd_items_e item)
 {
     return item == OSD_CROSSHAIRS ||
         item == OSD_ARTIFICIAL_HORIZON ||
-        item == OSD_HORIZON_SIDEBARS;
+        item == OSD_HORIZON_SIDEBARS ||
+        item == OSD_HUD_HOMEPOINT ||
+        item == OSD_HUD_HOMING ||
+        item == OSD_HUD_RADAR ||
+        item == OSD_HUD_WAYPOINTS;
 }
 
 displayPort_t *osdGetDisplayPort(void)

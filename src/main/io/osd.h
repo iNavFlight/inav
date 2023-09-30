@@ -274,6 +274,11 @@ typedef enum {
     OSD_PILOT_NAME,
     OSD_PAN_SERVO_CENTRED,
     OSD_MULTI_FUNCTION,
+    // HUD ELEMENTS
+    OSD_HUD_HOMING, // osd_hud_homing
+    OSD_HUD_HOMEPOINT, // osd_hud_homepoint
+    OSD_HUD_RADAR, // osd_hud_radar_disp
+    OSD_HUD_WAYPOINTS, // osd_hud_wp_disp
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -391,8 +396,6 @@ typedef struct osdConfig_s {
     uint8_t camera_fov_v;
     uint8_t hud_margin_h;
     uint8_t hud_margin_v;
-    bool hud_homing;
-    bool hud_homepoint;
     uint8_t hud_radar_disp;
     uint16_t hud_radar_range_min;
     uint16_t hud_radar_range_max;

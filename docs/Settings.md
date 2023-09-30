@@ -4222,26 +4222,6 @@ To vertically adjust the whole OSD and AHI and scrolling bars
 
 ---
 
-### osd_hud_homepoint
-
-To 3D-display the home point location in the hud
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
-### osd_hud_homing
-
-To display little arrows around the crossair showing where the home point is in the hud
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### osd_hud_margin_h
 
 Left and right margins for the hud area
@@ -4274,11 +4254,11 @@ Time in seconds to display the altitude difference in radar
 
 ### osd_hud_radar_disp
 
-Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc
+Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an INAV Radar compatible MSP device. The nearby aircrafts will appear as markers A, B, C, etc
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 4 |
+| 3 | 1 | 6 |
 
 ---
 
@@ -4314,11 +4294,11 @@ In meters, radar aircrafts closer than this will not be displayed in the hud
 
 ### osd_hud_wp_disp
 
-How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)
+How many navigation waypoints are displayed. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 3 |
+| 2 | 1 | 3 |
 
 ---
 
