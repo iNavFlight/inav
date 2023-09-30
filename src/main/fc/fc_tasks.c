@@ -65,6 +65,7 @@
 #include "io/osd_joystick.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
+#include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
@@ -110,6 +111,9 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #ifdef USE_MSP_OSD
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
+#ifdef USE_VTX_MSP
+    mspVtxSerialProcess(mspFcProcessCommand);
+#endif
 #endif
 
 }
@@ -504,7 +508,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .desiredPeriod = TASK_PERIOD_MS(20),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

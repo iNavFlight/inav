@@ -119,6 +119,7 @@
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
 #include "io/vtx_tramp.h"
+#include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
 
@@ -303,9 +304,7 @@ void init(void)
 
     // Initialize servo and motor mixers
     // This needs to be called early to set up platform type correctly and count required motors & servos
-    servosInit();
-    mixerUpdateStateFlags();
-    mixerInit();
+    mixerConfigInit();
 
     // Some sanity checking
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
@@ -663,6 +662,10 @@ void init(void)
 
 #ifdef USE_VTX_FFPV
     vtxFuriousFPVInit();
+#endif
+
+#ifdef USE_VTX_MSP
+    vtxMspInit();
 #endif
 
 #endif // USE_VTX_CONTROL
