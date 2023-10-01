@@ -30,12 +30,6 @@
 
 #include "io/serial.h"
 
-
-typedef enum {
-    FRSKY_FORMAT_DMS = 0,
-    FRSKY_FORMAT_NMEA
-} frskyGpsCoordFormat_e;
-
 typedef enum {
     LTM_RATE_NORMAL,
     LTM_RATE_MEDIUM,

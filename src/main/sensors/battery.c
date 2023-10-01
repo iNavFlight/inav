@@ -199,7 +199,7 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 void batteryInit(void)
 {
     batteryState = BATTERY_NOT_PRESENT;
-    batteryCellCount = 1;
+    batteryCellCount = 0;
     batteryFullVoltage = 0;
     batteryWarningVoltage = 0;
     batteryCriticalVoltage = 0;
@@ -564,7 +564,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 if (allNav || autoNav) {    // account for motors running in Nav modes with throttle low + motor stop
                     throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
                 } else {
-                    throttleOffset = (throttleStickIsLow() && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                    throttleOffset = (throttleStickIsLow() && ifMotorstopFeatureEnabled()) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
                 }
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;

@@ -75,6 +75,7 @@ bool fakePitotDetect(pitotDev_t *pitot)
     fakeTemperature = 273;      // 0C
 
     pitot->delay = 10000;
+    pitot->calibThreshold = 0.00001f;
     pitot->start = fakePitotStart;
     pitot->get = fakePitotRead;
     pitot->calculate = fakePitotCalculate;

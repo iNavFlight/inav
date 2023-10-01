@@ -33,8 +33,7 @@
 #define GPS_DEGREES_DIVIDER 10000000L
 
 typedef enum {
-    GPS_NMEA = 0,
-    GPS_UBLOX,
+    GPS_UBLOX = 0,
     GPS_UBLOX7PLUS,
     GPS_MSP,
     GPS_FAKE,
@@ -47,6 +46,7 @@ typedef enum {
     SBAS_WAAS,
     SBAS_MSAS,
     SBAS_GAGAN,
+    SBAS_SPAN,
     SBAS_NONE
 } sbasMode_e;
 
@@ -59,6 +59,8 @@ typedef enum {
     GPS_BAUDRATE_19200,
     GPS_BAUDRATE_9600,
     GPS_BAUDRATE_230400,
+    GPS_BAUDRATE_460800,
+    GPS_BAUDRATE_921600,
     GPS_BAUDRATE_COUNT
 } gpsBaudRate_e;
 
@@ -97,6 +99,7 @@ typedef struct gpsConfig_s {
     bool ubloxUseGlonass;
     uint8_t gpsMinSats;
     uint8_t ubloxNavHz;
+    gpsBaudRate_e autoBaudMax;
 } gpsConfig_t;
 
 PG_DECLARE(gpsConfig_t, gpsConfig);
@@ -173,6 +176,7 @@ uint8_t getGpsProtoMajorVersion(void);
 uint8_t getGpsProtoMinorVersion(void);
 
 int getGpsBaudrate(void);
+int gpsBaudRateToInt(gpsBaudRate_e baudrate);
 
 #if defined(USE_GPS_FAKE)
 void gpsFakeSet(

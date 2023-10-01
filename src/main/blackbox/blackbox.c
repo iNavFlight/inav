@@ -289,23 +289,23 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"gyroADC",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"gyroADC",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"gyroADC",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
-    
+
     {"gyroRaw",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW},
     {"gyroRaw",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW},
     {"gyroRaw",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW},
-    
+
     {"gyroPeakRoll",    0, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL},
     {"gyroPeakRoll",    1, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL},
     {"gyroPeakRoll",    2, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL},
-    
+
     {"gyroPeakPitch",    0, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH},
     {"gyroPeakPitch",    1, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH},
     {"gyroPeakPitch",    2, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH},
-    
+
     {"gyroPeakYaw",    0, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW},
     {"gyroPeakYaw",    1, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW},
     {"gyroPeakYaw",    2, UNSIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(UNSIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW},
-    
+
 
     {"accSmooth",   0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ACC},
     {"accSmooth",   1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_ACC},
@@ -366,6 +366,7 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"navTgtPos",  0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_POS},
     {"navTgtPos",  1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_POS},
     {"navTgtPos",  2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_POS},
+    {"navTgtHdg", -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_POS},
     {"navSurf",   -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_POS},
     {"navAcc",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
     {"navAcc",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
@@ -517,7 +518,7 @@ typedef struct blackboxMainState_s {
     int16_t navTargetVel[XYZ_AXIS_COUNT];
     int32_t navTargetPos[XYZ_AXIS_COUNT];
     int16_t navHeading;
-    int16_t navTargetHeading;
+    uint16_t navTargetHeading;
     int16_t navSurface;
 } blackboxMainState_t;
 
@@ -740,7 +741,7 @@ static void blackboxBuildConditionCache(void)
 {
     blackboxConditionCache = 0;
     for (uint8_t cond = FLIGHT_LOG_FIELD_CONDITION_FIRST; cond <= FLIGHT_LOG_FIELD_CONDITION_LAST; cond++) {
-        
+
         const uint64_t position = ((uint64_t)1) << cond;
 
         if (testBlackboxConditionUncached(cond)) {
@@ -891,7 +892,7 @@ static void writeIntraframe(void)
     }
 
     blackboxWriteSigned16VBArray(blackboxCurrent->gyroADC, XYZ_AXIS_COUNT);
-                     
+
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW)) {
         blackboxWriteSigned16VBArray(blackboxCurrent->gyroRaw, XYZ_AXIS_COUNT);
     }
@@ -970,6 +971,7 @@ static void writeIntraframe(void)
             blackboxWriteSignedVB(blackboxCurrent->navTargetPos[x]);
         }
 
+        blackboxWriteSignedVB(blackboxCurrent->navTargetHeading);
         blackboxWriteSignedVB(blackboxCurrent->navSurface);
     }
 
@@ -1226,6 +1228,7 @@ static void writeInterframe(void)
             blackboxWriteSignedVB(blackboxHistory[0]->navTargetPos[x] - blackboxLast->navTargetPos[x]);
         }
 
+        blackboxWriteSignedVB(blackboxCurrent->navTargetHeading - blackboxLast->navTargetHeading);
         blackboxWriteSignedVB(blackboxCurrent->navSurface - blackboxLast->navSurface);
     }
 
@@ -1298,6 +1301,16 @@ static void writeSlowFrame(void)
 static void loadSlowState(blackboxSlowState_t *slow)
 {
     memcpy(&slow->flightModeFlags, &rcModeActivationMask, sizeof(slow->flightModeFlags)); //was flightModeFlags;
+    // Also log Nav auto selected flight modes rather than just those selected by boxmode
+    if (!IS_RC_MODE_ACTIVE(BOXANGLE) && FLIGHT_MODE(ANGLE_MODE)) {
+        slow->flightModeFlags |= (1 << BOXANGLE);
+    }
+    if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {
+        slow->flightModeFlags |= (1 << BOXHEADINGHOLD);
+    }
+    if (navigationRequiresTurnAssistance()) {
+        slow->flightModeFlags |= (1 << BOXTURNASSIST);
+    }
     slow->stateFlags = stateFlags;
     slow->failsafePhase = failsafePhase();
     slow->rxSignalReceived = rxIsReceivingSignal();
@@ -1328,7 +1341,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
     bool valid_temp;
     int16_t newTemp = 0;
     valid_temp = getIMUTemperature(&newTemp);
-    if (valid_temp) 
+    if (valid_temp)
         slow->imuTemperature = newTemp;
     else
         slow->imuTemperature = TEMPERATURE_INVALID_VALUE;
@@ -1661,6 +1674,7 @@ static void loadMainState(timeUs_t currentTimeUs)
         blackboxCurrent->navTargetVel[i] = navDesiredVelocity[i];
         blackboxCurrent->navTargetPos[i] = navTargetPosition[i];
     }
+    blackboxCurrent->navTargetHeading = navDesiredHeading;
     blackboxCurrent->navSurface = navActualSurface;
 }
 

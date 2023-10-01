@@ -24,6 +24,7 @@
 
 #include "platform.h"
 #include "build/debug.h"
+#include "common/log.h"
 
 #include "vtx_common.h"
 
@@ -73,8 +74,9 @@ void vtxCommonSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t ch
     if (!vtxDevice)
         return;
 
-    if ((band > vtxDevice->capability.bandCount) || (channel > vtxDevice->capability.channelCount))
+    if ((band > vtxDevice->capability.bandCount) || (channel > vtxDevice->capability.channelCount)) {
         return;
+    }
 
     if (vtxDevice->vTable->setBandAndChannel) {
         vtxDevice->vTable->setBandAndChannel(vtxDevice, band, channel);

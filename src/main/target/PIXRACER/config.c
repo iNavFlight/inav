@@ -21,12 +21,13 @@
 
 #include "config/feature.h"
 #include "fc/config.h"
-#include "flight/mixer.h"
-#include "io/serial.h"
-#include "rx/rx.h"
 #include "sensors/compass.h"
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
     compassConfigMutable()->mag_align = CW90_DEG;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM4))->outputMode = OUTPUT_MODE_MOTORS;
 }

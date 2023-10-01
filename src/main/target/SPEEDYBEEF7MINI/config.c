@@ -19,6 +19,8 @@
 
 #include "platform.h"
 
+#include "drivers/pwm_mapping.h"
+
 #include "fc/fc_msp_box.h"
 
 #include "io/piniobox.h"
@@ -30,4 +32,7 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].msp_baudrateIndex = BAUD_115200;
 
     pinioBoxConfigMutable()->permanentId[0] = BOXARM;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM4))->outputMode = OUTPUT_MODE_MOTORS;
 }
