@@ -2582,6 +2582,10 @@ void updateHomePosition(void)
         findNearestSafeHome();
 #endif
         setHomePosition(&posControl.actualState.abs.pos, posControl.actualState.yaw, homeUpdateFlags, navigationActualStateHomeValidity());
+
+        if (ARMING_FLAG(ARMED) && positionEstimationConfig()->reset_altitude_type == NAV_RESET_ON_EACH_ARM) {
+            posControl.rthState.homePosition.pos.z = 0;     // force to 0 if reference altitude also reset every arm
+        }
         // save the current location in case it is replaced by a safehome or HOME_RESET
         posControl.rthState.originalHomePosition = posControl.rthState.homePosition.pos;
         setHome = false;

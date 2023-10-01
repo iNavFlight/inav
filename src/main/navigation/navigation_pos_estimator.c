@@ -54,6 +54,7 @@
 #include "sensors/opflow.h"
 
 navigationPosEstimator_t posEstimator;
+static float initialBaroAltitudeOffset = 0.0f;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 5);
 
@@ -108,38 +109,34 @@ static bool updateTimer(navigationTimer_t * tim, timeUs_t interval, timeUs_t cur
     }
 }
 
-static bool shouldResetReferenceAltitude(uint8_t updateSource)
+static bool shouldResetReferenceAltitude(void)
 {
-    /* Altitude reference reset constantly before first arm.
-     * After first arm altitude ref only reset immediately after arming (to avoid reset after emerg in flight rearm)
-     * Need to check reset status for both altitude sources immediately after rearming before reset complete */
+    /* Reference altitudes reset constantly when disarmed.
+     * On arming ref altitudes saved as backup in case of emerg in flight rearm
+     * If emerg in flight rearm active ref altitudes reset to backup values to avoid unwanted altitude reset */
 
-    static bool resetAltitudeOnArm = false;
-    if (ARMING_FLAG(ARMED) && resetAltitudeOnArm) {
-        static uint8_t sourceCheck = 0;
-        sourceCheck |= updateSource;
-        bool allAltitudeSources = STATE(GPS_FIX) && sensors(SENSOR_BARO);
+    static float backupInitialBaroAltitudeOffset = 0.0f;
+    static int32_t backupGpsOriginAltitude = 0;
+    static bool emergRearmResetCheck = false;
 
-        if ((allAltitudeSources && sourceCheck > SENSOR_GPS) || (!allAltitudeSources && sourceCheck)) {
-            if (positionEstimationConfig()->reset_home_type == NAV_RESET_ON_EACH_ARM) {
-                posControl.rthState.homePosition.pos.z = 0;
-            }
-            resetAltitudeOnArm = false;
-            sourceCheck = 0;
+    if (ARMING_FLAG(ARMED) && emergRearmResetCheck) {
+        if (STATE(IN_FLIGHT_EMERG_REARM)) {
+            initialBaroAltitudeOffset = backupInitialBaroAltitudeOffset;
+            posControl.gpsOrigin.alt = backupGpsOriginAltitude;
+        } else {
+            backupInitialBaroAltitudeOffset = initialBaroAltitudeOffset;
+            backupGpsOriginAltitude = posControl.gpsOrigin.alt;
         }
-        return !STATE(IN_FLIGHT_EMERG_REARM);
     }
+    emergRearmResetCheck = !ARMING_FLAG(ARMED);
 
-    if (!ARMING_FLAG(ARMED)) {
-        switch ((nav_reset_type_e)positionEstimationConfig()->reset_altitude_type) {
-            case NAV_RESET_NEVER:
-                return false;
-            case NAV_RESET_ON_FIRST_ARM:
-                break;
-            case NAV_RESET_ON_EACH_ARM:
-                resetAltitudeOnArm = true;
-        }
-        return !ARMING_FLAG(WAS_EVER_ARMED);
+    switch ((nav_reset_type_e)positionEstimationConfig()->reset_altitude_type) {
+        case NAV_RESET_NEVER:
+            return false;
+        case NAV_RESET_ON_FIRST_ARM:
+            return !ARMING_FLAG(ARMED) && !ARMING_FLAG(WAS_EVER_ARMED);
+        case NAV_RESET_ON_EACH_ARM:
+            return !ARMING_FLAG(ARMED);
     }
 
     return false;
@@ -249,7 +246,7 @@ void onNewGPSData(void)
         if (!posControl.gpsOrigin.valid) {
             geoSetOrigin(&posControl.gpsOrigin, &newLLH, GEO_ORIGIN_SET);
         }
-        else if (shouldResetReferenceAltitude(SENSOR_GPS)) {
+        else if (shouldResetReferenceAltitude()) {
             /* If we were never armed - keep altitude at zero */
             geoSetOrigin(&posControl.gpsOrigin, &newLLH, GEO_ORIGIN_RESET_ALTITUDE);
         }
@@ -328,11 +325,10 @@ void onNewGPSData(void)
  */
 void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
 {
-    static float initialBaroAltitudeOffset = 0.0f;
     float newBaroAlt = baroCalculateAltitude();
 
     /* If we are required - keep altitude at zero */
-    if (shouldResetReferenceAltitude(SENSOR_BARO)) {
+    if (shouldResetReferenceAltitude()) {
         initialBaroAltitudeOffset = newBaroAlt;
     }
 
