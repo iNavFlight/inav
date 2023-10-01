@@ -3945,7 +3945,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
     if (usePilotLogo && !singular) {
         logoColOffset = ((osdDisplayPort->cols - (SYM_LOGO_WIDTH * 2)) - logoSpacing) / 2;
     } else {
-        logoColOffset = floor((osdDisplayPort->cols - SYM_LOGO_WIDTH) / 2.0f);
+        logoColOffset = floorf((osdDisplayPort->cols - SYM_LOGO_WIDTH) / 2.0f);
     }
 
     // Draw INAV logo
