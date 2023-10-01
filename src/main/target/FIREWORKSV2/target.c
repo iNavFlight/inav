@@ -44,20 +44,20 @@ BUSDEV_REGISTER_SPI_TAG(busdev_2_mpu6000,   DEVHW_MPU6000,  IMU_2_SPI_BUS,  IMU_
 BUSDEV_REGISTER_SPI_TAG(busdev_2_mpu6500,   DEVHW_MPU6500,  IMU_2_SPI_BUS,  IMU_2_CS_PIN,   NONE,   1,  DEVFLAGS_NONE,  IMU_2_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM,                           0, 0), // PPM
+    DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM, 0, 0), // PPM
 
     // Motor output 1: use different set of timers for MC and FW
-    DEF_TIM(TIM3, CH3, PB0, TIM_USE_MC_MOTOR,                       1, 0), // S1_OUT    D(1,7)
-    DEF_TIM(TIM8, CH2N, PB0,                    TIM_USE_FW_MOTOR,   1, 1), // S1_OUT    D(2,2,0),D(2,3,7)
+    //DEF_TIM(TIM3, CH3, PB0, TIM_USE_MOTOR | TIM _USE_SERVO, 1, 0), // S1_OUT    D(1,7)
+    DEF_TIM(TIM8, CH2N, PB0, TIM_USE_OUTPUT_AUTO, 1, 1), // S1_OUT    D(2,2,0),D(2,3,7) // used to fw motor
 
     // Motor output 2: use different set of timers for MC and FW
-    DEF_TIM(TIM3, CH4, PB1, TIM_USE_MC_MOTOR,                       1, 0), // S2_OUT    D(1,2)
-    DEF_TIM(TIM8, CH3N, PB1,                    TIM_USE_FW_MOTOR,   1, 1), // S2_OUT    D(2,2,0),D(2,4,7)
+    //DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO, 1, 0), // S2_OUT    D(1,2)
+    DEF_TIM(TIM8, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 1, 1), // S2_OUT    D(2,2,0),D(2,4,7) // used to be fw motor
 
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 1), // S3_OUT    D(1,6)
-    DEF_TIM(TIM3, CH2, PB5, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    1, 0), // S4_OUT    D(1,5)
-    DEF_TIM(TIM3, CH3, PC8, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    0, 0), // S5_OUT    D(1,7)
-    DEF_TIM(TIM3, CH4, PC9, TIM_USE_MC_MOTOR | TIM_USE_FW_SERVO,    0, 0), // S6_OUT    D(1,8)
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_OUTPUT_AUTO, 1, 1), // S3_OUT    D(1,6)
+    DEF_TIM(TIM3, CH2, PB5, TIM_USE_OUTPUT_AUTO, 1, 0), // S4_OUT    D(1,5)
+    DEF_TIM(TIM3, CH3, PC8, TIM_USE_OUTPUT_AUTO, 0, 0), // S5_OUT    D(1,7)
+    DEF_TIM(TIM3, CH4, PC9, TIM_USE_OUTPUT_AUTO, 0, 0), // S6_OUT    D(1,8)
 	
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_LED,                            0, 0), // LED strip D(1,0)
 
@@ -66,6 +66,7 @@ timerHardware_t timerHardware[] = {
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
 
+/* TODO: add DSHOT_DMAR?
 #ifdef USE_DSHOT
 void validateAndFixTargetConfig(void)
 {
@@ -77,3 +78,4 @@ void validateAndFixTargetConfig(void)
     }
 }
 #endif
+*/
