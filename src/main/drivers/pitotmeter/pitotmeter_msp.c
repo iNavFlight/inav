@@ -87,6 +87,7 @@ bool mspPitotmeterDetect(pitotDev_t *pitot)
     mspPitotTemperature = 27315;    // 0 deg/c
 
     pitot->delay = 10000;
+    pitot->calibThreshold = 0.00001f;
     pitot->start = mspPitotStart;
     pitot->get = mspPitotRead;
     pitot->calculate = mspPitotCalculate;
@@ -95,3 +96,4 @@ bool mspPitotmeterDetect(pitotDev_t *pitot)
 }
 
 #endif
+    
