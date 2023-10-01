@@ -43,6 +43,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
@@ -1065,7 +1066,7 @@ void FAST_CODE pidController(float dT)
         return;
     }
 
-    bool canUseFpvCameraMix = true;
+    bool canUseFpvCameraMix = STATE(MULTIROTOR);
     uint8_t headingHoldState = getHeadingHoldState();
 
     // In case Yaw override is active, we engage the Heading Hold state
@@ -1213,9 +1214,9 @@ void pidInit(void)
 
     if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
         if (
-            mixerConfig()->platformType == PLATFORM_AIRPLANE ||
-            mixerConfig()->platformType == PLATFORM_BOAT ||
-            mixerConfig()->platformType == PLATFORM_ROVER
+            currentMixerConfig.platformType == PLATFORM_AIRPLANE ||
+            currentMixerConfig.platformType == PLATFORM_BOAT ||
+            currentMixerConfig.platformType == PLATFORM_ROVER
         ) {
             usedPidControllerType = PID_TYPE_PIFF;
         } else {

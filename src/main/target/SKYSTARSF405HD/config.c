@@ -22,8 +22,12 @@
 
 #include "io/serial.h"
 #include "rx/rx.h"
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_DJI_HD_OSD;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
 }
