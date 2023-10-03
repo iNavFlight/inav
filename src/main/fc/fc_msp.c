@@ -1586,10 +1586,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_RATE_DYNAMICS:
         {
-            sbufWriteU8(dst,  currentControlRateProfile->rateDynamics.sensitivityCenter);
-            sbufWriteU8(dst,  currentControlRateProfile->rateDynamics.sensitivityEnd);
-            sbufWriteU8(dst,  currentControlRateProfile->rateDynamics.correctionCenter);
-            sbufWriteU8(dst,  currentControlRateProfile->rateDynamics.correctionEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionEnd);
             sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightCenter);
             sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightEnd);
         }
