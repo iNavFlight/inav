@@ -31,18 +31,11 @@ Once you find the one you are looking for, go ahead an open it!
 
 Click on the ``Checks`` tab
 
-Click on ``Build firmware``, it should take you to the ``Actions`` tab.
-![Search results](assets/pr_testing/build_firmware.png)
+Click on the down arrow next to the number of artifacts
+![Search_results](assets/pt_testing/artifacts_download.png)
 
-You should see a summary with a column saying ``Artifacts`` and a number. Click on the number to be taken to the list of artifacts.
-
-![Search results](assets/pr_testing/actions_summary.png)
-
-On the ``Artifacts`` list, there should be an artifact without SITL in its name.
-
-![Search results](assets/pr_testing/artifact_listing.png)
-
- Click on it to download the zip file containing pre-compiled firmware images for all INAV official targets. Extract all files and select the firmware for your target using the configurator by clicking on ``Load Firmware [Local]`` button. Don't forget to use the ``Full chip erase`` option, as there are no guarantees the firmware will be compatible with your existing settings.
+You should see a list of files. The one without SITL in the name, the biggest one, will be a zip file with all official target .hex files. Click on it to download it to your computer.
+Extract all files and select the firmware for your target using the configurator by clicking on ``Load Firmware [Local]`` button. Don't forget to use the ``Full chip erase`` option, as there are no guarantees the firmware will be compatible with your existing settings.
 
 # I have flashed the new firmware, what should I do next?
 
