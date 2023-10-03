@@ -92,3 +92,5 @@
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
 
+#define MSP2_INAV_RATE_DYNAMICS                 0x2060
+#define MSP2_INAV_SET_RATE_DYNAMICS             0x2061
