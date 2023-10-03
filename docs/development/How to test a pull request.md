@@ -16,7 +16,7 @@ Building the pull request manually or using custom/unofficial targets is not the
 - Make sure the pull request has passed all checks, otherwise you may not have pre-compiled firmware images.
 - Make a diff all backup of your existing INAV configuration.
 - Take notes of what INAV target you are using.
-- You will need a recent version of INAV Configurator from master, or even a specific branch. If you don't need a specific branch, [inav-configurator-next](http://seyrsnys.myzen.co.uk/inav-configurator-next/) usually has recent unofficial pre-built versions of INAV Configurator. If your pull requests refers to an inav-configruator pull request, you are likely to need a specific branch of the configurator. In that case you can try to build it from source by following the build [``Instructions``](https://github.com/iNavFlight/inav-configurator#building-and-running-inav-configurator-locally-for-development) or follow instructions on how to do any needed configuration changes using the CLI.
+- You will need a recent version of INAV Configurator from master, or even a specific branch. If you don't need a specific branch, [inav-configurator-next](https://seyrsnys-inav-cfg-next.surge.sh/) usually has recent unofficial pre-built versions of INAV Configurator. If your pull requests refers to an inav-configruator pull request, you are likely to need a specific branch of the configurator. In that case you can try to build it from source by following the build [``Instructions``](https://github.com/iNavFlight/inav-configurator#building-and-running-inav-configurator-locally-for-development) or follow instructions on how to do any needed configuration changes using the CLI.
 
 # Finding the pull request
 This is easy, but you will need to be logged in to your GitHub account.
@@ -32,7 +32,7 @@ Once you find the one you are looking for, go ahead an open it!
 Click on the ``Checks`` tab
 
 Click on the down arrow next to the number of artifacts
-![Search_results](assets/pt_testing/artifacts_download.png)
+![Artifact list](assets/pt_testing/artifacts_download.png)
 
 You should see a list of files. The one without SITL in the name, the biggest one, will be a zip file with all official target .hex files. Click on it to download it to your computer.
 Extract all files and select the firmware for your target using the configurator by clicking on ``Load Firmware [Local]`` button. Don't forget to use the ``Full chip erase`` option, as there are no guarantees the firmware will be compatible with your existing settings.
