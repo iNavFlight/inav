@@ -32,7 +32,7 @@ Once you find the one you are looking for, go ahead an open it!
 Click on the ``Checks`` tab
 
 Click on the down arrow next to the number of artifacts
-![Artifact list](assets/pt_testing/artifacts_download.png)
+![Artifact list](assets/pr_testing/artifacts_download.png)
 
 You should see a list of files. The one without SITL in the name, the biggest one, will be a zip file with all official target .hex files. Click on it to download it to your computer.
 Extract all files and select the firmware for your target using the configurator by clicking on ``Load Firmware [Local]`` button. Don't forget to use the ``Full chip erase`` option, as there are no guarantees the firmware will be compatible with your existing settings.
