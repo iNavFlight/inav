@@ -2147,37 +2147,38 @@ static bool osdDrawSingleElement(uint8_t item)
             updatedTimestamp = currentTimeUs;
         }
 #endif
-        //buff[0] = SYM_TRIP_DIST;
         displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_FLIGHT_DIST_REMAINING);
+
         if ((!ARMING_FLAG(ARMED)) || (distanceMeters == -1)) {
-            buff[4] = SYM_BLANK;
-            buff[5] = '\0';
-            strcpy(buff + 1, "---");
+            buff[3] = SYM_BLANK;
+            buff[4] = '\0';
+            strcpy(buff, "---");
         } else if (distanceMeters == -2) {
             // Wind is too strong to come back with cruise throttle
-            buff[1] = buff[2] = buff[3] = SYM_WIND_HORIZONTAL;
+            buff[0] = buff[1] = buff[2] = SYM_WIND_HORIZONTAL;
             switch ((osd_unit_e)osdConfig()->units){
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    buff[4] = SYM_DIST_MI;
+                    buff[3] = SYM_DIST_MI;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    buff[4] = SYM_DIST_KM;
+                    buff[3] = SYM_DIST_KM;
                     break;
                 case OSD_UNIT_GA:
-                    buff[4] = SYM_DIST_NM;
+                    buff[3] = SYM_DIST_NM;
                     break;
             }
-            buff[5] = '\0';
+            buff[4] = '\0';
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         } else {
-            osdFormatDistanceSymbol(buff + 1, distanceMeters * 100, 0);
+            osdFormatDistanceSymbol(buff, distanceMeters * 100, 0);
             if (distanceMeters == 0)
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
+        elemPosX++;
         break;
 
     case OSD_FLYMODE:
