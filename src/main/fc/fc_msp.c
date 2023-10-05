@@ -3586,6 +3586,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				}
 #endif
 				ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+                ENABLE_STATE(ACCELEROMETER_CALIBRATED);
 				LOG_DEBUG(SYSTEM, "Simulator enabled");
 			}
 
