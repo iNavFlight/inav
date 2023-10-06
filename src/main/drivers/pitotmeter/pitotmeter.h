@@ -26,6 +26,7 @@ typedef void (*pitotCalculateFuncPtr)(struct pitotDev_s * pitot, float *pressure
 typedef struct pitotDev_s {
     busDevice_t * busDev;
     uint16_t delay;
+    float calibThreshold;
     pitotOpFuncPtr start;
     pitotOpFuncPtr get;
     pitotCalculateFuncPtr calculate;

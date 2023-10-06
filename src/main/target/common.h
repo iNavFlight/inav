@@ -92,6 +92,7 @@
 #define USE_PITOT
 #define USE_PITOT_MS4525
 #define USE_PITOT_MSP
+#define USE_PITOT_DLVR
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482
@@ -119,8 +120,6 @@
 #define USE_ANTIGRAVITY
 
 #define USE_I2C_IO_EXPANDER
-
-#define USE_GPS_PROTO_NMEA
 
 #define USE_TELEMETRY_SIM
 #define USE_TELEMETRY_MAVLINK
@@ -161,6 +160,7 @@
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
 #define USE_MULTI_MISSION
+#define USE_MULTI_FUNCTIONS  // defines functions only, warnings always defined
 
 //Enable VTX control
 #define USE_VTX_CONTROL

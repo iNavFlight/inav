@@ -89,23 +89,6 @@ To change for example the configuration of the fourth sensor to label `BATT`, mi
 
 `temp_sensor 3 2 7d01186838f2ff28 5 450 0 BATT`
 
-## Building a custom firmware with temperature sensor support (F3 only)
-
-This needs to be added in the `target.h` file:
-
-```
-#define USE_TEMPERATURE_SENSOR
-#define TEMPERATURE_I2C_BUS BUS_I2Cx // replace x with the index of the I²C bus the temperature sensors will be connected to
-
-// for LM75 sensors support
-#define USE_TEMPERATURE_LM75
-
-// for DS18B20 sensors
-#define USE_1WIRE
-#define USE_1WIRE_DS2482
-#define USE_TEMPERATURE_DS18B20
-```
-
 ## Configuring the way OSD temperature labels are displayed
 
 You can use the `osd_temp_label_align` setting to chose how the labels for the temperature sensor's values are displayed. Possible alignment values are `LEFT` and `RIGHT`.

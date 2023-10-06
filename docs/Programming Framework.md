@@ -1,17 +1,28 @@
 # INAV Programming Framework
 
-INAV Programming Framework (abbr. IPF) is a mechanism that allows to evaluate cenrtain flight parameters (RC channels, switches, altitude, distance, timers, other logic conditions) and use the value of evaluated expression in different places of INAV. Currently, the result of LCs can be used in:
+INAV Programming Framework (IPF) is a mechanism that allows you to to create 
+custom functionality in INAV. You can choose for certain actions to be done,
+based on custom conditions you select.
+
+Logic conditions can be based on things such as RC channel values, switches, altitude, 
+distance, timers, etc. The conditions you create  can also make use of other conditions
+you've entered previously.
+The results can be used in:
 
 * [Servo mixer](Mixer.md) to activate/deactivate certain servo mix rulers
 * To activate/deactivate system overrides
 
-INAV Programming Framework coinsists of:
+INAV Programming Framework consists of:
 
-* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code
-* Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
+* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code. Each logic condition consists of:
+	* an operator (action), such as "plus" or "set vtx power"
+	* one or two operands (nouns), which the action acts upon. Operands are often numbers, such as a channel value or the distance to home.
+	* "activator" condition - optional. This condition is only active when another condition is true
+* Global Variables - variables that can store values from and for Logic Conditions and servo mixer
 * Programming PID - general purpose, user configurable PID controllers
 
-IPF can be edited using INAV Configurator user interface, or via CLI
+IPF can be edited using INAV Configurator user interface, or via CLI. To use COnfigurator, click the tab labeled
+"Programming". The various options shown in Configurator are described below.
 
 ## Logic Conditions
 
@@ -46,16 +57,16 @@ IPF can be edited using INAV Configurator user interface, or via CLI
 | 10            | NAND                          | `false` if `Operand A` and `Operand B` are both `true`|
 | 11            | NOR                           | `true` if `Operand A` and `Operand B` are both `false` |
 | 12            | NOT                           | The boolean opposite to `Operand A` |         
-| 13            | STICKY                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|         
-| 14            | ADD                           | Add `Operand A` to `Operand B` and returns the result |
-| 15            | SUB                           | Substract `Operand B` from `Operand A` and returns the result |
-| 16            | MUL                           | Multiply `Operand A` by `Operand B` and returns the result |
-| 17            | DIV                           | Divide `Operand A` by `Operand B` and returns the result |
-| 18            | GVAR SET                      | Store value from `Operand B` into the Global Variable addressed by
+| 13            | Sticky                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|         
+| 14            | Basic: Add                           | Add `Operand A` to `Operand B` and returns the result |
+| 15            | Basic: Subtract                           | Substract `Operand B` from `Operand A` and returns the result |
+| 16            | Basic: Multiply                           | Multiply `Operand A` by `Operand B` and returns the result |
+| 17            | Basic: Divide                           | Divide `Operand A` by `Operand B` and returns the result |
+| 18            | Set GVAR                      | Store value from `Operand B` into the Global Variable addressed by
 `Operand A`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
-| 19            | GVAR INC                      | Increase the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
-| 20            | GVAR DEC                      | Decrease the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
-| 21            | IO PORT SET                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
+| 19            | Increase GVAR                      | Increase the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
+| 20            | Decrease GVAR                      | Decrease the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
+| 21            | Set IO Port                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
 | 22            | OVERRIDE_ARMING_SAFETY        | Allows the craft to arm on any angle even without GPS fix. WARNING: This bypasses all safety checks, even that the throttle is low, so use with caution. If you only want to check for certain conditions, such as arm without GPS fix. You will need to add logic conditions to check the throttle is low. |
 | 23            | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
 | 24            | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
@@ -67,18 +78,18 @@ IPF can be edited using INAV Configurator user interface, or via CLI
 | 30            | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | SET_OSD_LAYOUT                | Sets OSD layout. Accepted values are `0-3` |
-| 33            | SIN                           | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 34            | COS                           | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 35            | TAN                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 33            | Trigonometry: Sine                           | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 34            | Trigonometry: Cosine                           | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 35            | Trigonometry: Tangent                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
 | 36            | MAP_INPUT                     | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
 | 37            | MAP_OUTPUT                    | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
 | 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B` |
 | 39            | SET_HEADING_TARGET            | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
-| 40            | MOD                           | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
+| 40            | Modulo                           | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
 | 41            | LOITER_RADIUS_OVERRIDE        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
 | 42            | SET_PROFILE                   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
-| 43            | MIN                           | Finds the lowest value of `Operand A` and `Operand B` |
-| 44            | MAX                           | Finds the highest value of `Operand A` and `Operand B` |
+| 43            | Use Lowest Value                           | Finds the lowest value of `Operand A` and `Operand B` |
+| 44            | Use Highest Value                           | Finds the highest value of `Operand A` and `Operand B` |
 | 45			| FLIGHT_AXIS_ANGLE_OVERRIDE	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
 | 46			| FLIGHT_AXIS_RATE_OVERRIDE	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
 | 47            | EDGE                          | Momentarily true when triggered by `Operand A`. `Operand A` is the activation operator [`boolean`], `Operand B` _(Optional)_ is the time for the edge to stay active [ms]. After activation, operator will return `true` until the time in Operand B is reached. If a pure momentary edge is wanted. Just leave `Operand B` as the default `Value: 0` setting. |
@@ -158,7 +169,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 7             | HORIZON           | `true` when you are in the **Horizon** flight mode. |
 | 8             | AIR               | `true` when you the **Airmode** flight mode modifier is active. |
 | 9             | USER1             | `true` when the **USER 1** mode is active. |
-| 10            | USER2             | `true` when the **USER 21** mode is active. |
+| 10            | USER2             | `true` when the **USER 2** mode is active. |
 | 11            | COURSE_HOLD       | `true` when you are in the **Course Hold** flight mode. |
 | 12            | USER3             | `true` when the **USER 3** mode is active. |
 | 13            | USER4             | `true` when the **USER 4** mode is active. |
@@ -310,3 +321,14 @@ Steps:
 2. Scale range [0:1000] to [0:3]
 3. Increase range by `1` to have the range of [1:4]
 4. Assign LC#2 to VTX power function
+
+## Common issues / questions about IPF
+
+One common mistake involves setting RC channel values. To override (set) the 
+value of a specific RC channel, choose "Override RC value", then for operand A
+choose *value* and enter the channel number. Choosing "get RC value" is a common mistake,
+which does something other than what you probably want.
+
+![screenshot of override an RC channel with a value](./assets/images/ipf_set_get_rc_channel.png)
+
+

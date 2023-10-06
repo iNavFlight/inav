@@ -19,6 +19,8 @@
 
 #include "config/parameter_group.h"
 
+#include "drivers/timer.h"
+
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_SUPPORTED_MOTORS TARGET_MOTOR_COUNT
 #else
@@ -63,6 +65,13 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
+
+typedef struct timerOverride_s {
+    uint8_t outputMode;
+} timerOverride_t;
+
+PG_DECLARE_ARRAY(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides);
+
 typedef struct reversibleMotorsConfig_s {
     uint16_t deadband_low;                // min 3d value
     uint16_t deadband_high;               // max 3d value
@@ -102,6 +111,7 @@ extern int mixerThrottleCommand;
 bool ifMotorstopFeatureEnabled(void);
 int getThrottleIdleValue(void);
 int16_t getThrottlePercent(bool);
+uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop);
 uint8_t getMotorCount(void);
 float getMotorMixRange(void);
 bool mixerIsOutputSaturated(void);

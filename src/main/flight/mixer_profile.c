@@ -48,11 +48,9 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .platformType = SETTING_PLATFORM_TYPE_DEFAULT,
                          .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
                          .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, // This flag is not available in CLI and used by Configurator only
-                         .outputMode = SETTING_OUTPUT_MODE_DEFAULT,
                          .motorstopOnLow = SETTING_MOTORSTOP_ON_LOW_DEFAULT,
                          .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT,
-                         .switchOnRTH = SETTING_MIXER_SWITCH_ON_RTH_DEFAULT,
-                         .switchOnLand = SETTING_MIXER_SWITCH_ON_LAND_DEFAULT,
+                         .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
                      });
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++)
@@ -79,11 +77,15 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
     }
 }
 
-void mixerConfigInit(void)
-{
+void activateMixerConfig(){
     currentMixerProfileIndex = getConfigMixerProfile();
     currentMixerConfig = *mixerConfig();
     nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
+}
+
+void mixerConfigInit(void)
+{
+    activateMixerConfig();
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
@@ -93,7 +95,7 @@ void mixerConfigInit(void)
         setConfigProfile(getConfigMixerProfile());
         pidInit();
         pidInitFilters();
-        // pidResetErrorAccumulators();
+        pidResetErrorAccumulators(); //should be safer to reset error accumulators
         schedulePidGainsUpdate();
         navigationUsePIDs(); // set navigation pid gains
     }
@@ -108,7 +110,6 @@ void setMixerProfileAT(void)
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 {
     //return false if mixerAT condition is not required or setting is not valid
-    //on non vtol setups , behave as normal  
     if ((!STATE(AIRPLANE)) && (!STATE(MULTIROTOR)))
     {
         return false;
@@ -118,22 +119,22 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
         return false;
     }
 
-    if ((required_action == MIXERAT_REQUEST_RTH) && (currentMixerConfig.switchOnRTH) && STATE(MULTIROTOR))
-    {
-        //check next mixer_profile setting is valid, need to be false
-        return mixerConfigByIndex(nextProfileIndex)->switchOnRTH? false:true; 
-
-    }
-    else if ((required_action == MIXERAT_REQUEST_LAND) && (currentMixerConfig.switchOnLand) && STATE(AIRPLANE))
-    {
-        //check next mixer_profile setting is valid, need to be false
-        return mixerConfigByIndex(nextProfileIndex)->switchOnLand? false:true; 
+    if(currentMixerConfig.automated_switch){
+        if ((required_action == MIXERAT_REQUEST_RTH) && STATE(MULTIROTOR))
+        {
+            return true;
+        }
+        if ((required_action == MIXERAT_REQUEST_LAND) && STATE(AIRPLANE))
+        {
+            return true;
+        }
     }
     return false;
 }
 
 bool mixerATUpdateState(mixerProfileATRequest_e required_action)
 {   
+    //return true if mixerAT is done or not required
     bool reprocessState;
     do
     {   
@@ -178,66 +179,32 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
 
 bool checkMixerProfileHotSwitchAvalibility(void)
 {
-    static int allow_hot_switch = -1;
-    // pwm mapping maps outputs based on platformtype, check if mapping remain unchanged after the switch
-    // do not allow switching between multi rotor and non multi rotor if sannity check fails
     if (MAX_MIXER_PROFILE_COUNT != 2)
     {
         return false;
     }
-    if (allow_hot_switch == 0)
-    {
-        return false;
-    }
-    if (allow_hot_switch == 1)
-    {
-        return true;
-    }
-#ifdef ENABLE_MIXER_PROFILE_MCFW_HOTSWAP
-    bool MCFW_hotswap_available = true;
-#else
-    bool MCFW_hotswap_available = false;
-#endif
-    uint8_t platform_type0 = mixerConfigByIndex(0)->platformType;
-    uint8_t platform_type1 = mixerConfigByIndex(1)->platformType;
-    bool platform_type_mc0 = (platform_type0 == PLATFORM_MULTIROTOR) || (platform_type0 == PLATFORM_TRICOPTER || (platform_type0 == PLATFORM_TAILSITTER));
-    bool platform_type_mc1 = (platform_type1 == PLATFORM_MULTIROTOR) || (platform_type1 == PLATFORM_TRICOPTER || (platform_type1 == PLATFORM_TAILSITTER));
-    bool is_mcfw_switching = platform_type_mc0 ^ platform_type_mc1;
-    if ((!MCFW_hotswap_available) && is_mcfw_switching)
-    {
-        allow_hot_switch = 0;
-        return false;
-    }
-    allow_hot_switch = 1;
     return true;
-}
-
-bool isNavBoxModesEnabled(void)
-{
-    return IS_RC_MODE_ACTIVE(BOXNAVRTH) || IS_RC_MODE_ACTIVE(BOXNAVWP) || IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD) || (STATE(FIXED_WING_LEGACY) && IS_RC_MODE_ACTIVE(BOXNAVALTHOLD)) || (STATE(FIXED_WING_LEGACY) && (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) || IS_RC_MODE_ACTIVE(BOXNAVCRUISE)));
 }
 
 void outputProfileUpdateTask(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    bool nav_mixerAT_inuse = (posControl.navState == NAV_STATE_MIXERAT_IN_PROGRESS || posControl.navState == NAV_STATE_MIXERAT_ABORT);
+    bool mixerAT_inuse = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
     // transition mode input for servo mix and motor mix
-    if (!FLIGHT_MODE(FAILSAFE_MODE) && (!nav_mixerAT_inuse))
+    if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse))
     {
-        if (!isNavBoxModesEnabled())
-        {
-            outputProfileHotSwitch((int)IS_RC_MODE_ACTIVE(BOXMIXERPROFILE));
+        if (isModeActivationConditionPresent(BOXMIXERPROFILE)){
+            outputProfileHotSwitch(IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) == 0 ? 0 : 1);
         }
-        isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)  && (!isNavBoxModesEnabled()); // update BOXMIXERTRANSITION_input
+        isMixerTransitionMixing_requested = IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION);
     }
-    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) || nav_mixerAT_inuse ||(posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
+    isMixerTransitionMixing = isMixerTransitionMixing_requested && ((posControl.navState == NAV_STATE_IDLE) || mixerAT_inuse ||(posControl.navState == NAV_STATE_ALTHOLD_IN_PROGRESS));
 }
 
 // switch mixerprofile without reboot
 bool outputProfileHotSwitch(int profile_index)
 {
     static bool allow_hot_switch = true;
-    // does not work with timerHardwareOverride,need to set mixerConfig()->outputMode == OUTPUT_MODE_AUTO
     // LOG_INFO(PWM, "OutputProfileHotSwitch");
     if (!allow_hot_switch)
     {
@@ -253,7 +220,7 @@ bool outputProfileHotSwitch(int profile_index)
         return false;
     }
     if (areSensorsCalibrating())
-    { // it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D,TODO
+    { // it seems like switching before sensors calibration complete will cause pid stops to respond, especially in D
         return false;
     }
     if (!checkMixerProfileHotSwitchAvalibility())
@@ -271,7 +238,6 @@ bool outputProfileHotSwitch(int profile_index)
         // LOG_INFO(PWM, "mixer switch failed to set config");
         return false;
     }
-    // stopMotorsNoDelay(); // not necessary, but just in case something goes wrong. But will a short period of stop command cause problem?
     mixerConfigInit();
     return true;
 }

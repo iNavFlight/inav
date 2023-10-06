@@ -14,11 +14,9 @@ typedef struct mixerConfig_s {
     uint8_t platformType;
     bool hasFlaps;
     int16_t appliedMixerPreset;
-    uint8_t outputMode;
     bool motorstopOnLow;
     bool PIDProfileLinking;
-    bool switchOnRTH;
-    bool switchOnLand;
+    bool automated_switch;
     int16_t switchTransitionTimer;
 } mixerConfig_t;
 typedef struct mixerProfile_s {
@@ -75,5 +73,6 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 
 bool outputProfileHotSwitch(int profile_index);
 bool checkMixerProfileHotSwitchAvalibility(void);
+void activateMixerConfig(void);
 void mixerConfigInit(void);
 void outputProfileUpdateTask(timeUs_t currentTimeUs);
