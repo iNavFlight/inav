@@ -264,7 +264,7 @@ void servoMixer(float dT)
 
         // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
         if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < PWM_RANGE_MIDDLE) &&
-        (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER || currentMixerConfig.platformType == PLATFORM_TAILSITTER)) {
+        (currentMixerConfig.platformType == PLATFORM_MULTIROTOR || currentMixerConfig.platformType == PLATFORM_TRICOPTER)) {
             input[INPUT_STABILIZED_YAW] *= -1;
         }
     }

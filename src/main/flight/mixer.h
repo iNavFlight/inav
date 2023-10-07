@@ -41,8 +41,7 @@ typedef enum {
     PLATFORM_TRICOPTER      = 3,
     PLATFORM_ROVER          = 4,
     PLATFORM_BOAT           = 5,
-    PLATFORM_TAILSITTER     = 6,
-    PLATFORM_OTHER          = 7,
+    PLATFORM_OTHER          = 6
 } flyingPlatformType_e;
 
 

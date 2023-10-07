@@ -111,7 +111,7 @@ tables:
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
   - name: platform_type
-    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT", "TAILSITTER"]
+    values: ["MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT"]
   - name: tz_automatic_dst
     values: ["OFF", "EU", "USA"]
     enum: tz_automatic_dst_e
@@ -1145,7 +1145,7 @@ groups:
         field: mixer_config.motorDirectionInverted
         type: bool
       - name: platform_type
-        description: "Defines UAV platform type. Allowed values: \"MULTIROTOR\", \"AIRPLANE\", \"HELICOPTER\", \"TRICOPTER\", \"ROVER\", \"BOAT\", \"TAILSITTER\". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented"
+        description: "Defines UAV platform type. Allowed values: \"MULTIROTOR\", \"AIRPLANE\", \"HELICOPTER\", \"TRICOPTER\", \"ROVER\", \"BOAT\". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented"
         default_value: "MULTIROTOR"
         field: mixer_config.platformType
         type: uint8_t
@@ -1182,6 +1182,11 @@ groups:
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
+      - name: tailsitter_board_orientation
+        description: "If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch."
+        default_value: OFF
+        field: mixer_config.tailsitterBoardOrientation
+        type: bool
 
       
 

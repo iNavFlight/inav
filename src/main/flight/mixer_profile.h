@@ -18,6 +18,7 @@ typedef struct mixerConfig_s {
     bool PIDProfileLinking;
     bool automated_switch;
     int16_t switchTransitionTimer;
+    bool tailsitterBoardOrientation;
 } mixerConfig_t;
 typedef struct mixerProfile_s {
     mixerConfig_t mixer_config;
