@@ -694,9 +694,6 @@ void mavlinkSendHUDAndHeartbeat(void)
         case PLATFORM_TRICOPTER:
             mavSystemType = MAV_TYPE_TRICOPTER;
             break;
-        case PLATFORM_TAILSITTER:
-            mavSystemType = MAV_TYPE_QUADROTOR;
-            break;
         case PLATFORM_AIRPLANE:
             mavSystemType = MAV_TYPE_FIXED_WING;
             break;
