@@ -5814,7 +5814,7 @@ Delay before disarming when requested by switch (ms) [0-1000]
 
 ### tailsitter_board_orientation
 
-If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
+Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode
 
 | Default | Min | Max |
 | --- | --- | --- |
