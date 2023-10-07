@@ -4,7 +4,7 @@ ARG USER_ID
 ARG GROUP_ID
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && apt-get install -y git cmake make ruby gcc python3 python3-pip gcc-arm-none-eabi ninja-build
+RUN apt-get update && apt-get install -y git cmake make ruby gcc python3 python3-pip gcc-arm-none-eabi ninja-build gdb
 
 RUN pip install pyyaml
 
