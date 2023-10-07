@@ -305,6 +305,7 @@ static void activateConfig(void)
 {
     activateControlRateConfig();
     activateBatteryProfile();
+    activateMixerConfig();
 
     resetAdjustmentStates();
 
@@ -486,7 +487,6 @@ bool setConfigMixerProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     systemConfigMutable()->current_mixer_profile_index = profileIndex;
-    // setMixerProfile(profileIndex);
     return ret;
 }
 

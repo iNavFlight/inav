@@ -2879,6 +2879,9 @@ static void updateNavigationFlightStatistics(void)
     }
 }
 
+/*
+ * Total travel distance in cm
+ */
 uint32_t getTotalTravelDistance(void)
 {
     return lrintf(posControl.totalTripDistance);
