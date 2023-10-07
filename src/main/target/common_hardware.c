@@ -357,17 +357,25 @@
 #endif
 
 #if defined(USE_PITOT_MS4525) && defined(MS4525_I2C_BUS)
-    BUSDEV_REGISTER_I2C(busdev_ms5425,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
+    BUSDEV_REGISTER_I2C(busdev_ms4525,      DEVHW_MS4525,       MS4525_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
 #endif
 
+
+#if defined(PITOT_I2C_BUS) && !defined(DLVR_I2C_BUS)
+    #define DLVR_I2C_BUS PITOT_I2C_BUS
+#endif
+
+#if defined(USE_PITOT_DLVR) && defined(DLVR_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_dlvr,        DEVHW_DLVR,         DLVR_I2C_BUS,        0x28,              NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);    // Requires 0xFF to passthrough
+#endif
 
 /** OTHER HARDWARE **/
 
 #if defined(USE_MAX7456)
-    BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
+    BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS | DEVFLAGS_SPI_MODE_0,  0);
 #endif
 
-#if defined(USE_FLASH_M25P16)
+#if defined(USE_FLASH_M25P16) && defined(M25P16_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_m25p16,      DEVHW_M25P16,       M25P16_SPI_BUS,     M25P16_CS_PIN,      NONE,           DEVFLAGS_NONE,  0);
 #endif
 
@@ -376,7 +384,7 @@
 #endif
 
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)
-    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_USE_MANUAL_DEVICE_SELECT | DEVFLAGS_SPI_MODE_0,  0);
+    BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     SDCARD_CS_PIN,      NONE,           DEVFLAGS_SPI_MODE_0,  0);
 #endif
 
 /*

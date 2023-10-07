@@ -25,24 +25,24 @@
 #endif
 
 // Undefine this for use libc sinf/cosf. Keep this defined to use fast sin/cos approximations
-#define FAST_MATH             // order 9 approximation
-//#define VERY_FAST_MATH      // order 7 approximation
+#define FAST_MATH       // order 9 approximation
+//#define VERY_FAST_MATH  // order 7 approximation
 
 // Use floating point M_PI instead explicitly.
-#define M_PIf       3.14159265358979323846f
-#define M_LN2f      0.69314718055994530942f
-#define M_Ef        2.71828182845904523536f
+#define M_PIf   3.14159265358979323846f
+#define M_LN2f  0.69314718055994530942f
+#define M_Ef    2.71828182845904523536f
 
-#define RAD    (M_PIf / 180.0f)
+#define RAD (M_PIf / 180.0f)
 
 #define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
-#define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100)
+#define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100.0f)
 
-#define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10)
+#define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10.0f)
 #define DECIDEGREES_TO_CENTIDEGREES(angle) ((angle) * 10)
 
 #define DEGREES_TO_DECIDEGREES(angle) ((angle) * 10)
-#define DECIDEGREES_TO_DEGREES(angle) ((angle) / 10)
+#define DECIDEGREES_TO_DEGREES(angle) ((angle) / 10.0f)
 
 #define DEGREES_PER_DEKADEGREE 10
 #define DEGREES_TO_DEKADEGREES(angle) ((angle) / DEGREES_PER_DEKADEGREE)
@@ -56,46 +56,46 @@
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)            (cm / 0.3048)
-#define CENTIMETERS_TO_FEET(cm)                 (cm / 30.48)
-#define CENTIMETERS_TO_METERS(cm)               (cm / 100)
+#define CENTIMETERS_TO_CENTIFEET(cm)    (cm / 0.3048f)
+#define CENTIMETERS_TO_FEET(cm)         (cm / 30.48f)
+#define CENTIMETERS_TO_METERS(cm)       (cm / 100.0f)
 
-#define METERS_TO_CENTIMETERS(m)                (m * 100)
+#define METERS_TO_CENTIMETERS(m)        (m * 100)
 
-#define CMSEC_TO_CENTIMPH(cms)      (cms * 2.2369363)
-#define CMSEC_TO_CENTIKPH(cms)      (cms * 3.6)
-#define CMSEC_TO_CENTIKNOTS(cms)    (cms * 1.943845)
+#define CMSEC_TO_CENTIMPH(cms)          (cms * 2.2369363f)
+#define CMSEC_TO_CENTIKPH(cms)          (cms * 3.6f)
+#define CMSEC_TO_CENTIKNOTS(cms)        (cms * 1.943845f)
 
 #define C_TO_KELVIN(temp) (temp + 273.15f)
 
 // Standard Sea Level values
 // Ref:https://en.wikipedia.org/wiki/Standard_sea_level
-#define SSL_AIR_DENSITY         1.225f // kg/m^3
-#define SSL_AIR_PRESSURE 101325.01576f // Pascal
-#define SSL_AIR_TEMPERATURE    288.15f // K
+#define SSL_AIR_DENSITY		1.225f // kg/m^3
+#define SSL_AIR_PRESSURE	101325.01576f // Pascal
+#define SSL_AIR_TEMPERATURE	288.15f // K
 
 // copied from https://code.google.com/p/cxutil/source/browse/include/cxutil/utility.h#70
-#define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar)         \
-    ( __extension__ ({                                      \
-            __typeof__(lexpr) lvar = (lexpr);               \
-            __typeof__(rexpr) rvar = (rexpr);               \
-            lvar binoper rvar ? lvar : rvar;                \
-        }))
+#define _CHOOSE2(binoper, lexpr, lvar, rexpr, rvar) \
+    ( __extension__ ({                              \
+        __typeof__(lexpr) lvar = (lexpr);           \
+        __typeof__(rexpr) rvar = (rexpr);           \
+        lvar binoper rvar ? lvar : rvar;            \
+    }))
 #define _CHOOSE_VAR2(prefix, unique) prefix##unique
 #define _CHOOSE_VAR(prefix, unique) _CHOOSE_VAR2(prefix, unique)
-#define _CHOOSE(binoper, lexpr, rexpr)                   \
-    _CHOOSE2(                                            \
-        binoper,                                         \
-        lexpr, _CHOOSE_VAR(_left, __COUNTER__),          \
-        rexpr, _CHOOSE_VAR(_right, __COUNTER__)          \
+#define _CHOOSE(binoper, lexpr, rexpr)          \
+    _CHOOSE2(                                   \
+        binoper,                                \
+        lexpr, _CHOOSE_VAR(_left, __COUNTER__), \
+        rexpr, _CHOOSE_VAR(_right, __COUNTER__) \
         )
 #define MIN(a, b) _CHOOSE(<, a, b)
 #define MAX(a, b) _CHOOSE(>, a, b)
 
-#define _ABS_II(x, var)                           \
-    ( __extension__ ({                            \
-        __typeof__(x) var = (x);                  \
-        var < 0 ? -var : var;                     \
+#define _ABS_II(x, var)             \
+    ( __extension__ ({              \
+        __typeof__(x) var = (x);    \
+        var < 0 ? -var : var;       \
     }))
 #define _ABS_I(x, var) _ABS_II(x, var)
 #define ABS(x) _ABS_I(x, _CHOOSE_VAR(_abs, __COUNTER__))
@@ -114,8 +114,7 @@ typedef union {
     fp_angles_def angles;
 } fp_angles_t;
 
-typedef struct stdev_s
-{
+typedef struct stdev_s {
     float m_oldM, m_newM, m_oldS, m_newS;
     int m_n;
 } stdev_t;
@@ -137,8 +136,8 @@ typedef struct {
 } sensorCalibrationState_t;
 
 void sensorCalibrationResetState(sensorCalibrationState_t * state);
-void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, int32_t sample[3]);
-void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, int32_t sample[3], int target);
+void sensorCalibrationPushSampleForOffsetCalculation(sensorCalibrationState_t * state, float sample[3]);
+void sensorCalibrationPushSampleForScaleCalculation(sensorCalibrationState_t * state, int axis, float sample[3], int target);
 bool sensorCalibrationSolveForOffset(sensorCalibrationState_t * state, float result[3]);
 bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float result[3]);
 
@@ -188,6 +187,23 @@ float acos_approx(float x);
 void arraySubInt32(int32_t *dest, int32_t *array1, int32_t *array2, int count);
 
 float bellCurve(const float x, const float curveWidth);
-float fast_fsqrtf(const double value);
+float fast_fsqrtf(const float value);
 float calc_length_pythagorean_2D(const float firstElement, const float secondElement);
 float calc_length_pythagorean_3D(const float firstElement, const float secondElement, const float thirdElement);
+
+/*
+ * The most significat byte is placed at the lowest address
+ * in other words, the most significant byte is "first", on even indexes
+ */
+#define int16_val_big_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
+/*
+ * The most significat byte is placed at the highest address
+ * in other words, the most significant byte is "last", on odd indexes
+ */
+#define int16_val_little_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx + 1] << 8) | v[2 * idx]))
+
+#ifdef SITL_BUILD
+void arm_sub_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
+void arm_scale_f32(float * pSrc, float scale, float * pDst, uint32_t blockSize);
+void arm_mult_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
+#endif

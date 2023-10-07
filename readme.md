@@ -2,10 +2,6 @@
 
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 
-# INAV 6 Horizon Hawk feature freeze
-
-> INAV 6 feature freeze will happen on 29th of January 2023. No new features for INAV 6 will be accepted after that date. 
-
 # INAV Community
 
 * [INAV Discord Server](https://discord.gg/peg2hhbYwN)
@@ -18,13 +14,13 @@
 * On Screen Display (OSD) - both character and pixel style
 * DJI OSD integration: all elements, system messages and warnings
 * Outstanding performance out of the box
-* Position Hold, Altitude Hold, Return To Home and Missions
-* Excellent support for fixed wing UAVs: airplanes, flying wings 
+* Position Hold, Altitude Hold, Return To Home and Waypoint Missions
+* Excellent support for fixed wing UAVs: airplanes, flying wings
 * Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
 * Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
 * SmartAudio and IRC Tramp VTX support
 * Blackbox flight recorder logging
-* Telemetry: SmartPort, FPort, MAVlink, LTM
+* Telemetry: SmartPort, FPort, MAVlink, LTM, CRSF
 * Multi-color RGB LED Strip support
 * Advanced gyro filtering
 * Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
@@ -36,15 +32,19 @@ For a list of features, changes and some discussion please review consult the re
 
 ### INAV Configurator
 
-Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.  
+Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.
 
 ### INAV Blackbox Explorer
 
 Tool for Blackbox logs analysis is available [here](https://github.com/iNavFlight/blackbox-log-viewer/releases)
 
-### Telemetry screen for OpenTX
+### INAV Blackbox Tools
 
-Users of OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
+Command line tools (`blackbox_decode`, `blackbox_render`) for Blackbox log conversion and analysis [here](https://github.com/iNavFlight/blackbox-tools).
+
+### Telemetry screen for EdgeTX and OpenTX
+
+Users of EdgeTX and OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
 
 ### INAV magnetometer alignment helper
 
@@ -81,7 +81,7 @@ Contributions are welcome and encouraged.  You can contribute in many ways:
 * Telling us your ideas and suggestions.
 * Buying your hardware from this [link](https://inavflight.com/shop/u/bg/)
 
-A good place to start is Telegram channel or Facebook group. Drop in, say hi.
+A good place to start is the Discord channel, Telegram channel or Facebook group. Drop in, say hi.
 
 Github issue tracker is a good place to search for existing issues or report a new bug/feature request:
 

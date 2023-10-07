@@ -113,16 +113,15 @@ static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
 {
     // Calculate min and max throttle boundaries (to compensate for integral windup)
-    const int16_t thrAdjustmentMin = (int16_t)getThrottleIdleValue() - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t thrAdjustmentMax = (int16_t)motorConfig()->maxthrottle - (int16_t)currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t thrCorrectionMax = motorConfig()->maxthrottle - currentBatteryProfile->nav.mc.hover_throttle;
 
-    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrAdjustmentMin, thrAdjustmentMax, 0);
+    float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, 0);
 
-    posControl.rcAdjustment[THROTTLE] = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, velocity_controller, NAV_THROTTLE_CUTOFF_FREQENCY_HZ, US2S(deltaMicros));
+    rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    posControl.rcAdjustment[THROTTLE] = constrain(posControl.rcAdjustment[THROTTLE], thrAdjustmentMin, thrAdjustmentMax);
-
-    posControl.rcAdjustment[THROTTLE] = constrain((int16_t)currentBatteryProfile->nav.mc.hover_throttle + posControl.rcAdjustment[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
+    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, false);
 }
 
 bool adjustMulticopterAltitudeFromRCInput(void)
@@ -133,11 +132,11 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
-            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             posControl.desiredState.pos.z = altTarget;
         }
         else {
-            updateClimbRateToAltitudeController(-50.0f, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
@@ -159,14 +158,14 @@ bool adjustMulticopterAltitudeFromRCInput(void)
                 rcClimbRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - getThrottleIdleValue() - rcControlsConfig()->alt_hold_deadband);
             }
 
-            updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
+            updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
             return true;
         }
         else {
             // Adjusting finished - reset desired position to stay exactly where pilot released the stick
             if (posControl.flags.isAdjustingAltitude) {
-                updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+                updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
             }
 
             return false;
@@ -177,18 +176,15 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 void setupMulticopterAltitudeController(void)
 {
     const bool throttleIsLow = throttleStickIsLow();
+    const uint8_t throttleType = navConfig()->mc.althold_throttle_type;
 
-    if (navConfig()->general.flags.use_thr_mid_for_althold) {
+    if (throttleType == MC_ALT_HOLD_STICK && !throttleIsLow) {
+        // Only use current throttle if not LOW - use Thr Mid otherwise
+        altHoldThrottleRCZero = rcCommand[THROTTLE];
+    } else if (throttleType == MC_ALT_HOLD_HOVER) {
+        altHoldThrottleRCZero = currentBatteryProfile->nav.mc.hover_throttle;
+    } else {
         altHoldThrottleRCZero = rcLookupThrottleMid();
-    }
-    else {
-        // If throttle is LOW - use Thr Mid anyway
-        if (throttleIsLow) {
-            altHoldThrottleRCZero = rcLookupThrottleMid();
-        }
-        else {
-            altHoldThrottleRCZero = rcCommand[THROTTLE];
-        }
     }
 
     // Make sure we are able to satisfy the deadband
@@ -213,7 +209,7 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
 
-    posControl.rcAdjustment[THROTTLE] = 0;
+    posControl.rcAdjustment[THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;
 
     posControl.desiredState.vel.z = posToUse->vel.z;   // Gradually transition from current climb
 
@@ -222,7 +218,7 @@ void resetMulticopterAltitudeController(void)
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
 
     if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-        const float maxSpeed = getActiveWaypointSpeed();
+        const float maxSpeed = getActiveSpeed();
         nav_speed_up = maxSpeed;
         nav_accel_z = maxSpeed;
         nav_speed_down = navConfig()->general.max_auto_climb_rate;
@@ -289,14 +285,15 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
 bool adjustMulticopterHeadingFromRCInput(void)
 {
     if (ABS(rcCommand[YAW]) > rcControlsConfig()->pos_hold_deadband) {
-        // Can only allow pilot to set the new heading if doing PH, during RTH copter will target itself to home
-        posControl.desiredState.yaw = posControl.actualState.yaw;
+        // Heading during Cruise Hold mode set by Nav function so no adjustment required here
+        if (!FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+            posControl.desiredState.yaw = posControl.actualState.yaw;
+        }
 
         return true;
     }
-    else {
-        return false;
-    }
+
+    return false;
 }
 
 /*-----------------------------------------------------------
@@ -406,8 +403,44 @@ void resetMulticopterPositionController(void)
     }
 }
 
+static bool adjustMulticopterCruiseSpeed(int16_t rcPitchAdjustment)
+{
+    static timeMs_t lastUpdateTimeMs;
+    const timeMs_t currentTimeMs = millis();
+    const timeMs_t updateDeltaTimeMs = currentTimeMs - lastUpdateTimeMs;
+    lastUpdateTimeMs = currentTimeMs;
+
+    const float rcVelX = rcPitchAdjustment * navConfig()->general.max_manual_speed / (float)(500 - rcControlsConfig()->pos_hold_deadband);
+
+    if (rcVelX > posControl.cruise.multicopterSpeed) {
+        posControl.cruise.multicopterSpeed = rcVelX;
+    } else if (rcVelX < 0 && updateDeltaTimeMs < 100) {
+        posControl.cruise.multicopterSpeed += MS2S(updateDeltaTimeMs) * rcVelX / 2.0f;
+    } else {
+        return false;
+    }
+    posControl.cruise.multicopterSpeed = constrainf(posControl.cruise.multicopterSpeed, 10.0f, navConfig()->general.max_manual_speed);
+
+    return true;
+}
+
+static void setMulticopterStopPosition(void)
+{
+    fpVector3_t stopPosition;
+    calculateMulticopterInitialHoldPosition(&stopPosition);
+    setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
+}
+
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment)
 {
+    if (navGetMappedFlightModes(posControl.navState) & NAV_COURSE_HOLD_MODE) {
+        if (rcPitchAdjustment) {
+            return adjustMulticopterCruiseSpeed(rcPitchAdjustment);
+        }
+
+        return false;
+    }
+
     // Process braking mode
     processMulticopterBrakingMode(rcPitchAdjustment || rcRollAdjustment);
 
@@ -429,16 +462,12 @@ bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcR
 
         return true;
     }
-    else {
+    else if (posControl.flags.isAdjustingPosition) {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
-        if (posControl.flags.isAdjustingPosition) {
-            fpVector3_t stopPosition;
-            calculateMulticopterInitialHoldPosition(&stopPosition);
-            setDesiredPosition(&stopPosition, 0, NAV_POS_UPDATE_XY);
-        }
-
-        return false;
+        setMulticopterStopPosition();
     }
+
+    return false;
 }
 
 static float getVelocityHeadingAttenuationFactor(void)
@@ -467,15 +496,28 @@ static float getVelocityExpoAttenuationFactor(float velTotal, float velMax)
 
 static void updatePositionVelocityController_MC(const float maxSpeed)
 {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+        // Position held at cruise speeds below 0.5 m/s, otherwise desired neu velocities set directly from cruise speed
+        if (posControl.cruise.multicopterSpeed >= 50) {
+            // Rotate multicopter x velocity from body frame to earth frame
+            posControl.desiredState.vel.x = posControl.cruise.multicopterSpeed * cos_approx(CENTIDEGREES_TO_RADIANS(posControl.cruise.course));
+            posControl.desiredState.vel.y = posControl.cruise.multicopterSpeed * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.cruise.course));
+
+            return;
+        } else if (posControl.flags.isAdjustingPosition) {
+            setMulticopterStopPosition();
+        }
+    }
+
     const float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
     const float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
 
     // Calculate target velocity
-    float newVelX = posErrorX * posControl.pids.pos[X].param.kP;
-    float newVelY = posErrorY * posControl.pids.pos[Y].param.kP;
+    float neuVelX = posErrorX * posControl.pids.pos[X].param.kP;
+    float neuVelY = posErrorY * posControl.pids.pos[Y].param.kP;
 
     // Scale velocity to respect max_speed
-    float newVelTotal = calc_length_pythagorean_2D(newVelX, newVelY);
+    float neuVelTotal = calc_length_pythagorean_2D(neuVelX, neuVelY);
 
     /*
      * We override computed speed with max speed in following cases:
@@ -485,26 +527,23 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     if (
         ((navGetCurrentStateFlags() & NAV_AUTO_WP || posControl.flags.rthTrackbackActive) &&
         !isNavHoldPositionActive() &&
-        newVelTotal < maxSpeed &&
+        neuVelTotal < maxSpeed &&
         !navConfig()->mc.slowDownForTurning
-        ) || newVelTotal > maxSpeed
+        ) || neuVelTotal > maxSpeed
     ) {
-        newVelX = maxSpeed * (newVelX / newVelTotal);
-        newVelY = maxSpeed * (newVelY / newVelTotal);
-        newVelTotal = maxSpeed;
+        neuVelX = maxSpeed * (neuVelX / neuVelTotal);
+        neuVelY = maxSpeed * (neuVelY / neuVelTotal);
+        neuVelTotal = maxSpeed;
     }
 
-    posControl.pids.pos[X].output_constrained = newVelX;
-    posControl.pids.pos[Y].output_constrained = newVelY;
+    posControl.pids.pos[X].output_constrained = neuVelX;
+    posControl.pids.pos[Y].output_constrained = neuVelY;
 
     // Apply expo & attenuation if heading in wrong direction - turn first, accelerate later (effective only in WP mode)
     const float velHeadFactor = getVelocityHeadingAttenuationFactor();
-    const float velExpoFactor = getVelocityExpoAttenuationFactor(newVelTotal, maxSpeed);
-    posControl.desiredState.vel.x = newVelX * velHeadFactor * velExpoFactor;
-    posControl.desiredState.vel.y = newVelY * velHeadFactor * velExpoFactor;
-
-    navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.x), -32678, 32767);
-    navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.y), -32678, 32767);
+    const float velExpoFactor = getVelocityExpoAttenuationFactor(neuVelTotal, maxSpeed);
+    posControl.desiredState.vel.x = neuVelX * velHeadFactor * velExpoFactor;
+    posControl.desiredState.vel.y = neuVelY * velHeadFactor * velExpoFactor;
 }
 
 static float computeNormalizedVelocity(const float value, const float maxValue)
@@ -664,49 +703,53 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
 
 static void applyMulticopterPositionController(timeUs_t currentTimeUs)
 {
-    static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ GPS update rate
-    bool bypassPositionController;
-
-    // We should passthrough rcCommand is adjusting position in GPS_ATTI mode
-    bypassPositionController = (navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI) && posControl.flags.isAdjustingPosition;
-
     // Apply controller only if position source is valid. In absence of valid pos sensor (GPS loss), we'd stick in forced ANGLE mode
     // and pilots input would be passed thru to PID controller
-    if ((posControl.flags.estPosStatus >= EST_USABLE)) {
-        // If we have new position - update velocity and acceleration controllers
-        if (posControl.flags.horizontalPositionDataNew) {
-            const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
-            previousTimePositionUpdate = currentTimeUs;
-
-            if (!bypassPositionController) {
-                // Update position controller
-                if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-                    // Get max speed from generic NAV (waypoint specific), don't allow to move slower than 0.5 m/s
-                    const float maxSpeed = getActiveWaypointSpeed();
-                    updatePositionVelocityController_MC(maxSpeed);
-                    updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed);
-                }
-                else {
-                    // Position update has not occurred in time (first start or glitch), reset altitude controller
-                    resetMulticopterPositionController();
-                }
-            }
-
-            // Indicate that information is no longer usable
-            posControl.flags.horizontalPositionDataConsumed = true;
-        }
-    }
-    else {
+    if (posControl.flags.estPosStatus < EST_USABLE) {
         /* No position data, disable automatic adjustment, rcCommand passthrough */
         posControl.rcAdjustment[PITCH] = 0;
         posControl.rcAdjustment[ROLL] = 0;
-        bypassPositionController = true;
+
+        return;
     }
 
-    if (!bypassPositionController) {
-        rcCommand[PITCH] = pidAngleToRcCommand(posControl.rcAdjustment[PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
-        rcCommand[ROLL] = pidAngleToRcCommand(posControl.rcAdjustment[ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
+    // Passthrough rcCommand if adjusting position in GPS_ATTI mode except when Course Hold active
+    bool bypassPositionController = !FLIGHT_MODE(NAV_COURSE_HOLD_MODE) &&
+                                    navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI &&
+                                    posControl.flags.isAdjustingPosition;
+
+    if (posControl.flags.horizontalPositionDataNew) {
+        // Indicate that information is no longer usable
+        posControl.flags.horizontalPositionDataConsumed = true;
+
+        static timeUs_t previousTimePositionUpdate = 0;     // Occurs @ GPS update rate
+        const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
+        previousTimePositionUpdate = currentTimeUs;
+
+        if (bypassPositionController) {
+            return;
+        }
+
+        // If we have new position data - update velocity and acceleration controllers
+        if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
+            // Get max speed for current NAV mode
+            float maxSpeed = getActiveSpeed();
+            updatePositionVelocityController_MC(maxSpeed);
+            updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed);
+
+            navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.x), -32678, 32767);
+            navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.y), -32678, 32767);
+        }
+        else {
+            // Position update has not occurred in time (first start or glitch), reset position controller
+            resetMulticopterPositionController();
+        }
+    } else if (bypassPositionController) {
+        return;
     }
+
+    rcCommand[PITCH] = pidAngleToRcCommand(posControl.rcAdjustment[PITCH], pidProfile()->max_angle_inclination[FD_PITCH]);
+    rcCommand[ROLL] = pidAngleToRcCommand(posControl.rcAdjustment[ROLL], pidProfile()->max_angle_inclination[FD_ROLL]);
 }
 
 bool isMulticopterFlying(void)
@@ -720,10 +763,56 @@ bool isMulticopterFlying(void)
 /*-----------------------------------------------------------
  * Multicopter land detector
  *-----------------------------------------------------------*/
+  #if defined(USE_BARO)
+float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue)
+{
+    static float baroAltRate;
+    if (updateValue) {
+        baroAltRate = newBaroAltRate;
+    }
+
+    return baroAltRate;
+}
+
+static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
+{
+    /* Detection based on G bump at touchdown, falling Baro altitude and throttle below hover.
+     * G bump trigger: > 2g then falling back below 1g in < 0.1s.
+     * Baro trigger: rate must be -ve at initial trigger g and < -2 m/s when g falls back below 1g
+     * Throttle trigger: must be below hover throttle with lower threshold for manual throttle control */
+
+    static timeMs_t gSpikeDetectTimeMs = 0;
+    float baroAltRate = updateBaroAltitudeRate(0, false);
+
+    if (!gSpikeDetectTimeMs && acc.accADCf[Z] > 2.0f && baroAltRate < 0.0f) {
+        gSpikeDetectTimeMs = currentTimeMs;
+    } else if (gSpikeDetectTimeMs) {
+        if (currentTimeMs < gSpikeDetectTimeMs + 100) {
+            if (acc.accADCf[Z] < 1.0f && baroAltRate < -200.0f) {
+                const uint16_t idleThrottle = getThrottleIdleValue();
+                const uint16_t hoverThrottleRange = currentBatteryProfile->nav.mc.hover_throttle - idleThrottle;
+                return rcCommand[THROTTLE] < idleThrottle + ((navigationInAutomaticThrottleMode() ? 0.8 : 0.5) * hoverThrottleRange);
+            }
+        } else if (acc.accADCf[Z] <= 1.0f) {
+            gSpikeDetectTimeMs = 0;
+        }
+    }
+
+    return false;
+}
+#endif
 bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
-    static timeMs_t landingDetectorStartedAt;
+    DEBUG_SET(DEBUG_LANDING, 3, averageAbsGyroRates() * 100);
+
+    const timeMs_t currentTimeMs = millis();
+
+#if defined(USE_BARO)
+    if (sensors(SENSOR_BARO) && navConfig()->general.flags.landing_bump_detection && isLandingGbumpDetected(currentTimeMs)) {
+        return true;    // Landing flagged immediately if landing bump detected
+    }
+#endif
 
     bool throttleIsBelowMidHover = rcCommand[THROTTLE] < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
 
@@ -734,6 +823,8 @@ bool isMulticopterLandingDetected(void)
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || (FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_WP_MODE) && throttleIsBelowMidHover)
                           || (!navigationIsFlyingAutonomousMode() && throttleStickIsLow());
+
+    static timeMs_t landingDetectorStartedAt;
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
         landingDetectorStartedAt = 0;
@@ -751,7 +842,6 @@ bool isMulticopterLandingDetected(void)
     DEBUG_SET(DEBUG_LANDING, 3, gyroCondition);
 
     bool possibleLandingDetected = false;
-    const timeMs_t currentTimeMs = millis();
 
     if (navGetCurrentStateFlags() & NAV_CTL_LAND) {
         // We have likely landed if throttle is 40 units below average descend throttle
@@ -822,27 +912,28 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
     /* Attempt to stabilise */
     rcCommand[YAW] = 0;
+    rcCommand[ROLL] = 0;
+    rcCommand[PITCH] = 0;
 
-    if ((posControl.flags.estAltStatus < EST_USABLE)) {
-        /* Sensors has gone haywire, attempt to land regardless */
+    /* Altitude sensors gone haywire, attempt to land regardless */
+    if (posControl.flags.estAltStatus < EST_USABLE) {
         if (failsafeConfig()->failsafe_procedure == FAILSAFE_PROCEDURE_DROP_IT) {
             rcCommand[THROTTLE] = getThrottleIdleValue();
+            return;
         }
-        else {
-            rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
-        }
-
+        rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->failsafe_throttle, true);
         return;
     }
 
-    // Normal sensor data
+    // Normal sensor data available, use controlled landing descent
     if (posControl.flags.verticalPositionDataNew) {
         const timeDeltaLarge_t deltaMicrosPositionUpdate = currentTimeUs - previousTimePositionUpdate;
         previousTimePositionUpdate = currentTimeUs;
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+            // target min descent rate 5m above takeoff altitude
+            updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 500.0f, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }
@@ -855,15 +946,12 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         posControl.flags.verticalPositionDataConsumed = true;
     }
 
-    // Update throttle controller
+    // Update throttle
     rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
 
     // Hold position if possible
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
         applyMulticopterPositionController(currentTimeUs);
-    } else {
-        rcCommand[ROLL] = 0;
-        rcCommand[PITCH] = 0;
     }
 }
 
@@ -886,6 +974,10 @@ void resetMulticopterHeadingController(void)
 
 static void applyMulticopterHeadingController(void)
 {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {    // heading set by Nav during Course Hold so disable yaw stick input
+        rcCommand[YAW] = 0;
+    }
+
     updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(posControl.desiredState.yaw));
 }
 

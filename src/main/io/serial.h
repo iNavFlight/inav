@@ -59,6 +59,8 @@ typedef enum {
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
 } serialPortFunction_e;
 
+#define FUNCTION_VTX_MSP FUNCTION_MSP_OSD
+
 typedef enum {
     BAUD_AUTO = 0,
     BAUD_1200,

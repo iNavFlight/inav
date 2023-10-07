@@ -81,7 +81,7 @@ bool cliMode = false;
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -89,6 +89,7 @@ bool cliMode = false;
 #include "io/beeper.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/serial.h"
@@ -153,6 +154,13 @@ static const char * const featureNames[] = {
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
     "SUPEREXPO", "VTX", "", "", "", "PWM_OUTPUT_ENABLE",
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
+};
+
+static const char * outputModeNames[] = {
+    "AUTO",
+    "MOTORS",
+    "SERVOS",
+    NULL
 };
 
 #ifdef USE_BLACKBOX
@@ -281,7 +289,7 @@ typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
     DUMP_BATTERY_PROFILE = (1 << 2),
-    DUMP_RATES = (1 << 3),
+    DUMP_MIXER_PROFILE = (1 << 3),
     DUMP_ALL = (1 << 4),
     DO_DIFF = (1 << 5),
     SHOW_DEFAULTS = (1 << 6),
@@ -1037,7 +1045,7 @@ static void cliAdjustmentRange(char *cmdline)
 }
 
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
-{
+{   
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
     char buf1[FTOA_BUFFER_SIZE];
@@ -1861,7 +1869,7 @@ static void cliServoMix(char *cmdline)
         printServoMix(DUMP_MASTER, customServoMixers(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
-        pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
+        Reset_servoMixers(customServoMixersMutable(0));
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
@@ -2513,6 +2521,82 @@ static void cliOsdLayout(char *cmdline)
 
 #endif
 
+static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, const timerOverride_t* defaultTimerOverride, int timer)
+{
+    const char *format = "timer_output_mode %d %s";
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        if (timer < 0 || timer == i) {
+            outputMode_e mode = to[i].outputMode;
+            bool equalsDefault = false;
+            if(defaultTimerOverride) {
+                outputMode_e defaultMode = defaultTimerOverride[i].outputMode;
+                equalsDefault = mode == defaultMode;
+                cliDefaultPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[defaultMode]);
+            }
+            cliDumpPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[mode]);
+        }
+    }
+}
+
+static void cliTimerOutputMode(char *cmdline)
+{
+    char * saveptr;
+
+    int timer = -1;
+    uint8_t mode;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    int ii;
+
+    for (ii = 0; tok != NULL; ii++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ii) {
+            case 0:
+                timer = fastA2I(tok);
+                if (timer < 0 || timer >= HARDWARE_TIMER_DEFINITION_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                if(!sl_strcasecmp("AUTO", tok)) {
+                    mode =  OUTPUT_MODE_AUTO;
+                } else if(!sl_strcasecmp("MOTORS", tok)) {
+                    mode = OUTPUT_MODE_MOTORS;
+                } else if(!sl_strcasecmp("SERVOS", tok)) {
+                    mode = OUTPUT_MODE_SERVOS;
+                } else {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+           default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (ii) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            // No args, or just timer. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        case 2:
+            timerOverridesMutable(timer)->outputMode = mode;
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
+    }
+
+}
+
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
 {
     uint32_t mask = featureConfig->enabledFeatures;
@@ -3048,6 +3132,39 @@ static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
 }
 
+static void cliMixerProfile(char *cmdline)
+{
+    // CLI profile index is 1-based
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("mixer_profile %d", getConfigMixerProfile() + 1);
+        return;
+    } else {
+        const int i = fastA2I(cmdline) - 1;
+        if (i >= 0 && i < MAX_MIXER_PROFILE_COUNT) {
+            setConfigMixerProfileAndWriteEEPROM(i);
+            cliMixerProfile("");
+        }
+    }
+}
+
+static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
+{
+    if (profileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    setConfigMixerProfile(profileIndex);
+    cliPrintHashLine("mixer_profile");
+    cliPrintLinef("mixer_profile %d\r\n", getConfigMixerProfile() + 1);
+    dumpAllValues(MIXER_CONFIG_VALUE, dumpMask);
+    cliPrintHashLine("Mixer: motor mixer");
+    cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray()[0].throttle == 0.0f, "\r\nmmix reset\r\n");
+    printMotorMix(dumpMask, primaryMotorMixer_CopyArray(), primaryMotorMixer(0));
+    cliPrintHashLine("Mixer: servo mixer");
+    cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray()[0].rate == 0, "smix reset\r\n");
+    printServoMix(dumpMask, customServoMixers_CopyArray(), customServoMixers(0));
+}
+
 #ifdef USE_CLI_BATCH
 static void cliPrintCommandBatchWarning(const char *warning)
 {
@@ -3098,7 +3215,9 @@ static void cliSave(char *cmdline)
 
     cliPrint("Saving");
     //copyCurrentProfileToProfileSlot(getConfigProfile();
+    suspendRxSignal();
     writeEEPROM();
+    resumeRxSignal();
     cliReboot();
 }
 
@@ -3108,6 +3227,9 @@ static void cliDefaults(char *cmdline)
 
     cliPrint("Resetting to defaults");
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_CLI_BATCH
     commandBatchError = false;
@@ -3463,6 +3585,23 @@ static void cliStatus(char *cmdline)
     cliPrintLinefeed();
 #endif
 
+    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+        cliPrint("GPS: ");
+        cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
+        cliPrintLinefeed();
+        //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
+        cliPrintLinef("  GNSS Capabilities:");
+        cliPrintLine("    GNSS Provider active/default");
+        cliPrintLine("    GPS 1/1");
+        if(gpsUbloxHasGalileo())
+            cliPrintLinef("    Galileo %d/%d", gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
+        if(gpsUbloxHasBeidou())
+            cliPrintLinef("    BeiDou %d/%d", gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
+        if(gpsUbloxHasGlonass())
+            cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
+        cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
+    }
+
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
         cliPrintLinef("PWM output init error: %s", getPwmInitErrorMessage());
@@ -3581,6 +3720,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = DUMP_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "battery_profile"))) {
         dumpMask = DUMP_BATTERY_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "mixer_profile"))) {
+        dumpMask = DUMP_MIXER_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -3593,12 +3734,14 @@ static void printConfig(const char *cmdline, bool doDiff)
 
     const int currentProfileIndexSave = getConfigProfile();
     const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+    const int currentMixerProfileIndexSave = getConfigMixerProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
     setConfigProfile(currentProfileIndexSave);
     setConfigBatteryProfile(currentBatteryProfileIndexSave);
+    setConfigMixerProfile(currentMixerProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -3629,15 +3772,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
-        cliPrintHashLine("Mixer: motor mixer");
-        cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
-
-        printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
-
-        // print custom servo mixer if exists
-        cliPrintHashLine("Mixer: servo mixer");
-        cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
-        printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
+        cliPrintHashLine("Timer overrides");
+        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, timerOverrides(0), -1);
 
         // print servo parameters
         cliPrintHashLine("Outputs [servo]");
@@ -3720,6 +3856,10 @@ static void printConfig(const char *cmdline, bool doDiff)
             // dump all profiles
             const int currentProfileIndexSave = getConfigProfile();
             const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            const int currentMixerProfileIndexSave = getConfigMixerProfile();
+            for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
+                cliDumpMixerProfile(ii, dumpMask);
+            }
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
@@ -3728,8 +3868,10 @@ static void printConfig(const char *cmdline, bool doDiff)
             }
             setConfigProfile(currentProfileIndexSave);
             setConfigBatteryProfile(currentBatteryProfileIndexSave);
+            setConfigMixerProfile(currentMixerProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
+            cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
@@ -3738,11 +3880,15 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         } else {
             // dump just the current profiles
+            cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
             cliDumpProfile(getConfigProfile(), dumpMask);
             cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
-
+    if (dumpMask & DUMP_MIXER_PROFILE) {
+        cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
+    }
+    
     if (dumpMask & DUMP_PROFILE) {
         cliDumpProfile(getConfigProfile(), dumpMask);
     }
@@ -3902,6 +4048,8 @@ const clicmd_t cmdTable[] = {
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
+    CLI_COMMAND_DEF("mixer_profile", "change mixer profile",
+        "[<index>]", cliMixerProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
 #if defined(USE_SAFE_HOME)
@@ -3945,6 +4093,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)

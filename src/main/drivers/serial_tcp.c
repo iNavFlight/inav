@@ -37,6 +37,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/tcp.h>
 
 #include "common/utils.h"
 
@@ -45,83 +46,14 @@
 
 static const struct serialPortVTable tcpVTable[];
 static tcpPort_t tcpPorts[SERIAL_PORT_COUNT];
-static bool tcpThreadRunning = false;
-
-static int lookup_address (char *name, int port, int type, struct sockaddr *addr, socklen_t* len )
-{
-    struct addrinfo *servinfo, *p;
-    struct addrinfo hints = {.ai_family = AF_UNSPEC, .ai_socktype = type, .ai_flags = AI_V4MAPPED|AI_ADDRCONFIG};
-    if (name == NULL) {
-	hints.ai_flags |= AI_PASSIVE;
-    }
-    /*
-      This nonsense is to uniformly deliver the same sa_family regardless of whether
-      name is NULL or non-NULL
-      Otherwise, at least on Linux, we get
-      - V6,V4 for the non-null case and
-      - V4,V6 for the null case, regardless of gai.conf
-      Which may confuse consumers.
-      FreeBSD and Windows behave consistently, giving V6 for Ipv6 enabled stacks in all cases
-      unless a quad dotted address is specificied
-    */
-    struct addrinfo *p4 = NULL;
-    struct addrinfo *p6 = NULL;
-    int result;
-    char aport[16];
-    snprintf(aport, sizeof(aport), "%d", port);
-    if ((result = getaddrinfo(name, aport, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(result));
-        return result;
-    } else {
-	int j = 0;
-	for(p = servinfo; p != NULL; p = p->ai_next) {
-	    if(p->ai_family == AF_INET6)
-		p6 = p;
-	    else if(p->ai_family == AF_INET)
-        p4 = p;
-	    j++;
-	}
-	if (p6 != NULL)
-	    p = p6;
-	else if (p4 != NULL)
-	    p = p4;
-	else
-	    return -1;
-	memcpy(addr, p->ai_addr, p->ai_addrlen);
-	*len = p->ai_addrlen;
-	freeaddrinfo(servinfo);
-    }
-    return 0;
-}
-
-static char *tcpGetAddressString(struct sockaddr *addr)
-{
-    static char straddr[INET6_ADDRSTRLEN];
-    void *ipaddr;
-    if (addr->sa_family == AF_INET6) {
-	struct sockaddr_in6 * ip = (struct sockaddr_in6*)addr;
-	ipaddr = &ip->sin6_addr;
-    } else {
-	struct sockaddr_in * ip = (struct sockaddr_in*)addr;
-	ipaddr = &ip->sin_addr;
-    }
-    const char *res = inet_ntop(addr->sa_family, ipaddr, straddr, sizeof straddr);
-    return (char *)res;
-}
 
 static void *tcpReceiveThread(void* arg)
 {
     tcpPort_t *port = (tcpPort_t*)arg;
-
-    while(tcpThreadRunning) {
-        if (tcpReceive(port) < 0) {
-            break;
-        }
-    }
-
+    while(tcpReceive(port) >= 0)
+        ;
     return NULL;
 }
-
 static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 {
     socklen_t sockaddrlen;
@@ -134,8 +66,8 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
     }
 
     uint16_t tcpPort = BASE_IP_ADDRESS + id - 1;
-    if (lookup_address(NULL, tcpPort, SOCK_STREAM, (struct sockaddr*)&port->sockAddress, &sockaddrlen) != 0) {
-	return NULL;
+    if (lookupAddress(NULL, tcpPort, SOCK_STREAM, (struct sockaddr*)&port->sockAddress, &sockaddrlen) != 0) {
+            return NULL;
     }
     port->socketFd = socket(((struct sockaddr*)&port->sockAddress)->sa_family, SOCK_STREAM, IPPROTO_TCP);
 
@@ -147,15 +79,16 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 #ifdef __CYGWIN__
     // Sadly necesary to enforce dual-stack behaviour on Windows networking ,,,
     if (((struct sockaddr*)&port->sockAddress)->sa_family == AF_INET6) {
-	int v6only=0;
-	err = setsockopt(port->socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
-	if (err != 0) {
-	    fprintf(stderr,"[SOCKET] setting V6ONLY=false: %s\n", strerror(errno));
-	}
+        int v6only=0;
+        err = setsockopt(port->socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
+        if (err != 0) {
+            fprintf(stderr,"[SOCKET] setting V6ONLY=false: %s\n", strerror(errno));
+        }
     }
 #endif
 
     int one = 1;
+    err = setsockopt(port->socketFd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     err = setsockopt(port->socketFd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     err = fcntl(port->socketFd, F_SETFL, fcntl(port->socketFd, F_GETFL, 0) | O_NONBLOCK);
 
@@ -177,15 +110,17 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
         fprintf(stderr, "[SOCKET] Unable to listen.\n");
         return NULL;
     }
-
-    fprintf(stderr, "[SOCKET] Bind TCP %s port %d to UART%d\n",
-	    tcpGetAddressString((struct sockaddr*)&port->sockAddress), tcpPort, id);
-
+    char addrbuf[IPADDRESS_PRINT_BUFLEN];
+    char *addrptr = prettyPrintAddress((struct sockaddr *)&port->sockAddress, addrbuf, IPADDRESS_PRINT_BUFLEN);
+    if (addrptr != NULL) {
+        fprintf(stderr, "[SOCKET] Bind TCP %s to UART%d\n", addrptr, id);
+    }
     return port;
 }
 
 int tcpReceive(tcpPort_t *port)
 {
+    char addrbuf[IPADDRESS_PRINT_BUFLEN];
     if (!port->isClientConnected) {
 
         fd_set fds;
@@ -198,29 +133,33 @@ int tcpReceive(tcpPort_t *port)
             return -1;
         }
 
-	socklen_t addrLen = sizeof(struct sockaddr_storage);
+        socklen_t addrLen = sizeof(struct sockaddr_storage);
         port->clientSocketFd = accept(port->socketFd,(struct sockaddr*)&port->clientAddress, &addrLen);
         if (port->clientSocketFd < 1) {
             fprintf(stderr, "[SOCKET] Can't accept connection.\n");
             return -1;
         }
 
-       fprintf(stderr, "[SOCKET] %s connected to UART%d\n", tcpGetAddressString((struct sockaddr *)&port->clientAddress), port->id);
+        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress, addrbuf, IPADDRESS_PRINT_BUFLEN);
+        if (addrptr != NULL) {
+           fprintf(stderr, "[SOCKET] %s connected to UART%d\n", addrptr, port->id);
+        }
         port->isClientConnected = true;
     }
 
     uint8_t buffer[TCP_BUFFER_SIZE];
     ssize_t recvSize = recv(port->clientSocketFd, buffer, TCP_BUFFER_SIZE, 0);
 
-    // Disconnect
-    if (port->isClientConnected && recvSize == 0)
-    {
-       fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", tcpGetAddressString((struct sockaddr *)&port->clientAddress), port->id);
-       close(port->clientSocketFd);
-       memset(&port->clientAddress, 0, sizeof(port->clientAddress));
-       port->isClientConnected = false;
-
-       return 0;
+    // recv() under cygwin does not recognise the closed connection under certain circumstances, but returns ECONNRESET as an error.
+    if (port->isClientConnected && (recvSize == 0 || ( recvSize == -1 && errno == ECONNRESET))) {
+        char *addrptr = prettyPrintAddress((struct sockaddr *)&port->clientAddress, addrbuf, IPADDRESS_PRINT_BUFLEN);
+        if (addrptr != NULL) {
+            fprintf(stderr, "[SOCKET] %s disconnected from UART%d\n", addrptr, port->id);
+        }
+        close(port->clientSocketFd);
+        memset(&port->clientAddress, 0, sizeof(port->clientAddress));
+        port->isClientConnected = false;
+        return 0;
     }
 
     for (ssize_t i = 0; i < recvSize; i++) {
@@ -248,7 +187,7 @@ serialPort_t *tcpOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, 
 
 #if defined(USE_UART1) || defined(USE_UART2) || defined(USE_UART3) || defined(USE_UART4) || defined(USE_UART5) || defined(USE_UART6) || defined(USE_UART7) || defined(USE_UART8)
     uint32_t id = (uintptr_t)USARTx;
-    if (id < SERIAL_PORT_COUNT) {
+    if (id <= SERIAL_PORT_COUNT) {
         port = tcpReConfigure(&tcpPorts[id-1], id);
     }
 #endif
@@ -273,8 +212,6 @@ serialPort_t *tcpOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, 
         fprintf(stderr, "[SOCKET] Unable to create receive thread for UART%d\n", id);
         return NULL;
     }
-    tcpThreadRunning = true;
-
     return (serialPort_t*)port;
 }
 

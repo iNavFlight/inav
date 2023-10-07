@@ -51,6 +51,7 @@
 #include "io/serial.h"
 #include "io/gps.h"
 #include "io/gps_private.h"
+#include "io/gps_ublox.h"
 
 #include "navigation/navigation.h"
 
@@ -73,16 +74,9 @@ gpsStatistics_t   gpsStats;
 gpsSolutionData_t gpsSol;
 
 // Map gpsBaudRate_e index to baudRate_e
-baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400 };
+baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400, BAUD_460800, BAUD_921600 };
 
 static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
-    /* NMEA GPS */
-#ifdef USE_GPS_PROTO_NMEA
-    { false, MODE_RX, gpsRestartNMEA, &gpsHandleNMEA },
-#else
-    { false, 0, NULL, NULL },
-#endif
-
     /* UBLOX binary */
 #ifdef USE_GPS_PROTO_UBLOX
     { false, MODE_RXTX, &gpsRestartUBLOX, &gpsHandleUBLOX },
@@ -112,7 +106,7 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 5);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
@@ -121,8 +115,73 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .autoBaud = SETTING_GPS_AUTO_BAUD_DEFAULT,
     .dynModel = SETTING_GPS_DYN_MODEL_DEFAULT,
     .gpsMinSats = SETTING_GPS_MIN_SATS_DEFAULT,
-    .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT
+    .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT,
+    .ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT,
+    .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
+    .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT,
+    .autoBaudMax = SETTING_GPS_AUTO_BAUD_MAX_SUPPORTED_DEFAULT
 );
+
+int gpsBaudRateToInt(gpsBaudRate_e baudrate)
+{
+    switch(baudrate)
+    {
+        case GPS_BAUDRATE_115200:
+            return 115200;
+        case GPS_BAUDRATE_57600:
+            return 57600;
+        case GPS_BAUDRATE_38400:
+            return 38400;
+        case GPS_BAUDRATE_19200:
+            return 19200;
+        case GPS_BAUDRATE_9600:
+            return 9600;
+        case GPS_BAUDRATE_230400:
+            return 230400;
+        case GPS_BAUDRATE_460800:
+            return 460800;
+        case GPS_BAUDRATE_921600:
+            return 921600;
+        default:
+            return 0;
+    }
+}
+
+int getGpsBaudrate(void)
+{
+    return gpsBaudRateToInt(gpsState.baudrateIndex);
+}
+
+const char *getGpsHwVersion(void)
+{
+    switch(gpsState.hwVersion)
+    {
+        case UBX_HW_VERSION_UBLOX5:
+            return "UBLOX5";
+        case UBX_HW_VERSION_UBLOX6:
+            return "UBLOX6";
+        case UBX_HW_VERSION_UBLOX7:
+            return "UBLOX7";
+        case UBX_HW_VERSION_UBLOX8:
+            return "UBLOX8";
+        case UBX_HW_VERSION_UBLOX9:
+            return "UBLOX9";
+        case UBX_HW_VERSION_UBLOX10:
+            return "UBLOX10";
+        default:
+            return "Unknown";
+    }
+}
+
+uint8_t getGpsProtoMajorVersion(void)
+{
+    return gpsState.swVersionMajor;
+}
+
+uint8_t getGpsProtoMinorVersion(void)
+{
+    return gpsState.swVersionMinor;
+}
 
 void gpsSetState(gpsState_e state)
 {
@@ -198,7 +257,7 @@ void gpsPreInit(void)
 {
     // Make sure gpsProvider is known when gpsMagDetect is called
     gpsState.gpsConfig = gpsConfig();
-    gpsState.baseTimeoutMs = (gpsState.gpsConfig->provider == GPS_NMEA) ? GPS_TIMEOUT*2 : GPS_TIMEOUT;
+    gpsState.baseTimeoutMs = GPS_TIMEOUT;
 }
 
 void gpsInit(void)
@@ -286,10 +345,21 @@ bool gpsUpdate(void)
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-        gpsUpdateTime();
-        gpsSetState(GPS_RUNNING);
-        sensorsSet(SENSOR_GPS);
-        return gpsSol.flags.hasNewData;
+        if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT))
+        {
+            gpsSetState(GPS_LOST_COMMUNICATION);
+            sensorsClear(SENSOR_GPS);
+            gpsStats.timeouts = 5;
+            return false;
+        }
+        else
+        {
+            gpsSetState(GPS_RUNNING);
+            sensorsSet(SENSOR_GPS);
+            bool res = gpsSol.flags.hasNewData;
+            gpsSol.flags.hasNewData = false;
+            return res;
+        }
     }
 #endif
 

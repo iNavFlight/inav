@@ -93,6 +93,9 @@ void soapClientSendRequestVa(soap_client_t *client, const char* action, const ch
          }
 
     send(client->sockedFd, request, strlen(request), 0);
+
+    free(requestBody);
+    free(request);
 }
 
 void soapClientSendRequest(soap_client_t *client, const char* action, const char *fmt, ...)

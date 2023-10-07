@@ -21,8 +21,6 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SPEED
-
 #include "scheduler.h"
 
 #include "build/build_config.h"

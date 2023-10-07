@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #ifdef USE_SERIAL_RX
 
@@ -70,8 +69,6 @@ typedef struct sbusFrameData_s {
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
-    static uint16_t sbusDesyncCounter = 0;
-
     sbusFrameData_t *sbusFrameData = data;
     const timeUs_t currentTimeUs = micros();
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
@@ -111,7 +108,6 @@ static void sbusDataReceive(uint16_t c, void *data)
 
                     default:    // Failed end marker
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
-                        sbusDesyncCounter++;
                         break;
                 }
 

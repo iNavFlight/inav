@@ -22,8 +22,6 @@
 
 #include "platform.h"
 
-//FILE_COMPILE_FOR_SPEED
-
 #include "build/build_config.h"
 #include "build/debug.h"
 
@@ -374,7 +372,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroDev_t *dev, zeroCalibrationVe
         setGyroCalibration(dev->gyroZero);
 #endif
 
-        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", dev->gyroZero[X], dev->gyroZero[Y], dev->gyroZero[Z]);
+        LOG_DEBUG(GYRO, "Gyro calibration complete (%d, %d, %d)", (int16_t) dev->gyroZero[X], (int16_t) dev->gyroZero[Y], (int16_t) dev->gyroZero[Z]);
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
     } else {
         dev->gyroZero[X] = 0;
@@ -411,21 +409,17 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
 #endif
 
         if (zeroCalibrationIsCompleteV(gyroCal)) {
-            int32_t gyroADCtmp[XYZ_AXIS_COUNT];
+            float gyroADCtmp[XYZ_AXIS_COUNT];
 
-            // Copy gyro value into int32_t (to prevent overflow) and then apply calibration and alignment
-            gyroADCtmp[X] = (int32_t)gyroDev->gyroADCRaw[X] - (int32_t)gyroDev->gyroZero[X];
-            gyroADCtmp[Y] = (int32_t)gyroDev->gyroADCRaw[Y] - (int32_t)gyroDev->gyroZero[Y];
-            gyroADCtmp[Z] = (int32_t)gyroDev->gyroADCRaw[Z] - (int32_t)gyroDev->gyroZero[Z];
+            //Apply zero calibration with CMSIS DSP
+            arm_sub_f32(gyroDev->gyroADCRaw, gyroDev->gyroZero, gyroADCtmp, 3);
 
             // Apply sensor alignment
             applySensorAlignment(gyroADCtmp, gyroADCtmp, gyroDev->gyroAlign);
             applyBoardAlignment(gyroADCtmp);
 
             // Convert to deg/s and store in unified data
-            gyroADCf[X] = (float)gyroADCtmp[X] * gyroDev->scale;
-            gyroADCf[Y] = (float)gyroADCtmp[Y] * gyroDev->scale;
-            gyroADCf[Z] = (float)gyroADCtmp[Z] * gyroDev->scale;
+            arm_scale_f32(gyroADCtmp, gyroDev->scale, gyroADCf, 3);
 
             return true;
         } else {
@@ -444,7 +438,7 @@ static bool FAST_CODE NOINLINE gyroUpdateAndCalibrate(gyroDev_t * gyroDev, zeroC
     }
 }
 
-void FAST_CODE NOINLINE gyroFilter()
+void FAST_CODE NOINLINE gyroFilter(void)
 {
     if (!gyro.initialized) {
         return;
@@ -506,7 +500,7 @@ void FAST_CODE NOINLINE gyroFilter()
 
 }
 
-void FAST_CODE NOINLINE gyroUpdate()
+void FAST_CODE NOINLINE gyroUpdate(void)
 {
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {

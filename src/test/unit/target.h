@@ -17,10 +17,10 @@
 
 #pragma once
 
+#define SITL_BUILD
 #define USE_MAG
 #define USE_BARO
 #define USE_GPS
-#define USE_GPS_PROTO_NMEA
 #define USE_GPS_PROTO_UBLOX
 #define USE_DASHBOARD
 #define USE_TELEMETRY

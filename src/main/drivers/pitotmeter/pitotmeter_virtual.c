@@ -88,6 +88,7 @@ static void virtualPitotCalculate(pitotDev_t *pitot, float *pressure, float *tem
 bool virtualPitotDetect(pitotDev_t *pitot)
 {
     pitot->delay = 10000;
+    pitot->calibThreshold = 0.00001f;
     pitot->start = virtualPitotStart;
     pitot->get = virtualPitotRead;
     pitot->calculate = virtualPitotCalculate;

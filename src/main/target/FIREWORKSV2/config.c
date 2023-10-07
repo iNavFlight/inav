@@ -26,10 +26,14 @@
 #include <platform.h>
 
 #include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
 #include "rx/rx.h"
 #include "io/serial.h"
 
 void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(TELEMETRY_UART)].functionMask = FUNCTION_TELEMETRY_SMARTPORT;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
 }

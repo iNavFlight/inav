@@ -24,12 +24,12 @@
 
 #include "platform.h"
 
-FILE_COMPILE_FOR_SIZE
-
 #include "programming/logic_condition.h"
 #include "programming/pid.h"
+#include "flight/mixer_profile.h"
 
 void programmingFrameworkUpdateTask(timeUs_t currentTimeUs) {
     programmingPidUpdateTask(currentTimeUs);
+    outputProfileUpdateTask(currentTimeUs);
     logicConditionUpdateTask(currentTimeUs);
 }

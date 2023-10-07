@@ -174,6 +174,9 @@
 #define SYM_FLIGHT_MINS_REMAINING   0xDA  // 218 Flight time (mins) remaining
 #define SYM_FLIGHT_HOURS_REMAINING  0xDB  // 219 Flight time (hours) remaining
 #define SYM_GROUND_COURSE           0xDC  // 220 Ground course
+#define SYM_ALERT                   0xDD  // 221 General alert symbol
+
+#define SYM_TERRAIN_FOLLOWING       0xFB  // 251 Terrain following (also Alt adjust)
 #define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
 
 #define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
@@ -225,6 +228,7 @@
 #define SYM_HOME_DIST 	            0x165 // 357 DIST
 #define SYM_AH_CH_CENTER            0x166 // 358 Crossair center
 #define SYM_FLIGHT_DIST_REMAINING   0x167 // 359 Flight distance reminaing
+#define SYM_ODOMETER                0x168 // 360 Odometer
 
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4

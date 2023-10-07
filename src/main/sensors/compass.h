@@ -49,7 +49,7 @@ typedef enum {
 
 typedef struct mag_s {
     magDev_t dev;
-    int32_t magADC[XYZ_AXIS_COUNT];
+    float magADC[XYZ_AXIS_COUNT];
 } mag_t;
 
 extern mag_t mag;

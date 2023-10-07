@@ -162,7 +162,7 @@ typedef enum {
     OSD_MESSAGES,
     OSD_GPS_HDOP,
     OSD_MAIN_BATT_CELL_VOLTAGE,
-    OSD_THROTTLE_POS_AUTO_THR,
+    OSD_SCALED_THROTTLE_POS,
     OSD_HEADING_GRAPH,
     OSD_EFFICIENCY_MAH_PER_KM,
     OSD_WH_DRAWN,
@@ -273,6 +273,8 @@ typedef enum {
     OSD_CROSS_TRACK_ERROR,
     OSD_PILOT_NAME,
     OSD_PAN_SERVO_CENTRED,
+    OSD_MULTI_FUNCTION,
+    OSD_ODOMETER,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -476,15 +478,19 @@ displayCanvas_t *osdGetDisplayPortCanvas(void);
 int16_t osdGetHeading(void);
 int32_t osdGetAltitude(void);
 
+bool osdUsingScaledThrottle(void);
+
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
 
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
+
+void osdResetWarningFlags(void);
 
 int16_t osdGetPanServoOffset(void);
 

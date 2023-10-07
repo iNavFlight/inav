@@ -150,7 +150,7 @@ static float calculateRemainingEnergyBeforeRTH(bool takeWindIntoAccount) {
 
     float RTH_heading; // degrees
 #ifdef USE_WIND_ESTIMATOR
-    uint16_t windHeading; // centidegrees
+    uint16_t windHeading = 0; // centidegrees
     const float horizontalWindSpeed = takeWindIntoAccount ? getEstimatedHorizontalWindSpeed(&windHeading) / 100 : 0; // m/s
     const float windHeadingDegrees = CENTIDEGREES_TO_DEGREES((float)windHeading);
     const float verticalWindSpeed = -getEstimatedWindSpeed(Z) / 100; //from NED to NEU
@@ -209,8 +209,8 @@ float calculateRemainingFlightTimeBeforeRTH(bool takeWindIntoAccount) {
 // returns meters
 float calculateRemainingDistanceBeforeRTH(bool takeWindIntoAccount) {
 
-    // Fixed wing only for now
-    if (!(STATE(FIXED_WING_LEGACY) || ARMING_FLAG(ARMED))) {
+    // Fixed wing only for now, and must be armed
+    if (!STATE(AIRPLANE) || !ARMING_FLAG(ARMED)) {
         return -1;
     }
 

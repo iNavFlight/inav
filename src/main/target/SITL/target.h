@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <sys/socket.h>
 
 #include <platform.h>
 
@@ -68,6 +69,11 @@
 #define USE_GPS_FAKE
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
+#undef MAX_MIXER_PROFILE_COUNT
+#define MAX_MIXER_PROFILE_COUNT 2
+
+#define USE_MSP_OSD
+#define USE_OSD
 
 #undef USE_DASHBOARD
 
@@ -86,9 +92,6 @@
 #undef USE_TELEMETRY_JETIEXBUS
 #undef USE_TELEMETRY_SRXL
 #undef USE_TELEMETRY_GHST
-#undef USE_VTX_COMMON
-#undef USE_VTX_CONTROL
-#undef USE_VTX_SMARTAUDIO
 #undef USE_VTX_TRAMP
 #undef USE_CAMERA_CONTROL
 #undef USE_BRUSHED_ESC_AUTODETECT
@@ -186,7 +189,13 @@ typedef enum
     SITL_SIM_XPLANE,
 } SitlSim_e;
 
-bool lockMainPID(void);
-void unlockMainPID(void);
-void parseArguments(int argc, char *argv[]);
-char *strnstr(const char *s, const char *find, size_t slen);
+
+
+extern bool lockMainPID(void);
+extern void unlockMainPID(void);
+extern void parseArguments(int argc, char *argv[]);
+extern char *strnstr(const char *s, const char *find, size_t slen);
+extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
+
+#define IPADDRESS_PRINT_BUFLEN (INET6_ADDRSTRLEN + 16)
+extern char *prettyPrintAddress(struct sockaddr*, char*, size_t);

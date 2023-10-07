@@ -36,7 +36,7 @@ typedef enum {
     FEATURE_VBAT = 1 << 1,
     FEATURE_TX_PROF_SEL = 1 << 2,       // Profile selection by TX stick command
     FEATURE_BAT_PROFILE_AUTOSWITCH = 1 << 3,
-    FEATURE_MOTOR_STOP = 1 << 4,
+    FEATURE_UNUSED_12 = 1 << 4,  //was FEATURE_MOTOR_STOP
     FEATURE_UNUSED_1 = 1 << 5,   // was FEATURE_SERVO_TILT was FEATURE_DYNAMIC_FILTERS
     FEATURE_SOFTSERIAL = 1 << 6,
     FEATURE_GPS = 1 << 7,
@@ -69,6 +69,7 @@ typedef enum {
 typedef struct systemConfig_s {
     uint8_t current_profile_index;
     uint8_t current_battery_profile_index;
+    uint8_t current_mixer_profile_index;
     uint8_t debug_mode;
 #ifdef USE_DEV_TOOLS
     bool groundTestMode;                    // Disables motor ouput, sets heading trusted on FW (for dev use)
@@ -138,7 +139,11 @@ uint8_t getConfigBatteryProfile(void);
 bool setConfigBatteryProfile(uint8_t profileIndex);
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex);
 
-void setGyroCalibration(int16_t getGyroZero[XYZ_AXIS_COUNT]);
+uint8_t getConfigMixerProfile(void);
+bool setConfigMixerProfile(uint8_t profileIndex);
+void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex);
+
+void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT]);
 void setGravityCalibration(float getGravity);
 
 bool canSoftwareSerialBeUsed(void);

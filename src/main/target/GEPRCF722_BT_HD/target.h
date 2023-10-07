@@ -40,22 +40,16 @@
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS         BUS_SPI1
-#define MPU6000_EXTI_PIN        PA8
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW0_DEG
 #define BMI270_CS_PIN           PA15
 #define BMI270_SPI_BUS          BUS_SPI1
-#define BMI270_EXTI_PIN         PA8
 
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_CS_PIN         PA15
 #define ICM42605_SPI_BUS        BUS_SPI1
-#define ICM42605_EXTI_PIN       PA8
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
