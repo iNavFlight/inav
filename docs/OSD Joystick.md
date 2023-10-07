@@ -69,7 +69,7 @@ Emulation can be enabled in unarmed state only.
 
 OSD Joystick emulation mode is enabled using the following stick combination:
 
-```RIGHT CENTER```
+```Throttle:CENTER Yaw:RIGHT```
 
 
 Than camera OSD can be navigated using right stick. See [Controls](Controls.md) for all stick combinations.
@@ -78,7 +78,7 @@ Than camera OSD can be navigated using right stick. See [Controls](Controls.md) 
 
 Mode is exited using stick combination:
 
-```LEFT CENTER```
+```Throttle:CENTER Yaw:LEFT```
 
 # RC Box
 
