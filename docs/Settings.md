@@ -4894,7 +4894,7 @@ _// TODO_
 
 ### platform_type
 
-Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT", "TAILSITTER". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented
+Defines UAV platform type. Allowed values: "MULTIROTOR", "AIRPLANE", "HELICOPTER", "TRICOPTER", "ROVER", "BOAT". Currently only MULTIROTOR, AIRPLANE and TRICOPTER types are implemented
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5569,6 +5569,16 @@ Delay before disarming when requested by switch (ms) [0-1000]
 | Default | Min | Max |
 | --- | --- | --- |
 | 250 | 0 | 1000 |
+
+---
+
+### tailsitter_board_orientation
+
+If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
