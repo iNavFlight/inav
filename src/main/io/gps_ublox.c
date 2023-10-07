@@ -128,7 +128,7 @@ static struct {
 
 
 // Send buffer
-static union {
+static union send_buffer_t {
     ubx_message message;
     uint8_t bytes[58];
 } send_buffer;
@@ -210,6 +210,23 @@ static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
     if (fixValid && ubloxFixType == FIX_3D)
         return GPS_FIX_3D;
     return GPS_NO_FIX;
+}
+
+bool gpsUbloxSendCommand(uint8_t *rawCommand, uint16_t commandLen, uint16_t timeout)
+{
+    serialWriteBuf(gpsState.gpsPort, rawCommand, commandLen);
+
+    union send_buffer_t *sb = (union send_buffer_t *)(rawCommand);
+
+    _ack_waiting_msg = sb->message.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+
+    UNUSED(timeout);
+    //if (timeout > 0) {
+    //    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    //}
+
+    return true;
 }
 
 static void sendConfigMessageUBLOX(void)
@@ -1098,6 +1115,15 @@ void gpsHandleUBLOX(void)
     if (ptIsStopped(ptGetHandle(gpsProtocolReceiverThread)) || ptIsStopped(ptGetHandle(gpsProtocolStateThread))) {
         gpsSetState(GPS_LOST_COMMUNICATION);
     }
+}
+
+bool isGpsUblox(void)
+{
+    if(gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) {
+        return true;
+    }
+
+    return false;
 }
 
 #endif
