@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 # https://developer.thingstream.io/guides/location-services/assistnow-user-guide
 #
 # Create a file named tokens.yaml
@@ -11,11 +11,118 @@ import yaml
 import sys
 import serial
 import getopt
+import io
 
 online_token = ""
 offline_token = ""
 token_file = "tokens.yaml"
 serial_port = None
+
+
+# UBX frame
+# 0xB5
+# 0x62
+# 0x?? class
+# 0x?? id
+# 0x?? len low
+# 0x?? len high
+# 0x?? len bytes payload
+# 0x?? crc1
+# 0x?? crc2
+# Total len = 8 + len  
+
+hasFirstHeader = False
+hasSecondHeader = False
+ubxClass = False
+ubxId = False
+lenLow = False
+lenHigh = False
+payloadLen = 0
+skipped = 0
+currentCommand = []
+
+def resetUbloxState():
+    global hasFirstHeader
+    global hasSecondHeader
+    global ubxClass
+    global ubxId
+    global lenLow
+    global lenHigh
+    global payloadLen
+    global skipped
+    global currentCommand
+
+    hasFirstHeader = False
+    hasSecondHeader = False
+    ubxClass = False
+    ubxId = False
+    lenLow = False
+    lenHigh = False
+    payloadLen = 0
+    skipped = 0
+    currentCommand = []
+
+def splitUbloxCommands(ubxBytes):
+    ubxCommands = []
+    global hasFirstHeader
+    global hasSecondHeader
+    global ubxClass
+    global ubxId
+    global lenLow
+    global lenHigh
+    global payloadLen
+    global skipped
+    global currentCommand
+
+    resetUbloxState()
+
+    print("%s" % (type(ubxBytes)))
+    print("len: %i" % (len(ubxBytes)))
+
+    for i in range(len(ubxBytes)):
+        if not hasFirstHeader:
+            if ubxBytes[i] == 0xb5:
+                hasFirstHeader = True
+                currentCommand.append(ubxBytes[i])
+                continue
+            else:
+                resetUbloxState()
+                continue
+        if not hasSecondHeader:
+            if ubxBytes[i] == 0x62:
+                hasSecondHeader = True
+                currentCommand.append(ubxBytes[i])
+                continue
+            else:
+                resetUbloxState()
+                continue
+        if not ubxClass:
+            ubxClass = True
+            currentCommand.append(ubxBytes[i])
+            continue
+        if not ubxId:
+            ubxId = True
+            currentCommand.append(ubxBytes[i])
+            continue
+        if not lenLow:
+            lenLow = True
+            payloadLen = int(ubxBytes[i])
+            currentCommand.append(ubxBytes[i])
+            continue
+        if not lenHigh:
+            lenHigh = True
+            payloadLen = (int(ubxBytes[i]) << 8) | payloadLen
+            payloadLen += 2 # add crc bytes
+            currentCommand.append(ubxBytes[i])
+            continue
+        if skipped < payloadLen:
+            skipped = skipped + 1
+            currentCommand.append(ubxBytes[i])
+            continue
+        ubxCommands.append(currentCommand)
+        resetUbloxState()
+    
+    return ubxCommands
 
 def loadTokens(file):
     global online_token
@@ -33,7 +140,7 @@ def loadTokens(file):
 
 
 def usage():
-    print ("assist-now.py -s /dev/ttyS0 [-t tokens.yaml]")
+    print ("assistnow.py -s /dev/ttyS0 [-t tokens.yaml]")
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "s:t:", ["serial=", "tokens="])
@@ -78,7 +185,11 @@ online_req = requests.get(url)
 
 print (online_req)
 #print (online_req.content)
-print (len(online_req.content))
+#print (len(online_req.content))
+online = io.BytesIO(online_req.content)
+online_bytes = online.read()
+online_cmds = splitUbloxCommands(online_bytes)
+print ("AssitnowOnline: %i" % (len(online_cmds)))
 #s.write(online_req.content);
 of = open("aon.ubx", "wb")
 of.write(online_req.content)
@@ -92,7 +203,11 @@ offline_req =  requests.get(offline_url)
 
 print(offline_req)
 #print(offline_req.content)
+off = io.BytesIO(offline_req.content)
 print(len(offline_req.content))
+offline_bytes = off.read()
+offline_cmds = splitUbloxCommands(offline_bytes)
+print ("AssitnowOffline: %i" % (len(offline_cmds)))
 
 #s.write(offline_req.content);
 
