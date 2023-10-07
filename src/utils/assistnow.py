@@ -12,6 +12,7 @@ import sys
 import serial
 import getopt
 import io
+import time
 
 online_token = ""
 offline_token = ""
@@ -138,9 +139,46 @@ def loadTokens(file):
             print(exc)
         stream.close()
 
+def crc8_dvb_s2( crc:int,  b:int) -> int:
+    crc ^= b
+    for ii in range(8):
+        if (crc & 0x80) == 0x80:
+            crc = ((crc << 1) ^ 0xD5) & 0xFF
+        else:
+            crc = (crc << 1) & 0xFF
+
+    return int(crc & 0xFF)
+
+def ubloxToMsp(ubxCmd):
+    ubloxLen = len(ubxCmd)
+    msp = bytearray(b'$X>\x00\x50\x20')
+    msp.append(ubloxLen & 0xFF)
+    msp.append((ubloxLen >> 8) & 0xFF)
+
+    for i in range(ubloxLen):
+        msp.append(ubxCmd[i])
+    
+    crc = 0
+    for i in range(ubloxLen + 5):
+        crc = crc8_dvb_s2(crc, int(msp[i + 3]))
+
+    #print ("msp: %s" % (bytes(msp)))
+
+    return bytes(msp)
+
 
 def usage():
     print ("assistnow.py -s /dev/ttyS0 [-t tokens.yaml]")
+
+def sendMessages(s, ubxMessages):
+    printed = 0
+    for cmd in ubxMessages:
+        msp = ubloxToMsp(cmd)
+        printed += 1
+        if(len(msp) > 8):
+            print ("%i/%i msp: %i ubx: %i" % (printed, len(ubxMessages), len(msp), len(cmd)))
+            s.write(msp)
+            time.sleep(0.2)
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "s:t:", ["serial=", "tokens="])
@@ -165,10 +203,6 @@ if serial_port == None:
 
 loadTokens(token_file)
 
-#s = serial.Serial(serial_port, 115200)
-
-#s.write(b"#\r\n")
-#s.write(b"gpspassrhtrough\r\n");
 
 #m8 only
 fmt="mga"
@@ -185,12 +219,12 @@ online_req = requests.get(url)
 
 print (online_req)
 #print (online_req.content)
-#print (len(online_req.content))
+print (len(online_req.content))
 online = io.BytesIO(online_req.content)
 online_bytes = online.read()
 online_cmds = splitUbloxCommands(online_bytes)
 print ("AssitnowOnline: %i" % (len(online_cmds)))
-#s.write(online_req.content);
+
 of = open("aon.ubx", "wb")
 of.write(online_req.content)
 of.close()
@@ -209,9 +243,10 @@ offline_bytes = off.read()
 offline_cmds = splitUbloxCommands(offline_bytes)
 print ("AssitnowOffline: %i" % (len(offline_cmds)))
 
-#s.write(offline_req.content);
-
 of = open("aoff.ubx", "wb")
 of.write(offline_req.content)
 of.close()
 
+s = serial.Serial(serial_port, 230400)
+sendMessages(s, online_cmds)
+sendMessages(s, offline_cmds)
