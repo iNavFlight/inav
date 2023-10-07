@@ -79,6 +79,7 @@ typedef struct {
 
     // Rate integrator
     float errorGyroIf;
+    float errorGyroIfLimit;
 
     // Used for ANGLE filtering (PT1, we don't need super-sharpness here)
     pt1Filter_t angleFilterState;
@@ -100,6 +101,7 @@ typedef struct {
 #endif
     uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
+    bool itermLimitActive;
     bool itermFreezeActive;
 
     pt3Filter_t rateTargetFilter;
@@ -379,12 +381,14 @@ void pidResetErrorAccumulators(void)
     // Reset R/P/Y integrator
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].errorGyroIf = 0.0f;
+        pidState[axis].errorGyroIfLimit = 0.0f;
     }
 }
 
 void pidReduceErrorAccumulators(int8_t delta, uint8_t axis)
 {
     pidState[axis].errorGyroIf -= delta;
+    pidState[axis].errorGyroIfLimit -= delta;
 }
 
 float getTotalRateTarget(void)
@@ -619,7 +623,7 @@ static void pidLevel(const float angleTarget, pidState_t *pidState, flight_dynam
         angleErrorDeg = DECIDEGREES_TO_DEGREES((float)angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH));
         if (!angleErrorDeg) {
             pidState->errorGyroIf = 0.0f;
-            // pidState->errorGyroIfLimit = 0.0f;
+            pidState->errorGyroIfLimit = 0.0f;
         }
     }
 
@@ -725,6 +729,14 @@ static float dTermProcess(pidState_t *pidState, float currentRateTarget, float d
     return(newDTerm);
 }
 
+static void applyItermLimiting(pidState_t *pidState) {
+    if (pidState->itermLimitActive) {
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidState->errorGyroIfLimit, pidState->errorGyroIfLimit);
+    } else
+    {
+        pidState->errorGyroIfLimit = fabsf(pidState->errorGyroIf);
+    }
+}
 
 static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv) {
     UNUSED(pidState);
@@ -748,6 +760,8 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     if (!pidState->itermFreezeActive) {
         pidState->errorGyroIf += rateError * pidState->kI * dT;
     }
+    
+    applyItermLimiting(pidState);
 
     if (pidProfile()->pidItermLimitPercent != 0){
         float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
@@ -840,7 +854,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
 
     // Don't grow I-term if motors are at their limit
-    // applyItermLimiting(pidState); //merged with itermFreezeActive
+    applyItermLimiting(pidState);
 
     axisPID[axis] = newOutputLimited;
 
@@ -1027,9 +1041,9 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
     pidState[YAW].rateTarget = constrainf(yawRate * cosCameraAngle + rollRate * sinCameraAngle, -GYRO_SATURATION_LIMIT, GYRO_SATURATION_LIMIT);
 }
 
-bool checkItermLimitingActive(pidState_t *pidState)
+void checkItermLimitingActive(pidState_t *pidState)
 {
-    bool shouldActivate=false;
+    bool shouldActivate;
     if (usedPidControllerType == PID_TYPE_PIFF) {
         shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
     } else
@@ -1037,24 +1051,25 @@ bool checkItermLimitingActive(pidState_t *pidState)
         shouldActivate = mixerIsOutputSaturated(); //just in case, since it is already managed by itermWindupPointPercent
     }
 
-    return STATE(ANTI_WINDUP) || shouldActivate;
+    pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate;
 }
 
 void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis)
 {
-    bool shouldActivate=false;
     if (usedPidControllerType == PID_TYPE_PIFF && pidProfile()->fixedWingYawItermBankFreeze != 0 && axis == FD_YAW) {
         // Do not allow yaw I-term to grow when bank angle is too large
         float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
         if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance())){
-            shouldActivate |= true;
+            pidState->itermFreezeActive = true;
         } else
         {
-            shouldActivate |= false;
+            pidState->itermFreezeActive = false;
         }
+    } else
+    {
+        pidState->itermFreezeActive = false;
     }
-    shouldActivate |=checkItermLimitingActive(pidState);
-    pidState->itermFreezeActive = shouldActivate;
+
 }
 
 void FAST_CODE pidController(float dT)
@@ -1142,6 +1157,7 @@ void FAST_CODE pidController(float dT)
         pidApplySetpointRateLimiting(&pidState[axis], axis, dT);
 
         // Step 4: Run gyro-driven control
+        checkItermLimitingActive(&pidState[axis]);
         checkItermFreezingActive(&pidState[axis], axis);
 
         pidControllerApplyFn(&pidState[axis], axis, dT, dT_inv);
