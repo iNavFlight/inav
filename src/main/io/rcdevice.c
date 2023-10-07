@@ -270,6 +270,10 @@ static void runcamDeviceParseV2DeviceInfo(rcdeviceResponseParsingContext_t *ctx)
 // definition of runcamDeviceInfo_t to know more)
 static void runcamDeviceGetDeviceInfo(runcamDevice_t *device)
 {
+    // preset with rc split 2s support which has issue to respond
+    device->info.features = RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON | RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON | RCDEVICE_PROTOCOL_FEATURE_CHANGE_MODE;
+    device->info.protocolVersion = RCDEVICE_PROTOCOL_VERSION_1_0;
+    device->isReady = true;
     runcamDeviceSendRequestAndWaitingResp(device, RCDEVICE_PROTOCOL_COMMAND_GET_DEVICE_INFO, NULL, 0, RCDEVICE_INIT_DEVICE_ATTEMPT_INTERVAL, RCDEVICE_INIT_DEVICE_ATTEMPTS, NULL, runcamDeviceParseV2DeviceInfo);
 }
 
