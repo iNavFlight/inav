@@ -58,24 +58,19 @@ static bool isBoardAlignmentStandard(const boardAlignment_t *boardAlignment)
 
 void initBoardAlignment(void)
 {
-    if (isBoardAlignmentStandard(boardAlignment())) {
-        standardBoardAlignment = true;
-    } else {
-        fp_angles_t rotationAngles;
-
-        standardBoardAlignment = false;
-
-        rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(boardAlignment()->rollDeciDegrees );
-        rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
-        rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
-
-        rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
-    }
+    standardBoardAlignment=isBoardAlignmentStandard(boardAlignment());
     fp_angles_t rotationAngles;
-    rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(0);
-    rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(900);
-    rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(0);
-    rotationMatrixFromAngles(&tailRotMatrix, &rotationAngles);
+    
+    rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(boardAlignment()->rollDeciDegrees );
+    rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
+    rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
+
+    rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
+    fp_angles_t tailSitter_rotationAngles;
+    tailSitter_rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(0);
+    tailSitter_rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(900);
+    tailSitter_rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(0);
+    rotationMatrixFromAngles(&tailRotMatrix, &tailSitter_rotationAngles);
 }
 
 void updateBoardAlignment(int16_t roll, int16_t pitch)
