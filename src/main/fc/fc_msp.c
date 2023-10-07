@@ -1582,6 +1582,21 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
+#ifdef USE_RATE_DYNAMICS
+
+    case MSP2_INAV_RATE_DYNAMICS:
+        {
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightEnd);
+        }
+        break;
+
+#endif
+
     default:
         return false;
     }
@@ -3039,6 +3054,27 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+
+#ifdef USE_RATE_DYNAMICS
+
+    case MSP2_INAV_SET_RATE_DYNAMICS:
+
+        if (dataSize == 6) {
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.sensitivityCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.sensitivityEnd = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionEnd = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightEnd = sbufReadU8(src);
+            
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+
+        break;    
+
+#endif
+
 
     default:
         return MSP_RESULT_ERROR;

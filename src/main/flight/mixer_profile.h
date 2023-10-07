@@ -73,5 +73,6 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 
 bool outputProfileHotSwitch(int profile_index);
 bool checkMixerProfileHotSwitchAvalibility(void);
+void activateMixerConfig(void);
 void mixerConfigInit(void);
 void outputProfileUpdateTask(timeUs_t currentTimeUs);
