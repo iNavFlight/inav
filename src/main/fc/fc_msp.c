@@ -74,6 +74,7 @@
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
@@ -1469,7 +1470,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
-        sbufWriteU16(dst, 0);
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, mixerConfig()->motorstopOnLow);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
@@ -1597,6 +1599,20 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, ezTune()->aggressiveness);
             sbufWriteU8(dst, ezTune()->rate);
             sbufWriteU8(dst, ezTune()->expo);
+        }
+        break;
+#endif
+
+#ifdef USE_RATE_DYNAMICS
+
+    case MSP2_INAV_RATE_DYNAMICS:
+        {
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightEnd);
         }
         break;
 
@@ -2888,7 +2904,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_SET_MIXER:
         if (dataSize == 9) {
 	    mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
-	    sbufReadU16(src); // Was yaw_jump_prevention_limit
+	    sbufReadU8(src); // Was yaw_jump_prevention_limit
+        mixerConfigMutable()->motorstopOnLow = sbufReadU8(src);
 	    mixerConfigMutable()->platformType = sbufReadU8(src);
 	    mixerConfigMutable()->hasFlaps = sbufReadU8(src);
 	    mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
@@ -3082,6 +3099,27 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
 #endif
+
+#ifdef USE_RATE_DYNAMICS
+
+    case MSP2_INAV_SET_RATE_DYNAMICS:
+
+        if (dataSize == 6) {
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.sensitivityCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.sensitivityEnd = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionEnd = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightEnd = sbufReadU8(src);
+            
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+
+        break;    
+
+#endif
+
 
     default:
         return MSP_RESULT_ERROR;
@@ -3277,6 +3315,10 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
     case BATTERY_CONFIG_VALUE:
         sbufWriteU8(dst, getConfigBatteryProfile());
         sbufWriteU8(dst, MAX_BATTERY_PROFILE_COUNT);
+        break;
+    case MIXER_CONFIG_VALUE:
+        sbufWriteU8(dst, getConfigMixerProfile());
+        sbufWriteU8(dst, MAX_MIXER_PROFILE_COUNT);
         break;
     }
 

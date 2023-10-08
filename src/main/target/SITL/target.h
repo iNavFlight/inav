@@ -69,6 +69,8 @@
 #define USE_GPS_FAKE
 #define USE_RANGEFINDER_FAKE
 #define USE_RX_SIM
+#undef MAX_MIXER_PROFILE_COUNT
+#define MAX_MIXER_PROFILE_COUNT 2
 
 #define USE_MSP_OSD
 #define USE_OSD

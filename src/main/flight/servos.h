@@ -62,7 +62,7 @@ typedef enum {
     INPUT_GVAR_5                    = 35,
     INPUT_GVAR_6                    = 36,
     INPUT_GVAR_7                    = 37,
-
+    INPUT_MIXER_TRANSITION          = 38,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -151,6 +151,7 @@ typedef struct servoMetadata_s {
 
 extern int16_t servo[MAX_SUPPORTED_SERVOS];
 
+void Reset_servoMixers(servoMixer_t* instance);
 bool isServoOutputEnabled(void);
 void setServoOutputEnabled(bool flag);
 bool isMixerUsingServos(void);

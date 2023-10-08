@@ -64,22 +64,12 @@ typedef struct motorMixer_s {
     float yaw;
 } motorMixer_t;
 
-PG_DECLARE_ARRAY(motorMixer_t, MAX_SUPPORTED_MOTORS, primaryMotorMixer);
 
 typedef struct timerOverride_s {
     uint8_t outputMode;
 } timerOverride_t;
 
 PG_DECLARE_ARRAY(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides);
-
-typedef struct mixerConfig_s {
-    int8_t motorDirectionInverted;
-    uint8_t platformType;
-    bool hasFlaps;
-    int16_t appliedMixerPreset;
-} mixerConfig_t;
-
-PG_DECLARE(mixerConfig_t, mixerConfig);
 
 typedef struct reversibleMotorsConfig_s {
     uint16_t deadband_low;                // min 3d value
@@ -117,6 +107,7 @@ extern int16_t motor[MAX_SUPPORTED_MOTORS];
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 extern int mixerThrottleCommand;
 
+bool ifMotorstopFeatureEnabled(void);
 int getThrottleIdleValue(void);
 int16_t getThrottlePercent(bool);
 uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop);
@@ -135,6 +126,7 @@ void processServoAutotrim(const float dT);
 void processServoAutotrimMode(void);
 void processContinuousServoAutotrim(const float dT);
 void stopMotors(void);
+void stopMotorsNoDelay(void);
 void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);

@@ -28,6 +28,7 @@
 #include "drivers/sensor.h"
 #include "drivers/pwm_esc_detect.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/serial.h"
 
 #include "fc/rc_controls.h"
@@ -52,4 +53,8 @@ void targetConfiguration(void)
 {
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].msp_baudrateIndex = BLUETOOTH_MSP_BAUDRATE;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM1))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
 }
