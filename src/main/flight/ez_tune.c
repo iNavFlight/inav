@@ -88,12 +88,15 @@ void ezTuneUpdate(void) {
         gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = MIN(MIN(ezTune()->filterHz * 2, 250), getGyroLooptime() * 0.5f);
         gyroConfigMutable()->gyro_anti_aliasing_lpf_type = FILTER_PT1;
 
+#ifdef USE_DYNAMIC_FILTERS
         //Enable dynamic notch
         gyroConfigMutable()->dynamicGyroNotchEnabled = 1;
         gyroConfigMutable()->dynamicGyroNotchQ = 250;
         gyroConfigMutable()->dynamicGyroNotchMinHz = MAX(ezTune()->filterHz * 0.667f, SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ_DEFAULT);
         gyroConfigMutable()->dynamicGyroNotchMode = DYNAMIC_NOTCH_MODE_3D;
+#endif
 
+#ifdef USE_GYRO_KALMAN
         //Make sure Kalman filter is enabled
         gyroConfigMutable()->kalmanEnabled = 1;
         if (ezTune()->filterHz < 150) {
@@ -101,6 +104,7 @@ void ezTuneUpdate(void) {
         } else {
             gyroConfigMutable()->kalman_q = scaleRangef(ezTune()->filterHz, 150, 300, 200, 400);
         }
+#endif
 
         //Disable dynamic LPF
         gyroConfigMutable()->useDynamicLpf = 0;
