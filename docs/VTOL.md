@@ -79,6 +79,7 @@ To set up your model as a normal fixed-wing or multi-copter in the first profile
      ```
      mixer_profile 1 #in this example, we set profile 1 first
      set mixer_pid_profile_linking = ON  # Let the mixer_profile handle the pid_profile on this mixer_profile
+     set platform_type = AIRPLANE/MULTIROTOR
      save
      ```
 
@@ -92,6 +93,7 @@ To set up your model as a normal fixed-wing or multi-copter in the first profile
      ```
      mixer_profile 2
      set mixer_pid_profile_linking = ON
+     set platform_type = MULTIROTOR/AIRPLANE
      save
      ```
 
