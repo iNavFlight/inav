@@ -65,7 +65,6 @@ static float getYawPidScale(float input) {
 /**
  * Update INAV settings based on current EZTune settings
  * This has to be called every time control profile is changed, or EZTune settings are changed
- * FIXME call on EZTune settings change
  */
 void ezTuneUpdate(void) {
     if (ezTune()->enabled) {
