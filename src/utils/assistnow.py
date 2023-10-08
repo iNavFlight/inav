@@ -77,8 +77,8 @@ def splitUbloxCommands(ubxBytes):
 
     resetUbloxState()
 
-    print("%s" % (type(ubxBytes)))
-    print("len: %i" % (len(ubxBytes)))
+    #print("%s" % (type(ubxBytes)))
+    #print("len: %i" % (len(ubxBytes)))
 
     for i in range(len(ubxBytes)):
         if not hasFirstHeader:
@@ -177,8 +177,14 @@ def sendMessages(s, ubxMessages):
         printed += 1
         if(len(msp) > 8):
             print ("%i/%i msp: %i ubx: %i" % (printed, len(ubxMessages), len(msp), len(cmd)))
-            s.write(msp)
-            time.sleep(0.2)
+            try:
+                s.write(msp)
+            except serial.SerialException as err:
+                print (err)
+                print (cmd)
+                print (msp)
+                break
+            time.sleep(1.0)
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "s:t:", ["serial=", "tokens="])
@@ -248,5 +254,5 @@ of.write(offline_req.content)
 of.close()
 
 s = serial.Serial(serial_port, 230400)
-sendMessages(s, online_cmds)
 sendMessages(s, offline_cmds)
+sendMessages(s, online_cmds)
