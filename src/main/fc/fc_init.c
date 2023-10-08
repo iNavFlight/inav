@@ -146,6 +146,10 @@
 
 #include "telemetry/telemetry.h"
 
+#if defined(SITL_BUILD)
+#include "target/SITL/serial_proxy.h"
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -220,6 +224,10 @@ void init(void)
     pgResetAll(0);
 
     flashDeviceInitialized = flashInit();
+#endif
+
+#if defined(SITL_BUILD)
+    serialProxyInit();
 #endif
 
     initEEPROM();
