@@ -116,6 +116,7 @@ static void rcdeviceCameraControlProcess(void)
                 runcamDeviceSimulateCameraButton(camDevice, behavior);
                 switchStates[switchIndex].isActivated = true;
             }
+            UNUSED(behavior1);
 #ifndef UNIT_TEST
 #ifdef USE_LED_STRIP
             else if ((behavior1 != RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) && osdJoystickEnabled()) {
