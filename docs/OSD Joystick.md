@@ -26,7 +26,7 @@ To simulate 5key joystick, it is sufficient to generate correct voltage on camer
 
 ```set osd_joystick_enabled=on```
 
-Also enable "Multi-color RGB LED Strinp support" in Configuration tab.
+Also enable "Multi-color RGB LED Strip support" in Configuration tab.
 
 # Connection diagram
 
@@ -48,7 +48,7 @@ If default voltages does not work with your camera model, then you have to measu
 2. Measure voltages on OSD pin while each key is pressed.
 3. Connect camera to FC throught RC filter as shown on schematix above.
 4. Enable OSD Joystick emulation (see "Enabling OSD Joystick emulation" above)
-4. Use cli ```command led_pin_pwm <value>```, value = 0...100 to find out PWM values for each voltage.
+4. Use cli command ```led_pin_pwm <value>```, value = 0...100 to find out PWM values for each voltage.
 5. Specify PWM values in configuration and save:
 
 ```set osd_joystick_down=0```
@@ -69,7 +69,7 @@ Emulation can be enabled in unarmed state only.
 
 OSD Joystick emulation mode is enabled using the following stick combination:
 
-```RIGHT CENTER```
+```Throttle:CENTER Yaw:RIGHT```
 
 
 Than camera OSD can be navigated using right stick. See [Controls](Controls.md) for all stick combinations.
@@ -78,7 +78,7 @@ Than camera OSD can be navigated using right stick. See [Controls](Controls.md) 
 
 Mode is exited using stick combination:
 
-```LEFT CENTER```
+```Throttle:CENTER Yaw:LEFT```
 
 # RC Box
 
