@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/env python3
 # https://developer.thingstream.io/guides/location-services/assistnow-user-guide
 #
 # Create a file named tokens.yaml
@@ -16,6 +16,7 @@ import time
 
 online_token = ""
 offline_token = ""
+passthrough = False
 token_file = "tokens.yaml"
 serial_port = None
 
@@ -170,7 +171,22 @@ def ubloxToMsp(ubxCmd):
 def usage():
     print ("assistnow.py -s /dev/ttyS0 [-t tokens.yaml]")
 
-def sendMessages(s, ubxMessages):
+def sendUbxMessages(s, ubxMessages):
+    printed = 0
+    for cmd in ubxMessages:
+        printed += 1
+        if(len(msp) > 8):
+            print ("%i/%i ubx: %i" % (printed, len(ubxMessages), len(cmd)))
+            try:
+                s.write(cmd)
+            except serial.SerialException as err:
+                print (err)
+                print (cmd)
+                break
+            time.sleep(1.0)
+
+
+def sendMspMessages(s, ubxMessages):
     printed = 0
     for cmd in ubxMessages:
         msp = ubloxToMsp(cmd)
@@ -187,7 +203,7 @@ def sendMessages(s, ubxMessages):
             time.sleep(1.0)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:t:", ["serial=", "tokens="])
+    opts, args = getopt.getopt(sys.argv[1:], "s:t:p", ["serial=", "tokens=", "passthrough"])
 except getopt.GetoptError as err:
     # print help information and exit:
     print(err)  # will print something like "option -a not recognized"
@@ -195,10 +211,12 @@ except getopt.GetoptError as err:
     sys.exit(2)
 
 for o, a in opts:
-    if o in ("-s", "--serial"):
+    if o in ("-s", "--serial="):
         serial_port = a
     elif o in ("-t", "--tokens="):
         token_file = a
+    elif o in ("-p", "--passthrough"):
+        passthrough = True
     else:
         usage()
         sys.exit(2)
@@ -254,5 +272,12 @@ of.write(offline_req.content)
 of.close()
 
 s = serial.Serial(serial_port, 230400)
-sendMessages(s, offline_cmds)
-sendMessages(s, online_cmds)
+
+if not passthrough:
+    sendMspMessages(s, offline_cmds)
+    sendMspMessages(s, online_cmds)
+else:
+    serial.write('#\r\n')
+    serial.write('gpspassthrough\r\n')
+    sendUbxMessages(s, offline_cmds)
+    sendUbxMessages(s, online_cmds)
