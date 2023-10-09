@@ -258,7 +258,7 @@ Inertia force compensation method when gps is avaliable, VELNED use the acclerat
 
 | Default | Min | Max |
 | --- | --- | --- |
-| VELNED |  |  |
+| ADAPTIVE |  |  |
 
 ---
 
