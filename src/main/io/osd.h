@@ -274,6 +274,7 @@ typedef enum {
     OSD_PILOT_NAME,
     OSD_PAN_SERVO_CENTRED,
     OSD_MULTI_FUNCTION,
+    OSD_ODOMETER,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -483,7 +484,7 @@ void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
 
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length);
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
 void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
