@@ -1045,7 +1045,7 @@ groups:
         max: PWM_RANGE_MAX
       - name: nav_mc_hover_thr
         description: "Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering."
-        default_value: 1500
+        default_value: 1300
         field: nav.mc.hover_throttle
         min: 1000
         max: 2000
