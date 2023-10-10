@@ -108,6 +108,14 @@ void setMixerProfileAT(void)
     mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchTransitionTimer * 100;
 }
 
+bool platformTypeConfigured(flyingPlatformType_e platformType)
+{   
+    if (!isModeActivationConditionPresent(BOXMIXERPROFILE)){
+        return false;
+    }
+    return mixerConfigByIndex(nextProfileIndex)->platformType == platformType;
+}
+
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 {
     //return false if mixerAT condition is not required or setting is not valid
