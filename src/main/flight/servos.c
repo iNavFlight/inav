@@ -103,8 +103,14 @@ void pgResetFn_servoParams(servoParam_t *instance)
 int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
+static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
+
+/*
+//Was used to keep track of servo rules in all mixer_profile, In order to Apply mixer speed limit when rules turn off
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
-static bool currentServoMixerActivative[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];// if true, the rule is used by current servo mixer
+static bool currentServoMixerActivative[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT]; // if true, the rule is used by current servo mixer
+*/
+
 static bool servoOutputEnabled;
 
 static bool mixerUsesServos;
@@ -115,7 +121,7 @@ static biquadFilter_t servoFilter[MAX_SUPPORTED_SERVOS];
 static bool servoFilterIsSet;
 
 static servoMetadata_t servoMetadata[MAX_SUPPORTED_SERVOS];
-static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
+static rateLimitFilter_t servoSpeedLimitFilter[MAX_SERVO_RULES];
 
 STATIC_FASTRAM pt1Filter_t rotRateFilter;
 STATIC_FASTRAM pt1Filter_t targetRateFilter;
@@ -161,8 +167,27 @@ void servosInit(void)
 }
 
 int getServoCount(void)
-{
-    if (servoRuleCount) {
+{   
+    bool servoRuleDetected = false;
+    minServoIndex = 0;
+    maxServoIndex = 255;
+    for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            // check if done
+            if (mixerServoMixersByIndex(j)[i].rate == 0){
+                break;
+            }
+            if (mixerServoMixersByIndex(j)[i].targetChannel < minServoIndex) {
+                minServoIndex = mixerServoMixersByIndex(j)[i].targetChannel;
+            }
+
+            if (mixerServoMixersByIndex(j)[i].targetChannel > maxServoIndex) {
+                maxServoIndex = mixerServoMixersByIndex(j)[i].targetChannel;
+            }
+            servoRuleDetected = true;
+        }
+    }
+    if (servoRuleDetected) {
         return 1 + maxServoIndex - minServoIndex;
     }
     else {
@@ -173,30 +198,17 @@ int getServoCount(void)
 void loadCustomServoMixer(void)
 {
     servoRuleCount = 0;
-    minServoIndex = 255;
-    maxServoIndex = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
 
-    for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
-        const servoMixer_t* tmp_customServoMixers = &mixerServoMixersByIndex(j)[0];
-        // load custom mixer into currentServoMixer
-        for (int i = 0; i < MAX_SERVO_RULES; i++) {
-            // check if done
-            if (tmp_customServoMixers[i].rate == 0)
-                break;
-
-            if (tmp_customServoMixers[i].targetChannel < minServoIndex) {
-                minServoIndex = tmp_customServoMixers[i].targetChannel;
-            }
-
-            if (tmp_customServoMixers[i].targetChannel > maxServoIndex) {
-                maxServoIndex = tmp_customServoMixers[i].targetChannel;
-            }
-
-            memcpy(&currentServoMixer[servoRuleCount], &tmp_customServoMixers[i], sizeof(servoMixer_t));
-            currentServoMixerActivative[servoRuleCount] = j==currentMixerProfileIndex;
-            servoRuleCount++;
+    // load custom mixer into currentServoMixer
+    for (int i = 0; i < MAX_SERVO_RULES; i++) {
+        // check if done
+        if (customServoMixers(i)->rate == 0){
+            break;
         }
+        currentServoMixer[servoRuleCount] = *customServoMixers(i);
+        servoSpeedLimitFilter[servoRuleCount].state = 0;
+        servoRuleCount++;
     }
 }
 
@@ -353,9 +365,6 @@ void servoMixer(float dT)
             inputRaw = 0;
         }
     #endif
-        if (!currentServoMixerActivative[i]) {
-            inputRaw = 0;
-        }
         /*
          * Apply mixer speed limit. 1 [one] speed unit is defined as 10us/s:
          * 0 = no limiting
@@ -369,7 +378,7 @@ void servoMixer(float dT)
     }
 
     /*
-     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
+     * When not armed, apply servo low position to all outputs that include a throttle or stabilized throttle in the mix
      */
     if (!ARMING_FLAG(ARMED)) {
         for (int i = 0; i < servoRuleCount; i++) {
@@ -438,7 +447,6 @@ void processServoAutotrimMode(void)
                 if (ARMING_FLAG(ARMED)) {
                     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                         for (int i = 0; i < servoRuleCount; i++) {
-                            if (!currentServoMixerActivative[i]) {continue;}
                                 // Reset servo middle accumulator
                             const uint8_t target = currentServoMixer[i].targetChannel;
                             const uint8_t source = currentServoMixer[i].inputSource;
@@ -461,7 +469,6 @@ void processServoAutotrimMode(void)
                 if (ARMING_FLAG(ARMED)) {
                     for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                         for (int i = 0; i < servoRuleCount; i++) {
-                            if (!currentServoMixerActivative[i]) {continue;}
                             const uint8_t target = currentServoMixer[i].targetChannel;
                             const uint8_t source = currentServoMixer[i].inputSource;
                             if (source == axis) {
@@ -474,7 +481,6 @@ void processServoAutotrimMode(void)
                     if ((millis() - trimStartedAt) > SERVO_AUTOTRIM_TIMER_MS) {
                         for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                             for (int i = 0; i < servoRuleCount; i++) {
-                                if (!currentServoMixerActivative[i]) {continue;}
                                 const uint8_t target = currentServoMixer[i].targetChannel;
                                 const uint8_t source = currentServoMixer[i].inputSource;
                                 if (source == axis) {
@@ -508,7 +514,6 @@ void processServoAutotrimMode(void)
         if (trimState == AUTOTRIM_SAVE_PENDING) {
             for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
                 for (int i = 0; i < servoRuleCount; i++) {
-                    if (!currentServoMixerActivative[i]) {continue;}
                     const uint8_t target = currentServoMixer[i].targetChannel;
                     const uint8_t source = currentServoMixer[i].inputSource;
                     if (source == axis) {
