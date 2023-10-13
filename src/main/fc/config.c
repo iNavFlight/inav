@@ -107,6 +107,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
+    .current_mixer_profile_index = 0,
     .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
 #ifdef USE_DEV_TOOLS
     .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
@@ -304,6 +305,7 @@ static void activateConfig(void)
 {
     activateControlRateConfig();
     activateBatteryProfile();
+    activateMixerConfig();
 
     resetAdjustmentStates();
 
@@ -330,6 +332,7 @@ void readEEPROM(void)
 
     setConfigProfile(getConfigProfile());
     setConfigBatteryProfile(getConfigBatteryProfile());
+    setConfigMixerProfile(getConfigMixerProfile());
 
     validateAndFixConfig();
     activateConfig();
@@ -460,6 +463,36 @@ bool setConfigBatteryProfile(uint8_t profileIndex)
 void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigBatteryProfile(profileIndex)) {
+        // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
+        writeEEPROM();
+        readEEPROM();
+        resumeRxSignal();
+    }
+    beeperConfirmationBeeps(profileIndex + 1);
+}
+
+uint8_t getConfigMixerProfile(void)
+{
+    return systemConfig()->current_mixer_profile_index;
+}
+
+bool setConfigMixerProfile(uint8_t profileIndex)
+{
+    bool ret = true; // return true if current_mixer_profile_index has changed
+    if (systemConfig()->current_mixer_profile_index == profileIndex) {
+        ret =  false;
+    }
+    if (profileIndex >= MAX_MIXER_PROFILE_COUNT) {// sanity check
+        profileIndex = 0;
+    }
+    systemConfigMutable()->current_mixer_profile_index = profileIndex;
+    return ret;
+}
+
+void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex)
+{
+    if (setConfigMixerProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
         suspendRxSignal();
         writeEEPROM();

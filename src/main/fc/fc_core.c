@@ -81,6 +81,7 @@
 
 #include "telemetry/telemetry.h"
 
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
@@ -618,7 +619,7 @@ void processRx(timeUs_t currentTimeUs)
     const bool throttleIsLow = throttleStickIsLow();
 
     // When armed and motors aren't spinning, do beeps periodically
-    if (ARMING_FLAG(ARMED) && feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY)) {
+    if (ARMING_FLAG(ARMED) && ifMotorstopFeatureEnabled() && !STATE(FIXED_WING_LEGACY)) {
         static bool armedBeeperOn = false;
 
         if (throttleIsLow) {
@@ -692,12 +693,12 @@ void processRx(timeUs_t currentTimeUs)
 
 #if defined(USE_MAG)
     if (sensors(SENSOR_ACC) || sensors(SENSOR_MAG)) {
-        if (IS_RC_MODE_ACTIVE(BOXHEADFREE)) {
+        if (IS_RC_MODE_ACTIVE(BOXHEADFREE) && STATE(MULTIROTOR)) {
             ENABLE_FLIGHT_MODE(HEADFREE_MODE);
         } else {
             DISABLE_FLIGHT_MODE(HEADFREE_MODE);
         }
-        if (IS_RC_MODE_ACTIVE(BOXHEADADJ)) {
+        if (IS_RC_MODE_ACTIVE(BOXHEADADJ) && STATE(MULTIROTOR)) {
             headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw); // acquire new heading
         }
     }
@@ -711,6 +712,8 @@ void processRx(timeUs_t currentTimeUs)
         } else {
             DISABLE_FLIGHT_MODE(MANUAL_MODE);
         }
+    }else{
+        DISABLE_FLIGHT_MODE(MANUAL_MODE);
     }
 
     /* In airmode Iterm should be prevented to grow when Low thottle and Roll + Pitch Centered.
@@ -730,8 +733,8 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
         if (throttleIsLow) {
-            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
-                if ((rollPitchStatus == CENTERED) || (feature(FEATURE_MOTOR_STOP) && !STATE(FIXED_WING_LEGACY))) {
+            if (STATE(AIRMODE_ACTIVE)) {
+                if ((rollPitchStatus == CENTERED) || (ifMotorstopFeatureEnabled() && !STATE(FIXED_WING_LEGACY))) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
                 else {
@@ -749,7 +752,7 @@ void processRx(timeUs_t currentTimeUs)
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
         if (throttleIsLow) {
-            if (STATE(AIRMODE_ACTIVE) && !failsafeIsActive()) {
+            if (STATE(AIRMODE_ACTIVE)) {
                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
                     ENABLE_STATE(ANTI_WINDUP);
                 }
@@ -777,7 +780,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
 //---------------------------------------------------------
-    if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+    if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
         DISABLE_FLIGHT_MODE(HEADFREE_MODE);
     }
 

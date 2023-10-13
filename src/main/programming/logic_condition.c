@@ -46,6 +46,7 @@
 #include "sensors/rangefinder.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "flight/mixer_profile.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
@@ -424,6 +425,7 @@ static int logicConditionCompute(
                     pidInit();
                     pidInitFilters();
                     schedulePidGainsUpdate();
+                    navigationUsePIDs(); //set navigation pid gains
                     profileChanged = true;
                 }
                 return profileChanged;
@@ -702,6 +704,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(attitude.values.pitch / 10, -180, 180);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW: // deg
+            return constrain(attitude.values.yaw / 10, 0, 360);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ARMED: // 0/1
             return ARMING_FLAG(ARMED) ? 1 : 0;
             break;
@@ -768,6 +774,14 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
             return getConfigProfile() + 1;
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE: // int
+            return currentMixerProfileIndex + 1;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE: //0,1
+            return isMixerTransitionMixing ? 1 : 0;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
