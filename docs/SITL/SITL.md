@@ -87,7 +87,7 @@ Please note that 100000(SBUS) and 420000(CRSF) are non-standart baud rates which
 
 
 #### Example SBUS:
-For this you need a FT232 module, or receiver with inverter, or receiver which can output inverted SBUS (normal UART). 
+For this you need a USB-to-serial adapter, receiver with inverter, or receiver which can output inverted SBUS (normal UART). 
 
 SBUS protocol is inverted UART.
 
@@ -178,9 +178,13 @@ For options that take an argument, either form `--flag=value` or `--flag value` 
 ## Running SITL
 It is recommended to start the tools in the following order:
 1. Simulator, aircraft should be ready for take-off
-2. INAV-SITL
+2. SITL
 3. OSD
+
+For INav-X-Plane-HITL plugin:
+1. SITL
+2. X-Plane
 
 # #Forwarding serial data for other UART
 
-Other UARTs can then be mapped to host's serial port using external tool, which can be fount in directories ```inav-configurator\resources\sitl\linux\Ser2TCP```, ```inav-configurator\resources\sitl\windows\Ser2TCP.exe```
+Other UARTs can then be mapped to host's serial port using external tool, which can be found in directories ```inav-configurator\resources\sitl\linux\Ser2TCP```, ```inav-configurator\resources\sitl\windows\Ser2TCP.exe```
