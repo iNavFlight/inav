@@ -18,8 +18,11 @@ Please be aware that both the setup procedure and firmware may change in respons
 We highly value your feedback as it plays a crucial role in the development and refinement of INAV VTOL capabilities. Please share your experiences, suggestions, and any issues you encounter during testing. Your insights are invaluable in making INAV VTOL better for everyone.
 
 # VTOL Configuration Steps
+
 ### The VTOL functionality is achieved by switching/transitioning between two configurations stored in the FC. VTOL specific configurations are Mixer Profiles with associated PID profiles. One profile set is for fixed-wing(FW) mode, One is for multi-copter(MC) mode. Configuration/Settings other than Mixer/PID profiles are shared among two modes 
 ![Alt text](Screenshots/mixerprofile_flow.png)
+
+0. **Find a DIFF ALL file for your model and start from there if possible**
 1. **Setup Profile 1:**
    - Configure it as a normal fixed-wing/multi-copter.
 
