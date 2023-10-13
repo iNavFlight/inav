@@ -949,7 +949,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
         }
     },
-    
+
     /** MIXER AUTOMATED TRANSITION mode, alternated althod ***************************************************/
     [NAV_STATE_MIXERAT_INITIALIZE] = {
         .persistentId = NAV_PERSISTENT_ID_MIXERAT_INITIALIZE,
@@ -992,7 +992,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
-            
+
         }
     },
 };
@@ -1514,7 +1514,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
-    
+
     if (checkMixerATRequired(MIXERAT_REQUEST_LAND)){
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
@@ -4532,4 +4532,22 @@ int32_t getCruiseHeadingAdjustment(void) {
 int32_t navigationGetHeadingError(void)
 {
     return wrap_18000(posControl.desiredState.yaw - posControl.actualState.cog);
+}
+
+int8_t navCheckActiveAttiHoldAxis(void)
+{
+    int8_t activeAxis = -1;
+
+    if (IS_RC_MODE_ACTIVE(BOXATTIHOLD)) {
+        navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+        bool altholdActive = stateFlags & NAV_REQUIRE_ANGLE_FW && !(stateFlags & NAV_REQUIRE_ANGLE);
+
+        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            activeAxis = FD_PITCH;
+        } else if (altholdActive) {
+            activeAxis = FD_ROLL;
+        }
+    }
+
+    return activeAxis;
 }

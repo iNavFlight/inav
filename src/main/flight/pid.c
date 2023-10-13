@@ -159,6 +159,7 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
+static EXTENDED_FASTRAM bool attiHoldIsLevel = false;
 
 #define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
 #define FIXED_WING_LEVEL_TRIM_DIVIDER 500.0f
@@ -1057,9 +1058,58 @@ void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis
 
 }
 
+bool isAttiholdLevel(void)
+{
+    return attiHoldIsLevel;
+}
+
+void updateAttihold(float *angleTarget, uint8_t axis)
+{
+    int8_t navAttiHoldAxis = navCheckActiveAttiHoldAxis();
+    static bool restartAttiMode = true;
+
+    if (!restartAttiMode) {     // reset flags for when attitude hold is inactive
+        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE) && navAttiHoldAxis == -1;
+        attiHoldIsLevel = restartAttiMode ? false: attiHoldIsLevel;
+    }
+
+    if ((FLIGHT_MODE(ATTIHOLD_MODE) || axis == navAttiHoldAxis) && !isFlightAxisAngleOverrideActive(axis)) {
+        static int16_t attiHoldTarget[2];
+
+        if (restartAttiMode) {      // set target attitude to current attitude on activation
+            attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
+            attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
+            restartAttiMode = false;
+        }
+
+        // set flag indicating attitude hold is level
+        if (FLIGHT_MODE(ATTIHOLD_MODE)) {
+            attiHoldIsLevel = attiHoldTarget[FD_ROLL] == 0 && attiHoldTarget[FD_PITCH] == 0;
+        } else {
+            attiHoldIsLevel = attiHoldTarget[navAttiHoldAxis] == 0;
+        }
+
+        uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
+
+        // use Nav bank angle limits if Nav active
+        if (navAttiHoldAxis == FD_ROLL) {
+            bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle);
+        } else if (navAttiHoldAxis == FD_PITCH) {
+            bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+        }
+
+        if (calculateRollPitchCenterStatus() == CENTERED) {
+            attiHoldTarget[axis] = ABS(attiHoldTarget[axis]) < 30 ? 0 : attiHoldTarget[axis];   // snap to level when within 3 degs of level
+            *angleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
+        } else {
+            *angleTarget = constrain(attitude.raw[axis] + *angleTarget, -bankLimit, bankLimit);
+            attiHoldTarget[axis] = attitude.raw[axis];
+        }
+    }
+}
+
 void FAST_CODE pidController(float dT)
 {
-
     const float dT_inv = 1.0f / dT;
 
     if (!pidFiltersConfigured) {
@@ -1112,38 +1162,13 @@ void FAST_CODE pidController(float dT)
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
 
-    // Pitch hold enabled during Course Hold mode if AttiHold mode selected (but not active since Angle has priority)
-    bool navPitchHoldActive = IS_RC_MODE_ACTIVE(BOXATTIHOLD) && FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !FLIGHT_MODE(NAV_ALTHOLD_MODE);
-
-    static bool restartAttiMode = true;
-    if (!restartAttiMode) {
-        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE) && !navPitchHoldActive;   // set restart flag if attitude hold not active
-    }
-
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ATTIHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
 
-            if (STATE(AIRPLANE) && (FLIGHT_MODE(ATTIHOLD_MODE) || (navPitchHoldActive && axis == FD_PITCH)) && !isFlightAxisAngleOverrideActive(axis)) {
-                static int16_t attiHoldTarget[2];
-
-                if (restartAttiMode) {  // set target attitude to current attitude when initialised
-                    attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
-                    attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
-                    restartAttiMode = false;
-                }
-
-                uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
-                if (navPitchHoldActive) {   // use Nav bank limits if Nav active, limited to pitch only
-                    bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
-                }
-                if (calculateRollPitchCenterStatus() == CENTERED) {
-                    angleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
-                } else {
-                    angleTarget = constrain(attitude.raw[axis] + angleTarget, -bankLimit, bankLimit);
-                    attiHoldTarget[axis] = attitude.raw[axis];
-                }
+            if (STATE(AIRPLANE)) {  // update attitude hold mode
+                updateAttihold(&angleTarget, axis);
             }
 
             // Apply the Level PID controller

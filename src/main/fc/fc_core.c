@@ -712,7 +712,7 @@ void processRx(timeUs_t currentTimeUs)
         } else {
             DISABLE_FLIGHT_MODE(MANUAL_MODE);
         }
-    }else{
+    } else {
         DISABLE_FLIGHT_MODE(MANUAL_MODE);
     }
 

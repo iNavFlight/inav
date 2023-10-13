@@ -118,6 +118,9 @@
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 #define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
 #define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
+#define OSD_MSG_ATTI_ROLL           "(ATTI ROLL)"
+#define OSD_MSG_ATTI_PITCH          "(ATTI PITCH)"
+#define OSD_MSG_ATTI_LEVEL          "(ATTI LEVEL)"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"

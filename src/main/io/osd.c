@@ -5173,6 +5173,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (STATE(LANDING_DETECTED)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
                     }
+                    if (IS_RC_MODE_ACTIVE(BOXATTIHOLD)) {
+                        int8_t navAttiHoldAxis = navCheckActiveAttiHoldAxis();
+                        if (isAttiholdLevel()) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ATTI_LEVEL);
+                        } else if (navAttiHoldAxis == FD_ROLL) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ATTI_ROLL);
+                        } else if (navAttiHoldAxis == FD_PITCH) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ATTI_PITCH);
+                        }
+                    }
                 }
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
