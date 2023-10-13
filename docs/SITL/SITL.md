@@ -12,10 +12,13 @@ The sensors are replaced by data provided by a simulator.
 Currently supported are
 - RealFlight  https://www.realflight.com/
 - X-Plane https://www.x-plane.com/
-- INAV-X-Plane-HITL plugin https://github.com/RomanLut/INAV-X-Plane-HITL
 - fl2sim [replay Blackbox Log via SITL](https://github.com/stronnag/bbl2kml/wiki/fl2sitl), uses the X-Plane protocol.
 
 INAV SITL communicates for sensor data and control directly with the corresponding simulator, see the documentation of the individual simulators and the Configurator or the command line options.
+
+AS SITL is still an inav software, but running on PC, it is possible to use HITL interface for communication.
+
+INAV-X-Plane-HITL plugin https://github.com/RomanLut/INAV-X-Plane-HITL can be used with SITL.
 
 ## Sensors
 The following sensors are emulated:
