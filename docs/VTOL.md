@@ -54,6 +54,8 @@ We highly value your feedback as it plays a crucial role in the development and 
 
 2. **Configure the fixed-wing/Multi-Copter:**
    - Configure your fixed-wing/Multi-Copter as you normally would, or you can copy and paste default settings to expedite the process.
+   - Dshot esc protocol availability might be limited depends on outputs and fc board you are using. change the motor wiring or use oneshot/multishot esc protocol and calibrate throttle range.
+   - You can use throttle = -1 as a placeholder for the motor you wish to stop if the motor isn't the last motor
    - Consider conducting a test flight to ensure that everything operates as expected. And tune the settings, trim the servos.
 
 ![Alt text](Screenshots/mixerprofile_fw_mixer.png)
@@ -92,9 +94,6 @@ Working in progress.
 | :-- | :-- | :-- |
 | Profile1(FW) with transition off |  Profile2(MC) with transition on  | Profile2(MC) with transition off |
 
-
-Please note the following considerations:
-
 - Profile file switching becomes available after completing the runtime sensor calibration(15-30s after booting). And It is **not available** when a navigation mode or position hold is active.
 
 - By default, `mixer_profile 1` is used. `mixer_profile 2` is used when the `MIXER PROFILE 2` mode is activate. Once configured successfully, you will notice that the profiles and model preview changes accordingly when you refresh the relevant INAV Configurator tabs. 
@@ -110,17 +109,16 @@ Please note that transition input is disabled when a navigation mode is activate
 ## Servo 'Transition Mixing': Tilting rotor configuration.
 Add new servo mixer rules, and select 'Mixer Transition' in input. Set the weight/rate according to your desired angle. This will allow tilting the motor for tilting rotor model.
 
+![Alt text](Screenshots/mixerprofile_servo_transition_mix.png)
+
 ## Motor 'Transition Mixing': Dedicated forward motor configuration
-In motor mixer
-- -2.0 < throttle < -1.0: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` when Mixer Transition is activated.
+In motor mixer set:
+- -2.0 < throttle < -1.0: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` multiplied by throttle range only when Mixer Transition is activated.
 
-Here's an example: This configuration will spin motor number 5 (counting from 1) at 20% throttle only in `MIXER TRANSITION` mode. For gaining speed in a "4 rotor 1 pusher" configuration:
+![Alt text](Screenshots/mixerprofile_4puls1_mix.png)
 
-```
-mmix 4 -1.200 0.000 0.000 0.000
-```
 ## TailSitter 'Transition Mixing': 
-45deg off set will be added to target pitch angle for angle mode in the firmware.
+No additional settings needed, 45deg off set will be added to target pitch angle for angle mode in the firmware.
 
 ### With aforementioned settings, your model should be able to enter fixed-wing profile without stalling.
 
@@ -129,8 +127,10 @@ mmix 4 -1.200 0.000 0.000 0.000
 ```
 set nav_disarm_on_landing = OFF #band-aid for false landing detection in NAV landing of multi-copter
 set airmode_type = STICK_CENTER_ONCE
-set ahrs_inertia_comp_method = VELNED # a method work for both FW and MC
-set tpa_on_yaw = ON #For yaw control by tilting the motor on the MC pid_profile
+set ahrs_inertia_comp_method = ADAPTIVE # will automatically use VELNED in mc mode
+set tpa_on_yaw = ON #For yaw control by tilt rotor in the MC pid_profile
+set servo_pwm_rate = 160 #For yaw control by tilt rotor model
+set servo_lpf_hz = 30 #For yaw control by tilt rotor model
 ```
 
 # Automated Switching (RTH) (Optional):
@@ -165,10 +165,10 @@ If you set `mixer_automated_switch` to `OFF` for all mixer profiles (the default
 - VTOL model operating in multi-copter (MC) mode may encounter challenges in windy conditions. Please exercise caution when testing in such conditions.
 
 ## Tilting-rotor
-- In some tilting motor models, you may experience roll or yaw oscillations when `MIXER TRANSITION` is activated. To address this issue, you can try the following:
+- In some tilting motor models, you may experience roll/yaw coupled oscillations when `MIXER TRANSITION` is activated. To address this issue, you can try the following:
     1. try hard on pid
     1. try different prop direction, prop size.
-    2. you can add servo mixing rules to compensate excessive or decouple the control input. such as reduce the weight or also use tilt servo for roll control
+    2. you can add servo mixing rules to decouple the control input. such use tilt servo for roll control
     3. Use a logic condition to ensure that these compensation servo mixing rules are active only when `MIXER TRANSITION` is activated. You can achieve this by checking the value of 'Flight:MixerTransition Active' in programming tab.
     4. Add a little roll mixing in tilt motors.
 ## Dedicated forward motor 
