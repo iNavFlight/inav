@@ -139,6 +139,7 @@ typedef enum {
     FW_HEADING_USE_YAW                  = (1 << 24),
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
     LANDING_DETECTED                    = (1 << 26),
+    TAILSITTER                          = (1 << 27), //offset the pitch angle by 90 degrees
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

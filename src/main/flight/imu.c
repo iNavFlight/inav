@@ -660,6 +660,33 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     lastspeed = currentspeed;
 }
 
+fpQuaternion_t* getTailSitterQuaternion(bool normal2tail){
+    static bool firstRun = true;
+    static fpQuaternion_t qNormal2Tail;
+    static fpQuaternion_t qTail2Normal;
+    if(firstRun){
+        fpAxisAngle_t axisAngle;
+        axisAngle.axis.x = 0;
+        axisAngle.axis.y = 1;
+        axisAngle.axis.z = 0;
+        axisAngle.angle = DEGREES_TO_RADIANS(-90);
+        axisAngleToQuaternion(&qNormal2Tail, &axisAngle);
+        quaternionConjugate(&qTail2Normal, &qNormal2Tail);
+        firstRun = false;
+    }
+    return normal2tail ? &qNormal2Tail : &qTail2Normal;
+}
+
+void imuUpdateTailSitter(void)
+{
+    static bool lastTailSitter=false;
+    if (((bool)STATE(TAILSITTER)) != lastTailSitter){
+        fpQuaternion_t* rotation_for_tailsitter= getTailSitterQuaternion(STATE(TAILSITTER));
+        quaternionMultiply(&orientation, &orientation, rotation_for_tailsitter);
+    }
+    lastTailSitter = STATE(TAILSITTER);
+}
+
 static void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
@@ -763,6 +790,7 @@ static void imuCalculateEstimatedAttitude(float dT)
                             useCOG, courseOverGround,
                             accWeight,
                             magWeight);
+    imuUpdateTailSitter();
     imuUpdateEulerAngles();
 }
 
