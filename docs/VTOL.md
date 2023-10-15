@@ -23,6 +23,7 @@ We highly value your feedback as it plays a crucial role in the development and 
 ![Alt text](Screenshots/mixerprofile_flow.png)
 
 0. **Find a DIFF ALL file for your model and start from there if possible**
+   - Be aware that `MIXER PROFILE 2` RC mode setting introduced by diff file can get your stuck in a mixer_profile. remove or change channel to proceed
 1. **Setup Profile 1:**
    - Configure it as a normal fixed-wing/multi-copter.
 
