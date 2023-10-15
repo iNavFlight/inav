@@ -461,6 +461,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, packSensorStatus());
             sbufWriteU16(dst, averageSystemLoadPercent);
             sbufWriteU8(dst, (getConfigBatteryProfile() << 4) | getConfigProfile());
+            sbufWriteU8(dst, getConfigMixerProfile());
             sbufWriteU32(dst, armingFlags);
             sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
         }
@@ -3008,6 +3009,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_SELECT_BATTERY_PROFILE:
         if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {
                 setConfigBatteryProfileAndWriteEEPROM(tmp_u8);
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_SELECT_MIXER_PROFILE:
+        if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {
+                setConfigMixerProfileAndWriteEEPROM(tmp_u8);
         } else {
             return MSP_RESULT_ERROR;
         }
