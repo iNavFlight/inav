@@ -187,7 +187,7 @@ void mixerUpdateStateFlags(void)
         ENABLE_STATE(ALTITUDE_CONTROL);
     }
 
-    if (currentMixerConfig.tailsitterBoardOrientation) {
+    if (currentMixerConfig.tailsitterOrientationOffset) {
         ENABLE_STATE(TAILSITTER);
     } else {
         DISABLE_STATE(TAILSITTER);
