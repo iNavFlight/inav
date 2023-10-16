@@ -500,9 +500,6 @@ void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex)
         resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
-    if (mixerConfig()->PIDProfileLinking) {
-        setConfigProfileAndWriteEEPROM(profileIndex);
-    }
 }
 
 void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT])
