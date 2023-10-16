@@ -5572,7 +5572,7 @@ Delay before disarming when requested by switch (ms) [0-1000]
 
 ---
 
-### tailsitter_board_orientation
+### tailsitter_orientation_offset
 
 Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode
 
