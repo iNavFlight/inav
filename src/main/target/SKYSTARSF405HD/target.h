@@ -45,6 +45,11 @@
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
 
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW180_DEG_FLIP
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PA4
+
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
 #define USE_FLASH_M25P16

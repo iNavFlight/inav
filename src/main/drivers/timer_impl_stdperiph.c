@@ -301,7 +301,12 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
     TIM_CtrlPWMOutputs(timer, ENABLE);
     TIM_ARRPreloadConfig(timer, ENABLE);
 
-    TIM_CCxCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCx_Enable);
+    if (tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
+        TIM_CCxNCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCxN_Enable);
+    } else {
+        TIM_CCxCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCx_Enable);
+    }
+    
     TIM_Cmd(timer, ENABLE);
 
     dmaInit(tch->dma, OWNER_TIMER, 0);
@@ -382,7 +387,12 @@ bool impl_timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, vo
     TIM_CtrlPWMOutputs(timer, ENABLE);
     TIM_ARRPreloadConfig(timer, ENABLE);
 
-    TIM_CCxCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCx_Enable);
+    if (tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
+        TIM_CCxNCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCxN_Enable);
+    } else {
+        TIM_CCxCmd(timer, lookupTIMChannelTable[tch->timHw->channelIndex], TIM_CCx_Enable);
+    }
+
     TIM_Cmd(timer, ENABLE);
 
     if (!tch->timCtx->dmaBurstRef) {

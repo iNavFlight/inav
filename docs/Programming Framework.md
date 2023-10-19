@@ -152,6 +152,9 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 35            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
 | 36            | AGL                           | integer Above The Groud Altitude in `cm` |
 | 37            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
+| 38            | ACTIVE_MIXER_PROFILE          | Which mixers are currently active (for vtol etc) |
+| 39            | MIXER_TRANSITION_ACTIVE       | Currently switching between mixers (quad to plane etc) |
+| 40            | ATTITUDE_YAW                  | current heading (yaw) in `degrees` |
 
 #### FLIGHT_MODE
 

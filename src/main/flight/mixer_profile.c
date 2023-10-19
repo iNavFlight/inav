@@ -23,6 +23,7 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 #include "fc/rc_modes.h"
+#include "fc/cli.h"
 
 #include "programming/logic_condition.h"
 #include "navigation/navigation.h"
@@ -107,6 +108,14 @@ void setMixerProfileAT(void)
     mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchTransitionTimer * 100;
 }
 
+bool platformTypeConfigured(flyingPlatformType_e platformType)
+{   
+    if (!isModeActivationConditionPresent(BOXMIXERPROFILE)){
+        return false;
+    }
+    return mixerConfigByIndex(nextProfileIndex)->platformType == platformType;
+}
+
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 {
     //return false if mixerAT condition is not required or setting is not valid
@@ -187,8 +196,9 @@ bool checkMixerProfileHotSwitchAvalibility(void)
 }
 
 void outputProfileUpdateTask(timeUs_t currentTimeUs)
-{
+{   
     UNUSED(currentTimeUs);
+    if(cliMode) return;
     bool mixerAT_inuse = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
     // transition mode input for servo mix and motor mix
     if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse))

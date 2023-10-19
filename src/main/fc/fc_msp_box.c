@@ -202,7 +202,7 @@ void initActiveBoxIds(void)
     //Camstab mode is enabled always
     ADD_ACTIVE_BOX(BOXCAMSTAB);
 
-    if (STATE(MULTIROTOR)) {
+    if (STATE(MULTIROTOR) || platformTypeConfigured(PLATFORM_MULTIROTOR) || platformTypeConfigured(PLATFORM_TRICOPTER)) {
         if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG))) {
             ADD_ACTIVE_BOX(BOXHEADFREE);
             ADD_ACTIVE_BOX(BOXHEADADJ);
@@ -244,13 +244,13 @@ void initActiveBoxIds(void)
 #endif
         }
 
-        if (STATE(AIRPLANE)) {
+        if (STATE(AIRPLANE) || platformTypeConfigured(PLATFORM_AIRPLANE)) {
             ADD_ACTIVE_BOX(BOXSOARING);
         }
     }
 
 #ifdef USE_MR_BRAKING_MODE
-    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || platformTypeConfigured(PLATFORM_MULTIROTOR)) {
         ADD_ACTIVE_BOX(BOXBRAKING);
     }
 #endif
@@ -259,11 +259,12 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXNAVALTHOLD);
     }
 
-    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
+    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT) || 
+        platformTypeConfigured(PLATFORM_AIRPLANE) || platformTypeConfigured(PLATFORM_ROVER) || platformTypeConfigured(PLATFORM_BOAT)) {
         ADD_ACTIVE_BOX(BOXMANUAL);
     }
 
-    if (STATE(AIRPLANE)) {
+    if (STATE(AIRPLANE) || platformTypeConfigured(PLATFORM_AIRPLANE)) {
         if (!feature(FEATURE_FW_LAUNCH)) {
            ADD_ACTIVE_BOX(BOXNAVLAUNCH);
         }
