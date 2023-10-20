@@ -185,7 +185,7 @@ It is recommended to start the tools in the following order:
 3. OSD
 
 For INav-X-Plane-HITL plugin:
-1. SITL
+1. SITL (Run in configurator-only mode)
 2. X-Plane
 
 # #Forwarding serial data for other UART
