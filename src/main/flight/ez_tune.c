@@ -71,11 +71,10 @@ void ezTuneUpdate(void) {
     if (ezTune()->enabled) {
 
         // Setup filtering
-
         //Enable Smith predictor
         pidProfileMutable()->smithPredictorDelay = computePt1FilterDelayMs(ezTune()->filterHz)
             + computePt1FilterDelayMs(gyroConfig()->gyro_anti_aliasing_lpf_hz);
-
+        
         //Set Dterm LPF
         pidProfileMutable()->dterm_lpf_hz = MAX(ezTune()->filterHz - 5, 50);
         pidProfileMutable()->dterm_lpf_type = FILTER_PT2;
@@ -85,7 +84,8 @@ void ezTuneUpdate(void) {
         gyroConfigMutable()->gyro_main_lpf_type = FILTER_PT1;
 
         //Set anti-aliasing filter
-        gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = MIN(MIN(ezTune()->filterHz * 2, 250), getGyroLooptime() * 0.5f);
+        const int gyroNyquist = 1000000 / TASK_GYRO_LOOPTIME;
+        gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = MIN(MIN(ezTune()->filterHz * 2, 250), (int)(gyroNyquist * 0.5f));
         gyroConfigMutable()->gyro_anti_aliasing_lpf_type = FILTER_PT1;
 
 #ifdef USE_DYNAMIC_FILTERS
