@@ -62,10 +62,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_DEGREES:
         return BF_SYM_GPS_DEGREE;
 
-/*
     case SYM_HEADING:
-        return BF_SYM_HEADING;
+        return BF_SYM_ARROW_NORTH;
 
+/*
     case SYM_SCALE:
         return BF_SYM_SCALE;
 
@@ -186,17 +186,17 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_ALT_M:
         return BF_SYM_M;
+    
+    case SYM_TOTAL:
+        return BF_SYM_TOTAL_DISTANCE;
 
 /*
     case SYM_TRIP_DIST:
         return BF_SYM_TRIP_DIST;
-
-    case SYM_TOTAL:
-        return BF_SYM_TOTAL;
-
+*/
     case SYM_ALT_KM:
-        return BF_SYM_ALT_KM;
-
+        return BF_SYM_KM;
+/*
     case SYM_ALT_KFT:
         return BF_SYM_ALT_KFT;
 
@@ -319,25 +319,21 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_AUTO_THR1:
         return BF_SYM_AUTO_THR1;
+        */
 
     case SYM_ROLL_LEFT:
-        return BF_SYM_ROLL_LEFT;
-
     case SYM_ROLL_LEVEL:
-        return BF_SYM_ROLL_LEVEL;
-
     case SYM_ROLL_RIGHT:
-        return BF_SYM_ROLL_RIGHT;
+        return BF_SYM_ROLL;
 
     case SYM_PITCH_UP:
-        return BF_SYM_PITCH_UP;
-
     case SYM_PITCH_DOWN:
-        return BF_SYM_PITCH_DOWN;
+        return BF_SYM_PITCH;
 
     case SYM_GFORCE:
-        return BF_SYM_GFORCE;
+        return 'G';
 
+    /*
     case SYM_GFORCE_X:
         return BF_SYM_GFORCE_X;
 

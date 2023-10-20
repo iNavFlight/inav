@@ -2385,7 +2385,12 @@ static bool osdDrawSingleElement(uint8_t item)
             if (!failsafeIsReceivingRxData())
                 tfp_sprintf(buff, "%s%c", "    ", SYM_BLANK);
             else
-                tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+                if (isBfCompatibleVideoSystem(osdConfig())) {
+                    tfp_sprintf(buff, "%4dMW", rxLinkStatistics.uplinkTXPower);
+                }
+                else {
+                    tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
+                }
             break;
         }
 #endif
