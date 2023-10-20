@@ -584,7 +584,11 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
 
 static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), pidProfile()->max_angle_inclination[axis]);
+#else
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
+#endif
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
