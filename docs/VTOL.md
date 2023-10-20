@@ -167,11 +167,8 @@ If you set `mixer_automated_switch` to `OFF` for all mixer profiles (the default
 
 ## Tilting-rotor
 - In some tilting motor models, you may experience roll/yaw coupled oscillations when `MIXER TRANSITION` is activated. To address this issue, you can try the following:
-    1. try hard on pid
-    1. try different prop direction, prop size.
-    2. you can add servo mixing rules to decouple the control input. such use tilt servo for roll control
-    3. Use a logic condition to ensure that these compensation servo mixing rules are active only when `MIXER TRANSITION` is activated. You can achieve this by checking the value of 'Flight:MixerTransition Active' in programming tab.
-    4. Add a little roll mixing in tilt motors.
+    1. Use prop blade meets at top/rear prop direction for tilting motors to balance the effects of torque and P-factor. 
+    2. In addition to 1. Add a little yaw mixing in tilt motors.
 ## Dedicated forward motor 
 - waiting for reports
 
