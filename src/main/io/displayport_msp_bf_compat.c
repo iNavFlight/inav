@@ -330,10 +330,12 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_PITCH_DOWN:
         return BF_SYM_PITCH_DOWN;
+ */
 
     case SYM_GFORCE:
-        return BF_SYM_GFORCE;
+        return 'G';
 
+/*
     case SYM_GFORCE_X:
         return BF_SYM_GFORCE_X;
 
