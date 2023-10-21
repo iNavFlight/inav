@@ -59,14 +59,22 @@
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
+#define USE_I2C_DEVICE_2
+
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
 
+#define I2C2_SCL                PB10
+#define I2C2_SDA                PB11
+
 #define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
+//Onboard BMP280 is on I2C2 and use standard 0x76 I2C adress.
+#define BARO_I2C_BUS            BUS_I2C2
+#define USE_BARO_BMP280
 #define USE_BARO_BMP280
 #define USE_BARO_DPS310
 #define USE_BARO_MS5611
+
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -93,7 +101,7 @@
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
+#define SPI2_SCK_PIN                PB13
 #define SPI2_MISO_PIN   	    PB14
 #define SPI2_MOSI_PIN   	    PB15
 
