@@ -187,7 +187,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_ALT_M:
         return BF_SYM_M;
 
-    case SYM_TRIP_DIST:
     case SYM_TOTAL:
         return BF_SYM_TOTAL_DISTANCE;
 /*
