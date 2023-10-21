@@ -36,16 +36,83 @@ We highly value your feedback as it plays a crucial role in the development and 
 4. *(Recommended)* **Transition Mixing (Multi-Rotor Profile):**
    - Configure transition mixing to gain airspeed in the multi-rotor profile.
 
-5. *(Recommended)* **VTOL-Specific Settings:**
-   - Configure VTOL-specific settings.
-
-6. *(Optional)* **Automated Switching (RTH):**
+5. *(Optional)* **Automated Switching (RTH):**
    - Optionally, set up automated switching in case of failsafe.
+
+# STEP0: Load parameter preset/templates
+Find a working diff file if you can. If not, select keep current settings and apply following parameter in cli but read description about which one to apply
+```
+set small_angle = 180
+set gyro_main_lpf_hz = 60
+set dynamic_gyro_notch_min_hz = 50
+set dynamic_gyro_notch_mode = 3D
+set motor_pwm_protocol = DSHOT300 #Try dshot first and see if it works
+set airmode_type = STICK_CENTER_ONCE
+
+
+set nav_disarm_on_landing = OFF  #band-aid for false landing detection in NAV landing of multi-copter
+set nav_rth_allow_landing = FS_ONLY
+set nav_wp_max_safe_distance = 500
+set nav_fw_control_smoothness = 2
+set nav_fw_launch_max_altitude = 5000
+
+set servo_pwm_rate = 160 #If model using servo for stabilization in MC mode and servo can tolerate it 
+set servo_lpf_hz = 30 #If model using servo for stabilization in MC mode
+
+
+## profile 1 as airplane and profile 2 as multi rotor
+mixer_profile 1
+
+set platform_type = AIRPLANE
+set model_preview_type = 26
+set motorstop_on_low = ON
+set mixer_pid_profile_linking = ON
+
+mixer_profile 2
+
+set platform_type = TRICOPTER
+set model_preview_type = 1
+set mixer_pid_profile_linking = ON
+
+profile 1
+set dterm_lpf_hz = 10
+set d_boost_min =  1.000
+set d_boost_max =  1.000
+set fw_level_pitch_trim =  5.000
+set roll_rate = 18
+set pitch_rate = 9
+set yaw_rate = 3
+set fw_turn_assist_pitch_gain = 0.4
+set max_angle_inclination_rll = 450
+set fw_ff_pitch = 80
+set fw_ff_roll = 50
+set fw_p_pitch = 15
+set fw_p_roll = 15
+
+profile 2
+set dterm_lpf_hz = 60
+set dterm_lpf_type = PT3
+set d_boost_min =  0.800
+set d_boost_max =  1.200
+set d_boost_gyro_delta_lpf_hz = 60
+set antigravity_gain =  2.000
+set antigravity_accelerator =  5.000
+set smith_predictor_delay =  1.500
+set tpa_rate = 20
+set tpa_breakpoint = 1200
+set tpa_on_yaw = ON #If model using control surface/tilt mechanism for stabilization in MC mode
+set roll_rate = 18
+set pitch_rate = 18
+set yaw_rate = 9
+set mc_iterm_relax = RPY
+
+save
+```
 
 # STEP1&2: Configuring as a Normal fixed-wing/Multi-Copter in two profiles separately
 
 1. **Select the fisrt Mixer Profile and PID Profile:**
-   - In the CLI, switch to the mixer_profile and pid_profile you wish to set first:
+   - In the CLI, switch to the mixer_profile and pid_profile you wish to set first. You can also switch mixer_profile/pid_profile through gui if with aforementioned presets loaded.
      ```
      mixer_profile 1 #in this example, we set profile 1 first
      set mixer_pid_profile_linking = ON  # Let the mixer_profile handle the pid_profile switch on this mixer_profile
@@ -62,7 +129,7 @@ We highly value your feedback as it plays a crucial role in the development and 
 ![Alt text](Screenshots/mixerprofile_fw_mixer.png)
 
 3. **Switch to Another Mixer Profile with PID Profile:**
-   - In the CLI, switch to another mixer_profile along with the appropriate pid_profile:
+   - In the CLI, switch to another mixer_profile along with the appropriate pid_profile. You can also switch mixer_profile/pid_profile through gui if with aforementioned presets loaded.
      ```
      mixer_profile 2
      set mixer_pid_profile_linking = ON
@@ -81,7 +148,6 @@ We highly value your feedback as it plays a crucial role in the development and 
 ![Alt text](Screenshots/mixerprofile_mc_mixer.png)
 
 5. **Tailsitters:**
-Working in progress. 
    - Configure the fixed-wing mode/profile sets normally. Use MultiCopter platform type for tail_sitting flying mode/profile sets. 
    - The baseline board aliment is FW mode(ROLL axis is the trust axis). So set `tailsitter_orientation_offset = ON ` in the tail_sitting MC mode.
    - Configure mixer ROLL/YAW mixing according to tail_sitting orientation in the tail_sitting MC mode. YAW axis is the trust axis.
@@ -123,22 +189,11 @@ No additional settings needed, 45deg off set will be added to target pitch angle
 
 ### With aforementioned settings, your model should be able to enter fixed-wing profile without stalling.
 
-# STEP5: VTOL-Specific Settings (Recommended):
-### recommended settings, more based on field experience are coming
-```
-set nav_disarm_on_landing = OFF #band-aid for false landing detection in NAV landing of multi-copter
-set airmode_type = STICK_CENTER_ONCE
-set ahrs_inertia_comp_method = ADAPTIVE # will automatically use VELNED in mc mode
-set tpa_on_yaw = ON #For yaw control by tilt rotor in the MC pid_profile
-set servo_pwm_rate = 160 #For yaw control by tilt rotor model
-set servo_lpf_hz = 30 #For yaw control by tilt rotor model
-```
-
 # Automated Switching (RTH) (Optional):
 ### This is one of the least tested features. This feature is primarily designed for Return to Home (RTH) in the event of a failsafe. 
 When configured correctly, the model will use the Fixed-Wing (FW) mode to efficiently return home and then transition to Multi-Copter (MC) mode for easier landing.
 
-To enable this feature, type follwoing command in cli
+To enable this feature, type following command in cli
 
 1. In your MC mode mixer profile (e.g., mixer_profile 2), set `mixer_automated_switch` to `ON`. leave it to `OFF` if burning remaining battery capacity on the way home is acceptable.
 ```
