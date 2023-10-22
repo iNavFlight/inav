@@ -174,10 +174,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 /*
     case SYM_MW:
         return BF_SYM_MW;
-
-    case SYM_KILOWATT:
-        return BF_SYM_KILOWATT;
 */
+    case SYM_KILOWATT:
+        return 'K';     // K for KiloWatt
+
     case SYM_FT:
         return BF_SYM_FT;
 
