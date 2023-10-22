@@ -2330,7 +2330,7 @@ groups:
         field: w_z_gps_v
         min: 0
         max: 10
-        default_value: 0.5
+        default_value: 1.0
       - name: inav_w_xy_gps_p
         description: "Weight of GPS coordinates in estimated UAV position and speed."
         default_value: 1.0

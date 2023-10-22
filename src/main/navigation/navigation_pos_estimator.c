@@ -572,9 +572,9 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
     bool correctOK = false;
     
-    const float gpsBaroResidual = fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt); //ignore baro is deference is too big
+    const float gpsBaroResidual = fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt); //ignore baro if difference is too big, baro is probably wrong
     //use both baro and gps
-    if ((ctx->newFlags & EST_BARO_VALID) && (!positionEstimationConfig()->use_gps_no_baro) && (gpsBaroResidual < positionEstimationConfig()->max_eph_epv)) {
+    if ((ctx->newFlags & EST_BARO_VALID) && (!positionEstimationConfig()->use_gps_no_baro) && (gpsBaroResidual < positionEstimationConfig()->max_eph_epv * 2)) {
         timeUs_t currentTimeUs = micros();
 
         if (!ARMING_FLAG(ARMED)) {
@@ -584,9 +584,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         }
         else {
             if (posEstimator.est.vel.z > 15) {
-                if (currentTimeUs > posEstimator.state.baroGroundTimeout) {
-                    posEstimator.state.isBaroGroundValid = false;
-                }
+                posEstimator.state.isBaroGroundValid = currentTimeUs > posEstimator.state.baroGroundTimeout ? false: true;
             }
             else {
                 posEstimator.state.baroGroundTimeout = currentTimeUs + 250000;   // 0.25 sec
