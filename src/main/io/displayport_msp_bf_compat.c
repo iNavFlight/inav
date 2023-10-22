@@ -98,7 +98,7 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
         return BF_SYM_AH_DECORATION_DOWN;
 */
     case SYM_DIRECTION:
-        return return BF_SYM_ARROW_NORTH;
+        return BF_SYM_ARROW_NORTH;
     
     case SYM_DIRECTION + 1: // NE pointing arrow
         return BF_SYM_ARROW_7;
