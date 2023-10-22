@@ -571,9 +571,10 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
 
     bool correctOK = false;
+    
+    const float gpsBaroResidual = fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt); //ignore baro is deference is too big
     //use both baro and gps
-
-    if ((ctx->newFlags & EST_BARO_VALID) && (!positionEstimationConfig()->use_gps_no_baro)) {
+    if ((ctx->newFlags & EST_BARO_VALID) && (!positionEstimationConfig()->use_gps_no_baro) && (gpsBaroResidual < positionEstimationConfig()->max_eph_epv)) {
         timeUs_t currentTimeUs = micros();
 
         if (!ARMING_FLAG(ARMED)) {
@@ -602,14 +603,6 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         ctx->estPosCorr.z += baroAltResidual * positionEstimationConfig()->w_z_baro_p * ctx->dt;
         ctx->estVelCorr.z += baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p) * ctx->dt;
 
-        // If GPS is available - also use GPS climb rate
-        if (ctx->newFlags & EST_GPS_Z_VALID) {
-            // Trust GPS velocity only if residual/error is less than 2.5 m/s, scale weight according to gaussian distribution
-            const float gpsRocResidual = posEstimator.gps.vel.z - posEstimator.est.vel.z;
-            const float gpsRocScaler = bellCurve(gpsRocResidual, 250.0f);
-            ctx->estVelCorr.z += gpsRocResidual * positionEstimationConfig()->w_z_gps_v * gpsRocScaler * ctx->dt;
-        }
-
         ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, posEstimator.baro.epv, positionEstimationConfig()->w_z_baro_p);
 
         // Accelerometer bias
@@ -629,10 +622,11 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         else {
             // Altitude
             const float gpsAltResudual = posEstimator.gps.pos.z - posEstimator.est.pos.z;
+            const float gpsVelZResudual = posEstimator.gps.vel.z - posEstimator.est.vel.z;
 
             ctx->estPosCorr.z += gpsAltResudual * positionEstimationConfig()->w_z_gps_p * ctx->dt;
             ctx->estVelCorr.z += gpsAltResudual * sq(positionEstimationConfig()->w_z_gps_p) * ctx->dt;
-            ctx->estVelCorr.z += (posEstimator.gps.vel.z - posEstimator.est.vel.z) * positionEstimationConfig()->w_z_gps_v * ctx->dt;
+            ctx->estVelCorr.z += gpsVelZResudual * positionEstimationConfig()->w_z_gps_v * ctx->dt;
             ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, MAX(posEstimator.gps.epv, gpsAltResudual), positionEstimationConfig()->w_z_gps_p);
 
             // Accelerometer bias
