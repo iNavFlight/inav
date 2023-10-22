@@ -44,9 +44,9 @@ The stick positions are combined to activate different functions:
 | Bypass Nav Arm disable        | LOW      | HIGH    | CENTER | CENTER |
 | Save setting                  | LOW      | LOW     | LOW    | HIGH   |
 | Enter OSD Menu (CMS)          | CENTER   | LOW     | HIGH   | CENTER |
-| Enter Camera OSD(RuncamDevice)| RIGHT    | CENTER  | CENTER | CENTER |
-| Exit Camera OSD (RuncamDevice)| LEFT     | CENTER  | CENTER | CENTER |
-| Confirm - Camera OSD          | RIGHT    | CENTER  | CENTER | CENTER |
+| Enter Camera OSD(RuncamDevice)| CENTER   | HIGH    | CENTER | CENTER |
+| Exit Camera OSD (RuncamDevice)| CENTER   | LOW     | CENTER | CENTER |
+| Confirm - Camera OSD          | CENTER   | HIGH    | CENTER | CENTER |
 | Navigation - Camera OSD       | CENTER   | CENTER  | *      | *      |
 
 For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).

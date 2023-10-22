@@ -6,7 +6,7 @@ CURR_REV="$(git rev-parse HEAD)"
 
 initialize_cmake() {
     echo -e "*** CMake was not initialized yet, doing it now.\n"
-    cmake ..
+    cmake -GNinja ..
     echo "$CURR_REV" > "$LAST_CMAKE_AT_REV_FILE"
 }
 
@@ -26,4 +26,4 @@ else
 fi
 
 # Let Make handle the arguments coming from the build script
-make "$@"
+ninja "$@"

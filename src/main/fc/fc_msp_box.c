@@ -30,6 +30,7 @@
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 
 #include "io/osd.h"
 
@@ -98,6 +99,9 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXSOARING,          .boxName = "SOARING",           .permanentId = 56 },
     { .boxId = BOXCHANGEMISSION,    .boxName = "MISSION CHANGE",    .permanentId = 59 },
     { .boxId = BOXBEEPERMUTE,       .boxName = "BEEPER MUTE",       .permanentId = 60 },
+    { .boxId = BOXMULTIFUNCTION,    .boxName = "MULTI FUNCTION",    .permanentId = 61 },
+    { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
+    { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -179,6 +183,9 @@ void initActiveBoxIds(void)
     RESET_BOX_ID_COUNT;
     ADD_ACTIVE_BOX(BOXARM);
     ADD_ACTIVE_BOX(BOXPREARM);
+#ifdef USE_MULTI_FUNCTIONS
+    ADD_ACTIVE_BOX(BOXMULTIFUNCTION);
+#endif
 
     if (sensors(SENSOR_ACC) && STATE(ALTITUDE_CONTROL)) {
         ADD_ACTIVE_BOX(BOXANGLE);
@@ -195,7 +202,7 @@ void initActiveBoxIds(void)
     //Camstab mode is enabled always
     ADD_ACTIVE_BOX(BOXCAMSTAB);
 
-    if (STATE(MULTIROTOR)) {
+    if (STATE(MULTIROTOR) || platformTypeConfigured(PLATFORM_MULTIROTOR) || platformTypeConfigured(PLATFORM_TRICOPTER)) {
         if ((sensors(SENSOR_ACC) || sensors(SENSOR_MAG))) {
             ADD_ACTIVE_BOX(BOXHEADFREE);
             ADD_ACTIVE_BOX(BOXHEADADJ);
@@ -227,6 +234,8 @@ void initActiveBoxIds(void)
         if (!STATE(ALTITUDE_CONTROL) || (STATE(ALTITUDE_CONTROL) && navReadyAltControl)) {
             ADD_ACTIVE_BOX(BOXNAVRTH);
             ADD_ACTIVE_BOX(BOXNAVWP);
+            ADD_ACTIVE_BOX(BOXNAVCRUISE);
+            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
             ADD_ACTIVE_BOX(BOXHOMERESET);
             ADD_ACTIVE_BOX(BOXGCSNAV);
             ADD_ACTIVE_BOX(BOXPLANWPMISSION);
@@ -235,15 +244,13 @@ void initActiveBoxIds(void)
 #endif
         }
 
-        if (STATE(AIRPLANE)) {
-            ADD_ACTIVE_BOX(BOXNAVCRUISE);
-            ADD_ACTIVE_BOX(BOXNAVCOURSEHOLD);
+        if (STATE(AIRPLANE) || platformTypeConfigured(PLATFORM_AIRPLANE)) {
             ADD_ACTIVE_BOX(BOXSOARING);
         }
     }
 
 #ifdef USE_MR_BRAKING_MODE
-    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR) {
+    if (mixerConfig()->platformType == PLATFORM_MULTIROTOR || platformTypeConfigured(PLATFORM_MULTIROTOR)) {
         ADD_ACTIVE_BOX(BOXBRAKING);
     }
 #endif
@@ -252,11 +259,12 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXNAVALTHOLD);
     }
 
-    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT)) {
+    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT) || 
+        platformTypeConfigured(PLATFORM_AIRPLANE) || platformTypeConfigured(PLATFORM_ROVER) || platformTypeConfigured(PLATFORM_BOAT)) {
         ADD_ACTIVE_BOX(BOXMANUAL);
     }
 
-    if (STATE(AIRPLANE)) {
+    if (STATE(AIRPLANE) || platformTypeConfigured(PLATFORM_AIRPLANE)) {
         if (!feature(FEATURE_FW_LAUNCH)) {
            ADD_ACTIVE_BOX(BOXNAVLAUNCH);
         }
@@ -346,6 +354,11 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXTURTLE);
     }
 #endif
+
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    ADD_ACTIVE_BOX(BOXMIXERPROFILE);
+    ADD_ACTIVE_BOX(BOXMIXERTRANSITION);
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -412,7 +425,13 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #ifdef USE_MULTI_MISSION
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCHANGEMISSION)),   BOXCHANGEMISSION);
 #endif
-
+#ifdef USE_MULTI_FUNCTIONS
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMULTIFUNCTION)),   BOXMULTIFUNCTION);
+#endif
+#if (MAX_MIXER_PROFILE_COUNT > 1)
+    CHECK_ACTIVE_BOX(IS_ENABLED(currentMixerProfileIndex),              BOXMIXERPROFILE);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
+#endif
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {

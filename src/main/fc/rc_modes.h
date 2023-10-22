@@ -78,6 +78,9 @@ typedef enum {
     BOXUSER4         = 49,
     BOXCHANGEMISSION = 50,
     BOXBEEPERMUTE    = 51,
+    BOXMULTIFUNCTION = 52,
+    BOXMIXERPROFILE      = 53,
+    BOXMIXERTRANSITION   = 54,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 

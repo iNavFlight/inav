@@ -719,28 +719,25 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
     if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE))
     {
+        //pick the best centrifugal acceleration between velned and turnrate
         fpVector3_t compansatedGravityBF_velned;
         vectorAdd(&compansatedGravityBF_velned, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
-        float velned_magnitude = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_velned)) - GRAVITY_CMSS);
+        float velned_error = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_velned)) - GRAVITY_CMSS);
 
         fpVector3_t compansatedGravityBF_turnrate;
         vectorAdd(&compansatedGravityBF_turnrate, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
-        float turnrate_magnitude = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_turnrate)) - GRAVITY_CMSS);
-        if (velned_magnitude > turnrate_magnitude)
-        {
-            compansatedGravityBF = compansatedGravityBF_turnrate;
-        }
-        else
-        {
-            compansatedGravityBF = compansatedGravityBF_velned;
-        }
+        float turnrate_error = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_turnrate)) - GRAVITY_CMSS);
+
+        compansatedGravityBF = velned_error > turnrate_error? compansatedGravityBF_turnrate:compansatedGravityBF_velned;
     }
-    else if (imuConfig()->inertia_comp_method == COMPMETHOD_VELNED && isGPSTrustworthy())
+    else if (((imuConfig()->inertia_comp_method == COMPMETHOD_VELNED) || (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE)) && isGPSTrustworthy())
     {
+        //velned centrifugal force compensation, quad will use this method
         vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
     }
     else if (STATE(AIRPLANE))
     {
+        //turnrate centrifugal force compensation
         vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
     }
     else

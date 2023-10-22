@@ -77,13 +77,6 @@ gpsSolutionData_t gpsSol;
 baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400, BAUD_460800, BAUD_921600 };
 
 static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
-    /* NMEA GPS */
-#ifdef USE_GPS_PROTO_NMEA
-    { false, MODE_RX, gpsRestartNMEA, &gpsHandleNMEA },
-#else
-    { false, 0, NULL, NULL },
-#endif
-
     /* UBLOX binary */
 #ifdef USE_GPS_PROTO_UBLOX
     { false, MODE_RXTX, &gpsRestartUBLOX, &gpsHandleUBLOX },
@@ -113,7 +106,7 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 5);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
@@ -264,7 +257,7 @@ void gpsPreInit(void)
 {
     // Make sure gpsProvider is known when gpsMagDetect is called
     gpsState.gpsConfig = gpsConfig();
-    gpsState.baseTimeoutMs = (gpsState.gpsConfig->provider == GPS_NMEA) ? GPS_TIMEOUT*2 : GPS_TIMEOUT;
+    gpsState.baseTimeoutMs = GPS_TIMEOUT;
 }
 
 void gpsInit(void)

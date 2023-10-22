@@ -43,6 +43,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
@@ -886,8 +887,6 @@ static uint8_t getHeadingHoldState(void)
     }
     else if (ABS(rcCommand[YAW]) == 0 && FLIGHT_MODE(HEADING_MODE)) {
         return HEADING_HOLD_ENABLED;
-    } else {
-        return HEADING_HOLD_UPDATE_HEADING;
     }
 
     return HEADING_HOLD_UPDATE_HEADING;
@@ -900,17 +899,14 @@ float pidHeadingHold(float dT)
 {
     float headingHoldRate;
 
+    /* Convert absolute error into relative to current heading */
     int16_t error = DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headingHoldTarget;
 
-    /*
-     * Convert absolute error into relative to current heading
-     */
-    if (error <= -180) {
-        error += 360;
-    }
-
-    if (error >= +180) {
+    /* Convert absolute error into relative to current heading */
+    if (error > 180) {
         error -= 360;
+    } else if (error < -180) {
+        error += 360;
     }
 
     /*
@@ -1070,7 +1066,7 @@ void FAST_CODE pidController(float dT)
         return;
     }
 
-    bool canUseFpvCameraMix = true;
+    bool canUseFpvCameraMix = STATE(MULTIROTOR);
     uint8_t headingHoldState = getHeadingHoldState();
 
     // In case Yaw override is active, we engage the Heading Hold state
@@ -1124,17 +1120,17 @@ void FAST_CODE pidController(float dT)
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
-        }       
+        }
     }
 
-    if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || navigationRequiresTurnAssistance())) {
+    if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
         float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
         float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]));
         pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
-    if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees) {
+    if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees && STATE(MULTIROTOR)) {
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
 
@@ -1218,9 +1214,9 @@ void pidInit(void)
 
     if (pidProfile()->pidControllerType == PID_TYPE_AUTO) {
         if (
-            mixerConfig()->platformType == PLATFORM_AIRPLANE ||
-            mixerConfig()->platformType == PLATFORM_BOAT ||
-            mixerConfig()->platformType == PLATFORM_ROVER
+            currentMixerConfig.platformType == PLATFORM_AIRPLANE ||
+            currentMixerConfig.platformType == PLATFORM_BOAT ||
+            currentMixerConfig.platformType == PLATFORM_ROVER
         ) {
             usedPidControllerType = PID_TYPE_PIFF;
         } else {

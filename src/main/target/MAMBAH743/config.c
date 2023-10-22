@@ -46,6 +46,7 @@
 #include "telemetry/telemetry.h"
 
 #include "io/piniobox.h"
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
@@ -65,4 +66,7 @@ void targetConfiguration(void)
      */
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_MSP;
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].msp_baudrateIndex = BAUD_115200;
+
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
 }
