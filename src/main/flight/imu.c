@@ -351,8 +351,8 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
     if (magBF || useCOG) {
-        float wMag;
-        float wCoG;
+        float wMag = 0.0f;
+        float wCoG = 0.0f;
         fpVector3_t vMagErr = { .v = { 0.0f, 0.0f, 0.0f } };
         fpVector3_t vCoGErr = { .v = { 0.0f, 0.0f, 0.0f } };
 
