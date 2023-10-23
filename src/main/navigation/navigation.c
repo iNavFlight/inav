@@ -949,7 +949,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
         }
     },
-    
+
     /** MIXER AUTOMATED TRANSITION mode, alternated althod ***************************************************/
     [NAV_STATE_MIXERAT_INITIALIZE] = {
         .persistentId = NAV_PERSISTENT_ID_MIXERAT_INITIALIZE,
@@ -992,7 +992,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .onEvent = {
             [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
-            
+
         }
     },
 };
@@ -1514,7 +1514,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || !validateRTHSanityChecker()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
-    
+
     if (checkMixerATRequired(MIXERAT_REQUEST_LAND)){
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
@@ -3919,14 +3919,14 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
 
         // CRUISE has priority over COURSE_HOLD and AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE) && STATE(AIRPLANE)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCRUISE)) {
             if ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
         }
 
         // PH has priority over COURSE_HOLD
         // CRUISE has priority on AH
-        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD) && STATE(AIRPLANE)) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVCOURSEHOLD)) {
             if (IS_RC_MODE_ACTIVE(BOXNAVALTHOLD) && ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivatePosHold && canActivateAltHold))) {
                 return NAV_FSM_EVENT_SWITCH_TO_CRUISE;
             }
@@ -3940,8 +3940,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             if ((FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
         }
-    }
-    else {
+    } else {
         canActivateWaypoint = false;
 
         // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
@@ -4054,13 +4053,13 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
         }
     }
 
-        /*
-         * Don't allow arming if any of JUMP waypoint has invalid settings
-         * First WP can't be JUMP
-         * Can't jump to immediately adjacent WPs (pointless)
-         * Can't jump beyond WP list
-         * Only jump to geo-referenced WP types
-         */
+    /*
+     * Don't allow arming if any of JUMP waypoint has invalid settings
+     * First WP can't be JUMP
+     * Can't jump to immediately adjacent WPs (pointless)
+     * Can't jump beyond WP list
+     * Only jump to geo-referenced WP types
+     */
     if (posControl.waypointCount) {
         for (uint8_t wp = posControl.startWpIndex; wp < posControl.waypointCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
