@@ -327,6 +327,8 @@ main_sources(COMMON_SRC
     flight/rth_estimator.h
     flight/servos.c
     flight/servos.h
+    flight/mixer_profile.c
+    flight/mixer_profile.h
     flight/wind_estimator.c
     flight/wind_estimator.h
     flight/gyroanalyse.c
@@ -339,6 +341,8 @@ main_sources(COMMON_SRC
     flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
+    flight/ez_tune.c
+    flight/ez_tune.h
 
     io/beeper.c
     io/beeper.h
@@ -504,7 +508,6 @@ main_sources(COMMON_SRC
     io/gps.h
     io/gps_ublox.c
     io/gps_ublox_utils.c
-    io/gps_nmea.c
     io/gps_msp.c
     io/gps_fake.c
     io/gps_private.h

@@ -39,6 +39,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -293,6 +294,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     needToCalculateCircularLoiter = isNavHoldPositionActive() &&
                                      (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
                                      (distanceToActualTarget > 50.0f);
+    //if vtol landing is required, fly straight to homepoint
+    if ((posControl.navState == NAV_STATE_RTH_HEAD_HOME) && navigationRTHAllowsLanding() && checkMixerATRequired(MIXERAT_REQUEST_LAND)){
+        needToCalculateCircularLoiter = false;
+    }
 
     /* WP turn smoothing with 2 options, 1: pass through WP, 2: cut inside turn missing WP
      * Works for turns > 30 degs and < 160 degs.

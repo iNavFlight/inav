@@ -258,7 +258,7 @@ Inertia force compensation method when gps is avaliable, VELNED use the acclerat
 
 | Default | Min | Max |
 | --- | --- | --- |
-| VELNED |  |  |
+| ADAPTIVE |  |  |
 
 ---
 
@@ -869,6 +869,96 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### ez_aggressiveness
+
+EzTune aggressiveness
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_axis_ratio
+
+EzTune axis ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 110 | 25 | 175 |
+
+---
+
+### ez_damping
+
+EzTune damping
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_enabled
+
+Enables EzTune feature
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### ez_expo
+
+EzTune expo
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_filter_hz
+
+EzTune filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 110 | 10 | 300 |
+
+---
+
+### ez_rate
+
+EzTune rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_response
+
+EzTune response
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_stability
+
+EzTune stability
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
 
 ---
 
@@ -1864,7 +1954,7 @@ Weight of GPS altitude measurements in estimated altitude. Setting is used only 
 
 ### inav_w_z_gps_v
 
-Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors. If GPS doesn't support native climb rate reporting (i.e. NMEA GPS) you may consider setting this to zero
+Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2552,6 +2642,36 @@ This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly 
 
 ---
 
+### mixer_automated_switch
+
+If set to on, This mixer_profile will try to switch to another mixer_profile when 1.RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius on mixer_profile is a MULTIROTOR or TRICOPTER platform_type. 2. RTH landing is requested on this mixer_profile is a AIRPLANE platform_type
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_pid_profile_linking
+
+If enabled, pid profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle PID profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the PID profile switching on a VTOL or mixed platform type setup.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_switch_trans_timer
+
+If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 200 |
+
+---
+
 ### mode_range_logic_operator
 
 Control how Mode selection works in flight modes. If you example have Angle mode configured on two different Aux channels, this controls if you need both activated ( AND ) or if you only need one activated ( OR ) to active angle mode.
@@ -2609,6 +2729,16 @@ Output frequency (in Hz) for motor pins.  Applies only to brushed motors.
 | Default | Min | Max |
 | --- | --- | --- |
 | 16000 | 50 | 32000 |
+
+---
+
+### motorstop_on_low
+
+If enabled, motor will stop when throttle is low on this mixer_profile
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -3398,7 +3528,7 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1500 | 1000 | 2000 |
+| 1300 | 1000 | 2000 |
 
 ---
 
@@ -3972,6 +4102,16 @@ Value above which to make the OSD relative altitude indicator blink (meters)
 
 ---
 
+### osd_arm_screen_display_time
+
+Amount of time to display the arm screen [ms]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 1000 | 5000 |
+
+---
+
 ### osd_baro_temp_alarm_max
 
 Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade)
@@ -4299,6 +4439,16 @@ Temperature under which the IMU temperature OSD element will start blinking (dec
 | Default | Min | Max |
 | --- | --- | --- |
 | -200 | -550 | 1250 |
+
+---
+
+### osd_inav_to_pilot_logo_spacing
+
+The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | 0 | 20 |
 
 ---
 
@@ -4719,6 +4869,16 @@ IMPERIAL, METRIC, UK
 | Default | Min | Max |
 | --- | --- | --- |
 | METRIC |  |  |
+
+---
+
+### osd_use_pilot_logo
+
+Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

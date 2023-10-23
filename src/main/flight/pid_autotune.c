@@ -130,7 +130,7 @@ void autotuneStart(void)
 
 void autotuneUpdateState(void)
 {
-    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE) && ARMING_FLAG(ARMED)) {
+    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE) && STATE(AIRPLANE) && ARMING_FLAG(ARMED)) {
         if (!FLIGHT_MODE(AUTO_TUNE)) {
             autotuneStart();
             ENABLE_FLIGHT_MODE(AUTO_TUNE);
