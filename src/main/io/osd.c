@@ -1911,7 +1911,7 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
-    case OSD_ODOMETER:    
+    case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
             uint32_t odometerDist = (uint32_t)(getTotalTravelDistance() / 100);
@@ -3955,7 +3955,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
 /**
  * @brief Draws the INAV and/or pilot logos on the display
- * 
+ *
  * @param singular If true, only one logo will be drawn. If false, both logos will be drawn, separated by osdConfig()->inav_to_pilot_logo_spacing characters
  * @param row The row number to start drawing the logos. If not singular, both logos are drawn on the same rows.
  * @return uint8_t The row number after the logo(s).
@@ -4005,7 +4005,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
         } else {
             logo_x = logoColOffset + SYM_LOGO_WIDTH + logoSpacing;
         }
-        
+
         for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
             for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
                 displayWriteChar(osdDisplayPort, logo_x + lCol, logoRow, logo_c++);
@@ -4129,7 +4129,7 @@ static void osdCompleteAsyncInitialization(void)
 
     if (fontHasMetadata && metadata.charCount > 256) {
         hasExtendedFont = true;
-    
+
         y = drawLogos(false, y);
         y++;
     } else if (!fontHasMetadata) {
@@ -4568,12 +4568,12 @@ static void osdShowHDArmScreen(void)
 
                 displayWrite(osdDisplayPort, col, armScreenRow, buf);
                 displayWrite(osdDisplayPort, col + strlen(buf) + gap, armScreenRow++, buf2);
-                
+
                 int digits = osdConfig()->plus_code_digits;
                 olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
                 displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             }
-            
+
 #if defined (USE_SAFE_HOME)
             if (posControl.safehomeState.distance) { // safehome found during arming
                 if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
@@ -4653,7 +4653,7 @@ static void osdShowSDArmScreen(void)
                 uint8_t gpsStartCol = (osdDisplayPort->cols - (strlen(buf) + strlen(buf2) + 2)) / 2;
                 displayWrite(osdDisplayPort, gpsStartCol, armScreenRow, buf);
                 displayWrite(osdDisplayPort, gpsStartCol + strlen(buf) + 2, armScreenRow++, buf2);
-                
+
                 int digits = osdConfig()->plus_code_digits;
                 olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
                 displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
@@ -5156,8 +5156,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE_ACRO);
                         }
                     }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || (navigationRequiresAngleMode() && !navigationIsControllingAltitude()))) {
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
+                    if (isFixedWingLevelTrimActive()) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
                     }
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
