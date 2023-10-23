@@ -71,7 +71,9 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 #define mixerMotorMixersByIndex(index) (mixerProfiles(index)->MotorMixers)
 #define mixerServoMixersByIndex(index) (mixerProfiles(index)->ServoMixers)
 
+bool platformTypeConfigured(flyingPlatformType_e platformType);
 bool outputProfileHotSwitch(int profile_index);
 bool checkMixerProfileHotSwitchAvalibility(void);
+void activateMixerConfig(void);
 void mixerConfigInit(void);
 void outputProfileUpdateTask(timeUs_t currentTimeUs);

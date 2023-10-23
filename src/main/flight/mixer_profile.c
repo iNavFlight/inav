@@ -23,6 +23,7 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 #include "fc/rc_modes.h"
+#include "fc/cli.h"
 
 #include "programming/logic_condition.h"
 #include "navigation/navigation.h"
@@ -77,11 +78,15 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
     }
 }
 
-void mixerConfigInit(void)
-{
+void activateMixerConfig(){
     currentMixerProfileIndex = getConfigMixerProfile();
     currentMixerConfig = *mixerConfig();
     nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
+}
+
+void mixerConfigInit(void)
+{
+    activateMixerConfig();
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
@@ -101,6 +106,14 @@ void setMixerProfileAT(void)
 {
     mixerProfileAT.transitionStartTime = millis();
     mixerProfileAT.transitionTransEndTime = mixerProfileAT.transitionStartTime + (timeMs_t)currentMixerConfig.switchTransitionTimer * 100;
+}
+
+bool platformTypeConfigured(flyingPlatformType_e platformType)
+{   
+    if (!isModeActivationConditionPresent(BOXMIXERPROFILE)){
+        return false;
+    }
+    return mixerConfigByIndex(nextProfileIndex)->platformType == platformType;
 }
 
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
@@ -183,8 +196,9 @@ bool checkMixerProfileHotSwitchAvalibility(void)
 }
 
 void outputProfileUpdateTask(timeUs_t currentTimeUs)
-{
+{   
     UNUSED(currentTimeUs);
+    if(cliMode) return;
     bool mixerAT_inuse = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
     // transition mode input for servo mix and motor mix
     if (!FLIGHT_MODE(FAILSAFE_MODE) && (!mixerAT_inuse))

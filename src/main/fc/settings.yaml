@@ -1045,7 +1045,7 @@ groups:
         max: PWM_RANGE_MAX
       - name: nav_mc_hover_thr
         description: "Multicopter hover throttle hint for altitude controller. Should be set to approximate throttle value when drone is hovering."
-        default_value: 1500
+        default_value: 1300
         field: nav.mc.hover_throttle
         min: 1000
         max: 2000
@@ -1452,7 +1452,7 @@ groups:
         type: bool
       - name: ahrs_inertia_comp_method
         description: "Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop"
-        default_value: VELNED
+        default_value: ADAPTIVE
         field: inertia_comp_method
         table: imu_inertia_comp_method
 
@@ -1491,6 +1491,65 @@ groups:
         type: uint8_t
         min: 0
         max: 99
+
+  - name: PG_EZ_TUNE
+    headers: ["flight/ez_tune.h"]
+    type: ezTuneSettings_t
+    value_type: EZ_TUNE_VALUE
+    members:
+      - name: ez_enabled
+        description: "Enables EzTune feature"
+        default_value: OFF
+        field: enabled
+        type: bool
+      - name: ez_filter_hz
+        description: "EzTune filter cutoff frequency"
+        default_value: 110
+        field: filterHz
+        min: 10
+        max: 300
+      - name: ez_axis_ratio
+        description: "EzTune axis ratio"
+        default_value: 110
+        field: axisRatio
+        min: 25
+        max: 175
+      - name: ez_response
+        description: "EzTune response"
+        default_value: 100
+        field: response
+        min: 0
+        max: 200
+      - name: ez_damping
+        description: "EzTune damping"
+        default_value: 100
+        field: damping
+        min: 0
+        max: 200
+      - name: ez_stability
+        description: "EzTune stability"
+        default_value: 100
+        field: stability
+        min: 0
+        max: 200
+      - name: ez_aggressiveness
+        description: "EzTune aggressiveness"
+        default_value: 100
+        field: aggressiveness
+        min: 0
+        max: 200
+      - name: ez_rate
+        description: "EzTune rate"
+        default_value: 100
+        field: rate
+        min: 0
+        max: 200
+      - name: ez_expo
+        description: "EzTune expo"
+        default_value: 100
+        field: expo
+        min: 0
+        max: 200
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -3500,59 +3559,88 @@ groups:
         max: 6
         default_value: 4
 
+      - name: osd_use_pilot_logo
+        description: Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
+        field: use_pilot_logo
+        type: bool
+        default_value: OFF
+
+      - name: osd_inav_to_pilot_logo_spacing
+        description: The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
+        field: inav_to_pilot_logo_spacing
+        min: 0
+        max: 20
+        default_value: 8
+
+      - name: osd_arm_screen_display_time
+        description: Amount of time to display the arm screen [ms]
+        field: arm_screen_display_time
+        min: 1000
+        max: 5000
+        default_value: 1500
+  
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
         type: string
         max: 5
         default_value: "FLAP"
+
       - name: osd_switch_indicator_one_name
         description: "Character to use for OSD switch incicator 1."
         field: osd_switch_indicator1_name
         type: string
         max: 5
         default_value: "GEAR"
+
       - name: osd_switch_indicator_two_name
         description: "Character to use for OSD switch incicator 2."
         field: osd_switch_indicator2_name
         type: string
         max: 5
         default_value: "CAM"
+
       - name: osd_switch_indicator_three_name
         description: "Character to use for OSD switch incicator 3."
         field: osd_switch_indicator3_name
         type: string
         max: 5
         default_value: "LIGT"
+
       - name: osd_switch_indicator_zero_channel
         description: "RC Channel to use for OSD switch indicator 0."
         field: osd_switch_indicator0_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
+
       - name: osd_switch_indicator_one_channel
         description: "RC Channel to use for OSD switch indicator 1."
         field: osd_switch_indicator1_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
+
       - name: osd_switch_indicator_two_channel
         description: "RC Channel to use for OSD switch indicator 2."
         field: osd_switch_indicator2_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
+
       - name: osd_switch_indicator_three_channel
         description: "RC Channel to use for OSD switch indicator 3."
         field: osd_switch_indicator3_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
+
       - name: osd_switch_indicators_align_left
         description: "Align text to left of switch indicators"
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
+
       - name: osd_system_msg_display_time
         description: System message display cycle time for multiple messages (milliseconds).
         field: system_msg_display_time
