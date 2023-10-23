@@ -873,7 +873,10 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
 
-        processDelayedSave();
+        // Delay saving for 0.5s to allow other functions to process save actions on disarm
+        if (currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC / 2) {
+            processDelayedSave();
+        }
     }
 
 #if defined(SITL_BUILD)

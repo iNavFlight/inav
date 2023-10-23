@@ -1263,7 +1263,8 @@ pidBank_t * pidBankMutable(void) {
 bool isFixedWingLevelTrimActive(void)
 {
     return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !areSticksDeflected() &&
-           (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) && !FLIGHT_MODE(SOARING_MODE) &&
+           (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) &&
+           !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
            !navigationIsControllingAltitude();
 }
 
