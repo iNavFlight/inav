@@ -1771,7 +1771,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else 
 #endif
             {
-                if (osdFormatCentiNumber(buff, getBatteryRemainingCapacity() * 100, 1000, 0, (mah_digits - 2), mah_digits), false) {
+                if (osdFormatCentiNumber(buff, getBatteryRemainingCapacity() * 100, 1000, 0, (mah_digits - 2), mah_digits, false)) {
                     // Shown in Ah
                     buff[mah_digits] = SYM_AH;
                 } else {
