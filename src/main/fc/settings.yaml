@@ -1455,11 +1455,12 @@ groups:
         default_value: ADAPTIVE
         field: inertia_comp_method
         table: imu_inertia_comp_method
-      - name: ahrs_use_mag_no_gps
-        description: "Arhs will only use mag when gps is still avaliable"
-        default_value: OFF
-        field: use_mag_no_gps
-        type: bool
+      - name: ahrs_gps_yaw_weight
+        description: "Arhs gps yaw weight when mag is avaliable, 0 means no gps yaw, 100 means equal weight as compass"
+        default_value: 100
+        field: gps_yaw_weight
+        min: 0
+        max: 500
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

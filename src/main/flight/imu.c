@@ -128,7 +128,7 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
     .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
     .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT,
-    .use_mag_no_gps = SETTING_AHRS_USE_MAG_NO_GPS_DEFAULT
+    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -356,6 +356,8 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     if (magBF || useCOG) {
         float wMag = 1.0f;
         float wCoG = 1.0f;
+        if(magBF){wCoG *= imuConfig()->gps_yaw_weight / 100.0f;}
+
         fpVector3_t vMagErr = { .v = { 0.0f, 0.0f, 0.0f } };
         fpVector3_t vCoGErr = { .v = { 0.0f, 0.0f, 0.0f } };
 
@@ -717,7 +719,7 @@ static void imuCalculateEstimatedAttitude(float dT)
         gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
     }
     // Use GPS (if available)
-    if (canUseCOG && (!(imuConfig()->use_mag_no_gps && useMag))) {
+    if (canUseCOG) {
         if (gpsHeadingInitialized) {
             courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
             useCOG = true;
