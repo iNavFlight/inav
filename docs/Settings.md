@@ -242,6 +242,16 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 ---
 
+### ahrs_gps_yaw_weight
+
+Arhs gps yaw weight when mag is avaliable, 0 means no gps yaw, 100 means equal weight as compass
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 500 |
+
+---
+
 ### ahrs_gps_yaw_windcomp
 
 Wind compensation in heading estimation from gps groundcourse(fixed wing only)
@@ -1934,21 +1944,21 @@ _// TODO_
 
 ### inav_w_z_baro_p
 
-Weight of barometer measurements in estimated altitude and climb rate
+Weight of barometer measurements in estimated altitude and climb rate. Setting is used on both airplanes and multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.35 | 0 | 10 |
+| 0.4 | 0 | 10 |
 
 ---
 
 ### inav_w_z_gps_p
 
-Weight of GPS altitude measurements in estimated altitude. Setting is used only of airplanes
+Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.2 | 0 | 10 |
+| 0.4 | 0 | 10 |
 
 ---
 
@@ -1958,7 +1968,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.6 | 0 | 10 |
 
 ---
 
