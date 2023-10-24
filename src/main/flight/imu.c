@@ -351,13 +351,13 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
     if (magBF || useCOG) {
-        float wMag = 0.0f;
-        float wCoG = 0.0f;
+        float wMag = 1.0f;
+        float wCoG = 1.0f;
         fpVector3_t vMagErr = { .v = { 0.0f, 0.0f, 0.0f } };
         fpVector3_t vCoGErr = { .v = { 0.0f, 0.0f, 0.0f } };
 
         if (magBF && vectorNormSquared(magBF) > 0.01f) {
-            wMag = bellCurve((vectorNormSquared(magBF) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS); //TODO check if 1024 is correct
+            wMag *= bellCurve((vectorNormSquared(magBF) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS); //TODO check if 1024 is correct
             fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
@@ -397,11 +397,11 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             }else{
                 vForward.x = 1.0f;
             }
-
-            wCoG = scaleRangef(constrainf(gpsSol.groundSpeed, 300, 1200), 300, 1200, 0.0f, 1.0f);
             if (STATE(MULTIROTOR)){
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
                 wCoG *= imuCalculateMcMagCogWeight();
+                //scale accroading to multirotor`s tilt angle
+                wCoG *= scaleRangef(constrainf(vForward.z, 0.98f, 0.90f), 0.98f, 0.90f, 0.0f, 1.0f); //cos(10deg) and cos(25deg)
             }
             fpVector3_t vHeadingEF;
 
@@ -413,6 +413,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // (Rxx; Ryx) - measured (estimated) heading vector (EF)
             // (-cos(COG), sin(COG)) - reference heading vector (EF)
 
+            float airSpeed = gpsSol.groundSpeed;
             // Compute heading vector in EF from scalar CoG,x axis of accelerometer is pointing backwards.
             fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
 #if defined(USE_WIND_ESTIMATOR)
@@ -422,10 +423,11 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorScale(&vCoG, &vCoG, gpsSol.groundSpeed);
                 vCoG.x += getEstimatedWindSpeed(X);
                 vCoG.y -= getEstimatedWindSpeed(Y);
+                airSpeed = fast_fsqrtf(vectorNormSquared(&vCoG));
                 vectorNormalize(&vCoG, &vCoG);
             }
 #endif
-
+            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 300, 1200), 300, 1200, 0.0f, 1.0f);
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
             vHeadingEF.z = 0.0f;
