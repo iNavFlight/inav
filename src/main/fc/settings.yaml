@@ -1455,6 +1455,11 @@ groups:
         default_value: ADAPTIVE
         field: inertia_comp_method
         table: imu_inertia_comp_method
+      - name: ahrs_use_mag_no_gps
+        description: "Arhs will only use mag when gps is still avaliable"
+        default_value: OFF
+        field: use_mag_no_gps
+        type: bool
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t

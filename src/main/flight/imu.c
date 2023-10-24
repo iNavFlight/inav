@@ -125,7 +125,8 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_rate = SETTING_AHRS_ACC_IGNORE_RATE_DEFAULT,
     .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
     .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
-    .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT
+    .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT,
+    .use_mag_no_gps = SETTING_AHRS_USE_MAG_NO_GPS_DEFAULT
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -337,7 +338,7 @@ static float imuCalculateMcMagCogWeight(void)
     wCoG *= scaleRangef(constrainf(rotRateMagnitude, 0.0f, rateSlopeMax), 0.0f, rateSlopeMax, 1.0f, 0.0f);
     return wCoG;
 }
-#define COS10DEG 0.984f
+#define COS5DEG 0.996f
 #define COS25DEG 0.906f
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
 {
@@ -402,7 +403,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
                 wCoG *= imuCalculateMcMagCogWeight();
                 //scale accroading to multirotor`s tilt angle
-                wCoG *= scaleRangef(constrainf(vForward.z, COS10DEG, COS25DEG), COS10DEG, COS25DEG, 0.0f, 1.0f);
+                wCoG *= scaleRangef(constrainf(vForward.z, COS5DEG, COS25DEG), COS5DEG, COS25DEG, 0.0f, 1.0f);
                 //for inverted flying, wCoG is lowered by imuCalculateMcMagCogWeight
             }
             fpVector3_t vHeadingEF;
@@ -429,7 +430,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorNormalize(&vCoG, &vCoG);
             }
 #endif
-            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 300, 1200), 300, 1200, 0.0f, 1.0f);
+            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 400, 1500), 400, 1500, 0.0f, 1.0f);
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
             vHeadingEF.z = 0.0f;
@@ -706,37 +707,29 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useMag = false;
     bool useCOG = false;
 #if defined(USE_GPS)
-    if (STATE(FIXED_WING_LEGACY) || STATE(MULTIROTOR)) {
-        bool canUseCOG = isGPSHeadingValid();
+    bool canUseCOG = isGPSHeadingValid();
 
-        // Use compass (if available)
-        if (canUseMAG) {
-            useMag = true;
-            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
-        }
-        // Use GPS (if available)
-        if (canUseCOG) {
-            if (gpsHeadingInitialized) {
-                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-                useCOG = true;
-            }
-            else if (!canUseMAG) {
-                // Re-initialize quaternion from known Roll, Pitch and GPS heading
-                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
-                gpsHeadingInitialized = true;
-
-                // Force reset of heading hold target
-                resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-            }
-        } else if (!ARMING_FLAG(ARMED)) {
-            gpsHeadingInitialized = false;
-        }
+    // Use compass (if available)
+    if (canUseMAG) {
+        useMag = true;
+        gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
     }
-    else {
-        // other platform type don't use GPS heading
-        if (canUseMAG) {
-            useMag = true;
+    // Use GPS (if available)
+    if (canUseCOG && (!(imuConfig()->use_mag_no_gps && useMag))) {
+        if (gpsHeadingInitialized) {
+            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+            useCOG = true;
         }
+        else if (!canUseMAG) {
+            // Re-initialize quaternion from known Roll, Pitch and GPS heading
+            imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
+            gpsHeadingInitialized = true;
+
+            // Force reset of heading hold target
+            resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+        }
+    } else if (!ARMING_FLAG(ARMED)) {
+        gpsHeadingInitialized = false;
     }
 
     imuCalculateFilters(dT);
