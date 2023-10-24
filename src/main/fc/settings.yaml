@@ -2314,23 +2314,23 @@ groups:
         max: 100
         default_value: 2.0
       - name: inav_w_z_baro_p
-        description: "Weight of barometer measurements in estimated altitude and climb rate"
+        description: "Weight of barometer measurements in estimated altitude and climb rate. Setting is used on both airplanes and multirotors."
         field: w_z_baro_p
         min: 0
         max: 10
         default_value: 0.35
       - name: inav_w_z_gps_p
-        description: "Weight of GPS altitude measurements in estimated altitude. Setting is used only of airplanes"
+        description: "Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors."
         field: w_z_gps_p
         min: 0
         max: 10
-        default_value: 0.2
+        default_value: 0.5
       - name: inav_w_z_gps_v
         description: "Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors."
         field: w_z_gps_v
         min: 0
         max: 10
-        default_value: 0.1
+        default_value: 1.0
       - name: inav_w_xy_gps_p
         description: "Weight of GPS coordinates in estimated UAV position and speed."
         default_value: 1.0
