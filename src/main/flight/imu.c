@@ -337,7 +337,8 @@ static float imuCalculateMcMagCogWeight(void)
     wCoG *= scaleRangef(constrainf(rotRateMagnitude, 0.0f, rateSlopeMax), 0.0f, rateSlopeMax, 1.0f, 0.0f);
     return wCoG;
 }
-
+#define COS10DEG 0.984f
+#define COS25DEG 0.906f
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
@@ -357,7 +358,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         fpVector3_t vCoGErr = { .v = { 0.0f, 0.0f, 0.0f } };
 
         if (magBF && vectorNormSquared(magBF) > 0.01f) {
-            wMag *= bellCurve((vectorNormSquared(magBF) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS); //TODO check if 1024 is correct
+            wMag *= bellCurve((fast_fsqrtf(vectorNormSquared(magBF)) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS);
             fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
@@ -401,7 +402,8 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
                 wCoG *= imuCalculateMcMagCogWeight();
                 //scale accroading to multirotor`s tilt angle
-                wCoG *= scaleRangef(constrainf(vForward.z, 0.98f, 0.90f), 0.98f, 0.90f, 0.0f, 1.0f); //cos(10deg) and cos(25deg)
+                wCoG *= scaleRangef(constrainf(vForward.z, COS10DEG, COS25DEG), COS10DEG, COS25DEG, 0.0f, 1.0f);
+                //for inverted flying, wCoG is lowered by imuCalculateMcMagCogWeight
             }
             fpVector3_t vHeadingEF;
 
@@ -839,6 +841,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         acc.accADCf[Z] = 0.0f;
     }
 }
+ 
 
 bool isImuReady(void)
 {
@@ -847,7 +850,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING_LEGACY) && gpsHeadingInitialized);
+    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || gpsHeadingInitialized;
 }
 
 float calculateCosTiltAngle(void)
