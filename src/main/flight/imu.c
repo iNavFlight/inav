@@ -77,7 +77,9 @@
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_NEARNESS            0.2    // 20% or G error soft-accepted (0.8-1.2G)
-#define MAX_MAG_NEARNESS            0.2    // 20% or magnetic field error soft-accepted (0.8-1.2)
+#define MAX_MAG_NEARNESS            0.25    // 25% or magnetic field error soft-accepted (0.75-1.25)
+#define COS5DEG 0.996f
+#define COS20DEG 0.940f
 #define IMU_ROTATION_LPF         3       // Hz
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -330,7 +332,7 @@ bool isGPSTrustworthy(void)
     return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6;
 }
 
-static float imuCalculateMcMagCogWeight(void)
+static float imuCalculateMcCogWeight(void)
 {
     float wCoG = imuCalculateAccelerometerWeightNearness(&imuMeasuredAccelBF);
     float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
@@ -338,8 +340,7 @@ static float imuCalculateMcMagCogWeight(void)
     wCoG *= scaleRangef(constrainf(rotRateMagnitude, 0.0f, rateSlopeMax), 0.0f, rateSlopeMax, 1.0f, 0.0f);
     return wCoG;
 }
-#define COS5DEG 0.996f
-#define COS25DEG 0.906f
+
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
@@ -394,17 +395,10 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         if (useCOG) {
             fpVector3_t vForward = { .v = { 0.0f, 0.0f, 0.0f } };
             //vForward as trust vector
-            if STATE(MULTIROTOR){
+            if (STATE(MULTIROTOR)){
                 vForward.z = 1.0f;
             }else{
                 vForward.x = 1.0f;
-            }
-            if (STATE(MULTIROTOR)){
-                //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
-                wCoG *= imuCalculateMcMagCogWeight();
-                //scale accroading to multirotor`s tilt angle
-                wCoG *= scaleRangef(constrainf(vForward.z, COS5DEG, COS25DEG), COS5DEG, COS25DEG, 0.0f, 1.0f);
-                //for inverted flying, wCoG is lowered by imuCalculateMcMagCogWeight
             }
             fpVector3_t vHeadingEF;
 
@@ -430,9 +424,17 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorNormalize(&vCoG, &vCoG);
             }
 #endif
-            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 400, 1500), 400, 1500, 0.0f, 1.0f);
+            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 400, 1200), 400, 1200, 0.0f, 1.0f);
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
+
+            if (STATE(MULTIROTOR)){
+                //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
+                wCoG *= imuCalculateMcCogWeight();
+                //scale accroading to multirotor`s tilt angle
+                wCoG *= scaleRangef(constrainf(vHeadingEF.z, COS20DEG, COS5DEG), COS20DEG, COS5DEG, 1.0f, 0.0f);
+                //for inverted flying, wCoG is lowered by imuCalculateMcCogWeight no additional processing needed
+            }
             vHeadingEF.z = 0.0f;
 
             // We zeroed out vHeadingEF.z -  make sure the whole vector didn't go to zero

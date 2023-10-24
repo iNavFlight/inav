@@ -31,6 +31,7 @@
 
 #include "platform.h"
 #include "build/build_config.h"
+#include "common/log.h"
 
 #if defined(USE_GPS_FAKE)
 
