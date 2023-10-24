@@ -1074,11 +1074,16 @@ void updateAttihold(float *angleTarget, uint8_t axis)
     }
 
     if ((FLIGHT_MODE(ATTIHOLD_MODE) || axis == navAttiHoldAxis) && !isFlightAxisAngleOverrideActive(axis)) {
+        /* attiHoldTarget stores attitude values using a zero datum when level.
+         * This requires attiHoldTarget pitch to be corrected for fixedWingLevelTrim so it is 0
+         * when the craft is level even though attitude pitch is non zero in this case.
+         * angleTarget pitch is corrected back to fixedWingLevelTrim datum on return from function */
+
         static int16_t attiHoldTarget[2];
 
         if (restartAttiMode) {      // set target attitude to current attitude on activation
             attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
-            attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH];
+            attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH] + DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
             restartAttiMode = false;
         }
 
@@ -1098,12 +1103,13 @@ void updateAttihold(float *angleTarget, uint8_t axis)
             bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
         }
 
+        int16_t levelTrim = axis == FD_PITCH ? DEGREES_TO_DECIDEGREES(fixedWingLevelTrim) : 0;
         if (calculateRollPitchCenterStatus() == CENTERED) {
             attiHoldTarget[axis] = ABS(attiHoldTarget[axis]) < 30 ? 0 : attiHoldTarget[axis];   // snap to level when within 3 degs of level
-            *angleTarget = constrain(attiHoldTarget[axis], -bankLimit, bankLimit);
+            *angleTarget = constrain(attiHoldTarget[axis] - levelTrim, -bankLimit, bankLimit);
         } else {
-            *angleTarget = constrain(attitude.raw[axis] + *angleTarget, -bankLimit, bankLimit);
-            attiHoldTarget[axis] = attitude.raw[axis];
+            *angleTarget = constrain(attitude.raw[axis] + *angleTarget + levelTrim, -bankLimit, bankLimit);
+            attiHoldTarget[axis] = attitude.raw[axis] + levelTrim;
         }
     }
 }
@@ -1345,13 +1351,11 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
      */
     pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
 
-    //Iterm should freeze when sticks are deflected
+    //Iterm should freeze when conditions to set level trim aren't met
     if (
-        !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
-        areSticksDeflected() ||
-        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) ||
-        FLIGHT_MODE(SOARING_MODE) ||
-        navigationIsControllingAltitude()
+        !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) || areSticksDeflected() ||
+        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE)) || FLIGHT_MODE(SOARING_MODE) ||
+        navigationIsControllingAltitude() || (navCheckActiveAttiHoldAxis() == FD_PITCH && !attiHoldIsLevel)
     ) {
         flags |= PID_FREEZE_INTEGRATOR;
     }
