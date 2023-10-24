@@ -120,7 +120,8 @@
 #define PG_POWER_LIMITS_CONFIG 1030
 #define PG_OSD_COMMON_CONFIG 1031
 #define PG_TIMER_OVERRIDE_CONFIG 1032
-#define PG_INAV_END 1032
+#define PG_EZ_TUNE 1033
+#define PG_INAV_END PG_EZ_TUNE
 
 // OSD configuration (subject to change)
 //#define PG_OSD_FONT_CONFIG 2047

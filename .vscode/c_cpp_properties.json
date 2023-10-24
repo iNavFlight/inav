@@ -1,0 +1,66 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceRoot}/src/main/**",
+                "${workspaceRoot}/lib/main/**",
+                "/usr/include/**"
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": false,
+                "path": [
+                    "${workspaceRoot}/src/main/**",
+                    "${workspaceRoot}/lib/main/**"
+                ]
+            },
+            "intelliSenseMode": "linux-gcc-arm",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "defines": [
+                "MCU_FLASH_SIZE 512",
+                "USE_NAV",
+                "NAV_FIXED_WING_LANDING",
+                "USE_OSD",
+                "USE_GYRO_NOTCH_1",
+                "USE_GYRO_NOTCH_2",
+                "USE_DTERM_NOTCH",
+                "USE_ACC_NOTCH",
+                "USE_GYRO_BIQUAD_RC_FIR2",
+                "USE_D_BOOST",
+                "USE_SERIALSHOT",
+                "USE_ANTIGRAVITY",
+                "USE_ASYNC_GYRO_PROCESSING",
+                "USE_RPM_FILTER",
+                "USE_GLOBAL_FUNCTIONS",
+                "USE_DYNAMIC_FILTERS",
+                "USE_IMU_BNO055",
+                "USE_SECONDARY_IMU",
+                "USE_DSHOT",
+                "FLASH_SIZE 480",
+                "USE_I2C_IO_EXPANDER",
+                "USE_PCF8574",
+                "USE_ESC_SENSOR",
+                "USE_PROGRAMMING_FRAMEWORK",
+                "USE_SERIALRX_GHST",
+                "USE_TELEMETRY_GHST",
+                "USE_CMS",
+                "USE_DJI_HD_OSD",
+                "USE_GYRO_KALMAN",
+                "USE_RANGEFINDER",
+                "USE_RATE_DYNAMICS",
+                "USE_SMITH_PREDICTOR",
+                "USE_ALPHA_BETA_GAMMA_FILTER",
+                "USE_MAG_VCM5883",
+                "USE_TELEMETRY_JETIEXBUS",
+                "USE_NAV",
+                "USE_SDCARD_SDIO",
+                "USE_SDCARD",
+                "USE_Q_TUNE",
+                "USE_GYRO_FFT_FILTER"
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}
