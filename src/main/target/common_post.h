@@ -42,7 +42,32 @@ extern uint8_t __config_end;
 // Enable MSP BARO & MAG drivers if BARO and MAG sensors are compiled in
 #if defined(USE_MAG)
 #define USE_MAG_MSP
+
+#if defined(USE_MAG_ALL)
+
+#define USE_MAG_HMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_LIS3MDL
+#define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
+
+//#if (MCU_FLASH_SIZE > 512)
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
+#define USE_MAG_IST8308
+#define USE_MAG_MLX90393
+
+#if defined(USE_IMU_MPU9250)
+#define USE_MAG_MPU9250
 #endif
+
+#define USE_MAG_RM3100
+#define USE_MAG_VCM5883
+//#endif // MCU_FLASH_SIZE
+
+#endif // USE_MAG_ALL
+
+#endif // USE_MAG
 
 #if defined(USE_BARO)
 #define USE_BARO_MSP
