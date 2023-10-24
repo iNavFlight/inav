@@ -116,7 +116,7 @@
 #define MAX7456_CS_PIN          PA15
 #endif
 
-#if 0
+#if 1
 // I2C
 #define USE_I2C
 #define USE_I2C_DEVICE_2
