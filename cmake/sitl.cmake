@@ -53,6 +53,11 @@ set(SITL_COMPILE_OPTIONS
     -funsigned-char
 )
 
+if(DEBUG)
+    message(STATUS "Debug mode enabled. Adding -g to SITL_COMPILE_OPTIONS.")
+    list(APPEND SITL_COMPILE_OPTIONS -g)
+endif()
+
 if(NOT MACOSX)
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
         -Wno-return-local-addr

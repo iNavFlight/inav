@@ -63,7 +63,12 @@
 #define JETIEXBUS_BAUDRATE 125000                       // EX Bus 125000; EX Bus HS 250000 not supported
 #define JETIEXBUS_OPTIONS (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
 #define JETIEXBUS_MIN_FRAME_GAP     1000
-#define JETIEXBUS_CHANNEL_COUNT     16                  // most Jeti TX transmit 16 channels
+
+#ifdef USE_24CHANNELS
+#define JETIEXBUS_CHANNEL_COUNT 24
+#else
+#define JETIEXBUS_CHANNEL_COUNT 16
+#endif
 
 
 #define EXBUS_START_CHANNEL_FRAME       (0x3E)
