@@ -116,14 +116,12 @@
 #define MAX7456_CS_PIN          PA15
 #endif
 
-#if 1
 // I2C
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10        // SCL pad
 #define I2C2_SDA                PB11        // SDA pad
 #define USE_I2C_PULLUP
-#endif
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
