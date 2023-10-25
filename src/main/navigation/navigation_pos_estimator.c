@@ -572,7 +572,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
     bool correctOK = false;
     
-    const float gpsBaroResidual = fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt); //ignore baro if difference is too big, baro is probably wrong
+    const float gpsBaroResidual = ctx->newFlags & EST_GPS_Z_VALID ? fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt) : 0.0f; //ignore baro if difference is too big, baro is probably wrong
     //use both baro and gps
     if ((ctx->newFlags & EST_BARO_VALID) && (!positionEstimationConfig()->use_gps_no_baro) && (gpsBaroResidual < positionEstimationConfig()->max_eph_epv * 2)) {
         timeUs_t currentTimeUs = micros();
