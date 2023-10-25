@@ -373,18 +373,19 @@ static bool gravityCalibrationComplete(void)
 
 static void updateIMUEstimationWeight(const float dt)
 {
-    bool isAccClipped = accIsClipped();
-
-    // If accelerometer measurement is clipped - drop the acc weight to zero
+    static float acc_clip_factor = 1.0f;
+    // If accelerometer measurement is clipped - drop the acc weight to 0.3
     // and gradually restore weight back to 1.0 over time
-    if (isAccClipped) {
-        posEstimator.imu.accWeightFactor = 0.0f;
+    if (accIsClipped()) {
+        acc_clip_factor = 0.5f;
     }
     else {
         const float relAlpha = dt / (dt + INAV_ACC_CLIPPING_RC_CONSTANT);
-        posEstimator.imu.accWeightFactor = posEstimator.imu.accWeightFactor * (1.0f - relAlpha) + 1.0f * relAlpha;
+        acc_clip_factor = acc_clip_factor * (1.0f - relAlpha) + 1.0f * relAlpha;
     }
-
+    // Update accelerometer weight based on vibration levels and clipping
+    float acc_vibration_factor = scaleRangef(constrainf(accGetVibrationLevel(),1.0f,4.0f),1.0f,2.0f,1.0f,0.3f); // g/s
+    posEstimator.imu.accWeightFactor = acc_vibration_factor * acc_clip_factor;
     // DEBUG_VIBE[0-3] are used in IMU
     DEBUG_SET(DEBUG_VIBE, 4, posEstimator.imu.accWeightFactor * 1000);
 }
@@ -534,13 +535,12 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
 
 static void estimationPredict(estimationContext_t * ctx)
 {
-    const float accWeight = navGetAccelerometerWeight();
 
     /* Prediction step: Z-axis */
     if ((ctx->newFlags & EST_Z_VALID)) {
         posEstimator.est.pos.z += posEstimator.est.vel.z * ctx->dt;
-        posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f * accWeight;
-        posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt * sq(accWeight);
+        posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f;
+        posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt;
     }
 
     /* Prediction step: XY-axis */
@@ -551,10 +551,10 @@ static void estimationPredict(estimationContext_t * ctx)
 
         // If heading is valid, accelNEU is valid as well. Account for acceleration
         if (navIsHeadingUsable() && navIsAccelerationUsable()) {
-            posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f * accWeight;
-            posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f * accWeight;
-            posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt * sq(accWeight);
-            posEstimator.est.vel.y += posEstimator.imu.accelNEU.y * ctx->dt * sq(accWeight);
+            posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f;
+            posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f;
+            posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt;
+            posEstimator.est.vel.y += posEstimator.imu.accelNEU.y * ctx->dt;
         }
     }
 }
@@ -754,7 +754,10 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     if (!estZCorrectOk || ctx.newEPV > positionEstimationConfig()->max_eph_epv) {
         ctx.estVelCorr.z = (0.0f - posEstimator.est.vel.z) * positionEstimationConfig()->w_z_res_v * ctx.dt;
     }
-
+    // Boost the corrections based on accWeight
+    const float accWeight = navGetAccelerometerWeight();
+    vectorScale(&ctx.estPosCorr, &ctx.estPosCorr, 1.0f/accWeight);
+    vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f/accWeight);
     // Apply corrections
     vectorAdd(&posEstimator.est.pos, &posEstimator.est.pos, &ctx.estPosCorr);
     vectorAdd(&posEstimator.est.vel, &posEstimator.est.vel, &ctx.estVelCorr);
