@@ -264,8 +264,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .max_angle_inclination[FD_PITCH] = SETTING_MAX_ANGLE_INCLINATION_PIT_DEFAULT,
         .pidSumLimit = SETTING_PIDSUM_LIMIT_DEFAULT,
         .pidSumLimitYaw = SETTING_PIDSUM_LIMIT_YAW_DEFAULT,
+        .pidItermLimitPercent = SETTING_PID_ITERM_LIMIT_PERCENT_DEFAULT,
 
-        .fixedWingItermThrowLimit = SETTING_FW_ITERM_THROW_LIMIT_DEFAULT,
         .fixedWingReferenceAirspeed = SETTING_FW_REFERENCE_AIRSPEED_DEFAULT,
         .fixedWingCoordinatedYawGain = SETTING_FW_TURN_ASSIST_YAW_GAIN_DEFAULT,
         .fixedWingCoordinatedPitchGain = SETTING_FW_TURN_ASSIST_PITCH_GAIN_DEFAULT,
@@ -531,7 +531,7 @@ void updatePIDCoefficients(void)
             pidState[axis].kT  = 0.0f;
         }
         else {
-            const float axisTPA = (axis == FD_YAW) ? 1.0f : tpaFactor;
+            const float axisTPA = (axis == FD_YAW && (!currentControlRateProfile->throttle.dynPID_on_YAW)) ? 1.0f : tpaFactor;
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
@@ -762,8 +762,9 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     applyItermLimiting(pidState);
 
-    if (pidProfile()->fixedWingItermThrowLimit != 0) {
-        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
+    if (pidProfile()->pidItermLimitPercent != 0){
+        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
     axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
@@ -837,6 +838,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
+    
+    if (pidProfile()->pidItermLimitPercent != 0){
+        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
+    }
+
 
     // Don't grow I-term if motors are at their limit
     applyItermLimiting(pidState);
@@ -1033,7 +1040,7 @@ void checkItermLimitingActive(pidState_t *pidState)
         shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
     } else
     {
-        shouldActivate = mixerIsOutputSaturated();
+        shouldActivate = mixerIsOutputSaturated(); //just in case, since it is already managed by itermWindupPointPercent
     }
 
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate;
