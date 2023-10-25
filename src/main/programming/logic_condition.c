@@ -286,6 +286,13 @@ static int logicConditionCompute(
             return true;
             break;
 
+#ifdef USE_MAG
+        case LOGIC_CONDITION_RESET_MAG_CALIBRATION:
+
+            ENABLE_STATE(CALIBRATE_MAG);
+            return true;
+            break;
+#endif  
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
 #if defined(USE_VTX_CONTROL) 
 #if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
