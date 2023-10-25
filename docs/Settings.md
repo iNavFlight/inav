@@ -1968,7 +1968,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.6 | 0 | 10 |
+| 0.8 | 0 | 10 |
 
 ---
 
