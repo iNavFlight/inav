@@ -368,21 +368,6 @@ void servoMixer(float dT)
         servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
 
-    /*
-     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
-     */
-    if (!ARMING_FLAG(ARMED)) {
-        for (int i = 0; i < servoRuleCount; i++) {
-            const uint8_t target = currentServoMixer[i].targetChannel;
-            const uint8_t from = currentServoMixer[i].inputSource;
-
-            // Translate minimum throttle values to -500 ... +500 servo range for use below.
-            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
-                servo[target] = motorConfig()->mincommand - servoParams(target)->middle;
-            }
-        }
-    }
-
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
 
         /*
@@ -412,6 +397,21 @@ void servoMixer(float dT)
          * allowed the situation when smix weight sum for an output was above 100
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
+    }
+
+    /*
+     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        for (int i = 0; i < servoRuleCount; i++) {
+            const uint8_t target = currentServoMixer[i].targetChannel;
+            const uint8_t from = currentServoMixer[i].inputSource;
+
+            // Translate minimum throttle values to -500 ... +500 servo range for use below.
+            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
+                servo[target] = motorConfig()->mincommand;
+            }
+        }
     }
 }
 
