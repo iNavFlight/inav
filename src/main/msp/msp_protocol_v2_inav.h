@@ -97,3 +97,5 @@
 
 #define MSP2_INAV_EZ_TUNE                       0x2070
 #define MSP2_INAV_EZ_TUNE_SET                   0x2071
+
+#define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
