@@ -70,7 +70,7 @@ static void i2cUnstick(IO_t scl, IO_t sda);
 
 //Define thi I2C hardware map
 static i2cDevice_t i2cHardwareMap[I2CDEV_COUNT] = {
-    { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_APB1(I2C1), .speed = I2C_SPEED_400KHZ, .ev_irq = I2C1_EVT_IRQn, .er_irq = I2C1_ERR_IRQn, .af = GPIO_MUX_8 },
+    { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_APB1(I2C1), .speed = I2C_SPEED_400KHZ, .ev_irq = I2C1_EVT_IRQn, .er_irq = I2C1_ERR_IRQn, .af = GPIO_MUX_4 },
     { .dev = I2C2, .scl = IO_TAG(I2C2_SCL), .sda = IO_TAG(I2C2_SDA), .rcc = RCC_APB1(I2C2), .speed = I2C_SPEED_400KHZ, .ev_irq = I2C2_EVT_IRQn, .er_irq = I2C2_ERR_IRQn, .af = GPIO_MUX_4 },
     { .dev = I2C3, .scl = IO_TAG(I2C3_SCL), .sda = IO_TAG(I2C3_SDA), .rcc = RCC_APB1(I2C3), .speed = I2C_SPEED_400KHZ, .ev_irq = I2C3_EVT_IRQn, .er_irq = I2C3_ERR_IRQn, .af = GPIO_MUX_4 },
 };

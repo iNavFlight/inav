@@ -214,7 +214,7 @@ static void bmi270AccAndGyroInit(gyroDev_t *gyro)
     delay(1);
 
     // Configure the accelerometer full-scale range
-    busWrite(busDev, BMI270_REG_ACC_RANGE, BMI270_ACC_RANGE_8G);
+    busWrite(busDev, BMI270_REG_ACC_RANGE, BMI270_ACC_RANGE_16G);
     delay(1);
 
     // Configure the gyro
@@ -301,7 +301,7 @@ static void bmi270GyroInit(gyroDev_t *gyro)
 static void bmi270AccInit(accDev_t *acc)
 {
     // sensor is configured during gyro init
-    acc->acc_1G = 4096;   // 8G sensor scale
+    acc->acc_1G = 2048;   // 16G sensor scale
 }
 
 bool bmi270AccDetect(accDev_t *acc)

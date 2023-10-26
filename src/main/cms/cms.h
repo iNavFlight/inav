@@ -37,9 +37,9 @@ void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration);
 void cmsUpdate(uint32_t currentTimeUs);
 void cmsSetExternKey(cms_key_e extKey);
 
-#define CMS_STARTUP_HELP_TEXT1 "MENU: THR MID"
-#define CMS_STARTUP_HELP_TEXT2     "+ YAW LEFT"
-#define CMS_STARTUP_HELP_TEXT3     "+ PITCH UP"
+#define CMS_STARTUP_HELP_TEXT1  "MENU: THR MID"
+#define CMS_STARTUP_HELP_TEXT2  "+ YAW LEFT"
+#define CMS_STARTUP_HELP_TEXT3  "+ PITCH UP"
 
 // cmsMenuExit special ptr values
 #define CMS_EXIT                (0)

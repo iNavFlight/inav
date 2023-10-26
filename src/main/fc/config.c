@@ -64,6 +64,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
+#include "flight/ez_tune.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -305,6 +306,7 @@ static void activateConfig(void)
 {
     activateControlRateConfig();
     activateBatteryProfile();
+    activateMixerConfig();
 
     resetAdjustmentStates();
 
@@ -425,6 +427,9 @@ bool setConfigProfile(uint8_t profileIndex)
     systemConfigMutable()->current_profile_index = profileIndex;
     // set the control rate profile to match
     setControlRateProfile(profileIndex);
+#ifdef USE_EZ_TUNE
+    ezTuneUpdate();
+#endif
     return ret;
 }
 
@@ -486,7 +491,6 @@ bool setConfigMixerProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     systemConfigMutable()->current_mixer_profile_index = profileIndex;
-    // setMixerProfile(profileIndex);
     return ret;
 }
 
