@@ -162,9 +162,9 @@ To assign motor1 to virtual receiver channel 1, servo 1 to channel 2, and servo2
 ```--chanmap:M01-01,S01-02,S02-03```
 Please also read the documentation of the individual simulators.
 
-```--serialport``` Use serial receiver connected to host's serial port, f.e. ```--serialportCOM5``` or ```--serialportdev/ttyACM3```
+```--serialport``` Use serial receiver or proxy FC connected to host's serial port, f.e. ```--serialportCOM5``` or ```--serialportdev/ttyACM3```
 
-```--serialuart``` Map serial receiver to SITL UART, f.e. ```--serialuart=3``` for UART3. Omit if using proxy FC.
+```--serialuart``` Map serial receiver to SITL UART, f.e. ```--serialuart=3``` for UART3. Omit if using ```--fcproxy```.
 
 ```--baudrate``` Serial receiver baudrate (default: 115200)
 
