@@ -4472,9 +4472,9 @@ LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50
 
 ---
 
-### osd_mah_used_precision
+### osd_mah_precision
 
-Number of digits used to display mAh used.
+Number of digits used for mAh precision. Currently used by mAh Used and Battery Remaining Capacity
 
 | Default | Min | Max |
 | --- | --- | --- |
