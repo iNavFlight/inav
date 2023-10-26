@@ -58,6 +58,7 @@ typedef struct acc_s {
     uint32_t accTargetLooptime;
     float accADCf[XYZ_AXIS_COUNT]; // acceleration in g
     float accVibeSq[XYZ_AXIS_COUNT];
+    float accVibe;
     uint32_t accClipCount;
     bool isClipped;
     acc_extremes_t extremes[XYZ_AXIS_COUNT];

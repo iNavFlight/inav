@@ -49,6 +49,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #if defined(USE_WIND_ESTIMATOR)
 #include "flight/wind_estimator.h"
@@ -78,7 +79,7 @@
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_NEARNESS            0.2    // 20% or G error soft-accepted (0.8-1.2G)
 #define MAX_MAG_NEARNESS            0.25    // 25% or magnetic field error soft-accepted (0.75-1.25)
-#define COS5DEG 0.996f
+#define COS10DEG 0.985f
 #define COS20DEG 0.940f
 #define IMU_ROTATION_LPF         3       // Hz
 FASTRAM fpVector3_t imuMeasuredAccelBF;
@@ -397,7 +398,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
         if (useCOG) {
             fpVector3_t vForward = { .v = { 0.0f, 0.0f, 0.0f } };
             //vForward as trust vector
-            if (STATE(MULTIROTOR)){
+            if (STATE(MULTIROTOR) && (!isMixerTransitionMixing)){
                 vForward.z = 1.0f;
             }else{
                 vForward.x = 1.0f;
@@ -434,7 +435,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
                 wCoG *= imuCalculateMcCogWeight();
                 //scale accroading to multirotor`s tilt angle
-                wCoG *= scaleRangef(constrainf(vHeadingEF.z, COS20DEG, COS5DEG), COS20DEG, COS5DEG, 1.0f, 0.0f);
+                wCoG *= scaleRangef(constrainf(vHeadingEF.z, COS20DEG, COS10DEG), COS20DEG, COS10DEG, 1.0f, 0.0f);
                 //for inverted flying, wCoG is lowered by imuCalculateMcCogWeight no additional processing needed
             }
             vHeadingEF.z = 0.0f;
