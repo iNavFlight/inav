@@ -166,7 +166,8 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
 
 #ifdef USE_SIMULATOR
 simulatorData_t simulatorData = {
-	.flags = 0,
-	.debugIndex = 0
+    .flags = 0,
+    .debugIndex = 0,
+    .vbat = 0
 };
 #endif
