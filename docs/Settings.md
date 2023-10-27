@@ -3572,6 +3572,16 @@ P gain of altitude PID controller (Multirotor)
 
 ---
 
+### nav_mc_vel_xy_accel_attenuate
+
+Adjustment factor to attenuate horizonal acceleration response as target speed is reached Reduce setting to prevent overshooting target speed.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 10 | 100 |
+
+---
+
 ### nav_mc_vel_xy_d
 
 D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target.

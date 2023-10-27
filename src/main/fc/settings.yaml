@@ -192,7 +192,7 @@ tables:
     enum: gpsBaudRate_e
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
-    enum: navMcAltHoldThrottle_e    
+    enum: navMcAltHoldThrottle_e
   - name: led_pin_pwm_mode
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
@@ -1186,7 +1186,7 @@ groups:
         min: 0
         max: 200
 
-      
+
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -2040,6 +2040,12 @@ groups:
         min: 0
         max: 255
         default_value: 40
+      - name: nav_mc_vel_xy_accel_attenuate
+        description: "Adjustment factor to attenuate horizonal acceleration response as target speed is reached Reduce setting to prevent overshooting target speed."
+        field: mc_vel_xy_accel_attenuate
+        default_value: 100
+        min: 10
+        max: 100
       - name: nav_mc_heading_p
         description: "P gain of Heading Hold controller (Multirotor)"
         default_value: 60
@@ -3586,7 +3592,7 @@ groups:
         min: 1000
         max: 5000
         default_value: 1500
-  
+
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
