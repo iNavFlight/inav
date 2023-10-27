@@ -191,7 +191,7 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_ACRO_AIR:      return COPTER_MODE_ACRO;
         case FLM_ANGLE:         return COPTER_MODE_STABILIZE;
         case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
-        case FLM_ATTIHOLD:      return COPTER_MODE_STABILIZE;
+        case FLM_ANGLEHOLD:     return COPTER_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
         case FLM_POSITION_HOLD: return COPTER_MODE_POSHOLD;
         case FLM_RTH:           return COPTER_MODE_RTL;
@@ -221,7 +221,7 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_ACRO_AIR:      return PLANE_MODE_ACRO;
         case FLM_ANGLE:         return PLANE_MODE_FLY_BY_WIRE_A;
         case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
-        case FLM_ATTIHOLD:      return PLANE_MODE_STABILIZE;
+        case FLM_ANGLEHOLD:     return PLANE_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
         case FLM_POSITION_HOLD: return PLANE_MODE_LOITER;
         case FLM_RTH:           return PLANE_MODE_RTL;

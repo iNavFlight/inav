@@ -159,7 +159,8 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
-static EXTENDED_FASTRAM bool attiHoldIsLevel = false;
+static EXTENDED_FASTRAM bool restartAngleHoldMode = true;
+static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 
 #define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
 #define FIXED_WING_LEVEL_TRIM_DIVIDER 50.0f
@@ -1065,58 +1066,57 @@ void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis
 
 }
 
-bool isAttiholdLevel(void)
+bool isAngleHoldLevel(void)
 {
-    return attiHoldIsLevel;
+    return angleHoldIsLevel;
 }
 
-void updateAttihold(float *angleTarget, uint8_t axis)
+void updateAngleHold(float *angleTarget, uint8_t axis)
 {
-    int8_t navAttiHoldAxis = navCheckActiveAttiHoldAxis();
-    static bool restartAttiMode = true;
+    int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
+    // static bool restartAngleHoldMode = true;
 
-    if (!restartAttiMode) {     // reset flags for when attitude hold is inactive
-        restartAttiMode = !FLIGHT_MODE(ATTIHOLD_MODE) && navAttiHoldAxis == -1;
-        attiHoldIsLevel = restartAttiMode ? false: attiHoldIsLevel;
+    if (!restartAngleHoldMode) {     // set restart flag when attitude hold is inactive
+        restartAngleHoldMode = !FLIGHT_MODE(ANGLEHOLD_MODE) && navAngleHoldAxis == -1;
     }
 
-    if ((FLIGHT_MODE(ATTIHOLD_MODE) || axis == navAttiHoldAxis) && !isFlightAxisAngleOverrideActive(axis)) {
-        /* attiHoldTarget stores attitude values using a zero datum when level.
-         * This requires attiHoldTarget pitch to be corrected for fixedWingLevelTrim so it is 0
+    if ((FLIGHT_MODE(ANGLEHOLD_MODE) || axis == navAngleHoldAxis) && !isFlightAxisAngleOverrideActive(axis)) {
+        /* angleHoldTarget stores attitude values using a zero datum when level.
+         * This requires angleHoldTarget pitch to be corrected for fixedWingLevelTrim so it is 0
          * when the craft is level even though attitude pitch is non zero in this case.
          * angleTarget pitch is corrected back to fixedWingLevelTrim datum on return from function */
 
-        static int16_t attiHoldTarget[2];
+        static int16_t angleHoldTarget[2];
 
-        if (restartAttiMode) {      // set target attitude to current attitude on activation
-            attiHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
-            attiHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH] + DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
-            restartAttiMode = false;
+        if (restartAngleHoldMode) {      // set target attitude to current attitude on activation
+            angleHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
+            angleHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH] + DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
+            restartAngleHoldMode = false;
         }
 
         // set flag indicating attitude hold is level
-        if (FLIGHT_MODE(ATTIHOLD_MODE)) {
-            attiHoldIsLevel = attiHoldTarget[FD_ROLL] == 0 && attiHoldTarget[FD_PITCH] == 0;
+        if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
+            angleHoldIsLevel = angleHoldTarget[FD_ROLL] == 0 && angleHoldTarget[FD_PITCH] == 0;
         } else {
-            attiHoldIsLevel = attiHoldTarget[navAttiHoldAxis] == 0;
+            angleHoldIsLevel = angleHoldTarget[navAngleHoldAxis] == 0;
         }
 
         uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
 
         // use Nav bank angle limits if Nav active
-        if (navAttiHoldAxis == FD_ROLL) {
+        if (navAngleHoldAxis == FD_ROLL) {
             bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle);
-        } else if (navAttiHoldAxis == FD_PITCH) {
+        } else if (navAngleHoldAxis == FD_PITCH) {
             bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
         }
 
         int16_t levelTrim = axis == FD_PITCH ? DEGREES_TO_DECIDEGREES(fixedWingLevelTrim) : 0;
         if (calculateRollPitchCenterStatus() == CENTERED) {
-            attiHoldTarget[axis] = ABS(attiHoldTarget[axis]) < 30 ? 0 : attiHoldTarget[axis];   // snap to level when within 3 degs of level
-            *angleTarget = constrain(attiHoldTarget[axis] - levelTrim, -bankLimit, bankLimit);
+            angleHoldTarget[axis] = ABS(angleHoldTarget[axis]) < 30 ? 0 : angleHoldTarget[axis];   // snap to level when within 3 degs of level
+            *angleTarget = constrain(angleHoldTarget[axis] - levelTrim, -bankLimit, bankLimit);
         } else {
             *angleTarget = constrain(attitude.raw[axis] + *angleTarget + levelTrim, -bankLimit, bankLimit);
-            attiHoldTarget[axis] = attitude.raw[axis] + levelTrim;
+            angleHoldTarget[axis] = attitude.raw[axis] + levelTrim;
         }
     }
 }
@@ -1174,20 +1174,23 @@ void FAST_CODE pidController(float dT)
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ATTI_MODE
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
+    angleHoldIsLevel = false;
 
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ATTIHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
 
             if (STATE(AIRPLANE)) {  // update attitude hold mode
-                updateAttihold(&angleTarget, axis);
+                updateAngleHold(&angleTarget, axis);
             }
 
             // Apply the Level PID controller
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
+        } else {
+            restartAngleHoldMode = true;
         }
     }
 
@@ -1335,7 +1338,7 @@ bool isFixedWingLevelTrimActive(void)
     return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !areSticksDeflected() &&
            (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) &&
            !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
-           !navigationIsControllingAltitude() && !(navCheckActiveAttiHoldAxis() == FD_PITCH && !attiHoldIsLevel);
+           !navigationIsControllingAltitude() && !(navCheckActiveAngleHoldAxis() == FD_PITCH && !angleHoldIsLevel);
 }
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs)

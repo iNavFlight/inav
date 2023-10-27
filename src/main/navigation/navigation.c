@@ -4566,11 +4566,11 @@ int32_t navigationGetHeadingError(void)
     return wrap_18000(posControl.desiredState.yaw - posControl.actualState.cog);
 }
 
-int8_t navCheckActiveAttiHoldAxis(void)
+int8_t navCheckActiveAngleHoldAxis(void)
 {
     int8_t activeAxis = -1;
 
-    if (IS_RC_MODE_ACTIVE(BOXATTIHOLD)) {
+    if (IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
         navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
         bool altholdActive = stateFlags & NAV_REQUIRE_ANGLE_FW && !(stateFlags & NAV_REQUIRE_ANGLE);
 

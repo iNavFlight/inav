@@ -102,7 +102,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXMULTIFUNCTION,    .boxName = "MULTI FUNCTION",    .permanentId = 61 },
     { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
     { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
-    { .boxId = BOXATTIHOLD,         .boxName = "ATTITUDE HOLD",     .permanentId = 64 },
+    { .boxId = BOXANGLEHOLD,        .boxName = "ANGLE HOLD",        .permanentId = 64 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -281,7 +281,7 @@ void initActiveBoxIds(void)
             ADD_ACTIVE_BOX(BOXAUTOLEVEL);
         }
         if (sensors(SENSOR_ACC)) {
-            ADD_ACTIVE_BOX(BOXATTIHOLD);
+            ADD_ACTIVE_BOX(BOXANGLEHOLD);
         }
     }
 
@@ -436,7 +436,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(currentMixerProfileIndex),              BOXMIXERPROFILE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXATTIHOLD)),        BOXATTIHOLD);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {

@@ -118,9 +118,9 @@
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 #define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
 #define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
-#define OSD_MSG_ATTI_ROLL           "(ATTI ROLL)"
-#define OSD_MSG_ATTI_PITCH          "(ATTI PITCH)"
-#define OSD_MSG_ATTI_LEVEL          "(ATTI LEVEL)"
+#define OSD_MSG_ANGLEHOLD_ROLL      "(ANGLEHOLD ROLL)"
+#define OSD_MSG_ANGLEHOLD_PITCH     "(ANGLEHOLD PITCH)"
+#define OSD_MSG_ANGLEHOLD_LEVEL     "(ANGLEHOLD LEVEL)"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
@@ -416,7 +416,7 @@ typedef struct osdConfig_s {
 
 #ifdef USE_WIND_ESTIMATOR
     bool            estimations_wind_compensation;      // use wind compensation for estimated remaining flight/distance
-#endif	
+#endif
     uint8_t         coordinate_digits;
     bool            osd_failsafe_switch_layout;
     uint8_t         plus_code_digits;                   // Number of digits to use in OSD_PLUS_CODE
