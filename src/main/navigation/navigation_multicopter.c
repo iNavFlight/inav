@@ -69,9 +69,10 @@ static bool prepareForTakeoffOnReset = false;
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 
-float nav_speed_up = 0.0f;
-float nav_speed_down = 0.0f;
-float nav_accel_z = 0.0f;
+float _vel_max_down_cms = 0.0f; // Max descent rate in cm/s used for kinematic shaping
+float _vel_max_up_cms = 0.0f;   // Max climb rate in cm/s used for kinematic shaping
+float _accel_max_z_cmss = 0.0f; // Max vertical acceleration in cm/s/s used for kinematic shaping
+float _jerk_max_z_cmsss = 0.0f; // Jerk limit of the z kinematic path generation in cm/s^3 used to determine how quickly the aircraft varies the acceleration target
 
 fpVector3_t _pos_target;
 fpVector3_t _vel_desired;
@@ -81,10 +82,8 @@ float accel_target_z;
 float _pos_offset_z;
 float _vel_offset_z;
 float _accel_offset_z;
-float _accel_max_z_cmss;
-float _jerk_max_z_cmsss;
 float _pos_offset_target_z = 0.0f;
-float _vel_z_control_ratio = 2.0f;    // confidence that we have control in the vertical axis
+float _vel_z_control_ratio = 2.0f;    // Confidence that we have control in the vertical axis
 
 #define NAV_CONTROL_JERK_Z 5.0f // Default vertical jerk m/s/s/s
 float _shaping_jerk_z = NAV_CONTROL_JERK_Z; // Convert to configurable param
@@ -277,7 +276,7 @@ void update_pos_offset_z(float pos_offset_z, float dt)
     // input shape the terrain offset
     shape_pos_vel_accel(pos_offset_z, 0.0f, 0.0f,
         _pos_offset_z, _vel_offset_z, &_accel_offset_z,
-        nav_speed_down, nav_speed_up,
+        _vel_max_down_cms, _vel_max_up_cms,
         -_accel_max_z_cmss, _accel_max_z_cmss,
         _jerk_max_z_cmsss, dt, false);
 }
@@ -287,12 +286,12 @@ float calculate_overspeed_gain(void)
 {
     #define POSCONTROL_OVERSPEED_GAIN_Z 2.0f // Gain controlling rate at which z-axis speed is brought back within SPEED_UP and SPEED_DOWN range
 
-    if (_vel_desired.z < nav_speed_down && nav_speed_down != 0.0f) {
-        return POSCONTROL_OVERSPEED_GAIN_Z * _vel_desired.z / nav_speed_down;
+    if (_vel_desired.z < _vel_max_down_cms && _vel_max_down_cms != 0.0f) {
+        return POSCONTROL_OVERSPEED_GAIN_Z * _vel_desired.z / _vel_max_down_cms;
     }
 
-    if (_vel_desired.z > nav_speed_up && nav_speed_up != 0.0f) {
-        return POSCONTROL_OVERSPEED_GAIN_Z * _vel_desired.z / nav_speed_up;
+    if (_vel_desired.z > _vel_max_up_cms && _vel_max_up_cms != 0.0f) {
+        return POSCONTROL_OVERSPEED_GAIN_Z * _vel_desired.z / _vel_max_up_cms;
     }
 
     return 1.0f;
@@ -318,6 +317,32 @@ void input_vel_accel_z(float *vel, float accel, bool limit_output, float dt)
                     jerk_max_z_cmsss, dt, limit_output);
 
     update_vel_accel(vel, accel, dt, 0.0f, 0.0f);
+}
+
+void set_max_speed_accel_z(float speed_down, float speed_up, float accel_cmss)
+{
+    // Ensure speed_down is always negative
+    speed_down = -fabsf(speed_down);
+
+    // Sanity check and update
+    if (speed_down < 0.0f) {
+        _vel_max_down_cms = speed_down;
+    }
+    if (speed_up > 0.0f) {
+        _vel_max_up_cms = speed_up;
+    }
+    if (accel_cmss > 0.0f) {
+        _accel_max_z_cmss = accel_cmss;
+    }
+
+    _accel_max_z_cmss = accel_cmss;
+    
+    // Ensure the vertical Jerk is not limited by the filters in the Z accel PID object
+    _jerk_max_z_cmsss = _shaping_jerk_z * 100.0f;
+
+    if (posControl.pids.acceleration_z.errorLpfHz > 0.0f) {
+        _jerk_max_z_cmsss = MIN(_jerk_max_z_cmsss, MIN(GRAVITY_CMSS, _accel_max_z_cmss) * ((M_PI * 2.0f) * posControl.pids.acceleration_z.errorLpfHz) / 5.0f);
+    }
 }
 
 /// set_pos_target_z_from_climb_rate_cm - adjusts target up or down using a commanded climb rate in cm/s
@@ -347,7 +372,7 @@ static void update_z_controller(timeDelta_t deltaMicros)
     set_pos_target_z_from_climb_rate_cm(posControl.desiredState.pos.z, US2S(deltaMicros));
 
     // Calculate the target velocity correction
-    float vel_target_z = sqrtControllerApply(&alt_hold_sqrt_controller, _pos_target.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POS_VEL_Z ,US2S(deltaMicros));
+    float vel_target_z = sqrtControllerApply(&alt_hold_sqrt_controller, _pos_target.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POS_VEL_Z, US2S(deltaMicros));
     
     // Add feed forward component
     vel_target_z += _vel_desired.z;
@@ -403,7 +428,7 @@ static void update_z_controller(timeDelta_t deltaMicros)
     posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, false);
 
     // nav_speed_down is checked to be non-zero when set
-    float error_ratio = posControl.pids.vel[Z].error / nav_speed_down;
+    float error_ratio = posControl.pids.vel[Z].error / _vel_max_down_cms;
     _vel_z_control_ratio += US2S(deltaMicros) * 0.1f * (0.5f - error_ratio);
     _vel_z_control_ratio = constrainf(_vel_z_control_ratio, 0.0f, 2.0f);
 
@@ -415,6 +440,13 @@ float get_vel_z_control_ratio(void)
 { 
     return constrainf(_vel_z_control_ratio, 0.0f, 1.0f); 
 }
+
+// To use with RangeFinder
+void set_pos_offset_target_z_cm(float pos_offset_target_z) 
+{
+    _pos_offset_target_z = pos_offset_target_z; 
+}
+
 
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
@@ -553,26 +585,12 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.surface);
 
     if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-        const float maxSpeed = getActiveSpeed();
-        nav_speed_up = maxSpeed;
-        nav_accel_z = maxSpeed;
-        nav_speed_down = -fabsf((float)navConfig()->general.max_auto_climb_rate);
+        set_max_speed_accel_z(navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_acceleration);
     } else {
-        nav_speed_up = navConfig()->general.max_manual_speed;
-        nav_accel_z = navConfig()->general.max_manual_speed;
-        nav_speed_down = -fabsf((float)navConfig()->general.max_manual_climb_rate);
+        set_max_speed_accel_z(navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_acceleration);
     }
 
-    sqrtControllerInit(&alt_hold_sqrt_controller, posControl.pids.pos[Z].param.kP, nav_speed_down, nav_speed_up, nav_accel_z);
-
-    _accel_max_z_cmss = nav_accel_z;
-    
-    // Ensure the vertical Jerk is not limited by the filters in the Z accel PID object
-    _jerk_max_z_cmsss = _shaping_jerk_z * 100.0f;
-
-    if (posControl.pids.acceleration_z.errorLpfHz > 0.0f) {
-        _jerk_max_z_cmsss = MIN(_jerk_max_z_cmsss, MIN(GRAVITY_CMSS, _accel_max_z_cmss) * ((M_PI * 2.0f) * posControl.pids.acceleration_z.errorLpfHz) / 5.0f);
-    }
+    sqrtControllerInit(&alt_hold_sqrt_controller, posControl.pids.pos[Z].param.kP, _vel_max_down_cms, _vel_max_up_cms, _accel_max_z_cmss);
 
     posControl.rcAdjustment[THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;
 

@@ -2508,6 +2508,12 @@ groups:
         field: general.max_auto_climb_rate
         min: 10
         max: 2000
+      - name: nav_auto_acceleration
+        description: "Maximum vertical acceleration during navigation modes. [cm/s]"
+        default_value: 500
+        field: general.max_auto_acceleration
+        min: 10
+        max: 2000
       - name: nav_manual_speed
         description: "Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
         default_value: 500
@@ -2518,6 +2524,12 @@ groups:
         description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
         default_value: 200
         field: general.max_manual_climb_rate
+        min: 10
+        max: 2000
+      - name: nav_manual_acceleration
+        description: "Maximum manual (pilot input) vertical acceleration in ALTHOLD control mode [cm/s]"
+        default_value: 200
+        field: general.max_manual_acceleration
         min: 10
         max: 2000
       - name: nav_land_minalt_vspd

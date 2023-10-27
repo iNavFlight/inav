@@ -135,6 +135,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                             // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
         .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,
+        .max_manual_acceleration = SETTING_NAV_MANUAL_ACCELERATION_DEFAULT,          
+        .max_auto_acceleration= SETTING_NAV_AUTO_ACCELERATION_DEFAULT,
         .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,                       // altitude in centimeters
         .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,                       // altitude in meters
         .land_minalt_vspd = SETTING_NAV_LAND_MINALT_VSPD_DEFAULT,                               // centimeters/s
@@ -4265,8 +4267,8 @@ void navigationUsePIDs(void)
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 10.0f,
                                         (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 10.0f,
                                         0.0f,
-                                        NAV_VEL_Z_DERIVATIVE_CUT_HZ,
-                                        NAV_VEL_Z_ERROR_CUT_HZ
+                                        NAV_MC_VEL_Z_DERIVATIVE_CUT_HZ,
+                                        NAV_MC_VEL_Z_ERROR_CUT_HZ
     );
     
     // Initialize vertical acceleration PID controller
@@ -4275,7 +4277,7 @@ void navigationUsePIDs(void)
                                                 (float)pidProfile()->bank_mc.pid[PID_ACC_Z].D / 10.0f,
                                                 0.0f,
                                                 0.0f,
-                                                NAV_ACC_Z_ERROR_CUT_HZ
+                                                NAV_MC_ACC_Z_ERROR_CUT_HZ
     );
 
     // Initialize surface tracking PID
@@ -4294,7 +4296,7 @@ void navigationUsePIDs(void)
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
                                         0.0f,
-                                        NAV_DTERNAV_DERIVATIVE_TERM_CUT_HZM_CUT_HZ,
+                                        NAV_DERIVATIVE_TERM_CUT_HZ,
                                         0.0f
     );
 
