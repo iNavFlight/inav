@@ -516,5 +516,6 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 {
     DMA_Cmd(tch->dma->ref, DISABLE);
     TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
+    tch->dmaState = TCH_DMA_IDLE;
     TIM_Cmd(tch->timHw->tim, ENABLE);
 }

@@ -81,13 +81,16 @@ void impl_timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
     TIM_HandleTypeDef * timHandle = tch->timCtx->timHandle;
     TIM_TypeDef * timer = tch->timCtx->timDef->tim;
 
-    if (timHandle->Instance == timer) {
+    uint16_t period1 = (period - 1) & 0xffff;
+    uint16_t prescaler1 = lrintf((float)timerGetBaseClock(tch) / hz + 0.01f) - 1;
+
+    if (timHandle->Instance == timer && timHandle->Init.Prescaler == prescaler1 && timHandle->Init.Period == period1) {
         return;
     }
 
     timHandle->Instance = timer;
-    timHandle->Init.Prescaler = lrintf((float)timerGetBaseClock(tch) / hz + 0.01f) - 1;
-    timHandle->Init.Period = (period - 1) & 0xffff; // AKA TIMx_ARR
+    timHandle->Init.Prescaler = prescaler1;
+    timHandle->Init.Period = period1; // AKA TIMx_ARR
     timHandle->Init.RepetitionCounter = 0;
     timHandle->Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     timHandle->Init.CounterMode = TIM_COUNTERMODE_UP;
@@ -565,6 +568,15 @@ void impl_timerPWMStartDMA(TCH_t * tch)
 
 void impl_timerPWMStopDMA(TCH_t * tch)
 {
-    (void)tch;
-    // FIXME
+    const uint32_t streamLL = lookupDMALLStreamTable[DMATAG_GET_STREAM(tch->timHw->dmaTag)];
+    DMA_TypeDef *dmaBase = tch->dma->dma;
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        LL_TIM_DisableDMAReq_CCx(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex]);
+        LL_DMA_DisableStream(dmaBase, streamLL);
+        DMA_CLEAR_FLAG(tch->dma, DMA_IT_TCIF);
+    }
+    tch->dmaState = TCH_DMA_IDLE;
+
+    HAL_TIM_Base_Start(tch->timCtx->timHandle);
 }
