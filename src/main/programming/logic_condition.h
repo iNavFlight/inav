@@ -81,8 +81,8 @@ typedef enum {
     LOGIC_CONDITION_TIMER                       = 49,
     LOGIC_CONDITION_DELTA                       = 50,
     LOGIC_CONDITION_APPROX_EQUAL                = 51,
-    LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 52,
-    LOGIC_CONDITION_LAST                        = 53,
+    LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 53,
+    LOGIC_CONDITION_LAST                        = 54,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
