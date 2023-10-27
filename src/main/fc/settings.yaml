@@ -2366,11 +2366,6 @@ groups:
         field: w_xy_res_v
         min: 0
         max: 10
-      - name: inav_w_xyz_acc_p
-        field: w_xyz_acc_p
-        min: 0
-        max: 1
-        default_value: 1.0
       - name: inav_w_acc_bias
         description: "Weight for accelerometer drift estimation"
         default_value: 0.01

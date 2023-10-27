@@ -1922,16 +1922,6 @@ Decay coefficient for estimated velocity when GPS reference for position is lost
 
 ---
 
-### inav_w_xyz_acc_p
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1.0 | 0 | 1 |
-
----
-
 ### inav_w_z_baro_p
 
 Weight of barometer measurements in estimated altitude and climb rate. Setting is used on both airplanes and multirotors.

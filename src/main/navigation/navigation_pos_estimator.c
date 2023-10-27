@@ -70,8 +70,6 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
 
         .max_surface_altitude = SETTING_INAV_MAX_SURFACE_ALTITUDE_DEFAULT,
 
-        .w_xyz_acc_p = SETTING_INAV_W_XYZ_ACC_P_DEFAULT,
-
         .w_z_baro_p = SETTING_INAV_W_Z_BARO_P_DEFAULT,
 
         .w_z_surface_p = SETTING_INAV_W_Z_SURFACE_P_DEFAULT,
@@ -389,7 +387,8 @@ static bool gravityCalibrationComplete(void)
 
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
-
+#define ACC_VIB_FACTOR_S 1.0f
+#define ACC_VIB_FACTOR_E 3.0f
 static void updateIMUEstimationWeight(const float dt)
 {
     static float acc_clip_factor = 1.0f;
@@ -403,7 +402,7 @@ static void updateIMUEstimationWeight(const float dt)
         acc_clip_factor = acc_clip_factor * (1.0f - relAlpha) + 1.0f * relAlpha;
     }
     // Update accelerometer weight based on vibration levels and clipping
-    float acc_vibration_factor = scaleRangef(constrainf(accGetVibrationLevel(),1.0f,4.0f),1.0f,2.0f,1.0f,0.3f); // g/s
+    float acc_vibration_factor = scaleRangef(constrainf(accGetVibrationLevel(),ACC_VIB_FACTOR_S,ACC_VIB_FACTOR_E),ACC_VIB_FACTOR_S,ACC_VIB_FACTOR_E,1.0f,0.3f); // g/s
     posEstimator.imu.accWeightFactor = acc_vibration_factor * acc_clip_factor;
     // DEBUG_VIBE[0-3] are used in IMU
     DEBUG_SET(DEBUG_VIBE, 4, posEstimator.imu.accWeightFactor * 1000);
@@ -411,7 +410,7 @@ static void updateIMUEstimationWeight(const float dt)
 
 float navGetAccelerometerWeight(void)
 {
-    const float accWeightScaled = posEstimator.imu.accWeightFactor * positionEstimationConfig()->w_xyz_acc_p;
+    const float accWeightScaled = posEstimator.imu.accWeightFactor;
     DEBUG_SET(DEBUG_VIBE, 5, accWeightScaled * 1000);
 
     return accWeightScaled;
