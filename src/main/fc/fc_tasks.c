@@ -62,6 +62,7 @@
 #include "io/osd.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/osd_joystick.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
 #include "io/vtx_msp.h"
@@ -393,7 +394,11 @@ void fcTasksInit(void)
 #endif
 #endif
 #ifdef USE_RCDEVICE
+#ifdef USE_LED_STRIP
+    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled() || osdJoystickEnabled());
+#else
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
+#endif
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     setTaskEnabled(TASK_PROGRAMMING_FRAMEWORK, true);
