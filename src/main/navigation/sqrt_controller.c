@@ -55,21 +55,24 @@ static float sqrtControllerInverse(float kp, float derivative_max, float output)
 
     const float linear_dist = derivative_max / sq(kp);
     const float stopping_dist = (linear_dist * 0.5f) + sq(output) / (2.0f * derivative_max);
+    
     return (output > 0.0f) ? stopping_dist : -stopping_dist;
 }
 
 // Proportional controller with piecewise sqrt sections to constrain derivative
-float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, float deltaTime)
+float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, const sqrtControllerFlags_e sqrtFlags, float deltaTime)
 {
     float correction_rate;
 
-    // Calculate distance error
-    sqrt_controller_pointer->error = target - measurement;
+    if (sqrtFlags & SQRT_CONTROLLER_POS_VEL_Z) {
+        // Calculate distance error
+        sqrt_controller_pointer->error = target - measurement;
 
-    if ((sqrt_controller_pointer->error_min < 0.0f) && (sqrt_controller_pointer->error < sqrt_controller_pointer->error_min)) {
-        sqrt_controller_pointer->error = sqrt_controller_pointer->error_min;
-    } else if ((sqrt_controller_pointer->error_max > 0.0f) && (sqrt_controller_pointer->error > sqrt_controller_pointer->error_max)) {
-        sqrt_controller_pointer->error = sqrt_controller_pointer->error_max;
+        if ((sqrt_controller_pointer->error_min < 0.0f) && (sqrt_controller_pointer->error < sqrt_controller_pointer->error_min)) {
+            sqrt_controller_pointer->error = sqrt_controller_pointer->error_min;
+        } else if ((sqrt_controller_pointer->error_max > 0.0f) && (sqrt_controller_pointer->error > sqrt_controller_pointer->error_max)) {
+            sqrt_controller_pointer->error = sqrt_controller_pointer->error_max;
+        }
     }
 
     if ((sqrt_controller_pointer->derivative_max < 0.0f) || sqrt_controller_pointer->derivative_max == 0.0f) {
@@ -105,7 +108,7 @@ float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float targ
 }
 
 // Sets the maximum error to limit output and derivative of output
-void sqrtControllerInit(sqrt_controller_t *sqrt_controller_pointer,const float kp,const float output_min,const float output_max,const float derivative_out_max)
+void sqrtControllerInit(sqrt_controller_t *sqrt_controller_pointer, const float kp, const float output_min, const float output_max, const float derivative_out_max)
 {
 
     // Reset the variables

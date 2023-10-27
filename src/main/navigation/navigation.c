@@ -4210,25 +4210,26 @@ void updateWaypointsAndNavigationMode(void)
  *-----------------------------------------------------------*/
 void navigationUsePIDs(void)
 {
-    /** Multicopter PIDs */
+    /************* Multicopter PIDs *************/
+    
     // Brake time parameter
     posControl.posDecelerationTime = (float)navConfig()->mc.posDecelerationTime / 100.0f;
 
     // Position controller expo (taret vel expo for MC)
     posControl.posResponseExpo = constrainf((float)navConfig()->mc.posResponseExpo / 100.0f, 0.0f, 1.0f);
 
-    // Initialize position hold P-controller
+    // Initialize horizontal position proportional controller
     for (int axis = 0; axis < 2; axis++) {
-        navPidInit(
-            &posControl.pids.pos[axis],
-            (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f,
-            0.0f,
-            0.0f,
-            0.0f,
-            NAV_DTERM_CUT_HZ,
-            0.0f
+        navPidInit(&posControl.pids.pos[axis],
+                   (float)pidProfile()->bank_mc.pid[PID_POS_XY].P / 100.0f,
+                   0.0f,
+                   0.0f,
+                   0.0f,
+                   NAV_DERIVATIVE_TERM_CUT_HZ,
+                   0.0f
         );
 
+        // Initialize horizontal velocity PID controller
         navPidInit(&posControl.pids.vel[axis], (float)pidProfile()->bank_mc.pid[PID_VEL_XY].P / 20.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].I / 100.0f,
                                                (float)pidProfile()->bank_mc.pid[PID_VEL_XY].D / 100.0f,
@@ -4249,23 +4250,32 @@ void navigationUsePIDs(void)
     multicopterPosXyCoefficients.breakingBoostFactor = (float) navConfig()->mc.braking_boost_factor / 100.0f;
 #endif
 
-    // Initialize altitude hold PID-controllers (pos_z, vel_z, acc_z
-    navPidInit(
-        &posControl.pids.pos[Z],
-        (float)pidProfile()->bank_mc.pid[PID_POS_Z].P / 100.0f,
-        0.0f,
-        0.0f,
-        0.0f,
-        NAV_DTERM_CUT_HZ,
-        0.0f
+    // Initialize vertical position proportional controller
+    navPidInit(&posControl.pids.pos[Z],
+              (float)pidProfile()->bank_mc.pid[PID_POS_Z].P / 10.0f,
+              0.0f,
+              0.0f,
+              0.0f,
+              NAV_DERIVATIVE_TERM_CUT_HZ,
+              0.0f
     );
-
-    navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 66.7f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 20.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 100.0f,
+    
+    // Initialize vertical velocity PID controller
+    navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 10.0f,
+                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 10.0f,
+                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 10.0f,
                                         0.0f,
                                         NAV_VEL_Z_DERIVATIVE_CUT_HZ,
                                         NAV_VEL_Z_ERROR_CUT_HZ
+    );
+    
+    // Initialize vertical acceleration PID controller
+    navPidInit(&posControl.pids.acceleration_z, (float)pidProfile()->bank_mc.pid[PID_ACC_Z].P / 10.0f,
+                                                (float)pidProfile()->bank_mc.pid[PID_ACC_Z].I / 10.0f,
+                                                (float)pidProfile()->bank_mc.pid[PID_ACC_Z].D / 10.0f,
+                                                0.0f,
+                                                0.0f,
+                                                NAV_ACC_Z_ERROR_CUT_HZ
     );
 
     // Initialize surface tracking PID
@@ -4273,17 +4283,18 @@ void navigationUsePIDs(void)
                                          0.0f,
                                          0.0f,
                                          0.0f,
-                                         NAV_DTERM_CUT_HZ,
+                                         NAV_DERIVATIVE_TERM_CUT_HZ,
                                          0.0f
     );
 
-    /** Airplane PIDs */
-    // Initialize fixed wing PID controllers
+    /************* Airplane PIDs *************/
+
+    // Initialize fixed wing PID controller
     navPidInit(&posControl.pids.fw_nav, (float)pidProfile()->bank_fw.pid[PID_POS_XY].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].I / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_XY].D / 100.0f,
                                         0.0f,
-                                        NAV_DTERM_CUT_HZ,
+                                        NAV_DTERNAV_DERIVATIVE_TERM_CUT_HZM_CUT_HZ,
                                         0.0f
     );
 
@@ -4291,7 +4302,7 @@ void navigationUsePIDs(void)
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
                                         0.0f,
-                                        NAV_DTERM_CUT_HZ,
+                                        NAV_DERIVATIVE_TERM_CUT_HZ,
                                         0.0f
     );
 

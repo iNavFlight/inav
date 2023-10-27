@@ -17,7 +17,7 @@
 
 #pragma once
 
-#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR    1.113195f  // MagicEarthNumber from APM
+#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR  1.1131884502145034f  // MagicEarthNumber from ArduPilot
 
 #include "common/axis.h"
 #include "common/maths.h"
@@ -28,24 +28,26 @@
 #include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
-#define NAV_THROTTLE_CUTOFF_FREQENCY_HZ     4       // low-pass filter on throttle output
+#define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ    2       // Low-Pass filter on throttle output in Alt-Hold
 #define NAV_FW_CONTROL_MONITORING_RATE      2
-#define NAV_DTERM_CUT_HZ                    10.0f
-#define NAV_VEL_Z_DERIVATIVE_CUT_HZ         5.0f
-#define NAV_VEL_Z_ERROR_CUT_HZ              5.0f
-#define NAV_ACCELERATION_XY_MAX             980.0f  // cm/s/s       // approx 45 deg lean angle
+#define NAV_DERIVATIVE_TERM_CUT_HZ          10.0f
+#define NAV_MC_VEL_Z_DERIVATIVE_CUT_HZ      5.0f
+#define NAV_MC_VEL_Z_ERROR_CUT_HZ           5.0f
+#define NAV_MC_ACC_Z_ERROR_CUT_HZ           20.0f
+#define NAV_MC_ACC_Z_IMAX                   800     // Vertical acceleration controller IMAX gain default
+#define NAV_MC_ACCELERATION_XY_MAX          980.0f  // cm/s/s
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
-#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
+#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
-#define MC_LAND_THR_STABILISE_DELAY         1       // seconds
+#define MC_LAND_THR_STABILISE_DELAY         1       // Seconds
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
 
-#define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
+#define NAV_RTH_TRACKBACK_POINTS            50      // Max number RTH trackback points
 
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");

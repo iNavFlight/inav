@@ -50,6 +50,7 @@ typedef struct {
     pidControllerParam_t param;
     pt1Filter_t error_filter_state;
     pt1Filter_t dterm_filter_state;     // last derivative for low-pass filter
+    float error;
     float errorLpfHz;
     float dTermLpfHz;                   // dTerm low pass filter cutoff frequency
     float integrator;                   // integrator value

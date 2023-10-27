@@ -45,27 +45,26 @@ float navPidApply3(
     const float dTermScaler
 ) {
     float newProportional, newDerivative, newFeedForward;
-    float error = 0.0f;
     
     if (pid->errorLpfHz > 0.0f) {
-        error = pt1FilterApply4(&pid->error_filter_state, setpoint - measurement, pid->errorLpfHz, dt);
+        pid->error = pt1FilterApply4(&pid->error_filter_state, setpoint - measurement, pid->errorLpfHz, dt);
     } else {
-        error = setpoint - measurement;
+        pid->error = setpoint - measurement;
     }
 
     /* P-term */
-    newProportional = error * pid->param.kP * gainScaler;
+    newProportional = pid->error * pid->param.kP * gainScaler;
 
     /* D-term */
     if (pid->reset) {
-        pid->last_input = (pidFlags & PID_DTERM_FROM_ERROR) ? error : measurement;
+        pid->last_input = (pidFlags & PID_DTERM_FROM_ERROR) ? pid->error : measurement;
         pid->reset = false;
     }
 
     if (pidFlags & PID_DTERM_FROM_ERROR) {
         /* Error-tracking D-term */
-        newDerivative = (error - pid->last_input) / dt;
-        pid->last_input = error;
+        newDerivative = (pid->error - pid->last_input) / dt;
+        pid->last_input = pid->error;
     } else {
         /* Measurement tracking D-term */
         newDerivative = -(measurement - pid->last_input) / dt;
@@ -104,7 +103,7 @@ float navPidApply3(
         !(pidFlags & PID_ZERO_INTEGRATOR) &&
         !(pidFlags & PID_FREEZE_INTEGRATOR) 
     ) {
-        const float newIntegrator = pid->integrator + (error * pid->param.kI * gainScaler * dt) + ((outValConstrained - outVal) * pid->param.kT * dt);
+        const float newIntegrator = pid->integrator + (pid->error * pid->param.kI * gainScaler * dt) + ((outValConstrained - outVal) * pid->param.kT * dt);
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
             // Only allow integrator to shrink
@@ -139,6 +138,7 @@ void navPidReset(pidController_t *pid)
     pid->last_input = 0.0f;
     pid->feedForward = 0.0f;
     pt1FilterReset(&pid->dterm_filter_state, 0.0f);
+    pt1FilterReset(&pid->error_filter_state, 0.0f);
     pid->output_constrained = 0.0f;
 }
 
@@ -162,7 +162,9 @@ void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kF
         pid->param.kI = 0.0;
         pid->param.kT = 0.0;
     }
+
     pid->dTermLpfHz = _dTermLpfHz;
     pid->errorLpfHz = _errorLpfHz;
+    
     navPidReset(pid);
 }

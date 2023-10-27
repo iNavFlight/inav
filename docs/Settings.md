@@ -3412,6 +3412,36 @@ Max allowed above the ground altitude for terrain following mode
 
 ---
 
+### nav_mc_acc_z_d
+
+D gain of multirotor acceleration PID controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 255 |
+
+---
+
+### nav_mc_acc_z_i
+
+I gain of multirotor acceleration PID controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 255 |
+
+---
+
+### nav_mc_acc_z_p
+
+P gain of multirotor acceleration PID controller
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 0 | 255 |
+
+---
+
 ### nav_mc_althold_throttle
 
 If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively.
@@ -3514,7 +3544,7 @@ timeout in ms for braking
 
 ### nav_mc_heading_p
 
-P gain of Heading Hold controller (Multirotor)
+P gain of multirotor Heading Hold controller
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3554,7 +3584,7 @@ Expo for PosHold control
 
 ### nav_mc_pos_xy_p
 
-Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity
+Controls how fast the multirotor will fly towards the target position. This is a multiplier to convert displacement to target velocity
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3564,11 +3594,11 @@ Controls how fast the drone will fly towards the target position. This is a mult
 
 ### nav_mc_pos_z_p
 
-P gain of altitude PID controller (Multirotor)
+P gain of multirotor altitude PID controller
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 255 |
+| 10 | 0 | 255 |
 
 ---
 
@@ -3584,7 +3614,7 @@ D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P
 
 ### nav_mc_vel_xy_dterm_attenuation
 
-Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating.
+Maximum D-term attenution percentage for horizontal multirotor velocity PID controller. It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3654,31 +3684,31 @@ P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P mean
 
 ### nav_mc_vel_z_d
 
-D gain of velocity PID controller
+D gain of multirotor velocity PID controller
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 0 | 0 | 255 |
 
 ---
 
 ### nav_mc_vel_z_i
 
-I gain of velocity PID controller
+I gain of multirotor velocity PID controller
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 0 | 255 |
+| 0 | 0 | 255 |
 
 ---
 
 ### nav_mc_vel_z_p
 
-P gain of velocity PID controller
+P gain of multirotor velocity PID controller
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 0 | 255 |
+| 50 | 0 | 255 |
 
 ---
 

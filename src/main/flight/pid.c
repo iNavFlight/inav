@@ -196,21 +196,27 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                     .FF = SETTING_NAV_MC_VEL_XY_FF_DEFAULT,   // NAV_VEL_XY_D * 100
                 },
                 [PID_POS_Z] = {
-                    .P = SETTING_NAV_MC_POS_Z_P_DEFAULT,      // NAV_POS_Z_P * 100
+                    .P = SETTING_NAV_MC_POS_Z_P_DEFAULT,      // NAV_POS_Z_P * 10
                     .I = 0,                                   // not used
                     .D = 0,                                   // not used
                     .FF = 0,
                 },
                 [PID_VEL_Z] = {
-                    .P = SETTING_NAV_MC_VEL_Z_P_DEFAULT,      // NAV_VEL_Z_P * 66.7
-                    .I = SETTING_NAV_MC_VEL_Z_I_DEFAULT,      // NAV_VEL_Z_I * 20
-                    .D = SETTING_NAV_MC_VEL_Z_D_DEFAULT,      // NAV_VEL_Z_D * 100
+                    .P = SETTING_NAV_MC_VEL_Z_P_DEFAULT,      // NAV_VEL_Z_P * 10
+                    .I = SETTING_NAV_MC_VEL_Z_I_DEFAULT,      // NAV_VEL_Z_I * 10
+                    .D = SETTING_NAV_MC_VEL_Z_D_DEFAULT,      // NAV_VEL_Z_D * 10
                     .FF = 0,
                 },
                 [PID_POS_HEADING] = {
                     .P = 0,
                     .I = 0,
                     .D = 0,
+                    .FF = 0,
+                },
+                [PID_ACC_Z] = {
+                    .P = SETTING_NAV_MC_ACC_Z_P_DEFAULT,      // NAV_ACC_Z_P * 10
+                    .I = SETTING_NAV_MC_ACC_Z_I_DEFAULT,      // NAV_ACC_Z_I * 10
+                    .D = SETTING_NAV_MC_ACC_Z_D_DEFAULT,      // NAV_ACC_Z_D * 10
                     .FF = 0
                 }
             }

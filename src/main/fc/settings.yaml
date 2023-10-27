@@ -1980,31 +1980,49 @@ groups:
         max: HEADING_HOLD_RATE_LIMIT_MAX
         default_value: 90
       - name: nav_mc_pos_z_p
-        description: "P gain of altitude PID controller (Multirotor)"
+        description: "P gain of multirotor altitude PID controller"
         field: bank_mc.pid[PID_POS_Z].P
         min: 0
         max: 255
-        default_value: 50
+        default_value: 10
       - name: nav_mc_vel_z_p
-        description: "P gain of velocity PID controller"
+        description: "P gain of multirotor velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].P
         min: 0
         max: 255
-        default_value: 100
+        default_value: 50
       - name: nav_mc_vel_z_i
-        description: "I gain of velocity PID controller"
+        description: "I gain of multirotor velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].I
         min: 0
         max: 255
-        default_value: 50
+        default_value: 0
       - name: nav_mc_vel_z_d
-        description: "D gain of velocity PID controller"
+        description: "D gain of multirotor velocity PID controller"
         field: bank_mc.pid[PID_VEL_Z].D
         min: 0
         max: 255
+        default_value: 0
+      - name: nav_mc_acc_z_p
+        description: "P gain of multirotor acceleration PID controller"
+        field: bank_mc.pid[PID_ACC_Z].P
+        min: 0
+        max: 255
+        default_value: 5
+      - name: nav_mc_acc_z_i
+        description: "I gain of multirotor acceleration PID controller"
+        field: bank_mc.pid[PID_ACC_Z].I
+        min: 0
+        max: 255
         default_value: 10
+      - name: nav_mc_acc_z_d
+        description: "D gain of multirotor acceleration PID controller"
+        field: bank_mc.pid[PID_ACC_Z].D
+        min: 0
+        max: 255
+        default_value: 0
       - name: nav_mc_pos_xy_p
-        description: "Controls how fast the drone will fly towards the target position. This is a multiplier to convert displacement to target velocity"
+        description: "Controls how fast the multirotor will fly towards the target position. This is a multiplier to convert displacement to target velocity"
         field: bank_mc.pid[PID_POS_XY].P
         min: 0
         max: 255
@@ -2033,7 +2051,7 @@ groups:
         max: 255
         default_value: 40
       - name: nav_mc_heading_p
-        description: "P gain of Heading Hold controller (Multirotor)"
+        description: "P gain of multirotor Heading Hold controller"
         default_value: 60
         field: bank_mc.pid[PID_HEADING].P
         min: 0
@@ -2044,7 +2062,7 @@ groups:
         max: 100
         default_value: 2
       - name: nav_mc_vel_xy_dterm_attenuation
-        description: "Maximum D-term attenution percentage for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
+        description: "Maximum D-term attenution percentage for horizontal multirotor velocity PID controller. It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
         field: navVelXyDtermAttenuation
         min: 0
         max: 100

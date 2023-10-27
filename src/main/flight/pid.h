@@ -60,18 +60,19 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define TASK_AUX_RATE_HZ   100 //In Hz
 
 typedef enum {
-    /* PID              MC      FW  */
-    PID_ROLL,       //   +       +
-    PID_PITCH,      //   +       +
-    PID_YAW,        //   +       +
-    PID_POS_Z,      //   +       +
-    PID_POS_XY,     //   +       +
-    PID_VEL_XY,     //   +       n/a
-    PID_SURFACE,    //   n/a     n/a
-    PID_LEVEL,      //   +       +
-    PID_HEADING,    //   +       +
-    PID_VEL_Z,      //   +       n/a
-    PID_POS_HEADING,//   n/a     +
+    /* PID                MC      FW  */
+    PID_ROLL,        //   +       +
+    PID_PITCH,       //   +       +
+    PID_YAW,         //   +       +
+    PID_POS_Z,       //   +       +
+    PID_POS_XY,      //   +       +
+    PID_VEL_XY,      //   +       n/a
+    PID_SURFACE,     //   n/a     n/a
+    PID_LEVEL,       //   +       +
+    PID_HEADING,     //   +       +
+    PID_VEL_Z,       //   +       n/a
+    PID_POS_HEADING, //   n/a     +
+    PID_ACC_Z,       //   +       n/a
     PID_ITEM_COUNT
 } pidIndex_e;
 
