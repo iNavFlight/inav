@@ -142,6 +142,7 @@ typedef enum {
     FW_HEADING_USE_YAW                  = (1 << 24),
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
     LANDING_DETECTED                    = (1 << 26),
+    IN_FLIGHT_EMERG_REARM               = (1 << 27),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
@@ -173,7 +174,7 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void);
 
 #define SIMULATOR_MSP_VERSION  2     // Simulator MSP version
 #define SIMULATOR_BARO_TEMP    25    // °C
-#define SIMULATOR_FULL_BATTERY 12.6f // Volts
+#define SIMULATOR_FULL_BATTERY 126   // Volts*10
 #define SIMULATOR_HAS_OPTION(flag) ((simulatorData.flags & flag) != 0)
 
 typedef enum {

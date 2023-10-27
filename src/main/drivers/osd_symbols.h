@@ -58,7 +58,7 @@
 //                                  0x26  // 038 ASCII &
 #define SYM_VTX_POWER               0x27  // 039 VTx Power
 //                                  0x28  // 040 to 062 ASCII
-#define SYM_AH_NM       		    0x3F  // 063 Ah/NM
+#define SYM_AH_NM                   0x3F  // 063 Ah/NM
 //                                  0x40  // 064 to 095 ASCII
 #define SYM_MAH_NM_0                0x60  // 096 mAh/NM left
 #define SYM_MAH_NM_1                0x61  // 097 mAh/NM right
@@ -78,7 +78,7 @@
 #define SYM_WH                      0x6D  // 109 WH
 #define SYM_WH_KM                   0x6E  // 110 WH/KM
 #define SYM_WH_MI                   0x6F  // 111 WH/MI
-#define SYM_WH_NM       		    0x70  // 112 Wh/NM
+#define SYM_WH_NM                   0x70  // 112 Wh/NM
 #define SYM_WATT                    0x71  // 113 WATTS
 #define SYM_MW                      0x72  // 114 mW
 #define SYM_KILOWATT                0x73  // 115 kW
@@ -159,6 +159,7 @@
 #define SYM_HEADING_W               0xCB  // 203 Heading Graphic west
 #define SYM_HEADING_DIVIDED_LINE    0xCC  // 204 Heading Graphic
 #define SYM_HEADING_LINE            0xCD  // 205 Heading Graphic
+
 #define SYM_MAX                     0xCE  // 206 MAX symbol
 #define SYM_PROFILE                 0xCF  // 207 Profile symbol
 #define SYM_SWITCH_INDICATOR_LOW    0xD0  // 208 Switch High
@@ -175,9 +176,9 @@
 #define SYM_FLIGHT_HOURS_REMAINING  0xDB  // 219 Flight time (hours) remaining
 #define SYM_GROUND_COURSE           0xDC  // 220 Ground course
 #define SYM_ALERT                   0xDD  // 221 General alert symbol
-
 #define SYM_TERRAIN_FOLLOWING       0xFB  // 251 Terrain following (also Alt adjust)
 #define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
+
 
 #define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
 #define SYM_LOGO_WIDTH              10
@@ -225,9 +226,10 @@
 #define SYM_HUD_SIGNAL_3            0x163 // 355 Hud signal icon 75%
 #define SYM_HUD_SIGNAL_4            0x164 // 356 Hud signal icon 100%
 
-#define SYM_HOME_DIST 	            0x165 // 357 DIST
+#define SYM_HOME_DIST               0x165 // 357 DIST
 #define SYM_AH_CH_CENTER            0x166 // 358 Crossair center
 #define SYM_FLIGHT_DIST_REMAINING   0x167 // 359 Flight distance reminaing
+#define SYM_ODOMETER                0x168 // 360 Odometer
 
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4
@@ -261,8 +263,13 @@
 #define SYM_SERVO_PAN_IS_OFFSET_L   0x1C7 // 455 Pan servo is offset left
 #define SYM_SERVO_PAN_IS_OFFSET_R   0x1C8 // 456 Pan servo is offset right
 
+#define SYM_PILOT_LOGO_SML_L        0x1D5 // 469 small Pilot logo Left
+#define SYM_PILOT_LOGO_SML_C        0x1D6 // 470 small Pilot logo Centre
+#define SYM_PILOT_LOGO_SML_R        0x1D7 // 471 small Pilot logo Right
+#define SYM_PILOT_LOGO_LRG_START    0x1D8 // 472 to 511, Pilot logo
+
 #else
 
-#define TEMP_SENSOR_SYM_COUNT 0
+#define TEMP_SENSOR_SYM_COUNT       0
 
 #endif // USE_OSD

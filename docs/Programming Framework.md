@@ -97,6 +97,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 49            | TIMER                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
 | 50            | DELTA                         | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. |
 | 51            | APPROX_EQUAL                  | `true` if `Operand B` is within 1% of `Operand A`. |
+| 52            | LED_PIN_PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes)|
 
 ### Operands
 
@@ -152,6 +153,9 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 35            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
 | 36            | AGL                           | integer Above The Groud Altitude in `cm` |
 | 37            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
+| 38            | ACTIVE_MIXER_PROFILE          | Which mixers are currently active (for vtol etc) |
+| 39            | MIXER_TRANSITION_ACTIVE       | Currently switching between mixers (quad to plane etc) |
+| 40            | ATTITUDE_YAW                  | current heading (yaw) in `degrees` |
 
 #### FLIGHT_MODE
 
