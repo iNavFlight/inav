@@ -1076,7 +1076,7 @@ void updateAngleHold(float *angleTarget, uint8_t axis)
     int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
     // static bool restartAngleHoldMode = true;
 
-    if (!restartAngleHoldMode) {     // set restart flag when attitude hold is inactive
+    if (!restartAngleHoldMode) {     // set restart flag when anglehold is inactive
         restartAngleHoldMode = !FLIGHT_MODE(ANGLEHOLD_MODE) && navAngleHoldAxis == -1;
     }
 
@@ -1094,7 +1094,7 @@ void updateAngleHold(float *angleTarget, uint8_t axis)
             restartAngleHoldMode = false;
         }
 
-        // set flag indicating attitude hold is level
+        // set flag indicating anglehold is level
         if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
             angleHoldIsLevel = angleHoldTarget[FD_ROLL] == 0 && angleHoldTarget[FD_PITCH] == 0;
         } else {
@@ -1171,7 +1171,7 @@ void FAST_CODE pidController(float dT)
 #endif
     }
 
-    // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ATTI_MODE
+    // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ANGLEHOLD_MODE
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
     angleHoldIsLevel = false;
@@ -1181,7 +1181,7 @@ void FAST_CODE pidController(float dT)
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
 
-            if (STATE(AIRPLANE)) {  // update attitude hold mode
+            if (STATE(AIRPLANE)) {  // update anglehold mode
                 updateAngleHold(&angleTarget, axis);
             }
 
