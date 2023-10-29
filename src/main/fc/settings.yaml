@@ -193,6 +193,9 @@ tables:
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navMcAltHoldThrottle_e    
+  - name: led_pin_pwm_mode
+    values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
+    enum: led_pin_pwm_mode_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -4019,4 +4022,56 @@ groups:
         description: "Throttle attenuation PI control output filter cutoff frequency"
         default_value: 1.2
         field: attnFilterCutoff
+        max: 100
+
+  - name: PG_LEDPIN_CONFIG
+    type: ledPinConfig_t
+    headers: ["drivers/light_ws2811strip.h"]
+    members:
+      - name: led_pin_pwm_mode
+        condition: USE_LED_STRIP
+        description: "PWM mode of LED pin."
+        default_value: "SHARED_LOW"
+        field: led_pin_pwm_mode
+        table: led_pin_pwm_mode
+
+  - name: PG_OSD_JOYSTICK_CONFIG
+    type: osdJoystickConfig_t
+    headers: ["io/osd_joystick.h"]
+    condition: USE_RCDEVICE && USE_LED_STRIP
+    members:
+      - name: osd_joystick_enabled
+        description: "Enable OSD Joystick emulation"
+        default_value: OFF
+        field: osd_joystick_enabled
+        type: bool
+      - name: osd_joystick_down
+        description: "PWM value for DOWN key"
+        default_value: 0
+        field: osd_joystick_down
+        min: 0
+        max: 100
+      - name: osd_joystick_up
+        description: "PWM value for UP key"
+        default_value: 48
+        field: osd_joystick_up
+        min: 0
+        max: 100
+      - name: osd_joystick_left
+        description: "PWM value for LEFT key"
+        default_value: 63
+        field: osd_joystick_left
+        min: 0
+        max: 100
+      - name: osd_joystick_right
+        description: "PWM value for RIGHT key"
+        default_value: 28
+        field: osd_joystick_right
+        min: 0
+        max: 100
+      - name: osd_joystick_enter
+        description: "PWM value for ENTER key"
+        default_value: 75
+        field: osd_joystick_enter
+        min: 0
         max: 100
