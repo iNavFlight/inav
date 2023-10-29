@@ -246,9 +246,7 @@ typedef struct navConfig_s {
         bool     waypoint_load_on_boot;             // load waypoints automatically during boot
         uint16_t auto_speed;                        // autonomous navigation speed cm/sec
         uint16_t max_auto_speed;                    // maximum allowed autonomous navigation speed cm/sec
-        uint16_t max_auto_climb_rate;               // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;                  // manual velocity control max horizontal speed
-        uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
         uint16_t land_minalt_vspd;                  // Final RTH landing descent rate under minalt
         uint16_t land_maxalt_vspd;                  // RTH landing descent rate target at maxalt
         uint16_t land_slowdown_minalt;              // Altitude to stop lowering descent rate during RTH descend
@@ -272,6 +270,8 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
+        uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
+        uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
 
 #ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
@@ -292,6 +292,7 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;             // Fixed wing max banking angle (deg)
+        uint16_t max_manual_climb_rate;      // manual velocity control max vertical speed
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
