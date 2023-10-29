@@ -193,6 +193,9 @@ tables:
   - name: nav_mc_althold_throttle
     values: ["STICK", "MID_STICK", "HOVER"]
     enum: navMcAltHoldThrottle_e    
+  - name: led_pin_pwm_mode
+    values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
+    enum: led_pin_pwm_mode_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -1501,6 +1504,65 @@ groups:
         type: uint8_t
         min: 0
         max: 99
+
+  - name: PG_EZ_TUNE
+    headers: ["flight/ez_tune.h"]
+    type: ezTuneSettings_t
+    value_type: EZ_TUNE_VALUE
+    members:
+      - name: ez_enabled
+        description: "Enables EzTune feature"
+        default_value: OFF
+        field: enabled
+        type: bool
+      - name: ez_filter_hz
+        description: "EzTune filter cutoff frequency"
+        default_value: 110
+        field: filterHz
+        min: 10
+        max: 300
+      - name: ez_axis_ratio
+        description: "EzTune axis ratio"
+        default_value: 110
+        field: axisRatio
+        min: 25
+        max: 175
+      - name: ez_response
+        description: "EzTune response"
+        default_value: 100
+        field: response
+        min: 0
+        max: 200
+      - name: ez_damping
+        description: "EzTune damping"
+        default_value: 100
+        field: damping
+        min: 0
+        max: 200
+      - name: ez_stability
+        description: "EzTune stability"
+        default_value: 100
+        field: stability
+        min: 0
+        max: 200
+      - name: ez_aggressiveness
+        description: "EzTune aggressiveness"
+        default_value: 100
+        field: aggressiveness
+        min: 0
+        max: 200
+      - name: ez_rate
+        description: "EzTune rate"
+        default_value: 100
+        field: rate
+        min: 0
+        max: 200
+      - name: ez_expo
+        description: "EzTune expo"
+        default_value: 100
+        field: expo
+        min: 0
+        max: 200
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -3503,9 +3565,9 @@ groups:
         max: 6
         default_value: 3
 
-      - name: osd_mah_used_precision
-        description: Number of digits used to display mAh used.
-        field: mAh_used_precision
+      - name: osd_mah_precision
+        description: Number of digits used for mAh precision. Currently used by mAh Used and Battery Remaining Capacity
+        field: mAh_precision
         min: 4
         max: 6
         default_value: 4
@@ -3964,4 +4026,56 @@ groups:
         description: "Throttle attenuation PI control output filter cutoff frequency"
         default_value: 1.2
         field: attnFilterCutoff
+        max: 100
+
+  - name: PG_LEDPIN_CONFIG
+    type: ledPinConfig_t
+    headers: ["drivers/light_ws2811strip.h"]
+    members:
+      - name: led_pin_pwm_mode
+        condition: USE_LED_STRIP
+        description: "PWM mode of LED pin."
+        default_value: "SHARED_LOW"
+        field: led_pin_pwm_mode
+        table: led_pin_pwm_mode
+
+  - name: PG_OSD_JOYSTICK_CONFIG
+    type: osdJoystickConfig_t
+    headers: ["io/osd_joystick.h"]
+    condition: USE_RCDEVICE && USE_LED_STRIP
+    members:
+      - name: osd_joystick_enabled
+        description: "Enable OSD Joystick emulation"
+        default_value: OFF
+        field: osd_joystick_enabled
+        type: bool
+      - name: osd_joystick_down
+        description: "PWM value for DOWN key"
+        default_value: 0
+        field: osd_joystick_down
+        min: 0
+        max: 100
+      - name: osd_joystick_up
+        description: "PWM value for UP key"
+        default_value: 48
+        field: osd_joystick_up
+        min: 0
+        max: 100
+      - name: osd_joystick_left
+        description: "PWM value for LEFT key"
+        default_value: 63
+        field: osd_joystick_left
+        min: 0
+        max: 100
+      - name: osd_joystick_right
+        description: "PWM value for RIGHT key"
+        default_value: 28
+        field: osd_joystick_right
+        min: 0
+        max: 100
+      - name: osd_joystick_enter
+        description: "PWM value for ENTER key"
+        default_value: 75
+        field: osd_joystick_enter
+        min: 0
         max: 100

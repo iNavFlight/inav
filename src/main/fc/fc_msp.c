@@ -78,6 +78,7 @@
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/ez_tune.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -717,6 +718,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
             sbufWriteU8(dst, constrain(pidBank()->pid[i].FF, 0, 255));
         }
+        #ifdef USE_EZ_TUNE
+            ezTuneUpdate();
+        #endif
         break;
 
     case MSP_PIDNAMES:
@@ -1598,6 +1602,23 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
                 sbufWriteU32(dst, escState->rpm);
             }
+        }
+        break;
+#endif
+
+#ifdef USE_EZ_TUNE
+
+    case MSP2_INAV_EZ_TUNE:
+        {
+            sbufWriteU8(dst, ezTune()->enabled);
+            sbufWriteU16(dst, ezTune()->filterHz);
+            sbufWriteU8(dst, ezTune()->axisRatio);
+            sbufWriteU8(dst, ezTune()->response);
+            sbufWriteU8(dst, ezTune()->damping);
+            sbufWriteU8(dst, ezTune()->stability);
+            sbufWriteU8(dst, ezTune()->aggressiveness);
+            sbufWriteU8(dst, ezTune()->rate);
+            sbufWriteU8(dst, ezTune()->expo);
         }
         break;
 #endif
@@ -3083,6 +3104,30 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
+#ifdef USE_EZ_TUNE
+
+    case MSP2_INAV_EZ_TUNE_SET:
+        {
+            if (dataSize == 10) {
+                ezTuneMutable()->enabled = sbufReadU8(src);
+                ezTuneMutable()->filterHz = sbufReadU16(src);
+                ezTuneMutable()->axisRatio = sbufReadU8(src);
+                ezTuneMutable()->response = sbufReadU8(src);
+                ezTuneMutable()->damping = sbufReadU8(src);
+                ezTuneMutable()->stability = sbufReadU8(src);
+                ezTuneMutable()->aggressiveness = sbufReadU8(src);
+                ezTuneMutable()->rate = sbufReadU8(src);
+                ezTuneMutable()->expo = sbufReadU8(src);
+
+                ezTuneUpdate();
+            } else {
+                return MSP_RESULT_ERROR;
+            }
+        }
+        break;
+
+#endif
+
 #ifdef USE_RATE_DYNAMICS
 
     case MSP2_INAV_SET_RATE_DYNAMICS:
@@ -3287,6 +3332,8 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, 0);
         sbufWriteU8(dst, 0);
         break;
+    case EZ_TUNE_VALUE:
+        FALLTHROUGH;
     case PROFILE_VALUE:
         FALLTHROUGH;
     case CONTROL_RATE_VALUE:
@@ -3350,7 +3397,7 @@ bool isOSDTypeSupportedBySimulator(void)
 {
 #ifdef USE_OSD
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
-	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+	return (!!osdDisplayPort && !!osdDisplayPort->vTable->readChar);
 #else
     return false;
 #endif
@@ -3362,18 +3409,25 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	//scan displayBuffer iteratively
 	//no more than 80+3+2 bytes output in single run
 	//0 and 255 are special symbols
-	//255 - font bank switch
-	//0  - font bank switch, blink switch and character repeat
+	//255 [char] - font bank switch
+	//0 [flags,count] [char] - font bank switch, blink switch and character repeat
+    //original 0 is sent as 32
+    //original 0xff, 0x100 and 0x1ff are forcibly sent inside command 0
 
 	static uint8_t osdPos_y = 0;
 	static uint8_t osdPos_x = 0;
 
+    //indicate new format hitl 1.4.0
+	sbufWriteU8(dst, 255);  
 
 	if (isOSDTypeSupportedBySimulator())
 	{
 		displayPort_t *osdDisplayPort = osdGetDisplayPort();
 
-		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
+		sbufWriteU8(dst, osdDisplayPort->rows);
+		sbufWriteU8(dst, osdDisplayPort->cols);
+
+		sbufWriteU8(dst, osdPos_y);
 		sbufWriteU8(dst, osdPos_x);
 
 		int bytesCount = 0;
@@ -3384,7 +3438,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		bool blink = false;
 		int count = 0;
 
-		int processedRows = 16;
+		int processedRows = osdDisplayPort->rows;
 
 		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
 		{
@@ -3395,7 +3449,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			while ( true )
 			{
 				displayReadCharWithAttr(osdDisplayPort, osdPos_x, osdPos_y, &c, &attr);
-				if (c == 0 || c == 255) c = 32;
+				if (c == 0) c = 32;
 
 				//REVIEW: displayReadCharWithAttr() should return mode with _TEXT_ATTRIBUTES_BLINK_BIT !
 				//for max7456 it returns mode with MAX7456_MODE_BLINK instead (wrong)
@@ -3410,7 +3464,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 					lastChar = c;
 					blink1 = blink2;
 				}
-				else if (lastChar != c || blink2 != blink1 || count == 63)
+				else if ((lastChar != c) || (blink2 != blink1) || (count == 63))
 				{
 					break;
 				}
@@ -3418,12 +3472,12 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 				count++;
 
 				osdPos_x++;
-				if (osdPos_x == 30)
+				if (osdPos_x == osdDisplayPort->cols)
 				{
 					osdPos_x = 0;
 					osdPos_y++;
 					processedRows--;
-					if (osdPos_y == 16)
+					if (osdPos_y == osdDisplayPort->rows)
 					{
 						osdPos_y = 0;
 					}
@@ -3431,6 +3485,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			}
 
 			uint8_t cmd = 0;
+            uint8_t lastCharLow = (uint8_t)(lastChar & 0xff);
 			if (blink1 != blink)
 			{
 				cmd |= 128;//switch blink attr
@@ -3446,27 +3501,27 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 			if (count == 1 && cmd == 64)
 			{
-				sbufWriteU8(dst, 255);  //short command for bank switch
+				sbufWriteU8(dst, 255);  //short command for bank switch with char following
 				sbufWriteU8(dst, lastChar & 0xff);
 				bytesCount += 2;
 			}
-			else if (count > 2 || cmd !=0 )
+			else if ((count > 2) || (cmd !=0) || (lastChar == 255) || (lastChar == 0x100) || (lastChar == 0x1ff))
 			{
 				cmd |= count;  //long command for blink/bank switch and symbol repeat
 				sbufWriteU8(dst, 0);
 				sbufWriteU8(dst, cmd);
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount += 3;
 			}
 			else if (count == 2)  //cmd == 0 here
 			{
-				sbufWriteU8(dst, lastChar & 0xff);
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount+=2;
 			}
 			else
 			{
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount++;
 			}
 
@@ -3480,7 +3535,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	}
 	else
 	{
-		sbufWriteU8(dst, 255);
+		sbufWriteU8(dst, 0);
 	}
 }
 #endif
@@ -3614,6 +3669,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				}
 #endif
 				ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+                ENABLE_STATE(ACCELEROMETER_CALIBRATED);
 				LOG_DEBUG(SYSTEM, "Simulator enabled");
 			}
 
@@ -3690,15 +3746,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
-#if defined(USE_FAKE_BATT_SENSOR)
                 if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
-                    fakeBattSensorSetVbat(sbufReadU8(src) * 10);
+                    simulatorData.vbat = sbufReadU8(src);
                 } else {
-#endif
-                    fakeBattSensorSetVbat((uint16_t)(SIMULATOR_FULL_BATTERY * 10.0f));
-#if defined(USE_FAKE_BATT_SENSOR)
+                    simulatorData.vbat = SIMULATOR_FULL_BATTERY;
                 }
-#endif
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
                     simulatorData.airSpeed = sbufReadU16(src);
