@@ -1074,7 +1074,6 @@ bool isAngleHoldLevel(void)
 void updateAngleHold(float *angleTarget, uint8_t axis)
 {
     int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
-    // static bool restartAngleHoldMode = true;
 
     if (!restartAngleHoldMode) {     // set restart flag when anglehold is inactive
         restartAngleHoldMode = !FLIGHT_MODE(ANGLEHOLD_MODE) && navAngleHoldAxis == -1;

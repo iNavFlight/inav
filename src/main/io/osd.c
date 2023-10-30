@@ -2267,7 +2267,7 @@ static bool osdDrawSingleElement(uint8_t item)
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
             else if (FLIGHT_MODE(ANGLEHOLD_MODE))
-                p = "AHLD";
+                p = "ANGH";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
