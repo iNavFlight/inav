@@ -574,6 +574,9 @@ float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
 // Select absolute or relative altitude based on WP mission flag setting
 geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag);
 
+void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t *pos);
+bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypointBearing);
+
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);   // NOT USED
 uint32_t distanceToFirstWP(void);
@@ -624,6 +627,7 @@ bool isEstimatedAglTrusted(void);
 
 void checkManualEmergencyLandingControl(bool forcedActivation);
 float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
+bool rthAltControlStickOverrideCheck(uint8_t axis);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles
