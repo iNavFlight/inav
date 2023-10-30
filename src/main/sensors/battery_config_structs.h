@@ -123,6 +123,8 @@ typedef struct batteryProfile_s {
             uint16_t launch_throttle;       // Launch throttle
         } fw;
 
+        uint8_t min_ground_speed;          // Minimum navigation ground speed [m/s]
+
     } nav;
 
 #if defined(USE_POWER_LIMITS)

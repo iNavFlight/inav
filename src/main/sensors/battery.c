@@ -134,6 +134,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
 
             .nav = {
+                .min_ground_speed = SETTING_NAV_MIN_GROUND_SPEED_DEFAULT,
 
                 .mc = {
                     .hover_throttle = SETTING_NAV_MC_HOVER_THR_DEFAULT,
@@ -147,7 +148,6 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                     .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
                     .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,                 // Motor idle or MOTOR_STOP
                 }
-
             },
 
 #if defined(USE_POWER_LIMITS)
