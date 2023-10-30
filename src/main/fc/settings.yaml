@@ -2532,6 +2532,12 @@ groups:
         field: general.max_manual_acceleration
         min: 10
         max: 2000
+      - name: nav_jerk_z
+        description: "Jerk limit of the vertical kinematic path generation used to determine how quickly the aircraft varies the acceleration target [cm/s]"
+        default_value: 5
+        field: general.shaping_jerk_z
+        min: 5
+        max: 50
       - name: nav_land_minalt_vspd
         description: "Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]"
         default_value: 50

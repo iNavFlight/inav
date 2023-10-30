@@ -46,6 +46,9 @@ float navPidApply3(
 ) {
     float newProportional, newDerivative, newFeedForward;
     
+    pid->kiMin = outMin;
+    pid->kiMax = outMax;
+
     if (pid->errorLpfHz > 0.0f) {
         pid->error = pt1FilterApply4(&pid->error_filter_state, setpoint - measurement, pid->errorLpfHz, dt);
     } else {
@@ -126,6 +129,15 @@ float navPidApply3(
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags)
 {
     return navPidApply3(pid, setpoint, measurement, dt, outMin, outMax, pidFlags, 1.0f, 1.0f);
+}
+
+void navPidRelaxIntegrator(pidController_t *pid, float integrator, float dt, float time_constant)
+{
+    integrator = constrainf(integrator, -pid->kiMin, pid->kiMax);
+
+    if (dt > 0.0f) {
+        pid->integrator = pid->integrator + (integrator - pid->integrator) * (dt / (dt + time_constant));
+    }
 }
 
 void navPidReset(pidController_t *pid)

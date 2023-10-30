@@ -96,7 +96,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 6);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -136,7 +136,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
         .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,
         .max_manual_acceleration = SETTING_NAV_MANUAL_ACCELERATION_DEFAULT,          
-        .max_auto_acceleration= SETTING_NAV_AUTO_ACCELERATION_DEFAULT,
+        .max_auto_acceleration = SETTING_NAV_AUTO_ACCELERATION_DEFAULT,
+        .shaping_jerk_z = SETTING_NAV_JERK_Z_DEFAULT,
         .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,                       // altitude in centimeters
         .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,                       // altitude in meters
         .land_minalt_vspd = SETTING_NAV_LAND_MINALT_VSPD_DEFAULT,                               // centimeters/s
@@ -1527,7 +1528,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     uint32_t remaning_distance = calculateDistanceToDestination(&tmpHomePos);
 
     int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
-    if(STATE(MULTIROTOR) && (remaning_distance>MR_RTH_LAND_MARGIN_CM)){
+    if (STATE(MULTIROTOR) && (remaning_distance > MR_RTH_LAND_MARGIN_CM)){
         descentVelLimited = navConfig()->general.land_minalt_vspd;
     }
     // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed

@@ -61,6 +61,8 @@ typedef struct {
     float derivative;                   // used derivative value in output
     float feedForward;                  // used FeedForward value in output
     float output_constrained;           // controller output constrained
+    float kiMin;                        // integral term output min
+    float kiMax;                        // integral term output max
 } pidController_t;
 
 float navPidApply2(pidController_t *pid, const float setpoint, const float measurement, const float dt, const float outMin, const float outMax, const pidControllerFlags_e pidFlags);
@@ -75,5 +77,6 @@ float navPidApply3(
     const float gainScaler,
     const float dTermScaler
 );
+void navPidRelaxIntegrator(pidController_t *pid, float integrator, float dt, float time_constant);
 void navPidReset(pidController_t *pid);
 void navPidInit(pidController_t *pid, float _kP, float _kI, float _kD, float _kFF, float _dTermLpfHz, float _errorLpfHz);

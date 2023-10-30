@@ -28,18 +28,19 @@
 #include "navigation/navigation.h"
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
-#define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ    2       // Low-Pass filter on throttle output in Alt-Hold
+#define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ    2.0f    // Low-Pass filter on throttle output in Alt-Hold
 #define NAV_FW_CONTROL_MONITORING_RATE      2
 #define NAV_DERIVATIVE_TERM_CUT_HZ          10.0f
 #define NAV_MC_VEL_Z_DERIVATIVE_CUT_HZ      5.0f
 #define NAV_MC_VEL_Z_ERROR_CUT_HZ           5.0f
 #define NAV_MC_ACC_Z_ERROR_CUT_HZ           20.0f
 #define NAV_MC_ACC_Z_IMAX                   800     // Vertical acceleration controller IMAX gain default
+#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.16f   // Integral relax time constant is used to decay the I term to 5% in half a second.
+#define NAV_MC_OVERSPEED_GAIN_Z             2.0f    // Gain controlling rate at which z-axis speed is brought back within _vel_max_down_cms and _vel_max_up_cms range
 #define NAV_MC_ACCELERATION_XY_MAX          980.0f  // cm/s/s
+#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
 
 #define INAV_SURFACE_MAX_DISTANCE           40
-
-#define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
 #define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s

@@ -3312,6 +3312,16 @@ Deadband for heading trajectory PID controller. When heading error is below the 
 
 ---
 
+### nav_jerk_z
+
+Jerk limit of the vertical kinematic path generation used to determine how quickly the aircraft varies the acceleration target [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | 50 |
+
+---
+
 ### nav_land_detect_sensitivity
 
 Changes sensitivity of landing detection. Higher values increase speed of detection but also increase risk of false detection. Default value should work in most cases.
