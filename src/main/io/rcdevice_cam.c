@@ -29,6 +29,7 @@
 
 #include "io/beeper.h"
 #include "io/rcdevice_cam.h"
+#include "io/osd_joystick.h"
 
 #include "rx/rx.h"
 
@@ -47,6 +48,14 @@ bool waitingDeviceResponse = false;
 
 static bool isFeatureSupported(uint8_t feature)
 {
+#ifndef UNIT_TEST
+#ifdef USE_LED_STRIP
+    if (!rcdeviceIsEnabled() && osdJoystickEnabled() ) {
+        return true;
+    }
+#endif
+#endif
+
     if (camDevice->info.features & feature) {
         return true;
     }
@@ -72,6 +81,7 @@ static void rcdeviceCameraControlProcess(void)
             }
 
             uint8_t behavior = RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION;
+            uint8_t behavior1 = RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION;
             switch (i) {
             case BOXCAMERA1:
                 if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_WIFI_BUTTON)) {
@@ -81,11 +91,13 @@ static void rcdeviceCameraControlProcess(void)
                     if (!ARMING_FLAG(ARMED)) {
                         behavior = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN;
                     }
+                    behavior1 = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN;
                 }
                 break;
             case BOXCAMERA2:
                 if (isFeatureSupported(RCDEVICE_PROTOCOL_FEATURE_SIMULATE_POWER_BUTTON)) {
                     behavior = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_POWER_BTN;
+                    behavior1 = RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_POWER_BTN;
                 }
                 break;
             case BOXCAMERA3:
@@ -94,16 +106,43 @@ static void rcdeviceCameraControlProcess(void)
                     if (!ARMING_FLAG(ARMED)) {
                         behavior = RCDEVICE_PROTOCOL_CAM_CTRL_CHANGE_MODE;
                     }
+                    behavior1 = RCDEVICE_PROTOCOL_CAM_CTRL_CHANGE_MODE;
                 }
                 break;
             default:
                 break;
             }
-            if (behavior != RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) {
+            if ((behavior != RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) && rcdeviceIsEnabled()) {
                 runcamDeviceSimulateCameraButton(camDevice, behavior);
                 switchStates[switchIndex].isActivated = true;
             }
+#ifndef UNIT_TEST
+#ifdef USE_LED_STRIP
+            else if ((behavior1 != RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION) && osdJoystickEnabled()) {
+                switch (behavior1) {
+                        case RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_WIFI_BTN:
+                            osdJoystickSimulate5KeyButtonPress(RCDEVICE_CAM_KEY_ENTER);
+                            break;
+                        case RCDEVICE_PROTOCOL_CAM_CTRL_SIMULATE_POWER_BTN:
+                            osdJoystickSimulate5KeyButtonPress(RCDEVICE_CAM_KEY_UP);
+                            break;
+                        case RCDEVICE_PROTOCOL_CAM_CTRL_CHANGE_MODE:
+                            osdJoystickSimulate5KeyButtonPress(RCDEVICE_CAM_KEY_DOWN);
+                            break;
+                    }
+                switchStates[switchIndex].isActivated = true;
+            }
+#endif
+#endif
+            UNUSED(behavior1);
         } else {
+#ifndef UNIT_TEST
+#ifdef USE_LED_STRIP
+            if (osdJoystickEnabled() && switchStates[switchIndex].isActivated) {
+                osdJoystickSimulate5KeyButtonRelease();
+            }
+#endif
+#endif
             switchStates[switchIndex].isActivated = false;
         }
     }
@@ -225,14 +264,24 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
     }
 #endif
 
-    if (camDevice->serialPort == 0 || ARMING_FLAG(ARMED)) {
+    if (ARMING_FLAG(ARMED)) {
         return;
     }
 
     if (isButtonPressed) {
         if (IS_MID(YAW) && IS_MID(PITCH) && IS_MID(ROLL)) {
-            rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
-            waitingDeviceResponse = true;
+            if ( rcdeviceIsEnabled() ) {
+                rcdeviceSend5KeyOSDCableSimualtionEvent(RCDEVICE_CAM_KEY_RELEASE);
+                waitingDeviceResponse = true;
+            }
+#ifndef UNIT_TEST
+#ifdef USE_LED_STRIP
+            else if (osdJoystickEnabled()) {
+                osdJoystickSimulate5KeyButtonRelease();
+                isButtonPressed = false;
+            }
+#endif
+#endif
         }
     } else {
         if (waitingDeviceResponse) {
@@ -266,16 +315,33 @@ static void rcdevice5KeySimulationProcess(timeUs_t currentTimeUs)
         }
 
         if (key != RCDEVICE_CAM_KEY_NONE) {
-            rcdeviceSend5KeyOSDCableSimualtionEvent(key);
+            if ( rcdeviceIsEnabled() ) {
+                rcdeviceSend5KeyOSDCableSimualtionEvent(key);
+                waitingDeviceResponse = true;
+            }
+#ifndef UNIT_TEST
+#ifdef USE_LED_STRIP
+            else if (osdJoystickEnabled()) {
+                if ( key == RCDEVICE_CAM_KEY_CONNECTION_OPEN ) {
+                    rcdeviceInMenu = true;
+                } else if ( key == RCDEVICE_CAM_KEY_CONNECTION_CLOSE ) {
+                    rcdeviceInMenu = false;
+                } else {
+                    osdJoystickSimulate5KeyButtonPress(key);
+                }
+            }
+#endif
+#endif
             isButtonPressed = true;
-            waitingDeviceResponse = true;
         }
     }
 }
 
 void rcdeviceUpdate(timeUs_t currentTimeUs)
 {
-    rcdeviceReceive(currentTimeUs);
+    if ( rcdeviceIsEnabled() ) {
+        rcdeviceReceive(currentTimeUs);
+    }
 
     rcdeviceCameraControlProcess();
 

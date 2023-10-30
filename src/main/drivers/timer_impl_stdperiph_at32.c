@@ -404,6 +404,6 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 {
     dma_channel_enable(tch->dma->ref,FALSE);
     tmr_dma_request_enable(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], FALSE);
+    tch->dmaState = TCH_DMA_IDLE;
     tmr_counter_enable(tch->timHw->tim, TRUE);
-
 }

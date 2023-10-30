@@ -78,11 +78,13 @@
 #define ICM42605_INT_TPULSE_DURATION_100            (0 << ICM42605_INT_TPULSE_DURATION_BIT)
 #define ICM42605_INT_TPULSE_DURATION_8              (1 << ICM42605_INT_TPULSE_DURATION_BIT)
 
-
 #define ICM42605_RA_INT_SOURCE0                     0x65
 #define ICM42605_UI_DRDY_INT1_EN_DISABLED           (0 << 3)
 #define ICM42605_UI_DRDY_INT1_EN_ENABLED            (1 << 3)
 
+#define ICM42605_INTF_CONFIG1                       0x4D
+#define ICM42605_INTF_CONFIG1_AFSR_MASK             0xC0
+#define ICM42605_INTF_CONFIG1_AFSR_DISABLE          0x40
 
 static void icm42605AccInit(accDev_t *acc)
 {
@@ -188,6 +190,15 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     intConfig1Value |= (ICM42605_INT_TPULSE_DURATION_8 | ICM42605_INT_TDEASSERT_DISABLED);
 
     busWrite(dev, ICM42605_RA_INT_CONFIG1, intConfig1Value);
+    delay(15);
+
+    //Disable AFSR as in BF and Ardupilot
+    uint8_t intfConfig1Value;
+    busRead(dev, ICM42605_INTF_CONFIG1, &intfConfig1Value);
+    intfConfig1Value &= ~ICM42605_INTF_CONFIG1_AFSR_MASK;
+    intfConfig1Value |= ICM42605_INTF_CONFIG1_AFSR_DISABLE;
+    busWrite(dev, ICM42605_INTF_CONFIG1, intfConfig1Value);
+
     delay(15);
 
     busSetSpeed(dev, BUS_SPEED_FAST);
