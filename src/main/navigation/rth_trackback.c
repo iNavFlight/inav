@@ -46,7 +46,7 @@ void rthTrackBackUpdate(bool forceSaveTrackPoint)
 {
     static bool suspendTracking = false;
     bool fwLoiterIsActive = STATE(AIRPLANE) && (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED || FLIGHT_MODE(NAV_POSHOLD_MODE));
-    
+
     if (!fwLoiterIsActive && suspendTracking) {
         suspendTracking = false;
     }
@@ -55,8 +55,7 @@ void rthTrackBackUpdate(bool forceSaveTrackPoint)
         return;
     }
 
-    // Record trackback points based on significant change in course/altitude until
-    // points limit reached. Overwrite older points from then on.
+    // Record trackback points based on significant change in course/altitude until points limit reached. Overwrite older points from then on.
     if (posControl.flags.estPosStatus >= EST_USABLE && posControl.flags.estAltStatus >= EST_USABLE) {
         static int32_t previousTBTripDist;      // cm
         static int16_t previousTBCourse;        // degrees
@@ -82,8 +81,7 @@ void rthTrackBackUpdate(bool forceSaveTrackPoint)
                 if (ABS(wrap_18000(DEGREES_TO_CENTIDEGREES(DECIDEGREES_TO_DEGREES(gpsSol.groundCourse) - previousTBCourse))) > DEGREES_TO_CENTIDEGREES(45)) {
                     saveTrackpoint = true;
                 } else if (distanceCounter >= 9) {
-                    // Distance based trackpoint logged if at least 10 distance increments occur without altitude or course change
-                    // and deviation from projected course path > 20m
+                    // Distance based trackpoint logged if at least 10 distance increments occur without altitude or course change and deviation from projected course path > 20m
                     float distToPrevPoint = calculateDistanceToDestination(&rth_trackback.pointsList[rth_trackback.activePointIndex]);
 
                     fpVector3_t virtualCoursePoint;

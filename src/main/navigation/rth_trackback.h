@@ -28,9 +28,9 @@
 typedef struct
 {
     fpVector3_t pointsList[NAV_RTH_TRACKBACK_POINTS]; // buffer of points stored
-    int8_t lastSavedIndex;                                 // last trackback point index saved
-    int8_t activePointIndex;                               // trackback points counter
-    int8_t WrapAroundCounter;                              // stores trackpoint array overwrite index position
+    int16_t lastSavedIndex;                           // last trackback point index saved
+    int16_t activePointIndex;                         // trackback points counter
+    int16_t WrapAroundCounter;                        // stores trackpoint array overwrite index position
 } rth_trackback_t;
 
 extern rth_trackback_t rth_trackback;
