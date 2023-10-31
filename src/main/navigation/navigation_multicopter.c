@@ -451,22 +451,21 @@ static void updateZController(timeDelta_t deltaMicros)
 
     thr_out = navPidApply2(&posControl.pids.acceleration_z, _accel_target.z, z_accel_meas, US2S(deltaMicros), thrCorrectionMin, correctionMax, PID_LIMIT_INTEGRATOR);
 
-    thr_out += currentBatteryProfile->nav.mc.hover_throttle;
-
     int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, thr_out, NAV_THROTTLE_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    // nav_speed_down is checked to be non-zero when set
+    // _vel_max_down_cms is checked to be non-zero when set
     float error_ratio = posControl.pids.vel[Z].error / _vel_max_down_cms;
     _vel_z_control_ratio += US2S(deltaMicros) * 0.1f * (0.5f - error_ratio);
     _vel_z_control_ratio = constrainf(_vel_z_control_ratio, 0.0f, 1.0f);
     
     if ((navGetCurrentStateFlags() & NAV_CTL_LAND) && !STATE(LANDING_DETECTED)) {
-        float rcThrottleCorrectionDesired = (1.0f - _vel_z_control_ratio) * getThrottleIdleValue() + _vel_z_control_ratio * motorConfig()->maxthrottle;
-        rcThrottleCorrection = MIN(rcThrottleCorrection, rcThrottleCorrectionDesired);
+        rcThrottleCorrection = (1.0f - _vel_z_control_ratio) * getThrottleIdleValue() + _vel_z_control_ratio * motorConfig()->maxthrottle;
+    } else {
+        rcThrottleCorrection += currentBatteryProfile->nav.mc.hover_throttle;
     }
 
-    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.mc.hover_throttle + rcThrottleCorrection, false);
+    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(rcThrottleCorrection, false);
 
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
 }
