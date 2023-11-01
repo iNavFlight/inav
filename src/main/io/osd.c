@@ -1007,10 +1007,10 @@ static const char * osdFailsafeInfoMessage(void)
 #if defined(USE_SAFE_HOME)
 static const char * divertingToSafehomeMessage(void)
 {
-    if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied) {
-        return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
-    }
-    return NULL;
+	if ((NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && safehome_applied) || isFwLandInProgess()) {
+	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
+	}
+	return NULL;
 }
 #endif
 
@@ -2269,8 +2269,9 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_FLYMODE:
         {
             char *p = "ACRO";
-
-            if (FLIGHT_MODE(FAILSAFE_MODE))
+            if (isFwLandInProgess()) 
+                p = "LAND";
+            else if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
@@ -5133,7 +5134,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         const char *invertedInfoMessage = NULL;
 
         if (ARMING_FLAG(ARMED)) {
-            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding() || isFwLandInProgess()) {
                 if (isWaypointMissionRTHActive()) {
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
@@ -5165,9 +5166,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
                     messages[messageCount++] = messageBuf;
                 } else {
-                    const char *navStateMessage = navigationStateMessage();
-                    if (navStateMessage) {
-                        messages[messageCount++] = navStateMessage;
+                    if (canFwLandCanceld()) {
+                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS);
+                    } else if (!isFwLandInProgess()) {
+                        const char *navStateMessage = navigationStateMessage();
+                        if (navStateMessage) {
+                            messages[messageCount++] = navStateMessage;
+                        }
                     }
                 }
 #if defined(USE_SAFE_HOME)

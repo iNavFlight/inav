@@ -2922,9 +2922,9 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 
 ---
 
-### nav_fw_launch_abort_deadband
+### nav_fw_launch_land_abort_deadband
 
-Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch.
+Launch and landing abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch or landing.
 
 | Default | Min | Max |
 | --- | --- | --- |

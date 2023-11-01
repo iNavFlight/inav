@@ -38,6 +38,8 @@
 
 #include "flight/imu.h"
 
+#include "navigation/navigation_pos_estimator_private.h"
+
 #include "io/gps.h"
 
 
@@ -105,9 +107,9 @@ void updateWindEstimator(timeUs_t currentTimeUs)
 
     // Get current 3D velocity from GPS in cm/s
     // relative to earth frame
-    groundVelocity[X] = gpsSol.velNED[X];
-    groundVelocity[Y] = gpsSol.velNED[Y];
-    groundVelocity[Z] = gpsSol.velNED[Z];
+    groundVelocity[X] = posEstimator.gps.vel.x;
+    groundVelocity[Y] = posEstimator.gps.vel.y;
+    groundVelocity[Z] = posEstimator.gps.vel.z;
 
     // Fuselage direction in earth frame
     fuselageDirection[X] = HeadVecEFFiltered.x;

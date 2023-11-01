@@ -158,6 +158,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_CRUISE,
     NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
     NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -173,6 +174,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_5,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE = NAV_FSM_EVENT_STATE_SPECIFIC_6,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT = NAV_FSM_EVENT_STATE_SPECIFIC_6,
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
 
@@ -233,6 +235,12 @@ typedef enum {
     NAV_PERSISTENT_ID_MIXERAT_INITIALIZE                        = 39,
     NAV_PERSISTENT_ID_MIXERAT_IN_PROGRESS                       = 40,
     NAV_PERSISTENT_ID_MIXERAT_ABORT                             = 41,
+    NAV_PERSISTENT_ID_FW_LANDING_CLIMB_TO_LOITER                = 42,
+    NAV_PERSISTENT_ID_FW_LANDING_LOITER                         = 43,
+    NAV_PERSISTENT_ID_FW_LANDING_APPROACH                       = 44,
+    NAV_PERSISTENT_ID_FW_LANDING_GLIDE                          = 45,
+    NAV_PERSISTENT_ID_FW_LANDING_FLARE                          = 46,
+    NAV_PERSISTENT_ID_FW_LANDING_ABORT                          = 47,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -279,6 +287,13 @@ typedef enum {
     NAV_STATE_CRUISE_INITIALIZE,
     NAV_STATE_CRUISE_IN_PROGRESS,
     NAV_STATE_CRUISE_ADJUSTING,
+    
+    NAV_STATE_FW_LANDING_CLIMB_TO_LOITER,
+    NAV_STATE_FW_LANDING_LOITER,
+    NAV_STATE_FW_LANDING_APPROACH,
+    NAV_STATE_FW_LANDING_GLIDE,
+    NAV_STATE_FW_LANDING_FLARE,
+    NAV_STATE_FW_LANDING_ABORT,
 
     NAV_STATE_MIXERAT_INITIALIZE,
     NAV_STATE_MIXERAT_IN_PROGRESS,
@@ -368,6 +383,12 @@ typedef struct {
     bool        isApplied;          // whether the safehome has been applied to home
 } safehomeState_t;
 
+typedef enum {
+    FW_AUTOLAND_WP_TURN,
+    FW_AUTOLAND_WP_FINAL_APPROACH,
+    FW_AUTOLAND_WP_LAND,
+    FW_AUTOLAND_WP_COUNT,
+} fwAutolandWayppoints_t;
 typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
@@ -433,6 +454,17 @@ typedef struct {
     int8_t                      rthTBLastSavedIndex;        // last trackback point index saved
     int8_t                      activeRthTBPointIndex;
     int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
+
+    /* Fixedwing autoland */
+    timeUs_t fwLandLoiterStartTime;
+    fpVector3_t fwLandWaypoint[FW_AUTOLAND_WP_COUNT];
+    int32_t fwLandingDirection;
+    int32_t fwLandAproachAltAgl;
+    int32_t fwLandAltAgl;
+    bool fwLandWpReached;
+    fwAutolandWayppoints_t fwLandCurrentWp;
+    bool fwLandAborted;
+    fwAutolandState_t fwLandState;
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

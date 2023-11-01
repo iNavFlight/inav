@@ -44,10 +44,28 @@ void onNewGPSData(void);
 
 #define MAX_SAFE_HOMES 8
 
+typedef enum  {
+    FW_AUTOLAND_APPROACH_DIRECTION_LEFT,
+    FW_AUTOLAND_APPROACH_DIRECTION_RIGHT
+} fwAutolandApproachDirection_e;
+
+typedef enum {
+    FW_AUTOLAND_LC_STATE_IDLE,
+    FW_AUTOLAND_STATE_CROSSWIND,
+    FW_AUTOLAND_STATE_BASE_LEG,
+    FW_AUTOLAND_STATE_FINAL_APPROACH,
+    FW_AUTOLAND_STATE_GLIDE,
+    FW_AUTOLAND_STATE_FLARE
+} fwAutolandState_t;
 typedef struct {
     uint8_t enabled;
     int32_t lat;
     int32_t lon;
+    int32_t approachAltMSL;
+    int32_t landAltMSL;
+    fwAutolandApproachDirection_e approachDirection;
+    int16_t landApproachHeading1;
+    int16_t landApproachHeading2;
 } navSafeHome_t;
 
 typedef enum {
@@ -58,8 +76,26 @@ typedef enum {
 
 PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
 
-void resetSafeHomes(void);           // remove all safehomes
-bool findNearestSafeHome(void);      // Find nearest safehome
+typedef struct navFwAutolandConfig_s
+{
+    uint32_t approachLength;
+    uint16_t finalApproachPitchToThrottleMod;
+    uint16_t glideAltitude;
+    uint16_t flareAltitude;
+    uint8_t flarePitch;
+    uint16_t maxTailwind;
+    uint8_t glidePitch;
+} navFwAutolandConfig_t;
+
+PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);
+
+extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+extern uint32_t safehome_distance;               // distance to the nearest safehome
+extern bool safehome_applied;                    // whether the safehome has been applied to home.
+
+void resetSafeHomes(void);                       // remove all safehomes
+bool findNearestSafeHome(void);                  // Find nearest safehome
+
 #endif // defined(USE_SAFE_HOME)
 
 #ifndef NAV_MAX_WAYPOINTS
@@ -302,7 +338,6 @@ typedef struct navConfig_s {
         uint16_t minThrottleDownPitchAngle;  // Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
         uint8_t  loiter_direction;           // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
-        int8_t   land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
@@ -316,7 +351,8 @@ typedef struct navConfig_s {
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         bool     launch_manual_throttle;     // Allows launch with manual throttle control
-        uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
+        uint8_t  launch_land_abort_deadband;      // roll/pitch stick movement deadband for launch abort
+        uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
@@ -636,6 +672,9 @@ uint8_t getActiveWpNumber(void);
  * are in the [0, 360 * 100) interval.
  */
 int32_t navigationGetHomeHeading(void);
+
+bool isFwLandInProgess(void);
+bool canFwLandCanceld(void);
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;

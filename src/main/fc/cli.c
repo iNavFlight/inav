@@ -1312,18 +1312,23 @@ static void cliTempSensor(char *cmdline)
 #if defined(USE_SAFE_HOME)
 static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
 {
-    const char *format = "safehome %u %u %d %d"; // uint8_t enabled, int32_t lat; int32_t lon
+    const char *format = "safehome %u %u %d %d %d %d %u %d %d"; // uint8_t enabled, int32_t lat; int32_t lon
     for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
         bool equalsDefault = false;
         if (defaultSafeHome) {
             equalsDefault = navSafeHome[i].enabled == defaultSafeHome[i].enabled
                && navSafeHome[i].lat == defaultSafeHome[i].lat
-               && navSafeHome[i].lon == defaultSafeHome[i].lon;
+               && navSafeHome[i].lon == defaultSafeHome[i].lon 
+               && navSafeHome[i].approachDirection == defaultSafeHome[i].approachDirection
+               && navSafeHome[i].approachAltMSL == defaultSafeHome[i].approachAltMSL
+               && navSafeHome[i].landAltMSL == defaultSafeHome[i].landAltMSL
+               && navSafeHome[i].landApproachHeading1 == defaultSafeHome[i].landApproachHeading1
+               && navSafeHome[i].landApproachHeading2 == defaultSafeHome[i].landApproachHeading2;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
-                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon);
+                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon, defaultSafeHome[i].approachAltMSL, defaultSafeHome[i].landAltMSL, defaultSafeHome[i].approachDirection, defaultSafeHome[i].landApproachHeading1, defaultSafeHome[i].landApproachHeading2);
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
-            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon);
+            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon,  navSafeHome[i].approachAltMSL, navSafeHome[i].landAltMSL, navSafeHome[i].approachDirection, navSafeHome[i].landApproachHeading1, navSafeHome[i].landApproachHeading2);
     }
 }
 
@@ -1334,7 +1339,7 @@ static void cliSafeHomes(char *cmdline)
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
         resetSafeHomes();
     } else {
-        int32_t lat=0, lon=0;
+        int32_t lat=0, lon=0, approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
         bool enabled=false;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
@@ -1354,16 +1359,54 @@ static void cliSafeHomes(char *cmdline)
                 lon = fastA2I(ptr);
                 validArgumentCount++;
             }
+
+            if ((ptr = nextArg(ptr))) {
+                approachAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landDirection = fastA2I(ptr);
+                
+                if (landDirection != 0 && landDirection != 1) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading1 = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading2 = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
             if ((ptr = nextArg(ptr))) {
                 // check for too many arguments
                 validArgumentCount++;
             }
-            if (validArgumentCount != 3) {
+
+            if (validArgumentCount != 8) {
                 cliShowParseError();
             } else {
                 safeHomeConfigMutable(i)->enabled = enabled;
                 safeHomeConfigMutable(i)->lat = lat;
                 safeHomeConfigMutable(i)->lon = lon;
+                safeHomeConfigMutable(i)->approachAltMSL = approachAlt;
+                safeHomeConfigMutable(i)->landAltMSL = landAlt;
+                safeHomeConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
+                safeHomeConfigMutable(i)->landApproachHeading1 = (int16_t)heading1;
+                safeHomeConfigMutable(i)->landApproachHeading2 = (int16_t)heading2;
             }
         }
     }

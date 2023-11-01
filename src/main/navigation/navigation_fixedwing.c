@@ -588,13 +588,18 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     // Apply low-pass filter to pitch angle to smooth throttle correction
     int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
 
+    int16_t pitchToThrottle = currentBatteryProfile->nav.fw.pitch_to_throttle;
+    if (pitch < 0 && posControl.fwLandState == FW_AUTOLAND_STATE_FINAL_APPROACH) {
+        pitchToThrottle *= navFwAutolandConfig()->finalApproachPitchToThrottleMod / 100.0f;
+    }
+
     if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
         // Unfiltered throttle correction outside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(pitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(pitch) * pitchToThrottle;
     }
     else {
         // Filtered throttle correction inside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(filteredPitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(filteredPitch) * pitchToThrottle;
     }
 }
 
@@ -620,7 +625,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
 #ifdef NAV_FIXED_WING_LANDING
-        if (navStateFlags & NAV_CTL_LAND) {
+        if ((navStateFlags & NAV_CTL_LAND) || isFwLandInProgess()) {
             // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
         } else {
@@ -654,24 +659,18 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     }
 
 #ifdef NAV_FIXED_WING_LANDING
-    /*
-     * Then altitude is below landing slowdown min. altitude, enable final approach procedure
-     * TODO refactor conditions in this metod if logic is proven to be correct
-     */
-    if (navStateFlags & NAV_CTL_LAND || STATE(LANDING_DETECTED)) {
-        int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;
 
-        if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
-           (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
+    if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
+        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
+        rcCommand[THROTTLE] = getThrottleIdleValue();
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
-            // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
-            ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+        if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
+            rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
 
-            // Stabilize ROLL axis on 0 degrees banking regardless of loiter radius and position
-            rcCommand[ROLL] = 0;
-
-            // Stabilize PITCH angle into shallow dive as specified by the nav_fw_land_dive_angle setting (default value is 2 - defined in navigation.c).
-            rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navConfig()->fw.land_dive_angle), pidProfile()->max_angle_inclination[FD_PITCH]);
+        if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+            rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
 #endif
