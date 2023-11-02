@@ -123,15 +123,28 @@
 #define I2C2_SDA                PB11        // SDA pad
 #define USE_I2C_PULLUP
 
-#if defined(BETAFPV435_I2C)
+#if defined(BETAFPVF435_I2C_UART1)
+
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL		PA9  // UART1 TX
-#define I2C1_SCL		PA10 // UART1 RX
+#define I2C1_SDA		PA10 // UART1 RX
 #define MAG_I2C_BUS		BUS_I2C1
 #define USE_MAG
 #define USE_MAG_ALL
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_ALL
+
+#elif defined(BETAFPVF435_I2C_SBUS)
+
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL		PB6 // LED
+#define I2C1_SDA		PC7 // UART6_RX (SBUS)
+#define MAG_I2C_BUS		BUS_I2C1
+#define USE_MAG
+#define USE_MAG_ALL
+#define BARO_I2C_BUS            BUS_I2C1
+#define USE_BARO_ALL
+
 #else
 #define BARO_I2C_BUS            BUS_I2C2
 #endif
@@ -143,9 +156,13 @@
 //#define USB_DETECT_PIN          PC5
 
 
+#if !defined(BETAFPVF435_I2C_UART1)
+
 #define USE_UART1
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
+
+#endif
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -162,11 +179,17 @@
 #define UART5_RX_PIN            PD2
 #define UART5_TX_PIN            PD2
 
+#if !defined(BETAFPVF435_I2C_SBUS)
 #define USE_UART6
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
+#endif
 
+#if defined(BETAFPVF435_I2C_UART1) || defined(BETAFPVF435_I2C_SBUS)
+#define SERIAL_PORT_COUNT       5
+#else
 #define SERIAL_PORT_COUNT       6
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
