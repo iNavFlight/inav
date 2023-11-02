@@ -3894,9 +3894,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             /* Soaring mode, disables altitude control in Position hold and Course hold modes.
              * Pitch allowed to freefloat within defined Angle mode deadband */
             if (IS_RC_MODE_ACTIVE(BOXSOARING) && (FLIGHT_MODE(NAV_POSHOLD_MODE) || FLIGHT_MODE(NAV_COURSE_HOLD_MODE))) {
-                if (!FLIGHT_MODE(SOARING_MODE)) {
-                    ENABLE_FLIGHT_MODE(SOARING_MODE);
-                }
+                ENABLE_FLIGHT_MODE(SOARING_MODE);
             } else {
                 DISABLE_FLIGHT_MODE(SOARING_MODE);
             }
@@ -4566,4 +4564,22 @@ int32_t getCruiseHeadingAdjustment(void) {
 int32_t navigationGetHeadingError(void)
 {
     return wrap_18000(posControl.desiredState.yaw - posControl.actualState.cog);
+}
+
+int8_t navCheckActiveAngleHoldAxis(void)
+{
+    int8_t activeAxis = -1;
+
+    if (IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
+        navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+        bool altholdActive = stateFlags & NAV_REQUIRE_ANGLE_FW && !(stateFlags & NAV_REQUIRE_ANGLE);
+
+        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            activeAxis = FD_PITCH;
+        } else if (altholdActive) {
+            activeAxis = FD_ROLL;
+        }
+    }
+
+    return activeAxis;
 }

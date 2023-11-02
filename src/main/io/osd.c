@@ -1726,7 +1726,7 @@ static bool osdDrawSingleElement(uint8_t item)
             tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow packs below 100Ah
             buff[5] = SYM_MAH;
             buff[6] = '\0';
-        } else 
+        } else
 #endif
         {
             if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (mah_digits - 2), mah_digits, false)) {
@@ -1760,7 +1760,7 @@ static bool osdDrawSingleElement(uint8_t item)
             tfp_sprintf(buff, "  NF");
         else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
             uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
-            
+
 #ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
             if (isBfCompatibleVideoSystem(osdConfig())) {
                 //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
@@ -1768,7 +1768,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[5] = SYM_MAH;
                 buff[6] = '\0';
                 unitsDrawn = true;
-            } else 
+            } else
 #endif
             {
                 if (osdFormatCentiNumber(buff, getBatteryRemainingCapacity() * 100, 1000, 0, (mah_digits - 2), mah_digits, false)) {
@@ -2258,7 +2258,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = " WP ";
             else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
                 // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
-                // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
+                // it means it can be combined with ANGLE, HORIZON, ANGLEHOLD, ACRO, etc...
                 // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
                 p = " AH ";
             }
@@ -2266,6 +2266,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
+            else if (FLIGHT_MODE(ANGLEHOLD_MODE))
+                p = "ANGH";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
@@ -5156,10 +5158,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 } else {
                     if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ANGLEHOLD/ACRO
                         // when it doesn't require ANGLE mode (required only in FW
-                        // right now). If if requires ANGLE, its display is handled
-                        // by OSD_FLYMODE.
+                        // right now). If it requires ANGLE, its display is handled by OSD_FLYMODE.
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
                     }
                     if (STATE(MULTIROTOR) && FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -5195,6 +5196,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                     if (STATE(LANDING_DETECTED)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
+                        int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
+                        if (isAngleHoldLevel()) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_LEVEL);
+                        } else if (navAngleHoldAxis == FD_ROLL) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_ROLL);
+                        } else if (navAngleHoldAxis == FD_PITCH) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
+                        }
                     }
                 }
             }
