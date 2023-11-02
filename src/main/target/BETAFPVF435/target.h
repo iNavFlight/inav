@@ -123,10 +123,19 @@
 #define I2C2_SDA                PB11        // SDA pad
 #define USE_I2C_PULLUP
 
-#define USE_BARO
+#if defined(BETAFPV435_I2C)
+#define USE_I2C_DEVICE_1
+#define I2C1_SCL		PA9  // UART1 TX
+#define I2C1_SCL		PA10 // UART1 RX
+#define MAG_I2C_BUS		BUS_I2C1
+#define USE_MAG
+#define USE_MAG_ALL
+#define BARO_I2C_BUS            BUS_I2C1
+#define USE_BARO_ALL
+#else
 #define BARO_I2C_BUS            BUS_I2C2
-#define USE_BARO_BMP280
-#define USE_BARO_DPS310
+#endif
+
 
 // *************** UART *****************************
 #define USE_VCP
