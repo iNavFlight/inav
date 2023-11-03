@@ -258,7 +258,7 @@ Inertia force compensation method when gps is avaliable, VELNED use the acclerat
 
 | Default | Min | Max |
 | --- | --- | --- |
-| VELNED |  |  |
+| ADAPTIVE |  |  |
 
 ---
 
@@ -872,6 +872,96 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 
 ---
 
+### ez_aggressiveness
+
+EzTune aggressiveness
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_axis_ratio
+
+EzTune axis ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 110 | 25 | 175 |
+
+---
+
+### ez_damping
+
+EzTune damping
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_enabled
+
+Enables EzTune feature
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### ez_expo
+
+EzTune expo
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_filter_hz
+
+EzTune filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 110 | 10 | 300 |
+
+---
+
+### ez_rate
+
+EzTune rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_response
+
+EzTune response
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_stability
+
+EzTune stability
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
 ### failsafe_delay
 
 Time in deciseconds to wait before activating failsafe when signal is lost. See [Failsafe documentation](Failsafe.md#failsafe_delay).
@@ -1219,16 +1309,6 @@ Iterm is not allowed to grow when stick position is above threshold. This solves
 | Default | Min | Max |
 | --- | --- | --- |
 | 0.5 | 0 | 1 |
-
----
-
-### fw_iterm_throw_limit
-
-Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX |
 
 ---
 
@@ -1929,6 +2009,16 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 90 |
+
+---
+
+### led_pin_pwm_mode
+
+PWM mode of LED pin.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| SHARED_LOW |  |  |
 
 ---
 
@@ -3438,7 +3528,7 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1500 | 1000 | 2000 |
+| 1300 | 1000 | 2000 |
 
 ---
 
@@ -4012,6 +4102,16 @@ Value above which to make the OSD relative altitude indicator blink (meters)
 
 ---
 
+### osd_arm_screen_display_time
+
+Amount of time to display the arm screen [ms]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 1000 | 5000 |
+
+---
+
 ### osd_baro_temp_alarm_max
 
 Temperature above which the baro temperature OSD element will start blinking (decidegrees centigrade)
@@ -4342,6 +4442,76 @@ Temperature under which the IMU temperature OSD element will start blinking (dec
 
 ---
 
+### osd_inav_to_pilot_logo_spacing
+
+The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | 0 | 20 |
+
+---
+
+### osd_joystick_down
+
+PWM value for DOWN key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
+### osd_joystick_enabled
+
+Enable OSD Joystick emulation
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### osd_joystick_enter
+
+PWM value for ENTER key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 75 | 0 | 100 |
+
+---
+
+### osd_joystick_left
+
+PWM value for LEFT key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 63 | 0 | 100 |
+
+---
+
+### osd_joystick_right
+
+PWM value for RIGHT key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 28 | 0 | 100 |
+
+---
+
+### osd_joystick_up
+
+PWM value for UP key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 48 | 0 | 100 |
+
+---
+
 ### osd_left_sidebar_scroll
 
 _// TODO_
@@ -4372,9 +4542,9 @@ LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50
 
 ---
 
-### osd_mah_used_precision
+### osd_mah_precision
 
-Number of digits used to display mAh used.
+Number of digits used for mAh precision. Currently used by mAh Used and Battery Remaining Capacity
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4762,6 +4932,16 @@ IMPERIAL, METRIC, UK
 
 ---
 
+### osd_use_pilot_logo
+
+Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`
@@ -4769,6 +4949,16 @@ Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF'
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
+
+---
+
+### pid_iterm_limit_percent
+
+Limits max/min I-term value in stabilization PID controller. It solves the problem of servo saturation before take-off/throwing the airplane into the air. Or multirotors with low authority. By default, error accumulated in I-term can not exceed 33% of total pid throw (around 165us on deafult pidsum_limit of pitch/roll). Set 0 to disable completely.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 200 |
 
 ---
 
@@ -5682,9 +5872,19 @@ See tpa_rate.
 
 ---
 
+### tpa_on_yaw
+
+Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should be set to ON for tilting rotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### tpa_rate
 
-Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
+Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -81,7 +81,8 @@ typedef enum {
     LOGIC_CONDITION_TIMER                       = 49,
     LOGIC_CONDITION_DELTA                       = 50,
     LOGIC_CONDITION_APPROX_EQUAL                = 51,
-    LOGIC_CONDITION_LAST                        = 52,
+    LOGIC_CONDITION_LED_PIN_PWM                 = 52,
+    LOGIC_CONDITION_LAST                        = 53,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -135,8 +136,9 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS, //0,1,2                      // 35
     LOGIC_CONDITION_OPERAND_FLIGHT_AGL, //0,1,2                             // 36
     LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW, //int                   // 37
-    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE, //int              // 39
-    LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE, //0,1           // 40
+    LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE, //int              // 38
+    LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE, //0,1           // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW, // deg                     // 40
 } logicFlightOperands_e;
 
 typedef enum {

@@ -55,6 +55,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action);
 
 extern mixerConfig_t currentMixerConfig;
 extern int currentMixerProfileIndex;
+extern int nextMixerProfileIndex;
 extern bool isMixerTransitionMixing;
 #define mixerConfig() (&(mixerProfiles(systemConfig()->current_mixer_profile_index)->mixer_config))
 #define mixerConfigMutable() ((mixerConfig_t *) mixerConfig())
@@ -72,6 +73,7 @@ static inline const mixerProfile_t* mixerProfiles_CopyArray_by_index(int _index)
 #define mixerMotorMixersByIndex(index) (mixerProfiles(index)->MotorMixers)
 #define mixerServoMixersByIndex(index) (mixerProfiles(index)->ServoMixers)
 
+bool platformTypeConfigured(flyingPlatformType_e platformType);
 bool outputProfileHotSwitch(int profile_index);
 bool checkMixerProfileHotSwitchAvalibility(void);
 void activateMixerConfig(void);

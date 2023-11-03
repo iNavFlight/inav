@@ -161,7 +161,7 @@ static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
 
 #define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
-#define FIXED_WING_LEVEL_TRIM_DIVIDER 500.0f
+#define FIXED_WING_LEVEL_TRIM_DIVIDER 50.0f
 #define FIXED_WING_LEVEL_TRIM_MULTIPLIER 1.0f / FIXED_WING_LEVEL_TRIM_DIVIDER
 #define FIXED_WING_LEVEL_TRIM_CONTROLLER_LIMIT FIXED_WING_LEVEL_TRIM_DIVIDER * FIXED_WING_LEVEL_TRIM_MAX_ANGLE
 
@@ -264,8 +264,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .max_angle_inclination[FD_PITCH] = SETTING_MAX_ANGLE_INCLINATION_PIT_DEFAULT,
         .pidSumLimit = SETTING_PIDSUM_LIMIT_DEFAULT,
         .pidSumLimitYaw = SETTING_PIDSUM_LIMIT_YAW_DEFAULT,
+        .pidItermLimitPercent = SETTING_PID_ITERM_LIMIT_PERCENT_DEFAULT,
 
-        .fixedWingItermThrowLimit = SETTING_FW_ITERM_THROW_LIMIT_DEFAULT,
         .fixedWingReferenceAirspeed = SETTING_FW_REFERENCE_AIRSPEED_DEFAULT,
         .fixedWingCoordinatedYawGain = SETTING_FW_TURN_ASSIST_YAW_GAIN_DEFAULT,
         .fixedWingCoordinatedPitchGain = SETTING_FW_TURN_ASSIST_PITCH_GAIN_DEFAULT,
@@ -531,7 +531,7 @@ void updatePIDCoefficients(void)
             pidState[axis].kT  = 0.0f;
         }
         else {
-            const float axisTPA = (axis == FD_YAW) ? 1.0f : tpaFactor;
+            const float axisTPA = (axis == FD_YAW && (!currentControlRateProfile->throttle.dynPID_on_YAW)) ? 1.0f : tpaFactor;
             pidState[axis].kP  = pidBank()->pid[axis].P / FP_PID_RATE_P_MULTIPLIER * axisTPA;
             pidState[axis].kI  = pidBank()->pid[axis].I / FP_PID_RATE_I_MULTIPLIER;
             pidState[axis].kD  = pidBank()->pid[axis].D / FP_PID_RATE_D_MULTIPLIER * axisTPA;
@@ -766,8 +766,9 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     applyItermLimiting(pidState);
 
-    if (pidProfile()->fixedWingItermThrowLimit != 0) {
-        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -pidProfile()->fixedWingItermThrowLimit, pidProfile()->fixedWingItermThrowLimit);
+    if (pidProfile()->pidItermLimitPercent != 0){
+        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
     axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
@@ -841,6 +842,12 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     pidState->errorGyroIf += (itermErrorRate * pidState->kI * antiWindupScaler * dT)
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
+    
+    if (pidProfile()->pidItermLimitPercent != 0){
+        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
+    }
+
 
     // Don't grow I-term if motors are at their limit
     applyItermLimiting(pidState);
@@ -1037,7 +1044,7 @@ void checkItermLimitingActive(pidState_t *pidState)
         shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
     } else
     {
-        shouldActivate = mixerIsOutputSaturated();
+        shouldActivate = mixerIsOutputSaturated(); //just in case, since it is already managed by itermWindupPointPercent
     }
 
     pidState->itermLimitActive = STATE(ANTI_WINDUP) || shouldActivate;
@@ -1076,7 +1083,7 @@ void FAST_CODE pidController(float dT)
     // In case Yaw override is active, we engage the Heading Hold state
     if (isFlightAxisAngleOverrideActive(FD_YAW)) {
         headingHoldState = HEADING_HOLD_ENABLED;
-        headingHoldTarget = getFlightAxisAngleOverride(FD_YAW, 0);
+        headingHoldTarget = DECIDEGREES_TO_DEGREES(getFlightAxisAngleOverride(FD_YAW, 0));
     }
 
     if (headingHoldState == HEADING_HOLD_UPDATE_HEADING) {
@@ -1138,7 +1145,7 @@ void FAST_CODE pidController(float dT)
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
-    if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees) {
+    if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees && STATE(MULTIROTOR)) {
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
 
@@ -1251,7 +1258,7 @@ void pidInit(void)
     navPidInit(
         &fixedWingLevelTrimController,
         0.0f,
-        (float)pidProfile()->fixedWingLevelTrimGain / 100000.0f,
+        (float)pidProfile()->fixedWingLevelTrimGain / 100.0f,
         0.0f,
         0.0f,
         2.0f,
@@ -1263,8 +1270,17 @@ void pidInit(void)
 const pidBank_t * pidBank(void) {
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfile()->bank_fw : &pidProfile()->bank_mc;
 }
+
 pidBank_t * pidBankMutable(void) {
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
+}
+
+bool isFixedWingLevelTrimActive(void)
+{
+    return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !areSticksDeflected() &&
+           (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) &&
+           !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
+           !navigationIsControllingAltitude();
 }
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
@@ -1273,37 +1289,33 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
         return;
     }
 
-    static timeUs_t previousUpdateTimeUs;
-    static bool previousArmingState;
-    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
+    static bool previousArmingState = false;
 
-    /*
-     * On every ARM reset the controller
-     */
-    if (ARMING_FLAG(ARMED) && !previousArmingState) {
-        navPidReset(&fixedWingLevelTrimController);
-    }
-
-    /*
-     * On disarm update the default value
-     */
-    if (!ARMING_FLAG(ARMED) && previousArmingState) {
+    if (ARMING_FLAG(ARMED)) {
+        if (!previousArmingState) {     // On every ARM reset the controller
+            navPidReset(&fixedWingLevelTrimController);
+        }
+    } else if (previousArmingState) {   // On disarm update the default value
         pidProfileMutable()->fixedWingLevelTrim = constrainf(fixedWingLevelTrim, -FIXED_WING_LEVEL_TRIM_MAX_ANGLE, FIXED_WING_LEVEL_TRIM_MAX_ANGLE);
     }
+    previousArmingState = ARMING_FLAG(ARMED);
+
+    // return if not active or disarmed
+    if (!IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) || !ARMING_FLAG(ARMED)) {
+        return;
+    }
+
+    static timeUs_t previousUpdateTimeUs;
+    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
+    previousUpdateTimeUs = currentTimeUs;
 
     /*
      * Prepare flags for the PID controller
      */
     pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
 
-    //Iterm should freeze when sticks are deflected
-    if (
-        !IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) ||
-        areSticksDeflected() ||
-        (!FLIGHT_MODE(ANGLE_MODE) && !FLIGHT_MODE(HORIZON_MODE) && !FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) ||
-        FLIGHT_MODE(SOARING_MODE) ||
-        navigationIsControllingAltitude()
-    ) {
+    // Iterm should freeze when conditions for setting level trim aren't met
+    if (!isFixedWingLevelTrimActive()) {
         flags |= PID_FREEZE_INTEGRATOR;
     }
 
@@ -1321,8 +1333,6 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
 
     DEBUG_SET(DEBUG_AUTOLEVEL, 4, output);
     fixedWingLevelTrim = pidProfile()->fixedWingLevelTrim + (output * FIXED_WING_LEVEL_TRIM_MULTIPLIER);
-
-    previousArmingState = !!ARMING_FLAG(ARMED);
 }
 
 float getFixedWingLevelTrim(void)
