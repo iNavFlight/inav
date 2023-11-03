@@ -19,7 +19,7 @@ By befault, all navigation modes are disabled when GPS fix is lost. If RC signal
 
 GPS fix estimation allows to recover plane using magnetometer and baromener only.
 
-Note, that GPS fix estimation is not a solution for navigation without GPS. Without GPS fix, position error accumulates quickly. But it is acceptable for RTH. 
+Note, that GPS fix estimation is not a solution for navigation without GPS. Without GPS fix, position error accumulates quickly. But it is acceptable for RTH. This is not a solution for flying under spoofing also. GPS is the most trusted sensor in Inav. It's output is not validated.
 
 GPS Fix is also estimated on GPS Sensor timeouts (hardware failures).
 
