@@ -50,7 +50,7 @@ tables:
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
     enum: sbasMode_e
   - name: gps_dyn_model
-    values: ["PEDESTRIAN", "AIR_1G", "AIR_4G"]
+    values: ["PEDESTRIAN","AUTOMOTIVE", "AIR_1G", "AIR_2G", "AIR_4G"]
     enum: gpsDynModel_e
   - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
@@ -1614,8 +1614,8 @@ groups:
         table: gps_sbas_mode
         type: uint8_t
       - name: gps_dyn_model
-        description: "GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying."
-        default_value: "AIR_1G"
+        description: "GPS navigation model: Pedestrian, Automotive, Air<1g, Air<2g, Air<4g. Default is AIR_2G. Use pedestrian/Automotive with caution, can cause flyaways with fast flying."
+        default_value: "AIR_2G"
         field: dynModel
         table: gps_dyn_model
         type: uint8_t

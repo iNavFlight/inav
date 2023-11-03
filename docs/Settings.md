@@ -1484,11 +1484,11 @@ Enable automatic configuration of UBlox GPS receivers.
 
 ### gps_dyn_model
 
-GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying.
+GPS navigation model: Pedestrian, Automotive, Air<1g, Air<2g, Air<4g. Default is AIR_2G. Use pedestrian/Automotive with caution, can cause flyaways with fast flying.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| AIR_1G |  |  |
+| AIR_2G |  |  |
 
 ---
 
