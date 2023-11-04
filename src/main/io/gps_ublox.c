@@ -625,7 +625,7 @@ static bool gpsParseFrameUBLOX(void)
         if (_class == CLASS_MON) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
             if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-                if (_buffer.ver.swVersion[9] > '2' || true) {
+                if (_buffer.ver.swVersion[9] > '2') {
                     // check extensions;
                     // after hw + sw vers; each is 30 bytes
                     bool found = false;
