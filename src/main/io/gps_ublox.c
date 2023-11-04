@@ -150,7 +150,8 @@ static union {
 
 bool gpsUbloxHasGalileo(void)
 {
-    return (ubx_capabilities.supported & UBX_MON_GNSS_GALILEO_MASK);
+    // Galileo E1 (not supported for protocol versions less than 18.00)
+    return gpsState.swVersionMajor >= 18 && (ubx_capabilities.supported & UBX_MON_GNSS_GALILEO_MASK);
 }
 
 bool gpsUbloxHasBeidou(void)
@@ -625,28 +626,22 @@ static bool gpsParseFrameUBLOX(void)
         if (_class == CLASS_MON) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
             if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-                if (_buffer.ver.swVersion[9] > '2') {
-                    // check extensions;
-                    // after hw + sw vers; each is 30 bytes
-                    bool found = false;
-                    for (int j = 40; j < _payload_length && !found; j += 30)
-                    {
-                        // Example content: GPS;GAL;BDS;GLO
-                        if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
-                        {
-                            ubx_capabilities.supported |= UBX_MON_GNSS_GALILEO_MASK;
-                            found = true;
-                        }
-                        if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
-                        {
-                            ubx_capabilities.supported |= UBX_MON_GNSS_BEIDOU_MASK;
-                            found = true;
-                        }
-                        if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
-                        {
-                            ubx_capabilities.supported |= UBX_MON_GNSS_GLONASS_MASK;
-                            found = true;
-                        }
+                // check extensions;
+                // after hw + sw vers; each is 30 bytes
+                bool found = false;
+                for (int j = 40; j < _payload_length && !found; j += 30) {
+                    // Example content: GPS;GAL;BDS;GLO
+                    if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30)) {
+                        ubx_capabilities.supported |= UBX_MON_GNSS_GALILEO_MASK;
+                        found = true;
+                    }
+                    if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30)) {
+                        ubx_capabilities.supported |= UBX_MON_GNSS_BEIDOU_MASK;
+                        found = true;
+                    }
+                    if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30)) {
+                        ubx_capabilities.supported |= UBX_MON_GNSS_GLONASS_MASK;
+                        found = true;
                     }
                 }
                 for (int j = 40; j < _payload_length; j += 30) {
