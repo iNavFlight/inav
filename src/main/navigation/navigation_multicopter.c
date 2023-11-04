@@ -398,9 +398,29 @@ void relaxZController(float dt)
     navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, dt, NAV_MC_INTEGRAL_RELAX_TC_Z);
 }
 
+// get_pilot_desired_climb_rate - transform pilot's throttle input to climb rate in cm/s
+static float get_pilot_desired_climb_rate(void)
+{
+    const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+    float desiredRate = 0.0f;
+
+    if (rcThrottleAdjustment) {
+        // Make sure we can satisfy max_manual_climb_rate in both up and down directions
+        if (rcThrottleAdjustment > 0) {
+            // Scaling from altHoldThrottleRCZero to maxthrottle
+            desiredRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(motorConfig()->maxthrottle - altHoldThrottleRCZero - rcControlsConfig()->alt_hold_deadband);
+        } else {
+            // Scaling from minthrottle to altHoldThrottleRCZero
+            desiredRate = rcThrottleAdjustment * navConfig()->general.max_manual_climb_rate / (float)(altHoldThrottleRCZero - getThrottleIdleValue() - rcControlsConfig()->alt_hold_deadband);
+        }
+    }
+
+   return desiredRate;
+}
+
 static void updateZController(timeDelta_t deltaMicros)
 {
-    set_pos_target_z_from_climb_rate_cm(posControl.desiredState.pos.z, US2S(deltaMicros));
+    set_pos_target_z_from_climb_rate_cm(get_pilot_desired_climb_rate(), US2S(deltaMicros));
 
     // Calculate the target velocity correction
     _vel_target.z = sqrtControllerApply(&pos_z_sqrt_controller, _pos_target.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POS_VEL_Z, US2S(deltaMicros));
@@ -479,13 +499,13 @@ void set_pos_offset_target_z_cm(float pos_offset_target_z)
 bool adjustMulticopterAltitudeFromRCInput(void)
 {
     if (posControl.flags.isTerrainFollowEnabled) {
-        const float altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0, navConfig()->general.max_terrain_follow_altitude);
+        const float altTarget = scaleRangef(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, navConfig()->general.max_terrain_follow_altitude);
 
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
             updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
-            posControl.desiredState.pos.z = altTarget;
+            set_pos_offset_target_z_cm(altTarget);
         }
         else {
             updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
@@ -493,8 +513,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
 
         // In surface tracking we always indicate that we're adjusting altitude
         return true;
-    }
-    else {
+    } else {
         const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
@@ -513,8 +532,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
 
             return true;
-        }
-        else {
+        } else {
             // Adjusting finished - reset desired position to stay exactly where pilot released the stick
             if (posControl.flags.isAdjustingAltitude) {
                 updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
