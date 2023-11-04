@@ -5064,11 +5064,11 @@ Selection of pitot hardware.
 
 ### pitot_lpf_milli_hz
 
-_// TODO_
+LPF cutoff frequency for pitot sensor in milli Hz(0.001hz). set 0 to disable LPF
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 350 | 0 | 10000 |
+| 3000 | 0 | 50000 |
 
 ---
 

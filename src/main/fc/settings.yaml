@@ -591,9 +591,10 @@ groups:
         default_value: "VIRTUAL"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
+        description: "LPF cutoff frequency for pitot sensor in milli Hz(0.001hz). set 0 to disable LPF"
         min: 0
-        max: 10000
-        default_value: 350
+        max: 50000
+        default_value: 3000
       - name: pitot_scale
         min: 0
         max: 100
