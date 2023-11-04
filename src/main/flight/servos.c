@@ -143,34 +143,14 @@ void servoComputeScalingFactors(uint8_t servoIndex) {
     servoMetadata[servoIndex].scaleMin = (servoParams(servoIndex)->middle - servoParams(servoIndex)->min) / 500.0f;
 }
 
-void servosInit(void)
+void computeServoCount(void)
 {
-    // give all servos a default command
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servo[i] = servoParams(i)->middle;
+    static bool firstRun = true;
+    if (!firstRun) {
+        return;
     }
-
-    /*
-     * load mixer
-     */
-    loadCustomServoMixer();
-
-    // If there are servo rules after all, update variables
-    if (servoRuleCount > 0) {
-        servoOutputEnabled = true;
-        mixerUsesServos = true;
-    }
-
-    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
-        servoComputeScalingFactors(i);
-    }
-}
-
-int getServoCount(void)
-{   
-    bool servoRuleDetected = false;
-    minServoIndex = 0;
-    maxServoIndex = 255;
+    minServoIndex = 255;
+    maxServoIndex = 0;
     for (int j = 0; j < MAX_MIXER_PROFILE_COUNT; j++) {
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             // check if done
@@ -184,10 +164,38 @@ int getServoCount(void)
             if (mixerServoMixersByIndex(j)[i].targetChannel > maxServoIndex) {
                 maxServoIndex = mixerServoMixersByIndex(j)[i].targetChannel;
             }
-            servoRuleDetected = true;
+            mixerUsesServos = true;
         }
     }
-    if (servoRuleDetected) {
+    firstRun = false;
+}
+
+void servosInit(void)
+{
+    // give all servos a default command
+    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        servo[i] = servoParams(i)->middle;
+    }
+
+    /*
+     * load mixer
+     */
+    computeServoCount();
+    loadCustomServoMixer();
+
+    // If there are servo rules after all, update variables
+    if (mixerUsesServos) {
+        servoOutputEnabled = true;
+    }
+
+    for (uint8_t i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        servoComputeScalingFactors(i);
+    }
+}
+
+int getServoCount(void)
+{   
+    if (mixerUsesServos) {
         return 1 + maxServoIndex - minServoIndex;
     }
     else {
@@ -377,20 +385,6 @@ void servoMixer(float dT)
         servo[target] += ((int32_t)inputLimited * currentServoMixer[i].rate) / 100;
     }
 
-    /*
-     * When not armed, apply servo low position to all outputs that include a throttle or stabilized throttle in the mix
-     */
-    if (!ARMING_FLAG(ARMED)) {
-        for (int i = 0; i < servoRuleCount; i++) {
-            const uint8_t target = currentServoMixer[i].targetChannel;
-            const uint8_t from = currentServoMixer[i].inputSource;
-
-            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
-                servo[target] = motorConfig()->mincommand;
-            }
-        }
-    }
-
     for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
 
         /*
@@ -420,6 +414,20 @@ void servoMixer(float dT)
          * allowed the situation when smix weight sum for an output was above 100
          */
         servo[i] = constrain(servo[i], servoParams(i)->min, servoParams(i)->max);
+    }
+
+    /*
+     * When not armed, apply servo low position to all outputs that include a throttle or stabilizet throttle in the mix
+     */
+    if (!ARMING_FLAG(ARMED)) {
+        for (int i = 0; i < servoRuleCount; i++) {
+            const uint8_t target = currentServoMixer[i].targetChannel;
+            const uint8_t from = currentServoMixer[i].inputSource;
+
+            if (from == INPUT_STABILIZED_THROTTLE || from == INPUT_RC_THROTTLE) {
+                servo[target] = motorConfig()->mincommand;
+            }
+        }
     }
 }
 

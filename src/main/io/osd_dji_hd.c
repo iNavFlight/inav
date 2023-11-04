@@ -300,6 +300,7 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
         case FLM_ALTITUDE_HOLD:
         case FLM_POSITION_HOLD:
         case FLM_MISSION:
+        case FLM_ANGLEHOLD:
         default:
             // Unsupported ATM, keep at ANGLE
             bitArraySet(flightModeBitmask->bits, 1);    // DJI: 1 << 1 : ANGLE

@@ -83,7 +83,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 35            | Trigonometry: Tangent                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
 | 36            | MAP_INPUT                     | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
 | 37            | MAP_OUTPUT                    | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
-| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B` |
+| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B`. Note operand A should normally be set as a "Value", NOT as "Get RC Channel"|
 | 39            | SET_HEADING_TARGET            | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
 | 40            | Modulo                           | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
 | 41            | LOITER_RADIUS_OVERRIDE        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
@@ -97,6 +97,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 49            | TIMER                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
 | 50            | DELTA                         | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. |
 | 51            | APPROX_EQUAL                  | `true` if `Operand B` is within 1% of `Operand A`. |
+| 52            | LED_PIN_PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes)|
 
 ### Operands
 
