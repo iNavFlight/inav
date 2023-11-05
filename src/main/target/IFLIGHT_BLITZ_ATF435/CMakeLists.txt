@@ -1,0 +1,1 @@
+target_at32f43x_xGT7(IFLIGHT_BLITZ_ATF435)
