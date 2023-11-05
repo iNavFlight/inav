@@ -1042,12 +1042,15 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     gpsState.autoConfigStep = 0;
     ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
-    do {
-        pollGnssCapabilities();
-        gpsState.autoConfigStep++;
-        ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
-
+    // M7 and earlier will never get pass this step, so skip it (#9440).
+    // UBLOX documents that this is M8N and later
+    if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
+	do {
+	    pollGnssCapabilities();
+	    gpsState.autoConfigStep++;
+	    ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
+	} while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+    }
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
         // Configure GPS
