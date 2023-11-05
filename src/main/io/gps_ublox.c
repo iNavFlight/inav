@@ -1042,8 +1042,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     gpsState.autoConfigStep = 0;
     ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
-    // M6 and earlier will never get pass this step, so skip it (#9440)
-    if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX6) {
+    // M7 and earlier will never get pass this step, so skip it (#9440).
+    // UBLOX documents that this is M8N and later
+    if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
 	do {
 	    pollGnssCapabilities();
 	    gpsState.autoConfigStep++;
