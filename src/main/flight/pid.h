@@ -220,3 +220,4 @@ pidType_e pidIndexGetType(pidIndex_e pidIndex);
 bool isFixedWingLevelTrimActive(void);
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
 float getFixedWingLevelTrim(void);
+bool isAngleHoldLevel(void);
