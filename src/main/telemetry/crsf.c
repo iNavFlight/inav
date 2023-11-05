@@ -485,8 +485,6 @@ static void processCrsf(void)
         crsfFrameGps(dst);
         crsfFinalize(dst);
     }
-#endif
-#if !defined(USE_BARO) && defined(USE_GPS)
     if (currentSchedule & BV(CRSF_FRAME_VARIO_SENSOR_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameVarioSensor(dst);
@@ -523,19 +521,23 @@ void initCrsfTelemetry(void)
     crsfSchedule[index++] = BV(CRSF_FRAME_ATTITUDE_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_BATTERY_SENSOR_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_FLIGHT_MODE_INDEX);
-#ifdef USE_GPS
+#if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
         crsfSchedule[index++] = BV(CRSF_FRAME_GPS_INDEX);
-    }
-#endif
-#if !defined(USE_BARO) && defined(USE_GPS)
-    if (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS)) {
+        #if !defined(USE_BARO)
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+        #endif
     }
 #endif
 #if defined(USE_BARO)
     if (sensors(SENSOR_BARO)) {
         crsfSchedule[index++] = BV(CRSF_FRAME_BAROVARIO_SENSOR_INDEX);
+    } else {
+        #if defined(USE_GPS)
+        if (feature(FEATURE_GPS)) {
+            crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+        }
+        #endif
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
