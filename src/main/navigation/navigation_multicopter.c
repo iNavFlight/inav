@@ -84,7 +84,7 @@ float _pos_offset_z;
 float _vel_offset_z;
 float _accel_offset_z;
 float _pos_offset_target_z = 0.0f;
-float _vel_z_control_ratio = 2.0f;    // Confidence that we have control in the vertical axis
+float _vel_z_control_ratio = 1.0f;    // Confidence that we have control in the vertical axis
 
 // update_vel_accel - single axis projection of velocity, vel, forwards in time based on a time step of dt and acceleration of accel.
 // the velocity is not moved in the direction of limit if limit is not set to zero.
@@ -324,9 +324,11 @@ void set_max_speed_accel_z(float speed_down, float speed_up, float accel_cmss)
     if (speed_down < 0.0f) {
         _vel_max_down_cms = speed_down;
     }
+
     if (speed_up > 0.0f) {
         _vel_max_up_cms = speed_up;
     }
+
     if (accel_cmss > 0.0f) {
         _accel_max_z_cmss = accel_cmss;
     }
@@ -366,7 +368,6 @@ void set_pos_target_z_from_climb_rate_cm(float vel, float dt)
 void relaxZController(float dt)
 {
     _pos_target.z = navGetCurrentActualPositionAndVelocity()->pos.z;
-
     _vel_desired.z = navGetCurrentActualPositionAndVelocity()->vel.z;
     // With zero position error _vel_target = _vel_desired
     _vel_target.z = navGetCurrentActualPositionAndVelocity()->vel.z;
@@ -378,7 +379,7 @@ void relaxZController(float dt)
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
     posControl.pids.vel[Z].integrator = 0.0f;
 
-    _accel_desired.z = constrainf(-(posEstimator.imu.accelNEU.z + GRAVITY_CMSS), -_accel_max_z_cmss, _accel_max_z_cmss);
+    _accel_desired.z = constrainf(posEstimator.imu.accelNEU.z, -_accel_max_z_cmss, _accel_max_z_cmss);
     // With zero position error _accel_target = _accel_desired
     _accel_target.z = _accel_desired.z;
     pt1FilterReset(&posControl.pids.acceleration_z.error_filter_state, 0.0f);
@@ -391,7 +392,7 @@ void relaxZController(float dt)
 
     // Set accel PID I term based on the current throttle
     // Remove the expected P term due to _accel_desired.z being constrained to _accel_max_z_cmss
-    posControl.pids.acceleration_z.integrator = ((rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (_accel_target.z - (-(posEstimator.imu.accelNEU.z + GRAVITY_CMSS))));
+    posControl.pids.acceleration_z.integrator = (rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (_accel_target.z - posEstimator.imu.accelNEU.z);
 
     // init_z_controller has set the accel PID I term to generate the current throttle set point
     // Use relax_integrator to decay the throttle set point to throttle_setting
@@ -466,10 +467,7 @@ static void updateZController(timeDelta_t deltaMicros)
         correctionMax = thrCorrectionMax;
     }
 
-    // Get earth-frame Z-axis acceleration with gravity removed in cm/s/s with +ve being up
-    const float z_accel_meas = -(posEstimator.imu.accelNEU.z + GRAVITY_CMSS);
-
-    thr_out = navPidApply2(&posControl.pids.acceleration_z, _accel_target.z, z_accel_meas, US2S(deltaMicros), thrCorrectionMin, correctionMax, PID_LIMIT_INTEGRATOR);
+    thr_out = navPidApply2(&posControl.pids.acceleration_z, _accel_target.z, posEstimator.imu.accelNEU.z, US2S(deltaMicros), thrCorrectionMin, correctionMax, PID_LIMIT_INTEGRATOR);
 
     int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, thr_out, NAV_THROTTLE_CUTOFF_FREQUENCY_HZ, US2S(deltaMicros));
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
@@ -588,7 +586,7 @@ void resetMulticopterAltitudeController(void)
     _pos_target.z = navGetCurrentActualPositionAndVelocity()->pos.z;
     _vel_desired.z = navGetCurrentActualPositionAndVelocity()->vel.z;
     _vel_target.z = navGetCurrentActualPositionAndVelocity()->vel.z;
-    _accel_desired.z = constrainf(-(posEstimator.imu.accelNEU.z + GRAVITY_CMSS), -_accel_max_z_cmss, _accel_max_z_cmss);
+    _accel_desired.z = constrainf(posEstimator.imu.accelNEU.z, -_accel_max_z_cmss, _accel_max_z_cmss);
     _accel_target.z = _accel_desired.z;
     _pos_offset_z = 0.0f;
     _vel_offset_z = 0.0f;
@@ -604,7 +602,7 @@ void resetMulticopterAltitudeController(void)
 
     // Set accel PID I term based on the current throttle
     // Remove the expected P term due to _accel_desired.z being constrained to _accel_max_z_cmss
-    posControl.pids.acceleration_z.integrator = ((rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (_accel_target.z - (-(posEstimator.imu.accelNEU.z + GRAVITY_CMSS))));
+    posControl.pids.acceleration_z.integrator = (rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (_accel_target.z - posEstimator.imu.accelNEU.z);
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
