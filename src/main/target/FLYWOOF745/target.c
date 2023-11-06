@@ -30,7 +30,7 @@
 #include "drivers/pinio.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM1, CH3, PE13, TIM_USE_PPM,                      0, 1), // PPM, DMA2_ST6
+    // DEF_TIM(TIM1, CH3, PE13, TIM_USE_PPM,                      0, 1), // PPM, DMA2_ST6
 
     DEF_TIM(TIM3, CH3, PB0,  TIM_USE_OUTPUT_AUTO,    0, 0), // M1 , DMA1_ST7
     DEF_TIM(TIM3, CH4, PB1,  TIM_USE_OUTPUT_AUTO,    0, 0), // M2 , DMA1_ST2

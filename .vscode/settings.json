@@ -2,7 +2,8 @@
     "files.associations": {
         "chrono": "c",
         "cmath": "c",
-        "ranges": "c"
+        "ranges": "c",
+        "platform.h": "c"
     },
     "editor.tabSize": 4,
     "editor.insertSpaces": true,

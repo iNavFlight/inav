@@ -25,7 +25,7 @@
 
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM9, CH1, PA2,   TIM_USE_PPM,   0, 0), // PPM IN
+    // DEF_TIM(TIM9, CH1, PA2,   TIM_USE_PPM,   0, 0), // PPM IN
 #ifdef FLYWOOF411_V2
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 1),      // S1 - D(2,1)
     DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S2 - D(1,6)

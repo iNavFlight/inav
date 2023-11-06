@@ -27,7 +27,7 @@
 
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM,                         0, 0),
+    // DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM,                         0, 0),
 
     DEF_TIM(TIM3, CH1, PB4, TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM3, CH2, PB5, TIM_USE_OUTPUT_AUTO, 0, 0),
