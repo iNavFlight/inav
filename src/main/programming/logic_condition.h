@@ -81,7 +81,8 @@ typedef enum {
     LOGIC_CONDITION_TIMER                       = 49,
     LOGIC_CONDITION_DELTA                       = 50,
     LOGIC_CONDITION_APPROX_EQUAL                = 51,
-    LOGIC_CONDITION_LAST                        = 52,
+    LOGIC_CONDITION_LED_PIN_PWM                 = 52,
+    LOGIC_CONDITION_LAST                        = 53,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -157,6 +158,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER4,                              // 13
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ACRO,                               // 14
     LOGIC_CONDITION_OPERAND_FLIGHT_MODE_WAYPOINT_MISSION,                   // 15
+    LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLEHOLD,                          // 16
 } logicFlightModeOperands_e;
 
 typedef enum {

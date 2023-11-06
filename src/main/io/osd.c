@@ -1201,7 +1201,7 @@ int32_t osdGetAltitude(void)
 
 static inline int32_t osdGetAltitudeMsl(void)
 {
-    return getEstimatedActualPosition(Z)+GPS_home.alt;
+    return getEstimatedActualPosition(Z) + posControl.gpsOrigin.alt;
 }
 
 uint16_t osdGetRemainingGlideTime(void) {
@@ -1718,21 +1718,17 @@ static bool osdDrawSingleElement(uint8_t item)
     }
 
     case OSD_MAH_DRAWN: {
-        uint8_t mah_digits = osdConfig()->mAh_used_precision; // Initialize to config value
-        bool bfcompat = false;  // Assume BFCOMPAT is off
+        uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
 
 #ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
         if (isBfCompatibleVideoSystem(osdConfig())) {
-            bfcompat = true;
-        }
-#endif
-
-        if (bfcompat) {
             //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
-            tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow 10Ah+ packs
+            tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow packs below 100Ah
             buff[5] = SYM_MAH;
             buff[6] = '\0';
-        } else {
+        } else
+#endif
+        {
             if (osdFormatCentiNumber(buff, getMAhDrawn() * 100, 1000, 0, (mah_digits - 2), mah_digits, false)) {
                 // Shown in Ah
                 buff[mah_digits] = SYM_AH;
@@ -1755,25 +1751,50 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_BATTERY_REMAINING_CAPACITY:
+    {
+        bool unitsDrawn = false;
 
         if (currentBatteryProfile->capacity.value == 0)
             tfp_sprintf(buff, "  NA");
         else if (!batteryWasFullWhenPluggedIn())
             tfp_sprintf(buff, "  NF");
-        else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH)
-            tfp_sprintf(buff, "%4lu", (unsigned long)getBatteryRemainingCapacity());
-        else // currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH
+        else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
+            uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
+
+#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
+            if (isBfCompatibleVideoSystem(osdConfig())) {
+                //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
+                tfp_sprintf(buff, "%5d", (int)getBatteryRemainingCapacity());   // Use 5 digits to allow packs below 100Ah
+                buff[5] = SYM_MAH;
+                buff[6] = '\0';
+                unitsDrawn = true;
+            } else
+#endif
+            {
+                if (osdFormatCentiNumber(buff, getBatteryRemainingCapacity() * 100, 1000, 0, (mah_digits - 2), mah_digits, false)) {
+                    // Shown in Ah
+                    buff[mah_digits] = SYM_AH;
+                } else {
+                    // Shown in mAh
+                    buff[mah_digits] = SYM_MAH;
+                }
+                buff[mah_digits + 1] = '\0';
+                unitsDrawn = true;
+            }
+        } else // currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH
             osdFormatCentiNumber(buff + 1, getBatteryRemainingCapacity() / 10, 0, 2, 0, 3, false);
 
-        buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
-        buff[5] = '\0';
+        if (!unitsDrawn) {
+            buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
+            buff[5] = '\0';
+        }
 
         if (batteryUsesCapacityThresholds()) {
             osdUpdateBatteryCapacityOrVoltageTextAttributes(&elemAttr);
         }
 
         break;
-
+    }
     case OSD_BATTERY_REMAINING_PERCENT:
         osdFormatBatteryChargeSymbol(buff);
         tfp_sprintf(buff + 1, "%3d%%", calculateBatteryPercentage());
@@ -1911,7 +1932,7 @@ static bool osdDrawSingleElement(uint8_t item)
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
         break;
 
-    case OSD_ODOMETER:    
+    case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
             uint32_t odometerDist = (uint32_t)(getTotalTravelDistance() / 100);
@@ -2237,7 +2258,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = " WP ";
             else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
                 // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
-                // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
+                // it means it can be combined with ANGLE, HORIZON, ANGLEHOLD, ACRO, etc...
                 // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
                 p = " AH ";
             }
@@ -2245,6 +2266,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "ANGL";
             else if (FLIGHT_MODE(HORIZON_MODE))
                 p = "HOR ";
+            else if (FLIGHT_MODE(ANGLEHOLD_MODE))
+                p = "ANGH";
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, p);
             return true;
@@ -3741,7 +3764,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
-    .mAh_used_precision = SETTING_OSD_MAH_USED_PRECISION_DEFAULT,
+    .mAh_precision = SETTING_OSD_MAH_PRECISION_DEFAULT,
     .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
     .osd_switch_indicator0_channel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNEL_DEFAULT,
     .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,
@@ -3955,7 +3978,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
 /**
  * @brief Draws the INAV and/or pilot logos on the display
- * 
+ *
  * @param singular If true, only one logo will be drawn. If false, both logos will be drawn, separated by osdConfig()->inav_to_pilot_logo_spacing characters
  * @param row The row number to start drawing the logos. If not singular, both logos are drawn on the same rows.
  * @return uint8_t The row number after the logo(s).
@@ -4005,7 +4028,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
         } else {
             logo_x = logoColOffset + SYM_LOGO_WIDTH + logoSpacing;
         }
-        
+
         for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
             for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
                 displayWriteChar(osdDisplayPort, logo_x + lCol, logoRow, logo_c++);
@@ -4129,7 +4152,7 @@ static void osdCompleteAsyncInitialization(void)
 
     if (fontHasMetadata && metadata.charCount > 256) {
         hasExtendedFont = true;
-    
+
         y = drawLogos(false, y);
         y++;
     } else if (!fontHasMetadata) {
@@ -4568,12 +4591,12 @@ static void osdShowHDArmScreen(void)
 
                 displayWrite(osdDisplayPort, col, armScreenRow, buf);
                 displayWrite(osdDisplayPort, col + strlen(buf) + gap, armScreenRow++, buf2);
-                
+
                 int digits = osdConfig()->plus_code_digits;
                 olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
                 displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             }
-            
+
 #if defined (USE_SAFE_HOME)
             if (posControl.safehomeState.distance) { // safehome found during arming
                 if (navConfig()->general.flags.safehome_usage_mode == SAFEHOME_USAGE_OFF) {
@@ -4653,7 +4676,7 @@ static void osdShowSDArmScreen(void)
                 uint8_t gpsStartCol = (osdDisplayPort->cols - (strlen(buf) + strlen(buf2) + 2)) / 2;
                 displayWrite(osdDisplayPort, gpsStartCol, armScreenRow, buf);
                 displayWrite(osdDisplayPort, gpsStartCol + strlen(buf) + 2, armScreenRow++, buf2);
-                
+
                 int digits = osdConfig()->plus_code_digits;
                 olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
                 displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
@@ -4806,10 +4829,14 @@ static void osdRefresh(timeUs_t currentTimeUs)
             statsDisplayed = false;
             osdResetStats();
             osdShowArmed();
-            uint32_t delay = osdConfig()->arm_screen_display_time;
+            uint16_t delay = osdConfig()->arm_screen_display_time;
+            if (STATE(IN_FLIGHT_EMERG_REARM)) {
+                delay = 500;
+            }
 #if defined(USE_SAFE_HOME)
-            if (posControl.safehomeState.distance)
-                delay+= 3000;
+            else if (posControl.safehomeState.distance) {
+                delay += 3000;
+            }
 #endif
             osdSetNextRefreshIn(delay);
         } else {
@@ -5131,10 +5158,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 } else {
                     if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
+                        // ALTHOLD might be enabled alongside ANGLE/HORIZON/ANGLEHOLD/ACRO
                         // when it doesn't require ANGLE mode (required only in FW
-                        // right now). If if requires ANGLE, its display is handled
-                        // by OSD_FLYMODE.
+                        // right now). If it requires ANGLE, its display is handled by OSD_FLYMODE.
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
                     }
                     if (STATE(MULTIROTOR) && FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -5156,8 +5182,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOTUNE_ACRO);
                         }
                     }
-                    if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || (navigationRequiresAngleMode() && !navigationIsControllingAltitude()))) {
-                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
+                    if (isFixedWingLevelTrimActive()) {
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
                     }
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
@@ -5170,6 +5196,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                     if (STATE(LANDING_DETECTED)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
+                    }
+                    if (IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
+                        int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
+                        if (isAngleHoldLevel()) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_LEVEL);
+                        } else if (navAngleHoldAxis == FD_ROLL) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_ROLL);
+                        } else if (navAngleHoldAxis == FD_PITCH) {
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
+                        }
                     }
                 }
             }
