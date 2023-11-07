@@ -47,6 +47,8 @@
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
+#define NAV_IMPOSSIBLE_ALTITUDE_TARGET      10000000    // 100km in cm. Serves as a flag for vertical velocity control
+
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
@@ -481,6 +483,7 @@ bool isWaypointNavTrackingActive(void);
 void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError);
+int32_t getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros);
 
 bool checkForPositionSensorTimeout(void);
 
@@ -499,10 +502,9 @@ bool adjustMulticopterHeadingFromRCInput(void);
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment);
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-
 bool isMulticopterLandingDetected(void);
-
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
+float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);

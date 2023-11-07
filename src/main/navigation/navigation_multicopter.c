@@ -63,28 +63,26 @@ static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
 
+float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros)
+{
+    return sqrtControllerApply(
+            &alt_hold_sqrt_controller,
+            targetAltitude,
+            navGetCurrentActualPositionAndVelocity()->pos.z,
+            US2S(deltaMicros)
+    );
+}
+
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float targetVel = sqrtControllerApply(
-        &alt_hold_sqrt_controller,
-        posControl.desiredState.pos.z,
-        navGetCurrentActualPositionAndVelocity()->pos.z,
-        US2S(deltaMicros)
-    );
+    float targetVel = posControl.desiredState.vel.z;
 
-    // hard limit desired target velocity to max_climb_rate
-    float vel_max_z = 0.0f;
-
-    if (posControl.flags.isAdjustingAltitude) {
-        vel_max_z = navConfig()->general.max_manual_climb_rate;
-    } else {
-        vel_max_z = navConfig()->general.max_auto_climb_rate;
+    if (posControl.desiredState.pos.z != NAV_IMPOSSIBLE_ALTITUDE_TARGET) {
+        targetVel = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
     }
 
-    targetVel = constrainf(targetVel, -vel_max_z, vel_max_z);
-
-    posControl.pids.pos[Z].output_constrained = targetVel;
+    posControl.pids.pos[Z].output_constrained = targetVel;      // only used for Blackbox and OSD info
 
     // Limit max up/down acceleration target
     const float smallVelChange = US2S(deltaMicros) * (GRAVITY_CMSS * 0.1f);
@@ -132,8 +130,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
-            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
-            posControl.desiredState.pos.z = altTarget;
+            updateClimbRateToAltitudeController(navConfig()->general.max_manual_climb_rate, altTarget, ROC_TO_ALT_TARGET);
         }
         else {
             updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
@@ -165,7 +162,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         else {
             // Adjusting finished - reset desired position to stay exactly where pilot released the stick
             if (posControl.flags.isAdjustingAltitude) {
-                updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+                updateClimbRateToAltitudeController(navConfig()->general.max_auto_climb_rate, 0, ROC_TO_ALT_RESET);
             }
 
             return false;
