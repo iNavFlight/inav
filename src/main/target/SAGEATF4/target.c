@@ -26,9 +26,7 @@
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TMR5, CH4, PA3,  TIM_USE_PPM,  0, 4), 						// PPM UART2_RX_PIN DMA1 CH5
-    DEF_TIM(TMR2, CH3, PB10, TIM_USE_ANY | TIM_USE_LED, 0,5), 			// PWM1 - LED MCO1 DMA1 CH6
-	DEF_TIM(TMR2, CH4, PB11, TIM_USE_ANY | TIM_USE_BEEPER, 0,6), 		// PWM2 - BB DMA1 CH7
+    // DEF_TIM(TMR5, CH4, PA3,  TIM_USE_PPM,  0, 4), 						// PPM UART2_RX_PIN DMA1 CH5
 
  	DEF_TIM(TMR4, CH1, PB6,  TIM_USE_OUTPUT_AUTO, 0,0),  // motor1 DMA1 CH1
  	DEF_TIM(TMR4, CH2, PB7,  TIM_USE_OUTPUT_AUTO, 0,1),  // motor2 DMA1 CH2
@@ -40,6 +38,8 @@ timerHardware_t timerHardware[] = {
 	DEF_TIM(TMR3, CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0,10), 		// PWM3 - OUT7  DMA2 CH4
 	DEF_TIM(TMR3, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0,11), 		// PWM4 - OUT8  DMA2 CH5
 
+    DEF_TIM(TMR2, CH3, PB10, TIM_USE_ANY | TIM_USE_LED, 0,5), 			// PWM1 - LED MCO1 DMA1 CH6
+	DEF_TIM(TMR2, CH4, PB11, TIM_USE_ANY | TIM_USE_BEEPER, 0,6), 		// PWM2 - BB DMA1 CH7
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

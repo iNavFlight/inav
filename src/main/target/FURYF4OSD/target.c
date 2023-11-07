@@ -23,7 +23,7 @@
 
 timerHardware_t timerHardware[] = {
 
-      DEF_TIM(TIM8, CH4,  PC9, TIM_USE_PPM,   0, 0 ), // PPM IN
+    //   DEF_TIM(TIM8, CH4,  PC9, TIM_USE_PPM,   0, 0 ), // PPM IN
       DEF_TIM(TIM2, CH4,  PA3, TIM_USE_OUTPUT_AUTO, 0, 1 ), // S1_OUT - D(1, 6, 3)
       DEF_TIM(TIM3, CH3,  PB0, TIM_USE_OUTPUT_AUTO, 0, 0 ), // S2_OUT - D(1, 7, 5)
       DEF_TIM(TIM3, CH4,  PB1, TIM_USE_OUTPUT_AUTO, 0, 0 ), // S3_OUT - D(1, 2, 5)
