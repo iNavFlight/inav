@@ -3512,6 +3512,16 @@ timeout in ms for braking
 
 ---
 
+### nav_mc_drag_to_acceleration_factor
+
+Factor used for air drag to acceleration conversion in MC NAV horizontal velocity controller. set it as 0.5 * air_density[kg/m^3] * drag_coefficient * projection_area[m^2] / AllUpWeight[kg] * 10000 , assume around 100 on 3-7 inch quad
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 500 |
+
+---
+
 ### nav_mc_heading_p
 
 P gain of Heading Hold controller (Multirotor)
@@ -3588,7 +3598,7 @@ Maximum D-term attenution percentage for horizontal velocity PID controller (Mul
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 90 | 0 | 100 |
+| 50 | 0 | 100 |
 
 ---
 
