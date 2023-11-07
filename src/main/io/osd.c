@@ -1001,6 +1001,9 @@ static const char * divertingToSafehomeMessage(void)
 
 static const char * navigationStateMessage(void)
 {
+    if (!posControl.rthState.rthLinearDescentActive && linearDescentMessageMs != 0)
+        linearDescentMessageMs = 0;
+
     switch (NAV_Status.state) {
         case MW_NAV_STATE_NONE:
             break;
@@ -1059,9 +1062,6 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
     }
-
-    if (!posControl.rthState.rthLinearDescentActive && linearDescentMessageMs != 0)
-        linearDescentMessageMs = 0;
 
     return NULL;
 }
