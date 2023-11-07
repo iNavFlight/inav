@@ -40,6 +40,10 @@
 #define MPU6000_SPI_BUS                 BUS_SPI1
 #define MPU6000_CS_PIN                  PA4
 
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN               CW180_DEG
+#define MPU6500_SPI_BUS                 BUS_SPI1
+#define MPU6500_CS_PIN                  PA4
 
 // *************** Baro **************************
 #define USE_I2C
@@ -70,14 +74,7 @@
 //*********** Magnetometer / Compass *************
 #define USE_MAG
 #define MAG_I2C_BUS                     DEFAULT_I2C_BUS
-
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 // ******* SERIAL ********
 #define USE_VCP

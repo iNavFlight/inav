@@ -52,4 +52,9 @@
 void targetConfiguration(void)
 {
     compassConfigMutable()->mag_align = CW90_DEG;
+
+#if defined(CLRACINGF4AIRV2) || defined(CLRACINGF4AIRV3)
+    // To improve backwards compatibility with INAV versions 6.x and older
+    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
+#endif
 }

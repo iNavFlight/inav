@@ -95,8 +95,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
+#define USE_MAG_ALL
 #define DEFAULT_I2C_BUS         BUS_I2C2
 
 // temperature sensors
@@ -137,7 +136,7 @@
 #define USE_USB_DETECT
 
 #define USE_UART1
-#define UART1_RX_PIN            PB7
+#define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 
 #define USE_UART2

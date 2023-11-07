@@ -74,9 +74,11 @@
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/ez_tune.h"
 
 #include "config/config_eeprom.h"
 #include "config/feature.h"
@@ -460,6 +462,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, packSensorStatus());
             sbufWriteU16(dst, averageSystemLoadPercent);
             sbufWriteU8(dst, (getConfigBatteryProfile() << 4) | getConfigProfile());
+            sbufWriteU8(dst, getConfigMixerProfile());
             sbufWriteU32(dst, armingFlags);
             sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
         }
@@ -521,6 +524,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, -1);
         #endif
         }
+        if(MAX_MIXER_PROFILE_COUNT==1) break;
+        for (int i = 0; i < MAX_SERVO_RULES; i++) {
+            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].targetChannel);
+            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].inputSource);
+            sbufWriteU16(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].rate);
+            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].speed);
+        #ifdef USE_PROGRAMMING_FRAMEWORK
+            sbufWriteU8(dst, mixerServoMixersByIndex(nextMixerProfileIndex)[i].conditionId);
+        #else
+            sbufWriteU8(dst, -1);
+        #endif
+        }
         break;
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_LOGIC_CONDITIONS:
@@ -566,10 +581,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
     case MSP2_COMMON_MOTOR_MIXER:
         for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            sbufWriteU16(dst, primaryMotorMixer(i)->throttle * 1000);
+            sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->throttle + 2.0f, 0.0f, 4.0f) * 1000);
             sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->roll + 2.0f, 0.0f, 4.0f) * 1000);
             sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->pitch + 2.0f, 0.0f, 4.0f) * 1000);
             sbufWriteU16(dst, constrainf(primaryMotorMixer(i)->yaw + 2.0f, 0.0f, 4.0f) * 1000);
+        }
+        if (MAX_MIXER_PROFILE_COUNT==1) break;
+        for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].throttle + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].roll + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].pitch + 2.0f, 0.0f, 4.0f) * 1000);
+            sbufWriteU16(dst, constrainf(mixerMotorMixersByIndex(nextMixerProfileIndex)[i].yaw + 2.0f, 0.0f, 4.0f) * 1000);
         }
         break;
 
@@ -696,6 +718,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
             sbufWriteU8(dst, constrain(pidBank()->pid[i].FF, 0, 255));
         }
+        #ifdef USE_EZ_TUNE
+            ezTuneUpdate();
+        #endif
         break;
 
     case MSP_PIDNAMES:
@@ -1058,7 +1083,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             legacyLedConfig |= ledConfig->led_function << shiftCount;
             shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_overlay & 0x3F) << (shiftCount);
-            shiftCount += 6; 
+            shiftCount += 6;
             legacyLedConfig |= (ledConfig->led_color) << (shiftCount);
             shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_direction) << (shiftCount);
@@ -1289,7 +1314,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->general.max_manual_speed);
         sbufWriteU16(dst, navConfig()->general.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
-        sbufWriteU8(dst, navConfig()->general.flags.use_thr_mid_for_althold);
+        sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
         break;
 
@@ -1465,7 +1490,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
-        sbufWriteU16(dst, 0);
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, mixerConfig()->motorstopOnLow);
         sbufWriteU8(dst, mixerConfig()->platformType);
         sbufWriteU8(dst, mixerConfig()->hasFlaps);
         sbufWriteU16(dst, mixerConfig()->appliedMixerPreset);
@@ -1516,6 +1542,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         break;
 
+    case MSP2_INAV_OUTPUT_MAPPING_EXT:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                #if defined(SITL_BUILD)
+                sbufWriteU8(dst, i);
+                #else
+                sbufWriteU8(dst, timer2id(timerHardware[i].tim));
+                #endif
+                sbufWriteU8(dst, timerHardware[i].usageFlags);
+            }
+        break;
+    
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
@@ -1566,6 +1604,38 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
+#endif
+
+#ifdef USE_EZ_TUNE
+
+    case MSP2_INAV_EZ_TUNE:
+        {
+            sbufWriteU8(dst, ezTune()->enabled);
+            sbufWriteU16(dst, ezTune()->filterHz);
+            sbufWriteU8(dst, ezTune()->axisRatio);
+            sbufWriteU8(dst, ezTune()->response);
+            sbufWriteU8(dst, ezTune()->damping);
+            sbufWriteU8(dst, ezTune()->stability);
+            sbufWriteU8(dst, ezTune()->aggressiveness);
+            sbufWriteU8(dst, ezTune()->rate);
+            sbufWriteU8(dst, ezTune()->expo);
+        }
+        break;
+#endif
+
+#ifdef USE_RATE_DYNAMICS
+
+    case MSP2_INAV_RATE_DYNAMICS:
+        {
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.sensitivityEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.correctionEnd);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightCenter);
+            sbufWriteU8(dst, currentControlRateProfile->rateDynamics.weightEnd);
+        }
+        break;
+
 #endif
 
     default:
@@ -2071,7 +2141,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
-            primaryMotorMixerMutable(tmp_u8)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 1.0f);
+            primaryMotorMixerMutable(tmp_u8)->throttle = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
             primaryMotorMixerMutable(tmp_u8)->roll = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
             primaryMotorMixerMutable(tmp_u8)->pitch = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
             primaryMotorMixerMutable(tmp_u8)->yaw = constrainf(sbufReadU16(src) / 1000.0f, 0.0f, 4.0f) - 2.0f;
@@ -2255,7 +2325,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
             navConfigMutable()->general.max_manual_climb_rate = sbufReadU16(src);
             navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
-            navConfigMutable()->general.flags.use_thr_mid_for_althold = sbufReadU8(src);
+            navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
             currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
         } else
             return MSP_RESULT_ERROR;
@@ -2757,7 +2827,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             ledConfig->led_position = legacyConfig & 0xFF;
             ledConfig->led_function = (legacyConfig >> 8) & 0xF;
             ledConfig->led_overlay = (legacyConfig >> 12) & 0x3F;
-            ledConfig->led_color = (legacyConfig >> 18) & 0xF; 
+            ledConfig->led_color = (legacyConfig >> 18) & 0xF;
             ledConfig->led_direction = (legacyConfig >> 22) & 0x3F;
             ledConfig->led_params = (legacyConfig >> 28) & 0xF;
 
@@ -2854,7 +2924,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_SET_MIXER:
         if (dataSize == 9) {
 	    mixerConfigMutable()->motorDirectionInverted = sbufReadU8(src);
-	    sbufReadU16(src); // Was yaw_jump_prevention_limit
+	    sbufReadU8(src); // Was yaw_jump_prevention_limit
+        mixerConfigMutable()->motorstopOnLow = sbufReadU8(src);
 	    mixerConfigMutable()->platformType = sbufReadU8(src);
 	    mixerConfigMutable()->hasFlaps = sbufReadU8(src);
 	    mixerConfigMutable()->appliedMixerPreset = sbufReadU16(src);
@@ -2964,6 +3035,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+    case MSP2_INAV_SELECT_MIXER_PROFILE:
+        if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {
+                setConfigMixerProfileAndWriteEEPROM(tmp_u8);
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
 #ifdef USE_TEMPERATURE_SENSOR
     case MSP2_INAV_SET_TEMP_SENSOR_CONFIG:
         if (dataSize == sizeof(tempSensorConfig_t) * MAX_TEMP_SENSORS) {
@@ -3024,6 +3103,51 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+
+#ifdef USE_EZ_TUNE
+
+    case MSP2_INAV_EZ_TUNE_SET:
+        {
+            if (dataSize == 10) {
+                ezTuneMutable()->enabled = sbufReadU8(src);
+                ezTuneMutable()->filterHz = sbufReadU16(src);
+                ezTuneMutable()->axisRatio = sbufReadU8(src);
+                ezTuneMutable()->response = sbufReadU8(src);
+                ezTuneMutable()->damping = sbufReadU8(src);
+                ezTuneMutable()->stability = sbufReadU8(src);
+                ezTuneMutable()->aggressiveness = sbufReadU8(src);
+                ezTuneMutable()->rate = sbufReadU8(src);
+                ezTuneMutable()->expo = sbufReadU8(src);
+
+                ezTuneUpdate();
+            } else {
+                return MSP_RESULT_ERROR;
+            }
+        }
+        break;
+
+#endif
+
+#ifdef USE_RATE_DYNAMICS
+
+    case MSP2_INAV_SET_RATE_DYNAMICS:
+
+        if (dataSize == 6) {
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.sensitivityCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.sensitivityEnd = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionEnd = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightCenter = sbufReadU8(src);
+            ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightEnd = sbufReadU8(src);
+            
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+
+        break;    
+
+#endif
+
 
     default:
         return MSP_RESULT_ERROR;
@@ -3208,6 +3332,8 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, 0);
         sbufWriteU8(dst, 0);
         break;
+    case EZ_TUNE_VALUE:
+        FALLTHROUGH;
     case PROFILE_VALUE:
         FALLTHROUGH;
     case CONTROL_RATE_VALUE:
@@ -3217,6 +3343,10 @@ static bool mspSettingInfoCommand(sbuf_t *dst, sbuf_t *src)
     case BATTERY_CONFIG_VALUE:
         sbufWriteU8(dst, getConfigBatteryProfile());
         sbufWriteU8(dst, MAX_BATTERY_PROFILE_COUNT);
+        break;
+    case MIXER_CONFIG_VALUE:
+        sbufWriteU8(dst, getConfigMixerProfile());
+        sbufWriteU8(dst, MAX_MIXER_PROFILE_COUNT);
         break;
     }
 
@@ -3267,7 +3397,7 @@ bool isOSDTypeSupportedBySimulator(void)
 {
 #ifdef USE_OSD
 	displayPort_t *osdDisplayPort = osdGetDisplayPort();
-	return (osdDisplayPort && osdDisplayPort->cols == 30 && (osdDisplayPort->rows == 13 || osdDisplayPort->rows == 16));
+	return (!!osdDisplayPort && !!osdDisplayPort->vTable->readChar);
 #else
     return false;
 #endif
@@ -3279,18 +3409,25 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	//scan displayBuffer iteratively
 	//no more than 80+3+2 bytes output in single run
 	//0 and 255 are special symbols
-	//255 - font bank switch
-	//0  - font bank switch, blink switch and character repeat
+	//255 [char] - font bank switch
+	//0 [flags,count] [char] - font bank switch, blink switch and character repeat
+    //original 0 is sent as 32
+    //original 0xff, 0x100 and 0x1ff are forcibly sent inside command 0
 
 	static uint8_t osdPos_y = 0;
 	static uint8_t osdPos_x = 0;
 
+    //indicate new format hitl 1.4.0
+	sbufWriteU8(dst, 255);  
 
 	if (isOSDTypeSupportedBySimulator())
 	{
 		displayPort_t *osdDisplayPort = osdGetDisplayPort();
 
-		sbufWriteU8(dst, osdPos_y | (osdDisplayPort->rows == 16 ? 128: 0));
+		sbufWriteU8(dst, osdDisplayPort->rows);
+		sbufWriteU8(dst, osdDisplayPort->cols);
+
+		sbufWriteU8(dst, osdPos_y);
 		sbufWriteU8(dst, osdPos_x);
 
 		int bytesCount = 0;
@@ -3301,7 +3438,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		bool blink = false;
 		int count = 0;
 
-		int processedRows = 16;
+		int processedRows = osdDisplayPort->rows;
 
 		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
 		{
@@ -3312,7 +3449,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			while ( true )
 			{
 				displayReadCharWithAttr(osdDisplayPort, osdPos_x, osdPos_y, &c, &attr);
-				if (c == 0 || c == 255) c = 32;
+				if (c == 0) c = 32;
 
 				//REVIEW: displayReadCharWithAttr() should return mode with _TEXT_ATTRIBUTES_BLINK_BIT !
 				//for max7456 it returns mode with MAX7456_MODE_BLINK instead (wrong)
@@ -3327,7 +3464,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 					lastChar = c;
 					blink1 = blink2;
 				}
-				else if (lastChar != c || blink2 != blink1 || count == 63)
+				else if ((lastChar != c) || (blink2 != blink1) || (count == 63))
 				{
 					break;
 				}
@@ -3335,12 +3472,12 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 				count++;
 
 				osdPos_x++;
-				if (osdPos_x == 30)
+				if (osdPos_x == osdDisplayPort->cols)
 				{
 					osdPos_x = 0;
 					osdPos_y++;
 					processedRows--;
-					if (osdPos_y == 16)
+					if (osdPos_y == osdDisplayPort->rows)
 					{
 						osdPos_y = 0;
 					}
@@ -3348,6 +3485,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 			}
 
 			uint8_t cmd = 0;
+            uint8_t lastCharLow = (uint8_t)(lastChar & 0xff);
 			if (blink1 != blink)
 			{
 				cmd |= 128;//switch blink attr
@@ -3363,27 +3501,27 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 
 			if (count == 1 && cmd == 64)
 			{
-				sbufWriteU8(dst, 255);  //short command for bank switch
+				sbufWriteU8(dst, 255);  //short command for bank switch with char following
 				sbufWriteU8(dst, lastChar & 0xff);
 				bytesCount += 2;
 			}
-			else if (count > 2 || cmd !=0 )
+			else if ((count > 2) || (cmd !=0) || (lastChar == 255) || (lastChar == 0x100) || (lastChar == 0x1ff))
 			{
 				cmd |= count;  //long command for blink/bank switch and symbol repeat
 				sbufWriteU8(dst, 0);
 				sbufWriteU8(dst, cmd);
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount += 3;
 			}
 			else if (count == 2)  //cmd == 0 here
 			{
-				sbufWriteU8(dst, lastChar & 0xff);
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount+=2;
 			}
 			else
 			{
-				sbufWriteU8(dst, lastChar & 0xff);
+				sbufWriteU8(dst, lastCharLow);
 				bytesCount++;
 			}
 
@@ -3397,7 +3535,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	}
 	else
 	{
-		sbufWriteU8(dst, 255);
+		sbufWriteU8(dst, 0);
 	}
 }
 #endif
@@ -3482,7 +3620,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
-        
+
         // Check the MSP version of simulator
 		if (tmp_u8 != SIMULATOR_MSP_VERSION) {
             break;
@@ -3508,7 +3646,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 // Review: Many states were affected. Reboot?
 
 				disarm(DISARM_SWITCH);  // Disarm to prevent motor output!!!
-			}   
+			}
         } else {
 			if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
@@ -3518,7 +3656,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                     DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
 				    baroStartCalibration();
                 }
-#endif			
+#endif
 
 #ifdef USE_MAG
 				if (compassConfig()->mag_hardware != MAG_NONE) {
@@ -3531,6 +3669,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				}
 #endif
 				ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+                ENABLE_STATE(ACCELEROMETER_CALIBRATED);
 				LOG_DEBUG(SYSTEM, "Simulator enabled");
 			}
 
@@ -3578,7 +3717,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				} else {
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
-                
+
                 // Get the acceleration in 1G units
 				acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
 				acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
@@ -3586,7 +3725,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 				acc.accVibeSq[X] = 0.0f;
 				acc.accVibeSq[Y] = 0.0f;
 				acc.accVibeSq[Z] = 0.0f;
-                
+
                 // Get the angular velocity in DPS
 				gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
 				gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
@@ -3607,21 +3746,17 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 					sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
 				}
 
-#if defined(USE_FAKE_BATT_SENSOR)
                 if (SIMULATOR_HAS_OPTION(HITL_EXT_BATTERY_VOLTAGE)) {
-                    fakeBattSensorSetVbat(sbufReadU8(src) * 10);
+                    simulatorData.vbat = sbufReadU8(src);
                 } else {
-#endif
-                    fakeBattSensorSetVbat((uint16_t)(SIMULATOR_FULL_BATTERY * 10.0f));
-#if defined(USE_FAKE_BATT_SENSOR)
+                    simulatorData.vbat = SIMULATOR_FULL_BATTERY;
                 }
-#endif
 
                 if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
                     simulatorData.airSpeed = sbufReadU16(src);
 			    } else {
                     if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
-                        sbufReadU16(src); 
+                        sbufReadU16(src);
                     }
                 }
 
@@ -3661,7 +3796,43 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
 #endif
-
+#ifndef SITL_BUILD
+    case MSP2_INAV_TIMER_OUTPUT_MODE:
+        if (dataSize == 0) {
+            for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+                sbufWriteU8(dst, i);
+                sbufWriteU8(dst, timerOverrides(i)->outputMode);
+            }
+            *ret = MSP_RESULT_ACK;
+        } else if(dataSize == 1) {
+            uint8_t timer = sbufReadU8(src);
+            if(timer < HARDWARE_TIMER_DEFINITION_COUNT) {
+                sbufWriteU8(dst, timer);
+                sbufWriteU8(dst, timerOverrides(timer)->outputMode);
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+        } else {
+            *ret = MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_SET_TIMER_OUTPUT_MODE:
+        if(dataSize == 2) {
+            uint8_t timer = sbufReadU8(src);
+            uint8_t outputMode = sbufReadU8(src);
+            if(timer < HARDWARE_TIMER_DEFINITION_COUNT) {
+                timerOverridesMutable(timer)->outputMode = outputMode;
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+        } else {
+            *ret = MSP_RESULT_ERROR;
+        }
+        break;
+#endif 
+    
     default:
         // Not handled
         return false;

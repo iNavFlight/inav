@@ -3,8 +3,8 @@
 #ifdef USE_STATS
 
 typedef struct statsConfig_s {
-    uint32_t stats_total_time; // [s]
-    uint32_t stats_total_dist; // [m]
+    uint32_t stats_total_time; // [Seconds]
+    uint32_t stats_total_dist; // [Metres]
 #ifdef USE_ADC
     uint32_t stats_total_energy; // deciWatt hour (x0.1Wh)
 #endif

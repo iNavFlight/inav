@@ -38,7 +38,7 @@ int digitCount(int32_t value)
 }
 
 
-bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length)
+bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros)
 {
     char *ptr = buff;
     char *dec;
@@ -86,7 +86,11 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     // Done counting. Time to write the characters.
     // Write spaces at the start
     while (remaining > 0) {
-        *ptr = SYM_BLANK;
+        if (leadingZeros) 
+            *ptr = '0';
+        else
+            *ptr = SYM_BLANK;
+
         ptr++;
         remaining--;
     }
@@ -98,7 +102,11 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
         // Add any needed remaining leading spaces
         while(rem_spaces > 0)
         {
-            *ptr = SYM_BLANK;
+            if (leadingZeros) 
+                *ptr = '0';
+            else
+                *ptr = SYM_BLANK;
+
             ptr++;
             remaining--;
             rem_spaces--;

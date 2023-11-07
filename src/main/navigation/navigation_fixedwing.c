@@ -39,6 +39,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -71,7 +72,6 @@ static bool isRollAdjustmentValid = false;
 static bool isYawAdjustmentValid = false;
 static float throttleSpeedAdjustment = 0;
 static bool isAutoThrottleManuallyIncreased = false;
-static int32_t navHeadingError;
 static float navCrossTrackError;
 static int8_t loiterDirYaw = 1;
 bool needToCalculateCircularLoiter;
@@ -117,13 +117,13 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     if (rcAdjustment) {
         // set velocity proportional to stick movement
         float rcClimbRate = -rcAdjustment * navConfig()->general.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
-        updateClimbRateToAltitudeController(rcClimbRate, ROC_TO_ALT_NORMAL);
+        updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
         return true;
     }
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingAltitude) {
-            updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
         }
         return false;
     }
@@ -157,8 +157,13 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     const float pitchGainInv = 1.0f / 1.0f;
 
     // Here we use negative values for dive for better clarity
-    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+    float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
     const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
+
+    // Reduce max allowed climb pitch if performing loiter (stall prevention)
+    if (needToCalculateCircularLoiter) {
+        maxClimbDeciDeg = maxClimbDeciDeg * 0.67f;
+    }
 
     // PID controller to translate energy balance error [J] into pitch angle [decideg]
     float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv, 1.0f);
@@ -289,6 +294,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     needToCalculateCircularLoiter = isNavHoldPositionActive() &&
                                      (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
                                      (distanceToActualTarget > 50.0f);
+    //if vtol landing is required, fly straight to homepoint
+    if ((posControl.navState == NAV_STATE_RTH_HEAD_HOME) && navigationRTHAllowsLanding() && checkMixerATRequired(MIXERAT_REQUEST_LAND)){
+        needToCalculateCircularLoiter = false;
+    }
 
     /* WP turn smoothing with 2 options, 1: pass through WP, 2: cut inside turn missing WP
      * Works for turns > 30 degs and < 160 degs.
@@ -440,7 +449,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      * Calculate NAV heading error
      * Units are centidegrees
      */
-    navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.cog);
+    int32_t navHeadingError = wrap_18000(virtualTargetBearing - posControl.actualState.cog);
 
     // Forced turn direction
     // If heading error is close to 180 deg we initiate forced turn and only disable it when heading error goes below 90 deg
@@ -642,7 +651,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             isAutoThrottleManuallyIncreased = false;
         }
 
-        rcCommand[THROTTLE] = constrain(correctedThrottleValue, getThrottleIdleValue(), motorConfig()->maxthrottle);
+        rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
 #ifdef NAV_FIXED_WING_LANDING
@@ -657,7 +666,6 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
            (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
 
             // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
-            rcCommand[THROTTLE] = getThrottleIdleValue();
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
             // Stabilize ROLL axis on 0 degrees banking regardless of loiter radius and position
@@ -687,7 +695,7 @@ bool isFixedWingFlying(void)
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
-    return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;
+    return (isGPSHeadingValid() && throttleCondition && velCondition) || launchCondition;
 }
 
 /*-----------------------------------------------------------
@@ -757,10 +765,11 @@ bool isFixedWingLandingDetected(void)
  *-----------------------------------------------------------*/
 void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
+    rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->failsafe_throttle, true);
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
-        updateClimbRateToAltitudeController(-1.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_NORMAL);
+        // target min descent rate 10m above takeoff altitude
+        updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000.0f, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
@@ -843,11 +852,6 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
         }
     }
-}
-
-int32_t navigationGetHeadingError(void)
-{
-    return navHeadingError;
 }
 
 float navigationGetCrossTrackError(void)
