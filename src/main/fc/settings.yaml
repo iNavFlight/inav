@@ -2056,7 +2056,7 @@ groups:
         field: navVelXyDtermAttenuation
         min: 0
         max: 100
-        default_value: 90
+        default_value: 50
       - name: nav_mc_vel_xy_dterm_attenuation_start
         description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins"
         default_value: 10
@@ -2680,6 +2680,12 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
+      - name: nav_mc_drag_to_acceleration_factor
+        description: "Factor used for air drag to acceleration conversion in MC NAV horizontal velocity controller. set it as 0.5 * air_density[kg/m^3] * drag_coefficient * projection_area[m^2] / AllUpWeight[kg] * 10000 , assume around 100 on 3-7 inch quad"
+        default_value: 100
+        field: mc.drag_to_acceleration_factor
+        min: 0
+        max: 500
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 1000

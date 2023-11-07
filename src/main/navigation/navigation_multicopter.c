@@ -590,7 +590,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         accelLimitY = accelLimitX;
     }
 
-    // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
+    // Apply additional jerk limiting of 3400 cm/s^3 (~200 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
     float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
@@ -688,6 +688,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Save last acceleration target
     lastAccelTargetX = newAccelX;
     lastAccelTargetY = newAccelY;
+
+    //correction as virtual acceleration to compensate air drag to maintain current speed
+    //drag_to_acceleration_factor = 0.5 * air_density(kg/m^3) * drag_coefficient * projection_area(m^2) / AllUpWeight(kg), assume around 0.01 on 3-7 inch quad
+    newAccelX = newAccelX + SIGN(measurementX) * measurementX/100.0f * measurementX/100.0f * (navConfig()->mc.drag_to_acceleration_factor / 10000.0f);
+    newAccelY = newAccelY + SIGN(measurementY) * measurementY/100.0f * measurementY/100.0f * (navConfig()->mc.drag_to_acceleration_factor / 10000.0f);
 
     // Rotate acceleration target into forward-right frame (aircraft)
     const float accelForward = newAccelX * posControl.actualState.cosYaw + newAccelY * posControl.actualState.sinYaw;
