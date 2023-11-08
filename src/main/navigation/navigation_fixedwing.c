@@ -518,8 +518,8 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
                 // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
                 // FIXME: verify the above
                 calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
-
                 updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);
+                needToCalculateCircularLoiter = false;
             }
             else {
                 // Position update has not occurred in time (first iteration or glitch), reset altitude controller
