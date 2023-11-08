@@ -47,8 +47,6 @@
 
 #define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
-#define NAV_IMPOSSIBLE_ALTITUDE_TARGET      10000000    // 100km in cm. Serves as a flag for vertical velocity control
-
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
@@ -94,6 +92,8 @@ typedef struct navigationFlags_s {
     navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
     bool gpsCfEstimatedAltitudeMismatch;            // Indicates a mismatch between GPS altitude and estimated altitude
+
+    climbRateToAltitudeControllerMode_e rocToAltMode;
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
