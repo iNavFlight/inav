@@ -154,8 +154,9 @@
 
 #define OSD_MIN_FONT_VERSION 3
 
-static timeMs_t notify_settings_saved = 0;
-static bool     savingSettings = false;
+static timeMs_t linearDescentMessageMs  = 0;
+static timeMs_t notify_settings_saved   = 0;
+static bool     savingSettings          = false;
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -1000,6 +1001,9 @@ static const char * divertingToSafehomeMessage(void)
 
 static const char * navigationStateMessage(void)
 {
+    if (!posControl.rthState.rthLinearDescentActive && linearDescentMessageMs != 0)
+        linearDescentMessageMs = 0;
+
     switch (NAV_Status.state) {
         case MW_NAV_STATE_NONE:
             break;
@@ -1011,7 +1015,13 @@ static const char * navigationStateMessage(void)
             if (posControl.flags.rthTrackbackActive) {
                 return OSD_MESSAGE_STR(OSD_MSG_RTH_TRACKBACK);
             } else {
-                return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
+                if (posControl.rthState.rthLinearDescentActive && (linearDescentMessageMs == 0 || linearDescentMessageMs > millis())) {
+                    if (linearDescentMessageMs == 0)
+                        linearDescentMessageMs = millis() + 5000; // Show message for 5 seconds.
+
+                    return OSD_MESSAGE_STR(OSD_MSG_RTH_LINEAR_DESCENT);
+                } else 
+                    return OSD_MESSAGE_STR(OSD_MSG_HEADING_HOME);
             }
         case MW_NAV_STATE_HOLD_INFINIT:
             // Used by HOLD flight modes. No information to add.
@@ -1052,6 +1062,7 @@ static const char * navigationStateMessage(void)
             // Not used
             break;
     }
+
     return NULL;
 }
 
