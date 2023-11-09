@@ -86,16 +86,17 @@ float _accel_offset_z;
 float _pos_offset_target_z = 0.0f;
 float _vel_z_control_ratio = 1.0f;    // Confidence that we have control in the vertical axis
 
-// update_vel_accel - single axis projection of velocity, vel, forwards in time based on a time step of dt and acceleration of accel.
-// the velocity is not moved in the direction of limit if limit is not set to zero.
-// limit - specifies if the system is unable to continue to accelerate.
-// vel_error - specifies the direction of the velocity error used in limit handling.
+/* 
+    Single axis projection of velocity, vel, forwards in time based on a time step of dt and acceleration of accel.
+    The velocity is not moved in the direction of limit if limit is not set to zero.
+    Variable "limit" - Specifies if the system is unable to continue to accelerate.
+    Variable "vel_error" - Specifies the direction of the velocity error used in limit handling.
+*/
 void update_vel_accel(float *vel, float accel, float dt, float limit, float vel_error)
 {
     float delta_vel = accel * dt;
 
-    // do not add delta_vel if it will increase the velocity error in the direction of limit
-    // unless adding delta_vel will reduce vel towards zero
+    // Do not add delta_vel if it will increase the velocity error in the direction of limit unless adding delta_vel will reduce vel towards zero
     if ((delta_vel * limit > 0.0f) && (vel_error * limit > 0.0f)) {
         if (*vel * limit < 0.0f) {
             delta_vel = constrainf(delta_vel, -fabsf(*vel), fabsf(*vel));
@@ -107,16 +108,18 @@ void update_vel_accel(float *vel, float accel, float dt, float limit, float vel_
     *vel += delta_vel;
 }
 
-// update_pos_vel_accel - single axis projection of position and velocity forward in time based on a time step of dt and acceleration of accel.
-// the position and velocity is not moved in the direction of limit if limit is not set to zero.
-// limit - specifies if the system is unable to continue to accelerate.
-// pos_error and vel_error - specifies the direction of the velocity error used in limit handling.
+/* 
+    Single axis projection of position and velocity forward in time based on a time step of dt and acceleration of accel.
+    The position and velocity is not moved in the direction of limit if limit is not set to zero.
+    Variable "limit" - Specifies if the system is unable to continue to accelerate.
+    Variable "pos_error" and "vel_error" - Specifies the direction of the velocity error used in limit handling.
+*/
 void update_pos_vel_accel(float *pos, float *vel, float accel, float dt, float limit, float pos_error, float vel_error)
 {
-    // move position and velocity forward by dt if it does not increase error when limited.
+    // Move position and velocity forward by dt if it does not increase error when limited.
     float delta_pos = *vel * dt + accel * 0.5f * sq(dt);
 
-    // do not add delta_pos if it will increase the velocity error in the direction of limit
+    // Do not add delta_pos if it will increase the velocity error in the direction of limit
     if ((delta_pos * limit > 0.0f) && (pos_error * limit > 0.0f)) {
         delta_pos = 0.0f;
     }
@@ -126,11 +129,11 @@ void update_pos_vel_accel(float *pos, float *vel, float accel, float dt, float l
     update_vel_accel(vel, accel, dt, limit, vel_error);
 }
 
-/* shape_accel calculates a jerk limited path from the current acceleration to an input acceleration.
- The function takes the current acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
- The kinematic path is constrained by :
-    maximum jerk - jerk_max (must be positive).
- The function alters the variable accel to follow a jerk limited kinematic path to accel_input.
+/* 
+    Calculates a jerk limited path from the current acceleration to an input acceleration.
+    The function takes the current acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
+    The kinematic path is constrained by: maximum jerk - jerk_max (must be positive).
+    The function alters the variable accel to follow a jerk limited kinematic path to accel_input.
 */
 void shape_accel(float accel_input, float *accel, float jerk_max, float dt)
 {
@@ -147,32 +150,32 @@ void shape_accel(float accel_input, float *accel, float jerk_max, float dt)
     }
 }
 
-/* shape_vel_accel and shape_vel_xy calculate a jerk limited path from the current position, velocity and acceleration to an input velocity.
- The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
- The kinematic path is constrained by :
-    minimum acceleration - accel_min (must be negative),
-    maximum acceleration - accel_max (must be positive),
-    maximum jerk - jerk_max (must be positive).
- The function alters the variable accel to follow a jerk limited kinematic path to vel_input and accel_input.
- The correction acceleration is limited from accel_min to accel_max. If limit_total is true the target acceleration is limited from accel_min to accel_max.
+/* 
+    Calculate a jerk limited path from the current position, velocity and acceleration to an input velocity.
+    The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
+    The kinematic path is constrained by :
+        minimum acceleration - accel_min (must be negative),
+        maximum acceleration - accel_max (must be positive),
+        maximum jerk - jerk_max (must be positive).
+    The function alters the variable accel to follow a jerk limited kinematic path to vel_input and accel_input.
+    The correction acceleration is limited from accel_min to accel_max. If limit_total is true the target acceleration is limited from accel_min to accel_max.
 */
 void shape_vel_accel(float vel_input, float accel_input,
                      float vel, float *accel,
                      float accel_min, float accel_max,
                      float jerk_max, float dt, bool limit_total_accel)
 {
-    // sanity check accel_min, accel_max and jerk_max.
+    // Sanity check accel_min, accel_max and jerk_max.
     if ((accel_min > 0.0f) || (accel_max < 0.0f) || (jerk_max < 0.0f)) {
         return;
     }
 
-    // velocity error to be corrected
+    // Velocity error to be corrected
     float vel_error = vel_input - vel;
 
     // Calculate time constants and limits to ensure stable operation
     // The direction of acceleration limit is the same as the velocity error.
-    // This is because the velocity error is negative when slowing down while
-    // closing a positive position error.
+    // This is because the velocity error is negative when slowing down while closing a positive position error.
     float KPa;
 
     if (vel_error > 0.0f) {
@@ -181,19 +184,19 @@ void shape_vel_accel(float vel_input, float accel_input,
         KPa = jerk_max / (-accel_min);
     }
 
-    // acceleration to correct velocity
+    // Acceleration to correct velocity
     shape_vel_z_sqrt_controller.kp = KPa;
     shape_vel_z_sqrt_controller.error = vel_error;
     shape_vel_z_sqrt_controller.derivative_max = jerk_max;
     float accel_target = sqrtControllerApply(&shape_vel_z_sqrt_controller, 0.0f, 0.0f, SQRT_CONTROLLER_NORMAL, dt);
 
-    // constrain correction acceleration from accel_min to accel_max
+    // Constrain correction acceleration from accel_min to accel_max
     accel_target = constrainf(accel_target, accel_min, accel_max);
 
-    // velocity correction with input velocity
+    // Velocity correction with input velocity
     accel_target += accel_input;
 
-    // constrain total acceleration from accel_min to accel_max
+    // Constrain total acceleration from accel_min to accel_max
     if (limit_total_accel) {
         accel_target = constrainf(accel_target, accel_min, accel_max);
     }
@@ -201,17 +204,18 @@ void shape_vel_accel(float vel_input, float accel_input,
     shape_accel(accel_target, accel, jerk_max, dt);
 }
 
-/* shape_pos_vel_accel calculate a jerk limited path from the current position, velocity and acceleration to an input position and velocity.
- The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
- The kinematic path is constrained by :
-    minimum velocity - vel_min (must not be positive),
-    maximum velocity - vel_max (must not be negative),
-    minimum acceleration - accel_min (must be negative),
-    maximum acceleration - accel_max (must be positive),
-    maximum jerk - jerk_max (must be positive).
- The function alters the variable accel to follow a jerk limited kinematic path to pos_input, vel_input and accel_input.
- The correction velocity is limited to vel_max to vel_min. If limit_total is true the target velocity is limited to vel_max to vel_min.
- The correction acceleration is limited from accel_min to accel_max. If limit_total is true the target acceleration is limited from accel_min to accel_max.
+/* 
+    Calculate a jerk limited path from the current position, velocity and acceleration to an input position and velocity.
+    The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
+    The kinematic path is constrained by :
+        minimum velocity - vel_min (must not be positive),
+        maximum velocity - vel_max (must not be negative),
+        minimum acceleration - accel_min (must be negative),
+        maximum acceleration - accel_max (must be positive),
+        maximum jerk - jerk_max (must be positive).
+    The function alters the variable accel to follow a jerk limited kinematic path to pos_input, vel_input and accel_input.
+    The correction velocity is limited to vel_max to vel_min. If limit_total is true the target velocity is limited to vel_max to vel_min.
+    The correction acceleration is limited from accel_min to accel_max. If limit_total is true the target acceleration is limited from accel_min to accel_max.
 */
 void shape_pos_vel_accel(float pos_input, float vel_input, float accel_input,
                          float pos, float vel, float *accel,
@@ -219,18 +223,16 @@ void shape_pos_vel_accel(float pos_input, float vel_input, float accel_input,
                          float accel_min, float accel_max,
                          float jerk_max, float dt, bool limit_total)
 {
-    // sanity check vel_min, vel_max, accel_min, accel_max and jerk_max.
+    // Sanity check vel_min, vel_max, accel_min, accel_max and jerk_max.
     if ((vel_min > 0.0f) || (vel_max < 0.0f) || (accel_min > 0.0f) || (accel_max < 0.0f) || (jerk_max < 0.0f)) {
         return;
     }
 
-    // position error to be corrected
+    // Position error to be corrected
     float pos_error = pos_input - pos;
 
     // Calculate time constants and limits to ensure stable operation
-    // The negative acceleration limit is used here because the square root controller
-    // manages the approach to the setpoint. Therefore the acceleration is in the opposite
-    // direction to the position error.
+    // The negative acceleration limit is used here because the square root controller manages the approach to the setpoint. Therefore the acceleration is in the opposite  direction to the position error.
     float accel_tc_max;
     float KPv;
 
@@ -242,21 +244,21 @@ void shape_pos_vel_accel(float pos_input, float vel_input, float accel_input,
         KPv = 0.5f * jerk_max / accel_max;
     }
 
-    // velocity to correct position    
+    // Velocity to correct position    
     shape_pos_z_sqrt_controller.kp = KPv;
     shape_pos_z_sqrt_controller.error = pos_error;
     shape_pos_z_sqrt_controller.derivative_max = accel_tc_max;
     float vel_target = sqrtControllerApply(&shape_pos_z_sqrt_controller, 0.0f, 0.0f, SQRT_CONTROLLER_NORMAL, dt);
 
-    // limit velocity between vel_min and vel_max
+    // Limit velocity between vel_min and vel_max
     if ((vel_min < 0.0f) || (vel_max > 0.0f)) {
         vel_target = constrainf(vel_target, vel_min, vel_max);
     }
 
-    // velocity correction with input velocity
+    // Velocity correction with input velocity
     vel_target += vel_input;
 
-    // limit velocity between vel_min and vel_max
+    // Limit velocity between vel_min and vel_max
     if (limit_total) {
         vel_target = constrainf(vel_target, vel_min, vel_max);
     }
@@ -264,14 +266,14 @@ void shape_pos_vel_accel(float pos_input, float vel_input, float accel_input,
     shape_vel_accel(vel_target, accel_input, vel, accel, accel_min, accel_max, jerk_max, dt, limit_total);
 }
 
-/// update_pos_offset_z - updates the vertical offsets used by terrain following
+// Updates the vertical offsets used by terrain following
 void update_pos_offset_z(float pos_offset_z, float dt)
 {
     float p_offset_z = _pos_offset_z;
     update_pos_vel_accel(&p_offset_z, &_vel_offset_z, _accel_offset_z, dt, MIN(_limit_vector.z, 0.0f), posControl.pids.pos[Z].error, posControl.pids.vel[Z].error);
     _pos_offset_z = p_offset_z;
 
-    // input shape the terrain offset
+    // Input shape the terrain offset
     shape_pos_vel_accel(pos_offset_z, 0.0f, 0.0f,
         _pos_offset_z, _vel_offset_z, &_accel_offset_z,
         _vel_max_down_cms, _vel_max_up_cms,
@@ -279,7 +281,7 @@ void update_pos_offset_z(float pos_offset_z, float dt)
         _jerk_max_z_cmsss, dt, false);
 }
 
-// calculate_overspeed_gain - calculated increased maximum acceleration and jerk if over speed condition is detected
+// Calculated increased maximum acceleration and jerk if over speed condition is detected
 float calculate_overspeed_gain(void)
 {
     if (_vel_desired.z < _vel_max_down_cms && _vel_max_down_cms != 0.0f) {
@@ -293,21 +295,23 @@ float calculate_overspeed_gain(void)
     return 1.0f;
 }
 
-/// input_accel_z - calculate a jerk limited path from the current position, velocity and acceleration to an input acceleration.
-///     The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
-///     The kinematic path is constrained by the maximum acceleration and jerk set using the function set_max_speed_accel_z.
-///     The parameter limit_output specifies if the velocity and acceleration limits are applied to the sum of commanded and correction values or just correction.
+/* 
+    Calculate a jerk limited path from the current position, velocity and acceleration to an input acceleration.
+    The function takes the current position, velocity, and acceleration and calculates the required jerk limited adjustment to the acceleration for the next time dt.
+    The kinematic path is constrained by the maximum acceleration and jerk set using the function set_max_speed_accel_z.
+    The parameter limit_output specifies if the velocity and acceleration limits are applied to the sum of commanded and correction values or just correction.
+*/
 void input_vel_accel_z(float *vel, float accel, bool limit_output, float dt)
 {
-    // calculated increased maximum acceleration and jerk if over speed
+    // Calculated increased maximum acceleration and jerk if over speed
     const float overspeed_gain = calculate_overspeed_gain();
     const float accel_max_z_cmss = _accel_max_z_cmss * overspeed_gain;
     const float jerk_max_z_cmsss = _jerk_max_z_cmsss * overspeed_gain;
 
-    // adjust desired alt if motors have not hit their limits
+    // Adjust desired alt if motors have not hit their limits
     update_pos_vel_accel(&_pos_target.z, &_vel_desired.z, _accel_desired.z, dt, _limit_vector.z, posControl.pids.pos[Z].error, posControl.pids.vel[Z].error);
 
-    shape_vel_accel(*vel, accel,
+    shape_vel_accel(*vel, accel, 
                     _vel_desired.z, &_accel_desired.z,
                     -constrainf(accel_max_z_cmss, 0.0f, 750.0f), accel_max_z_cmss,
                     jerk_max_z_cmsss, dt, limit_output);
@@ -341,12 +345,13 @@ void set_max_speed_accel_z(float speed_down, float speed_up, float accel_cmss)
     }
 }
 
-/// set_pos_target_z_from_climb_rate_cm - adjusts target up or down using a commanded climb rate in cm/s
-///     using the default position control kinematic path.
-///     The zero target altitude is varied to follow pos_offset_z
+/* 
+    Adjusts target up or down using a commanded climb rate in cm/s using the default position control kinematic path.
+    The zero target altitude is varied to follow pos_offset_z
+*/
 void set_pos_target_z_from_climb_rate_cm(float vel, float dt)
 {
-    // remove terrain offsets for flat earth assumption
+    // Remove terrain offsets for flat earth assumption
     _pos_target.z -= _pos_offset_z;
     _vel_desired.z -= _vel_offset_z;
     _accel_desired.z -= _accel_offset_z;
@@ -354,17 +359,19 @@ void set_pos_target_z_from_climb_rate_cm(float vel, float dt)
     float vel_temp = vel;
     input_vel_accel_z(&vel_temp, 0.0f, true, dt);
 
-    // update the vertical position, velocity and acceleration offsets
+    // Update the vertical position, velocity and acceleration offsets
     update_pos_offset_z(_pos_offset_target_z, dt);
 
-    // add terrain offsets
+    // Add terrain offsets
     _pos_target.z += _pos_offset_z;
     _vel_desired.z += _vel_offset_z;
     _accel_desired.z += _accel_offset_z;
 }
 
-// relaxZController - initialise the position controller to the current position and velocity with decaying acceleration.
-///     This function decays the output acceleration by 95% every half second to achieve a smooth transition to zero requested acceleration.
+/* 
+    Initialise the position controller to the current position and velocity with decaying acceleration.
+    This function decays the output acceleration by 95% every half second to achieve a smooth transition to zero requested acceleration.
+*/
 void relaxZController(float dt)
 {
     _pos_target.z = navGetCurrentActualPositionAndVelocity()->pos.z;
@@ -384,7 +391,7 @@ void relaxZController(float dt)
     _accel_target.z = _accel_desired.z;
     pt1FilterReset(&posControl.pids.acceleration_z.error_filter_state, 0.0f);
 
-    // initialise vertical offsets
+    // Initialise vertical offsets
     _pos_offset_target_z = 0.0f;
     _pos_offset_z = 0.0f;
     _vel_offset_z = 0.0f;
@@ -394,12 +401,12 @@ void relaxZController(float dt)
     // Remove the expected P term due to _accel_desired.z being constrained to _accel_max_z_cmss
     posControl.pids.acceleration_z.integrator = (rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (_accel_target.z - posEstimator.imu.accelNEU.z);
 
-    // init_z_controller has set the accel PID I term to generate the current throttle set point
+    // resetMulticopterAltitudeController has set the accel PID I term to generate the current throttle set point
     // Use relax_integrator to decay the throttle set point to throttle_setting
     navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, dt, NAV_MC_INTEGRAL_RELAX_TC_Z);
 }
 
-// get_pilot_desired_climb_rate - transform pilot's throttle input to climb rate in cm/s
+// Transform pilot's throttle input to climb rate in cm/s
 static float get_pilot_desired_climb_rate(void)
 {
     const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
