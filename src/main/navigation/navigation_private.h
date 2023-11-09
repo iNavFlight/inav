@@ -483,7 +483,7 @@ bool isWaypointNavTrackingActive(void);
 void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError);
-int32_t getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros);
+float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros);
 
 bool checkForPositionSensorTimeout(void);
 
