@@ -230,7 +230,7 @@ static bool isLandWpReached(const fpVector3_t * waypointPos, const int32_t * way
 static fwAutolandEvent_t fwAutolandState_ABOVE_LOITER_ALT(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    int32_t approachAltAbs = safeHomeConfig(safehome_index)->approachAltMSL - GPS_home.alt;
+    int32_t approachAltAbs = safeHomeConfig(safehome_index)->approachAlt - GPS_home.alt;
 
     if (ABS(getEstimatedActualPosition(Z) - approachAltAbs) < TARGET_ALT_TOLERANCE) {
         return FW_AUTOLAND_EVENT_SUCCSESS;
@@ -249,8 +249,8 @@ static fwAutolandEvent_t fwAutolandState_LOITER(timeUs_t currentTimeUs)
     return FW_AUTOLAND_EVENT_ABORT;
 #endif
     
-    int32_t landAltAbs = safeHomeConfig(safehome_index)->landAltMSL - GPS_home.alt;
-    int32_t approachAltAbs = safeHomeConfig(safehome_index)->approachAltMSL + landAltAbs - GPS_home.alt;
+    int32_t landAltAbs = safeHomeConfig(safehome_index)->landAlt - GPS_home.alt;
+    int32_t approachAltAbs = safeHomeConfig(safehome_index)->approachAlt + landAltAbs - GPS_home.alt;
     if (fwAutoland.loiterStartTime == 0) {
         fwAutoland.loiterStartTime = currentTimeUs;
     } else if (micros() - fwAutoland.loiterStartTime > LOITER_MIN_TIME) {
@@ -364,7 +364,7 @@ static fwAutolandEvent_t fwAutolandState_BASE(timeUs_t currentTimeUs)
 
 static fwAutolandEvent_t fwAutolandState_FINAL_APPROACH(timeUs_t currentTimeUs) 
 {    
-    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAltMSL + navFwAutolandConfig()->glideAltitude - GPS_home.alt) {
+    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAlt + navFwAutolandConfig()->glideAltitude - GPS_home.alt) {
         setLandWaypoint(&fwAutoland.waypoint[LAND_WP_LAND], NULL);
         return FW_AUTOLAND_EVENT_SUCCSESS;
     }
@@ -375,7 +375,7 @@ static fwAutolandEvent_t fwAutolandState_FINAL_APPROACH(timeUs_t currentTimeUs)
 
 static fwAutolandEvent_t fwAutolandState_GLIDE(timeUs_t currentTimeUs)
 {
-    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAltMSL + navFwAutolandConfig()->flareAltitude - GPS_home.alt) {
+    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAlt + navFwAutolandConfig()->flareAltitude - GPS_home.alt) {
         return FW_AUTOLAND_EVENT_SUCCSESS;
     }
     posControl.wpDistance = calculateDistanceToDestination(&fwAutoland.waypoint[LAND_WP_LAND]);

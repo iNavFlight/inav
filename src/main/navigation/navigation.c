@@ -2310,8 +2310,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
     if (isRollPitchStickDeflected(navConfig()->fw.launch_land_abort_deadband)) {
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
-    
-    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAltMSL + navFwAutolandConfig()->glideAltitude - GPS_home.alt) {
+
+    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAlt + navFwAutolandConfig()->glideAltitude - (safeHomeConfig(safehome_index)->isSeaLevelRef ? GPS_home.alt : 0)) {
         resetPositionController();
         posControl.fwLandState = FW_AUTOLAND_STATE_GLIDE;
         return NAV_FSM_EVENT_SUCCESS;
@@ -4986,8 +4986,8 @@ int32_t navigationGetHeadingError(void)
 
 static void resetFwAutoland(void)
 {
-    posControl.fwLandAltAgl =  safeHomeConfig(safehome_index)->landAltMSL - GPS_home.alt;
-    posControl.fwLandAproachAltAgl = safeHomeConfig(safehome_index)->approachAltMSL + posControl.fwLandAltAgl - GPS_home.alt;
+    posControl.fwLandAltAgl = safeHomeConfig(safehome_index)->isSeaLevelRef ? safeHomeConfig(safehome_index)->landAlt - GPS_home.alt : safeHomeConfig(safehome_index)->landAlt;
+    posControl.fwLandAproachAltAgl = safeHomeConfig(safehome_index)->isSeaLevelRef ? safeHomeConfig(safehome_index)->approachAlt - GPS_home.alt : safeHomeConfig(safehome_index)->approachAlt;
     posControl.fwLandLoiterStartTime = 0;
     posControl.fwLandWpReached = false;
 }

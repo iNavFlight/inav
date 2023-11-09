@@ -4096,7 +4096,7 @@ groups:
         min: 100
         max: 100000
       - name: nav_fw_land_final_approach_pitch2throttle_mod
-        description: "Modifier for pitch to throttle at final approach. In Percent."
+        description: "Modifier for pitch to throttle ratio at final approach. In Percent."
         default_value: 100
         field: finalApproachPitchToThrottleMod
         min: 100
@@ -4108,7 +4108,7 @@ groups:
         min: 100
         max: 5000
       - name: nav_fw_land_flare_alt
-        description: "Initial altitude of the flare"
+        description: "Initial altitude of the flare phase"
         default_value: 2000
         field: flareAltitude
         min: 0

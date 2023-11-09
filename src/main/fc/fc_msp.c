@@ -1653,6 +1653,12 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, safeHomeConfig(safe_home_no)->enabled);
         sbufWriteU32(dst, safeHomeConfig(safe_home_no)->lat);
         sbufWriteU32(dst, safeHomeConfig(safe_home_no)->lon);
+        sbufWriteU32(dst, safeHomeConfig(safe_home_no)->approachAlt);
+        sbufWriteU32(dst, safeHomeConfig(safe_home_no)->landAlt);
+        sbufWriteU8(dst, safeHomeConfig(safe_home_no)->approachDirection);
+        sbufWriteU16(dst, safeHomeConfig(safe_home_no)->landApproachHeading1);
+        sbufWriteU16(dst, safeHomeConfig(safe_home_no)->landApproachHeading2);
+        sbufWriteU8(dst, safeHomeConfig(safe_home_no)->isSeaLevelRef);
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
@@ -3113,14 +3119,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 #ifdef USE_SAFE_HOME
     case MSP2_INAV_SET_SAFEHOME:
-        if (dataSize == 10) {
-             uint8_t i;
-             if (!sbufReadU8Safe(&i, src) || i >= MAX_SAFE_HOMES) {
-                 return MSP_RESULT_ERROR;
-             }
-             safeHomeConfigMutable(i)->enabled = sbufReadU8(src);
-             safeHomeConfigMutable(i)->lat = sbufReadU32(src);
-             safeHomeConfigMutable(i)->lon = sbufReadU32(src);
+        if (dataSize == 24) {
+            uint8_t i;
+            if (!sbufReadU8Safe(&i, src) || i >= MAX_SAFE_HOMES) {
+                return MSP_RESULT_ERROR;
+            }
+            safeHomeConfigMutable(i)->enabled = sbufReadU8(src);
+            safeHomeConfigMutable(i)->lat = sbufReadU32(src);
+            safeHomeConfigMutable(i)->lon = sbufReadU32(src);
+            safeHomeConfigMutable(i)->approachAlt = sbufReadU32(src);
+            safeHomeConfigMutable(i)->landAlt = sbufReadU32(src);
+            safeHomeConfigMutable(i)->approachDirection = sbufReadU8(src);
+             
+            int16_t head1 = 0, head2 = 0;
+            if (sbufReadI16Safe(&head1, src)) {
+                safeHomeConfigMutable(i)->landApproachHeading1 = head1;
+            }
+            if (sbufReadI16Safe(&head2, src)) {
+                safeHomeConfigMutable(i)->landApproachHeading2 = head2;
+            }
+            safeHomeConfigMutable(i)->isSeaLevelRef = sbufReadU8(src);
         } else {
             return MSP_RESULT_ERROR;
         }

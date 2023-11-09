@@ -61,8 +61,9 @@ typedef struct {
     uint8_t enabled;
     int32_t lat;
     int32_t lon;
-    int32_t approachAltMSL;
-    int32_t landAltMSL;
+    int32_t approachAlt;
+    int32_t landAlt;
+    bool isSeaLevelRef;
     fwAutolandApproachDirection_e approachDirection;
     int16_t landApproachHeading1;
     int16_t landApproachHeading2;
