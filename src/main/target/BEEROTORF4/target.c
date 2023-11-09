@@ -24,7 +24,7 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM9, CH2,  PA3, TIM_USE_PPM,                                               0, 0), // PPM IN
+    // DEF_TIM(TIM9, CH2,  PA3, TIM_USE_PPM,                                               0, 0), // PPM IN
 
     DEF_TIM(TIM1, CH2N, PB0, TIM_USE_OUTPUT_AUTO,    0, 0), // M1 - DMAR: DMA2_ST5
     DEF_TIM(TIM1, CH3N, PB1, TIM_USE_OUTPUT_AUTO,    0, 0), // M2 -
