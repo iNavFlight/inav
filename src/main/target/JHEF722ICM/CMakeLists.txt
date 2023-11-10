@@ -1,1 +1,1 @@
-target_stm32f722xe(JHEF722ICM)
+target_stm32f722xe(JHEF722ICM SKIP_RELEASES)
