@@ -26,6 +26,7 @@
 
 #include "fc/fc_msp_box.h"
 #include "io/serial.h"
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
