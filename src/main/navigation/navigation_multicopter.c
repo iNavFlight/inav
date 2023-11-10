@@ -76,7 +76,7 @@ float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros)
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float targetVel = posControl.desiredState.vel.z;
+    float targetVel = posControl.desiredState.climbRateDemand;
 
     if (posControl.flags.rocToAltMode != ROC_TO_ALT_CONSTANT) {
         targetVel = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
@@ -249,6 +249,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
             if (prepareForTakeoffOnReset) {
                 const navEstimatedPosVel_t *posToUse = navGetCurrentActualPositionAndVelocity();
 
+                posControl.desiredState.vel.z = -navConfig()->general.max_manual_climb_rate;
                 posControl.desiredState.pos.z = posToUse->pos.z - (navConfig()->general.max_manual_climb_rate / posControl.pids.pos[Z].param.kP);
                 posControl.pids.vel[Z].integrator = -500.0f;
                 pt1FilterReset(&altholdThrottleFilterState, -500.0f);

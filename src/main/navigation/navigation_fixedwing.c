@@ -134,7 +134,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 {
     static pt1Filter_t velzFilterState;
 
-    float desiredClimbRate = posControl.desiredState.vel.z;
+    float desiredClimbRate = posControl.desiredState.climbRateDemand;
 
     if (posControl.flags.rocToAltMode != ROC_TO_ALT_CONSTANT) {
         desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
