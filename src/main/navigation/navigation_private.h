@@ -140,6 +140,7 @@ typedef struct {
 typedef struct {
     fpVector3_t pos;
     fpVector3_t vel;
+    fpVector3_t accel;
     int32_t     yaw;
 } navigationDesiredState_t;
 
@@ -497,6 +498,7 @@ void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
 void resetMulticopterBrakingMode(void);
 
+void land_run_vertical_control(int16_t land_speed, float land_alt_low);
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment);

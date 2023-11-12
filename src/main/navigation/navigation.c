@@ -1526,13 +1526,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 
     fpVector3_t tmpHomePos = posControl.rthState.homeTmpWaypoint;
     uint32_t remaning_distance = calculateDistanceToDestination(&tmpHomePos);
-
     int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
+
     if (STATE(MULTIROTOR) && (remaning_distance > MR_RTH_LAND_MARGIN_CM)){
         descentVelLimited = navConfig()->general.land_minalt_vspd;
-    }
-    // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
-    else if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {
+    } else if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {  
+        // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
         // land_descent_rate == 200 : descend speed = 30 cm/s, gentle touchdown
         // Do not allow descent velocity slower than -30cm/s so the landing detector works.
         descentVelLimited = navConfig()->general.land_minalt_vspd;
@@ -1546,7 +1545,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
-    updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
+    //updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
+
+    land_run_vertical_control(descentVelLimited, 0.0f);
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1569,7 +1570,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     UNUSED(previousState);
 
     if (STATE(ALTITUDE_CONTROL)) {
-        updateClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, 0, ROC_TO_ALT_CONSTANT);  // FIXME
+        //updateClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, 0, ROC_TO_ALT_CONSTANT);  // FIXME
+        land_run_vertical_control(1.1f * navConfig()->general.land_minalt_vspd, 0.0f);
     }
 
     // Prevent I-terms growing when already landed
@@ -2922,7 +2924,6 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
 
     // Heading
     if ((useMask & NAV_POS_UPDATE_HEADING) != 0) {
-        // Heading
         posControl.desiredState.yaw = yaw;
     }
     else if ((useMask & NAV_POS_UPDATE_BEARING) != 0) {
@@ -3060,7 +3061,7 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
         }
         else {
             // Multicopter climb-rate control is closed-loop, it's possible to directly calculate desired altitude setpoint to yield the required RoC/RoD
-            posControl.desiredState.pos.z = altitudeToUse + (desiredClimbRate / posControl.pids.pos[Z].param.kP);
+            posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
         }
     } else {    // ROC_TO_ALT_RESET or zero desired climbrate
         posControl.desiredState.pos.z = altitudeToUse;
