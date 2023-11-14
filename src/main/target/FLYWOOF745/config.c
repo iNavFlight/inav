@@ -22,7 +22,16 @@
 
 #include "io/piniobox.h"
 
+#include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
+
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+
+    // Make sure S1-S4 default to Motors
+
+    timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM8))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM1))->outputMode = OUTPUT_MODE_MOTORS;
 }
