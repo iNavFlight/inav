@@ -131,7 +131,7 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
-#define CURRENT_METER_SCALE         320
+#define CURRENT_METER_SCALE         128
 
 /*
  * OSD
