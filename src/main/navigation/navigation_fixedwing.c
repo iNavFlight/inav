@@ -110,6 +110,64 @@ void resetFixedWingAltitudeController(void)
     throttleSpeedAdjustment = 0;
 }
 
+/*-----------------------------------------------------------
+ * Z-position controller
+ *-----------------------------------------------------------*/
+static void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
+{
+    static timeUs_t lastUpdateTimeUs;
+    timeUs_t currentTimeUs = micros();
+
+    // Terrain following uses different altitude measurement
+    const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
+
+    if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
+        /* ROC_TO_ALT_CONSTANT - constant climb rate
+         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
+         * Rate reduction starts at distance from target altitude of 5x climb rate for FW */
+
+        if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > NAV_MIN_TARGET_CLIMB_RATE) {
+            const int8_t direction = desiredClimbRate > 0 ? 1 : -1;
+            const float absClimbRate = fabsf(desiredClimbRate);
+            const uint16_t maxRateCutoffAlt = absClimbRate * 5;
+            const float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
+                                            0.0f, -maxRateCutoffAlt * direction, NAV_MIN_TARGET_CLIMB_RATE, absClimbRate);
+
+            desiredClimbRate = direction * constrainf(verticalVelScaled, NAV_MIN_TARGET_CLIMB_RATE, absClimbRate);
+        }
+
+        /*
+         * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
+         * In other words, when altitude is reached, allow it only to shrink
+         */
+        if (navConfig()->general.max_altitude > 0 && altitudeToUse >= navConfig()->general.max_altitude && desiredClimbRate > 0) {
+            desiredClimbRate = 0;
+        }
+
+        // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
+        float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
+        static bool targetHoldActive = false;
+
+        if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
+            // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
+            if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
+                posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
+                targetHoldActive = false;
+            } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
+                posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
+                targetHoldActive = true;
+            }
+        } else {
+            targetHoldActive = false;
+        }
+    } else {   
+        // ROC_TO_ALT_RESET or zero desired climbrate
+        posControl.desiredState.pos.z = altitudeToUse;
+    }
+
+    lastUpdateTimeUs = currentTimeUs;
+}
+
 bool adjustFixedWingAltitudeFromRCInput(void)
 {
     int16_t rcAdjustment = applyDeadbandRescaled(rcCommand[PITCH], rcControlsConfig()->alt_hold_deadband, -500, 500);

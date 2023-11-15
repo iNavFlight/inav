@@ -35,10 +35,11 @@
 #define NAV_MC_VEL_Z_ERROR_CUT_HZ           5.0f
 #define NAV_MC_ACC_Z_ERROR_CUT_HZ           20.0f
 #define NAV_MC_ACC_Z_IMAX                   800     // Vertical acceleration controller IMAX gain default
-#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.16f   // Integral relax time constant is used to decay the I term to 5% in half a second.
+#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.10f   // Integral relax time constant is used to decay the I term to 5% in half a second.
 #define NAV_MC_OVERSPEED_GAIN_Z             2.0f    // Gain controlling rate at which z-axis speed is brought back within _vel_max_down_cms and _vel_max_up_cms range
 #define NAV_MC_ACCELERATION_XY_MAX          980.0f  // cm/s/s
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
+#define NAV_MIN_TARGET_CLIMB_RATE           100.0f  // cm/s
 
 #define INAV_SURFACE_MAX_DISTANCE           40
 
@@ -473,9 +474,6 @@ flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state);
 
 void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-void setDesiredSurfaceOffset(float surfaceOffset);
-void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
-void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode);
 
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
@@ -498,7 +496,7 @@ void resetMulticopterPositionController(void);
 void resetMulticopterHeadingController(void);
 void resetMulticopterBrakingMode(void);
 
-void land_run_vertical_control(int16_t land_speed, float land_alt_low);
+void multicopterLandRunVerticalControl(int16_t land_speed, float land_alt_low);
 bool adjustMulticopterAltitudeFromRCInput(void);
 bool adjustMulticopterHeadingFromRCInput(void);
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment);

@@ -226,7 +226,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
-
+navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
 // Blackbox states
@@ -1475,7 +1475,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
     if ((ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY)) {
         resetLandingDetector();     // force reset landing detector just in case
-        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+        posControl.desiredState.pos.z = navGetCurrentActualPositionAndVelocity()->pos.z;
         return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
     } else {
         fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
@@ -1545,9 +1545,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
-    //updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
-
-    land_run_vertical_control(descentVelLimited, 0.0f);
+    multicopterLandRunVerticalControl(descentVelLimited, 0.0f);
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1570,8 +1568,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     UNUSED(previousState);
 
     if (STATE(ALTITUDE_CONTROL)) {
-        //updateClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, 0, ROC_TO_ALT_CONSTANT);  // FIXME
-        land_run_vertical_control(1.1f * navConfig()->general.land_minalt_vspd, 0.0f);
+        multicopterLandRunVerticalControl(1.1f * navConfig()->general.land_minalt_vspd, 0.0f);
     }
 
     // Prevent I-terms growing when already landed
@@ -1927,7 +1924,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     return NAV_FSM_EVENT_NONE;
 }
 
-navigationFSMState_t navMixerATPendingState = NAV_STATE_IDLE;
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState)
 {
     const navigationFSMStateFlags_t prevFlags = navGetStateFlags(previousState);
@@ -2918,7 +2914,6 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
 
     // Z-position
     if ((useMask & NAV_POS_UPDATE_Z) != 0) {
-        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);   // Reset RoC/RoD -> altitude controller
         posControl.desiredState.pos.z = pos->z;
     }
 
@@ -3003,71 +2998,6 @@ void resetLandingDetector(void)
 bool isFlightDetected(void)
 {
     return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
-}
-
-/*-----------------------------------------------------------
- * Z-position controller
- *-----------------------------------------------------------*/
-void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
-{
-#define MIN_TARGET_CLIMB_RATE   100.0f  // cm/s
-
-    static timeUs_t lastUpdateTimeUs;
-    timeUs_t currentTimeUs = micros();
-
-    // Terrain following uses different altitude measurement
-    const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
-
-    if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
-        /* ROC_TO_ALT_CONSTANT - constant climb rate
-         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
-         * Rate reduction starts at distance from target altitude of 5 x climb rate for FW, 1 x climb rate for MC */
-
-        if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > MIN_TARGET_CLIMB_RATE) {
-            const int8_t direction = desiredClimbRate > 0 ? 1 : -1;
-            const float absClimbRate = fabsf(desiredClimbRate);
-            const uint16_t maxRateCutoffAlt = STATE(AIRPLANE) ? absClimbRate * 5 : absClimbRate;
-            const float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
-                                            0.0f, -maxRateCutoffAlt * direction, MIN_TARGET_CLIMB_RATE, absClimbRate);
-
-            desiredClimbRate = direction * constrainf(verticalVelScaled, MIN_TARGET_CLIMB_RATE, absClimbRate);
-        }
-
-        /*
-         * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
-         * In other words, when altitude is reached, allow it only to shrink
-         */
-        if (navConfig()->general.max_altitude > 0 && altitudeToUse >= navConfig()->general.max_altitude && desiredClimbRate > 0) {
-            desiredClimbRate = 0;
-        }
-
-        if (STATE(FIXED_WING_LEGACY)) {
-            // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
-            float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
-            static bool targetHoldActive = false;
-
-            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
-                // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
-                if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
-                    posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
-                    targetHoldActive = false;
-                } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
-                    posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
-                    targetHoldActive = true;
-                }
-            } else {
-                targetHoldActive = false;
-            }
-        }
-        else {
-            // Multicopter climb-rate control is closed-loop, it's possible to directly calculate desired altitude setpoint to yield the required RoC/RoD
-            posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
-        }
-    } else {    // ROC_TO_ALT_RESET or zero desired climbrate
-        posControl.desiredState.pos.z = altitudeToUse;
-    }
-
-    lastUpdateTimeUs = currentTimeUs;
 }
 
 static void resetAltitudeController(bool useTerrainFollowing)
