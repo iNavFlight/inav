@@ -26,7 +26,7 @@ typedef struct sqrt_controller_s {
 } sqrt_controller_t;
 
 typedef enum {
-    SQRT_CONTROLLER_NORMAL     = 1 << 0,
+    SQRT_CONTROLLER_NORMAL      = 1 << 0,
     SQRT_CONTROLLER_POSITION_XY = 1 << 1,
     SQRT_CONTROLLER_POSITION_Z  = 1 << 2,
 } sqrtControllerFlags_e;

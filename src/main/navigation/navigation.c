@@ -4190,7 +4190,7 @@ void navigationUsePIDs(void)
               0.0f,
               0.0f,
               0.0f,
-              NAV_DERIVATIVE_TERM_CUT_HZ,
+              0.0f,
               0.0f
     );
     

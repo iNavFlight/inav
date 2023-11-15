@@ -477,7 +477,7 @@ void multicopterLandRunVerticalControl(int16_t land_speed, float land_alt_low)
     // Do not ignore limits until we have slowed down for landing
     ignore_descent_limit = (MAX(land_alt_low, 100.0f) > actualPositionZ) || STATE(LANDING_DETECTED);
 
-    // Don't speed up for landing.
+    // Don't speed up for landing
     const float max_land_descent_velocity = MIN(_vel_max_down_cms, -ABS(land_speed));
 
     // Compute a vertical velocity demand such that the vehicle approaches land_alt_low. Without the below constraint, this would cause the vehicle to hover at land_alt_low.
@@ -489,7 +489,7 @@ void multicopterLandRunVerticalControl(int16_t land_speed, float land_alt_low)
     // Constrain the demanded vertical velocity so that it is between the configured maximum descent speed and the configured minimum descent speed.
     climb_rate = constrainf(climb_rate, max_land_descent_velocity, -ABS(land_speed));
     
-    // Stop the climbing if the configured maximum altitude is reached. 
+    // Stop the climbing if the configured maximum altitude is reached 
     if (navConfig()->general.max_altitude > 0 && actualPositionZ >= navConfig()->general.max_altitude && climb_rate > 0) {
         climb_rate = 0.0f;
     }
