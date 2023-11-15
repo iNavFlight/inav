@@ -81,9 +81,9 @@ fpVector3_t _limit_vector;
 float _pos_offset_z;
 float _vel_offset_z;
 float _accel_offset_z;
-float _pos_offset_target_z = 0.0f;
-float _vel_z_control_ratio = 1.0f;    // Confidence that we have control in the vertical axis
-float pos_z_dt = 0.0f;
+float _pos_offset_target_z = 0.0f; // Position Z target Off-Set for Range-Finder
+float _vel_z_control_ratio = 1.0f; // Confidence that we have control in the vertical axis
+float pos_z_dt = 0.0f;             // Position Z controller Delta-Time
 
 /* 
     Single axis projection of velocity, vel, forwards in time based on a time step of dt and acceleration of accel.
@@ -367,19 +367,6 @@ void setPosTargetZFromClimbRate(float vel, float dt)
     posControl.desiredState.accel.z += _accel_offset_z;
 }
 
-/* 
-    Initialise the position controller to the current position and velocity with decaying acceleration.
-    This function decays the output acceleration by 95% every half second to achieve a smooth transition to zero requested acceleration.
-*/
-void relaxZController(void)
-{
-    resetMulticopterAltitudeController();
-
-    // resetMulticopterAltitudeController has set the accel PID I term to generate the current throttle set point
-    // Use relax_integrator to decay the throttle set point to 1000us
-    navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, pos_z_dt, NAV_MC_INTEGRAL_RELAX_TC_Z);
-}
-
 // Transform pilot's throttle input to climb rate in cm/s
 static float getPilotDesiredClimbRate(void)
 {
@@ -405,22 +392,12 @@ static void updateZController(void)
     setPosTargetZFromClimbRate(getPilotDesiredClimbRate(), pos_z_dt);
 
     // Calculate the target velocity correction
-    _vel_target.z = sqrtControllerApply(&pos_z_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POS_VEL_Z, pos_z_dt);
+    _vel_target.z = sqrtControllerApply(&pos_z_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POSITION_Z, pos_z_dt);
     
     // Add feed forward component
     _vel_target.z += posControl.desiredState.vel.z;
-
-    // Hard limit desired target velocity to max_climb_rate
-    float vel_max_z = 0.0f;
-
-    if (posControl.flags.isAdjustingAltitude) {
-        vel_max_z = navConfig()->general.max_manual_climb_rate;
-    } else {
-        vel_max_z = navConfig()->general.max_auto_climb_rate;
-    }
-
-    _vel_target.z = constrainf(_vel_target.z, -vel_max_z, vel_max_z);
-
+    
+    // BlackBox log
     posControl.pids.pos[Z].output_constrained = _vel_target.z;
 
     /***********************
@@ -465,8 +442,22 @@ static void updateZController(void)
     }
 
     posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(rcThrottleCorrection, false);
-
+    
+    // BlackBox log
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
+}
+
+/* 
+    Initialise the position controller to the current position and velocity with decaying acceleration.
+    This function decays the output acceleration by 95% every half second to achieve a smooth transition to zero requested acceleration.
+*/
+void relaxZController(void)
+{
+    resetMulticopterAltitudeController();
+
+    // resetMulticopterAltitudeController has set the accel PID I term to generate the current throttle set point
+    // Use relax_integrator to decay the throttle set point to 1000us
+    navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, pos_z_dt, NAV_MC_INTEGRAL_RELAX_TC_Z);
 }
 
 // To use with RangeFinder

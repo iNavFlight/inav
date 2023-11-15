@@ -17,8 +17,6 @@
 
 #pragma once
 
-#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR  1.1131884502145034f  // MagicEarthNumber from ArduPilot
-
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/filter.h"
@@ -26,6 +24,8 @@
 #include "common/vector.h"
 #include "fc/runtime_config.h"
 #include "navigation/navigation.h"
+
+#define DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR  1.1131884502145034f  // MagicEarthNumber from ArduPilot
 
 #define MIN_POSITION_UPDATE_RATE_HZ         5       // Minimum position update rate at which XYZ controllers would be applied
 #define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ    2.0f    // Low-Pass filter on throttle output in Alt-Hold
@@ -35,7 +35,7 @@
 #define NAV_MC_VEL_Z_ERROR_CUT_HZ           5.0f
 #define NAV_MC_ACC_Z_ERROR_CUT_HZ           20.0f
 #define NAV_MC_ACC_Z_IMAX                   800     // Vertical acceleration controller IMAX gain default
-#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.10f   // Integral relax time constant is used to decay the I term to 5% in half a second.
+#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.10f   // Integral relax time constant is used to decay the I term to 3% in half a second.
 #define NAV_MC_OVERSPEED_GAIN_Z             2.0f    // Gain controlling rate at which z-axis speed is brought back within _vel_max_down_cms and _vel_max_up_cms range
 #define NAV_MC_ACCELERATION_XY_MAX          980.0f  // cm/s/s
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // Jerk limit on horizontal acceleration (cm/s^3)

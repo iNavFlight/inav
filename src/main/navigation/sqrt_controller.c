@@ -64,7 +64,7 @@ float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float targ
 {
     float correction_rate;
 
-    if (sqrtFlags & SQRT_CONTROLLER_POS_VEL_Z) {
+    if (sqrtFlags & SQRT_CONTROLLER_POSITION_Z) {
         // Calculate distance error
         sqrt_controller_pointer->error = target - measurement;
 

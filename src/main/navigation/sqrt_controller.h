@@ -27,8 +27,8 @@ typedef struct sqrt_controller_s {
 
 typedef enum {
     SQRT_CONTROLLER_NORMAL     = 1 << 0,
-    SQRT_CONTROLLER_POS_VEL_XY = 1 << 1,
-    SQRT_CONTROLLER_POS_VEL_Z  = 1 << 2,
+    SQRT_CONTROLLER_POSITION_XY = 1 << 1,
+    SQRT_CONTROLLER_POSITION_Z  = 1 << 2,
 } sqrtControllerFlags_e;
 
 float sqrtControllerApply(sqrt_controller_t *sqrt_controller_pointer, float target, float measurement, const sqrtControllerFlags_e sqrtFlags, float deltaTime);
