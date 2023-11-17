@@ -31,6 +31,7 @@
 
 #include "io/gps.h"
 
+
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
 extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
@@ -43,6 +44,14 @@ void onNewGPSData(void);
 #if defined(USE_SAFE_HOME)
 
 #define MAX_SAFE_HOMES 8
+#define MAX_FW_LAND_APPOACH_SETTINGS (MAX_SAFE_HOMES + 9)
+
+typedef struct {
+    uint8_t enabled;
+    int32_t lat;
+    int32_t lon;
+    int8_t fwLandSettingsIdx;
+} navSafeHome_t;
 
 typedef enum  {
     FW_AUTOLAND_APPROACH_DIRECTION_LEFT,
@@ -57,17 +66,17 @@ typedef enum {
     FW_AUTOLAND_STATE_GLIDE,
     FW_AUTOLAND_STATE_FLARE
 } fwAutolandState_t;
+
 typedef struct {
-    uint8_t enabled;
-    int32_t lat;
-    int32_t lon;
     int32_t approachAlt;
     int32_t landAlt;
     bool isSeaLevelRef;
     fwAutolandApproachDirection_e approachDirection;
     int16_t landApproachHeading1;
     int16_t landApproachHeading2;
-} navSafeHome_t;
+} navFwAutolandApproach_t;
+
+PG_DECLARE_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig);
 
 typedef enum {
     SAFEHOME_USAGE_OFF = 0,    // Don't use safehomes
@@ -94,6 +103,7 @@ extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_
 extern uint32_t safehome_distance;               // distance to the nearest safehome
 extern bool safehome_applied;                    // whether the safehome has been applied to home.
 
+void resetFwAutolandApproach(void);
 void resetSafeHomes(void);                       // remove all safehomes
 bool findNearestSafeHome(void);                  // Find nearest safehome
 

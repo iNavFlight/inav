@@ -1309,58 +1309,41 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
-#if defined(USE_SAFE_HOME)
-static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
+static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
 {
-    const char *format = "safehome %u %u %d %d %d %d %u %d %d %u"; // uint8_t enabled, int32_t lat; int32_t lon
-    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+    const char *format = "fwapproach %u %d %d %d %u %d %d %u";
+    for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
         bool equalsDefault = false;
-        if (defaultSafeHome) {
-            equalsDefault = navSafeHome[i].enabled == defaultSafeHome[i].enabled
-               && navSafeHome[i].lat == defaultSafeHome[i].lat
-               && navSafeHome[i].lon == defaultSafeHome[i].lon 
-               && navSafeHome[i].approachDirection == defaultSafeHome[i].approachDirection
-               && navSafeHome[i].approachAlt == defaultSafeHome[i].approachAlt
-               && navSafeHome[i].landAlt == defaultSafeHome[i].landAlt
-               && navSafeHome[i].landApproachHeading1 == defaultSafeHome[i].landApproachHeading1
-               && navSafeHome[i].landApproachHeading2 == defaultSafeHome[i].landApproachHeading2
-               && navSafeHome[i].isSeaLevelRef == defaultSafeHome[i].isSeaLevelRef;
+        if (defaultFwAutolandApproach) {
+               equalsDefault = navFwAutolandApproach[i].approachDirection == defaultFwAutolandApproach[i].approachDirection
+               && navFwAutolandApproach[i].approachAlt == defaultFwAutolandApproach[i].approachAlt
+               && navFwAutolandApproach[i].landAlt == defaultFwAutolandApproach[i].landAlt
+               && navFwAutolandApproach[i].landApproachHeading1 == defaultFwAutolandApproach[i].landApproachHeading1
+               && navFwAutolandApproach[i].landApproachHeading2 == defaultFwAutolandApproach[i].landApproachHeading2
+               && navFwAutolandApproach[i].isSeaLevelRef == defaultFwAutolandApproach[i].isSeaLevelRef;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
-                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon, defaultSafeHome[i].approachAlt, defaultSafeHome[i].landAlt, defaultSafeHome[i].approachDirection, defaultSafeHome[i].landApproachHeading1, defaultSafeHome[i].landApproachHeading2, defaultSafeHome[i].isSeaLevelRef);
+               defaultFwAutolandApproach[i].approachAlt, defaultFwAutolandApproach[i].landAlt, defaultFwAutolandApproach[i].approachDirection, defaultFwAutolandApproach[i].landApproachHeading1, defaultFwAutolandApproach[i].landApproachHeading2, defaultFwAutolandApproach[i].isSeaLevelRef);
         }
         cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
-            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon,  navSafeHome[i].approachAlt, navSafeHome[i].landAlt, navSafeHome[i].approachDirection, navSafeHome[i].landApproachHeading1, navSafeHome[i].landApproachHeading2, navSafeHome[i].isSeaLevelRef);
+            navFwAutolandApproach[i].approachAlt, navFwAutolandApproach[i].landAlt, navFwAutolandApproach[i].approachDirection, navFwAutolandApproach[i].landApproachHeading1, navFwAutolandApproach[i].landApproachHeading2, navFwAutolandApproach[i].isSeaLevelRef);
     }
 }
 
-static void cliSafeHomes(char *cmdline)
+static void cliFwAutolandApproach(char * cmdline)
 {
-    if (isEmpty(cmdline)) {
-        printSafeHomes(DUMP_MASTER, safeHomeConfig(0), NULL);
+     if (isEmpty(cmdline)) {
+        printFwAutolandApproach(DUMP_MASTER, fwAutolandApproachConfig(0), NULL);
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
-        resetSafeHomes();
+        resetFwAutolandApproach();
     } else {
-        int32_t lat=0, lon=0, approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
-        bool enabled=false, isSeaLevelRef = false;
+        int32_t approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
+        bool isSeaLevelRef = false;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         int8_t i = fastA2I(ptr);
         if (i < 0 || i >= MAX_SAFE_HOMES) {
-             cliShowArgumentRangeError("safehome index", 0, MAX_SAFE_HOMES - 1);
+             cliShowArgumentRangeError("fwapproach index", 0, MAX_FW_LAND_APPOACH_SETTINGS - 1);
         } else {
-            if ((ptr = nextArg(ptr))) {
-                enabled = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            if ((ptr = nextArg(ptr))) {
-                lat = fastA2I(ptr);
-                validArgumentCount++;
-            }
-            if ((ptr = nextArg(ptr))) {
-                lon = fastA2I(ptr);
-                validArgumentCount++;
-            }
-
             if ((ptr = nextArg(ptr))) {
                 approachAlt = fastA2I(ptr);
                 validArgumentCount++;
@@ -1414,18 +1397,75 @@ static void cliSafeHomes(char *cmdline)
                 validArgumentCount++;
             }
 
-            if (validArgumentCount != 9) {
+            if (validArgumentCount != 6) {
+                cliShowParseError();
+            } else {
+                fwAutolandApproachConfigMutable(i)->approachAlt = approachAlt;
+                fwAutolandApproachConfigMutable(i)->landAlt = landAlt;
+                fwAutolandApproachConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading1 = (int16_t)heading1;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading2 = (int16_t)heading2;
+                fwAutolandApproachConfigMutable(i)->isSeaLevelRef = isSeaLevelRef;
+            }
+        }
+    }
+}
+
+#if defined(USE_SAFE_HOME)
+static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
+{
+    const char *format = "safehome %u %u %d %d"; // uint8_t enabled, int32_t lat; int32_t lon
+    for (uint8_t i = 0; i < MAX_SAFE_HOMES; i++) {
+        bool equalsDefault = false;
+        if (defaultSafeHome) {
+            equalsDefault = navSafeHome[i].enabled == defaultSafeHome[i].enabled
+               && navSafeHome[i].lat == defaultSafeHome[i].lat
+               && navSafeHome[i].lon == defaultSafeHome[i].lon;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+                defaultSafeHome[i].enabled, defaultSafeHome[i].lat, defaultSafeHome[i].lon);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navSafeHome[i].enabled, navSafeHome[i].lat, navSafeHome[i].lon);
+    }
+}
+
+static void cliSafeHomes(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printSafeHomes(DUMP_MASTER, safeHomeConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetSafeHomes();
+    } else {
+        int32_t lat=0, lon=0;
+        bool enabled=false;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_SAFE_HOMES) {
+             cliShowArgumentRangeError("safehome index", 0, MAX_SAFE_HOMES - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                enabled = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lat = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                lon = fastA2I(ptr);
+                validArgumentCount++;
+            }
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+            if (validArgumentCount != 3) {
                 cliShowParseError();
             } else {
                 safeHomeConfigMutable(i)->enabled = enabled;
                 safeHomeConfigMutable(i)->lat = lat;
                 safeHomeConfigMutable(i)->lon = lon;
-                safeHomeConfigMutable(i)->approachAlt = approachAlt;
-                safeHomeConfigMutable(i)->landAlt = landAlt;
-                safeHomeConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
-                safeHomeConfigMutable(i)->landApproachHeading1 = (int16_t)heading1;
-                safeHomeConfigMutable(i)->landApproachHeading2 = (int16_t)heading2;
-                safeHomeConfigMutable(i)->isSeaLevelRef = isSeaLevelRef;
             }
         }
     }
@@ -3861,6 +3901,9 @@ static void printConfig(const char *cmdline, bool doDiff)
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 
+        cliPrintHashLine("Fixed Wing Approach");
+        printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
+
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -4105,6 +4148,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("flash_write", NULL, "<address> <message>", cliFlashWrite),
 #endif
 #endif
+    CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),

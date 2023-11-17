@@ -458,9 +458,12 @@ typedef struct {
     /* Fixedwing autoland */
     timeUs_t fwLandLoiterStartTime;
     fpVector3_t fwLandWaypoint[FW_AUTOLAND_WP_COUNT];
+    fpVector3_t fwLandPos;
+    int32_t fwLandPosHeading;
     int32_t fwLandingDirection;
     int32_t fwLandAproachAltAgl;
     int32_t fwLandAltAgl;
+    uint8_t fwApproachSettingIdx;
     bool fwLandWpReached;
     fwAutolandWayppoints_t fwLandCurrentWp;
     bool fwLandAborted;

@@ -624,16 +624,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
         int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-#ifdef NAV_FIXED_WING_LANDING
-        if ((navStateFlags & NAV_CTL_LAND) || isFwLandInProgess()) {
-            // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
-        } else {
-#endif
-            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-#ifdef NAV_FIXED_WING_LANDING
-        }
-#endif
+        throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
 
         // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
         if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {

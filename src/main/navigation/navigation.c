@@ -93,6 +93,7 @@ radar_pois_t radar_pois[RADAR_MAX_POIS];
 PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig, PG_FW_AUTOLAND_CONFIG, 0);
+
 PG_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig,
     .approachLength = SETTING_NAV_FW_LAND_APPROACH_LENGTH_DEFAULT,
     .finalApproachPitchToThrottleMod = SETTING_NAV_FW_LAND_FINAL_APPROACH_PITCH2THROTTLE_MOD_DEFAULT,
@@ -102,6 +103,7 @@ PG_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig,
     .glidePitch = SETTING_NAV_FW_LAND_GLIDE_PITCH_DEFAULT,
 );
 
+PG_REGISTER_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig, PG_FW_AUTOLAND_APPROACH_CONFIG, 0);
 
 #endif
 
@@ -292,7 +294,6 @@ static bool rthAltControlStickOverrideCheck(unsigned axis);
 static void updateRthTrackback(bool forceSaveTrackPoint);
 static fpVector3_t * rthGetTrackbackPos(void);
 
-static bool allowFwAutoland(void);
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
@@ -1694,8 +1695,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     if (STATE(FIXED_WING_LEGACY)) {
-        if (allowFwAutoland()) {
-            resetFwAutoland();
+        // FW Autoland configuured? 
+        if (!posControl.fwLandAborted && safehome_index >= 0 && (fwAutolandApproachConfig(safehome_index)->landApproachHeading1 != 0 || fwAutolandApproachConfig(safehome_index)->landApproachHeading2 != 0)) {
+            posControl.fwLandPos = posControl.rthState.homePosition.pos;
+            posControl.fwApproachSettingIdx = safehome_index;
+            posControl.fwLandAltAgl = fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->isSeaLevelRef ? fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landAlt - GPS_home.alt : fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landAlt;
+            posControl.fwLandAproachAltAgl = fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->isSeaLevelRef ? fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->approachAlt - GPS_home.alt : fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->approachAlt;
+            
             return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING;
         } else {
             return NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
@@ -2177,6 +2183,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
     if (isRollPitchStickDeflected(navConfig()->fw.launch_land_abort_deadband)) {
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
+
+    if (posControl.fwLandLoiterStartTime == 0) {
+        posControl.fwLandLoiterStartTime = micros();
+    }
     
     if (ABS(getEstimatedActualPosition(Z) - posControl.fwLandAproachAltAgl) < (navConfig()->general.waypoint_enforce_altitude > 0 ? navConfig()->general.waypoint_enforce_altitude : FW_LAND_LOITER_ALT_TOLERANCE)) {
         updateClimbRateToAltitudeController(0, ROC_TO_ALT_RESET);
@@ -2211,9 +2221,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
 
-    if (posControl.fwLandLoiterStartTime == 0) {
-        posControl.fwLandLoiterStartTime = micros();
-    } else if (micros() - posControl.fwLandLoiterStartTime > FW_LAND_LOITER_MIN_TIME) {
+    if (micros() - posControl.fwLandLoiterStartTime > FW_LAND_LOITER_MIN_TIME) {
        if (isEstimatedWindSpeedValid()) {       
 
             uint16_t windAngle = 0;
@@ -2223,16 +2231,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
 
             // Ignore low wind speed, could be the error of the wind estimator
             if (windSpeed < navFwAutolandConfig()->maxTailwind) {
-                if (safeHomeConfig(safehome_index)->landApproachHeading1 != 0) {
-                    approachHeading = posControl.fwLandingDirection = ABS(DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading1));
-                } else if ((safeHomeConfig(safehome_index)->landApproachHeading2 != 0) ) {
-                    approachHeading = posControl.fwLandingDirection = ABS(DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading2));
+                if (fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading1 != 0) {
+                    approachHeading = posControl.fwLandingDirection = ABS(DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading1));
+                } else if ((fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading2 != 0) ) {
+                    approachHeading = posControl.fwLandingDirection = ABS(DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading2));
                 } else {
                     approachHeading = posControl.fwLandingDirection = -1;
                 }
             } else {
-                int32_t heading1 = calcFinalApproachHeading(DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading1), windAngle);
-                int32_t heading2 = calcFinalApproachHeading(DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading2), windAngle);
+                int32_t heading1 = calcFinalApproachHeading(DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading1), windAngle);
+                int32_t heading2 = calcFinalApproachHeading(DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading2), windAngle);
 
                 if (heading1 == heading2 || heading1 == wrap_36000(heading2 + 18000)) {
                     heading2 = -1;
@@ -2240,17 +2248,17 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
 
                 if (heading1 == -1 && heading2 >= 0) {
                     posControl.fwLandingDirection = heading2;
-                    approachHeading = DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading2);
+                    approachHeading = DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading2);
                 } else if (heading1 >= 0 && heading2 == -1) {
                     posControl.fwLandingDirection = heading1;
-                    approachHeading = DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading1);
+                    approachHeading = DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading1);
                 } else {
                     if (calcWindDiff(heading1, windAngle) < calcWindDiff(heading2, windAngle)) {
                         posControl.fwLandingDirection = heading1;
-                        approachHeading = DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading1);
+                        approachHeading = DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading1);
                     } else {
                         posControl.fwLandingDirection = heading2;
-                        approachHeading = DEGREES_TO_CENTIDEGREES(safeHomeConfig(safehome_index)->landApproachHeading2);
+                        approachHeading = DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landApproachHeading2);
                     }
                 }
             }
@@ -2260,22 +2268,22 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 
                 int32_t finalApproachAlt = posControl.fwLandAproachAltAgl / 3 * 2;        
                 int32_t dir = 0;
-                if (safeHomeConfig(safehome_index)->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT) {
-                    dir = wrap_36000(approachHeading - 9000);
+                if (fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT) {
+                    dir = wrap_36000(ABS(approachHeading) - 9000);
                 } else {
-                    dir = wrap_36000(approachHeading + 9000);
+                    dir = wrap_36000(ABS(approachHeading) + 9000);
                 }
                 
-                calculateFarAwayPos(&tmpPos, &posControl.rthState.homePosition.pos, posControl.fwLandingDirection, navFwAutolandConfig()->approachLength);
+                calculateFarAwayPos(&tmpPos, &posControl.fwLandPos, posControl.fwLandingDirection, navFwAutolandConfig()->approachLength);
                 tmpPos.z = posControl.fwLandAltAgl - finalApproachAlt; 
                 posControl.fwLandWaypoint[FW_AUTOLAND_WP_LAND] = tmpPos;
                 
-                calculateFarAwayPos(&tmpPos, &posControl.rthState.homePosition.pos, wrap_36000(posControl.fwLandingDirection + 18000), navFwAutolandConfig()->approachLength);
+                calculateFarAwayPos(&tmpPos, &posControl.fwLandPos, wrap_36000(posControl.fwLandingDirection + 18000), navFwAutolandConfig()->approachLength);
                 tmpPos.z = finalApproachAlt;
                 posControl.fwLandWaypoint[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
                 
                 calculateFarAwayPos(&tmpPos, &posControl.fwLandWaypoint[FW_AUTOLAND_WP_FINAL_APPROACH], dir, navFwAutolandConfig()->approachLength / 2);
-                tmpPos.z = finalApproachAlt;
+                tmpPos.z = posControl.fwLandAltAgl;
                 posControl.fwLandWaypoint[FW_AUTOLAND_WP_TURN] = tmpPos;
 
                 setLandWaypoint(&posControl.fwLandWaypoint[FW_AUTOLAND_WP_TURN], &posControl.fwLandWaypoint[FW_AUTOLAND_WP_FINAL_APPROACH]);
@@ -2284,16 +2292,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
 
                 return NAV_FSM_EVENT_SUCCESS;
             } else {
-                return NAV_FSM_EVENT_SWITCH_TO_IDLE;
+                posControl.fwLandLoiterStartTime = micros();
             }
         } else {
             posControl.fwLandLoiterStartTime = micros();
         }
     }
 
-    fpVector3_t tmpPoint = posControl.rthState.homePosition.pos;
+    fpVector3_t tmpPoint = posControl.fwLandPos;
     tmpPoint.z = posControl.fwLandAproachAltAgl;
-    setDesiredPosition(&tmpPoint, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+    setDesiredPosition(&tmpPoint, posControl.fwLandPosHeading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
     
     return NAV_FSM_EVENT_NONE;
 }
@@ -2311,7 +2319,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
 
-    if (getEstimatedActualPosition(Z) <= safeHomeConfig(safehome_index)->landAlt + navFwAutolandConfig()->glideAltitude - (safeHomeConfig(safehome_index)->isSeaLevelRef ? GPS_home.alt : 0)) {
+    if (getEstimatedActualPosition(Z) <= fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->landAlt + navFwAutolandConfig()->glideAltitude - (fwAutolandApproachConfig(posControl.fwApproachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
         resetPositionController();
         posControl.fwLandState = FW_AUTOLAND_STATE_GLIDE;
         return NAV_FSM_EVENT_SUCCESS;
@@ -4117,6 +4125,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.flags.rthTrackbackActive = false;
         posControl.rthTBWrapAroundCounter = -1;
         posControl.fwLandAborted = false;
+        posControl.fwApproachSettingIdx = 0;
         return;
     }
 
@@ -4986,15 +4995,12 @@ int32_t navigationGetHeadingError(void)
 
 static void resetFwAutoland(void)
 {
-    posControl.fwLandAltAgl = safeHomeConfig(safehome_index)->isSeaLevelRef ? safeHomeConfig(safehome_index)->landAlt - GPS_home.alt : safeHomeConfig(safehome_index)->landAlt;
-    posControl.fwLandAproachAltAgl = safeHomeConfig(safehome_index)->isSeaLevelRef ? safeHomeConfig(safehome_index)->approachAlt - GPS_home.alt : safeHomeConfig(safehome_index)->approachAlt;
+    posControl.fwLandAltAgl = 0; 
+    posControl.fwLandAproachAltAgl = 0;
     posControl.fwLandLoiterStartTime = 0;
     posControl.fwLandWpReached = false;
-}
-
-static bool allowFwAutoland(void)
-{
-    return !posControl.fwLandAborted && safehome_index >= 0 && (safeHomeConfig(safehome_index)->landApproachHeading1 != 0 || safeHomeConfig(safehome_index)->landApproachHeading2 != 0);
+    posControl.fwApproachSettingIdx = 0;
+    posControl.fwLandPosHeading = -1;
 }
 
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle)
@@ -5035,6 +5041,11 @@ static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos
     posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
     posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
     posControl.wpAltitudeReached = false;
+}
+
+void resetFwAutolandApproach(void)
+{
+    memset(fwAutolandApproachConfigMutable(0), 0, sizeof(navFwAutolandApproach_t) * MAX_FW_LAND_APPOACH_SETTINGS);
 }
 
 bool isFwLandInProgess(void) 
