@@ -578,6 +578,48 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case (SYM_AH_V_START+4):
     case (SYM_AH_V_START+5):
         return BF_SYM_AH_BAR9_4;
+
+    // BF for ESP_RADAR Symbols
+    case SYM_HUD_CARDINAL:
+        return BF_SYM_ARROW_SOUTH;
+    case SYM_HUD_CARDINAL + 1:
+        return BF_SYM_ARROW_16;
+    case SYM_HUD_CARDINAL + 2:
+        return BF_SYM_ARROW_15;
+    case SYM_HUD_CARDINAL + 3:
+        return BF_SYM_ARROW_WEST;
+    case SYM_HUD_CARDINAL + 4:
+        return BF_SYM_ARROW_12;
+    case SYM_HUD_CARDINAL + 5:
+        return BF_SYM_ARROW_11;
+    case SYM_HUD_CARDINAL + 6:
+        return BF_SYM_ARROW_NORTH;
+    case SYM_HUD_CARDINAL + 7:
+        return BF_SYM_ARROW_7;
+    case SYM_HUD_CARDINAL + 8:
+        return BF_SYM_ARROW_6;
+    case SYM_HUD_CARDINAL + 9:
+        return BF_SYM_ARROW_EAST;
+    case SYM_HUD_CARDINAL + 10:
+        return BF_SYM_ARROW_3;
+    case SYM_HUD_CARDINAL + 11:
+        return BF_SYM_ARROW_2;
+
+    case SYM_HUD_ARROWS_R3:
+        return BF_SYM_AH_RIGHT;
+    case SYM_HUD_ARROWS_L3:
+        return BF_SYM_AH_LEFT;
+
+    case SYM_HUD_SIGNAL_0:
+        return BF_SYM_AH_BAR9_1;
+    case SYM_HUD_SIGNAL_1:
+        return BF_SYM_AH_BAR9_3;
+    case SYM_HUD_SIGNAL_2:
+        return BF_SYM_AH_BAR9_4;
+    case SYM_HUD_SIGNAL_3:
+        return BF_SYM_AH_BAR9_5;
+    case SYM_HUD_SIGNAL_4:
+        return BF_SYM_AH_BAR9_7;
 /*
     case SYM_VARIO_UP_2A:
         return BF_SYM_VARIO_UP_2A;
