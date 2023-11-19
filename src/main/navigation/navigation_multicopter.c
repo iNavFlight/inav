@@ -58,32 +58,33 @@
  * Altitude controller for multicopter aircraft
  *-----------------------------------------------------------*/
 
+static pt1Filter_t posZThrottleFilterState;
+
 static sqrt_controller_t pos_z_sqrt_controller;
 static sqrt_controller_t shape_pos_z_sqrt_controller;
 static sqrt_controller_t shape_vel_z_sqrt_controller;
 static sqrt_controller_t pos_z_land_sqrt_controller;
 
-static pt1Filter_t altholdThrottleFilterState;
+static fpVector3_t velTarget;
+static fpVector3_t accelTarget;
+static fpVector3_t limitVector;
 
 static bool prepareForTakeoffOnReset = false;
 
 static int16_t rcCommandAdjustedThrottle;
 static int16_t altHoldThrottleRCZero = 1500;
 
-float _vel_max_down_cms = 0.0f; // Max descent rate in cm/s used for kinematic shaping
-float _vel_max_up_cms = 0.0f;   // Max climb rate in cm/s used for kinematic shaping
-float _accel_max_z_cmss = 0.0f; // Max vertical acceleration in cm/s/s used for kinematic shaping
-float _jerk_max_z_cmsss = 0.0f; // Jerk limit of the z kinematic path generation in cm/s^3 used to determine how quickly the aircraft varies the acceleration target
+static float velMaxDownCms = 0.0f; // Max descent rate in cm/s used for kinematic shaping
+static float velMaxUpCms = 0.0f;   // Max climb rate in cm/s used for kinematic shaping
+static float accelMaxZCmss = 0.0f; // Max vertical acceleration in cm/s^2 used for kinematic shaping
+static float jerkMaxZCmsss = 0.0f; // Jerk limit of the z kinematic path generation in cm/s^3 used to determine how quickly the aircraft varies the acceleration target
 
-fpVector3_t _vel_target;
-fpVector3_t _accel_target;
-fpVector3_t _limit_vector;
-float _pos_offset_z;
-float _vel_offset_z;
-float _accel_offset_z;
-float _pos_offset_target_z = 0.0f; // Position Z target Off-Set for Range-Finder
-float _vel_z_control_ratio = 1.0f; // Confidence that we have control in the vertical axis
-float pos_z_dt = 0.0f;             // Position Z controller Delta-Time
+static float posOffSetZ;
+static float velOffSetZ;
+static float accelOffSetZ;
+static float posOffSetTargetZ = 0.0f; // Position Z target Off-Set for RangeFinder
+static float velZControlRatio = 1.0f; // Confidence that we have control in the vertical axis
+static float posZDeltaTime = 0.0f;    // Position Z controller Delta-Time
 
 /* 
     Single axis projection of velocity, vel, forwards in time based on a time step of dt and acceleration of accel.
@@ -268,27 +269,27 @@ void shapePosVelAccel(float pos_input, float vel_input, float accel_input,
 // Updates the vertical offsets used by terrain following
 void updatePosOffSetZ(float pos_offset_z, float dt)
 {
-    float p_offset_z = _pos_offset_z;
-    updatePosVelAccel(&p_offset_z, &_vel_offset_z, _accel_offset_z, dt, MIN(_limit_vector.z, 0.0f), posControl.pids.pos[Z].error, posControl.pids.vel[Z].error);
-    _pos_offset_z = p_offset_z;
+    float p_offset_z = posOffSetZ;
+    updatePosVelAccel(&p_offset_z, &velOffSetZ, accelOffSetZ, dt, MIN(limitVector.z, 0.0f), posControl.pids.pos[Z].error, posControl.pids.vel[Z].error);
+    posOffSetZ = p_offset_z;
 
     // Input shape the terrain offset
     shapePosVelAccel(pos_offset_z, 0.0f, 0.0f,
-        _pos_offset_z, _vel_offset_z, &_accel_offset_z,
-        _vel_max_down_cms, _vel_max_up_cms,
-        -_accel_max_z_cmss, _accel_max_z_cmss,
-        _jerk_max_z_cmsss, dt, false);
+        posOffSetZ, velOffSetZ, &accelOffSetZ,
+        velMaxDownCms, velMaxUpCms,
+        -accelMaxZCmss, accelMaxZCmss,
+        jerkMaxZCmsss, dt, false);
 }
 
 // Calculated increased maximum acceleration and jerk if over speed condition is detected
 float calculateOverSpeedGain(void)
 {
-    if (posControl.desiredState.vel.z < _vel_max_down_cms && _vel_max_down_cms != 0.0f) {
-        return NAV_MC_OVERSPEED_GAIN_Z * posControl.desiredState.vel.z / _vel_max_down_cms;
+    if (posControl.desiredState.vel.z < velMaxDownCms && velMaxDownCms != 0.0f) {
+        return NAV_MC_OVERSPEED_GAIN_Z * posControl.desiredState.vel.z / velMaxDownCms;
     }
 
-    if (posControl.desiredState.vel.z > _vel_max_up_cms && _vel_max_up_cms != 0.0f) {
-        return NAV_MC_OVERSPEED_GAIN_Z * posControl.desiredState.vel.z / _vel_max_up_cms;
+    if (posControl.desiredState.vel.z > velMaxUpCms && velMaxUpCms != 0.0f) {
+        return NAV_MC_OVERSPEED_GAIN_Z * posControl.desiredState.vel.z / velMaxUpCms;
     }
 
     return 1.0f;
@@ -304,11 +305,11 @@ void inputVelAccelZ(float *vel, float accel, bool limit_output, float dt)
 {
     // Calculated increased maximum acceleration and jerk if over speed
     const float overspeed_gain = calculateOverSpeedGain();
-    const float accel_max_z_cmss = _accel_max_z_cmss * overspeed_gain;
-    const float jerk_max_z_cmsss = _jerk_max_z_cmsss * overspeed_gain;
+    const float accel_max_z_cmss = accelMaxZCmss * overspeed_gain;
+    const float jerk_max_z_cmsss = jerkMaxZCmsss * overspeed_gain;
 
     // Adjust desired alt if motors have not hit their limits
-    updatePosVelAccel(&posControl.desiredState.pos.z, &posControl.desiredState.vel.z, posControl.desiredState.accel.z, dt, _limit_vector.z, posControl.pids.pos[Z].error, posControl.pids.vel[Z].error);
+    updatePosVelAccel(&posControl.desiredState.pos.z, &posControl.desiredState.vel.z, posControl.desiredState.accel.z, dt, limitVector.z, posControl.pids.pos[Z].error, posControl.pids.vel[Z].error);
 
     shapeVelAccel(*vel, accel, 
                     posControl.desiredState.vel.z, &posControl.desiredState.accel.z,
@@ -325,22 +326,22 @@ void setMaxSpeedAccelZ(float speed_down, float speed_up, float accel_cmss)
 
     // Sanity check and update
     if (speed_down < 0.0f) {
-        _vel_max_down_cms = speed_down;
+        velMaxDownCms = speed_down;
     }
 
     if (speed_up > 0.0f) {
-        _vel_max_up_cms = speed_up;
+        velMaxUpCms = speed_up;
     }
 
     if (accel_cmss > 0.0f) {
-        _accel_max_z_cmss = accel_cmss;
+        accelMaxZCmss = accel_cmss;
     }
     
     // Ensure the vertical Jerk is not limited by the filters in the Z accel PID object
-    _jerk_max_z_cmsss = navConfig()->general.shaping_jerk_z * 100.0f;
+    jerkMaxZCmsss = navConfig()->general.shaping_jerk_z * 100.0f;
 
     if (posControl.pids.acceleration_z.errorLpfHz > 0.0f) {
-        _jerk_max_z_cmsss = MIN(_jerk_max_z_cmsss, MIN(GRAVITY_CMSS, _accel_max_z_cmss) * ((M_PI * 2.0f) * posControl.pids.acceleration_z.errorLpfHz) / 5.0f);
+        jerkMaxZCmsss = MIN(jerkMaxZCmsss, MIN(GRAVITY_CMSS, accelMaxZCmss) * ((M_PI * 2.0f) * posControl.pids.acceleration_z.errorLpfHz) / 5.0f);
     }
 }
 
@@ -351,20 +352,20 @@ void setMaxSpeedAccelZ(float speed_down, float speed_up, float accel_cmss)
 void setPosTargetZFromClimbRate(float vel, float dt)
 {
     // Remove terrain offsets for flat earth assumption
-    posControl.desiredState.pos.z -= _pos_offset_z;
-    posControl.desiredState.vel.z -= _vel_offset_z;
-    posControl.desiredState.accel.z -= _accel_offset_z;
+    posControl.desiredState.pos.z -= posOffSetZ;
+    posControl.desiredState.vel.z -= velOffSetZ;
+    posControl.desiredState.accel.z -= accelOffSetZ;
 
     float vel_temp = vel;
     inputVelAccelZ(&vel_temp, 0.0f, true, dt);
 
     // Update the vertical position, velocity and acceleration offsets
-    updatePosOffSetZ(_pos_offset_target_z, dt);
+    updatePosOffSetZ(posOffSetTargetZ, dt);
 
     // Add terrain offsets
-    posControl.desiredState.pos.z += _pos_offset_z;
-    posControl.desiredState.vel.z += _vel_offset_z;
-    posControl.desiredState.accel.z += _accel_offset_z;
+    posControl.desiredState.pos.z += posOffSetZ;
+    posControl.desiredState.vel.z += velOffSetZ;
+    posControl.desiredState.accel.z += accelOffSetZ;
 }
 
 // Transform pilot's throttle input to climb rate in cm/s
@@ -389,16 +390,19 @@ static float getPilotDesiredClimbRate(void)
 
 static void updateZController(void)
 {
-    setPosTargetZFromClimbRate(getPilotDesiredClimbRate(), pos_z_dt);
+    // Ignore the pilot input in WayPoint mode
+    if ((navGetCurrentStateFlags() & NAV_AUTO_WP)) {
+        setPosTargetZFromClimbRate(getPilotDesiredClimbRate(), posZDeltaTime);
+    }
 
     // Calculate the target velocity correction
-    _vel_target.z = sqrtControllerApply(&pos_z_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POSITION_Z, pos_z_dt);
+    velTarget.z = sqrtControllerApply(&pos_z_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POSITION_Z, posZDeltaTime);
     
     // Add feed forward component
-    _vel_target.z += posControl.desiredState.vel.z;
+    velTarget.z += posControl.desiredState.vel.z;
     
     // BlackBox log
-    posControl.pids.pos[Z].output_constrained = _vel_target.z;
+    posControl.pids.pos[Z].output_constrained = velTarget.z;
 
     /***********************
     Velocity Controller
@@ -407,10 +411,10 @@ static void updateZController(void)
     // Calculate min and max throttle boundaries (to compensate for integral windup)
     const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
     const int16_t thrCorrectionMax = motorConfig()->maxthrottle - currentBatteryProfile->nav.mc.hover_throttle;
-    _accel_target.z = navPidApply2(&posControl.pids.vel[Z], _vel_target.z, navGetCurrentActualPositionAndVelocity()->vel.z, pos_z_dt, thrCorrectionMin, thrCorrectionMax, 0);
+    accelTarget.z = navPidApply2(&posControl.pids.vel[Z], velTarget.z, navGetCurrentActualPositionAndVelocity()->vel.z, posZDeltaTime, thrCorrectionMin, thrCorrectionMax, 0);
     
     // Add feed forward component
-    _accel_target.z += posControl.desiredState.accel.z;
+    accelTarget.z += posControl.desiredState.accel.z;
 
     /***********************
     Acceleration Controller
@@ -425,18 +429,18 @@ static void updateZController(void)
         correctionMax = thrCorrectionMax;
     }
 
-    thr_out = navPidApply2(&posControl.pids.acceleration_z, _accel_target.z, posEstimator.imu.accelNEU.z, pos_z_dt, thrCorrectionMin, correctionMax, PID_LIMIT_INTEGRATOR);
+    thr_out = navPidApply2(&posControl.pids.acceleration_z, accelTarget.z, posEstimator.imu.accelNEU.z, posZDeltaTime, thrCorrectionMin, correctionMax, PID_LIMIT_INTEGRATOR);
 
-    int16_t rcThrottleCorrection = pt1FilterApply4(&altholdThrottleFilterState, thr_out, NAV_THROTTLE_CUTOFF_FREQUENCY_HZ, pos_z_dt);
+    int16_t rcThrottleCorrection = pt1FilterApply4(&posZThrottleFilterState, thr_out, NAV_THROTTLE_CUTOFF_FREQUENCY_HZ, posZDeltaTime);
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    // _vel_max_down_cms is checked to be non-zero when set
-    float error_ratio = posControl.pids.vel[Z].error / _vel_max_down_cms;
-    _vel_z_control_ratio += pos_z_dt * 0.1f * (0.5f - error_ratio);
-    _vel_z_control_ratio = constrainf(_vel_z_control_ratio, 0.0f, 1.0f);
+    // velMaxDownCms is checked to be non-zero when set
+    float error_ratio = posControl.pids.vel[Z].error / velMaxDownCms;
+    velZControlRatio += posZDeltaTime * 0.1f * (0.5f - error_ratio);
+    velZControlRatio = constrainf(velZControlRatio, 0.0f, 1.0f);
     
     if ((navGetCurrentStateFlags() & NAV_CTL_LAND) && !STATE(LANDING_DETECTED)) {
-        rcThrottleCorrection = (1.0f - _vel_z_control_ratio) * getThrottleIdleValue() + _vel_z_control_ratio * motorConfig()->maxthrottle;
+        rcThrottleCorrection = (1.0f - velZControlRatio) * getThrottleIdleValue() + velZControlRatio * motorConfig()->maxthrottle;
     } else {
         rcThrottleCorrection += currentBatteryProfile->nav.mc.hover_throttle;
     }
@@ -457,13 +461,13 @@ void relaxZController(void)
 
     // resetMulticopterAltitudeController has set the accel PID I term to generate the current throttle set point
     // Use relax_integrator to decay the throttle set point to 1000us
-    navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, pos_z_dt, NAV_MC_INTEGRAL_RELAX_TC_Z);
+    navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, posZDeltaTime, NAV_MC_INTEGRAL_RELAX_TC_Z);
 }
 
 // To use with RangeFinder
 void setPosOffSetTargetZ(float pos_offset_target_z) 
 {
-    _pos_offset_target_z = pos_offset_target_z; 
+    posOffSetTargetZ = pos_offset_target_z; 
 }
 
 void multicopterLandRunVerticalControl(int16_t land_speed, float land_alt_low)
@@ -478,19 +482,19 @@ void multicopterLandRunVerticalControl(int16_t land_speed, float land_alt_low)
     ignore_descent_limit = (MAX(land_alt_low, 100.0f) > actualPositionZ) || STATE(LANDING_DETECTED);
 
     // Don't speed up for landing
-    const float max_land_descent_velocity = MIN(_vel_max_down_cms, -ABS(land_speed));
+    const float max_land_descent_velocity = MIN(velMaxDownCms, -ABS(land_speed));
 
     // Compute a vertical velocity demand such that the vehicle approaches land_alt_low. Without the below constraint, this would cause the vehicle to hover at land_alt_low.
     pos_z_land_sqrt_controller.kp = posControl.pids.pos[Z].param.kP;
     pos_z_land_sqrt_controller.error = MAX(land_alt_low, 100.0f) - actualPositionZ;
-    pos_z_land_sqrt_controller.derivative_max = _accel_max_z_cmss;
-    climb_rate = sqrtControllerApply(&pos_z_land_sqrt_controller, 0.0f, 0.0f, SQRT_CONTROLLER_NORMAL, pos_z_dt);
+    pos_z_land_sqrt_controller.derivative_max = accelMaxZCmss;
+    climb_rate = sqrtControllerApply(&pos_z_land_sqrt_controller, 0.0f, 0.0f, SQRT_CONTROLLER_NORMAL, posZDeltaTime);
 
     // Constrain the demanded vertical velocity so that it is between the configured maximum descent speed and the configured minimum descent speed.
     climb_rate = constrainf(climb_rate, max_land_descent_velocity, -ABS(land_speed));
     
     // Stop the climbing if the configured maximum altitude is reached 
-    if (navConfig()->general.max_altitude > 0 && actualPositionZ >= navConfig()->general.max_altitude && climb_rate > 0) {
+    if (navConfig()->general.max_altitude > 0 && actualPositionZ >= navConfig()->general.max_altitude && climb_rate > 0.0f) {
         climb_rate = 0.0f;
     }
 
@@ -499,11 +503,11 @@ void multicopterLandRunVerticalControl(int16_t land_speed, float land_alt_low)
     // ignore_descent_limit turns off output saturation handling to aid in landing detection. ignore_descent_limit should be false unless landing.
     if (ignore_descent_limit) {
         // Turn off limits in the negative z direction
-        _limit_vector.z = MAX(_limit_vector.z, 0.0f);
+        limitVector.z = MAX(limitVector.z, 0.0f);
     }
     
     // Update altitude target
-    inputVelAccelZ(&climb_rate, 0.0f, true, pos_z_dt);
+    inputVelAccelZ(&climb_rate, 0.0f, true, posZDeltaTime);
 
     // Update position z controller
     updateZController();
@@ -521,7 +525,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             setPosOffSetTargetZ(altTarget);
         }
         else {
-            multicopterLandRunVerticalControl(-50.0f, 0.0f);
+            multicopterLandRunVerticalControl(50.0f, 0.0f);
         }
 
         // In surface tracking we always indicate that we're adjusting altitude
@@ -571,28 +575,28 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.vel[Z]);
     navPidReset(&posControl.pids.surface);
 
-    if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+    if (FLIGHT_MODE(FAILSAFE_MODE) || navigationIsFlyingAutonomousMode() || navigationIsExecutingAnEmergencyLanding()) {
         setMaxSpeedAccelZ(navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_acceleration);
     } else {
         setMaxSpeedAccelZ(navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_acceleration);
     }
 
-    sqrtControllerInit(&pos_z_sqrt_controller, posControl.pids.pos[Z].param.kP, _vel_max_down_cms, _vel_max_up_cms, _accel_max_z_cmss);
+    sqrtControllerInit(&pos_z_sqrt_controller, posControl.pids.pos[Z].param.kP, velMaxDownCms, velMaxUpCms, accelMaxZCmss);
 
     posControl.rcAdjustment[THROTTLE] = currentBatteryProfile->nav.mc.hover_throttle;
     
     posControl.desiredState.pos.z = navGetCurrentActualPositionAndVelocity()->pos.z;
     posControl.desiredState.vel.z = navGetCurrentActualPositionAndVelocity()->vel.z; // Gradually transition from current climb
-    posControl.desiredState.accel.z = constrainf(posEstimator.imu.accelNEU.z, -_accel_max_z_cmss, _accel_max_z_cmss);
-    _vel_target.z = navGetCurrentActualPositionAndVelocity()->vel.z;
-    _accel_target.z = posControl.desiredState.accel.z;
+    posControl.desiredState.accel.z = constrainf(posEstimator.imu.accelNEU.z, -accelMaxZCmss, accelMaxZCmss);
+    velTarget.z = navGetCurrentActualPositionAndVelocity()->vel.z;
+    accelTarget.z = posControl.desiredState.accel.z;
 
     // Initialise vertical offsets
-    _pos_offset_z = 0.0f;
-    _vel_offset_z = 0.0f;
-    _accel_offset_z = 0.0f;
+    posOffSetZ = 0.0f;
+    velOffSetZ = 0.0f;
+    accelOffSetZ = 0.0f;
 
-    pt1FilterReset(&altholdThrottleFilterState, 0.0f);
+    pt1FilterReset(&posZThrottleFilterState, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].error_filter_state, 0.0f);
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
     pt1FilterReset(&posControl.pids.acceleration_z.error_filter_state, 0.0f);
@@ -601,8 +605,8 @@ void resetMulticopterAltitudeController(void)
     posControl.pids.vel[Z].integrator = 0.0f;
 
     // Set accel PID I term based on the current throttle
-    // Remove the expected P term due to posControl.desiredState.accel.z being constrained to _accel_max_z_cmss
-    posControl.pids.acceleration_z.integrator = (rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (_accel_target.z - posEstimator.imu.accelNEU.z);
+    // Remove the expected P term due to posControl.desiredState.accel.z being constrained to accelMaxZCmss
+    posControl.pids.acceleration_z.integrator = (rcCommand[THROTTLE] - currentBatteryProfile->nav.mc.hover_throttle) - posControl.pids.acceleration_z.param.kP * (accelTarget.z - posEstimator.imu.accelNEU.z);
 }
 
 static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
@@ -617,7 +621,7 @@ static void applyMulticopterAltitudeController(timeUs_t currentTimeUs)
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
             // Get the Pos Z controller DeltaTime
-            pos_z_dt = US2S(deltaMicrosPositionUpdate);
+            posZDeltaTime = US2S(deltaMicrosPositionUpdate);
             
             // Relax the Z controller for init the takeoff
             if (prepareForTakeoffOnReset) {
@@ -957,7 +961,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply additional jerk limiting of 1700 cm/s^3 (~100 deg/s), almost any copter should be able to achieve this rate
     // This will assure that we wont't saturate out LEVEL and RATE PID controller
 
-    float maxAccelChange = US2S(deltaMicros) * MC_POS_CONTROL_JERK_LIMIT_CMSSS;
+    float maxAccelChange = US2S(deltaMicros) * NAV_MC_POS_CONTROL_JERK_LIMIT_CMSSS;
     //When braking, raise jerk limit even if we are not boosting acceleration
 #ifdef USE_MR_BRAKING_MODE
     if (STATE(NAV_CRUISE_BRAKING)) {
@@ -1199,8 +1203,8 @@ bool isMulticopterLandingDetected(void)
     const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
 
     // check vertical and horizontal velocities are low (cm/s)
-    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (MC_LAND_CHECK_VEL_Z_MOVING * sensitivity) &&
-                        posControl.actualState.velXY < (MC_LAND_CHECK_VEL_XY_MOVING * sensitivity);
+    bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (NAV_MC_LAND_CHECK_VEL_Z_MOVING * sensitivity) &&
+                        posControl.actualState.velXY < (NAV_MC_LAND_CHECK_VEL_XY_MOVING * sensitivity);
     // check gyro rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < (4.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);
@@ -1224,7 +1228,7 @@ bool isMulticopterLandingDetected(void)
         }
         
         if (!landingThrSamples) {
-            if (currentTimeMs - landingDetectorStartedAt < S2MS(MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
+            if (currentTimeMs - landingDetectorStartedAt < S2MS(NAV_MC_LAND_THR_STABILISE_DELAY)) {   // Wait for 1 second so throttle has stabilized.
                 return false;
             } else {
                 landingDetectorStartedAt = currentTimeMs;
@@ -1233,12 +1237,12 @@ bool isMulticopterLandingDetected(void)
 
         landingThrSamples += 1;
         landingThrSum += rcCommandAdjustedThrottle;
-        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
+        isAtMinimalThrust = rcCommandAdjustedThrottle < (landingThrSum / landingThrSamples - NAV_MC_LAND_DESCEND_THROTTLE);
 
         possibleLandingDetected = isAtMinimalThrust && velCondition;
 
         DEBUG_SET(DEBUG_LANDING, 6, rcCommandAdjustedThrottle);
-        DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - MC_LAND_DESCEND_THROTTLE);
+        DEBUG_SET(DEBUG_LANDING, 7, landingThrSum / landingThrSamples - NAV_MC_LAND_DESCEND_THROTTLE);
     } else {    // non autonomous and emergency landing
         DEBUG_SET(DEBUG_LANDING, 4, 2);
         if (landingDetectorStartedAt) {
@@ -1254,7 +1258,7 @@ bool isMulticopterLandingDetected(void)
         // TODO: Come up with a clever way to let sonar increase detection performance, not just add extra safety.
         // TODO: Out of range sonar may give reading that looks like we landed, find a way to check if sonar is healthy.
         // surfaceMin is our ground reference. If we are less than 5cm above the ground - we are likely landed
-        possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + MC_LAND_SAFE_SURFACE));
+        possibleLandingDetected = possibleLandingDetected && (posControl.actualState.agl.pos.z <= (posControl.actualState.surfaceMin + NAV_MC_LAND_SAFE_SURFACE));
     }
 
     DEBUG_SET(DEBUG_LANDING, 5, possibleLandingDetected);
@@ -1301,7 +1305,7 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
             // target min descent rate 5m above takeoff altitude
-            pos_z_dt = US2S(deltaMicrosPositionUpdate);
+            posZDeltaTime = US2S(deltaMicrosPositionUpdate);
             multicopterLandRunVerticalControl(navConfig()->general.emerg_descent_rate, 500.0f);
         }
         else {

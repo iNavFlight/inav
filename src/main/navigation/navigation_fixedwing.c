@@ -113,10 +113,10 @@ void resetFixedWingAltitudeController(void)
 /*-----------------------------------------------------------
  * Z-position controller
  *-----------------------------------------------------------*/
-static void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
+void updateFixedWingClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
 {
     static timeUs_t lastUpdateTimeUs;
-    timeUs_t currentTimeUs = micros();
+    const timeUs_t currentTimeUs = micros();
 
     // Terrain following uses different altitude measurement
     const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
@@ -126,14 +126,14 @@ static void updateClimbRateToAltitudeController(float desiredClimbRate, float ta
          * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
          * Rate reduction starts at distance from target altitude of 5x climb rate for FW */
 
-        if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > NAV_MIN_TARGET_CLIMB_RATE) {
+        if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > NAV_FW_MIN_TARGET_CLIMB_RATE) {
             const int8_t direction = desiredClimbRate > 0 ? 1 : -1;
             const float absClimbRate = fabsf(desiredClimbRate);
             const uint16_t maxRateCutoffAlt = absClimbRate * 5;
             const float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
-                                            0.0f, -maxRateCutoffAlt * direction, NAV_MIN_TARGET_CLIMB_RATE, absClimbRate);
+                                            0.0f, -maxRateCutoffAlt * direction, NAV_FW_MIN_TARGET_CLIMB_RATE, absClimbRate);
 
-            desiredClimbRate = direction * constrainf(verticalVelScaled, NAV_MIN_TARGET_CLIMB_RATE, absClimbRate);
+            desiredClimbRate = direction * constrainf(verticalVelScaled, NAV_FW_MIN_TARGET_CLIMB_RATE, absClimbRate);
         }
 
         /*
@@ -148,7 +148,7 @@ static void updateClimbRateToAltitudeController(float desiredClimbRate, float ta
         float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
         static bool targetHoldActive = false;
 
-        if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
+        if (timeDelta <= MAX_POSITION_UPDATE_INTERVAL_US && desiredClimbRate) {
             // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
             if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
                 posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
@@ -175,13 +175,13 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     if (rcAdjustment) {
         // set velocity proportional to stick movement
         float rcClimbRate = -rcAdjustment * navConfig()->general.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
-        updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
+        updateFixedWingClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
         return true;
     }
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingAltitude) {
-            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+            updateFixedWingClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
         }
         return false;
     }
@@ -575,7 +575,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
                 // Account for pilot's roll input (move position target left/right at max of max_manual_speed)
                 // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
                 // FIXME: verify the above
-                calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
+                calculateVirtualPositionTarget_FW(MAX_POSITION_UPDATE_INTERVAL_US * 2);
 
                 updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);
             }
@@ -827,7 +827,7 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
         // target min descent rate 10m above takeoff altitude
-        updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000.0f, ROC_TO_ALT_TARGET);
+        updateFixedWingClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000.0f, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));

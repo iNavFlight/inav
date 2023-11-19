@@ -65,17 +65,6 @@
 
 #include "programming/global_variables.h"
 
-// Multirotors:
-#define MR_RTH_CLIMB_OVERSHOOT_CM   100  // target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
-#define MR_RTH_CLIMB_MARGIN_MIN_CM  100  // start cruising home this amount of cm *before* reaching the cruise altitude (while continuing the ascend)
-#define MR_RTH_CLIMB_MARGIN_PERCENT 15   // on high RTH altitudes use even bigger margin - percent of the altitude set
-#define MR_RTH_LAND_MARGIN_CM       2000 // pause landing if this amount of cm *before* remaining to the home point (2D distance)
-
-// Planes:
-#define FW_RTH_CLIMB_OVERSHOOT_CM   100
-#define FW_RTH_CLIMB_MARGIN_MIN_CM  100
-#define FW_RTH_CLIMB_MARGIN_PERCENT 15
-
 /*-----------------------------------------------------------
  * Compatibility for home position
  *-----------------------------------------------------------*/
@@ -1315,8 +1304,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
-    const uint8_t rthClimbMarginPercent = STATE(FIXED_WING_LEGACY) ? FW_RTH_CLIMB_MARGIN_PERCENT : MR_RTH_CLIMB_MARGIN_PERCENT;
-    const float rthAltitudeMargin = MAX(FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0f) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
+    const uint8_t rthClimbMarginPercent = STATE(FIXED_WING_LEGACY) ? NAV_FW_RTH_CLIMB_MARGIN_PERCENT : NAV_MC_RTH_CLIMB_MARGIN_PERCENT;
+    const float rthAltitudeMargin = MAX(NAV_FW_RTH_CLIMB_MARGIN_MIN_CM, (rthClimbMarginPercent/100.0f) * fabsf(posControl.rthState.rthInitialAltitude - posControl.rthState.homePosition.pos.z));
 
     // If we reached desired initial RTH altitude or we don't want to climb first
     if (((navGetCurrentActualPositionAndVelocity()->pos.z - posControl.rthState.rthInitialAltitude) > -rthAltitudeMargin) || (navConfig()->general.flags.rth_climb_first == RTH_CLIMB_OFF) || rthAltControlStickOverrideCheck(ROLL) || rthClimbStageActiveAndComplete()) {
@@ -1352,10 +1341,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         // Until the initial climb phase is complete target slightly *above* the cruise altitude to ensure we actually reach
         // it in a reasonable time. Immediately after we finish this phase - target the original altitude.
         if (STATE(FIXED_WING_LEGACY)) {
-            tmpHomePos->z += FW_RTH_CLIMB_OVERSHOOT_CM;
+            tmpHomePos->z += NAV_FW_RTH_CLIMB_OVERSHOOT_CM;
             setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z);
         } else {
-            tmpHomePos->z += MR_RTH_CLIMB_OVERSHOOT_CM;
+            tmpHomePos->z += NAV_MC_RTH_CLIMB_OVERSHOOT_CM;
 
             if (navConfig()->general.flags.rth_tail_first) {
                 setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
@@ -1522,13 +1511,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
 
-    float descentVelLimited = 0;
+    float descentVelLimited = 0.0f;
 
     fpVector3_t tmpHomePos = posControl.rthState.homeTmpWaypoint;
     uint32_t remaning_distance = calculateDistanceToDestination(&tmpHomePos);
     int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
 
-    if (STATE(MULTIROTOR) && (remaning_distance > MR_RTH_LAND_MARGIN_CM)){
+    if (STATE(MULTIROTOR) && (remaning_distance > NAV_MC_RTH_LAND_MARGIN_CM)){
         descentVelLimited = navConfig()->general.land_minalt_vspd;
     } else if ((posControl.flags.estAglStatus == EST_TRUSTED) && posControl.actualState.agl.pos.z < 50.0f) {  
         // A safeguard - if surface altitude sensors is available and it is reading < 50cm altitude - drop to low descend speed
@@ -1544,8 +1533,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
-
-    multicopterLandRunVerticalControl(descentVelLimited, 0.0f);
+    
+    if (STATE(FIXED_WING_LEGACY)) {
+        updateFixedWingClimbRateToAltitudeController(-descentVelLimited, 0.0f, ROC_TO_ALT_CONSTANT);
+    } else {
+        multicopterLandRunVerticalControl(descentVelLimited, 0.0f);
+    }
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1568,7 +1561,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_FINISHED(navigation
     UNUSED(previousState);
 
     if (STATE(ALTITUDE_CONTROL)) {
-        multicopterLandRunVerticalControl(1.1f * navConfig()->general.land_minalt_vspd, 0.0f);
+        if (STATE(FIXED_WING_LEGACY)) {
+            updateFixedWingClimbRateToAltitudeController(-1.1f * navConfig()->general.land_minalt_vspd, 0.0f, ROC_TO_ALT_CONSTANT);
+        } else {
+            multicopterLandRunVerticalControl(1.1f * navConfig()->general.land_minalt_vspd, 0.0f);
+        }
     }
 
     // Prevent I-terms growing when already landed
