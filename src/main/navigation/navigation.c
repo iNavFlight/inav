@@ -1474,7 +1474,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
 
     // Action delay before landing if in FS and option enabled
     bool pauseLanding = false;
-    if (NAV_RTH_ALLOW_LANDING_FS_ONLY && FLIGHT_MODE(FAILSAFE_MODE) && navConfig()->general.rth_fs_landing_delay > 0) {
+    navRTHAllowLanding_e allow = navConfig()->general.flags.rth_allow_landing;
+    if ((allow == NAV_RTH_ALLOW_LANDING_ALWAYS || allow == NAV_RTH_ALLOW_LANDING_FS_ONLY) && FLIGHT_MODE(FAILSAFE_MODE) && navConfig()->general.rth_fs_landing_delay > 0) {
         if (landingDelay == 0)
             landingDelay = millis() + S2MS(navConfig()->general.rth_fs_landing_delay);
 
