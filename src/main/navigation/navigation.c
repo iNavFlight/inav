@@ -1627,7 +1627,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
         case NAV_WP_ACTION_LAND:
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
-            posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             posControl.wpAltitudeReached = false;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
@@ -1693,9 +1692,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     tmpWaypoint.y = posControl.activeWaypoint.pos.y;
                     setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
 
-                    // Use linear climb bewtween WPs until within 10% of total distance to current active WP
-                    float climbRate = posControl.actualState.velXY * (posControl.activeWaypoint.pos.z - posControl.wpInitialAltitude) /
-                                      (0.9f * posControl.wpInitialDistance);
+                    // Use linear climb between WPs arriving at WP altitude when within 10% of total distance to WP
+                    // Update climbrate until within 25% of total distance to WP, then hold constant
+                    static float climbRate = 0;
+                    if (posControl.wpDistance > 0.25f * posControl.wpInitialDistance) {
+                        climbRate = posControl.actualState.velXY * (posControl.activeWaypoint.pos.z - posControl.actualState.abs.pos.z) /
+                                    (posControl.wpDistance - 0.1f * posControl.wpInitialDistance);
+                    }
 
                     if (fabsf(climbRate) >= navConfig()->general.max_auto_climb_rate) {
                         climbRate = 0;
@@ -3099,12 +3102,12 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
     if (navConfig()->general.max_altitude && !FLIGHT_MODE(NAV_RTH_MODE) && !(FLIGHT_MODE(NAV_WP_MODE) && navConfig()->general.waypoint_enforce_altitude)) {
         posControl.desiredState.pos.z = MIN(posControl.desiredState.pos.z, navConfig()->general.max_altitude);
 
-        if (mode == ROC_TO_ALT_TARGET || (mode == ROC_TO_ALT_CONSTANT && desiredClimbRate < 0.0f)) {
+        if (mode != ROC_TO_ALT_CONSTANT || (mode == ROC_TO_ALT_CONSTANT && desiredClimbRate < 0.0f)) {
             return;
         }
 
-        if (navGetCurrentActualPositionAndVelocity()->pos.z > navConfig()->general.max_altitude) {
-            posControl.desiredState.climbRateDemand = 0;
+        if (posControl.flags.isAdjustingAltitude) {
+            posControl.desiredState.pos.z = navConfig()->general.max_altitude;
             posControl.flags.rocToAltMode = ROC_TO_ALT_TARGET;
         }
     }
