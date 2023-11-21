@@ -5994,11 +5994,11 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ### vtx_band
 
-Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race.
+Configure the VTX band. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
+| 1 | VTX_SETTINGS_MIN_BAND | VTX_SETTINGS_MAX_BAND |
 
 ---
 
