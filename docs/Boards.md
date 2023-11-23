@@ -13,7 +13,7 @@ These boards are well tested with INAV and are known to be of good quality and r
 
 It's possible to find more supported and tested boards [here](https://github.com/iNavFlight/inav/wiki/Welcome-to-INAV,-useful-links-and-products)
 
-There is also [full list of all upported boards].(https://github.com/iNavFlight/inav/wiki/Boards,-Targets-and-PWM-allocations)
+There is also a [full list of all supported boards](https://github.com/iNavFlight/inav/wiki/Boards,-Targets-and-PWM-allocations).
 
 ### Boards documentation
 
