@@ -2316,7 +2316,7 @@ groups:
         field: w_z_surface_p
         min: 0
         max: 100
-        default_value: 3.5
+        default_value: 3.5 
       - name: inav_w_z_surface_v
         field: w_z_surface_v
         min: 0
@@ -4090,8 +4090,8 @@ groups:
     condition: USE_SAFE_HOME
     members: 
       - name: nav_fw_land_approach_length
-        description: "Angle of the final approach"
-        default_value: 50000
+        description: "Length of the final approach"
+        default_value: 35000
         field: approachLength
         min: 100
         max: 100000
@@ -4103,13 +4103,13 @@ groups:
         max: 400
       - name: nav_fw_land_glide_alt
         description: "Initial altitude of the glide phase"
-        default_value: 500
+        default_value: 200
         field: glideAltitude
         min: 100
         max: 5000
       - name: nav_fw_land_flare_alt
         description: "Initial altitude of the flare phase"
-        default_value: 2000
+        default_value: 150
         field: flareAltitude
         min: 0
         max: 10000
@@ -4121,7 +4121,7 @@ groups:
         max: 45
       - name: nav_fw_land_flare_pitch
         description: "Pitch value for flare phase. In degrees"
-        default_value: 2
+        default_value: 8
         field: flarePitch
         min: 0
         max: 45

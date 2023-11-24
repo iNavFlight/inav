@@ -59,7 +59,7 @@ typedef enum  {
 } fwAutolandApproachDirection_e;
 
 typedef enum {
-    FW_AUTOLAND_LC_STATE_IDLE,
+    FW_AUTOLAND_STATE_IDLE,
     FW_AUTOLAND_STATE_CROSSWIND,
     FW_AUTOLAND_STATE_BASE_LEG,
     FW_AUTOLAND_STATE_FINAL_APPROACH,
@@ -103,7 +103,7 @@ extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_
 extern uint32_t safehome_distance;               // distance to the nearest safehome
 extern bool safehome_applied;                    // whether the safehome has been applied to home.
 
-void resetFwAutolandApproach(void);
+void resetFwAutolandApproach(int8_t idx);
 void resetSafeHomes(void);                       // remove all safehomes
 bool findNearestSafeHome(void);                  // Find nearest safehome
 

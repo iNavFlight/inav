@@ -1311,7 +1311,7 @@ static void cliTempSensor(char *cmdline)
 
 static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
 {
-    const char *format = "fwapproach %u %d %d %d %u %d %d %u";
+    const char *format = "fwapproach %u %d %d %u %d %d %u";
     for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
         bool equalsDefault = false;
         if (defaultFwAutolandApproach) {
@@ -1334,7 +1334,7 @@ static void cliFwAutolandApproach(char * cmdline)
      if (isEmpty(cmdline)) {
         printFwAutolandApproach(DUMP_MASTER, fwAutolandApproachConfig(0), NULL);
     } else if (sl_strcasecmp(cmdline, "reset") == 0) {
-        resetFwAutolandApproach();
+        resetFwAutolandApproach(-1);
     } else {
         int32_t approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
         bool isSeaLevelRef = false;

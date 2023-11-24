@@ -457,7 +457,6 @@ void disarm(disarmReason_t disarmReason)
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
 #endif
-
         beeper(BEEPER_DISARMING);      // emit disarm tone
 
         prearmWasReset = false;
