@@ -1047,8 +1047,13 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LANDED:
             return OSD_MESSAGE_STR(OSD_MSG_LANDED);
         case MW_NAV_STATE_LAND_SETTLE:
+        {
             // If there is a FS landing delay occurring. That is handled by the calling function.
+            if (posControl.landingDelay > 0)
+                break;
+            
             return OSD_MESSAGE_STR(OSD_MSG_PREPARING_LAND);
+        }
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
             break;
