@@ -226,7 +226,6 @@ static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
 static bool landingDetectorIsActive;
-static timeMs_t landingDelay = 0;
 
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
@@ -1444,6 +1443,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         if (isWaypointReached(tmpHomePos, 0)) {
             // Successfully reached position target - update XYZ-position
             setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            posControl.landingDelay = 0;
             return NAV_FSM_EVENT_SUCCESS;       // NAV_STATE_RTH_HOVER_PRIOR_TO_LANDING
         } else {
             setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_XY);
@@ -1476,15 +1476,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_PRIOR_TO_LAND
     bool pauseLanding = false;
     navRTHAllowLanding_e allow = navConfig()->general.flags.rth_allow_landing;
     if ((allow == NAV_RTH_ALLOW_LANDING_ALWAYS || allow == NAV_RTH_ALLOW_LANDING_FS_ONLY) && FLIGHT_MODE(FAILSAFE_MODE) && navConfig()->general.rth_fs_landing_delay > 0) {
-        if (landingDelay == 0)
-            landingDelay = millis() + S2MS(navConfig()->general.rth_fs_landing_delay);
+        if (posControl.landingDelay == 0)
+            posControl.landingDelay = millis() + S2MS(navConfig()->general.rth_fs_landing_delay);
 
         batteryState_e batteryState = getBatteryState();
 
-        if (millis() < landingDelay && batteryState != BATTERY_WARNING && batteryState != BATTERY_CRITICAL)
+        if (millis() < posControl.landingDelay && batteryState != BATTERY_WARNING && batteryState != BATTERY_CRITICAL)
             pauseLanding = true;
         else
-            landingDelay = 0;
+            posControl.landingDelay = 0;
     }
 
     // If landing is not temporarily paused (FS only), position ok, OR within valid timeout - continue

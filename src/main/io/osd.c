@@ -1047,6 +1047,7 @@ static const char * navigationStateMessage(void)
         case MW_NAV_STATE_LANDED:
             return OSD_MESSAGE_STR(OSD_MSG_LANDED);
         case MW_NAV_STATE_LAND_SETTLE:
+            // If there is a FS landing delay occurring. That is handled by the calling function.
             return OSD_MESSAGE_STR(OSD_MSG_PREPARING_LAND);
         case MW_NAV_STATE_LAND_START_DESCENT:
             // Not used
@@ -5124,6 +5125,11 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
                         messages[messageCount++] = messageBuf;
                     }
+                } else if (NAV_Status.state == MW_NAV_STATE_LAND_SETTLE && posControl.landingDelay > 0) {
+                    uint16_t remainingHoldSec = MS2S(posControl.landingDelay - millis());
+                    tfp_sprintf(messageBuf, "LANDING DELAY: %3u SECONDS", remainingHoldSec);
+
+                    messages[messageCount++] = messageBuf;
                 } else {
                     const char *navStateMessage = navigationStateMessage();
                     if (navStateMessage) {

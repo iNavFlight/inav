@@ -394,6 +394,7 @@ typedef struct {
     rthState_t                  rthState;
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+    timeMs_t                    landingDelay;
 
     /* Safehome parameters */
     safehomeState_t             safehomeState;
