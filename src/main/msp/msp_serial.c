@@ -406,6 +406,7 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
         .cmd = msp->cmdMSP,
         .flags = msp->cmdFlags,
         .result = 0,
+        .portIdentifier = msp->port->identifier,
     };
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;

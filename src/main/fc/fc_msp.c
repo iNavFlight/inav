@@ -90,6 +90,7 @@
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
+#include "io/vtx_msp.h"
 #include "io/serial.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
@@ -344,7 +345,7 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
  */
-static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
+static bool mspFcProcessOutCommand(uint8_t portIdentifier, uint16_t cmdMSP, sbuf_t *dst, mspPostProcessFnPtr *mspPostProcessFn)
 {
     switch (cmdMSP) {
     case MSP_API_VERSION:
@@ -1456,6 +1457,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxCommonDeviceIsReady(vtxDevice) ? 1 : 0);
                 sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
                 // future extensions here...
+
+                setMspVtxDeviceStatusReady(portIdentifier);
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
@@ -2593,6 +2596,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         if (sbufBytesRemaining(src) >= 4) {
                             uint8_t newBand = sbufReadU8(src);
                             const uint8_t newChannel = sbufReadU8(src);
+
+                            if(vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
+                                vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
+                            }
+
                             vtxSettingsConfigMutable()->band = newBand;
                             vtxSettingsConfigMutable()->channel = newChannel;
                         }
@@ -3922,7 +3930,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
 
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
-    } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
+    } else if (mspFcProcessOutCommand(cmd->portIdentifier, cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
         mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);

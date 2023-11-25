@@ -295,6 +295,12 @@ static int logicConditionCompute(
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
             ) {
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+
+                vtxDevice_t *vtxDevice = vtxCommonDevice();
+                if (vtxDevice) {
+                    vtxCommonSetPowerByIndex(vtxDevice, logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL]);
+                }
+
                 vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
                 return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
             } else {
@@ -311,6 +317,12 @@ static int logicConditionCompute(
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
             ) {
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
+
+                vtxDevice_t *vtxDevice = vtxCommonDevice();
+                if (vtxDevice) {
+                    vtxCommonSetBandAndChannel(vtxDevice, logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND], vtxSettingsConfig()->channel);
+                }
+
                 vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
                 return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
             } else {
@@ -323,6 +335,12 @@ static int logicConditionCompute(
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
             ) {
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
+
+                vtxDevice_t *vtxDevice = vtxCommonDevice();
+                if (vtxDevice) {
+                    vtxCommonSetBandAndChannel(vtxDevice, vtxSettingsConfig()->band, logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL]);
+                }
+
                 vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
                 return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
             } else {

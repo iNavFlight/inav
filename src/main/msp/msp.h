@@ -42,6 +42,7 @@ typedef struct mspPacket_s {
     int16_t cmd;
     uint8_t flags;
     int16_t result;
+    uint8_t portIdentifier;
 } mspPacket_t;
 
 typedef enum {
