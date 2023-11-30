@@ -2454,7 +2454,7 @@ Cutoff frequency for Control Derivative. This controls the cutoff for the LPF th
 
 ### mc_cd_pitch
 
-Multicopter Control Derivative gain for PITCH. The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
+Multicopter Control Derivative gain for PITCH (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2464,7 +2464,7 @@ Multicopter Control Derivative gain for PITCH. The CD intoduces a term to the PI
 
 ### mc_cd_roll
 
-Multicopter Control Derivative gain for ROLL. The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
+Multicopter Control Derivative gain for ROLL (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2474,7 +2474,7 @@ Multicopter Control Derivative gain for ROLL. The CD intoduces a term to the PID
 
 ### mc_cd_yaw
 
-Multicopter Control Derivative gain for YAW. The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
+Multicopter Control Derivative gain for YAW (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -1730,7 +1730,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: mc_cd_pitch
-        description: "Multicopter Control Derivative gain for PITCH. The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
+        description: "Multicopter Control Derivative gain for PITCH (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
         default_value: 60
         field: bank_mc.pid[PID_PITCH].FF
         min: RPYL_PID_MIN
@@ -1754,7 +1754,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: mc_cd_roll
-        description: "Multicopter Control Derivative gain for ROLL. The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
+        description: "Multicopter Control Derivative gain for ROLL (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
         default_value: 60
         field: bank_mc.pid[PID_ROLL].FF
         min: RPYL_PID_MIN
@@ -1778,7 +1778,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: mc_cd_yaw
-        description: "Multicopter Control Derivative gain for YAW. The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
+        description: "Multicopter Control Derivative gain for YAW (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
         default_value: 60
         field: bank_mc.pid[PID_YAW].FF
         min: RPYL_PID_MIN
