@@ -341,6 +341,15 @@
     #endif
 #endif
 
+#if defined(USE_RANGEFINDER_TERARANGER_EVO_I2C)
+    #if !defined(TERARANGER_EVO_I2C_BUS) && defined(RANGEFINDER_I2C_BUS)
+        #define TERARANGER_EVO_I2C_BUS RANGEFINDER_I2C_BUS
+    #endif
+    #if defined(TERARANGER_EVO_I2C_BUS)
+    BUSDEV_REGISTER_I2C(busdev_teraranger_evo,       DEVHW_TERARANGER_EVO_I2C,       TERARANGER_EVO_I2C_BUS,       0x31,       NONE,       DEVFLAGS_NONE,  0);
+    #endif
+#endif
+
 #if defined(USE_RANGEFINDER_TOF10120_I2C) && (defined(TOF10120_I2C_BUS) || defined(RANGEFINDER_I2C_BUS))
     #if !defined(TOF10120_I2C_BUS)
         #define TOF10120_I2C_BUS RANGEFINDER_I2C_BUS
