@@ -203,8 +203,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                 },
                 [PID_VEL_Z] = {
                     .P = SETTING_NAV_MC_VEL_Z_P_DEFAULT,      // NAV_VEL_Z_P * 10
-                    .I = SETTING_NAV_MC_VEL_Z_I_DEFAULT,      // NAV_VEL_Z_I * 10
-                    .D = SETTING_NAV_MC_VEL_Z_D_DEFAULT,      // NAV_VEL_Z_D * 10
+                    .I = 0,                                   // not used
+                    .D = 0,                                   // not used
                     .FF = 0,
                 },
                 [PID_POS_HEADING] = {

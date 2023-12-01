@@ -4193,8 +4193,8 @@ void navigationUsePIDs(void)
     
     // Initialize vertical velocity PID controller
     navPidInit(&posControl.pids.vel[Z], (float)pidProfile()->bank_mc.pid[PID_VEL_Z].P / 10.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].I / 10.0f,
-                                        (float)pidProfile()->bank_mc.pid[PID_VEL_Z].D / 10.0f,
+                                        0.0f,
+                                        0.0f,
                                         0.0f,
                                         NAV_MC_VEL_Z_DERIVATIVE_CUT_HZ,
                                         NAV_MC_VEL_Z_ERROR_CUT_HZ

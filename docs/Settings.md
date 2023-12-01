@@ -3624,7 +3624,7 @@ Controls how fast the multirotor will fly towards the target position. This is a
 
 ### nav_mc_pos_z_p
 
-P gain of multirotor altitude PID controller
+P gain of multirotor altitude controller
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3712,29 +3712,9 @@ P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P mean
 
 ---
 
-### nav_mc_vel_z_d
-
-D gain of multirotor velocity PID controller
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 255 |
-
----
-
-### nav_mc_vel_z_i
-
-I gain of multirotor velocity PID controller
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 255 |
-
----
-
 ### nav_mc_vel_z_p
 
-P gain of multirotor velocity PID controller
+P gain of multirotor velocity controller
 
 | Default | Min | Max |
 | --- | --- | --- |

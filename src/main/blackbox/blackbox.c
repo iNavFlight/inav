@@ -1899,8 +1899,8 @@ static bool blackboxWriteSysinfo(void)
                                                                             pidBank()->pid[PID_LEVEL].D);
         BLACKBOX_PRINT_HEADER_LINE("magPID", "%d",                          pidBank()->pid[PID_HEADING].P);
         BLACKBOX_PRINT_HEADER_LINE("velPID", "%d,%d,%d",                    pidBank()->pid[PID_VEL_Z].P,
-                                                                            pidBank()->pid[PID_VEL_Z].I,
-                                                                            pidBank()->pid[PID_VEL_Z].D);
+                                                                            0,
+                                                                            0);
         BLACKBOX_PRINT_HEADER_LINE("yaw_lpf_hz", "%d",                      pidProfile()->yaw_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_hz", "%d",                    pidProfile()->dterm_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_type", "%d",                  pidProfile()->dterm_lpf_type);

@@ -453,7 +453,7 @@ static void updateZController(void)
 
 /* 
     Initialise the position controller to the current position and velocity with decaying acceleration.
-    This function decays the output acceleration by 95% every half second to achieve a smooth transition to zero requested acceleration.
+    This function decays the output acceleration by 97% every half second to achieve a smooth transition to zero requested acceleration.
 */
 void relaxZController(void)
 {
