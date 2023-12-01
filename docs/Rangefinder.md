@@ -20,6 +20,7 @@ Following rangefinders are supported:
 * UIB - experimental
 * MSP - experimental
 * TOF10120 - small & lightweight laser range sensor, usable up to 200cm
+* TERARANGER EVO - 30cm to 600cm, depends on version https://www.terabee.com/sensors-modules/lidar-tof-range-finders/#individual-distance-measurement-sensors
 
 ## Connections
 
