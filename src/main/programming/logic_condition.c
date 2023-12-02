@@ -811,7 +811,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE:
-            return posControl.fwLandState;
+            return posControl.fwLandState.landState;
             break;
 
         default:

@@ -60,7 +60,7 @@ typedef enum  {
 
 typedef enum {
     FW_AUTOLAND_STATE_IDLE,
-    FW_AUTOLAND_STATE_CROSSWIND,
+    FW_AUTOLAND_STATE_DOWNWIND,
     FW_AUTOLAND_STATE_BASE_LEG,
     FW_AUTOLAND_STATE_FINAL_APPROACH,
     FW_AUTOLAND_STATE_GLIDE,
@@ -94,18 +94,15 @@ typedef struct navFwAutolandConfig_s
     uint16_t flareAltitude;
     uint8_t flarePitch;
     uint16_t maxTailwind;
-    uint8_t glidePitch;
+    int8_t glidePitch;
 } navFwAutolandConfig_t;
 
 PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);
 
-extern int8_t safehome_index;                    // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
-extern uint32_t safehome_distance;               // distance to the nearest safehome
-extern bool safehome_applied;                    // whether the safehome has been applied to home.
-
 void resetFwAutolandApproach(int8_t idx);
 void resetSafeHomes(void);                       // remove all safehomes
 bool findNearestSafeHome(void);                  // Find nearest safehome
+
 
 #endif // defined(USE_SAFE_HOME)
 

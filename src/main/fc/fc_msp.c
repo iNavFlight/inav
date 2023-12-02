@@ -3178,7 +3178,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
-#endif
 
 #ifdef USE_EZ_TUNE
 

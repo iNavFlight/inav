@@ -589,7 +589,7 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
 
     int16_t pitchToThrottle = currentBatteryProfile->nav.fw.pitch_to_throttle;
-    if (pitch < 0 && posControl.fwLandState == FW_AUTOLAND_STATE_FINAL_APPROACH) {
+    if (pitch < 0 && posControl.fwLandState.landState == FW_AUTOLAND_STATE_FINAL_APPROACH) {
         pitchToThrottle *= navFwAutolandConfig()->finalApproachPitchToThrottleMod / 100.0f;
     }
 
@@ -635,7 +635,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
 
         // Manual throttle increase
-        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
+        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !isFwLandInProgess()) {
             if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
                 correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
             } else {
@@ -649,22 +649,19 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
-#ifdef NAV_FIXED_WING_LANDING
-
     if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
         // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
         rcCommand[THROTTLE] = getThrottleIdleValue();
         ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
         if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
-            rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
 
         if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
-            rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
-#endif
 }
 
 bool isFixedWingAutoThrottleManuallyIncreased(void)

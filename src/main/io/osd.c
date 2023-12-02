@@ -1007,7 +1007,7 @@ static const char * osdFailsafeInfoMessage(void)
 #if defined(USE_SAFE_HOME)
 static const char * divertingToSafehomeMessage(void)
 {
-	if (!posControl.fwLandWp && (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && safehome_applied)) {
+	if (!posControl.fwLandState.landWp && (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied)) {
 	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
 	}
 	return NULL;
@@ -5135,7 +5135,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         if (ARMING_FLAG(ARMED)) {
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding() || isFwLandInProgess()) {
-                if (isWaypointMissionRTHActive() && !posControl.fwLandWp) {
+                if (isWaypointMissionRTHActive() && !posControl.fwLandState.landWp) {
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
                 }

@@ -369,6 +369,28 @@ typedef struct {
 } rthState_t;
 
 typedef enum {
+    FW_AUTOLAND_WP_TURN,
+    FW_AUTOLAND_WP_FINAL_APPROACH,
+    FW_AUTOLAND_WP_LAND,
+    FW_AUTOLAND_WP_COUNT,
+} fwAutolandWaypoint_t;
+
+typedef struct {
+    timeUs_t loiterStartTime;
+    fpVector3_t landWaypoints[FW_AUTOLAND_WP_COUNT];
+    fpVector3_t landPos;
+    int32_t landPosHeading;
+    int32_t landingDirection;
+    int32_t landAproachAltAgl;
+    int32_t landAltAgl;
+    uint8_t approachSettingIdx;
+    fwAutolandWaypoint_t landCurrentWp;
+    bool landAborted;
+    bool landWp;
+    fwAutolandState_t landState;
+} fwLandState_t;
+
+typedef enum {
     RTH_HOME_ENROUTE_INITIAL,       // Initial position for RTH approach
     RTH_HOME_ENROUTE_PROPORTIONAL,  // Prorpotional position for RTH approach
     RTH_HOME_ENROUTE_FINAL,         // Final position for RTH approach
@@ -383,12 +405,6 @@ typedef struct {
     bool        isApplied;          // whether the safehome has been applied to home
 } safehomeState_t;
 
-typedef enum {
-    FW_AUTOLAND_WP_TURN,
-    FW_AUTOLAND_WP_FINAL_APPROACH,
-    FW_AUTOLAND_WP_LAND,
-    FW_AUTOLAND_WP_COUNT,
-} fwAutolandWayppoints_t;
 typedef struct {
     /* Flags and navigation system state */
     navigationFSMState_t        navState;
@@ -456,19 +472,7 @@ typedef struct {
     int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
 
     /* Fixedwing autoland */
-    timeUs_t fwLandLoiterStartTime;
-    fpVector3_t fwLandWaypoint[FW_AUTOLAND_WP_COUNT];
-    fpVector3_t fwLandPos;
-    int32_t fwLandPosHeading;
-    int32_t fwLandingDirection;
-    int32_t fwLandAproachAltAgl;
-    int32_t fwLandAltAgl;
-    uint8_t fwApproachSettingIdx;
-    bool fwLandWpReached;
-    fwAutolandWayppoints_t fwLandCurrentWp;
-    bool fwLandAborted;
-    bool fwLandWp;
-    fwAutolandState_t fwLandState;
+    fwLandState_t fwLandState;
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
