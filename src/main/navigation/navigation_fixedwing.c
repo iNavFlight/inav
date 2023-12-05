@@ -39,6 +39,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -293,6 +294,10 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     needToCalculateCircularLoiter = isNavHoldPositionActive() &&
                                      (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
                                      (distanceToActualTarget > 50.0f);
+    //if vtol landing is required, fly straight to homepoint
+    if ((posControl.navState == NAV_STATE_RTH_HEAD_HOME) && navigationRTHAllowsLanding() && checkMixerATRequired(MIXERAT_REQUEST_LAND)){
+        needToCalculateCircularLoiter = false;
+    }
 
     /* WP turn smoothing with 2 options, 1: pass through WP, 2: cut inside turn missing WP
      * Works for turns > 30 degs and < 160 degs.
@@ -646,7 +651,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             isAutoThrottleManuallyIncreased = false;
         }
 
-        rcCommand[THROTTLE] = constrain(correctedThrottleValue, getThrottleIdleValue(), motorConfig()->maxthrottle);
+        rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
 #ifdef NAV_FIXED_WING_LANDING
@@ -661,7 +666,6 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
            (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
 
             // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
-            rcCommand[THROTTLE] = getThrottleIdleValue();
             ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
             // Stabilize ROLL axis on 0 degrees banking regardless of loiter radius and position
@@ -691,7 +695,7 @@ bool isFixedWingFlying(void)
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
-    return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;
+    return (isGPSHeadingValid() && throttleCondition && velCondition) || launchCondition;
 }
 
 /*-----------------------------------------------------------
@@ -761,7 +765,7 @@ bool isFixedWingLandingDetected(void)
  *-----------------------------------------------------------*/
 void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
 {
-    rcCommand[THROTTLE] = currentBatteryProfile->failsafe_throttle;
+    rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->failsafe_throttle, true);
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
         // target min descent rate 10m above takeoff altitude

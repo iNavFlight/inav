@@ -29,6 +29,7 @@ typedef struct controlRateConfig_s {
         uint8_t rcMid8;
         uint8_t rcExpo8;
         uint8_t dynPID;
+        bool dynPID_on_YAW;
         uint16_t pa_breakpoint;                // Breakpoint where TPA is activated
         uint16_t fixedWingTauMs;               // Time constant of airplane TPA PT1-filter
     } throttle;

@@ -31,7 +31,7 @@
 
 //#define ENABLE_DSHOT_DMAR       DSHOT_DMAR_AUTO
 //#define DSHOT_BITBANG_DEFAULT   DSHOT_BITBANG_AUTO
-//#define ENABLE_DSHOT
+#define ENABLE_DSHOT
 
 // *************** Gyro & ACC **********************
 #define USE_SPI
@@ -116,14 +116,12 @@
 #define MAX7456_CS_PIN          PA15
 #endif
 
-#if 0
 // I2C
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10        // SCL pad
 #define I2C2_SDA                PB11        // SDA pad
 #define USE_I2C_PULLUP
-#endif
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
@@ -179,7 +177,7 @@
 #define USE_LED_STRIP
 #define WS2811_PIN              PB6
 
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP )
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_LED_STRIP )
 #define DEFAULT_VOLTAGE_METER_SOURCE    VOLTAGE_METER_ADC
 #define DEFAULT_CURRENT_METER_SOURCE    CURRENT_METER_ADC
 
@@ -191,11 +189,13 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         BIT(2)
+#define TARGET_IO_PORTH         (BIT(1)|BIT(2)|BIT(3))
 
 
 #define MAX_PWM_OUTPUT_PORTS    8
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-//#define USE_DSHOT
-//#define USE_ESC_SENSOR
+#define USE_DSHOT
+#define USE_ESC_SENSOR
 #define USE_ESCSERIAL
+#define USE_RPM_FILTER
