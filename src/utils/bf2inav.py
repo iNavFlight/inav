@@ -7,6 +7,14 @@
 # The generated target will not include any servo assignments or fixed wing features.
 #
 # TODO: ADC DMA info
+# BF build API:
+# target lists
+# https://build.betaflight.com/api/targets
+# target release info:
+# https://build.betaflight.com/api/targets/{TARGET}
+# load target:
+# Unified targets are deprecated, replaced by https://github.com/betaflight/config
+
 
 import sys
 import os
