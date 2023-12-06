@@ -1,1 +1,1 @@
-target_stm32f411xe(MATEKF411TE)
+target_stm32f411xe(MATEKF411TE SKIP_RELEASES)
