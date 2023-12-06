@@ -2842,6 +2842,16 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 
 ---
 
+### nav_fw_alt_control_response
+
+Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 5 | 100 |
+
+---
+
 ### nav_fw_bank_angle
 
 Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll

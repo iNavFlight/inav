@@ -3064,8 +3064,7 @@ float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros)
     if (STATE(MULTIROTOR)) {
         targetVel = getSqrtControllerVelocity(targetAltitude, deltaMicros);
     } else {
-        // 0.2f relates to climb rate starting to reduce from maxClimbRate at a distance of 5 x maxClimbRate from targetAltitude
-        targetVel = 0.2f * targetAltitudeError;
+        targetVel = pidProfile()->fwAltControlResponseFactor * targetAltitudeError / 100.0f;
     }
 
     if (emergLandingIsActive && targetAltitudeError > -50) {
@@ -3077,8 +3076,7 @@ float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros)
 
 void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
 {
-    /* ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to 0 when reached.
-     * Rate reduction starts at distance from target altitude of 5 x climb rate for Fixed wing.
+    /* ROC_TO_ALT_TARGET - constant climb rate until close to target altitude then reducing down as altitude is reached.
      * Any non zero climb rate sets the max allowed climb rate. Default max climb rate limits are used when set to 0.
      *
      * ROC_TO_ALT_RESET - similar to ROC_TO_ALT_TARGET except target altitude set to current altitude.
