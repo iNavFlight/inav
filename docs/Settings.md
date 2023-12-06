@@ -3692,6 +3692,16 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 ---
 
+### nav_min_ground_speed
+
+Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | 6 | 50 |
+
+---
+
 ### nav_min_rth_distance
 
 Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase.

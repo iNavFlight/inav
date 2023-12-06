@@ -60,9 +60,8 @@
 #define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
 #define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
 
-// If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
+// If we are going slower than the minimum ground speed (navConfig()->general.min_ground_speed) - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
-#define NAV_FW_MIN_VEL_SPEED_BOOST              700.0f      // 7 m/s
 
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
@@ -552,10 +551,10 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
             previousTimePositionUpdate = currentTimeUs;
 
             if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-                float velThrottleBoost = (NAV_FW_MIN_VEL_SPEED_BOOST - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
+                float velThrottleBoost = ((navConfig()->general.min_ground_speed * 100.0f) - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
                 // If we are in the deadband of 50cm/s - don't update speed boost
-                if (fabsf(posControl.actualState.velXY - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
+                if (fabsf(posControl.actualState.velXY - (navConfig()->general.min_ground_speed * 100.0f)) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 
