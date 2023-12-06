@@ -25,7 +25,7 @@
 #include "drivers/bus.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM11,  CH1,  PB9,   TIM_USE_PPM,       0, 0 ),     // PPM IN
+    // DEF_TIM(TIM11,  CH1,  PB9,   TIM_USE_PPM,       0, 0 ),     // PPM IN
 
 #ifdef MAMBAF405US_I2C
     DEF_TIM(TIM1,   CH2,  PA9,   TIM_USE_OUTPUT_AUTO,  0, 1 ),     // S1 pin A9: DMA2 Stream 6 Channel 0

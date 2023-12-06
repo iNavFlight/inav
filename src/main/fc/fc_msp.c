@@ -462,9 +462,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU16(dst, packSensorStatus());
             sbufWriteU16(dst, averageSystemLoadPercent);
             sbufWriteU8(dst, (getConfigBatteryProfile() << 4) | getConfigProfile());
-            sbufWriteU8(dst, getConfigMixerProfile());
             sbufWriteU32(dst, armingFlags);
             sbufWriteData(dst, &mspBoxModeFlags, sizeof(mspBoxModeFlags));
+            sbufWriteU8(dst, getConfigMixerProfile());
         }
         break;
 
@@ -2581,6 +2581,29 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         if (sbufBytesRemaining(src) > 0) {
                             vtxSettingsConfigMutable()->lowPowerDisarm = sbufReadU8(src);
                         }
+
+                        // //////////////////////////////////////////////////////////
+                        // this code is taken from BF, it's hack for HDZERO VTX MSP frame
+                        // API version 1.42 - this parameter kept separate since clients may already be supplying
+                        if (sbufBytesRemaining(src) >= 2) {
+                            sbufReadU16(src); //skip pitModeFreq
+                        }
+
+                        // API version 1.42 - extensions for non-encoded versions of the band, channel or frequency
+                        if (sbufBytesRemaining(src) >= 4) {
+                            uint8_t newBand = sbufReadU8(src);
+                            const uint8_t newChannel = sbufReadU8(src);
+                            vtxSettingsConfigMutable()->band = newBand;
+                            vtxSettingsConfigMutable()->channel = newChannel;
+                        }
+
+                       /* if (sbufBytesRemaining(src) >= 4) {
+                            sbufRead8(src); // freq_l
+                            sbufRead8(src); // freq_h
+                            sbufRead8(src); // band count
+                            sbufRead8(src); // channel count
+                        }*/
+                        // //////////////////////////////////////////////////////////
                     }
                 }
             }

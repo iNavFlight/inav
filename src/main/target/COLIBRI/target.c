@@ -24,14 +24,14 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM1,  CH3, PA10, TIM_USE_PWM | TIM_USE_PPM, 0, 0), // S1_IN
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PWM,               0, 0), // S2_IN
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PWM,               0, 0), // S3_IN
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_PWM,               0, 0), // S4_IN
-    DEF_TIM(TIM2,  CH1, PA15, TIM_USE_PWM,               0, 0), // S5_IN
-    DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_PWM,               0, 0), // S6_IN
-    DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_PWM,               0, 0), // S7_IN
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_PWM,               0, 0), // S8_IN
+    // DEF_TIM(TIM1,  CH3, PA10, TIM_USE_PWM | TIM_USE_PPM, 0, 0), // S1_IN
+    // DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PWM,               0, 0), // S2_IN
+    // DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PWM,               0, 0), // S3_IN
+    // DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_PWM,               0, 0), // S4_IN
+    // DEF_TIM(TIM2,  CH1, PA15, TIM_USE_PWM,               0, 0), // S5_IN
+    // DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_PWM,               0, 0), // S6_IN
+    // DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_PWM,               0, 0), // S7_IN
+    // DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_PWM,               0, 0), // S8_IN
 
     DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_OUTPUT_AUTO,   0, 0), // S1_OUT
     DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,   0, 0), // S2_OUT

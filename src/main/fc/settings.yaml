@@ -588,7 +588,7 @@ groups:
     members:
       - name: pitot_hardware
         description: "Selection of pitot hardware."
-        default_value: "VIRTUAL"
+        default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
         min: 0
