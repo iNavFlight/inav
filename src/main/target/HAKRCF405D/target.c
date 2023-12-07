@@ -30,7 +30,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,  DEVHW_MPU6000, MPU6000_SPI_BUS,  MPU600
 
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM, 0, 0),  // PPM
+    // DEF_TIM(TIM5, CH4, PA3, TIM_USE_PPM, 0, 0),  // PPM
 
     DEF_TIM(TIM3, CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S1 
     DEF_TIM(TIM8, CH2, PC7,  TIM_USE_OUTPUT_AUTO, 0, 1),  // S2 
@@ -41,9 +41,9 @@ timerHardware_t timerHardware[] = {
     
     DEF_TIM(TIM4, CH1, PB8, TIM_USE_LED, 0, 0),  // LED STRIP(2,6)
     
-    DEF_TIM(TIM5, CH1, PA0, TIM_USE_PWM, 0, 0),  // PWM1
-    DEF_TIM(TIM5, CH2, PA1, TIM_USE_PWM, 0, 0),  // PWM2
-    DEF_TIM(TIM9, CH1, PA2, TIM_USE_PWM, 0, 0),  // PWM3
+    // DEF_TIM(TIM5, CH1, PA0, TIM_USE_PWM, 0, 0),  // PWM1
+    // DEF_TIM(TIM5, CH2, PA1, TIM_USE_PWM, 0, 0),  // PWM2
+    // DEF_TIM(TIM9, CH1, PA2, TIM_USE_PWM, 0, 0),  // PWM3
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

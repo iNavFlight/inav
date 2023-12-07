@@ -29,6 +29,9 @@
 #elif defined(KAKUTEF4V23)
 #   define TARGET_BOARD_IDENTIFIER "KT23"
 #   define USBD_PRODUCT_STRING "KakuteF4-V2.3"
+#elif defined(KAKUTEF4V24)
+#   define TARGET_BOARD_IDENTIFIER "KT24"
+#   define USBD_PRODUCT_STRING "KakuteF4-V2.4"
 #else
 #   define TARGET_BOARD_IDENTIFIER "KTV1"
 #   define USBD_PRODUCT_STRING "KakuteF4-V1"
@@ -37,7 +40,7 @@
 #define LED0                    PB5
 #define LED1                    PB4
 
-#if !defined(KAKUTEF4V23)
+#if defined(KAKUTEF4) || defined(KAKUTEF4V2) 
 #   define LED2                 PB6
 #endif
 
@@ -54,7 +57,7 @@
 #define MPU6000_CS_PIN          PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#if defined(KAKUTEF4V2) || defined(KAKUTEF4V23)
+#if defined(KAKUTEF4V2) || defined(KAKUTEF4V23) || defined(KAKUTEF4V24)
 #   define USE_I2C
 #   define USE_I2C_DEVICE_1
 #   define I2C1_SCL                PB8        // SCL pad
@@ -79,11 +82,12 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PB14
 
+#define USE_FLASHFS
+
+#define USE_FLASH_M25P16
 #define M25P16_CS_PIN           PB3
 #define M25P16_SPI_BUS          BUS_SPI3
-
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define USB_IO
 #define USE_VCP
@@ -105,7 +109,7 @@
 #define UART6_RX_PIN            PC7
 #define UART6_TX_PIN            PC6
 
-#if defined(KAKUTEF4V2) || defined(KAKUTEF4V23)
+#if defined(KAKUTEF4V2) || defined(KAKUTEF4V23) || defined(KAKUTEF4V24)
 #   define USE_UART4
 #   define UART4_RX_PIN            PA1
 #   define UART4_TX_PIN            PA0
@@ -153,7 +157,7 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_TELEMETRY | FEATURE_OSD)
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_TELEMETRY | FEATURE_OSD | FEATURE_BLACKBOX)
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 #define SERIALRX_UART           SERIAL_PORT_USART3
