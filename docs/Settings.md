@@ -2444,7 +2444,7 @@ This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK
 
 ### mc_cd_lpf_hz
 
-Cutoff frequency for Control Derivative. Lower value smoother reaction on fast stick movements. With higher values, response will be more aggressive, jerky
+Cutoff frequency for Control Derivative. This controls the cutoff for the LPF that is applied to the CD (Feed Forward) signal to the PID controller. Lower value will produce a smoother CD gain to the controller, but it will be more delayed. Higher values will produce CD gain that may have more noise in the signal depending on your RC link but wil be less delayed.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2454,7 +2454,7 @@ Cutoff frequency for Control Derivative. Lower value smoother reaction on fast s
 
 ### mc_cd_pitch
 
-Multicopter Control Derivative gain for PITCH
+Multicopter Control Derivative gain for PITCH (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2464,7 +2464,7 @@ Multicopter Control Derivative gain for PITCH
 
 ### mc_cd_roll
 
-Multicopter Control Derivative gain for ROLL
+Multicopter Control Derivative gain for ROLL (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2474,7 +2474,7 @@ Multicopter Control Derivative gain for ROLL
 
 ### mc_cd_yaw
 
-Multicopter Control Derivative gain for YAW
+Multicopter Control Derivative gain for YAW (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3689,6 +3689,16 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 | Default | Min | Max |
 | --- | --- | --- |
 | ON | OFF | ON |
+
+---
+
+### nav_min_ground_speed
+
+Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | 6 | 50 |
 
 ---
 
@@ -5058,7 +5068,7 @@ Selection of pitot hardware.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| VIRTUAL |  |  |
+| NONE |  |  |
 
 ---
 

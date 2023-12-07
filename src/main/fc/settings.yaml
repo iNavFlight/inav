@@ -588,7 +588,7 @@ groups:
     members:
       - name: pitot_hardware
         description: "Selection of pitot hardware."
-        default_value: "VIRTUAL"
+        default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
         min: 0
@@ -1730,7 +1730,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: mc_cd_pitch
-        description: "Multicopter Control Derivative gain for PITCH"
+        description: "Multicopter Control Derivative gain for PITCH (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
         default_value: 60
         field: bank_mc.pid[PID_PITCH].FF
         min: RPYL_PID_MIN
@@ -1754,7 +1754,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: mc_cd_roll
-        description: "Multicopter Control Derivative gain for ROLL"
+        description: "Multicopter Control Derivative gain for ROLL (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
         default_value: 60
         field: bank_mc.pid[PID_ROLL].FF
         min: RPYL_PID_MIN
@@ -1778,7 +1778,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: mc_cd_yaw
-        description: "Multicopter Control Derivative gain for YAW"
+        description: "Multicopter Control Derivative gain for YAW (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough."
         default_value: 60
         field: bank_mc.pid[PID_YAW].FF
         min: RPYL_PID_MIN
@@ -2195,7 +2195,7 @@ groups:
         table: pidTypeTable
         default_value: AUTO
       - name: mc_cd_lpf_hz
-        description: "Cutoff frequency for Control Derivative. Lower value smoother reaction on fast stick movements. With higher values, response will be more aggressive, jerky"
+        description: "Cutoff frequency for Control Derivative. This controls the cutoff for the LPF that is applied to the CD (Feed Forward) signal to the PID controller. Lower value will produce a smoother CD gain to the controller, but it will be more delayed. Higher values will produce CD gain that may have more noise in the signal depending on your RC link but wil be less delayed."
         default_value: 30
         field: controlDerivativeLpfHz
         min: 0
@@ -2486,6 +2486,12 @@ groups:
         field: general.auto_speed
         min: 10
         max: 2000
+      - name: nav_min_ground_speed
+        description: "Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s."
+        default_value: 7
+        field: general.min_ground_speed
+        min: 6
+        max: 50
       - name: nav_max_auto_speed
         description: "Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor only]"
         default_value: 1000
