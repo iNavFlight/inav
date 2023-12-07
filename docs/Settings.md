@@ -3832,6 +3832,16 @@ If set to ON, aircraft will execute initial climb regardless of position sensor 
 
 ---
 
+### nav_rth_fs_landing_delay
+
+If landing is active on Failsafe and this is above 0. The aircraft will hover or loiter for X seconds before performing the landing. If the battery enters the warning or critical levels, the land will proceed. Default = 0 [seconds]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 1800 |
+
+---
+
 ### nav_rth_home_altitude
 
 Aircraft will climb/descend to this altitude after reaching home if landing is not enabled. Set to 0 to stay at `nav_rth_altitude` (default) [cm]

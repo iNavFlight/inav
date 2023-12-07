@@ -2598,6 +2598,12 @@ groups:
         default_value: "ALWAYS"
         field: general.flags.rth_allow_landing
         table: nav_rth_allow_landing
+      - name: nav_rth_fs_landing_delay
+        description: "If landing is active on Failsafe and this is above 0. The aircraft will hover or loiter for X seconds before performing the landing. If the battery enters the warning or critical levels, the land will proceed. Default = 0 [seconds]"
+        default_value: 0
+        min: 0
+        max: 1800
+        field: general.rth_fs_landing_delay
       - name: nav_rth_alt_mode
         description: "Configure how the aircraft will manage altitude on the way home, see Navigation modes on wiki for more details"
         default_value: "AT_LEAST"
