@@ -208,6 +208,10 @@ typedef struct positionEstimationConfig_s {
     float baro_epv;     // Baro position error
 
     uint8_t use_gps_no_baro;
+
+#ifdef USE_GPS_FIX_ESTIMATION
+    uint8_t allow_gps_fix_estimation;
+#endif    
 } positionEstimationConfig_t;
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
