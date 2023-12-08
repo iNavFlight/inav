@@ -203,7 +203,6 @@ typedef struct positionEstimationConfig_s {
     float w_xy_res_v;
 
     float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
-    float w_xyz_acc_p;
 
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
@@ -601,7 +600,7 @@ bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
 bool navigationIsControllingAltitude(void);
-/* Returns true iff navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
+/* Returns true if navConfig()->general.flags.rth_allow_landing is NAV_RTH_ALLOW_LANDING_ALWAYS
  * or if it's NAV_RTH_ALLOW_LANDING_FAILSAFE and failsafe mode is active.
  */
 bool navigationRTHAllowsLanding(void);
@@ -634,6 +633,7 @@ void checkManualEmergencyLandingControl(bool forcedActivation);
 float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
 
 int8_t navCheckActiveAngleHoldAxis(void);
+uint8_t getActiveWpNumber(void);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles

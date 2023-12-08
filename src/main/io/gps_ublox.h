@@ -34,7 +34,9 @@ extern "C" {
 #define GPS_CAPA_INTERVAL                   5000
 
 #define UBX_DYNMODEL_PEDESTRIAN 3
+#define UBX_DYNMODEL_AUTOMOVITE 4
 #define UBX_DYNMODEL_AIR_1G     6
+#define UBX_DYNMODEL_AIR_2G     7
 #define UBX_DYNMODEL_AIR_4G     8
 
 #define UBX_FIXMODE_2D_ONLY 1

@@ -478,7 +478,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
             for (int i = 0; i < 3; i++) {
 #ifdef USE_MAG
-                sbufWriteU16(dst, mag.magADC[i]);
+                sbufWriteU16(dst, lrintf(mag.magADC[i]));
 #else
                 sbufWriteU16(dst, 0);
 #endif

@@ -76,7 +76,9 @@ typedef enum {
 
 typedef enum {
     GPS_DYNMODEL_PEDESTRIAN = 0,
+    GPS_DYNMODEL_AUTOMOTIVE,
     GPS_DYNMODEL_AIR_1G,
+    GPS_DYNMODEL_AIR_2G,
     GPS_DYNMODEL_AIR_4G,
 } gpsDynModel_e;
 
