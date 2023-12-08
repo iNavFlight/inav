@@ -132,7 +132,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 #endif
         .waypoint_load_on_boot = SETTING_NAV_WP_LOAD_ON_BOOT_DEFAULT,                           // load waypoints automatically during boot
         .auto_speed = SETTING_NAV_AUTO_SPEED_DEFAULT,                                           // speed in autonomous modes (3 m/s = 10.8 km/h)
-        .min_ground_speed = SETTING_NAV_MIN_GROUND_SPEED_DEFAULT,                               // Minimum ground speed (m/s) 
+        .min_ground_speed = SETTING_NAV_MIN_GROUND_SPEED_DEFAULT,                               // Minimum ground speed (m/s)
         .max_auto_speed = SETTING_NAV_MAX_AUTO_SPEED_DEFAULT,                                   // max allowed speed autonomous modes
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                             // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
@@ -1450,7 +1450,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
             setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 
             posControl.landingDelay = 0;
-            
+
             if (navConfig()->general.flags.rth_use_linear_descent && posControl.rthState.rthLinearDescentActive)
                 posControl.rthState.rthLinearDescentActive = false;
 
@@ -3840,7 +3840,6 @@ void checkManualEmergencyLandingControl(bool forcedActivation)
 
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 {
-    static bool canActivateWaypoint = false;
     static bool canActivateLaunchMode = false;
 
     //We can switch modes only when ARMED
@@ -3888,10 +3887,20 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         }
         posControl.rthSanityChecker.rthSanityOK = true;
 
-        // Keep canActivateWaypoint flag at FALSE if there is no mission loaded
-        // Also block WP mission if we are executing RTH
-        if (!isWaypointMissionValid() || isExecutingRTH) {
+        /* WP mission activation control:
+         * canActivateWaypoint & waypointWasActivated are used to prevent WP mission
+         * auto restarting after interruption by Manual or RTH modes.
+         * WP mode must be deselected before it can be reactivated again. */
+        static bool waypointWasActivated = false;
+        const bool isWpMissionLoaded = isWaypointMissionValid();
+        bool canActivateWaypoint = isWpMissionLoaded && !posControl.flags.wpMissionPlannerActive;  // Block activation if using WP Mission Planner
+
+        if (waypointWasActivated && !FLIGHT_MODE(NAV_WP_MODE)) {
             canActivateWaypoint = false;
+            if (!IS_RC_MODE_ACTIVE(BOXNAVWP)) {
+                canActivateWaypoint = true;
+                waypointWasActivated = false;
+            }
         }
 
         /* Airplane specific modes */
@@ -3927,22 +3936,20 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             }
         }
 
-        // Failsafe_RTH (can override MANUAL)
+        /* If we request forced RTH - attempt to activate it no matter what
+         * This might switch to emergency landing controller if GPS is unavailable */
         if (posControl.flags.forcedRTHActivated) {
-            // If we request forced RTH - attempt to activate it no matter what
-            // This might switch to emergency landing controller if GPS is unavailable
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
-        /* Pilot-triggered RTH (can override MANUAL), also fall-back for WP if there is no mission loaded
-         * Prevent MANUAL falling back to RTH if selected during active mission (canActivateWaypoint is set false on MANUAL selection)
-         * Also prevent WP falling back to RTH if WP mission planner is active */
-        const bool blockWPFallback = IS_RC_MODE_ACTIVE(BOXMANUAL) || posControl.flags.wpMissionPlannerActive;
-        if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || (IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint && !blockWPFallback)) {
+        /* Pilot-triggered RTH, also fall-back for WP if there is no mission loaded.
+         * WP prevented from falling back to RTH if WP mission planner is active */
+        const bool wpRthFallbackIsActive = IS_RC_MODE_ACTIVE(BOXNAVWP) && !isWpMissionLoaded && !posControl.flags.wpMissionPlannerActive;
+        if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || wpRthFallbackIsActive) {
             // Check for isExecutingRTH to prevent switching our from RTH in case of a brief GPS loss
-            // If don't keep this, loss of any of the canActivateNavigation && canActivateAltHold
+            // Without this loss of any of the canActivateNavigation && canActivateAltHold
             // will kick us out of RTH state machine via NAV_FSM_EVENT_SWITCH_TO_IDLE and will prevent any of the fall-back
-            // logic to kick in (waiting for GPS on airplanes, switch to emergency landing etc)
+            // logic kicking in (waiting for GPS on airplanes, switch to emergency landing etc)
             if (isExecutingRTH || (canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
                 return NAV_FSM_EVENT_SWITCH_TO_RTH;
             }
@@ -3950,24 +3957,20 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 
         // MANUAL mode has priority over WP/PH/AH
         if (IS_RC_MODE_ACTIVE(BOXMANUAL)) {
-            canActivateWaypoint = false;    // Block WP mode if we are in PASSTHROUGH mode
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
         }
 
-        // Pilot-activated waypoint mission. Fall-back to RTH in case of no mission loaded
-        // Block activation if using WP Mission Planner
-        // Also check multimission mission change status before activating WP mode
+        // Pilot-activated waypoint mission. Fall-back to RTH if no mission loaded.
+        // Also check multimission mission change status before activating WP mode.
 #ifdef USE_MULTI_MISSION
-        if (updateWpMissionChange() && IS_RC_MODE_ACTIVE(BOXNAVWP) && !posControl.flags.wpMissionPlannerActive) {
+        if (updateWpMissionChange() && IS_RC_MODE_ACTIVE(BOXNAVWP) && canActivateWaypoint) {
 #else
-        if (IS_RC_MODE_ACTIVE(BOXNAVWP) && !posControl.flags.wpMissionPlannerActive) {
+        if (IS_RC_MODE_ACTIVE(BOXNAVWP) && canActivateWaypoint) {
 #endif
-            if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateWaypoint && canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME)))
+            if (FLIGHT_MODE(NAV_WP_MODE) || (canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
+                waypointWasActivated = true;
                 return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT;
-        }
-        else {
-            // Arm the state variable if the WP BOX mode is not enabled
-            canActivateWaypoint = true;
+            }
         }
 
         if (IS_RC_MODE_ACTIVE(BOXNAVPOSHOLD)) {
@@ -3998,8 +4001,6 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
                 return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
         }
     } else {
-        canActivateWaypoint = false;
-
         // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
         canActivateLaunchMode = isNavLaunchEnabled() && (!sensors(SENSOR_GPS) || (sensors(SENSOR_GPS) && !isGPSHeadingValid()));
     }
