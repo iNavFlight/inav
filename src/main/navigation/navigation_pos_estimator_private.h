@@ -39,7 +39,6 @@
 
 #define INAV_POSITION_PUBLISH_RATE_HZ       50      // Publish position updates at this rate
 #define INAV_PITOT_UPDATE_RATE              10
-#define INAV_COG_UPDATE_RATE_HZ             20      // ground course update rate
 
 #define INAV_GPS_TIMEOUT_MS                 1500    // GPS timeout
 #define INAV_BARO_TIMEOUT_MS                200     // Baro timeout

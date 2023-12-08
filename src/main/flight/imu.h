@@ -54,6 +54,7 @@ typedef struct imuConfig_s {
     uint8_t acc_ignore_slope;
     uint8_t gps_yaw_windcomp;
     uint8_t inertia_comp_method;
+    uint16_t gps_yaw_weight;
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
