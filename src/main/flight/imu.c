@@ -323,7 +323,11 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 
 bool isGPSTrustworthy(void)
 {
-    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6;
+    return (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ;
 }
 
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)

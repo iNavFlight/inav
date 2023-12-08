@@ -124,7 +124,6 @@ typedef struct gpsSolutionData_s {
         bool gpsHeartbeat;  // Toggle each update
         bool validVelNE;
         bool validVelD;
-        bool validMag;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
         bool validTime;
     } flags;
@@ -133,7 +132,6 @@ typedef struct gpsSolutionData_s {
     uint8_t numSat;
 
     gpsLocation_t llh;
-    int16_t       magData[3];
     int16_t       velNED[3];
 
     int16_t groundSpeed;
