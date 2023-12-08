@@ -800,9 +800,15 @@ STATIC_PROTOTHREAD(gpsConfigure)
         case GPS_DYNMODEL_PEDESTRIAN:
             configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
             break;
-        case GPS_DYNMODEL_AIR_1G:   // Default to this
-        default:
+        case GPS_DYNMODEL_AUTOMOTIVE:
+            configureNAV5(UBX_DYNMODEL_AUTOMOVITE, UBX_FIXMODE_AUTO);
+            break;
+        case GPS_DYNMODEL_AIR_1G:
             configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
+            break;
+        case GPS_DYNMODEL_AIR_2G:   // Default to this
+        default:
+            configureNAV5(UBX_DYNMODEL_AIR_2G, UBX_FIXMODE_AUTO);
             break;
         case GPS_DYNMODEL_AIR_4G:
             configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
