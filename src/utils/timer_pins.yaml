@@ -307,6 +307,177 @@ STM32F405:
     - TIM8: CH2
   PI7:
     - TIM8: CH3
+STM32H743:
+  PA0:
+    - TIM2: CH1
+    - TIM5: CH1
+  PA1:
+    - TIM2: CH2
+    - TIM5: CH2
+    - TIM15: CH1N
+  PA2:
+    - TIM2: CH3
+    - TIM5: CH3
+    - TIM15: CH1
+  PA5:
+    - TIM2: CH1
+    - TIM8: CH1N
+  PA6:
+    - TIM3: CH1
+  PA7:
+    - TIM1: CH1N
+    - TIM3: CH2
+    - TIM8: CH1N
+  PA8:
+    - TIM1: CH1
+  PA9:
+    - TIM1: CH2
+  PA10:
+    - TIM1: CH3
+  PA11:
+    - TIM1: CH4
+  PA15:
+    - TIM2: CH1
+  PB0:
+    - TIM1: CH2N
+    - TIM3: CH3
+    - TIM8: CH2N
+  PB1:
+    - TIM1: CH3N
+    - TIM3: CH4
+    - TIM8: CH3N
+  PB3:
+    - TIM2: CH2
+  PB4:
+    - TIM3: CH1
+  PB5:
+    - TIM3: CH2
+  PB6:
+    - TIM16: CH1N
+    - TIM4: CH1
+  PB7:
+    - TIM17: CH1N
+    - TIM4: CH2
+  PB8:
+    - TIM16: CH1
+    - TIM4: CH3
+  PB9:
+    - TIM17: CH1
+    - TIM4: CH4
+  PB10:
+    - TIM2: CH3
+  PB11:
+    - TIM2: CH4
+  PB13:
+    - TIM1: CH1N
+  PB14:
+    - TIM1: CH2N
+    - TIM12: CH1
+    - TIM8: CH2N
+  PB15:
+    - TIM1: CH3N
+    - TIM12: CH2
+    - TIM8: CH3N
+  PC6:
+    - TIM3: CH1
+    - TIM8: CH1
+  PC7:
+    - TIM3: CH2
+    - TIM8: CH2
+  PC8:
+    - TIM3: CH3
+    - TIM8: CH3
+  PC9:
+    - TIM3: CH4
+    - TIM8: CH4
+  PD12:
+    - TIM4: CH1
+  PD13:
+    - TIM4: CH2
+  PD14:
+    - TIM4: CH3
+  PD15:
+    - TIM4: CH4
+  PE4:
+    - TIM15: CH1N
+  PE5:
+    - TIM15: CH1
+  PE6:
+    - TIM15: CH2
+  PE8:
+    - TIM1: CH1N
+  PE9:
+    - TIM1: CH1
+  PE10:
+    - TIM1: CH2N
+  PE11:
+    - TIM1: CH2
+  PE12:
+    - TIM1: CH3N
+  PE13:
+    - TIM1: CH3
+  PE14:
+    - TIM1: CH4
+  PF6:
+    - TIM16: CH1
+  PF7:
+    - TIM17: CH1
+  PF8:
+    - TIM16: CH1N
+  PF9:
+    - TIM17: CH1N
+  PH6:
+    - TIM12: CH1
+  PH9:
+    - TIM12: CH2
+  PH10:
+    - TIM5: CH1 
+  PH11:
+    - TIM5: CH2 
+  PH12:
+    - TIM5: CH3 
+  PH13:
+    - TIM8: CH1N
+  PH14:
+    - TIM8: CH2N
+  PH15:
+    - TIM8: CH3N
+  PI0:
+    - TIM5: CH4
+  PI2:
+    - TIM8: CH4
+  PI5:
+    - TIM8: CH1
+  PI6:
+    - TIM8: CH2
+  PI7:
+    - TIM8: CH3
+  PJ6:
+    - TIM8: CH2
+  PJ7:
+    - TIM8: CH2N
+  PJ8:
+    - TIM1: CH3N
+    - TIM8: CH1
+  PJ9:
+    - TIM1: CH3
+    - TIM8: CH1N
+  PJ10:
+    - TIM1: CH2N
+    - TIM8: CH2
+  PJ11:
+    - TIM1: CH2
+    - TIM8: CH2N
+  PK0:
+    - TIM1: CH1N
+    - TIM8: CH3
+  PK1:
+    - TIM1: CH1
+    - TIM8: CH3N
+
+
+
+
 
   
   
