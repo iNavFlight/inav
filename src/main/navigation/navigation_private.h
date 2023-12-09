@@ -34,12 +34,10 @@
 #define NAV_MC_RTH_CLIMB_MARGIN_PERCENT     15      // On high RTH altitudes use even bigger margin - percent of the altitude set
 #define NAV_MC_RTH_LAND_MARGIN_CM           2000    // Pause landing if this amount of cm *before* remaining to the home point (2D distance)
 #define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ    2.0f    // Low-Pass filter on throttle output in Alt-Hold
-#define NAV_MC_VEL_Z_DERIVATIVE_CUT_HZ      5.0f    // Low-Pass filter on velocity derivative controller in Alt-Hold
 #define NAV_MC_VEL_Z_ERROR_CUT_HZ           5.0f    // Low-Pass filter on velocity PID error in Alt-Hold
 #define NAV_MC_ACC_Z_ERROR_CUT_HZ           20.0f   // Low-Pass filter on acceleration PID error in Alt-Hold
-#define NAV_MC_ACC_Z_IMAX                   800     // Vertical acceleration controller integrator max gain
-#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.10f   // Integral relax time constant is used to decay the I term to 3% in half a second.
-#define NAV_MC_OVERSPEED_GAIN_Z             2.0f    // Gain controlling rate at which z-axis speed is brought back within _vel_max_down_cms and _vel_max_up_cms range
+#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.10f   // Acceleration PID Integral relax time constant is used to decay the I term to 3% in half a second
+#define NAV_MC_OVERSPEED_GAIN_Z             2.0f    // Gain controlling rate at which z-axis speed is brought back within velMaxDownCms and velMaxUpCms range
 #define NAV_MC_ACCELERATION_XY_MAX          980.0f  // cm/s/s
 #define NAV_MC_POS_CONTROL_JERK_LIMIT_CMSSS 1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
 #define NAV_MC_LAND_CHECK_VEL_XY_MOVING     100.0f  // cm/s
@@ -52,13 +50,13 @@
 #define NAV_FW_RTH_CLIMB_OVERSHOOT_CM   100
 #define NAV_FW_RTH_CLIMB_MARGIN_MIN_CM  100
 #define NAV_FW_RTH_CLIMB_MARGIN_PERCENT 15
-#define NAV_FW_MIN_TARGET_CLIMB_RATE    100.0f  // cm/s
+#define NAV_FW_MIN_TARGET_CLIMB_RATE    100.0f      // cm/s
 #define NAV_FW_CONTROL_MONITORING_RATE  2
 
-#define NAV_RTH_TRACKBACK_POINTS        50      // Max number RTH trackback points
+#define NAV_RTH_TRACKBACK_POINTS        50          // Max number RTH trackback points
 
-#define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(5) // Minimum position update rate at which XYZ controllers would be applied
-_Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
+#define MAX_POSITION_UPDATE_INTERVAL_US HZ2US(5)    // Minimum position update rate at which XYZ controllers would be applied
+_Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "max position xyz interval can overflow!");
 
 typedef enum {
     NAV_POS_UPDATE_NONE                 = 0,

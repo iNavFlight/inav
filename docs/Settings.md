@@ -2762,16 +2762,6 @@ Craft name
 
 ---
 
-### nav_auto_acceleration
-
-Maximum vertical acceleration during navigation modes. [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | 10 | 2000 |
-
----
-
 ### nav_auto_climb_rate
 
 Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
@@ -2799,6 +2789,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 | Default | Min | Max |
 | --- | --- | --- |
 | 300 | 10 | 2000 |
+
+---
+
+### nav_auto_z_acceleration
+
+Maximum vertical acceleration during automatic navigation modes. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -3382,16 +3382,6 @@ Allows immediate landing detection based on G bump at touchdown when set to ON. 
 
 ---
 
-### nav_manual_acceleration
-
-Maximum manual (pilot input) vertical acceleration in ALTHOLD control mode [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 200 | 10 | 2000 |
-
----
-
 ### nav_manual_climb_rate
 
 Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
@@ -3409,6 +3399,16 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 | Default | Min | Max |
 | --- | --- | --- |
 | 500 | 10 | 2000 |
+
+---
+
+### nav_manual_z_acceleration
+
+Maximum manual (pilot input) vertical acceleration in ALT-HOLD control mode [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 10 | 2000 |
 
 ---
 

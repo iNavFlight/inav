@@ -391,9 +391,13 @@ static float getPilotDesiredClimbRate(void)
 static void updateZController(void)
 {
     // Ignore the pilot input in WayPoint mode
-    if ((navGetCurrentStateFlags() & NAV_AUTO_WP)) {
+    if (!(navGetCurrentStateFlags() & NAV_AUTO_WP)) {
         setPosTargetZFromClimbRate(getPilotDesiredClimbRate(), posZDeltaTime);
     }
+
+    /**********************************************
+            Vertical Position Controller
+    **********************************************/
 
     // Calculate the target velocity correction
     velTarget.z = sqrtControllerApply(&pos_z_sqrt_controller, posControl.desiredState.pos.z, navGetCurrentActualPositionAndVelocity()->pos.z, SQRT_CONTROLLER_POSITION_Z, posZDeltaTime);
@@ -404,37 +408,38 @@ static void updateZController(void)
     // BlackBox log
     posControl.pids.pos[Z].output_constrained = velTarget.z;
 
-    /***********************
-    Velocity Controller
-    ***********************/
+    /**********************************************
+            Vertical Velocity Controller
+    **********************************************/
 
     // Calculate min and max throttle boundaries (to compensate for integral windup)
-    const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;
-    const int16_t thrCorrectionMax = motorConfig()->maxthrottle - currentBatteryProfile->nav.mc.hover_throttle;
+    const int16_t thrCorrectionMin = getThrottleIdleValue() - currentBatteryProfile->nav.mc.hover_throttle;     // Vertical acceleration controller integrator min gain
+    const int16_t thrCorrectionMax = motorConfig()->maxthrottle - currentBatteryProfile->nav.mc.hover_throttle; // Vertical acceleration controller integrator max gain
     accelTarget.z = navPidApply2(&posControl.pids.vel[Z], velTarget.z, navGetCurrentActualPositionAndVelocity()->vel.z, posZDeltaTime, thrCorrectionMin, thrCorrectionMax, 0);
     
     // Add feed forward component
     accelTarget.z += posControl.desiredState.accel.z;
 
-    /***********************
-    Acceleration Controller
-    ***********************/
+    /**********************************************
+            Vertical Acceleration Controller
+    **********************************************/
 
-    // Calculate vertical acceleration
-    float thr_out;
-    float correctionMax = NAV_MC_ACC_Z_IMAX;
+    // FALSE if disarmed, or in TakeOff with Alt-Hold on, or in Land detected or with RC Throttle < motorConfig()->mincommand 
+    // TRUE in normal flight
+    bool accLimit = true;
 
-    // Ensure imax is always large enough to overpower hover throttle
-    if (thrCorrectionMax > NAV_MC_ACC_Z_IMAX) {
-        correctionMax = thrCorrectionMax;
-    }
+    const pidControllerFlags_e accelFlags = accLimit ? PID_LIMIT_INTEGRATOR : PID_FREEZE_INTEGRATOR;
 
-    thr_out = navPidApply2(&posControl.pids.acceleration_z, accelTarget.z, posEstimator.imu.accelNEU.z, posZDeltaTime, thrCorrectionMin, correctionMax, PID_LIMIT_INTEGRATOR);
+    const float thr_out = navPidApply2(&posControl.pids.acceleration_z, accelTarget.z, posEstimator.imu.accelNEU.z, posZDeltaTime, thrCorrectionMin, thrCorrectionMax, accelFlags);
 
     int16_t rcThrottleCorrection = pt1FilterApply4(&posZThrottleFilterState, thr_out, NAV_THROTTLE_CUTOFF_FREQUENCY_HZ, posZDeltaTime);
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
-    // velMaxDownCms is checked to be non-zero when set
+    /**********************************************
+            Vertical Ratio Controller for Land
+    **********************************************/
+
+    // Don't worry about possible division by zero here! velMaxDownCms is checked to be non-zero when set.
     float error_ratio = posControl.pids.vel[Z].error / velMaxDownCms;
     velZControlRatio += posZDeltaTime * 0.1f * (0.5f - error_ratio);
     velZControlRatio = constrainf(velZControlRatio, 0.0f, 1.0f);
@@ -447,6 +452,15 @@ static void updateZController(void)
 
     posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(rcThrottleCorrection, false);
     
+    // Set vertical component of the limit vector
+    if (posControl.rcAdjustment[THROTTLE] > (motorConfig()->maxthrottle * 0.9f)) {
+        limitVector.z = 1.0f;
+    } else if (posControl.rcAdjustment[THROTTLE] < getThrottleIdleValue()) {
+        limitVector.z = -1.0f;
+    } else {
+        limitVector.z = 0.0f;
+    }
+
     // BlackBox log
     navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
 }
@@ -455,17 +469,17 @@ static void updateZController(void)
     Initialise the position controller to the current position and velocity with decaying acceleration.
     This function decays the output acceleration by 97% every half second to achieve a smooth transition to zero requested acceleration.
 */
-void relaxZController(void)
+static void relaxZController(void)
 {
     resetMulticopterAltitudeController();
 
-    // resetMulticopterAltitudeController has set the accel PID I term to generate the current throttle set point
-    // Use relax_integrator to decay the throttle set point to 1000us
+    // resetMulticopterAltitudeController has set the Accel PID I term to generate the current throttle set-point
+    // Use navPidRelaxIntegrator to decay the throttle set point to 1000us
     navPidRelaxIntegrator(&posControl.pids.acceleration_z, currentBatteryProfile->nav.mc.hover_throttle - 1000U, posZDeltaTime, NAV_MC_INTEGRAL_RELAX_TC_Z);
 }
 
 // To use with RangeFinder
-void setPosOffSetTargetZ(float pos_offset_target_z) 
+static void setPosOffSetTargetZ(float pos_offset_target_z) 
 {
     posOffSetTargetZ = pos_offset_target_z; 
 }
@@ -523,8 +537,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             // We have solid terrain sensor signal - directly map throttle to altitude
             posControl.desiredState.pos.z = navGetCurrentActualPositionAndVelocity()->pos.z;
             setPosOffSetTargetZ(altTarget);
-        }
-        else {
+        } else {
             multicopterLandRunVerticalControl(50.0f, 0.0f);
         }
 
@@ -576,9 +589,9 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.surface);
 
     if (FLIGHT_MODE(FAILSAFE_MODE) || navigationIsFlyingAutonomousMode() || navigationIsExecutingAnEmergencyLanding()) {
-        setMaxSpeedAccelZ(navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_acceleration);
+        setMaxSpeedAccelZ(navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_z_acceleration);
     } else {
-        setMaxSpeedAccelZ(navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_acceleration);
+        setMaxSpeedAccelZ(navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_z_acceleration);
     }
 
     sqrtControllerInit(&pos_z_sqrt_controller, posControl.pids.pos[Z].param.kP, velMaxDownCms, velMaxUpCms, accelMaxZCmss);
@@ -1077,7 +1090,6 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
         /* No position data, disable automatic adjustment, rcCommand passthrough */
         posControl.rcAdjustment[PITCH] = 0;
         posControl.rcAdjustment[ROLL] = 0;
-
         return;
     }
 

@@ -2496,10 +2496,10 @@ groups:
         field: general.max_auto_climb_rate
         min: 10
         max: 2000
-      - name: nav_auto_acceleration
-        description: "Maximum vertical acceleration during navigation modes. [cm/s]"
+      - name: nav_auto_z_acceleration
+        description: "Maximum vertical acceleration during automatic navigation modes. [cm/s]"
         default_value: 500
-        field: general.max_auto_acceleration
+        field: general.max_auto_z_acceleration
         min: 10
         max: 2000
       - name: nav_manual_speed
@@ -2514,10 +2514,10 @@ groups:
         field: general.max_manual_climb_rate
         min: 10
         max: 2000
-      - name: nav_manual_acceleration
-        description: "Maximum manual (pilot input) vertical acceleration in ALTHOLD control mode [cm/s]"
+      - name: nav_manual_z_acceleration
+        description: "Maximum manual (pilot input) vertical acceleration in ALT-HOLD control mode [cm/s]"
         default_value: 200
-        field: general.max_manual_acceleration
+        field: general.max_manual_z_acceleration
         min: 10
         max: 2000
       - name: nav_jerk_z
