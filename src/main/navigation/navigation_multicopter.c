@@ -240,7 +240,7 @@ void shapePosVelAccel(float pos_input, float vel_input, float accel_input,
         accel_tc_max = -0.5f * accel_min;
         KPv = 0.5f * jerk_max / (-accel_min);
     } else {
-        accel_tc_max = 0.5 * accel_max;
+        accel_tc_max = 0.5f * accel_max;
         KPv = 0.5f * jerk_max / accel_max;
     }
 
