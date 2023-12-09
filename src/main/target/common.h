@@ -56,6 +56,7 @@
 #define USE_GPS_PROTO_MSP
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
+#define USE_GPS_FIX_ESTIMATION
 
 // This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10
@@ -189,8 +190,8 @@
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
 #define USE_24CHANNELS
-#else
+#define MAX_MIXER_PROFILE_COUNT 2
+#elif !defined(STM32F7)
 #define MAX_MIXER_PROFILE_COUNT 1
 #endif
-
 #define USE_EZ_TUNE

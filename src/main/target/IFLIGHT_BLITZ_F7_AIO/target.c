@@ -30,7 +30,7 @@
 //BUSDEV_REGISTER_SPI_TAG(busdev_icm42605, DEVHW_ICM42605, ICM42605_SPI_BUS, ICM42605_CS_PIN, NONE, 0, DEVFLAGS_NONE, IMU_ICM42605_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM2, CH2, PB3, TIM_USE_PPM, 0, 0),                    // PPM
+    // DEF_TIM(TIM2, CH2, PB3, TIM_USE_PPM, 0, 0),                    // PPM
 
     DEF_TIM(TIM3, CH1, PB4, TIM_USE_MOTOR, 0, 0),                  // S1
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_MOTOR, 0, 0),                  // S2

@@ -35,7 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH1, PA15, TIM_USE_OUTPUT_AUTO, 0, 0), // S7  D(1,5,3) - clash with S2
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_ANY,   0, 0), //softserial_tx2 - 2812LED TIM_USE_LED   D(2,1,6)
-    DEF_TIM(TIM5, CH1, PA0,  TIM_USE_PPM,   0, 0), //use rssi pad for PPM/softserial_tx1
+    DEF_TIM(TIM5, CH1, PA0,  TIM_USE_ANY,   0, 0), //use rssi pad for PPM/softserial_tx1
 
     //DEF_TIM(TIM5, CH3, PA2,  TIM_USE_ANY,   0, 0), // TX2
 };

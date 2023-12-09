@@ -296,9 +296,9 @@ static void exchangeData(void)
     //rfValues.m_orientationQuaternion_W = getDoubleFromResponse(response, "m-orientationQuaternion-W");
     rfValues.m_aircraftPositionX_MTR = getDoubleFromResponse(response, "m-aircraftPositionX-MTR");
     rfValues.m_aircraftPositionY_MTR = getDoubleFromResponse(response, "m-aircraftPositionY-MTR");
-    //rfValues.m_velocityWorldU_MPS = getDoubleFromResponse(response, "m-velocityWorldU-MPS");
-    //rfValues.m_velocityWorldV_MPS = getDoubleFromResponse(response, "m-velocityWorldV-MPS");
-    //rfValues.m_velocityWorldW_MPS = getDoubleFromResponse(response, "m-velocityWorldW-MPS");
+    rfValues.m_velocityWorldU_MPS = getDoubleFromResponse(response, "m-velocityWorldU-MPS");
+    rfValues.m_velocityWorldV_MPS = getDoubleFromResponse(response, "m-velocityWorldV-MPS");
+    rfValues.m_velocityWorldW_MPS = getDoubleFromResponse(response, "m-velocityWorldW-MPS");
     //rfValues.m_velocityBodyU_MPS = getDoubleFromResponse(response, "m-velocityBodyU-MPS");
     //rfValues.m_velocityBodyV_MPS = getDoubleFromResponse(response, "mm-velocityBodyV-MPS");
     //rfValues.m_velocityBodyW_MPS = getDoubleFromResponse(response, "m-velocityBodyW-MPS");
@@ -332,7 +332,7 @@ static void exchangeData(void)
     float lat, lon;
     fakeCoords(FAKE_LAT, FAKE_LON, rfValues.m_aircraftPositionX_MTR, -rfValues.m_aircraftPositionY_MTR, &lat, &lon);
     
-    int16_t course = (int16_t)roundf(convertAzimuth(rfValues.m_azimuth_DEG) * 10);
+    int16_t course = (int16_t)roundf(RADIANS_TO_DECIDEGREES(atan2_approx(-rfValues.m_velocityWorldU_MPS,rfValues.m_velocityWorldV_MPS)));
     int32_t altitude = (int32_t)roundf(rfValues.m_altitudeASL_MTR * 100);
     gpsFakeSet(
         GPS_FIX_3D,
@@ -342,9 +342,9 @@ static void exchangeData(void)
         altitude,
         (int16_t)roundf(rfValues.m_groundspeed_MPS * 100),
         course,
-        0, 
-        0,
-        0,
+        0,//(int16_t)roundf(rfValues.m_velocityWorldV_MPS * 100), //not sure about the direction
+        0,//(int16_t)roundf(-rfValues.m_velocityWorldU_MPS * 100),
+        0,//(int16_t)roundf(rfValues.m_velocityWorldW_MPS * 100),
         0
     );
 
@@ -357,7 +357,7 @@ static void exchangeData(void)
 
     const int16_t roll_inav = (int16_t)roundf(rfValues.m_roll_DEG * 10);
     const int16_t pitch_inav = (int16_t)roundf(-rfValues.m_inclination_DEG * 10);
-    const int16_t yaw_inav = course;
+    const int16_t yaw_inav = (int16_t)roundf(convertAzimuth(rfValues.m_azimuth_DEG) * 10);
     if (!useImu) {
         imuSetAttitudeRPY(roll_inav, pitch_inav, yaw_inav);
         imuUpdateAttitude(micros());
@@ -399,9 +399,9 @@ static void exchangeData(void)
     computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
     transformVectorEarthToBody(&north, &quat);
     fakeMagSet(
-        constrainToInt16(north.x * 16000.0f),
-        constrainToInt16(north.y * 16000.0f),
-        constrainToInt16(north.z * 16000.0f)
+        constrainToInt16(north.x * 1024.0f),
+        constrainToInt16(north.y * 1024.0f),
+        constrainToInt16(north.z * 1024.0f)
     );
 
     free(rfValues.m_currentAircraftStatus);

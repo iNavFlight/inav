@@ -30,7 +30,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,
 BUSDEV_REGISTER_SPI_TAG(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      NONE,  0,   DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM1, CH3, PA10, TIM_USE_PPM, 0, 0),    //PPM
+    // DEF_TIM(TIM1, CH3, PA10, TIM_USE_PPM, 0, 0),    //PPM
 
     DEF_TIM(TIM3, CH1, PC6, TIM_USE_OUTPUT_AUTO, 0, 0),        // S1   D(2, 2, 7)
     DEF_TIM(TIM3, CH2, PC7, TIM_USE_OUTPUT_AUTO, 0, 0),        // S2   D(2, 3, 7)

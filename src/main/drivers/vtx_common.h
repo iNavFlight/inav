@@ -19,7 +19,6 @@
 
 #include "common/time.h"
 
-#define VTX_SETTINGS_NO_BAND        0 // used for custom frequency selection mode
 #define VTX_SETTINGS_MIN_BAND       1
 #define VTX_SETTINGS_MAX_BAND       5
 #define VTX_SETTINGS_MIN_CHANNEL    1
@@ -32,9 +31,6 @@
 #define VTX_SETTINGS_DEFAULT_CHANNEL            1
 #define VTX_SETTINGS_DEFAULT_PITMODE_CHANNEL    1
 #define VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM   0
-
-#define VTX_SETTINGS_MIN_FREQUENCY_MHZ 0             //min freq (in MHz) for 'vtx_freq' setting
-#define VTX_SETTINGS_MAX_FREQUENCY_MHZ 5999          //max freq (in MHz) for 'vtx_freq' setting
 
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
 

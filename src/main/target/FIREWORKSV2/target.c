@@ -44,7 +44,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_2_mpu6000,   DEVHW_MPU6000,  IMU_2_SPI_BUS,  IMU_
 BUSDEV_REGISTER_SPI_TAG(busdev_2_mpu6500,   DEVHW_MPU6500,  IMU_2_SPI_BUS,  IMU_2_CS_PIN,   NONE,   1,  DEVFLAGS_NONE,  IMU_2_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM, 0, 0), // PPM
+    // DEF_TIM(TIM10, CH1, PB8, TIM_USE_PPM, 0, 0), // PPM
 
     // Motor output 1: use different set of timers for MC and FW
     //DEF_TIM(TIM3, CH3, PB0, TIM_USE_MOTOR | TIM _USE_SERVO, 1, 0), // S1_OUT    D(1,7)

@@ -32,12 +32,13 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,               0, 0), // S6_OUT
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED | TIM_USE_ANY,                   0, 0), // LED D1_ST0, n/a on older AIRBOTF4
 
-    DEF_TIM(TIM12, CH1, PB14, TIM_USE_PWM | TIM_USE_PPM,                   0, 0), // PPM (5th pin on FlexiIO port)
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM,                                 0, 0), // S2_IN
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S3_IN
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S4_IN
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S5_IN
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S6_IN
+    //Airbot F4 don't have those outputs, they exist only in the original Revo
+    // DEF_TIM(TIM12, CH1, PB14, TIM_USE_PWM | TIM_USE_PPM,                   0, 0), // PPM (5th pin on FlexiIO port)
+    // DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM,                                 0, 0), // S2_IN
+    // DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S3_IN
+    // DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S4_IN
+    // DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S5_IN
+    // DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S6_IN
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

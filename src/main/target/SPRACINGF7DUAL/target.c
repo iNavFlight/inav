@@ -35,8 +35,8 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_2,     DEVHW_MPU6500,      MPU6500_2_SPI_
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
-    DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
+    // DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
+    // DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
 
 #if (SPRACINGF7DUAL_REV <= 1)
     DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MOTOR,               0, 0), // ESC 1
