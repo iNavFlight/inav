@@ -30,21 +30,21 @@
 #define NAV_DERIVATIVE_TERM_CUT_HZ          10.0f
 
 // Multirotors
-#define NAV_MC_RTH_CLIMB_OVERSHOOT_CM       100     // Target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
-#define NAV_MC_RTH_CLIMB_MARGIN_PERCENT     15      // On high RTH altitudes use even bigger margin - percent of the altitude set
-#define NAV_MC_RTH_LAND_MARGIN_CM           2000    // Pause landing if this amount of cm *before* remaining to the home point (2D distance)
-#define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ    2.0f    // Low-Pass filter on throttle output in Alt-Hold
-#define NAV_MC_VEL_Z_ERROR_CUT_HZ           5.0f    // Low-Pass filter on velocity PID error in Alt-Hold
-#define NAV_MC_ACC_Z_ERROR_CUT_HZ           20.0f   // Low-Pass filter on acceleration PID error in Alt-Hold
-#define NAV_MC_INTEGRAL_RELAX_TC_Z          0.10f   // Acceleration PID Integral relax time constant is used to decay the I term to 3% in half a second
-#define NAV_MC_OVERSPEED_GAIN_Z             2.0f    // Gain controlling rate at which z-axis speed is brought back within velMaxDownCms and velMaxUpCms range
-#define NAV_MC_ACCELERATION_XY_MAX          980.0f  // cm/s/s
-#define NAV_MC_POS_CONTROL_JERK_LIMIT_CMSSS 1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
-#define NAV_MC_LAND_CHECK_VEL_XY_MOVING     100.0f  // cm/s
-#define NAV_MC_LAND_CHECK_VEL_Z_MOVING      100.0f  // cm/s
-#define NAV_MC_LAND_THR_STABILISE_DELAY     1       // Seconds
-#define NAV_MC_LAND_DESCEND_THROTTLE        40      // RC pwm units (us)
-#define NAV_MC_LAND_SAFE_SURFACE            5.0f    // cm
+#define NAV_MC_RTH_CLIMB_OVERSHOOT_CM          100     // Target this amount of cm *above* the target altitude to ensure it is actually reached (Vz > 0 at target alt)
+#define NAV_MC_RTH_CLIMB_MARGIN_PERCENT        15      // On high RTH altitudes use even bigger margin - percent of the altitude set
+#define NAV_MC_RTH_LAND_MARGIN_CM              2000    // Pause landing if this amount of cm *before* remaining to the home point (2D distance)
+#define NAV_THROTTLE_CUTOFF_FREQUENCY_HZ       2.0f    // Low-Pass filter on throttle output in Alt-Hold
+#define NAV_MC_VEL_Z_ERROR_CUT_HZ              5.0f    // Low-Pass filter on velocity PID error in Alt-Hold
+#define NAV_MC_ACC_Z_ERROR_CUT_HZ              20.0f   // Low-Pass filter on acceleration PID error in Alt-Hold
+#define NAV_MC_INTEGRAL_RELAX_TC_Z             0.10f   // Acceleration PID Integral relax time constant is used to decay the I term to 3% in half a second
+#define NAV_MC_OVERSPEED_GAIN_Z                2.0f    // Gain controlling rate at which z-axis speed is brought back within velMaxDownCms and velMaxUpCms range
+#define NAV_MC_ACCELERATION_XY_MAX             980.0f  // cm/s/s
+#define NAV_MC_POS_CONTROL_XY_JERK_LIMIT_CMSSS 1700.0f // Jerk limit on horizontal acceleration (cm/s^3)
+#define NAV_MC_LAND_CHECK_VEL_XY_MOVING        100.0f  // cm/s
+#define NAV_MC_LAND_CHECK_VEL_Z_MOVING         100.0f  // cm/s
+#define NAV_MC_LAND_THR_STABILISE_DELAY        1       // Seconds
+#define NAV_MC_LAND_DESCEND_THROTTLE           40      // RC pwm units (us)
+#define NAV_MC_LAND_SAFE_SURFACE               5.0f    // cm
 
 // Planes
 #define NAV_FW_RTH_CLIMB_OVERSHOOT_CM   100

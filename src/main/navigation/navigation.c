@@ -3060,7 +3060,7 @@ bool isProbablyStillFlying(void)
 {
     bool inFlightSanityCheck;
     if (STATE(MULTIROTOR)) {
-        inFlightSanityCheck = posControl.actualState.velXY > MC_LAND_CHECK_VEL_XY_MOVING || averageAbsGyroRates() > 4.0f;
+        inFlightSanityCheck = posControl.actualState.velXY > NAV_MC_LAND_CHECK_VEL_XY_MOVING || averageAbsGyroRates() > 4.0f;
     } else {
         inFlightSanityCheck = isGPSHeadingValid();
     }
