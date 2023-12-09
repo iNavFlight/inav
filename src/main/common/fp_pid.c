@@ -109,7 +109,7 @@ float navPidApply3(
 
     /* Update I-term */
     if (!(pidFlags & PID_ZERO_INTEGRATOR) && !(pidFlags & PID_FREEZE_INTEGRATOR)) {
-        const float newIntegrator = pid->integrator + (error * pid->param.kI * gainScaler * dt) + (backCalc * pid->param.kT * dt);
+        const float newIntegrator = pid->integrator + (pid->error * pid->param.kI * gainScaler * dt) + (backCalc * pid->param.kT * dt);
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
             // Only allow integrator to shrink
