@@ -341,7 +341,7 @@ void setMaxSpeedAccelZ(float speed_down, float speed_up, float accel_cmss)
     jerkMaxZCmsss = navConfig()->general.shaping_jerk_z * 100.0f;
 
     if (posControl.pids.acceleration_z.errorLpfHz > 0.0f) {
-        jerkMaxZCmsss = MIN(jerkMaxZCmsss, MIN(GRAVITY_CMSS, accelMaxZCmss) * ((M_PI * 2.0f) * posControl.pids.acceleration_z.errorLpfHz) / 5.0f);
+        jerkMaxZCmsss = MIN(jerkMaxZCmsss, MIN(GRAVITY_CMSS, accelMaxZCmss) * ((M_PIf * 2.0f) * posControl.pids.acceleration_z.errorLpfHz) / 5.0f);
     }
 }
 
