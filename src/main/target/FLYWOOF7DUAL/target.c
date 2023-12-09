@@ -38,7 +38,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000_2,   DEVHW_MPU6000,  GYRO_2_SPI_BUS, GYRO
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500_2,   DEVHW_MPU6500,  GYRO_2_SPI_BUS, GYRO_2_CS_PIN,  NONE,    1,  DEVFLAGS_NONE,  GYRO_2_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS  
+    // DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS  
 
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S1 - D(1,2)
     DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO, 0, 0),      // S2 - D(1,4)

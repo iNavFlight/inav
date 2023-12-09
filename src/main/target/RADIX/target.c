@@ -25,7 +25,7 @@
 
 /* TIMERS */
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,      0, 0), // PPM In
+    // DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,      0, 0), // PPM In
     DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_OUTPUT_AUTO, 0, 0), // S1
     DEF_TIM(TIM5,  CH4, PA3,  TIM_USE_OUTPUT_AUTO, 0, 0), // S2
     DEF_TIM(TIM1,  CH3, PA10, TIM_USE_OUTPUT_AUTO, 0, 0), // S3
