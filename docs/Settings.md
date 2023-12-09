@@ -3464,7 +3464,7 @@ Max allowed above the ground altitude for terrain following mode
 
 ### nav_mc_acc_z_d
 
-D gain of multirotor acceleration PID controller
+Acceleration Z controller D gain. Compensates for short-term change in desired vertical acceleration vs actual acceleration
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3474,7 +3474,7 @@ D gain of multirotor acceleration PID controller
 
 ### nav_mc_acc_z_i
 
-I gain of multirotor acceleration PID controller
+Acceleration Z controller I gain. Corrects long-term difference in desired vertical acceleration and actual acceleration
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3484,7 +3484,7 @@ I gain of multirotor acceleration PID controller
 
 ### nav_mc_acc_z_p
 
-P gain of multirotor acceleration PID controller
+Acceleration Z controller P gain. Converts the difference between desired vertical acceleration and actual acceleration into a motor output
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3644,7 +3644,7 @@ Controls how fast the multirotor will fly towards the target position. This is a
 
 ### nav_mc_pos_z_p
 
-P gain of multirotor altitude controller
+Position Z controller P gain. Converts the difference between the desired altitude and actual altitude into a climb or descent rate which is passed to the throttle rate controller
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3734,7 +3734,7 @@ P gain of Position-Rate (Velocity to Acceleration) PID controller. Higher P mean
 
 ### nav_mc_vel_z_p
 
-P gain of multirotor velocity controller
+Velocity Z controller P gain. Converts the difference between desired vertical speed and actual speed into a desired acceleration that is passed to the throttle acceleration controller
 
 | Default | Min | Max |
 | --- | --- | --- |

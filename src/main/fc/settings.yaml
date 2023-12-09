@@ -2000,31 +2000,31 @@ groups:
         max: HEADING_HOLD_RATE_LIMIT_MAX
         default_value: 90
       - name: nav_mc_pos_z_p
-        description: "P gain of multirotor altitude controller"
+        description: "Position Z controller P gain. Converts the difference between the desired altitude and actual altitude into a climb or descent rate which is passed to the throttle rate controller"
         field: bank_mc.pid[PID_POS_Z].P
         min: 0
         max: 255
         default_value: 10
       - name: nav_mc_vel_z_p
-        description: "P gain of multirotor velocity controller"
+        description: "Velocity Z controller P gain. Converts the difference between desired vertical speed and actual speed into a desired acceleration that is passed to the throttle acceleration controller"
         field: bank_mc.pid[PID_VEL_Z].P
         min: 0
         max: 255
         default_value: 50
       - name: nav_mc_acc_z_p
-        description: "P gain of multirotor acceleration PID controller"
+        description: "Acceleration Z controller P gain. Converts the difference between desired vertical acceleration and actual acceleration into a motor output"
         field: bank_mc.pid[PID_ACC_Z].P
         min: 0
         max: 255
         default_value: 5
       - name: nav_mc_acc_z_i
-        description: "I gain of multirotor acceleration PID controller"
+        description: "Acceleration Z controller I gain. Corrects long-term difference in desired vertical acceleration and actual acceleration"
         field: bank_mc.pid[PID_ACC_Z].I
         min: 0
         max: 255
         default_value: 10
       - name: nav_mc_acc_z_d
-        description: "D gain of multirotor acceleration PID controller"
+        description: "Acceleration Z controller D gain. Compensates for short-term change in desired vertical acceleration vs actual acceleration"
         field: bank_mc.pid[PID_ACC_Z].D
         min: 0
         max: 255
