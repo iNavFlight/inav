@@ -512,19 +512,19 @@ def mcu2timerKey(mcu):
     
     m = re.search(r'^STM32F405', mcu)
     if m:
-        return 'AT32F435'
+        return 'STM32F405'
 
     m = re.search(r'^STM32F7[2X]2', mcu)
     if m:
-        return 'AT32F722'
+        return 'STM32F722'
 
     m = re.search(r'^STM32F745', mcu)
     if m:
-        return 'AT32F745'
+        return 'STM32F745'
 
     m = re.search(r'^STM32H743', mcu)
     if m:
-        return 'AT32F745'
+        return 'STM32H743'
 
     print ("Unsupported MCU: %s" % (mcu))
     sys.exit(-1)
@@ -614,10 +614,10 @@ def writeTargetC(folder, map):
                 print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
-                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 1))
                         first = False
                     else:
-                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
+                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 1))
                 file.write("\n")
 
     servos = findPinsByFunction("SERVO", map)
@@ -629,10 +629,10 @@ def writeTargetC(folder, map):
                 print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
-                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 1))
                         first = False
                     else:
-                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
+                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 1))
                 file.write("\n")
 
     beeper = findPinByFunction("BEEPER", map)
@@ -643,10 +643,10 @@ def writeTargetC(folder, map):
             print ("BEEPER: %s" % (timerInfo))
             for (t, ch) in timerInfo:
                 if first:
-                    file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
+                    file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 1))
                     first = False
                 else:
-                    file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
+                    file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 1))
             file.write("\n")
 
     led = findPinByFunction("LED_STRIP", map)
