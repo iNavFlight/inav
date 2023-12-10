@@ -522,15 +522,15 @@ def mcu2timerKey(mcu):
     if m:
         return 'STM32F405'
 
-    m = re.search(r'^STM32F7[2X]2', mcu)
+    m = re.search(r'^STM32F7[2Xx]2', mcu)
     if m:
         return 'STM32F722'
 
-    m = re.search(r'^STM32F745', mcu)
+    m = re.search(r'^STM32F7[Xx46]5', mcu)
     if m:
         return 'STM32F745'
 
-    m = re.search(r'^STM32H743', mcu)
+    m = re.search(r'^STM32H7[45]3', mcu)
     if m:
         return 'STM32H743'
 
