@@ -54,8 +54,16 @@ def mcu2target(mcu):
 #mcu STM32H743
     if mcu['type'] == 'STM32H743':
         return 'target_stm32h743xi'
+
+#mcu 'AT32F435G'
+    if mcu['type'] == 'AT32F435G':
+        return 'target_at32f43x_xGT7'
+
+#mcu 'AT32F435M'
+    if mcu['type'] == 'AT32F435M':
+        return 'target_at32f43x_xMT7'
     
-    print("Unknown MCU: %s" % (mcu))
+    print("Unknown MCU: %s!" % (mcu))
     sys.exit(-1)
 
 def getPortConfig(map):
@@ -116,6 +124,24 @@ def getPortConfig(map):
 #define TARGET_IO_PORTF         0xffff
 #define TARGET_IO_PORTG         0xffff
 """
+
+#mcu 'AT32F435G'
+    if mcu['type'] == 'AT32F435G':
+        return """#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTH         0xffff
+"""
+
+#mcu 'AT32F435M'
+    if mcu['type'] == 'AT32F435M':
+        return """#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTH         0xffff
+"""
     
     print("Unknown MCU: %s" % (mcu))
     sys.exit(-1)
@@ -132,18 +158,17 @@ def writeCmakeLists(outputFolder, map):
 
 def findPinsByFunction(function, map):
     result = []
-    for pin in map['pins']:
-        pattern = "^%s_" % (function)
-        if map['pins'][pin].get('function') and re.search(pattern, map['pins'][pin]['function']):
-            result.append(pin)
+    for func in map['funcs']:
+        pattern = "^%s" % (function)
+        if re.search(pattern, func):
+            result.append(map['funcs'][func])
     
     return result
 
 def findPinByFunction(function, map):
-    for pin in map['pins']:
-        if map['pins'][pin].get('function') and map['pins'][pin]['function'] == function:
-            return pin
-    
+    if function in map['funcs']:
+        return map['funcs'][function]
+
     return None
 
 
@@ -154,15 +179,16 @@ def getPwmOutputCount(map):
     return len(motors) + len(servos)
 
 def getGyroAlign(map):
-    bfalign = map['variables']['gyro_1_sensor_align']
-    m = re.search("^CW(\d+)(FLIP)?$", bfalign)
-    if m:
-        deg = m.group(1)
-        flip = m.group(2)
-        if flip:
-            return "CW%s_DEG_FLIP" % (deg)
-        else:
-            return "CW%s_DEG" % (deg)
+    bfalign = map['defines']['GYRO_1_ALIGN']
+    return bfalign
+    #m = re.search("^CW(\d+)(FLIP)?$", bfalign)
+    #if m:
+    #    deg = m.group(1)
+    #    flip = m.group(2)
+    #    if flip:
+    #        return "CW%s_DEG_FLIP" % (deg)
+    #    else:
+    #        return "CW%s_DEG" % (deg)
 
 def getSerialByFunction(map, function):
     for serial in map.get("serial"):
@@ -217,31 +243,38 @@ def writeTargetH(folder, map):
 
     # beeper
     file.write("// Beeper\n")
-    pin = findPinByFunction('BEEPER_1', map)
+    pin = findPinByFunction('BEEPER', map)
+    print ("BEEPER")
     if pin:
+        print ("BEEPER: %s" % (pin))
         file.write("#define USE_BEEPER\n")
         file.write("#define BEEPER %s\n" % (pin))
-        if map['variables'].get('beeper_inversion', 'OFF') == 'ON':
+        if 'BEEPER_INVERTED' in map['empty_defines']:
             file.write("#define BEEPER_INVERTED\n")
+            print ("INVERTED")
     
     # Leds
     file.write("// Leds\n")
-    pin = findPinByFunction('LED_STRIP_1', map)
+    pin = findPinByFunction('LED_STRIP', map)
+    print ("LED")
     if pin:
+        print ("LED: %s" % (pin))
         file.write('#define USE_LED_STRIP\n')
         file.write("#define WS2811_PIN %s\n" % (pin))
 
-    for i in range(1, 9):
-        pin = findPinByFunction("LED_%i" % (i), map)
+    for i in range(0, 9):
+        pin = findPinByFunction("LED%i" % (i), map)
         if pin:
-            file.write("#define LED%i %s\n" % (i-1, pin))
+            print ("LED%i: %s" % (i, pin))
+            file.write("#define LED%i %s\n" % (i, pin))
 
     # Serial ports and usb
+    print ("SERIAL")
     file.write("// UARTs\n")
     file.write("#define USB_IO\n")
     file.write("#define USB_VCP\n")
     serial_count = 0 
-    pin = findPinByFunction('USB_DETECT_1', map)
+    pin = findPinByFunction('USB_DETECT', map)
     if pin:
         file.write("#define USE_USB_DETECT\n")
         file.write("#define USB_DETECT_PIN %s\n" % (pin))
@@ -249,9 +282,10 @@ def writeTargetH(folder, map):
         serial_count += 1
  
     for i in range(1, 9):
-        txpin = findPinByFunction("SERIAL_TX_%i" % (i), map)
-        rxpin = findPinByFunction("SERIAL_RX_%i" % (i), map)
+        txpin = findPinByFunction("UART%i_TX" % (i), map)
+        rxpin = findPinByFunction("UART%i_RX" % (i), map)
         if txpin or rxpin:
+            print ("UART%s" % (i))
             file.write("#define USE_UART%i\n" % (i))
             serial_count+=1
         else:
@@ -265,11 +299,12 @@ def writeTargetH(folder, map):
             file.write("#define UART%i_TX_PIN %s\n" % (i, rxpin))
 
     # soft serial
-    for i in range(11, 19):
-        txpin = findPinByFunction("SERIAL_TX_%i" % (i), map)
-        rxpin = findPinByFunction("SERIAL_RX_%i" % (i), map)
-        idx = i - 10
+    for i in range(1, 9):
+        txpin = findPinByFunction("SOFTSERIAL%i_TX" % (i), map)
+        rxpin = findPinByFunction("SOFTSERIAL%i_RX" % (i), map)
+        idx = i
         if txpin != None or rxpin != None:
+            print ("SOFTUART%s" % (i))
             file.write("#define USE_SOFTSERIAL%i\n" % (idx))
             serial_count+=1
         else:
@@ -287,19 +322,22 @@ def writeTargetH(folder, map):
    
     file.write("#define SERIAL_PORT_COUNT %i\n" % (serial_count))
 
-    serial_rx = getSerialRx(map)
+    file.write("#define DEFAULT_RX_TYPE RX_TYPE_SERIAL\n")
+    file.write("#define SERIALRX_PROVIDER SERIALRX_CRSF\n")
+
+    # TODO: map default serial uart
+    #serial_rx = getSerialRx(map)
+    serial_rx = None
 
     if serial_rx != None:
-        file.write("#define DEFAULT_RX_TYPE RX_TYPE_SERIAL\n")
-        file.write("#define SERIALRX_PROVIDER SERIALRX_CRSF\n")
         file.write("#define SERIALRX_UART SERIAL_PORT_USART%s\n" % (serial_rx))
 
     file.write("// SPI\n")
     use_spi_defined = False
     for i in range(1, 9):
-        sckpin = findPinByFunction("SPI_SCK_%i" % (i), map)
-        misopin = findPinByFunction("SPI_MISO_%i" % (i), map)
-        mosipin = findPinByFunction("SPI_MOSI_%i" % (i), map)
+        sckpin = findPinByFunction("SPI%i_SCK" % (i), map)
+        misopin = findPinByFunction("SPI%i_SDO" % (i), map)
+        mosipin = findPinByFunction("SPI%i_SDI" % (i), map)
         if (sckpin or misopin or mosipin):
             if (not use_spi_defined):
                 use_spi_defined = True
@@ -316,10 +354,11 @@ def writeTargetH(folder, map):
     file.write("// I2C\n")
     use_i2c_defined = False
     for i in range(1, 9):
-        sclpin = findPinByFunction("I2C_SCL_%i" % (i), map)
-        sdapin = findPinByFunction("I2C_SDA_%i" % (i), map)
+        sclpin = findPinByFunction("I2C%i_SCL" % (i), map)
+        sdapin = findPinByFunction("I2C%i_SDA" % (i), map)
         if (sclpin or sdapin):
             if (not use_i2c_defined):
+                print ("I2C")
                 use_i2c_defined = True
                 file.write("#define USE_I2C\n")
             file.write("#define USE_I2C_DEVICE_%i\n" % (i))
@@ -328,26 +367,36 @@ def writeTargetH(folder, map):
             file.write("#define I2C%i_SCL %s\n" % (i, sclpin))
         if sdapin:
             file.write("#define I2C%i_SDA %s\n" % (i, sdapin))
+    
+    if 'MAG_I2C_INSTANCE' in map['defines']:
+        file.write("// MAG\n")
+        bfintance = map['defines']['MAG_I2C_INSTANCE']
+        file.write("#define USE_MAG\n")
+        file.write("#define USE_MAG_ALL\n")
+        # (I2CDEV_1)
+        m = re.search(r'^\s*#define\s+MAG_I2C_INSTANCE\s+\(?I2CDEV_(\d+)\)?\s*$')
+        if m:
+            file.write("#define MAG_I2C_BUS BUS_I2C%i" % (m.group(1)))
 
     file.write("// ADC\n")
 
 
     # ADC_BATT ch1
     use_adc = False
-    pin = findPinByFunction('ADC_BATT_1', map)
+    pin = findPinByFunction('ADC_VBAT', map)
     if pin:
         use_adc = True
         file.write("#define ADC_CHANNEL_1_PIN %s\n" % (pin))
         file.write("#define VBAT_ADC_CHANNEL ADC_CHN_1\n");
     
     # ADC_CURR ch2
-    pin = findPinByFunction('ADC_CURR_1', map)
+    pin = findPinByFunction('ADC_CURR', map)
     if pin:
         use_adc = True
         file.write("#define ADC_CHANNEL_2_PIN %s\n" % (pin))
         file.write("#define CURRENT_METER_ADC_CHANNEL ADC_CHN_2\n");
     # ADC_RSSI ch3
-    pin = findPinByFunction('ADC_RSSI_1', map)
+    pin = findPinByFunction('ADC_RSSI', map)
     if pin:
         use_adc = True
         file.write("#define ADC_CHANNEL_3_PIN %s\n" % (pin))
@@ -371,41 +420,58 @@ def writeTargetH(folder, map):
         found = False
         for var in ['USE_ACCGYRO_', 'USE_ACC_', 'USE_ACC_SPI', 'USE_GYRO_', 'USE_GYRO_SPI_']:
                 val = var + supportedgyro
-                if val in map['defines']:
+                if val in map['empty_defines']:
                     found = True
                     break
         
         if found:
+            print (supportedgyro)
             file.write("#define USE_IMU_%s\n" % (supportedgyro))
-            file.write("#define %s_CS_PIN       %s\n" % (supportedgyro, findPinByFunction('GYRO_CS_1', map)))
-            file.write("#define %s_SPI_BUS BUS_SPI%s\n" % (supportedgyro, map['variables']['gyro_1_spibus']))
+            file.write("#define %s_CS_PIN       %s\n" % (supportedgyro, findPinByFunction('GYRO_1_CS', map)))
+            file.write("#define %s_SPI_BUS BUS_%s\n" % (supportedgyro, map['defines']['GYRO_1_SPI_INSTANCE']))
             file.write("#define IMU_%s_ALIGN    %s\n" % (supportedgyro, getGyroAlign(map)))
 
 
+    # TODO: SPI BARO
+    if 'USE_BARO' in map['empty_defines']:
+        print ("BARO")
+        file.write("// BARO\n")
+        file.write("#define USE_BARO\n")
+        file.write("#define USE_BARO_ALL\n")
+        if 'BARO_I2C_INSTANCE' in map['defines']:
+            m = re.search('I2CDEV_(\d+)', map['defines']['BARO_I2C_INSTANCE'])
+            if m:
+                file.write("#define BARO_I2C_BUS BUS_I2C%s\n" % (m.group(1)))
+        if 'BARO_SPI_INSTANCE' in map['defines']:
+            file.write("#define USE_BARO_SPI_BMP280\n")
+            file.write("#define BMP280_SPI_BUS BUS_%s\n" % (map['defines']['BARO_SPI_INSTANCE']))
+            file.write("#define BMP280_CS_PIN %s\n" % (findPinByFunction('BARO_CS')))
+            file.write("#define BARO_SPI_BUS BUS_I2C%i\n" % (m.group(1)))
+
     # TODO
     file.write("// OSD\n")
-    osd_spi_bus = map['variables'].get('max7456_spi_bus')
-    if osd_spi_bus:
+    if 'USE_MAX7456' in map['empty_defines']:
+        print ("ANALOG OSD")
         file.write("#define USE_MAX7456\n")
-        pin = findPinByFunction('OSD_CS_1', map)
+        pin = findPinByFunction('MAX7456_SPI_CS', map)
         file.write("#define MAX7456_CS_PIN %s\n" % (pin))
-        file.write("#define MAX7456_SPI_BUS BUS_SPI%s\n" % (osd_spi_bus))
+        file.write("#define MAX7456_SPI_BUS BUS_%s\n" % (map['defines']['MAX7456_SPI_INSTANCE']))
     file.write("// Blackbox\n")
     # Flash:
-    spiflash_bus = map['variables'].get('flash_spi_bus')
-    if spiflash_bus:
-        for i in range(1, 9):
-            cs = findPinByFunction("FLASH_CS_%i" % (i), map)
-            if cs:
-                file.write("#define USE_FLASHFS\n")
-                file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT\n")
-                file.write("#define USE_FLASH_M25P16\n")
-                file.write("#define USE_FLASH_W25N01G\n")
-                file.write("#define M25P16_SPI_BUS BUS_SPI%s\n" % (spiflash_bus))
-                file.write("#define M25P16_CS_PIN %s\n" % (cs))
-                file.write("#define W25N01G_SPI_BUS BUS_SPI%s\n" % (spiflash_bus))
-                file.write("#define W25N01G_CS_PIN %s\n" % (cs))
-                break
+    if 'USE_FLASH' in map['empty_defines']:
+        print ("FLASH BLACKBOX")
+        cs = findPinByFunction("FLASH_CS", map)
+        spiflash_bus = map['defines'].get('FLASH_SPI_INSTANCE')
+        if cs:
+            # TODO: add more drivers
+            file.write("#define USE_FLASHFS\n")
+            file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT\n")
+            file.write("#define USE_FLASH_M25P16\n")
+            file.write("#define USE_FLASH_W25N01G\n")
+            file.write("#define M25P16_SPI_BUS BUS_%s\n" % (spiflash_bus))
+            file.write("#define M25P16_CS_PIN %s\n" % (cs))
+            file.write("#define W25N01G_SPI_BUS BUS_%s\n" % (spiflash_bus))
+            file.write("#define W25N01G_CS_PIN %s\n" % (cs))
 
     # SD Card:
     use_sdcard = False
@@ -421,14 +487,14 @@ def writeTargetH(folder, map):
             file.write("#define SDCARD_SDIO_4BIT\n")
             file.write("#define SDCARD_SDIO_DEVICE SDIODEV_%i\n" % (i))
 
-    file.write("\n// Otehrs\n\n")
+    file.write("\n// Others\n\n")
 
     pwm_outputs = getPwmOutputCount(map)
     file.write("#define MAX_PWM_OUTPUT_PORTS %i\n" % (pwm_outputs))
     file.write("#define USE_SERIAL_4WAY_BLHELI_INTERFACE\n")
 
-    file.write("#define USE_DSHOT\n");
-    file.write("#define USE_ESC_SENSOR\n");
+    file.write("#define USE_DSHOT\n")
+    file.write("#define USE_ESC_SENSOR\n")
 
     port_config = getPortConfig(map)
 
@@ -582,7 +648,7 @@ def writeTarget(outputFolder, map):
     return
 
 def buildMap(inputFile):
-    map = { 'defines': {}, 'use_defines': [], 'features': ['FEATURE_OSD', 'FEATURE_TELEMETRY', 'FEATURE_CURRENT_METER', 'FEATURE_VBAT', 'FEATURE_TX_PROF_SEL', 'FEATURE_BLACKBOX'], 'pins': {}, 'funcs': {}, 'timer_pin_map': {}}
+    map = { 'defines': {}, 'empty_defines': [], 'features': ['FEATURE_OSD', 'FEATURE_TELEMETRY', 'FEATURE_CURRENT_METER', 'FEATURE_VBAT', 'FEATURE_TX_PROF_SEL', 'FEATURE_BLACKBOX'], 'pins': {}, 'funcs': {}, 'timer_pin_map': {}}
 
     f = open(inputFile, 'r')
     while True:
@@ -601,9 +667,9 @@ def buildMap(inputFile):
         if m:
             map['manufacturer_id'] = m.group(1)
 
-        m = re.search(r'^#define\s+(USE_\w+)$', l)
+        m = re.search(r'^#define\s+(\w+)\s*$', l)
         if m:
-            map['use_defines'].append(m.group(1))
+            map['empty_defines'].append(m.group(1))
         
         m = re.search('^\s*#define\s+DEFAULT_FEATURES\s+\((.+?)\)\s*$', l)
         if m:
