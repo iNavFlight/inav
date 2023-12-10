@@ -353,13 +353,13 @@ def writeTargetH(folder, map):
         if mosipin:
             file.write("#define SPI%i_MOSI_PIN %s\n" % (i, mosipin))
 
-    file.write("// I2C\n")
     use_i2c_defined = False
     for i in range(1, 9):
         sclpin = findPinByFunction("I2C%i_SCL" % (i), map)
         sdapin = findPinByFunction("I2C%i_SDA" % (i), map)
         if (sclpin or sdapin):
             if (not use_i2c_defined):
+                file.write("// I2C\n")
                 print ("I2C")
                 use_i2c_defined = True
                 file.write("#define USE_I2C\n")
