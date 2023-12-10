@@ -4,16 +4,13 @@
 # This script can be used to Generate a basic working target from a Betaflight Configuration.
 # The idea is that this target can be used as a starting point for full INAV target.
 #
-# The generated target will not include any servo assignments or fixed wing features.
+# The generated target will often be enough to get INAV working, but may need some manual editing.
 #
-# TODO: ADC DMA info
-# BF build API:
-# target lists
-# https://build.betaflight.com/api/targets
-# target release info:
-# https://build.betaflight.com/api/targets/{TARGET}
-# load target:
-# Unified targets are deprecated, replaced by https://github.com/betaflight/config
+# Betaflight Configuration files are available at https://github.com/betaflight/config
+#
+# Common things to look for: target.c timer definitions. You may need to change timers around
+# to get all features working. The script will add commented out lines for all timer possibilites
+# for a given pin.
 
 
 import sys
@@ -162,7 +159,7 @@ def findPinsByFunction(function, map):
     for func in map['funcs']:
         pattern = "^%s" % (function)
         if re.search(pattern, func):
-            print ("%s: %s" % (function, func))
+            #print ("%s: %s" % (function, func))
             result.append(map['funcs'][func])
     
     return result
@@ -246,32 +243,32 @@ def writeTargetH(folder, map):
     # beeper
     file.write("// Beeper\n")
     pin = findPinByFunction('BEEPER', map)
-    print ("BEEPER")
+    #print ("BEEPER")
     if pin:
-        print ("BEEPER: %s" % (pin))
+        #print ("BEEPER: %s" % (pin))
         file.write("#define USE_BEEPER\n")
         file.write("#define BEEPER %s\n" % (pin))
         if 'BEEPER_INVERTED' in map['empty_defines']:
             file.write("#define BEEPER_INVERTED\n")
-            print ("INVERTED")
+            #print ("INVERTED")
     
     # Leds
     file.write("// Leds\n")
     pin = findPinByFunction('LED_STRIP', map)
-    print ("LED")
+    #print ("LED")
     if pin:
-        print ("LED: %s" % (pin))
+        #print ("LED: %s" % (pin))
         file.write('#define USE_LED_STRIP\n')
         file.write("#define WS2811_PIN %s\n" % (pin))
 
     for i in range(0, 9):
         pin = findPinByFunction("LED%i" % (i), map)
         if pin:
-            print ("LED%i: %s" % (i, pin))
+            #print ("LED%i: %s" % (i, pin))
             file.write("#define LED%i %s\n" % (i, pin))
 
     # Serial ports and usb
-    print ("SERIAL")
+    #print ("SERIAL")
     file.write("// UARTs\n")
     file.write("#define USB_IO\n")
     file.write("#define USE_VCP\n")
@@ -287,7 +284,7 @@ def writeTargetH(folder, map):
         txpin = findPinByFunction("UART%i_TX" % (i), map)
         rxpin = findPinByFunction("UART%i_RX" % (i), map)
         if txpin or rxpin:
-            print ("UART%s" % (i))
+            #print ("UART%s" % (i))
             file.write("#define USE_UART%i\n" % (i))
             serial_count+=1
         else:
@@ -306,7 +303,7 @@ def writeTargetH(folder, map):
         rxpin = findPinByFunction("SOFTSERIAL%i_RX" % (i), map)
         idx = i
         if txpin != None or rxpin != None:
-            print ("SOFTUART%s" % (i))
+            #print ("SOFTUART%s" % (i))
             file.write("#define USE_SOFTSERIAL%i\n" % (idx))
             serial_count+=1
         else:
@@ -360,7 +357,7 @@ def writeTargetH(folder, map):
         if (sclpin or sdapin):
             if (not use_i2c_defined):
                 file.write("// I2C\n")
-                print ("I2C")
+                #print ("I2C")
                 use_i2c_defined = True
                 file.write("#define USE_I2C\n")
             file.write("#define USE_I2C_DEVICE_%i\n" % (i))
@@ -427,7 +424,7 @@ def writeTargetH(folder, map):
                     break
         
         if found:
-            print (supportedgyro)
+            #print (supportedgyro)
             file.write("#define USE_IMU_%s\n" % (supportedgyro))
             file.write("#define %s_CS_PIN       %s\n" % (supportedgyro, findPinByFunction('GYRO_1_CS', map)))
             file.write("#define %s_SPI_BUS BUS_%s\n" % (supportedgyro, map['defines']['GYRO_1_SPI_INSTANCE']))
@@ -436,7 +433,7 @@ def writeTargetH(folder, map):
 
     # TODO: SPI BARO
     if 'USE_BARO' in map['empty_defines']:
-        print ("BARO")
+        #print ("BARO")
         file.write("// BARO\n")
         file.write("#define USE_BARO\n")
         file.write("#define USE_BARO_ALL\n")
@@ -452,7 +449,7 @@ def writeTargetH(folder, map):
     # TODO
     file.write("// OSD\n")
     if 'USE_MAX7456' in map['empty_defines']:
-        print ("ANALOG OSD")
+        #print ("ANALOG OSD")
         file.write("#define USE_MAX7456\n")
         pin = findPinByFunction('MAX7456_SPI_CS', map)
         file.write("#define MAX7456_CS_PIN %s\n" % (pin))
@@ -460,7 +457,7 @@ def writeTargetH(folder, map):
     file.write("// Blackbox\n")
     # Flash:
     if 'USE_FLASH' in map['empty_defines']:
-        print ("FLASH BLACKBOX")
+        #print ("FLASH BLACKBOX")
         cs = findPinByFunction("FLASH_CS", map)
         spiflash_bus = map['defines'].get('FLASH_SPI_INSTANCE')
         if cs:
@@ -622,7 +619,7 @@ def writeTargetC(folder, map):
             timerInfo = getTimerInfo(map, motor)
             if timerInfo:
                 first = True
-                print (timerInfo)
+                #print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
                         file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
@@ -637,7 +634,7 @@ def writeTargetC(folder, map):
             timerInfo = getTimerInfo(map, servo)
             if timerInfo:
                 first = True
-                print (timerInfo)
+                #print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
                         file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
@@ -651,7 +648,7 @@ def writeTargetC(folder, map):
         timerInfo = getTimerInfo(map, beeper)
         if timerInfo:
             first = True
-            print ("BEEPER: %s" % (timerInfo))
+            #print ("BEEPER: %s" % (timerInfo))
             for (t, ch) in timerInfo:
                 if first:
                     file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
@@ -665,7 +662,7 @@ def writeTargetC(folder, map):
         timerInfo = getTimerInfo(map, led)
         if timerInfo:
             first = True
-            print (timerInfo)
+            #print (timerInfo)
             for (t, ch) in timerInfo:
                 if first:
                     file.write("    DEF_TIM(%s, %s, %s, TIM_USE_LED, 0, %s),\n" % (t, ch, led, 0))
