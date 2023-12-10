@@ -24,6 +24,7 @@ import re
 import json
 import random
 import string
+import yaml
 
 version = '0.1'
 
@@ -161,6 +162,7 @@ def findPinsByFunction(function, map):
     for func in map['funcs']:
         pattern = "^%s" % (function)
         if re.search(pattern, func):
+            print ("%s: %s" % (function, func))
             result.append(map['funcs'][func])
     
     return result
@@ -503,6 +505,58 @@ def writeTargetH(folder, map):
     file.close()
     return
 
+
+def mcu2timerKey(mcu):
+    m = re.search(r'^AT32F435[GM]', mcu)
+    if m:
+        return 'AT32F435'
+    
+    m = re.search(r'^STM32F405', mcu)
+    if m:
+        return 'AT32F435'
+
+    m = re.search(r'^STM32F7[2X]2', mcu)
+    if m:
+        return 'AT32F722'
+
+    m = re.search(r'^STM32F745', mcu)
+    if m:
+        return 'AT32F745'
+
+    m = re.search(r'^STM32H743', mcu)
+    if m:
+        return 'AT32F745'
+
+    print ("Unsupported MCU: %s" % (mcu))
+    sys.exit(-1)
+
+
+def getTimerInfo(map, pin):
+    with open("timer_pins.yaml", "r") as f:
+        pindb = yaml.safe_load(f)
+        f.close()
+
+        mcu = map['mcu']['type']
+        tk = mcu2timerKey(mcu)
+
+        if not tk in pindb:
+            print ("PINDB not available for MCU: %s" % (mcu))
+            sys.exit(-1)
+
+        timers = pindb[tk].get(pin, None)
+
+        if timers:
+            result = []
+            for ti in timers:
+                timer = list(ti.keys())[0]
+                channel = ti[timer]
+
+                result.append([timer, channel])
+            
+            return result
+
+    return None
+
 def writeTargetC(folder, map):
     file = open(folder + '/target.c', "w+")
 
@@ -538,16 +592,16 @@ def writeTargetC(folder, map):
 
 """)
 
-    for supportedgyro in ['BMI160', 'BMI270', 'ICM20689', 'ICM42605', 'MPU6000', 'MPU6500', 'MPU9250']:
-        found = False
-        for var in ['USE_ACCGYRO_', 'USE_ACC_', 'USE_ACC_SPI', 'USE_GYRO_', 'USE_GYRO_SPI_']:
-                val = var + supportedgyro
-                if val in map['defines']:
-                    found = True
-                    break
+    #for supportedgyro in ['BMI160', 'BMI270', 'ICM20689', 'ICM42605', 'MPU6000', 'MPU6500', 'MPU9250']:
+    #    found = False
+    #    for var in ['USE_ACCGYRO_', 'USE_ACC_', 'USE_ACC_SPI', 'USE_GYRO_', 'USE_GYRO_SPI_']:
+    #            val = var + supportedgyro
+    #            if val in map['empty_defines']:
+    #                found = True
+    #                break
         
-        if found:
-            file.write("//BUSDEV_REGISTER_SPI_TAG(busdev_%s,  DEVHW_%s,  %s_SPI_BUS,   %s_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_%s_ALIGN);\n" % (supportedgyro.lower(), supportedgyro, supportedgyro, supportedgyro, supportedgyro))
+    #    if found:
+    #        file.write("//BUSDEV_REGISTER_SPI_TAG(busdev_%s,  DEVHW_%s,  %s_SPI_BUS,   %s_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_%s_ALIGN);\n" % (supportedgyro.lower(), supportedgyro, supportedgyro, supportedgyro, supportedgyro))
 
 
     file.write("\ntimerHardware_t timerHardware[] = {\n")
@@ -555,38 +609,62 @@ def writeTargetC(folder, map):
     motors = findPinsByFunction("MOTOR", map)
     if motors:
         for motor in motors:
-            timer = map['pins'][motor]['TIM']
-            channel = map['pins'][motor]['CH']
-            dma = map['dmas'].get(motor, {}).get("DMA", "0")
-            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (timer, channel, motor, dma))
+            timerInfo = getTimerInfo(map, motor)
+            if timerInfo:
+                first = True
+                print (timerInfo)
+                for (t, ch) in timerInfo:
+                    if first:
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
+                        first = False
+                    else:
+                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
+                file.write("\n")
 
     servos = findPinsByFunction("SERVO", map)
     if servos:
         for servo in servos:
-            timer = map['pins'][servo]['TIM']
-            channel = map['pins'][servo]['CH']
-            dma = map['dmas'].get(servo, {}).get("DMA", "0")
-            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (timer, channel, servo, dma))
+            timerInfo = getTimerInfo(map, servo)
+            if timerInfo:
+                first = True
+                print (timerInfo)
+                for (t, ch) in timerInfo:
+                    if first:
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
+                        first = False
+                    else:
+                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
+                file.write("\n")
 
-    beeper = findPinByFunction("BEEPER_1", map)
+    beeper = findPinByFunction("BEEPER", map)
     if beeper:
-        timer = map['pins'].get(beeper, {}).get('TIM')
-        channel = map['pins'].get(beeper, {}).get('CH')
-        dma = map['dmas'].get(beeper, {}).get("DMA", "0")
-        if timer and channel:
-            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (timer, channel, beeper, dma))
+        timerInfo = getTimerInfo(map, beeper)
+        if timerInfo:
+            first = True
+            print ("BEEPER: %s" % (timerInfo))
+            for (t, ch) in timerInfo:
+                if first:
+                    file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
+                    first = False
+                else:
+                    file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
+            file.write("\n")
 
-    led = findPinByFunction("LED_STRIP_1", map)
+    led = findPinByFunction("LED_STRIP", map)
     if led:
-        timer = map['pins'].get(led, {}).get('TIM')
-        channel = map['pins'].get(led, {}).get('CH')
-        dma = map['dmas'].get(led, {}).get("DMA", "0")
-        if timer and channel:
-            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_LED, 0, %s),\n" % (timer, channel, led, dma))
+        timerInfo = getTimerInfo(map, led)
+        if timerInfo:
+            first = True
+            print (timerInfo)
+            for (t, ch) in timerInfo:
+                if first:
+                    file.write("    DEF_TIM(%s, %s, %s, TIM_USE_LED, 0, %s),\n" % (t, ch, led, 0))
+                    first = False
+                else:
+                    file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_LED, 0, %s),\n" % (t, ch, led, 0))
+            file.write("\n")
 
-
-    file.write("""
-};
+    file.write("""};
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
 """)
