@@ -66,7 +66,10 @@ def getPortConfig(map):
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
-#define TARGET_IO_PORTD         (BIT(2))
+#define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTE         0xffff
+#define TARGET_IO_PORTF         0xffff
+
 """
 
 #mcu STM32F411
@@ -75,7 +78,9 @@ def getPortConfig(map):
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
-#define TARGET_IO_PORTD         (BIT(2))
+#define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTE         0xffff
+#define TARGET_IO_PORTF         0xffff
 """
     
 #mcu STM32F7X2
@@ -85,26 +90,31 @@ def getPortConfig(map):
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTE         0xffff
+#define TARGET_IO_PORTF         0xffff
 """
     
 #mcu STM32F745
     if mcu['type'] == 'STM32F745':
         return """
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC 0xffff
-#define TARGET_IO_PORTD 0xffff
-#define TARGET_IO_PORTE 0xffff
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTE         0xffff
+#define TARGET_IO_PORTF         0xffff
 """
 
 #mcu STM32H743
     if mcu['type'] == 'STM32H743':
         return """
-#define TARGET_IO_PORTA 0xffff
-#define TARGET_IO_PORTB 0xffff
-#define TARGET_IO_PORTC 0xffff
-#define TARGET_IO_PORTD 0xffff
-#define TARGET_IO_PORTE 0xffff
+#define TARGET_IO_PORTA         0xffff
+#define TARGET_IO_PORTB         0xffff
+#define TARGET_IO_PORTC         0xffff
+#define TARGET_IO_PORTD         0xffff
+#define TARGET_IO_PORTE         0xffff
+#define TARGET_IO_PORTF         0xffff
+#define TARGET_IO_PORTG         0xffff
 """
     
     print("Unknown MCU: %s" % (mcu))
@@ -482,7 +492,7 @@ def writeTargetC(folder, map):
             timer = map['pins'][motor]['TIM']
             channel = map['pins'][motor]['CH']
             dma = map['dmas'].get(motor, {}).get("DMA", "0")
-            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_MC_MOTOR, 0, %s),\n" % (timer, channel, motor, dma))
+            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (timer, channel, motor, dma))
 
     servos = findPinsByFunction("SERVO", map)
     if servos:
@@ -490,7 +500,7 @@ def writeTargetC(folder, map):
             timer = map['pins'][servo]['TIM']
             channel = map['pins'][servo]['CH']
             dma = map['dmas'].get(servo, {}).get("DMA", "0")
-            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_MC_SERVO, 0, %s),\n" % (timer, channel, servo, dma))
+            file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (timer, channel, servo, dma))
 
     beeper = findPinByFunction("BEEPER_1", map)
     if beeper:
@@ -572,148 +582,185 @@ def writeTarget(outputFolder, map):
     return
 
 def buildMap(inputFile):
-    map = { 'defines': [], 'features': [], 'pins': {}, 'dmas': {}, 'serial': {}, 'variables': {}}
+    map = { 'defines': {}, 'use_defines': [], 'features': ['FEATURE_OSD', 'FEATURE_TELEMETRY', 'FEATURE_CURRENT_METER', 'FEATURE_VBAT', 'FEATURE_TX_PROF_SEL', 'FEATURE_BLACKBOX'], 'pins': {}, 'funcs': {}, 'timer_pin_map': {}}
 
     f = open(inputFile, 'r')
     while True:
         l = f.readline()
         if not l:
             break
-        m = re.search(r'^#mcu\s+([0-9A-Za-z]+)$', l)
+        m = re.search(r'^#define\s+FC_TARGET_MCU\s+([0-9A-Za-z]+)$', l)
         if m:
             map['mcu'] = {'type': m.group(1)}
 
-        m = re.search(r'^#\s+Betaflight\s+/\s+(STM32\w+)\s+\(\w+\).+$', l)
-        if m:
-            map['mcu'] = {'type': m.group(1)}
-
-        m = re.search(r'^board_name\s+(\w+)$', l)
+        m = re.search(r'^#define\s+BOARD_NAME\s+(\w+)$', l)
         if m:
             map['board_name'] = m.group(1)
 
-        m = re.search(r'^manufacturer_id\s+(\w+)$', l)
+        m = re.search(r'^#define\s+MANUFACTURER_ID\s+(\w+)$', l)
         if m:
             map['manufacturer_id'] = m.group(1)
+
+        m = re.search(r'^#define\s+(USE_\w+)$', l)
+        if m:
+            map['use_defines'].append(m.group(1))
         
-        m = re.search(r'^#define\s+(\w+)$', l)
+        m = re.search('^\s*#define\s+DEFAULT_FEATURES\s+\((.+?)\)\s*$', l)
         if m:
-            map['defines'].append(m.group(1))
+            features = m.group(1).split('|')
+            for feat in features:
+                feat = feat.strip()
+                if not feat in map['features']:
+                    map['features'].append(feat)
 
-        m = re.search(r'^feature\s+(-?\w+)$', l)
+        m = re.search(r'^#define\s+(\w+)\s+(\S+)\s*$', l)
         if m:
-            map['features'].append(m.group(1))
+            map['defines'][m.group(1)] = m.group(2)
 
-        m = re.search(r'^resource\s+(-?\w+)\s+(\d+)\s+(\w+)$', l)
+
+
+        # i: timer index
+        # p: pin
+        # o: timer channel? 1 = first
+        # d: dma opts
+        #                i  p     o   d
+        # TIMER_PIN_MAP( 0, PB8 , 2, -1) \
+        m = re.search(r'^\s*TIMER_PIN_MAP\s*\(\s*(\d+)\s*,\s*([0-9A-Za-z]+)\s*,\s*(\d+)\s*,\s*(-?\d+)\s*\).+', l) 
         if m:
-            resource_type = m.group(1)
-            resource_index = m.group(2)
-            pin = translatePin(m.group(3))
-            if not map['pins'].get(pin):
-                map['pins'][pin] = {}
+            map['timer_pin_map'][m.group(1)] = {
+                'i': m.group(1),
+                'p': m.group(2),
+                'o': m.group(3),
+                'd': m.group(4)
+            }
 
-            map['pins'][pin]['function'] = translateFunctionName(resource_type, resource_index)
-
-        m = re.search(r'^timer\s+(\w+)\s+AF(\d+)$', l)
-        if m:
-            pin = translatePin(m.group(1))
-            if not map['pins'].get(pin):
-                map['pins'][pin] = {}
-            
-            map['pins'][pin]['AF'] = m.group(2)
-
-        m = re.search(r'^#\s*pin\s+(\w+):\s*(TIM\d+)\s+(CH\d+).+$', l)
-        if m:
-            pin = translatePin(m.group(1))
-            if not map['pins'].get(pin):
-                map['pins'][pin] = {}
-            
-            map['pins'][pin]['TIM'] = m.group(2)
-            map['pins'][pin]['CH'] = m.group(3)
         
-        m = re.search(r'^dma\s+([A-Za-z0-9]+)\s+([A-Za-z0-9]+)\s+(\d+).*$', l)
+        m = re.search('^\s*#define\s+(\w+)_PIN\s+([A-Z0-9]+)\s*$', l)
         if m:
+            pin = m.group(2)
+            func = m.group(1)
+            if not map['funcs'].get(func):
+                map['funcs'][func] = {}
 
-            if(m.group(1) == 'ADC'):
-                pin = 'ADC' + m.group(2)
-            else:
-                pin = translatePin(m.group(2))
-            if not map['dmas'].get(pin):
-                map['dmas'][pin] = {}
+            map['funcs'][func] = pin
+
+            if not map['pins'].get(pin):
+                map['pins'][pin] = {}
+
+            map['pins'][pin] = func
+
+
+        #m = re.search(r'^feature\s+(-?\w+)$', l)
+        #if m:
+        #    map['features'].append(m.group(1))
+
+        #m = re.search(r'^resource\s+(-?\w+)\s+(\d+)\s+(\w+)$', l)
+        #if m:
+        #    resource_type = m.group(1)
+        #    resource_index = m.group(2)
+        #    pin = translatePin(m.group(3))
+        #    if not map['pins'].get(pin):
+        #        map['pins'][pin] = {}
+
+        #    map['pins'][pin]['function'] = translateFunctionName(resource_type, resource_index)
+
+        #m = re.search(r'^timer\s+(\w+)\s+AF(\d+)$', l)
+        #if m:
+        #    pin = translatePin(m.group(1))
+        #    if not map['pins'].get(pin):
+        #        map['pins'][pin] = {}
+        #    
+        #    map['pins'][pin]['AF'] = m.group(2)
+
+        #m = re.search(r'^#\s*pin\s+(\w+):\s*(TIM\d+)\s+(CH\d+).+$', l)
+        #if m:
+        #    pin = translatePin(m.group(1))
+        #    if not map['pins'].get(pin):
+        #        map['pins'][pin] = {}
             
-            map['dmas'][pin]['DMA'] = m.group(3)
+        #    map['pins'][pin]['TIM'] = m.group(2)
+        #    map['pins'][pin]['CH'] = m.group(3)
+        
+        #m = re.search(r'^dma\s+([A-Za-z0-9]+)\s+([A-Za-z0-9]+)\s+(\d+).*$', l)
+        #if m:
+        #    if(m.group(1) == 'ADC'):
+        #        pin = 'ADC' + m.group(2)
+        #    else:
+        #        pin = translatePin(m.group(2))
+        #    if not map['dmas'].get(pin):
+        #        map['dmas'][pin] = {}
+        #    map['dmas'][pin]['DMA'] = m.group(3)
 
 #      1     2         3         4
 # pin B04: DMA1 Stream 4 Channel 5
     
-        m = re.search(r'^#\s+pin\s+(\w+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
-        if m:
-            pin = translatePin(m.group(1))
-            if not map['pins'].get(pin):
-                map['pins'][pin] = {}
+        #m = re.search(r'^#\s+pin\s+(\w+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
+        #if m:
+        #    pin = translatePin(m.group(1))
+        #    if not map['pins'].get(pin):
+        #        map['pins'][pin] = {}
             
-            map['pins'][pin]['DMA_STREAM'] = m.group(3)
-            map['pins'][pin]['DMA_CHANNEL'] = m.group(4)
+        #    map['pins'][pin]['DMA_STREAM'] = m.group(3)
+        #    map['pins'][pin]['DMA_CHANNEL'] = m.group(4)
         
-        m = re.search(r'^#\s+ADC\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
-        if m:
-            pin = 'ADC' + m.group(1)
-            if not map['dmas'].get(pin):
-                map['dmas'][pin] = {}
+        #m = re.search(r'^#\s+ADC\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
+        #if m:
+        #    pin = 'ADC' + m.group(1)
+        #    if not map['dmas'].get(pin):
+        #        map['dmas'][pin] = {}
             
-            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
-            map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
+        #    map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+        #    map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
 
-        m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
-        if m:
-            pin = 'TIMUP' + m.group(1)
-            if not map['dmas'].get(pin):
-                map['dmas'][pin] = {}
-            
-            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
-            map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
+        #m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
+        #if m:
+        #    pin = 'TIMUP' + m.group(1)
+        #    if not map['dmas'].get(pin):
+        #        map['dmas'][pin] = {}
+        #    map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+        #    map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
 
-        m = re.search(r'^#\s+ADC\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Request\s+(\d+)\s*$', l)
-        if m:
-            pin = 'ADC' + m.group(1)
-            if not map['dmas'].get(pin):
-                map['dmas'][pin] = {}
+        #m = re.search(r'^#\s+ADC\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Request\s+(\d+)\s*$', l)
+        #if m:
+        #    pin = 'ADC' + m.group(1)
+        #    if not map['dmas'].get(pin):
+        #        map['dmas'][pin] = {}
             
-            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
-            map['dmas'][pin]['DMA_REQUEST'] = m.group(4)
+        #    map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+        #    map['dmas'][pin]['DMA_REQUEST'] = m.group(4)
 
-        m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
-        if m:
-            pin = 'TIMUP' + m.group(1)
-            if not map['dmas'].get(pin):
-                map['dmas'][pin] = {}
+        #m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Channel\s+(\d+)\s*$', l)
+        #if m:
+        #    pin = 'TIMUP' + m.group(1)
+        #    if not map['dmas'].get(pin):
+        #        map['dmas'][pin] = {}
             
-            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
-            map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
+        #    map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+        #    map['dmas'][pin]['DMA_CHANNEL'] = m.group(4)
 
-        m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Request\s+(\d+)\s*$', l)
-        if m:
-            pin = 'TIMUP' + m.group(1)
-            if not map['dmas'].get(pin):
-                map['dmas'][pin] = {}
-            
-            map['dmas'][pin]['DMA_STREAM'] = m.group(3)
-            map['dmas'][pin]['DMA_REQUEST'] = m.group(4)
+        #m = re.search(r'^#\s+TIMUP\s+(\d+):\s+(DMA\d+)\s+Stream\s+(\d+)\s+Request\s+(\d+)\s*$', l)
+        #if m:
+        #    pin = 'TIMUP' + m.group(1)
+        #    if not map['dmas'].get(pin):
+        #        map['dmas'][pin] = {}
+        #    map['dmas'][pin]['DMA_STREAM'] = m.group(3)
+        #    map['dmas'][pin]['DMA_REQUEST'] = m.group(4)
  
-        m = re.search(r'^serial\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$', l)
-        if m:
-            idx = m.group(1)
-            if not map['serial'].get(idx):
-                map['serial'][idx] = {}
+        #m = re.search(r'^serial\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$', l)
+        #if m:
+        #    idx = m.group(1)
+        #    if not map['serial'].get(idx):
+        #        map['serial'][idx] = {}
             
-            map['serial'][idx]['FUNCTION'] = m.group(2)
-            map['serial'][idx]['MSP_BAUD'] = m.group(3)
-            map['serial'][idx]['GPS_BAUD'] = m.group(4)
-            map['serial'][idx]['TELEMETRY_BAUD'] = m.group(5)
-            map['serial'][idx]['BLACKBOX_BAUD'] = m.group(6)
+        #    map['serial'][idx]['FUNCTION'] = m.group(2)
+        #    map['serial'][idx]['MSP_BAUD'] = m.group(3)
+        #    map['serial'][idx]['GPS_BAUD'] = m.group(4)
+        #    map['serial'][idx]['TELEMETRY_BAUD'] = m.group(5)
+        #    map['serial'][idx]['BLACKBOX_BAUD'] = m.group(6)
 
-        m = re.search(r'^set\s+(\w+)\s*=\s*(\w+)$', l)
-        if m:
-            map['variables'][m.group(1)] = m.group(2)
+        #m = re.search(r'^set\s+(\w+)\s*=\s*(\w+)$', l)
+        #if m:
+        #    map['variables'][m.group(1)] = m.group(2)
  
 
     return map
