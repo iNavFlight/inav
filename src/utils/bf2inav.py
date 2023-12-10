@@ -372,11 +372,11 @@ def writeTargetH(folder, map):
     
     if 'MAG_I2C_INSTANCE' in map['defines']:
         file.write("// MAG\n")
-        bfintance = map['defines']['MAG_I2C_INSTANCE']
+        bfinstance = map['defines']['MAG_I2C_INSTANCE']
         file.write("#define USE_MAG\n")
         file.write("#define USE_MAG_ALL\n")
         # (I2CDEV_1)
-        m = re.search(r'^\s*#define\s+MAG_I2C_INSTANCE\s+\(?I2CDEV_(\d+)\)?\s*$')
+        m = re.search(r'^\s*#define\s+MAG_I2C_INSTANCE\s+\(?I2CDEV_(\d+)\)?\s*$', bfinstance)
         if m:
             file.write("#define MAG_I2C_BUS BUS_I2C%i" % (m.group(1)))
 
@@ -447,8 +447,7 @@ def writeTargetH(folder, map):
         if 'BARO_SPI_INSTANCE' in map['defines']:
             file.write("#define USE_BARO_SPI_BMP280\n")
             file.write("#define BMP280_SPI_BUS BUS_%s\n" % (map['defines']['BARO_SPI_INSTANCE']))
-            file.write("#define BMP280_CS_PIN %s\n" % (findPinByFunction('BARO_CS')))
-            file.write("#define BARO_SPI_BUS BUS_I2C%i\n" % (m.group(1)))
+            file.write("#define BMP280_CS_PIN %s\n" % (findPinByFunction('BARO_CS', map)))
 
     # TODO
     file.write("// OSD\n")
