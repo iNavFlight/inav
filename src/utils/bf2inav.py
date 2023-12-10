@@ -274,7 +274,7 @@ def writeTargetH(folder, map):
     print ("SERIAL")
     file.write("// UARTs\n")
     file.write("#define USB_IO\n")
-    file.write("#define USB_VCP\n")
+    file.write("#define USE_VCP\n")
     serial_count = 0 
     pin = findPinByFunction('USB_DETECT', map)
     if pin:
@@ -465,14 +465,19 @@ def writeTargetH(folder, map):
         spiflash_bus = map['defines'].get('FLASH_SPI_INSTANCE')
         if cs:
             # TODO: add more drivers
+            suppored_flash_chips = [
+                'M25P16',
+                'W25M',
+                'W25M02G',
+                'W25M512',
+                'W25N01G'
+            ]
             file.write("#define USE_FLASHFS\n")
             file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT\n")
-            file.write("#define USE_FLASH_M25P16\n")
-            file.write("#define USE_FLASH_W25N01G\n")
-            file.write("#define M25P16_SPI_BUS BUS_%s\n" % (spiflash_bus))
-            file.write("#define M25P16_CS_PIN %s\n" % (cs))
-            file.write("#define W25N01G_SPI_BUS BUS_%s\n" % (spiflash_bus))
-            file.write("#define W25N01G_CS_PIN %s\n" % (cs))
+            for flash in suppored_flash_chips:
+                file.write("#define USE_FLASH_%s\n" % (flash))
+                file.write("#define %s_SPI_BUS BUS_%s\n" % (flash, spiflash_bus))
+                file.write("#define %s_CS_PIN %s\n" % (flash, cs))
 
     # SD Card:
     use_sdcard = False
@@ -496,6 +501,12 @@ def writeTargetH(folder, map):
 
     file.write("#define USE_DSHOT\n")
     file.write("#define USE_ESC_SENSOR\n")
+
+    if 'DEFAULT_VOLTAGE_METER_SCALE' in map['defines']:
+        file.write("#define VOLTAGE_METER_SCALE %s\n" % (map['defines']['DEFAULT_VOLTAGE_METER_SCALE']))
+    if 'DEFAULT_CURRENT_METER_SCALE' in map['defines']:
+        file.write("#define CURRENT_METER_SCALE %s\n" % (map['defines']['DEFAULT_CURRENT_METER_SCALE']))
+
 
     port_config = getPortConfig(map)
 
@@ -614,10 +625,10 @@ def writeTargetC(folder, map):
                 print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
-                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 1))
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
                         first = False
                     else:
-                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 1))
+                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
                 file.write("\n")
 
     servos = findPinsByFunction("SERVO", map)
@@ -629,10 +640,10 @@ def writeTargetC(folder, map):
                 print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
-                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 1))
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
                         first = False
                     else:
-                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 1))
+                        file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
                 file.write("\n")
 
     beeper = findPinByFunction("BEEPER", map)
@@ -643,10 +654,10 @@ def writeTargetC(folder, map):
             print ("BEEPER: %s" % (timerInfo))
             for (t, ch) in timerInfo:
                 if first:
-                    file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 1))
+                    file.write("    DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
                     first = False
                 else:
-                    file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 1))
+                    file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_BEEPER, 0, %s),\n" % (t, ch, beeper, 0))
             file.write("\n")
 
     led = findPinByFunction("LED_STRIP", map)
