@@ -68,7 +68,7 @@ timerHardware_t timerHardware[] = {
 
 };
 ```
-In this particular example, PA3, PA2 were changed to match Betaflight's mapping, and the timer PB4 was disabled, due to a timer conflict. Normal channles are prefered over N channels (CH1, over CH1N) or C channels in AT32 architectures.
+In this particular example, PA3, PA2 were changed to match Betaflight's mapping, and the timer PB4 was disabled, due to a timer conflict. Normal channels are prefered over N channels (CH1, over CH1N) or C channels in AT32 architectures.
 7. Now update yout build scripts by running `cmake` and build the target you just created. The target name can be checked in the generated `CMakeLists.txt`, but should match the Betaflight target name.
 
 For information on how to build INAV, check the documents in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
