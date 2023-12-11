@@ -60,7 +60,7 @@ typedef enum {
 } navSetWaypointFlags_t;
 
 typedef enum {
-    ROC_TO_ALT_RESET,
+    ROC_TO_ALT_CURRENT,
     ROC_TO_ALT_CONSTANT,
     ROC_TO_ALT_TARGET
 } climbRateToAltitudeControllerMode_e;

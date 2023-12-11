@@ -123,7 +123,7 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingAltitude) {
-            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         }
         return false;
     }
