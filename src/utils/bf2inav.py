@@ -431,7 +431,6 @@ def writeTargetH(folder, map):
             file.write("#define IMU_%s_ALIGN    %s\n" % (supportedgyro, getGyroAlign(map)))
 
 
-    # TODO: SPI BARO
     if 'USE_BARO' in map['empty_defines']:
         #print ("BARO")
         file.write("// BARO\n")
@@ -446,7 +445,6 @@ def writeTargetH(folder, map):
             file.write("#define BMP280_SPI_BUS BUS_%s\n" % (map['defines']['BARO_SPI_INSTANCE']))
             file.write("#define BMP280_CS_PIN %s\n" % (findPinByFunction('BARO_CS', map)))
 
-    # TODO
     file.write("// OSD\n")
     if 'USE_MAX7456' in map['empty_defines']:
         #print ("ANALOG OSD")
@@ -455,6 +453,7 @@ def writeTargetH(folder, map):
         file.write("#define MAX7456_CS_PIN %s\n" % (pin))
         file.write("#define MAX7456_SPI_BUS BUS_%s\n" % (map['defines']['MAX7456_SPI_INSTANCE']))
     file.write("// Blackbox\n")
+
     # Flash:
     if 'USE_FLASH' in map['empty_defines']:
         #print ("FLASH BLACKBOX")
@@ -489,8 +488,20 @@ def writeTargetH(folder, map):
                 use_sdcard = True
             file.write("#define SDCARD_SDIO_4BIT\n")
             file.write("#define SDCARD_SDIO_DEVICE SDIODEV_%i\n" % (i))
+    
+    # PINIO
+    use_pinio = False
+    for i in range(1, 9):
+        pinio = findPinByFunction("PINIO%i" % (i), map)
+        if pinio != None:
+            if not use_pinio:
+                use_pinio = True
+                file.write("\n// PINIO\n\n")
+                file.write("#define USE_PINIO\n")
+                file.write("#define USE_PINIOBOX\n")
+            file.write("#define PINIO%i_PIN %s\n" % (i, pinio))
 
-    file.write("\n// Others\n\n")
+    file.write("\n\n// Others\n\n")
 
     pwm_outputs = getPwmOutputCount(map)
     file.write("#define MAX_PWM_OUTPUT_PORTS %i\n" % (pwm_outputs))
