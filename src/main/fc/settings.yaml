@@ -1185,6 +1185,11 @@ groups:
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
+      - name: tailsitter_orientation_offset
+        description: "Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode"
+        default_value: OFF
+        field: mixer_config.tailsitterOrientationOffset
+        type: bool
 
 
 

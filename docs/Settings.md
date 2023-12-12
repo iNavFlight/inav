@@ -5782,6 +5782,16 @@ Delay before disarming when requested by switch (ms) [0-1000]
 
 ---
 
+### tailsitter_orientation_offset
+
+Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### telemetry_halfduplex
 
 S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details

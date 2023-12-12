@@ -53,6 +53,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT,
                          .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
+                         .tailsitterOrientationOffset = SETTING_TAILSITTER_ORIENTATION_OFFSET_DEFAULT,
                      });
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++)
         {
