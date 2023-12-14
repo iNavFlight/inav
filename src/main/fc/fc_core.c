@@ -905,7 +905,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
 #if defined(SITL_BUILD)
-    if (lockMainPID()) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) || lockMainPID()) {
 #endif
 
     gyroFilter();
