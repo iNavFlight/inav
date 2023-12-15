@@ -3613,7 +3613,7 @@ groups:
         field: osd_switch_indicator3_name
         type: string
         max: 5
-        default_value: "LIGT"
+        default_value: "LIGHT"
 
       - name: osd_switch_indicator_zero_channel
         description: "RC Channel to use for OSD switch indicator 0."
