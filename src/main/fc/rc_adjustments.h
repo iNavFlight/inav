@@ -68,15 +68,15 @@ typedef enum {
     ADJUSTMENT_POS_XY_I                         = 40,
     ADJUSTMENT_POS_XY_D                         = 41,
     ADJUSTMENT_POS_Z_P                          = 42,
-    ADJUSTMENT_POS_Z_I                          = 43,
+    ADJUSTMENT_VEL_Z_P                          = 43,
     ADJUSTMENT_POS_Z_D                          = 44,
     ADJUSTMENT_HEADING_P                        = 45,
     ADJUSTMENT_VEL_XY_P                         = 46,
     ADJUSTMENT_VEL_XY_I                         = 47,
     ADJUSTMENT_VEL_XY_D                         = 48,
-    ADJUSTMENT_VEL_Z_P                          = 49,
-    ADJUSTMENT_VEL_Z_I                          = 50,
-    ADJUSTMENT_VEL_Z_D                          = 51,
+    ADJUSTMENT_ACCEL_Z_P                        = 49,
+    ADJUSTMENT_ACCEL_Z_I                        = 50,
+    ADJUSTMENT_ACCEL_Z_D                        = 51,
     ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE = 52,
     ADJUSTMENT_VTX_POWER_LEVEL                  = 53,
     ADJUSTMENT_TPA                              = 54,
@@ -85,6 +85,7 @@ typedef enum {
     ADJUSTMENT_FW_TPA_TIME_CONSTANT             = 57,
     ADJUSTMENT_FW_LEVEL_TRIM                    = 58,
     ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX       = 59,
+    ADJUSTMENT_POS_Z_I                          = 60,
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;
 

@@ -71,7 +71,7 @@ typedef enum {
     ROC_TO_ALT_RESET,
     ROC_TO_ALT_CONSTANT,
     ROC_TO_ALT_TARGET
-} climbRateToAltitudeControllerMode_e;
+} fw_climbRateToAltitudeControllerMode_e;
 
 typedef enum {
     EST_NONE = 0,       // No valid sensor present
@@ -480,7 +480,7 @@ flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state);
 
 void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
-void updateFixedWingClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode);
+void updateFixedWingClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, fw_climbRateToAltitudeControllerMode_e mode);
 
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);

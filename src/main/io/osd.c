@@ -2786,16 +2786,20 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayNavPIDValues(elemPosX, elemPosY, "PXY", PID_POS_XY, ADJUSTMENT_POS_XY_P, ADJUSTMENT_POS_XY_I, ADJUSTMENT_POS_XY_D);
         return true;
 
-    case OSD_POS_Z_PIDS:
-        osdDisplayNavPIDValues(elemPosX, elemPosY, "PZ", PID_POS_Z, ADJUSTMENT_POS_Z_P, ADJUSTMENT_POS_Z_I, ADJUSTMENT_POS_Z_D);
+    case OSD_POS_Z_P:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "PZ", 0, pidBank()->pid[PID_POS_Z].P, 3, 0, ADJUSTMENT_POS_Z_P);
+        return true;
+
+    case OSD_VEL_Z_P:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "VZ", 0, pidBank()->pid[PID_VEL_Z].P, 3, 0, ADJUSTMENT_VEL_Z_P);
         return true;
 
     case OSD_VEL_XY_PIDS:
         osdDisplayNavPIDValues(elemPosX, elemPosY, "VXY", PID_VEL_XY, ADJUSTMENT_VEL_XY_P, ADJUSTMENT_VEL_XY_I, ADJUSTMENT_VEL_XY_D);
         return true;
 
-    case OSD_VEL_Z_PIDS:
-        osdDisplayNavPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
+    case OSD_ACCEL_Z_PIDS:
+        osdDisplayNavPIDValues(elemPosX, elemPosY, "AZ", PID_ACC_Z, ADJUSTMENT_ACCEL_Z_P, ADJUSTMENT_ACCEL_Z_I, ADJUSTMENT_ACCEL_Z_D);
         return true;
 
     case OSD_HEADING_P:
@@ -2904,10 +2908,17 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_MC_VEL_Z_PID_OUTPUTS:
+    case OSD_MC_POS_XYZ_P_OUTPUTS:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            osdFormatPidControllerOutput(buff, "VZO", &nav_pids->vel[Z], 100, false); // display throttle adjustment µs
+            strcpy(buff, "POSO ");
+            // display requested velocity cm/s
+            tfp_sprintf(buff + 5, "%4d", (int)lrintf(nav_pids->pos[X].output_constrained * 100));
+            buff[9] = ' ';
+            tfp_sprintf(buff + 10, "%4d", (int)lrintf(nav_pids->pos[Y].output_constrained * 100));
+            buff[14] = ' ';
+            tfp_sprintf(buff + 15, "%4d", (int)lrintf(nav_pids->pos[Z].output_constrained * 100));
+            buff[19] = '\0';
             break;
         }
 
@@ -2925,17 +2936,22 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 
-    case OSD_MC_POS_XYZ_P_OUTPUTS:
+    case OSD_MC_VEL_Z_P_OUTPUT:
         {
             const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
-            strcpy(buff, "POSO ");
+            strcpy(buff, "VZO  ");
             // display requested velocity cm/s
-            tfp_sprintf(buff + 5, "%4d", (int)lrintf(nav_pids->pos[X].output_constrained * 100));
+            tfp_sprintf(buff + 5, "%4d", (int)lrintf(nav_pids->vel[Z].proportional * 100));
             buff[9] = ' ';
-            tfp_sprintf(buff + 10, "%4d", (int)lrintf(nav_pids->pos[Y].output_constrained * 100));
-            buff[14] = ' ';
-            tfp_sprintf(buff + 15, "%4d", (int)lrintf(nav_pids->pos[Z].output_constrained * 100));
-            buff[19] = '\0';
+            tfp_sprintf(buff + 10, "%4d", (int)lrintf(nav_pids->vel[Z].output_constrained * 100));
+            buff[14] = '\0';
+            break;
+        }
+
+    case OSD_MC_ACCEL_Z_PID_OUTPUTS:
+        {
+            const navigationPIDControllers_t *nav_pids = getNavigationPIDControllers();
+            osdFormatPidControllerOutput(buff, "AZO", &nav_pids->acceleration_z, 100, false);
             break;
         }
 
@@ -3943,9 +3959,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_YAW_PIDS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_LEVEL_PIDS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_POS_XY_PIDS] = OSD_POS(2, 12);
-    osdLayoutsConfig->item_pos[0][OSD_POS_Z_PIDS] = OSD_POS(2, 12);
+    osdLayoutsConfig->item_pos[0][OSD_POS_Z_P] = OSD_POS(2, 12);
+    osdLayoutsConfig->item_pos[0][OSD_VEL_Z_P] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_VEL_XY_PIDS] = OSD_POS(2, 12);
-    osdLayoutsConfig->item_pos[0][OSD_VEL_Z_PIDS] = OSD_POS(2, 12);
+    osdLayoutsConfig->item_pos[0][OSD_ACCEL_Z_PIDS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_HEADING_P] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_BOARD_ALIGN_ROLL] = OSD_POS(2, 10);
     osdLayoutsConfig->item_pos[0][OSD_BOARD_ALIGN_PITCH] = OSD_POS(2, 11);
@@ -3967,7 +3984,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_FW_POS_PID_OUTPUTS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_MC_VEL_X_PID_OUTPUTS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_MC_VEL_Y_PID_OUTPUTS] = OSD_POS(2, 12);
-    osdLayoutsConfig->item_pos[0][OSD_MC_VEL_Z_PID_OUTPUTS] = OSD_POS(2, 12);
+    osdLayoutsConfig->item_pos[0][OSD_MC_VEL_Z_P_OUTPUT] = OSD_POS(2, 12);
+    osdLayoutsConfig->item_pos[0][OSD_MC_ACCEL_Z_PID_OUTPUTS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_MC_POS_XYZ_P_OUTPUTS] = OSD_POS(2, 12);
 
     osdLayoutsConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);

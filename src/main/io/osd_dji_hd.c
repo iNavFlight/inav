@@ -938,6 +938,9 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
         case ADJUSTMENT_POS_Z_D:
             tfp_sprintf(buff, "PZD %3d", pidBankMutable()->pid[PID_POS_Z].D);
             break;
+        case ADJUSTMENT_VEL_Z_P:
+            tfp_sprintf(buff, "VZP %3d", pidBankMutable()->pid[PID_VEL_Z].P);
+            break;
         case ADJUSTMENT_HEADING_P:
             tfp_sprintf(buff, "HP %3d", pidBankMutable()->pid[PID_HEADING].P);
             break;
@@ -950,14 +953,14 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
         case ADJUSTMENT_VEL_XY_D:
             tfp_sprintf(buff, "VXYD %3d", pidBankMutable()->pid[PID_VEL_XY].D);
             break;
-        case ADJUSTMENT_VEL_Z_P:
-            tfp_sprintf(buff, "VZP %3d", pidBankMutable()->pid[PID_VEL_Z].P);
+        case ADJUSTMENT_ACCEL_Z_P:
+            tfp_sprintf(buff, "AZP %3d", pidBankMutable()->pid[PID_ACC_Z].P);
             break;
-        case ADJUSTMENT_VEL_Z_I:
-            tfp_sprintf(buff, "VZI %3d", pidBankMutable()->pid[PID_VEL_Z].I);
+        case ADJUSTMENT_ACCEL_Z_I:
+            tfp_sprintf(buff, "AZI %3d", pidBankMutable()->pid[PID_ACC_Z].I);
             break;
-        case ADJUSTMENT_VEL_Z_D:
-            tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
+        case ADJUSTMENT_ACCEL_Z_D:
+            tfp_sprintf(buff, "AZD %3d", pidBankMutable()->pid[PID_ACC_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);

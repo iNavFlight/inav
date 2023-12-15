@@ -243,6 +243,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
+        .adjustmentFunction = ADJUSTMENT_VEL_Z_P,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
+    }, {
         .adjustmentFunction = ADJUSTMENT_HEADING_P,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
@@ -259,15 +263,15 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
-        .adjustmentFunction = ADJUSTMENT_VEL_Z_P,
+        .adjustmentFunction = ADJUSTMENT_ACCEL_Z_P,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
-        .adjustmentFunction = ADJUSTMENT_VEL_Z_I,
+        .adjustmentFunction = ADJUSTMENT_ACCEL_Z_I,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
-        .adjustmentFunction = ADJUSTMENT_VEL_Z_D,
+        .adjustmentFunction = ADJUSTMENT_ACCEL_Z_D,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
     }, {
@@ -545,6 +549,10 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentPID(ADJUSTMENT_POS_Z_D, &pidBankMutable()->pid[PID_POS_Z].D, delta);
             navigationUsePIDs();
             break;
+        case ADJUSTMENT_VEL_Z_P:
+            applyAdjustmentPID(ADJUSTMENT_VEL_Z_P, &pidBankMutable()->pid[PID_VEL_Z].P, delta);
+            navigationUsePIDs();
+            break;
         case ADJUSTMENT_HEADING_P:
             applyAdjustmentPID(ADJUSTMENT_HEADING_P, &pidBankMutable()->pid[PID_HEADING].P, delta);
             // TODO: navigationUsePIDs()?
@@ -561,16 +569,16 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentPID(ADJUSTMENT_VEL_XY_D, &pidBankMutable()->pid[PID_VEL_XY].D, delta);
             navigationUsePIDs();
             break;
-        case ADJUSTMENT_VEL_Z_P:
-            applyAdjustmentPID(ADJUSTMENT_VEL_Z_P, &pidBankMutable()->pid[PID_VEL_Z].P, delta);
+        case ADJUSTMENT_ACCEL_Z_P:
+            applyAdjustmentPID(ADJUSTMENT_ACCEL_Z_P, &pidBankMutable()->pid[PID_ACC_Z].P, delta);
             navigationUsePIDs();
             break;
-        case ADJUSTMENT_VEL_Z_I:
-            applyAdjustmentPID(ADJUSTMENT_VEL_Z_I, &pidBankMutable()->pid[PID_VEL_Z].I, delta);
+        case ADJUSTMENT_ACCEL_Z_I:
+            applyAdjustmentPID(ADJUSTMENT_ACCEL_Z_I, &pidBankMutable()->pid[PID_ACC_Z].I, delta);
             navigationUsePIDs();
             break;
-        case ADJUSTMENT_VEL_Z_D:
-            applyAdjustmentPID(ADJUSTMENT_VEL_Z_D, &pidBankMutable()->pid[PID_VEL_Z].D, delta);
+        case ADJUSTMENT_ACCEL_Z_D:
+            applyAdjustmentPID(ADJUSTMENT_ACCEL_Z_D, &pidBankMutable()->pid[PID_ACC_Z].D, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:

@@ -112,7 +112,7 @@ void resetFixedWingAltitudeController(void)
 /*-----------------------------------------------------------
  * Z-position controller
  *-----------------------------------------------------------*/
-void updateFixedWingClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
+void updateFixedWingClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, fw_climbRateToAltitudeControllerMode_e mode)
 {
     static timeUs_t lastUpdateTimeUs;
     const timeUs_t currentTimeUs = micros();
