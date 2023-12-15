@@ -3685,7 +3685,7 @@ void osdDrawNextElement(void)
         elementIndex = osdIncElementIndex(elementIndex);
     } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
-    // Draw artificial horizon + tracking telemtry last
+    // Draw artificial horizon + tracking telemetry last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
     if (osdConfig()->telemetry>0){
         osdDisplayTelemetry();

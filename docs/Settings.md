@@ -4828,7 +4828,7 @@ Character to use for OSD switch incicator 3.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| LIGHT |  | 5 |
+| LIGT |  | 5 |
 
 ---
 
