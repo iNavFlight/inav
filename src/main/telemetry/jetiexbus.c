@@ -575,7 +575,11 @@ uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
         createExBusMessage(jetiExBusTelemetryFrame, jetiExTelemetryFrame, packetID);
 
         if (!allSensorsActive) {
-            if (sensors(SENSOR_GPS)) {
+            if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+            ) {
                 enableGpsTelemetry(true);
                 allSensorsActive = true;
             }

@@ -24,8 +24,6 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM2, CH3, PB10, TIM_USE_PPM,  0, 0),   //PPM
-    DEF_TIM(TIM2, CH1, PA0,  TIM_USE_LED,  0, 0), //2812LED
 
     DEF_TIM(TIM5, CH2, PA1,  TIM_USE_OUTPUT_AUTO,  0, 0), // S1_OUT
     DEF_TIM(TIM1, CH1N, PA7, TIM_USE_OUTPUT_AUTO,  0, 0), // S2_OUT
@@ -34,6 +32,9 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM9, CH1, PA2,  TIM_USE_ANY,  0, 0), //UART2 TX
     DEF_TIM(TIM9, CH2, PA3,  TIM_USE_ANY,  0, 0), //UART2 RX
+
+    // DEF_TIM(TIM2, CH3, PB10, TIM_USE_PPM,  0, 0),   //PPM
+    DEF_TIM(TIM2, CH1, PA0,  TIM_USE_LED,  0, 0), //2812LED
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

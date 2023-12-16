@@ -303,7 +303,11 @@ bool srxlFrameGpsLoc(sbuf_t *dst, timeUs_t currentTimeUs)
     uint16_t altitudeLoBcd, groundCourseBcd, hdop;
     uint8_t hdopBcd, gpsFlags;
 
-    if (!feature(FEATURE_GPS) || !STATE(GPS_FIX) || gpsSol.numSat < 6) {
+    if (!feature(FEATURE_GPS) || !(STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) || gpsSol.numSat < 6) {
         return false;
     }
 
@@ -371,7 +375,11 @@ bool srxlFrameGpsStat(sbuf_t *dst, timeUs_t currentTimeUs)
     uint8_t numSatBcd, altitudeHighBcd;
     bool timeProvided = false;
 
-    if (!feature(FEATURE_GPS) || !STATE(GPS_FIX) || gpsSol.numSat < 6) {
+    if (!feature(FEATURE_GPS) || !(STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        )|| gpsSol.numSat < 6) {
         return false;
     }
 

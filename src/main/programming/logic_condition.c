@@ -481,7 +481,7 @@ static int logicConditionCompute(
             } else {
                 return false;
             }
-            break;    
+            break;
 
 #ifdef LED_PIN
         case LOGIC_CONDITION_LED_PIN_PWM:
@@ -493,7 +493,17 @@ static int logicConditionCompute(
             return operandA;
             break;
 #endif
-        
+#ifdef USE_GPS_FIX_ESTIMATION
+        case LOGIC_CONDITION_DISABLE_GPS_FIX:
+            if (operandA > 0) {
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
+            } else {
+                LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
+            }
+                return true;
+            break;
+#endif
+
         default:
             return false;
             break; 
@@ -675,6 +685,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
+#ifdef USE_GPS_FIX_ESTIMATION
+            if ( STATE(GPS_ESTIMATED_FIX) ){
+                return gpsSol.numSat; //99
+            } else
+#endif
             if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
                 return 0;
             } else {
@@ -868,13 +883,18 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(HORIZON_MODE);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLEHOLD:
+            return (bool) FLIGHT_MODE(ANGLEHOLD_MODE);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
             return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ACRO:
-            return (((bool) FLIGHT_MODE(ANGLE_MODE) || (bool) FLIGHT_MODE(HORIZON_MODE) || (bool) FLIGHT_MODE(MANUAL_MODE) || (bool) FLIGHT_MODE(NAV_RTH_MODE) || 
-                    (bool) FLIGHT_MODE(NAV_POSHOLD_MODE) || (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || (bool) FLIGHT_MODE(NAV_WP_MODE)) == false);
+            return (((bool) FLIGHT_MODE(ANGLE_MODE) || (bool) FLIGHT_MODE(HORIZON_MODE) || (bool) FLIGHT_MODE(ANGLEHOLD_MODE) ||
+                     (bool) FLIGHT_MODE(MANUAL_MODE) || (bool) FLIGHT_MODE(NAV_RTH_MODE) || (bool) FLIGHT_MODE(NAV_POSHOLD_MODE) ||
+                     (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || (bool) FLIGHT_MODE(NAV_WP_MODE)) == false);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1:
