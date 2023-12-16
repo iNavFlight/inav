@@ -125,9 +125,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .max_auto_speed = SETTING_NAV_MAX_AUTO_SPEED_DEFAULT,                                   // max allowed speed autonomous modes
         .max_auto_climb_rate = SETTING_NAV_AUTO_CLIMB_RATE_DEFAULT,                             // 5 m/s
         .max_manual_speed = SETTING_NAV_MANUAL_SPEED_DEFAULT,
-        .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,
-        .max_manual_z_acceleration = SETTING_NAV_MANUAL_Z_ACCELERATION_DEFAULT,          
-        .max_auto_z_acceleration = SETTING_NAV_AUTO_Z_ACCELERATION_DEFAULT,
+        .max_manual_climb_rate = SETTING_NAV_MANUAL_CLIMB_RATE_DEFAULT,      
         .shaping_jerk_z = SETTING_NAV_JERK_Z_DEFAULT,
         .land_slowdown_minalt = SETTING_NAV_LAND_SLOWDOWN_MINALT_DEFAULT,                       // altitude in centimeters
         .land_slowdown_maxalt = SETTING_NAV_LAND_SLOWDOWN_MAXALT_DEFAULT,                       // altitude in meters

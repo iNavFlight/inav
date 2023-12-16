@@ -253,8 +253,6 @@ typedef struct navConfig_s {
         uint16_t max_auto_climb_rate;               // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;                  // manual velocity control max horizontal speed
         uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
-        uint16_t max_manual_z_acceleration;         // manual acceleration control max vertical acceleration
-        uint16_t max_auto_z_acceleration;           // max auto vertical acceleration limitation cm/sec
         uint16_t shaping_jerk_z;                    // Jerk limit for the vertical kinematic input shaping
         uint16_t land_minalt_vspd;                  // Final RTH landing descent rate under minalt
         uint16_t land_maxalt_vspd;                  // RTH landing descent rate target at maxalt

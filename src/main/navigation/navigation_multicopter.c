@@ -423,16 +423,15 @@ static void updateZController(void)
     /**********************************************
             Vertical Acceleration Controller
     **********************************************/
+    
+    // Freeze Integrator during: TakeOff, landing detected or if RC Throttle is low
+    const bool accelZFreezeIntegrator = prepareForTakeoffOnReset || STATE(LANDING_DETECTED) || throttleStickIsLow();
 
-    // FALSE if disarmed, or in TakeOff with Alt-Hold on, or in Land detected or with RC Throttle < motorConfig()->mincommand 
-    // TRUE in normal flight
-    bool accLimit = true;
+    const pidControllerFlags_e accelZFlags = accelZFreezeIntegrator ? PID_FREEZE_INTEGRATOR : PID_LIMIT_INTEGRATOR;
 
-    const pidControllerFlags_e accelFlags = accLimit ? PID_LIMIT_INTEGRATOR : PID_FREEZE_INTEGRATOR;
+    const float throttleOutput = navPidApply2(&posControl.pids.acceleration_z, accelTarget.z, posEstimator.imu.accelNEU.z, posZDeltaTime, thrCorrectionMin, thrCorrectionMax, accelZFlags);
 
-    const float thr_out = navPidApply2(&posControl.pids.acceleration_z, accelTarget.z, posEstimator.imu.accelNEU.z, posZDeltaTime, thrCorrectionMin, thrCorrectionMax, accelFlags);
-
-    int16_t rcThrottleCorrection = pt1FilterApply4(&posZThrottleFilterState, thr_out, NAV_THROTTLE_CUTOFF_FREQUENCY_HZ, posZDeltaTime);
+    int16_t rcThrottleCorrection = pt1FilterApply4(&posZThrottleFilterState, throttleOutput, NAV_MC_THROTTLE_CUTOFF_FREQ_HZ, posZDeltaTime);
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
     /**********************************************
@@ -440,7 +439,7 @@ static void updateZController(void)
     **********************************************/
 
     // Don't worry about possible division by zero here! velMaxDownCms is checked to be non-zero when set.
-    float error_ratio = posControl.pids.vel[Z].error / velMaxDownCms;
+    const float error_ratio = posControl.pids.vel[Z].error / velMaxDownCms;
     velZControlRatio += posZDeltaTime * 0.1f * (0.5f - error_ratio);
     velZControlRatio = constrainf(velZControlRatio, 0.0f, 1.0f);
     
@@ -577,7 +576,7 @@ void setupMulticopterAltitudeController(void)
                                       motorConfig()->maxthrottle - rcControlsConfig()->alt_hold_deadband - 10);
 
     // Force AH controller to initialize althold integral for pending takeoff on reset
-    // Signal for that is low throttle _and_ low actual altitude
+    // Signal for that is low throttle and low actual altitude
     if (throttleIsLow && fabsf(navGetCurrentActualPositionAndVelocity()->pos.z) <= 50.0f) {
         prepareForTakeoffOnReset = true;
     }
@@ -589,9 +588,9 @@ void resetMulticopterAltitudeController(void)
     navPidReset(&posControl.pids.surface);
 
     if (FLIGHT_MODE(FAILSAFE_MODE) || navigationIsFlyingAutonomousMode() || navigationIsExecutingAnEmergencyLanding()) {
-        setMaxSpeedAccelZ(navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_z_acceleration);
+        setMaxSpeedAccelZ(navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate, navConfig()->general.max_auto_climb_rate);
     } else {
-        setMaxSpeedAccelZ(navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_z_acceleration);
+        setMaxSpeedAccelZ(navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate, navConfig()->general.max_manual_climb_rate);
     }
 
     sqrtControllerInit(&pos_z_sqrt_controller, posControl.pids.pos[Z].param.kP, velMaxDownCms, velMaxUpCms, accelMaxZCmss);

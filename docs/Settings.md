@@ -2812,16 +2812,6 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 ---
 
-### nav_auto_z_acceleration
-
-Maximum vertical acceleration during automatic navigation modes. [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | 10 | 2000 |
-
----
-
 ### nav_cruise_yaw_rate
 
 Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]
@@ -3419,16 +3409,6 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 | Default | Min | Max |
 | --- | --- | --- |
 | 500 | 10 | 2000 |
-
----
-
-### nav_manual_z_acceleration
-
-Maximum manual (pilot input) vertical acceleration in ALT-HOLD control mode [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 200 | 10 | 2000 |
 
 ---
 
