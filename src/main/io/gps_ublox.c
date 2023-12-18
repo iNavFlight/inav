@@ -251,8 +251,8 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-#define GNSSID_SBAS     1
-#define GNSSID_GALILEO  2
+#define GNSSID_SBAS 1
+#define GNSSID_GALILEO 2
 #define GNSSID_BEIDOU   3
 #define GNSSID_GZSS     5
 #define GNSSID_GLONASS  6
@@ -410,18 +410,18 @@ static void configureGNSS10(void)
 
 static void configureGNSS(void)
 {
-        int blocksUsed = 0;
-        send_buffer.message.header.msg_class = CLASS_CFG;
+    int blocksUsed = 0;
+    send_buffer.message.header.msg_class = CLASS_CFG;
         send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
-        send_buffer.message.payload.gnss.msgVer = 0;
-        send_buffer.message.payload.gnss.numTrkChHw = 0;     // read only, so unset
+    send_buffer.message.payload.gnss.msgVer = 0;
+    send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
         send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
 
-        /* SBAS, always generated */
-        blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* SBAS, always generated */
+    blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* Galileo */
-        blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* Galileo */
+    blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
         /* BeiDou */
         blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
@@ -429,9 +429,9 @@ static void configureGNSS(void)
         /* GLONASS */
         blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
-        send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
-        sendConfigMessageUBLOX();
+    send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
+    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
+    sendConfigMessageUBLOX();
 }
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
@@ -538,84 +538,84 @@ static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
     case MSG_POSLLH:
-        gpsSol.llh.lon = _buffer.posllh.longitude;
-        gpsSol.llh.lat = _buffer.posllh.latitude;
-        gpsSol.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
-        gpsSol.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
-        gpsSol.flags.validEPE = true;
+        gpsSolDRV.llh.lon = _buffer.posllh.longitude;
+        gpsSolDRV.llh.lat = _buffer.posllh.latitude;
+        gpsSolDRV.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
+        gpsSolDRV.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
+        gpsSolDRV.flags.validEPE = true;
         if (next_fix_type != GPS_NO_FIX)
-            gpsSol.fixType = next_fix_type;
+            gpsSolDRV.fixType = next_fix_type;
         _new_position = true;
         break;
     case MSG_STATUS:
         next_fix_type = gpsMapFixType(_buffer.status.fix_status & NAV_STATUS_FIX_VALID, _buffer.status.fix_type);
         if (next_fix_type == GPS_NO_FIX)
-            gpsSol.fixType = GPS_NO_FIX;
+            gpsSolDRV.fixType = GPS_NO_FIX;
         break;
     case MSG_SOL:
         next_fix_type = gpsMapFixType(_buffer.solution.fix_status & NAV_STATUS_FIX_VALID, _buffer.solution.fix_type);
         if (next_fix_type == GPS_NO_FIX)
-            gpsSol.fixType = GPS_NO_FIX;
-        gpsSol.numSat = _buffer.solution.satellites;
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
+            gpsSolDRV.fixType = GPS_NO_FIX;
+        gpsSolDRV.numSat = _buffer.solution.satellites;
+        gpsSolDRV.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
         break;
     case MSG_VELNED:
-        gpsSol.groundSpeed = _buffer.velned.speed_2d;    // cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.velNED[X] = _buffer.velned.ned_north;
-        gpsSol.velNED[Y] = _buffer.velned.ned_east;
-        gpsSol.velNED[Z] = _buffer.velned.ned_down;
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
+        gpsSolDRV.groundSpeed = _buffer.velned.speed_2d;    // cm/s
+        gpsSolDRV.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.velNED[X] = _buffer.velned.ned_north;
+        gpsSolDRV.velNED[Y] = _buffer.velned.ned_east;
+        gpsSolDRV.velNED[Z] = _buffer.velned.ned_down;
+        gpsSolDRV.flags.validVelNE = true;
+        gpsSolDRV.flags.validVelD = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
         if (UBX_VALID_GPS_DATE_TIME(_buffer.timeutc.valid)) {
-            gpsSol.time.year = _buffer.timeutc.year;
-            gpsSol.time.month = _buffer.timeutc.month;
-            gpsSol.time.day = _buffer.timeutc.day;
-            gpsSol.time.hours = _buffer.timeutc.hour;
-            gpsSol.time.minutes = _buffer.timeutc.min;
-            gpsSol.time.seconds = _buffer.timeutc.sec;
-            gpsSol.time.millis = _buffer.timeutc.nano / (1000*1000);
+            gpsSolDRV.time.year = _buffer.timeutc.year;
+            gpsSolDRV.time.month = _buffer.timeutc.month;
+            gpsSolDRV.time.day = _buffer.timeutc.day;
+            gpsSolDRV.time.hours = _buffer.timeutc.hour;
+            gpsSolDRV.time.minutes = _buffer.timeutc.min;
+            gpsSolDRV.time.seconds = _buffer.timeutc.sec;
+            gpsSolDRV.time.millis = _buffer.timeutc.nano / (1000*1000);
 
-            gpsSol.flags.validTime = true;
+            gpsSolDRV.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = false;
+            gpsSolDRV.flags.validTime = false;
         }
         break;
     case MSG_PVT:
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
-        gpsSol.fixType = next_fix_type;
-        gpsSol.llh.lon = _buffer.pvt.longitude;
-        gpsSol.llh.lat = _buffer.pvt.latitude;
-        gpsSol.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
-        gpsSol.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
-        gpsSol.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
-        gpsSol.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
-        gpsSol.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.numSat = _buffer.pvt.satellites;
-        gpsSol.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
-        gpsSol.flags.validEPE = true;
+        gpsSolDRV.fixType = next_fix_type;
+        gpsSolDRV.llh.lon = _buffer.pvt.longitude;
+        gpsSolDRV.llh.lat = _buffer.pvt.latitude;
+        gpsSolDRV.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
+        gpsSolDRV.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
+        gpsSolDRV.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
+        gpsSolDRV.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
+        gpsSolDRV.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.numSat = _buffer.pvt.satellites;
+        gpsSolDRV.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
+        gpsSolDRV.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
+        gpsSolDRV.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
+        gpsSolDRV.flags.validVelNE = true;
+        gpsSolDRV.flags.validVelD = true;
+        gpsSolDRV.flags.validEPE = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
-            gpsSol.time.year = _buffer.pvt.year;
-            gpsSol.time.month = _buffer.pvt.month;
-            gpsSol.time.day = _buffer.pvt.day;
-            gpsSol.time.hours = _buffer.pvt.hour;
-            gpsSol.time.minutes = _buffer.pvt.min;
-            gpsSol.time.seconds = _buffer.pvt.sec;
-            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
+            gpsSolDRV.time.year = _buffer.pvt.year;
+            gpsSolDRV.time.month = _buffer.pvt.month;
+            gpsSolDRV.time.day = _buffer.pvt.day;
+            gpsSolDRV.time.hours = _buffer.pvt.hour;
+            gpsSolDRV.time.minutes = _buffer.pvt.min;
+            gpsSolDRV.time.seconds = _buffer.pvt.sec;
+            gpsSolDRV.time.millis = _buffer.pvt.nano / (1000*1000);
 
-            gpsSol.flags.validTime = true;
+            gpsSolDRV.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = false;
+            gpsSolDRV.flags.validTime = false;
         }
 
         _new_position = true;
@@ -649,7 +649,7 @@ static bool gpsParseFrameUBLOX(void)
                         }
                     }
                 }
-                for (int j = 40; j < _payload_length; j += 30) {
+                for(int j = 40; j < _payload_length; j += 30) {
                     if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
@@ -800,9 +800,15 @@ STATIC_PROTOTHREAD(gpsConfigure)
         case GPS_DYNMODEL_PEDESTRIAN:
             configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
             break;
-        case GPS_DYNMODEL_AIR_1G:   // Default to this
-        default:
+        case GPS_DYNMODEL_AUTOMOTIVE:
+            configureNAV5(UBX_DYNMODEL_AUTOMOVITE, UBX_FIXMODE_AUTO);
+            break;
+        case GPS_DYNMODEL_AIR_1G:
             configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
+            break;
+        case GPS_DYNMODEL_AIR_2G:   // Default to this
+        default:
+            configureNAV5(UBX_DYNMODEL_AIR_2G, UBX_FIXMODE_AUTO);
             break;
         case GPS_DYNMODEL_AIR_4G:
             configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
@@ -948,19 +954,19 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
+        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+        if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
             configureGNSS10();
-         } else {
+        } else {
             configureGNSS();
-         }
-         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+        }
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
-         if(_ack_state == UBX_ACK_GOT_NAK) {
+        if(_ack_state == UBX_ACK_GOT_NAK) {
             gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
             gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
-         }
+        }
     }
 
     ptEnd(0);
@@ -980,6 +986,7 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameUBLOX(newChar)) {
+                gpsProcessNewDriverData();
                 ptSemaphoreSignal(semNewDataReady);
                 break;
             }
@@ -1038,16 +1045,19 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         pollVersion();
         gpsState.autoConfigStep++;
         ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+    } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
 
     gpsState.autoConfigStep = 0;
     ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
-    do {
-        pollGnssCapabilities();
-        gpsState.autoConfigStep++;
-        ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
-
+    // M7 and earlier will never get pass this step, so skip it (#9440).
+    // UBLOX documents that this is M8N and later
+    if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
+	do {
+	    pollGnssCapabilities();
+	    gpsState.autoConfigStep++;
+	    ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
+	} while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+    }
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
         // Configure GPS
@@ -1060,7 +1070,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
         ptSemaphoreWait(semNewDataReady);
-        gpsProcessNewSolutionData();
+        gpsProcessNewSolutionData(false);
 
         if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {

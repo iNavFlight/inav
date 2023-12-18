@@ -23,11 +23,10 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM1, CH1, PA8,  TIM_USE_PWM | TIM_USE_PPM,               0, 1), // PWM1  - PA8  RC1  - DMA2_ST1
-    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PWM,                             0, 0), // PWM2  - PB0  RC2  - DMA1_ST5
-    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_PWM,                             0, 0), // PWM3  - PB1  RC3  - DMA1_ST7
-    DEF_TIM(TIM1, CH2, PB14, TIM_USE_PWM,                             0, 1), // PWM4  - PA14 RC4  - DMA2_ST2
-    DEF_TIM(TIM1, CH3, PB15, TIM_USE_PWM | TIM_USE_LED,               0, 0), // PWM5  - PA15 RC5  - DMA2_ST6
+    // DEF_TIM(TIM1, CH1, PA8,  TIM_USE_PWM | TIM_USE_PPM,               0, 1), // PWM1  - PA8  RC1  - DMA2_ST1
+    // DEF_TIM(TIM3, CH3, PB0,  TIM_USE_PWM,                             0, 0), // PWM2  - PB0  RC2  - DMA1_ST5
+    // DEF_TIM(TIM3, CH4, PB1,  TIM_USE_PWM,                             0, 0), // PWM3  - PB1  RC3  - DMA1_ST7
+    // DEF_TIM(TIM1, CH2, PB14, TIM_USE_PWM,                             0, 1), // PWM4  - PA14 RC4  - DMA2_ST2
     DEF_TIM(TIM4, CH3, PB8,  TIM_USE_OUTPUT_AUTO,           0, 0), // PWM6  - PB8  OUT1 - DMA1_ST7
     DEF_TIM(TIM4, CH4, PB9,  TIM_USE_OUTPUT_AUTO,           0, 0), // PWM7  - PB9  OUT2 - DMA_NONE
     DEF_TIM(TIM5, CH1, PA0,  TIM_USE_OUTPUT_AUTO,           0, 0), // PWM8  - PA0  OUT3 - DMA1_ST2
@@ -36,6 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH2, PC7,  TIM_USE_OUTPUT_AUTO,           0, 0), // PWM11 - PC7  OUT6 - DMA2_ST3
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_OUTPUT_AUTO,           0, 1), // PWM13 - PC8  OUT7 - DMA2_ST4
     DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO,           0, 0), // PWM13 - PC9  OUT8 - DMA2_ST7
+    DEF_TIM(TIM1, CH3, PB15, TIM_USE_LED,                   0, 0), // PWM5  - PA15 RC5  - DMA2_ST6
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

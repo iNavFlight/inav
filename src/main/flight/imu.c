@@ -49,6 +49,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #if defined(USE_WIND_ESTIMATOR)
 #include "flight/wind_estimator.h"
@@ -77,6 +78,9 @@
 
 #define SPIN_RATE_LIMIT             20
 #define MAX_ACC_NEARNESS            0.2    // 20% or G error soft-accepted (0.8-1.2G)
+#define MAX_MAG_NEARNESS            0.25    // 25% or magnetic field error soft-accepted (0.75-1.25)
+#define COS10DEG 0.985f
+#define COS20DEG 0.940f
 #define IMU_ROTATION_LPF         3       // Hz
 FASTRAM fpVector3_t imuMeasuredAccelBF;
 FASTRAM fpVector3_t imuMeasuredRotationBF;
@@ -111,6 +115,8 @@ FASTRAM bool gpsHeadingInitialized;
 
 FASTRAM bool imuUpdated = false;
 
+static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF);
+
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
 PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
@@ -122,7 +128,8 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_rate = SETTING_AHRS_ACC_IGNORE_RATE_DEFAULT,
     .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
     .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
-    .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT
+    .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT,
+    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT
 );
 
 STATIC_UNIT_TESTED void imuComputeRotationMatrix(void)
@@ -323,7 +330,20 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 
 bool isGPSTrustworthy(void)
 {
-    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6;
+    return (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ;
+}
+
+static float imuCalculateMcCogWeight(void)
+{
+    float wCoG = imuCalculateAccelerometerWeightNearness(&imuMeasuredAccelBF);
+    float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
+    const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate)) * 4.0f;
+    wCoG *= scaleRangef(constrainf(rotRateMagnitude, 0.0f, rateSlopeMax), 0.0f, rateSlopeMax, 1.0f, 0.0f);
+    return wCoG;
 }
 
 static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, bool useCOG, float courseOverGround, float accWScaler, float magWScaler)
@@ -339,11 +359,15 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
     if (magBF || useCOG) {
-        static const fpVector3_t vForward = { .v = { 1.0f, 0.0f, 0.0f } };
+        float wMag = 1.0f;
+        float wCoG = 1.0f;
+        if(magBF){wCoG *= imuConfig()->gps_yaw_weight / 100.0f;}
 
-        fpVector3_t vErr = { .v = { 0.0f, 0.0f, 0.0f } };
+        fpVector3_t vMagErr = { .v = { 0.0f, 0.0f, 0.0f } };
+        fpVector3_t vCoGErr = { .v = { 0.0f, 0.0f, 0.0f } };
 
         if (magBF && vectorNormSquared(magBF) > 0.01f) {
+            wMag *= bellCurve((fast_fsqrtf(vectorNormSquared(magBF)) - 1024.0f) / 1024.0f, MAX_MAG_NEARNESS);
             fpVector3_t vMag;
 
             // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
@@ -369,13 +393,20 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
 
                 // Reference mag field vector heading is Magnetic North in EF. We compute that by rotating True North vector by declination and assuming Z-component is zero
                 // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-                vectorCrossProduct(&vErr, &vMag, &vCorrectedMagNorth);
+                vectorCrossProduct(&vMagErr, &vMag, &vCorrectedMagNorth);
 
                 // Rotate error back into body frame
-                quaternionRotateVector(&vErr, &vErr, &orientation);
+                quaternionRotateVector(&vMagErr, &vMagErr, &orientation);
             }
         }
-        else if (useCOG) {
+        if (useCOG) {
+            fpVector3_t vForward = { .v = { 0.0f, 0.0f, 0.0f } };
+            //vForward as trust vector
+            if (STATE(MULTIROTOR) && (!isMixerTransitionMixing)){
+                vForward.z = 1.0f;
+            }else{
+                vForward.x = 1.0f;
+            }
             fpVector3_t vHeadingEF;
 
             // Use raw heading error (from GPS or whatever else)
@@ -386,6 +417,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // (Rxx; Ryx) - measured (estimated) heading vector (EF)
             // (-cos(COG), sin(COG)) - reference heading vector (EF)
 
+            float airSpeed = gpsSol.groundSpeed;
             // Compute heading vector in EF from scalar CoG,x axis of accelerometer is pointing backwards.
             fpVector3_t vCoG = { .v = { -cos_approx(courseOverGround), sin_approx(courseOverGround), 0.0f } };
 #if defined(USE_WIND_ESTIMATOR)
@@ -395,12 +427,21 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorScale(&vCoG, &vCoG, gpsSol.groundSpeed);
                 vCoG.x += getEstimatedWindSpeed(X);
                 vCoG.y -= getEstimatedWindSpeed(Y);
+                airSpeed = fast_fsqrtf(vectorNormSquared(&vCoG));
                 vectorNormalize(&vCoG, &vCoG);
             }
 #endif
-
+            wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 400, 1000), 400, 1000, 0.0f, 1.0f);
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
+
+            if (STATE(MULTIROTOR)){
+                //when multicopter`s orientation or speed is changing rapidly. less weight on gps heading
+                wCoG *= imuCalculateMcCogWeight();
+                //scale accroading to multirotor`s tilt angle
+                wCoG *= scaleRangef(constrainf(vHeadingEF.z, COS20DEG, COS10DEG), COS20DEG, COS10DEG, 1.0f, 0.0f);
+                //for inverted flying, wCoG is lowered by imuCalculateMcCogWeight no additional processing needed
+            }
             vHeadingEF.z = 0.0f;
 
             // We zeroed out vHeadingEF.z -  make sure the whole vector didn't go to zero
@@ -409,13 +450,16 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 vectorNormalize(&vHeadingEF, &vHeadingEF);
 
                 // error is cross product between reference heading and estimated heading (calculated in EF)
-                vectorCrossProduct(&vErr, &vCoG, &vHeadingEF);
+                vectorCrossProduct(&vCoGErr, &vCoG, &vHeadingEF);
 
                 // Rotate error back into body frame
-                quaternionRotateVector(&vErr, &vErr, &orientation);
+                quaternionRotateVector(&vCoGErr, &vCoGErr, &orientation);
             }
         }
-
+        fpVector3_t vErr = { .v = { 0.0f, 0.0f, 0.0f } };
+        vectorScale(&vMagErr, &vMagErr, wMag);
+        vectorScale(&vCoGErr, &vCoGErr, wCoG);
+        vectorAdd(&vErr, &vMagErr, &vCoGErr);
         // Compute and apply integral feedback if enabled
         if (imuRuntimeConfig.dcm_ki_mag > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
@@ -535,10 +579,10 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void)
     }
 }
 
-static float imuCalculateAccelerometerWeightNearness(void)
+static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF)
 {
     fpVector3_t accBFNorm;
-    vectorScale(&accBFNorm, &compansatedGravityBF, 1.0f / GRAVITY_CMSS);
+    vectorScale(&accBFNorm, accBF, 1.0f / GRAVITY_CMSS);
     const float accMagnitudeSq = vectorNormSquared(&accBFNorm);
     const float accWeight_Nearness = bellCurve(fast_fsqrtf(accMagnitudeSq) - 1.0f, MAX_ACC_NEARNESS);
     return accWeight_Nearness;
@@ -672,36 +716,29 @@ static void imuCalculateEstimatedAttitude(float dT)
     bool useMag = false;
     bool useCOG = false;
 #if defined(USE_GPS)
-    if (STATE(FIXED_WING_LEGACY)) {
-        bool canUseCOG = isGPSHeadingValid();
+    bool canUseCOG = isGPSHeadingValid();
 
-        // Prefer compass (if available)
-        if (canUseMAG) {
-            useMag = true;
-            gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
-        }
-        else if (canUseCOG) {
-            if (gpsHeadingInitialized) {
-                courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-                useCOG = true;
-            }
-            else {
-                // Re-initialize quaternion from known Roll, Pitch and GPS heading
-                imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
-                gpsHeadingInitialized = true;
-
-                // Force reset of heading hold target
-                resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-            }
-        } else if (!ARMING_FLAG(ARMED)) {
-            gpsHeadingInitialized = false;
-        }
+    // Use compass (if available)
+    if (canUseMAG) {
+        useMag = true;
+        gpsHeadingInitialized = true;   // GPS heading initialised from MAG, continue on GPS if compass fails
     }
-    else {
-        // Multicopters don't use GPS heading
-        if (canUseMAG) {
-            useMag = true;
+    // Use GPS (if available)
+    if (canUseCOG) {
+        if (gpsHeadingInitialized) {
+            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+            useCOG = true;
         }
+        else if (!canUseMAG) {
+            // Re-initialize quaternion from known Roll, Pitch and GPS heading
+            imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, gpsSol.groundCourse);
+            gpsHeadingInitialized = true;
+
+            // Force reset of heading hold target
+            resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+        }
+    } else if (!ARMING_FLAG(ARMED)) {
+        gpsHeadingInitialized = false;
     }
 
     imuCalculateFilters(dT);
@@ -751,7 +788,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
     compansatedGravityBF = imuMeasuredAccelBF
 #endif
-    float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness();
+    float accWeight = imuGetPGainScaleFactor() * imuCalculateAccelerometerWeightNearness(&compansatedGravityBF);
     accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
 
@@ -806,6 +843,7 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         acc.accADCf[Z] = 0.0f;
     }
 }
+ 
 
 bool isImuReady(void)
 {
@@ -814,7 +852,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || (STATE(FIXED_WING_LEGACY) && gpsHeadingInitialized);
+    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || gpsHeadingInitialized;
 }
 
 float calculateCosTiltAngle(void)
