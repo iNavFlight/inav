@@ -572,6 +572,9 @@ const char * const trampPowerNames_5G8_600[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = 
 const uint16_t trampPowerTable_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 500, 800 };
 const char * const trampPowerNames_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "25 ", "100", "200", "500", "800" };
 
+const uint16_t trampPowerTable_5G8_5000[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 50, 500, 1000, 2500, 5000 };
+const char * const trampPowerNames_5G8_5000[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = { "---", "50 ", "500", "1000", "2500", "5000" };
+
 const uint16_t trampPowerTable_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 800 };
 const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "800" };
 
@@ -602,6 +605,10 @@ static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
             impl_vtxDevice.capability.channelNames = (char **)vtx1G3ChannelNames;
             break;
         default:
+        >= 800) {
+                // Max power 800mW: Use 25, 100, 200, 500, 800 table
+                vtxState.metadata.powerTablePtr  = trampPowerTable_5G8_800;
+                vtxState.metadata.powerTableCount = VTX_TRAMP_5G8_MAX_POWER_COUNT;
             if (maxPower >= 800) {
                 // Max power 800mW: Use 25, 100, 200, 500, 800 table
                 vtxState.metadata.powerTablePtr  = trampPowerTable_5G8_800;
@@ -633,6 +640,14 @@ static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
 
                 impl_vtxDevice.capability.powerNames = (char **)trampPowerNames_5G8_200;
                 impl_vtxDevice.capability.powerCount = 3;
+            }
+            else if (maxPower >= 5000) {
+                // Max power 5000mW: Use 50, 500, 1000, 2500, 5000 table
+                vtxState.metadata.powerTablePtr  = trampPowerTable_5G8_5000;
+                vtxState.metadata.powerTableCount = VTX_TRAMP_5G8_MAX_POWER_COUNT;
+
+                impl_vtxDevice.capability.powerNames = (char **)trampPowerNames_5G8_5000;
+                impl_vtxDevice.capability.powerCount = 5;
             }
             else {
                 // Default to standard TRAMP 600mW VTX
