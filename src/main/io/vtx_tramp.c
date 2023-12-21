@@ -603,7 +603,7 @@ static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
                 vtxState.metadata.powerTableCount = VTX_TRAMP_5G8_MAX_POWER_COUNT;
             
                 impl_vtxDevice.capability.powerNames = (char **)trampPowerNames_5G8_800;
-                impl_vtxDevice.capability.powerCount = VTX_TRAMP_5G8_MAX_POWER_COUNT;
+                impl_vtxDevice.capability.powerCount = 5;
             } else if (maxPower >= 5000) {
                 // Max power 5000mW: Use 50, 500, 1000, 2500, 5000 table
                 vtxState.metadata.powerTablePtr  = trampPowerTable_5G8_5000;
