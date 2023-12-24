@@ -179,6 +179,8 @@ typedef struct statistic_s {
     uint32_t max_distance;
     uint8_t min_sats;
     uint8_t max_sats;
+    int16_t max_esc_temp;
+    int16_t min_esc_temp;
 } statistic_t;
 
 static statistic_t stats;
@@ -4301,6 +4303,19 @@ static void osdUpdateStats(void)
             stats.max_sats = gpsSol.numSat;
     }
 
+    if (STATE(ESC_SENSOR_ENABLED)) {
+        escSensorData_t * escSensor = escSensorGetData();
+        bool escTemperatureValid = escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE;
+
+        if (escTemperatureValid) {
+            if (stats.min_esc_temp > escSensor->temperature)
+                stats.min_esc_temp = escSensor->temperature;
+            
+            if (stats.max_esc_temp < escSensor->temperature)
+                stats.max_esc_temp = escSensor->temperature;
+        }
+    }
+
     value = getBatteryVoltage();
     if (stats.min_voltage > value)
         stats.min_voltage = value;
@@ -4594,6 +4609,18 @@ uint8_t drawStat_GPS(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
+uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "MIN/MAX ESC TEMP");
+    tfp_sprintf(buff, ": %3d/%3d%c", 
+                ((osdConfig()->units == OSD_UNIT_IMPERIAL) ? (int16_t)(stats.min_esc_temp * 9 / 5.0f + 320) : stats.min_esc_temp), 
+                ((osdConfig()->units == OSD_UNIT_IMPERIAL) ? (int16_t)(stats.max_esc_temp * 9 / 5.0f + 320) : stats.max_esc_temp), 
+                ((osdConfig()->units == OSD_UNIT_IMPERIAL) ? SYM_TEMP_F : SYM_TEMP_C));
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
 uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
     char buff[12];
     uint8_t multiValueXOffset = 0;
@@ -4664,7 +4691,8 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         if (feature(FEATURE_CURRENT_METER))row = drawStat_UsedEnergy(statNameX, row, statValuesX);
         if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX);
         row = drawStat_RXStats(statNameX, row, statValuesX);
-        if (feature(FEATURE_GPS))row = drawStat_GPS(statNameX, row, statValuesX);
+        if (feature(FEATURE_GPS)) row = drawStat_GPS(statNameX, row, statValuesX);
+        if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX);
 
         if (row < (osdDisplayPort->cols-3)) row = drawStat_GForce(statNameX, row, statValuesX);
         // if (row < (osdDisplayPort->cols-2)) row = drawStat_FlightTime(statNameX, row, statValuesX);
@@ -4685,8 +4713,8 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                 row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX);
                 row = drawStat_RXStats(statNameX, row, statValuesX);
                 if (feature(FEATURE_GPS))row = drawStat_GPS(statNameX, row, statValuesX);
+                if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX);
                 row = drawStat_GForce(statNameX, row, statValuesX);
-                //row = drawStat_FlightTime(statNameX, row, statValuesX);
                 //row = drawStat_FlightTime(statNameX, row, statValuesX);
                 //row = drawStat_FlightTime(statNameX, row, statValuesX);
                 //row = drawStat_FlightTime(statNameX, row, statValuesX);
