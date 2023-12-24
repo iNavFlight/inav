@@ -177,6 +177,8 @@ typedef struct statistic_s {
     int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
     uint32_t max_distance;
+    uint8_t min_sats;
+    uint8_t max_sats;
 } statistic_t;
 
 static statistic_t stats;
@@ -4263,11 +4265,13 @@ static void osdResetStats(void)
     stats.max_speed = 0;
     stats.max_3D_speed = 0;
     stats.max_air_speed = 0;
-    stats.min_voltage = 5000;
+    stats.min_voltage = 12000;
     stats.min_rssi = 99;
     stats.min_lq = 300;
     stats.min_rssi_dbm = 0;
     stats.max_altitude = 0;
+    stats.min_sats = 255;
+    stats.max_sats = 0;
 }
 
 static void osdUpdateStats(void)
@@ -4289,6 +4293,12 @@ static void osdUpdateStats(void)
 
         if (stats.max_distance < GPS_distanceToHome)
             stats.max_distance = GPS_distanceToHome;
+
+        if (stats.min_sats > gpsSol.numSat)
+            stats.min_sats = gpsSol.numSat;
+
+        if (stats.max_sats < gpsSol.numSat)
+            stats.max_sats = gpsSol.numSat;
     }
 
     value = getBatteryVoltage();
@@ -4321,16 +4331,315 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
+uint8_t drawStat_FlightTime(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "FLIGHT TIME");
+    uint16_t flySeconds = getFlightTime();
+    uint16_t flyMinutes = flySeconds / 60;
+    flySeconds %= 60;
+    uint16_t flyHours = flyMinutes / 60;
+    flyMinutes %= 60;
+    tfp_sprintf(buff, ": %02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_FlightDistance(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "FLIGHT DISTANCE");
+    tfp_sprintf(buff, ": ");
+    osdFormatDistanceStr(buff + 2, getTotalTravelDistance());
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_MaxDistanceFromHome(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "DISTANCE FROM ");
+    displayWriteChar(osdDisplayPort, col + 14, row, SYM_HOME);
+    tfp_sprintf(buff, ": ");
+    osdFormatDistanceStr(buff + 2, stats.max_distance * 100);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_Speed(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    uint8_t multiValueXOffset = 0;
+
+    displayWrite(osdDisplayPort, col, row, "MAX/AVG SPEED");
+    tfp_sprintf(buff, ": ");
+    osdFormatVelocityStr(buff + 2, stats.max_3D_speed, true, false);
+    osdLeftAlignString(buff);
+    strcat(osdFormatTrimWhiteSpace(buff), "/");
+    multiValueXOffset = strlen(buff); 
+    displayWrite(osdDisplayPort, statValX, row, buff);
+
+    osdGenerateAverageVelocityStr(buff);
+    osdLeftAlignString(buff);
+    displayWrite(osdDisplayPort, statValX + multiValueXOffset, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_MaximumAltitude(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "MAX ALTITUDE");
+    tfp_sprintf(buff, ": ");
+    osdFormatAltitudeStr(buff + 2, stats.max_altitude);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    uint8_t multiValueXOffset = 0;
+    displayWrite(osdDisplayPort, col, row, "MIN VOLTS P/C");
+
+    // Pack voltage
+    tfp_sprintf(buff, ": ");
+    osdFormatCentiNumber(buff + 2, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2, false);
+    strcat(osdFormatTrimWhiteSpace(buff), "/");
+    multiValueXOffset = strlen(buff); 
+    // AverageCell 
+    osdFormatCentiNumber(buff + multiValueXOffset, stats.min_voltage / getBatteryCellCount(), 0, 2, 0, 3, false);
+    tfp_sprintf(buff, "%s%c", buff, SYM_VOLT);
+
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_MaximumCurrent(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "MAX CURRENT");
+    tfp_sprintf(buff, ": ");
+    osdFormatCentiNumber(buff + 2, stats.max_current, 0, 2, 0, 3, false);
+    tfp_sprintf(buff, "%s%c", buff, SYM_AMP);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "MAX POWER");
+    tfp_sprintf(buff, ": ");
+    bool kiloWatt = osdFormatCentiNumber(buff + 2, stats.max_power, 1000, 2, 2, 3, false);
+    strcat(osdFormatTrimWhiteSpace(buff), (char*)(kiloWatt ? SYM_KILOWATT : SYM_WATT));
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "USED ENERGY");
+    tfp_sprintf(buff, ": ");
+    if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+        tfp_sprintf(buff + 2, "%d%c", (int)getMAhDrawn(), SYM_MAH);
+    } else {
+        osdFormatCentiNumber(buff + 2, getMWhDrawn() / 10, 0, 2, 0, 3, false);
+        tfp_sprintf(buff, "%s%c", buff, SYM_WH);
+    }
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[15];
+    uint8_t buffOffset = 2;
+    int32_t totalDistance = getTotalTravelDistance();
+    bool moreThanAh = false;
+    bool efficiencyValid = totalDistance >= 10000;
+    
+    displayWrite(osdDisplayPort, col, row, "AVG EFFICIENCY");
+
+    tfp_sprintf(buff, ": ");
+    uint8_t digits = 3U;    // Total number of digits (including decimal point)
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
+    if (isBfCompatibleVideoSystem(osdConfig())) {
+        // Add one digit so no switch to scaled decimal occurs above 99
+        digits = 4U;
+    }
+#endif
+    switch (osdConfig()->units) {
+        case OSD_UNIT_UK:
+            FALLTHROUGH;
+        case OSD_UNIT_IMPERIAL:
+            if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+                moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
+                if (!moreThanAh) {
+                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                } else {
+                    tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                }
+                if (!efficiencyValid) {
+                    buff[0+buffOffset] = buff[1+buffOffset] = buff[2+buffOffset] = '-';
+                    buff[3+buffOffset] = SYM_MAH_MI_0;
+                    buff[4+buffOffset] = SYM_MAH_MI_1;
+                    buff[5+buffOffset] = '\0';
+                }
+            } else {
+                osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
+                tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
+                if (!efficiencyValid) {
+                    buff[0+buffOffset] = buff[1+buffOffset] = buff[2+buffOffset] = '-';
+                }
+            }
+            break;
+        case OSD_UNIT_GA:
+            if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+                moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
+                if (!moreThanAh) {
+                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_NM_0, SYM_MAH_NM_1);
+                } else {
+                    tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
+                }
+                if (!efficiencyValid) {
+                    buff[0+buffOffset] = buff[1+buffOffset] = buff[2+buffOffset] = '-';
+                    buff[3+buffOffset] = SYM_MAH_NM_0;
+                    buff[4+buffOffset] = SYM_MAH_NM_1;
+                    buff[5+buffOffset] = '\0';
+                }
+            } else {
+                osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits, false);
+                tfp_sprintf(buff, "%s%c", buff, SYM_WH_NM);
+                if (!efficiencyValid) {
+                    buff[0+buffOffset] = buff[1+buffOffset] = buff[2+buffOffset] = '-';
+                }
+            }
+            break;
+    }
+
+    if (statValX > 20 && osdConfig()->units != OSD_UNIT_METRIC_MPH && osdConfig()->units != OSD_UNIT_METRIC) {
+        strcat(osdFormatTrimWhiteSpace(buff), "/");
+        buffOffset = strlen(buff);
+    }
+
+    if (statValX > 20 || (osdConfig()->units != OSD_UNIT_METRIC_MPH || osdConfig()->units != OSD_UNIT_METRIC)) {
+        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
+            moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
+            if (!moreThanAh) {
+                tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+            } else {
+                tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+            }
+            if (!efficiencyValid) {
+                buff[0+buffOffset] = buff[1+buffOffset] = buff[2+buffOffset] = '-';
+                buff[3+buffOffset] = SYM_MAH_KM_0;
+                buff[4+buffOffset] = SYM_MAH_KM_1;
+                buff[5+buffOffset] = '\0';
+            }
+        } else {
+            osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, digits, false);
+            tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
+            if (!efficiencyValid) {
+                buff[0+buffOffset] = buff[1+buffOffset] = buff[2+buffOffset] = '-';
+            }
+        }
+    }
+
+    osdLeftAlignString(buff);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[20];
+    uint8_t multiValueXOffset = 0;
+
+    tfp_sprintf(buff, "MIN RSSI");
+    if (rxConfig()->serialrx_provider == SERIALRX_CRSF)
+        strcat(buff, "/LQ");
+    displayWrite(osdDisplayPort, col, row, buff);
+
+    memset(buff, '\0', strlen(buff));
+    tfp_sprintf(buff, ": ");
+    itoa(stats.min_rssi, buff + 2, 10);
+    strcat(osdFormatTrimWhiteSpace(buff), "%");
+    
+    if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+        multiValueXOffset = strlen(buff);
+        itoa(stats.min_lq, buff + multiValueXOffset, 10);
+        strcat(osdFormatTrimWhiteSpace(buff), "%");
+    }
+
+    displayWrite(osdDisplayPort, statValX, row, buff);
+
+    if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+        displayWrite(osdDisplayPort, col, row, "MIN RX DBM");
+        memset(buff, '\0', strlen(buff));
+        tfp_sprintf(buff, ": ");
+        itoa(stats.min_rssi_dbm, buff + 2, 10);
+        tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+        displayWrite(osdDisplayPort, statValX, row++, buff);
+    }
+
+    return row;
+}
+
+uint8_t drawStat_GPS(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    displayWrite(osdDisplayPort, col, row, "MIN/MAX GPS SATS");
+    tfp_sprintf(buff, ": %u/%u", stats.min_sats, stats.max_sats);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
+    char buff[12];
+    uint8_t multiValueXOffset = 0;
+
+    const float max_gforce = accGetMeasuredMaxG();
+    displayWrite(osdDisplayPort, col, row, "MAX G-FORCE");
+    tfp_sprintf(buff, ": ");
+    osdFormatCentiNumber(buff + 2, max_gforce * 100, 0, 2, 0, 3, false);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
+
+    const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
+    const float acc_extremes_min = acc_extremes[Z].min;
+    const float acc_extremes_max = acc_extremes[Z].max;
+    displayWrite(osdDisplayPort, col, row, "MIN/MAX Z G-FORCE");
+    memset(buff, '\0', strlen(buff));
+    tfp_sprintf(buff, ": ");
+    osdFormatCentiNumber(buff + 2, acc_extremes_min * 100, 0, 2, 0, 4, false);
+    osdLeftAlignString(buff);
+    strcat(osdFormatTrimWhiteSpace(buff),"/");
+    
+    multiValueXOffset = strlen(buff);
+    osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_max * 100, 0, 2, 0, 3, false);
+    osdLeftAlignString(buff);
+    displayWrite(osdDisplayPort, statValX + multiValueXOffset, row++, buff);
+
+    return row;
+}
+
+uint8_t drawStat_DisarmMethod(uint8_t col, uint8_t row, uint8_t statValX) {
+    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
+
+    displayWrite(osdDisplayPort, col, row, "DISARMED BY");
+    displayWrite(osdDisplayPort, statValX, row, ": ");
+    displayWrite(osdDisplayPort, statValX + 2, row++, disarmReasonStr[getDisarmReason()]);
+
+    return row;
+}
+
 static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
-    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
-    uint8_t top = 1;  // Start one line down leaving space at the top of the screen. 
-    size_t multiValueLengthOffset = 0;
+    const char * statsHeader[3] = {"*** STATS ***", "*** STATS (1/2 ->) ***", "*** STATS (<- 2/2) ***"};
+    uint8_t row = 1;  // Start one line down leaving space at the top of the screen.
 
     const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
-    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 20;
-    char buff[10];
-
+    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 18;
+    
     if (page > 1)
         page = 0;
 
@@ -4338,247 +4647,63 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     displayClearScreen(osdDisplayPort);
 
     if (isSinglePageStatsCompatible) {
-        displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---");
-    } else if (page == 0) {
-        displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---      1/2 ->");
-    } else if (page == 1) {
-        displayWrite(osdDisplayPort, statNameX, top++, "--- STATS ---   <- 2/2");
-    }
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen( statsHeader[0])) / 2, row++, statsHeader[0]);
+    } else {
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen( statsHeader[page + 1])) / 2, row++, statsHeader[page + 1]);
+    } 
 
-    if (isSinglePageStatsCompatible || page == 0) {
-        if (feature(FEATURE_GPS)) {
-            if (isSinglePageStatsCompatible) {
-                displayWrite(osdDisplayPort, statNameX, top, "MAX/AVG SPEED    :");
-                osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
-                osdLeftAlignString(buff);
-                strcat(osdFormatTrimWhiteSpace(buff),"/");
-                multiValueLengthOffset = strlen(buff);
-                displayWrite(osdDisplayPort, statValuesX, top, buff);            
-                osdGenerateAverageVelocityStr(buff);
-                osdLeftAlignString(buff);
-                displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
-            } else {
-                displayWrite(osdDisplayPort, statNameX, top, "MAX SPEED        :");
-                osdFormatVelocityStr(buff, stats.max_3D_speed, true, false);
-                osdLeftAlignString(buff);
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
+    if (isSinglePageStatsCompatible) {
+        row = drawStat_FlightTime(statNameX, row, statValuesX);
+        row = drawStat_FlightDistance(statNameX, row, statValuesX);
+        row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX);
+        if (feature(FEATURE_GPS)) row = drawStat_Speed(statNameX, row, statValuesX);
+        row = drawStat_MaximumAltitude(statNameX, row, statValuesX);
+        row = drawStat_BatteryVoltage(statNameX, row, statValuesX);
+        if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumCurrent(statNameX, row, statValuesX);
+        if (feature(FEATURE_CURRENT_METER))row = drawStat_MaximumPower(statNameX, row, statValuesX);
+        if (feature(FEATURE_CURRENT_METER))row = drawStat_UsedEnergy(statNameX, row, statValuesX);
+        if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX);
+        row = drawStat_RXStats(statNameX, row, statValuesX);
+        if (feature(FEATURE_GPS))row = drawStat_GPS(statNameX, row, statValuesX);
 
-                displayWrite(osdDisplayPort, statNameX, top, "AVG SPEED        :");
-                osdGenerateAverageVelocityStr(buff);
-                osdLeftAlignString(buff);
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
-            }
-
-            displayWrite(osdDisplayPort, statNameX, top, "MAX DISTANCE     :");
-            osdFormatDistanceStr(buff, stats.max_distance*100);
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-            displayWrite(osdDisplayPort, statNameX, top, "TRAVELED DISTANCE:");
-            osdFormatDistanceStr(buff, getTotalTravelDistance());
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
-        }
-
-        displayWrite(osdDisplayPort, statNameX, top, "MAX ALTITUDE     :");
-        osdFormatAltitudeStr(buff, stats.max_altitude);
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        switch (rxConfig()->serialrx_provider) {
-            case SERIALRX_CRSF:
-                if (isSinglePageStatsCompatible) {
-                    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI %/DBM   :");
-                    itoa(stats.min_rssi, buff, 10);
-                    osdLeftAlignString(buff);
-                    strcat(osdFormatTrimWhiteSpace(buff), "%/");
-                    multiValueLengthOffset = strlen(buff);
-                    displayWrite(osdDisplayPort, statValuesX, top, buff);                
-                    itoa(stats.min_rssi_dbm, buff, 10);
-                    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
-                    osdLeftAlignString(buff);
-                    displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
-                } else {
-                    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI %       :");
-                    itoa(stats.min_rssi, buff, 10);
-                    strcat(buff, "%");
-                    displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-                    displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI DBM     :");
-                    itoa(stats.min_rssi_dbm, buff, 10);
-                    tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
-                    displayWrite(osdDisplayPort, statValuesX, top++, buff);
-                } 
-
-                displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
-                itoa(stats.min_lq, buff, 10);
-                strcat(buff, "%");
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
+        if (row < (osdDisplayPort->cols-3)) row = drawStat_GForce(statNameX, row, statValuesX);
+        // if (row < (osdDisplayPort->cols-2)) row = drawStat_FlightTime(statNameX, row, statValuesX);
+    } else {
+        switch (page) {
+            case 0:
+                row = drawStat_FlightTime(statNameX, row, statValuesX);
+                row = drawStat_FlightDistance(statNameX, row, statValuesX);
+                row = drawStat_Speed(statNameX, row, statValuesX);
+                row = drawStat_MaximumAltitude(statNameX, row, statValuesX);
+                row = drawStat_BatteryVoltage(statNameX, row, statValuesX);
+                if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumCurrent(statNameX, row, statValuesX);
+                if (feature(FEATURE_CURRENT_METER))row = drawStat_MaximumPower(statNameX, row, statValuesX);
+                if (feature(FEATURE_CURRENT_METER))row = drawStat_UsedEnergy(statNameX, row, statValuesX);
+                if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX);
                 break;
-            default:
-                displayWrite(osdDisplayPort, statNameX, top, "MIN RSSI         :");
-                itoa(stats.min_rssi, buff, 10);
-                strcat(buff, "%");
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
+            case 1:
+                row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX);
+                row = drawStat_RXStats(statNameX, row, statValuesX);
+                if (feature(FEATURE_GPS))row = drawStat_GPS(statNameX, row, statValuesX);
+                row = drawStat_GForce(statNameX, row, statValuesX);
+                //row = drawStat_FlightTime(statNameX, row, statValuesX);
+                //row = drawStat_FlightTime(statNameX, row, statValuesX);
+                //row = drawStat_FlightTime(statNameX, row, statValuesX);
+                //row = drawStat_FlightTime(statNameX, row, statValuesX);
+                //row = drawStat_FlightTime(statNameX, row, statValuesX);
+                break;
         }
-
-        displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
-        uint16_t flySeconds = getFlightTime();
-        uint16_t flyMinutes = flySeconds / 60;
-        flySeconds %= 60;
-        uint16_t flyHours = flyMinutes / 60;
-        flyMinutes %= 60;
-        tfp_sprintf(buff, "%02u:%02u:%02u", flyHours, flyMinutes, flySeconds);
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        displayWrite(osdDisplayPort, statNameX, top, "DISARMED BY      :");
-        displayWrite(osdDisplayPort, statValuesX, top++, disarmReasonStr[getDisarmReason()]);
     }
-
-    if (isSinglePageStatsCompatible || page == 1) {
-        if (osdConfig()->stats_min_voltage_unit == OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY) {
-            displayWrite(osdDisplayPort, statNameX, top, "MIN BATTERY VOLT :");
-            osdFormatCentiNumber(buff, stats.min_voltage, 0, osdConfig()->main_voltage_decimals, 0, osdConfig()->main_voltage_decimals + 2, false);
-        } else {
-            displayWrite(osdDisplayPort, statNameX, top, "MIN CELL VOLTAGE :");
-            osdFormatCentiNumber(buff, stats.min_voltage/getBatteryCellCount(), 0, 2, 0, 3, false);
-        }
-        tfp_sprintf(buff, "%s%c", buff, SYM_VOLT);
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        if (feature(FEATURE_CURRENT_METER)) {
-            displayWrite(osdDisplayPort, statNameX, top, "MAX CURRENT      :");
-            osdFormatCentiNumber(buff, stats.max_current, 0, 2, 0, 3, false);
-            tfp_sprintf(buff, "%s%c", buff, SYM_AMP);
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-            displayWrite(osdDisplayPort, statNameX, top, "MAX POWER        :");
-            bool kiloWatt = osdFormatCentiNumber(buff, stats.max_power, 1000, 2, 2, 3, false);
-            buff[3] = kiloWatt ? SYM_KILOWATT : SYM_WATT;
-            buff[4] = '\0';
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-            displayWrite(osdDisplayPort, statNameX, top, "USED CAPACITY    :");
-            if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                tfp_sprintf(buff, "%d%c", (int)getMAhDrawn(), SYM_MAH);
-            } else {
-                osdFormatCentiNumber(buff, getMWhDrawn() / 10, 0, 2, 0, 3, false);
-                tfp_sprintf(buff, "%s%c", buff, SYM_WH);
-            }
-            displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-            int32_t totalDistance = getTotalTravelDistance();
-            bool moreThanAh = false;
-            bool efficiencyValid = totalDistance >= 10000;
-            if (feature(FEATURE_GPS)) {
-                displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-                    uint8_t digits = 3U;    // Total number of digits (including decimal point)
-                    #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-                        if (isBfCompatibleVideoSystem(osdConfig())) {
-                            // Add one digit so no switch to scaled decimal occurs above 99
-                            digits = 4U;
-                        }
-                    #endif
-                switch (osdConfig()->units) {
-                    case OSD_UNIT_UK:
-                        FALLTHROUGH;
-                    case OSD_UNIT_IMPERIAL:
-                        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
-                            if (!moreThanAh) {
-                                tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
-                            } else {
-                                tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
-                            }
-                            if (!efficiencyValid) {
-                                buff[0] = buff[1] = buff[2] = '-';
-                                buff[3] = SYM_MAH_MI_0;
-                                buff[4] = SYM_MAH_MI_1;
-                                buff[5] = '\0';
-                            }
-                        } else {
-                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
-                            tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
-                            if (!efficiencyValid) {
-                                buff[0] = buff[1] = buff[2] = '-';
-                            }
-                        }
-                        break;
-                    case OSD_UNIT_GA:
-                        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
-                            if (!moreThanAh) {
-                                tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_NM_0, SYM_MAH_NM_1);
-                            } else {
-                                tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
-                            }
-                            if (!efficiencyValid) {
-                                buff[0] = buff[1] = buff[2] = '-';
-                                buff[3] = SYM_MAH_NM_0;
-                                buff[4] = SYM_MAH_NM_1;
-                                buff[5] = '\0';
-                            }
-                        } else {
-                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits, false);
-                            tfp_sprintf(buff, "%s%c", buff, SYM_WH_NM);
-                            if (!efficiencyValid) {
-                                buff[0] = buff[1] = buff[2] = '-';
-                            }
-                        }
-                        break;
-                    case OSD_UNIT_METRIC_MPH:
-                        FALLTHROUGH;
-                    case OSD_UNIT_METRIC:
-                        if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
-                            moreThanAh = osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
-                            if (!moreThanAh) {
-                                tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
-                            } else {
-                                tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
-                            }
-                            if (!efficiencyValid) {
-                                buff[0] = buff[1] = buff[2] = '-';
-                                buff[3] = SYM_MAH_KM_0;
-                                buff[4] = SYM_MAH_KM_1;
-                                buff[5] = '\0';
-                            }
-                        } else {
-                            osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, digits, false);
-                            tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
-                            if (!efficiencyValid) {
-                                buff[0] = buff[1] = buff[2] = '-';
-                            }
-                        }
-                        break;
-                }
-                osdLeftAlignString(buff);
-                displayWrite(osdDisplayPort, statValuesX, top++, buff);
-            }
-        }
-
-        const float max_gforce = accGetMeasuredMaxG();
-        displayWrite(osdDisplayPort, statNameX, top, "MAX G-FORCE      :");
-        osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3, false);
-        displayWrite(osdDisplayPort, statValuesX, top++, buff);
-
-        const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
-        const float acc_extremes_min = acc_extremes[Z].min;
-        const float acc_extremes_max = acc_extremes[Z].max;
-        displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
-        osdFormatCentiNumber(buff, acc_extremes_min * 100, 0, 2, 0, 4, false);
-        osdLeftAlignString(buff);
-        strcat(osdFormatTrimWhiteSpace(buff),"/"); 
-        multiValueLengthOffset = strlen(buff);        
-        displayWrite(osdDisplayPort, statValuesX, top, buff);        
-        osdFormatCentiNumber(buff, acc_extremes_max * 100, 0, 2, 0, 3, false);
-        osdLeftAlignString(buff);
-        displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
-    }
+    
+    row = drawStat_DisarmMethod(statNameX, row, statValuesX);
 
     if (savingSettings == true) {
-        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
+        displayWrite(osdDisplayPort, statNameX, row++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
         } else {
-            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
+            displayWrite(osdDisplayPort, statNameX, row++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
         }
     }
 
