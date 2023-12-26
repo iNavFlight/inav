@@ -485,4 +485,5 @@ void compassUpdate(timeUs_t currentTimeUs)
 
     magUpdatedAtLeastOnce = true;
 }
+
 #endif
