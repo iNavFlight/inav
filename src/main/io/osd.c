@@ -4372,7 +4372,10 @@ uint8_t drawStat_FlightDistance(uint8_t col, uint8_t row, uint8_t statValX) {
 
 uint8_t drawStat_MaxDistanceFromHome(uint8_t col, uint8_t row, uint8_t statValX) {
     char buff[12];
-    displayWrite(osdDisplayPort, col, row, "DISTANCE FROM ");
+    if (!osdDisplayIsHD())
+        displayWrite(osdDisplayPort, col, row, "DISTANCE FROM ");
+    else
+        displayWrite(osdDisplayPort, col, row, "MAX DISTANCE FROM ");
     displayWriteChar(osdDisplayPort, col + 14, row, SYM_HOME);
     tfp_sprintf(buff, ": ");
     osdFormatDistanceStr(buff + 2, stats.max_distance * 100);
@@ -4413,7 +4416,10 @@ uint8_t drawStat_MaximumAltitude(uint8_t col, uint8_t row, uint8_t statValX) {
 uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX) {
     char buff[12];
     uint8_t multiValueXOffset = 0;
-    displayWrite(osdDisplayPort, col, row, "MIN VOLTS P/C");
+    if (!osdDisplayIsHD())
+        displayWrite(osdDisplayPort, col, row, "MIN VOLTS P/C");
+    else
+        displayWrite(osdDisplayPort, col, row, "MIN VOLTS PACK/CELL");
 
     // Pack voltage
     tfp_sprintf(buff, ": ");
@@ -4571,8 +4577,12 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
     uint8_t multiValueXOffset = 0;
 
     tfp_sprintf(buff, "MIN RSSI");
-    if (rxConfig()->serialrx_provider == SERIALRX_CRSF)
+    if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
         strcat(buff, "/LQ");
+
+        if (osdDisplayIsHD())
+            strcat(buff, "/DBM");
+    }
     displayWrite(osdDisplayPort, col, row, buff);
 
     memset(buff, '\0', strlen(buff));
@@ -4581,14 +4591,22 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
     strcat(osdFormatTrimWhiteSpace(buff), "%");
     
     if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+        strcat(osdFormatTrimWhiteSpace(buff), "/");
         multiValueXOffset = strlen(buff);
         itoa(stats.min_lq, buff + multiValueXOffset, 10);
         strcat(osdFormatTrimWhiteSpace(buff), "%");
+
+        if (osdDisplayIsHD()) {
+            strcat(osdFormatTrimWhiteSpace(buff), "/");
+            itoa(stats.min_rssi_dbm, buff + 2, 10);
+            tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+            displayWrite(osdDisplayPort, statValX, row++, buff);
+        }
     }
 
-    displayWrite(osdDisplayPort, statValX, row, buff);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
 
-    if (rxConfig()->serialrx_provider == SERIALRX_CRSF) {
+    if (!osdDisplayIsHD() && rxConfig()->serialrx_provider == SERIALRX_CRSF) {
         displayWrite(osdDisplayPort, col, row, "MIN RX DBM");
         memset(buff, '\0', strlen(buff));
         tfp_sprintf(buff, ": ");
@@ -4626,18 +4644,29 @@ uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
     uint8_t multiValueXOffset = 0;
 
     const float max_gforce = accGetMeasuredMaxG();
-    displayWrite(osdDisplayPort, col, row, "MAX G-FORCE");
-    tfp_sprintf(buff, ": ");
-    osdFormatCentiNumber(buff + 2, max_gforce * 100, 0, 2, 0, 3, false);
-    displayWrite(osdDisplayPort, statValX, row++, buff);
-
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
     const float acc_extremes_min = acc_extremes[Z].min;
     const float acc_extremes_max = acc_extremes[Z].max;
-    displayWrite(osdDisplayPort, col, row, "MIN/MAX Z G-FORCE");
-    memset(buff, '\0', strlen(buff));
+
+    if (!osdDisplayIsHD())
+        displayWrite(osdDisplayPort, col, row, "MAX G-FORCE");
+    else
+        displayWrite(osdDisplayPort, col, row, "MAX/MIN Z/MAX Z G-FORCE");
+        
     tfp_sprintf(buff, ": ");
-    osdFormatCentiNumber(buff + 2, acc_extremes_min * 100, 0, 2, 0, 4, false);
+    osdFormatCentiNumber(buff + 2, max_gforce * 100, 0, 2, 0, 3, false);
+    
+    if (!osdDisplayIsHD()) {
+        displayWrite(osdDisplayPort, statValX, row++, buff);
+
+        displayWrite(osdDisplayPort, col, row, "MIN/MAX Z G-FORCE");
+        memset(buff, '\0', strlen(buff));
+        tfp_sprintf(buff, ": ");
+    } else {
+        strcat(osdFormatTrimWhiteSpace(buff),"/");
+    }
+    multiValueXOffset = strlen(buff);
+    osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_min * 100, 0, 2, 0, 4, false);
     osdLeftAlignString(buff);
     strcat(osdFormatTrimWhiteSpace(buff),"/");
     
@@ -4664,8 +4693,8 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     const char * statsHeader[3] = {"*** STATS ***", "*** STATS (1/2 ->) ***", "*** STATS (<- 2/2) ***"};
     uint8_t row = 1;  // Start one line down leaving space at the top of the screen.
 
-    const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
-    const uint8_t statValuesX = osdDisplayIsHD() ? 30 : 18;
+    const uint8_t statNameX = (osdDisplayPort->cols - (osdDisplayIsHD() ? 41 : 28)) / 2;
+    const uint8_t statValuesX = osdDisplayPort->cols - statNameX - (osdDisplayIsHD() ? 15 : 11);
     
     if (page > 1)
         page = 0;
