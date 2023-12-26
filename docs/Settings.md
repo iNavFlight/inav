@@ -2818,7 +2818,7 @@ Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 120 |
+| 60 | 0 | 120 |
 
 ---
 
