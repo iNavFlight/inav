@@ -237,6 +237,8 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_us42.h
     drivers/rangefinder/rangefinder_tof10120_i2c.c
     drivers/rangefinder/rangefinder_tof10120_i2c.h
+    drivers/rangefinder/rangefinder_teraranger_evo.c
+    drivers/rangefinder/rangefinder_teraranger_evo.h
 
     drivers/resource.c
     drivers/resource.h

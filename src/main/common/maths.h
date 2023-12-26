@@ -59,6 +59,7 @@
 #define CENTIMETERS_TO_CENTIFEET(cm)    (cm / 0.3048f)
 #define CENTIMETERS_TO_FEET(cm)         (cm / 30.48f)
 #define CENTIMETERS_TO_METERS(cm)       (cm / 100.0f)
+#define MILLIMETERS_TO_CENTIMETERS(mm)  (mm / 10.0f)
 
 #define METERS_TO_CENTIMETERS(m)        (m * 100)
 
