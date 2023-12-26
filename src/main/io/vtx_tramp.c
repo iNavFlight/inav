@@ -575,16 +575,27 @@ const char * const trampPowerNames_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1] = 
 const uint16_t trampPowerTable_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 800 };
 const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "800" };
 
+const uint16_t trampPowerTable_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 2000 };
+const char * const trampPowerNames_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "2000" };
+
 static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
 {
     switch (vtxSettingsConfig()->frequencyGroup) {
         case FREQUENCYGROUP_1G3:
-            vtxState.metadata.powerTablePtr  = trampPowerTable_1G3_800;
-            vtxState.metadata.powerTableCount = VTX_TRAMP_1G3_MAX_POWER_COUNT;
+            if (maxPower >= 2000) {
+               vtxState.metadata.powerTablePtr  = trampPowerTable_1G3_2000;
+               vtxState.metadata.powerTableCount = VTX_TRAMP_1G3_MAX_POWER_COUNT;
             
-            impl_vtxDevice.capability.powerNames = (char **)trampPowerNames_1G3_800;
-            impl_vtxDevice.capability.powerCount = VTX_TRAMP_1G3_MAX_POWER_COUNT;
+               impl_vtxDevice.capability.powerNames = (char **)trampPowerNames_1G3_2000;
+               impl_vtxDevice.capability.powerCount = VTX_TRAMP_1G3_MAX_POWER_COUNT;
+            }
+            else {
+               vtxState.metadata.powerTablePtr  = trampPowerTable_1G3_800;
+               vtxState.metadata.powerTableCount = VTX_TRAMP_1G3_MAX_POWER_COUNT;
             
+               impl_vtxDevice.capability.powerNames = (char **)trampPowerNames_1G3_800;
+               impl_vtxDevice.capability.powerCount = VTX_TRAMP_1G3_MAX_POWER_COUNT;
+            }
             impl_vtxDevice.capability.bandCount = VTX_TRAMP_1G3_BAND_COUNT;
             impl_vtxDevice.capability.channelCount = VTX_TRAMP_1G3_CHANNEL_COUNT;
             impl_vtxDevice.capability.bandNames = (char **)vtx1G3BandNames;

@@ -60,9 +60,8 @@
 #define NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ     2.0f
 #define NAV_FW_BASE_ROLL_CUTOFF_FREQUENCY_HZ     10.0f
 
-// If we are going slower than NAV_FW_MIN_VEL_SPEED_BOOST - boost throttle to fight against the wind
+// If we are going slower than the minimum ground speed (navConfig()->general.min_ground_speed) - boost throttle to fight against the wind
 #define NAV_FW_THROTTLE_SPEED_BOOST_GAIN        1.5f
-#define NAV_FW_MIN_VEL_SPEED_BOOST              700.0f      // 7 m/s
 
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
@@ -518,8 +517,8 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs)
                 // POSITION_TARGET_UPDATE_RATE_HZ should be chosen keeping in mind that position target shouldn't be reached until next pos update occurs
                 // FIXME: verify the above
                 calculateVirtualPositionTarget_FW(HZ2S(MIN_POSITION_UPDATE_RATE_HZ) * 2);
-
                 updatePositionHeadingController_FW(currentTimeUs, deltaMicrosPositionUpdate);
+                needToCalculateCircularLoiter = false;
             }
             else {
                 // Position update has not occurred in time (first iteration or glitch), reset altitude controller
@@ -552,10 +551,10 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
             previousTimePositionUpdate = currentTimeUs;
 
             if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-                float velThrottleBoost = (NAV_FW_MIN_VEL_SPEED_BOOST - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
+                float velThrottleBoost = ((navConfig()->general.min_ground_speed * 100.0f) - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
                 // If we are in the deadband of 50cm/s - don't update speed boost
-                if (fabsf(posControl.actualState.velXY - NAV_FW_MIN_VEL_SPEED_BOOST) > 50) {
+                if (fabsf(posControl.actualState.velXY - (navConfig()->general.min_ground_speed * 100.0f)) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 
@@ -695,7 +694,7 @@ bool isFixedWingFlying(void)
     bool velCondition = posControl.actualState.velXY > 250.0f || airspeed > 250.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
-    return (isImuHeadingValid() && throttleCondition && velCondition) || launchCondition;
+    return (isGPSHeadingValid() && throttleCondition && velCondition) || launchCondition;
 }
 
 /*-----------------------------------------------------------
@@ -725,7 +724,7 @@ bool isFixedWingLandingDetected(void)
 
     // Check horizontal and vertical velocities are low (cm/s)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
-                        posControl.actualState.velXY < (100.0f * sensitivity);
+                        ( posControl.actualState.velXY < (100.0f * sensitivity));
     // Check angular rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);

@@ -35,7 +35,7 @@ int currentMixerProfileIndex;
 bool isMixerTransitionMixing;
 bool isMixerTransitionMixing_requested;
 mixerProfileAT_t mixerProfileAT;
-int nextProfileIndex;
+int nextMixerProfileIndex;
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(mixerProfile_t, MAX_MIXER_PROFILE_COUNT, mixerProfiles, PG_MIXER_PROFILE, 1);
 
@@ -81,7 +81,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
 void activateMixerConfig(){
     currentMixerProfileIndex = getConfigMixerProfile();
     currentMixerConfig = *mixerConfig();
-    nextProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
+    nextMixerProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;
 }
 
 void mixerConfigInit(void)
@@ -113,7 +113,7 @@ bool platformTypeConfigured(flyingPlatformType_e platformType)
     if (!isModeActivationConditionPresent(BOXMIXERPROFILE)){
         return false;
     }
-    return mixerConfigByIndex(nextProfileIndex)->platformType == platformType;
+    return mixerConfigByIndex(nextMixerProfileIndex)->platformType == platformType;
 }
 
 bool checkMixerATRequired(mixerProfileATRequest_e required_action)
@@ -171,7 +171,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
             isMixerTransitionMixing_requested = true;
             if (millis() > mixerProfileAT.transitionTransEndTime){
                 isMixerTransitionMixing_requested = false;
-                outputProfileHotSwitch(nextProfileIndex);
+                outputProfileHotSwitch(nextMixerProfileIndex);
                 mixerProfileAT.phase = MIXERAT_PHASE_IDLE;
                 reprocessState = true;
                 //transition is done

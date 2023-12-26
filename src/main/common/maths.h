@@ -91,6 +91,7 @@
         )
 #define MIN(a, b) _CHOOSE(<, a, b)
 #define MAX(a, b) _CHOOSE(>, a, b)
+#define SIGN(a) ((a >= 0) ? 1 : -1)
 
 #define _ABS_II(x, var)             \
     ( __extension__ ({              \

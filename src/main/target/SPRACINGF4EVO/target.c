@@ -23,8 +23,8 @@
 
 timerHardware_t timerHardware[] =
 {
-    DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
-    DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
+    // DEF_TIM(TIM9,  CH2, PA3,  TIM_USE_PPM | TIM_USE_PWM,   0, 0), // PPM / PWM1 / UART2 RX
+    // DEF_TIM(TIM9,  CH1, PA2,  TIM_USE_PWM,                 0, 0), // PPM / PWM2 / UART2 TX
 
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 1), // ESC 1
     DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_OUTPUT_AUTO, 0, 1), // ESC 2

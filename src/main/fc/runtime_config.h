@@ -104,12 +104,13 @@ typedef enum {
     TURN_ASSISTANT        = (1 << 14),
     TURTLE_MODE           = (1 << 15),
     SOARING_MODE          = (1 << 16),
+    ANGLEHOLD_MODE        = (1 << 17),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
 
-#define DISABLE_FLIGHT_MODE(mask) disableFlightMode(mask)
-#define ENABLE_FLIGHT_MODE(mask) enableFlightMode(mask)
+#define DISABLE_FLIGHT_MODE(mask) (flightModeFlags &= ~(mask))
+#define ENABLE_FLIGHT_MODE(mask) (flightModeFlags |= (mask))
 #define FLIGHT_MODE(mask) (flightModeFlags & (mask))
 
 typedef enum {
@@ -123,6 +124,9 @@ typedef enum {
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
     COMPASS_CALIBRATED                  = (1 << 8),
     ACCELEROMETER_CALIBRATED            = (1 << 9),
+#ifdef USE_GPS_FIX_ESTIMATION
+    GPS_ESTIMATED_FIX                   = (1 << 10),
+#endif
     NAV_CRUISE_BRAKING                  = (1 << 11),
     NAV_CRUISE_BRAKING_BOOST            = (1 << 12),
     NAV_CRUISE_BRAKING_LOCKED           = (1 << 13),
@@ -139,6 +143,7 @@ typedef enum {
     FW_HEADING_USE_YAW                  = (1 << 24),
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
     LANDING_DETECTED                    = (1 << 26),
+    IN_FLIGHT_EMERG_REARM               = (1 << 27),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
@@ -161,6 +166,7 @@ typedef enum {
     FLM_CRUISE,
     FLM_LAUNCH,
     FLM_FAILSAFE,
+    FLM_ANGLEHOLD,
     FLM_COUNT
 } flightModeForTelemetry_e;
 
@@ -170,7 +176,7 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void);
 
 #define SIMULATOR_MSP_VERSION  2     // Simulator MSP version
 #define SIMULATOR_BARO_TEMP    25    // °C
-#define SIMULATOR_FULL_BATTERY 12.6f // Volts
+#define SIMULATOR_FULL_BATTERY 126   // Volts*10
 #define SIMULATOR_HAS_OPTION(flag) ((simulatorData.flags & flag) != 0)
 
 typedef enum {
@@ -199,8 +205,7 @@ extern simulatorData_t simulatorData;
 
 #endif
 
-uint32_t enableFlightMode(flightModeFlags_e mask);
-uint32_t disableFlightMode(flightModeFlags_e mask);
+void updateFlightModeChangeBeeper(void);
 
 bool sensors(uint32_t mask);
 void sensorsSet(uint32_t mask);

@@ -265,13 +265,8 @@ uint32_t tcpTotalRxBytesWaiting(const serialPort_t *instance)
 
 uint32_t tcpTotalTxBytesFree(const serialPort_t *instance)
 {
-    tcpPort_t *port = (tcpPort_t*)instance;
-
-    if (port->isClientConnected) {
-        return TCP_MAX_PACKET_SIZE;
-    } else {
-        return 0;
-    }
+    UNUSED(instance);
+    return TCP_MAX_PACKET_SIZE;
 }
 
 bool isTcpTransmitBufferEmpty(const serialPort_t *instance)

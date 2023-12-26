@@ -1,6 +1,6 @@
 # SpeedyBee F405 V3
 
-> Notice: At the moment, DSHOT is not supported on SpeedyBe F405 V3. Use Multishot instead
+> Notice: DSHOT on SpeedyBe F405 V3 requires INAV 7.0.0 or later. If you are using an older version, use MULTISHOT instead.
 
 > Notice: The analog OSD and the SD card (blackbox) share the same SPI bus, which can cause problems when trying to use analog OSD and blackbox at the same time.
 

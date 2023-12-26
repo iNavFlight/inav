@@ -348,6 +348,7 @@ typedef struct {
     float                   rthInitialDistance;     // Distance when starting flight home
     fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
     fpVector3_t             originalHomePosition;   // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
+    bool                    rthLinearDescentActive; // Activation status of Linear Descent
 } rthState_t;
 
 typedef enum {
@@ -392,6 +393,7 @@ typedef struct {
     rthState_t                  rthState;
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+    timeMs_t                    landingDelay;
 
     /* Safehome parameters */
     safehomeState_t             safehomeState;

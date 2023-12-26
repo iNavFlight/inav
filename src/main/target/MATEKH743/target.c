@@ -51,10 +51,10 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_LED, 0, 9),    // LED_2812
     DEF_TIM(TIM2,  CH1, PA15, TIM_USE_BEEPER, 0, 0),  // BEEPER PWM
 
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PPM, 0, 0),   // RX6 PPM
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_ANY, 0, 0),   // TX6    
-    DEF_TIM(TIM16, CH1, PB8,  TIM_USE_ANY, 0, 0),   // RX4
-    DEF_TIM(TIM17, CH1, PB9,  TIM_USE_ANY, 0, 0),   // TX4
+    // DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PPM, 0, 0),   // RX6 PPM
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_ANY, 0, 0),   // TX6 SoftwareSerial   
+    // DEF_TIM(TIM16, CH1, PB8,  TIM_USE_ANY, 0, 0),   // RX4
+    // DEF_TIM(TIM17, CH1, PB9,  TIM_USE_ANY, 0, 0),   // TX4
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

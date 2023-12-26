@@ -33,11 +33,11 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM5,  CH3, PA2,  TIM_USE_ANY, 0, 0),
     DEF_TIM(TIM5,  CH4, PA3,  TIM_USE_ANY, 0, 0),
 
-#ifdef WINGFC
-    DEF_TIM(TIM2,  CH4, PB11, TIM_USE_PPM, 0, 0), // UART3 RX
-#else
-    DEF_TIM(TIM2,  CH3, PB10, TIM_USE_PPM, 0, 0), // UART3 TX
-#endif
+// #ifdef WINGFC
+//     DEF_TIM(TIM2,  CH4, PB11, TIM_USE_PPM, 0, 0), // UART3 RX
+// #else
+//     DEF_TIM(TIM2,  CH3, PB10, TIM_USE_PPM, 0, 0), // UART3 TX
+// #endif
 
 };
 
