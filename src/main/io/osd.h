@@ -280,6 +280,7 @@ typedef enum {
     OSD_MULTI_FUNCTION,
     OSD_ODOMETER,
     OSD_PILOT_LOGO,
+    OSD_BLACKBOX,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

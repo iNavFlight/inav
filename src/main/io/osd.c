@@ -111,6 +111,10 @@
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
 
+#ifdef USE_BLACKBOX
+#include "blackbox/blackbox_io.h"
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -1969,6 +1973,27 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_TRIP_DIST:
         buff[0] = SYM_TOTAL;
         osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0);
+        break;
+
+    case OSD_BLACKBOX:
+        {
+#ifdef USE_BLACKBOX
+            if (IS_RC_MODE_ACTIVE(BOXBLACKBOX)) {
+                if (!isBlackboxDeviceWorking()) {
+                    tfp_sprintf(buff, "%c%c", SYM_BLACKBOX, SYM_ALERT);
+                } else if (isBlackboxDeviceFull()) {
+                    tfp_sprintf(buff, "%cFULL", SYM_BLACKBOX);
+                } else {
+                    int32_t logNumber = blackboxGetLogNumber();
+                    if (logNumber >= 0) {
+                        tfp_sprintf(buff, "%c%5ld", SYM_BLACKBOX, logNumber);
+                    } else {
+                        tfp_sprintf(buff, "%c", SYM_BLACKBOX);
+                    }
+                }
+            }
+#endif // USE_BLACKBOX
+        }
         break;
 
     case OSD_ODOMETER:
@@ -4025,6 +4050,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_PLIMIT_ACTIVE_POWER_LIMIT] = OSD_POS(3, 6);
 #endif
 
+#ifdef USE_BLACKBOX
+    osdLayoutsConfig->item_pos[0][OSD_BLACKBOX] = OSD_POS(2, 10);
+#endif
+
     // Under OSD_FLYMODE. TODO: Might not be visible on NTSC?
     osdLayoutsConfig->item_pos[0][OSD_MESSAGES] = OSD_POS(1, 13) | OSD_VISIBLE_FLAG;
 
@@ -4690,7 +4719,7 @@ uint8_t drawStat_DisarmMethod(uint8_t col, uint8_t row, uint8_t statValX) {
 
 static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
-    const char * statsHeader[3] = {"*** STATS ***", "*** STATS (1/2 ->) ***", "*** STATS (<- 2/2) ***"};
+    const char * statsHeader[2] = {"*** STATS (1/2 ->) ***", "*** STATS (<- 2/2) ***"};
     uint8_t row = 1;  // Start one line down leaving space at the top of the screen.
 
     const uint8_t statNameX = (osdDisplayPort->cols - (osdDisplayIsHD() ? 41 : 28)) / 2;
@@ -4703,10 +4732,24 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     displayClearScreen(osdDisplayPort);
 
     if (isSinglePageStatsCompatible) {
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(statsHeader[0])) / 2, row++, statsHeader[0]);
-    } else {
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(statsHeader[page + 1])) / 2, row++, statsHeader[page + 1]);
-    } 
+        char buff[20];
+        tfp_sprintf(buff, "*** STATS ");
+#ifdef USE_BLACKBOX
+#ifdef USE_SDCARD
+        if (feature(FEATURE_BLACKBOX)) {
+            int32_t logNumber = blackboxGetLogNumber();
+            if (logNumber >= 0)
+                tfp_sprintf(buff, "%s %c%5ld ", buff, SYM_BLACKBOX, logNumber);
+            else
+                tfp_sprintf(buff, "%s %c ", buff, SYM_BLACKBOX);
+        }
+#endif
+#endif
+        tfp_sprintf(buff, "%s***", buff);
+
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buff)) / 2, row++, buff);
+    } else
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(statsHeader[page + 1])) / 2, row++, statsHeader[page]);
 
     if (isSinglePageStatsCompatible) {
         row = drawStat_FlightTime(statNameX, row, statValuesX);

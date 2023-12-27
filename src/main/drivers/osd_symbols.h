@@ -178,6 +178,8 @@
 #define SYM_ALERT                   0xDD  // 221 General alert symbol
 #define SYM_TERRAIN_FOLLOWING       0xFB  // 251 Terrain following (also Alt adjust)
 #define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
+#define SYM_ADSB                    0xFD  // 253 ADBS
+#define SYM_BLACKBOX                0xFE  // 254 Blackbox
 
 
 #define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
