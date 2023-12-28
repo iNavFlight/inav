@@ -36,7 +36,9 @@ To run  `cmake` in the latest version you will need to update from Ubuntu `18_04
 
 Mount MS windows C drive and clone INAV
 1.   `cd /mnt/c`
-1.   `git clone https://github.com/iNavFlight/inav.git`
+2.   `git clone https://github.com/iNavFlight/inav.git`
+3.   `git checkout 6.1.1` (to switch to a specific release tag, for this example INAV version 6.1.1)
+4.   `git checkout -b my-branch` (to create own branch)
 
 You are ready!
 You now have a folder called inav in the root of C drive that you can edit in windows

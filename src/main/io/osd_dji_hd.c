@@ -300,6 +300,7 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
         case FLM_ALTITUDE_HOLD:
         case FLM_POSITION_HOLD:
         case FLM_MISSION:
+        case FLM_ANGLEHOLD:
         default:
             // Unsupported ATM, keep at ANGLE
             bitArraySet(flightModeBitmask->bits, 1);    // DJI: 1 << 1 : ANGLE
@@ -786,7 +787,11 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     timeUs_t currentTimeUs = micros();
     timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
 
-    if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                 1, US2S(efficiencyTimeDelta));

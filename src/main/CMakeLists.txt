@@ -525,6 +525,8 @@ main_sources(COMMON_SRC
     io/osd_grid.h
     io/osd_hud.c
     io/osd_hud.h
+    io/osd_joystick.c
+    io/osd_joystick.h
     io/smartport_master.c
     io/smartport_master.h
     io/vtx.c
@@ -556,6 +558,8 @@ main_sources(COMMON_SRC
     navigation/navigation_rover_boat.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
+    navigation/rth_trackback.c
+    navigation/rth_trackback.h
 
     sensors/barometer.c
     sensors/barometer.h

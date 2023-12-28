@@ -45,8 +45,6 @@
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
 
-#define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
-
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
@@ -350,6 +348,7 @@ typedef struct {
     float                   rthInitialDistance;     // Distance when starting flight home
     fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
     fpVector3_t             originalHomePosition;   // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
+    bool                    rthLinearDescentActive; // Activation status of Linear Descent
 } rthState_t;
 
 typedef enum {
@@ -394,6 +393,7 @@ typedef struct {
     rthState_t                  rthState;
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+    timeMs_t                    landingDelay;
 
     /* Safehome parameters */
     safehomeState_t             safehomeState;
@@ -425,12 +425,6 @@ typedef struct {
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
-
-    /* RTH Trackback */
-    fpVector3_t                 rthTBPointsList[NAV_RTH_TRACKBACK_POINTS];
-    int8_t                      rthTBLastSavedIndex;        // last trackback point index saved
-    int8_t                      activeRthTBPointIndex;
-    int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

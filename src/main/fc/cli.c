@@ -68,6 +68,7 @@ bool cliMode = false;
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
+#include "drivers/light_ws2811strip.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -1686,6 +1687,20 @@ static void cliModeColor(char *cmdline)
         }
         // values are validated
         cliPrintLinef("mode_color %u %u %u", modeIdx, funIdx, color);
+    }
+}
+
+static void cliLedPinPWM(char *cmdline)
+{
+    int i;
+
+    if (isEmpty(cmdline)) {
+        ledPinStopPWM();
+        cliPrintLine("PWM stopped");
+    } else {       
+        i = fastA2I(cmdline);
+        ledPinStartPWM(i);
+        cliPrintLinef("PWM started: %d%%",i);
     }
 }
 #endif
@@ -4035,6 +4050,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
+    CLI_COMMAND_DEF("ledpinpwm", "start/stop PWM on LED pin, 0..100 duty ratio", "[<value>]\r\n", cliLedPinPWM),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),

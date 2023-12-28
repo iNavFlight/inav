@@ -33,7 +33,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 1),  // S7
 
     DEF_TIM(TIM1, CH1, PA8,   TIM_USE_LED, 0, 0),  // LED STRIP
-    DEF_TIM(TIM9, CH2, PA3,   TIM_USE_PPM, 0, 0),  // PPM
+    // DEF_TIM(TIM9, CH2, PA3,   TIM_USE_PPM, 0, 0),  // PPM
     DEF_TIM(TIM12, CH2, PB15, TIM_USE_ANY, 0, 0),  // CAM CONTROL
 };
 

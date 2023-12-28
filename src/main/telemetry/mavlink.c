@@ -191,6 +191,7 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_ACRO_AIR:      return COPTER_MODE_ACRO;
         case FLM_ANGLE:         return COPTER_MODE_STABILIZE;
         case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
+        case FLM_ANGLEHOLD:     return COPTER_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
         case FLM_POSITION_HOLD: return COPTER_MODE_POSHOLD;
         case FLM_RTH:           return COPTER_MODE_RTL;
@@ -220,6 +221,7 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_ACRO_AIR:      return PLANE_MODE_ACRO;
         case FLM_ANGLE:         return PLANE_MODE_FLY_BY_WIRE_A;
         case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
+        case FLM_ANGLEHOLD:     return PLANE_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
         case FLM_POSITION_HOLD: return PLANE_MODE_LOITER;
         case FLM_RTH:           return PLANE_MODE_RTL;
@@ -523,7 +525,11 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
 
-    if (!sensors(SENSOR_GPS))
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ))
         return;
 
     if (gpsSol.fixType == GPS_NO_FIX)
@@ -638,7 +644,11 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_GPS)
     // use ground speed if source available
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
     }
 #endif
@@ -662,7 +672,7 @@ void mavlinkSendHUDAndHeartbeat(void)
         // heading Current heading in degrees, in compass units (0..360, 0=north)
         DECIDEGREES_TO_DEGREES(attitude.values.yaw),
         // throttle Current throttle setting in integer percent, 0 to 100
-        thr, 
+        thr,
         // alt Current altitude (MSL), in meters, if we have surface or baro use them, otherwise use GPS (less accurate)
         mavAltitude,
         // climb Current climb rate in meters/second
@@ -1102,9 +1112,9 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed || 
+        if (!incomingRequestServed ||
             (
-                 (rxConfig()->receiverType == RX_TYPE_SERIAL) && 
+                 (rxConfig()->receiverType == RX_TYPE_SERIAL) &&
                  (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
                  !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
             )

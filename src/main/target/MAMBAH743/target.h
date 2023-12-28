@@ -60,16 +60,15 @@
 
 #ifdef MAMBAH743_2022B
 
-// SPI4 is used on the second MPU6000 gyro, we do not use it at the moment
-// #define USE_SPI_DEVICE_4
-// #define SPI4_SCK_PIN            PE12
-// #define SPI4_MISO_PIN           PE13
-// #define SPI4_MOSI_PIN           PE14
+#define USE_SPI_DEVICE_4
+#define SPI4_SCK_PIN            PE12
+#define SPI4_MISO_PIN           PE13
+#define SPI4_MOSI_PIN           PE14
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW0_DEG
-#define ICM42605_SPI_BUS        BUS_SPI1
-#define ICM42605_CS_PIN         PA4
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_SPI_BUS        BUS_SPI4
+#define ICM42605_CS_PIN         PE11
 
 #endif
 
