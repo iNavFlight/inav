@@ -272,13 +272,12 @@ def writeTargetH(folder, map):
     file.write("// UARTs\n")
     file.write("#define USB_IO\n")
     file.write("#define USE_VCP\n")
-    serial_count = 0 
+    serial_count = 1 
     pin = findPinByFunction('USB_DETECT', map)
     if pin:
         file.write("#define USE_USB_DETECT\n")
         file.write("#define USB_DETECT_PIN %s\n" % (pin))
         #file.write("#define VBUS_SENSING_ENABLED\n");  
-        serial_count += 1
  
     for i in range(1, 9):
         txpin = findPinByFunction("UART%i_TX" % (i), map)
