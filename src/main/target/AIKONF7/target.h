@@ -94,11 +94,11 @@
 #define MPU6000_SPI_BUS BUS_SPI1
 #define IMU_MPU6000_ALIGN    CW0_DEG
 // BARO
-#define USE_BARO
+// #define USE_BARO
 // #define USE_BARO_ALL
-#define USE_BARO_SPI_BMP280
-#define BMP280_SPI_BUS BUS_SPI3
-#define BMP280_CS_PIN PB2
+// #define USE_BARO_SPI_BMP280
+// #define BMP280_SPI_BUS BUS_SPI3
+// #define BMP280_CS_PIN PB2
 // OSD
 #define USE_MAX7456
 #define MAX7456_CS_PIN PB12
