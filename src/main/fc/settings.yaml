@@ -581,6 +581,38 @@ groups:
         min: 0
         max: 1000
 
+  - name: PG_MULTI_BAROMETER_CONFIG
+    type: barometerMultiConfig_t
+    headers: ["sensors/barometer.h"]
+    condition: USE_BARO_MULTI
+    members:
+      - name: multi_baro_count
+        description: "Multiple barometers_count"
+        default_value: 2
+        field: multi_baro_count
+        min: 1
+        max: 2    
+      - name: multi_baro_hardware_1
+        description: "Selection of first multi baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info"
+        default_value: "AUTO"
+        table: baro_hardware
+      - name: multi_baro_cal_tolerance_1
+        description: "Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]."
+        default_value: 150
+        field: multi_baro_calibration_tolerance_1
+        min: 0
+        max: 1000
+      - name: multi_baro_hardware_2
+        description: "Selection of first multi baro hardware. See Wiki Sensor auto detect and hardware failure detection for more info"
+        default_value: "AUTO"
+        table: baro_hardware
+      - name: multi_baro_cal_tolerance_2
+        description: "Baro calibration tolerance in cm. The default should allow the noisiest baro to complete calibration [cm]."
+        default_value: 150
+        field: multi_baro_calibration_tolerance_2
+        min: 0
+        max: 1000        
+
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
     headers: ["sensors/pitotmeter.h"]
@@ -2305,7 +2337,7 @@ groups:
         type: bool
       - name: inav_reset_altitude
         description: "Defines when relative estimated altitude is reset to zero. Variants - `NEVER` (once reference is acquired it's used regardless); `FIRST_ARM` (keep altitude at zero until firstly armed), `EACH_ARM` (altitude is reset to zero on each arming)"
-        default_value: "FIRST_ARM"
+        default_value: "NEVER"
         field: reset_altitude_type
         table: reset_type
       - name: inav_reset_home

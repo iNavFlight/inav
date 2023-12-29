@@ -184,14 +184,20 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
 #ifdef USE_BARO
 void taskUpdateBaro(timeUs_t currentTimeUs)
 {
+    LOG_DEBUG(SYSTEM, "taskUpdateBaro");
+
     if (!sensors(SENSOR_BARO)) {
+        LOG_DEBUG(SYSTEM, "!sensors(SENSOR_BARO) true");
         return;
     }
 
     const uint32_t newDeadline = baroUpdate();
     if (newDeadline != 0) {
+        LOG_DEBUG(SYSTEM, "rescheduleTask(TASK_SELF, newDeadline);");
+
         rescheduleTask(TASK_SELF, newDeadline);
     }
+    LOG_DEBUG(SYSTEM, "updatePositionEstimator_BaroTopic(currentTimeUs);");
 
     updatePositionEstimator_BaroTopic(currentTimeUs);
 }

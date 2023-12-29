@@ -1281,7 +1281,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_SENSOR_CONFIG:
         sbufWriteU8(dst, accelerometerConfig()->acc_hardware);
 #ifdef USE_BARO
+// MSP Protocol need to be updated to support multi hardware for barometers
+#ifdef USE_BARO_MULTI
+        sbufWriteU8(dst, barometerMultiConfig()->multi_baro_hardware_1);
+#else
         sbufWriteU8(dst, barometerConfig()->baro_hardware);
+#endif
 #else
         sbufWriteU8(dst, 0);
 #endif
@@ -2289,7 +2294,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize == 6) {
             accelerometerConfigMutable()->acc_hardware = sbufReadU8(src);
 #ifdef USE_BARO
+#ifdef USE_BARO_MULTI
+            barometerMultiConfigMutable()->multi_baro_hardware_1 = sbufReadU8(src);
+#else
             barometerConfigMutable()->baro_hardware = sbufReadU8(src);
+#endif
 #else
             sbufReadU8(src);
 #endif
@@ -3756,12 +3765,17 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
                 gyro.gyroADCf[Z] = ((int16_t)sbufReadU16(src)) / 16.0f;
 
-                if (sensors(SENSOR_BARO)) {
-                    baro.baroPressure = (int32_t)sbufReadU32(src);
-                    baro.baroTemperature = DEGREES_TO_CENTIDEGREES(SIMULATOR_BARO_TEMP);
-                } else {
-                    sbufAdvance(src, sizeof(uint32_t));
-                }
+ 				if (sensors(SENSOR_BARO)) {
+#ifdef USE_BARO_MULTI
+					multiBaro[0].baroPressure = (int32_t)sbufReadU32(src);
+					multiBaro[0].baroTemperature = DEGREES_TO_CENTIDEGREES(SIMULATOR_BARO_TEMP);
+#else                    
+ 					baro.baroPressure = (int32_t)sbufReadU32(src);
+ 					baro.baroTemperature = DEGREES_TO_CENTIDEGREES(SIMULATOR_BARO_TEMP);
+#endif
+ 				} else {
+ 					sbufAdvance(src, sizeof(uint32_t));
+ 				}
 
                 if (sensors(SENSOR_MAG)) {
                     mag.magADC[X] = ((int16_t)sbufReadU16(src)) / 20;  // 16000 / 20 = 800uT

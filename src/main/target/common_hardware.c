@@ -102,7 +102,7 @@
         #define BMP280_I2C_BUS BARO_I2C_BUS
     #endif
     #if !defined(BMP280_I2C_ADDR)
-        #define BMP280_I2C_ADDR (0x76)
+        #define BMP280_I2C_ADDR (0x77)
     #endif
     BUSDEV_REGISTER_I2C(busdev_bmp280,      DEVHW_BMP280,       BMP280_I2C_BUS,     BMP280_I2C_ADDR,	NONE,           DEVFLAGS_NONE,      0);
     #endif
@@ -115,7 +115,10 @@
     #if !defined(BMP388_I2C_BUS)
         #define BMP388_I2C_BUS BARO_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_bmp388,      DEVHW_BMP388,       BMP388_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE,      0);
+    #if !defined(BMP388_I2C_ADDR)
+        #define BMP388_I2C_ADDR 0x76
+    #endif    
+    BUSDEV_REGISTER_I2C(busdev_bmp388,      DEVHW_BMP388,       BMP388_I2C_BUS,     BMP388_I2C_ADDR,               NONE,           DEVFLAGS_NONE,      0);
     #endif
 #endif
 
@@ -126,7 +129,10 @@
       #if !defined(SPL06_I2C_BUS)
         #define SPL06_I2C_BUS BARO_I2C_BUS
       #endif
-      BUSDEV_REGISTER_I2C(busdev_spl06,     DEVHW_SPL06,        SPL06_I2C_BUS,      0x76,               NONE,           DEVFLAGS_NONE,      0);
+      #if !defined(SPL06_I2C_ADDR)
+          #define SPL06_I2C_ADDR (0x76)
+      #endif      
+      BUSDEV_REGISTER_I2C(busdev_spl06,     DEVHW_SPL06,        SPL06_I2C_BUS,      SPL06_I2C_ADDR,               NONE,           DEVFLAGS_NONE,      0);
     #endif
 #endif
 
@@ -140,6 +146,9 @@
     #if !defined(MS5607_I2C_BUS)
         #define MS5607_I2C_BUS BARO_I2C_BUS
     #endif
+    #if !defined(MS5607_I2C_ADDR)
+        #define MS5607_I2C_ADDR 0x77
+    #endif    
     BUSDEV_REGISTER_I2C(busdev_ms5607,      DEVHW_MS5607,       MS5607_I2C_BUS,     0x77,               NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0);
 #endif
 
@@ -150,7 +159,10 @@
     #if !defined(MS5611_I2C_BUS)
         #define MS5611_I2C_BUS BARO_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ms5611,      DEVHW_MS5611,       MS5611_I2C_BUS,     0x77,               NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0);
+    #if !defined(MS5611_I2C_ADDR)
+        #define MS5611_I2C_ADDR 0x77
+    #endif    
+    BUSDEV_REGISTER_I2C(busdev_ms5611,      DEVHW_MS5611,       MS5611_I2C_BUS,     MS5611_I2C_ADDR,               NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0);
     #endif
 #endif
 
@@ -161,7 +173,10 @@
     #if !defined(DPS310_I2C_BUS)
         #define DPS310_I2C_BUS BARO_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_dps310,      DEVHW_DPS310,       DPS310_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
+    #if !defined(DPS310_I2C_ADDR)
+        #define DPS310_I2C_ADDR 0x76
+    #endif    
+    BUSDEV_REGISTER_I2C(busdev_dps310,      DEVHW_DPS310,       DPS310_I2C_BUS,     DPS310_I2C_ADDR,               NONE,           DEVFLAGS_NONE, 0);
     #endif
 #endif
 
@@ -172,7 +187,10 @@
     #if !defined(B2SMPB_I2C_BUS)
         #define B2SMPB_I2C_BUS BARO_I2C_BUS
     #endif
-    BUSDEV_REGISTER_I2C(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_I2C_BUS,      0x70,                NONE,           DEVFLAGS_NONE, 0);
+    #if !defined(B2SMPB_I2C_ADDR)
+        #define B2SMPB_I2C_ADDR 0x70
+    #endif    
+    BUSDEV_REGISTER_I2C(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_I2C_BUS,      B2SMPB_I2C_ADDR,                NONE,           DEVFLAGS_NONE, 0);
     #endif
 #endif
 
