@@ -434,8 +434,8 @@ def writeTargetH(folder, map):
         #print ("BARO")
         file.write("// BARO\n")
         file.write("#define USE_BARO\n")
-        file.write("#define USE_BARO_ALL\n")
         if 'BARO_I2C_INSTANCE' in map['defines']:
+            file.write("#define USE_BARO_ALL\n")
             m = re.search('I2CDEV_(\d+)', map['defines']['BARO_I2C_INSTANCE'])
             if m:
                 file.write("#define BARO_I2C_BUS BUS_I2C%s\n" % (m.group(1)))
