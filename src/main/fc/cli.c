@@ -3939,7 +3939,6 @@ static void cliDiff(char *cmdline)
     printConfig(cmdline, true);
 }
 
-
 #ifdef USE_BARO_MULTI
 static void cliBaroMulti(char *cmdline) 
 {
