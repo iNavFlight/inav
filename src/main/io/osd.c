@@ -1986,7 +1986,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 } else {
                     int32_t logNumber = blackboxGetLogNumber();
                     if (logNumber >= 0) {
-                        tfp_sprintf(buff, "%c%5ld", SYM_BLACKBOX, logNumber);
+                        tfp_sprintf(buff, "%c%05ld", SYM_BLACKBOX, logNumber);
                     } else {
                         tfp_sprintf(buff, "%c", SYM_BLACKBOX);
                     }
@@ -4739,7 +4739,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         if (feature(FEATURE_BLACKBOX)) {
             int32_t logNumber = blackboxGetLogNumber();
             if (logNumber >= 0)
-                tfp_sprintf(buff, "%s %c%5ld ", buff, SYM_BLACKBOX, logNumber);
+                tfp_sprintf(buff, "%s %c%05ld ", buff, SYM_BLACKBOX, logNumber);
             else
                 tfp_sprintf(buff, "%s %c ", buff, SYM_BLACKBOX);
         }
@@ -4790,7 +4790,25 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                 //row = drawStat_FlightTime(statNameX, row, statValuesX);
                 //row = drawStat_FlightTime(statNameX, row, statValuesX);
                 //row = drawStat_FlightTime(statNameX, row, statValuesX);
-                //row = drawStat_FlightTime(statNameX, row, statValuesX);
+#ifdef USE_BLACKBOX
+#ifdef USE_SDCARD
+        if (feature(FEATURE_BLACKBOX)) {
+            char buff[12];
+            displayWrite(osdDisplayPort, statNameX, row, "BLACKBOX FILE");
+            
+            tfp_sprintf(buff, ": %u/%u", stats.min_sats, stats.max_sats);
+            
+            int32_t logNumber = blackboxGetLogNumber();
+            if (logNumber >= 0)
+                tfp_sprintf(buff, ": %05ld ", logNumber);
+            else
+                tfp_sprintf(buff, ": %s", "INVALID");
+
+            displayWrite(osdDisplayPort, statValuesX, row++, buff);
+        }
+#endif
+#endif
+
                 break;
         }
     }
