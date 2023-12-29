@@ -440,6 +440,7 @@ def writeTargetH(folder, map):
             if m:
                 file.write("#define BARO_I2C_BUS BUS_I2C%s\n" % (m.group(1)))
         if 'BARO_SPI_INSTANCE' in map['defines']:
+            file.write("#define USE_BARO_BMP280\n")
             file.write("#define USE_BARO_SPI_BMP280\n")
             file.write("#define BMP280_SPI_BUS BUS_%s\n" % (map['defines']['BARO_SPI_INSTANCE']))
             file.write("#define BMP280_CS_PIN %s\n" % (findPinByFunction('BARO_CS', map)))
