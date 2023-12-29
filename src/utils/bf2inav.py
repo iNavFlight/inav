@@ -178,7 +178,7 @@ def getPwmOutputCount(map):
     return len(motors) + len(servos)
 
 def getGyroAlign(map):
-    bfalign = map['defines']['GYRO_1_ALIGN']
+    bfalign = map['defines'].get('GYRO_1_ALIGN', 'CW0_DEG')
     return bfalign
     #m = re.search("^CW(\d+)(FLIP)?$", bfalign)
     #if m:
