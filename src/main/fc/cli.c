@@ -184,10 +184,13 @@ static const char * const blackboxIncludeFlagNames[] = {
 };
 #endif
 
+#ifdef USE_BARO_MULTI
+static const char * const baroNames[] = { "NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"};
+#endif
+
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
 static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
-static const char * const baroNames[] = { "NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -3938,6 +3941,7 @@ static void cliDiff(char *cmdline)
 {
     printConfig(cmdline, true);
 }
+
 
 #ifdef USE_BARO_MULTI
 static void cliBaroMulti(char *cmdline) 
