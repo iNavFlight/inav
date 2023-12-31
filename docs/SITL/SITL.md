@@ -79,7 +79,7 @@ For this you need a FT232 module. With FT-Prog (https://ftdichip.com/utilities/)
 For SBUS, the command line arguments of the python script are:
 ```python tcp_serial_redirect.py --parity E --stopbits 2 -c 127.0.0.1:[INAV-UART-PORT] COMXX 100000```
 
-### Telemtry
+### Telemetry
 
 LTM and MAVLink telemetry are supported, either as a discrete function or shared with MSP.
 
