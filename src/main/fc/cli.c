@@ -184,8 +184,12 @@ static const char * const blackboxIncludeFlagNames[] = {
 };
 #endif
 
+#ifdef USE_BARO
 #ifdef USE_BARO_MULTI
-static const char * const baroNames[] = { "NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"};
+static const char * const baroNames[] = {
+    "NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"
+};
+#endif
 #endif
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */

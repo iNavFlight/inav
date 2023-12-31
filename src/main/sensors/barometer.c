@@ -66,6 +66,11 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
 );
 
+#ifndef USE_BARO_MULTI
+static zeroCalibrationScalar_t zeroCalibration;
+static float baroGroundAltitude = 0;
+static float baroGroundPressure = 101325.0f; // 101325 pascal, 1 standard atmosphere
+#else
 PG_REGISTER_WITH_RESET_TEMPLATE(barometerMultiConfig_t, barometerMultiConfig, PG_MULTI_BAROMETER_CONFIG, 4);
 
 PG_RESET_TEMPLATE(barometerMultiConfig_t, barometerMultiConfig,
@@ -76,11 +81,6 @@ PG_RESET_TEMPLATE(barometerMultiConfig_t, barometerMultiConfig,
     .multi_baro_calibration_tolerance_2 = SETTING_MULTI_BARO_CAL_TOLERANCE_2_DEFAULT
 );
 
-#ifndef USE_BARO_MULTI
-static zeroCalibrationScalar_t zeroCalibration;
-static float baroGroundAltitude = 0;
-static float baroGroundPressure = 101325.0f; // 101325 pascal, 1 standard atmosphere
-#else
 static zeroCalibrationScalar_t multiZeroCalibration[2];
 static float baroMultiGroundAltitude[2] = {0, 0};
 static float baroMultiGroundPressure[2] = {101325.0f, 101325.0f}; // 101325 pascal, 1 standard atmosphere
@@ -492,6 +492,7 @@ int32_t baroMultiGetLatestAltitude(uint8_t baroIndex)
     #ifdef USE_BARO_MULTI
         return multiBaro[baroIndex].BaroAlt;
     #else
+        UNUSED(baroIndex);
         return 0;
     #endif
 }
@@ -514,6 +515,7 @@ int16_t baroMultiGetTemperature(uint8_t baroIndex)
 #ifdef USE_BARO_MULTI
     return CENTIDEGREES_TO_DECIDEGREES(multiBaro[baroIndex].baroTemperature);
 #else    
+    UNUSED(baroIndex);
     return 0;
 #endif
 }
