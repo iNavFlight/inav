@@ -4401,11 +4401,15 @@ uint8_t drawStat_FlightDistance(uint8_t col, uint8_t row, uint8_t statValX) {
 
 uint8_t drawStat_MaxDistanceFromHome(uint8_t col, uint8_t row, uint8_t statValX) {
     char buff[12];
-    if (!osdDisplayIsHD())
+    uint8_t valueXOffset = 0;
+    if (!osdDisplayIsHD()) {
         displayWrite(osdDisplayPort, col, row, "DISTANCE FROM ");
-    else
+    valueXOffset = 14;
+    } else {
         displayWrite(osdDisplayPort, col, row, "MAX DISTANCE FROM ");
-    displayWriteChar(osdDisplayPort, col + 14, row, SYM_HOME);
+    valueXOffset = 18;
+    } 
+    displayWriteChar(osdDisplayPort, col + valueXOffset, row, SYM_HOME);
     tfp_sprintf(buff, ": ");
     osdFormatDistanceStr(buff + 2, stats.max_distance * 100);
     displayWrite(osdDisplayPort, statValX, row++, buff);
@@ -4505,6 +4509,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX) {
     char buff[15];
     uint8_t buffOffset = 2;
     int32_t totalDistance = getTotalTravelDistance();
+    bool isDJI = false;
     bool moreThanAh = false;
     bool efficiencyValid = totalDistance >= 10000;
     
@@ -4516,6 +4521,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX) {
     if (isBfCompatibleVideoSystem(osdConfig())) {
         // Add one digit so no switch to scaled decimal occurs above 99
         digits = 4U;
+        isDJI = true;
     }
 #endif
     switch (osdConfig()->units) {
@@ -4567,12 +4573,12 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX) {
             break;
     }
 
-    if (statValX > 20 && osdConfig()->units != OSD_UNIT_METRIC_MPH && osdConfig()->units != OSD_UNIT_METRIC) {
+    if (!isDJI && osdConfig()->units != OSD_UNIT_METRIC_MPH && osdConfig()->units != OSD_UNIT_METRIC) {
         strcat(osdFormatTrimWhiteSpace(buff), "/");
         buffOffset = strlen(buff);
     }
 
-    if (statValX > 20 || (osdConfig()->units != OSD_UNIT_METRIC_MPH || osdConfig()->units != OSD_UNIT_METRIC)) {
+    if (!isDJI || osdConfig()->units == OSD_UNIT_METRIC_MPH || osdConfig()->units == OSD_UNIT_METRIC) {
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
             moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
             if (!moreThanAh) {
@@ -4702,7 +4708,7 @@ uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
     multiValueXOffset = strlen(buff);
     osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_max * 100, 0, 2, 0, 3, false);
     osdLeftAlignString(buff);
-    displayWrite(osdDisplayPort, statValX + multiValueXOffset, row++, buff);
+    displayWrite(osdDisplayPort, statValX, row++, buff);
 
     return row;
 }
