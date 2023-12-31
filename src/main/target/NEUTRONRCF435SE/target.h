@@ -178,8 +178,8 @@
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
-// #define USE_LED_STRIP
-// #define WS2811_PIN                      PB10   //TIM2_CH3
+#define USE_LED_STRIP
+#define WS2811_PIN                      PA1   //TIM2_CH3
 
 // telemetry
 // #define USE_SPEKTRUM_BIND
