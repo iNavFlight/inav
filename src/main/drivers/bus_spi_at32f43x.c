@@ -80,25 +80,61 @@
     };
     #endif
 
-    static spiDevice_t spiHardwareMap[] = {
-    #ifdef USE_SPI_DEVICE_1
-        { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .af = GPIO_MUX_5, .divisorMap = spiDivisorMapFast },
-    #else
-        { .dev = NULL },    // No SPI1
-    #endif
-    #ifdef USE_SPI_DEVICE_2
-        { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .af = GPIO_MUX_5, .divisorMap = spiDivisorMapSlow },
-    #else
-        { .dev = NULL },    // No SPI2
-    #endif
-    #ifdef USE_SPI_DEVICE_3
-        { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .af = GPIO_MUX_6, .divisorMap = spiDivisorMapSlow },
-    #else
-        { .dev = NULL },    // No SPI3
-    #endif
-        { .dev = NULL },    // No SPI4
-    };
+//MAP spi pin config and af 
+static spiDevice_t spiHardwareMap[] = {
+#ifdef USE_SPI_DEVICE_1
+#if defined(SPI1_SCK_AF) || defined(SPI1_MISO_AF) || defined(SPI1_MOSI_AF)
+#if !defined(SPI1_SCK_AF) || !defined(SPI1_MISO_AF) || !defined(SPI1_MOSI_AF)
+#error SPI1: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = SPI1_SCK_AF, .misoAF = SPI1_MISO_AF, .mosiAF = SPI1_MOSI_AF, .divisorMap = spiDivisorMapFast },
 #else
+    { .dev = SPI1, .nss = IO_TAG(SPI1_NSS_PIN), .sck = IO_TAG(SPI1_SCK_PIN), .miso = IO_TAG(SPI1_MISO_PIN), .mosi = IO_TAG(SPI1_MOSI_PIN), .rcc = RCC_APB2(SPI1), .sckAF = GPIO_MUX_5, .misoAF = GPIO_MUX_5, .mosiAF = GPIO_MUX_5, .divisorMap = spiDivisorMapFast },
+#endif
+#else
+    { .dev = NULL },    // No SPI1
+#endif
+
+#ifdef USE_SPI_DEVICE_2
+#if defined(SPI2_SCK_AF) || defined(SPI2_MISO_AF) || defined(SPI2_MOSI_AF)
+#if !defined(SPI2_SCK_AF) || !defined(SPI2_MISO_AF) || !defined(SPI2_MOSI_AF)
+#error SPI2: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .sckAF = SPI2_SCK_AF, .misoAF = SPI2_MISO_AF, .mosiAF = SPI2_MOSI_AF, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = SPI2, .nss = IO_TAG(SPI2_NSS_PIN), .sck = IO_TAG(SPI2_SCK_PIN), .miso = IO_TAG(SPI2_MISO_PIN), .mosi = IO_TAG(SPI2_MOSI_PIN), .rcc = RCC_APB1(SPI2), .sckAF = GPIO_MUX_5, .misoAF = GPIO_MUX_5, .mosiAF = GPIO_MUX_5, .divisorMap = spiDivisorMapSlow },
+#endif
+#else
+    { .dev = NULL },    // No SPI2
+#endif
+
+#ifdef USE_SPI_DEVICE_3
+#if defined(SPI3_SCK_AF) || defined(SPI3_MISO_AF) || defined(SPI3_MOSI_AF)
+#if !defined(SPI3_SCK_AF) || !defined(SPI3_MISO_AF) || !defined(SPI3_MOSI_AF)
+#error SPI3: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .sckAF = SPI3_SCK_AF, .misoAF = SPI3_MISO_AF, .mosiAF = SPI3_MOSI_AF, .divisorMap = spiDivisorMapSlow },
+#else
+    { .dev = SPI3, .nss = IO_TAG(SPI3_NSS_PIN), .sck = IO_TAG(SPI3_SCK_PIN), .miso = IO_TAG(SPI3_MISO_PIN), .mosi = IO_TAG(SPI3_MOSI_PIN), .rcc = RCC_APB1(SPI3), .sckAF = GPIO_MUX_6, .misoAF = GPIO_MUX_6, .mosiAF = GPIO_MUX_6, .divisorMap = spiDivisorMapSlow },
+#endif
+#else
+    { .dev = NULL },    // No SPI3
+#endif
+
+#ifdef USE_SPI_DEVICE_4
+#if defined(SPI4_SCK_AF) || defined(SPI4_MISO_AF) || defined(SPI4_MOSI_AF)
+#if !defined(SPI4_SCK_AF) || !defined(SPI4_MISO_AF) || !defined(SPI4_MOSI_AF)
+#error SPI4: SCK, MISO and MOSI AFs should be defined together in target.h!
+#endif
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = SPI4_SCK_AF, .misoAF = SPI4_MISO_AF, .mosiAF = SPI4_MOSI_AF, .divisorMap = spiDivisorMapSlow }
+#else
+    { .dev = SPI4, .nss = IO_TAG(SPI4_NSS_PIN), .sck = IO_TAG(SPI4_SCK_PIN), .miso = IO_TAG(SPI4_MISO_PIN), .mosi = IO_TAG(SPI4_MOSI_PIN), .rcc = RCC_APB2(SPI4), .sckAF = GPIO_MUX_6, .misoAF = GPIO_MUX_6, .mosiAF = GPIO_MUX_6, .divisorMap = spiDivisorMapSlow }
+#endif
+#else
+    { .dev = NULL }     // No SPI4
+#endif
+};
+ #else
 #error "Invalid CPU"
 #endif
 
@@ -135,12 +171,13 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
     IOInit(IOGetByTag(spi->miso), OWNER_SPI, RESOURCE_SPI_MISO, device + 1);
     IOInit(IOGetByTag(spi->mosi), OWNER_SPI, RESOURCE_SPI_MOSI, device + 1);
 
-    IOConfigGPIOAF(IOGetByTag(spi->sck),  SPI_IO_AF_SCK_CFG, spi->af);
-    IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG, spi->af);
-    IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->af);
+    IOConfigGPIOAF(IOGetByTag(spi->sck),  SPI_IO_AF_SCK_CFG, spi->sckAF);
+    IOConfigGPIOAF(IOGetByTag(spi->miso), SPI_IO_AF_MISO_CFG, spi->misoAF);
+    IOConfigGPIOAF(IOGetByTag(spi->mosi), SPI_IO_AF_CFG, spi->mosiAF);
 
     if (spi->nss) {
-        IOConfigGPIOAF(IOGetByTag(spi->nss), SPI_IO_CS_CFG, spi->af);
+        IOInit(IOGetByTag(spi->nss),  OWNER_SPI, RESOURCE_SPI_CS,  device + 1);
+        IOConfigGPIO(IOGetByTag(spi->nss), SPI_IO_CS_CFG);
     }
 
     spi_i2s_reset(spi->dev);

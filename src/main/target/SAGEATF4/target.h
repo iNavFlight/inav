@@ -114,6 +114,10 @@
 #define SPI2_MISO_PIN           PD3//PB14 on LQFP64
 #define SPI2_MOSI_PIN           PD4//PB15 on LQFP64
 #define SPI2_NSS_PIN            PD5 //confirm on lqfp64
+#define SPI2_SCK_AF      GPIO_MUX_6
+#define SPI2_MISO_AF     GPIO_MUX_6
+#define SPI2_MOSI_AF     GPIO_MUX_6
+
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
