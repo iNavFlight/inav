@@ -44,7 +44,6 @@
 #include "navigation/navigation.h"
 #include "sensors/pitotmeter.h"
 
-
 #if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdCommonConfig_t, osdCommonConfig, PG_OSD_COMMON_CONFIG, 0);
@@ -149,9 +148,14 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
     uint8_t gx;
     uint8_t gy;
 
+    int16_t ddegRoll = RADIANS_TO_DECIDEGREES(rollAngle);
+    int16_t ddegPitch = RADIANS_TO_DECIDEGREES(pitchAngle);
+
     // Correct pitch when inverted
-    if (rollAngle < -90 || rollAngle > 90)
-        pitchAngle = -pitchAngle;
+    if (ddegRoll < -90 || ddegRoll > 90) {
+        ddegPitch = -ddegPitch;
+        pitchAngle = DECIDEGREES_TO_RADIANS(ddegPitch);
+    }
         
 #if defined(USE_CANVAS)
     if (canvas) {
