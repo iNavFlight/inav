@@ -149,7 +149,7 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
     uint8_t gy;
 
     // Correct pitch when inverted
-    if (rollAngle < -1.570796 || rollAngle > 1.570796)
+    if (rollAngle < -1.570796f || rollAngle > 1.570796f)
         pitchAngle = -pitchAngle;
         
 #if defined(USE_CANVAS)
