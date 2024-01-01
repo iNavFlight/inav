@@ -621,7 +621,7 @@ def writeTargetC(folder, map):
     #    if found:
     #        file.write("//BUSDEV_REGISTER_SPI_TAG(busdev_%s,  DEVHW_%s,  %s_SPI_BUS,   %s_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_%s_ALIGN);\n" % (supportedgyro.lower(), supportedgyro, supportedgyro, supportedgyro, supportedgyro))
 
-
+    snum=1
     file.write("\ntimerHardware_t timerHardware[] = {\n")
 
     motors = findPinsByFunction("MOTOR", map)
@@ -633,8 +633,9 @@ def writeTargetC(folder, map):
                 #print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
-                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s), // S%i\n" % (t, ch, motor, 0, snum))
                         first = False
+                        snum += 1
                     else:
                         file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, motor, 0))
                 file.write("\n")
@@ -648,8 +649,9 @@ def writeTargetC(folder, map):
                 #print (timerInfo)
                 for (t, ch) in timerInfo:
                     if first:
-                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
+                        file.write("    DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s), // S%i\n" % (t, ch, servo, 0, snum))
                         first = False
+                        snum += 1
                     else:
                         file.write("    //DEF_TIM(%s, %s, %s, TIM_USE_OUTPUT_AUTO, 0, %s),\n" % (t, ch, servo, 0))
                 file.write("\n")
@@ -958,11 +960,14 @@ def main(argv):
             print ("%s: %s" % (sys.argv[0], version))
             sys.exit(0)
 
-    if (os.path.exists(inputfile) and os.path.isdir(outputdir)):
-        targetDefinition = buildMap(inputfile)
+    if (not os.path.isfile(inputfile) ):
+      print("no such file %s" % inputfile)
+      sys.exit(2)
+    if (not os.path.isdir(outputdir) ):
+      print("no such directory %s" % outputdir)
+      sys.exit(2)
     else:
-        printHelp()
-        sys.exit(2)
+      targetDefinition = buildMap(inputfile)
 
 
     map = buildMap(inputfile)
