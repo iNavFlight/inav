@@ -329,7 +329,7 @@ void osdDrawArtificialHorizonLine(displayCanvas_t *canvas, float pitchAngle, flo
     displayCanvasContextPop(canvas);
 }
 
-static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle)
+static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle, bool isInverted)
 {
     UNUSED(display);
     UNUSED(p);
@@ -345,7 +345,12 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
         int ahiWidth = osdConfig()->ahi_width;
         int ahiX = (canvas->width - ahiWidth) / 2;
         int ahiHeight = osdConfig()->ahi_height;
-        int ahiY = ((canvas->height - ahiHeight) / 2) + osdConfig()->ahi_vertical_offset;
+        int ahiY = ((canvas->height - ahiHeight) / 2);
+        if (isInverted)
+            ahiY -= osdConfig()->ahi_vertical_offset;
+        else
+            ahiY += osdConfig()->ahi_vertical_offset;
+
         if (ahiY < 0) {
             ahiY = 0;
         }
@@ -397,7 +402,7 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
     return false;
 }
 
-void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle)
+void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle, bool isInverted)
 {
     UNUSED(display);
     UNUSED(p);
@@ -412,7 +417,7 @@ void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *can
     float totalError = fabsf(prevPitchAngle - pitchAngle) + fabsf(prevRollAngle - rollAngle);
     if ((now > nextDrawMinMs && totalError > 0.05f)|| now > nextDrawMaxMs) {
 
-        if (!osdCanvasDrawArtificialHorizonWidget(display, canvas, p, pitchAngle, rollAngle)) {
+        if (!osdCanvasDrawArtificialHorizonWidget(display, canvas, p, pitchAngle, rollAngle, isInverted)) {
             switch ((osd_ahi_style_e)osdConfig()->ahi_style) {
                 case OSD_AHI_STYLE_DEFAULT:
                 {
