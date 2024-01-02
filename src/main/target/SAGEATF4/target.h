@@ -84,6 +84,17 @@
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
 
+//BMI088
+#define USE_IMU_BMI088
+
+#define IMU_BMI088_ALIGN        CW0_DEG
+#define BMI088_SPI_BUS          BUS_SPI1
+
+#define BMI088_GYRO_CS_PIN      SPI1_NSS_PIN
+#define BMI088_GYRO_EXTI_PIN    PA15
+#define BMI088_ACC_CS_PIN       PC13
+#define BMI088_ACC_EXTI_PIN     PD13
+
 // *************** I2C/Baro/Mag/EXT*********************
 #define USE_I2C
 #define USE_I2C_DEVICE_3
@@ -201,6 +212,6 @@
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         BIT(2)
 
-#define MAX_PWM_OUTPUT_PORTS        8
+#define MAX_PWM_OUTPUT_PORTS        12
 #define USE_DSHOT
 #define USE_ESC_SENSOR
