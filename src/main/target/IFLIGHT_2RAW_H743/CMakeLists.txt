@@ -1,1 +1,0 @@
-target_stm32h743xi(IFLIGHT_2RAW_H743)
