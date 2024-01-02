@@ -80,7 +80,7 @@
 
 // BMI270
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN        CW0_DEG
+#define IMU_BMI270_ALIGN        CW90_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
 
@@ -187,7 +187,7 @@
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
-#define ADC1_DMA_STREAM             DMA2_CHANNEL5
+#define ADC1_DMA_STREAM             DMA2_CHANNEL1
 #define ADC_CHANNEL_1_PIN           PB0
 #define ADC_CHANNEL_2_PIN           PB1
 //#define ADC_CHANNEL_3_PIN           PB0
