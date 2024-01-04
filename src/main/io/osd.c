@@ -1988,7 +1988,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 } else {
                     int32_t logNumber = blackboxGetLogNumber();
                     if (logNumber >= 0) {
-                        tfp_sprintf(buff, "%c%05ld", SYM_BLACKBOX, logNumber);
+                        tfp_sprintf(buff, "%c%05d", SYM_BLACKBOX, logNumber);
                     } else {
                         tfp_sprintf(buff, "%c", SYM_BLACKBOX);
                     }
@@ -4498,7 +4498,7 @@ uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX) {
     displayWrite(osdDisplayPort, col, row, "MAX POWER");
     tfp_sprintf(buff, ": ");
     bool kiloWatt = osdFormatCentiNumber(buff + 2, stats.max_power, 1000, 2, 2, 3, false);
-    strcat(osdFormatTrimWhiteSpace(buff), (char*)(kiloWatt ? SYM_KILOWATT : SYM_WATT));
+    tfp_sprintf(buff, "%s%c", osdFormatTrimWhiteSpace(buff), (char)(kiloWatt ? SYM_KILOWATT : SYM_WATT));
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
     return row;
