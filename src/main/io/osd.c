@@ -1988,7 +1988,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 } else {
                     int32_t logNumber = blackboxGetLogNumber();
                     if (logNumber >= 0) {
-                        tfp_sprintf(buff, "%c%05d", SYM_BLACKBOX, logNumber);
+                        tfp_sprintf(buff, "%c%05ld", SYM_BLACKBOX, logNumber);
                     } else {
                         tfp_sprintf(buff, "%c", SYM_BLACKBOX);
                     }
