@@ -46,6 +46,7 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm);
 
 bool areSensorsCalibrating(void);
 float getFlightTime(void);
+void resetFlightTime(void);
 float getArmTime(void);
 
 void fcReboot(bool bootLoader);

@@ -68,9 +68,6 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
-  - name: osd_stats_min_voltage_unit
-    values: ["BATTERY", "CELL"]
-    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
     enum: videoSystem_e
@@ -3165,18 +3162,17 @@ groups:
         field: stats_energy_unit
         table: osd_stats_energy_unit
         type: uint8_t
-      - name: osd_stats_min_voltage_unit
-        description: "Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats."
-        default_value: "BATTERY"
-        field: stats_min_voltage_unit
-        table: osd_stats_min_voltage_unit
-        type: uint8_t
       - name: osd_stats_page_auto_swap_time
         description: "Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0."
         default_value: 3
         field: stats_page_auto_swap_time
         min: 0
         max: 10
+      - name: osd_stats_show_metric_efficiency
+        description: "Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units."
+        default_value: OFF
+        type: bool
+        field: stats_show_metric_efficiency
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
         default_value: 20
