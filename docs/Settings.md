@@ -1012,6 +1012,16 @@ Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active 
 
 ---
 
+### failsafe_gps_fix_estimation_delay
+
+Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | -1 | 600 |
+
+---
+
 ### failsafe_lights
 
 Enable or disable the lights when the `FAILSAFE` flight mode is enabled. The target needs to be compiled with `USE_LIGHTS` [ON/OFF].
@@ -1765,6 +1775,16 @@ Power draw at zero throttle used for remaining flight time/distance estimation i
 ### inav_allow_dead_reckoning
 
 Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### inav_allow_gps_fix_estimation
+
+Defines if inav will estimate GPS fix with magnetometer and barometer on GPS outages. Enables navigation and RTH without GPS fix on fixed wing. Also see failsafe_gps_fix_estimation_delay.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2762,16 +2782,6 @@ Craft name
 
 ---
 
-### nav_auto_climb_rate
-
-Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | 10 | 2000 |
-
----
-
 ### nav_auto_disarm_delay
 
 Delay before craft disarms when `nav_disarm_on_landing` is set (ms)
@@ -2798,7 +2808,7 @@ Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 120 |
+| 60 | 0 | 120 |
 
 ---
 
@@ -3092,6 +3102,16 @@ PosHold radius. 3000 to 7500 is a good value (30-75m) [cm]
 
 ---
 
+### nav_fw_manual_climb_rate
+
+Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 300 | 10 | 2500 |
+
+---
+
 ### nav_fw_max_thr
 
 Maximum throttle for flying wing in GPS assisted modes
@@ -3362,16 +3382,6 @@ Allows immediate landing detection based on G bump at touchdown when set to ON. 
 
 ---
 
-### nav_manual_climb_rate
-
-Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 200 | 10 | 2000 |
-
----
-
 ### nav_manual_speed
 
 Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
@@ -3419,6 +3429,16 @@ If set to STICK the FC remembers the throttle stick position when enabling ALTHO
 | Default | Min | Max |
 | --- | --- | --- |
 | STICK |  |  |
+
+---
+
+### nav_mc_auto_climb_rate
+
+Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -3529,6 +3549,16 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 | Default | Min | Max |
 | --- | --- | --- |
 | 1300 | 1000 | 2000 |
+
+---
+
+### nav_mc_manual_climb_rate
+
+Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 10 | 2000 |
 
 ---
 
