@@ -2665,7 +2665,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     // mAh/foot
                     if (efficiencyValid) {
                         osdFormatCentiNumber(buff, (value * METERS_PER_FOOT), 1, 2, 2, 3, false);
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_FT_0, SYM_AH_V_FT_1);
+                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_AH_V_FT_0, SYM_AH_V_FT_1);
                     } else {
                         buff[0] = buff[1] = buff[2] = '-';
                         buff[3] = SYM_AH_V_FT_0;
@@ -2679,7 +2679,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     // mAh/metre
                     if (efficiencyValid) {
                         osdFormatCentiNumber(buff, value, 1, 2, 2, 3, false);
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_AH_V_M_0, SYM_AH_V_M_1);
+                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_AH_V_M_0, SYM_AH_V_M_1);
                     } else {
                         buff[0] = buff[1] = buff[2] = '-';
                         buff[3] = SYM_AH_V_M_0;
@@ -3142,9 +3142,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_IMPERIAL:
                     moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, digits, false);
                     if (!moreThanAh) {
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                     } else {
-                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                        tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';    
@@ -3156,9 +3156,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_GA:
                      moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_NAUTICALMILE / 10, 1000, 0, 2, digits, false);
                     if (!moreThanAh) {
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_NM_0, SYM_MAH_NM_1);
+                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                     } else {
-                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
+                        tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';    
@@ -3172,9 +3172,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_METRIC:
                     moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, digits, false);
                     if (!moreThanAh) {
-                        tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                     } else {
-                        tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                        tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';    
@@ -4477,7 +4477,7 @@ uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX) {
     multiValueXOffset = strlen(buff); 
     // AverageCell 
     osdFormatCentiNumber(buff + multiValueXOffset, stats.min_voltage / getBatteryCellCount(), 0, 2, 0, 3, false);
-    tfp_sprintf(buff, "%s%c", buff, SYM_VOLT);
+    tfp_sprintf(buff + strlen(buff), "%c", SYM_VOLT);
 
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
@@ -4489,7 +4489,7 @@ uint8_t drawStat_MaximumCurrent(uint8_t col, uint8_t row, uint8_t statValX) {
     displayWrite(osdDisplayPort, col, row, "MAX CURRENT");
     tfp_sprintf(buff, ": ");
     osdFormatCentiNumber(buff + 2, stats.max_current, 0, 2, 0, 3, false);
-    tfp_sprintf(buff, "%s%c", buff, SYM_AMP);
+    tfp_sprintf(buff + strlen(buff), "%c", SYM_AMP);
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
     return row;
@@ -4500,7 +4500,7 @@ uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX) {
     displayWrite(osdDisplayPort, col, row, "MAX POWER");
     tfp_sprintf(buff, ": ");
     bool kiloWatt = osdFormatCentiNumber(buff + 2, stats.max_power, 1000, 2, 2, 3, false);
-    tfp_sprintf(buff, "%s%c", osdFormatTrimWhiteSpace(buff), (char)(kiloWatt ? SYM_KILOWATT : SYM_WATT));
+    tfp_sprintf(buff + strlen(osdFormatTrimWhiteSpace(buff)), "%c", (char)(kiloWatt ? SYM_KILOWATT : SYM_WATT));
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
     return row;
@@ -4539,7 +4539,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
     if (osdDisplayIsHD())
         displayWrite(osdDisplayPort, col, row, "AVG EFFICIENCY FLT/TOT");
     else
-        displayWrite(osdDisplayPort, col, row, "AVG EFFICIENCY F/T");
+        displayWrite(osdDisplayPort, col, row, "AV EFFICIENCY F/T");
 
     tfp_sprintf(buff, ": ");
     uint8_t digits = 3U;    // Total number of digits (including decimal point)
@@ -4562,9 +4562,9 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
                         
                         if (!moreThanAh) {
-                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_MI_0, SYM_MAH_MI_1);
+                            tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                         } else {
-                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
+                            tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_MI);
                         }
                     } else {
                         tfp_sprintf(buff + buffOffset, "---/---%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
@@ -4578,7 +4578,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                     } else {
                         strcat(buff, "---/---");
                     }
-                    tfp_sprintf(buff, "%s%c", buff, SYM_WH_MI);
+                    tfp_sprintf(buff + strlen(buff), "%c", SYM_WH_MI);
                 }
                 break;
             case OSD_UNIT_GA:
@@ -4589,9 +4589,9 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         buffOffset = strlen(buff);
                         moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
                         if (!moreThanAh) {
-                            tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_NM_0, SYM_MAH_NM_1);
+                            tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                         } else {
-                            tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
+                            tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_NM);
                         }
                     } else {
                         tfp_sprintf(buff + buffOffset, "---/---%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
@@ -4605,7 +4605,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                     } else {
                         strcat(buff, "---/---");
                     }
-                    tfp_sprintf(buff, "%s%c", buff, SYM_WH_NM);
+                    tfp_sprintf(buff + strlen(buff), "%c", SYM_WH_NM);
                 }
                 break;
             case OSD_UNIT_METRIC_MPH:
@@ -4623,9 +4623,9 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                 buffOffset = strlen(buff);
                 moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
                 if (!moreThanAh) {
-                    tfp_sprintf(buff, "%s%c%c", buff, SYM_MAH_KM_0, SYM_MAH_KM_1);
+                    tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                 } else {
-                    tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
+                    tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_KM);
                 }
             } else {
                 tfp_sprintf(buff + buffOffset, "---/---%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
@@ -4639,7 +4639,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
             } else {
                 strcat(buff, "---/---");
             }
-            tfp_sprintf(buff, "%s%c", buff, SYM_WH_KM);
+            tfp_sprintf(buff + strlen(buff), "%c", SYM_WH_KM);
         }
     }
 
@@ -4676,7 +4676,7 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
         if (osdDisplayIsHD()) {
             strcat(osdFormatTrimWhiteSpace(buff), "/");
             itoa(stats.min_rssi_dbm, buff + 2, 10);
-            tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+            tfp_sprintf(buff + strlen(buff), "%c", SYM_DBM);
             displayWrite(osdDisplayPort, statValX, row++, buff);
         }
     }
@@ -4688,7 +4688,7 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
         memset(buff, '\0', strlen(buff));
         tfp_sprintf(buff, ": ");
         itoa(stats.min_rssi_dbm, buff + 2, 10);
-        tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
+        tfp_sprintf(buff + strlen(buff), "%c", SYM_DBM);
         displayWrite(osdDisplayPort, statValX, row++, buff);
     }
 
@@ -4740,12 +4740,12 @@ uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
         memset(buff, '\0', strlen(buff));
         tfp_sprintf(buff, ": ");
     } else {
-        strcat(osdFormatTrimWhiteSpace(buff),"/");
+        strcat(osdFormatTrimWhiteSpace(buff), "/");
     }
     multiValueXOffset = strlen(buff);
     osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_min * 100, 0, 2, 0, 4, false);
     osdLeftAlignString(buff);
-    strcat(osdFormatTrimWhiteSpace(buff),"/");
+    strcat(osdFormatTrimWhiteSpace(buff), "/");
     
     multiValueXOffset = strlen(buff);
     osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_max * 100, 0, 2, 0, 3, false);
@@ -4787,13 +4787,13 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         if (feature(FEATURE_BLACKBOX)) {
             int32_t logNumber = blackboxGetLogNumber();
             if (logNumber >= 0)
-                tfp_sprintf(buff, "%s %c%05" PRId32 " ", buff, SYM_BLACKBOX, logNumber);
+                tfp_sprintf(buff + strlen(buff), " %c%05" PRId32 " ", SYM_BLACKBOX, logNumber);
             else
-                tfp_sprintf(buff, "%s %c ", buff, SYM_BLACKBOX);
+                tfp_sprintf(buff + strlen(buff), " %c ", SYM_BLACKBOX);
         }
 #endif
 #endif
-        tfp_sprintf(buff, "%s***", buff);
+        strcat(buff, "***");
 
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buff)) / 2, row++, buff);
     } else
