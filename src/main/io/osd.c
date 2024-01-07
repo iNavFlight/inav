@@ -4767,7 +4767,7 @@ uint8_t drawStat_DisarmMethod(uint8_t col, uint8_t row, uint8_t statValX) {
 
 static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
-    const char * statsHeader[2] = {"*** STATS (1/2 ->) ***", "*** STATS (<- 2/2) ***"};
+    const char * statsHeader[2] = {"*** STATS   1/2 -> ***", "*** STATS   <- 2/2 ***"};
     uint8_t row = 1;  // Start one line down leaving space at the top of the screen.
 
     const uint8_t statNameX = (osdDisplayPort->cols - (osdDisplayIsHD() ? 41 : 28)) / 2;
