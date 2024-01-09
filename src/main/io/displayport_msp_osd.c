@@ -254,7 +254,7 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
 static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
-    static bool lastBlinkStatus = getBlinkOnOff();
+    static bool lastBlinkStatus = false;
     bool blinkStatus = getBlinkOnOff();
 
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz
