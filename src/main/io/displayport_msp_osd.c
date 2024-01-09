@@ -254,6 +254,8 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
 static int drawScreen(displayPort_t *displayPort) // 250Hz
 {
     static uint8_t counter = 0;
+    static bool lastBlinkStatus = getBlinkOnOff();
+    bool blinkStatus = getBlinkOnOff();
 
     if ((!cmsInMenu && IS_RC_MODE_ACTIVE(BOXOSD)) || (counter++ % DRAW_FREQ_DENOM)) { // 62.5Hz
         return 0;
@@ -275,13 +277,17 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + DS2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
     }
 
-    if (displayConfig()->force_sw_blink) {
-        // Make sure any blinking characters are updated
-        for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
-            if (bitArrayGet(blinkChar, pos)) {
-                bitArraySet(dirty, pos);
+    if (lastBlinkStatus != blinkStatus) {
+        if (displayConfig()->force_sw_blink) {
+            // Make sure any blinking characters are updated
+            for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
+                if (bitArrayGet(blinkChar, pos)) {
+                    bitArraySet(dirty, pos);
+                }
             }
         }
+
+        lastBlinkStatus = blinkStatus;
     }
 
     uint8_t subcmd[COLS + 4];
@@ -303,7 +309,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         do {
             bitArrayClr(dirty, pos);
             subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
-            if (bitArrayGet(blinkChar, pos) && displayConfig()->force_sw_blink && getBlinkOnOff()) {
+            if (bitArrayGet(blinkChar, pos) && displayConfig()->force_sw_blink && blinkStatus) {
                 subcmd[len] = SYM_BLANK;
             }
             len++;
