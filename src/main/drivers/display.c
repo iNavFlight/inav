@@ -64,7 +64,7 @@ static bool displayEmulateTextAttributes(displayPort_t *instance,
     // We only emulate blink for now, so there's no need to test
     // for it again.
     TEXT_ATTRIBUTES_REMOVE_BLINK(*attr);
-    if ((millis() / SW_BLINK_CYCLE_MS) % 2) {
+    if (getBlinkOnOff()) {
         memset(buf, ' ', length);
         buf[length] = '\0';
         // Tell the caller to use buf

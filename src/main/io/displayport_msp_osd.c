@@ -248,11 +248,6 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     return 0;
 }
 
-static int getBlinkOnOff(void)
-{
-    return (millis() / SW_BLINK_CYCLE_MS) % 2;
-}
-
 /**
  * Write only changed characters to the VTX
  */
@@ -281,7 +276,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
     }
 
     if (displayConfig()->force_sw_blink) {
-        // Makesure any blinking characters are updated
+        // Make sure any blinking characters are updated
         for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
             if (bitArrayGet(blinkChar, pos)) {
                 bitArraySet(dirty, pos);

@@ -24,6 +24,8 @@
 
 #define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
 
+#define getBlinkOnOff() ((millis() / SW_BLINK_CYCLE_MS) & 1)
+
 typedef struct osdCharacter_s osdCharacter_t;
 
 typedef struct displayConfig_s {
