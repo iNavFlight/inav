@@ -58,7 +58,7 @@
 
 // Gyro
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW90_DEG
+#define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PC15
 
@@ -137,6 +137,8 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
+
+#define VBAT_SCALE_DEFAULT        2100
 
 // PINIO
 #define USE_PINIO
