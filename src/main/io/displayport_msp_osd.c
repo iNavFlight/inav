@@ -299,7 +299,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         do {
             bitArrayClr(dirty, pos);
             subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
-            if(displayConfig()->force_sw_blink && getBlinkOnOff()) {
+            if (displayConfig()->force_sw_blink && getBlinkOnOff()) {
                 subcmd[len] = SYM_BLANK;
             }
             len++;
