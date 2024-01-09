@@ -20,7 +20,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "drivers/time.h"
+
 #include "config/parameter_group.h"
+
+#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
+
+#define getBlinkOnOff()  ( (millis() / SW_BLINK_CYCLE_MS) & 1 )
 
 typedef struct osdCharacter_s osdCharacter_t;
 

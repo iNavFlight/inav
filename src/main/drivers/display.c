@@ -33,8 +33,6 @@
 #include "fc/settings.h"
 #include "fc/runtime_config.h"
 
-#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
-
 // XXX: This is the number of characters in a MAX7456 line.
 // Increment this number appropiately or enable support for
 // multiple iterations in displayWriteWithAttr() if bigger
@@ -66,7 +64,7 @@ static bool displayEmulateTextAttributes(displayPort_t *instance,
     // We only emulate blink for now, so there's no need to test
     // for it again.
     TEXT_ATTRIBUTES_REMOVE_BLINK(*attr);
-    if ((millis() / SW_BLINK_CYCLE_MS) % 2) {
+    if (getBlinkOnOff()) {
         memset(buf, ' ', length);
         buf[length] = '\0';
         // Tell the caller to use buf
