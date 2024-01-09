@@ -392,8 +392,9 @@ static void configureGNSS10(void)
 
             // Beidou
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+            // Use B1 for Beidou without Glonass; B1C needed for concurrent use of Beidou and Glonass
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA,  gpsState.gpsConfig->ubloxUseBeidou &&  ! gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
