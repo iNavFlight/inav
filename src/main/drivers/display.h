@@ -22,6 +22,8 @@
 
 #include "config/parameter_group.h"
 
+#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
+
 typedef struct osdCharacter_s osdCharacter_t;
 
 typedef struct displayConfig_s {

@@ -248,7 +248,7 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     return 0;
 }
 
-static int getBlinkOnOff()
+static int getBlinkOnOff(void)
 {
     return (millis() / SW_BLINK_CYCLE_MS) % 2;
 }

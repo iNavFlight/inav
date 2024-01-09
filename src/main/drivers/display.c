@@ -33,8 +33,6 @@
 #include "fc/settings.h"
 #include "fc/runtime_config.h"
 
-#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
-
 // XXX: This is the number of characters in a MAX7456 line.
 // Increment this number appropiately or enable support for
 // multiple iterations in displayWriteWithAttr() if bigger
