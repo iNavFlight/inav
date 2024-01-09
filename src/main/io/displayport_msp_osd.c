@@ -280,6 +280,15 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + DS2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
     }
 
+    if (displayConfig()->force_sw_blink) {
+        // Makesure any blinking characters are updated
+        for (unsigned int pos = 0; pos < sizeof(screen); pos++) {
+            if (bitArrayGet(blinkChar, pos)) {
+                bitArraySet(dirty, pos);
+            }
+        }
+    }
+
     uint8_t subcmd[COLS + 4];
     uint8_t updateCount = 0;
     subcmd[0] = MSP_DP_WRITE_STRING;
@@ -299,7 +308,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         do {
             bitArrayClr(dirty, pos);
             subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
-            if (displayConfig()->force_sw_blink && getBlinkOnOff()) {
+            if (bitArrayGet(blinkChar, pos) && displayConfig()->force_sw_blink && getBlinkOnOff()) {
                 subcmd[len] = SYM_BLANK;
             }
             len++;
