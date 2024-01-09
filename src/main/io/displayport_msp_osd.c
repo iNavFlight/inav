@@ -248,6 +248,11 @@ static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, con
     return 0;
 }
 
+static int getBlinkOnOff()
+{
+    return (millis() / SW_BLINK_CYCLE_MS) % 2;
+}
+
 /**
  * Write only changed characters to the VTX
  */
@@ -293,7 +298,11 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len++] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
+            subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
+            if(displayConfig()->force_sw_blink && getBlinkOnOff()) {
+                subcmd[len] = SYM_BLANK;
+            }
+            len++;
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
@@ -304,7 +313,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             attributes |= (page << DISPLAYPORT_MSP_ATTR_FONTPAGE);
         }
 
-        if (blink) {
+        if (blink && !displayConfig()->force_sw_blink) {
             attributes |= (1 << DISPLAYPORT_MSP_ATTR_BLINK);
         }
 
