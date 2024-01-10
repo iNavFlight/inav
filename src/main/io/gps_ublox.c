@@ -379,7 +379,8 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
-static void configureGNSS10(void)
+
+static void configureGNSS10(bool swapB1IwithB1C)
 {
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
@@ -392,9 +393,9 @@ static void configureGNSS10(void)
 
             // Beidou
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            // Use B1 for Beidou without Glonass; B1C needed for concurrent use of Beidou and Glonass
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA,  gpsState.gpsConfig->ubloxUseBeidou &&  ! gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass},
+            // Use B1I for Beidou without Glonass; B1C needed for concurrent use of Beidou and Glonass
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA,  (gpsState.gpsConfig->ubloxUseBeidou && ! gpsState.gpsConfig->ubloxUseGlonass) ^ swapB1IwithB1C},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, (gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass) ^ swapB1IwithB1C},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
@@ -407,13 +408,30 @@ static void configureGNSS10(void)
         };
 
         ubloxSendSetCfgBytes(gnssConfigValues, 12);
+
+				/*
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+        if(_ack_state == UBX_ACK_GOT_NAK) {
+            // If those channel settings aren't supported, flip B1 with B1C
+            for (uint i = 0; i < sizeof(gnssConfigValues) / sizeof(ubx_config_data8_payload_t); i++) {
+                if (
+                      (gnssConfigValues[i].key == UBLOX_CFG_SIGNAL_BDS_B1_ENA) ||
+                      (gnssConfigValues[i].key == UBLOX_CFG_SIGNAL_BDS_B1C_ENA)
+                ) {
+                   gnssConfigValues[i].value ^= 1;
+                }
+            }
+            ubloxSendSetCfgBytes(gnssConfigValues, 12);
+        }
+				*/
 }
 
 static void configureGNSS(void)
 {
     int blocksUsed = 0;
     send_buffer.message.header.msg_class = CLASS_CFG;
-        send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
+    send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
     send_buffer.message.payload.gnss.msgVer = 0;
     send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
         send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
@@ -424,11 +442,11 @@ static void configureGNSS(void)
     /* Galileo */
     blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* BeiDou */
-        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* BeiDou */
+    blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* GLONASS */
-        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* GLONASS */
+    blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
     send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
     send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
@@ -956,8 +974,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-        if( (gpsState.swVersionMajor > 24) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >= 1) ) {
-            configureGNSS10();
+        if( (gpsState.swVersionMajor >= 24) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >= 1) ) {
+            configureGNSS10(false);
+						ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+						if(_ack_state == UBX_ACK_GOT_NAK) {
+						    configureGNSS10(true);
+						}
         } else {
             configureGNSS();
         }
