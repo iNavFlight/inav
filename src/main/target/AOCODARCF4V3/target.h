@@ -61,6 +61,7 @@
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 //*********** Magnetometer / Compass *************
 #define USE_MAG
@@ -136,11 +137,11 @@
 #define MAX7456_CS_PIN                  PA13
 
 //******* FLASH ********
+
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_SPI_BUS                  BUS_SPI3
 #define M25P16_CS_PIN                   PC0
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** PINIO ***************************
@@ -148,6 +149,7 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC5  // VTX power switcher
 #define PINIO2_PIN                  PA14  //bluetooth
+#define PINIO3_PIN                  PC15 //Camera control
 #define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
 #define PINIO2_FLAGS				PINIO_FLAGS_INVERTED
 
