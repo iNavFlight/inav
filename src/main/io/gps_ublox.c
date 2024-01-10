@@ -380,7 +380,7 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
 }
 
 
-static void configureGNSS10(bool swapB1IwithB1C)
+static void configureGNSS9(void)
 {
         ubx_config_data8_payload_t gnssConfigValues[] = {
             // SBAS
@@ -393,9 +393,38 @@ static void configureGNSS10(bool swapB1IwithB1C)
 
             // Beidou
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            // Use B1I for Beidou without Glonass; B1C needed for concurrent use of Beidou and Glonass
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA,  gpsState.gpsConfig->ubloxUseBeidou && (gpsState.gpsConfig->ubloxUseGlonass ^ swapB1IwithB1C )},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && (! gpsState.gpsConfig->ubloxUseGlonass ^ swapB1IwithB1C)},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+
+            // Should be enabled with GPS
+            {UBLOX_CFG_QZSS_ENA, 1},
+            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
+            {UBLOX_CFG_QZSS_L1S_ENA, 1},
+
+            // Glonass
+            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+        };
+
+        ubloxSendSetCfgBytes(gnssConfigValues, 11);
+}
+
+
+static void configureGNSS10(void)
+{
+        ubx_config_data8_payload_t gnssConfigValues[] = {
+            // SBAS
+            {UBLOX_CFG_SIGNAL_SBAS_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
+            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
+
+            // Galileo
+            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+
+            // Beidou
+            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            // Use B1I for Beidou without Glonass; B1C needed for concurrent use of Beidou and Glonass on M10
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && (! gpsState.gpsConfig->ubloxUseGlonass)},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass },
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
@@ -408,8 +437,7 @@ static void configureGNSS10(bool swapB1IwithB1C)
         };
 
         ubloxSendSetCfgBytes(gnssConfigValues, 12);
-
-				/*
+        /*
         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
         if(_ack_state == UBX_ACK_GOT_NAK) {
@@ -424,7 +452,7 @@ static void configureGNSS10(bool swapB1IwithB1C)
             }
             ubloxSendSetCfgBytes(gnssConfigValues, 12);
         }
-				*/
+		*/
 }
 
 static void configureGNSS(void)
@@ -974,12 +1002,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-        if( (gpsState.swVersionMajor >= 24) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >= 1) ) {
-            configureGNSS10(true);
-						ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-						if(_ack_state == UBX_ACK_GOT_NAK) {
-						    configureGNSS10(false);
-						}
+        if( (gpsState.swVersionMajor >= 24) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor > 1) ) {
+            if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) {
+                configureGNSS10();
+            } else {
+                configureGNSS9();
+            }
         } else {
             configureGNSS();
         }
