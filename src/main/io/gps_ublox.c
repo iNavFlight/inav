@@ -394,8 +394,8 @@ static void configureGNSS10(bool swapB1IwithB1C)
             // Beidou
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
             // Use B1I for Beidou without Glonass; B1C needed for concurrent use of Beidou and Glonass
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA,  (gpsState.gpsConfig->ubloxUseBeidou && ! gpsState.gpsConfig->ubloxUseGlonass) ^ swapB1IwithB1C},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, (gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass) ^ swapB1IwithB1C},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA,  gpsState.gpsConfig->ubloxUseBeidou && (gpsState.gpsConfig->ubloxUseGlonass ^ swapB1IwithB1C )},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && (! gpsState.gpsConfig->ubloxUseGlonass ^ swapB1IwithB1C)},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
@@ -975,10 +975,10 @@ STATIC_PROTOTHREAD(gpsConfigure)
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
         if( (gpsState.swVersionMajor >= 24) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >= 1) ) {
-            configureGNSS10(false);
+            configureGNSS10(true);
 						ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 						if(_ack_state == UBX_ACK_GOT_NAK) {
-						    configureGNSS10(true);
+						    configureGNSS10(false);
 						}
         } else {
             configureGNSS();
