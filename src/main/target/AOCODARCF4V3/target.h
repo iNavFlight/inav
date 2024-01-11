@@ -16,11 +16,16 @@
  */
 
 #pragma once
-
+ 
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER         "AOF4V3"
-#define USBD_PRODUCT_STRING             "AocodaRCF4V3"
+#ifdef AOCODARCF4V3
+#define TARGET_BOARD_IDENTIFIER "AOF4V3"
+#define USBD_PRODUCT_STRING     "AOCODARCF4V3"
+#else
+#define TARGET_BOARD_IDENTIFIER "AOF4V3SD"
+#define USBD_PRODUCT_STRING     "AOCODARCF4V3_SD"
+#endif
 
 // ******** Board LEDs  **********************
 #define LED0                            PC13
@@ -137,13 +142,21 @@
 #define MAX7456_CS_PIN                  PA13
 
 //******* FLASH ********
-
+#if defined(AOCODARCF4V3_SD)
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC0
+#define SDCARD_DETECT_INVERTED
+#define SDCARD_DETECT_PIN       PC14
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#else
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_SPI_BUS                  BUS_SPI3
 #define M25P16_CS_PIN                   PC0
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-
+#endif
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
