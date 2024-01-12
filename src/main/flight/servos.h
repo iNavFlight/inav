@@ -116,8 +116,8 @@ typedef struct servoMixer_s {
 
 #define MAX_SERVO_RULES (2 * MAX_SUPPORTED_SERVOS)
 #define MAX_SERVO_SPEED UINT8_MAX
-#define SERVO_OUTPUT_MAX 2500
-#define SERVO_OUTPUT_MIN 500
+#define SERVO_OUTPUT_MAX 32767
+#define SERVO_OUTPUT_MIN 0
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
 
