@@ -168,7 +168,7 @@ Here are the OSD Elements provided by INAV.
 | 144 | OSD_MULTI_FUNCTION                               | 7.0.0  |       |
 | 145 | OSD_ODOMETER                                     | 7.0.0  | For this to work correctly, stats must be enabled (`set stats=ON`). Otherwise, this will show the total flight distance. |
 | 146 | OSD_PILOT_LOGO                                   | 7.0.0  |       |
-| 147 | OSD_BLACKBOX                                     | 7.1.0  | The element will be hidden unless blackbox recording is attempted. |
+| 147 | OSD_BLACKBOX                                     | 8.0.0  | The element will be hidden unless blackbox recording is attempted. |
 
 # Pilot Logos
 
