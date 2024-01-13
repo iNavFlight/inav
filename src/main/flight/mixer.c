@@ -161,7 +161,6 @@ void mixerUpdateStateFlags(void)
     DISABLE_STATE(BOAT);
     DISABLE_STATE(AIRPLANE);
     DISABLE_STATE(MOVE_FORWARD_ONLY);
-    DISABLE_STATE(TAILSITTER);
 
     if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
         ENABLE_STATE(FIXED_WING_LEGACY);
@@ -185,12 +184,6 @@ void mixerUpdateStateFlags(void)
     } else if (currentMixerConfig.platformType == PLATFORM_HELICOPTER) {
         ENABLE_STATE(MULTIROTOR);
         ENABLE_STATE(ALTITUDE_CONTROL);
-    }
-
-    if (currentMixerConfig.tailsitterOrientationOffset) {
-        ENABLE_STATE(TAILSITTER);
-    } else {
-        DISABLE_STATE(TAILSITTER);
     }
 
     if (currentMixerConfig.hasFlaps) {
