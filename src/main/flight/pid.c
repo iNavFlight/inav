@@ -1179,7 +1179,7 @@ void FAST_CODE pidController(float dT)
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
-            
+
             if (STATE(AIRPLANE)) {  // update anglehold mode
                 updateAngleHold(&angleTarget, axis);
             }

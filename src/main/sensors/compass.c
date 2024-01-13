@@ -472,9 +472,10 @@ void compassUpdate(timeUs_t currentTimeUs)
         fpVector3_t rotated;
 
         rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
-         mag.magADC[X] = rotated.x;
-         mag.magADC[Y] = rotated.y;
-         mag.magADC[Z] = rotated.z;
+
+        mag.magADC[X] = rotated.x;
+        mag.magADC[Y] = rotated.y;
+        mag.magADC[Z] = rotated.z;
 
     } else {
         // On-board compass

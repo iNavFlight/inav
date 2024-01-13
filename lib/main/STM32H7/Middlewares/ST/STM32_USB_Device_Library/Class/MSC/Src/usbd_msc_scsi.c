@@ -346,7 +346,6 @@ static int8_t SCSI_ModeSense6(USBD_HandleTypeDef  *pdev, uint8_t lun, uint8_t *p
     len--;
     hmsc->bot_data[len] = MSC_Mode_Sense6_data[len];
   }
-
   return 0;
 }
 
@@ -371,7 +370,6 @@ static int8_t SCSI_ModeSense10(USBD_HandleTypeDef  *pdev, uint8_t lun, uint8_t *
     len--;
     hmsc->bot_data[len] = MSC_Mode_Sense10_data[len];
   }
-
   return 0;
 }
 
