@@ -1182,7 +1182,7 @@ void FAST_CODE pidController(float dT)
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
-            
+
             //apply 45 deg offset for tailsitter when isMixerTransitionMixing is activated
             if (STATE(TAILSITTER) && isMixerTransitionMixing && axis == FD_PITCH){
                 angleTarget += DEGREES_TO_DECIDEGREES(45);
@@ -1323,7 +1323,7 @@ void pidInit(void)
     navPidInit(
         &fixedWingLevelTrimController,
         0.0f,
-        (float)pidProfile()->fixedWingLevelTrimGain / 100.0f,
+        (float)pidProfile()->fixedWingLevelTrimGain / 200.0f,
         0.0f,
         0.0f,
         2.0f,
@@ -1379,8 +1379,8 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
      */
     pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
 
-    // Iterm should freeze when conditions for setting level trim aren't met
-    if (!isFixedWingLevelTrimActive()) {
+    // Iterm should freeze when conditions for setting level trim aren't met or time since last expected update too long ago
+    if (!isFixedWingLevelTrimActive() || (dT > 5.0f * US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)))) {
         flags |= PID_FREEZE_INTEGRATOR;
     }
 
