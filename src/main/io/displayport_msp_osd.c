@@ -309,7 +309,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         do {
             bitArrayClr(dirty, pos);
             subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
-	    if (bitArrayGet(blinkChar, pos) && displayConfig()->force_sw_blink && blinkStatus) {
+            if (bitArrayGet(blinkChar, pos) && displayConfig()->force_sw_blink && blinkStatus) {
                 subcmd[len] = SYM_BLANK;
             }
             len++;
@@ -349,7 +349,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         vtxReset = false;
     }
 
-return 0;
+    return 0;
 }
 
 static void resync(displayPort_t *displayPort)
