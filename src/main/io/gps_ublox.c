@@ -379,6 +379,36 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+static void configureGNSS9(void)
+{
+        ubx_config_data8_payload_t gnssConfigValues[] = {
+            // SBAS
+            {UBLOX_CFG_SIGNAL_SBAS_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
+            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1} // ,
+			/*
+            // Galileo
+            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+
+            // Beidou
+            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
+            // {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+
+            // Should be enabled with GPS
+            {UBLOX_CFG_QZSS_ENA, 1},
+            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
+            {UBLOX_CFG_QZSS_L1S_ENA, 1},
+
+            // Glonass
+            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
+			*/
+        };
+
+        ubloxSendSetCfgBytes(gnssConfigValues, 2);
+}
+
 
 static void configureGNSS10(void)
 {
@@ -957,17 +987,6 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-		/*
-        if( (gpsState.swVersionMajor >= 24) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor > 1) ) {
-		    // This line is true for my M9
-            if ( gpsState.hwVersion == UBX_HW_VERSION_UBLOX9 ) {
-                /// This line is true for my M9
-                configureGNSS9();
-            } else {
-                configureGNSS10();
-            }
-		*/
         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
             configureGNSS10();
         } else {
