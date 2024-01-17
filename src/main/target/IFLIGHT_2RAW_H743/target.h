@@ -18,9 +18,9 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "IH7P"
+#define TARGET_BOARD_IDENTIFIER "2RH7"
 
-#define USBD_PRODUCT_STRING     "IFLIGHT_BLITZ_H7_PRO"
+#define USBD_PRODUCT_STRING     "IFLIGHT_2RAW_H743"
 
 #define LED0                    PE3
 #define LED1                    PE4
