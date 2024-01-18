@@ -1698,7 +1698,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     }
 
     if (STATE(FIXED_WING_LEGACY)) {
-        // FW Autoland configured?
         int8_t missionIdx = -1, shIdx = -1, missionFwLandConfigStartIdx = 8; 
 #ifdef USE_MULTI_MISSION
         missionIdx = posControl.loadedMultiMissionIndex - 1;
@@ -1715,7 +1714,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
                 posControl.fwLandState.approachSettingIdx = missionFwLandConfigStartIdx + missionIdx;
                 posControl.fwLandState.landWp = true;
             } else {
-                posControl.fwLandState.landPos = posControl.rthState.homePosition.pos;
+                posControl.fwLandState.landPos = posControl.safehomeState.nearestSafeHome;
                 posControl.fwLandState.approachSettingIdx = shIdx;
                 posControl.fwLandState.landWp = false;
             }
@@ -2394,7 +2393,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
         altitude = rangefinderGetLatestAltitude();
     }
 #endif
-    // Surface sensor present?
     if (altitude >= 0) {
         if (altitude <= posControl.fwLandState.landAltAgl + navFwAutolandConfig()->flareAltitude) {
             posControl.cruise.course = posControl.fwLandState.landingDirection;
@@ -5079,8 +5077,7 @@ static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos
 
 void resetFwAutolandApproach(int8_t idx)
 {
-    if (idx >= 0 && idx < MAX_FW_LAND_APPOACH_SETTINGS)
-    {
+    if (idx >= 0 && idx < MAX_FW_LAND_APPOACH_SETTINGS) {
         memset(fwAutolandApproachConfigMutable(idx), 0, sizeof(navFwAutolandApproach_t));
     } else {
         memset(fwAutolandApproachConfigMutable(0), 0, sizeof(navFwAutolandApproach_t) * MAX_FW_LAND_APPOACH_SETTINGS);
