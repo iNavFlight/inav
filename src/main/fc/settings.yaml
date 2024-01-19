@@ -3463,6 +3463,12 @@ groups:
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
         type: bool
+      - name: osd_estimations_wind_mps
+        description: "Wind speed estimation in m/s"
+        default_value: OFF
+        condition: USE_WIND_ESTIMATOR
+        field: estimations_wind_mps
+        type: bool
 
       - name: osd_failsafe_switch_layout
         description: "If enabled the OSD automatically switches to the first layout during failsafe"
