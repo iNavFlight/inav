@@ -87,8 +87,8 @@
 #define UART2_RX_PIN                    PA3
 
 #define USE_UART3
-#define UART3_TX_PIN                    PC11
-#define UART3_RX_PIN                    PC10
+#define UART3_TX_PIN                    PC10
+#define UART3_RX_PIN                    PC11
 
 #define USE_UART4
 #define UART4_TX_PIN                    PA0
@@ -134,6 +134,7 @@
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 
 #define VBAT_SCALE_DEFAULT              1100
+#define CURRENT_METER_SCALE             206
 
 // ******* OSD ********
 #define USE_OSD
