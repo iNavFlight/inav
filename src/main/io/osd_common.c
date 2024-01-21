@@ -147,21 +147,19 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 {
     uint8_t gx;
     uint8_t gy;
-    bool isInverted = false;
-
-    // Correct pitch when inverted
-    if (rollAngle < -1.570796f || rollAngle > 1.570796f) {
-        isInverted = true;
-        pitchAngle = -pitchAngle;
-    }
         
 #if defined(USE_CANVAS)
     if (canvas) {
-        osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle, isInverted);
+        osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle);
     } else {
 #endif
+        // Correct pitch when inverted
+        if (rollAngle < -1.570796f || rollAngle > 1.570796f) {
+            pitchAngle = -pitchAngle;
+        }
+
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
-        osdGridDrawArtificialHorizon(display, gx, gy, pitchAngle, rollAngle, isInverted);
+        osdGridDrawArtificialHorizon(display, gx, gy, pitchAngle, rollAngle);
 #if defined(USE_CANVAS)
     }
 #endif

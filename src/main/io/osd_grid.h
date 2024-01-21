@@ -30,6 +30,6 @@ typedef struct displayPort_s displayPort_t;
 
 void osdGridDrawVario(displayPort_t *display, unsigned gx, unsigned gy, float zvel);
 void osdGridDrawDirArrow(displayPort_t *display, unsigned gx, unsigned gy, float degrees);
-void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned gy, float pitchAngle, float rollAngle, bool isInverted);
+void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned gy, float pitchAngle, float rollAngle);
 void osdGridDrawHeadingGraph(displayPort_t *display, unsigned gx, unsigned gy, int heading);
 void osdGridDrawSidebars(displayPort_t *display);

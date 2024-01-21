@@ -109,11 +109,10 @@ static float osdGetAspectRatioCorrection(void)
     return osdDisplayIsPAL() ? 12.0f/15.0f : 12.0f/18.46f;
 }
 
-void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned gy, float pitchAngle, float rollAngle, bool isInverted)
+void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned gy, float pitchAngle, float rollAngle)
 {
     UNUSED(gx);
     UNUSED(gy);
-    UNUSED(isInverted);
 
     uint8_t elemPosX;
     uint8_t elemPosY;
