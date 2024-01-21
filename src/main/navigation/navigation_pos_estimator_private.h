@@ -47,8 +47,7 @@
 
 #define CALIBRATING_GRAVITY_TIME_MS         2000
 
-// Time constants for calculating Baro/Sonar averages. Should be the same value to impose same amount of group delay
-#define INAV_BARO_AVERAGE_HZ                1.0f
+// Time constants for calculating Sonar averages. Should be the same value to impose same amount of group delay
 #define INAV_SURFACE_AVERAGE_HZ             1.0f
 
 #define INAV_ACC_CLIPPING_RC_CONSTANT           (0.010f)    // Reduce acc weight for ~10ms after clipping
@@ -77,7 +76,6 @@ typedef struct {
 
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
-    pt1Filter_t avgFilter;
     float       alt;            // Raw barometric altitude (cm)
     float       epv;
     float       baroAltRate;    // Baro altitude rate of change (cm/s)
