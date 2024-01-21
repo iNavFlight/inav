@@ -1,1 +1,0 @@
-target_stm32h743xi(IFLIGHT_BLITZ_H743_WING)
