@@ -1,6 +1,6 @@
-# Building in Mac OS X
+# Building in macOS
 
-Building in Mac OS X can be accomplished in just a few steps:
+Building in macOS can be accomplished in just a few steps:
 
 * Install general development tools (clang, make, git)
 * Install cmake
