@@ -41,6 +41,19 @@
 static bool isYawAdjustmentValid = false;
 static int32_t navHeadingError;
 
+static float getVelocityHeadingAttenuationFactor(void)
+{
+    // In WP mode scale velocity if heading is different from bearing
+    if (navConfig()->mc.slowDownForTurning && (navGetCurrentStateFlags() & NAV_AUTO_WP)) {
+        const int32_t headingError = constrain(wrap_18000(posControl.desiredState.yaw - posControl.actualState.yaw), -9000, 9000);
+        const float velScaling = cos_approx(CENTIDEGREES_TO_RADIANS(headingError));
+        return constrainf(velScaling * velScaling, 0.05f, 1.0f);
+    } else {
+        return 1.0f;
+    }
+}
+
+
 static void update2DPositionHeadingController(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
 {
     static timeUs_t previousTimeMonitoringUpdate;
@@ -66,6 +79,8 @@ static void update2DPositionHeadingController(timeUs_t currentTimeUs, timeDelta_
     }
 
     posControl.rcAdjustment[YAW] = processHeadingYawController(deltaMicros, navHeadingError, errorIsDecreasing);
+    const float velHeadFactor = getVelocityHeadingAttenuationFactor();
+    posControl.rcAdjustment[THROTTLE] = (rcCommand[THROTTLE] * velHeadFactor);
 }
 
 void applyRoverBoatPositionController(timeUs_t currentTimeUs)
