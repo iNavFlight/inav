@@ -45,17 +45,22 @@
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
+#define USE_I2C_DEVICE_2
+#define I2C2_SCL                PB10
+#define I2C2_SDA                PB11
+#define I2C_DEVICE_2_SHARES_UART3
+
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_ALL
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_ALL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define PITOT_I2C_BUS           BUS_I2C1
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C2
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
