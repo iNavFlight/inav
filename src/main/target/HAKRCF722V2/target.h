@@ -87,7 +87,7 @@
 #define USE_FLASH_M25P16
 #define M25P16_CS_PIN           SPI3_NSS_PIN
 #define M25P16_SPI_BUS          BUS_SPI3
-
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 // *** UART ***
 #define USE_VCP
 
