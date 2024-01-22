@@ -20,6 +20,9 @@
 #ifdef SKYSTARSF7MINIHD
 #define TARGET_BOARD_IDENTIFIER "SS7M"
 #define USBD_PRODUCT_STRING  "SkystarsF722MiniHD"
+#elif defined(SKYSTARSF722HDPRO)
+#define TARGET_BOARD_IDENTIFIER "SS7P"
+#define USBD_PRODUCT_STRING  "SkystarsF722HDPRO"
 #else
 #define TARGET_BOARD_IDENTIFIER "SS7D"
 #define USBD_PRODUCT_STRING  "SkystarsF722HD"
@@ -45,6 +48,22 @@
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
+#elif defined(SKYSTARSF722HDPRO)
+#define MPU6000_CS_PIN          PA4
+#define MPU6000_SPI_BUS         BUS_SPI1
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG_FLIP
+
+#define ICM42605_CS_PIN         PA4
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
+
+#define BMI270_CS_PIN           PA4
+#define BMI270_SPI_BUS          BUS_SPI1
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW90_DEG_FLIP
+
 #else
 #define BMI270_CS_PIN           PA4
 #define BMI270_SPI_BUS          BUS_SPI1
@@ -81,6 +100,11 @@
 #define USE_BARO_BMP280
 #define BMP280_SPI_BUS          BUS_SPI2
 #define BMP280_CS_PIN           PB1
+#ifdef SKYSTARSF722HDPRO
+#define USE_BARO_SPL06
+#define SPL06_SPI_BUS           BUS_SPI2
+#define SPL06_CS_PIN            PB1
+#endif
 
 // *************** UART *****************************
 #define USE_VCP
