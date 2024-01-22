@@ -24,7 +24,7 @@
 
 #include "config/parameter_group.h"
 
-#define SW_BLINK_CYCLE_MS 200 // 200ms on / 200ms off
+#define SW_BLINK_CYCLE_MS 500 // Xms on / Xms off
 
 #define getBlinkOnOff()  ( (millis() / SW_BLINK_CYCLE_MS) & 1 )
 
