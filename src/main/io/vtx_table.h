@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV
+ * This file is part of BetaFlight and INAV
  *
  * INAV is free software. You can redistribute
  * this software and/or modify this software under the terms of the
