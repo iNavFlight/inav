@@ -27,24 +27,13 @@
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
 
+#include "io/vtx_table.h"
+
 typedef enum {
     // Offline - device hasn't responded yet
     MSP_VTX_STATUS_OFFLINE = 0,
     MSP_VTX_STATUS_READY,
 } mspVtxStatus_e;
-
-typedef struct mspPowerTable_s {
-    int mW;         // rfpower
-    int16_t dbi;    // valueV1
-} mspPowerTable_t;
-
-#define VTX_MSP_TABLE_MAX_BANDS             5 // default freq table has 5 bands
-#define VTX_MSP_TABLE_MAX_CHANNELS          8 // and eight channels
-#define VTX_MSP_TABLE_MAX_POWER_LEVELS      5 //max of VTX_TRAMP_POWER_COUNT, VTX_SMARTAUDIO_POWER_COUNT and VTX_RTC6705_POWER_COUNT
-#define VTX_MSP_TABLE_CHANNEL_NAME_LENGTH   1
-#define VTX_MSP_TABLE_BAND_NAME_LENGTH      8
-#define VTX_MSP_TABLE_POWER_LABEL_LENGTH    3
-
 
 bool vtxMspInit(void);
 void setMspVtxDeviceStatusReady(const int descriptor);
