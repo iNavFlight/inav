@@ -76,9 +76,11 @@ If the CLI `log_topics` is non-zero, then all topics matching the mask will be d
 
 A set of macros `LOG_ERROR()` (log error) through `LOG_DEBUG()` (log debug) may be used, subject to compile time log level constraints. These provide `printf` style logging for a given topic.
 
+Note that the `topic` is specified without the `LOG_TOPIC_` prefix:
+
 ```
 //  LOG_DEBUG(topic, fmt, ...)
-LOG_DEBUG(LOG_TOPIC_SYSTEM, "This is %s topic debug message, value %d", "system", 42);
+LOG_DEBUG(SYSTEM, "This is %s topic debug message, value %d", "system", 42);
 ```
 
 It is also possible to dump a hex representation of arbitrary  data, using functions named variously `LOG_BUFFER_` (`ERROR`) and `LOG_BUF_` (anything else, alas) e.g.:
@@ -89,7 +91,7 @@ It is also possible to dump a hex representation of arbitrary  data, using funct
 
 struct {...} tstruct;
 ...
-LOG_BUF_DEBUG(LOG_TOPIC_TEMPERATURE, &tstruct, sizeof(tstruct));
+LOG_BUF_DEBUG(TEMPERATURE, &tstruct, sizeof(tstruct));
 ```
 
 ## Output Support
@@ -104,7 +106,7 @@ Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messa
 For example, with the final lines of `src/main/fc/fc_init.c` set to:
 
 ```
- LOG_ERROR(LOG_TOPIC_SYSTEM, "Init is complete");
+ LOG_ERROR(SYSTEM, "Init is complete");
  systemState |= SYSTEM_STATE_READY;
 ```
 

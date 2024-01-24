@@ -27,7 +27,7 @@
 #define GRAVITY_CMSS    980.665f
 #define GRAVITY_MSS     9.80665f
 
-#define ACC_CLIPPING_THRESHOLD_G        7.9f
+#define ACC_CLIPPING_THRESHOLD_G        15.9f
 #define ACC_VIBE_FLOOR_FILT_HZ          5.0f
 #define ACC_VIBE_FILT_HZ                2.0f
 
@@ -58,6 +58,7 @@ typedef struct acc_s {
     uint32_t accTargetLooptime;
     float accADCf[XYZ_AXIS_COUNT]; // acceleration in g
     float accVibeSq[XYZ_AXIS_COUNT];
+    float accVibe;
     uint32_t accClipCount;
     bool isClipped;
     acc_extremes_t extremes[XYZ_AXIS_COUNT];

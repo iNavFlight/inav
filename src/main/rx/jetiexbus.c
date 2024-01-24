@@ -63,7 +63,12 @@
 #define JETIEXBUS_BAUDRATE 125000                       // EX Bus 125000; EX Bus HS 250000 not supported
 #define JETIEXBUS_OPTIONS (SERIAL_STOPBITS_1 | SERIAL_PARITY_NO)
 #define JETIEXBUS_MIN_FRAME_GAP     1000
-#define JETIEXBUS_CHANNEL_COUNT     16                  // most Jeti TX transmit 16 channels
+
+#ifdef USE_24CHANNELS
+#define JETIEXBUS_CHANNEL_COUNT 24
+#else
+#define JETIEXBUS_CHANNEL_COUNT 16
+#endif
 
 
 #define EXBUS_START_CHANNEL_FRAME       (0x3E)
@@ -153,6 +158,7 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
 
     static timeUs_t jetiExBusTimeLast = 0;
     static uint8_t *jetiExBusFrame;
+    static uint8_t jetiExBusFrameMaxSize;
     const timeUs_t now = microsISR();
 
     // Check if we shall reset frame position due to time
@@ -169,16 +175,27 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
         case EXBUS_START_CHANNEL_FRAME:
             jetiExBusFrameState = EXBUS_STATE_IN_PROGRESS;
             jetiExBusFrame = jetiExBusChannelFrame;
+            jetiExBusFrameMaxSize = EXBUS_MAX_CHANNEL_FRAME_SIZE;
             break;
 
         case EXBUS_START_REQUEST_FRAME:
             jetiExBusRequestState = EXBUS_STATE_IN_PROGRESS;
             jetiExBusFrame = jetiExBusRequestFrame;
+            jetiExBusFrameMaxSize = EXBUS_MAX_CHANNEL_FRAME_SIZE;
             break;
 
         default:
             return;
         }
+    }
+
+    if (jetiExBusFramePosition == jetiExBusFrameMaxSize) {
+        // frame overrun
+        jetiExBusFrameReset();
+        jetiExBusFrameState = EXBUS_STATE_ZERO;
+        jetiExBusRequestState = EXBUS_STATE_ZERO;
+
+        return;
     }
 
     // Store in frame copy

@@ -113,6 +113,11 @@
 #define IMU_BMI270_ALIGN        CW0_DEG
 #endif
 
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_CS_PIN         PE4
+#define ICM42605_SPI_BUS        BUS_SPI4
+
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
@@ -132,13 +137,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
-#define USE_MAG_VCM5883
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1

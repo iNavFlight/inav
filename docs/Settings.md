@@ -242,6 +242,16 @@ Inertial Measurement Unit KP Gain for compass measurements
 
 ---
 
+### ahrs_gps_yaw_weight
+
+Arhs gps yaw weight when mag is avaliable, 0 means no gps yaw, 100 means equal weight as compass
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 500 |
+
+---
+
 ### ahrs_gps_yaw_windcomp
 
 Wind compensation in heading estimation from gps groundcourse(fixed wing only)
@@ -258,7 +268,7 @@ Inertia force compensation method when gps is avaliable, VELNED use the acclerat
 
 | Default | Min | Max |
 | --- | --- | --- |
-| VELNED |  |  |
+| ADAPTIVE |  |  |
 
 ---
 
@@ -872,6 +882,96 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 
 ---
 
+### ez_aggressiveness
+
+EzTune aggressiveness
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_axis_ratio
+
+EzTune axis ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 110 | 25 | 175 |
+
+---
+
+### ez_damping
+
+EzTune damping
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_enabled
+
+Enables EzTune feature
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### ez_expo
+
+EzTune expo
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_filter_hz
+
+EzTune filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 110 | 10 | 300 |
+
+---
+
+### ez_rate
+
+EzTune rate
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_response
+
+EzTune response
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
+### ez_stability
+
+EzTune stability
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 200 |
+
+---
+
 ### failsafe_delay
 
 Time in deciseconds to wait before activating failsafe when signal is lost. See [Failsafe documentation](Failsafe.md#failsafe_delay).
@@ -909,6 +1009,16 @@ Requested yaw rate to execute when `LAND` (or old `SET-THR`) failsafe is active 
 | Default | Min | Max |
 | --- | --- | --- |
 | -45 | -1000 | 1000 |
+
+---
+
+### failsafe_gps_fix_estimation_delay
+
+Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | -1 | 600 |
 
 ---
 
@@ -1222,16 +1332,6 @@ Iterm is not allowed to grow when stick position is above threshold. This solves
 
 ---
 
-### fw_iterm_throw_limit
-
-Limits max/min I-term value in stabilization PID controller in case of Fixed Wing. It solves the problem of servo saturation before take-off/throwing the airplane into the air. By default, error accumulated in I-term can not exceed 1/3 of servo throw (around 165us). Set 0 to disable completely.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 165 | FW_ITERM_THROW_LIMIT_MIN | FW_ITERM_THROW_LIMIT_MAX |
-
----
-
 ### fw_level_pitch_gain
 
 I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations
@@ -1394,11 +1494,11 @@ Enable automatic configuration of UBlox GPS receivers.
 
 ### gps_dyn_model
 
-GPS navigation model: Pedestrian, Air_1g, Air_4g. Default is AIR_1G. Use pedestrian with caution, can cause flyaways with fast flying.
+GPS navigation model: Pedestrian, Automotive, Air<1g, Air<2g, Air<4g. Default is AIR_2G. Use pedestrian/Automotive with caution, can cause flyaways with fast flying.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| AIR_1G |  |  |
+| AIR_2G |  |  |
 
 ---
 
@@ -1682,6 +1782,16 @@ Defines if INAV will dead-reckon over short GPS outages. May also be useful for 
 
 ---
 
+### inav_allow_gps_fix_estimation
+
+Defines if inav will estimate GPS fix with magnetometer and barometer on GPS outages. Enables navigation and RTH without GPS fix on fixed wing. Also see failsafe_gps_fix_estimation_delay.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### inav_auto_mag_decl
 
 Automatic setting of magnetic declination based on GPS position. When used manual magnetic declination is ignored.
@@ -1832,43 +1942,33 @@ Decay coefficient for estimated velocity when GPS reference for position is lost
 
 ---
 
-### inav_w_xyz_acc_p
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1.0 | 0 | 1 |
-
----
-
 ### inav_w_z_baro_p
 
-Weight of barometer measurements in estimated altitude and climb rate
+Weight of barometer measurements in estimated altitude and climb rate. Setting is used on both airplanes and multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.35 | 0 | 10 |
+| 0.4 | 0 | 10 |
 
 ---
 
 ### inav_w_z_gps_p
 
-Weight of GPS altitude measurements in estimated altitude. Setting is used only of airplanes
+Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.2 | 0 | 10 |
+| 0.4 | 0 | 10 |
 
 ---
 
 ### inav_w_z_gps_v
 
-Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors. If GPS doesn't support native climb rate reporting (i.e. NMEA GPS) you may consider setting this to zero
+Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.8 | 0 | 10 |
 
 ---
 
@@ -1929,6 +2029,16 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 90 |
+
+---
+
+### led_pin_pwm_mode
+
+PWM mode of LED pin.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| SHARED_LOW |  |  |
 
 ---
 
@@ -2354,7 +2464,7 @@ This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK
 
 ### mc_cd_lpf_hz
 
-Cutoff frequency for Control Derivative. Lower value smoother reaction on fast stick movements. With higher values, response will be more aggressive, jerky
+Cutoff frequency for Control Derivative. This controls the cutoff for the LPF that is applied to the CD (Feed Forward) signal to the PID controller. Lower value will produce a smoother CD gain to the controller, but it will be more delayed. Higher values will produce CD gain that may have more noise in the signal depending on your RC link but wil be less delayed.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2364,7 +2474,7 @@ Cutoff frequency for Control Derivative. Lower value smoother reaction on fast s
 
 ### mc_cd_pitch
 
-Multicopter Control Derivative gain for PITCH
+Multicopter Control Derivative gain for PITCH (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2374,7 +2484,7 @@ Multicopter Control Derivative gain for PITCH
 
 ### mc_cd_roll
 
-Multicopter Control Derivative gain for ROLL
+Multicopter Control Derivative gain for ROLL (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2384,7 +2494,7 @@ Multicopter Control Derivative gain for ROLL
 
 ### mc_cd_yaw
 
-Multicopter Control Derivative gain for YAW
+Multicopter Control Derivative gain for YAW (known as 'Feed Forward' in Betaflight). The CD intoduces a term to the PID controller that is the magnitude of the Setpoint change. Fast inputs produce a high CD gain to help push the MC into a move; in advance of the P-gain if set high enough.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2552,6 +2662,36 @@ This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly 
 
 ---
 
+### mixer_automated_switch
+
+If set to on, This mixer_profile will try to switch to another mixer_profile when 1.RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius on mixer_profile is a MULTIROTOR or TRICOPTER platform_type. 2. RTH landing is requested on this mixer_profile is a AIRPLANE platform_type
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_pid_profile_linking
+
+If enabled, pid profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle PID profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the PID profile switching on a VTOL or mixed platform type setup.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### mixer_switch_trans_timer
+
+If switch another mixer_profile is scheduled by mixer_automated_switch or mixer_automated_switch. Activate Mixertransion motor/servo mixing for this many decisecond(0.1s) before the actual mixer_profile switch.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 200 |
+
+---
+
 ### mode_range_logic_operator
 
 Control how Mode selection works in flight modes. If you example have Angle mode configured on two different Aux channels, this controls if you need both activated ( AND ) or if you only need one activated ( OR ) to active angle mode.
@@ -2612,6 +2752,16 @@ Output frequency (in Hz) for motor pins.  Applies only to brushed motors.
 
 ---
 
+### motorstop_on_low
+
+If enabled, motor will stop when throttle is low on this mixer_profile
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### msp_override_channels
 
 Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode.
@@ -2632,16 +2782,6 @@ Craft name
 
 ---
 
-### nav_auto_climb_rate
-
-Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | 10 | 2000 |
-
----
-
 ### nav_auto_disarm_delay
 
 Delay before craft disarms when `nav_disarm_on_landing` is set (ms)
@@ -2659,6 +2799,16 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 | Default | Min | Max |
 | --- | --- | --- |
 | 300 | 10 | 2000 |
+
+---
+
+### nav_cruise_yaw_rate
+
+Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 60 | 0 | 120 |
 
 ---
 
@@ -2749,16 +2899,6 @@ Cruise throttle in GPS assisted modes, this includes RTH. Should be set high eno
 | Default | Min | Max |
 | --- | --- | --- |
 | 1400 | 1000 | 2000 |
-
----
-
-### nav_fw_cruise_yaw_rate
-
-Max YAW rate when NAV CRUISE mode is enabled (0=disable control via yaw stick) [dps]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 20 | 0 | 60 |
 
 ---
 
@@ -2969,6 +3109,16 @@ PosHold radius. 3000 to 7500 is a good value (30-75m) [cm]
 | Default | Min | Max |
 | --- | --- | --- |
 | 7500 | 0 | 30000 |
+
+---
+
+### nav_fw_manual_climb_rate
+
+Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 300 | 10 | 2500 |
 
 ---
 
@@ -3242,16 +3392,6 @@ Allows immediate landing detection based on G bump at touchdown when set to ON. 
 
 ---
 
-### nav_manual_climb_rate
-
-Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 200 | 10 | 2000 |
-
----
-
 ### nav_manual_speed
 
 Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]
@@ -3299,6 +3439,16 @@ If set to STICK the FC remembers the throttle stick position when enabling ALTHO
 | Default | Min | Max |
 | --- | --- | --- |
 | STICK |  |  |
+
+---
+
+### nav_mc_auto_climb_rate
+
+Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -3408,7 +3558,17 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1500 | 1000 | 2000 |
+| 1300 | 1000 | 2000 |
+
+---
+
+### nav_mc_manual_climb_rate
+
+Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 10 | 2000 |
 
 ---
 
@@ -3572,6 +3732,16 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 ---
 
+### nav_min_ground_speed
+
+Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 7 | 6 | 50 |
+
+---
+
 ### nav_min_rth_distance
 
 Minimum distance from homepoint when RTH full procedure will be activated [cm]. Below this distance, the mode will activate at the current location and the final phase is executed (loiter / land). Above this distance, the full procedure is activated, which may include initial climb and flying directly to the homepoint before entering the loiter / land phase.
@@ -3699,6 +3869,16 @@ If set to ON, aircraft will execute initial climb regardless of position sensor 
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### nav_rth_fs_landing_delay
+
+If landing is active on Failsafe and this is above 0. The aircraft will hover or loiter for X seconds before performing the landing. If the battery enters the warning or critical levels, the land will proceed. Default = 0 [seconds]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 1800 |
 
 ---
 
@@ -3979,6 +4159,16 @@ Value above which to make the OSD relative altitude indicator blink (meters)
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 0 | 10000 |
+
+---
+
+### osd_arm_screen_display_time
+
+Amount of time to display the arm screen [ms]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 1000 | 5000 |
 
 ---
 
@@ -4312,6 +4502,76 @@ Temperature under which the IMU temperature OSD element will start blinking (dec
 
 ---
 
+### osd_inav_to_pilot_logo_spacing
+
+The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | 0 | 20 |
+
+---
+
+### osd_joystick_down
+
+PWM value for DOWN key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
+### osd_joystick_enabled
+
+Enable OSD Joystick emulation
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### osd_joystick_enter
+
+PWM value for ENTER key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 75 | 0 | 100 |
+
+---
+
+### osd_joystick_left
+
+PWM value for LEFT key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 63 | 0 | 100 |
+
+---
+
+### osd_joystick_right
+
+PWM value for RIGHT key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 28 | 0 | 100 |
+
+---
+
+### osd_joystick_up
+
+PWM value for UP key
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 48 | 0 | 100 |
+
+---
+
 ### osd_left_sidebar_scroll
 
 _// TODO_
@@ -4342,9 +4602,9 @@ LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50
 
 ---
 
-### osd_mah_used_precision
+### osd_mah_precision
 
-Number of digits used to display mAh used.
+Number of digits used for mAh precision. Currently used by mAh Used and Battery Remaining Capacity
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4732,6 +4992,16 @@ IMPERIAL, METRIC, UK
 
 ---
 
+### osd_use_pilot_logo
+
+Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_video_system
 
 Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`
@@ -4742,13 +5012,13 @@ Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF'
 
 ---
 
-### output_mode
+### pid_iterm_limit_percent
 
-Output function assignment mode. AUTO assigns outputs according to the default mapping, SERVOS assigns all outputs to servos, MOTORS assigns all outputs to motors
+Limits max/min I-term value in stabilization PID controller. It solves the problem of servo saturation before take-off/throwing the airplane into the air. Or multirotors with low authority. By default, error accumulated in I-term can not exceed 33% of total pid throw (around 165us on deafult pidsum_limit of pitch/roll). Set 0 to disable completely.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| AUTO |  |  |
+| 33 | 0 | 200 |
 
 ---
 
@@ -5652,9 +5922,19 @@ See tpa_rate.
 
 ---
 
+### tpa_on_yaw
+
+Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should be set to ON for tilting rotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### tpa_rate
 
-Throttle PID attenuation reduces influence of P on ROLL and PITCH as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
+Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5774,11 +6054,11 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 
 ### vtx_band
 
-Configure the VTX band. Set to zero to use `vtx_freq`. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race.
+Configure the VTX band. Bands: 1: A, 2: B, 3: E, 4: F, 5: Race.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | VTX_SETTINGS_NO_BAND | VTX_SETTINGS_MAX_BAND |
+| 1 | VTX_SETTINGS_MIN_BAND | VTX_SETTINGS_MAX_BAND |
 
 ---
 

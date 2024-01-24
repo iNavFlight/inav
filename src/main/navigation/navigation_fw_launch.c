@@ -247,19 +247,12 @@ static void setCurrentState(fixedWingLaunchState_t nextState, timeUs_t currentTi
 
 /* Wing control Helpers */
 
-static bool isThrottleIdleEnabled(void)
-{
-    return currentBatteryProfile->nav.fw.launch_idle_throttle > getThrottleIdleValue();
-}
-
 static void applyThrottleIdleLogic(bool forceMixerIdle)
 {
-    if (isThrottleIdleEnabled() && !forceMixerIdle) {
-        rcCommand[THROTTLE] = currentBatteryProfile->nav.fw.launch_idle_throttle;
-    }
-    else {
-        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);           // If MOTOR_STOP is enabled mixer will keep motor stopped
-        rcCommand[THROTTLE] = getThrottleIdleValue();   // If MOTOR_STOP is disabled, motors will spin given throttle value
+    if (forceMixerIdle) {
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);   // If MOTOR_STOP is enabled mixer will keep motor stopped, otherwise motor will run at idle
+    } else {
+        rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_idle_throttle, true);
     }
 }
 
@@ -344,7 +337,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
     UNUSED(currentTimeUs);
 
     if (!throttleStickIsLow()) {
-        if (isThrottleIdleEnabled()) {
+        if (currentBatteryProfile->nav.fw.launch_idle_throttle > getThrottleIdleValue()) {
             return FW_LAUNCH_EVENT_SUCCESS;
         }
         else {
@@ -478,7 +471,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_
 
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     const uint16_t motorSpinUpMs = navConfig()->fw.launch_motor_spinup_time;
-    const uint16_t launchThrottle = constrain(currentBatteryProfile->nav.fw.launch_throttle, getThrottleIdleValue(), motorConfig()->maxthrottle);
+    const uint16_t launchThrottle = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
 
     if (elapsedTimeMs > motorSpinUpMs) {
         rcCommand[THROTTLE] = launchThrottle;
@@ -512,7 +505,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
         }
     } else {
         initialTime = navConfig()->fw.launch_motor_timer + navConfig()->fw.launch_motor_spinup_time;
-        rcCommand[THROTTLE] = constrain(currentBatteryProfile->nav.fw.launch_throttle, getThrottleIdleValue(), motorConfig()->maxthrottle);
+        rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
     }
 
     if (isLaunchMaxAltitudeReached()) {
@@ -542,7 +535,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
         // Make a smooth transition from the launch state to the current state for pitch angle
         // Do the same for throttle when manual launch throttle isn't used
         if (!navConfig()->fw.launch_manual_throttle) {
-            const uint16_t launchThrottle = constrain(currentBatteryProfile->nav.fw.launch_throttle, getThrottleIdleValue(), motorConfig()->maxthrottle);
+            const uint16_t launchThrottle = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
             rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, launchThrottle, rcCommand[THROTTLE]);
         }
         fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, rcCommand[PITCH]);

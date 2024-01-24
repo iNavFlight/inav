@@ -84,7 +84,7 @@ static bool batteryUseCapacityThresholds = false;
 static bool batteryFullWhenPluggedIn = false;
 static bool profileAutoswitchDisable = false;
 
-static uint16_t vbat = 0;                       // battery voltage in 0.1V steps (filtered)
+static uint16_t vbat = 0;                       // battery voltage in 0.01V steps (filtered)
 static uint16_t powerSupplyImpedance = 0;       // calculated impedance in milliohm
 static uint16_t sagCompensatedVBat = 0;         // calculated no load vbat
 static bool powerSupplyImpedanceIsValid = false;
@@ -134,7 +134,6 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
             .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
 
             .nav = {
-
                 .mc = {
                     .hover_throttle = SETTING_NAV_MC_HOVER_THR_DEFAULT,
                 },
@@ -147,7 +146,6 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                     .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
                     .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,                 // Motor idle or MOTOR_STOP
                 }
-
             },
 
 #if defined(USE_POWER_LIMITS)
@@ -297,6 +295,14 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             vbat = 0;
             break;
     }
+
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) && SIMULATOR_HAS_OPTION(HITL_SIMULATE_BATTERY)) {
+        vbat = ((uint16_t)simulatorData.vbat)*10;
+        return;
+    }
+#endif
+
     if (justConnected) {
         pt1FilterReset(&vbatFilterState, vbat);
     } else {
@@ -564,7 +570,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 if (allNav || autoNav) {    // account for motors running in Nav modes with throttle low + motor stop
                     throttleOffset = (int32_t)rcCommand[THROTTLE] - 1000;
                 } else {
-                    throttleOffset = (throttleStickIsLow() && feature(FEATURE_MOTOR_STOP)) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
+                    throttleOffset = (throttleStickIsLow() && ifMotorstopFeatureEnabled()) ? 0 : (int32_t)rcCommand[THROTTLE] - 1000;
                 }
                 int32_t throttleFactor = throttleOffset + (throttleOffset * throttleOffset / 50);
                 amperage += throttleFactor * batteryMetersConfig()->current.scale / 1000;

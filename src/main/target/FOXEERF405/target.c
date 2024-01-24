@@ -22,18 +22,18 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_PPM,          0, 0), // PPM
+    // DEF_TIM(TIM12, CH2, PB15, TIM_USE_PPM,          0, 0), // PPM
 
-    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,     0, 0),   // S1 (1,7)
-    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,     0, 0),   // S2 (1,4)
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,     0, 0),   // S3 (2,4)
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,     0, 0),   // S4 (2,7)  
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,     0, 0),   // S5 (2,2) 
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,     0, 0),   // S6 (2,3)
+    DEF_TIM(TIM3,  CH3, PB0,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S1 (1,7)
+    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S2 (1,4)
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S3 (2,4)
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S4 (2,7)  
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S5 (2,2) 
+    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_OUTPUT_AUTO,     0, 0),   // S6 (2,3)
     
-    DEF_TIM(TIM1,  CH3, PA10, TIM_USE_LED,                              0, 0),   // LED STRIP(2,6)
+    DEF_TIM(TIM1,  CH3, PA10, TIM_USE_LED,                        0, 0),   // LED STRIP(2,6)
 
-    //DEF_TIM(TIM2, CH2, PB3,  TIM_USE_CAMERA_CONTROL,                   0, 0),   // Reserved (Cam Control for BF)
+    //DEF_TIM(TIM2, CH2, PB3,  TIM_USE_CAMERA_CONTROL,            0, 0),   // Reserved (Cam Control for BF)
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

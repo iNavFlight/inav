@@ -100,12 +100,7 @@
 // Mag
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2 
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 // *************** Internal SD card **************************
 #define USE_SPI_DEVICE_2
@@ -152,7 +147,8 @@
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 #define DEFAULT_FEATURES            (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD | FEATURE_BLACKBOX)
-// #define USE_DSHOT
+#define USE_DSHOT
+#define USE_DSHOT_DMAR
 // #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

@@ -179,11 +179,11 @@ void adcHardwareInit(drv_adc_config_t *init)
         adcDevice_t * adc = &adcHardware[adcConfig[i].adcDevice];
         // init adc gpio port
         IOInit(IOGetByTag(adcConfig[i].tag), OWNER_ADC, RESOURCE_ADC_CH1 + (i - ADC_CHN_1), 0);
-        IOConfigGPIO(IOGetByTag(adcConfig[i].tag), IO_CONFIG(GPIO_MODE_ANALOG, 0, GPIO_OUTPUT_OPEN_DRAIN, GPIO_PULL_NONE));
+        IOConfigGPIO(IOGetByTag(adcConfig[i].tag), IO_CONFIG(GPIO_MODE_ANALOG, 0, 0, 0));
 
         adcConfig[i].adcChannel = adcChannelByTag(adcConfig[i].tag);
         adcConfig[i].dmaIndex = adc->usedChannelCount++; 
-        adcConfig[i].sampleTime = ADC_SAMPLETIME_6_5;
+        adcConfig[i].sampleTime = ADC_SAMPLETIME_640_5;
         adcConfig[i].enabled = true;
 
         adc->enabled = true;

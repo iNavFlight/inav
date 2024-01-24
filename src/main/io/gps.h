@@ -33,8 +33,7 @@
 #define GPS_DEGREES_DIVIDER 10000000L
 
 typedef enum {
-    GPS_NMEA = 0,
-    GPS_UBLOX,
+    GPS_UBLOX = 0,
     GPS_UBLOX7PLUS,
     GPS_MSP,
     GPS_FAKE,
@@ -47,6 +46,7 @@ typedef enum {
     SBAS_WAAS,
     SBAS_MSAS,
     SBAS_GAGAN,
+    SBAS_SPAN,
     SBAS_NONE
 } sbasMode_e;
 
@@ -76,7 +76,9 @@ typedef enum {
 
 typedef enum {
     GPS_DYNMODEL_PEDESTRIAN = 0,
+    GPS_DYNMODEL_AUTOMOTIVE,
     GPS_DYNMODEL_AIR_1G,
+    GPS_DYNMODEL_AIR_2G,
     GPS_DYNMODEL_AIR_4G,
 } gpsDynModel_e;
 
@@ -124,7 +126,6 @@ typedef struct gpsSolutionData_s {
         bool gpsHeartbeat;  // Toggle each update
         bool validVelNE;
         bool validVelD;
-        bool validMag;
         bool validEPE;      // EPH/EPV values are valid - actual accuracy
         bool validTime;
     } flags;
@@ -133,7 +134,6 @@ typedef struct gpsSolutionData_s {
     uint8_t numSat;
 
     gpsLocation_t llh;
-    int16_t       magData[3];
     int16_t       velNED[3];
 
     int16_t groundSpeed;
