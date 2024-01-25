@@ -170,7 +170,7 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     delay(15);
 
     /* LPF bandwidth */
-    busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[1]) | (config->gyroConfigValues[1] << 4));
+    busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[0]) | (config->gyroConfigValues[0] << 4));
     delay(15);
 
     busWrite(dev, ICM42605_RA_INT_CONFIG, ICM42605_INT1_MODE_PULSED | ICM42605_INT1_DRIVE_CIRCUIT_PP | ICM42605_INT1_POLARITY_ACTIVE_HIGH);
