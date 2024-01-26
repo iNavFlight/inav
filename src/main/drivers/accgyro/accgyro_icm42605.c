@@ -244,7 +244,9 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     delay(15);
 
     /* LPF bandwidth */
-    busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[0]) | (config->gyroConfigValues[0] << 4));
+    //busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[0]) | (config->gyroConfigValues[0] << 4));
+    // low latency, same as BF
+    busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY | ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY);
     delay(15);
 
     /* AA Filter */
