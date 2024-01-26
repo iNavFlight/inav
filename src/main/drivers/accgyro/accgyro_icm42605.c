@@ -44,6 +44,13 @@
 #define ICM42605_PWR_MGMT0_TEMP_DISABLE_OFF         (0 << 5)
 #define ICM42605_PWR_MGMT0_TEMP_DISABLE_ON          (1 << 5)
 
+#define ICM426XX_RA_REG_BANK_SEL                    0x76
+#define ICM426XX_BANK_SELECT0                       0x00
+#define ICM426XX_BANK_SELECT1                       0x01
+#define ICM426XX_BANK_SELECT2                       0x02
+#define ICM426XX_BANK_SELECT3                       0x03
+#define ICM426XX_BANK_SELECT4                       0x04
+
 #define ICM42605_RA_GYRO_CONFIG0                    0x4F
 #define ICM42605_RA_ACCEL_CONFIG0                   0x50
 
@@ -85,6 +92,72 @@
 #define ICM42605_INTF_CONFIG1                       0x4D
 #define ICM42605_INTF_CONFIG1_AFSR_MASK             0xC0
 #define ICM42605_INTF_CONFIG1_AFSR_DISABLE          0x40
+
+// --- Registers for gyro and acc Anti-Alias Filter ---------
+#define ICM426XX_RA_GYRO_CONFIG_STATIC3             0x0C  // User Bank 1
+#define ICM426XX_RA_GYRO_CONFIG_STATIC4             0x0D  // User Bank 1
+#define ICM426XX_RA_GYRO_CONFIG_STATIC5             0x0E  // User Bank 1
+#define ICM426XX_RA_ACCEL_CONFIG_STATIC2            0x03  // User Bank 2
+#define ICM426XX_RA_ACCEL_CONFIG_STATIC3            0x04  // User Bank 2
+#define ICM426XX_RA_ACCEL_CONFIG_STATIC4            0x05  // User Bank 2
+
+static bool is42688P = false;
+//    values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
+typedef enum {
+    AAF_CONFIG_258HZ = 0, // 256HZ
+    AAF_CONFIG_536HZ,
+    AAF_CONFIG_997HZ,
+    AAF_CONFIG_1962HZ,
+    AAF_CONFIG_188HZ, // 1888HZ
+    AAF_CONFIG_98HZ, // 98HZ
+    AAF_CONFIG_42HZ, // 42HZ
+    AAF_CONFIG_20HZ, // 42HZ
+    AAF_CONFIG_10HZ, // 42HZ
+    AAF_CONFIG_COUNT
+} aafConfig_e;
+
+typedef struct aafConfig_s {
+    uint8_t delt;
+    uint16_t deltSqr;
+    uint8_t bitshift;
+} aafConfig_t;
+
+//   - name: gyro_lpf
+//    values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
+
+// Possible gyro Anti-Alias Filter (AAF) cutoffs for ICM-42688P
+static aafConfig_t aafLUT42688[AAF_CONFIG_COUNT] = {  // see table in section 5.3
+    [AAF_CONFIG_258HZ]  = {  6,   36, 10 },
+    [AAF_CONFIG_536HZ]  = { 12,  144,  8 },
+    [AAF_CONFIG_997HZ]  = { 21,  440,  6 },
+    [AAF_CONFIG_1962HZ] = { 37, 1376,  4 },
+    [AAF_CONFIG_188HZ]  = {  4,   16, 11 }, // 170HZ
+    [AAF_CONFIG_98HZ]   = {  2,    4, 13 }, // 84HZ
+    [AAF_CONFIG_42HZ]   = {  1,    1, 15 }, // 42HZ
+    [AAF_CONFIG_20HZ]   = {  1,    1, 15 }, // 42HZ
+    [AAF_CONFIG_10HZ]   = {  1,    1, 15 }, // 42HZ
+};
+
+// Possible gyro Anti-Alias Filter (AAF) cutoffs for ICM-42688P
+// actual cutoff differs slightly from those of the 42688P
+static aafConfig_t aafLUT42605[AAF_CONFIG_COUNT] = {  // see table in section 5.3
+    [AAF_CONFIG_258HZ]  = { 21,  440,  6 }, // actually 249 Hz
+    [AAF_CONFIG_536HZ]  = { 39, 1536,  4 }, // actually 524 Hz
+    [AAF_CONFIG_997HZ]  = { 63, 3968,  3 }, // actually 995 Hz
+    [AAF_CONFIG_1962HZ] = { 63, 3968,  3 }, // 995 Hz is the max cutoff on the 42605
+    [AAF_CONFIG_188HZ]  = { 16,  256,  7 }, // 184HZ
+    [AAF_CONFIG_98HZ]   = {  9,   81,  9 }, // 99HZ
+    [AAF_CONFIG_42HZ]   = {  4,   16, 11 }, // 42HZ
+    [AAF_CONFIG_20HZ]   = {  2,    4, 13 }, // 21HZ
+    [AAF_CONFIG_10HZ]   = {  1,    1, 15 }, // 10HZ
+};
+
+static aafConfig_t getGyroAafConfig(bool is42688, const aafConfig_e);
+
+static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
+{
+    busWrite(dev, ICM426XX_RA_REG_BANK_SEL, user_bank & 7);
+}
 
 static void icm42605AccInit(accDev_t *acc)
 {
@@ -159,6 +232,7 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
+    setUserBank(dev, ICM426XX_BANK_SELECT0);
     busWrite(dev, ICM42605_RA_PWR_MGMT0, ICM42605_PWR_MGMT0_TEMP_DISABLE_OFF | ICM42605_PWR_MGMT0_ACCEL_MODE_LN | ICM42605_PWR_MGMT0_GYRO_MODE_LN);
     delay(15);
 
@@ -173,6 +247,23 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[0]) | (config->gyroConfigValues[0] << 4));
     delay(15);
 
+    /* AA Filter */
+     // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
+    aafConfig_t aafConfig = getGyroAafConfig(is42688P, AAF_CONFIG_258HZ); // TODO: make configurable, or based on AAF. May required more entries in the table
+    setUserBank(dev, ICM426XX_BANK_SELECT1);
+    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig.delt);
+    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig.deltSqr & 0xFF);
+    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig.deltSqr >> 8) | (aafConfig.bitshift << 4));
+
+    // Configure acc Anti-Alias Filter for 1kHz sample rate (see tasks.c)
+    aafConfig = getGyroAafConfig(is42688P, AAF_CONFIG_258HZ); // This was hard coded on BF
+    setUserBank(dev, ICM426XX_BANK_SELECT2);
+    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig.delt << 1);
+    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig.deltSqr & 0xFF);
+    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC4, (aafConfig.deltSqr >> 8) | (aafConfig.bitshift << 4));
+    /* END AA Filter */
+
+    setUserBank(dev, ICM426XX_BANK_SELECT0);
     busWrite(dev, ICM42605_RA_INT_CONFIG, ICM42605_INT1_MODE_PULSED | ICM42605_INT1_DRIVE_CIRCUIT_PP | ICM42605_INT1_POLARITY_ACTIVE_HIGH);
     delay(15);
 
@@ -221,7 +312,10 @@ static bool icm42605DeviceDetect(busDevice_t * dev)
         switch (tmp) {
             /* ICM42605 and ICM42688P share the register structure*/
             case ICM42605_WHO_AM_I_CONST:
+                is42688P = false;
+                return true;
             case ICM42688P_WHO_AM_I_CONST:
+                is42688P = true;
                 return true;
 
             default:
@@ -273,6 +367,16 @@ bool icm42605GyroDetect(gyroDev_t *gyro)
     gyro->gyroAlign = gyro->busDev->param;
 
     return true;
+}
+
+// TODO: choose based on gyro_lpf
+static aafConfig_t getGyroAafConfig(bool is42688, const aafConfig_e config)
+{
+    if (is42688) {
+        return aafLUT42688[config];
+    } else {
+        return aafLUT42605[config];
+    }
 }
 
 #endif
