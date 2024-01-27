@@ -236,26 +236,25 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     delay(15);
 
     /* LPF bandwidth */
-    //busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[0]) | (config->gyroConfigValues[0] << 4));
     // low latency, same as BF
     busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY | ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY);
     delay(15);
 
-    /* AA Filter */
-     // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
-    const aafConfig_t *aafConfig = getGyroAafConfig(is42688P, gyro->lpf); // TODO: make configurable, or based on AAF. May required more entries in the table
-    setUserBank(dev, ICM426XX_BANK_SELECT1);
-    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig->delt);
-    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig->deltSqr & 0xFF);
-    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
+    if (gyro->lpf != GYRO_LPF_NONE) {
+        // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
+        const aafConfig_t *aafConfig = getGyroAafConfig(is42688P, gyro->lpf);
+    
+        setUserBank(dev, ICM426XX_BANK_SELECT1);
+        busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig->delt);
+        busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig->deltSqr & 0xFF);
+        busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
 
-    // Configure acc Anti-Alias Filter for 1kHz sample rate (see tasks.c)
-    aafConfig = getGyroAafConfig(is42688P, 258); // This was hard coded on BF
-    setUserBank(dev, ICM426XX_BANK_SELECT2);
-    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig->delt << 1);
-    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig->deltSqr & 0xFF);
-    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC4, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
-    /* END AA Filter */
+        aafConfig = getGyroAafConfig(is42688P, 256);  // This was hard coded on BF
+        setUserBank(dev, ICM426XX_BANK_SELECT2);
+        busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig->delt << 1);
+        busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig->deltSqr & 0xFF);
+        busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC4, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
+    }
 
     setUserBank(dev, ICM426XX_BANK_SELECT0);
     busWrite(dev, ICM42605_RA_INT_CONFIG, ICM42605_INT1_MODE_PULSED | ICM42605_INT1_DRIVE_CIRCUIT_PP | ICM42605_INT1_POLARITY_ACTIVE_HIGH);
@@ -363,7 +362,7 @@ bool icm42605GyroDetect(gyroDev_t *gyro)
     return true;
 }
 
-static uint16_t getAffFreq(const uint8_t gyroLpf)
+static uint16_t getAafFreq(const uint8_t gyroLpf)
 {
     switch (gyroLpf) {
         default:
@@ -386,10 +385,9 @@ static uint16_t getAffFreq(const uint8_t gyroLpf)
     }
 }
 
-// TODO: choose based on gyro_lpf
 static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf)
 {
-    uint16_t desiredFreq = getAffFreq(desiredLpf);
+    uint16_t desiredFreq = getAafFreq(desiredLpf);
     const aafConfig_t *aafConfigs = NULL;
     if (is42688) {
         aafConfigs = aafLUT42688;
