@@ -26,6 +26,7 @@
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/log.h"
 
 #include "drivers/system.h"
 #include "drivers/time.h"
@@ -102,57 +103,48 @@
 #define ICM426XX_RA_ACCEL_CONFIG_STATIC4            0x05  // User Bank 2
 
 static bool is42688P = false;
-//    values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
-typedef enum {
-    AAF_CONFIG_258HZ = 0, // 256HZ
-    AAF_CONFIG_536HZ,
-    AAF_CONFIG_997HZ,
-    AAF_CONFIG_1962HZ,
-    AAF_CONFIG_188HZ, // 1888HZ
-    AAF_CONFIG_98HZ, // 98HZ
-    AAF_CONFIG_42HZ, // 42HZ
-    AAF_CONFIG_20HZ, // 42HZ
-    AAF_CONFIG_10HZ, // 42HZ
-    AAF_CONFIG_COUNT
-} aafConfig_e;
 
 typedef struct aafConfig_s {
+    uint16_t freq;
     uint8_t delt;
     uint16_t deltSqr;
     uint8_t bitshift;
 } aafConfig_t;
 
-//   - name: gyro_lpf
-//    values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
-
 // Possible gyro Anti-Alias Filter (AAF) cutoffs for ICM-42688P
-static aafConfig_t aafLUT42688[AAF_CONFIG_COUNT] = {  // see table in section 5.3
-    [AAF_CONFIG_258HZ]  = {  6,   36, 10 },
-    [AAF_CONFIG_536HZ]  = { 12,  144,  8 },
-    [AAF_CONFIG_997HZ]  = { 21,  440,  6 },
-    [AAF_CONFIG_1962HZ] = { 37, 1376,  4 },
-    [AAF_CONFIG_188HZ]  = {  4,   16, 11 }, // 170HZ
-    [AAF_CONFIG_98HZ]   = {  2,    4, 13 }, // 84HZ
-    [AAF_CONFIG_42HZ]   = {  1,    1, 15 }, // 42HZ
-    [AAF_CONFIG_20HZ]   = {  1,    1, 15 }, // 42HZ
-    [AAF_CONFIG_10HZ]   = {  1,    1, 15 }, // 42HZ
+static aafConfig_t aafLUT42688[] = {  // see table in section 5.3 https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-datasheet.pdf
+    // freq, delt, deltSqr, bitshift
+    { 42,  1,    1, 15 },
+    { 84,  2,    4, 13 },
+    {126,  3,    9, 12 },
+    {170,  4,   16, 11 },
+    {213,  5,   25, 10 },
+    {258,  6,   36, 10 },
+    {303,  7,   49,  9 },
+    {536, 12,  144,  8 },
+    {997, 21,  440,  6 },
+    {1962, 37, 1376,  4 },
+    { 0, 0, 0, 0}, // 42HZ
 };
 
 // Possible gyro Anti-Alias Filter (AAF) cutoffs for ICM-42688P
-// actual cutoff differs slightly from those of the 42688P
-static aafConfig_t aafLUT42605[AAF_CONFIG_COUNT] = {  // see table in section 5.3
-    [AAF_CONFIG_258HZ]  = { 21,  440,  6 }, // actually 249 Hz
-    [AAF_CONFIG_536HZ]  = { 39, 1536,  4 }, // actually 524 Hz
-    [AAF_CONFIG_997HZ]  = { 63, 3968,  3 }, // actually 995 Hz
-    [AAF_CONFIG_1962HZ] = { 63, 3968,  3 }, // 995 Hz is the max cutoff on the 42605
-    [AAF_CONFIG_188HZ]  = { 16,  256,  7 }, // 184HZ
-    [AAF_CONFIG_98HZ]   = {  9,   81,  9 }, // 99HZ
-    [AAF_CONFIG_42HZ]   = {  4,   16, 11 }, // 42HZ
-    [AAF_CONFIG_20HZ]   = {  2,    4, 13 }, // 21HZ
-    [AAF_CONFIG_10HZ]   = {  1,    1, 15 }, // 10HZ
+static aafConfig_t aafLUT42605[] = {  // see table in section 5.3 https://invensense.tdk.com/wp-content/uploads/2022/09/DS-000292-ICM-42605-v1.7.pdf
+    // freq, delt, deltSqr, bitshift
+    {  10,  1,    1, 15 },
+    {  21,  2,    4, 13 },
+    {  32,  3,    9, 12 },
+    {  42,  4,   16, 11 },
+    {  99,  9,   81,  9 },
+    { 171, 15,  224,  7 },
+    { 184, 16,  256,  7 },
+    { 196, 17,  288,  7 },
+    { 249, 21,  440,  6 },
+    { 524, 39, 1536,  4 },
+    { 995, 63, 3968,  3 },
+    {   0,  0,    0,  0 }
 };
 
-static aafConfig_t getGyroAafConfig(bool is42688, const aafConfig_e);
+static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf);
 
 static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
 {
@@ -251,18 +243,18 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 
     /* AA Filter */
      // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
-    aafConfig_t aafConfig = getGyroAafConfig(is42688P, AAF_CONFIG_258HZ); // TODO: make configurable, or based on AAF. May required more entries in the table
+    const aafConfig_t *aafConfig = getGyroAafConfig(is42688P, gyro->lpf); // TODO: make configurable, or based on AAF. May required more entries in the table
     setUserBank(dev, ICM426XX_BANK_SELECT1);
-    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig.delt);
-    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig.deltSqr & 0xFF);
-    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig.deltSqr >> 8) | (aafConfig.bitshift << 4));
+    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig->delt);
+    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig->deltSqr & 0xFF);
+    busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
 
     // Configure acc Anti-Alias Filter for 1kHz sample rate (see tasks.c)
-    aafConfig = getGyroAafConfig(is42688P, AAF_CONFIG_258HZ); // This was hard coded on BF
+    aafConfig = getGyroAafConfig(is42688P, 258); // This was hard coded on BF
     setUserBank(dev, ICM426XX_BANK_SELECT2);
-    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig.delt << 1);
-    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig.deltSqr & 0xFF);
-    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC4, (aafConfig.deltSqr >> 8) | (aafConfig.bitshift << 4));
+    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig->delt << 1);
+    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig->deltSqr & 0xFF);
+    busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC4, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
     /* END AA Filter */
 
     setUserBank(dev, ICM426XX_BANK_SELECT0);
@@ -371,14 +363,57 @@ bool icm42605GyroDetect(gyroDev_t *gyro)
     return true;
 }
 
-// TODO: choose based on gyro_lpf
-static aafConfig_t getGyroAafConfig(bool is42688, const aafConfig_e config)
+static uint16_t getAffFreq(const uint8_t gyroLpf)
 {
-    if (is42688) {
-        return aafLUT42688[config];
-    } else {
-        return aafLUT42605[config];
+    switch (gyroLpf) {
+        default:
+        case GYRO_LPF_256HZ:
+            return 256;
+        case GYRO_LPF_188HZ:
+            return 188;
+        case GYRO_LPF_98HZ:
+            return 98;
+        case GYRO_LPF_42HZ:
+            return 42;
+        case GYRO_LPF_20HZ:
+            return 20;
+        case GYRO_LPF_10HZ:
+            return 10;
+        case GYRO_LPF_5HZ:
+            return 5;
+        case GYRO_LPF_NONE:
+            return 0;
     }
+}
+
+// TODO: choose based on gyro_lpf
+static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf)
+{
+    uint16_t desiredFreq = getAffFreq(desiredLpf);
+    const aafConfig_t *aafConfigs = NULL;
+    if (is42688) {
+        aafConfigs = aafLUT42688;
+    } else {
+        aafConfigs = aafLUT42605;
+    }
+    int i;
+    int8_t selectedFreq = aafConfigs[0].freq;
+    const aafConfig_t * candidate = &aafConfigs[0];
+
+    // Choose closest supported LPF value
+    for (i = 1; aafConfigs[i].freq != 0; i++) {
+        if (ABS(desiredFreq - aafConfigs[i].freq) < ABS(desiredFreq - selectedFreq)) {
+            selectedFreq = aafConfigs[i].freq;
+            candidate = &aafConfigs[i];
+        }
+    }
+
+    LOG_VERBOSE(GYRO, "ICM426XX AAF CONFIG { %d, %d } -> { %d }; delt: %d deltSqr: %d, shift: %d",
+                desiredLpf, desiredFreq,
+                candidate->freq,
+                candidate->delt, candidate->deltSqr, candidate->bitshift);
+
+    return candidate;
 }
 
 #endif
