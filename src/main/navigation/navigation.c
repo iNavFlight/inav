@@ -161,7 +161,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
     // MC-specific
     .mc = {
-        .max_bank_angle = SETTING_NAV_MC_BANK_ANGLE_DEFAULT,                          // degrees
+        .max_bank_angle_roll = SETTING_NAV_MC_BANK_ANGLE_ROLL_DEFAULT,                          // degrees
+        .max_bank_angle_pitch = SETTING_NAV_MC_BANK_ANGLE_PITCH_DEFAULT,                        // degrees
 
 #ifdef USE_MR_BRAKING_MODE
         .braking_speed_threshold = SETTING_NAV_MC_BRAKING_SPEED_THRESHOLD_DEFAULT,               // Braking can become active above 1m/s

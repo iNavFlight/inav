@@ -3442,9 +3442,19 @@ If set to STICK the FC remembers the throttle stick position when enabling ALTHO
 
 ---
 
-### nav_mc_bank_angle
+### nav_mc_bank_angle_pitch
 
-Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
+Maximum banking pitch angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 15 | 45 |
+
+---
+
+### nav_mc_bank_angle_roll
+
+Maximum banking roll angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
 
 | Default | Min | Max |
 | --- | --- | --- |

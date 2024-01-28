@@ -658,7 +658,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         dtermScale    // Additional dTerm scale
     );
 
-    int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
+    int32_t maxBankAngleRoll = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle_roll);
+    int32_t maxBankAnglePitch = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle_pitch);
 
 #ifdef USE_MR_BRAKING_MODE
     //Boost required accelerations
@@ -681,7 +682,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         newAccelX = newAccelX * (1.0f + boostFactor);
         newAccelY = newAccelY * (1.0f + boostFactor);
 
-        maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
+        maxBankAnglePitch = maxBankAngleRoll = DEGREES_TO_DECIDEGREES(navConfig()->mc.braking_bank_angle);
     }
 #endif
 
@@ -697,8 +698,8 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float desiredPitch = atan2_approx(accelForward, GRAVITY_CMSS);
     const float desiredRoll = atan2_approx(accelRight * cos_approx(desiredPitch), GRAVITY_CMSS);
 
-    posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngle, maxBankAngle);
-    posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAngle, maxBankAngle);
+    posControl.rcAdjustment[ROLL] = constrain(RADIANS_TO_DECIDEGREES(desiredRoll), -maxBankAngleRoll, maxBankAngleRoll);
+    posControl.rcAdjustment[PITCH] = constrain(RADIANS_TO_DECIDEGREES(desiredPitch), -maxBankAnglePitch, maxBankAnglePitch);
 }
 
 static void applyMulticopterPositionController(timeUs_t currentTimeUs)
