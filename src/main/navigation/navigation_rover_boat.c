@@ -39,7 +39,25 @@
 #include "sensors/battery.h"
 
 static bool isYawAdjustmentValid = false;
+static int16_t rcCommandAdjustedThrottle;
+static int16_t minRoverNavThrottle;
+static int16_t maxRoverNavThrottle;
+static int16_t cruRoverNavThrottle;
+static float rcThrottleCorrection;
 static int32_t navHeadingError;
+
+
+static float getHeadingErrorDegrees(void)
+{
+    // In WP mode scale velocity if heading is different from bearing
+    if (navConfig()->mc.slowDownForTurning && (navGetCurrentStateFlags() & NAV_AUTO_WP)) {
+        const int32_t headingError = constrain(wrap_18000(posControl.desiredState.yaw - posControl.actualState.yaw), -9000, 9000);
+        const int16_t headingErrorDegrees = ABS(headingError / 100); // unlike mc, centidegrees to degrees, & always positive
+        return headingErrorDegrees;
+    } else {
+        return 1.0f;
+    }
+}
 
 static void update2DPositionHeadingController(timeUs_t currentTimeUs, timeDelta_t deltaMicros)
 {
@@ -54,22 +72,25 @@ static void update2DPositionHeadingController(timeUs_t currentTimeUs, timeDelta_
      * Units are centidegrees
      */
     navHeadingError = wrap_18000(targetBearing - posControl.actualState.yaw);
-
     // Slow error monitoring (2Hz rate)
     if ((currentTimeUs - previousTimeMonitoringUpdate) >= HZ2US(NAV_FW_CONTROL_MONITORING_RATE)) {
         // Check if error is decreasing over time
         errorIsDecreasing = (ABS(previousHeadingError) > ABS(navHeadingError));
-
         // Save values for next iteration
         previousHeadingError = navHeadingError;
         previousTimeMonitoringUpdate = currentTimeUs;
     }
-
+    // Apply attenuation if heading in wrong direction (effective only in WP mode)
+    const float rcThrottleCorrection = getHeadingErrorDegrees();
+    // TUpdat throttle (TODO: improve this WP turn slowdown proof-of-concept, which is perhaps far too constrained)
+    posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(cruRoverNavThrottle - rcThrottleCorrection, true);
+ 
+    // Update yaw
     posControl.rcAdjustment[YAW] = processHeadingYawController(deltaMicros, navHeadingError, errorIsDecreasing);
 }
 
 void applyRoverBoatPositionController(timeUs_t currentTimeUs)
-{
+{    // Calculate min and max throttle boundaries (to compensate for integral windup)
     static timeUs_t previousTimePositionUpdate;         // Occurs @ GPS update rate
     static timeUs_t previousTimeUpdate;                 // Occurs @ looptime rate
 
@@ -113,8 +134,18 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
     UNUSED(currentTimeUs);
     rcCommand[ROLL] = 0;
     rcCommand[PITCH] = 0;
-
+    
     if (navStateFlags & NAV_CTL_POS) {
+        
+        const int16_t thrCorrectionMin = minRoverNavThrottle;
+        const int16_t thrCorrectionMax = maxRoverNavThrottle;
+       
+        minRoverNavThrottle = currentBatteryProfile->nav.fw.min_throttle;
+        maxRoverNavThrottle = currentBatteryProfile->nav.fw.max_throttle;
+        cruRoverNavThrottle = currentBatteryProfile->nav.fw.cruise_throttle;
+        
+        rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
+        rcCommandAdjustedThrottle = constrain(rcCommandAdjustedThrottle, minRoverNavThrottle, maxRoverNavThrottle);
 
         if (navStateFlags & NAV_AUTO_WP_DONE) {
             /*
@@ -126,8 +157,8 @@ void applyRoverBoatPitchRollThrottleController(navigationFSMStateFlags_t navStat
             if (isYawAdjustmentValid) {
                 rcCommand[YAW] = posControl.rcAdjustment[YAW];
             }
-
-            rcCommand[THROTTLE] = constrain(currentBatteryProfile->nav.fw.cruise_throttle, motorConfig()->mincommand, motorConfig()->maxthrottle);
+            
+	        rcCommand[THROTTLE] = posControl.rcAdjustment[THROTTLE];
         }
     }
 }
