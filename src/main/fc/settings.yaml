@@ -2511,22 +2511,10 @@ groups:
         field: general.max_auto_speed
         min: 10
         max: 2000
-      - name: nav_auto_climb_rate
-        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
-        default_value: 500
-        field: general.max_auto_climb_rate
-        min: 10
-        max: 2000
       - name: nav_manual_speed
         description: "Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
         default_value: 500
         field: general.max_manual_speed
-        min: 10
-        max: 2000
-      - name: nav_manual_climb_rate
-        description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
-        default_value: 200
-        field: general.max_manual_climb_rate
         min: 10
         max: 2000
       - name: nav_land_minalt_vspd
@@ -2695,7 +2683,7 @@ groups:
         type: bool
       - name: nav_cruise_yaw_rate
         description: "Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]"
-        default_value: 20
+        default_value: 60
         field: general.cruise_yaw_rate
         min: 0
         max: 120
@@ -2711,6 +2699,18 @@ groups:
         field: mc.max_bank_angle_pitch
         min: 15
         max: 45
+      - name: nav_mc_auto_climb_rate
+        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
+        default_value: 500
+        field: mc.max_auto_climb_rate
+        min: 10
+        max: 2000
+      - name: nav_mc_manual_climb_rate
+        description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
+        default_value: 200
+        field: mc.max_manual_climb_rate
+        min: 10
+        max: 2000
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 1000
@@ -2796,6 +2796,12 @@ groups:
         field: fw.max_bank_angle
         min: 5
         max: 80
+      - name: nav_fw_manual_climb_rate
+        description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
+        default_value: 300
+        field: fw.max_manual_climb_rate
+        min: 10
+        max: 2500
       - name: nav_fw_climb_angle
         description: "Max pitch angle when climbing in GPS assisted modes, is also restrained by global max_angle_inclination_pit"
         default_value: 20
