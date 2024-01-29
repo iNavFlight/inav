@@ -3448,7 +3448,7 @@ Maximum banking pitch angle (deg) that multicopter navigation is allowed to set.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 15 | 45 |
+| 28 | 15 | 45 |
 
 ---
 
@@ -3458,7 +3458,7 @@ Maximum banking roll angle (deg) that multicopter navigation is allowed to set. 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 15 | 45 |
+| 20 | 15 | 45 |
 
 ---
 
