@@ -406,7 +406,8 @@ static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredL
         }
     }
 
-    LOG_VERBOSE(GYRO, "ICM426XX AAF CONFIG { %d, %d } -> { %d }; delt: %d deltSqr: %d, shift: %d",
+    LOG_VERBOSE(GYRO, "ICM426%s AAF CONFIG { %d, %d } -> { %d }; delt: %d deltSqr: %d, shift: %d",
+		(is42688P ? "88" : "05"),
                 desiredLpf, desiredFreq,
                 candidate->freq,
                 candidate->delt, candidate->deltSqr, candidate->bitshift);
