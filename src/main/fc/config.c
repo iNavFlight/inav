@@ -399,8 +399,18 @@ void saveConfig(void)
 void processDelayedSave(void)
 {
     if (saveState == SAVESTATE_SAVEANDNOTIFY) {
-        processSaveConfigAndNotify();
-        saveState = SAVESTATE_NONE;
+         if (STATE(IN_FLIGHT_EMERG_REARM)) {
+            // Do not process save if we are potentially still flying. Once armed, this function will not be called until the next disarm.
+#ifdef USE_OSD
+    osdSaveWaitingProcess();
+#endif 
+        } else {
+#ifdef USE_OSD
+    osdStartedSaveProcess();
+#endif
+            processSaveConfigAndNotify();
+            saveState = SAVESTATE_NONE;
+        }
     } else if (saveState == SAVESTATE_SAVEONLY) {
         suspendRxSignal();
         writeEEPROM();

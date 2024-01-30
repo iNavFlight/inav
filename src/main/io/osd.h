@@ -119,6 +119,7 @@
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 #define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
 #define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
+#define OSD_MSG_WAITING_TO_SAVE     "** WAITING TO SAVE **"
 #define OSD_MSG_ANGLEHOLD_ROLL      "(ANGLEHOLD ROLL)"
 #define OSD_MSG_ANGLEHOLD_PITCH     "(ANGLEHOLD PITCH)"
 #define OSD_MSG_ANGLEHOLD_LEVEL     "(ANGLEHOLD LEVEL)"
@@ -486,6 +487,7 @@ int32_t osdGetAltitude(void);
 
 bool osdUsingScaledThrottle(void);
 
+void osdSaveWaitingProcess(void);
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
 
