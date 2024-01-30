@@ -894,7 +894,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
 
-        // Delay saving for 0.5s to allow other functions to process save actions on disarm
+        // Delay saving for 0.5s to allow other functions to finish processing data to be stored on disarm
         if (currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC / 2) {
             processDelayedSave();
         }
