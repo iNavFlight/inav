@@ -68,6 +68,7 @@
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/fc_core.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
@@ -396,10 +397,10 @@ void saveConfig(void)
     }
 }
 
-void processDelayedSave(void)
+void processDelayedSave(bool readyToSave)
 {
     if (saveState == SAVESTATE_SAVEANDNOTIFY) {
-         if (STATE(IN_FLIGHT_EMERG_REARM)) {
+         if (emergInflightRearmEnabled() || !readyToSave) {
             // Do not process save if we are potentially still flying. Once armed, this function will not be called until the next disarm.
 #ifdef USE_OSD
     osdSaveWaitingProcess();
@@ -408,14 +409,18 @@ void processDelayedSave(void)
 #ifdef USE_OSD
     osdStartedSaveProcess();
 #endif
-            processSaveConfigAndNotify();
-            saveState = SAVESTATE_NONE;
+            if (readyToSave) {
+                processSaveConfigAndNotify();
+                saveState = SAVESTATE_NONE;
+            }
         }
     } else if (saveState == SAVESTATE_SAVEONLY) {
-        suspendRxSignal();
-        writeEEPROM();
-        resumeRxSignal();
-        saveState = SAVESTATE_NONE;
+        if (readyToSave) {
+            suspendRxSignal();
+            writeEEPROM();
+            resumeRxSignal();
+            saveState = SAVESTATE_NONE;
+        }
     }
 }
 

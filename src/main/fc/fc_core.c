@@ -65,6 +65,7 @@
 #include "io/beeper.h"
 #include "io/dashboard.h"
 #include "io/gps.h"
+#include "io/osd.h"
 #include "io/serial.h"
 #include "io/statusindicator.h"
 #include "io/asyncfatfs/asyncfatfs.h"
@@ -895,12 +896,14 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         armTime = 0;
 
         // Delay saving for 0.5s to allow other functions to finish processing data to be stored on disarm
-        if (currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC / 2) {
-            processDelayedSave();
-        }
+        processDelayedSave((currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC / 2));
     }
 
     if (armTime > 1 * USECS_PER_SEC) {     // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose
+#ifdef USE_OSD
+        if (STATE(IN_FLIGHT_EMERG_REARM))
+            osdSaveProcessAborted();
+#endif
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
     }
 

@@ -487,6 +487,7 @@ int32_t osdGetAltitude(void);
 
 bool osdUsingScaledThrottle(void);
 
+void osdSaveProcessAborted(void);
 void osdSaveWaitingProcess(void);
 void osdStartedSaveProcess(void);
 void osdShowEEPROMSavedNotification(void);
