@@ -512,8 +512,13 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
 bool emergInflightRearmEnabled(void)
 {
     /* Emergency rearm allowed within 5s timeout period after disarm if craft still flying */
+    bool emergRearmActive = STATE(IN_FLIGHT_EMERG_REARM);
+    DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
     timeMs_t currentTimeMs = millis();
     emergRearmStabiliseTimeout = 0;
+
+    if (emergRearmActive && armTime <= 1 * USECS_PER_SEC)
+        ENABLE_STATE(IN_FLIGHT_EMERG_REARM); // This stays active for 1 second after re-arming
 
     if ((lastDisarmReason != DISARM_SWITCH && lastDisarmReason != DISARM_KILLSWITCH) ||
         (currentTimeMs > US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS)) {

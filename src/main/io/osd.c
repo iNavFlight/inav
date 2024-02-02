@@ -226,7 +226,8 @@ void osdSaveProcessAborted(void) {
 }
 
 void osdSaveWaitingProcess(void) {
-    savingSettings = OSD_SAVE_MESSAGE_WAITING;
+    if (savingSettings == OSD_SAVE_MESSAGE_NONE)
+        savingSettings = OSD_SAVE_MESSAGE_WAITING;
 }
 
 void osdStartedSaveProcess(void) {

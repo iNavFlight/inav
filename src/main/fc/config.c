@@ -403,11 +403,11 @@ void processDelayedSave(bool readyToSave)
          if (emergInflightRearmEnabled() || !readyToSave) {
             // Do not process save if we are potentially still flying. Once armed, this function will not be called until the next disarm.
 #ifdef USE_OSD
-    osdSaveWaitingProcess();
+            osdSaveWaitingProcess();
 #endif 
         } else {
 #ifdef USE_OSD
-    osdStartedSaveProcess();
+            osdStartedSaveProcess();
 #endif
             if (readyToSave) {
                 processSaveConfigAndNotify();
