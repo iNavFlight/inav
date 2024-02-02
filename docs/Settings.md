@@ -4032,6 +4032,36 @@ _// TODO_
 
 ---
 
+### osd_adsb_distance_alert
+
+Distance inside which ADSB data flashes for proximity warning
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3000 | 1 | 64000 |
+
+---
+
+### osd_adsb_distance_warning
+
+Distance in meters of ADSB aircraft that is displayed
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20000 | 1 | 64000 |
+
+---
+
+### osd_adsb_ignore_plane_above_me_limit
+
+Ignore adsb planes above, limit, 0 disabled (meters)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 64000 |
+
+---
+
 ### osd_ahi_bordered
 
 Shows a border/corners around the AHI region (pixel OSD only)
@@ -5809,6 +5839,16 @@ Delay before disarming when requested by switch (ms) [0-1000]
 | Default | Min | Max |
 | --- | --- | --- |
 | 250 | 0 | 1000 |
+
+---
+
+### tailsitter_orientation_offset
+
+Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

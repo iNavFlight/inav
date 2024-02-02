@@ -62,6 +62,7 @@
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
+#include "io/adsb.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
@@ -2085,7 +2086,73 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits, false);
             break;
         }
+#ifdef USE_ADSB
+        case OSD_ADSB_WARNING:
+        {
+            static uint8_t adsblen = 1;
+            uint8_t arrowPositionX = 0;
 
+            for (int i = 0; i <= adsblen; i++) {
+                buff[i] = SYM_BLANK;
+            }
+
+            buff[adsblen]='\0';
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
+            adsblen=1;
+            adsbVehicle_t *vehicle = findVehicleClosest();
+
+            if(vehicle != NULL){
+                recalculateVehicle(vehicle);
+            }
+
+            if (
+                    vehicle != NULL &&
+                    (vehicle->calculatedVehicleValues.dist > 0) &&
+                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning) &&
+                    (osdConfig()->adsb_ignore_plane_above_me_limit == 0 || METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit) > vehicle->calculatedVehicleValues.verticalDistance)
+            ){
+                buff[0] = SYM_ADSB;
+                osdFormatDistanceStr(&buff[1], (int32_t)vehicle->calculatedVehicleValues.dist);
+                adsblen = strlen(buff);
+
+                buff[adsblen-1] = SYM_BLANK;
+
+                arrowPositionX = adsblen-1;
+                osdFormatDistanceStr(&buff[adsblen], vehicle->calculatedVehicleValues.verticalDistance);
+                adsblen = strlen(buff)-1;
+
+                if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+            }
+
+            buff[adsblen]='\0';
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+
+            if (arrowPositionX > 0){
+                int16_t panHomeDirOffset = 0;
+                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                    panHomeDirOffset = osdGetPanServoOffset();
+                }
+                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowPositionX, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
+            }
+
+            return true;
+        }
+        case OSD_ADSB_INFO:
+        {
+            buff[0] = SYM_ADSB;
+            if(getAdsbStatus()->vehiclesMessagesTotal > 0){
+                tfp_sprintf(buff + 1, "%2d", getActiveVehiclesCount());
+            }else{
+                buff[1] = '-';
+            }
+
+            break;
+        }
+
+#endif
     case OSD_MAP_NORTH:
         {
             static uint16_t drawn = 0;
@@ -3767,6 +3834,11 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_min = SETTING_OSD_BARO_TEMP_ALARM_MIN_DEFAULT,
     .baro_temp_alarm_max = SETTING_OSD_BARO_TEMP_ALARM_MAX_DEFAULT,
 #endif
+#ifdef USE_ADSB
+    .adsb_distance_warning = SETTING_OSD_ADSB_DISTANCE_WARNING_DEFAULT,
+    .adsb_distance_alert = SETTING_OSD_ADSB_DISTANCE_ALERT_DEFAULT,
+    .adsb_ignore_plane_above_me_limit = SETTING_OSD_ADSB_IGNORE_PLANE_ABOVE_ME_LIMIT_DEFAULT,
+#endif
 #ifdef USE_SERIALRX_CRSF
     .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,
     .crsf_lq_format = SETTING_OSD_CRSF_LQ_FORMAT_DEFAULT,
@@ -4006,6 +4078,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
+    osdLayoutsConfig->item_pos[0][OSD_ADSB_WARNING] = OSD_POS(2, 7);
+    osdLayoutsConfig->item_pos[0][OSD_ADSB_INFO] = OSD_POS(2, 8);
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_ESC_TEMPERATURE] = OSD_POS(1, 3);
