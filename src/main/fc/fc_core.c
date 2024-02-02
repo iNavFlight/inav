@@ -901,7 +901,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         armTime = 0;
 
         // Delay saving for 0.5s to allow other functions to finish processing data to be stored on disarm
-        processDelayedSave((currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC / 2));
+        processDelayedSave((currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC * 2));// / 2));
     }
 
     if (armTime > 1 * USECS_PER_SEC) {     // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose

@@ -379,9 +379,6 @@ void ensureEEPROMContainsValidData(void)
  */
 void saveConfigAndNotify(void)
 {
-#ifdef USE_OSD
-    osdStartedSaveProcess();
-#endif
     saveState = SAVESTATE_SAVEANDNOTIFY;
 }
 
