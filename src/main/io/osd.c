@@ -155,8 +155,16 @@
 #define OSD_MIN_FONT_VERSION 3
 
 static timeMs_t linearDescentMessageMs  = 0;
+
+typedef enum {
+    OSD_SAVE_MESSAGE_NONE,
+    OSD_SAVE_MESSAGE_WAITING,
+    OSD_SAVE_MESSAGE_SAVING,
+    OSD_SAVE_MESSAGE_SAVED
+} osd_saveMessage_e;
+
 static timeMs_t notify_settings_saved   = 0;
-static bool     savingSettings          = false;
+static uint8_t  savingSettings          = OSD_SAVE_MESSAGE_NONE;
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -212,16 +220,23 @@ static bool osdDisplayHasCanvas;
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 9);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
+void osdSaveProcessAborted(void) {
+    notify_settings_saved = 0;
+    savingSettings = OSD_SAVE_MESSAGE_NONE;
+}
+
+void osdSaveWaitingProcess(void) {
+    savingSettings = OSD_SAVE_MESSAGE_WAITING;
+}
+
 void osdStartedSaveProcess(void) {
-    savingSettings = true;
+    savingSettings = OSD_SAVE_MESSAGE_SAVING;
 }
 
 void osdShowEEPROMSavedNotification(void) {
-    savingSettings = false;
+    savingSettings = OSD_SAVE_MESSAGE_SAVED;
     notify_settings_saved = millis() + 5000;
 }
-
-
 
 bool osdDisplayIsPAL(void)
 {
@@ -4534,12 +4549,15 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
-    if (savingSettings == true) {
+    if (savingSettings == OSD_SAVE_MESSAGE_SAVING) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
+    } else if (savingSettings == OSD_SAVE_MESSAGE_WAITING) {
+        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
-        } else {
+            savingSettings = OSD_SAVE_MESSAGE_NONE;
+        } else if (savingSettings == OSD_SAVE_MESSAGE_SAVED) {
             displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
         }
     }
@@ -5265,12 +5283,15 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         /* Messages that are shown regardless of Arming state */
 
-        if (savingSettings == true) {
+        if (savingSettings == OSD_SAVE_MESSAGE_SAVING) {
            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
+        } else if (savingSettings == OSD_SAVE_MESSAGE_WAITING) {
+            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE);
         } else if (notify_settings_saved > 0) {
             if (millis() > notify_settings_saved) {
                 notify_settings_saved = 0;
-            } else {
+                savingSettings = OSD_SAVE_MESSAGE_NONE;
+            } else if (savingSettings == OSD_SAVE_MESSAGE_SAVED) {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
             }
         }
