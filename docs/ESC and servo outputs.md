@@ -47,4 +47,4 @@ INAV 7 introduced extra functionality that let you force only some outputs to be
 The mains restrictions is that outputs need to be associated with timers, which are usually shared between multiple outputs. Two outputs on the same timer need to have the same function.
 
 The easiest way to modify outputs, is to use the Mixer tab in the Configurator, as it will clearly show you which timer is used by all outputs, but you can also use `timer_output_mode` on the cli.
-This can be used in conjunction to the previous method, in that cass all outputs will follow `output_mode` and `timer_output_mode` overrides are applied after that.
+This can be used in conjunction to the previous method, in that case all outputs will follow `output_mode` and `timer_output_mode` overrides are applied after that.
