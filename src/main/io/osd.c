@@ -28,6 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include "platform.h"
 
@@ -1968,28 +1969,29 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            uint32_t odometerDist = (uint32_t)(getTotalTravelDistance() / 100);
+            uint32_t odometerDist = (uint32_t)CENTIMETERS_TO_METERS(getTotalTravelDistance());
 #ifdef USE_STATS
             odometerDist+= statsConfig()->stats_total_dist;
 #endif
-            odometerDist = odometerDist / 10;
+
+            gvSet(1, odometerDist);
 
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), FEET_PER_MILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_MILES(odometerDist), 1, 1, 1, 6, true);
                     buff[6] = SYM_MI;
                     break;
                 default:
                 case OSD_UNIT_GA:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), (uint32_t)FEET_PER_NAUTICALMILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_NAUTICALMILES(odometerDist), 1, 1, 1, 6, true);
                     buff[6] = SYM_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    osdFormatCentiNumber(buff, odometerDist, METERS_PER_KILOMETER, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, odometerDist, 1, 1, 1, 6, true);
                     buff[6] = SYM_KM;
                     break;
             }
@@ -4563,6 +4565,17 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         }
     }
 
+    char emReArmMsg[23];
+    strcat(emReArmMsg, "** REARM PERIOD: ");
+    uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+    if (rearmMs == 0)
+        strcat(emReArmMsg, "OFF");
+    else
+        tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+
+    strcat(emReArmMsg, " **\0");
+    displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
+
     displayCommitTransaction(osdDisplayPort);
 }
 
@@ -5296,6 +5309,19 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
             }
         }
+
+        // TEMP for debug. Will be shown on disarm eventually
+        char emReArmMsg[23];
+        strcat(emReArmMsg, "** REARM PERIOD: ");
+        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+        if (rearmMs == 0)
+            strcat(emReArmMsg, "OFF");
+        else
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+
+        strcat(emReArmMsg, " **\0");
+        messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
+        // END Temp
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
