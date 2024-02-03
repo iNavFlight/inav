@@ -3076,12 +3076,12 @@ void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAlt
     if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
         /* ROC_TO_ALT_CONSTANT - constant climb rate
          * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
-         * Rate reduction starts at distance from target altitude of 5 x climb rate for FW, 1 x climb rate for MC */
+         * Rate reduction starts at distance from target altitude of 5 x climb rate */
 
         if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > MIN_TARGET_CLIMB_RATE) {
             const int8_t direction = desiredClimbRate > 0 ? 1 : -1;
             const float absClimbRate = fabsf(desiredClimbRate);
-            const uint16_t maxRateCutoffAlt = STATE(AIRPLANE) ? absClimbRate * 5 : absClimbRate;
+            const uint16_t maxRateCutoffAlt = absClimbRate * 5;
             const float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
                                             0.0f, -maxRateCutoffAlt * direction, MIN_TARGET_CLIMB_RATE, absClimbRate);
 
