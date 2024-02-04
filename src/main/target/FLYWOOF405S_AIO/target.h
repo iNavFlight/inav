@@ -153,9 +153,16 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
+// *************** PINIO ***************************
+#ifdef FLYWOOF405S_AIO_PINIO
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PA9 // USER 1
+#else
 // *************** LED2812 ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA9
+#endif
 
 // ***************  OTHERS *************************
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_SOFTSERIAL)
