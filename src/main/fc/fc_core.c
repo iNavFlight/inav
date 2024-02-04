@@ -511,8 +511,12 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
 
 uint16_t emergencyInFlightRearmTimeMS(void)
 {
-    timeMs_t currentTimeMs = millis();
-    uint16_t rearmMS = (uint16_t)((US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS) - currentTimeMs);
+    uint16_t rearmMS = 0;
+
+    if (STATE(IN_FLIGHT_EMERG_REARM)) {
+        timeMs_t currentTimeMs = millis();
+        rearmMS = (uint16_t)((US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS) - currentTimeMs);
+    }
 
     return rearmMS;
 }

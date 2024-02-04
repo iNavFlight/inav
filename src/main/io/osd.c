@@ -4563,16 +4563,16 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         }
     }
 
-    char emReArmMsg[23];
-    tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
-    uint16_t rearmMs = emergencyInFlightRearmTimeMS();
-    if (rearmMs == 0)
-        strcat(emReArmMsg, "OFF");
-    else
-        tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
-
-    strcat(emReArmMsg, " **\0");
-    displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
+    if (emergInflightRearmEnabled()) {
+        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+        if (rearmMs > 0) {
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
+        }
+    }
 
     displayCommitTransaction(osdDisplayPort);
 }
@@ -5303,18 +5303,14 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             }
         }
 
-        // TEMP for debug. Will be shown on disarm eventually
-        char emReArmMsg[23];
-        tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
         uint16_t rearmMs = emergencyInFlightRearmTimeMS();
-        if (rearmMs == 0)
-            strcat(emReArmMsg, "OFF");
-        else
+        if (rearmMs > 0) {
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
             tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
-
-        strcat(emReArmMsg, " **\0");
-        messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
-        // END Temp
+            strcat(emReArmMsg, " **\0");
+            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
+        }
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
