@@ -1969,29 +1969,27 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            uint32_t odometerDist = (uint32_t)CENTIMETERS_TO_METERS(getTotalTravelDistance());
+            float_t odometerDist = CENTIMETERS_TO_METERS(getTotalTravelDistance());
 #ifdef USE_STATS
             odometerDist+= statsConfig()->stats_total_dist;
 #endif
-
-            gvSet(1, odometerDist);
 
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    osdFormatCentiNumber(buff, METERS_TO_MILES(odometerDist), 1, 1, 1, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_MILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_MI;
                     break;
                 default:
                 case OSD_UNIT_GA:
-                    osdFormatCentiNumber(buff, METERS_TO_NAUTICALMILES(odometerDist), 1, 1, 1, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_NAUTICALMILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    osdFormatCentiNumber(buff, odometerDist, 1, 1, 1, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_KILOMETERS(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_KM;
                     break;
             }
@@ -4566,7 +4564,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     }
 
     char emReArmMsg[23];
-    strcat(emReArmMsg, "** REARM PERIOD: ");
+    tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
     uint16_t rearmMs = emergencyInFlightRearmTimeMS();
     if (rearmMs == 0)
         strcat(emReArmMsg, "OFF");
@@ -4937,26 +4935,21 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 // Alternate screens for multi-page stats.
                 // Also, refreshes screen at swap interval for single-page stats.
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                    if (statsCurrentPage == 0) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 0)
                         statsCurrentPage = 1;
-                    }
                 } else {
-                    if (statsCurrentPage == 1) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 1)
                         statsCurrentPage = 0;
-                    }
                 }
             } else {
                 // Process manual page change events for multi-page stats.
-                if (manualPageUpRequested) {
-                    osdShowStats(statsSinglePageCompatible, 1);
+                if (manualPageUpRequested)
                     statsCurrentPage = 1;
-                } else if (manualPageDownRequested) {
-                    osdShowStats(statsSinglePageCompatible, 0);
+                else if (manualPageDownRequested)
                     statsCurrentPage = 0;
-                }
             }
+
+            osdShowStats(statsSinglePageCompatible, statsCurrentPage);
         }
 
         // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
@@ -5312,7 +5305,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         // TEMP for debug. Will be shown on disarm eventually
         char emReArmMsg[23];
-        strcat(emReArmMsg, "** REARM PERIOD: ");
+        tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
         uint16_t rearmMs = emergencyInFlightRearmTimeMS();
         if (rearmMs == 0)
             strcat(emReArmMsg, "OFF");
