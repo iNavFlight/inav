@@ -20,6 +20,9 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
+#ifdef FLYWOOF405S_AIO_PINIO
+#include "drivers/pinio.h"
+#endif
 
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH4, PB1,  TIM_USE_MC_MOTOR  | TIM_USE_FW_MOTOR,   0, 0), // S1 D(1,0,2)
@@ -29,8 +32,9 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   0, 0), // S5 D(2,4,7)
     DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_MC_MOTOR  | TIM_USE_FW_SERVO,   0, 0), // S6
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_MC_SERVO  | TIM_USE_FW_SERVO,   0, 0), // S7
-
+#ifndef FLYWOOF405S_AIO_PINIO
     DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_LED,   0, 0), //2812LED  D(1,5,3)
+#endif
     DEF_TIM(TIM10, CH1, PB8,  TIM_USE_PPM,   0, 0), // PPM
 };
 
