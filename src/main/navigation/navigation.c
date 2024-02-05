@@ -2295,7 +2295,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 tmpPos.z = finalApproachAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
                 
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, navFwAutolandConfig()->approachLength / 2);
+                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, navConfig()->fw.loiter_radius * 2.5);
                 tmpPos.z = posControl.fwLandState.landAproachAltAgl;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN] = tmpPos;
 
