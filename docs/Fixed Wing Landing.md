@@ -85,11 +85,11 @@ If the altitude of the waypoint and the "Approach Altitude" are different, the a
 
 The current landing state can be retrieved via ID 38 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deplyoment of the landing flaps.
 
-### The returned values:
- 0: Idle/Inactive
- 1: Loiter
- 2: Downwind
- 3: Base Leg
- 4: Final Approach
- 5: Glide
- 6: Flare
+| Returned value | State | 
+| 0 | Idle/Inactive |
+| 1 | Loiter |
+| 2 | Downwind |
+| 3 | Base Leg |
+| 4 | Final Approach |
+| 5 | Glide |
+| 6 | Flare |
