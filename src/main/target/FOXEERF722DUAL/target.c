@@ -29,7 +29,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,
 #endif
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS
+    // DEF_TIM(TIM4,  CH2, PB7,  TIM_USE_PPM,                          0, 0),  // PPM&SBUS
 
     DEF_TIM(TIM1,  CH2, PA9,  TIM_USE_OUTPUT_AUTO, 0, 1),  // S1 - D(2, 1, 6)
     #if defined(FOXEERF722V2)

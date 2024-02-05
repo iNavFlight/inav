@@ -102,6 +102,7 @@ With FT-Prog (https://ftdichip.com/utilities/) the signal can be inverted by ada
 
 ![SITL-SBUS](assets/serial_receiver_sbus.png)
 
+### Telemetry
 In the SITL configuration, enable serial receiver on some port and configure receiver type "Serial", "SBUS".
 
 #### Example CRSF:

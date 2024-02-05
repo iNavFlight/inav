@@ -93,6 +93,7 @@
 #define OSD_MSG_RTH_CLIMB           "ADJUSTING RTH ALTITUDE"
 #define OSD_MSG_RTH_TRACKBACK       "RTH BACK TRACKING"
 #define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
+#define OSD_MSG_RTH_LINEAR_DESCENT  "BEGIN LINEAR DESCENT"
 #define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
 #define OSD_MSG_WP_LANDED           "WP END>LANDED"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
@@ -279,6 +280,8 @@ typedef enum {
     OSD_MULTI_FUNCTION,
     OSD_ODOMETER,
     OSD_PILOT_LOGO,
+    OSD_ADSB_WARNING,
+    OSD_ADSB_INFO,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -454,6 +457,11 @@ typedef struct osdConfig_s {
     bool            use_pilot_logo;                     // If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
     uint8_t         inav_to_pilot_logo_spacing;         // The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
     uint16_t        arm_screen_display_time;            // Length of time the arm screen is displayed
+    #ifdef USE_ADSB
+    uint16_t adsb_distance_warning;                     // in metres
+    uint16_t adsb_distance_alert;                       // in metres
+    uint16_t adsb_ignore_plane_above_me_limit;          // in metres
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

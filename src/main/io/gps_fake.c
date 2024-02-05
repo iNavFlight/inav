@@ -31,6 +31,7 @@
 
 #include "platform.h"
 #include "build/build_config.h"
+#include "common/log.h"
 
 #if defined(USE_GPS_FAKE)
 
@@ -46,7 +47,7 @@ void gpsFakeRestart(void)
 
 void gpsFakeHandle(void)
 {
-    gpsProcessNewSolutionData();
+    gpsProcessNewSolutionData(false);
 }
 
 void gpsFakeSet(
@@ -62,37 +63,38 @@ void gpsFakeSet(
     int16_t velNED_Z,
     time_t time)
 {
-    gpsSol.fixType = fixType;
-    gpsSol.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
-    gpsSol.numSat = numSat;
+    gpsSolDRV.fixType = fixType;
+    gpsSolDRV.hdop = gpsSol.fixType == GPS_NO_FIX ? 9999 : 100;
+    gpsSolDRV.numSat = numSat;
     
-    gpsSol.llh.lat = lat;
-    gpsSol.llh.lon = lon;
-    gpsSol.llh.alt = alt;
-    gpsSol.groundSpeed = groundSpeed;
-    gpsSol.groundCourse = groundCourse;
-    gpsSol.velNED[X] = velNED_X;
-    gpsSol.velNED[Y] = velNED_Y;
-    gpsSol.velNED[Z] = velNED_Z;
-    gpsSol.eph = 100;
-    gpsSol.epv = 100;
-    gpsSol.flags.validVelNE = true;
-    gpsSol.flags.validVelD = true;
-    gpsSol.flags.validEPE = true;
-    gpsSol.flags.hasNewData = true;
+    gpsSolDRV.llh.lat = lat;
+    gpsSolDRV.llh.lon = lon;
+    gpsSolDRV.llh.alt = alt;
+    gpsSolDRV.groundSpeed = groundSpeed;
+    gpsSolDRV.groundCourse = groundCourse;
+    gpsSolDRV.velNED[X] = velNED_X;
+    gpsSolDRV.velNED[Y] = velNED_Y;
+    gpsSolDRV.velNED[Z] = velNED_Z;
+    gpsSolDRV.eph = 100;
+    gpsSolDRV.epv = 100;
+    gpsSolDRV.flags.validVelNE = true;
+    gpsSolDRV.flags.validVelD = true;
+    gpsSolDRV.flags.validEPE = true;
     
     if (time) {
         struct tm* gTime = gmtime(&time);
 
-        gpsSol.time.year   = (uint16_t)(gTime->tm_year + 1900);
-        gpsSol.time.month  = (uint16_t)(gTime->tm_mon + 1);
-        gpsSol.time.day    = (uint8_t)gTime->tm_mday;
-        gpsSol.time.hours  = (uint8_t)gTime->tm_hour;
-        gpsSol.time.minutes = (uint8_t)gTime->tm_min;
-        gpsSol.time.seconds = (uint8_t)gTime->tm_sec;
-        gpsSol.time.millis  = 0;
-        gpsSol.flags.validTime = gpsSol.fixType >= 3;
+        gpsSolDRV.time.year   = (uint16_t)(gTime->tm_year + 1900);
+        gpsSolDRV.time.month  = (uint16_t)(gTime->tm_mon + 1);
+        gpsSolDRV.time.day    = (uint8_t)gTime->tm_mday;
+        gpsSolDRV.time.hours  = (uint8_t)gTime->tm_hour;
+        gpsSolDRV.time.minutes = (uint8_t)gTime->tm_min;
+        gpsSolDRV.time.seconds = (uint8_t)gTime->tm_sec;
+        gpsSolDRV.time.millis  = 0;
+        gpsSolDRV.flags.validTime = gpsSol.fixType >= 3;
     }
+    
+    gpsProcessNewDriverData();
 }
    
 #endif

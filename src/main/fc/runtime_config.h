@@ -124,6 +124,9 @@ typedef enum {
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
     COMPASS_CALIBRATED                  = (1 << 8),
     ACCELEROMETER_CALIBRATED            = (1 << 9),
+#ifdef USE_GPS_FIX_ESTIMATION
+    GPS_ESTIMATED_FIX                   = (1 << 10),
+#endif
     NAV_CRUISE_BRAKING                  = (1 << 11),
     NAV_CRUISE_BRAKING_BOOST            = (1 << 12),
     NAV_CRUISE_BRAKING_LOCKED           = (1 << 13),
@@ -141,6 +144,7 @@ typedef enum {
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
     LANDING_DETECTED                    = (1 << 26),
     IN_FLIGHT_EMERG_REARM               = (1 << 27),
+    TAILSITTER                          = (1 << 28), //offset the pitch angle by 90 degrees
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

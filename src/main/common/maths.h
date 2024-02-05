@@ -36,7 +36,7 @@
 #define RAD (M_PIf / 180.0f)
 
 #define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
-#define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100.0f)
+#define CENTIDEGREES_TO_DEGREES(angle) ((angle) * 0.01f)
 
 #define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10.0f)
 #define DECIDEGREES_TO_CENTIDEGREES(angle) ((angle) * 10)
@@ -54,11 +54,11 @@
 #define RADIANS_TO_DECIDEGREES(angle) (((angle) * 10.0f) / RAD)
 
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
-#define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
+#define CENTIDEGREES_TO_RADIANS(angle) (((angle) * 0.01f) * RAD)
 
 #define CENTIMETERS_TO_CENTIFEET(cm)    (cm / 0.3048f)
 #define CENTIMETERS_TO_FEET(cm)         (cm / 30.48f)
-#define CENTIMETERS_TO_METERS(cm)       (cm / 100.0f)
+#define CENTIMETERS_TO_METERS(cm)       (cm * 0.01f)
 
 #define METERS_TO_CENTIMETERS(m)        (m * 100)
 
@@ -91,6 +91,7 @@
         )
 #define MIN(a, b) _CHOOSE(<, a, b)
 #define MAX(a, b) _CHOOSE(>, a, b)
+#define SIGN(a) ((a >= 0) ? 1 : -1)
 
 #define _ABS_II(x, var)             \
     ( __extension__ ({              \
