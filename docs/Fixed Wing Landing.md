@@ -26,7 +26,7 @@ The following graphics illustrate the process:
 
 To activate the automatic landing, the parameter `nav_rth_allow_landing` must be set to `ALWAYS` or `FAILSAFE`. 
 
-## Landing site parameters:
+## Landing site parameters
 
 ### The following parameters are set for each landing site (Safefome/LAND waypoint):
 
