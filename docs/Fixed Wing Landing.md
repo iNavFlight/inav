@@ -47,7 +47,7 @@ Example: 90 degrees: It is possible to land in 90 degrees as well as in 270 degr
 This means that practically 4 landing directions can be saved.
 * Sea Level: 0 - Deactivated, 1 - Activated. If activated, approach and land altitude refer to normal zero (sea level), otherwise relative altitude to the altitude during first GPS fix.
 
-> [!WARNING]
+> [!CAUTION]
 > The Configuator automatically determines the ground altitude based on databases on the Internet, which may be inaccurate. Please always compare with the measured GPS altitude at the landing site to avoid crashes.
 
 ### Global paramters
@@ -85,7 +85,8 @@ If the altitude of the waypoint and the "Approach Altitude" are different, the a
 
 The current landing state can be retrieved via ID 38 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deplyoment of the landing flaps.
 
-| Returned value | State | 
+| Returned value | State |
+| --- | --- |
 | 0 | Idle/Inactive |
 | 1 | Loiter |
 | 2 | Downwind |
