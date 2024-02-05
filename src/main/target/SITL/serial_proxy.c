@@ -327,6 +327,17 @@ void serialProxyInit(void)
             dcbSerialParams.BaudRate = serialBaudRate;
             dcbSerialParams.ByteSize = 8;
 
+            // Disable software flow control (XON/XOFF)
+            dcbSerialParams.fOutX = FALSE;
+            dcbSerialParams.fInX = FALSE;
+
+            // Disable hardware flow control (RTS/CTS)
+            dcbSerialParams.fRtsControl = RTS_CONTROL_DISABLE;
+            dcbSerialParams.fDtrControl = DTR_CONTROL_DISABLE;
+
+            // Disable any special processing of bytes
+            dcbSerialParams.fBinary = TRUE;
+
             switch (serialStopBits) {
                 case OPT_SERIAL_STOP_BITS_ONE:
                     dcbSerialParams.StopBits = ONESTOPBIT;
