@@ -30,6 +30,6 @@ While motors are usually ordered sequentially, here is no standard output layout
 
 INAV 7 introduced extra functionality that let you force only some outputs to be either *MOTORS* or *SERVOS*, with some restrictions dictated by the hardware.
 
-The mains restrictions is that outputs need to be associated with timers, which are usually shared between multiple outputs. Two outputs on the same timer need to have the same function.
+The main restrictions is that outputs are associated with timers, which can be shared between multiple outputs and  two outputs on the same timer need to have the same function.
 
 The easiest way to modify outputs, is to use the Mixer tab in the Configurator, as it will clearly show you which timer is used by all outputs, but you can also use `timer_output_mode` on the cli.
