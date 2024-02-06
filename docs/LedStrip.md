@@ -7,7 +7,7 @@ require that all the LEDs in the strip show the same color.
 Addressable LED strips can be used to show information from the flight controller system, the current implementation
 supports the following:
 
-* Up to 32 LEDs.
+* Up to 128 LEDs. _If using more than 20 LEDs, you should look to use a separate power supply._
 * Indicators showing pitch/roll stick positions.
 * Heading/Orientation lights.
 * Flight mode specific color schemes.
@@ -17,12 +17,12 @@ supports the following:
 * RSSI level.
 * Battery level.
 
-Support for more than 32 LEDs is possible, it just requires additional development.
+Support for more than 128 LEDs is possible, it just requires additional development.
 
 ## Supported hardware
 
-Only strips of 32 WS2811/WS2812 LEDs are supported currently.  If the strip is longer than 32 LEDs it does not matter,
-but only the first 32 are used.
+Only strips of 128 WS2811/WS2812 LEDs are supported currently.  If the strip is longer than 128 LEDs it does not matter,
+but only the first 128 are used.
 
 WS2812 LEDs require an 800khz signal and precise timings and thus requires the use of a dedicated hardware timer.
 
@@ -42,11 +42,11 @@ It could be possible to be able to specify the timings required via CLI if users
 
 WS2812 LED strips generally require a single data line, 5V and GND.
 
-WS2812 LEDs on full brightness can consume quite a bit of current.  It is recommended to verify the current draw and ensure your
-supply can cope with the load.  On a multirotor that uses multiple BEC ESC's you can try use a different BEC to the one the FC
-uses.  e.g. ESC1/BEC1 -> FC, ESC2/BEC2 -> LED strip.   It's also possible to power one half of the strip from one BEC and the other half
-from another BEC.  Just ensure that the GROUND is the same for all BEC outputs and LEDs.
+WS2812 LEDs on full brightness can consume quite a bit of current.  **It is recommended to verify the current draw of you LEDs and ensure your supply can cope with the load. Remember, your flight controller will likely be using the same BEC to operate.** Check the specs of the LED chips. Some are more power hungry than others. Remember that if using the flight controller's 5v supply. This is also powering other components on your flight controller. Make sure there is enough overhead so that they don't brownout.
 
+On a multirotor that uses multiple BEC ESC's you can try use a different BEC to the one the FC uses. e.g. ESC1/BEC1 -> FC, ESC2/BEC2 -> LED strip. It's also possible to power one half of the strip from one BEC and the other half from another BEC. Just ensure that the GROUND is the same for all BEC outputs and LEDs.
+
+If using a large number of LEDs. It would be more efficient to use 12v LEDs and power them with a separate regulated supply. Especially if using long strips. You would use the data line (LED pad) from the flight controller. Make sure there is continuity between the ground on the LEDS and the ground on the flight controller.
 
 | Target                | Pin  | LED Strip | Signal |
 | --------------------- | ---- | --------- | -------|
