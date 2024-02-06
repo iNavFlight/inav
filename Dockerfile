@@ -14,8 +14,7 @@ RUN pip install pyyaml
 RUN addgroup --gid $GROUP_ID inav; exit 0;
 RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID inav; exit 0;
 
-ARG INAV_IMAGE_USER=inav
-USER $INAV_IMAGE_USER
+USER inav
 
 RUN git config --global --add safe.directory /src
 

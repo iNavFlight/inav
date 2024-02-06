@@ -33,9 +33,8 @@ If you are getting error "standard_init_linux.go:219: exec user process caused: 
 
 You'll have to manually execute the same steps that the build script does:
 
-1. `docker build --build-arg INAV_IMAGE_USER=root -t inav-build .`
+1. `docker build --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 -t inav-build .`
    + This step is only needed the first time.
-   + Note that on Windows/WSL 2 mounted /src folder is writeable for root user only. You have to run build under root user. This is achieved with `--build-arg INAV_IMAGE_USER=root` option in the command line above.   
    + If GDB should be installed in the image, add argument '--build-arg GDB=yes'
 2. `docker run --rm -it -v <PATH_TO_REPO>:/src inav-build <TARGET>`
    + Where `<PATH_TO_REPO>` must be replaced with the absolute path of where you cloned this repo (see above), and `<TARGET>` with the name of the target that you want to build.
