@@ -2209,6 +2209,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
     
     if (ABS(getEstimatedActualPosition(Z) - posControl.fwLandState.landAproachAltAgl) < (navConfig()->general.waypoint_enforce_altitude > 0 ? navConfig()->general.waypoint_enforce_altitude : FW_LAND_LOITER_ALT_TOLERANCE)) {
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+        posControl.fwLandState.landState = FW_AUTOLAND_STATE_LOITER;
         return NAV_FSM_EVENT_SUCCESS;
     }
     
