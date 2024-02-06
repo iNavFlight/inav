@@ -83,7 +83,7 @@ If the altitude of the waypoint and the "Approach Altitude" are different, the a
 
 ## Logic Conditions
 
-The current landing state can be retrieved via ID 38 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deplyoment of the landing flaps.
+The current landing state can be retrieved via ID 41 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deplyoment of the landing flaps.
 
 | Returned value | State |
 | --- | --- |

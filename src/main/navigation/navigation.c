@@ -291,11 +291,6 @@ bool validateRTHSanityChecker(void);
 void updateHomePosition(void);
 bool abortLaunchAllowed(void);
 
-static bool rthAltControlStickOverrideCheck(unsigned axis);
-
-static void updateRthTrackback(bool forceSaveTrackPoint);
-static fpVector3_t * rthGetTrackbackPos(void);
-
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
@@ -4152,11 +4147,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         //  ensure WP missions always restart from first waypoint after disarm
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
-        posControl.activeRthTBPointIndex = -1;
-        posControl.flags.rthTrackbackActive = false;
-        posControl.rthTBWrapAroundCounter = -1;
-        posControl.fwLandState.landAborted = false;
-        posControl.fwLandState.approachSettingIdx = 0;
+        resetRthTrackBack();
         return;
     }
 
@@ -5022,6 +5013,29 @@ int32_t getCruiseHeadingAdjustment(void) {
 int32_t navigationGetHeadingError(void)
 {
     return wrap_18000(posControl.desiredState.yaw - posControl.actualState.cog);
+}
+
+int8_t navCheckActiveAngleHoldAxis(void)
+{
+    int8_t activeAxis = -1;
+
+    if (IS_RC_MODE_ACTIVE(BOXANGLEHOLD)) {
+        navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
+        bool altholdActive = stateFlags & NAV_REQUIRE_ANGLE_FW && !(stateFlags & NAV_REQUIRE_ANGLE);
+
+        if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            activeAxis = FD_PITCH;
+        } else if (altholdActive) {
+            activeAxis = FD_ROLL;
+        }
+    }
+
+    return activeAxis;
+}
+
+uint8_t getActiveWpNumber(void)
+{
+    return NAV_Status.activeWpNumber;
 }
 
 static void resetFwAutoland(void)
