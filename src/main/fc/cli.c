@@ -3784,7 +3784,7 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         }
 
-        cliPrintHashLine("resources");
+        cliPrintHashLine("resource");
         //printResource(dumpMask, &defaultConfig);
 
         cliPrintHashLine("Timer overrides");
