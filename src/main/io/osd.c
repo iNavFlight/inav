@@ -4950,9 +4950,9 @@ static void osdRefresh(timeUs_t currentTimeUs)
                     statsCurrentPage = 0;
             }
 
-            // Only refresh the stats every 1/4 of a second.
+            // Only refresh the stats every 1/2 a second.
             if (statsRefreshTime <= millis()) {
-                statsRefreshTime =  millis() + 250;
+                statsRefreshTime =  millis() + 500;
                 osdShowStats(statsSinglePageCompatible, statsCurrentPage);
             }
         }
