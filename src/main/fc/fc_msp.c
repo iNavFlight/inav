@@ -440,9 +440,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, getConfigProfile());
 
             if (cmdMSP == MSP_STATUS_EX) {
+#if defined(USE_OSD) && defined(USE_MSP_OSD)
+                bool armingBit = bitArrayGet(mspBoxModeFlags.bits, BOXARM);
+                // If we are in emergency re-arm period and using MSP DisplayPort OSD, show that we are still Armed to prevent the VTX entering low power mode
+                if (feature(FEATURE_OSD) && emergInflightRearmEnabled())
+                    bitArraySet(mspBoxModeFlags.bits, BOXARM);
+#endif
                 sbufWriteU16(dst, averageSystemLoadPercent);
                 sbufWriteU16(dst, armingFlags);
                 sbufWriteU8(dst, accGetCalibrationAxisFlags());
+
+#if defined(USE_OSD) && defined(USE_MSP_OSD)
+                if (armingBit)
+                    bitArraySet(mspBoxModeFlags.bits, BOXARM);
+                else
+                    bitArrayClr(mspBoxModeFlags.bits, BOXARM);
+#endif
             }
         }
         break;
