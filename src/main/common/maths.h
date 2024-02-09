@@ -161,14 +161,6 @@ float scaleRangef(float x, float srcMin, float srcMax, float destMin, float dest
 int32_t wrap_18000(int32_t angle);
 int32_t wrap_36000(int32_t angle);
 
-int32_t quickMedianFilter3(int32_t * v);
-int32_t quickMedianFilter5(int32_t * v);
-int32_t quickMedianFilter7(int32_t * v);
-int32_t quickMedianFilter9(int32_t * v);
-
-int16_t quickMedianFilter3_16(int16_t * v);
-int16_t quickMedianFilter5_16(int16_t * v);
-
 #if defined(FAST_MATH) || defined(VERY_FAST_MATH)
 float sin_approx(float x);
 float cos_approx(float x);

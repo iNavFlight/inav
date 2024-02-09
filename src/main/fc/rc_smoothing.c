@@ -49,7 +49,14 @@
 
 // RC Interpolation is not allowed to go below this value.
 #define RC_INTERPOLATION_MIN_FREQUENCY 15
+#define RC_FILTER_AVERAGE_SIZE 9
 
+// average filter
+static uint8_t sampleIndex;                           // pointer to the next empty slot in the buffer
+static uint8_t numSamples;       	                  // the number of samples in the filter, maxes out at size of the filter
+static int32_t bufferSamples[RC_FILTER_AVERAGE_SIZE]; // buffer of samples
+
+// LPF
 static pt3Filter_t rcSmoothFilter[4];
 static float rcStickUnfiltered[4];
 static uint16_t rcUpdateFrequency;
@@ -58,21 +65,28 @@ uint16_t getRcUpdateFrequency(void) {
     return rcUpdateFrequency;
 }
 
-static int32_t applyRcUpdateFrequencyMedianFilter(int32_t newReading)
+static int32_t applyRcUpdateFrequencyMedianFilter(int32_t sample)
 {
-    #define RC_FILTER_SAMPLES_MEDIAN 9
-    static int32_t filterSamples[RC_FILTER_SAMPLES_MEDIAN];
-    static int filterSampleIndex = 0;
-    static bool medianFilterReady = false;
+	float result = 0.0f;
 
-    filterSamples[filterSampleIndex] = newReading;
-    ++filterSampleIndex;
-    if (filterSampleIndex == RC_FILTER_SAMPLES_MEDIAN) {
-        filterSampleIndex = 0;
-        medianFilterReady = true;
-    }
+	// add sample to array
+	bufferSamples[sampleIndex++] = sample;
 
-    return medianFilterReady ? quickMedianFilter9(filterSamples) : newReading;
+	// wrap index if necessary
+	if (sampleIndex >= RC_FILTER_AVERAGE_SIZE)
+		sampleIndex = 0;
+
+	// increment the number of samples so far
+	numSamples++;
+	if (numSamples > RC_FILTER_AVERAGE_SIZE || numSamples == 0)
+		numSamples = RC_FILTER_AVERAGE_SIZE;
+
+	// get sum of all values
+	for (uint8_t i = 0; i < RC_FILTER_AVERAGE_SIZE; i++) {
+		result += bufferSamples[i];
+	}
+
+	return (int32_t)(result / numSamples);
 }
 
 void rcInterpolationApply(bool isRXDataNew, timeUs_t currentTimeUs)
