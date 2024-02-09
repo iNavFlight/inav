@@ -250,7 +250,7 @@ typedef enum {
     BAROMETER_NEEDS_CALCULATION
 } barometerState_e;
 
-uint32_t baroUpdate(void)
+void baroUpdate(void)
 {
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
 
@@ -270,7 +270,6 @@ uint32_t baroUpdate(void)
                 baro.dev.start_up(&baro.dev);
             }
             state = BAROMETER_NEEDS_CALCULATION;
-            return baro.dev.up_delay;
         break;
 
         case BAROMETER_NEEDS_CALCULATION:
@@ -283,7 +282,6 @@ uint32_t baroUpdate(void)
             //output: baro.baroPressure, baro.baroTemperature
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             state = BAROMETER_NEEDS_SAMPLES;
-            return baro.dev.ut_delay;
         break;
     }
 }
