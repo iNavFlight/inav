@@ -3722,9 +3722,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
     if (posControl.flags.estAglStatus == EST_TRUSTED)       navFlags |= (1 << 1);
     if (posControl.flags.estPosStatus == EST_TRUSTED)       navFlags |= (1 << 2);
     if (posControl.flags.isTerrainFollowEnabled)            navFlags |= (1 << 3);
-#if defined(NAV_GPS_GLITCH_DETECTION)
-    if (isGPSGlitchDetected())                              navFlags |= (1 << 4);
-#endif
+    // naFlags |= (1 << 4); // Old NAV GPS Glitch Detection flag
     if (posControl.flags.estHeadingStatus == EST_TRUSTED)   navFlags |= (1 << 5);
 
     // Reset all navigation requests - NAV controllers will set them if necessary
