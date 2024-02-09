@@ -256,7 +256,7 @@ void baroUpdate(void)
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-        return 0;
+        return;
     }
 #endif
 
