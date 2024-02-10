@@ -291,6 +291,11 @@ bool validateRTHSanityChecker(void);
 void updateHomePosition(void);
 bool abortLaunchAllowed(void);
 
+static bool rthAltControlStickOverrideCheck(unsigned axis);
+
+static void updateRthTrackback(bool forceSaveTrackPoint);
+static fpVector3_t * rthGetTrackbackPos(void);
+
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
@@ -2291,7 +2296,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 tmpPos.z = finalApproachAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
                 
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, navConfig()->fw.loiter_radius * 2.5);
+                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, MAX((uint32_t)navConfig()->fw.loiter_radius * 4, navFwAutolandConfig()->approachLength / 2));
                 tmpPos.z = posControl.fwLandState.landAproachAltAgl;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN] = tmpPos;
 
@@ -4148,7 +4153,10 @@ void applyWaypointNavigationAndAltitudeHold(void)
         //  ensure WP missions always restart from first waypoint after disarm
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
-        resetRthTrackBack();
+        posControl.activeRthTBPointIndex = -1;
+        posControl.flags.rthTrackbackActive = false;
+        posControl.rthTBWrapAroundCounter = -1;
+
         return;
     }
 

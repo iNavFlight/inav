@@ -465,6 +465,12 @@ typedef struct {
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
 
+    /* RTH Trackback */
+    fpVector3_t                 rthTBPointsList[NAV_RTH_TRACKBACK_POINTS];
+    int8_t                      rthTBLastSavedIndex;        // last trackback point index saved
+    int8_t                      activeRthTBPointIndex;
+    int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
+
     /* Fixedwing autoland */
     fwLandState_t fwLandState;
 
