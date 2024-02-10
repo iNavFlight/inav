@@ -296,6 +296,7 @@ static bool rthAltControlStickOverrideCheck(unsigned axis);
 static void updateRthTrackback(bool forceSaveTrackPoint);
 static fpVector3_t * rthGetTrackbackPos(void);
 
+static float getLandAltitude(void);
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
@@ -2319,7 +2320,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
     
     return NAV_FSM_EVENT_NONE;
 }
-
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
@@ -2338,21 +2338,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
 
-    float altitude;
-#ifdef USE_RANGEFINDER
-    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
-        altitude = rangefinderGetLatestAltitude();
-    }
-    else
-#endif
-    if (posControl.flags.estAglStatus >= EST_USABLE) {
-        altitude = posControl.actualState.agl.pos.z;
-    } else {
-        altitude = posControl.actualState.abs.pos.z;
-    }
-
-    if (altitude <= fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt + navFwAutolandConfig()->glideAltitude - (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
+    if (getLandAltitude() <= fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt + navFwAutolandConfig()->glideAltitude - (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
         resetPositionController();
+        posControl.cruise.course = posControl.fwLandState.landingDirection;
+        posControl.cruise.previousCourse = posControl.cruise.course;
+        posControl.cruise.lastCourseAdjustmentTime = 0;
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_GLIDE;
         return NAV_FSM_EVENT_SUCCESS;
     } else if (isWaypointReached(&posControl.fwLandState.landWaypoints[posControl.fwLandState.landCurrentWp], &posControl.activeWaypoint.bearing)) {
@@ -2388,21 +2378,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
 
-    float altitude = -1;
-#ifdef USE_RANGEFINDER
-    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
-        altitude = rangefinderGetLatestAltitude();
+    if (getLandAltitude() <= posControl.fwLandState.landAltAgl + navFwAutolandConfig()->flareAltitude) {
+        posControl.fwLandState.landState = FW_AUTOLAND_STATE_FLARE;
+        return NAV_FSM_EVENT_SUCCESS;
     }
-#endif
-    if (altitude >= 0) {
-        if (altitude <= posControl.fwLandState.landAltAgl + navFwAutolandConfig()->flareAltitude) {
-            posControl.cruise.course = posControl.fwLandState.landingDirection;
-            posControl.cruise.previousCourse = posControl.cruise.course;
-            posControl.cruise.lastCourseAdjustmentTime = 0;
-            posControl.fwLandState.landState = FW_AUTOLAND_STATE_FLARE;
-            return NAV_FSM_EVENT_SUCCESS;
-        }
-    } else if (isLandingDetected()) {
+    
+    if (isLandingDetected()) {
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
         disarm(DISARM_LANDING);
         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
@@ -5075,6 +5056,23 @@ static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAng
     }
    
     return -1;
+}
+
+static float getLandAltitude(void) 
+{
+    float altitude = -1;
+#ifdef USE_RANGEFINDER
+    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
+        altitude = rangefinderGetLatestAltitude();
+    }
+    else
+#endif
+    if (posControl.flags.estAglStatus >= EST_USABLE) {
+        altitude = posControl.actualState.agl.pos.z;
+    } else {
+        altitude = posControl.actualState.abs.pos.z;
+    }
+    return altitude;
 }
 
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading)
