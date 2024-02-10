@@ -142,8 +142,9 @@ static void cliAssert(char *cmdline);
 #endif
 
 #ifdef USE_CLI_BATCH
-static bool commandBatchActive = false;
-static bool commandBatchError = false;
+static bool     commandBatchActive = false;
+static bool     commandBatchError = false;
+static uint8_t  commandBatchErrorCount = 0;
 #endif
 
 // sync this with features_e
@@ -256,6 +257,7 @@ static void cliPrintError(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -267,6 +269,7 @@ static void cliPrintErrorLine(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -369,6 +372,7 @@ static void cliPrintErrorVa(const char *format, va_list va)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -660,6 +664,7 @@ static void cliAssert(char *cmdline)
 #ifdef USE_CLI_BATCH
         if (commandBatchActive) {
             commandBatchError = true;
+            commandBatchErrorCount++;
         }
 #endif
     }
@@ -3183,7 +3188,10 @@ static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
 #ifdef USE_CLI_BATCH
 static void cliPrintCommandBatchWarning(const char *warning)
 {
-    cliPrintErrorLinef("ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING");
+    char errorBuf[59];
+    tfp_sprintf(errorBuf, "%03d ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING!", commandBatchErrorCount);
+
+    cliPrintErrorLinef(errorBuf);
     if (warning) {
         cliPrintErrorLinef(warning);
     }
@@ -3193,6 +3201,7 @@ static void resetCommandBatch(void)
 {
     commandBatchActive = false;
     commandBatchError = false;
+    commandBatchErrorCount = 0;
 }
 
 static void cliBatch(char *cmdline)
@@ -3201,6 +3210,7 @@ static void cliBatch(char *cmdline)
         if (!commandBatchActive) {
             commandBatchActive = true;
             commandBatchError = false;
+            commandBatchErrorCount = 0;
         }
         cliPrintLine("Command batch started");
     } else if (strncasecmp(cmdline, "end", 3) == 0) {
