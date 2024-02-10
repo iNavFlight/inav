@@ -57,8 +57,8 @@
 
 #define ICM42605_RA_GYRO_ACCEL_CONFIG0              0x52
 
-#define ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY       (14 << 4)
-#define ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY        (14 << 0)
+#define ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY       (15 << 4)
+#define ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY        (15 << 0)
 
 #define ICM42605_RA_GYRO_DATA_X1                    0x25
 #define ICM42605_RA_ACCEL_DATA_X1                   0x1F
