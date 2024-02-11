@@ -68,6 +68,7 @@
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
+#include "fc/fc_core.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
@@ -393,7 +394,7 @@ void saveConfig(void)
     }
 }
 
-void processDelayedSave(void)
+void processDelayedSave(bool readyToSave)
 {
     if (saveState == SAVESTATE_SAVEANDNOTIFY) {
          if (emergInflightRearmEnabled() || !readyToSave) {
@@ -410,7 +411,7 @@ void processDelayedSave(void)
                 saveState = SAVESTATE_NONE;
             }
         }
-    } else if (saveState == SAVESTATE_SAVEONLY) {
+    } else if (saveState == SAVESTATE_SAVEONLY && readyToSave) {
         suspendRxSignal();
         writeEEPROM();
         resumeRxSignal();
