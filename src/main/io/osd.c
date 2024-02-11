@@ -1952,7 +1952,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            float odometerDist = CENTIMETERS_TO_METERS(getTotalTravelDistance());
+            float_t odometerDist = CENTIMETERS_TO_METERS(getTotalTravelDistance());
 #ifdef USE_STATS
             odometerDist+= statsConfig()->stats_total_dist;
 #endif
