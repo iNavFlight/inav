@@ -1967,28 +1967,27 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            uint32_t odometerDist = (uint32_t)(getTotalTravelDistance() / 100);
+            float odometerDist = CENTIMETERS_TO_METERS(getTotalTravelDistance());
 #ifdef USE_STATS
             odometerDist+= statsConfig()->stats_total_dist;
 #endif
-            odometerDist = odometerDist / 10;
 
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), FEET_PER_MILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_MILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_MI;
                     break;
                 default:
                 case OSD_UNIT_GA:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), (uint32_t)FEET_PER_NAUTICALMILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_NAUTICALMILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    osdFormatCentiNumber(buff, odometerDist, METERS_PER_KILOMETER, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_KILOMETERS(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_KM;
                     break;
             }
