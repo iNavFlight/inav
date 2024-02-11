@@ -3189,7 +3189,7 @@ static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
 static void cliPrintCommandBatchWarning(const char *warning)
 {
     char errorBuf[59];
-    tfp_sprintf(errorBuf, "%03d ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING!", commandBatchErrorCount);
+    tfp_sprintf(errorBuf, "%d ERRORS WERE DETECTED - Please review and fix before continuing!", commandBatchErrorCount);
 
     cliPrintErrorLinef(errorBuf);
     if (warning) {
