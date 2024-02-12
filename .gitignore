@@ -16,12 +16,13 @@ startup_stm32f10x_md_gcc.s
 cov-int*
 /build/
 /build_SITL/
+/debug/
+/downloads/
 /obj/
 /patches/
-/tools/
-/downloads/
-/debug/
 /release/
+/testing/
+/tools/
 
 # script-generated files
 docs/Manual.pdf

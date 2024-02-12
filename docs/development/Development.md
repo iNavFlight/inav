@@ -2,7 +2,7 @@
 
 This document is primarily for developers only.
 
-## General principals
+## General principles
 
 1. Name everything well.
 2. Strike a balance between simplicity and not-repeating code.
