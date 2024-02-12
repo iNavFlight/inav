@@ -2836,6 +2836,12 @@ groups:
         field: fw.control_smoothness
         min: 0
         max: 9
+      - name: nav_fw_land_dive_angle
+        description: "Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees"
+        default_value: 2
+        field: fw.land_dive_angle
+        min: -20
+        max: 20
       - name: nav_fw_launch_velocity
         description: "Forward velocity threshold for swing-launch detection [cm/s]"
         default_value: 300

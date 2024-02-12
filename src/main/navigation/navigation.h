@@ -347,6 +347,7 @@ typedef struct navConfig_s {
         uint16_t minThrottleDownPitchAngle;  // Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle. [decidegrees]
         uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
         uint8_t  loiter_direction;           // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+        int8_t   land_dive_angle;
         uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
         uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)

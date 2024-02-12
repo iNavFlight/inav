@@ -18,13 +18,17 @@ Supported are landings at safehome after "Return to Home" or at a defined LAND w
 7. Flare: Only if a LIDAR/Rangefinder sensor is present: the motor remains switched off and the pitch angle of "Flare Pitch" is held
 8. Landing: As soon as INAV has detected the landing, it is automatically disarmed, see setting `nav_disarm_on_landing`.
 
+To activate the automatic landing, the parameter `nav_rth_allow_landing` must be set to `ALWAYS` or `FAILSAFE`. 
+
+> [!WARNING]
+> If landing is activated and no parameters are set for the landing site (Safehome and/or landing waypoint), the old landing procedure (circling until close to the ground, then hovering out) is performed. 
+> This is probably not what you want. 
+ 
 The following graphics illustrate the process:
 
 ![Approach Drawing Up](/docs/assets/images/Approach-Drawing-Up.png  "Approach Drawing Up")
 
 ![Approach Drawing Side](/docs/assets/images/Approach-Drawing-Side.png  "Approach Drawing Side")
-
-To activate the automatic landing, the parameter `nav_rth_allow_landing` must be set to `ALWAYS` or `FAILSAFE`. 
 
 ## Landing site parameters
 

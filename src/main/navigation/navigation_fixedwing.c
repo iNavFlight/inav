@@ -624,7 +624,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
         int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-        throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
+        if (navStateFlags & NAV_CTL_LAND) {
+        // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
+            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
+        } else {
+            throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
+        }
 
         // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
         if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
@@ -649,6 +654,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
+    // Advanced autoland
     if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
         // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
         rcCommand[THROTTLE] = getThrottleIdleValue();
@@ -660,6 +666,24 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
         if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
             rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
+    }
+
+    // "Traditional" landing as fallback option
+    if (navStateFlags & NAV_CTL_LAND) {
+        int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;
+
+        if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
+           (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= navConfig()->general.land_slowdown_minalt)) {
+
+            // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
+            ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+
+            // Stabilize ROLL axis on 0 degrees banking regardless of loiter radius and position
+            rcCommand[ROLL] = 0;
+
+            // Stabilize PITCH angle into shallow dive as specified by the nav_fw_land_dive_angle setting (default value is 2 - defined in navigation.c).
+            rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navConfig()->fw.land_dive_angle), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
 }

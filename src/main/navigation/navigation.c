@@ -212,6 +212,9 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                  // 75m
         .loiter_direction = SETTING_FW_LOITER_DIRECTION_DEFAULT,
 
+        //Fixed wing landing
+        .land_dive_angle = SETTING_NAV_FW_LAND_DIVE_ANGLE_DEFAULT,              // 2 degrees dive by default
+
         // Fixed wing launch
         .launch_velocity_thresh = SETTING_NAV_FW_LAUNCH_VELOCITY_DEFAULT,       // 3 m/s
         .launch_accel_thresh = SETTING_NAV_FW_LAUNCH_ACCEL_DEFAULT,             // cm/s/s (1.9*G)
@@ -1135,7 +1138,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .persistentId = NAV_PERSISTENT_ID_FW_LANDING_ABORT,
         .onEntry = navOnEnteringState_NAV_STATE_FW_LANDING_ABORT,
         .timeoutMs = 10,
-        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_CTL_LAND | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
+        .stateFlags = NAV_CTL_ALT | NAV_CTL_POS | NAV_CTL_YAW | NAV_REQUIRE_ANGLE | NAV_REQUIRE_MAGHOLD | NAV_REQUIRE_THRTILT | NAV_AUTO_RTH | NAV_RC_POS | NAV_RC_YAW,
         .mapToFlightModes = NAV_WP_MODE | NAV_ALTHOLD_MODE,
         .mwState = MW_NAV_STATE_LAND_IN_PROGRESS,
         .mwError = MW_NAV_ERROR_NONE,
@@ -1698,7 +1701,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
 
-    if (STATE(FIXED_WING_LEGACY)) {
+    if (STATE(AIRPLANE)) {
         int8_t missionIdx = -1, shIdx = -1, missionFwLandConfigStartIdx = 8; 
 #ifdef USE_MULTI_MISSION
         missionIdx = posControl.loadedMultiMissionIndex - 1;
@@ -1723,9 +1726,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             posControl.fwLandState.landAltAgl = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt - GPS_home.alt : fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt;
             posControl.fwLandState.landAproachAltAgl = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->approachAlt - GPS_home.alt : fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->approachAlt;
             return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING;
-        } else {
-            return NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME;
-        }
+        } 
     }
 
     float descentVelLimited = 0;
