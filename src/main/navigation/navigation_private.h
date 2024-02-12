@@ -368,6 +368,7 @@ typedef struct {
     bool                    rthLinearDescentActive; // Activation status of Linear Descent
 } rthState_t;
 
+#ifdef USE_FW_AUTOLAND
 typedef enum {
     FW_AUTOLAND_WP_TURN,
     FW_AUTOLAND_WP_FINAL_APPROACH,
@@ -389,6 +390,7 @@ typedef struct {
     bool landWp;
     fwAutolandState_t landState;
 } fwLandState_t;
+#endif
 
 typedef enum {
     RTH_HOME_ENROUTE_INITIAL,       // Initial position for RTH approach
@@ -471,8 +473,10 @@ typedef struct {
     int8_t                      activeRthTBPointIndex;
     int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
 
+#ifdef USE_FW_AUTOLAND
     /* Fixedwing autoland */
     fwLandState_t fwLandState;
+#endif
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];

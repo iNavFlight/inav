@@ -41,17 +41,37 @@ extern bool autoThrottleManuallyIncreased;
 
 /* Navigation system updates */
 void onNewGPSData(void);
+
 #if defined(USE_SAFE_HOME)
 
 #define MAX_SAFE_HOMES 8
-#define MAX_FW_LAND_APPOACH_SETTINGS (MAX_SAFE_HOMES + 9)
 
 typedef struct {
     uint8_t enabled;
     int32_t lat;
     int32_t lon;
-    int8_t fwLandSettingsIdx;
 } navSafeHome_t;
+
+typedef enum {
+    SAFEHOME_USAGE_OFF = 0,    // Don't use safehomes
+    SAFEHOME_USAGE_RTH = 1,    // Default - use safehome for RTH
+    SAFEHOME_USAGE_RTH_FS = 2, // Use safehomes for RX failsafe only
+} safehomeUsageMode_e;
+
+PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
+
+void resetSafeHomes(void);                       // remove all safehomes
+bool findNearestSafeHome(void);                  // Find nearest safehome
+
+#endif // defined(USE_SAFE_HOME)
+
+#ifdef USE_FW_AUTOLAND
+
+#ifndef MAX_SAFE_HOMES
+#define MAX_SAFE_HOMES 0
+#endif
+
+#define MAX_FW_LAND_APPOACH_SETTINGS (MAX_SAFE_HOMES + 9)
 
 typedef enum  {
     FW_AUTOLAND_APPROACH_DIRECTION_LEFT,
@@ -79,14 +99,6 @@ typedef struct {
 
 PG_DECLARE_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig);
 
-typedef enum {
-    SAFEHOME_USAGE_OFF = 0,    // Don't use safehomes
-    SAFEHOME_USAGE_RTH = 1,    // Default - use safehome for RTH
-    SAFEHOME_USAGE_RTH_FS = 2, // Use safehomes for RX failsafe only
-} safehomeUsageMode_e;
-
-PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
-
 typedef struct navFwAutolandConfig_s
 {
     uint32_t approachLength;
@@ -101,11 +113,8 @@ typedef struct navFwAutolandConfig_s
 PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);
 
 void resetFwAutolandApproach(int8_t idx);
-void resetSafeHomes(void);                       // remove all safehomes
-bool findNearestSafeHome(void);                  // Find nearest safehome
 
-
-#endif // defined(USE_SAFE_HOME)
+#endif
 
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
@@ -683,8 +692,10 @@ uint8_t getActiveWpNumber(void);
  */
 int32_t navigationGetHomeHeading(void);
 
+#ifdef USE_FW_AUTOLAND
 bool isFwLandInProgess(void);
 bool canFwLandCanceld(void);
+#endif
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;

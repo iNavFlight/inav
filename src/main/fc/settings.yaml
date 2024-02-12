@@ -4093,7 +4093,7 @@ groups:
   - name: PG_FW_AUTOLAND_CONFIG
     type: navFwAutolandConfig_t
     headers: ["navigation/navigation.h"]
-    condition: USE_SAFE_HOME
+    condition: USE_FW_AUTOLAND
     members: 
       - name: nav_fw_land_approach_length
         description: "Length of the final approach"

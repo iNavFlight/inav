@@ -1309,6 +1309,7 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#ifdef USE_FW_AUTOLAND
 static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
 {
     const char *format = "fwapproach %u %d %d %u %d %d %u";
@@ -1410,6 +1411,7 @@ static void cliFwAutolandApproach(char * cmdline)
         }
     }
 }
+#endif
 
 #if defined(USE_SAFE_HOME)
 static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
@@ -3901,8 +3903,10 @@ static void printConfig(const char *cmdline, bool doDiff)
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 
+#ifdef USE_FW_AUTOLAND
         cliPrintHashLine("Fixed Wing Approach");
         printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
+#endif
 
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
@@ -4148,7 +4152,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("flash_write", NULL, "<address> <message>", cliFlashWrite),
 #endif
 #endif
+#ifdef USE_FW_AUTOLAND
     CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
+#endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),

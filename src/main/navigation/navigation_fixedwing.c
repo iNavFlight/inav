@@ -589,9 +589,12 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
 
     int16_t pitchToThrottle = currentBatteryProfile->nav.fw.pitch_to_throttle;
+
+#ifdef USE_FW_AUTOLAND
     if (pitch < 0 && posControl.fwLandState.landState == FW_AUTOLAND_STATE_FINAL_APPROACH) {
         pitchToThrottle *= navFwAutolandConfig()->finalApproachPitchToThrottleMod / 100.0f;
     }
+#endif
 
     if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
         // Unfiltered throttle correction outside of pitch deadband
@@ -640,7 +643,11 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
 
         // Manual throttle increase
+#ifdef USE_FW_AUTOLAND
         if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !isFwLandInProgess()) {
+#else
+        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
+#endif
             if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
                 correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
             } else {
@@ -654,6 +661,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
+#ifdef USE_FW_AUTOLAND
     // Advanced autoland
     if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
         // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
@@ -668,7 +676,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
-
+#endif
     // "Traditional" landing as fallback option
     if (navStateFlags & NAV_CTL_LAND) {
         int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;

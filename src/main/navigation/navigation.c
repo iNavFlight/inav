@@ -90,10 +90,10 @@ int16_t       GPS_directionToHome;       // direction to home point in degrees
 
 radar_pois_t radar_pois[RADAR_MAX_POIS];
 
-#if defined(USE_SAFE_HOME)
-PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
-
+#ifdef USE_FW_AUTOLAND
 PG_REGISTER_WITH_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig, PG_FW_AUTOLAND_CONFIG, 0);
+
+PG_REGISTER_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig, PG_FW_AUTOLAND_APPROACH_CONFIG, 0);
 
 PG_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig,
     .approachLength = SETTING_NAV_FW_LAND_APPROACH_LENGTH_DEFAULT,
@@ -104,9 +104,10 @@ PG_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig,
     .maxTailwind = SETTING_NAV_FW_LAND_MAX_TAILWIND_DEFAULT,
     .glidePitch = SETTING_NAV_FW_LAND_GLIDE_PITCH_DEFAULT,
 );
+#endif
 
-PG_REGISTER_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig, PG_FW_AUTOLAND_APPROACH_CONFIG, 0);
-
+#if defined(USE_SAFE_HOME)
+PG_REGISTER_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig, PG_SAFE_HOME_CONFIG , 0);
 #endif
 
 // waypoint 254, 255 are special waypoints
@@ -270,7 +271,11 @@ static void resetAltitudeController(bool useTerrainFollowing);
 static void resetPositionController(void);
 static void setupAltitudeController(void);
 static void resetHeadingController(void);
+
+#ifdef USE_FW_AUTOLAND
 static void resetFwAutoland(void);
+#endif
+
 void resetGCSFlags(void);
 
 static void setupJumpCounters(void);
@@ -299,10 +304,12 @@ static bool rthAltControlStickOverrideCheck(unsigned axis);
 static void updateRthTrackback(bool forceSaveTrackPoint);
 static fpVector3_t * rthGetTrackbackPos(void);
 
+#ifdef USE_FW_AUTOLAND
 static float getLandAltitude(void);
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
+#endif
 
 /*************************************************************************************************/
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState_t previousState);
@@ -342,12 +349,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_INITIALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_IN_PROGRESS(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigationFSMState_t previousState);
+#ifdef USE_FW_AUTOLAND
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_ABORT(navigationFSMState_t previousState);
+#endif
 
 static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
     /** Idle state ******************************************************/
@@ -1036,6 +1045,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         }
     },
 
+#ifdef USE_FW_AUTOLAND
     [NAV_STATE_FW_LANDING_CLIMB_TO_LOITER] = {
         .persistentId = NAV_PERSISTENT_ID_FW_LANDING_CLIMB_TO_LOITER,
         .onEntry = navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER,
@@ -1150,6 +1160,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_WAYPOINT]  = NAV_STATE_WAYPOINT_INITIALIZE,
         }
     }, 
+#endif
 };
 
 static navigationFSMStateFlags_t navGetStateFlags(navigationFSMState_t state)
@@ -1181,7 +1192,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState
     resetAltitudeController(false);
     resetHeadingController();
     resetPositionController();
+#ifdef USE_FW_AUTOLAND
     resetFwAutoland();
+#endif
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -1391,7 +1404,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
     }
 
     if (previousState != NAV_STATE_FW_LANDING_ABORT) {
+#ifdef USE_FW_AUTOLAND  
         posControl.fwLandState.landAborted = false;
+#endif
         if (STATE(FIXED_WING_LEGACY) && (posControl.homeDistance < navConfig()->general.min_rth_distance) && !posControl.flags.forcedRTHActivated) {
             // Prevent RTH from activating on airplanes if too close to home unless it's a failsafe RTH
             return NAV_FSM_EVENT_SWITCH_TO_IDLE;
@@ -1681,6 +1696,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HOVER_ABOVE_HOME(na
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationFSMState_t previousState)
 {
+#ifndef USE_FW_AUTOLAND
+    UNUSED(previousState);
+#endif
 
     //On ROVER and BOAT we immediately switch to the next event
     if (!STATE(ALTITUDE_CONTROL)) {
@@ -1701,6 +1719,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         return NAV_FSM_EVENT_SWITCH_TO_MIXERAT;
     }
 
+#ifdef USE_FW_AUTOLAND
     if (STATE(AIRPLANE)) {
         int8_t missionIdx = -1, shIdx = -1, missionFwLandConfigStartIdx = 8; 
 #ifdef USE_MULTI_MISSION
@@ -1728,6 +1747,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
             return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING;
         } 
     }
+#endif
 
     float descentVelLimited = 0;
 
@@ -2054,7 +2074,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_EMERGENCY_LANDING_INITI
 {
     UNUSED(previousState);
 
+#ifdef USE_FW_AUTOLAND
     posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
+#endif
+
     if ((posControl.flags.estPosStatus >= EST_USABLE)) {
         resetPositionController();
         setDesiredPosition(&navGetCurrentActualPositionAndVelocity()->pos, 0, NAV_POS_UPDATE_XY);
@@ -2202,6 +2225,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_ABORT(navigatio
     return NAV_FSM_EVENT_SUCCESS;
 }
 
+#ifdef USE_FW_AUTOLAND
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
@@ -2416,6 +2440,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_ABORT(naviga
 
     return posControl.fwLandState.landWp ? NAV_FSM_EVENT_SWITCH_TO_WAYPOINT : NAV_FSM_EVENT_SWITCH_TO_RTH;
 }
+#endif
 
 static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
 {
@@ -4146,9 +4171,11 @@ void applyWaypointNavigationAndAltitudeHold(void)
     posControl.flags.horizontalPositionDataConsumed = false;
     posControl.flags.verticalPositionDataConsumed = false;
 
+#ifdef USE_FW_AUTOLAND
     if (!isFwLandInProgess()) {
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
     }
+#endif
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
@@ -5029,6 +5056,8 @@ uint8_t getActiveWpNumber(void)
     return NAV_Status.activeWpNumber;
 }
 
+#ifdef USE_FW_AUTOLAND
+
 static void resetFwAutoland(void)
 {
     posControl.fwLandState.landAltAgl = 0; 
@@ -5122,3 +5151,5 @@ bool canFwLandCanceld(void)
     || posControl.navState == NAV_STATE_FW_LANDING_APPROACH
     || posControl.navState == NAV_STATE_FW_LANDING_GLIDE;
 }
+
+#endif
