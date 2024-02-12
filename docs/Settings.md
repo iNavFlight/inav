@@ -2922,6 +2922,16 @@ Length of the final approach
 
 ---
 
+### nav_fw_land_dive_angle
+
+Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | -20 | 20 |
+
+---
+
 ### nav_fw_land_final_approach_pitch2throttle_mod
 
 Modifier for pitch to throttle ratio at final approach. In Percent.
