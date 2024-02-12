@@ -58,10 +58,12 @@
 
 #define RF_PORT 18083
 #define RF_MAX_CHANNEL_COUNT 12
-// RealFlight scenerys doesn't represent real landscapes, so fake some nice coords
-#define FAKE_LAT 37.277127f
-#define FAKE_LON -115.799669f
+// RealFlight scenerys doesn't represent real landscapes, so fake some nice coords: Area 51 ;)
+//#define FAKE_LAT 37.277127f
+//#define FAKE_LON -115.799669f
 
+#define FAKE_LAT 0
+#define FAKE_LON 0
 
 static uint8_t pwmMapping[RF_MAX_PWM_OUTS];
 static uint8_t mappingCount;
