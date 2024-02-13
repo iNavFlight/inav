@@ -37,9 +37,9 @@ The following graphics illustrate the process:
 All settings can also be conveniently made in the Configurator via Missionplanner.
 
 CLI command `fwapproach`:
-`fwapproach <index> <Apprach direction> <Approach altitude> <Land altitude> <approach heading 1> <approach heading 2> <sea level>`
+`fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level>`
 
-`fwapprach` has 17 slots in which landing parameters can be stored. In slot 0-7 the landing parameters for Safehome are stored, in 8 - 16 the parameters for waypoint missions. Only one landing point per mission can be saved. 
+`fwapproach` has 17 slots in which landing parameters can be stored. In slot 0-7 the landing parameters for Safehome are stored, in 8 - 16 the parameters for waypoint missions. Only one landing point per mission can be saved. 
 
 * index: 0 - 17, 0 - 7 Safehome, 8 - 16 Mission
 * Approach direction: 0 - Left, 1 - Right. Always seen from the primary landing direction (positive value), i.e. whether the aircraft flies left or right turns on approach.
