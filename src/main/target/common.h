@@ -183,6 +183,14 @@
 
 #define USE_CMS_FONT_PREVIEW
 
+//ADSB RECEIVER
+#ifdef USE_GPS
+#define USE_ADSB
+#define MAX_ADSB_VEHICLES               5
+#define ADSB_LIMIT_CM                   6400000
+#endif
+
+
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
 #define USE_VTX_FFPV

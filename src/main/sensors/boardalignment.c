@@ -28,6 +28,7 @@
 
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
+#include "fc/runtime_config.h"
 
 #include "drivers/sensor.h"
 
@@ -45,6 +46,7 @@
 
 static bool standardBoardAlignment = true;     // board orientation correction
 static fpMat3_t boardRotMatrix;
+static fpMat3_t tailRotMatrix;
 
 // no template required since defaults are zero
 PG_REGISTER(boardAlignment_t, boardAlignment, PG_BOARD_ALIGNMENT, 0);
@@ -56,19 +58,19 @@ static bool isBoardAlignmentStandard(const boardAlignment_t *boardAlignment)
 
 void initBoardAlignment(void)
 {
-    if (isBoardAlignmentStandard(boardAlignment())) {
-        standardBoardAlignment = true;
-    } else {
-        fp_angles_t rotationAngles;
+    standardBoardAlignment=isBoardAlignmentStandard(boardAlignment());
+    fp_angles_t rotationAngles;
+    
+    rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(boardAlignment()->rollDeciDegrees );
+    rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
+    rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
 
-        standardBoardAlignment = false;
-
-        rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(boardAlignment()->rollDeciDegrees );
-        rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
-        rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
-
-        rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
-    }
+    rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
+    fp_angles_t tailSitter_rotationAngles;
+    tailSitter_rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(0);
+    tailSitter_rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(900);
+    tailSitter_rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(0);
+    rotationMatrixFromAngles(&tailRotMatrix, &tailSitter_rotationAngles);
 }
 
 void updateBoardAlignment(int16_t roll, int16_t pitch)
@@ -85,15 +87,23 @@ void updateBoardAlignment(int16_t roll, int16_t pitch)
     initBoardAlignment();
 }
 
+void applyTailSitterAlignment(fpVector3_t *fpVec)
+{
+    if (!STATE(TAILSITTER)) {
+        return;
+    }
+    rotationMatrixRotateVector(fpVec, fpVec, &tailRotMatrix);
+}
+
 void applyBoardAlignment(float *vec)
 {
-    if (standardBoardAlignment) {
+    if (standardBoardAlignment && (!STATE(TAILSITTER))) {
         return;
     }
 
     fpVector3_t fpVec = { .v = { vec[X], vec[Y], vec[Z] } };
     rotationMatrixRotateVector(&fpVec, &fpVec, &boardRotMatrix);
-
+    applyTailSitterAlignment(&fpVec);
     vec[X] = lrintf(fpVec.x);
     vec[Y] = lrintf(fpVec.y);
     vec[Z] = lrintf(fpVec.z);
