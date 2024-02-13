@@ -39,8 +39,7 @@ Edit file `./.vscode/c_cpp_properties.json` to setup enabled `defines`
             "intelliSenseMode": "msvc-x64",
             "cStandard": "c11",
             "cppStandard": "c++17",
-            "defines": [
-                "NAV_FIXED_WING_LANDING",
+            "defines": [,
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",
                 "USE_GYRO_NOTCH_2",

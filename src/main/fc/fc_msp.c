@@ -1660,6 +1660,24 @@ static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
 }
 #endif
 
+#ifdef USE_FW_AUTOLAND
+static mspResult_e mspFwApproachOutCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const uint8_t idx = sbufReadU8(src);
+    if(idx < MAX_FW_LAND_APPOACH_SETTINGS) {
+        sbufWriteU8(dst, idx);
+        sbufWriteU32(dst, fwAutolandApproachConfig(idx)->approachAlt);
+        sbufWriteU32(dst, fwAutolandApproachConfig(idx)->landAlt);
+        sbufWriteU8(dst, fwAutolandApproachConfig(idx)->approachDirection);
+        sbufWriteU16(dst, fwAutolandApproachConfig(idx)->landApproachHeading1);
+        sbufWriteU16(dst, fwAutolandApproachConfig(idx)->landApproachHeading2);
+        sbufWriteU8(dst, fwAutolandApproachConfig(idx)->isSeaLevelRef);
+        return MSP_RESULT_ACK;
+    } else {
+         return MSP_RESULT_ERROR;
+    }
+}
+#endif
 
 static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
     const uint8_t idx = sbufReadU8(src);
@@ -2652,6 +2670,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_WP:
         if (dataSize == 21) {
+            
             const uint8_t msp_wp_no = sbufReadU8(src);     // get the waypoint number
             navWaypoint_t msp_wp;
             msp_wp.action = sbufReadU8(src);    // action
@@ -2663,8 +2682,23 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             msp_wp.p3 = sbufReadU16(src);       // P3
             msp_wp.flag = sbufReadU8(src);      // future: to set nav flag
             setWaypoint(msp_wp_no, &msp_wp);
-        } else
+
+#ifdef USE_FW_AUTOLAND
+            static uint8_t mmIdx = 0, fwAppraochStartIdx = 8;
+#ifdef USE_SAFE_HOME
+            fwAppraochStartIdx = MAX_SAFE_HOMES;
+#endif
+            if (msp_wp_no == 0) {
+                mmIdx = 0;
+            } else if (msp_wp.flag == NAV_WP_FLAG_LAST) {
+                mmIdx++;
+            }
+            resetFwAutolandApproach(fwAppraochStartIdx + mmIdx);
+#endif
+        } else {
             return MSP_RESULT_ERROR;
+        }
+
         break;
     case MSP2_COMMON_SET_RADAR_POS:
         if (dataSize == 19) {
@@ -3114,13 +3148,41 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_SAFE_HOME
     case MSP2_INAV_SET_SAFEHOME:
         if (dataSize == 10) {
-             uint8_t i;
-             if (!sbufReadU8Safe(&i, src) || i >= MAX_SAFE_HOMES) {
-                 return MSP_RESULT_ERROR;
-             }
-             safeHomeConfigMutable(i)->enabled = sbufReadU8(src);
-             safeHomeConfigMutable(i)->lat = sbufReadU32(src);
-             safeHomeConfigMutable(i)->lon = sbufReadU32(src);
+            uint8_t i;
+            if (!sbufReadU8Safe(&i, src) || i >= MAX_SAFE_HOMES) {
+                return MSP_RESULT_ERROR;
+            }
+            safeHomeConfigMutable(i)->enabled = sbufReadU8(src);
+            safeHomeConfigMutable(i)->lat = sbufReadU32(src);
+            safeHomeConfigMutable(i)->lon = sbufReadU32(src);
+#ifdef USE_FW_AUTOLAND
+            resetFwAutolandApproach(i);
+#endif
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
+#ifdef USE_FW_AUTOLAND
+    case MSP2_INAV_SET_FW_APPROACH:
+        if (dataSize == 15) {
+            uint8_t i;
+            if (!sbufReadU8Safe(&i, src) || i >= MAX_FW_LAND_APPOACH_SETTINGS) {
+                return MSP_RESULT_ERROR;
+            }
+            fwAutolandApproachConfigMutable(i)->approachAlt = sbufReadU32(src);
+            fwAutolandApproachConfigMutable(i)->landAlt = sbufReadU32(src);
+            fwAutolandApproachConfigMutable(i)->approachDirection = sbufReadU8(src);
+             
+            int16_t head1 = 0, head2 = 0;
+            if (sbufReadI16Safe(&head1, src)) {
+                fwAutolandApproachConfigMutable(i)->landApproachHeading1 = head1;
+            }
+            if (sbufReadI16Safe(&head2, src)) {
+                fwAutolandApproachConfigMutable(i)->landApproachHeading2 = head2;
+            }
+            fwAutolandApproachConfigMutable(i)->isSeaLevelRef = sbufReadU8(src);
         } else {
             return MSP_RESULT_ERROR;
         }
@@ -3639,7 +3701,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcSafeHomeOutCommand(dst, src);
         break;
 #endif
-
+#ifdef USE_FW_AUTOLAND
+    case MSP2_INAV_FW_APPROACH:
+        *ret = mspFwApproachOutCommand(dst, src);
+        break;
+#endif
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
 		tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version

@@ -1309,6 +1309,110 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#ifdef USE_FW_AUTOLAND
+static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
+{
+    const char *format = "fwapproach %u %d %d %u %d %d %u";
+    for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
+        bool equalsDefault = false;
+        if (defaultFwAutolandApproach) {
+               equalsDefault = navFwAutolandApproach[i].approachDirection == defaultFwAutolandApproach[i].approachDirection
+               && navFwAutolandApproach[i].approachAlt == defaultFwAutolandApproach[i].approachAlt
+               && navFwAutolandApproach[i].landAlt == defaultFwAutolandApproach[i].landAlt
+               && navFwAutolandApproach[i].landApproachHeading1 == defaultFwAutolandApproach[i].landApproachHeading1
+               && navFwAutolandApproach[i].landApproachHeading2 == defaultFwAutolandApproach[i].landApproachHeading2
+               && navFwAutolandApproach[i].isSeaLevelRef == defaultFwAutolandApproach[i].isSeaLevelRef;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+               defaultFwAutolandApproach[i].approachAlt, defaultFwAutolandApproach[i].landAlt, defaultFwAutolandApproach[i].approachDirection, defaultFwAutolandApproach[i].landApproachHeading1, defaultFwAutolandApproach[i].landApproachHeading2, defaultFwAutolandApproach[i].isSeaLevelRef);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navFwAutolandApproach[i].approachAlt, navFwAutolandApproach[i].landAlt, navFwAutolandApproach[i].approachDirection, navFwAutolandApproach[i].landApproachHeading1, navFwAutolandApproach[i].landApproachHeading2, navFwAutolandApproach[i].isSeaLevelRef);
+    }
+}
+
+static void cliFwAutolandApproach(char * cmdline)
+{
+     if (isEmpty(cmdline)) {
+        printFwAutolandApproach(DUMP_MASTER, fwAutolandApproachConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetFwAutolandApproach(-1);
+    } else {
+        int32_t approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
+        bool isSeaLevelRef = false;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_FW_LAND_APPOACH_SETTINGS) {
+             cliShowArgumentRangeError("fwapproach index", 0, MAX_FW_LAND_APPOACH_SETTINGS - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                approachAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landDirection = fastA2I(ptr);
+                
+                if (landDirection != 0 && landDirection != 1) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading1 = fastA2I(ptr);
+
+                if (heading1 < -360 || heading1 > 360) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading2 = fastA2I(ptr);
+
+                if (heading2 < -360 || heading2 > 360) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+            
+            if ((ptr = nextArg(ptr))) {
+                isSeaLevelRef = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+
+            if (validArgumentCount != 6) {
+                cliShowParseError();
+            } else {
+                fwAutolandApproachConfigMutable(i)->approachAlt = approachAlt;
+                fwAutolandApproachConfigMutable(i)->landAlt = landAlt;
+                fwAutolandApproachConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading1 = (int16_t)heading1;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading2 = (int16_t)heading2;
+                fwAutolandApproachConfigMutable(i)->isSeaLevelRef = isSeaLevelRef;
+            }
+        }
+    }
+}
+#endif
+
 #if defined(USE_SAFE_HOME)
 static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
 {
@@ -3799,6 +3903,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 
+#ifdef USE_FW_AUTOLAND
+        cliPrintHashLine("Fixed Wing Approach");
+        printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
+#endif
+
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -4042,6 +4151,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("flash_read", NULL, "<length> <address>", cliFlashRead),
     CLI_COMMAND_DEF("flash_write", NULL, "<address> <message>", cliFlashWrite),
 #endif
+#endif
+#ifdef USE_FW_AUTOLAND
+    CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
 #endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
