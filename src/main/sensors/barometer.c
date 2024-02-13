@@ -335,6 +335,11 @@ int32_t baroGetLatestAltitude(void)
     return baro.BaroAlt;
 }
 
+int32_t baroGetAltitudeQne(void)
+{
+    return pressureToAltitude(baro.baroPressure);
+}
+
 int16_t baroGetTemperature(void)
 {   
     return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
