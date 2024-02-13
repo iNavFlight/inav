@@ -60,8 +60,8 @@
 #define RF_MAX_CHANNEL_COUNT 12
 // "RealFlight Ranch" is located in Sierra Nevada, southern Spain
 // This is not the Position of the Ranch, it's the Point of 0,0 in the Map (bottom left corner)
-#define FAKE_LAT  36.910610
-#define FAKE_LON  -2.876605
+#define FAKE_LAT  36.910610f
+#define FAKE_LON  -2.876605f
 
 static uint8_t pwmMapping[RF_MAX_PWM_OUTS];
 static uint8_t mappingCount;
