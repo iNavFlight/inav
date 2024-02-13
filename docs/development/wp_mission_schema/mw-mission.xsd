@@ -30,8 +30,14 @@
       <xs:attribute name="landalt" use="required" type="xs:integer"/>
       <xs:attribute name="landheading1" use="required" type="xs:integer"/>
       <xs:attribute name="landheading2" use="required" type="xs:integer"/>
-      <xs:attribute name="approachdirection" use="required"
-		    type="xs:boolean"/>
+      <xs:attribute name="approachdirection" use="required">
+	<xs:simpleType>
+	  <xs:restriction base="xs:token">
+	    <xs:enumeration value="Left"/>
+	    <xs:enumeration value="Right"/>
+	  </xs:restriction>
+	</xs:simpleType>
+      </xs:attribute>
       <xs:attribute name="sealevelref" use="required" type="xs:boolean"/>
     </xs:complexType>
   </xs:element>
