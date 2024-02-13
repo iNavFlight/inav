@@ -1342,7 +1342,7 @@ static void cliFwAutolandApproach(char * cmdline)
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         int8_t i = fastA2I(ptr);
-        if (i < 0 || i >= MAX_SAFE_HOMES) {
+        if (i < 0 || i >= MAX_FW_LAND_APPOACH_SETTINGS) {
              cliShowArgumentRangeError("fwapproach index", 0, MAX_FW_LAND_APPOACH_SETTINGS - 1);
         } else {
             if ((ptr = nextArg(ptr))) {
