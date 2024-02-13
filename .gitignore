@@ -22,6 +22,7 @@ cov-int*
 /downloads/
 /debug/
 /release/
+/*_SITL/
 
 # script-generated files
 docs/Manual.pdf
