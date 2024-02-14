@@ -96,6 +96,8 @@
 #include "io/vtx_string.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
 
+#include "io/osd/custom_elements.h"
+
 #include "msp/msp.h"
 #include "msp/msp_protocol.h"
 #include "msp/msp_serial.h"
@@ -1637,12 +1639,30 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
 #endif
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    case MSP2_INAV_CUSTOM_OSD_ELEMENTS:
+        sbufWriteU8(dst, MAX_CUSTOM_ELEMENTS);
+        sbufWriteU8(dst, OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1);
 
+        for (int i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
+            const osdCustomElement_t *customElement = osdCustomElements(i);
+            for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
+                sbufWriteU8(dst, customElement->part[ii].type);
+                sbufWriteU16(dst, customElement->part[ii].value);
+            }
+            sbufWriteU8(dst, customElement->visibility.type);
+            sbufWriteU16(dst, customElement->visibility.value);
+            for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
+                sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
+            }
+        }
+        break;
     default:
         return false;
     }
     return true;
 }
+#endif
 
 #ifdef USE_SAFE_HOME
 static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
@@ -3232,6 +3252,25 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;    
 
 #endif
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    case MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS:
+        sbufReadU8Safe(&tmp_u8, src);
+        if ((dataSize == (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (MAX_CUSTOM_ELEMENTS * 3) + 4) && (tmp_u8 < MAX_CUSTOM_ELEMENTS)) {
+            for (int i = 0; i < CUSTOM_ELEMENTS_PARTS; i++) {
+                osdCustomElementsMutable(tmp_u8)->part[i].type = sbufReadU8(src);
+                osdCustomElementsMutable(tmp_u8)->part[i].value = sbufReadU16(src);
+            }
+            osdCustomElementsMutable(tmp_u8)->visibility.type = sbufReadU8(src);
+            osdCustomElementsMutable(tmp_u8)->visibility.value = sbufReadU16(src);
+            for (int i = 0; i < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; i++) {
+                osdCustomElementsMutable(tmp_u8)->osdCustomElementText[i] = sbufReadU8(src);
+            }
+            osdCustomElementsMutable(tmp_u8)->osdCustomElementText[OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1] = '\0';
+        } else{
+            return MSP_RESULT_ERROR;
+        }
+
+        break;
 
 
     default:
@@ -3239,6 +3278,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     }
     return MSP_RESULT_ACK;
 }
+#endif
 
 static const setting_t *mspReadSetting(sbuf_t *src)
 {
