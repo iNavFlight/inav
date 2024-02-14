@@ -102,3 +102,7 @@
 #define MSP2_INAV_EZ_TUNE_SET                   0x2071
 
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
+
+#define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
+#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2101
+

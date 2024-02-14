@@ -72,6 +72,8 @@
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
+#include "io/osd/custom_elements.h"
+
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
@@ -1695,6 +1697,21 @@ static bool osdDrawSingleElement(uint8_t item)
     char buff[32] = {0};
 
     switch (item) {
+    case OSD_CUSTOM_ELEMENT_1:
+    {
+        customElementDrawElement(buff, 0);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_2:
+    {
+        customElementDrawElement(buff, 1);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_3:
+    {
+        customElementDrawElement(buff, 2);
+        break;
+    }
     case OSD_RSSI_VALUE:
         {
             uint16_t osdRssi = osdConvertRSSI();
