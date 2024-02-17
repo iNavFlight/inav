@@ -182,6 +182,8 @@
 #define SYM_BLACKBOX                0xFE  // 254 Blackbox
 
 
+#define SYM_ADSB                    0xFD // 253 ADSB
+
 #define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
 #define SYM_LOGO_WIDTH              10
 #define SYM_LOGO_HEIGHT             4

@@ -1033,7 +1033,7 @@ groups:
         max: 1
       - name: throttle_idle
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
-        default_value: 15
+        default_value: 8
         field: motor.throttleIdle
         min: 0
         max: 30
@@ -1188,6 +1188,12 @@ groups:
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
+      - name: tailsitter_orientation_offset
+        description: "Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode"
+        default_value: OFF
+        field: mixer_config.tailsitterOrientationOffset
+        type: bool
+
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
     members:
@@ -3449,6 +3455,31 @@ groups:
         min: 8
         max: 11
         default_value: 9
+
+      - name: osd_adsb_distance_warning
+        description: "Distance in meters of ADSB aircraft that is displayed"
+        default_value: 20000
+        condition: USE_ADSB
+        field: adsb_distance_warning
+        min: 1
+        max: 64000
+        type: uint16_t
+      - name: osd_adsb_distance_alert
+        description: "Distance inside which ADSB data flashes for proximity warning"
+        default_value: 3000
+        condition: USE_ADSB
+        field: adsb_distance_alert
+        min: 1
+        max: 64000
+        type: uint16_t
+      - name: osd_adsb_ignore_plane_above_me_limit
+        description: "Ignore adsb planes above, limit, 0 disabled (meters)"
+        default_value: 0
+        condition: USE_ADSB
+        field: adsb_ignore_plane_above_me_limit
+        min: 0
+        max: 64000
+        type: uint16_t
 
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
