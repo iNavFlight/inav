@@ -1751,13 +1751,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 
     float descentVelLimited = 0;
     int32_t landingElevation = posControl.rthState.homeTmpWaypoint.z;
-    fpVector3_t tmpHomePos = posControl.rthState.homeTmpWaypoint;
-    uint32_t remainingDistance = calculateDistanceToDestination(&tmpHomePos);
 
     // A safeguard - if surface altitude sensor is available and is reading < 50cm altitude - drop to min descend speed.
     // Also slow down to min descent speed during RTH MR landing if MR drifted too far away from home position.
     bool minDescentSpeedRequired = (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z < 50.0f) ||
-                                   (FLIGHT_MODE(NAV_RTH_MODE) && STATE(MULTIROTOR) && remainingDistance > MR_RTH_LAND_MARGIN_CM);
+                                   (FLIGHT_MODE(NAV_RTH_MODE) && STATE(MULTIROTOR) && posControl.homeDistance > MR_RTH_LAND_MARGIN_CM);
 
     // Do not allow descent velocity slower than -30cm/s so the landing detector works (limited by land_minalt_vspd).
     if (minDescentSpeedRequired) {
