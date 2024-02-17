@@ -296,39 +296,41 @@ typedef struct navConfig_s {
     } mc;
 
     struct {
-        uint8_t  max_bank_angle;             // Fixed wing max banking angle (deg)
-        uint16_t max_manual_climb_rate;      // manual velocity control max vertical speed
-        uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
-        uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
-        uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
-        uint8_t  control_smoothness;         // The amount of smoothing to apply to controls for navigation
-        uint16_t pitch_to_throttle_smooth;   // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
-        uint8_t  pitch_to_throttle_thresh;   // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
-        uint16_t minThrottleDownPitchAngle;  // Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle. [decidegrees]
-        uint16_t loiter_radius;              // Loiter radius when executing PH on a fixed wing
-        uint8_t  loiter_direction;           // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
+        uint8_t  max_bank_angle;                    // Fixed wing max banking angle (deg)
+        uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
+        uint8_t  max_climb_angle;                   // Fixed wing max banking angle (deg)
+        uint8_t  max_dive_angle;                    // Fixed wing max banking angle (deg)
+        uint16_t cruise_speed;                      // Speed at cruise throttle (cm/s), used for time/distance left before RTH
+        uint8_t  control_smoothness;                // The amount of smoothing to apply to controls for navigation
+        uint16_t pitch_to_throttle_smooth;          // How smoothly the autopilot makes pitch to throttle correction inside a deadband defined by pitch_to_throttle_thresh.
+        uint8_t  pitch_to_throttle_thresh;          // Threshold from average pitch where momentary pitch_to_throttle correction kicks in. [decidegrees]
+        uint16_t minThrottleDownPitchAngle;         // Automatic pitch down angle when throttle is at 0 in angle mode. Progressively applied between cruise throttle and zero throttle. [decidegrees]
+        uint16_t loiter_radius;                     // Loiter radius when executing PH on a fixed wing
+        uint8_t  loiter_direction;                  // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
         int8_t   land_dive_angle;
-        uint16_t launch_velocity_thresh;     // Velocity threshold for swing launch detection
-        uint16_t launch_accel_thresh;        // Acceleration threshold for launch detection (cm/s/s)
-        uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
-        uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
-        uint16_t launch_idle_motor_timer;    // Time to wait before motor starts at_idle throttle (ms)
-        uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
-        uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
-        uint16_t launch_min_time;	         // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
-        uint16_t launch_timeout;             // Launch timeout to disable launch mode and swith to normal flight (ms)
-        uint16_t launch_max_altitude;        // cm, altitude where to consider launch ended
-        uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
-        uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
-        bool     launch_manual_throttle;     // Allows launch with manual throttle control
-        uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
+        uint16_t launch_velocity_thresh;            // Velocity threshold for swing launch detection
+        uint16_t launch_accel_thresh;               // Acceleration threshold for launch detection (cm/s/s)
+        uint16_t launch_time_thresh;                // Time threshold for launch detection (ms)
+        uint16_t launch_motor_timer;                // Time to wait before setting launch_throttle (ms)
+        uint16_t launch_idle_motor_timer;           // Time to wait before motor starts at_idle throttle (ms)
+        uint16_t launch_motor_spinup_time;          // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
+        uint16_t launch_end_time;                   // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
+        uint16_t launch_min_time;	                // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
+        uint16_t launch_timeout;                    // Launch timeout to disable launch mode and swith to normal flight (ms)
+        uint16_t launch_max_altitude;               // cm, altitude where to consider launch ended
+        uint8_t  launch_climb_angle;                // Target climb angle for launch (deg)
+        uint8_t  launch_ascent_angle;               // Target acent angle for launch when nav_fw_launch_climb_rate is active (deg)
+        uint8_t  launch_acsent_transition_altitude; // Minimum altitude for transition to nav_fw_launch_climb_rate autolaunch phase
+        uint8_t  launch_max_angle;                  // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
+        bool     launch_manual_throttle;            // Allows launch with manual throttle control
+        uint8_t  launch_abort_deadband;             // roll/pitch stick movement deadband for launch abort
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
-        uint8_t  soaring_pitch_deadband;     // soaring mode pitch angle deadband (deg)
-        uint8_t  wp_tracking_accuracy;       // fixed wing tracking accuracy response factor
-        uint8_t  wp_tracking_max_angle;      // fixed wing tracking accuracy max alignment angle [degs]
-        uint8_t  wp_turn_smoothing;          // WP mission turn smoothing options
+        uint8_t  soaring_pitch_deadband;            // soaring mode pitch angle deadband (deg)
+        uint8_t  wp_tracking_accuracy;              // fixed wing tracking accuracy response factor
+        uint8_t  wp_tracking_max_angle;             // fixed wing tracking accuracy max alignment angle [degs]
+        uint8_t  wp_turn_smoothing;                 // WP mission turn smoothing options
     } fw;
 } navConfig_t;
 

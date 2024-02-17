@@ -50,6 +50,8 @@
 
 #include "sensors/battery.h"
 
+#include "programming/global_variables.h"
+
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
 #if !defined(UNUSED)
@@ -116,9 +118,12 @@ typedef struct fixedWingLaunchData_s {
     timeUs_t currentStateTimeUs;
     fixedWingLaunchState_t currentState;
     uint8_t pitchAngle; // used to smooth the transition of the pitch angle
+    bool ascendPhaseActive;
+    uint16_t launchThrottle;
 } fixedWingLaunchData_t;
 
 static EXTENDED_FASTRAM fixedWingLaunchData_t fwLaunch;
+static EXTENDED_FASTRAM pidController_t ascentRatePIDController;
 static bool idleMotorAboutToStart;
 
 static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE_COUNT] = {
@@ -296,6 +301,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_THROTTLE(timeUs
     }
 
     fwLaunch.pitchAngle = 0;
+    fwLaunch.ascendPhaseActive = false;
 
     return FW_LAUNCH_EVENT_NONE;
 }
@@ -397,15 +403,15 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_SPINUP(timeUs_
 
     const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
     const uint16_t motorSpinUpMs = navConfig()->fw.launch_motor_spinup_time;
-    const uint16_t launchThrottle = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
+    fwLaunch.launchThrottle = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
 
     if (elapsedTimeMs > motorSpinUpMs) {
-        rcCommand[THROTTLE] = launchThrottle;
+        rcCommand[THROTTLE] = fwLaunch.launchThrottle;
         return FW_LAUNCH_EVENT_SUCCESS;
     }
     else {
         const uint16_t minIdleThrottle = MAX(getThrottleIdleValue(), currentBatteryProfile->nav.fw.launch_idle_throttle);
-        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, motorSpinUpMs,  minIdleThrottle, launchThrottle);
+        rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, motorSpinUpMs,  minIdleThrottle, fwLaunch.launchThrottle);
     }
 
     return FW_LAUNCH_EVENT_NONE;
@@ -430,8 +436,62 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
             fwLaunch.pitchAngle = navConfig()->fw.launch_climb_angle;
         }
     } else {
+        static timeUs_t previousUpdateTimeUs;
+        const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
         initialTime = navConfig()->fw.launch_motor_timer + navConfig()->fw.launch_motor_spinup_time;
-        rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
+
+        if (!fwLaunch.ascendPhaseActive && currentBatteryProfile->nav.fw.launch_climb_rate > 0 &&
+            (navConfig()->fw.launch_acsent_transition_altitude == 0  || ((METERS_TO_CENTIMETERS(navConfig()->fw.launch_acsent_transition_altitude) > 0) && (getEstimatedActualPosition(Z) >= METERS_TO_CENTIMETERS(navConfig()->fw.launch_acsent_transition_altitude)))) &&
+            (getEstimatedActualVelocity(Z) >= (currentBatteryProfile->nav.fw.launch_climb_rate * 10)) 
+           ) {
+            fwLaunch.ascendPhaseActive = true;
+            fwLaunch.currentStateTimeUs = currentTimeUs;
+
+            navPidInit(
+                &ascentRatePIDController,
+                40 / 10.0f,
+                10 / 10.0f,
+                10 / 10.0f,
+                0.0f,
+                NAV_DTERM_CUT_HZ,
+                0.0f
+            );
+
+            navPidReset(&ascentRatePIDController);
+        } else 
+            fwLaunch.launchThrottle = currentBatteryProfile->nav.fw.launch_throttle;
+
+        if (fwLaunch.ascendPhaseActive) {
+            const timeMs_t elapsedTimeMs = currentStateElapsedMs(currentTimeUs);
+            const timeMs_t endTimeMs = 2000;
+
+            if ((navConfig()->fw.launch_ascent_angle > 0) && !(elapsedTimeMs > endTimeMs))
+                fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, navConfig()->fw.launch_ascent_angle);
+
+            float throttleAdjustment = navPidApply3(
+                &ascentRatePIDController,
+                (currentBatteryProfile->nav.fw.launch_climb_rate * 10),
+                getEstimatedActualVelocity(Z),
+                dT,
+                -1000,
+                1000,
+                0,
+                1.0f, 
+                1.0f
+            );
+
+            previousUpdateTimeUs = currentTimeUs;
+
+            fwLaunch.launchThrottle = constrain(currentBatteryProfile->nav.fw.launch_throttle + throttleAdjustment, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
+
+            updateClimbRateToAltitudeController(currentBatteryProfile->nav.fw.launch_climb_rate * 10, 0, ROC_TO_ALT_CONSTANT);
+            gvSet(0, throttleAdjustment);
+            gvSet(3, getEstimatedActualVelocity(Z));
+            gvSet(2, currentBatteryProfile->nav.fw.launch_climb_rate * 10);
+        } 
+
+        gvSet(1, fwLaunch.launchThrottle);
+        rcCommand[THROTTLE] = setDesiredThrottle(fwLaunch.launchThrottle, false);
     }
 
     if (isLaunchMaxAltitudeReached()) {
@@ -456,13 +516,12 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_FINISH(timeUs_t curr
 
     if (elapsedTimeMs > endTimeMs || isRollPitchStickDeflected(navConfig()->fw.launch_abort_deadband)) {
         return FW_LAUNCH_EVENT_SUCCESS;     // End launch go to FW_LAUNCH_STATE_FLYING state
-    }
-    else {
+    } else {
         // Make a smooth transition from the launch state to the current state for pitch angle
         // Do the same for throttle when manual launch throttle isn't used
         if (!navConfig()->fw.launch_manual_throttle) {
-            const uint16_t launchThrottle = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
-            rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, launchThrottle, rcCommand[THROTTLE]);
+            // fwLaunch.launchThrottle = setDesiredThrottle(currentBatteryProfile->nav.fw.launch_throttle, false);
+            rcCommand[THROTTLE] = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, fwLaunch.launchThrottle, rcCommand[THROTTLE]);
         }
         fwLaunch.pitchAngle = scaleRangef(elapsedTimeMs, 0.0f, endTimeMs, navConfig()->fw.launch_climb_angle, rcCommand[PITCH]);
     }

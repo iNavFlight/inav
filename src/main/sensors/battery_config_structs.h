@@ -121,6 +121,7 @@ typedef struct batteryProfile_s {
             uint8_t  pitch_to_throttle;     // Pitch angle (in deg) to throttle gain (in 1/1000's of throttle) (*10)
             uint16_t launch_idle_throttle;  // Throttle to keep at launch idle
             uint16_t launch_throttle;       // Launch throttle
+            uint8_t  launch_climb_rate;     // Target climb rate for second stage of autolaunch
         } fw;
 
     } nav;

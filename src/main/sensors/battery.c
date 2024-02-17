@@ -144,7 +144,8 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                     .min_throttle = SETTING_NAV_FW_MIN_THR_DEFAULT,
                     .pitch_to_throttle = SETTING_NAV_FW_PITCH2THR_DEFAULT,                          // pwm units per degree of pitch (10pwm units ~ 1% throttle)
                     .launch_throttle = SETTING_NAV_FW_LAUNCH_THR_DEFAULT,
-                    .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,                 // Motor idle or MOTOR_STOP
+                    .launch_idle_throttle = SETTING_NAV_FW_LAUNCH_IDLE_THR_DEFAULT,    
+                    .launch_climb_rate = SETTING_NAV_FW_LAUNCH_CLIMB_RATE_DEFAULT, 
                 }
             },
 
