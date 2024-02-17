@@ -4978,7 +4978,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         // Draw these if there is space space
         if (row < (osdDisplayPort->cols-3)) row = drawStat_GForce(statNameX, row, statValuesX);
 #ifdef USE_STATS
-        if (row < (osdDisplayPort->cols-6) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
+        if (row < (osdDisplayPort->cols-7) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
 #endif
     } else {
         switch (page) {
@@ -5021,7 +5021,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 #endif
 #endif
 #ifdef USE_STATS
-                if (row < (osdDisplayPort->cols-6) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
+                if (row < (osdDisplayPort->cols-7) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
 #endif
 
                 break;
