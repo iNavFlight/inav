@@ -4205,83 +4205,154 @@ uint8_t drawLogos(bool singular, uint8_t row) {
     return logoRow;
     }
 
-uint8_t drawStats(uint8_t row) {
 #ifdef USE_STATS
-    char string_buffer[30];
-    uint8_t statNameX = (osdDisplayPort->cols - 22) / 2;
-    uint8_t statValueX = statNameX + 21;
+uint8_t drawStat_Stats(uint8_t statNameX, uint8_t row, uint8_t statValueX, bool isBootStats)
+{
+    uint8_t buffLen = 0;
+    char string_buffer[osdDisplayPort->cols - statValueX];
 
     if (statsConfig()->stats_enabled) {
-        displayWrite(osdDisplayPort, statNameX, row, "ODOMETER:");
+        if (isBootStats)
+            displayWrite(osdDisplayPort, statNameX, row, "ODOMETER:");
+        else
+            displayWrite(osdDisplayPort, statNameX, row, "ODOMETER");
+        
         switch (osdConfig()->units) {
             case OSD_UNIT_UK:
                 FALLTHROUGH;
             case OSD_UNIT_IMPERIAL:
-                tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_MILE));
-                string_buffer[5] = SYM_MI;
+                if (isBootStats) {
+                    tfp_sprintf(string_buffer, "%5d", (uint16_t)(statsConfig()->stats_total_dist / METERS_PER_MILE));
+                    buffLen = 5;
+                } else {
+                    uint16_t statTotalDist = (uint16_t)(statsConfig()->stats_total_dist / METERS_PER_MILE);
+                    tfp_sprintf(string_buffer, ": %d", statTotalDist);
+                    buffLen = 3 + sizeof(statTotalDist);
+                }
+                
+                string_buffer[buffLen++] = SYM_MI;
                 break;
             default:
             case OSD_UNIT_GA:
-                tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_NAUTICALMILE));
-                string_buffer[5] = SYM_NM;
+                if (isBootStats) {
+                    tfp_sprintf(string_buffer, "%5d", (uint16_t)(statsConfig()->stats_total_dist / METERS_PER_NAUTICALMILE));
+                    buffLen = 5;
+                } else {
+                    uint16_t statTotalDist = (uint16_t)(statsConfig()->stats_total_dist / METERS_PER_NAUTICALMILE);
+                    tfp_sprintf(string_buffer, ": %d", statTotalDist);
+                    buffLen = 3 + sizeof(statTotalDist);
+                }
+
+                string_buffer[buffLen++] = SYM_NM;
                 break;
             case OSD_UNIT_METRIC_MPH:
                 FALLTHROUGH;
             case OSD_UNIT_METRIC:
-                tfp_sprintf(string_buffer, "%5d", (int)(statsConfig()->stats_total_dist / METERS_PER_KILOMETER));
-                string_buffer[5] = SYM_KM;
+                if (isBootStats) {
+                    tfp_sprintf(string_buffer, "%5d", (uint16_t)(statsConfig()->stats_total_dist / METERS_PER_KILOMETER));
+                    buffLen = 5;
+                } else {
+                    uint16_t statTotalDist = (uint16_t)(statsConfig()->stats_total_dist / METERS_PER_KILOMETER);
+                    tfp_sprintf(string_buffer, ": %d", statTotalDist);
+                    buffLen = 3 + sizeof(statTotalDist);
+                }   
+                
+                string_buffer[buffLen++] = SYM_KM;
                 break;
         }
-        string_buffer[6] = '\0';
-        displayWrite(osdDisplayPort, statValueX-5, row,  string_buffer);
+        string_buffer[buffLen] = '\0';
+        displayWrite(osdDisplayPort, statValueX-(isBootStats ? 5 : 0), row,  string_buffer);
 
-        displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL TIME:");
+        if (isBootStats)
+            displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL TIME:");
+        else
+            displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL TIME");
+        
         uint32_t tot_mins = statsConfig()->stats_total_time / 60;
-        tfp_sprintf(string_buffer, "%2d:%02dH:M", (int)(tot_mins / 60), (int)(tot_mins % 60));
-        displayWrite(osdDisplayPort, statValueX-7, row,  string_buffer);
+        if (isBootStats)
+            tfp_sprintf(string_buffer, "%d:%02dH:M%c", (int)(tot_mins / 60), (int)(tot_mins % 60), '\0');
+        else
+            tfp_sprintf(string_buffer, ": %d:%02dH:M%c", (int)(tot_mins / 60), (int)(tot_mins % 60), '\0');
+        
+        displayWrite(osdDisplayPort, statValueX-(isBootStats ? 7 : 0), row,  string_buffer);
 
 #ifdef USE_ADC
-        if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER)) {
-            displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL ENERGY:");
-            osdFormatCentiNumber(string_buffer, statsConfig()->stats_total_energy / 10, 0, 2, 0, 4, false);
-            displayWrite(osdDisplayPort, statValueX-4, row,  string_buffer);
-            displayWriteChar(osdDisplayPort, statValueX, row, SYM_WH);
+        if (feature(FEATURE_VBAT) && feature(FEATURE_CURRENT_METER) && statsConfig()->stats_total_energy) {
+            uint8_t buffOffset = 0;
+            if (isBootStats)
+                displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL ENERGY:");
+            else {
+                displayWrite(osdDisplayPort, statNameX, ++row, "TOTAL ENERGY");
+                string_buffer[0] = ':';
+                buffOffset = 2;
+            }
 
-            displayWrite(osdDisplayPort, statNameX, ++row, "AVG EFFICIENCY:");
+            osdFormatCentiNumber(string_buffer + buffOffset, statsConfig()->stats_total_energy / 10, 0, 2, 0, 6, true);
+            displayWrite(osdDisplayPort, statValueX - (isBootStats ? 6 : 0), row,  string_buffer);
+            displayWriteChar(osdDisplayPort, statValueX + (isBootStats ? 0 : 8), row, SYM_WH);
+
+            char avgEffBuff[osdDisplayPort->cols - statValueX];
+
+            for (uint8_t i = 0; i < osdDisplayPort->cols - statValueX; i++) {
+                avgEffBuff[i] = '\0';
+                string_buffer[i] = '\0';
+            }
+
             if (statsConfig()->stats_total_dist) {
-                uint32_t avg_efficiency = statsConfig()->stats_total_energy / (statsConfig()->stats_total_dist / METERS_PER_KILOMETER); // mWh/km
+                if (isBootStats)
+                    displayWrite(osdDisplayPort, statNameX, ++row, "AVG EFFICIENCY:");
+                else {
+                    displayWrite(osdDisplayPort, statNameX, ++row, "AVG EFFICIENCY");
+                    strcat(avgEffBuff, ": ");
+                }
+
+                float_t avg_efficiency = MWH_TO_WH(statsConfig()->stats_total_energy) / METERS_TO_KILOMETERS(statsConfig()->stats_total_dist); // Wh/km
                 switch (osdConfig()->units) {
                     case OSD_UNIT_UK:
                         FALLTHROUGH;
                     case OSD_UNIT_IMPERIAL:
-                        osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3, false);
-                        string_buffer[3] = SYM_WH_MI;
+                        osdFormatCentiNumber(string_buffer, (int32_t)(avg_efficiency * METERS_PER_MILE / 10), 0, 2, 2, 4, false);
+                        string_buffer[4] = SYM_WH_MI;
                         break;
                     case OSD_UNIT_GA:
-                        osdFormatCentiNumber(string_buffer, avg_efficiency / 10, 0, 2, 0, 3, false);
-                        string_buffer[3] = SYM_WH_NM;
+                        osdFormatCentiNumber(string_buffer, (int32_t)(avg_efficiency * METERS_PER_NAUTICALMILE / 10), 0, 2, 2, 4, false);
+                        string_buffer[4] = SYM_WH_NM;
                         break;
                     default:
                     case OSD_UNIT_METRIC_MPH:
                         FALLTHROUGH;
                     case OSD_UNIT_METRIC:
-                        osdFormatCentiNumber(string_buffer, avg_efficiency / 10000 * METERS_PER_MILE, 0, 2, 0, 3, false);
-                        string_buffer[3] = SYM_WH_KM;
+                        osdFormatCentiNumber(string_buffer, (int32_t)(avg_efficiency * 100), 0, 2, 2, 4, false);
+                        string_buffer[4] = SYM_WH_KM;
                         break;
                 }
+
+                if (isBootStats)
+                    strcat(avgEffBuff, string_buffer);
+                else
+                    strcat(avgEffBuff, osdFormatTrimWhiteSpace(string_buffer));
             } else {
-                string_buffer[0] = string_buffer[1] = string_buffer[2] = '-';
+                strcat(avgEffBuff, "----");
             }
-            string_buffer[4] = '\0';
-            displayWrite(osdDisplayPort, statValueX-3, row++,  string_buffer);
+
+            displayWrite(osdDisplayPort, statValueX-(isBootStats ? 4 : 0), row++, avgEffBuff);
         }
 #endif // USE_ADC
     }
-#endif // USE_STATS
     return row;
 }
 
-static void osdSetNextRefreshIn(uint32_t timeMs) {
+uint8_t drawStats(uint8_t row)
+{
+    uint8_t statNameX = (osdDisplayPort->cols - 22) / 2;
+    uint8_t statValueX = statNameX + 21;
+
+    return drawStat_Stats(statNameX, row, statValueX, true);
+}
+#endif // USE STATS
+
+static void osdSetNextRefreshIn(uint32_t timeMs)
+{
     resumeRefreshAt = micros() + timeMs * 1000;
     refreshWaitForResumeCmdRelease = true;
 }
@@ -4464,7 +4535,8 @@ static void osdUpdateStats(void)
     stats.max_altitude = MAX(stats.max_altitude, osdGetAltitude());
 }
 
-uint8_t drawStat_FlightTime(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_FlightTime(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     displayWrite(osdDisplayPort, col, row, "FLIGHT TIME");
     uint16_t flySeconds = getFlightTime();
@@ -4478,7 +4550,8 @@ uint8_t drawStat_FlightTime(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_FlightDistance(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_FlightDistance(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
 
     displayWrite(osdDisplayPort, col, row, "FLIGHT DISTANCE");
@@ -4489,7 +4562,8 @@ uint8_t drawStat_FlightDistance(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_MaxDistanceFromHome(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_MaxDistanceFromHome(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     uint8_t valueXOffset = 0;
     if (!osdDisplayIsHD()) {
@@ -4507,26 +4581,27 @@ uint8_t drawStat_MaxDistanceFromHome(uint8_t col, uint8_t row, uint8_t statValX)
     return row;
 }
 
-uint8_t drawStat_Speed(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_Speed(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
+    char buff2[12];
     uint8_t multiValueXOffset = 0;
 
     displayWrite(osdDisplayPort, col, row, "MAX/AVG SPEED");
-    tfp_sprintf(buff, ": ");
-    osdFormatVelocityStr(buff + 2, stats.max_3D_speed, true, false);
-    osdLeftAlignString(buff);
-    strcat(osdFormatTrimWhiteSpace(buff), "/");
+    
+    osdFormatVelocityStr(buff2, stats.max_3D_speed, true, false);
+    tfp_sprintf(buff, ": %s/", osdFormatTrimWhiteSpace(buff2));
     multiValueXOffset = strlen(buff); 
     displayWrite(osdDisplayPort, statValX, row, buff);
 
-    osdGenerateAverageVelocityStr(buff);
-    osdLeftAlignString(buff);
-    displayWrite(osdDisplayPort, statValX + multiValueXOffset, row++, buff);
+    osdGenerateAverageVelocityStr(buff2);
+    displayWrite(osdDisplayPort, statValX + multiValueXOffset, row++, osdFormatTrimWhiteSpace(buff2));
 
     return row;
 }
 
-uint8_t drawStat_MaximumAltitude(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_MaximumAltitude(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     displayWrite(osdDisplayPort, col, row, "MAX ALTITUDE");
     tfp_sprintf(buff, ": ");
@@ -4536,7 +4611,8 @@ uint8_t drawStat_MaximumAltitude(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     uint8_t multiValueXOffset = 0;
     if (!osdDisplayIsHD())
@@ -4558,7 +4634,8 @@ uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_MaximumCurrent(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_MaximumCurrent(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     displayWrite(osdDisplayPort, col, row, "MAX CURRENT");
     tfp_sprintf(buff, ": ");
@@ -4569,7 +4646,8 @@ uint8_t drawStat_MaximumCurrent(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     displayWrite(osdDisplayPort, col, row, "MAX POWER");
     tfp_sprintf(buff, ": ");
@@ -4580,7 +4658,8 @@ uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char    buff[12];
     uint8_t buffOffset = 0;
     
@@ -4603,7 +4682,8 @@ uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, bool forceMetric) {
+uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, bool forceMetric)
+{
     char buff[15];
     uint8_t buffOffset = 2;
     int32_t totalDistance = getTotalTravelDistance();
@@ -4723,7 +4803,8 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
     return row;
 }
 
-uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[20];
     uint8_t multiValueXOffset = 0;
 
@@ -4769,7 +4850,8 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_GPS(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_GPS(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     displayWrite(osdDisplayPort, col, row, "MIN/MAX GPS SATS");
     tfp_sprintf(buff, ": %u/%u", stats.min_sats, stats.max_sats);
@@ -4778,7 +4860,8 @@ uint8_t drawStat_GPS(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     displayWrite(osdDisplayPort, col, row, "MIN/MAX ESC TEMP");
     tfp_sprintf(buff, ": %3d/%3d%c", 
@@ -4790,7 +4873,8 @@ uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX)
+{
     char buff[12];
     uint8_t multiValueXOffset = 0;
 
@@ -4829,7 +4913,8 @@ uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX) {
     return row;
 }
 
-uint8_t drawStat_DisarmMethod(uint8_t col, uint8_t row, uint8_t statValX) {
+uint8_t drawStat_DisarmMethod(uint8_t col, uint8_t row, uint8_t statValX)
+{
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
 
     displayWrite(osdDisplayPort, col, row, "DISARMED BY");
@@ -4892,6 +4977,9 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 
         // Draw these if there is space space
         if (row < (osdDisplayPort->cols-3)) row = drawStat_GForce(statNameX, row, statValuesX);
+#ifdef USE_STATS
+        if (row < (osdDisplayPort->cols-6) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
+#endif
     } else {
         switch (page) {
             case 0:
@@ -4914,25 +5002,26 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                 if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX);
                 row = drawStat_GForce(statNameX, row, statValuesX); // 2 rows
                 if (osdConfig()->stats_show_metric_efficiency && osdIsNotMetric() && feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, true);
-                //row = drawStat_FlightTime(statNameX, row, statValuesX);
-                //row = drawStat_FlightTime(statNameX, row, statValuesX);
 #ifdef USE_BLACKBOX
 #ifdef USE_SDCARD
-        if (feature(FEATURE_BLACKBOX)) {
-            char buff[12];
-            displayWrite(osdDisplayPort, statNameX, row, "BLACKBOX FILE");
-            
-            tfp_sprintf(buff, ": %u/%u", stats.min_sats, stats.max_sats);
-            
-            int32_t logNumber = blackboxGetLogNumber();
-            if (logNumber >= 0)
-                tfp_sprintf(buff, ": %05ld ", logNumber);
-            else
-                strcat(buff, ": INVALID");
+                if (feature(FEATURE_BLACKBOX)) {
+                    char buff[12];
+                    displayWrite(osdDisplayPort, statNameX, row, "BLACKBOX FILE");
+                    
+                    tfp_sprintf(buff, ": %u/%u", stats.min_sats, stats.max_sats);
+                    
+                    int32_t logNumber = blackboxGetLogNumber();
+                    if (logNumber >= 0)
+                        tfp_sprintf(buff, ": %05ld ", logNumber);
+                    else
+                        strcat(buff, ": INVALID");
 
-            displayWrite(osdDisplayPort, statValuesX, row++, buff);
-        }
+                    displayWrite(osdDisplayPort, statValuesX, row++, buff);
+                }
 #endif
+#endif
+#ifdef USE_STATS
+                if (row < (osdDisplayPort->cols-6) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
 #endif
 
                 break;
