@@ -93,6 +93,7 @@ bool cliMode = false;
 #include "io/gps_ublox.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
+#include "io/osd/custom_elements.h"
 #include "io/serial.h"
 
 #include "fc/fc_msp_box.h"
@@ -1309,6 +1310,110 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#ifdef USE_FW_AUTOLAND
+static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
+{
+    const char *format = "fwapproach %u %d %d %u %d %d %u";
+    for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
+        bool equalsDefault = false;
+        if (defaultFwAutolandApproach) {
+               equalsDefault = navFwAutolandApproach[i].approachDirection == defaultFwAutolandApproach[i].approachDirection
+               && navFwAutolandApproach[i].approachAlt == defaultFwAutolandApproach[i].approachAlt
+               && navFwAutolandApproach[i].landAlt == defaultFwAutolandApproach[i].landAlt
+               && navFwAutolandApproach[i].landApproachHeading1 == defaultFwAutolandApproach[i].landApproachHeading1
+               && navFwAutolandApproach[i].landApproachHeading2 == defaultFwAutolandApproach[i].landApproachHeading2
+               && navFwAutolandApproach[i].isSeaLevelRef == defaultFwAutolandApproach[i].isSeaLevelRef;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+               defaultFwAutolandApproach[i].approachAlt, defaultFwAutolandApproach[i].landAlt, defaultFwAutolandApproach[i].approachDirection, defaultFwAutolandApproach[i].landApproachHeading1, defaultFwAutolandApproach[i].landApproachHeading2, defaultFwAutolandApproach[i].isSeaLevelRef);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navFwAutolandApproach[i].approachAlt, navFwAutolandApproach[i].landAlt, navFwAutolandApproach[i].approachDirection, navFwAutolandApproach[i].landApproachHeading1, navFwAutolandApproach[i].landApproachHeading2, navFwAutolandApproach[i].isSeaLevelRef);
+    }
+}
+
+static void cliFwAutolandApproach(char * cmdline)
+{
+     if (isEmpty(cmdline)) {
+        printFwAutolandApproach(DUMP_MASTER, fwAutolandApproachConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetFwAutolandApproach(-1);
+    } else {
+        int32_t approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
+        bool isSeaLevelRef = false;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_FW_LAND_APPOACH_SETTINGS) {
+             cliShowArgumentRangeError("fwapproach index", 0, MAX_FW_LAND_APPOACH_SETTINGS - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                approachAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landDirection = fastA2I(ptr);
+                
+                if (landDirection != 0 && landDirection != 1) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading1 = fastA2I(ptr);
+
+                if (heading1 < -360 || heading1 > 360) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading2 = fastA2I(ptr);
+
+                if (heading2 < -360 || heading2 > 360) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+            
+            if ((ptr = nextArg(ptr))) {
+                isSeaLevelRef = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+
+            if (validArgumentCount != 6) {
+                cliShowParseError();
+            } else {
+                fwAutolandApproachConfigMutable(i)->approachAlt = approachAlt;
+                fwAutolandApproachConfigMutable(i)->landAlt = landAlt;
+                fwAutolandApproachConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading1 = (int16_t)heading1;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading2 = (int16_t)heading2;
+                fwAutolandApproachConfigMutable(i)->isSeaLevelRef = isSeaLevelRef;
+            }
+        }
+    }
+}
+#endif
+
 #if defined(USE_SAFE_HOME)
 static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
 {
@@ -2228,6 +2333,137 @@ static void cliPid(char *cmdline) {
         }
     }
 }
+
+static void printOsdCustomElements(uint8_t dumpMask, const osdCustomElement_t *osdCustomElements, const osdCustomElement_t *defaultosdCustomElements)
+{
+    const char *format = "osd_custom_elements %d %d %d %d %d %d %d %d %d \"%s\"";
+
+    if(CUSTOM_ELEMENTS_PARTS != 3)
+    {
+        cliPrintHashLine("Incompatible count of elements for custom OSD elements");
+    }
+
+    for (uint8_t i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
+        bool equalsDefault = false;
+
+        const osdCustomElement_t osdCustomElement = osdCustomElements[i];
+        if(defaultosdCustomElements){
+            const osdCustomElement_t defaultValue = defaultosdCustomElements[i];
+            equalsDefault =
+                    osdCustomElement.part[0].type == defaultValue.part[0].type &&
+                    osdCustomElement.part[0].value == defaultValue.part[0].value &&
+                    osdCustomElement.part[1].type == defaultValue.part[1].type &&
+                    osdCustomElement.part[1].value == defaultValue.part[1].value &&
+                    osdCustomElement.part[2].type == defaultValue.part[2].type &&
+                    osdCustomElement.part[2].value == defaultValue.part[2].value &&
+                    osdCustomElement.visibility.type == defaultValue.visibility.type &&
+                    osdCustomElement.visibility.value == defaultValue.visibility.value &&
+                    strcmp(osdCustomElement.osdCustomElementText, defaultValue.osdCustomElementText) == 0;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                osdCustomElement.part[0].type,
+                osdCustomElement.part[0].value,
+                osdCustomElement.part[1].type,
+                osdCustomElement.part[1].value,
+                osdCustomElement.part[2].type,
+                osdCustomElement.part[2].value,
+                osdCustomElement.visibility.type,
+                osdCustomElement.visibility.value,
+                osdCustomElement.osdCustomElementText
+            );
+        }
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            osdCustomElement.part[0].type,
+            osdCustomElement.part[0].value,
+            osdCustomElement.part[1].type,
+            osdCustomElement.part[1].value,
+            osdCustomElement.part[2].type,
+            osdCustomElement.part[2].value,
+            osdCustomElement.visibility.type,
+            osdCustomElement.visibility.value,
+            osdCustomElement.osdCustomElementText
+        );
+    }
+}
+
+static void osdCustom(char *cmdline){
+    char * saveptrMain;
+    char * saveptrParams;
+    int args[10], check = 0;
+    char text[OSD_CUSTOM_ELEMENT_TEXT_SIZE];
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printOsdCustomElements(DUMP_MASTER, osdCustomElements(0), NULL);
+    } else {
+        //split by ", first are params second is text
+        char *ptrMain = strtok_r(cmdline, "\"", &saveptrMain);
+        enum {
+            INDEX = 0,
+            PART0_TYPE,
+            PART0_VALUE,
+            PART1_TYPE,
+            PART1_VALUE,
+            PART2_TYPE,
+            PART2_VALUE,
+            VISIBILITY_TYPE,
+            VISIBILITY_VALUE,
+            ARGS_COUNT
+        };
+        char *ptrParams = strtok_r(ptrMain, " ", &saveptrParams);
+        while (ptrParams != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptrParams);
+            ptrParams = strtok_r(NULL, " ", &saveptrParams);
+        }
+
+        if (check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        //text
+        char *ptrText = strtok_r(NULL, "\"", &saveptrMain);
+        size_t copySize = 0;
+        if(ptrText != NULL){
+            copySize = MIN(strlen(ptrText), (size_t)(sizeof(text) - 1));
+            if(copySize > 0){
+                memcpy(text, ptrText, copySize);
+            }
+        }
+        text[copySize] = '\0';
+
+        int32_t i = args[INDEX];
+        if (
+                i >= 0 && i < MAX_CUSTOM_ELEMENTS &&
+                args[PART0_TYPE] >= 0 && args[PART0_TYPE] <= 7 &&
+                args[PART0_VALUE] >= 0 && args[PART0_VALUE] <= UINT8_MAX &&
+                args[PART1_TYPE] >= 0 && args[PART1_TYPE] <= 7 &&
+                args[PART1_VALUE] >= 0 && args[PART1_VALUE] <= UINT8_MAX &&
+                args[PART2_TYPE] >= 0 && args[PART2_TYPE] <= 7 &&
+                args[PART2_VALUE] >= 0 && args[PART2_VALUE] <= UINT8_MAX &&
+                args[VISIBILITY_TYPE] >= 0 && args[VISIBILITY_TYPE] <= 2 &&
+                args[VISIBILITY_VALUE] >= 0 && args[VISIBILITY_VALUE] <= UINT8_MAX
+                ) {
+            osdCustomElementsMutable(i)->part[0].type = args[PART0_TYPE];
+            osdCustomElementsMutable(i)->part[0].value = args[PART0_VALUE];
+            osdCustomElementsMutable(i)->part[1].type = args[PART1_TYPE];
+            osdCustomElementsMutable(i)->part[1].value = args[PART1_VALUE];
+            osdCustomElementsMutable(i)->part[2].type = args[PART2_TYPE];
+            osdCustomElementsMutable(i)->part[2].value = args[PART2_VALUE];
+            osdCustomElementsMutable(i)->visibility.type = args[VISIBILITY_TYPE];
+            osdCustomElementsMutable(i)->visibility.value = args[VISIBILITY_VALUE];
+            memcpy(osdCustomElementsMutable(i)->osdCustomElementText, text, OSD_CUSTOM_ELEMENT_TEXT_SIZE);
+
+            osdCustom("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
 
 #endif
 
@@ -3799,6 +4035,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
 
+#ifdef USE_FW_AUTOLAND
+        cliPrintHashLine("Fixed Wing Approach");
+        printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
+#endif
+
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -3862,6 +4103,10 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("Programming: PID controllers");
         printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
+#endif
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        cliPrintHashLine("OSD: custom elements");
+        printOsdCustomElements(dumpMask, osdCustomElements_CopyArray, osdCustomElements(0));
 #endif
 
         cliPrintHashLine("master");
@@ -4043,6 +4288,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("flash_write", NULL, "<address> <message>", cliFlashWrite),
 #endif
 #endif
+#ifdef USE_FW_AUTOLAND
+    CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
+#endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
@@ -4089,6 +4337,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("pid", "configurable PID controllers",
         "<#> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>\r\n"
         "\treset\r\n", cliPid),
+
+    CLI_COMMAND_DEF("osd_custom_elements", "configurable OSD custom elements",
+                    "<#> <part0 type> <part0 value> <part1 type> <part1 value> <part2 type> <part2 value> <visibility type> <visibility value> <text>\r\n"
+                    , osdCustom),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",

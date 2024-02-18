@@ -2316,7 +2316,7 @@ groups:
         field: w_z_surface_p
         min: 0
         max: 100
-        default_value: 3.5
+        default_value: 3.5 
       - name: inav_w_z_surface_v
         field: w_z_surface_v
         min: 0
@@ -2836,15 +2836,12 @@ groups:
         field: fw.control_smoothness
         min: 0
         max: 9
-
       - name: nav_fw_land_dive_angle
         description: "Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees"
         default_value: 2
         field: fw.land_dive_angle
-        condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
-
       - name: nav_fw_launch_velocity
         description: "Forward velocity threshold for swing-launch detection [cm/s]"
         default_value: 300
@@ -2921,10 +2918,10 @@ groups:
         default_value: OFF
         field: fw.launch_manual_throttle
         type: bool
-      - name: nav_fw_launch_abort_deadband
-        description: "Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch."
+      - name: nav_fw_launch_land_abort_deadband
+        description: "Launch and landing abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch or landing."
         default_value: 100
-        field: fw.launch_abort_deadband
+        field: fw.launch_land_abort_deadband
         min: 2
         max: 250
       - name: nav_fw_allow_manual_thr_increase
@@ -4092,3 +4089,51 @@ groups:
         field: osd_joystick_enter
         min: 0
         max: 100
+
+  - name: PG_FW_AUTOLAND_CONFIG
+    type: navFwAutolandConfig_t
+    headers: ["navigation/navigation.h"]
+    condition: USE_FW_AUTOLAND
+    members: 
+      - name: nav_fw_land_approach_length
+        description: "Length of the final approach"
+        default_value: 35000
+        field: approachLength
+        min: 100
+        max: 100000
+      - name: nav_fw_land_final_approach_pitch2throttle_mod
+        description: "Modifier for pitch to throttle ratio at final approach. In Percent."
+        default_value: 100
+        field: finalApproachPitchToThrottleMod
+        min: 100
+        max: 400
+      - name: nav_fw_land_glide_alt
+        description: "Initial altitude of the glide phase"
+        default_value: 200
+        field: glideAltitude
+        min: 100
+        max: 5000
+      - name: nav_fw_land_flare_alt
+        description: "Initial altitude of the flare phase"
+        default_value: 150
+        field: flareAltitude
+        min: 0
+        max: 10000
+      - name: nav_fw_land_glide_pitch
+        description: "Pitch value for glide phase. In degrees."
+        default_value: 0
+        field: glidePitch
+        min: -15
+        max: 45
+      - name: nav_fw_land_flare_pitch
+        description: "Pitch value for flare phase. In degrees"
+        default_value: 8
+        field: flarePitch
+        min: -15
+        max: 45
+      - name: nav_fw_land_max_tailwind
+        description: "Max. tailwind (in cm/s) if no landing direction with downwind is available"
+        default_value: 140
+        field: maxTailwind
+        min: 0
+        max: 3000

@@ -2912,6 +2912,16 @@ P gain of Heading Hold controller (Fixedwing)
 
 ---
 
+### nav_fw_land_approach_length
+
+Length of the final approach
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 35000 | 100 | 100000 |
+
+---
+
 ### nav_fw_land_dive_angle
 
 Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees
@@ -2922,13 +2932,63 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 
 ---
 
-### nav_fw_launch_abort_deadband
+### nav_fw_land_final_approach_pitch2throttle_mod
 
-Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch.
+Modifier for pitch to throttle ratio at final approach. In Percent.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 2 | 250 |
+| 100 | 100 | 400 |
+
+---
+
+### nav_fw_land_flare_alt
+
+Initial altitude of the flare phase
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 150 | 0 | 10000 |
+
+---
+
+### nav_fw_land_flare_pitch
+
+Pitch value for flare phase. In degrees
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | -15 | 45 |
+
+---
+
+### nav_fw_land_glide_alt
+
+Initial altitude of the glide phase
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 100 | 5000 |
+
+---
+
+### nav_fw_land_glide_pitch
+
+Pitch value for glide phase. In degrees.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -15 | 45 |
+
+---
+
+### nav_fw_land_max_tailwind
+
+Max. tailwind (in cm/s) if no landing direction with downwind is available
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 140 | 0 | 3000 |
 
 ---
 
@@ -2989,6 +3049,16 @@ Launch idle throttle - throttle to be set before launch sequence is initiated. I
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 1000 | 2000 |
+
+---
+
+### nav_fw_launch_land_abort_deadband
+
+Launch and landing abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch or landing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 2 | 250 |
 
 ---
 

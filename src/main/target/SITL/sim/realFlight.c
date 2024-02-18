@@ -57,7 +57,7 @@
 #include "rx/sim.h"
 
 #define RF_PORT 18083
-#define RF_MAX_CHANNEL_COUNT 12
+#define RF_MAX_CHA
 // "RealFlight Ranch" is located in Sierra Nevada, southern Spain
 // This is not the Position of the Ranch, it's the Point of 0,0 in the Map (bottom left corner)
 #define FAKE_LAT  36.910610f

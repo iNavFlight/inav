@@ -72,6 +72,8 @@
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
+#include "io/osd/custom_elements.h"
+
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
@@ -155,16 +157,8 @@
 #define OSD_MIN_FONT_VERSION 3
 
 static timeMs_t linearDescentMessageMs  = 0;
-
-typedef enum {
-    OSD_SAVE_MESSAGE_NONE,
-    OSD_SAVE_MESSAGE_WAITING,
-    OSD_SAVE_MESSAGE_SAVING,
-    OSD_SAVE_MESSAGE_SAVED
-} osd_saveMessage_e;
-
 static timeMs_t notify_settings_saved   = 0;
-static uint8_t  savingSettings          = OSD_SAVE_MESSAGE_NONE;
+static bool     savingSettings          = false;
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -220,23 +214,16 @@ static bool osdDisplayHasCanvas;
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 9);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
-void osdSaveProcessAborted(void) {
-    notify_settings_saved = 0;
-    savingSettings = OSD_SAVE_MESSAGE_NONE;
-}
-
-void osdSaveWaitingProcess(void) {
-    savingSettings = OSD_SAVE_MESSAGE_WAITING;
-}
-
 void osdStartedSaveProcess(void) {
-    savingSettings = OSD_SAVE_MESSAGE_SAVING;
+    savingSettings = true;
 }
 
 void osdShowEEPROMSavedNotification(void) {
-    savingSettings = OSD_SAVE_MESSAGE_SAVED;
+    savingSettings = false;
     notify_settings_saved = millis() + 5000;
 }
+
+
 
 bool osdDisplayIsPAL(void)
 {
@@ -1004,15 +991,21 @@ static const char * osdFailsafeInfoMessage(void)
     }
     return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
 }
+
 #if defined(USE_SAFE_HOME)
 static const char * divertingToSafehomeMessage(void)
 {
+#ifdef USE_FW_AUTOLAND
+	if (!posControl.fwLandState.landWp && (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied)) {
+#else
     if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied) {
-        return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
-    }
-    return NULL;
-}
 #endif
+	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
+	}
+#endif
+	return NULL;   
+}
+
 
 static const char * navigationStateMessage(void)
 {
@@ -1165,7 +1158,7 @@ static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes
 #endif
     int8_t throttlePercent = getThrottlePercent(useScaled);
     if ((useScaled && throttlePercent <= 0) || !ARMING_FLAG(ARMED)) {
-        const char* message = ARMING_FLAG(ARMED) ? throttlePercent == 0 ? "IDLE" : "STOP" : "DARM";
+        const char* message = ARMING_FLAG(ARMED) ? (throttlePercent == 0 && !ifMotorstopFeatureEnabled()) ? "IDLE" : "STOP" : "DARM";
         buff[0] = SYM_THR;
         strcpy(buff + 1, message);
         return;
@@ -1704,6 +1697,21 @@ static bool osdDrawSingleElement(uint8_t item)
     char buff[32] = {0};
 
     switch (item) {
+    case OSD_CUSTOM_ELEMENT_1:
+    {
+        customElementDrawElement(buff, 0);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_2:
+    {
+        customElementDrawElement(buff, 1);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_3:
+    {
+        customElementDrawElement(buff, 2);
+        break;
+    }
     case OSD_RSSI_VALUE:
         {
             uint16_t osdRssi = osdConvertRSSI();
@@ -1967,28 +1975,27 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            uint32_t odometerDist = (uint32_t)(getTotalTravelDistance() / 100);
+            float_t odometerDist = CENTIMETERS_TO_METERS(getTotalTravelDistance());
 #ifdef USE_STATS
             odometerDist+= statsConfig()->stats_total_dist;
 #endif
-            odometerDist = odometerDist / 10;
 
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), FEET_PER_MILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_MILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_MI;
                     break;
                 default:
                 case OSD_UNIT_GA:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), (uint32_t)FEET_PER_NAUTICALMILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_NAUTICALMILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    osdFormatCentiNumber(buff, odometerDist, METERS_PER_KILOMETER, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_KILOMETERS(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_KM;
                     break;
             }
@@ -2269,7 +2276,11 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_FLYMODE:
         {
             char *p = "ACRO";
-
+#ifdef USE_FW_AUTOLAND
+            if (isFwLandInProgess()) 
+                p = "LAND";
+            else
+#endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
@@ -4549,15 +4560,12 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
-    if (savingSettings == OSD_SAVE_MESSAGE_SAVING) {
+    if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
-    } else if (savingSettings == OSD_SAVE_MESSAGE_WAITING) {
-        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
-            savingSettings = OSD_SAVE_MESSAGE_NONE;
-        } else if (savingSettings == OSD_SAVE_MESSAGE_SAVED) {
+        } else {
             displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
         }
     }
@@ -5133,8 +5141,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         const char *invertedInfoMessage = NULL;
 
         if (ARMING_FLAG(ARMED)) {
+#ifdef USE_FW_AUTOLAND
+            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding() || isFwLandInProgess()) {
+                if (isWaypointMissionRTHActive() && !posControl.fwLandState.landWp) {
+#else
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 if (isWaypointMissionRTHActive()) {
+#endif
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
                 }
@@ -5164,12 +5177,23 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     tfp_sprintf(messageBuf, "LANDING DELAY: %3u SECONDS", remainingHoldSec);
 
                     messages[messageCount++] = messageBuf;
-                } else {
-                    const char *navStateMessage = navigationStateMessage();
-                    if (navStateMessage) {
-                        messages[messageCount++] = navStateMessage;
+                } 
+
+                else {
+#ifdef USE_FW_AUTOLAND
+                    if (canFwLandCanceld()) {
+                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS);
+                    } else if (!isFwLandInProgess()) {
+#endif
+                        const char *navStateMessage = navigationStateMessage();
+                        if (navStateMessage) {
+                            messages[messageCount++] = navStateMessage;
+                        }
+#ifdef USE_FW_AUTOLAND
                     }
+#endif
                 }
+
 #if defined(USE_SAFE_HOME)
                 const char *safehomeMessage = divertingToSafehomeMessage();
                 if (safehomeMessage) {
@@ -5283,15 +5307,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         /* Messages that are shown regardless of Arming state */
 
-        if (savingSettings == OSD_SAVE_MESSAGE_SAVING) {
+        if (savingSettings == true) {
            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
-        } else if (savingSettings == OSD_SAVE_MESSAGE_WAITING) {
-            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE);
         } else if (notify_settings_saved > 0) {
             if (millis() > notify_settings_saved) {
                 notify_settings_saved = 0;
-                savingSettings = OSD_SAVE_MESSAGE_NONE;
-            } else if (savingSettings == OSD_SAVE_MESSAGE_SAVED) {
+            } else {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
             }
         }
