@@ -4272,7 +4272,7 @@ uint8_t drawStat_Stats(uint8_t statNameX, uint8_t row, uint8_t statValueX, bool 
         if (isBootStats)
             tfp_sprintf(string_buffer, "%d:%02dH:M%c", (int)(tot_mins / 60), (int)(tot_mins % 60), '\0');
         else
-            tfp_sprintf(string_buffer, ": %d:%02dH:M%c", (int)(tot_mins / 60), (int)(tot_mins % 60), '\0');
+            tfp_sprintf(string_buffer, ": %d:%02d H:M%c", (int)(tot_mins / 60), (int)(tot_mins % 60), '\0');
         
         displayWrite(osdDisplayPort, statValueX-(isBootStats ? 7 : 0), row,  string_buffer);
 
@@ -4634,34 +4634,29 @@ uint8_t drawStat_BatteryVoltage(uint8_t col, uint8_t row, uint8_t statValX)
     return row;
 }
 
-uint8_t drawStat_MaximumCurrent(uint8_t col, uint8_t row, uint8_t statValX)
+uint8_t drawStat_MaximumPowerAndCurrent(uint8_t col, uint8_t row, uint8_t statValX)
 {
     char buff[12];
-    displayWrite(osdDisplayPort, col, row, "MAX CURRENT");
-    tfp_sprintf(buff, ": ");
-    osdFormatCentiNumber(buff + 2, stats.max_current, 0, 2, 0, 3, false);
-    tfp_sprintf(buff + strlen(buff), "%c", SYM_AMP);
-    displayWrite(osdDisplayPort, statValX, row++, buff);
+    char outBuff[12];
+    tfp_sprintf(outBuff, ": ");
+    osdFormatCentiNumber(buff, stats.max_current, 0, 2, 0, 3, false);
+    strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+    strcat(outBuff, "/");
+    bool kiloWatt = osdFormatCentiNumber(buff, stats.max_power, 1000, 2, 2, 3, false);
+    strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+    displayWrite(osdDisplayPort, statValX, row, outBuff);
 
-    return row;
-}
+    if (kiloWatt)
+        displayWrite(osdDisplayPort, col, row, "MAX AMPS/K WATTS");
+    else
+        displayWrite(osdDisplayPort, col, row, "MAX AMPS/WATTS");
 
-uint8_t drawStat_MaximumPower(uint8_t col, uint8_t row, uint8_t statValX)
-{
-    char buff[12];
-    displayWrite(osdDisplayPort, col, row, "MAX POWER");
-    tfp_sprintf(buff, ": ");
-    bool kiloWatt = osdFormatCentiNumber(buff + 2, stats.max_power, 1000, 2, 2, 3, false);
-    tfp_sprintf(buff + strlen(osdFormatTrimWhiteSpace(buff)), "%c", (char)(kiloWatt ? SYM_KILOWATT : SYM_WATT));
-    displayWrite(osdDisplayPort, statValX, row++, buff);
-
-    return row;
+    return ++row;
 }
 
 uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX)
 {
     char    buff[12];
-    uint8_t buffOffset = 0;
     
     if (osdDisplayIsHD())
         displayWrite(osdDisplayPort, col, row, "USED ENERGY FLT/TOT");
@@ -4671,11 +4666,13 @@ uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX)
     if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
         tfp_sprintf(buff + 2, "%d/%d%c", (int)(getMAhDrawn() - stats.flightStartMAh), (int)getMAhDrawn(), SYM_MAH);
     } else {
-        osdFormatCentiNumber(buff + 2, (getMWhDrawn() - stats.flightStartMWh) / 10, 0, 2, 0, 3, false);
-        tfp_sprintf(buff, "%s/", buff);
-        buffOffset = strlen(buff);
-        osdFormatCentiNumber(buff + buffOffset, getMWhDrawn() / 10, 0, 2, 0, 3, false);
-        tfp_sprintf(buff, "%s%c", buff, SYM_WH);
+        char preBuff[12];
+        osdFormatCentiNumber(preBuff, (getMWhDrawn() - stats.flightStartMWh) / 10, 0, 2, 0, 3, false);
+        strcat(buff, osdFormatTrimWhiteSpace(preBuff));
+        strcat(buff, "/");
+        osdFormatCentiNumber(preBuff, getMWhDrawn() / 10, 0, 2, 0, 3, false);
+        strcat(buff, osdFormatTrimWhiteSpace(preBuff));
+        tfp_sprintf(buff + strlen(buff), "%s%c", buff, SYM_WH);
     }
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
@@ -4685,7 +4682,7 @@ uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX)
 uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, bool forceMetric)
 {
     char buff[15];
-    uint8_t buffOffset = 2;
+    char outBuff[15];
     int32_t totalDistance = getTotalTravelDistance();
     bool moreThanAh = false;
     bool efficiencyValid = totalDistance >= 10000;
@@ -4695,7 +4692,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
     else
         displayWrite(osdDisplayPort, col, row, "AV EFFICIENCY F/T");
 
-    tfp_sprintf(buff, ": ");
+    tfp_sprintf(outBuff, ": ");
     uint8_t digits = 3U;    // Total number of digits (including decimal point)
 #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
     if (isBfCompatibleVideoSystem(osdConfig())) {
@@ -4710,56 +4707,77 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
             case OSD_UNIT_IMPERIAL:
                 if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
                     if (efficiencyValid) {
-                        moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)((getMAhDrawn() - stats.flightStartMAh) * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
-                        strcat(buff, "/");
-                        buffOffset = strlen(buff);
-                        moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
-                        
-                        if (!moreThanAh) {
-                            tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
-                        } else {
-                            tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_MI);
+                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)((getMAhDrawn() - stats.flightStartMAh) * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                        if (osdDisplayIsHD()) {
+                            if (!moreThanAh) 
+                                tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                            else 
+                                tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_MI);
+                            
+                            moreThanAh = false;
                         }
+
+                        strcat(outBuff, "/");
+                        moreThanAh = moreThanAh || osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_MILE / totalDistance), 1000, 0, 2, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                        
+                        if (!moreThanAh)
+                            tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        else
+                            tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_MI);
                     } else {
-                        tfp_sprintf(buff + buffOffset, "---/---%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        tfp_sprintf(outBuff + strlen(outBuff), "---/---%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                     }
                 } else {
                     if (efficiencyValid) {
-                        osdFormatCentiNumber(buff + buffOffset, (int32_t)((getMWhDrawn() - stats.flightStartMWh) * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
-                        strcat(buff, "/");
-                        buffOffset = strlen(buff);
-                        osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
+                        osdFormatCentiNumber(buff, (int32_t)((getMWhDrawn() - stats.flightStartMWh) * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                        strcat(outBuff, "/");
+                        osdFormatCentiNumber(buff + strlen(buff), (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                     } else {
-                        strcat(buff, "---/---");
+                        strcat(outBuff, "---/---");
                     }
-                    tfp_sprintf(buff + strlen(buff), "%c", SYM_WH_MI);
+                    tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_WH_MI);
                 }
                 break;
             case OSD_UNIT_GA:
                 if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
                     if (efficiencyValid) {
-                        moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)((getMAhDrawn()-stats.flightStartMAh) * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
-                        strcat(buff, "/");
-                        buffOffset = strlen(buff);
-                        moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
+                        moreThanAh = osdFormatCentiNumber(buff, (int32_t)((getMAhDrawn()-stats.flightStartMAh) * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                         if (osdDisplayIsHD()) {
+                            if (!moreThanAh) 
+                                tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                            else 
+                                tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_NM);
+                            
+                            moreThanAh = false;
+                        }
+
+                        strcat(outBuff, "/");
+                        moreThanAh = moreThanAh || osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                         if (!moreThanAh) {
-                            tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                            tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                         } else {
-                            tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_NM);
+                            tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_NM);
                         }
                     } else {
-                        tfp_sprintf(buff + buffOffset, "---/---%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                        tfp_sprintf(outBuff + strlen(outBuff), "---/---%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                     }
                 } else {
                     if (efficiencyValid) {
-                        osdFormatCentiNumber(buff + buffOffset, (int32_t)((getMWhDrawn()-stats.flightStartMWh) * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits, false);
-                        strcat(buff, "/");
-                        buffOffset = strlen(buff);
-                        osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits, false);
+                        osdFormatCentiNumber(buff, (int32_t)((getMWhDrawn()-stats.flightStartMWh) * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                        strcat(outBuff, "/");
+                        osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_NAUTICALMILE / totalDistance), 0, 2, 0, digits, false);
+                        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                     } else {
-                        strcat(buff, "---/---");
+                        strcat(outBuff, "---/---");
                     }
-                    tfp_sprintf(buff + strlen(buff), "%c", SYM_WH_NM);
+                    tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_WH_NM);
                 }
                 break;
             case OSD_UNIT_METRIC_MPH:
@@ -4772,33 +4790,44 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
     if (forceMetric) {
         if (osdConfig()->stats_energy_unit == OSD_STATS_ENERGY_UNIT_MAH) {
             if (efficiencyValid) {
-                moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)((getMAhDrawn() - stats.flightStartMAh) * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
-                strcat(buff, "/");
-                buffOffset = strlen(buff);
-                moreThanAh = osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
+                moreThanAh = osdFormatCentiNumber(buff, (int32_t)((getMAhDrawn() - stats.flightStartMAh) * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
+                strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                if (osdDisplayIsHD()) {
+                    if (!moreThanAh) 
+                        tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                    else 
+                        tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_KM);
+                    
+                    moreThanAh = false;
+                }
+
+                strcat(outBuff, "/");
+                moreThanAh = moreThanAh || osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
+                strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                 if (!moreThanAh) {
-                    tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                    tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                 } else {
-                    tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_KM);
+                    tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_KM);
                 }
             } else {
-                tfp_sprintf(buff + buffOffset, "---/---%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                tfp_sprintf(outBuff + strlen(outBuff), "---/---%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
             }
         } else {
             if (efficiencyValid) {
-                osdFormatCentiNumber(buff + buffOffset, (int32_t)((getMWhDrawn() - stats.flightStartMWh) * 10000.0f / totalDistance), 0, 2, 0, digits, false);
-                strcat(buff, "/");
-                buffOffset = strlen(buff);
-                osdFormatCentiNumber(buff + buffOffset, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, digits, false);
+                osdFormatCentiNumber(buff, (int32_t)((getMWhDrawn() - stats.flightStartMWh) * 10000.0f / totalDistance), 0, 2, 0, digits, false);
+                strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+                strcat(outBuff, "/");
+                osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10000.0f / totalDistance), 0, 2, 0, digits, false);
+                strcat(outBuff, osdFormatTrimWhiteSpace(buff));
             } else {
-                strcat(buff, "---/---");
+                strcat(outBuff, "---/---");
             }
-            tfp_sprintf(buff + strlen(buff), "%c", SYM_WH_KM);
+            tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_WH_KM);
         }
     }
 
-    osdLeftAlignString(buff);
-    displayWrite(osdDisplayPort, statValX, row++, buff);
+    tfp_sprintf(outBuff + strlen(outBuff), "%c", '\0');
+    displayWrite(osdDisplayPort, statValX, row++, outBuff);
 
     return row;
 }
@@ -4876,7 +4905,7 @@ uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX)
 uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX)
 {
     char buff[12];
-    uint8_t multiValueXOffset = 0;
+    char outBuff[12];
 
     const float max_gforce = accGetMeasuredMaxG();
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
@@ -4888,27 +4917,27 @@ uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX)
     else
         displayWrite(osdDisplayPort, col, row, "MAX/MIN Z/MAX Z G-FORCE");
         
-    tfp_sprintf(buff, ": ");
-    osdFormatCentiNumber(buff + 2, max_gforce * 100, 0, 2, 0, 3, false);
+    tfp_sprintf(outBuff, ": ");
+    osdFormatCentiNumber(buff, max_gforce * 100, 0, 2, 0, 3, false);
     
     if (!osdDisplayIsHD()) {
-        displayWrite(osdDisplayPort, statValX, row++, buff);
+        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+        displayWrite(osdDisplayPort, statValX, row++, outBuff);
 
         displayWrite(osdDisplayPort, col, row, "MIN/MAX Z G-FORCE");
-        memset(buff, '\0', strlen(buff));
-        tfp_sprintf(buff, ": ");
+        memset(outBuff, '\0', strlen(outBuff));
+        tfp_sprintf(outBuff, ": ");
     } else {
-        strcat(osdFormatTrimWhiteSpace(buff), "/");
+        strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+        strcat(outBuff, "/");
     }
-    multiValueXOffset = strlen(buff);
-    osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_min * 100, 0, 2, 0, 4, false);
-    osdLeftAlignString(buff);
-    strcat(osdFormatTrimWhiteSpace(buff), "/");
+    osdFormatCentiNumber(buff, acc_extremes_min * 100, 0, 2, 0, 4, false);
+    strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+    strcat(outBuff, "/");
     
-    multiValueXOffset = strlen(buff);
-    osdFormatCentiNumber(buff + multiValueXOffset, acc_extremes_max * 100, 0, 2, 0, 3, false);
-    osdLeftAlignString(buff);
-    displayWrite(osdDisplayPort, statValX, row++, buff);
+    osdFormatCentiNumber(buff, acc_extremes_max * 100, 0, 2, 0, 3, false);
+    strcat(outBuff, osdFormatTrimWhiteSpace(buff));
+    displayWrite(osdDisplayPort, statValX, row++, outBuff);
 
     return row;
 }
@@ -4959,49 +4988,47 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(statsHeader[page + 1])) / 2, row++, statsHeader[page]);
 
     if (isSinglePageStatsCompatible) {
-        // Top 15 rows for most important stats. Max 19 rows
-        row = drawStat_FlightTime(statNameX, row, statValuesX);
-        row = drawStat_FlightDistance(statNameX, row, statValuesX);
-        if (feature(FEATURE_GPS)) row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX);
-        if (feature(FEATURE_GPS)) row = drawStat_Speed(statNameX, row, statValuesX);
-        row = drawStat_MaximumAltitude(statNameX, row, statValuesX);
-        row = drawStat_BatteryVoltage(statNameX, row, statValuesX);
-        if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumCurrent(statNameX, row, statValuesX);
-        if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumPower(statNameX, row, statValuesX);
-        if (feature(FEATURE_CURRENT_METER)) row = drawStat_UsedEnergy(statNameX, row, statValuesX);
-        if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, false);
-        if (osdConfig()->stats_show_metric_efficiency && osdIsNotMetric() && feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, true);
-        row = drawStat_RXStats(statNameX, row, statValuesX);
-        if (feature(FEATURE_GPS)) row = drawStat_GPS(statNameX, row, statValuesX);
-        if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX);
+        // Top 15 rows for most important stats. Max 19 rows (WTF)
+        row = drawStat_FlightTime(statNameX, row, statValuesX); // 1 row
+        row = drawStat_FlightDistance(statNameX, row, statValuesX); // 1 row
+        if (feature(FEATURE_GPS)) row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX); // 1 row
+        if (feature(FEATURE_GPS)) row = drawStat_Speed(statNameX, row, statValuesX); // 1 row
+        row = drawStat_MaximumAltitude(statNameX, row, statValuesX); // 1 row
+        row = drawStat_BatteryVoltage(statNameX, row, statValuesX); // 1 row
+        if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumPowerAndCurrent(statNameX, row, statValuesX); // 1 row
+        if (feature(FEATURE_CURRENT_METER)) row = drawStat_UsedEnergy(statNameX, row, statValuesX); // 1 row
+        if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, false); // 1 row
+        if (osdConfig()->stats_show_metric_efficiency && osdIsNotMetric() && feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, true); // 1 row
+        row = drawStat_RXStats(statNameX, row, statValuesX); // 1 row if non-CRSF else 2 rows
+        if (feature(FEATURE_GPS)) row = drawStat_GPS(statNameX, row, statValuesX); // 1 row
+        if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX); // 1 row
 
         // Draw these if there is space space
-        if (row < (osdDisplayPort->cols-3)) row = drawStat_GForce(statNameX, row, statValuesX);
+        if (row < (osdDisplayPort->cols-3)) row = drawStat_GForce(statNameX, row, statValuesX); // 1 row HD or 2 rows SD
 #ifdef USE_STATS
-        if (row < (osdDisplayPort->cols-7) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
+        if (row < (osdDisplayPort->cols-7) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false); // 4 rows
 #endif
     } else {
         switch (page) {
             case 0:
                 // Max 10 rows
-                row = drawStat_FlightTime(statNameX, row, statValuesX);
-                row = drawStat_FlightDistance(statNameX, row, statValuesX);
-                if (feature(FEATURE_GPS)) row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX);
-                if (feature(FEATURE_GPS)) row = drawStat_Speed(statNameX, row, statValuesX);
-                row = drawStat_MaximumAltitude(statNameX, row, statValuesX);
-                row = drawStat_BatteryVoltage(statNameX, row, statValuesX);
-                if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumCurrent(statNameX, row, statValuesX);
-                if (feature(FEATURE_CURRENT_METER))row = drawStat_MaximumPower(statNameX, row, statValuesX);
-                if (feature(FEATURE_CURRENT_METER))row = drawStat_UsedEnergy(statNameX, row, statValuesX);
-                if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, false);
+                row = drawStat_FlightTime(statNameX, row, statValuesX); // 1 row
+                row = drawStat_FlightDistance(statNameX, row, statValuesX); // 1 row
+                if (feature(FEATURE_GPS)) row = drawStat_MaxDistanceFromHome(statNameX, row, statValuesX); // 1 row
+                if (feature(FEATURE_GPS)) row = drawStat_Speed(statNameX, row, statValuesX); // 1 row
+                row = drawStat_MaximumAltitude(statNameX, row, statValuesX); // 1 row
+                row = drawStat_BatteryVoltage(statNameX, row, statValuesX); // 1 row
+                if (feature(FEATURE_CURRENT_METER)) row = drawStat_MaximumPowerAndCurrent(statNameX, row, statValuesX); // 1 row
+                if (feature(FEATURE_CURRENT_METER))row = drawStat_UsedEnergy(statNameX, row, statValuesX); // 1 row
+                if (feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, false); // 1 row
+                if (feature(FEATURE_GPS))row = drawStat_GPS(statNameX, row, statValuesX); // 1 row
                 break;
             case 1:
                 // Max 10 rows
-                row = drawStat_RXStats(statNameX, row, statValuesX); // 2 rows
-                if (feature(FEATURE_GPS))row = drawStat_GPS(statNameX, row, statValuesX);
-                if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX);
-                row = drawStat_GForce(statNameX, row, statValuesX); // 2 rows
-                if (osdConfig()->stats_show_metric_efficiency && osdIsNotMetric() && feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, true);
+                row = drawStat_RXStats(statNameX, row, statValuesX); // 1 row if non-CRSF else 2 rows
+                if (STATE(ESC_SENSOR_ENABLED)) row = drawStat_ESCTemperature(statNameX, row, statValuesX); // 1 row
+                row = drawStat_GForce(statNameX, row, statValuesX); // 1 row HD or 2 rows SD
+                if (osdConfig()->stats_show_metric_efficiency && osdIsNotMetric() && feature(FEATURE_CURRENT_METER) && feature(FEATURE_GPS)) row = drawStat_AverageEfficiency(statNameX, row, statValuesX, true); // 1 row
 #ifdef USE_BLACKBOX
 #ifdef USE_SDCARD
                 if (feature(FEATURE_BLACKBOX)) {
@@ -5016,12 +5043,12 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                     else
                         strcat(buff, ": INVALID");
 
-                    displayWrite(osdDisplayPort, statValuesX, row++, buff);
+                    displayWrite(osdDisplayPort, statValuesX, row++, buff); // 1 row
                 }
 #endif
 #endif
 #ifdef USE_STATS
-                if (row < (osdDisplayPort->cols-7) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false);
+                if (row < (osdDisplayPort->cols-7) && statsConfig()->stats_enabled) row = drawStat_Stats(statNameX, row, statValuesX, false); // 4 rows
 #endif
 
                 break;
