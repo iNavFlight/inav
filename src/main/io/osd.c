@@ -254,6 +254,7 @@ bool osdIsNotMetric(void) {
 /*
  * Aligns text to the left side. Adds spaces at the end to keep string length unchanged.
  */
+/* -- Currently unused --
 static void osdLeftAlignString(char *buff)
 {
     uint8_t sp = 0, ch = 0;
@@ -261,7 +262,7 @@ static void osdLeftAlignString(char *buff)
     while (buff[sp] == ' ') sp++;
     for (ch = 0; ch < (len - sp); ch++) buff[ch] = buff[ch + sp];
     for (sp = ch; sp < len; sp++) buff[sp] = ' ';
-}
+}*/
 
 /*
  * This is a simplified distance conversion code that does not use any scaling
