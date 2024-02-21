@@ -83,6 +83,7 @@
 #include "config/config_eeprom.h"
 #include "config/feature.h"
 
+#include "io/adsb.h"
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
@@ -948,6 +949,33 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, gpsSol.epv);
         break;
 #endif
+    case MSP2_ADSB_VEHICLE_LIST:
+#ifdef USE_ADSB
+        sbufWriteU8(dst, MAX_ADSB_VEHICLES);
+        sbufWriteU8(dst, ADSB_CALL_SIGN_MAX_LENGTH);
+
+        for(uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++){
+
+            adsbVehicle_t *adsbVehicle = findVehicle(i);
+
+            for(uint8_t ii = 0; ii < ADSB_CALL_SIGN_MAX_LENGTH; ii++){
+                sbufWriteU8(dst, adsbVehicle->vehicleValues.callsign[ii]);
+            }
+
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.icao);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.lat);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.lon);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.alt);
+            sbufWriteU16(dst, (uint16_t)CENTIDEGREES_TO_DEGREES(adsbVehicle->vehicleValues.heading));
+            sbufWriteU8(dst,  adsbVehicle->vehicleValues.tslc);
+            sbufWriteU8(dst,  adsbVehicle->vehicleValues.emitterType);
+            sbufWriteU8(dst,  adsbVehicle->ttl);
+        }
+#else
+        sbufWriteU8(dst, 0);
+        sbufWriteU8(dst, 0);
+#endif
+            break;
     case MSP_DEBUG:
         // output some useful QA statistics
         // debug[x] = ((hse_value / 1000000) * 1000) + (SystemCoreClock / 1000000);         // XX0YY [crystal clock : core clock]
@@ -1515,6 +1543,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #ifdef USE_BARO
         sbufWriteU16(dst, osdConfig()->baro_temp_alarm_min);
         sbufWriteU16(dst, osdConfig()->baro_temp_alarm_max);
+#else
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, 0);
+#endif
+#ifdef USE_ADSB
+        sbufWriteU16(dst, osdConfig()->adsb_distance_warning);
+        sbufWriteU16(dst, osdConfig()->adsb_distance_alert);
 #else
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);

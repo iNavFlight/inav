@@ -33,23 +33,23 @@ If you are getting error "standard_init_linux.go:219: exec user process caused: 
 
 You'll have to manually execute the same steps that the build script does:
 
-1. `docker build -t inav-build .`
+1. `docker build --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 -t inav-build .`
    + This step is only needed the first time.
-2. `docker run --rm -it -u root -v <PATH_TO_REPO>:/src inav-build <TARGET>`
+   + If GDB should be installed in the image, add argument '--build-arg GDB=yes'
+2. `docker run --rm -it -v <PATH_TO_REPO>:/src inav-build <TARGET>`
    + Where `<PATH_TO_REPO>` must be replaced with the absolute path of where you cloned this repo (see above), and `<TARGET>` with the name of the target that you want to build.
-   + Note that on Windows/WSL 2 mounted /src folder is writeable for root user only. You have to run build under root user. You can achieve this by using `-u root` option in the command line above.   
 
 3. If you need to update `Settings.md`, run:
 
-`docker run --entrypoint /src/cmake/docker_docs.sh --rm -it -u root -v <PATH_TO_REPO>:/src inav-build`
+`docker run --entrypoint /src/cmake/docker_docs.sh --rm -it -v <PATH_TO_REPO>:/src inav-build`
 
 4. Building SITL: 
 
-`docker run --rm --entrypoint /src/cmake/docker_build_sitl.sh -it -u root -v <PATH_TO_REPO>:/src inav-build`
+`docker run --rm --entrypoint /src/cmake/docker_build_sitl.sh -it -v <PATH_TO_REPO>:/src inav-build`
 
 5. Running SITL: 
 
-`docker run -p 5760:5760 -p 5761:5761 -p 5762:5762 -p 5763:5763 -p 5764:5764 -p 5765:5765 -p 5766:5766 -p 5767:5767 --entrypoint /src/cmake/docker_run_sitl.sh --rm -it -u root -v <PATH_TO_REPO>:/src inav-build`.
+`docker run -p 5760:5760 -p 5761:5761 -p 5762:5762 -p 5763:5763 -p 5764:5764 -p 5765:5765 -p 5766:5766 -p 5767:5767 --entrypoint /src/cmake/docker_run_sitl.sh --rm -it -v <PATH_TO_REPO>:/src inav-build`.
    + SITL command line parameters can be adjusted in `cmake/docker_run_sitl.sh`.
 
 Refer to the [Linux](#Linux) instructions or the [build script](/build.sh) for more details.
