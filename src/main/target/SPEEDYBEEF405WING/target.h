@@ -169,3 +169,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       11
+
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PC13

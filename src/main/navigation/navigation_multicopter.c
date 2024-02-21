@@ -218,11 +218,17 @@ void resetMulticopterAltitudeController(void)
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
 
     if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
+	// 7.1.0
+        // nav_speed_up = navConfig()->general.max_auto_climb_rate;
+        // nav_accel_z = navConfig()->general.max_auto_climb_rate;
         const float maxSpeed = getActiveSpeed();
         nav_speed_up = maxSpeed;
         nav_accel_z = maxSpeed;
         nav_speed_down = navConfig()->mc.max_auto_climb_rate;
     } else {
+	// 7.1.0
+        // nav_speed_up = navConfig()->general.max_manual_climb_rate;
+        // nav_accel_z = navConfig()->general.max_manual_climb_rate;
         nav_speed_up = navConfig()->general.max_manual_speed;
         nav_accel_z = navConfig()->general.max_manual_speed;
         nav_speed_down = navConfig()->mc.max_manual_climb_rate;
