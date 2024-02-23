@@ -1036,7 +1036,7 @@ groups:
         max: 1
       - name: throttle_idle
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
-        default_value: 15
+        default_value: 8
         field: motor.throttleIdle
         min: 0
         max: 30

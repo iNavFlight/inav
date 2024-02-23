@@ -5918,7 +5918,7 @@ The percentage of the throttle range (`max_throttle` - `min_command`) above `min
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 30 |
+| 8 | 0 | 30 |
 
 ---
 
