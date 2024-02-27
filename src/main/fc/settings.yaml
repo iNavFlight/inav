@@ -3742,7 +3742,20 @@ groups:
         description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
         field: highlight_djis_missing_characters
         default_value: ON
-        type: bool
+        type: bool      
+      - name: osd_map2d_vmargin
+        description: OSD 2D Map vertical lines margin (on top and bottom, spaces where nothing will be drawn)
+        field: map2d_vmargin
+        default_value: 3
+        min: 0
+        max: 10      
+      - name: osd_map2d_hmargin
+        description: OSD 2D Map horizontal lines margin (on left and right)
+        field: map2d_hmargin
+        default_value: 5
+        min: 0
+        max: 15     
+        
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

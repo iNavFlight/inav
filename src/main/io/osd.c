@@ -1265,10 +1265,9 @@ static void osdDrawMap(int referenceHeading, uint16_t referenceSym, uint16_t cen
                        uint32_t poiDistance, int16_t poiDirection, uint16_t poiSymbol,
                        uint16_t *drawn, uint32_t *usedScale)
 {
-    // TODO: These need to be tested with several setups. We might
-    // need to make them configurable.
-    const int hMargin = 5;
-    const int vMargin = 3;
+    // Configurable horizontal and vertical margins
+    const int hMargin = osdConfig()->map2d_hmargin;
+    const int vMargin = osdConfig()->map2d_vmargin;
 
     // TODO: Get this from the display driver?
     const int charWidth = 12;
@@ -3952,7 +3951,10 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 
     .stats_energy_unit = SETTING_OSD_STATS_ENERGY_UNIT_DEFAULT,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
-    .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT
+    .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,    
+
+    .map2d_vmargin = SETTING_OSD_MAP2D_VMARGIN_DEFAULT,
+    .map2d_hmargin = SETTING_OSD_MAP2D_HMARGIN_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
