@@ -469,6 +469,7 @@ typedef struct osdConfig_s {
 
     uint8_t         map2d_vmargin; // Vertical lines margin for 2D map (lines where nothing will be drawn)
     uint8_t         map2d_hmargin; // Horizontal lines margin for 2D map
+    int16_t         map2d_ref_line_heading; // Reference line heading (0 to 360, -1 to disable)
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

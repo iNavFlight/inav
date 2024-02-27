@@ -3754,8 +3754,15 @@ groups:
         field: map2d_hmargin
         default_value: 5
         min: 0
-        max: 15     
-        
+        max: 15
+      
+      - name: osd_map2d_ref_line_heading
+        description: OSD 2D Map reference line heading (0 is north, 90 east, 180 south and so on, -1 disabled)
+        field: map2d_ref_line_heading
+        default_value: -1
+        min: -1
+        max: 359
+
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]
