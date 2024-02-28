@@ -476,8 +476,9 @@ static int logicConditionCompute(
             }
             break;
 
-#ifdef LED_PIN
+#ifdef USE_LED_STRIP
         case LOGIC_CONDITION_LED_PIN_PWM:
+
             if (operandA >=0 && operandA <= 100) {
                 ledPinStartPWM((uint8_t)operandA);
             } else {
