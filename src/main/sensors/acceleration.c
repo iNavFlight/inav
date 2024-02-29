@@ -529,6 +529,15 @@ float accGetMeasuredMaxG(void)
     return acc.maxG;
 }
 
+void resetGForceStats(void) {
+    acc.maxG = 0.0f;
+
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.extremes[axis].min = 100;
+        acc.extremes[axis].max = -100;
+    }
+}
+
 void accUpdate(void)
 {
 #ifdef USE_SIMULATOR

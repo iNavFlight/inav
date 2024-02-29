@@ -35,6 +35,10 @@
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
 
+#ifdef USE_SDCARD
+#include "drivers/sdcard/sdcard.h"
+#endif
+
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/serial.h"
@@ -504,6 +508,36 @@ bool isBlackboxDeviceFull(void)
 
     default:
         return false;
+    }
+}
+
+bool isBlackboxDeviceWorking(void)
+{
+    switch (blackboxConfig()->device) {
+        case BLACKBOX_DEVICE_SERIAL:
+            return blackboxPort != NULL;
+#ifdef USE_SDCARD
+        case BLACKBOX_DEVICE_SDCARD:
+            return sdcard_isInserted() && sdcard_isFunctional() && (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY);
+#endif
+#ifdef USE_FLASHFS
+        case BLACKBOX_DEVICE_FLASH:
+            return flashfsIsReady();
+#endif
+    default:
+        return false;
+    }
+}
+
+int32_t blackboxGetLogNumber(void)
+{
+    switch (blackboxConfig()->device) {
+#ifdef USE_SDCARD
+        case BLACKBOX_DEVICE_SDCARD:
+            return blackboxSDCard.largestLogFileNumber;
+#endif
+        default:
+            return -1;
     }
 }
 
