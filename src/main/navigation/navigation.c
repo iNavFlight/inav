@@ -4975,6 +4975,12 @@ bool navigationIsFlyingAutonomousMode(void)
 
 bool navigationRTHAllowsLanding(void)
 {
+#ifdef USE_FW_AUTOLAND
+    if (posControl.fwLandState.landAborted) {
+        return false;
+    }
+#endif
+    
     // WP mission RTH landing setting
     if (isWaypointMissionRTHActive() && isWaypointMissionValid()) {
         return posControl.waypointList[posControl.startWpIndex + posControl.waypointCount - 1].p1 > 0;
