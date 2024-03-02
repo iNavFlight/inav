@@ -100,7 +100,7 @@ Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messa
 
 * [msp-tool](https://github.com/fiam/msp-tool)
 * [mwp](https://github.com/stronnag/mwptools)
-* [dbg-tool](https://github.com/stronnag/mwptools)
+* [dbg-tool](https://codeberg.org/stronnag/dbg-tool)
 * [INAV Configurator](https://github.com/iNavFlight/inav-configurator)
 
 For example, with the final lines of `src/main/fc/fc_init.c` set to:

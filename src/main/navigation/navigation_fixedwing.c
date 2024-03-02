@@ -115,7 +115,7 @@ bool adjustFixedWingAltitudeFromRCInput(void)
 
     if (rcAdjustment) {
         // set velocity proportional to stick movement
-        float rcClimbRate = -rcAdjustment * navConfig()->general.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
+        float rcClimbRate = -rcAdjustment * navConfig()->fw.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
         updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
         return true;
     }
@@ -743,7 +743,7 @@ bool isFixedWingLandingDetected(void)
 
     // Check horizontal and vertical velocities are low (cm/s)
     bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
-                        posControl.actualState.velXY < (100.0f * sensitivity);
+                        ( posControl.actualState.velXY < (100.0f * sensitivity));
     // Check angular rates are low (degs/s)
     bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
     DEBUG_SET(DEBUG_LANDING, 2, velCondition);

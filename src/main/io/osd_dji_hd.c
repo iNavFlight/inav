@@ -787,7 +787,11 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     timeUs_t currentTimeUs = micros();
     timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
 
-    if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                 1, US2S(efficiencyTimeDelta));

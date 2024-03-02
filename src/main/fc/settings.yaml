@@ -838,6 +838,12 @@ groups:
         default_value: 0
         min: -1
         max: 600
+      - name: failsafe_gps_fix_estimation_delay
+        description: "Controls whether waypoint mission is allowed to proceed with gps fix estimation. Sets the time delay in seconds between gps fix lost event and RTH activation. Minimum delay is 7 seconds. If set to -1 the mission will continue until the end. With default setting(7), waypoint mission is aborted and switched to RTH with 7 seconds delay. RTH is done with GPS Fix estimation."
+        condition: USE_GPS_FIX_ESTIMATION
+        default_value: 7
+        min: -1
+        max: 600
 
   - name: PG_LIGHTS_CONFIG
     type: lightsConfig_t
@@ -1030,7 +1036,7 @@ groups:
         max: 1
       - name: throttle_idle
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
-        default_value: 15
+        default_value: 8
         field: motor.throttleIdle
         min: 0
         max: 30
@@ -2296,6 +2302,12 @@ groups:
         default_value: OFF
         field: allow_dead_reckoning
         type: bool
+      - name: inav_allow_gps_fix_estimation
+        description: "Defines if inav will estimate GPS fix with magnetometer and barometer on GPS outages. Enables navigation and RTH without GPS fix on fixed wing. Also see failsafe_gps_fix_estimation_delay."
+        condition: USE_GPS_FIX_ESTIMATION
+        default_value: OFF
+        field: allow_gps_fix_estimation
+        type: bool
       - name: inav_reset_altitude
         description: "Defines when relative estimated altitude is reset to zero. Variants - `NEVER` (once reference is acquired it's used regardless); `FIRST_ARM` (keep altitude at zero until firstly armed), `EACH_ARM` (altitude is reset to zero on each arming)"
         default_value: "FIRST_ARM"
@@ -2504,22 +2516,10 @@ groups:
         field: general.max_auto_speed
         min: 10
         max: 2000
-      - name: nav_auto_climb_rate
-        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
-        default_value: 500
-        field: general.max_auto_climb_rate
-        min: 10
-        max: 2000
       - name: nav_manual_speed
         description: "Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
         default_value: 500
         field: general.max_manual_speed
-        min: 10
-        max: 2000
-      - name: nav_manual_climb_rate
-        description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
-        default_value: 200
-        field: general.max_manual_climb_rate
         min: 10
         max: 2000
       - name: nav_land_minalt_vspd
@@ -2688,7 +2688,7 @@ groups:
         type: bool
       - name: nav_cruise_yaw_rate
         description: "Max YAW rate when NAV COURSE HOLD/CRUISE mode is enabled. Set to 0 to disable on fixed wing (Note: On multirotor setting to 0 will disable Course Hold/Cruise mode completely) [dps]"
-        default_value: 20
+        default_value: 60
         field: general.cruise_yaw_rate
         min: 0
         max: 120
@@ -2698,6 +2698,18 @@ groups:
         field: mc.max_bank_angle
         min: 15
         max: 45
+      - name: nav_mc_auto_climb_rate
+        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
+        default_value: 500
+        field: mc.max_auto_climb_rate
+        min: 10
+        max: 2000
+      - name: nav_mc_manual_climb_rate
+        description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
+        default_value: 200
+        field: mc.max_manual_climb_rate
+        min: 10
+        max: 2000
       - name: nav_auto_disarm_delay
         description: "Delay before craft disarms when `nav_disarm_on_landing` is set (ms)"
         default_value: 1000
@@ -2783,6 +2795,12 @@ groups:
         field: fw.max_bank_angle
         min: 5
         max: 80
+      - name: nav_fw_manual_climb_rate
+        description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
+        default_value: 300
+        field: fw.max_manual_climb_rate
+        min: 10
+        max: 2500
       - name: nav_fw_climb_angle
         description: "Max pitch angle when climbing in GPS assisted modes, is also restrained by global max_angle_inclination_pit"
         default_value: 20
@@ -3440,6 +3458,31 @@ groups:
         min: 8
         max: 11
         default_value: 9
+
+      - name: osd_adsb_distance_warning
+        description: "Distance in meters of ADSB aircraft that is displayed"
+        default_value: 20000
+        condition: USE_ADSB
+        field: adsb_distance_warning
+        min: 1
+        max: 64000
+        type: uint16_t
+      - name: osd_adsb_distance_alert
+        description: "Distance inside which ADSB data flashes for proximity warning"
+        default_value: 3000
+        condition: USE_ADSB
+        field: adsb_distance_alert
+        min: 1
+        max: 64000
+        type: uint16_t
+      - name: osd_adsb_ignore_plane_above_me_limit
+        description: "Ignore adsb planes above, limit, 0 disabled (meters)"
+        default_value: 0
+        condition: USE_ADSB
+        field: adsb_ignore_plane_above_me_limit
+        min: 0
+        max: 64000
+        type: uint16_t
 
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
