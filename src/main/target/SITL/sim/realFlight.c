@@ -58,12 +58,11 @@
 
 #define RF_PORT 18083
 #define RF_MAX_CHANNEL_COUNT 12
-// RealFlight scenerys doesn't represent real landscapes, so fake some nice coords: Area 51 ;)
-//#define FAKE_LAT 37.277127f
-//#define FAKE_LON -115.799669f
 
-#define FAKE_LAT 0
-#define FAKE_LON 0
+// "RealFlight Ranch" is located in Sierra Nevada, southern Spain
+// This is not the Position of the Ranch, it's the Point of 0,0 in the Map (bottom left corner)
+#define FAKE_LAT  36.910610f
+#define FAKE_LON  -2.876605f
 
 static uint8_t pwmMapping[RF_MAX_PWM_OUTS];
 static uint8_t mappingCount;
@@ -402,9 +401,9 @@ static void exchangeData(void)
     computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
     transformVectorEarthToBody(&north, &quat);
     fakeMagSet(
-        constrainToInt16(north.x * 1024.0f),
-        constrainToInt16(north.y * 1024.0f),
-        constrainToInt16(north.z * 1024.0f)
+        constrainToInt16(north.x * 16000.0f),
+        constrainToInt16(north.y * 16000.0f),
+        constrainToInt16(north.z * 16000.0f)
     );
 
     free(rfValues.m_currentAircraftStatus);

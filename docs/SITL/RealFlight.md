@@ -3,8 +3,15 @@
 Supported are RealFlight 9.5S and RealFlight Evolution, NOT RealFlight-X.
 
 RealFlight is very well suited to simulate the model flight specific aspects. Autolaunch and the mixers can be used.
-However, since the sceneries do not correspond to a real environment, the GPS data must be "faked". The position is always shown somewhere in southern Nevada ;).
-GPS data and flight modes work fine though, only for missions with waypoints it is of course not ideal. 
+
+The RealFlight 3D sceneries are based on real topographic data of the Sierra Nevada in Southern Spain.
+INAV uses as reference the scenery "RealFlight Ranch" which is located at the coordinates Lat: 37.118949°, Lon: -2.772960.
+Use these scenery to use the mission planner and other GPS features.
+
+> [!CAUTION]:
+> The immediate surroundings of the airfield have been levelled in the scenery.  If, for example, Autoland is to be tested here, do not use "Sea level ref" and the automatically determined heights of the Configurator. 
+> Either use relarive elevations or correct the elevation manually.
+> The altitude of the airfield is exactly 1300 metres. 
 
 ## Joystick 
 In the settings, calibrate the joystick, set it up and assign the axes in the same order as in INAV.
