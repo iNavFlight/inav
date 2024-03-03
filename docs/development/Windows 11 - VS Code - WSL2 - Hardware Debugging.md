@@ -235,7 +235,6 @@ sudo udevadm control --reload-rules
             "cStandard": "c11",
             "cppStandard": "c++17",
             "defines": [
-                "NAV_FIXED_WING_LANDING",
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",
                 "USE_GYRO_NOTCH_2",
