@@ -299,10 +299,9 @@ bool validateRTHSanityChecker(void);
 void updateHomePosition(void);
 bool abortLaunchAllowed(void);
 
-static bool rthAltControlStickOverrideCheck(unsigned axis);
-
-static void updateRthTrackback(bool forceSaveTrackPoint);
-static fpVector3_t * rthGetTrackbackPos(void);
+// static bool rthAltControlStickOverrideCheck(unsigned axis);
+// static void updateRthTrackback(bool forceSaveTrackPoint);
+// static fpVector3_t * rthGetTrackbackPos(void);
 
 #ifdef USE_FW_AUTOLAND
 static float getLandAltitude(void);

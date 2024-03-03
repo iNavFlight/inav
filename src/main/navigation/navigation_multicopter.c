@@ -218,13 +218,13 @@ void resetMulticopterAltitudeController(void)
     pt1FilterReset(&posControl.pids.vel[Z].dterm_filter_state, 0.0f);
 
     if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-        nav_speed_up = navConfig()->general.max_auto_climb_rate;
-        nav_accel_z = navConfig()->general.max_auto_climb_rate;
-        nav_speed_down = navConfig()->general.max_auto_climb_rate;
+        nav_speed_up = navConfig()->mc.max_auto_climb_rate;
+        nav_accel_z = navConfig()->mc.max_auto_climb_rate;
+        nav_speed_down = navConfig()->mc.max_auto_climb_rate;
     } else {
-        nav_speed_up = navConfig()->general.max_manual_climb_rate;
-        nav_accel_z = navConfig()->general.max_manual_climb_rate;
-        nav_speed_down = navConfig()->general.max_manual_climb_rate;
+        nav_speed_up = navConfig()->mc.max_manual_climb_rate;
+        nav_accel_z = navConfig()->mc.max_manual_climb_rate;
+        nav_speed_down = navConfig()->mc.max_manual_climb_rate;
     }
 
     sqrtControllerInit(
