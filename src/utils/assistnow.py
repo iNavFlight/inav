@@ -19,6 +19,7 @@ offline_token = ""
 passthrough = False
 token_file = "tokens.yaml"
 serial_port = None
+dry_run = False
 
 
 # UBX frame
@@ -100,10 +101,12 @@ def splitUbloxCommands(ubxBytes):
                 continue
         if not ubxClass:
             ubxClass = True
+            #print ("ubxClass: %02x" % (ubxBytes[i]))
             currentCommand.append(ubxBytes[i])
             continue
         if not ubxId:
             ubxId = True
+            #print ("ubxId: %02x" % (ubxBytes[i]))
             currentCommand.append(ubxBytes[i])
             continue
         if not lenLow:
@@ -114,15 +117,20 @@ def splitUbloxCommands(ubxBytes):
         if not lenHigh:
             lenHigh = True
             payloadLen = (int(ubxBytes[i]) << 8) | payloadLen
+            #print ("Payload len %i" % (payloadLen))
             payloadLen += 2 # add crc bytes
             currentCommand.append(ubxBytes[i])
             continue
-        if skipped < payloadLen:
+        if skipped < payloadLen - 1:
             skipped = skipped + 1
             currentCommand.append(ubxBytes[i])
             continue
-        ubxCommands.append(currentCommand)
-        resetUbloxState()
+        if skipped == payloadLen - 1:
+            skipped = skipped + 1
+            currentCommand.append(ubxBytes[i])
+            ubxCommands.append(currentCommand)
+            resetUbloxState()
+            continue;
     
     return ubxCommands
 
@@ -203,7 +211,7 @@ def sendMspMessages(s, ubxMessages):
             time.sleep(1.0)
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "s:t:p", ["serial=", "tokens=", "passthrough"])
+    opts, args = getopt.getopt(sys.argv[1:], "s:t:pd", ["serial=", "tokens=", "passthrough", "dry-run"])
 except getopt.GetoptError as err:
     # print help information and exit:
     print(err)  # will print something like "option -a not recognized"
@@ -217,11 +225,13 @@ for o, a in opts:
         token_file = a
     elif o in ("-p", "--passthrough"):
         passthrough = True
+    elif o in ("-d", "--dry-run"):
+        dry_run = True
     else:
         usage()
         sys.exit(2)
 
-if serial_port == None:
+if serial_port == None and not dry_run:
     usage()
     sys.exit(2)
 
@@ -249,6 +259,15 @@ online_bytes = online.read()
 online_cmds = splitUbloxCommands(online_bytes)
 print ("AssitnowOnline: %i" % (len(online_cmds)))
 
+max_payload = 0
+max_msp_payload = 0
+for cmd in online_cmds:
+    if len(cmd) > max_payload:
+        max_payload = len(cmd)
+        max_msp_payload = len(ubloxToMsp(cmd))
+        print ("Max ubx payload: %i" % (max_payload))
+        print ("Max msp payload: %i" % (max_msp_payload))
+
 of = open("aon.ubx", "wb")
 of.write(online_req.content)
 of.close()
@@ -267,17 +286,27 @@ offline_bytes = off.read()
 offline_cmds = splitUbloxCommands(offline_bytes)
 print ("AssitnowOffline: %i" % (len(offline_cmds)))
 
+for cmd in offline_cmds:
+    if len(cmd) > max_payload:
+        max_payload = len(cmd)
+        print ("Max ubx payload: %i" % (max_payload))
+        max_msp_payload = len(ubloxToMsp(cmd))
+        print ("Max msp payload: %i" % (max_msp_payload))
+
 of = open("aoff.ubx", "wb")
 of.write(offline_req.content)
 of.close()
 
 s = serial.Serial(serial_port, 230400)
 
-if not passthrough:
-    sendMspMessages(s, offline_cmds)
-    sendMspMessages(s, online_cmds)
-else:
-    serial.write('#\r\n')
-    serial.write('gpspassthrough\r\n')
-    sendUbxMessages(s, offline_cmds)
-    sendUbxMessages(s, online_cmds)
+if not dry_run:
+    if not passthrough:
+        print ("Offline cmds...")
+        sendMspMessages(s, offline_cmds)
+        print ("Online cmds...")
+        sendMspMessages(s, online_cmds)
+    else:
+        serial.write('#\r\n')
+        serial.write('gpspassthrough\r\n')
+        sendUbxMessages(s, offline_cmds)
+        sendUbxMessages(s, online_cmds)
