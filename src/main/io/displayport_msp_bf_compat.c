@@ -65,29 +65,30 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 /*
     case SYM_HEADING:
         return BF_SYM_HEADING;
+*/
 
     case SYM_SCALE:
-        return BF_SYM_SCALE;
+        return 'I';
 
     case SYM_HDP_L:
-        return BF_SYM_HDP_L;
+        return 'L';
 
     case SYM_HDP_R:
-        return BF_SYM_HDP_R;
-*/
+        return 'R';
+
     case SYM_HOME:
         return BF_SYM_HOMEFLAG;
 
     case SYM_2RSS:
         return BF_SYM_RSSI;
 
-/*
     case SYM_DB:
-        return BF_SYM_DB
+        return 'D';
 
     case SYM_DBM:
-        return BF_SYM_DBM;
-
+        return 'D';
+        
+/*
     case SYM_SNR:
         return BF_SYM_SNR;
 
@@ -191,14 +192,14 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
         return BF_SYM_WH_NM;
 */
     case SYM_WATT:
-        return BF_SYM_WATT;
-/*
+        return 'P';
+
     case SYM_MW:
-        return BF_SYM_MW;
+        return 'P';
 
     case SYM_KILOWATT:
-        return BF_SYM_KILOWATT;
-*/
+        return 'P';
+
     case SYM_FT:
         return BF_SYM_FT;
 
@@ -293,34 +294,35 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_THR:
         return BF_SYM_THR;
 
-/*
     case SYM_TEMP_F:
-        return BF_SYM_TEMP_F;
+        return BF_SYM_TEMPERATURE;
 
     case SYM_TEMP_C:
-        return BF_SYM_TEMP_C;
-*/
+        return BF_SYM_TEMPERATURE;
+
     case SYM_BLANK:
         return BF_SYM_BLANK;
-/*
+
     case SYM_ON_H:
-        return BF_SYM_ON_H;
+        return BF_SYM_SPEED;
 
     case SYM_FLY_H:
-        return BF_SYM_FLY_H;
-*/
+        return BF_SYM_TOTAL_DISTANCE;
+
     case SYM_ON_M:
         return BF_SYM_ON_M;
 
     case SYM_FLY_M:
         return BF_SYM_FLY_M;
+        
 /*
     case SYM_GLIDESLOPE:
         return BF_SYM_GLIDESLOPE;
+*/
 
     case SYM_WAYPOINT:
-        return BF_SYM_WAYPOINT;
-
+        return '#';
+/*
     case SYM_CLOCK:
         return BF_SYM_CLOCK;
 
@@ -364,28 +366,31 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_GFORCE_Z:
         return BF_SYM_GFORCE_Z;
-
+ */
+ 
     case SYM_BARO_TEMP:
-        return BF_SYM_BARO_TEMP;
+        return BF_SYM_TEMPERATURE;
 
     case SYM_IMU_TEMP:
-        return BF_SYM_IMU_TEMP;
+        return BF_SYM_TEMPERATURE;
 
     case SYM_TEMP:
-        return BF_SYM_TEMP;
+        return BF_SYM_TEMPERATURE;
 
+/*
     case SYM_TEMP_SENSOR_FIRST:
-        return BF_SYM_TEMP_SENSOR_FIRST;
+        return BF_SYM_TEMPERATURE;
+*/
 
     case SYM_ESC_TEMP:
-        return BF_SYM_ESC_TEMP;
+        return BF_SYM_TEMPERATURE;
 
     case SYM_TEMP_SENSOR_LAST:
-        return BF_SYM_TEMP_SENSOR_LAST;
+        return BF_SYM_TEMPERATURE;
 
     case TEMP_SENSOR_SYM_COUNT:
-        return BF_TEMP_SENSOR_SYM_COUNT;
-*/
+        return BF_SYM_TEMPERATURE;
+
     case SYM_HEADING_N:
         return BF_SYM_HEADING_N;
 
@@ -633,8 +638,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_VARIO_DOWN_2A:
         return BF_SYM_VARIO_DOWN_2A;
 */
+
     case SYM_ALT:
         return BF_SYM_ALTITUDE;
+
 /*
     case SYM_HUD_SIGNAL_0:
         return BF_SYM_HUD_SIGNAL_0;
@@ -650,10 +657,10 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_HUD_SIGNAL_4:
         return BF_SYM_HUD_SIGNAL_4;
+*/
 
     case SYM_HOME_DIST:
-        return BF_SYM_HOME_DIST;
-*/
+        return BF_SYM_TOTAL_DISTANCE;
 
     case SYM_AH_CH_CENTER:
     case (SYM_AH_CH_TYPE3+1):
