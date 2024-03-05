@@ -28,6 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include "platform.h"
 
@@ -4560,6 +4561,17 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
+    if (emergInflightRearmEnabled()) {
+        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+        if (rearmMs > 0) {
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
+        }
+    }
+
     if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
     } else if (notify_settings_saved > 0) {
@@ -4861,9 +4873,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     bool statsSinglePageCompatible = (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS);
-    static uint8_t statsCurrentPage = 0;
-    static bool statsDisplayed = false;
-    static bool statsAutoPagingEnabled = true;
+    static uint8_t  statsCurrentPage = 0;
+    static timeMs_t statsRefreshTime = 0;
+    static bool     statsDisplayed = false;
+    static bool     statsAutoPagingEnabled = true;
 
     // Detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -4931,25 +4944,24 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 // Alternate screens for multi-page stats.
                 // Also, refreshes screen at swap interval for single-page stats.
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                    if (statsCurrentPage == 0) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 0)
                         statsCurrentPage = 1;
-                    }
                 } else {
-                    if (statsCurrentPage == 1) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 1)
                         statsCurrentPage = 0;
-                    }
                 }
             } else {
                 // Process manual page change events for multi-page stats.
-                if (manualPageUpRequested) {
-                    osdShowStats(statsSinglePageCompatible, 1);
+                if (manualPageUpRequested)
                     statsCurrentPage = 1;
-                } else if (manualPageDownRequested) {
-                    osdShowStats(statsSinglePageCompatible, 0);
+                else if (manualPageDownRequested)
                     statsCurrentPage = 0;
-                }
+            }
+
+            // Only refresh the stats every 1/4 of a second.
+            if (statsRefreshTime <= millis()) {
+                statsRefreshTime =  millis() + 250;
+                osdShowStats(statsSinglePageCompatible, statsCurrentPage);
             }
         }
 
@@ -5315,6 +5327,15 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             } else {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
             }
+        }
+
+        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+        if (rearmMs > 0) {
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
         }
 
         if (messageCount > 0) {
