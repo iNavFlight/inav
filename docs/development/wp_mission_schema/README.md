@@ -13,7 +13,16 @@ The format is defined the XSD schema here.
 * The `mwp` tag was introduced by the eponymous mission planner. Other mission planners may consider that reusing some of the tags (`cx`, `cy` - centre location, `zoom` TMS zoom level, `home-x`, `home-y` - home location) is useful.
 * `meta` may be used as a synonym for `mwp`.
 * The `version` tag may be intepreted by mission planners as they see fit. For example, the (obsolete) Android 'ez-gui' application requires '2.3-pre8'. For multi-mission files it is recommended to use another `version`.
-* the `mwp` / `meta` element may be interleaved with `missionitem` in a multi-mission file to provide mission segment specific home, centre locations and zoom.
+* The `mwp` / `meta` element may be interleaved with `missionitem` in a multi-mission file to provide mission segment specific home, centre locations and zoom.
+* The `fwapproach` element defines INAV 7.1.0 and later Autoland parameters for the mission.
+
+## Validation
+
+You can check that your files validate using the open source `xmlint` tool.
+
+```
+xmllint --schema docs/development/wp_mission_schema/mw-mission.xsd  test.mission --noout
+```
 
 ## Examples
 

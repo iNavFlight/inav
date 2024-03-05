@@ -26,6 +26,7 @@
 #include "common/axis.h"
 #include "common/maths.h"
 #include "common/utils.h"
+#include "common/log.h"
 
 #include "drivers/system.h"
 #include "drivers/time.h"
@@ -44,13 +45,20 @@
 #define ICM42605_PWR_MGMT0_TEMP_DISABLE_OFF         (0 << 5)
 #define ICM42605_PWR_MGMT0_TEMP_DISABLE_ON          (1 << 5)
 
+#define ICM426XX_RA_REG_BANK_SEL                    0x76
+#define ICM426XX_BANK_SELECT0                       0x00
+#define ICM426XX_BANK_SELECT1                       0x01
+#define ICM426XX_BANK_SELECT2                       0x02
+#define ICM426XX_BANK_SELECT3                       0x03
+#define ICM426XX_BANK_SELECT4                       0x04
+
 #define ICM42605_RA_GYRO_CONFIG0                    0x4F
 #define ICM42605_RA_ACCEL_CONFIG0                   0x50
 
 #define ICM42605_RA_GYRO_ACCEL_CONFIG0              0x52
 
-#define ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY       (14 << 4)
-#define ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY        (14 << 0)
+#define ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY       (15 << 4)
+#define ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY        (15 << 0)
 
 #define ICM42605_RA_GYRO_DATA_X1                    0x25
 #define ICM42605_RA_ACCEL_DATA_X1                   0x1F
@@ -85,6 +93,63 @@
 #define ICM42605_INTF_CONFIG1                       0x4D
 #define ICM42605_INTF_CONFIG1_AFSR_MASK             0xC0
 #define ICM42605_INTF_CONFIG1_AFSR_DISABLE          0x40
+
+// --- Registers for gyro and acc Anti-Alias Filter ---------
+#define ICM426XX_RA_GYRO_CONFIG_STATIC3             0x0C  // User Bank 1
+#define ICM426XX_RA_GYRO_CONFIG_STATIC4             0x0D  // User Bank 1
+#define ICM426XX_RA_GYRO_CONFIG_STATIC5             0x0E  // User Bank 1
+#define ICM426XX_RA_ACCEL_CONFIG_STATIC2            0x03  // User Bank 2
+#define ICM426XX_RA_ACCEL_CONFIG_STATIC3            0x04  // User Bank 2
+#define ICM426XX_RA_ACCEL_CONFIG_STATIC4            0x05  // User Bank 2
+
+static bool is42688P = false;
+
+typedef struct aafConfig_s {
+    uint16_t freq;
+    uint8_t delt;
+    uint16_t deltSqr;
+    uint8_t bitshift;
+} aafConfig_t;
+
+// Possible gyro Anti-Alias Filter (AAF) cutoffs for ICM-42688P
+static aafConfig_t aafLUT42688[] = {  // see table in section 5.3 https://invensense.tdk.com/wp-content/uploads/2020/04/ds-000347_icm-42688-p-datasheet.pdf
+    // freq, delt, deltSqr, bitshift
+    { 42,  1,    1, 15 },
+    { 84,  2,    4, 13 },
+    {126,  3,    9, 12 },
+    {170,  4,   16, 11 },
+    {213,  5,   25, 10 },
+    {258,  6,   36, 10 },
+    {303,  7,   49,  9 },
+    {536, 12,  144,  8 },
+    {997, 21,  440,  6 },
+    {1962, 37, 1376,  4 },
+    { 0, 0, 0, 0}, // 42HZ
+};
+
+// Possible gyro Anti-Alias Filter (AAF) cutoffs for ICM-42688P
+static aafConfig_t aafLUT42605[] = {  // see table in section 5.3 https://invensense.tdk.com/wp-content/uploads/2022/09/DS-000292-ICM-42605-v1.7.pdf
+    // freq, delt, deltSqr, bitshift
+    {  10,  1,    1, 15 },
+    {  21,  2,    4, 13 },
+    {  32,  3,    9, 12 },
+    {  42,  4,   16, 11 },
+    {  99,  9,   81,  9 },
+    { 171, 15,  224,  7 },
+    { 184, 16,  256,  7 },
+    { 196, 17,  288,  7 },
+    { 249, 21,  440,  6 },
+    { 524, 39, 1536,  4 },
+    { 995, 63, 3968,  3 },
+    {   0,  0,    0,  0 }
+};
+
+static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf);
+
+static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
+{
+    busWrite(dev, ICM426XX_RA_REG_BANK_SEL, user_bank & 7);
+}
 
 static void icm42605AccInit(accDev_t *acc)
 {
@@ -159,6 +224,7 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
 
+    setUserBank(dev, ICM426XX_BANK_SELECT0);
     busWrite(dev, ICM42605_RA_PWR_MGMT0, ICM42605_PWR_MGMT0_TEMP_DISABLE_OFF | ICM42605_PWR_MGMT0_ACCEL_MODE_LN | ICM42605_PWR_MGMT0_GYRO_MODE_LN);
     delay(15);
 
@@ -170,9 +236,27 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     delay(15);
 
     /* LPF bandwidth */
-    busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, (config->gyroConfigValues[1]) | (config->gyroConfigValues[1] << 4));
+    // low latency, same as BF
+    busWrite(dev, ICM42605_RA_GYRO_ACCEL_CONFIG0, ICM42605_ACCEL_UI_FILT_BW_LOW_LATENCY | ICM42605_GYRO_UI_FILT_BW_LOW_LATENCY);
     delay(15);
 
+    if (gyro->lpf != GYRO_LPF_NONE) {
+        // Configure gyro Anti-Alias Filter (see section 5.3 "ANTI-ALIAS FILTER")
+        const aafConfig_t *aafConfig = getGyroAafConfig(is42688P, gyro->lpf);
+    
+        setUserBank(dev, ICM426XX_BANK_SELECT1);
+        busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC3, aafConfig->delt);
+        busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC4, aafConfig->deltSqr & 0xFF);
+        busWrite(dev, ICM426XX_RA_GYRO_CONFIG_STATIC5, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
+
+        aafConfig = getGyroAafConfig(is42688P, 256);  // This was hard coded on BF
+        setUserBank(dev, ICM426XX_BANK_SELECT2);
+        busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC2, aafConfig->delt << 1);
+        busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC3, aafConfig->deltSqr & 0xFF);
+        busWrite(dev, ICM426XX_RA_ACCEL_CONFIG_STATIC4, (aafConfig->deltSqr >> 8) | (aafConfig->bitshift << 4));
+    }
+
+    setUserBank(dev, ICM426XX_BANK_SELECT0);
     busWrite(dev, ICM42605_RA_INT_CONFIG, ICM42605_INT1_MODE_PULSED | ICM42605_INT1_DRIVE_CIRCUIT_PP | ICM42605_INT1_POLARITY_ACTIVE_HIGH);
     delay(15);
 
@@ -221,7 +305,10 @@ static bool icm42605DeviceDetect(busDevice_t * dev)
         switch (tmp) {
             /* ICM42605 and ICM42688P share the register structure*/
             case ICM42605_WHO_AM_I_CONST:
+                is42688P = false;
+                return true;
             case ICM42688P_WHO_AM_I_CONST:
+                is42688P = true;
                 return true;
 
             default:
@@ -273,6 +360,59 @@ bool icm42605GyroDetect(gyroDev_t *gyro)
     gyro->gyroAlign = gyro->busDev->param;
 
     return true;
+}
+
+static uint16_t getAafFreq(const uint8_t gyroLpf)
+{
+    switch (gyroLpf) {
+        default:
+        case GYRO_LPF_256HZ:
+            return 256;
+        case GYRO_LPF_188HZ:
+            return 188;
+        case GYRO_LPF_98HZ:
+            return 98;
+        case GYRO_LPF_42HZ:
+            return 42;
+        case GYRO_LPF_20HZ:
+            return 20;
+        case GYRO_LPF_10HZ:
+            return 10;
+        case GYRO_LPF_5HZ:
+            return 5;
+        case GYRO_LPF_NONE:
+            return 0;
+    }
+}
+
+static const aafConfig_t *getGyroAafConfig(bool is42688, const uint16_t desiredLpf)
+{
+    uint16_t desiredFreq = getAafFreq(desiredLpf);
+    const aafConfig_t *aafConfigs = NULL;
+    if (is42688) {
+        aafConfigs = aafLUT42688;
+    } else {
+        aafConfigs = aafLUT42605;
+    }
+    int i;
+    int8_t selectedFreq = aafConfigs[0].freq;
+    const aafConfig_t * candidate = &aafConfigs[0];
+
+    // Choose closest supported LPF value
+    for (i = 1; aafConfigs[i].freq != 0; i++) {
+        if (ABS(desiredFreq - aafConfigs[i].freq) < ABS(desiredFreq - selectedFreq)) {
+            selectedFreq = aafConfigs[i].freq;
+            candidate = &aafConfigs[i];
+        }
+    }
+
+    LOG_VERBOSE(GYRO, "ICM426%s AAF CONFIG { %d, %d } -> { %d }; delt: %d deltSqr: %d, shift: %d",
+		(is42688P ? "88" : "05"),
+                desiredLpf, desiredFreq,
+                candidate->freq,
+                candidate->delt, candidate->deltSqr, candidate->bitshift);
+
+    return candidate;
 }
 
 #endif

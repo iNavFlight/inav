@@ -26,7 +26,7 @@
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TMR1, CH1, PA8,  TIM_USE_ANY |TIM_USE_LED, 0,7),            // PWM1 - LED MCO1 DMA1 CH2
+    DEF_TIM(TMR1, CH1, PA8,  TIM_USE_ANY |TIM_USE_LED, 0,6),            // PWM1 - LED MCO1 DMA1 CH2
 
     DEF_TIM(TMR4, CH1, PB6,  TIM_USE_OUTPUT_AUTO, 0,0),   // motor1 DMA2 CH7
     DEF_TIM(TMR4, CH2, PB7,  TIM_USE_OUTPUT_AUTO, 0,2),   // motor2 DMA2 CH6

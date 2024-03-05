@@ -36,7 +36,7 @@ BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,       1,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM4, CH2, PB7, TIM_USE_PPM,                            0, 0), // PPM / UART1_RX
+    // DEF_TIM(TIM4, CH2, PB7, TIM_USE_PPM,                            0, 0), // PPM / UART1_RX
 
     // OUTPUT 1-4
     DEF_TIM(TIM3, CH2, PB5, TIM_USE_OUTPUT_AUTO,    1, 0),  // D(1, 5, 5)

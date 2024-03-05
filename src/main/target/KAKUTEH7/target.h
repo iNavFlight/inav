@@ -113,6 +113,11 @@
 #define IMU_BMI270_ALIGN        CW0_DEG
 #endif
 
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_CS_PIN         PE4
+#define ICM42605_SPI_BUS        BUS_SPI4
+
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12

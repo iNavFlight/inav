@@ -45,8 +45,6 @@
 #define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
 
-#define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
-
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
 
@@ -158,6 +156,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_CRUISE,
     NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
     NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -173,6 +172,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_5,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE = NAV_FSM_EVENT_STATE_SPECIFIC_6,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT = NAV_FSM_EVENT_STATE_SPECIFIC_6,
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
 
@@ -233,6 +233,12 @@ typedef enum {
     NAV_PERSISTENT_ID_MIXERAT_INITIALIZE                        = 39,
     NAV_PERSISTENT_ID_MIXERAT_IN_PROGRESS                       = 40,
     NAV_PERSISTENT_ID_MIXERAT_ABORT                             = 41,
+    NAV_PERSISTENT_ID_FW_LANDING_CLIMB_TO_LOITER                = 42,
+    NAV_PERSISTENT_ID_FW_LANDING_LOITER                         = 43,
+    NAV_PERSISTENT_ID_FW_LANDING_APPROACH                       = 44,
+    NAV_PERSISTENT_ID_FW_LANDING_GLIDE                          = 45,
+    NAV_PERSISTENT_ID_FW_LANDING_FLARE                          = 46,
+    NAV_PERSISTENT_ID_FW_LANDING_ABORT                          = 47,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -279,6 +285,13 @@ typedef enum {
     NAV_STATE_CRUISE_INITIALIZE,
     NAV_STATE_CRUISE_IN_PROGRESS,
     NAV_STATE_CRUISE_ADJUSTING,
+    
+    NAV_STATE_FW_LANDING_CLIMB_TO_LOITER,
+    NAV_STATE_FW_LANDING_LOITER,
+    NAV_STATE_FW_LANDING_APPROACH,
+    NAV_STATE_FW_LANDING_GLIDE,
+    NAV_STATE_FW_LANDING_FLARE,
+    NAV_STATE_FW_LANDING_ABORT,
 
     NAV_STATE_MIXERAT_INITIALIZE,
     NAV_STATE_MIXERAT_IN_PROGRESS,
@@ -350,7 +363,32 @@ typedef struct {
     float                   rthInitialDistance;     // Distance when starting flight home
     fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
     fpVector3_t             originalHomePosition;   // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
+    bool                    rthLinearDescentActive; // Activation status of Linear Descent
 } rthState_t;
+
+#ifdef USE_FW_AUTOLAND
+typedef enum {
+    FW_AUTOLAND_WP_TURN,
+    FW_AUTOLAND_WP_FINAL_APPROACH,
+    FW_AUTOLAND_WP_LAND,
+    FW_AUTOLAND_WP_COUNT,
+} fwAutolandWaypoint_t;
+
+typedef struct {
+    timeUs_t loiterStartTime;
+    fpVector3_t landWaypoints[FW_AUTOLAND_WP_COUNT];
+    fpVector3_t landPos;
+    int32_t landPosHeading;
+    int32_t landingDirection;
+    int32_t landAproachAltAgl;
+    int32_t landAltAgl;
+    uint8_t approachSettingIdx;
+    fwAutolandWaypoint_t landCurrentWp;
+    bool landAborted;
+    bool landWp;
+    fwAutolandState_t landState;
+} fwLandState_t;
+#endif
 
 typedef enum {
     RTH_HOME_ENROUTE_INITIAL,       // Initial position for RTH approach
@@ -394,6 +432,7 @@ typedef struct {
     rthState_t                  rthState;
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+    timeMs_t                    landingDelay;
 
     /* Safehome parameters */
     safehomeState_t             safehomeState;
@@ -426,11 +465,10 @@ typedef struct {
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
 
-    /* RTH Trackback */
-    fpVector3_t                 rthTBPointsList[NAV_RTH_TRACKBACK_POINTS];
-    int8_t                      rthTBLastSavedIndex;        // last trackback point index saved
-    int8_t                      activeRthTBPointIndex;
-    int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
+#ifdef USE_FW_AUTOLAND
+    /* Fixedwing autoland */
+    fwLandState_t fwLandState;
+#endif
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
