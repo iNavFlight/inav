@@ -4561,19 +4561,16 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
-    if (emergInflightRearmEnabled()) {
-        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
-        if (rearmMs > 0) {
-            char emReArmMsg[23];
-            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
-            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
-            strcat(emReArmMsg, " **\0");
-            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
-        }
-    }
+    uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
     if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
+    } else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+        char emReArmMsg[23];
+        tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+        tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+        strcat(emReArmMsg, " **\0");
+        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
@@ -5318,9 +5315,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
+        uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
         if (savingSettings == true) {
            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
+        } else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
         } else if (notify_settings_saved > 0) {
             if (millis() > notify_settings_saved) {
                 notify_settings_saved = 0;
@@ -5329,14 +5333,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             }
         }
 
-        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
-        if (rearmMs > 0) {
-            char emReArmMsg[23];
-            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
-            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
-            strcat(emReArmMsg, " **\0");
-            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
-        }
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
