@@ -746,7 +746,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
 #ifdef USE_FW_AUTOLAND
-            return ((navGetCurrentStateFlags() & NAV_CTL_LAND) || isFwLandInProgess()) ? 1 : 0;
+            return ((navGetCurrentStateFlags() & NAV_CTL_LAND) || FLIGHT_MODE(NAV_FW_AUTOLAND)) ? 1 : 0;
 #else
             return ((navGetCurrentStateFlags() & NAV_CTL_LAND)) ? 1 : 0;
 #endif

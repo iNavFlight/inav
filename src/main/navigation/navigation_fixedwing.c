@@ -644,7 +644,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
         // Manual throttle increase
 #ifdef USE_FW_AUTOLAND
-        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !isFwLandInProgess()) {
+        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
 #else
         if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
 #endif

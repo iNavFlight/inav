@@ -594,7 +594,7 @@ static float computePidLevelTarget(flight_dynamics_index_t axis) {
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
 #ifdef USE_FW_AUTOLAND
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !isFwLandInProgess()) {
+    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && ! FLIGHT_MODE(NAV_FW_AUTOLAND)) {
 #else
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
 #endif

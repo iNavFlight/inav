@@ -105,6 +105,7 @@ typedef enum {
     TURTLE_MODE           = (1 << 15),
     SOARING_MODE          = (1 << 16),
     ANGLEHOLD_MODE        = (1 << 17),
+    NAV_FW_AUTOLAND       = (1 << 18)
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
