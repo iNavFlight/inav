@@ -159,3 +159,9 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN              PC0
+#define PINIO1_FLAGS            PINIO_FLAGS_INVERTED
+#define PINIO2_PIN              PC14
