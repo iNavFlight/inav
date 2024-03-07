@@ -2545,6 +2545,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
         osdCrosshairPosition(&elemPosX, &elemPosY);
         osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
+        //HIER TEST EINFUEGEN
+        osdHudClear();
 
         if (osdConfig()->hud_homing && (STATE(GPS_FIX) 
 #ifdef USE_GPS_FIX_ESTIMATION        
