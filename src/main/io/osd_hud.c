@@ -48,8 +48,10 @@ static int8_t hud_drawn_pt;
 void osdHudClear(void)
 {
     for (int i = 0; i < HUD_DRAWN_MAXCHARS; i++) {
+        unsigned int some_number = 0x01;
         if (hud_drawn[i][0] > -1) {
-            displayWriteChar(osdGetDisplayPort(), hud_drawn[i][0], hud_drawn[i][1], SYM_BLANK);
+            displayWriteChar(osdGetDisplayPort(), hud_drawn[i][0], hud_drawn[i][1], some_number);
+            some_number++;
             hud_drawn[i][0] = -1;
         }
     }
