@@ -4384,35 +4384,15 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
-        /* WP mission activation control:
-         * canActivateWaypoint & waypointWasActivated are used to prevent WP mission
-         * auto restarting after interruption by Manual or RTH modes.
-         * WP mode must be deselected before it can be reactivated again
-         * WP Mode also inhibited when Mission Planner is active */
-        static bool waypointWasActivated = false;
-        bool canActivateWaypoint = isWaypointMissionValid();
-        bool wpRthFallbackIsActive = false;
-
-        if (IS_RC_MODE_ACTIVE(BOXMANUAL) || posControl.flags.wpMissionPlannerActive) {
-            canActivateWaypoint = false;
-        } else {
-            if (waypointWasActivated && !FLIGHT_MODE(NAV_WP_MODE)) {
-                canActivateWaypoint = false;
-
-                if (!IS_RC_MODE_ACTIVE(BOXNAVWP)) {
-                    canActivateWaypoint = true;
-                    waypointWasActivated = false;
-                }
-            }
-
-            wpRthFallbackIsActive = IS_RC_MODE_ACTIVE(BOXNAVWP) && !canActivateWaypoint;
+#ifdef USE_FW_AUTOLAND
+        if (isFwLandInProgess()) {
+            return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
+#endif
 
-        /* Pilot-triggered RTH, also fall-back for WP if no mission is loaded.
-         * Check for isExecutingRTH to prevent switching our from RTH in case of a brief GPS loss
-         * Without this loss of any of the canActivateNavigation && canActivateAltHold
-         * will kick us out of RTH state machine via NAV_FSM_EVENT_SWITCH_TO_IDLE and will prevent any of the fall-back
-         * logic kicking in (waiting for GPS on airplanes, switch to emergency landing etc) */
+        /* Pilot-triggered RTH, also fall-back for WP if there is no mission loaded.
+         * WP prevented from falling back to RTH if WP mission planner is active */
+        const bool wpRthFallbackIsActive = IS_RC_MODE_ACTIVE(BOXNAVWP) && !isWpMissionLoaded && !posControl.flags.wpMissionPlannerActive;
         if (IS_RC_MODE_ACTIVE(BOXNAVRTH) || wpRthFallbackIsActive) {
             if (isExecutingRTH || (canActivateNavigation && canActivateAltHold && STATE(GPS_FIX_HOME))) {
                 return NAV_FSM_EVENT_SWITCH_TO_RTH;
