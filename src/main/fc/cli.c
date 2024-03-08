@@ -128,6 +128,7 @@ bool cliMode = false;
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
+extern uint8_t detectedMultiSensors[SENSOR_MULTI_INDEX_COUNT];
 
 static serialPort_t *cliPort;
 
@@ -183,6 +184,14 @@ static const char * const blackboxIncludeFlagNames[] = {
     "PEAKS_Y",
     NULL
 };
+#endif
+
+#ifdef USE_BARO
+#ifdef USE_BARO_MULTI
+static const char * const baroNames[] = {
+    "NONE", "AUTO", "BMP085", "MS5611", "BMP280", "MS5607", "LPS25H", "SPL06", "BMP388", "DPS310", "B2SMPB", "MSP", "FAKE"
+};
+#endif
 #endif
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
@@ -4192,6 +4201,24 @@ static void cliDiff(char *cmdline)
     printConfig(cmdline, true);
 }
 
+
+#ifdef USE_BARO_MULTI
+static void cliBaroMulti(char *cmdline) 
+{
+
+    UNUSED(cmdline);
+
+    cliPrintLinef("Barometers Data:");
+    cliPrintLinef("\tBarometer First: %s", baroNames[getBaroMultiFirstHardware()]);
+    cliPrintLinef("\t\tTemperature: %d", baroMultiGetTemperature(0));
+    cliPrintLinef("\t\tAltitude: %d", baroMultiGetLatestAltitude(0));
+    cliPrintLinef("\tBarometer Second: %s", baroNames[getBaroMultiSecondHardware()]);
+    cliPrintLinef("\t\tTemperature: %d", baroMultiGetTemperature(1));
+    cliPrintLinef("\t\tAltitude: %d", baroMultiGetLatestAltitude(1));
+    cliPrintLinefeed();
+}
+#endif
+
 #ifdef USE_USB_MSC
 static void cliMsc(char *cmdline)
 {
@@ -4372,6 +4399,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+#ifdef USE_BARO
+#ifdef USE_BARO_MULTI
+    CLI_COMMAND_DEF("baro", "get RAW barometer data for each of used with #USE_BARO_NULTI defined", NULL, cliBaroMulti),
+#endif
+#endif    
 };
 
 static void cliHelp(char *cmdline)

@@ -28,6 +28,12 @@ typedef enum {
     SENSOR_INDEX_COUNT
 } sensorIndex_e;
 
+typedef enum {
+    SENSOR_MULTI_INDEX_BARO_FIRST = 0,
+    SENSOR_MULTI_INDEX_BARO_SECOND,
+    SENSOR_MULTI_INDEX_COUNT
+} sensorMultiIndex_e;
+
 typedef struct int16_flightDynamicsTrims_s {
     int16_t roll;
     int16_t pitch;
@@ -59,5 +65,12 @@ typedef enum {
     SENSOR_TEMP = 1 << 9
 } sensors_e;
 
+// These bits have to be aligned with sensorMultiIndex_e
+typedef enum {
+    MULTI_SENSOR_BARO_FIRST = 1 << 0, // always present
+    MULTI_SENSOR_BARO_SECOND = 1 << 1
+} sensors_multi_e;
+
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
+extern uint8_t detectedMultiSensors[SENSOR_MULTI_INDEX_COUNT];

@@ -55,6 +55,7 @@
 #endif
 
 baro_t baro;                        // barometer access functions
+baro_t multiBaro[2];
 
 #ifdef USE_BARO
 
@@ -65,11 +66,27 @@ PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
 );
 
+#ifndef USE_BARO_MULTI
 static zeroCalibrationScalar_t zeroCalibration;
 static float baroGroundAltitude = 0;
 static float baroGroundPressure = 101325.0f; // 101325 pascal, 1 standard atmosphere
+#else
+PG_REGISTER_WITH_RESET_TEMPLATE(barometerMultiConfig_t, barometerMultiConfig, PG_MULTI_BAROMETER_CONFIG, 4);
 
-bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
+PG_RESET_TEMPLATE(barometerMultiConfig_t, barometerMultiConfig,
+    .multi_baro_count = SETTING_MULTI_BARO_COUNT_DEFAULT,
+    .multi_baro_hardware_1 = SETTING_MULTI_BARO_HARDWARE_1_DEFAULT,
+    .multi_baro_calibration_tolerance_1 = SETTING_MULTI_BARO_CAL_TOLERANCE_1_DEFAULT,
+    .multi_baro_hardware_2 = SETTING_MULTI_BARO_HARDWARE_2_DEFAULT,
+    .multi_baro_calibration_tolerance_2 = SETTING_MULTI_BARO_CAL_TOLERANCE_2_DEFAULT
+);
+
+static zeroCalibrationScalar_t multiZeroCalibration[2];
+static float baroMultiGroundAltitude[2] = {0, 0};
+static float baroMultiGroundPressure[2] = {101325.0f, 101325.0f}; // 101325 pascal, 1 standard atmosphere
+#endif
+
+bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse, int baro_index)
 {
     // Detect what pressure sensors are available. baro->update() is set to sensor-specific update function
 
@@ -232,17 +249,44 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         return false;
     }
 
-    detectedSensors[SENSOR_INDEX_BARO] = baroHardware;
+    if(baro_index == BARO_FAKE) {
+        detectedSensors[SENSOR_INDEX_BARO] = baroHardware;
+    } else if (baro_index == SENSOR_MULTI_INDEX_BARO_FIRST) {
+        // Need to implement composite hardware type here for to assign into sensors
+        // instead of using first one
+        detectedSensors[SENSOR_INDEX_BARO] = baroHardware;
+        detectedMultiSensors[SENSOR_MULTI_INDEX_BARO_FIRST] = baroHardware;
+    } else if (baro_index == SENSOR_MULTI_INDEX_BARO_SECOND) {
+        detectedMultiSensors[SENSOR_MULTI_INDEX_BARO_SECOND] = baroHardware;
+    }
+
     sensorsSet(SENSOR_BARO);
     return true;
 }
 
 bool baroInit(void)
 {
-    if (!baroDetect(&baro.dev, barometerConfig()->baro_hardware)) {
+#ifdef USE_BARO_MULTI
+    uint8_t detectedBaroHardware;
+    for(int i = 0; i < barometerMultiConfig()->multi_baro_count; i++) {
+        if(i == 0) {
+            detectedBaroHardware = barometerMultiConfig()->multi_baro_hardware_1;
+        }
+        if(i == 1) {
+            detectedBaroHardware = barometerMultiConfig()->multi_baro_hardware_2;
+        }
+        if(!baroDetect(&multiBaro[i].dev, detectedBaroHardware, i)) {
+            return false;
+        }
+    }
+    baro.dev = multiBaro[0].dev;
+    return true;
+#else    
+    if (!baroDetect(&baro.dev, barometerConfig()->baro_hardware, BARO_FAKE)) {
         return false;
     }
     return true;
+#endif   
 }
 
 typedef enum {
@@ -252,7 +296,18 @@ typedef enum {
 
 uint32_t baroUpdate(void)
 {
+#ifdef USE_BARO_MULTI
+    int hardwareCount = barometerMultiConfig()->multi_baro_count;
+    int delays[4] = {0, 0, 0, 0};
+
+    static barometerState_e multiState[] = {
+        BAROMETER_NEEDS_SAMPLES,
+        BAROMETER_NEEDS_SAMPLES
+    }; //Here is multi state with maximum length of config value
+    
+#else
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
+#endif
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
@@ -260,6 +315,49 @@ uint32_t baroUpdate(void)
     }
 #endif
 
+#ifdef USE_BARO_MULTI
+    for(int i = 0; i < hardwareCount; i++) {
+        switch (multiState[i]) {
+            default:
+            case BAROMETER_NEEDS_SAMPLES:
+                
+                if (multiBaro[i].dev.get_ut) {
+                    multiBaro[i].dev.get_ut(&multiBaro[i].dev);
+                }
+                if (multiBaro[i].dev.start_up) {
+                    multiBaro[i].dev.start_up(&multiBaro[i].dev);
+                }
+                multiState[i] = BAROMETER_NEEDS_CALCULATION;
+                delays[i] = multiBaro[i].dev.up_delay;
+                delays[i+2] = 0;
+            break;
+
+            case BAROMETER_NEEDS_CALCULATION:
+                if (multiBaro[i].dev.get_up) {
+                    multiBaro[i].dev.get_up(&multiBaro[i].dev);
+                }
+                if (multiBaro[i].dev.start_ut) {
+                    multiBaro[i].dev.start_ut(&multiBaro[i].dev);
+                }
+                //output: baro.baroPressure, baro.baroTemperature
+                multiBaro[i].dev.calculate(&multiBaro[i].dev, &multiBaro[i].baroPressure, &multiBaro[i].baroTemperature);
+                multiState[i] = BAROMETER_NEEDS_SAMPLES;
+                delays[i] = 0;
+                delays[i+2] = multiBaro[i].dev.ut_delay;
+            break;
+        }
+    }
+
+    // return longest delay, must be refactored
+    if(delays[0] != 0 || delays[1] != 0) {
+        return (delays[0] >=  delays[1]) ? delays[0] : delays[1];
+    } else if (delays[2] != 0 || delays[3] != 0) {
+        return (delays[2] >=  delays[3]) ? delays[2] : delays[3];
+    } else {
+        return 0;
+    }
+
+#else
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
@@ -286,7 +384,9 @@ uint32_t baroUpdate(void)
             return baro.dev.ut_delay;
         break;
     }
+#endif
 }
+
 
 static float pressureToAltitude(const float pressure)
 {
@@ -300,44 +400,124 @@ float altitudeToPressure(const float altCm)
 
 bool baroIsCalibrationComplete(void)
 {
+#ifdef USE_BARO_MULTI    
+    return 
+        zeroCalibrationIsCompleteS(&multiZeroCalibration[0]) && 
+        zeroCalibrationIsSuccessfulS(&multiZeroCalibration[0]) && 
+        zeroCalibrationIsCompleteS(&multiZeroCalibration[1]) &&
+        zeroCalibrationIsSuccessfulS(&multiZeroCalibration[1]);
+#else
     return zeroCalibrationIsCompleteS(&zeroCalibration) && zeroCalibrationIsSuccessfulS(&zeroCalibration);
+#endif    
 }
 
 void baroStartCalibration(void)
 {
+#ifdef USE_BARO_MULTI    
+    const float acceptedPressureVarianceFirst = (101325.0f - altitudeToPressure(barometerMultiConfig()->multi_baro_calibration_tolerance_1)); // max 30cm deviation during calibration (at sea level)
+    const float acceptedPressureVarianceSecond = (101325.0f - altitudeToPressure(barometerMultiConfig()->multi_baro_calibration_tolerance_2)); // max 30cm deviation during calibration (at sea level)
+    zeroCalibrationStartS(&multiZeroCalibration[0], CALIBRATING_BARO_TIME_MS, acceptedPressureVarianceFirst, false);
+    zeroCalibrationStartS(&multiZeroCalibration[1], CALIBRATING_BARO_TIME_MS, acceptedPressureVarianceSecond, false);
+#else
     const float acceptedPressureVariance = (101325.0f - altitudeToPressure(barometerConfig()->baro_calibration_tolerance)); // max 30cm deviation during calibration (at sea level)
     zeroCalibrationStartS(&zeroCalibration, CALIBRATING_BARO_TIME_MS, acceptedPressureVariance, false);
+#endif    
 }
+
 
 int32_t baroCalculateAltitude(void)
 {
-    if (!baroIsCalibrationComplete()) {
-        zeroCalibrationAddValueS(&zeroCalibration, baro.baroPressure);
+    #ifdef USE_BARO_MULTI
+        int32_t calcBaroAlt = 0;
 
-        if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
-            zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
-            baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            LOG_DEBUG(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
+        if (!baroIsCalibrationComplete()) {
+            for(int i = 0; i < barometerMultiConfig()->multi_baro_count; i++) {
+                zeroCalibrationAddValueS(&multiZeroCalibration[i], multiBaro[i].baroPressure);
+
+                if (zeroCalibrationIsCompleteS(&multiZeroCalibration[i])) {
+                    zeroCalibrationGetZeroS(&multiZeroCalibration[i], &baroMultiGroundPressure[i]);
+                    baroMultiGroundAltitude[i] = pressureToAltitude(baroMultiGroundPressure[i]);
+                    LOG_DEBUG( SYSTEM, "Barometer calibration complete (%d)", (int)lrintf(baroMultiGroundAltitude[i]));
+                }
+
+                multiBaro[i].BaroAlt = 0;
+            }
+        } else {
+            // calculates height from ground via baro readings
+            
+            for (int i = 0; i < barometerMultiConfig()->multi_baro_count; i++) {
+                multiBaro[i].BaroAlt = pressureToAltitude(multiBaro[i].baroPressure) - baroMultiGroundAltitude[i];
+            }            
         }
+        for(int i = 0; i < barometerMultiConfig()->multi_baro_count; i++) {
+            calcBaroAlt += multiBaro[i].BaroAlt;
+        }
+        return calcBaroAlt / (int)barometerMultiConfig()->multi_baro_count;
+    #else
+        if (!baroIsCalibrationComplete()) {
+            zeroCalibrationAddValueS(&zeroCalibration, baro.baroPressure);
 
-        baro.BaroAlt = 0;
-    }
-    else {
-        // calculates height from ground via baro readings
-        baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
-   }
-
-    return baro.BaroAlt;
+            if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
+                zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
+                baroGroundAltitude = pressureToAltitude(baroGroundPressure);
+                LOG_DEBUG(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
+            }
+            baro.BaroAlt = 0;
+        } else {
+            // calculates height from ground via baro readings
+            baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+        }
+        return baro.BaroAlt;
+   #endif
 }
 
 int32_t baroGetLatestAltitude(void)
 {
-    return baro.BaroAlt;
+    #ifdef USE_BARO_MULTI
+        int32_t calcMultiBaroAlt = 0;
+        for(int i = 0; i < barometerMultiConfig()->multi_baro_count; i++) {
+            calcMultiBaroAlt += multiBaro[i].BaroAlt;
+        }
+        LOG_DEBUG( SYSTEM, "MultiBaro:latestAlt %u", (unsigned int)(calcMultiBaroAlt) );
+
+        return calcMultiBaroAlt / (int)barometerMultiConfig()->multi_baro_count;
+
+    #else
+        return baro.BaroAlt;
+    #endif
+}
+
+int32_t baroMultiGetLatestAltitude(uint8_t baroIndex)
+{   
+    #ifdef USE_BARO_MULTI
+        return multiBaro[baroIndex].BaroAlt;
+    #else
+        UNUSED(baroIndex);
+        return 0;
+    #endif
 }
 
 int16_t baroGetTemperature(void)
 {   
+#ifdef USE_BARO_MULTI
+    int32_t calcMultiBaroTemperature = 0;
+    for(int i = 0; i < barometerMultiConfig()->multi_baro_count; i++) {
+        calcMultiBaroTemperature += CENTIDEGREES_TO_DECIDEGREES(multiBaro[i].baroTemperature);
+    }
+    return calcMultiBaroTemperature / (int)barometerMultiConfig()->multi_baro_count;
+#else    
     return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
+#endif
+}
+
+int16_t baroMultiGetTemperature(uint8_t baroIndex)
+{   
+#ifdef USE_BARO_MULTI
+    return CENTIDEGREES_TO_DECIDEGREES(multiBaro[baroIndex].baroTemperature);
+#else    
+    UNUSED(baroIndex);
+    return 0;
+#endif
 }
 
 bool baroIsHealthy(void)

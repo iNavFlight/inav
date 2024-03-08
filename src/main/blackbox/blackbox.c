@@ -499,7 +499,12 @@ typedef struct blackboxMainState_s {
     int16_t amperage;
 
 #ifdef USE_BARO
-    int32_t BaroAlt;
+    #ifdef USE_BARO_MULTI
+        int32_t BaroAlt1;
+        int32_t BaroAlt2;
+    #else
+        int32_t BaroAlt;
+    #endif
 #endif
 #ifdef USE_PITOT
     int32_t airSpeed;
@@ -875,7 +880,11 @@ static void writeIntraframe(void)
 
 #ifdef USE_BARO
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_BARO)) {
+        #ifdef USE_BARO_MULTI
+        blackboxWriteSignedVB((blackboxCurrent->BaroAlt1 + blackboxCurrent->BaroAlt2) / 2);
+        #else
         blackboxWriteSignedVB(blackboxCurrent->BaroAlt);
+        #endif
     }
 #endif
 
@@ -1144,7 +1153,12 @@ static void writeInterframe(void)
 
 #ifdef USE_BARO
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_BARO)) {
-        deltas[optionalFieldCount++] = blackboxCurrent->BaroAlt - blackboxLast->BaroAlt;
+        #ifdef USE_BARO_MULTI
+            deltas[optionalFieldCount++] = blackboxCurrent->BaroAlt1 - blackboxLast->BaroAlt1;
+            deltas[optionalFieldCount++] = blackboxCurrent->BaroAlt2 - blackboxLast->BaroAlt2;
+        #else
+            deltas[optionalFieldCount++] = blackboxCurrent->BaroAlt - blackboxLast->BaroAlt;
+        #endif
     }
 #endif
 
@@ -1654,7 +1668,12 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->amperage = getAmperage();
 
 #ifdef USE_BARO
-    blackboxCurrent->BaroAlt = baro.BaroAlt;
+    #ifdef USE_BARO_MULTI
+        blackboxCurrent->BaroAlt1 = multiBaro[0].BaroAlt;
+        blackboxCurrent->BaroAlt2 = multiBaro[1].BaroAlt;
+    #else
+        blackboxCurrent->BaroAlt = baro.BaroAlt;
+    #endif
 #endif
 
 #ifdef USE_PITOT
@@ -1925,7 +1944,12 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("acc_lpf_hz", "%d",                      accelerometerConfig()->acc_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("acc_hardware", "%d",                    accelerometerConfig()->acc_hardware);
 #ifdef USE_BARO
+    #ifdef USE_BARO_MULTI
+        BLACKBOX_PRINT_HEADER_LINE("baro_hardware_1", "%d",                 barometerMultiConfig()->multi_baro_hardware_1);
+        BLACKBOX_PRINT_HEADER_LINE("baro_hardware_2", "%d",                 barometerMultiConfig()->multi_baro_hardware_2);
+    #else
         BLACKBOX_PRINT_HEADER_LINE("baro_hardware", "%d",                   barometerConfig()->baro_hardware);
+    #endif
 #endif
 #ifdef USE_MAG
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    compassConfig()->mag_hardware);

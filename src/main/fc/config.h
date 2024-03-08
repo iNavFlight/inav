@@ -153,5 +153,8 @@ void createDefaultConfig(void);
 void resetConfigs(void);
 void targetConfiguration(void);
 
+uint8_t getBaroMultiFirstHardware(void);
+uint8_t getBaroMultiSecondHardware(void);
+
 uint32_t getLooptime(void);
 uint32_t getGyroLooptime(void);

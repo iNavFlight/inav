@@ -44,6 +44,7 @@
 #include "drivers/bus_i2c.h"
 
 #include "sensors/sensors.h"
+#include "sensors/barometer.h"
 #include "sensors/gyro.h"
 #include "sensors/compass.h"
 #include "sensors/acceleration.h"
@@ -556,4 +557,12 @@ uint32_t getPreferredBeeperOffMask(void)
 void setPreferredBeeperOffMask(uint32_t mask)
 {
     beeperConfigMutable()->preferred_beeper_off_flags = mask;
+}
+
+uint8_t getBaroMultiFirstHardware(void) {
+    return (uint8_t)barometerMultiConfigMutable()->multi_baro_hardware_1;
+}
+
+uint8_t getBaroMultiSecondHardware(void) {
+    return (uint8_t)barometerMultiConfigMutable()->multi_baro_hardware_2;
 }

@@ -43,6 +43,7 @@
 
 uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
 uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
+uint8_t detectedMultiSensors[SENSOR_MULTI_INDEX_COUNT] = { BARO_NONE, BARO_NONE };
 
 bool sensorsAutodetect(void)
 {
@@ -86,6 +87,10 @@ bool sensorsAutodetect(void)
 #ifdef USE_BARO
     if (barometerConfig()->baro_hardware == BARO_AUTODETECT) {
         barometerConfigMutable()->baro_hardware = detectedSensors[SENSOR_INDEX_BARO];
+#ifdef USE_BARO_MULTI
+        barometerMultiConfigMutable()->multi_baro_hardware_1 = detectedMultiSensors[MULTI_SENSOR_BARO_FIRST];
+        barometerMultiConfigMutable()->multi_baro_hardware_2 = detectedMultiSensors[MULTI_SENSOR_BARO_FIRST];
+#endif        
         eepromUpdatePending = true;
     }
 #endif

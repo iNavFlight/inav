@@ -46,6 +46,7 @@ typedef struct baro_s {
 } baro_t;
 
 extern baro_t baro;
+extern baro_t multiBaro[2];
 
 #ifdef USE_BARO
 
@@ -56,6 +57,15 @@ typedef struct barometerConfig_s {
 
 PG_DECLARE(barometerConfig_t, barometerConfig);
 
+typedef struct barometerMultiConfig_s {
+    uint8_t multi_baro_count;                       // Total Barometers count to use
+    uint8_t multi_baro_hardware_1;                  // First Barometer hardware to use
+    uint16_t multi_baro_calibration_tolerance_1;    // First Baro calibration tolerance (cm at sea level)
+    uint8_t multi_baro_hardware_2;                  // Second Barometer hardware to use
+    uint16_t multi_baro_calibration_tolerance_2;    // Second Baro calibration tolerance (cm at sea level)
+} barometerMultiConfig_t;
+
+PG_DECLARE(barometerMultiConfig_t, barometerMultiConfig);
 
 bool baroInit(void);
 bool baroIsCalibrationComplete(void);
@@ -64,6 +74,8 @@ uint32_t baroUpdate(void);
 int32_t baroCalculateAltitude(void);
 int32_t baroGetLatestAltitude(void);
 int16_t baroGetTemperature(void);
+int32_t baroMultiGetLatestAltitude(uint8_t baroIndex);
+int16_t baroMultiGetTemperature(uint8_t baroIndex);
 bool baroIsHealthy(void);
 
 #if defined(SITL_BUILD)
