@@ -13,7 +13,7 @@ INAV support the following ESC protocols:
 
 ESC protocol can be selected in Configurator. No special configuration is required.
 
-Check ESC documentation of the list of protocols that it is supporting.
+Check the ESC documentation for the list of protocols that are supported.
 
 ## Servo outputs
 
