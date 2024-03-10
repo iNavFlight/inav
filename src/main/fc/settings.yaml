@@ -2334,7 +2334,7 @@ groups:
         field: w_z_surface_p
         min: 0
         max: 100
-        default_value: 3.5 
+        default_value: 3.5
       - name: inav_w_z_surface_v
         field: w_z_surface_v
         min: 0
@@ -2801,6 +2801,12 @@ groups:
         field: fw.max_bank_angle
         min: 5
         max: 80
+      - name: nav_fw_auto_climb_rate
+        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
+        default_value: 500
+        field: fw.max_auto_climb_rate
+        min: 10
+        max: 2000
       - name: nav_fw_manual_climb_rate
         description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
         default_value: 300
@@ -4143,7 +4149,7 @@ groups:
     type: navFwAutolandConfig_t
     headers: ["navigation/navigation.h"]
     condition: USE_FW_AUTOLAND
-    members: 
+    members:
       - name: nav_fw_land_approach_length
         description: "Length of the final approach"
         default_value: 35000

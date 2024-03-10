@@ -288,7 +288,7 @@ typedef enum {
     NAV_STATE_CRUISE_INITIALIZE,
     NAV_STATE_CRUISE_IN_PROGRESS,
     NAV_STATE_CRUISE_ADJUSTING,
-    
+
     NAV_STATE_FW_LANDING_CLIMB_TO_LOITER,
     NAV_STATE_FW_LANDING_LOITER,
     NAV_STATE_FW_LANDING_APPROACH,
@@ -462,6 +462,7 @@ typedef struct {
 #endif
     navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;
+    float                       wpInitialAltitude;          // Altitude at start of WP
     float                       wpInitialDistance;          // Distance when starting flight to WP
     float                       wpDistance;                 // Distance to active WP
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached

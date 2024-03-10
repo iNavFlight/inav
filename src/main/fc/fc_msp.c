@@ -1113,7 +1113,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             legacyLedConfig |= ledConfig->led_function << shiftCount;
             shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_overlay & 0x3F) << (shiftCount);
-            shiftCount += 6; 
+            shiftCount += 6;
             legacyLedConfig |= (ledConfig->led_color) << (shiftCount);
             shiftCount += 4;
             legacyLedConfig |= (ledConfig->led_direction) << (shiftCount);
@@ -1340,9 +1340,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_NAV_POSHOLD:
         sbufWriteU8(dst, navConfig()->general.flags.user_control_mode);
         sbufWriteU16(dst, navConfig()->general.max_auto_speed);
-        sbufWriteU16(dst, navConfig()->mc.max_auto_climb_rate);
+        sbufWriteU16(dst, mixerConfig()->platformType == PLATFORM_AIRPLANE ? navConfig()->fw.max_auto_climb_rate : navConfig()->mc.max_auto_climb_rate);
         sbufWriteU16(dst, navConfig()->general.max_manual_speed);
-        sbufWriteU16(dst, mixerConfig()->platformType != PLATFORM_AIRPLANE ? navConfig()->mc.max_manual_climb_rate:navConfig()->fw.max_manual_climb_rate);
+        sbufWriteU16(dst, mixerConfig()->platformType == PLATFORM_AIRPLANE ? navConfig()->fw.max_manual_climb_rate : navConfig()->mc.max_manual_climb_rate);
         sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
         sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
@@ -1590,7 +1590,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
             }
         break;
-    
+
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
         sbufWriteU16(dst, navConfig()->mc.braking_speed_threshold);
@@ -2394,12 +2394,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         if (dataSize == 13) {
             navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
             navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
-            navConfigMutable()->mc.max_auto_climb_rate = sbufReadU16(src);
+            if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
+                navConfigMutable()->fw.max_auto_climb_rate = sbufReadU16(src);
+            } else {
+                navConfigMutable()->mc.max_auto_climb_rate = sbufReadU16(src);
+            }
             navConfigMutable()->general.max_manual_speed = sbufReadU16(src);
-            if (mixerConfig()->platformType != PLATFORM_AIRPLANE) {
-                navConfigMutable()->mc.max_manual_climb_rate = sbufReadU16(src);
-            }else{
+            if (mixerConfig()->platformType == PLATFORM_AIRPLANE) {
                 navConfigMutable()->fw.max_manual_climb_rate = sbufReadU16(src);
+            } else {
+                navConfigMutable()->mc.max_manual_climb_rate = sbufReadU16(src);
             }
             navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
             navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
@@ -2729,7 +2733,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_WP:
         if (dataSize == 21) {
-            
+
             const uint8_t msp_wp_no = sbufReadU8(src);     // get the waypoint number
             navWaypoint_t msp_wp;
             msp_wp.action = sbufReadU8(src);    // action
@@ -2943,7 +2947,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             ledConfig->led_position = legacyConfig & 0xFF;
             ledConfig->led_function = (legacyConfig >> 8) & 0xF;
             ledConfig->led_overlay = (legacyConfig >> 12) & 0x3F;
-            ledConfig->led_color = (legacyConfig >> 18) & 0xF; 
+            ledConfig->led_color = (legacyConfig >> 18) & 0xF;
             ledConfig->led_direction = (legacyConfig >> 22) & 0x3F;
             ledConfig->led_params = (legacyConfig >> 28) & 0xF;
 
@@ -3233,7 +3237,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             fwAutolandApproachConfigMutable(i)->approachAlt = sbufReadU32(src);
             fwAutolandApproachConfigMutable(i)->landAlt = sbufReadU32(src);
             fwAutolandApproachConfigMutable(i)->approachDirection = sbufReadU8(src);
-             
+
             int16_t head1 = 0, head2 = 0;
             if (sbufReadI16Safe(&head1, src)) {
                 fwAutolandApproachConfigMutable(i)->landApproachHeading1 = head1;
@@ -3283,12 +3287,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.correctionEnd = sbufReadU8(src);
             ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightCenter = sbufReadU8(src);
             ((controlRateConfig_t*)currentControlRateProfile)->rateDynamics.weightEnd = sbufReadU8(src);
-            
+
         } else {
             return MSP_RESULT_ERROR;
         }
 
-        break;    
+        break;
 
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
@@ -3582,7 +3586,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 	static uint8_t osdPos_x = 0;
 
     //indicate new format hitl 1.4.0
-	sbufWriteU8(dst, 255);  
+	sbufWriteU8(dst, 255);
 
 	if (isOSDTypeSupportedBySimulator())
 	{
@@ -3788,7 +3792,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
         tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
-        
+
         // Check the MSP version of simulator
         if (tmp_u8 != SIMULATOR_MSP_VERSION) {
             break;
@@ -3883,7 +3887,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 } else {
                     sbufAdvance(src, sizeof(uint16_t) * XYZ_AXIS_COUNT);
                 }
-                
+
                 // Get the acceleration in 1G units
                 acc.accADCf[X] = ((int16_t)sbufReadU16(src)) / 1000.0f;
                 acc.accADCf[Y] = ((int16_t)sbufReadU16(src)) / 1000.0f;
@@ -3891,7 +3895,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 acc.accVibeSq[X] = 0.0f;
                 acc.accVibeSq[Y] = 0.0f;
                 acc.accVibeSq[Z] = 0.0f;
-                
+
                 // Get the angular velocity in DPS
                 gyro.gyroADCf[X] = ((int16_t)sbufReadU16(src)) / 16.0f;
                 gyro.gyroADCf[Y] = ((int16_t)sbufReadU16(src)) / 16.0f;
@@ -3922,7 +3926,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                     simulatorData.airSpeed = sbufReadU16(src);
                 } else {
                     if (SIMULATOR_HAS_OPTION(HITL_EXTENDED_FLAGS)) {
-                        sbufReadU16(src); 
+                        sbufReadU16(src);
                     }
                 }
 
@@ -3997,8 +4001,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             *ret = MSP_RESULT_ERROR;
         }
         break;
-#endif 
-    
+#endif
+
     default:
         // Not handled
         return false;

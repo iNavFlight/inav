@@ -2862,6 +2862,16 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 ---
 
+### nav_fw_auto_climb_rate
+
+Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 10 | 2000 |
+
+---
+
 ### nav_fw_bank_angle
 
 Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll
