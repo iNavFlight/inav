@@ -95,7 +95,7 @@
 // BMP280 BARO --- I2C1
 #define USE_I2C
 #define USE_BARO
-#define USE_BARO_BMP280
+#define USE_BARO_ALL
 #define BARO_I2C_BUS            BUS_I2C1
 
 #define USE_I2C_DEVICE_1

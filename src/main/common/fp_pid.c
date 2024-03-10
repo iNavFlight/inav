@@ -92,6 +92,11 @@ float navPidApply3(
     /* Pre-calculate output and limit it if actuator is saturating */
     const float outVal = newProportional + (pid->integrator * gainScaler) + newDerivative + newFeedForward;
     const float outValConstrained = constrainf(outVal, outMin, outMax);
+    float backCalc = outValConstrained - outVal;//back-calculation anti-windup
+    if (SIGN(backCalc) == SIGN(pid->integrator)) {
+        //back calculation anti-windup can only shrink integrator, will not push it to the opposite direction
+        backCalc = 0.0f;
+    }
 
     pid->proportional = newProportional;
     pid->integral = pid->integrator;
@@ -104,7 +109,7 @@ float navPidApply3(
         !(pidFlags & PID_ZERO_INTEGRATOR) &&
         !(pidFlags & PID_FREEZE_INTEGRATOR) 
     ) {
-        const float newIntegrator = pid->integrator + (error * pid->param.kI * gainScaler * dt) + ((outValConstrained - outVal) * pid->param.kT * dt);
+        const float newIntegrator = pid->integrator + (error * pid->param.kI * gainScaler * dt) + (backCalc * pid->param.kT * dt);
 
         if (pidFlags & PID_SHRINK_INTEGRATOR) {
             // Only allow integrator to shrink

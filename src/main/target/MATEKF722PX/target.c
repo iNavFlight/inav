@@ -40,10 +40,9 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED, 0, 2),                            // LED          D(2, 3, 6)
 
-    DEF_TIM(TIM9, CH2, PA3,  TIM_USE_PPM, 0, 0),                            // RX2, PPM
-    DEF_TIM(TIM5, CH3, PA2,  TIM_USE_PWM, 0, 0),                            // TX2, softserial1_tx
-
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM, 0, 0),                           // Cam_ctrl reserved
+    // DEF_TIM(TIM9, CH2, PA3,  TIM_USE_PPM, 0, 0),                            // RX2, PPM
+    DEF_TIM(TIM5, CH3, PA2,  TIM_USE_ANY, 0, 0),                            // TX2, softserial1_tx
+    // DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM, 0, 0),                           // Cam_ctrl reserved
 
 };
 

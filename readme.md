@@ -1,5 +1,11 @@
 # INAV - navigation capable flight controller
 
+# PSA
+
+> INAV no longer accepts targets based on STM32 F411 MCU.
+
+> INAV 7 is the last INAV official release available for F411 based flight controllers. The next milestone, INAV 8 will not be available for F411 boards.
+
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 
 # INAV Community
@@ -10,7 +16,7 @@
 
 ## Features
 
-* Runs on the most popular F4, F7 and H7 flight controllers
+* Runs on the most popular F4, AT32, F7 and H7 flight controllers
 * On Screen Display (OSD) - both character and pixel style
 * DJI OSD integration: all elements, system messages and warnings
 * Outstanding performance out of the box

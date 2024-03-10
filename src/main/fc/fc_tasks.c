@@ -69,6 +69,7 @@
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
+#include "io/adsb.h"
 
 #include "msp/msp_serial.h"
 
@@ -178,6 +179,14 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
     if (sensors(SENSOR_MAG)) {
         compassUpdate(currentTimeUs);
     }
+}
+#endif
+
+#ifdef USE_ADSB
+void taskAdsb(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    adsbTtlClean(currentTimeUs);
 }
 #endif
 
@@ -360,6 +369,9 @@ void fcTasksInit(void)
 #ifdef USE_PITOT
     setTaskEnabled(TASK_PITOT, sensors(SENSOR_PITOT));
 #endif
+#ifdef USE_ADSB
+    setTaskEnabled(TASK_ADSB, true);
+#endif
 #ifdef USE_RANGEFINDER
     setTaskEnabled(TASK_RANGEFINDER, sensors(SENSOR_RANGEFINDER));
 #endif
@@ -492,6 +504,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskUpdateCompass,
         .desiredPeriod = TASK_PERIOD_HZ(10),      // Compass is updated at 10 Hz
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_ADSB
+        [TASK_ADSB] = {
+        .taskName = "ADSB",
+        .taskFunc = taskAdsb,
+        .desiredPeriod = TASK_PERIOD_HZ(1),      // ADSB is updated at 1 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
 

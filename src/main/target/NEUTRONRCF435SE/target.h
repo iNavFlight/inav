@@ -168,7 +168,7 @@
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
-#define ADC1_DMA_STREAM             DMA2_CHANNEL5
+#define ADC1_DMA_STREAM             DMA2_CHANNEL1
 #define ADC_CHANNEL_1_PIN           PC2
 #define ADC_CHANNEL_2_PIN           PC1
 //#define ADC_CHANNEL_3_PIN           PB0
@@ -178,8 +178,8 @@
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
-// #define USE_LED_STRIP
-// #define WS2811_PIN                      PB10   //TIM2_CH3
+#define USE_LED_STRIP
+#define WS2811_PIN                      PA1   //TIM2_CH3
 
 // telemetry
 // #define USE_SPEKTRUM_BIND
