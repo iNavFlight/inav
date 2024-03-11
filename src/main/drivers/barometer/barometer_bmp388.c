@@ -39,12 +39,6 @@
 
 #if defined(USE_BARO) && (defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388))
 
-#ifndef BMP388_I2C_ADDR_HW
-#define BMP388_I2C_ADDR                                 (0x76) // same as BMP280/BMP180
-#else
-#define BMP388_I2C_ADDR                                 (BMP388_I2C_ADDR_HW)
-#endif
-
 #define BMP388_DEFAULT_CHIP_ID                          (0x50) // from https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h#L130
 
 #define BMP388_CMD_REG                                  (0x7E)

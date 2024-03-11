@@ -116,7 +116,7 @@
 #define USE_BARO
 #define BARO_I2C_BUS                DEFAULT_I2C_BUS
 #define USE_BARO_BMP388
-#define BMP388_I2C_ADDR_HW          0x77
+#define BMP388_I2C_ADDR          0x77
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
 #define USE_BARO_BMP085
