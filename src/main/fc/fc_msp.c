@@ -87,6 +87,7 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/opflow.h"
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
@@ -3247,6 +3248,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+    case MSP2_INAV_GPS_UBLOX_COMMAND:
+        if(dataSize < 8 || !isGpsUblox()) {
+            return MSP_RESULT_ERROR;
+        }
+
+        gpsUbloxSendCommand(src->ptr, dataSize, 0);
+        break;
 
 #ifdef USE_EZ_TUNE
 
