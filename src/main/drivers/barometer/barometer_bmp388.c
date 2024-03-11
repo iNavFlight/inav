@@ -40,7 +40,7 @@
 #if defined(USE_BARO) && (defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388))
 
 #ifndef BMP388_I2C_ADDR_HW
-#define BMP388_I2C_ADDR                                 (0x77) // same as BMP280/BMP180
+#define BMP388_I2C_ADDR                                 (0x76) // same as BMP280/BMP180
 #else
 #define BMP388_I2C_ADDR                                 (BMP388_I2C_ADDR_HW)
 #endif
