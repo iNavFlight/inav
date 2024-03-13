@@ -373,8 +373,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         }
 #ifdef USE_FW_AUTOLAND
     } else if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-        flightMode = "LAND"
-    }
+        flightMode = "LAND";
 #endif
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
