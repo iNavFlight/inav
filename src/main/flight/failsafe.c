@@ -239,6 +239,10 @@ static void failsafeActivate(failsafePhase_e newPhase)
     ENABLE_FLIGHT_MODE(FAILSAFE_MODE);
     failsafeState.landingShouldBeFinishedAt = millis() + failsafeConfig()->failsafe_off_delay * MILLIS_PER_TENTH_SECOND;
 
+#ifdef USE_FW_AUTOLAND
+    posControl.fwLandState.landAborted = false;
+#endif
+
     failsafeState.events++;
 }
 

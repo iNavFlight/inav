@@ -71,6 +71,7 @@
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/diagnostics.h"
 
 #include "telemetry/ltm.h"
 #include "telemetry/telemetry.h"
@@ -178,6 +179,10 @@ void ltm_sframe(sbuf_t *dst)
         lt_flightmode = LTM_MODE_ANGLE;
     else if (FLIGHT_MODE(HORIZON_MODE))
         lt_flightmode = LTM_MODE_HORIZON;
+#ifdef USE_FW_AUTOLAND
+    else if (FLIGHT_MODE(NAV_FW_AUTOLAND))
+        lt_flightmode = LTM_MODE_LAND;
+#endif
     else
         lt_flightmode = LTM_MODE_RATE;      // Rate mode
 
