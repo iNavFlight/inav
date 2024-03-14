@@ -487,8 +487,16 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             break;
         default:
         case OSD_UNIT_METRIC:
-            centivalue = CMSEC_TO_CENTIKPH(ws);
-            suffix = SYM_KMH;
+            if (osdConfig()->estimations_wind_mps)
+            {
+                centivalue = ws;
+                suffix = SYM_MS;
+            }
+            else
+            {
+                centivalue = CMSEC_TO_CENTIKPH(ws);
+                suffix = SYM_KMH;
+            }
             break;
     }
 
