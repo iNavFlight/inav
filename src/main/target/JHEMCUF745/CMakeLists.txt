@@ -1,1 +1,1 @@
-target_stm32f745xg(JHEMCUF745)
+target_stm32f745xg(JHEMCUF745 SKIP_RELEASES)
