@@ -20,6 +20,11 @@ Following rangefinders are supported:
 * UIB - experimental
 * MSP - experimental
 * TOF10120 - small & lightweight laser range sensor, usable up to 200cm
+* NRA15/NRA24 - experimental, UART version
+
+#### NRA15/NRA24
+NRA15/NRA24 from nanoradar need special firmware provided by nanoradar, just ask for firmware for ardupilot. 
+Communication protocol is USD1_V0 which is used by old US-D1 from ainstein company.
 
 ## Connections
 

@@ -83,6 +83,7 @@
 #define USE_RANGEFINDER_VL53L1X
 #define USE_RANGEFINDER_US42
 #define USE_RANGEFINDER_TOF10120_I2C
+#define USE_RANGEFINDER_USD1_V0
 
 // Allow default optic flow boards
 #define USE_OPFLOW
