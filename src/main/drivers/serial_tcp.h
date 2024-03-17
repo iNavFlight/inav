@@ -26,6 +26,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "drivers/serial.h"
+
 #define BASE_IP_ADDRESS 5760
 #define TCP_BUFFER_SIZE 2048
 #define TCP_MAX_PACKET_SIZE 65535
@@ -50,5 +52,7 @@ typedef struct
 
 serialPort_t *tcpOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
 
-void tcpSend(tcpPort_t *port);
-int tcpReceive(tcpPort_t *port);
+extern void tcpSend(tcpPort_t *port);
+extern int tcpReceive(tcpPort_t *port);
+extern void tcpReceiveBytesEx( int portIndex, const uint8_t* buffer, ssize_t recvSize );
+extern uint32_t tcpRXBytesFree(int portIndex);
