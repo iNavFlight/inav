@@ -3735,12 +3735,6 @@ groups:
         default_value: "400KHZ"
         condition: USE_I2C
         table: i2c_speed
-      - name: cpu_underclock
-        description: "This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz"
-        default_value: OFF
-        field: cpuUnderclock
-        condition: USE_UNDERCLOCK
-        type: bool
       - name: debug_mode
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
