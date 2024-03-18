@@ -234,7 +234,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type; // from nav_reset_type_e
     uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
-    uint8_t use_gps_velned;
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
