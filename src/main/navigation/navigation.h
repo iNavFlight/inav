@@ -693,7 +693,6 @@ uint8_t getActiveWpNumber(void);
 int32_t navigationGetHomeHeading(void);
 
 #ifdef USE_FW_AUTOLAND
-bool isFwLandInProgess(void);
 bool canFwLandCanceld(void);
 #endif
 

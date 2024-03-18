@@ -1059,6 +1059,10 @@ static bool djiFormatMessages(char *buff)
                 if (FLIGHT_MODE(MANUAL_MODE)) {
                     messages[messageCount++] = "(MANUAL)";
                 }
+
+                if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                     messages[messageCount++] = "(LAND)";
+                }
             }
         }
         // Pick one of the available messages. Each message lasts
