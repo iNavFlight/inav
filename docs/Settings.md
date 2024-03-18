@@ -572,16 +572,6 @@ Control rate profile to switch to when the battery profile is selected, 0 to dis
 
 ---
 
-### cpu_underclock
-
-This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
