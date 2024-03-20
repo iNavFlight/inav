@@ -23,8 +23,19 @@ Following rangefinders are supported:
 * NRA15/NRA24 - experimental, UART version
 
 #### NRA15/NRA24
-NRA15/NRA24 from nanoradar need special firmware provided by nanoradar, just ask for firmware for ardupilot. 
-Communication protocol is USD1_V0 which is used by old US-D1 from ainstein company.
+NRA15/NRA24 from nanoradar use US-D1_V0 or NRA protocol, it depends which firmware you use. Radar can be set by firmware
+to two different resolutions. See table below.
+
+| Radar | Protocol | Resolution      | Name in configurator  |
+|-------|----------|-----------------|-----------------------|
+| NRA15 | US-D1_V0 | 0-30m (+-4cm)   | USD1_V0               |
+| NRA15 | NRA      | 0-30m (+-4cm)   | NRA15/NRA24           | 
+| NRA15 | NRA      | 0-100m (+-10cm) | NRA15/NRA24           | 
+| NRA24 | US-D1_V0 | 0-50m (+-4cm)   | USD1_V0               |
+| NRA24 | US-D1_V0 | 0-200m (+-10cm) | USD1_V0               |
+| NRA24 | NRA      | 0-50m (+-4cm)   | NRA15/NRA24           | 
+| NRA24 | NRA      | 0-200m (+-10cm) | NRA15/NRA24           | 
+
 
 ## Connections
 
