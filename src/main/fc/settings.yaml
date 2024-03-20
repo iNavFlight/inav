@@ -303,6 +303,7 @@ groups:
         min: 1
         max: 1000
       - name: gyro_to_use
+        description: "On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = second gyro"
         condition: USE_DUAL_GYRO
         min: 0
         max: 2
@@ -385,10 +386,12 @@ groups:
     headers: ["sensors/acceleration.h"]
     members:
       - name: acc_notch_hz
+        description: "Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is center frequency (Hz)"
         min: 0
         max: 255
         default_value: 0
       - name: acc_notch_cutoff
+        description: "Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz)"
         min: 1
         max: 255
         default_value: 1
@@ -468,6 +471,7 @@ groups:
         default_value: NONE
         table: opflow_hardware
       - name: opflow_scale
+        description: "Optical flow module scale factor"
         min: 0
         max: 10000
         default_value: 10.5
@@ -591,10 +595,12 @@ groups:
         default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
+        description: "Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay"
         min: 0
         max: 10000
         default_value: 350
       - name: pitot_scale
+        description: "Pitot tube scale factor"
         min: 0
         max: 100
         default_value: 1.0
@@ -644,6 +650,7 @@ groups:
         max: RSSI_VISIBLE_VALUE_MAX
       - name: sbus_sync_interval
         field: sbusSyncInterval
+        description: "SBUS sync interval in us. Default value is 3000us. Lower values may cause issues with some receivers."
         min: 500
         max: 10000
         default_value: 3000
@@ -1366,6 +1373,7 @@ groups:
         min: MANUAL_RATE_MIN
         max: MANUAL_RATE_MAX
       - name: fpv_mix_degrees
+        description: "The tilt angle of the FPV camera in degrees, used by the FPV ANGLE MIX mode"
         field: misc.fpvCamAngleDegrees
         min: 0
         max: 50
@@ -2053,6 +2061,7 @@ groups:
         max: 255
         default_value: 100
       - name: nav_mc_vel_xy_ff
+        description: "FF gain of Position-Rate (Velocity to Acceleration)"
         field: bank_mc.pid[PID_VEL_XY].FF
         min: 0
         max: 255
@@ -2064,6 +2073,7 @@ groups:
         min: 0
         max: 255
       - name: nav_mc_vel_xy_dterm_lpf_hz
+        description: "D-term low pass filter cutoff frequency for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
@@ -2153,33 +2163,39 @@ groups:
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
       - name: mc_iterm_relax
+        description: "Iterm relax type. When enabled, Iterm will be relaxed when stick is centered. This will help to reduce bounceback and followthrough on multirotors. It is recommended to enable this feature on all multirotors."
         field: iterm_relax
         table: iterm_relax
         default_value: RP
       - name: mc_iterm_relax_cutoff
+        description: "Iterm relax cutoff frequency."
         field: iterm_relax_cutoff
         min: 1
         max: 100
         default_value: 15
       - name: d_boost_min
+        description: "D-term multiplier when pilot provides rapid stick input. Lower values give sharper response to stick input, higher values give smoother response."
         field: dBoostMin
         condition: USE_D_BOOST
         min: 0
         max: 1
         default_value: 0.5
       - name: d_boost_max
+        description: "D-term multiplier when rapid external conditions are detected. Lower values give sharper response to stick input, higher values give smoother response by scaling D-gains up."
         field: dBoostMax
         condition: USE_D_BOOST
         min: 1
         max: 3
         default_value: 1.25
       - name: d_boost_max_at_acceleration
+        description: "Acceleration threshold for D-term multiplier. When acceleration is above this value, D-term multiplier is set to `d_boost_max`"
         field: dBoostMaxAtAlleceleration
         condition: USE_D_BOOST
         min: 1000
         max: 16000
         default_value: 7500
       - name: d_boost_gyro_delta_lpf_hz
+        description: "Cutoff frequency for the low pass filter applied to the gyro delta signal used for D-term boost. Lower value will produce a smoother D-term boost signal, but it will be more delayed."
         field: dBoostGyroDeltaLpfHz
         condition: USE_D_BOOST
         min: 10
@@ -2193,7 +2209,7 @@ groups:
         min: 1
         max: 20
       - name: antigravity_accelerator
-        description: ""
+        description: "Multiplier for Antigravity gain. The bigger is the difference between actual and filtered throttle input, the bigger Antigravity gain"
         default_value: 1
         field: antigravityAccelerator
         condition: USE_ANTIGRAVITY
@@ -2325,21 +2341,25 @@ groups:
         min: 0
         max: 1000
       - name: inav_w_z_surface_p
+        description: "Weight of rangefinder measurements in estimated altitude. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled"
         field: w_z_surface_p
         min: 0
         max: 100
         default_value: 3.5 
       - name: inav_w_z_surface_v
+        description: "Weight of rangefinder measurements in estimated climb rate. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled"
         field: w_z_surface_v
         min: 0
         max: 100
         default_value: 6.1
       - name: inav_w_xy_flow_p
+        description: "Weight of optical flow measurements in estimated UAV position."
         field: w_xy_flow_p
         min: 0
         max: 100
         default_value: 1.0
       - name: inav_w_xy_flow_v
+        description: "Weight of optical flow measurements in estimated UAV speed."
         field: w_xy_flow_v
         min: 0
         max: 100
@@ -3068,35 +3088,41 @@ groups:
         max: INT16_MAX
       - name: mavlink_ext_status_rate
         field: mavlink.extended_status_rate
+        description: "Rate of the extended status message for MAVLink telemetry"
         type: uint8_t
         min: 0
         max: 255
         default_value: 2
       - name: mavlink_rc_chan_rate
+        description: "Rate of the RC channels message for MAVLink telemetry"
         field: mavlink.rc_channels_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 5
       - name: mavlink_pos_rate
+        description: "Rate of the position message for MAVLink telemetry"
         field: mavlink.position_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 2
       - name: mavlink_extra1_rate
+        description: "Rate of the extra1 message for MAVLink telemetry"
         field: mavlink.extra1_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 10
       - name: mavlink_extra2_rate
+        description: "Rate of the extra2 message for MAVLink telemetry"
         field: mavlink.extra2_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 2
       - name: mavlink_extra3_rate
+        description: "Rate of the extra3 message for MAVLink telemetry"
         field: mavlink.extra3_rate
         type: uint8_t
         min: 0
@@ -3434,16 +3460,19 @@ groups:
         min: 0
         max: 3
       - name: osd_left_sidebar_scroll
+        description: "Scroll type for the left sidebar"
         field: left_sidebar_scroll
         table: osd_sidebar_scroll
         type: uint8_t
         default_value: NONE
       - name: osd_right_sidebar_scroll
+        description: "Scroll type for the right sidebar"
         field: right_sidebar_scroll
         table: osd_sidebar_scroll
         type: uint8_t
         default_value: NONE
       - name: osd_sidebar_scroll_arrows
+        description: "Show arrows for scrolling the sidebars"
         field: sidebar_scroll_arrows
         type: bool
         default_value: OFF
@@ -3454,6 +3483,7 @@ groups:
         min: 1
         max: 2
       - name: osd_coordinate_digits
+        description: "Number of digits for the coordinates displayed in the OSD [8-11]."
         field: coordinate_digits
         min: 8
         max: 11
@@ -3892,6 +3922,7 @@ groups:
         table: vtx_low_power_disarm
         type: uint8_t
       - name: vtx_pit_mode_chan
+        description: "Pit mode channel."
         field: pitModeChan
         min: VTX_SETTINGS_MIN_CHANNEL
         max: VTX_SETTINGS_MAX_CHANNEL
