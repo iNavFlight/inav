@@ -44,7 +44,7 @@
 #define IMU_MPU6000_ALIGN       CW180_DEG
 
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN                CW180_DEG
+#define IMU_BMI270_ALIGN                CW90_DEG
 #define BMI270_SPI_BUS                  BUS_SPI1
 #define BMI270_CS_PIN                   PA4
 
@@ -103,11 +103,13 @@
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                    ADC1
-#define ADC_CHANNEL_1_PIN               PA0
+#define ADC_CHANNEL_1_PIN               PB0
 #define ADC_CHANNEL_2_PIN               PB1
 
-#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
 #define VBAT_ADC_CHANNEL                ADC_CHN_1
+#define CURRENT_METER_ADC_CHANNEL       ADC_CHN_2
+
+#define VBAT_SCALE_DEFAULT              1100
 
 // *************** LED2812 ************************
 #define USE_LED_STRIP
