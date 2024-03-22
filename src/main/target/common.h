@@ -202,4 +202,9 @@
 #elif !defined(STM32F7)
 #define MAX_MIXER_PROFILE_COUNT 1
 #endif
+
+#if (MCU_FLASH_SIZE <= 512)
+    #define SKIP_CLI_COMMAND_HELP
+#endif
+
 #define USE_EZ_TUNE
