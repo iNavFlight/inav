@@ -61,6 +61,7 @@ typedef struct {
 } gpsReceiverData_t;
 
 extern gpsReceiverData_t gpsState;
+extern gpsSolutionData_t gpsSolDRV;
 
 extern baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT];
 
@@ -70,7 +71,8 @@ extern void gpsFinalizeChangeBaud(void);
 extern uint16_t gpsConstrainEPE(uint32_t epe);
 extern uint16_t gpsConstrainHDOP(uint32_t hdop);
 
-void gpsProcessNewSolutionData(void);
+void gpsProcessNewDriverData(void);
+void gpsProcessNewSolutionData(bool);
 void gpsSetProtocolTimeout(timeMs_t timeoutMs);
 
 extern void gpsRestartUBLOX(void);

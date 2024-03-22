@@ -103,6 +103,8 @@
 
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
 
+#define MSP2_ADSB_VEHICLE_LIST                  0x2090
+
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2101
 

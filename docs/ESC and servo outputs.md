@@ -13,7 +13,7 @@ INAV support the following ESC protocols:
 
 ESC protocol can be selected in Configurator. No special configuration is required.
 
-Check ESC documentation of the list of protocols that it is supporting.
+Check the ESC documentation for the list of protocols that are supported.
 
 ## Servo outputs
 
@@ -28,23 +28,8 @@ While motors are usually ordered sequentially, here is no standard output layout
 
 ## Modifying output mapping
 
-### Modifying all outputs at the same time
-
-Since INAV 5, it has been possible to force *ALL* outputs to be `MOTORS` or `SERVOS`.
-
-Traditional ESCs usually can be controlled via a servo output, but would require calibration.
-
-This can be done with the `output_mode` CLI setting. Allowed values:
-
-* `AUTO` assigns outputs according to the default mapping
-* `SERVOS` assigns all outputs to servos
-* `MOTORS` assigns all outputs to motors
-
-### Modifying only some outputs
-
 INAV 7 introduced extra functionality that let you force only some outputs to be either *MOTORS* or *SERVOS*, with some restrictions dictated by the hardware.
 
-The mains restrictions is that outputs need to be associated with timers, which are usually shared between multiple outputs. Two outputs on the same timer need to have the same function.
+The main restrictions is that outputs are associated with timers, which can be shared between multiple outputs and  two outputs on the same timer need to have the same function.
 
 The easiest way to modify outputs, is to use the Mixer tab in the Configurator, as it will clearly show you which timer is used by all outputs, but you can also use `timer_output_mode` on the cli.
-This can be used in conjunction to the previous method, in that cass all outputs will follow `output_mode` and `timer_output_mode` overrides are applied after that.

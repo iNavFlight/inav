@@ -58,6 +58,7 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "io/adsb.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
@@ -525,7 +526,11 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
 
-    if (!sensors(SENSOR_GPS))
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ))
         return;
 
     if (gpsSol.fixType == GPS_NO_FIX)
@@ -640,7 +645,11 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_GPS)
     // use ground speed if source available
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
     }
 #endif
@@ -1054,6 +1063,50 @@ static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     return true;
 }
 
+#ifdef USE_ADSB
+static bool handleIncoming_ADSB_VEHICLE(void) {
+    mavlink_adsb_vehicle_t msg;
+    mavlink_msg_adsb_vehicle_decode(&mavRecvMsg, &msg);
+
+    adsbVehicleValues_t* vehicle = getVehicleForFill();
+    if(vehicle != NULL){
+        vehicle->icao = msg.ICAO_address;
+        vehicle->lat = msg.lat;
+        vehicle->lon = msg.lon;
+        vehicle->alt = (int32_t)(msg.altitude / 10);
+        vehicle->heading = msg.heading;
+        vehicle->flags = msg.flags;
+        vehicle->altitudeType = msg.altitude_type;
+        memcpy(&(vehicle->callsign), msg.callsign, sizeof(vehicle->callsign));
+        vehicle->emitterType = msg.emitter_type;
+        vehicle->tslc = msg.tslc;
+
+        adsbNewVehicle(vehicle);
+    }
+
+    //debug vehicle
+   /* if(vehicle != NULL){
+
+        char name[9] = "DUMMY    ";
+
+        vehicle->icao = 666;
+        vehicle->lat = 492383514;
+        vehicle->lon = 165148681;
+        vehicle->alt = 100000;
+        vehicle->heading = 180;
+        vehicle->flags = ADSB_FLAGS_VALID_ALTITUDE | ADSB_FLAGS_VALID_COORDS;
+        vehicle->altitudeType = 0;
+        memcpy(&(vehicle->callsign), name, sizeof(vehicle->callsign));
+        vehicle->emitterType = 6;
+        vehicle->tslc = 0;
+
+        adsbNewVehicle(vehicle);
+    }*/
+
+    return true;
+}
+#endif
+
 static bool processMAVLinkIncomingTelemetry(void)
 {
     while (serialRxBytesWaiting(mavlinkPort) > 0) {
@@ -1076,6 +1129,10 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
                     return handleIncoming_RC_CHANNELS_OVERRIDE();
+#ifdef USE_ADSB
+                case MAVLINK_MSG_ID_ADSB_VEHICLE:
+                    return handleIncoming_ADSB_VEHICLE();
+#endif
                 default:
                     return false;
             }

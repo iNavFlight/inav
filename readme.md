@@ -15,7 +15,7 @@
 
 ## Features
 
-* Runs on the most popular F4, F7 and H7 flight controllers
+* Runs on the most popular AT32, F4, F7 and H7 flight controllers
 * MSP Displayport for all the HD Digital FPV systems: DJI, Walksnail and HDZero
 * Outstanding performance out of the box
 * Position Hold, Altitude Hold, Return To Home and Waypoint Missions

@@ -348,7 +348,11 @@ static void sendSMS(void)
 
     ZERO_FARRAY(pluscode_url);
 
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+    if ((sensors(SENSOR_GPS) && STATE(GPS_FIX))
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         groundSpeed = gpsSol.groundSpeed / 100;
 
         char buf[20];

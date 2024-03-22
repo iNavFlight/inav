@@ -9,7 +9,7 @@ option(SEMIHOSTING "Enable semihosting")
 message("-- DEBUG_HARDFAULTS: ${DEBUG_HARDFAULTS}, SEMIHOSTING: ${SEMIHOSTING}")
 
 set(CMSIS_DIR "${MAIN_LIB_DIR}/lib/main/AT32F43x/Drivers/CMSIS")
-set(CMSIS_INCLUDE_DIR "${CMSIS_DIR}/cm4/core_support") 
+set(CMSIS_INCLUDE_DIR "${CMSIS_DIR}/cm4/core_support")
 # DSP use common
 set(CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")
 set(CMSIS_DSP_INCLUDE_DIR "${CMSIS_DSP_DIR}/Include")
@@ -50,8 +50,8 @@ main_sources(AT32_ASYNCFATFS_SRC
 )
 
 main_sources(AT32_MSC_SRC
-    msc/at32_msc_diskio.c 
-    msc/emfat.c 
+    msc/at32_msc_diskio.c
+    msc/emfat.c
     msc/emfat_file.c
 )
 
@@ -92,6 +92,7 @@ set(AT32_LINK_OPTIONS
     -Wl,--cref
     -Wl,--no-wchar-size-warning
     -Wl,--print-memory-usage
+    -Wl,--no-warn-rwx-segments
 )
 # Get target features
 macro(get_at32_target_features output_var dir target_name)
@@ -264,7 +265,7 @@ function(add_at32_executable)
     endif()
 endfunction()
 
-#  Main function of AT32 
+#  Main function of AT32
 function(target_at32)
     if(NOT arm-none-eabi STREQUAL TOOLCHAIN)
         return()

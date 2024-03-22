@@ -63,7 +63,7 @@ void gpsRestartMSP(void)
 void gpsHandleMSP(void)
 {
     if (newDataReady) {
-        gpsProcessNewSolutionData();
+        gpsProcessNewSolutionData(false);
         newDataReady = false;
     }
 }
@@ -81,33 +81,34 @@ void mspGPSReceiveNewData(const uint8_t * bufferPtr)
 {
     const mspSensorGpsDataMessage_t * pkt = (const mspSensorGpsDataMessage_t *)bufferPtr;
 
-    gpsSol.fixType   = gpsMapFixType(pkt->fixType);
-    gpsSol.numSat    = pkt->satellitesInView;
-    gpsSol.llh.lon   = pkt->longitude;
-    gpsSol.llh.lat   = pkt->latitude;
-    gpsSol.llh.alt   = pkt->mslAltitude;
-    gpsSol.velNED[X] = pkt->nedVelNorth;
-    gpsSol.velNED[Y] = pkt->nedVelEast;
-    gpsSol.velNED[Z] = pkt->nedVelDown;
-    gpsSol.groundSpeed = calc_length_pythagorean_2D((float)pkt->nedVelNorth, (float)pkt->nedVelEast);
-    gpsSol.groundCourse = pkt->groundCourse / 10;   // in deg * 10
-    gpsSol.eph = gpsConstrainEPE(pkt->horizontalPosAccuracy / 10);
-    gpsSol.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
-    gpsSol.hdop = gpsConstrainHDOP(pkt->hdop);
-    gpsSol.flags.validVelNE = true;
-    gpsSol.flags.validVelD = true;
-    gpsSol.flags.validEPE = true;
+    gpsSolDRV.fixType   = gpsMapFixType(pkt->fixType);
+    gpsSolDRV.numSat    = pkt->satellitesInView;
+    gpsSolDRV.llh.lon   = pkt->longitude;
+    gpsSolDRV.llh.lat   = pkt->latitude;
+    gpsSolDRV.llh.alt   = pkt->mslAltitude;
+    gpsSolDRV.velNED[X] = pkt->nedVelNorth;
+    gpsSolDRV.velNED[Y] = pkt->nedVelEast;
+    gpsSolDRV.velNED[Z] = pkt->nedVelDown;
+    gpsSolDRV.groundSpeed = calc_length_pythagorean_2D((float)pkt->nedVelNorth, (float)pkt->nedVelEast);
+    gpsSolDRV.groundCourse = pkt->groundCourse / 10;   // in deg * 10
+    gpsSolDRV.eph = gpsConstrainEPE(pkt->horizontalPosAccuracy / 10);
+    gpsSolDRV.epv = gpsConstrainEPE(pkt->verticalPosAccuracy / 10);
+    gpsSolDRV.hdop = gpsConstrainHDOP(pkt->hdop);
+    gpsSolDRV.flags.validVelNE = true;
+    gpsSolDRV.flags.validVelD = true;
+    gpsSolDRV.flags.validEPE = true;
 
-    gpsSol.time.year   = pkt->year;
-    gpsSol.time.month  = pkt->month;
-    gpsSol.time.day    = pkt->day;
-    gpsSol.time.hours  = pkt->hour;
-    gpsSol.time.minutes = pkt->min;
-    gpsSol.time.seconds = pkt->sec;
-    gpsSol.time.millis  = 0;
+    gpsSolDRV.time.year   = pkt->year;
+    gpsSolDRV.time.month  = pkt->month;
+    gpsSolDRV.time.day    = pkt->day;
+    gpsSolDRV.time.hours  = pkt->hour;
+    gpsSolDRV.time.minutes = pkt->min;
+    gpsSolDRV.time.seconds = pkt->sec;
+    gpsSolDRV.time.millis  = 0;
 
-    gpsSol.flags.validTime = (pkt->fixType >= 3);
+    gpsSolDRV.flags.validTime = (pkt->fixType >= 3);
 
+    gpsProcessNewDriverData();
     newDataReady = true;
 }
 #endif

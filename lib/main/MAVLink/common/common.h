@@ -48,7 +48,7 @@ typedef enum FIRMWARE_VERSION_TYPE
 } FIRMWARE_VERSION_TYPE;
 #endif
 
-/** @brief Flags to report failure cases over the high latency telemtry. */
+/** @brief Flags to report failure cases over the high latency telemetry. */
 #ifndef HAVE_ENUM_HL_FAILURE_FLAG
 #define HAVE_ENUM_HL_FAILURE_FLAG
 typedef enum HL_FAILURE_FLAG

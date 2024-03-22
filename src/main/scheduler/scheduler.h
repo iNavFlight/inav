@@ -70,6 +70,9 @@ typedef enum {
 #ifdef USE_BARO
     TASK_BARO,
 #endif
+#ifdef USE_ADSB
+    TASK_ADSB,
+#endif
 #ifdef USE_PITOT
     TASK_PITOT,
 #endif

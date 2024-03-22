@@ -330,7 +330,11 @@ static void imuCheckAndResetOrientationQuaternion(const fpQuaternion_t * quat, c
 
 bool isGPSTrustworthy(void)
 {
-    return sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6;
+    return (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 6)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ;
 }
 
 static float imuCalculateMcCogWeight(void)

@@ -114,12 +114,6 @@ uint32_t systemBootloaderAddress(void)
     //return system_isr_vector_table_base;
 }
 
-void systemClockSetup(uint8_t cpuUnderclock)
-{
-    (void)cpuUnderclock;
-    // This is a stub
-}
-
 void systemInit(void)
 {
     //config system clock to 288mhz usb 48mhz
