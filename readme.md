@@ -12,24 +12,23 @@
 
 * [INAV Discord Server](https://discord.gg/peg2hhbYwN)
 * [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
-* [INAV Official on Telegram](https://t.me/INAVFlight)
 
 ## Features
 
 * Runs on the most popular F4, F7 and H7 flight controllers
-* On Screen Display (OSD) - both character and pixel style
-* DJI OSD integration: all elements, system messages and warnings
+* MSP Displayport for all the HD Digital FPV systems: DJI, Walksnail and HDZero
 * Outstanding performance out of the box
 * Position Hold, Altitude Hold, Return To Home and Waypoint Missions
 * Excellent support for fixed wing UAVs: airplanes, flying wings
+* Blackbox flight recorder logging
+* Advanced gyro filtering
 * Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
 * Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
+* Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
 * SmartAudio and IRC Tramp VTX support
-* Blackbox flight recorder logging
 * Telemetry: SmartPort, FPort, MAVlink, LTM, CRSF
 * Multi-color RGB LED Strip support
-* Advanced gyro filtering
-* Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
+* On Screen Display (OSD) - both character and pixel style
 * And many more!
 
 For a list of features, changes and some discussion please review consult the releases [page](https://github.com/iNavFlight/inav/releases) and the documentation.
@@ -51,10 +50,6 @@ Command line tools (`blackbox_decode`, `blackbox_render`) for Blackbox log conve
 ### Telemetry screen for EdgeTX and OpenTX
 
 Users of EdgeTX and OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
-
-### INAV magnetometer alignment helper
-
-[INAV Magnetometer Alignment helper](https://kernel-machine.github.io/INavMagAlignHelper/) allows to align INAV magnetometer despite position and orientation. This simplifies the process of INAV setup on multirotors with tilted GPS modules.
 
 ### OSD layout Copy, Move, or Replace helper tool
 
