@@ -104,7 +104,7 @@ Specifies the type of the software LPF of the acc signals. BIQUAD gives better f
 
 ### acc_notch_cutoff
 
-_// TODO_
+Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ _// TODO_
 
 ### acc_notch_hz
 
-_// TODO_
+Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is center frequency (Hz)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -394,7 +394,7 @@ Defines the deadband of throttle during alt_hold [r/c points]
 
 ### antigravity_accelerator
 
-_// TODO_
+Multiplier for Antigravity gain. The bigger is the difference between actual and filtered throttle input, the bigger Antigravity gain
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -634,7 +634,7 @@ ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the 
 
 ### d_boost_gyro_delta_lpf_hz
 
-_// TODO_
+Cutoff frequency for the low pass filter applied to the gyro delta signal used for D-term boost. Lower value will produce a smoother D-term boost signal, but it will be more delayed.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -644,7 +644,7 @@ _// TODO_
 
 ### d_boost_max
 
-_// TODO_
+D-term multiplier when rapid external conditions are detected. Lower values give sharper response to stick input, higher values give smoother response by scaling D-gains up.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -654,7 +654,7 @@ _// TODO_
 
 ### d_boost_max_at_acceleration
 
-_// TODO_
+Acceleration threshold for D-term multiplier. When acceleration is above this value, D-term multiplier is set to `d_boost_max`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -664,7 +664,7 @@ _// TODO_
 
 ### d_boost_min
 
-_// TODO_
+D-term multiplier when pilot provides rapid stick input. Lower values give sharper response to stick input, higher values give smoother response.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1164,7 +1164,7 @@ Defines throw range in us for both ailerons that will be passed to servo mixer v
 
 ### fpv_mix_degrees
 
-_// TODO_
+The tilt angle of the FPV camera in degrees, used by the FPV ANGLE MIX mode
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1664,7 +1664,7 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 
 ### gyro_to_use
 
-_// TODO_
+On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = second gyro
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1894,7 +1894,7 @@ Weight for accelerometer drift estimation
 
 ### inav_w_xy_flow_p
 
-_// TODO_
+Weight of optical flow measurements in estimated UAV position.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1904,7 +1904,7 @@ _// TODO_
 
 ### inav_w_xy_flow_v
 
-_// TODO_
+Weight of optical flow measurements in estimated UAV speed.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1984,7 +1984,7 @@ Decay coefficient for estimated climb rate when baro/GPS reference for altitude 
 
 ### inav_w_z_surface_p
 
-_// TODO_
+Weight of rangefinder measurements in estimated altitude. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1994,7 +1994,7 @@ _// TODO_
 
 ### inav_w_z_surface_v
 
-_// TODO_
+Weight of rangefinder measurements in estimated climb rate. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2354,7 +2354,7 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ### mavlink_ext_status_rate
 
-_// TODO_
+Rate of the extended status message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2364,7 +2364,7 @@ _// TODO_
 
 ### mavlink_extra1_rate
 
-_// TODO_
+Rate of the extra1 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2374,7 +2374,7 @@ _// TODO_
 
 ### mavlink_extra2_rate
 
-_// TODO_
+Rate of the extra2 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2384,7 +2384,7 @@ _// TODO_
 
 ### mavlink_extra3_rate
 
-_// TODO_
+Rate of the extra3 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2394,7 +2394,7 @@ _// TODO_
 
 ### mavlink_pos_rate
 
-_// TODO_
+Rate of the position message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2404,7 +2404,7 @@ _// TODO_
 
 ### mavlink_rc_chan_rate
 
-_// TODO_
+Rate of the RC channels message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2584,7 +2584,7 @@ Multicopter rate stabilisation I-gain for YAW
 
 ### mc_iterm_relax
 
-_// TODO_
+Iterm relax type. When enabled, Iterm will be relaxed when stick is centered. This will help to reduce bounceback and followthrough on multirotors. It is recommended to enable this feature on all multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2594,7 +2594,7 @@ _// TODO_
 
 ### mc_iterm_relax_cutoff
 
-_// TODO_
+Iterm relax cutoff frequency.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3714,7 +3714,7 @@ A point (in percent of both target and current horizontal velocity) where nav_mc
 
 ### nav_mc_vel_xy_dterm_lpf_hz
 
-_// TODO_
+D-term low pass filter cutoff frequency for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3724,7 +3724,7 @@ _// TODO_
 
 ### nav_mc_vel_xy_ff
 
-_// TODO_
+FF gain of Position-Rate (Velocity to Acceleration)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4094,7 +4094,7 @@ Selection of OPFLOW hardware.
 
 ### opflow_scale
 
-_// TODO_
+Optical flow module scale factor
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4314,7 +4314,7 @@ Set the camera uptilt for the FPV camera in degres, positive is up, negative is 
 
 ### osd_coordinate_digits
 
-_// TODO_
+Number of digits for the coordinates displayed in the OSD [8-11].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4664,7 +4664,7 @@ PWM value for UP key
 
 ### osd_left_sidebar_scroll
 
-_// TODO_
+Scroll type for the left sidebar
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4794,7 +4794,7 @@ Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requ
 
 ### osd_right_sidebar_scroll
 
-_// TODO_
+Scroll type for the right sidebar
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4884,7 +4884,7 @@ Sidebar horizontal offset from default position. Positive values move the sideba
 
 ### osd_sidebar_scroll_arrows
 
-_// TODO_
+Show arrows for scrolling the sidebars
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5214,7 +5214,7 @@ Selection of pitot hardware.
 
 ### pitot_lpf_milli_hz
 
-_// TODO_
+Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5224,7 +5224,7 @@ _// TODO_
 
 ### pitot_scale
 
-_// TODO_
+Pitot tube scale factor
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5594,7 +5594,7 @@ Used to control when safehomes will be used. Possible values are `OFF`, `RTH` an
 
 ### sbus_sync_interval
 
-_// TODO_
+SBUS sync interval in us. Default value is 3000us. Lower values may cause issues with some receivers.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6214,7 +6214,7 @@ Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use th
 
 ### vtx_pit_mode_chan
 
-_// TODO_
+Pit mode channel.
 
 | Default | Min | Max |
 | --- | --- | --- |
