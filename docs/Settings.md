@@ -1862,16 +1862,6 @@ _// TODO_
 
 ---
 
-### inav_use_gps_velned
-
-Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
 ### inav_w_acc_bias
 
 Weight for accelerometer drift estimation

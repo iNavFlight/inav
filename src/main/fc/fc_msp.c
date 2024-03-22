@@ -1420,7 +1420,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_p * 100); // 2   inav_w_xy_gps_p float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_v * 100); // 2   inav_w_xy_gps_v float as value * 100
         sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1
-        sbufWriteU8(dst, positionEstimationConfig()->use_gps_velned);    // 1   inav_use_gps_velned ON/OFF
+        sbufWriteU8(dst, 1);    // 1   inav_use_gps_velned ON/OFF
 
         break;
 
@@ -2489,7 +2489,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             positionEstimationConfigMutable()->w_xy_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
             positionEstimationConfigMutable()->w_xy_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
             gpsConfigMutable()->gpsMinSats = constrain(sbufReadU8(src), 5, 10);
-            positionEstimationConfigMutable()->use_gps_velned = constrain(sbufReadU8(src), 0, 1);
+            sbufReadU8(src); // was positionEstimationConfigMutable()->use_gps_velned
         } else
             return MSP_RESULT_ERROR;
         break;
