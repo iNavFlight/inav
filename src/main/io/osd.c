@@ -5073,7 +5073,6 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 osdShowStats(statsSinglePageCompatible, statsCurrentPage);
             }
         }
-        }
 
         // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
         if ((currentTimeUs > resumeRefreshAt) || OSD_RESUME_UPDATES_STICK_COMMAND) { 
