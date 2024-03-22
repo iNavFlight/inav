@@ -552,16 +552,6 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
-### control_deadband
-
-Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 2 | 250 |
-
----
-
 ### controlrate_profile
 
 Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile
