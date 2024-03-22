@@ -2042,16 +2042,6 @@ PWM mode of LED pin.
 
 ---
 
-### ledstrip_visual_beeper
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### limit_attn_filter_cutoff
 
 Throttle attenuation PI control output filter cutoff frequency

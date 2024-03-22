@@ -3136,16 +3136,6 @@ groups:
         max: 2
         default_value: 2
 
-  - name: PG_LED_STRIP_CONFIG
-    type: ledStripConfig_t
-    headers: ["common/color.h", "io/ledstrip.h"]
-    condition: USE_LED_STRIP
-    members:
-      - name: ledstrip_visual_beeper
-        description: ""
-        default_value: OFF
-        type: bool
-
   - name: PG_OSD_CONFIG
     type: osdConfig_t
     headers: ["io/osd.h", "drivers/osd.h"]
