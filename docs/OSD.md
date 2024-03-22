@@ -168,6 +168,7 @@ Here are the OSD Elements provided by INAV.
 | 144 | OSD_MULTI_FUNCTION                               | 7.0.0  |
 | 145 | OSD_ODOMETER                                     | 7.0.0  |
 | 146 | OSD_PILOT_LOGO                                   | 7.0.0  |
+| 147 | OSD_ALTITUDE_QNE                                 | 7.1.0  |
 
 # Pilot Logos
 

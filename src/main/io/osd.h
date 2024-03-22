@@ -286,6 +286,7 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_3,
     OSD_ADSB_WARNING,
     OSD_ADSB_INFO,
+    OSD_ALTITUDE_QNE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

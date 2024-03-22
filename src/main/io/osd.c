@@ -102,6 +102,7 @@
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
+#include "sensors/barometer.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/diagnostics.h"
@@ -1230,6 +1231,11 @@ static inline int32_t osdGetAltitudeMsl(void)
     return getEstimatedActualPosition(Z) + posControl.gpsOrigin.alt;
 }
 
+int32_t osdGetAltitudeQne(void)
+{
+    return baroGetAltitudeQne();
+}
+
 uint16_t osdGetRemainingGlideTime(void) {
     float value = getEstimatedActualVelocity(Z);
     static pt1Filter_t glideTimeFilterState;
@@ -2232,6 +2238,13 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ALTITUDE_MSL:
         {
             int32_t alt = osdGetAltitudeMsl();
+            osdFormatAltitudeSymbol(buff, alt);
+            break;
+        }
+
+    case OSD_ALTITUDE_QNE:
+        {
+            int32_t alt = osdGetAltitudeQne();
             osdFormatAltitudeSymbol(buff, alt);
             break;
         }
