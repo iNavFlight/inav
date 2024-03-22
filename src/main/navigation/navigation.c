@@ -3999,7 +3999,7 @@ bool isWaypointNavTrackingActive(void)
 
     return FLIGHT_MODE(NAV_WP_MODE) 
     || posControl.navState == NAV_STATE_FW_LANDING_APPROACH
-    || (posControl.flags.rthTrackbackActive && posControl.activeRthTBPointIndex != posControl.rthTBLastSavedIndex);
+    || (posControl.flags.rthTrackbackActive && rth_trackback.activePointIndex != rth_trackback.lastSavedIndex);
 }
 
 /*-----------------------------------------------------------
