@@ -28,6 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include "platform.h"
 
@@ -986,7 +987,7 @@ static const char * osdFailsafePhaseMessage(void)
 
 static const char * osdFailsafeInfoMessage(void)
 {
-    if (failsafeIsReceivingRxData()) {
+    if (failsafeIsReceivingRxData() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
         // User must move sticks to exit FS mode
         return OSD_MESSAGE_STR(OSD_MSG_MOVE_EXIT_FS);
     }
@@ -2362,7 +2363,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             char *p = "ACRO";
 #ifdef USE_FW_AUTOLAND
-            if (isFwLandInProgess()) 
+            if (FLIGHT_MODE(NAV_FW_AUTOLAND)) 
                 p = "LAND";
             else
 #endif
@@ -4672,8 +4673,16 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
+    uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
+
     if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
+    } else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+        char emReArmMsg[23];
+        tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+        tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+        strcat(emReArmMsg, " **\0");
+        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
@@ -4973,9 +4982,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     bool statsSinglePageCompatible = (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS);
-    static uint8_t statsCurrentPage = 0;
-    static bool statsDisplayed = false;
-    static bool statsAutoPagingEnabled = true;
+    static uint8_t  statsCurrentPage = 0;
+    static timeMs_t statsRefreshTime = 0;
+    static bool     statsDisplayed = false;
+    static bool     statsAutoPagingEnabled = true;
 
     // Detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -5043,26 +5053,25 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 // Alternate screens for multi-page stats.
                 // Also, refreshes screen at swap interval for single-page stats.
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                    if (statsCurrentPage == 0) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 0)
                         statsCurrentPage = 1;
-                    }
                 } else {
-                    if (statsCurrentPage == 1) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 1)
                         statsCurrentPage = 0;
-                    }
                 }
             } else {
                 // Process manual page change events for multi-page stats.
-                if (manualPageUpRequested) {
-                    osdShowStats(statsSinglePageCompatible, 1);
-                    statsCurrentPage = 1;                   
-                } else if (manualPageDownRequested) {
-                    osdShowStats(statsSinglePageCompatible, 0);
+                if (manualPageUpRequested)
+                    statsCurrentPage = 1;
+                else if (manualPageDownRequested)
                     statsCurrentPage = 0;
             }
-        }
+
+            // Only refresh the stats every 1/4 of a second.
+            if (statsRefreshTime <= millis()) {
+                statsRefreshTime =  millis() + 250;
+                osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+            }
         }
 
         // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
@@ -5254,7 +5263,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         if (ARMING_FLAG(ARMED)) {
 #ifdef USE_FW_AUTOLAND
-            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding() || isFwLandInProgess()) {
+            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding() || FLIGHT_MODE(NAV_FW_AUTOLAND)) {
                 if (isWaypointMissionRTHActive() && !posControl.fwLandState.landWp) {
 #else
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
@@ -5295,7 +5304,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandCanceld()) {
                          messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS);
-                    } else if (!isFwLandInProgess()) {
+                    } else if (!FLIGHT_MODE(NAV_FW_AUTOLAND)) {
 #endif
                         const char *navStateMessage = navigationStateMessage();
                         if (navStateMessage) {
@@ -5418,9 +5427,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
+        uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
         if (savingSettings == true) {
            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
+        } else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
         } else if (notify_settings_saved > 0) {
             if (millis() > notify_settings_saved) {
                 notify_settings_saved = 0;
@@ -5428,6 +5444,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
             }
         }
+
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
