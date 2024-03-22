@@ -229,13 +229,6 @@ void init(void)
     readEEPROM();
     resumeRxSignal();
 
-#ifdef USE_UNDERCLOCK
-    // Re-initialize system clock to their final values (if necessary)
-    systemClockSetup(systemConfig()->cpuUnderclock);
-#else
-    systemClockSetup(false);
-#endif
-
 #ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
 #endif
