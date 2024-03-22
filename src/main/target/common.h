@@ -205,6 +205,8 @@
 
 #if (MCU_FLASH_SIZE <= 512)
     #define SKIP_CLI_COMMAND_HELP
+    #undef USE_SERIALRX_SPEKTRUM
+    #undef USE_TELEMETRY_SRXL
 #endif
 
 #define USE_EZ_TUNE
