@@ -34,6 +34,34 @@
 #include "serial.h"
 #include "serial_uart.h"
 #include "serial_uart_impl.h"
+#include "serial_uart_device_at32.h"
+
+
+//find serial port's uart device 
+static uartDevice_t *uartFindDevice(uartPort_t *uartPort)
+{
+    for (uint32_t i = 0; i < UART_DEVICE_MAX ; i++) {
+        uartDevice_t *pDevice = uartHardwareMap[i];
+
+        if (pDevice->dev == uartPort->USARTx) {
+            return pDevice;
+        }
+    }
+    return NULL;
+}
+//config tx/rx pin swap 
+//support by at32f435/7
+static void uartConfigurePinSwap(uartPort_t *uartPort)
+{
+    uartDevice_t *uartDevice = uartFindDevice(uartPort);
+    if (!uartDevice) {
+        return;
+    }
+
+    if (uartDevice->pinSwap == true) {
+    	usart_transmit_receive_pin_swap(uartPort->USARTx,TRUE);
+    }
+}
 
 static void usartConfigurePinInversion(uartPort_t *uartPort) {
 #if !defined(USE_UART_INVERTER) 
@@ -85,6 +113,7 @@ static void uartReconfigure(uartPort_t *uartPort)
           usart_transmitter_enable(uartPort->USARTx, TRUE);
 
     usartConfigurePinInversion(uartPort);
+    uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR)
         usart_single_line_halfduplex_select(uartPort->USARTx, TRUE);
