@@ -104,7 +104,7 @@ Specifies the type of the software LPF of the acc signals. BIQUAD gives better f
 
 ### acc_notch_cutoff
 
-_// TODO_
+Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ _// TODO_
 
 ### acc_notch_hz
 
-_// TODO_
+Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is center frequency (Hz)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -394,7 +394,7 @@ Defines the deadband of throttle during alt_hold [r/c points]
 
 ### antigravity_accelerator
 
-_// TODO_
+Multiplier for Antigravity gain. The bigger is the difference between actual and filtered throttle input, the bigger Antigravity gain
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -552,16 +552,6 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
-### control_deadband
-
-Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 2 | 250 |
-
----
-
 ### controlrate_profile
 
 Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile
@@ -569,16 +559,6 @@ Control rate profile to switch to when the battery profile is selected, 0 to dis
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 3 |
-
----
-
-### cpu_underclock
-
-This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
 
 ---
 
@@ -634,7 +614,7 @@ ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the 
 
 ### d_boost_gyro_delta_lpf_hz
 
-_// TODO_
+Cutoff frequency for the low pass filter applied to the gyro delta signal used for D-term boost. Lower value will produce a smoother D-term boost signal, but it will be more delayed.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -644,7 +624,7 @@ _// TODO_
 
 ### d_boost_max
 
-_// TODO_
+D-term multiplier when rapid external conditions are detected. Lower values give sharper response to stick input, higher values give smoother response by scaling D-gains up.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -654,7 +634,7 @@ _// TODO_
 
 ### d_boost_max_at_acceleration
 
-_// TODO_
+Acceleration threshold for D-term multiplier. When acceleration is above this value, D-term multiplier is set to `d_boost_max`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -664,7 +644,7 @@ _// TODO_
 
 ### d_boost_min
 
-_// TODO_
+D-term multiplier when pilot provides rapid stick input. Lower values give sharper response to stick input, higher values give smoother response.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1164,7 +1144,7 @@ Defines throw range in us for both ailerons that will be passed to servo mixer v
 
 ### fpv_mix_degrees
 
-_// TODO_
+The tilt angle of the FPV camera in degrees, used by the FPV ANGLE MIX mode
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1664,7 +1644,7 @@ Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. 
 
 ### gyro_to_use
 
-_// TODO_
+On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = second gyro
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1872,16 +1852,6 @@ _// TODO_
 
 ---
 
-### inav_use_gps_velned
-
-Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
 ### inav_w_acc_bias
 
 Weight for accelerometer drift estimation
@@ -1894,7 +1864,7 @@ Weight for accelerometer drift estimation
 
 ### inav_w_xy_flow_p
 
-_// TODO_
+Weight of optical flow measurements in estimated UAV position.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1904,7 +1874,7 @@ _// TODO_
 
 ### inav_w_xy_flow_v
 
-_// TODO_
+Weight of optical flow measurements in estimated UAV speed.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1948,7 +1918,7 @@ Weight of barometer measurements in estimated altitude and climb rate. Setting i
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.4 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -1958,7 +1928,7 @@ Weight of GPS altitude measurements in estimated altitude. Setting is used on bo
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.4 | 0 | 10 |
+| 0.2 | 0 | 10 |
 
 ---
 
@@ -1968,7 +1938,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.8 | 0 | 10 |
+| 0.1 | 0 | 10 |
 
 ---
 
@@ -1984,7 +1954,7 @@ Decay coefficient for estimated climb rate when baro/GPS reference for altitude 
 
 ### inav_w_z_surface_p
 
-_// TODO_
+Weight of rangefinder measurements in estimated altitude. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1994,7 +1964,7 @@ _// TODO_
 
 ### inav_w_z_surface_v
 
-_// TODO_
+Weight of rangefinder measurements in estimated climb rate. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2039,16 +2009,6 @@ PWM mode of LED pin.
 | Default | Min | Max |
 | --- | --- | --- |
 | SHARED_LOW |  |  |
-
----
-
-### ledstrip_visual_beeper
-
-_// TODO_
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
 
 ---
 
@@ -2354,7 +2314,7 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ### mavlink_ext_status_rate
 
-_// TODO_
+Rate of the extended status message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2364,7 +2324,7 @@ _// TODO_
 
 ### mavlink_extra1_rate
 
-_// TODO_
+Rate of the extra1 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2374,7 +2334,7 @@ _// TODO_
 
 ### mavlink_extra2_rate
 
-_// TODO_
+Rate of the extra2 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2384,7 +2344,7 @@ _// TODO_
 
 ### mavlink_extra3_rate
 
-_// TODO_
+Rate of the extra3 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2394,7 +2354,7 @@ _// TODO_
 
 ### mavlink_pos_rate
 
-_// TODO_
+Rate of the position message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2404,7 +2364,7 @@ _// TODO_
 
 ### mavlink_rc_chan_rate
 
-_// TODO_
+Rate of the RC channels message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2584,7 +2544,7 @@ Multicopter rate stabilisation I-gain for YAW
 
 ### mc_iterm_relax
 
-_// TODO_
+Iterm relax type. When enabled, Iterm will be relaxed when stick is centered. This will help to reduce bounceback and followthrough on multirotors. It is recommended to enable this feature on all multirotors.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2594,7 +2554,7 @@ _// TODO_
 
 ### mc_iterm_relax_cutoff
 
-_// TODO_
+Iterm relax cutoff frequency.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2922,6 +2882,16 @@ P gain of Heading Hold controller (Fixedwing)
 
 ---
 
+### nav_fw_land_approach_length
+
+Length of the final approach
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 35000 | 100 | 100000 |
+
+---
+
 ### nav_fw_land_dive_angle
 
 Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees
@@ -2932,13 +2902,63 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 
 ---
 
-### nav_fw_launch_abort_deadband
+### nav_fw_land_final_approach_pitch2throttle_mod
 
-Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch.
+Modifier for pitch to throttle ratio at final approach. In Percent.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 100 | 2 | 250 |
+| 100 | 100 | 400 |
+
+---
+
+### nav_fw_land_flare_alt
+
+Initial altitude of the flare phase
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 150 | 0 | 10000 |
+
+---
+
+### nav_fw_land_flare_pitch
+
+Pitch value for flare phase. In degrees
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 8 | -15 | 45 |
+
+---
+
+### nav_fw_land_glide_alt
+
+Initial altitude of the glide phase
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 100 | 5000 |
+
+---
+
+### nav_fw_land_glide_pitch
+
+Pitch value for glide phase. In degrees.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -15 | 45 |
+
+---
+
+### nav_fw_land_max_tailwind
+
+Max. tailwind (in cm/s) if no landing direction with downwind is available
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 140 | 0 | 3000 |
 
 ---
 
@@ -2999,6 +3019,16 @@ Launch idle throttle - throttle to be set before launch sequence is initiated. I
 | Default | Min | Max |
 | --- | --- | --- |
 | 1000 | 1000 | 2000 |
+
+---
+
+### nav_fw_launch_land_abort_deadband
+
+Launch and landing abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch or landing.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 2 | 250 |
 
 ---
 
@@ -3644,7 +3674,7 @@ A point (in percent of both target and current horizontal velocity) where nav_mc
 
 ### nav_mc_vel_xy_dterm_lpf_hz
 
-_// TODO_
+D-term low pass filter cutoff frequency for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3654,7 +3684,7 @@ _// TODO_
 
 ### nav_mc_vel_xy_ff
 
-_// TODO_
+FF gain of Position-Rate (Velocity to Acceleration)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4024,11 +4054,41 @@ Selection of OPFLOW hardware.
 
 ### opflow_scale
 
-_// TODO_
+Optical flow module scale factor
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 10.5 | 0 | 10000 |
+
+---
+
+### osd_adsb_distance_alert
+
+Distance inside which ADSB data flashes for proximity warning
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3000 | 1 | 64000 |
+
+---
+
+### osd_adsb_distance_warning
+
+Distance in meters of ADSB aircraft that is displayed
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20000 | 1 | 64000 |
+
+---
+
+### osd_adsb_ignore_plane_above_me_limit
+
+Ignore adsb planes above, limit, 0 disabled (meters)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 64000 |
 
 ---
 
@@ -4214,7 +4274,7 @@ Set the camera uptilt for the FPV camera in degres, positive is up, negative is 
 
 ### osd_coordinate_digits
 
-_// TODO_
+Number of digits for the coordinates displayed in the OSD [8-11].
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4564,7 +4624,7 @@ PWM value for UP key
 
 ### osd_left_sidebar_scroll
 
-_// TODO_
+Scroll type for the left sidebar
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4694,7 +4754,7 @@ Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requ
 
 ### osd_right_sidebar_scroll
 
-_// TODO_
+Scroll type for the right sidebar
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4784,7 +4844,7 @@ Sidebar horizontal offset from default position. Positive values move the sideba
 
 ### osd_sidebar_scroll_arrows
 
-_// TODO_
+Show arrows for scrolling the sidebars
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5114,7 +5174,7 @@ Selection of pitot hardware.
 
 ### pitot_lpf_milli_hz
 
-_// TODO_
+Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5124,7 +5184,7 @@ _// TODO_
 
 ### pitot_scale
 
-_// TODO_
+Pitot tube scale factor
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5494,7 +5554,7 @@ Used to control when safehomes will be used. Possible values are `OFF`, `RTH` an
 
 ### sbus_sync_interval
 
-_// TODO_
+SBUS sync interval in us. Default value is 3000us. Lower values may cause issues with some receivers.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5812,6 +5872,16 @@ Delay before disarming when requested by switch (ms) [0-1000]
 
 ---
 
+### tailsitter_orientation_offset
+
+Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### telemetry_halfduplex
 
 S.Port telemetry only: Turn UART into UNIDIR for usage on F1 and F4 target. See Telemetry.md for details
@@ -5878,7 +5948,7 @@ The percentage of the throttle range (`max_throttle` - `min_command`) above `min
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 30 |
+| 8 | 0 | 30 |
 
 ---
 
@@ -6104,7 +6174,7 @@ Some VTXes may report max power incorrectly (i.e. 200mW for a 600mW VTX). Use th
 
 ### vtx_pit_mode_chan
 
-_// TODO_
+Pit mode channel.
 
 | Default | Min | Max |
 | --- | --- | --- |

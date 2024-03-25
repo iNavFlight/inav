@@ -56,7 +56,7 @@
 navigationPosEstimator_t posEstimator;
 static float initialBaroAltitudeOffset = 0.0f;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 6);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -64,7 +64,6 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .reset_altitude_type = SETTING_INAV_RESET_ALTITUDE_DEFAULT,
         .reset_home_type = SETTING_INAV_RESET_HOME_DEFAULT,
         .gravity_calibration_tolerance = SETTING_INAV_GRAVITY_CAL_TOLERANCE_DEFAULT,  // 5 cm/s/s calibration error accepted (0.5% of gravity)
-        .use_gps_velned = SETTING_INAV_USE_GPS_VELNED_DEFAULT,                        // "Disabled" is mandatory with gps_dyn_model = Pedestrian
         .use_gps_no_baro = SETTING_INAV_USE_GPS_NO_BARO_DEFAULT,                      // Use GPS altitude if no baro is available on all aircrafts
         .allow_dead_reckoning = SETTING_INAV_ALLOW_DEAD_RECKONING_DEFAULT,
 
@@ -162,56 +161,6 @@ static timeUs_t getGPSDeltaTimeFilter(timeUs_t dTus)
     return dTus;                                                 // Filter failed. Set GPS Hz by measurement
 }
 
-#if defined(NAV_GPS_GLITCH_DETECTION)
-static bool detectGPSGlitch(timeUs_t currentTimeUs)
-{
-    static timeUs_t previousTime = 0;
-    static fpVector3_t lastKnownGoodPosition;
-    static fpVector3_t lastKnownGoodVelocity;
-
-    bool isGlitching = false;
-
-#ifdef USE_GPS_FIX_ESTIMATION
-    if (STATE(GPS_ESTIMATED_FIX)) {
-        //disable sanity checks in GPS estimation mode
-        //when estimated GPS fix is replaced with real fix, coordinates may jump 
-        previousTime = 0;
-        return true;
-    }
-#endif
-
-    if (previousTime == 0) {
-        isGlitching = false;
-    }
-    else {
-        fpVector3_t predictedGpsPosition;
-        float gpsDistance;
-        float dT = US2S(currentTimeUs - previousTime);
-
-        /* We predict new position based on previous GPS velocity and position */
-        predictedGpsPosition.x = lastKnownGoodPosition.x + lastKnownGoodVelocity.x * dT;
-        predictedGpsPosition.y = lastKnownGoodPosition.y + lastKnownGoodVelocity.y * dT;
-
-        /* New pos is within predefined radius of predicted pos, radius is expanded exponentially */
-        gpsDistance = calc_length_pythagorean_2D(predictedGpsPosition.x - lastKnownGoodPosition.x, predictedGpsPosition.y - lastKnownGoodPosition.y);
-        if (gpsDistance <= (INAV_GPS_GLITCH_RADIUS + 0.5f * INAV_GPS_GLITCH_ACCEL * dT * dT)) {
-            isGlitching = false;
-        }
-        else {
-            isGlitching = true;
-        }
-    }
-
-    if (!isGlitching) {
-        previousTime = currentTimeUs;
-        lastKnownGoodPosition = posEstimator.gps.pos;
-        lastKnownGoodVelocity = posEstimator.gps.vel;
-    }
-
-    return isGlitching;
-}
-#endif
-
 /**
  * Update GPS topic
  *  Function is called on each GPS update
@@ -279,7 +228,7 @@ void onNewGPSData(void)
 
                 /* Use VELNED provided by GPS if available, calculate from coordinates otherwise */
                 float gpsScaleLonDown = constrainf(cos_approx((ABS(gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-                if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
+                if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && gpsSol.flags.validVelNE) {
                     posEstimator.gps.vel.x = gpsSol.velNED[X];
                     posEstimator.gps.vel.y = gpsSol.velNED[Y];
                 }
@@ -288,25 +237,12 @@ void onNewGPSData(void)
                     posEstimator.gps.vel.y = (posEstimator.gps.vel.y + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (gpsSol.llh.lon - previousLon) / dT)) / 2.0f;
                 }
 
-                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelD) {
+                if (gpsSol.flags.validVelD) {
                     posEstimator.gps.vel.z = -gpsSol.velNED[Z];   // NEU
                 }
                 else {
                     posEstimator.gps.vel.z = (posEstimator.gps.vel.z + (gpsSol.llh.alt - previousAlt) / dT) / 2.0f;
                 }
-
-#if defined(NAV_GPS_GLITCH_DETECTION)
-                /* GPS glitch protection. We have local coordinates and local velocity for current GPS update. Check if they are sane */
-                if (detectGPSGlitch(currentTimeUs)) {
-                    posEstimator.gps.glitchRecovery = false;
-                    posEstimator.gps.glitchDetected = true;
-                }
-                else {
-                    /* Store previous glitch flag in glitchRecovery to indicate a valid reading after a glitch */
-                    posEstimator.gps.glitchRecovery = posEstimator.gps.glitchDetected;
-                    posEstimator.gps.glitchDetected = false;
-                }
-#endif
 
                 /* FIXME: use HDOP/VDOP */
                 if (gpsSol.flags.validEPE) {
@@ -894,13 +830,6 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
                                               (MIN(navEPV, 1000) & 0x3FF));                   // Horizontal and vertical uncertainties (max value = 1000, fit into 20bits)
     }
 }
-
-#if defined(NAV_GPS_GLITCH_DETECTION)
-bool isGPSGlitchDetected(void)
-{
-    return posEstimator.gps.glitchDetected;
-}
-#endif
 
 float getEstimatedAglPosition(void) {
     return posEstimator.est.aglAlt;

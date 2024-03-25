@@ -60,12 +60,6 @@ uint32_t systemBootloaderAddress(void)
 #endif
 }
 
-void systemClockSetup(uint8_t cpuUnderclock)
-{
-    (void)cpuUnderclock;
-    // This is a stub
-}
-
 void systemInit(void)
 {
     checkForBootLoaderRequest();

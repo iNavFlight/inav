@@ -586,10 +586,18 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
 
 static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), pidProfile()->max_angle_inclination[axis]);
+#else
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
+#endif
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
+#ifdef USE_FW_AUTOLAND
+    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+#else
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
+#endif
         angleTarget += scaleRange(MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]), 0, currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN, 0, navConfig()->fw.minThrottleDownPitchAngle);
     }
 
@@ -1142,7 +1150,6 @@ void FAST_CODE pidController(float dT)
     }
 
     for (int axis = 0; axis < 3; axis++) {
-        // Step 1: Calculate gyro rates
         pidState[axis].gyroRate = gyro.gyroADCf[axis];
 
         // Step 2: Read target
@@ -1179,6 +1186,11 @@ void FAST_CODE pidController(float dT)
         if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
             // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
+
+            //apply 45 deg offset for tailsitter when isMixerTransitionMixing is activated
+            if (STATE(TAILSITTER) && isMixerTransitionMixing && axis == FD_PITCH){
+                angleTarget += DEGREES_TO_DECIDEGREES(45);
+            }
 
             if (STATE(AIRPLANE)) {  // update anglehold mode
                 updateAngleHold(&angleTarget, axis);
@@ -1315,7 +1327,7 @@ void pidInit(void)
     navPidInit(
         &fixedWingLevelTrimController,
         0.0f,
-        (float)pidProfile()->fixedWingLevelTrimGain / 100.0f,
+        (float)pidProfile()->fixedWingLevelTrimGain / 200.0f,
         0.0f,
         0.0f,
         2.0f,
@@ -1371,8 +1383,8 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
      */
     pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
 
-    // Iterm should freeze when conditions for setting level trim aren't met
-    if (!isFixedWingLevelTrimActive()) {
+    // Iterm should freeze when conditions for setting level trim aren't met or time since last expected update too long ago
+    if (!isFixedWingLevelTrimActive() || (dT > 5.0f * US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)))) {
         flags |= PID_FREEZE_INTEGRATOR;
     }
 

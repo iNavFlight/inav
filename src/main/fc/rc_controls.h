@@ -19,7 +19,7 @@
 
 #include "config/parameter_group.h"
 
-#define AIRMODE_THROTTLE_THRESHOLD 1300
+#define CONTROL_DEADBAND           10      // Used to check if sticks are centered
 
 typedef enum rc_alias {
     ROLL = 0,
@@ -85,7 +85,6 @@ typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
     uint8_t pos_hold_deadband;              // Deadband for position hold
-    uint8_t control_deadband;               // General deadband to check if sticks are deflected, us PWM.
     uint8_t alt_hold_deadband;              // Defines the neutral zone of throttle stick during altitude hold
     uint16_t mid_throttle_deadband;         // default throttle deadband from MIDRC
     uint8_t airmodeHandlingType;            // Defaults to ANTI_WINDUP triggered at sticks centered
