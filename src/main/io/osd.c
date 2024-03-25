@@ -4422,6 +4422,7 @@ static void osdUpdateStats(void)
 
 static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
+    //We keep "" for backward compatibility with the Blackbox explorer and other potential usages
     const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "", "FAILSAFE", "NAV SYS", "LANDING"};
     uint8_t top = 1;  // Start one line down leaving space at the top of the screen. 
     size_t multiValueLengthOffset = 0;
