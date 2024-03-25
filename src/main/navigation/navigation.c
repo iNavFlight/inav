@@ -181,7 +181,8 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
     // MC-specific
     .mc = {
-        .max_bank_angle = SETTING_NAV_MC_BANK_ANGLE_DEFAULT,                          // degrees
+        .max_bank_angle_roll = SETTING_NAV_MC_BANK_ANGLE_ROLL_DEFAULT,                          // degrees
+        .max_bank_angle_pitch = SETTING_NAV_MC_BANK_ANGLE_PITCH_DEFAULT,                        // degrees
         .max_auto_climb_rate = SETTING_NAV_MC_AUTO_CLIMB_RATE_DEFAULT,                             // 5 m/s
         .max_manual_climb_rate = SETTING_NAV_MC_MANUAL_CLIMB_RATE_DEFAULT,
 

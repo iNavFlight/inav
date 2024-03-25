@@ -1343,7 +1343,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, navConfig()->mc.max_auto_climb_rate);
         sbufWriteU16(dst, navConfig()->general.max_manual_speed);
         sbufWriteU16(dst, mixerConfig()->platformType != PLATFORM_AIRPLANE ? navConfig()->mc.max_manual_climb_rate:navConfig()->fw.max_manual_climb_rate);
-        sbufWriteU8(dst, navConfig()->mc.max_bank_angle);
+        sbufWriteU8(dst, navConfig()->mc.max_bank_angle_roll);
+        sbufWriteU8(dst, navConfig()->mc.max_bank_angle_pitch);
         sbufWriteU8(dst, navConfig()->mc.althold_throttle_type);
         sbufWriteU16(dst, currentBatteryProfile->nav.mc.hover_throttle);
         break;
@@ -2391,7 +2392,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_SET_NAV_POSHOLD:
-        if (dataSize == 13) {
+        if (dataSize == 14) {
             navConfigMutable()->general.flags.user_control_mode = sbufReadU8(src);
             navConfigMutable()->general.max_auto_speed = sbufReadU16(src);
             navConfigMutable()->mc.max_auto_climb_rate = sbufReadU16(src);
@@ -2401,7 +2402,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }else{
                 navConfigMutable()->fw.max_manual_climb_rate = sbufReadU16(src);
             }
-            navConfigMutable()->mc.max_bank_angle = sbufReadU8(src);
+            navConfigMutable()->mc.max_bank_angle_roll = sbufReadU8(src);
+            navConfigMutable()->mc.max_bank_angle_pitch = sbufReadU8(src);
             navConfigMutable()->mc.althold_throttle_type = sbufReadU8(src);
             currentBatteryProfileMutable->nav.mc.hover_throttle = sbufReadU16(src);
         } else

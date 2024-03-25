@@ -3472,13 +3472,23 @@ Maximum climb/descent rate that UAV is allowed to reach during navigation modes.
 
 ---
 
-### nav_mc_bank_angle
+### nav_mc_bank_angle_pitch
 
-Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
+Maximum banking pitch angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 15 | 45 |
+| 28 | 15 | 45 |
+
+---
+
+### nav_mc_bank_angle_roll
+
+Maximum banking roll angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 15 | 45 |
 
 ---
 
