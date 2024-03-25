@@ -3,6 +3,8 @@
         "chrono": "c",
         "cmath": "c",
         "ranges": "c",
+        "navigation.h": "c",
+        "rth_trackback.h": "c"
         "platform.h": "c",
         "timer.h": "c",
         "bus.h": "c"
@@ -12,4 +14,5 @@
     "editor.detectIndentation": false,
     "editor.expandTabs": true,
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4,  BreakBeforeBraces: Mozilla }"
+
 }

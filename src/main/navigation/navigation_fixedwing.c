@@ -115,7 +115,7 @@ bool adjustFixedWingAltitudeFromRCInput(void)
 
     if (rcAdjustment) {
         // set velocity proportional to stick movement
-        float rcClimbRate = -rcAdjustment * navConfig()->general.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
+        float rcClimbRate = -rcAdjustment * navConfig()->fw.max_manual_climb_rate / (500.0f - rcControlsConfig()->alt_hold_deadband);
         updateClimbRateToAltitudeController(rcClimbRate, 0, ROC_TO_ALT_CONSTANT);
         return true;
     }
@@ -271,7 +271,7 @@ static int8_t loiterDirection(void) {
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
-    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
         return;
     }
 
@@ -405,7 +405,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     static bool forceTurnDirection = false;
     int32_t virtualTargetBearing;
 
-    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
         virtualTargetBearing = posControl.desiredState.yaw;
     } else {
         // We have virtual position target, calculate heading error
@@ -588,13 +588,21 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     // Apply low-pass filter to pitch angle to smooth throttle correction
     int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
 
+    int16_t pitchToThrottle = currentBatteryProfile->nav.fw.pitch_to_throttle;
+
+#ifdef USE_FW_AUTOLAND
+    if (pitch < 0 && posControl.fwLandState.landState == FW_AUTOLAND_STATE_FINAL_APPROACH) {
+        pitchToThrottle *= navFwAutolandConfig()->finalApproachPitchToThrottleMod / 100.0f;
+    }
+#endif
+
     if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
         // Unfiltered throttle correction outside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(pitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(pitch) * pitchToThrottle;
     }
     else {
         // Filtered throttle correction inside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(filteredPitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(filteredPitch) * pitchToThrottle;
     }
 }
 
@@ -619,16 +627,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
         int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-#ifdef NAV_FIXED_WING_LANDING
         if (navStateFlags & NAV_CTL_LAND) {
-            // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
+        // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
         } else {
-#endif
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-#ifdef NAV_FIXED_WING_LANDING
         }
-#endif
 
         // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
         if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
@@ -639,7 +643,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
 
         // Manual throttle increase
-        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
+        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
             if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
                 correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
             } else {
@@ -653,12 +657,23 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
-#ifdef NAV_FIXED_WING_LANDING
-    /*
-     * Then altitude is below landing slowdown min. altitude, enable final approach procedure
-     * TODO refactor conditions in this metod if logic is proven to be correct
-     */
-    if (navStateFlags & NAV_CTL_LAND || STATE(LANDING_DETECTED)) {
+#ifdef USE_FW_AUTOLAND
+    // Advanced autoland
+    if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
+        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+
+        if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
+
+        if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
+    }
+#endif
+    // "Traditional" landing as fallback option
+    if (navStateFlags & NAV_CTL_LAND) {
         int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;
 
         if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
@@ -674,7 +689,6 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navConfig()->fw.land_dive_angle), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
-#endif
 }
 
 bool isFixedWingAutoThrottleManuallyIncreased(void)
@@ -708,6 +722,7 @@ bool isFixedWingLandingDetected(void)
     // Basic condition to start looking for landing
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || FLIGHT_MODE(FAILSAFE_MODE)
+                          || FLIGHT_MODE(NAV_FW_AUTOLAND)
                           || (!navigationIsControllingThrottle() && throttleStickIsLow());
 
     if (!startCondition || posControl.flags.resetLandingDetector) {

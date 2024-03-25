@@ -16,7 +16,7 @@
 
 ## Features
 
-* Runs on the most popular F4, F7 and H7 flight controllers
+* Runs on the most popular F4, AT32, F7 and H7 flight controllers
 * On Screen Display (OSD) - both character and pixel style
 * DJI OSD integration: all elements, system messages and warnings
 * Outstanding performance out of the box

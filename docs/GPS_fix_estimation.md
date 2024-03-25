@@ -35,11 +35,11 @@ To navigate without GPS fix, we make the following assumptions:
 
 It is possible to roughly estimate position using theese assumptions. To increase accuracy, plane will use information about wind direction and speed, estimated before GPS fix was lost. To increase groundspeed estimation accuracy, plane will use pitot tube data(if available).
 
-From estimated heading direction and speed, plane is able to **roughty** estimate it's position.
+From estimated heading direction and speed, plane is able to **roughly** estimate it's position.
 
 It is assumed, that plane will fly in roughly estimated direction to home position untill either GPS fix or RC signal is recovered.
 
-*Plane has to aquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
+*Plane has to acquire GPS fix and store home position before takeoff. Estimation completely without GPS fix will not work*.
 
 # Estimation without magnethometer
 

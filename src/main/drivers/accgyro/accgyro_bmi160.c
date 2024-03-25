@@ -195,9 +195,9 @@ bool bmi160AccReadScratchpad(accDev_t *acc)
     bmi160ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
-        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
-        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
+        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->accRaw, 0);
+        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->accRaw, 1);
+        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->accRaw, 2);
         return true;
     }
 

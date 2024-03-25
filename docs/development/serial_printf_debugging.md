@@ -98,10 +98,13 @@ LOG_BUF_DEBUG(TEMPERATURE, &tstruct, sizeof(tstruct));
 
 Log messages are transmitted through the `FUNCTION_LOG` serial port as MSP messages (`MSP_DEBUGMSG`). It is possible to use any serial terminal to display these messages, however it is advisable to use an application that understands `MSP_DEBUGMSG` in order to maintain readability (in a raw serial terminal the MSP message envelope may result in the display of strange characters). `MSP_DEBUGMSG` aware applications include:
 
-* [msp-tool](https://github.com/fiam/msp-tool)
-* [mwp](https://github.com/stronnag/mwptools)
-* [dbg-tool](https://github.com/stronnag/mwptools)
+* [dbg-tool](https://codeberg.org/stronnag/dbg-tool)
 * [INAV Configurator](https://github.com/iNavFlight/inav-configurator)
+* [mwp](https://github.com/stronnag/mwptools)
+
+In addtion:
+
+* [msp-tool](https://github.com/fiam/msp-tool) is obsolete and has limited OS support.
 
 For example, with the final lines of `src/main/fc/fc_init.c` set to:
 
@@ -121,10 +124,16 @@ set log_topics = 4294967295
 The output will be formatted as follows:
 
 ```
-# msp-tool
-[DEBUG] [     3.967] Init is complete
+# dbg-tool
+[dbg-tool] 12:46:49.909079 DBG: [     3.967] Init is complete
+
 # mwp (stderr log file)
 2020-02-02T19:09:02+0000 DEBUG:[     3.968] Init is complete
+
+# msp-tool
+[DEBUG] [     3.967] Init is complete
 ```
 
-The numeric value in square brackets is the FC uptime in seconds.
+For the Configurator, debug messages are shown in the developer console log.
+
+Note: The numeric value in square brackets is the FC uptime in seconds.
