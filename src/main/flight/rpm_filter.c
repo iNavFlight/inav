@@ -161,7 +161,7 @@ void rpmFiltersInit(void)
 {
     for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
     {
-        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, RPM_FILTER_UPDATE_RATE_US * 1e-6f);
+        pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;

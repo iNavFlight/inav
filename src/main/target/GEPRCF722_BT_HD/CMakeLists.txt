@@ -1,0 +1,1 @@
+target_stm32f722xe(GEPRCF722_BT_HD)

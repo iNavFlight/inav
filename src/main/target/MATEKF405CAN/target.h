@@ -40,11 +40,6 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
-
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_2
@@ -60,13 +55,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2

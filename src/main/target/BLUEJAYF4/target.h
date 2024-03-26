@@ -24,7 +24,6 @@
 #define HW_PIN                  PB2
 
 #define BOARD_HAS_VOLTAGE_DIVIDER
-#define USE_EXTI
 
 #define LED0                    PB6
 #define LED1                    PB5
@@ -34,23 +33,15 @@
 #define BEEPER_OPT              PB7
 #define BEEPER_INVERTED
 
-// MPU6500 interrupt
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI            PC5
+// MPU6500
 #define MPU6500_CS_PIN          PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
-
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW0_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 

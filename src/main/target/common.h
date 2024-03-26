@@ -46,9 +46,7 @@
 
 #define COMMON_DEFAULT_FEATURES (FEATURE_TX_PROF_SEL)
 
-#if defined(STM32F4) || defined(STM32F7)
 #define USE_SERVO_SBUS
-#endif
 
 #define USE_ADC_AVERAGING
 #define USE_64BIT_TIME
@@ -58,13 +56,10 @@
 #define USE_GPS_PROTO_MSP
 #define USE_TELEMETRY
 #define USE_TELEMETRY_LTM
-#define USE_TELEMETRY_FRSKY
+#define USE_GPS_FIX_ESTIMATION
 
-#if defined(STM_FAST_TARGET)
+// This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10
-#else
-#define SCHEDULER_DELAY_LIMIT           100
-#endif
 
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
@@ -98,6 +93,7 @@
 #define USE_PITOT
 #define USE_PITOT_MS4525
 #define USE_PITOT_MSP
+#define USE_PITOT_DLVR
 
 #define USE_1WIRE
 #define USE_1WIRE_DS2482
@@ -114,7 +110,7 @@
 #define USE_OSD
 #define USE_FRSKYOSD
 #define USE_DJI_HD_OSD
-#define USE_HDZERO_OSD
+#define USE_MSP_OSD
 #define USE_SMARTPORT_MASTER
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
@@ -125,8 +121,6 @@
 #define USE_ANTIGRAVITY
 
 #define USE_I2C_IO_EXPANDER
-
-#define USE_GPS_PROTO_NMEA
 
 #define USE_TELEMETRY_SIM
 #define USE_TELEMETRY_MAVLINK
@@ -145,13 +139,10 @@
 #define USE_SERIALRX_GHST
 #define USE_TELEMETRY_GHST
 
-#define USE_SECONDARY_IMU
-#define USE_IMU_BNO055
-
 #define USE_POWER_LIMITS
 
-#define NAV_FIXED_WING_LANDING
 #define USE_SAFE_HOME
+#define USE_FW_AUTOLAND
 #define USE_AUTOTUNE_FIXED_WING
 #define USE_LOG
 #define USE_STATS
@@ -170,11 +161,13 @@
 #define NAV_MAX_WAYPOINTS       120
 #define USE_RCDEVICE
 #define USE_MULTI_MISSION
+#define USE_MULTI_FUNCTIONS  // defines functions only, warnings always defined
 
 //Enable VTX control
 #define USE_VTX_CONTROL
 #define USE_VTX_SMARTAUDIO
 #define USE_VTX_TRAMP
+#define USE_VTX_MSP
 
 #define USE_PROGRAMMING_FRAMEWORK
 #define USE_CLI_BATCH
@@ -184,13 +177,29 @@
 // Wind estimator
 #define USE_WIND_ESTIMATOR
 
+#define USE_SIMULATOR
+#define USE_PITOT_VIRTUAL
+#define USE_FAKE_BATT_SENSOR
+
+#define USE_CMS_FONT_PREVIEW
+
+//ADSB RECEIVER
+#ifdef USE_GPS
+#define USE_ADSB
+#define MAX_ADSB_VEHICLES               5
+#define ADSB_LIMIT_CM                   6400000
+#endif
+
+
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
-
 #define USE_VTX_FFPV
-#define USE_PITOT_VIRTUAL
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
-
+#define USE_24CHANNELS
+#define MAX_MIXER_PROFILE_COUNT 2
+#elif !defined(STM32F7)
+#define MAX_MIXER_PROFILE_COUNT 1
 #endif
+#define USE_EZ_TUNE

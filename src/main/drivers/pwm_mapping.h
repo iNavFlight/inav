@@ -19,6 +19,7 @@
 
 #include "drivers/io_types.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/servos.h"
 
 #if defined(TARGET_MOTOR_COUNT)

@@ -167,7 +167,7 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
         uint16_t sample = (*rxRuntimeConfigMSP.rcReadRawFn)(&rxRuntimeConfigMSP, rawChannel);
 
         // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != PPM_RCVR_TIMEOUT) {
+        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
             sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
             sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
         }

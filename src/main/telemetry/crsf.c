@@ -20,7 +20,6 @@
 #include <string.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
 
@@ -58,7 +57,7 @@ FILE_COMPILE_FOR_SPEED
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
-
+#include "sensors/barometer.h"
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
 #include "telemetry/msp_shared.h"
@@ -259,6 +258,22 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
+/*
+0x09 Baro+Vario sensor
+Payload:
+uint16      Altitude
+int16      Vertical speed ( cm/s )
+*/
+static void crsfFrameBaroVarioSensor(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_BAROVARIO_SENSOR_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROVARIO_SENSOR);
+    int32_t altitude = baroGetLatestAltitude() / 10;    // Altitude in decimeters
+    crsfSerialize16(dst, altitude + 10000 < 0x8000 ? altitude + 10000 : 0x8000 + altitude / 10);
+    crsfSerialize16(dst, lrintf(getEstimatedActualVelocity(Z)));
+}
+
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -289,15 +304,25 @@ int16_t     Roll angle ( rad / 10000 )
 int16_t     Yaw angle ( rad / 10000 )
 */
 
-#define DECIDEGREES_TO_RADIANS10000(angle) ((int16_t)(1000.0f * (angle) * RAD))
+// convert andgle in decidegree to radians/10000 with reducing angle to +/-180 degree range
+static int16_t decidegrees2Radians10000(int16_t angle_decidegree)
+{
+    while (angle_decidegree > 1800) {
+        angle_decidegree -= 3600;
+    }
+    while (angle_decidegree < -1800) {
+        angle_decidegree += 3600;
+    }
+    return (int16_t)(RAD * 1000.0f * angle_decidegree);
+}
 
 static void crsfFrameAttitude(sbuf_t *dst)
 {
      sbufWriteU8(dst, CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
      crsfSerialize8(dst, CRSF_FRAMETYPE_ATTITUDE);
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.pitch));
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.roll));
-     crsfSerialize16(dst, DECIDEGREES_TO_RADIANS10000(attitude.values.yaw));
+     crsfSerialize16(dst, decidegrees2Radians10000(attitude.values.pitch));
+     crsfSerialize16(dst, decidegrees2Radians10000(attitude.values.roll));
+     crsfSerialize16(dst, decidegrees2Radians10000(attitude.values.yaw));
 }
 
 /*
@@ -323,7 +348,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         }
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             flightMode = "!FS!";
-        } else if (ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "HRST";
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
@@ -335,15 +360,21 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "CRUZ";
         } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
             flightMode = "CRSH";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
-            flightMode = "AH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+            flightMode = "AH";
         } else if (FLIGHT_MODE(ANGLE_MODE)) {
             flightMode = "ANGL";
         } else if (FLIGHT_MODE(HORIZON_MODE)) {
             flightMode = "HOR";
+        } else if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
+            flightMode = "ANGH";
         }
+#ifdef USE_FW_AUTOLAND
+    } else if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        flightMode = "LAND";
+#endif
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
         flightMode = "WAIT"; // Waiting for GPS lock
@@ -400,6 +431,7 @@ typedef enum {
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
+    CRSF_FRAME_BAROVARIO_SENSOR_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -459,11 +491,16 @@ static void processCrsf(void)
         crsfFrameGps(dst);
         crsfFinalize(dst);
     }
-#endif
-#if defined(USE_BARO) || defined(USE_GPS)
     if (currentSchedule & BV(CRSF_FRAME_VARIO_SENSOR_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameVarioSensor(dst);
+        crsfFinalize(dst);
+    }
+#endif
+#if defined(USE_BARO)
+    if (currentSchedule & BV(CRSF_FRAME_BAROVARIO_SENSOR_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameBaroVarioSensor(dst);
         crsfFinalize(dst);
     }
 #endif
@@ -490,14 +527,23 @@ void initCrsfTelemetry(void)
     crsfSchedule[index++] = BV(CRSF_FRAME_ATTITUDE_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_BATTERY_SENSOR_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_FLIGHT_MODE_INDEX);
-#ifdef USE_GPS
+#if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
         crsfSchedule[index++] = BV(CRSF_FRAME_GPS_INDEX);
+        #if !defined(USE_BARO)
+        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+        #endif
     }
 #endif
-#if defined(USE_BARO) || defined(USE_GPS)
-    if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+#if defined(USE_BARO)
+    if (sensors(SENSOR_BARO)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_BAROVARIO_SENSOR_INDEX);
+    } else {
+        #if defined(USE_GPS)
+        if (feature(FEATURE_GPS)) {
+            crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+        }
+        #endif
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
@@ -576,7 +622,11 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAMETYPE_VARIO_SENSOR:
         crsfFrameVarioSensor(sbuf);
         break;
+    case CRSF_FRAMETYPE_BAROVARIO_SENSOR:
+        crsfFrameBaroVarioSensor(sbuf);
+        break;
     }
+    
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;
 }

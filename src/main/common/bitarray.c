@@ -55,7 +55,7 @@ __attribute__((always_inline)) static inline uint8_t __CTZ(uint32_t val)
     // rbit and then a clz, making it return 32 for zero on ARM.
     // For other architectures, explicitely implement the same
     // semantics.
-#ifdef __arm__
+#if defined(__arm__) && !defined(SITL_BUILD)
     uint8_t zc;
     __asm__ volatile ("rbit %1, %1\n\t"
                       "clz %0, %1"

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- XSchema for MW / iNav missions
-     This file is part of inav
+<!-- XSchema for MW / INAV missions
+     This file is part of INAV
      usage  e.g. xmllint -​-noout -​-schema mw-mission.xsd example.mission
      Updated 2021-11-12 for 'meta' substitution.
 -->
@@ -12,6 +12,7 @@
         <xs:choice minOccurs="0" maxOccurs="unbounded">
           <xs:element ref="missionitem"/>
           <xs:element ref="mwp"/>
+          <xs:element ref="fwapproach"/>
         </xs:choice>
       </xs:sequence>
     </xs:complexType>
@@ -19,6 +20,25 @@
   <xs:element name="version">
     <xs:complexType>
       <xs:attribute name="value" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="fwapproach">
+    <xs:complexType>
+      <xs:attribute name="no" use="required" type="xs:integer"/>
+      <xs:attribute name="index" use="required" type="xs:integer"/>
+      <xs:attribute name="approachalt" use="required" type="xs:integer"/>
+      <xs:attribute name="landalt" use="required" type="xs:integer"/>
+      <xs:attribute name="landheading1" use="required" type="xs:integer"/>
+      <xs:attribute name="landheading2" use="required" type="xs:integer"/>
+      <xs:attribute name="approachdirection" use="required">
+	<xs:simpleType>
+	  <xs:restriction base="xs:token">
+	    <xs:enumeration value="left"/>
+	    <xs:enumeration value="right"/>
+	  </xs:restriction>
+	</xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="sealevelref" use="required" type="xs:boolean"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="missionitem">
@@ -42,7 +62,7 @@
       <xs:attribute name="alt" use="required" type="xs:integer"/>
       <!--
            flag is not strictly required unless the WP is "Flyby Home"
-           or the are multiple mission segments 'multi-mission', inav 4.0
+           or the are multiple mission segments 'multi-mission', INAV 4.0
       -->
       <xs:attribute name="flag" use="optional" type="xs:integer"/>
       <!--

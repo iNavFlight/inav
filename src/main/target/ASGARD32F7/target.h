@@ -35,10 +35,6 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// #define USE_EXTI
-// #define GYRO_INT_EXTI            PC8
-// #define USE_MPU_DATA_READY_SIGNAL        // Not connected on FireworksV2
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PA4
@@ -46,11 +42,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 

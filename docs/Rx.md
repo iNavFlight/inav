@@ -2,14 +2,15 @@
 
 A receiver is used to receive radio control signals from your transmitter and convert them into signals that the flight controller can understand.
 
-There are 2 basic types of receivers:
+There are a number of types of receivers:
 
-1. PPM Receivers
-2. Serial Receivers
+* PPM Receivers (obsolete)
+* Serial Receivers
+* MSP RX
 
 ## PPM Receivers
 
-**Only supported in inav 3.x and below**
+**Only supported in INAV 3.x and below**
 
 PPM is sometimes known as PPM SUM or CPPM.
 
@@ -47,7 +48,7 @@ http://www.lemon-rx.com/shop/index.php?route=product/product&product_id=118
 
 #### Spektrum pesudo RSSI
 
-As of iNav 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal iNav RSSI (0-1023 range). In order to use this feature, the following is necessary:
+As of INAV 1.6, a pseudo RSSI, based on satellite fade count is supported and reported as normal INAV RSSI (0-1023 range). In order to use this feature, the following is necessary:
 
 * Bind the satellite receiver using a physical RX; the bind function provided by the flight controller is not sufficient.
 * The CLI variable `rssi_channel` is set to channel 9:
@@ -154,7 +155,7 @@ It is possible to use IBUS RX and IBUS telemetry on only one port of the hardwar
 
 ### SRXL2
 
-SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in inav 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
+SRXL2 is a newer Spektrum protocol that provides a bidirectional link between the FC and the receiver, allowing the user to get FC telemetry data and basic settings on Spektrum Gen 2 airware TX. SRXL2 is supported in INAV 2.6 and later. It offers improved performance and features compared to earlier Spektrum RX.
 
 #### Wiring
 
@@ -162,7 +163,7 @@ Signal pin on receiver (labeled "S") must be wired to a **UART TX** pin on the F
 
 #### Configuration
 
-Selection of SXRL2 is provided in the inav 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
+Selection of SXRL2 is provided in the INAV 2.6 and later configurators. It is necessary to complete the configuration via the CLI; the following settings are recommended:
 
 ```
 feature TELEMETRY
@@ -192,9 +193,19 @@ This command will put the receiver into bind mode without the need to reboot the
 bind_rx
 ```
 
-## MultiWii serial protocol (MSP)
+## MultiWii serial protocol (MSP RX)
 
-Allows you to use MSP commands as the RC input.  Only 8 channel support to maintain compatibility with MSP.
+Allows you to use MSP commands as the RC input. Up to 18 channels are supported.
+Note:
+* It is necessary to update `MSP_SET_RAW_RC` at 5Hz or faster.
+* `MSP_SET_RAW_RC` uses the defined RC channel map
+* `MSP_RC` returns `AERT` regardless of channel map
+* You can combine "real" RC radio and MSP RX by compiling custom firmware with `USE_MSP_RC_OVERRIDE` defined. Then use `msp_override_channels` to set the channels to be overridden.
+* The [wiki Remote Control and Management article](https://github.com/iNavFlight/inav/wiki/INAV-Remote-Management,-Control-and-Telemetry) provides more information, including links to 3rd party projects that exercise `MSP_SET_RAW_RC` and `USE_MSP_RC_OVERRIDE`
+
+## SIM (SITL) Joystick
+
+Enables the use of a joystick in the INAV SITL with a flight simulator. See the [SITL documentation](SITL/SITL).
 
 ## Configuration
 
@@ -203,7 +214,7 @@ The receiver type can be set from the configurator or CLI.
 ```
 # get receiver_type
 receiver_type = NONE
-Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
+Allowed values: NONE, SERIAL, MSP, SIM (SITL)
 ```
 
 ### RX signal-loss detection
@@ -233,7 +244,7 @@ The highest channel value considered valid.  e.g. PWM/PPM pulse length
 See the Serial chapter for some some RX configuration examples.
 
 To setup spectrum in the GUI:
-1. Start on the "Ports" tab make sure that UART2 has serial RX.  If not set the checkbox, save and reboot.
+1. Start on the "Ports" tab make sure that teh required has serial RX.  If not set the checkbox, save and reboot.
 2. Move to the "Configuration" page and in the upper lefthand corner choose Serial RX as the receiver type.
 3. Below that choose the type of serial receiver that you are using.  Save and reboot.
 
@@ -244,11 +255,11 @@ For Serial RX set the `receiver_type` and `serialrx_provider` setting as appropr
 ```
 # get rec
 receiver_type = SERIAL
-Allowed values: NONE, PPM, SERIAL, MSP, SPI, UIB
+Allowed values: NONE, SERIAL, MSP, SIM (SITL)
 
 # get serialrx
 serialrx_provider = SBUS
-Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2
+Allowed values: SPEK1024, SPEK2048, SBUS, SUMD, IBUS, JETIEXBUS, CRSF, FPORT, SBUS_FAST, FPORT2, SRXL2, GHST, MAVLINK, FBUS
 
 ```
 

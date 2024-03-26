@@ -33,9 +33,6 @@
 // #define USE_DUAL_GYRO
 // #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-
 // *************** SPI1 IMU0 BMI270 *****************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -48,7 +45,6 @@
 #define IMU_BMI270_ALIGN        CW270_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PC15
-#define BMI270_EXTI_PIN         PB2
 
 // *************** SPI4 IMU1 BMI270 *****************
 #define USE_SPI_DEVICE_4
@@ -61,7 +57,6 @@
 // #define IMU_BMI270_ALIGN        CW0_DEG_FLIP
 // #define BMI270_SPI_BUS          BUS_SPI4
 // #define BMI270_CS_PIN           PE11
-// #define BMI270_EXTI_PIN         PE15
 
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
@@ -92,12 +87,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1

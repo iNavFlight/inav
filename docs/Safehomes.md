@@ -20,7 +20,7 @@ The safehome operating mode is set using ```safehome_usage_mode```.  If ```OFF``
 
 If you frequently use RTH to return back to the arming point, you may not want the aircraft to fly to the safehome.  Let it do this at least once to confirm safehomes is working as expected.  Afterward, `set safehome_usage_mode = RTH_FS` and the safehome will only be used for failsafe.  
 
-When using mode `RTH_FS`, you should confirm that your radio's failsafe configuration triggers the iNav failsafe mode.  With many receivers, you have the ability to specify what signal to output during failsafe conditions.
+When using mode `RTH_FS`, you should confirm that your radio's failsafe configuration triggers the INAV failsafe mode.  With many receivers, you have the ability to specify what signal to output during failsafe conditions.
 
 When you are choosing safehome locations, ensure that the location is clear of obstructions for a radius more than 50m (`nav_fw_loiter_radius`).  As the plane descends, the circles aren't always symmetrical, as wind direction could result in some wider or tighter turns.  Also, the direction and length of the final landing stage is also unknown.  You want to choose a point that has provides a margin for variation and the final landing.
 

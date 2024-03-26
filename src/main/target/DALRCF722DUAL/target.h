@@ -32,10 +32,6 @@
 #define MPU6000_CS_PIN          PB0
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PB10
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_VCP
 
 #define USE_UART1
@@ -67,19 +63,12 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
-#define USE_BARO_BMP085
+#define USE_BARO_ALL
 
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1

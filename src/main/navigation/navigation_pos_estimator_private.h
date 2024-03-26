@@ -65,10 +65,6 @@ typedef struct {
 
 typedef struct {
     timeUs_t    lastUpdateTime; // Last update time (us)
-#if defined(NAV_GPS_GLITCH_DETECTION)
-    bool        glitchDetected;
-    bool        glitchRecovery;
-#endif
     fpVector3_t pos;            // GPS position in NEU coordinate system (cm)
     fpVector3_t vel;            // GPS velocity (cms)
     float       eph;
@@ -80,6 +76,7 @@ typedef struct {
     pt1Filter_t avgFilter;
     float       alt;            // Raw barometric altitude (cm)
     float       epv;
+    float       baroAltRate;    // Baro altitude rate of change (cm/s)
 } navPositionEstimatorBARO_t;
 
 typedef struct {
@@ -125,6 +122,9 @@ typedef struct {
 
     // FLOW
     float                   flowCoordinates[2];
+
+    // COURSE
+    int16_t     cog;    // course over ground (decidegrees)
 } navPositionEstimatorESTIMATE_t;
 
 typedef struct {
@@ -182,6 +182,8 @@ typedef struct {
     fpVector3_t estVelCorr;
     fpVector3_t accBiasCorr;
 } estimationContext_t;
+
+extern navigationPosEstimator_t posEstimator;
 
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);

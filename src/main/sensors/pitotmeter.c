@@ -31,9 +31,11 @@
 
 #include "drivers/pitotmeter/pitotmeter.h"
 #include "drivers/pitotmeter/pitotmeter_ms4525.h"
+#include "drivers/pitotmeter/pitotmeter_dlvr_l10d.h"
 #include "drivers/pitotmeter/pitotmeter_adc.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "drivers/pitotmeter/pitotmeter_virtual.h"
+#include "drivers/pitotmeter/pitotmeter_fake.h"
 #include "drivers/time.h"
 
 #include "fc/config.h"
@@ -43,11 +45,18 @@
 #include "scheduler/protothreads.h"
 
 #include "sensors/pitotmeter.h"
+#include "sensors/barometer.h"
 #include "sensors/sensors.h"
+
+
+//#include "build/debug.h"
+
 
 #ifdef USE_PITOT
 
-pitot_t pitot;
+extern baro_t baro;
+
+pitot_t pitot = {.lastMeasurementUs = 0, .lastSeenHealthyMs = 0};
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
@@ -58,6 +67,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTME
 #else
 #define PITOT_HARDWARE_DEFAULT    PITOT_NONE
 #endif
+
 PG_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig,
     .pitot_hardware = SETTING_PITOT_HARDWARE_DEFAULT,
     .pitot_lpf_milli_hz = SETTING_PITOT_LPF_MILLI_HZ_DEFAULT,
@@ -80,6 +90,15 @@ bool pitotDetect(pitotDev_t *dev, uint8_t pitotHardwareToUse)
 #endif
             /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
             if (pitotHardwareToUse != PITOT_AUTODETECT) {
+                break;
+            }
+            FALLTHROUGH;
+
+        case PITOT_DLVR:
+
+			// Skip autodetection for DLVR (it is indistinguishable from MS4525) and allow only manual config
+            if (pitotHardwareToUse != PITOT_AUTODETECT && dlvrDetect(dev)) {
+                pitotHardware = PITOT_DLVR;
                 break;
             }
             FALLTHROUGH;
@@ -167,7 +186,7 @@ bool pitotIsCalibrationComplete(void)
 
 void pitotStartCalibration(void)
 {
-    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * 0.00001f, false);
+    zeroCalibrationStartS(&pitot.zeroCalibration, CALIBRATING_PITOT_TIME_MS, SSL_AIR_PRESSURE * pitot.dev.calibThreshold, false);
 }
 
 static void performPitotCalibrationCycle(void)
@@ -176,7 +195,7 @@ static void performPitotCalibrationCycle(void)
 
     if (zeroCalibrationIsCompleteS(&pitot.zeroCalibration)) {
         zeroCalibrationGetZeroS(&pitot.zeroCalibration, &pitot.pressureZero);
-        LOG_D(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
+        LOG_DEBUG(PITOT, "Pitot calibration complete (%d)", (int)lrintf(pitot.pressureZero));
     }
 }
 
@@ -185,36 +204,54 @@ STATIC_PROTOTHREAD(pitotThread)
     ptBegin(pitotThread);
 
     static float pitotPressureTmp;
+    static float pitotTemperatureTmp;
     timeUs_t currentTimeUs;
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0);
+
+    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
 
     while(1) {
-        // Start measurement
-        if (pitot.dev.start(&pitot.dev)) {
-            pitot.lastSeenHealthyMs = millis();
+#ifdef USE_SIMULATOR
+    	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
+        {
+            ptDelayUs(10000);
+    	}
+#endif
+
+        if ( pitot.lastSeenHealthyMs == 0 ) {
+            if (pitot.dev.start(&pitot.dev)) {
+                pitot.lastSeenHealthyMs = millis();
+            }        
         }
 
-        ptDelayUs(pitot.dev.delay);
+        if ( (millis() - pitot.lastSeenHealthyMs) >= US2MS(pitot.dev.delay)) {
+            if (pitot.dev.get(&pitot.dev))          // read current data
+                pitot.lastSeenHealthyMs = millis();
 
-        // Read and calculate data
-        if (pitot.dev.get(&pitot.dev)) {
-            pitot.lastSeenHealthyMs = millis();
+            if (pitot.dev.start(&pitot.dev))        // init for next read
+                pitot.lastSeenHealthyMs = millis();        
         }
 
-        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, NULL);
+
+        pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
+
+#ifdef USE_SIMULATOR
+        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+            pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+        }
+#endif
+#if defined(USE_PITOT_FAKE)
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
+        } 
+#endif
         ptYield();
-
-        // Filter pressure
-        currentTimeUs = micros();
-        pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, (currentTimeUs - pitot.lastMeasurementUs) * 1e-6f);
-        pitot.lastMeasurementUs = currentTimeUs;
-        ptDelayUs(pitot.dev.delay);
 
         // Calculate IAS
         if (pitotIsCalibrationComplete()) {
+            // NOTE ::
             // https://en.wikipedia.org/wiki/Indicated_airspeed
             // Indicated airspeed (IAS) is the airspeed read directly from the airspeed indicator on an aircraft, driven by the pitot-static system.
             // The IAS is an important value for the pilot because it is the indicated speeds which are specified in the aircraft flight manual for
@@ -223,11 +260,31 @@ STATIC_PROTOTHREAD(pitotThread)
             //
             // Therefore we shouldn't care about CAS/TAS and only calculate IAS since it's more indicative to the pilot and more useful in calculations
             // It also allows us to use pitot_scale to calibrate the dynamic pressure sensor scale
-            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;
+
+            // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
+            currentTimeUs = micros();
+            pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+            pitot.lastMeasurementUs = currentTimeUs;
+
+            pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
+            pitot.temperature = pitotTemperatureTmp;   // Kelvin
+
         } else {
+            pitot.pressure = pitotPressureTmp;
             performPitotCalibrationCycle();
-            pitot.airSpeed = 0;
+            pitot.airSpeed = 0.0f;
         }
+
+#if defined(USE_PITOT_FAKE)
+        if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
+            pitot.airSpeed = fakePitotGetAirspeed();
+        }
+#endif
+#ifdef USE_SIMULATOR
+        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+            pitot.airSpeed = simulatorData.airSpeed;
+        }
+#endif
     }
 
     ptEnd(0);
@@ -238,7 +295,7 @@ void pitotUpdate(void)
     pitotThread();
 }
 
-int32_t pitotCalculateAirSpeed(void)
+float getAirspeedEstimate(void)
 {
     return pitot.airSpeed;
 }

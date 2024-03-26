@@ -22,6 +22,6 @@
 
 #ifdef USE_SERIALRX_FPORT2
 
-bool fport2RxInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+bool fport2RxInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig, bool isFBUS);
 
 #endif

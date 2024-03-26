@@ -57,6 +57,9 @@ To perform the restore simply paste the saved commands in the Configurator CLI t
 
 After restoring it's always a good idea to `dump` or `diff` the settings once again and compare the output with previous one to verify if everything is set as it should be.
 
+## Flight Controller opereration while connected to the CLI
+
+While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0 onwards).
 
 ## CLI Command Reference
 
@@ -86,7 +89,6 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `gpspassthrough` | Passthrough gps to serial |
 | `gvar` | Configure global variables |
 | `help` | Displays CLI help and command parameters / options |
-| `imu2` | Secondary IMU |
 | `led` | Configure leds |
 | `logic` | Configure logic conditions |
 | `map` | Configure rc channel order |
@@ -109,9 +111,10 @@ After restoring it's always a good idea to `dump` or `diff` the settings once ag
 | `servo` | Configure servos |
 | `set` | Change setting with name=value or blank or * for list |
 | `smix` | Custom servo mixer |
-| `status` | Show status |
+| `status` | Show status. Error codes can be looked up [here](https://github.com/iNavFlight/inav/wiki/%22Something%22-is-disabled----Reasons) |
 | `tasks` | Show task stats |
 | `temp_sensor` | List or configure temperature sensor(s). See [temperature sensors documentation](Temperature-sensors.md) for more information. |
+|  `timer_output_mode`  | Override automatic timer /  pwm function allocation. [Additional Information](#timer_outout_mode)|
 | `version` | Show version |
 | `wp` | List or configure waypoints. See the [navigation documentation](Navigation.md#cli-command-wp-to-manage-waypoints). |
 
@@ -152,8 +155,8 @@ A shorter form is also supported to enable and disable a single function using `
 | DJI_HD_OSD            | 21            | 2097152 |
 | SERVO_SERIAL          | 22            | 4194304 |
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
-| IMU2                  | 24            | 16777216 |
-| HDZERO                | 25            | 33554432 |
+| UNUSED                | 24            | 16777216 |
+| MSP_DISPLAYPORT       | 25            | 33554432 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 
@@ -167,6 +170,66 @@ serial 0 -4
 ```
 
 `serial` can also be used without any argument to print the current configuration of all the serial ports.
+
+### `timer_output_mode`
+
+Since INAV 7, the firmware can dynamically allocate servo and motor outputs. This removes the need for bespoke targets for special cases (e.g. `MATEKF405` and `MATEKF405_SERVOS6`).
+
+#### Syntax
+
+```
+timer_output_mode [timer [function]]
+```
+where:
+* Without parameters, lists the current timers and modes
+* With just a `timer` lists the mode for that timer
+* With both `timer` and `function`, sets the function for that timers
+
+Note:
+
+* `timer` identifies the timer **index** (from 0); thus is one less than the corresponding `TIMn` definition in a target's `target.c`.
+* The function is one of `AUTO` (the default), `MOTORS` or `SERVOS`.
+
+Motors are allocated first, hence having a servo before a motor may require use of `timer_output_mode`.
+
+#### Example
+
+The original `MATEKF405` target defined a multi-rotor (MR) servo on output S1. The later `MATEKF405_SERVOS6` target defined (for MR) S1 as a motor and S6 as a servo. This was more logical, but annoying for anyone who had a legacy `MATEKF405` tricopter with the servo on S1.
+
+#### Solution
+
+There is now a single `MATEKF405` target. The `target.c` sets the relevant  outputs as:
+
+```
+DEF_TIM(TIM3, CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 0), // S1
+DEF_TIM(TIM8, CH2, PC7,  TIM_USE_OUTPUT_AUTO, 0, 1), // S2  UP(2,1)
+DEF_TIM(TIM8, CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 1), // S3  UP(2,1)
+DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 0), // S4  UP(2,1)
+DEF_TIM(TIM2, CH1, PA15, TIM_USE_MC_MOTOR | TIM_USE_LED, 0, 0), // S5  UP(1,7)
+DEF_TIM(TIM1, CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S6  UP(2,5)
+DEF_TIM(TIM4, CH3, PB8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S7  D(1,7)!S5 UP(2,6)
+```
+
+Using the "motors first" allocation, the servo would end up on S6, which in the legacy "tricopter servo on S1" case is not desired.
+
+Forcing the S1 output (`TIM3`) to servo is achieved by:
+
+```
+timer_output_mode 2 SERVOS
+```
+
+with resulting `resource` output:
+
+```
+C06: SERVO4 OUT
+C07: MOTOR1 OUT
+C08: MOTOR2 OUT
+C09: MOTOR3 OUT
+```
+
+Note that the `timer` **index** in the `timer_output_mode` line is one less than the mnemonic in `target.c`, `timer` of 2 for `TIM3`.
+
+Note that the usual caveat that one should not share a timer with both a motor and a servo still apply.
 
 ## Flash chip management
 

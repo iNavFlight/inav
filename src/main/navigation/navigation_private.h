@@ -40,12 +40,10 @@
 #define MC_POS_CONTROL_JERK_LIMIT_CMSSS     1700.0f // jerk limit on horizontal acceleration (cm/s^3)
 
 #define MC_LAND_CHECK_VEL_XY_MOVING         100.0f  // cm/s
-#define MC_LAND_CHECK_VEL_Z_MOVING          25.0f   // cm/s
+#define MC_LAND_CHECK_VEL_Z_MOVING          100.0f  // cm/s
 #define MC_LAND_THR_STABILISE_DELAY         1       // seconds
-#define MC_LAND_DESCEND_THROTTLE            40      // uS
+#define MC_LAND_DESCEND_THROTTLE            40      // RC pwm units (us)
 #define MC_LAND_SAFE_SURFACE                5.0f    // cm
-
-#define NAV_RTH_TRACKBACK_POINTS            50      // max number RTH trackback points
 
 #define MAX_POSITION_UPDATE_INTERVAL_US     HZ2US(MIN_POSITION_UPDATE_RATE_HZ)        // convenience macro
 _Static_assert(MAX_POSITION_UPDATE_INTERVAL_US <= TIMEDELTA_MAX, "deltaMicros can overflow!");
@@ -61,7 +59,8 @@ typedef enum {
 
 typedef enum {
     ROC_TO_ALT_RESET,
-    ROC_TO_ALT_NORMAL
+    ROC_TO_ALT_CONSTANT,
+    ROC_TO_ALT_TARGET
 } climbRateToAltitudeControllerMode_e;
 
 typedef enum {
@@ -90,26 +89,28 @@ typedef struct navigationFlags_s {
     navigationEstimateStatus_e estVelStatus;        // Indicates that GPS is working (or not)
     navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
+    bool gpsCfEstimatedAltitudeMismatch;            // Indicates a mismatch between GPS altitude and estimated altitude
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
     bool isAdjustingHeading;
 
     // Behaviour modifiers
-    bool isGCSAssistedNavigationEnabled;    // Does iNav accept WP#255 - follow-me etc.
+    bool isGCSAssistedNavigationEnabled;    // Does INAV accept WP#255 - follow-me etc.
     bool isGCSAssistedNavigationReset;      // GCS control was disabled - indicate that so code could take action accordingly
-    bool isTerrainFollowEnabled;            // Does iNav use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
+    bool isTerrainFollowEnabled;            // Does INAV use rangefinder for terrain following (adjusting baro altitude target according to rangefinders readings)
 
     // Failsafe actions
     bool forcedRTHActivated;
     bool forcedEmergLandingActivated;
 
-    bool wpMissionPlannerActive;            // Activation status of WP mission planner
-
     /* Landing detector */
     bool resetLandingDetector;
 
+    bool wpMissionPlannerActive;            // Activation status of WP mission planner
     bool rthTrackbackActive;                // Activation status of RTH trackback
+    bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
+    bool manualEmergLandActive;             // Activation status of manual emergency landing
 } navigationFlags_t;
 
 typedef struct {
@@ -122,6 +123,7 @@ typedef struct {
     navEstimatedPosVel_t    abs;
     navEstimatedPosVel_t    agl;
     int32_t                 yaw;
+    int32_t                 cog;
 
     // Service values
     float                   sinYaw;
@@ -153,6 +155,8 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD,
     NAV_FSM_EVENT_SWITCH_TO_CRUISE,
     NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
+    NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -160,6 +164,7 @@ typedef enum {
     NAV_FSM_EVENT_STATE_SPECIFIC_4,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_5,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_6,             // State-specific event
+    NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
@@ -167,6 +172,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME = NAV_FSM_EVENT_STATE_SPECIFIC_4,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = NAV_FSM_EVENT_STATE_SPECIFIC_5,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE = NAV_FSM_EVENT_STATE_SPECIFIC_6,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT = NAV_FSM_EVENT_STATE_SPECIFIC_6,
     NAV_FSM_EVENT_COUNT,
 } navigationFSMEvent_t;
 
@@ -224,6 +230,15 @@ typedef enum {
     NAV_PERSISTENT_ID_UNUSED_4                                  = 37, // was NAV_STATE_WAYPOINT_HOVER_ABOVE_HOME
     NAV_PERSISTENT_ID_RTH_TRACKBACK                             = 38,
 
+    NAV_PERSISTENT_ID_MIXERAT_INITIALIZE                        = 39,
+    NAV_PERSISTENT_ID_MIXERAT_IN_PROGRESS                       = 40,
+    NAV_PERSISTENT_ID_MIXERAT_ABORT                             = 41,
+    NAV_PERSISTENT_ID_FW_LANDING_CLIMB_TO_LOITER                = 42,
+    NAV_PERSISTENT_ID_FW_LANDING_LOITER                         = 43,
+    NAV_PERSISTENT_ID_FW_LANDING_APPROACH                       = 44,
+    NAV_PERSISTENT_ID_FW_LANDING_GLIDE                          = 45,
+    NAV_PERSISTENT_ID_FW_LANDING_FLARE                          = 46,
+    NAV_PERSISTENT_ID_FW_LANDING_ABORT                          = 47,
 } navigationPersistentId_e;
 
 typedef enum {
@@ -270,6 +285,17 @@ typedef enum {
     NAV_STATE_CRUISE_INITIALIZE,
     NAV_STATE_CRUISE_IN_PROGRESS,
     NAV_STATE_CRUISE_ADJUSTING,
+    
+    NAV_STATE_FW_LANDING_CLIMB_TO_LOITER,
+    NAV_STATE_FW_LANDING_LOITER,
+    NAV_STATE_FW_LANDING_APPROACH,
+    NAV_STATE_FW_LANDING_GLIDE,
+    NAV_STATE_FW_LANDING_FLARE,
+    NAV_STATE_FW_LANDING_ABORT,
+
+    NAV_STATE_MIXERAT_INITIALIZE,
+    NAV_STATE_MIXERAT_IN_PROGRESS,
+    NAV_STATE_MIXERAT_ABORT,
 
     NAV_STATE_COUNT,
 } navigationFSMState_t;
@@ -300,6 +326,8 @@ typedef enum {
     /* Additional flags */
     NAV_CTL_LAND            = (1 << 14),
     NAV_AUTO_WP_DONE        = (1 << 15),    //Waypoint mission reached the last waypoint and is idling
+
+    NAV_MIXERAT             = (1 << 16),    //MIXERAT in progress
 } navigationFSMStateFlags_t;
 
 typedef struct {
@@ -320,10 +348,10 @@ typedef struct {
 } rthSanityChecker_t;
 
 typedef struct {
-    fpVector3_t                 targetPos;
-    int32_t                     yaw;
-    int32_t                     previousYaw;
-    timeMs_t                    lastYawAdjustmentTime;
+    int32_t                     course;
+    int32_t                     previousCourse;
+    timeMs_t                    lastCourseAdjustmentTime;
+    float                       multicopterSpeed;
 } navCruise_t;
 
 typedef struct {
@@ -334,7 +362,33 @@ typedef struct {
     float                   rthFinalAltitude;       // Altitude at end of RTH approach
     float                   rthInitialDistance;     // Distance when starting flight home
     fpVector3_t             homeTmpWaypoint;        // Temporary storage for home target
+    fpVector3_t             originalHomePosition;   // the original rth home - save it, since it could be replaced by safehome or HOME_RESET
+    bool                    rthLinearDescentActive; // Activation status of Linear Descent
 } rthState_t;
+
+#ifdef USE_FW_AUTOLAND
+typedef enum {
+    FW_AUTOLAND_WP_TURN,
+    FW_AUTOLAND_WP_FINAL_APPROACH,
+    FW_AUTOLAND_WP_LAND,
+    FW_AUTOLAND_WP_COUNT,
+} fwAutolandWaypoint_t;
+
+typedef struct {
+    timeUs_t loiterStartTime;
+    fpVector3_t landWaypoints[FW_AUTOLAND_WP_COUNT];
+    fpVector3_t landPos;
+    int32_t landPosHeading;
+    int32_t landingDirection;
+    int32_t landAproachAltAgl;
+    int32_t landAltAgl;
+    uint8_t approachSettingIdx;
+    fwAutolandWaypoint_t landCurrentWp;
+    bool landAborted;
+    bool landWp;
+    fwAutolandState_t landState;
+} fwLandState_t;
+#endif
 
 typedef enum {
     RTH_HOME_ENROUTE_INITIAL,       // Initial position for RTH approach
@@ -343,6 +397,13 @@ typedef enum {
     RTH_HOME_FINAL_HOVER,           // Final hover altitude (if rth_home_altitude is set)
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
+
+typedef struct {
+    fpVector3_t nearestSafeHome;    // The nearestSafeHome found during arming
+    uint32_t    distance;           // distance to the nearest safehome
+    int8_t      index;              // -1 if no safehome, 0 to MAX_SAFEHOMES -1 otherwise
+    bool        isApplied;          // whether the safehome has been applied to home
+} safehomeState_t;
 
 typedef struct {
     /* Flags and navigation system state */
@@ -366,13 +427,15 @@ typedef struct {
     /* INAV GPS origin (position where GPS fix was first acquired) */
     gpsOrigin_t                 gpsOrigin;
 
-    /* Home parameters (NEU coordinated), geodetic position of home (LLH) is stores in GPS_home variable */
+    /* Home/RTH parameters - NEU coordinates (geodetic position of home (LLH) is stored in GPS_home variable) */
     rthSanityChecker_t          rthSanityChecker;
     rthState_t                  rthState;
-
-    /* Home parameters */
     uint32_t                    homeDistance;   // cm
     int32_t                     homeDirection;  // deg*100
+    timeMs_t                    landingDelay;
+
+    /* Safehome parameters */
+    safehomeState_t             safehomeState;
 
     /* Cruise */
     navCruise_t                 cruise;
@@ -380,7 +443,8 @@ typedef struct {
     /* Waypoint list */
     navWaypoint_t               waypointList[NAV_MAX_WAYPOINTS];
     bool                        waypointListValid;
-    int8_t                      waypointCount;
+    int8_t                      waypointCount;              // number of WPs in loaded mission
+    int8_t                      startWpIndex;               // index of first waypoint in mission
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
 
@@ -391,10 +455,9 @@ typedef struct {
     /* Multi Missions */
     int8_t                      multiMissionCount;          // number of missions in multi mission entry
     int8_t                      loadedMultiMissionIndex;    // index of selected multi mission
-    int8_t                      loadedMultiMissionStartWP;  // selected multi mission start WP
-    int8_t                      loadedMultiMissionWPCount;  // number of WPs in selected multi mission
+    int8_t                      totalMultiMissionWpCount;   // total number of waypoints in all multi missions
 #endif
-    navWaypointPosition_t       activeWaypoint;             // Local position and initial bearing, filled on waypoint activation
+    navWaypointPosition_t       activeWaypoint;             // Local position, current bearing and turn angle to next WP, filled on waypoint activation
     int8_t                      activeWaypointIndex;
     float                       wpInitialAltitude;          // Altitude at start of WP
     float                       wpInitialDistance;          // Distance when starting flight to WP
@@ -402,11 +465,10 @@ typedef struct {
     timeMs_t                    wpReachedTime;              // Time the waypoint was reached
     bool                        wpAltitudeReached;          // WP altitude achieved
 
-    /* RTH Trackback */
-    fpVector3_t                 rthTBPointsList[NAV_RTH_TRACKBACK_POINTS];
-    int8_t                      rthTBLastSavedIndex;        // last trackback point index saved
-    int8_t                      activeRthTBPointIndex;
-    int8_t                      rthTBWrapAroundCounter;     // stores trackpoint array overwrite index position
+#ifdef USE_FW_AUTOLAND
+    /* Fixedwing autoland */
+    fwLandState_t fwLandState;
+#endif
 
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
@@ -441,22 +503,22 @@ bool isFixedWingFlying(void);
 bool isMulticopterFlying(void);
 
 navigationFSMStateFlags_t navGetCurrentStateFlags(void);
+flightModeFlags_e navGetMappedFlightModes(navigationFSMState_t state);
 
-void setHomePosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
+void setHomePosition(const fpVector3_t * pos, int32_t heading, navSetWaypointFlags_t useMask, navigationHomeFlags_t homeFlags);
 void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlags_t useMask);
 void setDesiredSurfaceOffset(float surfaceOffset);
-void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);
-void updateClimbRateToAltitudeController(float desiredClimbRate, climbRateToAltitudeControllerMode_e mode);
+void setDesiredPositionToFarAwayTarget(int32_t yaw, int32_t distance, navSetWaypointFlags_t useMask);   // NOT USED
+void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode);
 
-bool isWaypointReached(const navWaypointPosition_t * waypoint, const bool isWaypointHome);
-bool isWaypointMissed(const navWaypointPosition_t * waypoint);
 bool isNavHoldPositionActive(void);
 bool isLastMissionWaypoint(void);
-float getActiveWaypointSpeed(void);
+float getActiveSpeed(void);
+bool isWaypointNavTrackingActive(void);
 
-void updateActualHeading(bool headingValid, int32_t newHeading);
+void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
-void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus);
+void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError);
 
 bool checkForPositionSensorTimeout(void);
 

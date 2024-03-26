@@ -42,14 +42,6 @@
 // #define CAMERA_CONTROL_PIN      PB7
 /*---------------------------------*/
 
-/*------------SENSORS--------------*/
-// MPU interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-//#define DEBUG_MPU_DATA_READY_INTERRUPT
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #if defined(FF_PIKOF4OSD)
 #define MPU6000_CS_PIN          PA15
 #define MPU6000_SPI_BUS         BUS_SPI3

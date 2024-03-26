@@ -31,6 +31,7 @@
 
 #include "build/version.h"
 
+#include "flight/mixer_profile.h"
 #include "flight/mixer.h"
 #include "flight/servos.h"
 
@@ -40,6 +41,7 @@
 
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/config.h"
 
 static uint8_t currentMotorMixerIndex = 0;
 static uint8_t tmpcurrentMotorMixerIndex = 1;

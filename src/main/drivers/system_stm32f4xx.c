@@ -26,8 +26,6 @@
 #include "drivers/nvic.h"
 #include "drivers/system.h"
 
-#include "drivers/exti.h"
-
 #include "target/system.h"
 
 
@@ -143,12 +141,6 @@ bool isMPUSoftReset(void)
 uint32_t systemBootloaderAddress(void)
 {
     return 0x1FFF0000;
-}
-
-void systemClockSetup(uint8_t cpuUnderclock)
-{
-    (void)cpuUnderclock;
-    // This is a stub
 }
 
 void systemInit(void)

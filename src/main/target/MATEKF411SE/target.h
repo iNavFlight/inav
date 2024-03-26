@@ -39,11 +39,6 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define GYRO_INT_EXTI            PA14
-#define USE_MPU_DATA_READY_SIGNAL
-
-
 // *************** SPI2 OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
@@ -108,13 +103,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
-#define USE_MAG_AK8975
+#define USE_MAG_ALL
 
 #define PITOT_I2C_BUS           BUS_I2C1
 #define TEMPERATURE_I2C_BUS     BUS_I2C1

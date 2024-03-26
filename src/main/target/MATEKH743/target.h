@@ -19,7 +19,12 @@
 #pragma once
 
 #define TARGET_BOARD_IDENTIFIER "H743"
-#define USBD_PRODUCT_STRING     "MATEKH743"
+
+#if defined(MATEKH743HD)
+  #define USBD_PRODUCT_STRING     "MATEKH743HD"
+#else
+  #define USBD_PRODUCT_STRING     "MATEKH743"
+#endif
 
 #define USE_TARGET_CONFIG
 
@@ -34,8 +39,7 @@
 #define USE_DUAL_GYRO
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
+
 
 // *************** SPI1 IMU0 MPU6000 ****************
 #define USE_SPI
@@ -49,7 +53,6 @@
 #define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
 #define MPU6000_SPI_BUS          BUS_SPI1
 #define MPU6000_CS_PIN          PC15
-#define MPU6000_EXTI_PIN        PB2
 
 // *************** SPI4 IMU1  ICM20602 **************
 #define USE_SPI_DEVICE_4
@@ -62,7 +65,6 @@
 #define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
 #define MPU6500_SPI_BUS         BUS_SPI4
 #define MPU6500_CS_PIN          PE11
-#define MPU6500_EXTI_PIN        PE15
 
 // *************** SPI4 IMU2 ICM42605 **************
 #define USE_IMU_ICM42605
@@ -70,18 +72,18 @@
 #define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI4
 #define ICM42605_CS_PIN         PC13
-#define ICM42605_EXTI_PIN       PC14
-
 
 // *************** SPI2 OSD ***********************
-#define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
+  #define USE_SPI_DEVICE_2
+  #define SPI2_SCK_PIN            PB13
+  #define SPI2_MISO_PIN           PB14
+  #define SPI2_MOSI_PIN           PB15
 
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI2
-#define MAX7456_CS_PIN          PB12
+#if defined(MATEKH743)
+  #define USE_MAX7456
+  #define MAX7456_SPI_BUS         BUS_SPI2
+  #define MAX7456_CS_PIN          PB12
+#endif
 
 // *************** SPI3 SPARE for external RM3100 ***********
 #define USE_SPI_DEVICE_3
@@ -113,12 +115,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 #define PITOT_I2C_BUS           BUS_I2C2
@@ -164,7 +161,7 @@
 #define SERIAL_PORT_COUNT       9
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_PROVIDER       SERIALRX_CRSF
 #define SERIALRX_UART           SERIAL_PORT_USART6
 
 // *************** SDIO SD BLACKBOX*******************

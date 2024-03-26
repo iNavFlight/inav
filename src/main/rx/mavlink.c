@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 #ifdef USE_SERIALRX_MAVLINK
 
 #include "build/debug.h"

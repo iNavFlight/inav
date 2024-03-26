@@ -35,6 +35,7 @@
 #include "rx/rx.h"
 #include "common/maths.h"
 #include "fc/config.h"
+#include "fc/cli.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
@@ -45,6 +46,7 @@
 #include "sensors/rangefinder.h"
 #include "flight/imu.h"
 #include "flight/pid.h"
+#include "flight/mixer_profile.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
@@ -54,6 +56,7 @@
 
 #include "io/vtx.h"
 #include "drivers/vtx_common.h"
+#include "drivers/light_ws2811strip.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(logicCondition_t, MAX_LOGIC_CONDITIONS, logicConditions, PG_LOGIC_CONDITIONS, 4);
 
@@ -85,13 +88,16 @@ void pgResetFn_logicConditions(logicCondition_t *instance)
 logicConditionState_t logicConditionStates[MAX_LOGIC_CONDITIONS];
 
 static int logicConditionCompute(
-    int32_t currentVaue,
+    int32_t currentValue,
     logicOperation_e operation,
     int32_t operandA,
-    int32_t operandB
+    int32_t operandB,
+    uint8_t lcIndex
 ) {
     int temporaryValue;
+#if defined(USE_VTX_CONTROL)
     vtxDeviceCapability_t vtxDeviceCapability;
+#endif    
 
     switch (operation) {
 
@@ -101,6 +107,13 @@ static int logicConditionCompute(
 
         case LOGIC_CONDITION_EQUAL:
             return operandA == operandB;
+            break;
+
+        case LOGIC_CONDITION_APPROX_EQUAL:
+            {
+                uint16_t offest = operandA / 100;
+                return ((operandB >= (operandA - offest)) && (operandB <= (operandA + offest)));
+            }
             break;
 
         case LOGIC_CONDITION_GREATER_THAN:
@@ -158,7 +171,67 @@ static int logicConditionCompute(
             }
 
             //When both operands are not met, keep current value 
-            return currentVaue;
+            return currentValue;
+            break;
+
+        case LOGIC_CONDITION_EDGE:
+            if (operandA && logicConditionStates[lcIndex].timeout == 0 && !(logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED)) {
+                if (operandB < 100) {
+                    logicConditionStates[lcIndex].timeout = millis();
+                } else {
+                    logicConditionStates[lcIndex].timeout = millis() + operandB;
+                }
+                logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
+                return true;
+            } else if (logicConditionStates[lcIndex].timeout > 0) {
+                if (logicConditionStates[lcIndex].timeout < millis()) {
+                    logicConditionStates[lcIndex].timeout = 0;
+                } else {
+                    return true;
+                }
+            }
+
+            if (!operandA) {
+                logicConditionStates[lcIndex].flags &= ~LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
+            }
+            return false;
+            break;
+
+        case LOGIC_CONDITION_DELAY:
+            if (operandA) {
+                if (logicConditionStates[lcIndex].timeout == 0) {
+                    logicConditionStates[lcIndex].timeout = millis() + operandB;
+                } else if (millis() > logicConditionStates[lcIndex].timeout ) {
+                    logicConditionStates[lcIndex].flags |= LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
+                    return true;
+                } else if (logicConditionStates[lcIndex].flags & LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED) {
+                    return true;
+                }
+            } else {
+                logicConditionStates[lcIndex].timeout = 0;
+                logicConditionStates[lcIndex].flags &= ~LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED;
+            }
+
+            return false;
+            break;
+
+        case LOGIC_CONDITION_TIMER:
+            if ((logicConditionStates[lcIndex].timeout == 0) || (millis() > logicConditionStates[lcIndex].timeout && !currentValue)) {
+                logicConditionStates[lcIndex].timeout = millis() + operandA;
+                return true;
+            } else if (millis() > logicConditionStates[lcIndex].timeout && currentValue) {
+                logicConditionStates[lcIndex].timeout = millis() + operandB;
+                return false;
+            }
+            return currentValue;
+            break;
+
+        case LOGIC_CONDITION_DELTA:
+            {
+                int difference = logicConditionStates[lcIndex].lastValue - operandA;
+                logicConditionStates[lcIndex].lastValue = operandA;
+                return ABS(difference) >= operandB;
+            }
             break;
 
         case LOGIC_CONDITION_GVAR_SET:
@@ -214,8 +287,16 @@ static int logicConditionCompute(
             return true;
             break;
 
+#ifdef USE_MAG
+        case LOGIC_CONDITION_RESET_MAG_CALIBRATION:
+
+            ENABLE_STATE(CALIBRATE_MAG);
+            return true;
+            break;
+#endif  
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_CONTROL) 
+#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
             if (
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA && 
                 vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
@@ -255,7 +336,7 @@ static int logicConditionCompute(
                 return false;
             }
             break;
-        
+#endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
             return true;
@@ -352,6 +433,7 @@ static int logicConditionCompute(
                     pidInit();
                     pidInitFilters();
                     schedulePidGainsUpdate();
+                    navigationUsePIDs(); //set navigation pid gains
                     profileChanged = true;
                 }
                 return profileChanged;
@@ -399,8 +481,30 @@ static int logicConditionCompute(
             } else {
                 return false;
             }
-            break;    
-        
+            break;
+
+#ifdef USE_LED_STRIP
+        case LOGIC_CONDITION_LED_PIN_PWM:
+
+            if (operandA >=0 && operandA <= 100) {
+                ledPinStartPWM((uint8_t)operandA);
+            } else {
+                ledPinStopPWM();
+            }
+            return operandA;
+            break;
+#endif
+#ifdef USE_GPS_FIX_ESTIMATION
+        case LOGIC_CONDITION_DISABLE_GPS_FIX:
+            if (operandA > 0) {
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
+            } else {
+                LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
+            }
+                return true;
+            break;
+#endif
+
         default:
             return false;
             break; 
@@ -411,7 +515,7 @@ void logicConditionProcess(uint8_t i) {
 
     const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
 
-    if (logicConditions(i)->enabled && activatorValue) {
+    if (logicConditions(i)->enabled && activatorValue && !cliMode) {
         
         /*
          * Process condition only when latch flag is not set
@@ -424,7 +528,8 @@ void logicConditionProcess(uint8_t i) {
                 logicConditionStates[i].value, 
                 logicConditions(i)->operation, 
                 operandAValue, 
-                operandBValue
+                operandBValue,
+                i
             );
         
             logicConditionStates[i].value = newValue;
@@ -438,6 +543,105 @@ void logicConditionProcess(uint8_t i) {
         }
     } else {
         logicConditionStates[i].value = false;
+    }
+}
+
+static int logicConditionGetWaypointOperandValue(int operand) {
+
+    switch (operand) {
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_IS_WP: // 0/1
+            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_INDEX:
+            return NAV_Status.activeWpNumber;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_ACTION:
+            return NAV_Status.activeWpAction;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_NEXT_WAYPOINT_ACTION:
+            {
+                uint8_t wpIndex = posControl.activeWaypointIndex + 1;
+                if ((wpIndex > 0) && (wpIndex < NAV_MAX_WAYPOINTS)) {
+                    return posControl.waypointList[wpIndex].action;
+                }
+                return false;
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_WAYPOINT_DISTANCE:
+            {
+                uint32_t distance = 0;
+                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex].alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+
+                    distance = calculateDistanceToDestination(&poi) / 100;
+                }
+
+                return distance;
+            }
+            break;
+
+        case LOGIC_CONDTIION_OPERAND_WAYPOINTS_DISTANCE_FROM_WAYPOINT:
+            {
+                uint32_t distance = 0;
+                if ((navGetCurrentStateFlags() & NAV_AUTO_WP) && NAV_Status.activeWpIndex > 0) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    wp.lat = posControl.waypointList[NAV_Status.activeWpIndex-1].lat;
+                    wp.lon = posControl.waypointList[NAV_Status.activeWpIndex-1].lon;
+                    wp.alt = posControl.waypointList[NAV_Status.activeWpIndex-1].alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, GEO_ALT_RELATIVE);
+
+                    distance = calculateDistanceToDestination(&poi) / 100;
+                }
+
+                return distance;
+            }
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER1) == NAV_WP_USER1) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER2) == NAV_WP_USER2) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER3) == NAV_WP_USER3) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION:
+            return (NAV_Status.activeWpIndex > 0) ? ((posControl.waypointList[NAV_Status.activeWpIndex-1].p3 & NAV_WP_USER4) == NAV_WP_USER4) : 0;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER1_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER1) == NAV_WP_USER1);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER2) == NAV_WP_USER2);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER3) == NAV_WP_USER3);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP:
+            return ((posControl.waypointList[NAV_Status.activeWpIndex].p3 & NAV_WP_USER4) == NAV_WP_USER4);
+            break;
+
+        default:
+            return 0;
+            break;
     }
 }
 
@@ -482,6 +686,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
+#ifdef USE_GPS_FIX_ESTIMATION
+            if ( STATE(GPS_ESTIMATED_FIX) ){
+                return gpsSol.numSat; //99
+            } else
+#endif
             if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
                 return 0;
             } else {
@@ -504,7 +713,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(pitot.airSpeed, 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
         #else
             return false;
         #endif
@@ -528,6 +737,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_PITCH: // deg
             return constrain(attitude.values.pitch / 10, -180, 180);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW: // deg
+            return constrain(attitude.values.yaw / 10, 0, 360);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_ARMED: // 0/1
@@ -554,12 +767,13 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return (navGetCurrentStateFlags() & NAV_AUTO_RTH) ? 1 : 0;
             break; 
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_IS_WP: // 0/1
-            return (navGetCurrentStateFlags() & NAV_AUTO_WP) ? 1 : 0;
-            break; 
-
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
-            return (navGetCurrentStateFlags() & NAV_CTL_LAND) ? 1 : 0;
+#ifdef USE_FW_AUTOLAND
+            return ((navGetCurrentStateFlags() & NAV_CTL_LAND) || FLIGHT_MODE(NAV_FW_AUTOLAND)) ? 1 : 0;
+#else
+            return ((navGetCurrentStateFlags() & NAV_CTL_LAND)) ? 1 : 0;
+#endif
+            
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
@@ -576,14 +790,6 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH: // 
             return axisPID[PITCH];
-            break;
-
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_INDEX:
-            return NAV_Status.activeWpNumber;
-            break;
-
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WAYPOINT_ACTION:
-            return NAV_Status.activeWpAction;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
@@ -609,6 +815,14 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
             return getConfigProfile() + 1;
             break;
+        
+        case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE: // int
+            return currentMixerProfileIndex + 1;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE: //0,1
+            return isMixerTransitionMixing ? 1 : 0;
+            break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
             return getLoiterRadius(navConfig()->fw.loiter_radius);
@@ -623,8 +837,12 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW:
             return rangefinderGetLatestRawAltitude();
-            break; 
-
+            break;
+#ifdef USE_FW_AUTOLAND
+        case LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE:
+            return posControl.fwLandState.landState;
+            break;
+#endif
         default:
             return 0;
             break;
@@ -651,12 +869,16 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(NAV_POSHOLD_MODE);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_WAYPOINT_MISSION:
+            return (bool) FLIGHT_MODE(NAV_WP_MODE);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_COURSE_HOLD:
-            return (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE);
+            return ((bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && !(bool)FLIGHT_MODE(NAV_ALTHOLD_MODE));
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_CRUISE:
-            return (bool)(FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE));
+            return (bool) (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE));
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ALTHOLD:
@@ -671,8 +893,18 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
             return (bool) FLIGHT_MODE(HORIZON_MODE);
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLEHOLD:
+            return (bool) FLIGHT_MODE(ANGLEHOLD_MODE);
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_AIR:
             return (bool) FLIGHT_MODE(AIRMODE_ACTIVE);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ACRO:
+            return (((bool) FLIGHT_MODE(ANGLE_MODE) || (bool) FLIGHT_MODE(HORIZON_MODE) || (bool) FLIGHT_MODE(ANGLEHOLD_MODE) ||
+                     (bool) FLIGHT_MODE(MANUAL_MODE) || (bool) FLIGHT_MODE(NAV_RTH_MODE) || (bool) FLIGHT_MODE(NAV_POSHOLD_MODE) ||
+                     (bool) FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || (bool) FLIGHT_MODE(NAV_WP_MODE)) == false);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER1:
@@ -685,6 +917,10 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER3:
             return IS_RC_MODE_ACTIVE(BOXUSER3);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MODE_USER4:
+            return IS_RC_MODE_ACTIVE(BOXUSER4);
             break;
 
         default:
@@ -704,7 +940,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 
         case LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL:
             //Extract RC channel raw value
-            if (operand >= 1 && operand <= 16) {
+            if (operand >= 1 && operand <= MAX_SUPPORTED_RC_CHANNEL_COUNT) {
                 retVal = rxGetChannelValue(operand - 1);
             } 
             break;
@@ -733,6 +969,10 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
             if (operand >= 0 && operand < MAX_PROGRAMMING_PID_COUNT) {
                 retVal = programmingPidGetOutput(operand);
             }
+            break;
+        
+        case LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS:
+            retVal = logicConditionGetWaypointOperandValue(operand);
             break;
 
         default:
@@ -780,7 +1020,9 @@ void logicConditionUpdateTask(timeUs_t currentTimeUs) {
 void logicConditionReset(void) {
     for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
         logicConditionStates[i].value = 0;
+        logicConditionStates[i].lastValue = 0;
         logicConditionStates[i].flags = 0;
+        logicConditionStates[i].timeout = 0;
     }
 }
 

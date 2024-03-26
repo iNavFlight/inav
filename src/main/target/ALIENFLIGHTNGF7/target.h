@@ -30,12 +30,6 @@
 #define BEEPER                  PC13
 #define BEEPER_INVERTED
 
-// MPU interrupt
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC14
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
 #define MPU6500_SPI_BUS         BUS_SPI1
 
@@ -50,14 +44,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_AK8963
-#define USE_MAG_MPU9250
-#define USE_MAG_HMC5883
-#define USE_MAG_MAG3110
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define AK8963_CS_PIN           PC15
 #define AK8963_SPI_BUS          BUS_SPI3
@@ -171,7 +158,7 @@
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
-#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_MOTOR_STOP | FEATURE_BLACKBOX)
+#define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_UART           SERIAL_PORT_USART2
 #define RX_CHANNELS_TAER

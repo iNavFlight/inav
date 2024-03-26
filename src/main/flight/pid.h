@@ -31,10 +31,6 @@
 #define HEADING_HOLD_RATE_LIMIT_MAX 250
 #define HEADING_HOLD_RATE_LIMIT_DEFAULT 90
 
-#define FW_ITERM_THROW_LIMIT_DEFAULT 165
-#define FW_ITERM_THROW_LIMIT_MIN 0
-#define FW_ITERM_THROW_LIMIT_MAX 500
-
 #define AXIS_ACCEL_MIN_LIMIT        50
 
 #define HEADING_HOLD_ERROR_LPF_FREQ 2
@@ -47,7 +43,7 @@ FP-PID has been rescaled to match LuxFloat (and MWRewrite) from Cleanflight 1.13
 #define FP_PID_RATE_I_MULTIPLIER    4.0f
 #define FP_PID_RATE_D_MULTIPLIER    1905.0f
 #define FP_PID_RATE_D_FF_MULTIPLIER   7270.0f
-#define FP_PID_LEVEL_P_MULTIPLIER   6.56f       // Level P gain units is [1/sec] and angle error is [deg] => [deg/s]
+#define FP_PID_LEVEL_P_MULTIPLIER   1.0f / 6.56f       // Level P gain units is [1/sec] and angle error is [deg] => [deg/s]
 #define FP_PID_YAWHOLD_P_MULTIPLIER 80.0f
 
 #define MC_ITERM_RELAX_SETPOINT_THRESHOLD 40.0f
@@ -106,11 +102,8 @@ typedef struct pidProfile_s {
     pidBank_t bank_mc;
 
     uint8_t dterm_lpf_type;                 // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf_hz;                  
-    
-    uint8_t dterm_lpf2_type;                // Dterm LPF type: PT1, BIQUAD
-    uint16_t dterm_lpf2_hz;                 
-    
+    uint16_t dterm_lpf_hz;
+
     uint8_t yaw_lpf_hz;
 
     uint8_t heading_hold_rate_limit;        // Maximum rotation rate HEADING_HOLD mode can feed to yaw rate PID controller
@@ -124,16 +117,15 @@ typedef struct pidProfile_s {
 
     uint16_t pidSumLimit;
     uint16_t pidSumLimitYaw;
+    uint16_t pidItermLimitPercent;
 
     // Airplane-specific parameters
-    uint16_t    fixedWingItermThrowLimit;
     float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
     float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
     float       fixedWingCoordinatedPitchGain;    // This is the gain of the pitch rate to keep the pitch angle constant during coordinated turns.
     float       fixedWingItermLimitOnStickPosition;   //Do not allow Iterm to grow when stick position is above this point
     uint16_t    fixedWingYawItermBankFreeze;       // Freeze yaw Iterm when bank angle is more than this many degrees
 
-    uint8_t     loiter_direction;               // Direction of loitering center point on right wing (clockwise - as before), or center point on left wing (counterclockwise)
     float       navVelXyDTermLpfHz;
     uint8_t navVelXyDtermAttenuation;       // VEL_XY dynamic Dterm scale: Dterm will be attenuatedby this value (in percent) when UAV is traveling with more than navVelXyDtermAttenuationStart percents of max velocity
     uint8_t navVelXyDtermAttenuationStart;  // VEL_XY dynamic Dterm scale: Dterm attenuation will begin at this percent of max velocity
@@ -225,5 +217,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
 pidType_e pidIndexGetType(pidIndex_e pidIndex);
 
+bool isFixedWingLevelTrimActive(void);
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
 float getFixedWingLevelTrim(void);
+bool isAngleHoldLevel(void);

@@ -62,7 +62,12 @@ void spiBusDeselectDevice(const busDevice_t * dev)
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 {
     const SPIClockSpeed_e spiClock[] = { SPI_CLOCK_INITIALIZATON, SPI_CLOCK_SLOW, SPI_CLOCK_STANDARD, SPI_CLOCK_FAST, SPI_CLOCK_ULTRAFAST };
+
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
 #ifdef BUS_SPI_SPEED_MAX
     if (speed > BUS_SPI_SPEED_MAX)
@@ -75,7 +80,11 @@ void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
 
 bool spiBusTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
@@ -92,7 +101,11 @@ bool spiBusTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * tx
 
 bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * dsc, int count)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
@@ -111,7 +124,11 @@ bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * d
 
 bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
@@ -129,7 +146,11 @@ bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
 
 bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
@@ -147,7 +168,11 @@ bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * dat
 
 bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
@@ -165,7 +190,11 @@ bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint
 
 bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusSelectDevice(dev);
@@ -183,7 +212,11 @@ bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
 
 bool spiBusIsBusy(const busDevice_t * dev)
 {
+#if defined(AT32F43x)
+    spi_type * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#else
     SPI_TypeDef * instance = spiInstanceByDevice(dev->busdev.spi.spiBus);
+#endif
     return spiIsBusBusy(instance);
 }
 #endif

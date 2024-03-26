@@ -74,13 +74,13 @@ This will download the entire INAV repository for you into a new folder called "
 ## Build the code
 
 Assuming you've just cloned the source code, you can switch your current
-directory to inav's source try by typing:
+directory to INAV's source try by typing:
 
 ```sh
 cd inav
 ```
 
-Inside the inav directory, create a new directory to store the built files. This
+Inside the INAV directory, create a new directory to store the built files. This
 helps keeping everything nice and tidy, separating source code from artifacts. By
 convention this directory is usually called `build`, but any name would work. Enter
 the following command to create it and switch your working directory to it:
@@ -95,7 +95,7 @@ Now we need to configure the build by using the following command:
 cmake ..
 ```
 
-This will automatically download the required compiler for inav, so it
+This will automatically download the required compiler for INAV, so it
 might take a few minutes. Once it's finished without errors, you can
 build the target that you want by typing `make target-name`. e.g.:
 
@@ -119,7 +119,7 @@ INAV Configurator.
 ## Updating to the latest source
 
 If you want to erase your local changes and update to the latest version of the INAV source, enter your
-inav directory and run these commands to first erase your local changes, fetch and merge the latest
+INAV directory and run these commands to first erase your local changes, fetch and merge the latest
 changes from the repository, then rebuild the firmware:
 
 ```sh

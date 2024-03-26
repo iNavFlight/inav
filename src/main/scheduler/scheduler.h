@@ -70,6 +70,9 @@ typedef enum {
 #ifdef USE_BARO
     TASK_BARO,
 #endif
+#ifdef USE_ADSB
+    TASK_ADSB,
+#endif
 #ifdef USE_PITOT
     TASK_PITOT,
 #endif
@@ -118,9 +121,6 @@ typedef enum {
 #endif
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
-#endif
-#ifdef USE_SECONDARY_IMU
-    TASK_SECONDARY_IMU,
 #endif
     /* Count of real tasks */
     TASK_COUNT,

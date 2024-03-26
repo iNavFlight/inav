@@ -50,8 +50,6 @@
 #include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
-#include "flight/hil.h"
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -256,6 +254,12 @@ uint32_t baroUpdate(void)
 {
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
 
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        return 0;
+    }
+#endif
+
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
@@ -276,6 +280,7 @@ uint32_t baroUpdate(void)
             if (baro.dev.start_ut) {
                 baro.dev.start_ut(&baro.dev);
             }
+            //output: baro.baroPressure, baro.baroTemperature
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             state = BAROMETER_NEEDS_SAMPLES;
             return baro.dev.ut_delay;
@@ -288,7 +293,7 @@ static float pressureToAltitude(const float pressure)
     return (1.0f - powf(pressure / 101325.0f, 0.190295f)) * 4433000.0f;
 }
 
-static float altitudeToPressure(const float altCm)
+float altitudeToPressure(const float altCm)
 {
     return powf(1.0f - (altCm / 4433000.0f), 5.254999) * 101325.0f;
 }
@@ -312,18 +317,12 @@ int32_t baroCalculateAltitude(void)
         if (zeroCalibrationIsCompleteS(&zeroCalibration)) {
             zeroCalibrationGetZeroS(&zeroCalibration, &baroGroundPressure);
             baroGroundAltitude = pressureToAltitude(baroGroundPressure);
-            LOG_D(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
+            LOG_DEBUG(BARO, "Barometer calibration complete (%d)", (int)lrintf(baroGroundAltitude));
         }
 
         baro.BaroAlt = 0;
     }
     else {
-#ifdef HIL
-        if (hilActive) {
-            baro.BaroAlt = hilToFC.baroAlt;
-            return baro.BaroAlt;
-        }
-#endif
         // calculates height from ground via baro readings
         baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
    }
@@ -343,7 +342,7 @@ int16_t baroGetTemperature(void)
 
 bool baroIsHealthy(void)
 {
-    return true;
+    return sensors(SENSOR_BARO);
 }
 
 #endif /* BARO */

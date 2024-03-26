@@ -24,7 +24,6 @@
 #include "sensors/rangefinder.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/opflow.h"
-#include "flight/secondary_imu.h"
 
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -44,12 +43,10 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
     if (detectedSensors[SENSOR_INDEX_ACC] != ACC_NONE) {
         if (accIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
-    }
-    else {
+    } else {
         if (requestedSensors[SENSOR_INDEX_ACC] != ACC_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
@@ -64,20 +61,26 @@ hardwareSensorStatus_e getHwAccelerometerStatus(void)
 hardwareSensorStatus_e getHwCompassStatus(void)
 {
 #if defined(USE_MAG)
-    if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
+#ifdef USE_SIMULATOR
+    if ((ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) && sensors(SENSOR_MAG)) {
         if (compassIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
     }
-    else {
+#endif
+    if (detectedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
+        if (compassIsHealthy()) {
+            return HW_SENSOR_OK;
+        } else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+    } else {
         if (requestedSensors[SENSOR_INDEX_MAG] != MAG_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
-        }
-        else {
+        } else {
             // Not selected and not detected
             return HW_SENSOR_NONE;
         }
@@ -90,6 +93,17 @@ hardwareSensorStatus_e getHwCompassStatus(void)
 hardwareSensorStatus_e getHwBarometerStatus(void)
 {
 #if defined(USE_BARO)
+#ifdef USE_SIMULATOR
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
+        if (requestedSensors[SENSOR_INDEX_BARO] == BARO_NONE) {
+            return HW_SENSOR_NONE;
+        } else if (baroIsHealthy()) {
+            return HW_SENSOR_OK;
+        } else {
+            return HW_SENSOR_UNHEALTHY;
+        }
+    }
+#endif
     if (detectedSensors[SENSOR_INDEX_BARO] != BARO_NONE) {
         if (baroIsHealthy()) {
             return HW_SENSOR_OK;
@@ -119,8 +133,7 @@ hardwareSensorStatus_e getHwRangefinderStatus(void)
     if (detectedSensors[SENSOR_INDEX_RANGEFINDER] != RANGEFINDER_NONE) {
         if (rangefinderIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
     }
@@ -128,8 +141,7 @@ hardwareSensorStatus_e getHwRangefinderStatus(void)
         if (requestedSensors[SENSOR_INDEX_RANGEFINDER] != RANGEFINDER_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
-        }
-        else {
+        } else {
             // Not selected and not detected
             return HW_SENSOR_NONE;
         }
@@ -145,8 +157,7 @@ hardwareSensorStatus_e getHwPitotmeterStatus(void)
     if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE) {
         if (pitotIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
     }
@@ -154,8 +165,7 @@ hardwareSensorStatus_e getHwPitotmeterStatus(void)
         if (requestedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
-        }
-        else {
+        } else {
             // Not selected and not detected
             return HW_SENSOR_NONE;
         }
@@ -171,8 +181,7 @@ hardwareSensorStatus_e getHwGPSStatus(void)
     if (sensors(SENSOR_GPS)) {
         if (isGPSHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
     }
@@ -180,8 +189,7 @@ hardwareSensorStatus_e getHwGPSStatus(void)
         if (feature(FEATURE_GPS) && gpsStats.timeouts > 4) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
-        }
-        else {
+        } else {
             // Not selected and not detected
             return HW_SENSOR_NONE;
         }
@@ -197,8 +205,7 @@ hardwareSensorStatus_e getHwOpticalFlowStatus(void)
     if (detectedSensors[SENSOR_INDEX_OPFLOW] != OPFLOW_NONE) {
         if (opflowIsHealthy()) {
             return HW_SENSOR_OK;
-        }
-        else {
+        } else {
             return HW_SENSOR_UNHEALTHY;
         }
     }
@@ -206,8 +213,7 @@ hardwareSensorStatus_e getHwOpticalFlowStatus(void)
         if (requestedSensors[SENSOR_INDEX_OPFLOW] != OPFLOW_NONE) {
             // Selected but not detected
             return HW_SENSOR_UNAVAILABLE;
-        }
-        else {
+        } else {
             // Not selected and not detected
             return HW_SENSOR_NONE;
         }
@@ -227,11 +233,6 @@ bool isHardwareHealthy(void)
     const hardwareSensorStatus_e pitotStatus = getHwPitotmeterStatus();
     const hardwareSensorStatus_e gpsStatus = getHwGPSStatus();
     const hardwareSensorStatus_e opflowStatus = getHwOpticalFlowStatus();
-#ifdef USE_SECONDARY_IMU
-    const hardwareSensorStatus_e imu2Status = getHwSecondaryImuStatus();
-#else
-    const hardwareSensorStatus_e imu2Status = HW_SENSOR_NONE;
-#endif
 
     // Sensor is considered failing if it's either unavailable (selected but not detected) or unhealthy (returning invalid readings)
     if (gyroStatus == HW_SENSOR_UNAVAILABLE || gyroStatus == HW_SENSOR_UNHEALTHY)
@@ -256,9 +257,6 @@ bool isHardwareHealthy(void)
         return false;
 
     if (opflowStatus == HW_SENSOR_UNAVAILABLE || opflowStatus == HW_SENSOR_UNHEALTHY)
-        return false;
-
-    if (imu2Status == HW_SENSOR_UNAVAILABLE || opflowStatus == HW_SENSOR_UNHEALTHY)
         return false;
 
     return true;

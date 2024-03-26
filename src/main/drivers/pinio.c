@@ -60,7 +60,7 @@ const pinioHardware_t pinioHardware[] = {
 #endif
 };
 
-const int pinioHardwareCount = sizeof(pinioHardware) / sizeof(pinioHardware[0]);
+const int pinioHardwareCount = ARRAYLEN(pinioHardware);
 
 /*** Runtime configuration ***/
 typedef struct pinioRuntime_s {
@@ -100,16 +100,14 @@ void pinioInit(void)
     }
 }
 
-void pinioSet(int index, bool on)
+void pinioSet(int index, bool newState)
 {
-    const bool newState = on ^ pinioRuntime[index].inverted;
-
     if (!pinioRuntime[index].io) {
         return;
     }
 
     if (newState != pinioRuntime[index].state) {
-        IOWrite(pinioRuntime[index].io, newState);
+        IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
         pinioRuntime[index].state = newState;
     }
 }

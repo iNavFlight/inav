@@ -29,11 +29,6 @@
 #define USE_I2C_DEVICE_2
 #define I2C_DEVICE_2_SHARES_UART3
 
-// MPU6000 interrupts
-#define USE_EXTI
-#define GYRO_INT_EXTI            PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
@@ -46,14 +41,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define USE_MAG_HMC5883
-#define USE_MAG_AK8963
-#define USE_MAG_AK8975
-#define USE_MAG_MAG3110
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define USE_BARO
 #define BARO_I2C_BUS             BUS_I2C2

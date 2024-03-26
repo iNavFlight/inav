@@ -30,11 +30,6 @@
 #define BEEPER                          PB2
 #define BEEPER_INVERTED
 
-// ******* GYRO and ACC ********
-#define USE_EXTI
-#define GYRO_INT_EXTI                   PC4
-#define USE_MPU_DATA_READY_SIGNAL
-
 #define MPU6000_CS_PIN                  SPI1_NSS_PIN
 #define MPU6000_SPI_BUS                 BUS_SPI1
 
@@ -58,12 +53,7 @@
 //*********** Magnetometer / Compass *************
 #define USE_MAG
 #define MAG_I2C_BUS                     DEFAULT_I2C_BUS
-
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 // ******* SERIAL ********
 #define USE_VCP

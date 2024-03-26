@@ -38,8 +38,33 @@
 
 timHardwareContext_t * timerCtx[HARDWARE_TIMER_DEFINITION_COUNT];
 
+
+uint8_t timer2id(const HAL_Timer_t *tim)
+{
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        if (timerDefinitions[i].tim == tim) return i;
+    }
+
+    return (uint8_t)-1;
+}
+
+#if defined(AT32F43x)
+uint8_t lookupTimerIndex(const HAL_Timer_t *tim)
+{
+    int i;
+
+    // let gcc do the work, switch should be quite optimized
+    for (i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; i++) {
+        if (tim == timerDefinitions[i].tim) {
+            return i;
+        }
+    }
+    // make sure final index is out of range
+    return ~1;
+}
+#else
 // return index of timer in timer table. Lowest timer has index 0
-uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
+uint8_t lookupTimerIndex(const HAL_Timer_t *tim)
 {
     int i;
 
@@ -53,6 +78,7 @@ uint8_t lookupTimerIndex(const TIM_TypeDef *tim)
     // make sure final index is out of range
     return ~1;
 }
+#endif
 
 void timerConfigBase(TCH_t * tch, uint16_t period, uint32_t hz)
 {
@@ -80,7 +106,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
     const int timerIndex = lookupTimerIndex(timHw->tim);
     
     if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
-        LOG_E(TIMER, "Can't find hardware timer definition");
+        LOG_ERROR(TIMER, "Can't find hardware timer definition");
         return NULL;
     }
 
@@ -90,7 +116,7 @@ TCH_t * timerGetTCH(const timerHardware_t * timHw)
         
         // Check for OOM
         if (timerCtx[timerIndex] == NULL) {
-            LOG_E(TIMER, "Can't allocate TCH object");
+            LOG_ERROR(TIMER, "Can't allocate TCH object");
             return NULL;
         }
 
@@ -156,9 +182,13 @@ void timerChConfigIC(TCH_t * tch, bool polarityRising, unsigned inputFilterSampl
 
 uint16_t timerGetPeriod(TCH_t * tch)
 {
+#if defined(AT32F43x)
+    return tch->timHw->tim->pr;     //tmr pr registe
+#else
     return tch->timHw->tim->ARR;
+#endif
 }
-
+//timerHardware  target.c
 void timerInit(void)
 {
     memset(timerCtx, 0, sizeof (timerCtx));
@@ -267,3 +297,15 @@ bool timerPWMDMAInProgress(TCH_t * tch)
 {
     return tch->dmaState != TCH_DMA_IDLE;
 }
+
+#ifdef USE_DSHOT_DMAR
+bool timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
+{
+    return impl_timerPWMConfigDMABurst(burstDmaTimer, tch, dmaBuffer, dmaBufferElementSize, dmaBufferElementCount);
+}
+
+void pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength)
+{
+    impl_pwmBurstDMAStart(burstDmaTimer, BurstLength);
+}
+#endif
