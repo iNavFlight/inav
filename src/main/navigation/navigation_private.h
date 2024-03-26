@@ -58,7 +58,7 @@ typedef enum {
 } navSetWaypointFlags_t;
 
 typedef enum {
-    ROC_TO_ALT_RESET,
+    ROC_TO_ALT_CURRENT,
     ROC_TO_ALT_CONSTANT,
     ROC_TO_ALT_TARGET
 } climbRateToAltitudeControllerMode_e;
@@ -90,6 +90,8 @@ typedef struct navigationFlags_s {
     navigationEstimateStatus_e estAglStatus;
     navigationEstimateStatus_e estHeadingStatus;    // Indicate valid heading - wither mag or GPS at certain speed on airplane
     bool gpsCfEstimatedAltitudeMismatch;            // Indicates a mismatch between GPS altitude and estimated altitude
+
+    climbRateToAltitudeControllerMode_e rocToAltMode;
 
     bool isAdjustingPosition;
     bool isAdjustingAltitude;
@@ -136,6 +138,7 @@ typedef struct {
     fpVector3_t pos;
     fpVector3_t vel;
     int32_t     yaw;
+    int16_t     climbRateDemand;
 } navigationDesiredState_t;
 
 typedef enum {
@@ -285,7 +288,7 @@ typedef enum {
     NAV_STATE_CRUISE_INITIALIZE,
     NAV_STATE_CRUISE_IN_PROGRESS,
     NAV_STATE_CRUISE_ADJUSTING,
-    
+
     NAV_STATE_FW_LANDING_CLIMB_TO_LOITER,
     NAV_STATE_FW_LANDING_LOITER,
     NAV_STATE_FW_LANDING_APPROACH,
@@ -519,6 +522,7 @@ bool isWaypointNavTrackingActive(void);
 void updateActualHeading(bool headingValid, int32_t newHeading, int32_t newGroundCourse);
 void updateActualHorizontalPositionAndVelocity(bool estPosValid, bool estVelValid, float newX, float newY, float newVelX, float newVelY);
 void updateActualAltitudeAndClimbRate(bool estimateValid, float newAltitude, float newVelocity, float surfaceDistance, float surfaceVelocity, navigationEstimateStatus_e surfaceStatus, float gpsCfEstimatedAltitudeError);
+float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros);
 
 bool checkForPositionSensorTimeout(void);
 
@@ -537,10 +541,9 @@ bool adjustMulticopterHeadingFromRCInput(void);
 bool adjustMulticopterPositionFromRCInput(int16_t rcPitchAdjustment, int16_t rcRollAdjustment);
 
 void applyMulticopterNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
-
 bool isMulticopterLandingDetected(void);
-
 void calculateMulticopterInitialHoldPosition(fpVector3_t * pos);
+float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros);
 
 /* Fixed-wing specific functions */
 void setupFixedWingAltitudeController(void);

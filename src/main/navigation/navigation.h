@@ -264,7 +264,7 @@ typedef struct positionEstimationConfig_s {
 
 #ifdef USE_GPS_FIX_ESTIMATION
     uint8_t allow_gps_fix_estimation;
-#endif    
+#endif
 } positionEstimationConfig_t;
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
@@ -328,7 +328,7 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
-        uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
+        uint16_t max_auto_climb_rate;           // max vertical speed limitation nav modes cm/sec
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
 
 #ifdef USE_MR_BRAKING_MODE
@@ -350,6 +350,7 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;             // Fixed wing max banking angle (deg)
+        uint16_t max_auto_climb_rate;        // max vertical speed limitation nav modes cm/sec
         uint16_t max_manual_climb_rate;      // manual velocity control max vertical speed
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
