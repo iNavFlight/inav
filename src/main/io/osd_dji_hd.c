@@ -505,8 +505,6 @@ static char * osdArmingDisabledReasonMessage(void)
         //     return OSD_MESSAGE_STR("HARDWARE FAILURE");
         case ARMING_DISABLED_BOXFAILSAFE:
             return OSD_MESSAGE_STR("FAILSAFE ENABLED");
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR("KILLSWITCH ENABLED");
         case ARMING_DISABLED_RC_LINK:
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:

@@ -672,16 +672,6 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 
 ---
 
-### disarm_kill_switch
-
-Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
-
----
-
 ### display_force_sw_blink
 
 OFF = OSD hardware blink / ON = OSD software blink. If OSD warning text/values are invisible, try setting this to ON

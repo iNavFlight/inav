@@ -298,62 +298,6 @@ TEST(FlightFailsafeTest, TestFailsafeDetectsRxLossAndJustDisarms)
 }
 
 /****************************************************************************************/
-TEST(FlightFailsafeTest, TestFailsafeDetectsKillswitchEvent)
-{
-    // given
-    ENABLE_ARMING_FLAG(ARMED);
-    resetCallCounters();
-    failsafeStartMonitoring();
-
-    // and
-    throttleStatus = THROTTLE_HIGH;                 // throttle HIGH to go for a failsafe landing procedure
-    failsafeConfig.failsafe_kill_switch = 1;        // configure AUX switch as kill switch
-    ACTIVATE_RC_MODE(BOXFAILSAFE);                  // and activate it
-    sysTickUptime = 0;                              // restart time from 0
-    failsafeOnValidDataReceived();                  // set last valid sample at current time
-    sysTickUptime = PERIOD_RXDATA_FAILURE + 1;      // adjust time to point just past the failure time to
-    failsafeOnValidDataFailed();                    // cause a lost link
-
-    // when
-    failsafeUpdateState();                          // kill switch handling should come first
-
-    // then
-    EXPECT_EQ(true, failsafeIsActive());
-    EXPECT_TRUE(ARMING_FLAG(PREVENT_ARMING));
-    EXPECT_EQ(1, CALL_COUNTER(COUNTER_MW_DISARM));
-    EXPECT_EQ(FAILSAFE_RX_LOSS_MONITORING, failsafePhase());
-
-    // given
-    failsafeOnValidDataFailed();                    // set last invalid sample at current time
-    sysTickUptime += PERIOD_RXDATA_RECOVERY + 1;    // adjust time to point just past the recovery time to
-    failsafeOnValidDataReceived();                  // cause a recovered link
-
-    rcModeActivationMask = DE_ACTIVATE_ALL_BOXES;   // BOXFAILSAFE must be off (kill switch)
-
-    // when
-    failsafeUpdateState();
-
-    // then
-    EXPECT_EQ(true, failsafeIsActive());
-    EXPECT_TRUE(ARMING_FLAG(PREVENT_ARMING));
-    EXPECT_EQ(1, CALL_COUNTER(COUNTER_MW_DISARM));
-    EXPECT_EQ(FAILSAFE_RX_LOSS_MONITORING, failsafePhase());
-
-    // given
-    sysTickUptime += PERIOD_OF_1_SECONDS + 1;       // adjust time to point just past the required additional recovery time
-    failsafeOnValidDataReceived();
-
-    // when
-    failsafeUpdateState();
-
-    // then
-    EXPECT_EQ(false, failsafeIsActive());
-    EXPECT_EQ(FAILSAFE_IDLE, failsafePhase());
-    EXPECT_EQ(1, CALL_COUNTER(COUNTER_MW_DISARM));  // disarm not called repeatedly.
-    EXPECT_FALSE(ARMING_FLAG(PREVENT_ARMING));
-}
-
-/****************************************************************************************/
 //
 // Additional non-stepwise tests
 //
