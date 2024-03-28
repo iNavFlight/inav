@@ -220,9 +220,6 @@ void initActiveBoxIds(void)
 
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     bool navReadyPosControl = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
-    if (STATE(MULTIROTOR)) {
-        navReadyPosControl = navReadyPosControl && getHwCompassStatus() != HW_SENSOR_NONE;
-    }
 
     if (STATE(ALTITUDE_CONTROL) && navReadyAltControl && (navReadyPosControl || navFlowDeadReckoning)) {
         ADD_ACTIVE_BOX(BOXNAVPOSHOLD);
