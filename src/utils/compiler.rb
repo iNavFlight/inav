@@ -47,7 +47,7 @@ class Compiler
         dirs.each do |dir|
             p = File.join(dir, bin)
             ['', '.exe'].each do |suffix|
-                f = p + suffix
+                f = File.expand_path(p + suffix)
                 if File.executable?(f)
                     if @verbose
                         puts "Found #{bin} at #{f}"

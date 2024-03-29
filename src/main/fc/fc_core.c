@@ -237,7 +237,7 @@ static void updateArmingStatus(void)
 
         /* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
         if (isNavLaunchEnabled()) {
-            if (isRollPitchStickDeflected(rcControlsConfig()->control_deadband)) {
+            if (isRollPitchStickDeflected(CONTROL_DEADBAND)) {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
             } else {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
@@ -456,7 +456,6 @@ void disarm(disarmReason_t disarmReason)
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
 #endif
-
         beeper(BEEPER_DISARMING);      // emit disarm tone
 
         prearmWasReset = false;
@@ -506,6 +505,18 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
     }
 
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
+}
+
+uint16_t emergencyInFlightRearmTimeMS(void)
+{
+    uint16_t rearmMS = 0;
+
+    if (STATE(IN_FLIGHT_EMERG_REARM)) {
+        timeMs_t currentTimeMs = millis();
+        rearmMS = (uint16_t)((US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS) - currentTimeMs);
+    }
+
+    return rearmMS;
 }
 
 bool emergInflightRearmEnabled(void)
@@ -881,7 +892,6 @@ static void applyThrottleTiltCompensation(void)
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
-
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -900,7 +910,8 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         }
     }
 
-    if (armTime > 1 * USECS_PER_SEC) {     // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose
+    if (armTime > 1 * USECS_PER_SEC) {  
+        // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
     }
 

@@ -1,0 +1,3 @@
+target_stm32f722xe(IFLIGHT_BLITZ_F722_X1)
+target_stm32f722xe(IFLIGHT_BLITZ_F722_X1_OSD)
+

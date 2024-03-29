@@ -229,13 +229,6 @@ void init(void)
     readEEPROM();
     resumeRxSignal();
 
-#ifdef USE_UNDERCLOCK
-    // Re-initialize system clock to their final values (if necessary)
-    systemClockSetup(systemConfig()->cpuUnderclock);
-#else
-    systemClockSetup(false);
-#endif
-
 #ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
 #endif
@@ -256,7 +249,7 @@ void init(void)
     EXTIInit();
 #endif
 
-#ifdef USE_SPEKTRUM_BIND
+#if defined(USE_SPEKTRUM_BIND) && defined(USE_SERIALRX_SPEKTRUM)
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
         switch (rxConfig()->serialrx_provider) {
             case SERIALRX_SPEKTRUM1024:

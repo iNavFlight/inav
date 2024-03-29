@@ -80,9 +80,20 @@
 
 // BMI270
 #define USE_IMU_BMI270
-#define IMU_BMI270_ALIGN        CW0_DEG
+#define IMU_BMI270_ALIGN        CW90_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
+
+//BMI088
+#define USE_IMU_BMI088
+
+#define IMU_BMI088_ALIGN        CW0_DEG
+#define BMI088_SPI_BUS          BUS_SPI1
+
+#define BMI088_GYRO_CS_PIN      SPI1_NSS_PIN
+#define BMI088_GYRO_EXTI_PIN    PA15
+#define BMI088_ACC_CS_PIN       PC13
+#define BMI088_ACC_EXTI_PIN     PD13
 
 // *************** I2C/Baro/Mag/EXT*********************
 #define USE_I2C
@@ -114,6 +125,10 @@
 #define SPI2_MISO_PIN           PD3//PB14 on LQFP64
 #define SPI2_MOSI_PIN           PD4//PB15 on LQFP64
 #define SPI2_NSS_PIN            PD5 //confirm on lqfp64
+#define SPI2_SCK_AF      GPIO_MUX_6
+#define SPI2_MISO_AF     GPIO_MUX_6
+#define SPI2_MOSI_AF     GPIO_MUX_6
+
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
@@ -172,7 +187,7 @@
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
-#define ADC1_DMA_STREAM             DMA2_CHANNEL5
+#define ADC1_DMA_STREAM             DMA2_CHANNEL1
 #define ADC_CHANNEL_1_PIN           PB0
 #define ADC_CHANNEL_2_PIN           PB1
 //#define ADC_CHANNEL_3_PIN           PB0
@@ -197,6 +212,6 @@
 #define TARGET_IO_PORTD         0xffff
 #define TARGET_IO_PORTE         BIT(2)
 
-#define MAX_PWM_OUTPUT_PORTS        8
+#define MAX_PWM_OUTPUT_PORTS        12
 #define USE_DSHOT
 #define USE_ESC_SENSOR

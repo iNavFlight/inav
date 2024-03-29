@@ -31,6 +31,7 @@
 
 #include "io/gps.h"
 
+
 /* GPS Home location data */
 extern gpsLocation_t        GPS_home;
 extern uint32_t             GPS_distanceToHome;        // distance to home point in meters
@@ -40,6 +41,7 @@ extern bool autoThrottleManuallyIncreased;
 
 /* Navigation system updates */
 void onNewGPSData(void);
+
 #if defined(USE_SAFE_HOME)
 
 #define MAX_SAFE_HOMES 8
@@ -58,9 +60,61 @@ typedef enum {
 
 PG_DECLARE_ARRAY(navSafeHome_t, MAX_SAFE_HOMES, safeHomeConfig);
 
-void resetSafeHomes(void);           // remove all safehomes
-bool findNearestSafeHome(void);      // Find nearest safehome
+void resetSafeHomes(void);                       // remove all safehomes
+bool findNearestSafeHome(void);                  // Find nearest safehome
+
 #endif // defined(USE_SAFE_HOME)
+
+#ifdef USE_FW_AUTOLAND
+
+#ifndef MAX_SAFE_HOMES
+#define MAX_SAFE_HOMES 0
+#endif
+
+#define MAX_FW_LAND_APPOACH_SETTINGS (MAX_SAFE_HOMES + 9)
+
+typedef enum  {
+    FW_AUTOLAND_APPROACH_DIRECTION_LEFT,
+    FW_AUTOLAND_APPROACH_DIRECTION_RIGHT
+} fwAutolandApproachDirection_e;
+
+typedef enum {
+    FW_AUTOLAND_STATE_IDLE,
+    FW_AUTOLAND_STATE_LOITER,
+    FW_AUTOLAND_STATE_DOWNWIND,
+    FW_AUTOLAND_STATE_BASE_LEG,
+    FW_AUTOLAND_STATE_FINAL_APPROACH,
+    FW_AUTOLAND_STATE_GLIDE,
+    FW_AUTOLAND_STATE_FLARE
+} fwAutolandState_t;
+
+typedef struct {
+    int32_t approachAlt;
+    int32_t landAlt;
+    bool isSeaLevelRef;
+    fwAutolandApproachDirection_e approachDirection;
+    int16_t landApproachHeading1;
+    int16_t landApproachHeading2;
+} navFwAutolandApproach_t;
+
+PG_DECLARE_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig);
+
+typedef struct navFwAutolandConfig_s
+{
+    uint32_t approachLength;
+    uint16_t finalApproachPitchToThrottleMod;
+    uint16_t glideAltitude;
+    uint16_t flareAltitude;
+    uint8_t flarePitch;
+    uint16_t maxTailwind;
+    int8_t glidePitch;
+} navFwAutolandConfig_t;
+
+PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);
+
+void resetFwAutolandApproach(int8_t idx);
+
+#endif
 
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
@@ -180,7 +234,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type; // from nav_reset_type_e
     uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
-    uint8_t use_gps_velned;
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
@@ -321,7 +374,8 @@ typedef struct navConfig_s {
         uint8_t  launch_climb_angle;         // Target climb angle for launch (deg)
         uint8_t  launch_max_angle;           // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         bool     launch_manual_throttle;     // Allows launch with manual throttle control
-        uint8_t  launch_abort_deadband;      // roll/pitch stick movement deadband for launch abort
+        uint8_t  launch_land_abort_deadband;      // roll/pitch stick movement deadband for launch abort
+        uint8_t  cruise_yaw_rate;            // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;
         uint8_t  yawControlDeadband;
@@ -645,6 +699,10 @@ uint8_t getActiveWpNumber(void);
  * are in the [0, 360 * 100) interval.
  */
 int32_t navigationGetHomeHeading(void);
+
+#ifdef USE_FW_AUTOLAND
+bool canFwLandCanceld(void);
+#endif
 
 /* Compatibility data */
 extern navSystemStatus_t    NAV_Status;
