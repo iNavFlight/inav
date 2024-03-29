@@ -156,6 +156,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 38            | ACTIVE_MIXER_PROFILE          | Which mixers are currently active (for vtol etc) |
 | 39            | MIXER_TRANSITION_ACTIVE       | Currently switching between mixers (quad to plane etc) |
 | 40            | ATTITUDE_YAW                  | current heading (yaw) in `degrees` |
+| 41            | FW Land Sate                  | integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
 
 #### FLIGHT_MODE
 

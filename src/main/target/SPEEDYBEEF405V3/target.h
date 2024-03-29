@@ -155,7 +155,7 @@
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
-#define MAX_PWM_OUTPUT_PORTS        8
+#define MAX_PWM_OUTPUT_PORTS        9
 
 #define CURRENT_METER_SCALE         386
 

@@ -105,6 +105,7 @@ typedef enum {
     TURTLE_MODE           = (1 << 15),
     SOARING_MODE          = (1 << 16),
     ANGLEHOLD_MODE        = (1 << 17),
+    NAV_FW_AUTOLAND       = (1 << 18),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
@@ -144,6 +145,7 @@ typedef enum {
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
     LANDING_DETECTED                    = (1 << 26),
     IN_FLIGHT_EMERG_REARM               = (1 << 27),
+    TAILSITTER                          = (1 << 28), //offset the pitch angle by 90 degrees
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

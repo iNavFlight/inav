@@ -28,6 +28,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include "platform.h"
 
@@ -62,6 +63,7 @@
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
+#include "io/adsb.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
@@ -71,6 +73,8 @@
 #include "io/displayport_msp_bf_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
+
+#include "io/osd/custom_elements.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -983,21 +987,27 @@ static const char * osdFailsafePhaseMessage(void)
 
 static const char * osdFailsafeInfoMessage(void)
 {
-    if (failsafeIsReceivingRxData()) {
+    if (failsafeIsReceivingRxData() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
         // User must move sticks to exit FS mode
         return OSD_MESSAGE_STR(OSD_MSG_MOVE_EXIT_FS);
     }
     return OSD_MESSAGE_STR(OSD_MSG_RC_RX_LINK_LOST);
 }
+
 #if defined(USE_SAFE_HOME)
 static const char * divertingToSafehomeMessage(void)
 {
+#ifdef USE_FW_AUTOLAND
+	if (!posControl.fwLandState.landWp && (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied)) {
+#else
     if (NAV_Status.state != MW_NAV_STATE_HOVER_ABOVE_HOME && posControl.safehomeState.isApplied) {
-        return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
-    }
-    return NULL;
-}
 #endif
+	    return OSD_MESSAGE_STR(OSD_MSG_DIVERT_SAFEHOME);
+	}
+#endif
+	return NULL;   
+}
+
 
 static const char * navigationStateMessage(void)
 {
@@ -1150,7 +1160,7 @@ static void osdFormatThrottlePosition(char *buff, bool useScaled, textAttributes
 #endif
     int8_t throttlePercent = getThrottlePercent(useScaled);
     if ((useScaled && throttlePercent <= 0) || !ARMING_FLAG(ARMED)) {
-        const char* message = ARMING_FLAG(ARMED) ? throttlePercent == 0 ? "IDLE" : "STOP" : "DARM";
+        const char* message = ARMING_FLAG(ARMED) ? (throttlePercent == 0 && !ifMotorstopFeatureEnabled()) ? "IDLE" : "STOP" : "DARM";
         buff[0] = SYM_THR;
         strcpy(buff + 1, message);
         return;
@@ -1697,6 +1707,21 @@ static bool osdDrawSingleElement(uint8_t item)
     char buff[32] = {0};
 
     switch (item) {
+    case OSD_CUSTOM_ELEMENT_1:
+    {
+        customElementDrawElement(buff, 0);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_2:
+    {
+        customElementDrawElement(buff, 1);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_3:
+    {
+        customElementDrawElement(buff, 2);
+        break;
+    }
     case OSD_RSSI_VALUE:
         {
             uint16_t osdRssi = osdConvertRSSI();
@@ -1970,28 +1995,27 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_ODOMETER:
         {
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_ODOMETER);
-            uint32_t odometerDist = (uint32_t)(getTotalTravelDistance() / 100);
+            float_t odometerDist = CENTIMETERS_TO_METERS(getTotalTravelDistance());
 #ifdef USE_STATS
             odometerDist+= statsConfig()->stats_total_dist;
 #endif
-            odometerDist = odometerDist / 10;
 
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
                 case OSD_UNIT_IMPERIAL:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), FEET_PER_MILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_MILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_MI;
                     break;
                 default:
                 case OSD_UNIT_GA:
-                    osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(odometerDist), (uint32_t)FEET_PER_NAUTICALMILE, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_NAUTICALMILES(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_NM;
                     break;
                 case OSD_UNIT_METRIC_MPH:
                     FALLTHROUGH;
                 case OSD_UNIT_METRIC:
-                    osdFormatCentiNumber(buff, odometerDist, METERS_PER_KILOMETER, 1, 0, 6, true);
+                    osdFormatCentiNumber(buff, METERS_TO_KILOMETERS(odometerDist) * 100, 1, 1, 1, 6, true);
                     buff[6] = SYM_KM;
                     break;
             }
@@ -2085,7 +2109,73 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits, false);
             break;
         }
+#ifdef USE_ADSB
+        case OSD_ADSB_WARNING:
+        {
+            static uint8_t adsblen = 1;
+            uint8_t arrowPositionX = 0;
 
+            for (int i = 0; i <= adsblen; i++) {
+                buff[i] = SYM_BLANK;
+            }
+
+            buff[adsblen]='\0';
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
+            adsblen=1;
+            adsbVehicle_t *vehicle = findVehicleClosest();
+
+            if(vehicle != NULL){
+                recalculateVehicle(vehicle);
+            }
+
+            if (
+                    vehicle != NULL &&
+                    (vehicle->calculatedVehicleValues.dist > 0) &&
+                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning) &&
+                    (osdConfig()->adsb_ignore_plane_above_me_limit == 0 || METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit) > vehicle->calculatedVehicleValues.verticalDistance)
+            ){
+                buff[0] = SYM_ADSB;
+                osdFormatDistanceStr(&buff[1], (int32_t)vehicle->calculatedVehicleValues.dist);
+                adsblen = strlen(buff);
+
+                buff[adsblen-1] = SYM_BLANK;
+
+                arrowPositionX = adsblen-1;
+                osdFormatDistanceStr(&buff[adsblen], vehicle->calculatedVehicleValues.verticalDistance);
+                adsblen = strlen(buff)-1;
+
+                if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+            }
+
+            buff[adsblen]='\0';
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+
+            if (arrowPositionX > 0){
+                int16_t panHomeDirOffset = 0;
+                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                    panHomeDirOffset = osdGetPanServoOffset();
+                }
+                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowPositionX, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
+            }
+
+            return true;
+        }
+        case OSD_ADSB_INFO:
+        {
+            buff[0] = SYM_ADSB;
+            if(getAdsbStatus()->vehiclesMessagesTotal > 0){
+                tfp_sprintf(buff + 1, "%2d", getActiveVehiclesCount());
+            }else{
+                buff[1] = '-';
+            }
+
+            break;
+        }
+
+#endif
     case OSD_MAP_NORTH:
         {
             static uint16_t drawn = 0;
@@ -2272,7 +2362,11 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_FLYMODE:
         {
             char *p = "ACRO";
-
+#ifdef USE_FW_AUTOLAND
+            if (FLIGHT_MODE(NAV_FW_AUTOLAND)) 
+                p = "LAND";
+            else
+#endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
@@ -3767,6 +3861,11 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .baro_temp_alarm_min = SETTING_OSD_BARO_TEMP_ALARM_MIN_DEFAULT,
     .baro_temp_alarm_max = SETTING_OSD_BARO_TEMP_ALARM_MAX_DEFAULT,
 #endif
+#ifdef USE_ADSB
+    .adsb_distance_warning = SETTING_OSD_ADSB_DISTANCE_WARNING_DEFAULT,
+    .adsb_distance_alert = SETTING_OSD_ADSB_DISTANCE_ALERT_DEFAULT,
+    .adsb_ignore_plane_above_me_limit = SETTING_OSD_ADSB_IGNORE_PLANE_ABOVE_ME_LIMIT_DEFAULT,
+#endif
 #ifdef USE_SERIALRX_CRSF
     .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,
     .crsf_lq_format = SETTING_OSD_CRSF_LQ_FORMAT_DEFAULT,
@@ -4006,6 +4105,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
+    osdLayoutsConfig->item_pos[0][OSD_ADSB_WARNING] = OSD_POS(2, 7);
+    osdLayoutsConfig->item_pos[0][OSD_ADSB_INFO] = OSD_POS(2, 8);
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_ESC_TEMPERATURE] = OSD_POS(1, 3);
@@ -4572,8 +4673,16 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
     }
 
+    uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
+
     if (savingSettings == true) {
         displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
+    } else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+        char emReArmMsg[23];
+        tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+        tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+        strcat(emReArmMsg, " **\0");
+        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
@@ -4873,9 +4982,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     bool statsSinglePageCompatible = (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS);
-    static uint8_t statsCurrentPage = 0;
-    static bool statsDisplayed = false;
-    static bool statsAutoPagingEnabled = true;
+    static uint8_t  statsCurrentPage = 0;
+    static timeMs_t statsRefreshTime = 0;
+    static bool     statsDisplayed = false;
+    static bool     statsAutoPagingEnabled = true;
 
     // Detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -4943,26 +5053,25 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 // Alternate screens for multi-page stats.
                 // Also, refreshes screen at swap interval for single-page stats.
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                    if (statsCurrentPage == 0) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 0)
                         statsCurrentPage = 1;
-                    }
                 } else {
-                    if (statsCurrentPage == 1) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 1)
                         statsCurrentPage = 0;
-                    }
                 }
             } else {
                 // Process manual page change events for multi-page stats.
-                if (manualPageUpRequested) {
-                    osdShowStats(statsSinglePageCompatible, 1);
-                    statsCurrentPage = 1;                   
-                } else if (manualPageDownRequested) {
-                    osdShowStats(statsSinglePageCompatible, 0);
+                if (manualPageUpRequested)
+                    statsCurrentPage = 1;
+                else if (manualPageDownRequested)
                     statsCurrentPage = 0;
             }
-        }
+
+            // Only refresh the stats every 1/4 of a second.
+            if (statsRefreshTime <= millis()) {
+                statsRefreshTime =  millis() + 250;
+                osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+            }
         }
 
         // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
@@ -5153,8 +5262,13 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         const char *invertedInfoMessage = NULL;
 
         if (ARMING_FLAG(ARMED)) {
+#ifdef USE_FW_AUTOLAND
+            if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding() || FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                if (isWaypointMissionRTHActive() && !posControl.fwLandState.landWp) {
+#else
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
                 if (isWaypointMissionRTHActive()) {
+#endif
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
                 }
@@ -5184,12 +5298,23 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     tfp_sprintf(messageBuf, "LANDING DELAY: %3u SECONDS", remainingHoldSec);
 
                     messages[messageCount++] = messageBuf;
-                } else {
-                    const char *navStateMessage = navigationStateMessage();
-                    if (navStateMessage) {
-                        messages[messageCount++] = navStateMessage;
+                } 
+
+                else {
+#ifdef USE_FW_AUTOLAND
+                    if (canFwLandCanceld()) {
+                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS);
+                    } else if (!FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+#endif
+                        const char *navStateMessage = navigationStateMessage();
+                        if (navStateMessage) {
+                            messages[messageCount++] = navStateMessage;
+                        }
+#ifdef USE_FW_AUTOLAND
                     }
+#endif
                 }
+
 #if defined(USE_SAFE_HOME)
                 const char *safehomeMessage = divertingToSafehomeMessage();
                 if (safehomeMessage) {
@@ -5302,9 +5427,16 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
+        uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
         if (savingSettings == true) {
            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
+        } else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
         } else if (notify_settings_saved > 0) {
             if (millis() > notify_settings_saved) {
                 notify_settings_saved = 0;
@@ -5312,6 +5444,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
             }
         }
+
 
         if (messageCount > 0) {
             message = messages[OSD_ALTERNATING_CHOICES(systemMessageCycleTime(messageCount, messages), messageCount)];
