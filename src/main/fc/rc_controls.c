@@ -91,6 +91,7 @@ PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 
 
 PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
     .fixed_wing_auto_arm = SETTING_FIXED_WING_AUTO_ARM_DEFAULT,
+    .disarm_always = SETTING_DISARM_ALWAYS_DEFAULT,
     .switchDisarmDelayMs = SETTING_SWITCH_DISARM_DELAY_DEFAULT,
     .prearmTimeoutMs = SETTING_PREARM_TIMEOUT_DEFAULT,
 );
@@ -230,7 +231,9 @@ void processRcStickPositions(bool isThrottleLow)
             if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
                 const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
                 if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
-                    disarm(DISARM_SWITCH);
+                    if (armingConfig()->disarm_always || isThrottleLow) {
+                        disarm(DISARM_SWITCH);
+                    }
                 }
             }
             else {

@@ -95,6 +95,7 @@ PG_DECLARE(rcControlsConfig_t, rcControlsConfig);
 
 typedef struct armingConfig_s {
     bool fixed_wing_auto_arm;               // Auto-arm fixed wing aircraft on throttle up and never disarm
+    bool disarm_always;                     // Disarm motors regardless of throttle value
     uint16_t switchDisarmDelayMs;           // additional delay between ARM box going off and actual disarm
     uint16_t prearmTimeoutMs;               // duration for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout.
 } armingConfig_t;
