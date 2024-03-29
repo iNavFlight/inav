@@ -670,11 +670,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, getRSSI());
         break;
 
-    case MSP_ARMING_CONFIG:
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, armingConfig()->disarm_kill_switch);
-        break;
-
     case MSP_LOOP_TIME:
         sbufWriteU16(dst, gyroConfig()->looptime);
         break;
@@ -1827,14 +1822,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
-
-    case MSP_SET_ARMING_CONFIG:
-        if (dataSize == 2) {
-            sbufReadU8(src); //Swallow the first byte, used to be auto_disarm_delay
-            armingConfigMutable()->disarm_kill_switch = !!sbufReadU8(src);
-        } else
-            return MSP_RESULT_ERROR;
-        break;
 
     case MSP_SET_LOOP_TIME:
         if (sbufReadU16Safe(&tmp_u16, src))

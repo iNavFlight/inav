@@ -672,9 +672,9 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 
 ---
 
-### disarm_kill_switch
+### disarm_always
 
-Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel.
+Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low.
 
 | Default | Min | Max |
 | --- | --- | --- |
