@@ -492,18 +492,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_SERVO:
         sbufWriteData(dst, &servo, MAX_SUPPORTED_SERVOS * 2);
         break;
-    case MSP_SERVO_CONFIGURATIONS:
+
+    case MSP2_INAV_SERVO_CONFIG:
         for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
             sbufWriteU16(dst, servoParams(i)->min);
             sbufWriteU16(dst, servoParams(i)->max);
             sbufWriteU16(dst, servoParams(i)->middle);
             sbufWriteU8(dst, servoParams(i)->rate);
-            sbufWriteU8(dst, 0);
-            sbufWriteU8(dst, 0);
-            sbufWriteU8(dst, 255); // used to be forwardFromChannel, not used anymore, send 0xff for compatibility reasons
-            sbufWriteU32(dst, 0); //Input reversing is not required since it can be done on mixer level
         }
         break;
+
     case MSP2_INAV_SERVO_MIXER:
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
@@ -2105,8 +2103,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-    case MSP_SET_SERVO_CONFIGURATION:
-        if (dataSize != (1 + 14)) {
+    case MSP2_INAV_SET_SERVO_CONFIG:
+        if (dataSize != 8) {
             return MSP_RESULT_ERROR;
         }
         tmp_u8 = sbufReadU8(src);
@@ -2117,10 +2115,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             servoParamsMutable(tmp_u8)->max = sbufReadU16(src);
             servoParamsMutable(tmp_u8)->middle = sbufReadU16(src);
             servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
-            sbufReadU8(src);
-            sbufReadU8(src);
-            sbufReadU8(src); // used to be forwardFromChannel, ignored
-            sbufReadU32(src); // used to be reversedSources
             servoComputeScalingFactors(tmp_u8);
         }
         break;
