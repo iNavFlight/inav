@@ -20,10 +20,12 @@
 #include "platform.h"
 #ifdef USE_GYRO_KALMAN
 
-FILE_COMPILE_FOR_SPEED
-
 #include <string.h>
+#if !defined(SITL_BUILD)
 #include "arm_math.h"
+#else
+#include <math.h>
+#endif
 
 #include "kalman.h"
 #include "build/debug.h"
@@ -93,17 +95,19 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->axisMean = kalmanState->axisSumMean * kalmanState->inverseN;
     kalmanState->axisVar = kalmanState->axisSumVar * kalmanState->inverseN;
 
+#if !defined(SITL_BUILD)
     float squirt;
     arm_sqrt_f32(kalmanState->axisVar, &squirt);
+#else
+    float squirt = sqrtf(kalmanState->axisVar);
+#endif
+    
     kalmanState->r = squirt * VARIANCE_SCALE;
 }
 
 float NOINLINE gyroKalmanUpdate(uint8_t axis, float input)
 {
     updateAxisVariance(&kalmanFilterStateRate[axis], input);
-
-    DEBUG_SET(DEBUG_KALMAN_GAIN, axis, kalmanFilterStateRate[axis].k * 1000.0f); //Kalman gain
-
     return kalman_process(&kalmanFilterStateRate[axis], input);
 }
 

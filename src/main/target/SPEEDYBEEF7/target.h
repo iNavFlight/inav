@@ -57,13 +57,11 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define USE_MPU_DATA_READY_SIGNAL
-#define USE_EXTI
+
 
 #define USE_IMU_ICM20689
 #define IMU_ICM20689_ALIGN          CW0_DEG
 
-#define GYRO_INT_EXTI               PC4
 #define ICM20689_CS_PIN             PA4
 #define ICM20689_SPI_BUS            BUS_SPI1
 
@@ -111,12 +109,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 #define PITOT_I2C_BUS           BUS_I2C2

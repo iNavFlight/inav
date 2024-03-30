@@ -1,17 +1,28 @@
 # INAV Programming Framework
 
-INAV Programming Framework (abbr. IPF) is a mechanism that allows to evaluate cenrtain flight parameters (RC channels, switches, altitude, distance, timers, other logic conditions) and use the value of evaluated expression in different places of INAV. Currently, the result of LCs can be used in:
+INAV Programming Framework (IPF) is a mechanism that allows you to to create 
+custom functionality in INAV. You can choose for certain actions to be done,
+based on custom conditions you select.
+
+Logic conditions can be based on things such as RC channel values, switches, altitude, 
+distance, timers, etc. The conditions you create  can also make use of other conditions
+you've entered previously.
+The results can be used in:
 
 * [Servo mixer](Mixer.md) to activate/deactivate certain servo mix rulers
 * To activate/deactivate system overrides
 
-INAV Programming Framework coinsists of:
+INAV Programming Framework consists of:
 
-* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code
-* Global Variables - variables that can store values from and for LogiC Conditions and servo mixer
+* Logic Conditions - each Logic Condition can be understood as a single command, a single line of code. Each logic condition consists of:
+	* an operator (action), such as "plus" or "set vtx power"
+	* one or two operands (nouns), which the action acts upon. Operands are often numbers, such as a channel value or the distance to home.
+	* "activator" condition - optional. This condition is only active when another condition is true
+* Global Variables - variables that can store values from and for Logic Conditions and servo mixer
 * Programming PID - general purpose, user configurable PID controllers
 
-IPF can be edited using INAV Configurator user interface, of via CLI
+IPF can be edited using INAV Configurator user interface, or via CLI. To use COnfigurator, click the tab labeled
+"Programming". The various options shown in Configurator are described below.
 
 ## Logic Conditions
 
@@ -46,16 +57,17 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 10            | NAND                          | `false` if `Operand A` and `Operand B` are both `true`|
 | 11            | NOR                           | `true` if `Operand A` and `Operand B` are both `false` |
 | 12            | NOT                           | The boolean opposite to `Operand A` |         
-| 13            | STICKY                        | `Operand A` is activation operator, `Operand B` is deactivation operator. After activation, operator will return `true` until Operand B is evaluated as `true`|         
-| 14            | ADD                           | Add `Operand A` to `Operand B` and returns the result |
-| 15            | SUB                           | Substract `Operand B` from `Operand A` and returns the result |
-| 16            | MUL                           | Multiply `Operand A` by `Operand B` and returns the result |
-| 17            | DIV                           | Divide `Operand A` by `Operand B` and returns the result |
-| 18            | GVAR SET                      | Store value from `Operand B` into the Global Variable addressed by `Operand B`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
-| 19            | GVAR INC                      | Increase the GVAR indexed by `Operand A` with value from `Operand B`  |
-| 20            | GVAR DEC                      | Decrease the GVAR indexed by `Operand A` with value from `Operand B`  |
-| 21            | IO PORT SET                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
-| 22            | OVERRIDE_ARMING_SAFETY        | Allows to arm on any angle even without GPS fix              |
+| 13            | Sticky                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|         
+| 14            | Basic: Add                           | Add `Operand A` to `Operand B` and returns the result |
+| 15            | Basic: Subtract                           | Substract `Operand B` from `Operand A` and returns the result |
+| 16            | Basic: Multiply                           | Multiply `Operand A` by `Operand B` and returns the result |
+| 17            | Basic: Divide                           | Divide `Operand A` by `Operand B` and returns the result |
+| 18            | Set GVAR                      | Store value from `Operand B` into the Global Variable addressed by
+`Operand A`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
+| 19            | Increase GVAR                      | Increase the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
+| 20            | Decrease GVAR                      | Decrease the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
+| 21            | Set IO Port                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
+| 22            | OVERRIDE_ARMING_SAFETY        | Allows the craft to arm on any angle even without GPS fix. WARNING: This bypasses all safety checks, even that the throttle is low, so use with caution. If you only want to check for certain conditions, such as arm without GPS fix. You will need to add logic conditions to check the throttle is low. |
 | 23            | OVERRIDE_THROTTLE_SCALE       | Override throttle scale to the value defined by operand. Operand type `0` and value `50` means throttle will be scaled by 50%. |
 | 24            | SWAP_ROLL_YAW                 | basically, when activated, yaw stick will control roll and roll stick will control yaw. Required for tail-sitters VTOL during vertical-horizonral transition when body frame changes |
 | 25            | SET_VTX_POWER_LEVEL           | Sets VTX power level. Accepted values are `0-3` for SmartAudio and `0-4` for Tramp protocol |
@@ -66,20 +78,27 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 30            | SET_VTX_BAND                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | SET_VTX_CHANNEL               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | SET_OSD_LAYOUT                | Sets OSD layout. Accepted values are `0-3` |
-| 33            | SIN                           | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 34            | COS                           | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
-| 35            | TAN                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 33            | Trigonometry: Sine                           | Computes SIN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 34            | Trigonometry: Cosine                           | Computes COS of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
+| 35            | Trigonometry: Tangent                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
 | 36            | MAP_INPUT                     | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
 | 37            | MAP_OUTPUT                    | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
-| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B` |
+| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B`. Note operand A should normally be set as a "Value", NOT as "Get RC Channel"|
 | 39            | SET_HEADING_TARGET            | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
-| 40            | MOD                           | Divide `Operand A` by `Operand B` and returns the remainder |
+| 40            | Modulo                           | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
 | 41            | LOITER_RADIUS_OVERRIDE        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
 | 42            | SET_PROFILE                   | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
-| 43            | MIN                           | Finds the lowest value of `Operand A` and `Operand B` |
-| 44            | MAX                           | Finds the highest value of `Operand A` and `Operand B` |
+| 43            | Use Lowest Value                           | Finds the lowest value of `Operand A` and `Operand B` |
+| 44            | Use Highest Value                           | Finds the highest value of `Operand A` and `Operand B` |
 | 45			| FLIGHT_AXIS_ANGLE_OVERRIDE	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
 | 46			| FLIGHT_AXIS_RATE_OVERRIDE	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
+| 47            | EDGE                          | Momentarily true when triggered by `Operand A`. `Operand A` is the activation operator [`boolean`], `Operand B` _(Optional)_ is the time for the edge to stay active [ms]. After activation, operator will return `true` until the time in Operand B is reached. If a pure momentary edge is wanted. Just leave `Operand B` as the default `Value: 0` setting. |
+| 48            | DELAY                         | Delays activation after being triggered. This will return `true` when `Operand A` _is_ true, and the delay time in `Operand B` [ms] has been exceeded. |
+| 49            | TIMER                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
+| 50            | DELTA                         | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. |
+| 51            | APPROX_EQUAL                  | `true` if `Operand B` is within 1% of `Operand A`. |
+| 52            | LED_PIN_PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes)|
+
 ### Operands
 
 | Operand Type  | Name                  | Notes |
@@ -119,24 +138,68 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | 20            | IS_POSITION_CONTROL           | boolean `0`/`1` |
 | 21            | IS_EMERGENCY_LANDING          | boolean `0`/`1` |
 | 22            | IS_RTH                        | boolean `0`/`1` |
-| 23            | IS_WP                         | boolean `0`/`1` |
-| 24            | IS_LANDING                    | boolean `0`/`1` |
-| 25            | IS_FAILSAFE                   | boolean `0`/`1` |
-| 26            | STABILIZED_ROLL               | Roll PID controller output `[-500:500]` |
-| 27            | STABILIZED_PITCH              | Pitch PID controller output `[-500:500]` |
-| 28            | STABILIZED_YAW                | Yaw PID controller output `[-500:500]` |
-| 29            | ACTIVE_WAYPOINT_INDEX         | Indexed from `1`. To verify WP is in progress, use `IS_WP` |
-| 30            | ACTIVE_WAYPOINT_ACTION        | See ACTIVE_WAYPOINT_ACTION paragraph |
-| 31            | 3D HOME_DISTANCE              | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
-| 32            | CROSSFIRE LQ                  | Crossfire Link quality as returned by the CRSF protocol | 
-| 33            | CROSSFIRE SNR                 | Crossfire SNR as returned by the CRSF protocol |
-| 34            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
-| 35            | LOITER_RADIUS                 | The current loiter radius in cm. |
-| 36            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
-| 37            | BATT_CELLS                    | Number of battery cells detected |
-| 38            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
-| 39            | AGL                           | integer Above The Groud Altitude in `cm` |
-| 40            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
+| 23            | IS_LANDING                    | boolean `0`/`1` |
+| 24            | IS_FAILSAFE                   | boolean `0`/`1` |
+| 25            | STABILIZED_ROLL               | Roll PID controller output `[-500:500]` |
+| 26            | STABILIZED_PITCH              | Pitch PID controller output `[-500:500]` |
+| 27            | STABILIZED_YAW                | Yaw PID controller output `[-500:500]` |
+| 28            | 3D HOME_DISTANCE              | in `meters`, calculated from HOME_DISTANCE and ALTITUDE using Pythagorean theorem |
+| 29            | CROSSFIRE LQ                  | Crossfire Link quality as returned by the CRSF protocol | 
+| 30            | CROSSFIRE SNR                 | Crossfire SNR as returned by the CRSF protocol |
+| 31            | GPS_VALID                     | boolean `0`/`1`. True when the GPS has a valid 3D Fix |
+| 32            | LOITER_RADIUS                 | The current loiter radius in cm. |
+| 33            | ACTIVE_PROFILE                | integer for the active config profile `[1..MAX_PROFILE_COUNT]` |
+| 34            | BATT_CELLS                    | Number of battery cells detected |
+| 35            | AGL_STATUS                    | boolean `1` when AGL can be trusted, `0` when AGL estimate can not be trusted |
+| 36            | AGL                           | integer Above The Groud Altitude in `cm` |
+| 37            | RANGEFINDER_RAW               | integer raw distance provided by the rangefinder in `cm` |
+| 38            | ACTIVE_MIXER_PROFILE          | Which mixers are currently active (for vtol etc) |
+| 39            | MIXER_TRANSITION_ACTIVE       | Currently switching between mixers (quad to plane etc) |
+| 40            | ATTITUDE_YAW                  | current heading (yaw) in `degrees` |
+| 41            | FW Land Sate                  | integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
+
+#### FLIGHT_MODE
+
+The flight mode operands return `true` when the mode is active. These are modes that you will see in the **Modes** tab. Note: the `USER*` modes are used by camera switchers, PINIO etc. They are not the Waypoint User Actions. See the [Waypoints](#waypoints) section to access those.
+
+| Operand Value | Name              | Notes |
+|---------------|-------------------|-------|
+| 0             | FAILSAFE          | `true` when a **Failsafe** state has been triggered. |
+| 1             | MANUAL            | `true` when you are in the **Manual** flight mode. |
+| 2             | RTH               | `true` when you are in the **Return to Home** flight mode. |
+| 3             | POSHOLD           | `true` when you are in the **Position Hold** or **Loiter** flight modes. |
+| 4             | CRUISE            | `true` when you are in the **Cruise** flight mode. |
+| 5             | ALTHOLD           | `true` when you the **Altitude Hold** flight mode modifier is active. |
+| 6             | ANGLE             | `true` when you are in the **Angle** flight mode. |
+| 7             | HORIZON           | `true` when you are in the **Horizon** flight mode. |
+| 8             | AIR               | `true` when you the **Airmode** flight mode modifier is active. |
+| 9             | USER1             | `true` when the **USER 1** mode is active. |
+| 10            | USER2             | `true` when the **USER 2** mode is active. |
+| 11            | COURSE_HOLD       | `true` when you are in the **Course Hold** flight mode. |
+| 12            | USER3             | `true` when the **USER 3** mode is active. |
+| 13            | USER4             | `true` when the **USER 4** mode is active. |
+| 14            | ACRO              | `true` when you are in the **Acro** flight mode. |
+| 15            | WAYPOINT_MISSION  | `true` when you are in the **WP Mission** flight mode. | 
+
+#### WAYPOINTS
+
+| Operand Value | Name                          | Notes |
+|---------------|-------------------------------|-------|
+| 0             | Is WP                         | Boolean `0`/`1` |
+| 1             | Current Waypoint Index        | Current waypoint leg. Indexed from `1`. To verify WP is in progress, use `Is WP` |
+| 2             | Current Waypoint Action       | `true` when Action active in current leg. See ACTIVE_WAYPOINT_ACTION table |
+| 3             | Next Waypoint Action          | `true` when Action active in next leg. See ACTIVE_WAYPOINT_ACTION table |
+| 4             | Distance to next Waypoint     | Distance to next WP in metres |
+| 5             | Distance from Waypoint        | Distance from the last WP in metres |
+| 6             | User Action 1                 | `true` when User Action 1 is active on this waypoint leg [boolean `0`/`1`] |
+| 7             | User Action 2                 | `true` when User Action 2 is active on this waypoint leg [boolean `0`/`1`] |
+| 8             | User Action 3                 | `true` when User Action 3 is active on this waypoint leg [boolean `0`/`1`] |
+| 9             | User Action 4                 | `true` when User Action 4 is active on this waypoint leg [boolean `0`/`1`] |
+| 10            | Next Waypoint User Action 1   | `true` when User Action 1 is active on the next waypoint leg [boolean `0`/`1`] |
+| 11            | Next Waypoint User Action 2   | `true` when User Action 2 is active on the next waypoint leg [boolean `0`/`1`] |
+| 12            | Next Waypoint User Action 3   | `true` when User Action 3 is active on the next waypoint leg [boolean `0`/`1`] |
+| 13            | Next Waypoint User Action 4   | `true` when User Action 4 is active on the next waypoint leg [boolean `0`/`1`] |
+
 
 #### ACTIVE_WAYPOINT_ACTION
 
@@ -149,24 +212,6 @@ IPF can be edited using INAV Configurator user interface, of via CLI
 | JUMP          | 6     |
 | SET_HEAD      | 7     |
 | LAND          | 8     |
-
-
-#### FLIGHT_MODE
-
-| Operand Value | Name      | Notes |
-|---------------|-----------|-------|
-| 0             | FAILSAFE  |  |
-| 1             | MANUAL    |  |
-| 2             | RTH       |  |
-| 3             | POSHOLD   |  |
-| 4             | CRUISE    |  |
-| 5             | ALTHOLD   |  |
-| 6             | ANGLE     |  |
-| 7             | HORIZON   |  |
-| 8             | AIR       |  |
-| 9             | USER1     |  |
-| 10            | USER2     |  |
-
     
 ### Flags
 
@@ -174,7 +219,8 @@ All flags are reseted on ARM and DISARM event.
 
 | bit   | Decimal   | Function  |
 |-------|-----------|-----------|
-| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reseted |
+| 0     | 1         | Latch - after activation LC will stay active until LATCH flag is reset |
+| 1     | 2         | Timeout satisfied - Used in timed operands to determine if the timeout has been met |
 
 ## Global variables
 
@@ -198,6 +244,13 @@ All flags are reseted on ARM and DISARM event.
 * `<FF gain>` - FF-gain, scaled to `1/1000`
 
 ## Examples
+
+### When more than 100 meters away, increase VTX power
+![screenshot of vtx home distance](./assets/images/vtx_home_distance.png)
+
+### When more than 600 meters away, engage return-to-home by setting the matching RC channel
+![screenshot of rth home distance](./assets/images/rth_home_distance.jpg)
+
 
 ### Dynamic THROTTLE scale
 
@@ -273,3 +326,14 @@ Steps:
 2. Scale range [0:1000] to [0:3]
 3. Increase range by `1` to have the range of [1:4]
 4. Assign LC#2 to VTX power function
+
+## Common issues / questions about IPF
+
+One common mistake involves setting RC channel values. To override (set) the 
+value of a specific RC channel, choose "Override RC value", then for operand A
+choose *value* and enter the channel number. Choosing "get RC value" is a common mistake,
+which does something other than what you probably want.
+
+![screenshot of override an RC channel with a value](./assets/images/ipf_set_get_rc_channel.png)
+
+

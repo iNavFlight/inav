@@ -2,18 +2,27 @@
 
 ## Overview
 
-Historically, mission planners interoperating with inav (and multiwii) missions have used the XML mission file format defined by EOSBandi for MultiWii 2.3 (2013).
+Historically, mission planners interoperating with INAV (and multiwii) missions have used the XML mission file format defined by EOSBandi for MultiWii 2.3 (2013).
 
 The format is defined the XSD schema here.
 
-* Lower case tags are preferred by inav. Older tools may prefer uppercase (the original MW usage).
-* For inav 4.0 and later, the `missionitem/flags` attribute is required for "fly-by home" waypoints and multi-mission files.
-* For inav 4.0 and later, multi-mission files; mission segments are delimited by a flag value of `165` (the MSP protocol 'last WP' value).
+* Lower case tags are preferred by INAV. Older tools may prefer uppercase (the original MW usage).
+* For INAV 4.0 and later, the `missionitem/flags` attribute is required for "fly-by home" waypoints and multi-mission files.
+* For INAV 4.0 and later, multi-mission files; mission segments are delimited by a flag value of `165` (the MSP protocol 'last WP' value).
 * For multi-mission files, the waypoints may be numbered either sequentially across the whole file, or "reset-numbering" within each mission segment. The latter may (or not) be considered to be more "human readable", particularly where `JUMP` is used.
 * The `mwp` tag was introduced by the eponymous mission planner. Other mission planners may consider that reusing some of the tags (`cx`, `cy` - centre location, `zoom` TMS zoom level, `home-x`, `home-y` - home location) is useful.
 * `meta` may be used as a synonym for `mwp`.
 * The `version` tag may be intepreted by mission planners as they see fit. For example, the (obsolete) Android 'ez-gui' application requires '2.3-pre8'. For multi-mission files it is recommended to use another `version`.
-* the `mwp` / `meta` element may be interleaved with `missionitem` in a multi-mission file to provide mission segment specific home, centre locations and zoom.
+* The `mwp` / `meta` element may be interleaved with `missionitem` in a multi-mission file to provide mission segment specific home, centre locations and zoom.
+* The `fwapproach` element defines INAV 7.1.0 and later Autoland parameters for the mission.
+
+## Validation
+
+You can check that your files validate using the open source `xmlint` tool.
+
+```
+xmllint --schema docs/development/wp_mission_schema/mw-mission.xsd  test.mission --noout
+```
 
 ## Examples
 

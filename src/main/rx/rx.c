@@ -61,9 +61,9 @@
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
 #include "rx/sumd.h"
-#include "rx/sumh.h"
 #include "rx/ghst.h"
 #include "rx/mavlink.h"
+#include "rx/sim.h"
 
 const char rcChannelLetters[] = "AERT";
 
@@ -90,19 +90,15 @@ static uint8_t rxChannelCount;
 
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
-static timeUs_t suspendRxSignalUntil = 0;
-static uint8_t skipRxSamples = 0;
+static bool isRxSuspended = false;
 
 static rcChannel_t rcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
-
-#define SKIP_RC_ON_SUSPEND_PERIOD 1500000           // 1.5 second period in usec (call frequency independent)
-#define SKIP_RC_SAMPLES_ON_RESUME  2                // flush 2 samples to drop wrong measurements (timing independent)
 
 rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
 
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
@@ -130,7 +126,9 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .rssiMin = SETTING_RSSI_MIN_DEFAULT,
     .rssiMax = SETTING_RSSI_MAX_DEFAULT,
     .sbusSyncInterval = SETTING_SBUS_SYNC_INTERVAL_DEFAULT,
-    .rcFilterFrequency = SETTING_RC_FILTER_FREQUENCY_DEFAULT,
+    .rcFilterFrequency = SETTING_RC_FILTER_LPF_HZ_DEFAULT,
+    .autoSmooth = SETTING_RC_FILTER_AUTO_DEFAULT,
+    .autoSmoothFactor = SETTING_RC_FILTER_SMOOTHING_FACTOR_DEFAULT,
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     .mspOverrideChannels = SETTING_MSP_OVERRIDE_CHANNELS_DEFAULT,
 #endif
@@ -165,7 +163,8 @@ static uint16_t nullReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t 
 {
     UNUSED(rxRuntimeConfig);
     UNUSED(channel);
-    return PPM_RCVR_TIMEOUT;
+
+    return 0;
 }
 
 static uint8_t nullFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
@@ -209,11 +208,6 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         enabled = sumdInit(rxConfig, rxRuntimeConfig);
         break;
 #endif
-#ifdef USE_SERIALRX_SUMH
-    case SERIALRX_SUMH:
-        enabled = sumhInit(rxConfig, rxRuntimeConfig);
-        break;
-#endif
 #ifdef USE_SERIALRX_IBUS
     case SERIALRX_IBUS:
         enabled = ibusInit(rxConfig, rxRuntimeConfig);
@@ -236,7 +230,10 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 #endif
 #ifdef USE_SERIALRX_FPORT2
     case SERIALRX_FPORT2:
-        enabled = fport2RxInit(rxConfig, rxRuntimeConfig);
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, false);
+        break;
+    case SERIALRX_FBUS:
+        enabled = fport2RxInit(rxConfig, rxRuntimeConfig, true);
         break;
 #endif
 #ifdef USE_SERIALRX_GHST
@@ -313,6 +310,12 @@ void rxInit(void)
             break;
 #endif
 
+#ifdef USE_RX_SIM
+    case RX_TYPE_SIM:
+        rxSimInit(rxConfig(), &rxRuntimeConfig);
+        break;
+#endif
+
         default:
         case RX_TYPE_NONE:
             rxConfigMutable()->receiverType = RX_TYPE_NONE;
@@ -383,14 +386,12 @@ bool rxAreFlightChannelsValid(void)
 void suspendRxSignal(void)
 {
     failsafeOnRxSuspend();
-    suspendRxSignalUntil = micros() + SKIP_RC_ON_SUSPEND_PERIOD;
-    skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
+    isRxSuspended = true;
 }
 
 void resumeRxSignal(void)
 {
-    suspendRxSignalUntil = micros();
-    skipRxSamples = SKIP_RC_SAMPLES_ON_RESUME;
+    isRxSuspended = false;
     failsafeOnRxResume();
 }
 
@@ -457,14 +458,10 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
     }
 
     rxDataProcessingRequired = false;
-    rxNextUpdateAtUs = currentTimeUs + DELAY_50_HZ;
+    rxNextUpdateAtUs = currentTimeUs + DELAY_10_HZ;
 
-    // only proceed when no more samples to skip and suspend period is over
-    if (skipRxSamples) {
-        if (currentTimeUs > suspendRxSignalUntil) {
-            skipRxSamples--;
-        }
-
+    // If RX is suspended, do not process any data
+    if (isRxSuspended) {
         return true;
     }
 
@@ -478,7 +475,7 @@ bool calculateRxChannelsAndUpdateFailsafe(timeUs_t currentTimeUs)
         uint16_t sample = (*rxRuntimeConfig.rcReadRawFn)(&rxRuntimeConfig, rawChannel);
 
         // apply the rx calibration to flight channel
-        if (channel < NON_AUX_CHANNEL_COUNT && sample != PPM_RCVR_TIMEOUT) {
+        if (channel < NON_AUX_CHANNEL_COUNT && sample != 0) {
             sample = scaleRange(sample, rxChannelRangeConfigs(channel)->min, rxChannelRangeConfigs(channel)->max, PWM_RANGE_MIN, PWM_RANGE_MAX);
             sample = MIN(MAX(PWM_PULSE_MIN, sample), PWM_PULSE_MAX);
         }
@@ -642,11 +639,6 @@ uint16_t getRSSI(void)
 rssiSource_e getRSSISource(void)
 {
     return activeRssiSource;
-}
-
-uint16_t rxGetRefreshRate(void)
-{
-    return rxRuntimeConfig.rxRefreshRate;
 }
 
 int16_t rxGetChannelValue(unsigned channelNumber)

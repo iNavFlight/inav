@@ -137,6 +137,30 @@ static long cmsx_PidWriteback(const OSD_Entry *self)
     return 0;
 }
 
+static const OSD_Entry cmsx_menuEzTuneEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- EZTUNE --", profileIndexString),
+
+    OSD_SETTING_ENTRY("ENABLED", SETTING_EZ_ENABLED),
+    OSD_SETTING_ENTRY("FILTER HZ", SETTING_EZ_FILTER_HZ),
+    OSD_SETTING_ENTRY("RATIO", SETTING_EZ_AXIS_RATIO),
+    OSD_SETTING_ENTRY("RESP.", SETTING_EZ_RESPONSE),
+    OSD_SETTING_ENTRY("DAMP.", SETTING_EZ_DAMPING),
+    OSD_SETTING_ENTRY("STAB.", SETTING_EZ_STABILITY),
+    OSD_SETTING_ENTRY("AGGR.", SETTING_EZ_AGGRESSIVENESS),
+    OSD_SETTING_ENTRY("RATE", SETTING_EZ_RATE),
+    OSD_SETTING_ENTRY("EXPO", SETTING_EZ_EXPO),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuEzTune = {
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuEzTuneEntries
+};
+
 static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
@@ -248,12 +272,14 @@ static const OSD_Entry cmsx_menuPidGpsnavEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- GPSNAV --", profileIndexString),
 
-    OTHER_PIDFF_ENTRY("POS  P", &cmsx_pidPosXY.P),
-    OTHER_PIDFF_ENTRY("POS  I", &cmsx_pidPosXY.I),
+    OTHER_PIDFF_ENTRY("POS P", &cmsx_pidPosXY.P),
+    OTHER_PIDFF_ENTRY("POS I", &cmsx_pidPosXY.I),
+    OTHER_PIDFF_ENTRY("POS D", &cmsx_pidPosXY.D),
 
-    OTHER_PIDFF_ENTRY("POSR P", &cmsx_pidVelXY.P),
-    OTHER_PIDFF_ENTRY("POSR I", &cmsx_pidVelXY.I),
-    OTHER_PIDFF_ENTRY("POSR D", &cmsx_pidVelXY.D),
+    OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelXY.P),
+    OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelXY.I),
+    OTHER_PIDFF_ENTRY("VEL D", &cmsx_pidVelXY.D),
+    OTHER_PIDFF_ENTRY("VEL FF", &cmsx_pidVelXY.FF),
 
     OSD_BACK_AND_END_ENTRY,
 };
@@ -399,7 +425,6 @@ static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
     OSD_SETTING_ENTRY("HARDWARE LPF", SETTING_GYRO_HARDWARE_LPF),
     OSD_SETTING_ENTRY("GYRO MAIN", SETTING_GYRO_MAIN_LPF_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
-    OSD_SETTING_ENTRY("DTERM LPF2", SETTING_DTERM_LPF2_HZ),
 #ifdef USE_DYNAMIC_FILTERS
     OSD_SETTING_ENTRY("MATRIX FILTER", SETTING_DYNAMIC_GYRO_NOTCH_ENABLED),
     OSD_SETTING_ENTRY("MATRIX MIN HZ", SETTING_DYNAMIC_GYRO_NOTCH_MIN_HZ),  //dynamic_gyro_notch_min_hz
@@ -436,7 +461,7 @@ static const OSD_Entry cmsx_menuMechanicsEntries[] =
     OSD_SETTING_ENTRY("ITERM RELAX", SETTING_MC_ITERM_RELAX),
     OSD_SETTING_ENTRY("ITERM CUTOFF", SETTING_MC_ITERM_RELAX_CUTOFF),
     OSD_SETTING_ENTRY("CD LPF", SETTING_MC_CD_LPF_HZ),
- 
+
     OSD_BACK_AND_END_ENTRY,
 };
 
@@ -457,6 +482,7 @@ static const OSD_Entry cmsx_menuImuEntries[] =
 
     // Profile dependent
     OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("EZTUNE", &cmsx_menuEzTune),
     OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
     OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
     OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),

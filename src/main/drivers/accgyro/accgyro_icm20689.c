@@ -31,7 +31,6 @@
 #include "drivers/system.h"
 #include "drivers/time.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/bus.h"
 
 #include "drivers/accgyro/accgyro.h"
@@ -93,8 +92,6 @@ static void icm20689AccAndGyroInit(gyroDev_t *gyro)
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
 
-    gyroIntExtiInit(gyro);
-
     busSetSpeed(busDev, BUS_SPEED_INITIALIZATION);
 
     busWrite(busDev, MPU_RA_PWR_MGMT_1, ICM20689_BIT_RESET);
@@ -111,15 +108,6 @@ static void icm20689AccAndGyroInit(gyroDev_t *gyro)
     delay(15);
     busWrite(busDev, MPU_RA_SMPLRT_DIV, config->gyroConfigValues[1]); // Get Divider Drops
     delay(100);
-
-    // Data ready interrupt configuration
-    busWrite(busDev, MPU_RA_INT_PIN_CFG, 0x10);  // INT_ANYRD_2CLEAR, BYPASS_EN
-
-    delay(15);
-
-#ifdef USE_MPU_DATA_READY_SIGNAL
-    busWrite(busDev, MPU_RA_INT_ENABLE, 0x01); // RAW_RDY_EN interrupt enable
-#endif
 
     // Switch SPI to fast speed
     busSetSpeed(busDev, BUS_SPEED_FAST);

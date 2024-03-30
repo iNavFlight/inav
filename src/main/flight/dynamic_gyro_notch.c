@@ -26,8 +26,6 @@
 
 #ifdef USE_DYNAMIC_FILTERS
 
-FILE_COMPILE_FOR_SPEED
-
 #include <stdint.h>
 #include "dynamic_gyro_notch.h"
 #include "fc/config.h"
@@ -64,14 +62,11 @@ void dynamicGyroNotchFiltersInit(dynamicGyroNotchState_t *state) {
 
 void dynamicGyroNotchFiltersUpdate(dynamicGyroNotchState_t *state, int axis, float frequency[]) {
 
-    if (axis == FD_ROLL) {
-        for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
-            DEBUG_SET(DEBUG_DYNAMIC_FILTER_FREQUENCY, i, frequency[i]);
-        }
-    }
-
     if (state->enabled) {
         for (int i = 0; i < DYN_NOTCH_PEAK_COUNT; i++) {
+
+            state->frequency[axis][i] = frequency[i];
+
             // Filter update happens only if peak was detected 
             if (frequency[i] > 0.0f) {
                 biquadFilterUpdate(&state->filters[axis][i], frequency[i], state->looptime, state->dynNotchQ, FILTER_NOTCH);

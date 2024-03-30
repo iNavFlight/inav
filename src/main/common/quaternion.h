@@ -58,7 +58,7 @@ static inline void quaternionToAxisAngle(fpAxisAngle_t * result, const fpQuatern
         a.angle -= 2.0f * M_PIf;
     }
 
-    const float sinVal = sqrt(1.0f - q->q0 * q->q0);
+    const float sinVal = sqrtf(1.0f - q->q0 * q->q0);
 
     // Axis is only valid when rotation is large enough sin(0.0057 deg) = 0.0001
     if (sinVal > 1e-4f) {

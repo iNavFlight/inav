@@ -145,7 +145,7 @@ const exBusSensor_t jetiExSensors[] = {
     {"G-Force Y",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"G-Force Z",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"RPM",             "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Trip Distance",   "m",        EX_TYPE_22b,   DECIMAL_MASK(0)}
+    {"Trip Distance",   "m",        EX_TYPE_22b,   DECIMAL_MASK(1)}
 };
 
 // after every 15 sensors increment the step by 2 (e.g. ...EX_VAL15, EX_VAL16 = 17) to skip the device description
@@ -420,7 +420,7 @@ int32_t getSensorValue(uint8_t sensor)
 #endif
 
     case EX_TRIP_DISTANCE:
-        return getTotalTravelDistance() / 100;
+        return getTotalTravelDistance() / 10;
 
     default:
         return -1;
@@ -575,7 +575,11 @@ uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
         createExBusMessage(jetiExBusTelemetryFrame, jetiExTelemetryFrame, packetID);
 
         if (!allSensorsActive) {
-            if (sensors(SENSOR_GPS)) {
+            if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+            ) {
                 enableGpsTelemetry(true);
                 allSensorsActive = true;
             }

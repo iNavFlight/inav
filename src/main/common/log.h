@@ -47,48 +47,42 @@ void logInit(void);
 void _logf(logTopic_e topic, unsigned level, const char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
 void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t size);
 
-// LOG_* macro definitions
-
-#if !defined(LOG_LEVEL_MAXIMUM)
-#define LOG_LEVEL_MAXIMUM LOG_LEVEL_DEBUG
+#if defined(USE_LOG)
+#define LOG_ERROR(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
+#define LOG_BUFFER_ERROR(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_ERROR, buf, size)
+#else
+#define LOG_ERROR(...)
+#define LOG_BUFFER_ERROR(...)
 #endif
 
-#if defined(USE_LOG) && LOG_LEVEL_MAXIMUM >= LOG_LEVEL_ERROR
-#define LOG_E(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__)
-#define LOG_BUFFER_E(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_ERROR, buf, size)
+#if defined(USE_LOG)
+#define LOG_WARNING(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_WARNING, fmt, ##__VA_ARGS__)
+#define LOG_BUF_WARNING(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_WARNING, buf, size)
 #else
-#define LOG_E(...)
-#define LOG_BUFFER_E(...)
+#define LOG_WARNING(...)
+#define LOG_BUF_WARNING(...)
 #endif
 
-#if defined(USE_LOG) && LOG_LEVEL_MAXIMUM >= LOG_LEVEL_WARNING
-#define LOG_W(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_WARNING, fmt, ##__VA_ARGS__)
-#define LOG_BUF_W(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_WARNING, buf, size)
+#if defined(USE_LOG)
+#define LOG_INFO(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_INFO, fmt, ##__VA_ARGS__)
+#define LOG_BUF_INFO(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_INFO, buf, size)
 #else
-#define LOG_W(...)
-#define LOG_BUF_W(...)
+#define LOG_INFO(...)
+#define LOG_BUF_INFO(...)
 #endif
 
-#if defined(USE_LOG) && LOG_LEVEL_MAXIMUM >= LOG_LEVEL_INFO
-#define LOG_I(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_INFO, fmt, ##__VA_ARGS__)
-#define LOG_BUF_I(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_INFO, buf, size)
+#if defined(USE_LOG)
+#define LOG_VERBOSE(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_VERBOSE, fmt, ##__VA_ARGS__)
+#define LOG_BUF_VERBOSE(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_VERBOSE, buf, size)
 #else
-#define LOG_I(...)
-#define LOG_BUF_I(...)
+#define LOG_VERBOSE(...)
+#define LOG_BUF_VERBOSE(...)
 #endif
 
-#if defined(USE_LOG) && LOG_LEVEL_MAXIMUM >= LOG_LEVEL_VERBOSE
-#define LOG_V(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_VERBOSE, fmt, ##__VA_ARGS__)
-#define LOG_BUF_V(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_VERBOSE, buf, size)
+#if defined(USE_LOG)
+#define LOG_DEBUG(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
+#define LOG_BUF_DEBUG(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_DEBUG, buf, size)
 #else
-#define LOG_V(...)
-#define LOG_BUF_V(...)
-#endif
-
-#if defined(USE_LOG) && LOG_LEVEL_MAXIMUM >= LOG_LEVEL_DEBUG
-#define LOG_D(topic, fmt, ...) _logf(LOG_TOPIC_ ## topic, LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__)
-#define LOG_BUF_D(topic, buf, size) _logBufferHex(LOG_TOPIC_ ## topic, LOG_LEVEL_DEBUG, buf, size)
-#else
-#define LOG_D(...)
-#define LOG_BUF_D(...)
+#define LOG_DEBUG(...)
+#define LOG_BUF_DEBUG(...)
 #endif

@@ -55,24 +55,18 @@
 #define IMU_MPU6000_ALIGN       CW90_DEG_FLIP
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PC4
-#define MPU6000_EXTI_PIN        PB2
 
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW270_DEG_FLIP
 #define MPU6500_SPI_BUS         BUS_SPI3
 #define MPU6500_CS_PIN          PD7
-#define MPU6500_EXTI_PIN        PD4
 
 #if defined(MATEKF765SE)
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI4
 #define ICM42605_CS_PIN         PE11
-#define ICM42605_EXTI_PIN       PC13
 #endif
-
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
 
 // *************** I2C /Baro/Mag *********************
 #define USE_I2C
@@ -93,12 +87,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
 #define PITOT_I2C_BUS           BUS_I2C2

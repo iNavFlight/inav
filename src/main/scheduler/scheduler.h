@@ -19,8 +19,6 @@
 
 #include "common/time.h"
 
-//#define SCHEDULER_DEBUG
-
 typedef enum {
     TASK_PRIORITY_IDLE = 0,     // Disables dynamic scheduling, task is executed only if no other task is active this cycle
     TASK_PRIORITY_LOW = 1,
@@ -72,6 +70,9 @@ typedef enum {
 #ifdef USE_BARO
     TASK_BARO,
 #endif
+#ifdef USE_ADSB
+    TASK_ADSB,
+#endif
 #ifdef USE_PITOT
     TASK_PITOT,
 #endif
@@ -121,9 +122,6 @@ typedef enum {
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
 #endif
-#ifdef USE_SECONDARY_IMU
-    TASK_SECONDARY_IMU,
-#endif
 #ifdef USE_Q_TUNE
     TASK_Q_TUNE,
 #endif
@@ -152,10 +150,8 @@ typedef struct {
 
     /* Statistics */
     timeUs_t movingSumExecutionTime;  // moving sum over 32 samples
-#ifndef SKIP_TASK_STATISTICS
     timeUs_t maxExecutionTime;
     timeUs_t totalExecutionTime;    // total time consumed by task since boot
-#endif
 } cfTask_t;
 
 extern cfTask_t cfTasks[TASK_COUNT];

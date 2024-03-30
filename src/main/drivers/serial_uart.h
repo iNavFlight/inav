@@ -56,17 +56,24 @@ typedef enum {
 typedef struct {
     serialPort_t port;
 
-#ifdef USE_HAL_DRIVER
-    UART_HandleTypeDef Handle;
-#endif
-
-    USART_TypeDef *USARTx;
+    #if defined(AT32F43x) 
+        usart_type  *USARTx;
+    #else
+        #ifdef USE_HAL_DRIVER
+            UART_HandleTypeDef Handle;
+        #endif 
+        USART_TypeDef *USARTx;
+    #endif
+  
 } uartPort_t;
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);
 void uartClearIdleFlag(uartPort_t *s);
+#if defined(AT32F43x) 
+serialPort_t *uartOpen(usart_type *USARTx, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
+#else
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
-
+#endif
 // serialPort API
 void uartWrite(serialPort_t *instance, uint8_t ch);
 uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance);

@@ -64,12 +64,13 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI           PC4
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW0_DEG
+
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW0_DEG
+#define ICM42605_CS_PIN         PA4
+#define ICM42605_SPI_BUS        BUS_SPI1
 
 // OSD -- SPI2
 #define USE_SPI_DEVICE_2
@@ -99,7 +100,7 @@
 // BMP280 BARO --- I2C1
 #define USE_I2C
 #define USE_BARO
-#define USE_BARO_BMP280
+#define USE_BARO_ALL
 #define BARO_I2C_BUS            BUS_I2C1
 
 #define USE_I2C_DEVICE_1
@@ -108,12 +109,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1

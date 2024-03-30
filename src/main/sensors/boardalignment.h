@@ -18,6 +18,7 @@
 #pragma once
 
 #include "config/parameter_group.h"
+#include "common/vector.h"
 
 typedef struct boardAlignment_s {
     int16_t rollDeciDegrees;
@@ -29,5 +30,6 @@ PG_DECLARE(boardAlignment_t, boardAlignment);
 
 void initBoardAlignment(void);
 void updateBoardAlignment(int16_t roll, int16_t pitch);
-void applySensorAlignment(int32_t * dest, int32_t * src, uint8_t rotation);
-void applyBoardAlignment(int32_t *vec);
+void applySensorAlignment(float * dest, float * src, uint8_t rotation);
+void applyBoardAlignment(float *vec);
+void applyTailSitterAlignment(fpVector3_t *vec);

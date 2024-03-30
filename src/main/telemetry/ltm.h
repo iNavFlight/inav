@@ -65,7 +65,7 @@ typedef enum {
     LTM_MODE_FLYBYWIRE2,
     LTM_MODE_CRUISE,
     LTM_MODE_UNKNOWN,
-        // iNav specific extensions
+        // INAV specific extensions
     LTM_MODE_LAUNCH,
     LTM_MODE_AUTOTUNE
 } ltm_modes_e;

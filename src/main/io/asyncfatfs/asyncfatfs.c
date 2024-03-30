@@ -3167,7 +3167,7 @@ uint32_t afatfs_fwriteSync(afatfsFilePtr_t file, uint8_t *data, uint32_t length)
     while (true) {
         uint32_t leftToWrite = length - written;
         uint32_t justWritten = afatfs_fwrite(file, data + written, leftToWrite);
-        /*if (justWritten != leftToWrite) LOG_E(SYSTEM, "%ld -> %ld", length, written);*/
+        /*if (justWritten != leftToWrite) LOG_ERROR(SYSTEM, "%ld -> %ld", length, written);*/
         written += justWritten;
 
         if (written < length) {

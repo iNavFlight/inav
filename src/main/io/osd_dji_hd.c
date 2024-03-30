@@ -300,6 +300,7 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
         case FLM_ALTITUDE_HOLD:
         case FLM_POSITION_HOLD:
         case FLM_MISSION:
+        case FLM_ANGLEHOLD:
         default:
             // Unsupported ATM, keep at ANGLE
             bitArraySet(flightModeBitmask->bits, 1);    // DJI: 1 << 1 : ANGLE
@@ -504,8 +505,6 @@ static char * osdArmingDisabledReasonMessage(void)
         //     return OSD_MESSAGE_STR("HARDWARE FAILURE");
         case ARMING_DISABLED_BOXFAILSAFE:
             return OSD_MESSAGE_STR("FAILSAFE ENABLED");
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR("KILLSWITCH ENABLED");
         case ARMING_DISABLED_RC_LINK:
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
@@ -536,6 +535,10 @@ static char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_ALL_FLAGS:
             FALLTHROUGH;
         case ARMED:
+            FALLTHROUGH;
+        case SIMULATOR_MODE_HITL:
+            FALLTHROUGH;
+        case SIMULATOR_MODE_SITL:
             FALLTHROUGH;
         case WAS_EVER_ARMED:
             break;
@@ -689,7 +692,7 @@ void osdDJIFormatVelocityStr(char* buff)
         case OSD_SPEED_SOURCE_AIR:
             strcpy(sourceBuf, "AIR");
 #ifdef USE_PITOT
-            vel = pitot.airSpeed;
+            vel = getAirspeedEstimate();
 #endif
             break;
     }
@@ -717,7 +720,7 @@ static void osdDJIFormatThrottlePosition(char *buff, bool autoThr )
         thr = rcCommand[THROTTLE];
     }
 
-    tfp_sprintf(buff, "%3ld%s", (constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN), "%THR");
+    tfp_sprintf(buff, "%3ld%s", (unsigned long)((constrain(thr, PWM_RANGE_MIN, PWM_RANGE_MAX) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN)), "%THR");
 }
 
 /**
@@ -782,7 +785,11 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     timeUs_t currentTimeUs = micros();
     timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
 
-    if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                 1, US2S(efficiencyTimeDelta));
@@ -951,7 +958,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
-            tfp_sprintf(buff, "MTDPA %4d", currentBatteryProfileMutable->fwMinThrottleDownPitchAngle);
+            tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
             tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
@@ -962,6 +969,11 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
             break;
+#ifdef USE_MULTI_MISSION
+        case ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX:
+            tfp_sprintf(buff, "WPI %3d", navConfigMutable()->general.waypoint_multi_mission_index);
+            break;
+#endif
         default:
             tfp_sprintf(buff, "UNSUPPORTED");
             break;
@@ -1039,7 +1051,7 @@ static bool djiFormatMessages(char *buff)
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTOLEVEL)";
+                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
@@ -1048,6 +1060,10 @@ static bool djiFormatMessages(char *buff)
 
                 if (FLIGHT_MODE(MANUAL_MODE)) {
                     messages[messageCount++] = "(MANUAL)";
+                }
+
+                if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                     messages[messageCount++] = "(LAND)";
                 }
             }
         }
@@ -1101,7 +1117,7 @@ static void djiSerializeCraftNameOverride(sbuf_t *dst)
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE;
         }
 
-        if (OSD_VISIBLE(osdLayoutConfig[OSD_THROTTLE_POS_AUTO_THR])) {
+        if (OSD_VISIBLE(osdLayoutConfig[OSD_SCALED_THROTTLE_POS])) {
             activeElements[activeElementsCount++] = DJI_OSD_CN_THROTTLE_AUTO_THR;
         }
 
@@ -1185,7 +1201,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     djiSerializeCraftNameOverride(dst);
                 } else {
 #endif
-                    sbufWriteData(dst, systemConfig()->name, (int)strlen(systemConfig()->name));
+                    sbufWriteData(dst, systemConfig()->craftName, (int)strlen(systemConfig()->craftName));
 #if defined(USE_OSD)
                 }
 #endif

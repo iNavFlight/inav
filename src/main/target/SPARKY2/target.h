@@ -29,27 +29,17 @@
 
 #define BEEPER                  PC9
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define ENSURE_MPU_DATA_READY_IS_LOW
-
 #define USE_IMU_MPU9250
 #define IMU_MPU9250_ALIGN       CW270_DEG
 
 #define MPU9250_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PC4
-#define GYRO_INT_EXTI            PC5
 
 #define USE_MAG
-#define USE_MAG_MPU9250
 
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 

@@ -1,13 +1,13 @@
 /*
- * This file is part of iNav
+ * This file is part of INAV
  *
- * iNav free software. You can redistribute
+ * INAV free software. You can redistribute
  * this software and/or modify this software under the terms of the
  * GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option)
  * any later version.
  *
- * iNav distributed in the hope that it
+ * INAV distributed in the hope that it
  * will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -29,6 +29,7 @@ typedef struct controlRateConfig_s {
         uint8_t rcMid8;
         uint8_t rcExpo8;
         uint8_t dynPID;
+        bool dynPID_on_YAW;
         uint16_t pa_breakpoint;                // Breakpoint where TPA is activated
         uint16_t fixedWingTauMs;               // Time constant of airplane TPA PT1-filter
     } throttle;

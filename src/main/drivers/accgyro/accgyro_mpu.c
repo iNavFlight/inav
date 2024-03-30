@@ -30,9 +30,7 @@
 #include "common/utils.h"
 
 #include "drivers/bus.h"
-#include "drivers/exti.h"
 #include "drivers/io.h"
-#include "drivers/exti.h"
 #include "drivers/nvic.h"
 #include "drivers/sensor.h"
 #include "drivers/system.h"
@@ -50,7 +48,7 @@ static const gyroFilterAndRateConfig_t mpuGyroConfigs[] = {
     { GYRO_LPF_256HZ,   4000,   { MPU_DLPF_256HZ,   1  } },
     { GYRO_LPF_256HZ,   2000,   { MPU_DLPF_256HZ,   3  } },
     { GYRO_LPF_256HZ,   1000,   { MPU_DLPF_256HZ,   7  } },
-    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11  } },
+    { GYRO_LPF_256HZ,    666,   { MPU_DLPF_256HZ,   11 } },
     { GYRO_LPF_256HZ,    500,   { MPU_DLPF_256HZ,   15 } },
 
     { GYRO_LPF_188HZ,   1000,   { MPU_DLPF_188HZ,   0  } },
@@ -83,9 +81,9 @@ bool mpuGyroRead(gyroDev_t *gyro)
         return false;
     }
 
-    gyro->gyroADCRaw[X] = (int16_t)((data[0] << 8) | data[1]);
-    gyro->gyroADCRaw[Y] = (int16_t)((data[2] << 8) | data[3]);
-    gyro->gyroADCRaw[Z] = (int16_t)((data[4] << 8) | data[5]);
+    gyro->gyroADCRaw[X] = (float) int16_val_big_endian(data, 0);
+    gyro->gyroADCRaw[Y] = (float) int16_val_big_endian(data, 1);
+    gyro->gyroADCRaw[Z] = (float) int16_val_big_endian(data, 2);
 
     return true;
 }
@@ -102,9 +100,9 @@ bool mpuGyroReadScratchpad(gyroDev_t *gyro)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(busDev);
 
     if (mpuUpdateSensorContext(busDev, ctx)) {
-        gyro->gyroADCRaw[X] = (int16_t)((ctx->gyroRaw[0] << 8) | ctx->gyroRaw[1]);
-        gyro->gyroADCRaw[Y] = (int16_t)((ctx->gyroRaw[2] << 8) | ctx->gyroRaw[3]);
-        gyro->gyroADCRaw[Z] = (int16_t)((ctx->gyroRaw[4] << 8) | ctx->gyroRaw[5]);
+        gyro->gyroADCRaw[X] = (float) int16_val_big_endian(ctx->gyroRaw, 0);
+        gyro->gyroADCRaw[Y] = (float) int16_val_big_endian(ctx->gyroRaw, 1);
+        gyro->gyroADCRaw[Z] = (float) int16_val_big_endian(ctx->gyroRaw, 2);
         return true;
     }
 
@@ -116,9 +114,9 @@ bool mpuAccReadScratchpad(accDev_t *acc)
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (int16_t)((ctx->accRaw[0] << 8) | ctx->accRaw[1]);
-        acc->ADCRaw[Y] = (int16_t)((ctx->accRaw[2] << 8) | ctx->accRaw[3]);
-        acc->ADCRaw[Z] = (int16_t)((ctx->accRaw[4] << 8) | ctx->accRaw[5]);
+        acc->ADCRaw[X] = (float) int16_val_big_endian(ctx->accRaw, 0);
+        acc->ADCRaw[Y] = (float) int16_val_big_endian(ctx->accRaw, 1);
+        acc->ADCRaw[Z] = (float) int16_val_big_endian(ctx->accRaw, 2);
         return true;
     }
 
@@ -131,7 +129,7 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 
     if (ctx->lastReadStatus) {
         // Convert to degC*10: degC = raw / 340 + 36.53
-        *data = (int16_t)((ctx->tempRaw[0] << 8) | ctx->tempRaw[1]) / 34 + 365;
+        *data = int16_val_big_endian(ctx->tempRaw, 0) / 34 + 365;
         return true;
     }
 

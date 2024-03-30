@@ -44,7 +44,6 @@
 #include "navigation/navigation.h"
 #include "sensors/pitotmeter.h"
 
-
 #if defined(USE_OSD) || defined(USE_DJI_HD_OSD)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdCommonConfig_t, osdCommonConfig, PG_OSD_COMMON_CONFIG, 0);
@@ -53,7 +52,7 @@ PG_RESET_TEMPLATE(osdCommonConfig_t, osdCommonConfig,
     .speedSource = SETTING_OSD_SPEED_SOURCE_DEFAULT
 );
 
-int osdGetSpeedFromSelectedSource(void) {
+int16_t osdGetSpeedFromSelectedSource(void) {
     int speed = 0;
     switch (osdCommonConfig()->speedSource) {
         case OSD_SPEED_SOURCE_GROUND:
@@ -64,7 +63,7 @@ int osdGetSpeedFromSelectedSource(void) {
             break;
         case OSD_SPEED_SOURCE_AIR:
             #ifdef USE_PITOT
-            speed = pitot.airSpeed;
+            speed = (int16_t)getAirspeedEstimate();
             #endif
             break;
     }
@@ -148,11 +147,17 @@ void osdDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, c
 {
     uint8_t gx;
     uint8_t gy;
+        
 #if defined(USE_CANVAS)
     if (canvas) {
         osdCanvasDrawArtificialHorizon(display, canvas, p, pitchAngle, rollAngle);
     } else {
 #endif
+        // Correct pitch when inverted
+        if (rollAngle < -1.570796f || rollAngle > 1.570796f) {
+            pitchAngle = -pitchAngle;
+        }
+
         osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
         osdGridDrawArtificialHorizon(display, gx, gy, pitchAngle, rollAngle);
 #if defined(USE_CANVAS)

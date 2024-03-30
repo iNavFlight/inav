@@ -23,8 +23,8 @@ New targets are accepted into INAV code if any of the following conditions is sa
 3. The new target must meet the following minimal requirements:
 
   * On-board sensors include at least the IMU (gyroscope + accelerometer)
-  * At least 2 hardware serial ports are available with both TX and RX pins
-  * At least 512K of firmware flash memory and at least of 64K of RAM available
+  * At least 3 hardware serial ports are available with both TX and RX pads. 2 serial ports may be accepted if there is an onboard serial RX.
+  * At least 512K of firmware flash memory and at least of 128K of RAM available
   * At least one I2C bus broken out (SCL and SDA pins) and not shared with other functions 
 
 ## New hardware support

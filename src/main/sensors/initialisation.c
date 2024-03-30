@@ -39,10 +39,10 @@
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
 #include "sensors/temperature.h"
-#include "flight/secondary_imu.h"
+#include "rx/rx.h"
 
-uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE, SECONDARY_IMU_NONE };
-uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE, SECONDARY_IMU_NONE };
+uint8_t requestedSensors[SENSOR_INDEX_COUNT] = { GYRO_AUTODETECT, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
+uint8_t detectedSensors[SENSOR_INDEX_COUNT] = { GYRO_NONE, ACC_NONE, BARO_NONE, MAG_NONE, RANGEFINDER_NONE, PITOT_NONE, OPFLOW_NONE };
 
 bool sensorsAutodetect(void)
 {
@@ -109,7 +109,9 @@ bool sensorsAutodetect(void)
 #endif
 
     if (eepromUpdatePending) {
+        suspendRxSignal();
         writeEEPROM();
+        resumeRxSignal();
     }
 
     return true;

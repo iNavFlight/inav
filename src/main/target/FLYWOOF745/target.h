@@ -28,62 +28,57 @@
 #define USBD_PRODUCT_STRING "FLYWOOF745NANO"
 #endif
 
-#define LED0                PA2//
+#define LED0                PA2
 
-#define BEEPER              PD15//
+#define BEEPER              PD15
 #define BEEPER_INVERTED
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
-#define USE_MPU_DATA_READY_SIGNAL
-#define USE_EXTI
-
 #define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW270_DEG//
-#define GYRO_INT_EXTI           PE1//
-#define MPU6000_CS_PIN          SPI4_NSS_PIN//
-#define MPU6000_SPI_BUS         BUS_SPI4//
-
+#define IMU_MPU6000_ALIGN       CW270_DEG
+#define MPU6000_CS_PIN          SPI4_NSS_PIN
+#define MPU6000_SPI_BUS         BUS_SPI4
 
 #define USB_IO
 #define USE_VCP
 #define VBUS_SENSING_ENABLED
-#define VBUS_SENSING_PIN          PA8//
+#define VBUS_SENSING_PIN          PA8
 
 #define USE_UART1
-#define UART1_TX_PIN            PA9//
-#define UART1_RX_PIN            PA10//
+#define UART1_TX_PIN            PA9
+#define UART1_RX_PIN            PA10
 
 #define USE_UART2
-#define UART2_TX_PIN            PD5//
-#define UART2_RX_PIN            PD6//
+#define UART2_TX_PIN            PD5
+#define UART2_RX_PIN            PD6
 
 #define USE_UART3
 
 #ifdef FLYWOOF745
-#define UART3_TX_PIN            PB10//
-#define UART3_RX_PIN            PB11//
+#define UART3_TX_PIN            PB10
+#define UART3_RX_PIN            PB11
 #else
-#define UART3_TX_PIN            PD8//
-#define UART3_RX_PIN            PD9//
+#define UART3_TX_PIN            PD8
+#define UART3_RX_PIN            PD9
 #endif
 
 #define USE_UART4
-#define UART4_TX_PIN            PA0//
-#define UART4_RX_PIN            PA1//
+#define UART4_TX_PIN            PA0
+#define UART4_RX_PIN            PA1
 
 #define USE_UART5
-#define UART5_TX_PIN            PC12//
-#define UART5_RX_PIN            PD2//
+#define UART5_TX_PIN            PC12
+#define UART5_RX_PIN            PD2
 
 #define USE_UART6
-#define UART6_TX_PIN            PC6//
-#define UART6_RX_PIN            PC7//
+#define UART6_TX_PIN            PC6
+#define UART6_RX_PIN            PC7
 
 #define USE_UART7
-#define UART7_TX_PIN            PE8//
-#define UART7_RX_PIN            PE7//
+#define UART7_TX_PIN            PE8
+#define UART7_RX_PIN            PE7
 
 #define SERIAL_PORT_COUNT 8 //VCP,UART1,UART2,UART3,UART4,UART5,UART6,UART7
 
@@ -106,7 +101,6 @@
 #define SPI4_SCK_PIN            PE2
 #define SPI4_MISO_PIN           PE5
 #define SPI4_MOSI_PIN           PE6
-
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
@@ -146,15 +140,14 @@
 
 #define USE_BARO
 #define USE_BARO_BMP280
+#define USE_BARO_MS5611
+#define USE_BARO_BMP085
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 #define BARO_I2C_BUS            BUS_I2C1
 
 #define USE_MAG
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_MAG3110
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN           PC2
@@ -173,7 +166,7 @@
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
 
 #define USE_LED_STRIP
-#define WS2811_PIN                      PD12 //  //TIM4_CH1
+#define WS2811_PIN                      PD12 //TIM4_CH1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 

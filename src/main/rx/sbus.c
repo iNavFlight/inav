@@ -21,7 +21,6 @@
 #include <string.h>
 
 #include "platform.h"
-FILE_COMPILE_FOR_SPEED
 
 #ifdef USE_SERIAL_RX
 
@@ -52,13 +51,6 @@ FILE_COMPILE_FOR_SPEED
  * time between frames: 11ms.
  * time to send frame: 3ms.
  */
-
-enum {
-    DEBUG_SBUS_INTERFRAME_TIME = 0,
-    DEBUG_SBUS_FRAME_FLAGS = 1,
-    DEBUG_SBUS_DESYNC_COUNTER = 2
-};
-
 typedef enum {
     STATE_SBUS_SYNC = 0,
     STATE_SBUS_PAYLOAD,
@@ -77,8 +69,6 @@ typedef struct sbusFrameData_s {
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
-    static uint16_t sbusDesyncCounter = 0;
-
     sbusFrameData_t *sbusFrameData = data;
     const timeUs_t currentTimeUs = micros();
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
@@ -86,7 +76,6 @@ static void sbusDataReceive(uint16_t c, void *data)
 
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
     if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
-        DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_INTERFRAME_TIME, timeSinceLastByteUs);
         sbusFrameData->state = STATE_SBUS_SYNC;
     }
 
@@ -119,14 +108,11 @@ static void sbusDataReceive(uint16_t c, void *data)
 
                     default:    // Failed end marker
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
-                        sbusDesyncCounter++;
-                        DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_DESYNC_COUNTER, sbusDesyncCounter);
                         break;
                 }
 
                 // Frame seems sane, pass data to decoder
                 if (!sbusFrameData->frameDone && frameValid) {
-                    DEBUG_SET(DEBUG_SBUS, DEBUG_SBUS_FRAME_FLAGS, frame->channels.flags);
 
                     memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
                     sbusFrameData->frameDone = true;
@@ -174,7 +160,6 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
     sbusChannelsInit(rxRuntimeConfig);
 
     rxRuntimeConfig->channelCount = SBUS_MAX_CHANNEL;
-    rxRuntimeConfig->rxRefreshRate = 11000;
 
     rxRuntimeConfig->rcFrameStatusFn = sbusFrameStatus;
 

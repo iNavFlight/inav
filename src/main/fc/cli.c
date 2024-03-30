@@ -68,6 +68,7 @@ bool cliMode = false;
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
+#include "drivers/light_ws2811strip.h"
 
 #include "fc/fc_core.h"
 #include "fc/cli.h"
@@ -81,17 +82,18 @@ bool cliMode = false;
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
-#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
-#include "flight/secondary_imu.h"
 
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/beeper.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
+#include "io/osd/custom_elements.h"
 #include "io/serial.h"
 
 #include "fc/fc_msp_box.h"
@@ -121,13 +123,8 @@ bool cliMode = false;
 #include "sensors/esc_sensor.h"
 #endif
 
-#include "telemetry/frsky_d.h"
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
-
-#if MCU_FLASH_SIZE > 128
-#define PLAY_SOUND
-#endif
 
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
@@ -146,8 +143,9 @@ static void cliAssert(char *cmdline);
 #endif
 
 #ifdef USE_CLI_BATCH
-static bool commandBatchActive = false;
-static bool commandBatchError = false;
+static bool     commandBatchActive = false;
+static bool     commandBatchError = false;
+static uint8_t  commandBatchErrorCount = 0;
 #endif
 
 // sync this with features_e
@@ -161,15 +159,35 @@ static const char * const featureNames[] = {
     "OSD", "FW_LAUNCH", "FW_AUTOTRIM", NULL
 };
 
+static const char * outputModeNames[] = {
+    "AUTO",
+    "MOTORS",
+    "SERVOS",
+    NULL
+};
+
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
-    "NAV_ACC", "NAV_POS", "NAV_PID", "MAG", "ACC", "ATTI", "RC_DATA", "RC_COMMAND", "MOTORS", "GYRO_RAW", NULL
+    "NAV_ACC",
+    "NAV_POS",
+    "NAV_PID",
+    "MAG",
+    "ACC",
+    "ATTI",
+    "RC_DATA",
+    "RC_COMMAND",
+    "MOTORS",
+    "GYRO_RAW",
+    "PEAKS_R",
+    "PEAKS_P",
+    "PEAKS_Y",
+    NULL
 };
 #endif
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6050", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270", "FAKE"};
+static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -240,6 +258,7 @@ static void cliPrintError(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -251,6 +270,7 @@ static void cliPrintErrorLine(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -274,7 +294,7 @@ typedef enum {
     DUMP_MASTER = (1 << 0),
     DUMP_PROFILE = (1 << 1),
     DUMP_BATTERY_PROFILE = (1 << 2),
-    DUMP_RATES = (1 << 3),
+    DUMP_MIXER_PROFILE = (1 << 3),
     DUMP_ALL = (1 << 4),
     DO_DIFF = (1 << 5),
     SHOW_DEFAULTS = (1 << 6),
@@ -353,6 +373,7 @@ static void cliPrintErrorVa(const char *format, va_list va)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -644,6 +665,7 @@ static void cliAssert(char *cmdline)
 #ifdef USE_CLI_BATCH
         if (commandBatchActive) {
             commandBatchError = true;
+            commandBatchErrorCount++;
         }
 #endif
     }
@@ -1030,7 +1052,7 @@ static void cliAdjustmentRange(char *cmdline)
 }
 
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
-{
+{   
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
     char buf1[FTOA_BUFFER_SIZE];
@@ -1293,6 +1315,110 @@ static void cliTempSensor(char *cmdline)
 }
 #endif
 
+#ifdef USE_FW_AUTOLAND
+static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
+{
+    const char *format = "fwapproach %u %d %d %u %d %d %u";
+    for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
+        bool equalsDefault = false;
+        if (defaultFwAutolandApproach) {
+               equalsDefault = navFwAutolandApproach[i].approachDirection == defaultFwAutolandApproach[i].approachDirection
+               && navFwAutolandApproach[i].approachAlt == defaultFwAutolandApproach[i].approachAlt
+               && navFwAutolandApproach[i].landAlt == defaultFwAutolandApproach[i].landAlt
+               && navFwAutolandApproach[i].landApproachHeading1 == defaultFwAutolandApproach[i].landApproachHeading1
+               && navFwAutolandApproach[i].landApproachHeading2 == defaultFwAutolandApproach[i].landApproachHeading2
+               && navFwAutolandApproach[i].isSeaLevelRef == defaultFwAutolandApproach[i].isSeaLevelRef;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
+               defaultFwAutolandApproach[i].approachAlt, defaultFwAutolandApproach[i].landAlt, defaultFwAutolandApproach[i].approachDirection, defaultFwAutolandApproach[i].landApproachHeading1, defaultFwAutolandApproach[i].landApproachHeading2, defaultFwAutolandApproach[i].isSeaLevelRef);
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
+            navFwAutolandApproach[i].approachAlt, navFwAutolandApproach[i].landAlt, navFwAutolandApproach[i].approachDirection, navFwAutolandApproach[i].landApproachHeading1, navFwAutolandApproach[i].landApproachHeading2, navFwAutolandApproach[i].isSeaLevelRef);
+    }
+}
+
+static void cliFwAutolandApproach(char * cmdline)
+{
+     if (isEmpty(cmdline)) {
+        printFwAutolandApproach(DUMP_MASTER, fwAutolandApproachConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdline, "reset") == 0) {
+        resetFwAutolandApproach(-1);
+    } else {
+        int32_t approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
+        bool isSeaLevelRef = false;
+        uint8_t validArgumentCount = 0;
+        const char *ptr = cmdline;
+        int8_t i = fastA2I(ptr);
+        if (i < 0 || i >= MAX_FW_LAND_APPOACH_SETTINGS) {
+             cliShowArgumentRangeError("fwapproach index", 0, MAX_FW_LAND_APPOACH_SETTINGS - 1);
+        } else {
+            if ((ptr = nextArg(ptr))) {
+                approachAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landAlt = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                landDirection = fastA2I(ptr);
+                
+                if (landDirection != 0 && landDirection != 1) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading1 = fastA2I(ptr);
+
+                if (heading1 < -360 || heading1 > 360) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                heading2 = fastA2I(ptr);
+
+                if (heading2 < -360 || heading2 > 360) {
+                    cliShowParseError();
+                    return;
+                }
+
+                validArgumentCount++;
+            }
+            
+            if ((ptr = nextArg(ptr))) {
+                isSeaLevelRef = fastA2I(ptr);
+                validArgumentCount++;
+            }
+
+            if ((ptr = nextArg(ptr))) {
+                // check for too many arguments
+                validArgumentCount++;
+            }
+
+            if (validArgumentCount != 6) {
+                cliShowParseError();
+            } else {
+                fwAutolandApproachConfigMutable(i)->approachAlt = approachAlt;
+                fwAutolandApproachConfigMutable(i)->landAlt = landAlt;
+                fwAutolandApproachConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading1 = (int16_t)heading1;
+                fwAutolandApproachConfigMutable(i)->landApproachHeading2 = (int16_t)heading2;
+                fwAutolandApproachConfigMutable(i)->isSeaLevelRef = isSeaLevelRef;
+            }
+        }
+    }
+}
+#endif
+
 #if defined(USE_SAFE_HOME)
 static void printSafeHomes(uint8_t dumpMask, const navSafeHome_t *navSafeHome, const navSafeHome_t *defaultSafeHome)
 {
@@ -1549,7 +1675,7 @@ static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledC
         bool equalsDefault = false;
         if (defaultLedConfigs) {
             ledConfig_t ledConfigDefault = defaultLedConfigs[i];
-            equalsDefault = ledConfig == ledConfigDefault;
+            equalsDefault = !memcmp(&ledConfig, &ledConfigDefault, sizeof(ledConfig_t));
             generateLedConfig(&ledConfigDefault, ledConfigDefaultBuffer, sizeof(ledConfigDefaultBuffer));
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, i, ledConfigDefaultBuffer);
         }
@@ -1673,6 +1799,20 @@ static void cliModeColor(char *cmdline)
         cliPrintLinef("mode_color %u %u %u", modeIdx, funIdx, color);
     }
 }
+
+static void cliLedPinPWM(char *cmdline)
+{
+    int i;
+
+    if (isEmpty(cmdline)) {
+        ledPinStopPWM();
+        cliPrintLine("PWM stopped");
+    } else {       
+        i = fastA2I(cmdline);
+        ledPinStartPWM(i);
+        cliPrintLinef("PWM started: %d%%",i);
+    }
+}
 #endif
 
 static void cliDelay(char* cmdLine) {
@@ -1682,7 +1822,7 @@ static void cliDelay(char* cmdLine) {
         cliPrintLine("CLI delay deactivated");
         return;
     }
-    
+
     ms = fastA2I(cmdLine);
     if (ms) {
         cliDelayMs = ms;
@@ -1691,7 +1831,7 @@ static void cliDelay(char* cmdLine) {
     } else {
         cliShowParseError();
     }
-    
+
 }
 
 static void printServo(uint8_t dumpMask, const servoParam_t *servoParam, const servoParam_t *defaultServoParam)
@@ -1854,7 +1994,7 @@ static void cliServoMix(char *cmdline)
         printServoMix(DUMP_MASTER, customServoMixers(0), NULL);
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         // erase custom mixer
-        pgResetCopy(customServoMixersMutable(0), PG_SERVO_MIXER);
+        Reset_servoMixers(customServoMixersMutable(0));
     } else {
         enum {RULE = 0, TARGET, INPUT, RATE, SPEED, CONDITION, ARGS_COUNT};
         char *ptr = strtok_r(cmdline, " ", &saveptr);
@@ -1894,26 +2034,39 @@ static void cliServoMix(char *cmdline)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
 
-static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions)
+static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions, const logicCondition_t *defaultLogicConditions, int16_t showLC)
 {
     const char *format = "logic %d %d %d %d %d %d %d %d %d";
-    for (uint32_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-        const logicCondition_t logic = logicConditions[i];
+    for (uint8_t i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+        if (showLC == -1 || showLC == i) {
+            const logicCondition_t logic = logicConditions[i];
 
-        bool equalsDefault = false;
-        if (defaultLogicConditions) {
-            logicCondition_t defaultValue = defaultLogicConditions[i];
-            equalsDefault =
-                logic.enabled == defaultValue.enabled &&
-                logic.activatorId == defaultValue.activatorId &&
-                logic.operation == defaultValue.operation &&
-                logic.operandA.type == defaultValue.operandA.type &&
-                logic.operandA.value == defaultValue.operandA.value &&
-                logic.operandB.type == defaultValue.operandB.type &&
-                logic.operandB.value == defaultValue.operandB.value &&
-                logic.flags == defaultValue.flags;
+            bool equalsDefault = false;
+            if (defaultLogicConditions) {
+                logicCondition_t defaultValue = defaultLogicConditions[i];
+                equalsDefault =
+                    logic.enabled == defaultValue.enabled &&
+                    logic.activatorId == defaultValue.activatorId &&
+                    logic.operation == defaultValue.operation &&
+                    logic.operandA.type == defaultValue.operandA.type &&
+                    logic.operandA.value == defaultValue.operandA.value &&
+                    logic.operandB.type == defaultValue.operandB.type &&
+                    logic.operandB.value == defaultValue.operandB.value &&
+                    logic.flags == defaultValue.flags;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                    i,
+                    logic.enabled,
+                    logic.activatorId,
+                    logic.operation,
+                    logic.operandA.type,
+                    logic.operandA.value,
+                    logic.operandB.type,
+                    logic.operandB.value,
+                    logic.flags
+                );
+            }
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
                 i,
                 logic.enabled,
                 logic.activatorId,
@@ -1925,27 +2078,20 @@ static void printLogic(uint8_t dumpMask, const logicCondition_t *logicConditions
                 logic.flags
             );
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format,
-            i,
-            logic.enabled,
-            logic.activatorId,
-            logic.operation,
-            logic.operandA.type,
-            logic.operandA.value,
-            logic.operandB.type,
-            logic.operandB.value,
-            logic.flags
-        );
     }
 }
 
-static void cliLogic(char *cmdline) {
+static void processCliLogic(char *cmdline, int16_t lcIndex) {
     char * saveptr;
     int args[9], check = 0;
     uint8_t len = strlen(cmdline);
 
     if (len == 0) {
-        printLogic(DUMP_MASTER, logicConditions(0), NULL);
+        if (!commandBatchActive) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, -1);
+        } else if (lcIndex >= 0) {
+            printLogic(DUMP_MASTER, logicConditions(0), NULL, lcIndex);
+        }
     } else if (sl_strncasecmp(cmdline, "reset", 5) == 0) {
         pgResetCopy(logicConditionsMutable(0), PG_LOGIC_CONDITIONS);
     } else {
@@ -1994,11 +2140,15 @@ static void cliLogic(char *cmdline) {
             logicConditionsMutable(i)->operandB.value = args[OPERAND_B_VALUE];
             logicConditionsMutable(i)->flags = args[FLAGS];
 
-            cliLogic("");
+            processCliLogic("", i);
         } else {
             cliShowParseError();
         }
     }
+}
+
+static void cliLogic(char *cmdline) {
+    processCliLogic(cmdline, -1);
 }
 
 static void printGvar(uint8_t dumpMask, const globalVariableConfig_t *gvars, const globalVariableConfig_t *defaultGvars)
@@ -2189,6 +2339,137 @@ static void cliPid(char *cmdline) {
     }
 }
 
+static void printOsdCustomElements(uint8_t dumpMask, const osdCustomElement_t *osdCustomElements, const osdCustomElement_t *defaultosdCustomElements)
+{
+    const char *format = "osd_custom_elements %d %d %d %d %d %d %d %d %d \"%s\"";
+
+    if(CUSTOM_ELEMENTS_PARTS != 3)
+    {
+        cliPrintHashLine("Incompatible count of elements for custom OSD elements");
+    }
+
+    for (uint8_t i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
+        bool equalsDefault = false;
+
+        const osdCustomElement_t osdCustomElement = osdCustomElements[i];
+        if(defaultosdCustomElements){
+            const osdCustomElement_t defaultValue = defaultosdCustomElements[i];
+            equalsDefault =
+                    osdCustomElement.part[0].type == defaultValue.part[0].type &&
+                    osdCustomElement.part[0].value == defaultValue.part[0].value &&
+                    osdCustomElement.part[1].type == defaultValue.part[1].type &&
+                    osdCustomElement.part[1].value == defaultValue.part[1].value &&
+                    osdCustomElement.part[2].type == defaultValue.part[2].type &&
+                    osdCustomElement.part[2].value == defaultValue.part[2].value &&
+                    osdCustomElement.visibility.type == defaultValue.visibility.type &&
+                    osdCustomElement.visibility.value == defaultValue.visibility.value &&
+                    strcmp(osdCustomElement.osdCustomElementText, defaultValue.osdCustomElementText) == 0;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i,
+                osdCustomElement.part[0].type,
+                osdCustomElement.part[0].value,
+                osdCustomElement.part[1].type,
+                osdCustomElement.part[1].value,
+                osdCustomElement.part[2].type,
+                osdCustomElement.part[2].value,
+                osdCustomElement.visibility.type,
+                osdCustomElement.visibility.value,
+                osdCustomElement.osdCustomElementText
+            );
+        }
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            osdCustomElement.part[0].type,
+            osdCustomElement.part[0].value,
+            osdCustomElement.part[1].type,
+            osdCustomElement.part[1].value,
+            osdCustomElement.part[2].type,
+            osdCustomElement.part[2].value,
+            osdCustomElement.visibility.type,
+            osdCustomElement.visibility.value,
+            osdCustomElement.osdCustomElementText
+        );
+    }
+}
+
+static void osdCustom(char *cmdline){
+    char * saveptrMain;
+    char * saveptrParams;
+    int args[10], check = 0;
+    char text[OSD_CUSTOM_ELEMENT_TEXT_SIZE];
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printOsdCustomElements(DUMP_MASTER, osdCustomElements(0), NULL);
+    } else {
+        //split by ", first are params second is text
+        char *ptrMain = strtok_r(cmdline, "\"", &saveptrMain);
+        enum {
+            INDEX = 0,
+            PART0_TYPE,
+            PART0_VALUE,
+            PART1_TYPE,
+            PART1_VALUE,
+            PART2_TYPE,
+            PART2_VALUE,
+            VISIBILITY_TYPE,
+            VISIBILITY_VALUE,
+            ARGS_COUNT
+        };
+        char *ptrParams = strtok_r(ptrMain, " ", &saveptrParams);
+        while (ptrParams != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptrParams);
+            ptrParams = strtok_r(NULL, " ", &saveptrParams);
+        }
+
+        if (check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        //text
+        char *ptrText = strtok_r(NULL, "\"", &saveptrMain);
+        size_t copySize = 0;
+        if(ptrText != NULL){
+            copySize = MIN(strlen(ptrText), (size_t)(sizeof(text) - 1));
+            if(copySize > 0){
+                memcpy(text, ptrText, copySize);
+            }
+        }
+        text[copySize] = '\0';
+
+        int32_t i = args[INDEX];
+        if (
+                i >= 0 && i < MAX_CUSTOM_ELEMENTS &&
+                args[PART0_TYPE] >= 0 && args[PART0_TYPE] <= 7 &&
+                args[PART0_VALUE] >= 0 && args[PART0_VALUE] <= UINT8_MAX &&
+                args[PART1_TYPE] >= 0 && args[PART1_TYPE] <= 7 &&
+                args[PART1_VALUE] >= 0 && args[PART1_VALUE] <= UINT8_MAX &&
+                args[PART2_TYPE] >= 0 && args[PART2_TYPE] <= 7 &&
+                args[PART2_VALUE] >= 0 && args[PART2_VALUE] <= UINT8_MAX &&
+                args[VISIBILITY_TYPE] >= 0 && args[VISIBILITY_TYPE] <= 2 &&
+                args[VISIBILITY_VALUE] >= 0 && args[VISIBILITY_VALUE] <= UINT8_MAX
+                ) {
+            osdCustomElementsMutable(i)->part[0].type = args[PART0_TYPE];
+            osdCustomElementsMutable(i)->part[0].value = args[PART0_VALUE];
+            osdCustomElementsMutable(i)->part[1].type = args[PART1_TYPE];
+            osdCustomElementsMutable(i)->part[1].value = args[PART1_VALUE];
+            osdCustomElementsMutable(i)->part[2].type = args[PART2_TYPE];
+            osdCustomElementsMutable(i)->part[2].value = args[PART2_VALUE];
+            osdCustomElementsMutable(i)->visibility.type = args[VISIBILITY_TYPE];
+            osdCustomElementsMutable(i)->visibility.value = args[VISIBILITY_VALUE];
+            memcpy(osdCustomElementsMutable(i)->osdCustomElementText, text, OSD_CUSTOM_ELEMENT_TEXT_SIZE);
+
+            osdCustom("");
+        } else {
+            cliShowParseError();
+        }
+    }
+}
+
+
 #endif
 
 #ifdef USE_SDCARD
@@ -2270,7 +2551,7 @@ static void cliFlashInfo(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
@@ -2305,12 +2586,12 @@ static void cliFlashErase(char *cmdline)
     UNUSED(cmdline);
 
     const flashGeometry_t *layout = flashGetGeometry();
-    
+
     if (layout->totalSize == 0) {
         cliPrintLine("Flash not available");
         return;
     }
-    
+
     cliPrintLine("Erasing...");
     flashfsEraseCompletely();
 
@@ -2495,6 +2776,82 @@ static void cliOsdLayout(char *cmdline)
 }
 
 #endif
+
+static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, const timerOverride_t* defaultTimerOverride, int timer)
+{
+    const char *format = "timer_output_mode %d %s";
+
+    for (int i = 0; i < HARDWARE_TIMER_DEFINITION_COUNT; ++i) {
+        if (timer < 0 || timer == i) {
+            outputMode_e mode = to[i].outputMode;
+            bool equalsDefault = false;
+            if(defaultTimerOverride) {
+                outputMode_e defaultMode = defaultTimerOverride[i].outputMode;
+                equalsDefault = mode == defaultMode;
+                cliDefaultPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[defaultMode]);
+            }
+            cliDumpPrintLinef(dumpFlags, equalsDefault, format, i, outputModeNames[mode]);
+        }
+    }
+}
+
+static void cliTimerOutputMode(char *cmdline)
+{
+    char * saveptr;
+
+    int timer = -1;
+    uint8_t mode;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    int ii;
+
+    for (ii = 0; tok != NULL; ii++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ii) {
+            case 0:
+                timer = fastA2I(tok);
+                if (timer < 0 || timer >= HARDWARE_TIMER_DEFINITION_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 1:
+                if(!sl_strcasecmp("AUTO", tok)) {
+                    mode =  OUTPUT_MODE_AUTO;
+                } else if(!sl_strcasecmp("MOTORS", tok)) {
+                    mode = OUTPUT_MODE_MOTORS;
+                } else if(!sl_strcasecmp("SERVOS", tok)) {
+                    mode = OUTPUT_MODE_SERVOS;
+                } else {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+           default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (ii) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            // No args, or just timer. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        case 2:
+            timerOverridesMutable(timer)->outputMode = mode;
+            printTimerOutputModes(DUMP_MASTER, timerOverrides(0), NULL, timer);
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
+    }
+
+}
 
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
 {
@@ -2943,7 +3300,6 @@ static void cliMotor(char *cmdline)
     cliPrintLinef("motor %d: %d", motor_index, motor_disarmed[motor_index]);
 }
 
-#ifdef PLAY_SOUND
 static void cliPlaySound(char *cmdline)
 {
     int i;
@@ -2976,7 +3332,6 @@ static void cliPlaySound(char *cmdline)
     cliPrintLinef("Playing sound %d: %s", i, name);
     beeper(beeperModeForTableIndex(i));
 }
-#endif
 
 static void cliProfile(char *cmdline)
 {
@@ -3004,6 +3359,7 @@ static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
     cliPrintLinef("profile %d\r\n", getConfigProfile() + 1);
     dumpAllValues(PROFILE_VALUE, dumpMask);
     dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
+    dumpAllValues(EZ_TUNE_VALUE, dumpMask);
 }
 
 static void cliBatteryProfile(char *cmdline)
@@ -3033,10 +3389,46 @@ static void cliDumpBatteryProfile(uint8_t profileIndex, uint8_t dumpMask)
     dumpAllValues(BATTERY_CONFIG_VALUE, dumpMask);
 }
 
+static void cliMixerProfile(char *cmdline)
+{
+    // CLI profile index is 1-based
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("mixer_profile %d", getConfigMixerProfile() + 1);
+        return;
+    } else {
+        const int i = fastA2I(cmdline) - 1;
+        if (i >= 0 && i < MAX_MIXER_PROFILE_COUNT) {
+            setConfigMixerProfileAndWriteEEPROM(i);
+            cliMixerProfile("");
+        }
+    }
+}
+
+static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
+{
+    if (profileIndex >= MAX_MIXER_PROFILE_COUNT) {
+        // Faulty values
+        return;
+    }
+    setConfigMixerProfile(profileIndex);
+    cliPrintHashLine("mixer_profile");
+    cliPrintLinef("mixer_profile %d\r\n", getConfigMixerProfile() + 1);
+    dumpAllValues(MIXER_CONFIG_VALUE, dumpMask);
+    cliPrintHashLine("Mixer: motor mixer");
+    cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray()[0].throttle == 0.0f, "\r\nmmix reset\r\n");
+    printMotorMix(dumpMask, primaryMotorMixer_CopyArray(), primaryMotorMixer(0));
+    cliPrintHashLine("Mixer: servo mixer");
+    cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray()[0].rate == 0, "smix reset\r\n");
+    printServoMix(dumpMask, customServoMixers_CopyArray(), customServoMixers(0));
+}
+
 #ifdef USE_CLI_BATCH
 static void cliPrintCommandBatchWarning(const char *warning)
 {
-    cliPrintErrorLinef("ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING");
+    char errorBuf[59];
+    tfp_sprintf(errorBuf, "%d ERRORS WERE DETECTED - Please review and fix before continuing!", commandBatchErrorCount);
+
+    cliPrintErrorLinef(errorBuf);
     if (warning) {
         cliPrintErrorLinef(warning);
     }
@@ -3046,6 +3438,7 @@ static void resetCommandBatch(void)
 {
     commandBatchActive = false;
     commandBatchError = false;
+    commandBatchErrorCount = 0;
 }
 
 static void cliBatch(char *cmdline)
@@ -3054,6 +3447,7 @@ static void cliBatch(char *cmdline)
         if (!commandBatchActive) {
             commandBatchActive = true;
             commandBatchError = false;
+            commandBatchErrorCount = 0;
         }
         cliPrintLine("Command batch started");
     } else if (strncasecmp(cmdline, "end", 3) == 0) {
@@ -3067,55 +3461,6 @@ static void cliBatch(char *cmdline)
         cliPrintErrorLinef("Invalid option");
     }
 }
-#endif
-
-#ifdef USE_SECONDARY_IMU
-
-static void printImu2Status(void)
-{
-    cliPrintLinef("Secondary IMU active: %d", secondaryImuState.active);
-    cliPrintLine("Calibration status:");
-    cliPrintLinef("Sys: %d", secondaryImuState.calibrationStatus.sys);
-    cliPrintLinef("Gyro: %d", secondaryImuState.calibrationStatus.gyr);
-    cliPrintLinef("Acc: %d", secondaryImuState.calibrationStatus.acc);
-    cliPrintLinef("Mag: %d", secondaryImuState.calibrationStatus.mag);
-    cliPrintLine("Calibration gains:");
-
-    cliPrintLinef(
-        "Gyro: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetGyro[X],
-        secondaryImuConfig()->calibrationOffsetGyro[Y],
-        secondaryImuConfig()->calibrationOffsetGyro[Z]
-    );
-    cliPrintLinef(
-        "Acc: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetAcc[X],
-        secondaryImuConfig()->calibrationOffsetAcc[Y],
-        secondaryImuConfig()->calibrationOffsetAcc[Z]
-    );
-    cliPrintLinef(
-        "Mag: %d %d %d",
-        secondaryImuConfig()->calibrationOffsetMag[X],
-        secondaryImuConfig()->calibrationOffsetMag[Y],
-        secondaryImuConfig()->calibrationOffsetMag[Z]
-    );
-    cliPrintLinef(
-        "Radius: %d %d",
-        secondaryImuConfig()->calibrationRadiusAcc,
-        secondaryImuConfig()->calibrationRadiusMag
-    );
-}
-
-static void cliImu2(char *cmdline)
-{
-    if (sl_strcasecmp(cmdline, "fetch") == 0) {
-        secondaryImuFetchCalibration();
-        printImu2Status();
-    } else {
-        printImu2Status();
-    }
-}
-
 #endif
 
 static void cliSave(char *cmdline)
@@ -3132,7 +3477,9 @@ static void cliSave(char *cmdline)
 
     cliPrint("Saving");
     //copyCurrentProfileToProfileSlot(getConfigProfile();
+    suspendRxSignal();
     writeEEPROM();
+    resumeRxSignal();
     cliReboot();
 }
 
@@ -3142,6 +3489,9 @@ static void cliDefaults(char *cmdline)
 
     cliPrint("Resetting to defaults");
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 
 #ifdef USE_CLI_BATCH
     commandBatchError = false;
@@ -3227,8 +3577,10 @@ static void cliSet(char *cmdline)
             if (settingNameIsExactMatch(val, name, cmdline, variableNameLength)) {
                 const setting_type_e type = SETTING_TYPE(val);
                 if (type == VAR_STRING) {
+                    // Convert strings to uppercase. Lower case is not supported by the OSD.
+                    sl_toupperptr(eqptr);
                     // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if (strcmp(name, "name") == 0 && eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"') {
+                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
                         settingSetString(val, eqptr + 1, strlen(eqptr)-2);
                     } else {
                         settingSetString(val, eqptr, strlen(eqptr));
@@ -3307,6 +3659,17 @@ static void cliStatus(char *cmdline)
     char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
+    cliPrintLinef("%s/%s %s %s / %s (%s)",
+        FC_FIRMWARE_NAME,
+        targetName,
+        FC_VERSION_STRING,
+        buildDate,
+        buildTime,
+        shortGitRevision
+    );
+    cliPrintLinef("GCC-%s",
+        compilerVersion
+    );
     cliPrintLinef("System Uptime: %d seconds", millis() / 1000);
     rtcGetDateTime(&dt);
     dateTimeFormatLocal(buf, &dt);
@@ -3328,7 +3691,17 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-
+#if !defined(SITL_BUILD)
+#if defined(AT32F43x)
+    cliPrintLine("AT32 system clocks:");
+    crm_clocks_freq_type clocks;
+    crm_clocks_freq_get(&clocks); 
+    
+    cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
+    cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
+    cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
+    cliPrintLinef("  ABP2   = %d MHz", clocks.apb2_freq / 1000000);
+#else
     cliPrintLine("STM32 system clocks:");
 #if defined(USE_HAL_DRIVER)
     cliPrintLinef("  SYSCLK = %d MHz", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -3343,20 +3716,17 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("  PCLK1  = %d MHz", clocks.PCLK1_Frequency / 1000000);
     cliPrintLinef("  PCLK2  = %d MHz", clocks.PCLK2_Frequency / 1000000);
 #endif
+#endif // for if at32
+#endif // for SITL
 
-    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s, IMU2=%s",
+    cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusNames[getHwAccelerometerStatus()],
         hardwareSensorStatusNames[getHwCompassStatus()],
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
-        hardwareSensorStatusNames[getHwGPSStatus()],
-#ifdef USE_SECONDARY_IMU
-        hardwareSensorStatusNames[getHwSecondaryImuStatus()]
-#else
-        hardwareSensorStatusNames[0]
-#endif
+        hardwareSensorStatusNames[getHwGPSStatus()]
     );
 
 #ifdef USE_ESC_SENSOR
@@ -3376,18 +3746,19 @@ static void cliStatus(char *cmdline)
 #endif
 #ifdef USE_I2C
     const uint16_t i2cErrorCounter = i2cGetErrorCounter();
-#else
+#elif !defined(SITL_BUILD)
     const uint16_t i2cErrorCounter = 0;
 #endif
 
 #ifdef STACK_CHECK
     cliPrintf("Stack used: %d, ", stackUsedSize());
 #endif
+#if !defined(SITL_BUILD)
     cliPrintLinef("Stack size: %d, Stack address: 0x%x, Heap available: %d", stackTotalSize(), stackHighMem(), memGetAvailableBytes());
 
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
-
-#ifdef USE_ADC
+#endif
+#if defined(USE_ADC) && !defined(SITL_BUILD)
     static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
     cliPrintLine("ADC channel usage:");
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
@@ -3437,9 +3808,22 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
 
-#if defined(USE_VTX_CONTROL) && !defined(CLI_MINIMAL_VERBOSITY)
-    cliPrint("VTX: ");
+#if !defined(CLI_MINIMAL_VERBOSITY)
+    cliPrint("OSD: ");
+#if defined(USE_OSD)
+    displayPort_t *osdDisplayPort = osdGetDisplayPort();
+    if (osdDisplayPort != NULL) {
+        cliPrintf("%s [%u x %u]", osdDisplayPort->displayPortType, osdDisplayPort->cols, osdDisplayPort->rows);
+    } else {
+        cliPrint("not enabled");
+    }
+#else
+    cliPrint("not used");
+#endif
+    cliPrintLinefeed();
 
+    cliPrint("VTX: ");
+#if defined(USE_VTX_CONTROL)
     if (vtxCommonDeviceIsReady(vtxCommonDevice())) {
         vtxDeviceOsdInfo_t osdInfo;
         vtxCommonGetOsdInfo(vtxCommonDevice(), &osdInfo);
@@ -3456,9 +3840,29 @@ static void cliStatus(char *cmdline)
     else {
         cliPrint("not detected");
     }
+#else
+    cliPrint("no VTX control");
+#endif
 
     cliPrintLinefeed();
 #endif
+
+    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+        cliPrint("GPS: ");
+        cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
+        cliPrintLinefeed();
+        //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
+        cliPrintLinef("  GNSS Capabilities:");
+        cliPrintLine("    GNSS Provider active/default");
+        cliPrintLine("    GPS 1/1");
+        if(gpsUbloxHasGalileo())
+            cliPrintLinef("    Galileo %d/%d", gpsUbloxGalileoEnabled(), gpsUbloxGalileoDefault());
+        if(gpsUbloxHasBeidou())
+            cliPrintLinef("    BeiDou %d/%d", gpsUbloxBeidouEnabled(), gpsUbloxBeidouDefault());
+        if(gpsUbloxHasGlonass())
+            cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
+        cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
+    }
 
     // If we are blocked by PWM init - provide more information
     if (getPwmInitError() != PWM_INIT_ERROR_NONE) {
@@ -3466,7 +3870,6 @@ static void cliStatus(char *cmdline)
     }
 }
 
-#ifndef SKIP_TASK_STATISTICS
 static void cliTasks(char *cmdline)
 {
     UNUSED(cmdline);
@@ -3495,7 +3898,6 @@ static void cliTasks(char *cmdline)
     cliPrintLinef("Task check function %13d %7d %25d", (uint32_t)checkFuncInfo.maxExecutionTime, (uint32_t)checkFuncInfo.averageExecutionTime, (uint32_t)checkFuncInfo.totalExecutionTime / 1000);
     cliPrintLinef("Total (excluding SERIAL) %21d.%1d%% %4d.%1d%%", maxLoadSum/10, maxLoadSum%10, averageLoadSum/10, averageLoadSum%10);
 }
-#endif
 
 static void cliVersion(char *cmdline)
 {
@@ -3528,12 +3930,11 @@ static void cliMemory(char *cmdline)
     }
 }
 
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
 static void cliResource(char *cmdline)
 {
     UNUSED(cmdline);
     cliPrintLinef("IO:\r\n----------------------");
-    for (unsigned i = 0; i < DEFIO_IO_USED_COUNT; i++) {
+    for (int i = 0; i < DEFIO_IO_USED_COUNT; i++) {
         const char* owner;
         owner = ownerNames[ioRecs[i].owner];
 
@@ -3547,7 +3948,6 @@ static void cliResource(char *cmdline)
         }
     }
 }
-#endif
 
 static void backupConfigs(void)
 {
@@ -3582,6 +3982,8 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = DUMP_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "battery_profile"))) {
         dumpMask = DUMP_BATTERY_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "mixer_profile"))) {
+        dumpMask = DUMP_MIXER_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -3594,12 +3996,14 @@ static void printConfig(const char *cmdline, bool doDiff)
 
     const int currentProfileIndexSave = getConfigProfile();
     const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+    const int currentMixerProfileIndexSave = getConfigMixerProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
     setConfigProfile(currentProfileIndexSave);
     setConfigBatteryProfile(currentBatteryProfileIndexSave);
+    setConfigMixerProfile(currentMixerProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -3630,36 +4034,24 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("resources");
         //printResource(dumpMask, &defaultConfig);
 
-        cliPrintHashLine("mixer");
-        cliDumpPrintLinef(dumpMask, primaryMotorMixer_CopyArray[0].throttle == 0.0f, "\r\nmmix reset\r\n");
-
-        printMotorMix(dumpMask, primaryMotorMixer_CopyArray, primaryMotorMixer(0));
-
-        // print custom servo mixer if exists
-        cliPrintHashLine("servo mix");
-        cliDumpPrintLinef(dumpMask, customServoMixers_CopyArray[0].rate == 0, "smix reset\r\n");
-        printServoMix(dumpMask, customServoMixers_CopyArray, customServoMixers(0));
+        cliPrintHashLine("Timer overrides");
+        printTimerOutputModes(dumpMask, timerOverrides_CopyArray, timerOverrides(0), -1);
 
         // print servo parameters
-        cliPrintHashLine("servo");
+        cliPrintHashLine("Outputs [servo]");
         printServo(dumpMask, servoParams_CopyArray, servoParams(0));
 
 #if defined(USE_SAFE_HOME)
         cliPrintHashLine("safehome");
         printSafeHomes(dumpMask, safeHomeConfig_CopyArray, safeHomeConfig(0));
 #endif
-#ifdef USE_PROGRAMMING_FRAMEWORK
-        cliPrintHashLine("logic");
-        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0));
 
-        cliPrintHashLine("gvar");
-        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
-
-        cliPrintHashLine("pid");
-        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
+#ifdef USE_FW_AUTOLAND
+        cliPrintHashLine("Fixed Wing Approach");
+        printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
 #endif
 
-        cliPrintHashLine("feature");
+        cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
 #if defined(BEEPER) || defined(USE_DSHOT)
@@ -3672,30 +4064,30 @@ static void printConfig(const char *cmdline, bool doDiff)
         printBlackbox(dumpMask, &blackboxConfig_Copy, blackboxConfig());
 #endif
 
-        cliPrintHashLine("map");
+        cliPrintHashLine("Receiver: Channel map");
         printMap(dumpMask, &rxConfig_Copy, rxConfig());
 
-        cliPrintHashLine("serial");
+        cliPrintHashLine("Ports");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
 
 #ifdef USE_LED_STRIP
-        cliPrintHashLine("led");
+        cliPrintHashLine("LEDs");
         printLed(dumpMask, ledStripConfig_Copy.ledConfigs, ledStripConfig()->ledConfigs);
 
-        cliPrintHashLine("color");
+        cliPrintHashLine("LED color");
         printColor(dumpMask, ledStripConfig_Copy.colors, ledStripConfig()->colors);
 
-        cliPrintHashLine("mode_color");
+        cliPrintHashLine("LED mode_color");
         printModeColor(dumpMask, &ledStripConfig_Copy, ledStripConfig());
 #endif
 
-        cliPrintHashLine("aux");
+        cliPrintHashLine("Modes [aux]");
         printAux(dumpMask, modeActivationConditions_CopyArray, modeActivationConditions(0));
 
-        cliPrintHashLine("adjrange");
+        cliPrintHashLine("Adjustments [adjrange]");
         printAdjustmentRange(dumpMask, adjustmentRanges_CopyArray, adjustmentRanges(0));
 
-        cliPrintHashLine("rxrange");
+        cliPrintHashLine("Receiver rxrange");
         printRxRange(dumpMask, rxChannelRangeConfigs_CopyArray, rxChannelRangeConfigs(0));
 
 #ifdef USE_TEMPERATURE_SENSOR
@@ -3704,13 +4096,28 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
 
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
-        cliPrintHashLine("wp");
+        cliPrintHashLine("Mission Control Waypoints [wp]");
         printWaypoints(dumpMask, posControl.waypointList, nonVolatileWaypointList(0));
 #endif
 
 #ifdef USE_OSD
-        cliPrintHashLine("osd_layout");
+        cliPrintHashLine("OSD [osd_layout]");
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
+#endif
+
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        cliPrintHashLine("Programming: logic");
+        printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
+
+        cliPrintHashLine("Programming: global variables");
+        printGvar(dumpMask, globalVariableConfigs_CopyArray, globalVariableConfigs(0));
+
+        cliPrintHashLine("Programming: PID controllers");
+        printPid(dumpMask, programmingPids_CopyArray, programmingPids(0));
+#endif
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        cliPrintHashLine("OSD: custom elements");
+        printOsdCustomElements(dumpMask, osdCustomElements_CopyArray, osdCustomElements(0));
 #endif
 
         cliPrintHashLine("master");
@@ -3720,6 +4127,10 @@ static void printConfig(const char *cmdline, bool doDiff)
             // dump all profiles
             const int currentProfileIndexSave = getConfigProfile();
             const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            const int currentMixerProfileIndexSave = getConfigMixerProfile();
+            for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
+                cliDumpMixerProfile(ii, dumpMask);
+            }
             for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
                 cliDumpProfile(ii, dumpMask);
             }
@@ -3728,28 +4139,37 @@ static void printConfig(const char *cmdline, bool doDiff)
             }
             setConfigProfile(currentProfileIndexSave);
             setConfigBatteryProfile(currentBatteryProfileIndexSave);
+            setConfigMixerProfile(currentMixerProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
+            cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
             cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
-            cliPrintHashLine("save configuration\r\nsave");
 #ifdef USE_CLI_BATCH
             batchModeEnabled = false;
 #endif
         } else {
             // dump just the current profiles
+            cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
             cliDumpProfile(getConfigProfile(), dumpMask);
             cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
-
+    if (dumpMask & DUMP_MIXER_PROFILE) {
+        cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
+    }
+    
     if (dumpMask & DUMP_PROFILE) {
         cliDumpProfile(getConfigProfile(), dumpMask);
     }
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
         cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
+    }
+
+    if ((dumpMask & DUMP_MASTER) || (dumpMask & DUMP_ALL)) {
+        cliPrintHashLine("save configuration\r\nsave");
     }
 
 #ifdef USE_CLI_BATCH
@@ -3879,6 +4299,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("flash_write", NULL, "<address> <message>", cliFlashWrite),
 #endif
 #endif
+#ifdef USE_FW_AUTOLAND
+    CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
+#endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
@@ -3886,6 +4309,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
+    CLI_COMMAND_DEF("ledpinpwm", "start/stop PWM on LED pin, 0..100 duty ratio", "[<value>]\r\n", cliLedPinPWM),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
@@ -3894,20 +4318,15 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
-#ifdef PLAY_SOUND
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
-#endif
     CLI_COMMAND_DEF("profile", "change profile",
         "[<index>]", cliProfile),
     CLI_COMMAND_DEF("battery_profile", "change battery profile",
         "[<index>]", cliBatteryProfile),
-#if !defined(SKIP_TASK_STATISTICS) && !defined(SKIP_CLI_RESOURCES)
+    CLI_COMMAND_DEF("mixer_profile", "change mixer profile",
+        "[<index>]", cliMixerProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
-#endif
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
-#ifdef USE_SECONDARY_IMU
-    CLI_COMMAND_DEF("imu2", "Secondary IMU", NULL, cliImu2),
-#endif
 #if defined(USE_SAFE_HOME)
     CLI_COMMAND_DEF("safehome", "safe home list", NULL, cliSafeHomes),
 #endif
@@ -3929,6 +4348,10 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("pid", "configurable PID controllers",
         "<#> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>\r\n"
         "\treset\r\n", cliPid),
+
+    CLI_COMMAND_DEF("osd_custom_elements", "configurable OSD custom elements",
+                    "<#> <part0 type> <part0 value> <part1 type> <part1 value> <part2 type> <part2 value> <visibility type> <visibility value> <text>\r\n"
+                    , osdCustom),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
     CLI_COMMAND_DEF("smix", "servo mixer",
@@ -3938,9 +4361,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
-#ifndef SKIP_TASK_STATISTICS
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
-#endif
 #ifdef USE_TEMPERATURE_SENSOR
     CLI_COMMAND_DEF("temp_sensor", "change temp sensor settings", NULL, cliTempSensor),
 #endif
@@ -3951,6 +4372,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)
@@ -4058,7 +4480,7 @@ void cliProcess(void)
                 bufferIndex = 0;
             }
 
-            memset(cliBuffer, 0, sizeof(cliBuffer));
+            ZERO_FARRAY(cliBuffer);
 
             // 'exit' will reset this flag, so we don't need to print prompt again
             if (!cliMode)

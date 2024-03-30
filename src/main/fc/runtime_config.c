@@ -34,9 +34,9 @@ static EXTENDED_FASTRAM uint32_t enabledSensors = 0;
 #if !defined(CLI_MINIMAL_VERBOSITY)
 const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
-    "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
+    "ACC", "ARMSW", "HWFAIL", "BOXFS", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
-    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER"
+    "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER", "LANDED"
 };
 #endif
 
@@ -50,7 +50,6 @@ const armingFlag_e armDisableReasonsChecklist[] = {
     ARMING_DISABLED_NAVIGATION_UNSAFE,
     ARMING_DISABLED_ARM_SWITCH,
     ARMING_DISABLED_BOXFAILSAFE,
-    ARMING_DISABLED_BOXKILLSWITCH,
     ARMING_DISABLED_THROTTLE,
     ARMING_DISABLED_CLI,
     ARMING_DISABLED_CMS_MENU,
@@ -91,31 +90,16 @@ armingFlag_e isArmingDisabledReason(void)
 }
 
 /**
- * Enables the given flight mode.  A beep is sounded if the flight mode
- * has changed.  Returns the new 'flightModeFlags' value.
+ * Called at Rx update rate. Beeper sounded if flight mode state has changed.
  */
-uint32_t enableFlightMode(flightModeFlags_e mask)
+void updateFlightModeChangeBeeper(void)
 {
-    uint32_t oldVal = flightModeFlags;
+    static uint32_t previousFlightModeFlags = 0;
 
-    flightModeFlags |= (mask);
-    if (flightModeFlags != oldVal)
+    if (flightModeFlags != previousFlightModeFlags) {
         beeperConfirmationBeeps(1);
-    return flightModeFlags;
-}
-
-/**
- * Disables the given flight mode.  A beep is sounded if the flight mode
- * has changed.  Returns the new 'flightModeFlags' value.
- */
-uint32_t disableFlightMode(flightModeFlags_e mask)
-{
-    uint32_t oldVal = flightModeFlags;
-
-    flightModeFlags &= ~(mask);
-    if (flightModeFlags != oldVal)
-        beeperConfirmationBeeps(1);
-    return flightModeFlags;
+    }
+    previousFlightModeFlags = flightModeFlags;
 }
 
 bool sensors(uint32_t mask)
@@ -173,6 +157,16 @@ flightModeForTelemetry_e getFlightModeForTelemetry(void)
     if (FLIGHT_MODE(HORIZON_MODE))
         return FLM_HORIZON;
 
+    if (FLIGHT_MODE(ANGLEHOLD_MODE))
+        return FLM_ANGLEHOLD;
 
     return STATE(AIRMODE_ACTIVE) ? FLM_ACRO_AIR : FLM_ACRO;
 }
+
+#ifdef USE_SIMULATOR
+simulatorData_t simulatorData = {
+    .flags = 0,
+    .debugIndex = 0,
+    .vbat = 0
+};
+#endif

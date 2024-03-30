@@ -34,10 +34,6 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-#define USE_EXTI
-#define USE_MPU_DATA_READY_SIGNAL
-#define GYRO_INT_EXTI           PC4
-
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG_FLIP
 #define MPU6000_CS_PIN          PB2
@@ -58,13 +54,7 @@
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
-#define USE_MAG_AK8975
-#define USE_MAG_HMC5883
-#define USE_MAG_QMC5883
-#define USE_MAG_IST8310
-#define USE_MAG_IST8308
-#define USE_MAG_MAG3110
-#define USE_MAG_LIS3MDL
+#define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C1
 #define PITOT_I2C_BUS           BUS_I2C1
@@ -115,9 +105,11 @@
 #define UART4_TX_PIN            PA0
 #define UART4_RX_PIN            PA1
 
+#ifndef MATEKF722PX_PINIO
 #define USE_UART5
 #define UART5_TX_PIN            PC12
 #define UART5_RX_PIN            PD2
+#endif
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
@@ -127,7 +119,11 @@
 #define SOFTSERIAL_1_TX_PIN      PA2 //TX2 pad
 #define SOFTSERIAL_1_RX_PIN      NONE
 
+#ifdef MATEKF722PX_PINIO
+#define SERIAL_PORT_COUNT       7
+#else
 #define SERIAL_PORT_COUNT       8
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -153,6 +149,11 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PA15 // Power switch
 #define PINIO2_PIN                  PB3  // Camera switch
+
+#ifdef MATEKF722PX_PINIO
+#define PINIO3_PIN                  PC12 // UART 5 TX - USER 3 PINIO
+#define PINIO4_PIN                  PD2  // UART 5 RX - USER 4 PINIO
+#endif
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP

@@ -31,21 +31,59 @@ extern uint8_t __config_end;
 
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
 // since it's used to display CMS on MWOSD
-#if !defined(USE_MSP_DISPLAYPORT) && (MCU_FLASH_SIZE > 128) && !defined(USE_OSD)
+#if !defined(USE_MSP_DISPLAYPORT) && !defined(USE_OSD)
 #define USE_MSP_DISPLAYPORT
 #endif
 
-#if defined(USE_OSD) && (MCU_FLASH_SIZE > 256)
+#if defined(USE_OSD)
 #define USE_CANVAS
 #endif
 
 // Enable MSP BARO & MAG drivers if BARO and MAG sensors are compiled in
 #if defined(USE_MAG)
 #define USE_MAG_MSP
+
+#if defined(USE_MAG_ALL)
+
+#define USE_MAG_HMC5883
+#define USE_MAG_IST8310
+#define USE_MAG_LIS3MDL
+#define USE_MAG_MAG3110
+#define USE_MAG_QMC5883
+
+//#if (MCU_FLASH_SIZE > 512)
+#define USE_MAG_AK8963
+#define USE_MAG_AK8975
+#define USE_MAG_IST8308
+#define USE_MAG_MLX90393
+
+#if defined(USE_IMU_MPU9250)
+#define USE_MAG_MPU9250
 #endif
+
+#define USE_MAG_RM3100
+#define USE_MAG_VCM5883
+//#endif // MCU_FLASH_SIZE
+
+#endif // USE_MAG_ALL
+
+#endif // USE_MAG
 
 #if defined(USE_BARO)
 #define USE_BARO_MSP
+
+#if defined(USE_BARO_ALL)
+#define USE_BARO_BMP085
+#define USE_BARO_BMP280
+#define USE_BARO_BMP388
+#define USE_BARO_DPS310
+#define USE_BARO_LPS25H
+#define USE_BARO_MS5607
+#define USE_BARO_MS5611
+//#define USE_BARO_SPI_BMP280
+#define USE_BARO_SPL06
+#endif
+
 #endif
 
 #ifdef USE_ESC_SENSOR
@@ -58,21 +96,13 @@ extern uint8_t __config_end;
 
 #define USE_ARM_MATH // try to use FPU functions
 
-#if defined(SIMULATOR_BUILD) || defined(UNIT_TEST)
+#if defined(SITL_BUILD) || defined(UNIT_TEST)
 // This feature uses 'arm_math.h', which does not exist for x86.
 #undef USE_DYNAMIC_FILTERS
 #undef USE_ARM_MATH
 #endif
 
-//Defines for compiler optimizations
-#define FUNCTION_COMPILE_FOR_SIZE __attribute__((optimize("-Os")))
-#define FUNCTION_COMPILE_NORMAL __attribute__((optimize("-O2")))
-#define FUNCTION_COMPILE_FOR_SPEED __attribute__((optimize("-Ofast")))
-#define FILE_COMPILE_FOR_SIZE _Pragma("GCC optimize(\"Os\")")
-#define FILE_COMPILE_NORMAL _Pragma("GCC optimize(\"O2\")")
-#define FILE_COMPILE_FOR_SPEED _Pragma("GCC optimize(\"Ofast\")")
-
-#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_EXTERNAL_FLASH)
+#if defined(CONFIG_IN_RAM) || defined(CONFIG_IN_FILE) || defined(CONFIG_IN_EXTERNAL_FLASH)
 #ifndef EEPROM_SIZE
 #define EEPROM_SIZE     8192
 #endif

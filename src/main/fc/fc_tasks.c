@@ -49,7 +49,6 @@
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rpm_filter.h"
-#include "flight/secondary_imu.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
 #include "flight/q_tune.h"
@@ -64,11 +63,14 @@
 #include "io/osd.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/osd_joystick.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
+#include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
-#include "io/displayport_hdzero_osd.h"
+#include "io/displayport_msp_osd.h"
 #include "io/servo_sbus.h"
+#include "io/adsb.h"
 
 #include "msp/msp_serial.h"
 
@@ -108,12 +110,15 @@ void taskHandleSerial(timeUs_t currentTimeUs)
     djiOsdSerialProcess();
 #endif
 
-#ifdef USE_HDZERO_OSD
-	// Capture HDZero messages to determine if VTX is connected
-    hdzeroOsdSerialProcess(mspFcProcessCommand);
+#ifdef USE_MSP_OSD
+	// Capture MSP Displayport messages to determine if VTX is connected
+    mspOsdSerialProcess(mspFcProcessCommand);
+#ifdef USE_VTX_MSP
+    mspVtxSerialProcess(mspFcProcessCommand);
 #endif
-}
+#endif
 
+}
 void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;
@@ -178,6 +183,14 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_ADSB
+void taskAdsb(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    adsbTtlClean(currentTimeUs);
+}
+#endif
+
 #ifdef USE_BARO
 void taskUpdateBaro(timeUs_t currentTimeUs)
 {
@@ -202,7 +215,10 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
     }
 
     pitotUpdate();
-    updatePositionEstimator_PitotTopic(currentTimeUs);
+
+    if ( pitotIsHealthy()) {
+        updatePositionEstimator_PitotTopic(currentTimeUs);
+    }
 }
 #endif
 
@@ -307,7 +323,13 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 {
     updatePIDCoefficients();
     dynamicLpfGyroTask();
+#ifdef USE_SIMULATOR
+    if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        updateFixedWingLevelTrim(currentTimeUs);
+    }
+#else
     updateFixedWingLevelTrim(currentTimeUs);
+#endif
 }
 
 void fcTasksInit(void)
@@ -348,6 +370,9 @@ void fcTasksInit(void)
 #ifdef USE_PITOT
     setTaskEnabled(TASK_PITOT, sensors(SENSOR_PITOT));
 #endif
+#ifdef USE_ADSB
+    setTaskEnabled(TASK_ADSB, true);
+#endif
 #ifdef USE_RANGEFINDER
     setTaskEnabled(TASK_RANGEFINDER, sensors(SENSOR_RANGEFINDER));
 #endif
@@ -382,7 +407,11 @@ void fcTasksInit(void)
 #endif
 #endif
 #ifdef USE_RCDEVICE
+#ifdef USE_LED_STRIP
+    setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled() || osdJoystickEnabled());
+#else
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
+#endif
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     setTaskEnabled(TASK_PROGRAMMING_FRAMEWORK, true);
@@ -392,9 +421,6 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
-#endif
-#ifdef USE_SECONDARY_IMU
-    setTaskEnabled(TASK_SECONDARY_IMU, secondaryImuConfig()->hardwareType != SECONDARY_IMU_NONE && secondaryImuState.active);
 #endif
 #ifdef USE_Q_TUNE
     setTaskEnabled(TASK_Q_TUNE, true);
@@ -463,7 +489,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "RX",
         .checkFunc = taskUpdateRxCheck,
         .taskFunc = taskUpdateRxMain,
-        .desiredPeriod = TASK_PERIOD_HZ(50),      // If event-based scheduling doesn't work, fallback to periodic scheduling
+        .desiredPeriod = TASK_PERIOD_HZ(10),      // If event-based scheduling doesn't work, fallback to periodic scheduling
         .staticPriority = TASK_PRIORITY_HIGH,
     },
 
@@ -485,6 +511,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
+#ifdef USE_ADSB
+        [TASK_ADSB] = {
+        .taskName = "ADSB",
+        .taskFunc = taskAdsb,
+        .desiredPeriod = TASK_PERIOD_HZ(1),      // ADSB is updated at 1 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
 #ifdef USE_BARO
     [TASK_BARO] = {
         .taskName = "BARO",
@@ -498,7 +533,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .desiredPeriod = TASK_PERIOD_MS(20),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
@@ -623,14 +658,6 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PROGRAMMING_FRAMEWORK] = {
         .taskName = "PROGRAMMING",
         .taskFunc = programmingFrameworkUpdateTask,
-        .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
-        .staticPriority = TASK_PRIORITY_IDLE,
-    },
-#endif
-#ifdef USE_SECONDARY_IMU
-    [TASK_SECONDARY_IMU] = {
-        .taskName = "IMU2",
-        .taskFunc = taskSecondaryImu,
         .desiredPeriod = TASK_PERIOD_HZ(10),          // 10Hz @100msec
         .staticPriority = TASK_PRIORITY_IDLE,
     },

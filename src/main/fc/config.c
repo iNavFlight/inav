@@ -64,6 +64,7 @@
 #include "flight/pid.h"
 #include "flight/imu.h"
 #include "flight/failsafe.h"
+#include "flight/ez_tune.h"
 
 #include "fc/config.h"
 #include "fc/controlrate_profile.h"
@@ -102,11 +103,12 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
     .current_battery_profile_index = 0,
+    .current_mixer_profile_index = 0,
     .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
 #ifdef USE_DEV_TOOLS
     .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
@@ -114,11 +116,9 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
 #ifdef USE_I2C
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
-#ifdef USE_UNDERCLOCK
-    .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
-#endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
-    .name = SETTING_NAME_DEFAULT
+    .craftName = SETTING_NAME_DEFAULT,
+    .pilotName = SETTING_NAME_DEFAULT
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
@@ -142,6 +142,12 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
     }
 );
 
+#define SAVESTATE_NONE 0
+#define SAVESTATE_SAVEONLY 1
+#define SAVESTATE_SAVEANDNOTIFY 2
+
+static uint8_t saveState = SAVESTATE_NONE;
+
 void validateNavConfig(void)
 {
     // Make sure minAlt is not more than maxAlt, maxAlt cannot be set lower than 500.
@@ -152,14 +158,17 @@ void validateNavConfig(void)
 // Stubs to handle target-specific configs
 __attribute__((weak)) void validateAndFixTargetConfig(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
 
 __attribute__((weak)) void targetConfiguration(void)
 {
+#if !defined(SITL_BUILD)
     __NOP();
+#endif
 }
-
 
 #ifdef SWAP_SERIAL_PORT_0_AND_1_DEFAULTS
 #define FIRST_PORT_INDEX 1
@@ -169,11 +178,13 @@ __attribute__((weak)) void targetConfiguration(void)
 #define SECOND_PORT_INDEX 1
 #endif
 
-uint32_t getLooptime(void) {
+uint32_t getLooptime(void)
+{
     return gyroConfig()->looptime;
 }
 
-uint32_t getGyroLooptime(void) {
+uint32_t getGyroLooptime(void)
+{
     return gyro.targetLooptime;
 }
 
@@ -292,6 +303,7 @@ static void activateConfig(void)
 {
     activateControlRateConfig();
     activateBatteryProfile();
+    activateMixerConfig();
 
     resetAdjustmentStates();
 
@@ -311,8 +323,6 @@ static void activateConfig(void)
 
 void readEEPROM(void)
 {
-    suspendRxSignal();
-
     // Sanity check, read flash
     if (!loadEEPROM()) {
         failureMode(FAILURE_INVALID_EEPROM_CONTENTS);
@@ -320,26 +330,32 @@ void readEEPROM(void)
 
     setConfigProfile(getConfigProfile());
     setConfigBatteryProfile(getConfigBatteryProfile());
+    setConfigMixerProfile(getConfigMixerProfile());
 
     validateAndFixConfig();
     activateConfig();
+}
 
+void processSaveConfigAndNotify(void)
+{
+    suspendRxSignal();
+    writeEEPROM();
+    readEEPROM();
     resumeRxSignal();
+    beeperConfirmationBeeps(1);
+#ifdef USE_OSD
+    osdShowEEPROMSavedNotification();
+#endif
 }
 
 void writeEEPROM(void)
 {
-    suspendRxSignal();
-
     writeConfigToEEPROM();
-
-    resumeRxSignal();
 }
 
 void resetEEPROM(void)
 {
     resetConfigs();
-    writeEEPROM();
 }
 
 void ensureEEPROMContainsValidData(void)
@@ -348,13 +364,46 @@ void ensureEEPROMContainsValidData(void)
         return;
     }
     resetEEPROM();
+    suspendRxSignal();
+    writeEEPROM();
+    resumeRxSignal();
 }
 
+/*
+ * Used to save the EEPROM and notify the user with beeps and OSD notifications.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
+ */
 void saveConfigAndNotify(void)
 {
-    writeEEPROM();
-    readEEPROM();
-    beeperConfirmationBeeps(1);
+#ifdef USE_OSD
+    osdStartedSaveProcess();
+#endif
+    saveState = SAVESTATE_SAVEANDNOTIFY;
+}
+
+/*
+ * Used to save the EEPROM without notifications. Can be used instead of writeEEPROM() if no reboot is called after the write.
+ * This consolidates all save calls in the loop in to a single save operation. This save is actioned in the next loop, if the model is disarmed.
+ * If any save with notifications are requested, notifications are shown.
+ */
+void saveConfig(void)
+{
+    if (saveState != SAVESTATE_SAVEANDNOTIFY) {
+        saveState = SAVESTATE_SAVEONLY;
+    }
+}
+
+void processDelayedSave(void)
+{
+    if (saveState == SAVESTATE_SAVEANDNOTIFY) {
+        processSaveConfigAndNotify();
+        saveState = SAVESTATE_NONE;
+    } else if (saveState == SAVESTATE_SAVEONLY) {
+        suspendRxSignal();
+        writeEEPROM();
+        resumeRxSignal();
+        saveState = SAVESTATE_NONE;
+    }
 }
 
 uint8_t getConfigProfile(void)
@@ -375,6 +424,9 @@ bool setConfigProfile(uint8_t profileIndex)
     systemConfigMutable()->current_profile_index = profileIndex;
     // set the control rate profile to match
     setControlRateProfile(profileIndex);
+#ifdef USE_EZ_TUNE
+    ezTuneUpdate();
+#endif
     return ret;
 }
 
@@ -382,8 +434,10 @@ void setConfigProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
@@ -411,26 +465,54 @@ void setConfigBatteryProfileAndWriteEEPROM(uint8_t profileIndex)
 {
     if (setConfigBatteryProfile(profileIndex)) {
         // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
         writeEEPROM();
         readEEPROM();
+        resumeRxSignal();
     }
     beeperConfirmationBeeps(profileIndex + 1);
 }
 
-void setGyroCalibrationAndWriteEEPROM(int16_t getGyroZero[XYZ_AXIS_COUNT]) {
-    gyroConfigMutable()->gyro_zero_cal[X] = getGyroZero[X];
-    gyroConfigMutable()->gyro_zero_cal[Y] = getGyroZero[Y];
-    gyroConfigMutable()->gyro_zero_cal[Z] = getGyroZero[Z];
-    // save the calibration
-    writeEEPROM();
-    readEEPROM();
+uint8_t getConfigMixerProfile(void)
+{
+    return systemConfig()->current_mixer_profile_index;
 }
 
-void setGravityCalibrationAndWriteEEPROM(float getGravity) {
+bool setConfigMixerProfile(uint8_t profileIndex)
+{
+    bool ret = true; // return true if current_mixer_profile_index has changed
+    if (systemConfig()->current_mixer_profile_index == profileIndex) {
+        ret =  false;
+    }
+    if (profileIndex >= MAX_MIXER_PROFILE_COUNT) {// sanity check
+        profileIndex = 0;
+    }
+    systemConfigMutable()->current_mixer_profile_index = profileIndex;
+    return ret;
+}
+
+void setConfigMixerProfileAndWriteEEPROM(uint8_t profileIndex)
+{
+    if (setConfigMixerProfile(profileIndex)) {
+        // profile has changed, so ensure current values saved before new profile is loaded
+        suspendRxSignal();
+        writeEEPROM();
+        readEEPROM();
+        resumeRxSignal();
+    }
+    beeperConfirmationBeeps(profileIndex + 1);
+}
+
+void setGyroCalibration(float getGyroZero[XYZ_AXIS_COUNT])
+{
+    gyroConfigMutable()->gyro_zero_cal[X] = (int16_t) getGyroZero[X];
+    gyroConfigMutable()->gyro_zero_cal[Y] = (int16_t) getGyroZero[Y];
+    gyroConfigMutable()->gyro_zero_cal[Z] = (int16_t) getGyroZero[Z];
+}
+
+void setGravityCalibration(float getGravity)
+{
     gyroConfigMutable()->gravity_cmss_cal = getGravity;
-    // save the calibration
-    writeEEPROM();
-    readEEPROM();
 }
 
 void beeperOffSet(uint32_t mask)
