@@ -19,8 +19,6 @@
 
 #ifdef USE_Q_TUNE
 
-FILE_COMPILE_FOR_SPEED
-
 #include <stdlib.h>
 #include "q_tune.h"
 #include <math.h>
