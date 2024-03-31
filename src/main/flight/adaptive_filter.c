@@ -86,7 +86,6 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis + XYZ_AXIS_COUNT, filteredRms * 1000.0f);
     }
 
-
 }
 
 
