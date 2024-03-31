@@ -32,10 +32,15 @@
 #include <math.h>
 #include "common/maths.h"
 #include "common/axis.h"
+#include "common/filter.h"
 #include "build/debug.h"
 
-static float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
-static uint8_t adaptiveFilterSampleIndex = 0;
+STATIC_FASTRAM float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
+STATIC_FASTRAM uint8_t adaptiveFilterSampleIndex = 0;
+
+STATIC_FASTRAM pt1Filter_t rmsFilter[XYZ_AXIS_COUNT];
+
+STATIC_FASTRAM uint8_t adaptiveFilterInitialized = 0;
 
 void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) {
     //Push new sample to the buffer so later we can compute RMS and other measures
@@ -45,6 +50,14 @@ void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) 
 
 void adaptiveFilterTask(timeUs_t currentTimeUs) {
     UNUSED(currentTimeUs);
+
+    if (!adaptiveFilterInitialized) {
+        //Initialize the filter
+        for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            pt1FilterInit(&rmsFilter[axis], ADAPTIVE_FILTER_LPF_HZ, 1.0f / ADAPTIVE_FILTER_RATE_HZ);
+        }
+        adaptiveFilterInitialized = 1;
+    }
 
     //Compute RMS for each axis
     for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -67,7 +80,10 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         float32_t rms;
         arm_rms_f32(normalizedBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &rms);
 
+        float32_t filteredRms = pt1FilterApply(&rmsFilter[axis], rms);
+
         DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis, rms * 1000.0f);
+        DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis + XYZ_AXIS_COUNT, filteredRms * 1000.0f);
     }
 
 

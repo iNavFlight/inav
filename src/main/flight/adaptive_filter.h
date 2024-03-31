@@ -27,6 +27,7 @@
 
 #define ADAPTIVE_FILTER_BUFFER_SIZE 32
 #define ADAPTIVE_FILTER_RATE_HZ 100
+#define ADAPTIVE_FILTER_LPF_HZ 1
 
 void adaptiveFilterPush(const flight_dynamics_index_t index, const float value);
 void adaptiveFilterTask(timeUs_t currentTimeUs);
