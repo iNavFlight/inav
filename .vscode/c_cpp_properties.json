@@ -57,7 +57,8 @@
                 "USE_SDCARD_SDIO",
                 "USE_SDCARD",
                 "USE_Q_TUNE",
-                "USE_GYRO_FFT_FILTER"
+                "USE_GYRO_FFT_FILTER",
+                "USE_ADAPTIVE_FILTER",
             ],
             "configurationProvider": "ms-vscode.cmake-tools"
         }

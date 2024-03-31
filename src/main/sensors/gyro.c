@@ -68,6 +68,7 @@
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
+#include "flight/adaptive_filter.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
@@ -452,6 +453,8 @@ void FAST_CODE NOINLINE gyroFilter(void)
 #endif
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
+
+        adaptiveFilterPush(axis, gyroADCf);
 
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.enabled) {
