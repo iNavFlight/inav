@@ -307,14 +307,6 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXFAILSAFE);
         }
 
-        /* CHECK: BOXKILLSWITCH */
-        if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
-            ENABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
-        }
-        else {
-            DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
-        }
-
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
            ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
@@ -525,7 +517,7 @@ bool emergInflightRearmEnabled(void)
     timeMs_t currentTimeMs = millis();
     emergRearmStabiliseTimeout = 0;
 
-    if ((lastDisarmReason != DISARM_SWITCH && lastDisarmReason != DISARM_KILLSWITCH) ||
+    if ((lastDisarmReason != DISARM_SWITCH) ||
         (currentTimeMs > US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS)) {
         return false;
     }

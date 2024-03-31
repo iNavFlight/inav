@@ -163,9 +163,6 @@
 
 #define MSP_SONAR_ALTITUDE              58 //out message get surface altitude [cm]
 
-#define MSP_ARMING_CONFIG               61 //out message         Returns auto_disarm_delay and disarm_kill_switch parameters
-#define MSP_SET_ARMING_CONFIG           62 //in message          Sets auto_disarm_delay and disarm_kill_switch parameters
-
 //
 // Baseflight MSP commands (if enabled they exist in Cleanflight)
 //

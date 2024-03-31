@@ -1491,8 +1491,8 @@ groups:
         description: "Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured."
         default_value: OFF
         type: bool
-      - name: disarm_kill_switch
-        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel."
+      - name: disarm_always
+        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low."
         default_value: ON
         type: bool
       - name: switch_disarm_delay
