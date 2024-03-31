@@ -68,6 +68,7 @@
 #include "flight/gyroanalyse.h"
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
+#include "flight/q_tune.h"
 
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"

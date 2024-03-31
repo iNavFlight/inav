@@ -122,6 +122,9 @@ typedef enum {
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
 #endif
+#ifdef USE_Q_TUNE
+    TASK_Q_TUNE,
+#endif
     /* Count of real tasks */
     TASK_COUNT,
 

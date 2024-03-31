@@ -50,7 +50,7 @@
 * \par
 * This Function also initializes Twiddle factor table pointer and Bit reversal table pointer.
 */
-arm_status arm_rfft_fast_init_f32(
+arm_status __attribute__ ( (noinline) ) arm_rfft_fast_init_f32(
   arm_rfft_fast_instance_f32 * S,
   uint16_t fftLen)
 {

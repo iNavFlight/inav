@@ -47,6 +47,7 @@
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
+#include "flight/q_tune.h"
 
 #include "io/gps.h"
 
@@ -857,6 +858,10 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
 
     // Don't grow I-term if motors are at their limit
     applyItermLimiting(pidState);
+
+#ifdef USE_Q_TUNE
+    qTunePushSample(axis, pidState->rateTarget, pidState->gyroRate, pidState->errorGyroIf);
+#endif
 
     axisPID[axis] = newOutputLimited;
 

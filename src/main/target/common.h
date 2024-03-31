@@ -61,6 +61,8 @@
 // This is the shortest period in microseconds that the scheduler will allow
 #define SCHEDULER_DELAY_LIMIT           10
 
+#define USE_Q_TUNE
+
 #if defined(MAG_I2C_BUS) || defined(VCM5883_I2C_BUS)
 #define USE_MAG_VCM5883
 #endif
