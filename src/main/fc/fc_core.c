@@ -1012,6 +1012,10 @@ float getFlightTime(void)
     return US2S(flightTime);
 }
 
+void resetFlightTime(void) {
+    flightTime = 0;
+}
+
 float getArmTime(void)
 {
     return US2S(armTime);
