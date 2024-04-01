@@ -286,6 +286,7 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_3,
     OSD_ADSB_WARNING,
     OSD_ADSB_INFO,
+    OSD_BLACKBOX,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -303,11 +304,6 @@ typedef enum {
     OSD_STATS_ENERGY_UNIT_MAH,
     OSD_STATS_ENERGY_UNIT_WH,
 } osd_stats_energy_unit_e;
-
-typedef enum {
-    OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY,
-    OSD_STATS_MIN_VOLTAGE_UNIT_CELL,
-} osd_stats_min_voltage_unit_e;
 
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
@@ -418,8 +414,8 @@ typedef struct osdConfig_s {
 
     uint8_t         units;                              // from osd_unit_e
     uint8_t         stats_energy_unit;                  // from osd_stats_energy_unit_e
-    uint8_t         stats_min_voltage_unit;             // from osd_stats_min_voltage_unit_e
     uint8_t         stats_page_auto_swap_time;          // stats page auto swap interval time (seconds)
+    bool            stats_show_metric_efficiency;       // If true, show metric efficiency as well as for the selected units
 
 #ifdef USE_WIND_ESTIMATOR
     bool            estimations_wind_compensation;      // use wind compensation for estimated remaining flight/distance

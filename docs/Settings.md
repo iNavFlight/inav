@@ -4892,16 +4892,6 @@ Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt
 
 ---
 
-### osd_stats_min_voltage_unit
-
-Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| BATTERY |  |  |
-
----
-
 ### osd_stats_page_auto_swap_time
 
 Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
@@ -4909,6 +4899,16 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 | Default | Min | Max |
 | --- | --- | --- |
 | 3 | 0 | 10 |
+
+---
+
+### osd_stats_show_metric_efficiency
+
+Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
