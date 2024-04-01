@@ -156,4 +156,8 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
+#if defined(SKYSTARSF405HD2)
+#define MAX_PWM_OUTPUT_PORTS    6
+#else
 #define MAX_PWM_OUTPUT_PORTS    4
+#endif
