@@ -1994,7 +1994,7 @@ Calculated 1G of Acc axis Z to use in INS
 
 ### iterm_windup
 
-Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)
+Used to prevent Iterm accumulation on during maneuvers. Iterm accumulation will be dampened when motors are reaching it's limit (when requested motor correction range is close percentage specified by this parameter, when value is set below 50 no accumulation occors when iterm_windup+50 of motor correction range is reached)
 
 | Default | Min | Max |
 | --- | --- | --- |
