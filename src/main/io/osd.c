@@ -5124,7 +5124,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
             tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
             tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
             strcat(emReArmMsg, " **\0");
-            displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));
+            displayWrite(osdDisplayPort, statNameX, row++, OSD_MESSAGE_STR(emReArmMsg));
         }
     }
 
