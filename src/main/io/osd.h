@@ -75,7 +75,6 @@
 #define OSD_MSG_PITOT_FAIL          "PITOT METER FAILURE"
 #define OSD_MSG_HW_FAIL             "HARDWARE FAILURE"
 #define OSD_MSG_FS_EN               "FAILSAFE MODE ENABLED"
-#define OSD_MSG_KILL_SW_EN          "KILLSWITCH MODE ENABLED"
 #define OSD_MSG_NO_RC_LINK          "NO RC LINK"
 #define OSD_MSG_THROTTLE_NOT_LOW    "THROTTLE IS NOT LOW"
 #define OSD_MSG_ROLLPITCH_OFFCENTER "ROLLPITCH NOT CENTERED"
@@ -123,6 +122,7 @@
 #define OSD_MSG_ANGLEHOLD_ROLL      "(ANGLEHOLD ROLL)"
 #define OSD_MSG_ANGLEHOLD_PITCH     "(ANGLEHOLD PITCH)"
 #define OSD_MSG_ANGLEHOLD_LEVEL     "(ANGLEHOLD LEVEL)"
+#define OSD_MSG_MOVE_STICKS         "MOVE STICKS TO ABORT"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
@@ -281,6 +281,11 @@ typedef enum {
     OSD_MULTI_FUNCTION,
     OSD_ODOMETER,
     OSD_PILOT_LOGO,
+    OSD_CUSTOM_ELEMENT_1,
+    OSD_CUSTOM_ELEMENT_2,
+    OSD_CUSTOM_ELEMENT_3,
+    OSD_ADSB_WARNING,
+    OSD_ADSB_INFO,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -456,6 +461,11 @@ typedef struct osdConfig_s {
     bool            use_pilot_logo;                     // If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
     uint8_t         inav_to_pilot_logo_spacing;         // The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
     uint16_t        arm_screen_display_time;            // Length of time the arm screen is displayed
+    #ifdef USE_ADSB
+    uint16_t adsb_distance_warning;                     // in metres
+    uint16_t adsb_distance_alert;                       // in metres
+    uint16_t adsb_ignore_plane_above_me_limit;          // in metres
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

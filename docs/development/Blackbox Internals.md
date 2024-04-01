@@ -566,7 +566,6 @@ The log end marker is an optional Event ("E") frame of type 0xFF whose payload i
 <li> Sticks</li>
 <li> Switch_3D</li>
 <li> Switch</li>
-<li> Killswitch</li>
 <li> Failsafe</li>
 <li> Navigation</li>
 </ol>

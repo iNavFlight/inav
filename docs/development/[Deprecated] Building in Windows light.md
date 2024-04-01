@@ -1,4 +1,8 @@
 # Building in windows light [Deprecated]
+
+> **Building with this method is deprecated and not advised. All Windows users should be using
+Linux Subsystem (WSL) instead**
+
 no cygwin and no path changes
 
 ## Install Git for windows

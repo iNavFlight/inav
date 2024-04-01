@@ -505,8 +505,6 @@ static char * osdArmingDisabledReasonMessage(void)
         //     return OSD_MESSAGE_STR("HARDWARE FAILURE");
         case ARMING_DISABLED_BOXFAILSAFE:
             return OSD_MESSAGE_STR("FAILSAFE ENABLED");
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR("KILLSWITCH ENABLED");
         case ARMING_DISABLED_RC_LINK:
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
@@ -787,7 +785,11 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     timeUs_t currentTimeUs = micros();
     timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
 
-    if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                 1, US2S(efficiencyTimeDelta));
@@ -1058,6 +1060,10 @@ static bool djiFormatMessages(char *buff)
 
                 if (FLIGHT_MODE(MANUAL_MODE)) {
                     messages[messageCount++] = "(MANUAL)";
+                }
+
+                if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                     messages[messageCount++] = "(LAND)";
                 }
             }
         }

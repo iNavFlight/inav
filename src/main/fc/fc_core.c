@@ -238,7 +238,7 @@ static void updateArmingStatus(void)
 
         /* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
         if (isNavLaunchEnabled()) {
-            if (isRollPitchStickDeflected(rcControlsConfig()->control_deadband)) {
+            if (isRollPitchStickDeflected(CONTROL_DEADBAND)) {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
             } else {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
@@ -306,14 +306,6 @@ static void updateArmingStatus(void)
         }
         else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXFAILSAFE);
-        }
-
-        /* CHECK: BOXKILLSWITCH */
-        if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
-            ENABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
-        }
-        else {
-            DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
         }
 
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
@@ -457,7 +449,6 @@ void disarm(disarmReason_t disarmReason)
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
 #endif
-
         beeper(BEEPER_DISARMING);      // emit disarm tone
 
         prearmWasReset = false;
@@ -532,7 +523,7 @@ bool emergInflightRearmEnabled(void)
 //    if (ARMING_FLAG(ARMED) && emergRearmActive && (armTime < (1 * USECS_PER_SEC)))
 //        ENABLE_STATE(IN_FLIGHT_EMERG_REARM); // This stays active for 1 second after re-arming
 
-    if ((lastDisarmReason != DISARM_SWITCH && lastDisarmReason != DISARM_KILLSWITCH) ||
+    if ((lastDisarmReason != DISARM_SWITCH) ||
         (currentTimeMs > US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS)) {
         return false;
     }
