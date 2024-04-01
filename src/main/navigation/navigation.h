@@ -234,7 +234,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type; // from nav_reset_type_e
     uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
-    uint8_t use_gps_velned;
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
@@ -262,6 +261,10 @@ typedef struct positionEstimationConfig_s {
     float baro_epv;     // Baro position error
 
     uint8_t use_gps_no_baro;
+
+#ifdef USE_GPS_FIX_ESTIMATION
+    uint8_t allow_gps_fix_estimation;
+#endif    
 } positionEstimationConfig_t;
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
@@ -300,9 +303,7 @@ typedef struct navConfig_s {
         uint16_t auto_speed;                        // autonomous navigation speed cm/sec
         uint8_t  min_ground_speed;                  // Minimum navigation ground speed [m/s]
         uint16_t max_auto_speed;                    // maximum allowed autonomous navigation speed cm/sec
-        uint16_t max_auto_climb_rate;               // max vertical speed limitation cm/sec
         uint16_t max_manual_speed;                  // manual velocity control max horizontal speed
-        uint16_t max_manual_climb_rate;             // manual velocity control max vertical speed
         uint16_t land_minalt_vspd;                  // Final RTH landing descent rate under minalt
         uint16_t land_maxalt_vspd;                  // RTH landing descent rate target at maxalt
         uint16_t land_slowdown_minalt;              // Altitude to stop lowering descent rate during RTH descend
@@ -327,6 +328,8 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
+        uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
+        uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
 
 #ifdef USE_MR_BRAKING_MODE
         uint16_t braking_speed_threshold;       // above this speed braking routine might kick in
@@ -347,6 +350,7 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;             // Fixed wing max banking angle (deg)
+        uint16_t max_manual_climb_rate;      // manual velocity control max vertical speed
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
         uint16_t cruise_speed;               // Speed at cruise throttle (cm/s), used for time/distance left before RTH
@@ -630,6 +634,9 @@ float geoCalculateMagDeclination(const gpsLocation_t * llh); // degrees units
 // Select absolute or relative altitude based on WP mission flag setting
 geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag);
 
+void calculateAndSetActiveWaypointToLocalPosition(const fpVector3_t *pos);
+bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * waypointBearing);
+
 /* Distance/bearing calculation */
 bool navCalculatePathToDestination(navDestinationPath_t *result, const fpVector3_t * destinationPos);   // NOT USED
 uint32_t distanceToFirstWP(void);
@@ -682,6 +689,7 @@ bool isEstimatedAglTrusted(void);
 
 void checkManualEmergencyLandingControl(bool forcedActivation);
 float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
+bool rthAltControlStickOverrideCheck(uint8_t axis);
 
 int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);

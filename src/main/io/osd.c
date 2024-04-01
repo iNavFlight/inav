@@ -62,6 +62,7 @@
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
 
+#include "io/adsb.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/osd.h"
@@ -549,7 +550,7 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         buff[0] = ' ';
     }
 
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
+#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values  
     if (isBfCompatibleVideoSystem(osdConfig())) {
         totalDigits++;
         digits++;
@@ -644,7 +645,7 @@ static inline void osdFormatFlyTime(char *buff, textAttributes_t *attr)
 }
 
 /**
- * Trim whitespace from string.
+ * Trim whitespace from string. 
  * Used in Stats screen on lines with multiple values.
 */
 char *osdFormatTrimWhiteSpace(char *buff)
@@ -655,7 +656,7 @@ char *osdFormatTrimWhiteSpace(char *buff)
     while(isspace((unsigned char)*buff)) buff++;
 
     // All spaces?
-    if(*buff == 0)
+    if(*buff == 0)  
     return buff;
 
     // Trim trailing spaces
@@ -900,8 +901,6 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_HW_FAIL);
         case ARMING_DISABLED_BOXFAILSAFE:
             return OSD_MESSAGE_STR(OSD_MSG_FS_EN);
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR(OSD_MSG_KILL_SW_EN);
         case ARMING_DISABLED_RC_LINK:
             return OSD_MESSAGE_STR(OSD_MSG_NO_RC_LINK);
         case ARMING_DISABLED_THROTTLE:
@@ -1124,7 +1123,7 @@ void osdCrosshairPosition(uint8_t *x, uint8_t *y)
  * Check if this OSD layout is using scaled or unscaled throttle.
  * If both are used, it will default to scaled.
  */
-bool osdUsingScaledThrottle(void)
+bool osdUsingScaledThrottle(void) 
 {
     bool usingScaledThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_SCALED_THROTTLE_POS]);
     bool usingRCThrottle = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][OSD_THROTTLE_POS]);
@@ -1348,7 +1347,11 @@ static void osdDrawMap(int referenceHeading, uint16_t referenceSym, uint16_t cen
         }
     }
 
-    if (STATE(GPS_FIX)) {
+    if (STATE(GPS_FIX) 
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
 
         int directionToPoi = osdGetHeadingAngle(poiDirection - referenceHeading);
         float poiAngle = DEGREES_TO_RADIANS(directionToPoi);
@@ -1462,7 +1465,11 @@ static void osdDisplayTelemetry(void)
     static uint16_t   trk_bearing   = 0;
 
     if (ARMING_FLAG(ARMED)) {
-      if (STATE(GPS_FIX)){
+      if (STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+            ){
         if (GPS_distanceToHome > 5) {
           trk_bearing = GPS_directionToHome;
           trk_bearing += 360 + 180;
@@ -1825,8 +1832,8 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(buff + 1, getBatteryRemainingCapacity() / 10, 0, 2, 0, 3, false);
 
         if (!unitsDrawn) {
-            buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
-            buff[5] = '\0';
+        buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
+        buff[5] = '\0';
         }
 
         if (batteryUsesCapacityThresholds()) {
@@ -1855,6 +1862,12 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[0] = SYM_SAT_L;
         buff[1] = SYM_SAT_R;
         tfp_sprintf(buff + 2, "%2d", gpsSol.numSat);
+#ifdef USE_GPS_FIX_ESTIMATION
+        if (STATE(GPS_ESTIMATED_FIX)) {
+            strcpy(buff + 2, "ES");
+            TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+        } else 
+#endif
         if (!STATE(GPS_FIX)) {
             hardwareSensorStatus_e sensorStatus = getHwGPSStatus();
             if (sensorStatus == HW_SENSOR_UNAVAILABLE || sensorStatus == HW_SENSOR_UNHEALTHY) {
@@ -1912,7 +1925,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_HOME_DIR:
         {
-            if (STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+            if ((STATE(GPS_FIX) 
+#ifdef USE_GPS_FIX_ESTIMATION
+                    || STATE(GPS_ESTIMATED_FIX)
+#endif                
+                    ) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
                 if (GPS_distanceToHome < (navConfig()->general.min_rth_distance / 100) ) {
                     displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_HOME_NEAR);
                 }
@@ -2089,7 +2106,73 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(&buff[2], centiHDOP, 0, 1, 0, digits, false);
             break;
         }
+#ifdef USE_ADSB
+        case OSD_ADSB_WARNING:
+        {
+            static uint8_t adsblen = 1;
+            uint8_t arrowPositionX = 0;
 
+            for (int i = 0; i <= adsblen; i++) {
+                buff[i] = SYM_BLANK;
+            }
+
+            buff[adsblen]='\0';
+            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
+            adsblen=1;
+            adsbVehicle_t *vehicle = findVehicleClosest();
+
+            if(vehicle != NULL){
+                recalculateVehicle(vehicle);
+            }
+
+            if (
+                    vehicle != NULL &&
+                    (vehicle->calculatedVehicleValues.dist > 0) &&
+                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning) &&
+                    (osdConfig()->adsb_ignore_plane_above_me_limit == 0 || METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit) > vehicle->calculatedVehicleValues.verticalDistance)
+            ){
+                buff[0] = SYM_ADSB;
+                osdFormatDistanceStr(&buff[1], (int32_t)vehicle->calculatedVehicleValues.dist);
+                adsblen = strlen(buff);
+
+                buff[adsblen-1] = SYM_BLANK;
+
+                arrowPositionX = adsblen-1;
+                osdFormatDistanceStr(&buff[adsblen], vehicle->calculatedVehicleValues.verticalDistance);
+                adsblen = strlen(buff)-1;
+
+                if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+            }
+
+            buff[adsblen]='\0';
+            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+
+            if (arrowPositionX > 0){
+                int16_t panHomeDirOffset = 0;
+                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                    panHomeDirOffset = osdGetPanServoOffset();
+                }
+                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowPositionX, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
+            }
+
+            return true;
+        }
+        case OSD_ADSB_INFO:
+        {
+            buff[0] = SYM_ADSB;
+            if(getAdsbStatus()->vehiclesMessagesTotal > 0){
+                tfp_sprintf(buff + 1, "%2d", getActiveVehiclesCount());
+            }else{
+                buff[1] = '-';
+            }
+
+            break;
+        }
+
+#endif
     case OSD_MAP_NORTH:
         {
             static uint16_t drawn = 0;
@@ -2133,8 +2216,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 int8_t blankPos;
                 for (blankPos = 2; blankPos >= 0; blankPos--) {
                     if (buff[blankPos] == SYM_BLANK) {
-                        break;
-                    }
+            break;
+        }
                 }
                 if (blankPos >= 0 || OSD_ALTERNATING_CHOICES(600, 2) == 0) {
                     blankPos = blankPos < 0 ? 0 : blankPos;
@@ -2461,11 +2544,19 @@ static bool osdDrawSingleElement(uint8_t item)
         osdCrosshairPosition(&elemPosX, &elemPosY);
         osdHudDrawCrosshair(osdGetDisplayPortCanvas(), elemPosX, elemPosY);
 
-        if (osdConfig()->hud_homing && STATE(GPS_FIX) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
+        if (osdConfig()->hud_homing && (STATE(GPS_FIX) 
+#ifdef USE_GPS_FIX_ESTIMATION        
+            || STATE(GPS_ESTIMATED_FIX)
+#endif            
+            ) && STATE(GPS_FIX_HOME) && isImuHeadingValid()) {
             osdHudDrawHoming(elemPosX, elemPosY);
         }
 
-        if (STATE(GPS_FIX) && isImuHeadingValid()) {
+        if ((STATE(GPS_FIX) 
+#ifdef USE_GPS_FIX_ESTIMATION        
+            || STATE(GPS_ESTIMATED_FIX)
+#endif            
+            ) && isImuHeadingValid()) {
 
             if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
                     osdHudClear();
@@ -3089,7 +3180,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 digits = 4U;
             }
 #endif
-            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+            if ((STATE(GPS_FIX) 
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif                
+                ) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                         1, US2S(efficiencyTimeDelta));
@@ -3111,7 +3206,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in BFCOMPAT mode
                         buff[digits + 1] = SYM_MAH_MI_1;
                         buff[digits + 2] = '\0';
@@ -3125,7 +3220,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         buff[digits] = SYM_MAH_NM_0;
                         buff[digits + 1] = SYM_MAH_NM_1;
                         buff[digits + 2] = '\0';
@@ -3141,7 +3236,7 @@ static bool osdDrawSingleElement(uint8_t item)
                         tfp_sprintf(buff, "%s%c", buff, SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
-                        buff[0] = buff[1] = buff[2] = buff[3] = '-';
+                        buff[0] = buff[1] = buff[2] = buff[3] = '-';    
                         buff[digits] = SYM_MAH_KM_0;
                         buff[digits + 1] = SYM_MAH_KM_1;
                         buff[digits + 2] = '\0';
@@ -3160,7 +3255,11 @@ static bool osdDrawSingleElement(uint8_t item)
             int32_t value = 0;
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
-            if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+            if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+                    || STATE(GPS_ESTIMATED_FIX)
+#endif
+                ) && gpsSol.groundSpeed > 0) {
                 if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
                     value = pt1FilterApply4(&eFilterState, ((float)getPower() / gpsSol.groundSpeed) / 0.0036f,
                         1, US2S(efficiencyTimeDelta));
@@ -3312,7 +3411,11 @@ static bool osdDrawSingleElement(uint8_t item)
             STATIC_ASSERT(GPS_DEGREES_DIVIDER == OLC_DEG_MULTIPLIER, invalid_olc_deg_multiplier);
             int digits = osdConfig()->plus_code_digits;
             int digitsRemoved = osdConfig()->plus_code_short * 2;
-            if (STATE(GPS_FIX)) {
+            if ((STATE(GPS_FIX) 
+#ifdef USE_GPS_FIX_ESTIMATION
+                    || STATE(GPS_ESTIMATED_FIX)
+#endif
+            )) {
                 olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
             } else {
                 // +codes with > 8 digits have a + at the 9th digit
@@ -3730,7 +3833,7 @@ void osdDrawNextElement(void)
         elementIndex = osdIncElementIndex(elementIndex);
     } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
 
-    // Draw artificial horizon + tracking telemtry last
+    // Draw artificial horizon + tracking telemetry last
     osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
     if (osdConfig()->telemetry>0){
         osdDisplayTelemetry();
@@ -3754,6 +3857,11 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 #ifdef USE_BARO
     .baro_temp_alarm_min = SETTING_OSD_BARO_TEMP_ALARM_MIN_DEFAULT,
     .baro_temp_alarm_max = SETTING_OSD_BARO_TEMP_ALARM_MAX_DEFAULT,
+#endif
+#ifdef USE_ADSB
+    .adsb_distance_warning = SETTING_OSD_ADSB_DISTANCE_WARNING_DEFAULT,
+    .adsb_distance_alert = SETTING_OSD_ADSB_DISTANCE_ALERT_DEFAULT,
+    .adsb_ignore_plane_above_me_limit = SETTING_OSD_ADSB_IGNORE_PLANE_ABOVE_ME_LIMIT_DEFAULT,
 #endif
 #ifdef USE_SERIALRX_CRSF
     .snr_alarm = SETTING_OSD_SNR_ALARM_DEFAULT,
@@ -3994,6 +4102,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
     osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
+    osdLayoutsConfig->item_pos[0][OSD_ADSB_WARNING] = OSD_POS(2, 7);
+    osdLayoutsConfig->item_pos[0][OSD_ADSB_INFO] = OSD_POS(2, 8);
 #if defined(USE_ESC_SENSOR)
     osdLayoutsConfig->item_pos[0][OSD_ESC_RPM] = OSD_POS(1, 2);
     osdLayoutsConfig->item_pos[0][OSD_ESC_TEMPERATURE] = OSD_POS(1, 3);
@@ -4040,7 +4150,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
 
     if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
         logoSpacing++; // Add extra 1 character space between logos, if the odd/even of the OSD cols doesn't match the odd/even of the logo spacing
-    }
+}
 
     // Draw Logo(s)
     if (usePilotLogo && !singular) {
@@ -4068,9 +4178,9 @@ uint8_t drawLogos(bool singular, uint8_t row) {
         logoRow = row;
         if (singular) {
             logo_x = logoColOffset;
-        } else {
+    } else {
             logo_x = logoColOffset + SYM_LOGO_WIDTH + logoSpacing;
-        }
+    }
 
         for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
             for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
@@ -4081,7 +4191,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
     }
 
     return logoRow;
-}
+    }
 
 uint8_t drawStats(uint8_t row) {
 #ifdef USE_STATS
@@ -4311,8 +4421,9 @@ static void osdUpdateStats(void)
 
 static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 {
-    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "KILLSW", "FAILSAFE", "NAV SYS", "LANDING"};
-    uint8_t top = 1;  // Start one line down leaving space at the top of the screen.
+    //We keep "" for backward compatibility with the Blackbox explorer and other potential usages
+    const char * disarmReasonStr[DISARM_REASON_COUNT] = { "UNKNOWN", "TIMEOUT", "STICKS", "SWITCH", "SWITCH", "", "FAILSAFE", "NAV SYS", "LANDING"};
+    uint8_t top = 1;  // Start one line down leaving space at the top of the screen. 
     size_t multiValueLengthOffset = 0;
 
     const uint8_t statNameX = osdDisplayIsHD() ? 11 : 1;
@@ -4341,7 +4452,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                 osdLeftAlignString(buff);
                 strcat(osdFormatTrimWhiteSpace(buff),"/");
                 multiValueLengthOffset = strlen(buff);
-                displayWrite(osdDisplayPort, statValuesX, top, buff);
+                displayWrite(osdDisplayPort, statValuesX, top, buff);            
                 osdGenerateAverageVelocityStr(buff);
                 osdLeftAlignString(buff);
                 displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
@@ -4378,7 +4489,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                     osdLeftAlignString(buff);
                     strcat(osdFormatTrimWhiteSpace(buff), "%/");
                     multiValueLengthOffset = strlen(buff);
-                    displayWrite(osdDisplayPort, statValuesX, top, buff);
+                    displayWrite(osdDisplayPort, statValuesX, top, buff);                
                     itoa(stats.min_rssi_dbm, buff, 10);
                     tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
                     osdLeftAlignString(buff);
@@ -4393,7 +4504,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                     itoa(stats.min_rssi_dbm, buff, 10);
                     tfp_sprintf(buff, "%s%c", buff, SYM_DBM);
                     displayWrite(osdDisplayPort, statValuesX, top++, buff);
-                }
+                } 
 
                 displayWrite(osdDisplayPort, statNameX, top, "MIN LQ           :");
                 itoa(stats.min_lq, buff, 10);
@@ -4405,7 +4516,7 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
                 itoa(stats.min_rssi, buff, 10);
                 strcat(buff, "%");
                 displayWrite(osdDisplayPort, statValuesX, top++, buff);
-            }
+        }
 
         displayWrite(osdDisplayPort, statNameX, top, "FLY TIME         :");
         uint16_t flySeconds = getFlightTime();
@@ -4457,13 +4568,13 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
             bool efficiencyValid = totalDistance >= 10000;
             if (feature(FEATURE_GPS)) {
                 displayWrite(osdDisplayPort, statNameX, top, "AVG EFFICIENCY   :");
-                uint8_t digits = 3U;    // Total number of digits (including decimal point)
-                #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-                    if (isBfCompatibleVideoSystem(osdConfig())) {
-                        // Add one digit so no switch to scaled decimal occurs above 99
-                        digits = 4U;
-                    }
-                #endif
+                    uint8_t digits = 3U;    // Total number of digits (including decimal point)
+                    #ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
+                        if (isBfCompatibleVideoSystem(osdConfig())) {
+                            // Add one digit so no switch to scaled decimal occurs above 99
+                            digits = 4U;
+                        }
+                    #endif
                 switch (osdConfig()->units) {
                     case OSD_UNIT_UK:
                         FALLTHROUGH;
@@ -4552,9 +4663,9 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
         displayWrite(osdDisplayPort, statNameX, top, "MIN/MAX Z G-FORCE:");
         osdFormatCentiNumber(buff, acc_extremes_min * 100, 0, 2, 0, 4, false);
         osdLeftAlignString(buff);
-        strcat(osdFormatTrimWhiteSpace(buff),"/");
-        multiValueLengthOffset = strlen(buff);
-        displayWrite(osdDisplayPort, statValuesX, top, buff);
+        strcat(osdFormatTrimWhiteSpace(buff),"/"); 
+        multiValueLengthOffset = strlen(buff);        
+        displayWrite(osdDisplayPort, statValuesX, top, buff);        
         osdFormatCentiNumber(buff, acc_extremes_max * 100, 0, 2, 0, 3, false);
         osdLeftAlignString(buff);
         displayWrite(osdDisplayPort, statValuesX + multiValueLengthOffset, top++, buff);
@@ -4576,10 +4687,10 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
 // HD arming screen. based on the minimum HD OSD grid size of 50 x 18
 static void osdShowHDArmScreen(void)
 {
-    dateTime_t  dt;
+    dateTime_t dt;
     char        buf[MAX(osdDisplayPort->cols, FORMATTED_DATE_TIME_BUFSIZE)];
     char        buf2[MAX(osdDisplayPort->cols, FORMATTED_DATE_TIME_BUFSIZE)];
-    char        craftNameBuf[MAX_NAME_LENGTH];
+    char craftNameBuf[MAX_NAME_LENGTH];
     char        versionBuf[osdDisplayPort->cols];
     uint8_t     safehomeRow     = 0;
     uint8_t     armScreenRow    = 2; // Start at row 2
@@ -4619,7 +4730,7 @@ static void osdShowHDArmScreen(void)
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
         if (STATE(GPS_FIX_HOME)) {
-            if (osdConfig()->osd_home_position_arm_screen) {
+            if (osdConfig()->osd_home_position_arm_screen){
                 osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
                 osdFormatCoordinate(buf2, SYM_LON, GPS_home.lon);
                 uint8_t gap = 1;
@@ -4675,7 +4786,7 @@ static void osdShowHDArmScreen(void)
     if (armScreenRow < (osdDisplayPort->rows - 4))
         armScreenRow = drawStats(armScreenRow);
 #endif // USE_STATS
-}
+    }
 
 static void osdShowSDArmScreen(void)
 {
@@ -4902,27 +5013,27 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
              // Manual paging stick commands are only applicable to multi-page stats.
              // ******************************
-             // For single-page stats, this effectively disables the ability to cancel the
+             // For single-page stats, this effectively disables the ability to cancel the 
              // automatic paging/updates with the stick commands. So unless stats_page_auto_swap_time
-             // is set to 0 or greater than 4 (saved settings display interval is 5 seconds), then
-             // "Saved Settings" should display if it is active within the refresh interval.
+             // is set to 0 or greater than 4 (saved settings display interval is 5 seconds), then 
+             // "Saved Settings" should display if it is active within the refresh interval. 
              // ******************************
              // With multi-page stats, "Saved Settings" could also be missed if the user
-             // has canceled automatic paging using the stick commands, because that is only
-             // updated when osdShowStats() is called. So, in that case, they would only see
-             // the "Saved Settings" message if they happen to manually change pages using the
-             // stick commands within the interval the message is displayed.
+             // has canceled automatic paging using the stick commands, because that is only 
+             // updated when osdShowStats() is called. So, in that case, they would only see 
+             // the "Saved Settings" message if they happen to manually change pages using the 
+             // stick commands within the interval the message is displayed. 
             bool manualPageUpRequested = false;
-            bool manualPageDownRequested = false;
+            bool manualPageDownRequested = false;       
             if (!statsSinglePageCompatible) {
                 // These methods ensure the paging stick commands are held for a brief period
-                // Otherwise it can result in a race condition where the stats are
-                // updated too quickly and can result in partial blanks, etc.
-                if (osdIsPageUpStickCommandHeld()) {
+                // Otherwise it can result in a race condition where the stats are 
+                // updated too quickly and can result in partial blanks, etc. 
+                if (osdIsPageUpStickCommandHeld()) {               
                     manualPageUpRequested = true;
                     statsAutoPagingEnabled = false;
                 } else if (osdIsPageDownStickCommandHeld()) {
-                    manualPageDownRequested = true;
+                    manualPageDownRequested = true;                
                     statsAutoPagingEnabled = false;
                 }
             }
@@ -4954,7 +5065,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
         }
 
         // Handle events when either "Splash", "Armed" or "Stats" screens are displayed.
-        if ((currentTimeUs > resumeRefreshAt) || OSD_RESUME_UPDATES_STICK_COMMAND) {
+        if ((currentTimeUs > resumeRefreshAt) || OSD_RESUME_UPDATES_STICK_COMMAND) { 
             // Time elapsed or canceled by stick commands.
             // Exit to normal OSD operation.
             displayClearScreen(osdDisplayPort);
@@ -4964,7 +5075,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
             // Continue "Splash", "Armed" or "Stats" screens.
             displayHeartbeat(osdDisplayPort);
         }
-
+        
         return;
     }
 
@@ -5247,7 +5358,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         }
                     }
                     if (isFixedWingLevelTrimActive()) {
-                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
+                            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_AUTOLEVEL);
                     }
                     if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);

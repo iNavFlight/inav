@@ -12,6 +12,9 @@ These boards are well tested with INAV and are known to be of good quality and r
 | [Holybro Kakute H7](https://inavflight.com/shop/s/bg/1914066)       | H7         | KAKUTEH7               | All  | All     | All            | All       | All      | SERIAL, SD     |
 
 It's possible to find more supported and tested boards [here](https://github.com/iNavFlight/inav/wiki/Welcome-to-INAV,-useful-links-and-products)
+
+There is also a [full list of all supported boards](https://github.com/iNavFlight/inav/wiki/Boards,-Targets-and-PWM-allocations).
+
 ### Boards documentation
 
 See the [docs/boards](https://github.com/iNavFlight/inav/tree/master/docs/boards) folder for additional information regards to many targets in INAV, to example help in finding pinout and features. _Feel free to help improve the docs._
