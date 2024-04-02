@@ -76,6 +76,8 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         adaptiveFilterInitialized = 1;
     }
 
+    float combinedRms = 0.0f;
+
     //Compute RMS for each axis
     for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
 
@@ -90,9 +92,13 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
 
         float32_t filteredRms = pt1FilterApply(&rmsFilter[axis], rms);
 
-        DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis, rms * 1000.0f);
-        DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis + XYZ_AXIS_COUNT, filteredRms * 1000.0f);
+        combinedRms += filteredRms;
     }
+
+    combinedRms /= XYZ_AXIS_COUNT;
+    
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, combinedRms);
+
 
 }
 
