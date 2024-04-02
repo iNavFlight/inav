@@ -34,17 +34,34 @@
 #include "common/axis.h"
 #include "common/filter.h"
 #include "build/debug.h"
+#include "fc/config.h"
 
 STATIC_FASTRAM float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
 STATIC_FASTRAM uint8_t adaptiveFilterSampleIndex = 0;
 
 STATIC_FASTRAM pt1Filter_t rmsFilter[XYZ_AXIS_COUNT];
+STATIC_FASTRAM pt1Filter_t hpfFilter[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM uint8_t adaptiveFilterInitialized = 0;
+STATIC_FASTRAM uint8_t hpfFilterInitialized = 0;
 
+/**
+ * This function is called at pid rate, so has to be initialized at PID loop frequency
+*/
 void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) {
+
+    if (!hpfFilterInitialized) {
+        //Initialize the filter
+        for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            pt1FilterInit(&hpfFilter[axis], ADAPTIVE_FILTER_HPF_HZ, US2S(getLooptime()));
+        }
+        hpfFilterInitialized = 1;
+    }
+
+    const float filteredGyro = value - pt1FilterApply(&hpfFilter[index], value);
+
     //Push new sample to the buffer so later we can compute RMS and other measures
-    adaptiveFilterSamples[index][adaptiveFilterSampleIndex] = value;
+    adaptiveFilterSamples[index][adaptiveFilterSampleIndex] = filteredGyro;
     adaptiveFilterSampleIndex = (adaptiveFilterSampleIndex + 1) % ADAPTIVE_FILTER_BUFFER_SIZE;
 }
 
@@ -67,18 +84,9 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         //Use memcpy to copy the samples to the temporary buffer
         memcpy(tempBuffer, adaptiveFilterSamples[axis], sizeof(adaptiveFilterSamples[axis]));
 
-        //Use arm_mean_f32 to compute the mean of the samples
-        float32_t mean;
-        arm_mean_f32(tempBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &mean);
-
-        float32_t normalizedBuffer[ADAPTIVE_FILTER_BUFFER_SIZE];
-
-        //Use arm_offset_f32 to subtract the mean from the samples
-        arm_offset_f32(tempBuffer, -mean, normalizedBuffer, ADAPTIVE_FILTER_BUFFER_SIZE);
-
         //Compute RMS from normalizedBuffer using arm_rms_f32
         float32_t rms;
-        arm_rms_f32(normalizedBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &rms);
+        arm_rms_f32(tempBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &rms);
 
         float32_t filteredRms = pt1FilterApply(&rmsFilter[axis], rms);
 
