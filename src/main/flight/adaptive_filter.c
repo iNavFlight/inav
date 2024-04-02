@@ -66,7 +66,8 @@ void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) 
 }
 
 void adaptiveFilterTask(timeUs_t currentTimeUs) {
-    UNUSED(currentTimeUs);
+    static timeUs_t previousUpdateTimeUs;
+    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
 
     if (!adaptiveFilterInitialized) {
         //Initialize the filter
@@ -96,8 +97,8 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
     }
 
     combinedRms /= XYZ_AXIS_COUNT;
-    
-    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, combinedRms);
+
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, combinedRms * 1000.0f);
 
 
 }
