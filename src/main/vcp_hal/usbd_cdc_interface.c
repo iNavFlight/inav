@@ -370,7 +370,7 @@ uint32_t CDC_Send_FreeBytes(void)
 {
     uint32_t freeBytes;
 
-    ATOMIC_BLOCK(NVIC_BUILD_PRIORITY(6, 0)) {
+    ATOMIC_BLOCK(NVIC_PRIO_VCP) {
         freeBytes = ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
     }
 
