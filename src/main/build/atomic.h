@@ -47,7 +47,6 @@ static inline uint8_t __basepriSetMemRetVal(uint8_t prio)
 #ifdef UNIT_TEST
 #define ATOMIC_BLOCK(prio) {}
 #else
-#pragma GCC diagnostic ignored "-Woverflow"
 #define ATOMIC_BLOCK(prio) for ( uint8_t __basepri_save __attribute__((__cleanup__(__basepriRestoreMem))) = __get_BASEPRI(), \
                                      __ToDo = __basepriSetMemRetVal((prio) << (8U - __NVIC_PRIO_BITS)); __ToDo ; __ToDo = 0 )
 
