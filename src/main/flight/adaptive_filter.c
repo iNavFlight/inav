@@ -37,8 +37,10 @@
 #include "fc/config.h"
 
 STATIC_FASTRAM float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
+STATIC_FASTRAM float32_t adaptiveFilterRaw[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
 STATIC_FASTRAM uint8_t adaptiveFilterSampleIndex = 0;
 
+STATIC_FASTRAM pt1Filter_t stdFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM pt1Filter_t rmsFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM pt1Filter_t hpfFilter[XYZ_AXIS_COUNT];
 
@@ -62,6 +64,7 @@ void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) 
 
     //Push new sample to the buffer so later we can compute RMS and other measures
     adaptiveFilterSamples[index][adaptiveFilterSampleIndex] = filteredGyro;
+    adaptiveFilterRaw[index][adaptiveFilterSampleIndex] = value;
     adaptiveFilterSampleIndex = (adaptiveFilterSampleIndex + 1) % ADAPTIVE_FILTER_BUFFER_SIZE;
 }
 
@@ -73,11 +76,14 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         //Initialize the filter
         for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterInit(&rmsFilter[axis], ADAPTIVE_FILTER_LPF_HZ, 1.0f / ADAPTIVE_FILTER_RATE_HZ);
+            pt1FilterInit(&stdFilter[axis], ADAPTIVE_FILTER_LPF_HZ, 1.0f / ADAPTIVE_FILTER_RATE_HZ);
         }
         adaptiveFilterInitialized = 1;
     }
 
     float combinedRms = 0.0f;
+    float combinedStd = 0.0f;
+    float combinedStdRaw = 0.0f;
 
     //Compute RMS for each axis
     for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -91,18 +97,33 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         float32_t rms;
         arm_rms_f32(tempBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &rms);
 
+        float32_t std;
+        memcpy(tempBuffer, adaptiveFilterRaw[axis], sizeof(adaptiveFilterRaw[axis]));
+        arm_std_f32(tempBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &std);
+
         float32_t filteredRms = pt1FilterApply(&rmsFilter[axis], rms);
+        float32_t filteredStd = pt1FilterApply(&stdFilter[axis], std);
 
         combinedRms += filteredRms;
 
-        DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis, filteredRms * 1000.0f);
+        combinedStd += filteredStd;
+        combinedStdRaw += std;
+
+        if (axis == 0) {
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, rms * 1000.0f);
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 1, filteredRms * 1000.0f);
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 2, std * 1000.0f);
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 3, filteredStd * 1000.0f);
+        }
     }
 
     combinedRms /= XYZ_AXIS_COUNT;
+    combinedStd /= XYZ_AXIS_COUNT;
+    combinedStdRaw /= XYZ_AXIS_COUNT;
 
-    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 3, combinedRms * 1000.0f);
-
-
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 4, combinedRms * 1000.0f);
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 5, combinedStdRaw * 1000.0f);
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 6, combinedStd * 1000.0f);
 }
 
 
