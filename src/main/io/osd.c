@@ -839,7 +839,7 @@ void osdFormatPilotName(char *buff)
 static const char * osdArmingDisabledReasonMessage(void)
 {
     const char *message = NULL;
-    char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+    static char messageBuf[OSD_MESSAGE_LENGTH+1];
 
     switch (isArmingDisabledReason()) {
         case ARMING_DISABLED_FAILSAFE_SYSTEM:
@@ -5665,7 +5665,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
     if (buff != NULL) {
         const char *message = NULL;
-        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)]; //warning: shared buffer. Make sure it is used by single message in code below!
         // We might have up to 5 messages to show.
         const char *messages[5];
         unsigned messageCount = 0;
