@@ -94,11 +94,13 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         float32_t filteredRms = pt1FilterApply(&rmsFilter[axis], rms);
 
         combinedRms += filteredRms;
+
+        DEBUG_SET(DEBUG_ADAPTIVE_FILTER, axis, filteredRms * 1000.0f);
     }
 
     combinedRms /= XYZ_AXIS_COUNT;
 
-    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, combinedRms * 1000.0f);
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 3, combinedRms * 1000.0f);
 
 
 }
