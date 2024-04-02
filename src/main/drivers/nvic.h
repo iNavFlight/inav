@@ -23,6 +23,9 @@
     // Use all available bits for priority and zero bits to sub-priority
     #ifdef USE_HAL_DRIVER
         #define NVIC_PRIORITY_GROUPING NVIC_PRIORITYGROUP_4
+
+        #define NVIC_BUILD_PRIORITY(base,sub) (((((base)<<(4-(7-(NVIC_PRIORITY_GROUPING))))|((sub)&(0x0f>>(7-(NVIC_PRIORITY_GROUPING)))))<<4)&0xf0)
+
     #else
         #define NVIC_PRIORITY_GROUPING NVIC_PriorityGroup_4
     #endif
