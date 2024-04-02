@@ -6,7 +6,7 @@ As many can attest, multirotors and RC models in general can be very dangerous, 
 
 ## Before Installing
 
-Please consult the [Cli](Cli.md), [Controls](Controls.md), [Failsafe](Failsafe.md) and [Modes](Modes.md) 
+Please consult the [Cli](Cli.md), [Controls](Controls.md), [Failsafe](Failsafe.md) and [Modes](https://github.com/iNavFlight/inav/wiki/Modes) 
 pages for further important information.
 
 You are highly advised to use the Receiver tab in the INAV Configurator, making sure your Rx channel 

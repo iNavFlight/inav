@@ -68,9 +68,6 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
-  - name: osd_stats_min_voltage_unit
-    values: ["BATTERY", "CELL"]
-    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
     enum: videoSystem_e
@@ -1203,8 +1200,6 @@ groups:
         default_value: OFF
         field: mixer_config.tailsitterOrientationOffset
         type: bool
-
-
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -2877,10 +2872,10 @@ groups:
         min: 100
         max: 10000
       - name: nav_fw_launch_accel
-        description: "Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s"
+        description: "Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s"
         default_value: 1863
         field: fw.launch_accel_thresh
-        min: 1000
+        min: 1500
         max: 20000
       - name: nav_fw_launch_max_angle
         description: "Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]"
@@ -2900,6 +2895,13 @@ groups:
         field: fw.launch_idle_motor_timer
         min: 0
         max: 60000
+      - name: nav_fw_launch_wiggle_to_wake_idle
+        description: "Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails."
+        field: fw.launch_wiggle_wake_idle
+        type: uint8_t
+        default_value: 0
+        min: 0
+        max: 2
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500
@@ -3168,18 +3170,17 @@ groups:
         field: stats_energy_unit
         table: osd_stats_energy_unit
         type: uint8_t
-      - name: osd_stats_min_voltage_unit
-        description: "Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats."
-        default_value: "BATTERY"
-        field: stats_min_voltage_unit
-        table: osd_stats_min_voltage_unit
-        type: uint8_t
       - name: osd_stats_page_auto_swap_time
         description: "Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0."
         default_value: 3
         field: stats_page_auto_swap_time
         min: 0
         max: 10
+      - name: osd_stats_show_metric_efficiency
+        description: "Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units."
+        default_value: OFF
+        type: bool
+        field: stats_show_metric_efficiency
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
         default_value: 20

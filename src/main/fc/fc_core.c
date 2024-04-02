@@ -499,18 +499,6 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
-uint16_t emergencyInFlightRearmTimeMS(void)
-{
-    uint16_t rearmMS = 0;
-
-    if (STATE(IN_FLIGHT_EMERG_REARM)) {
-        timeMs_t currentTimeMs = millis();
-        rearmMS = (uint16_t)((US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS) - currentTimeMs);
-    }
-
-    return rearmMS;
-}
-
 bool emergInflightRearmEnabled(void)
 {
     /* Emergency rearm allowed within 5s timeout period after disarm if craft still flying */
@@ -884,6 +872,7 @@ static void applyThrottleTiltCompensation(void)
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -902,8 +891,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
         }
     }
 
-    if (armTime > 1 * USECS_PER_SEC) {  
-        // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose
+    if (armTime > 1 * USECS_PER_SEC) {     // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
     }
 
@@ -1022,6 +1010,10 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 float getFlightTime(void)
 {
     return US2S(flightTime);
+}
+
+void resetFlightTime(void) {
+    flightTime = 0;
 }
 
 float getArmTime(void)
