@@ -179,7 +179,7 @@ tables:
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
   - name: dynamic_gyro_notch_mode
-    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
