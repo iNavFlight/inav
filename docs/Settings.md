@@ -4372,6 +4372,16 @@ Use wind estimation for remaining flight time/distance estimation
 
 ---
 
+### osd_estimations_wind_mps
+
+Wind speed estimation in m/s
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_failsafe_switch_layout
 
 If enabled the OSD automatically switches to the first layout during failsafe
