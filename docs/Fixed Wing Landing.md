@@ -36,7 +36,7 @@ The following graphics illustrate the process:
 
 ### The following parameters are set for each landing site (Safefome/LAND waypoint):
 
-All settings can also be conveniently made in the Configurator via Missionplanner.
+All settings can also be conveniently made in the Configurator via Mission Control.
 
 CLI command `fwapproach`:
 `fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level>`
