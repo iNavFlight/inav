@@ -5,6 +5,8 @@
 INAV supports advanced automatic landings for fixed wing aircraft from version 7.1.
 The procedure is based on landings for man-carrying aircraft, so that safe landings at a specific location are possible.
 Supported are landings at safehome after "Return to Home" or at a defined LAND waypoint for missions. 
+Every landing locations can be defined with a target point and 2 different approach headings (colinear to the landing strips) with exclusive direction or opposite directions allowed. 
+This enables up to 4 different approach directions, based on the landing site and surrounding area. 
 
 ## General procedure:
 
