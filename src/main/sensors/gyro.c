@@ -458,7 +458,9 @@ void FAST_CODE NOINLINE gyroFilter(void)
 
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
 
+#ifdef USE_ADAPTIVE_FILTER
         adaptiveFilterPush(axis, gyroADCf);
+#endif
 
 #ifdef USE_DYNAMIC_FILTERS
         if (dynamicGyroNotchState.enabled) {
