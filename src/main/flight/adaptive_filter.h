@@ -31,4 +31,5 @@
 #define ADAPTIVE_FILTER_HPF_HZ 15
 
 void adaptiveFilterPush(const flight_dynamics_index_t index, const float value);
+void adaptiveFilterPushRate(const flight_dynamics_index_t index, const float rate, const uint8_t configRate);
 void adaptiveFilterTask(timeUs_t currentTimeUs);

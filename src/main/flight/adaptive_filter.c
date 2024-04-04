@@ -40,11 +40,20 @@ STATIC_FASTRAM float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_B
 STATIC_FASTRAM uint8_t adaptiveFilterSampleIndex = 0;
 
 STATIC_FASTRAM pt1Filter_t stdFilter[XYZ_AXIS_COUNT];
-STATIC_FASTRAM pt1Filter_t rmsFilter[XYZ_AXIS_COUNT];
 STATIC_FASTRAM pt1Filter_t hpfFilter[XYZ_AXIS_COUNT];
+
+/*
+    We want to run adaptive filter only when UAV is commanded to stay stationary
+    Any rotation request on axis will add noise that we are not interested in as it will
+    automatically cause LPF frequency to be lowered
+*/
+STATIC_FASTRAM float axisAttenuationFactor[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM uint8_t adaptiveFilterInitialized = 0;
 STATIC_FASTRAM uint8_t hpfFilterInitialized = 0;
+
+STATIC_FASTRAM float adaptiveFilterIntegrator;
+STATIC_FASTRAM float adaptiveIntegratorTarget;
 
 /**
  * This function is called at pid rate, so has to be initialized at PID loop frequency
@@ -67,17 +76,27 @@ void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) 
     adaptiveFilterSampleIndex = (adaptiveFilterSampleIndex + 1) % ADAPTIVE_FILTER_BUFFER_SIZE;
 }
 
+void adaptiveFilterPushRate(const flight_dynamics_index_t index, const float rate, const uint8_t configRate) {
+    const float maxRate = configRate * 10.0f;
+    axisAttenuationFactor[index] = scaleRangef(fabsf(rate), 0.0f, maxRate, 1.0f, 0.0f);
+    axisAttenuationFactor[index] = constrainf(axisAttenuationFactor[index], 0.0f, 1.0f);
+}
+
 void adaptiveFilterTask(timeUs_t currentTimeUs) {
-    static timeUs_t previousUpdateTimeUs;
-    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
+    static timeUs_t previousUpdateTimeUs = 0;
 
     if (!adaptiveFilterInitialized) {
+        adaptiveIntegratorTarget = 3.5f;
+        previousUpdateTimeUs = currentTimeUs;
+
         //Initialize the filter
         for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             pt1FilterInit(&stdFilter[axis], ADAPTIVE_FILTER_LPF_HZ, 1.0f / ADAPTIVE_FILTER_RATE_HZ);
         }
         adaptiveFilterInitialized = 1;
     }
+
+    const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
 
     float combinedStd = 0.0f;
 
@@ -92,17 +111,31 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         memcpy(tempBuffer, adaptiveFilterSamples[axis], sizeof(adaptiveFilterSamples[axis]));
         arm_std_f32(tempBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &std);
 
-        float32_t filteredStd = pt1FilterApply(&stdFilter[axis], std);
+        const float filteredStd = pt1FilterApply(&stdFilter[axis], std);
+
+        const float error = filteredStd - adaptiveIntegratorTarget;
+
+        const float adjustedError = error * axisAttenuationFactor[axis];
+
+        const float timeAdjustedError = adjustedError * dT;
+
+        //Put into integrator
+        adaptiveFilterIntegrator += timeAdjustedError;
 
         combinedStd += std;
 
         if (axis == 0) {
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 2, filteredStd * 1000.0f);
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 3, error * 1000.0f);
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 4, adjustedError * 1000.0f);
+            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 5, timeAdjustedError * 1000.0f);
         }
     }
 
     combinedStd /= XYZ_AXIS_COUNT;
 
-    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 6, combinedStd * 1000.0f);
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, combinedStd * 1000.0f);
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 1, adaptiveFilterIntegrator);
 }
 
 
