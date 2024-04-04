@@ -85,6 +85,7 @@ void adaptiveFilterPushRate(const flight_dynamics_index_t index, const float rat
 void adaptiveFilterTask(timeUs_t currentTimeUs) {
     static timeUs_t previousUpdateTimeUs = 0;
 
+    //Initialization procedure, filter setup etc.
     if (!adaptiveFilterInitialized) {
         adaptiveIntegratorTarget = 3.5f;
         previousUpdateTimeUs = currentTimeUs;
@@ -96,7 +97,9 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         adaptiveFilterInitialized = 1;
     }
 
+    //Prepare time delta to normalize time factor of the integrator 
     const float dT = US2S(currentTimeUs - previousUpdateTimeUs);
+    previousUpdateTimeUs = currentTimeUs;
 
     float combinedStd = 0.0f;
 
