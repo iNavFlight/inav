@@ -35,6 +35,7 @@
 #include "common/filter.h"
 #include "build/debug.h"
 #include "fc/config.h"
+#include "sensors/gyro.h"
 
 STATIC_FASTRAM float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
 STATIC_FASTRAM uint8_t adaptiveFilterSampleIndex = 0;
@@ -51,6 +52,12 @@ STATIC_FASTRAM float axisAttenuationFactor[XYZ_AXIS_COUNT];
 
 STATIC_FASTRAM uint8_t adaptiveFilterInitialized = 0;
 STATIC_FASTRAM uint8_t hpfFilterInitialized = 0;
+
+//Defines if current, min and max  values for the filter were set and filter is ready to work
+STATIC_FASTRAM uint8_t targetsSet = 0;
+STATIC_FASTRAM float currentLpf;
+STATIC_FASTRAM float minLpf;
+STATIC_FASTRAM float maxLpf; 
 
 STATIC_FASTRAM float adaptiveFilterIntegrator;
 STATIC_FASTRAM float adaptiveIntegratorTarget;
@@ -82,7 +89,24 @@ void adaptiveFilterPushRate(const flight_dynamics_index_t index, const float rat
     axisAttenuationFactor[index] = constrainf(axisAttenuationFactor[index], 0.0f, 1.0f);
 }
 
+void adaptiveFilterResetIntegrator(void) {
+    adaptiveFilterIntegrator = 0.0f;
+}
+
+void adaptiveFilterSetDefaultFrequency(int lpf, int min, int max) {
+    currentLpf = lpf;
+    minLpf = min;
+    maxLpf = max;
+    targetsSet = 1;
+}
+
 void adaptiveFilterTask(timeUs_t currentTimeUs) {
+
+    //If we don't have current, min and max values for the filter, we can't run it yet
+    if (!targetsSet) {
+        return;
+    }
+
     static timeUs_t previousUpdateTimeUs = 0;
 
     //Initialization procedure, filter setup etc.
@@ -127,18 +151,37 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
 
         combinedStd += std;
 
-        if (axis == 0) {
-            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 2, filteredStd * 1000.0f);
-            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 3, error * 1000.0f);
-            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 4, adjustedError * 1000.0f);
-            DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 5, timeAdjustedError * 1000.0f);
-        }
+        // if (axis == 0) {
+        //     DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 2, filteredStd * 1000.0f);
+        //     DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 3, error * 1000.0f);
+        //     DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 4, adjustedError * 1000.0f);
+        //     DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 5, timeAdjustedError * 1000.0f);
+        // }
     }
+
+    //TODO filter gets updated only when ARMED
+
+    if (adaptiveFilterIntegrator > ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD) {
+        //In this case there is too much noise, we need to lower the LPF frequency
+        currentLpf = constrainf(currentLpf - 1.0f, minLpf, maxLpf);
+        gyroUpdateDynamicLpf(currentLpf);
+        adaptiveFilterResetIntegrator();
+    } else if (adaptiveFilterIntegrator < -ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD) {
+        //In this case there is too little noise, we can to increase the LPF frequency
+        currentLpf = constrainf(currentLpf + 1.0f, minLpf, maxLpf);
+        gyroUpdateDynamicLpf(currentLpf);
+        adaptiveFilterResetIntegrator();
+    }
+
+    // if (ARMING_FLAG(ARMED)) {
+    //     // 
+    // }
 
     combinedStd /= XYZ_AXIS_COUNT;
 
     DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 0, combinedStd * 1000.0f);
     DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 1, adaptiveFilterIntegrator);
+    DEBUG_SET(DEBUG_ADAPTIVE_FILTER, 2, currentLpf);
 }
 
 

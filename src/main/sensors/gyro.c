@@ -264,6 +264,10 @@ static void gyroInitFilters(void)
     //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
     initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_type, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
+#ifdef USE_ADAPTIVE_FILTER
+    adaptiveFilterSetDefaultFrequency(gyroConfig()->gyro_main_lpf_hz, 50, 150);
+#endif
+
 #ifdef USE_GYRO_KALMAN
     if (gyroConfig()->kalmanEnabled) {
         gyroKalmanInitialize(gyroConfig()->kalman_q);
