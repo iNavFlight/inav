@@ -64,7 +64,6 @@ extern dynamicGyroNotchState_t dynamicGyroNotchState;
 
 typedef struct gyroConfig_s {
     uint16_t looptime;                      // imu loop time in us
-    uint8_t  gyro_lpf;                      // gyro LPF setting - values are driver specific, in case of invalid number, a reasonable default ~30-40HZ is chosen.
     uint16_t  gyro_anti_aliasing_lpf_hz;
 #ifdef USE_DUAL_GYRO
     uint8_t  gyro_to_use;

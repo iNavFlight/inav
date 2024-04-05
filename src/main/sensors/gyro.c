@@ -98,7 +98,6 @@ EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState
 PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 8);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
-    .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
     .looptime = SETTING_LOOPTIME_DEFAULT,
 #ifdef USE_DUAL_GYRO
@@ -282,7 +281,7 @@ bool gyroInit(void)
     sensorsSet(SENSOR_GYRO);
 
     // Driver initialisation
-    gyroDev[0].lpf = gyroConfig()->gyro_lpf;
+    gyroDev[0].lpf = GYRO_LPF_256HZ;
     gyroDev[0].requestedSampleIntervalUs = TASK_GYRO_LOOPTIME;
     gyroDev[0].sampleRateIntervalUs = TASK_GYRO_LOOPTIME;
     gyroDev[0].initFn(&gyroDev[0]);
