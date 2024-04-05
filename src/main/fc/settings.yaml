@@ -227,22 +227,12 @@ groups:
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
-      - name: gyro_anti_aliasing_lpf_type
-        description: "Specifies the type of the software LPF of the gyro signals."
-        default_value: "PT1"
-        field: gyro_anti_aliasing_lpf_type
-        table: filter_type
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
         field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_main_lpf_type
-        description: "Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
-        default_value: BIQUAD
-        field: gyro_main_lpf_type
-        table: filter_type
       - name: gyro_use_dyn_lpf
         description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
         default_value: OFF

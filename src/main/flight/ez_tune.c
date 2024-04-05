@@ -77,11 +77,9 @@ void ezTuneUpdate(void) {
 
         //Set main gyro filter
         gyroConfigMutable()->gyro_main_lpf_hz = ezTune()->filterHz;
-        gyroConfigMutable()->gyro_main_lpf_type = FILTER_PT1;
 
         //Set anti-aliasing filter
         gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT;
-        gyroConfigMutable()->gyro_anti_aliasing_lpf_type = FILTER_PT1;
 
         //Enable Smith predictor
         pidProfileMutable()->smithPredictorDelay = computePt1FilterDelayMs(ezTune()->filterHz);
