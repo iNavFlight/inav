@@ -1346,48 +1346,49 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_ESC_SENSOR_DATA:
-            uint16_t protoRpm = 0;
-            int16_t protoTemp = 0;
+            {
+                uint16_t protoRpm = 0;
+                int16_t protoTemp = 0;
 
-#if defined(USE_ESC_SENSOR)
-            if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
-                uint32_t motorRpmAcc = 0;
-                int32_t motorTempAcc = 0;
+    #if defined(USE_ESC_SENSOR)
+                if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+                    uint32_t motorRpmAcc = 0;
+                    int32_t motorTempAcc = 0;
 
-                for (int i = 0; i < getMotorCount(); i++) {
-                    const escSensorData_t * escSensor = getEscTelemetry(i);
-                    motorRpmAcc += escSensor->rpm;
-                    motorTempAcc += escSensor->temperature;
+                    for (int i = 0; i < getMotorCount(); i++) {
+                        const escSensorData_t * escSensor = getEscTelemetry(i);
+                        motorRpmAcc += escSensor->rpm;
+                        motorTempAcc += escSensor->temperature;
+                    }
+
+                    protoRpm = motorRpmAcc / getMotorCount();
+                    protoTemp = motorTempAcc / getMotorCount();
+                }
+    #endif
+
+                switch (djiOsdConfig()->esc_temperature_source) {
+                    // This is ESC temperature (as intended)
+                    case DJI_OSD_TEMP_ESC:
+                        // No-op, temperature is already set to ESC
+                        break;
+
+                    // Re-purpose the field for core temperature
+                    case DJI_OSD_TEMP_CORE:
+                        getIMUTemperature(&protoTemp);
+                        protoTemp = protoTemp / 10;
+                        break;
+
+                    // Re-purpose the field for baro temperature
+                    case DJI_OSD_TEMP_BARO:
+                        getBaroTemperature(&protoTemp);
+                        protoTemp = protoTemp / 10;
+                        break;
                 }
 
-                protoRpm = motorRpmAcc / getMotorCount();
-                protoTemp = motorTempAcc / getMotorCount();
+                // No motor count, just raw temp and RPM data
+                sbufWriteU8(dst, protoTemp);
+                sbufWriteU16(dst, protoRpm);
             }
-#endif
-
-            switch (djiOsdConfig()->esc_temperature_source) {
-                // This is ESC temperature (as intended)
-                case DJI_OSD_TEMP_ESC:
-                    // No-op, temperature is already set to ESC
-                    break;
-
-                // Re-purpose the field for core temperature
-                case DJI_OSD_TEMP_CORE:
-                    getIMUTemperature(&protoTemp);
-                    protoTemp = protoTemp / 10;
-                    break;
-
-                // Re-purpose the field for baro temperature
-                case DJI_OSD_TEMP_BARO:
-                    getBaroTemperature(&protoTemp);
-                    protoTemp = protoTemp / 10;
-                    break;
-            }
-
-            // No motor count, just raw temp and RPM data
-            sbufWriteU8(dst, protoTemp);
-            sbufWriteU16(dst, protoRpm);
-            
             break;
 
         case DJI_MSP_OSD_CONFIG:
