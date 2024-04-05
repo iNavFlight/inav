@@ -1602,16 +1602,6 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
-### gyro_hardware_lpf
-
-Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 256HZ |  |  |
-
----
-
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
