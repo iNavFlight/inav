@@ -223,7 +223,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 10);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 void osdStartedSaveProcess(void) {
@@ -499,8 +499,16 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
             break;
         default:
         case OSD_UNIT_METRIC:
-            centivalue = CMSEC_TO_CENTIKPH(ws);
-            suffix = SYM_KMH;
+            if (osdConfig()->estimations_wind_mps)
+            {
+                centivalue = ws;
+                suffix = SYM_MS;
+            }
+            else
+            {
+                centivalue = CMSEC_TO_CENTIKPH(ws);
+                suffix = SYM_KMH;
+            }
             break;
     }
 
@@ -839,7 +847,7 @@ void osdFormatPilotName(char *buff)
 static const char * osdArmingDisabledReasonMessage(void)
 {
     const char *message = NULL;
-    char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+    static char messageBuf[OSD_MESSAGE_LENGTH+1];
 
     switch (isArmingDisabledReason()) {
         case ARMING_DISABLED_FAILSAFE_SYSTEM:
@@ -5665,7 +5673,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
     if (buff != NULL) {
         const char *message = NULL;
-        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
+        char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)]; //warning: shared buffer. Make sure it is used by single message in code below!
         // We might have up to 5 messages to show.
         const char *messages[5];
         unsigned messageCount = 0;

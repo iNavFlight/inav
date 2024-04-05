@@ -49,12 +49,6 @@ typedef enum {
 
 typedef enum {
     DYNAMIC_NOTCH_MODE_2D = 0,
-    DYNAMIC_NOTCH_MODE_R,
-    DYNAMIC_NOTCH_MODE_P,
-    DYNAMIC_NOTCH_MODE_Y,
-    DYNAMIC_NOTCH_MODE_RP,
-    DYNAMIC_NOTCH_MODE_RY,
-    DYNAMIC_NOTCH_MODE_PY,
     DYNAMIC_NOTCH_MODE_3D
 } dynamicGyroNotchMode_e;
 

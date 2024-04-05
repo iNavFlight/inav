@@ -7,7 +7,7 @@ tables:
     values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
@@ -179,7 +179,7 @@ tables:
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
   - name: dynamic_gyro_notch_mode
-    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
@@ -3500,6 +3500,12 @@ groups:
         default_value: ON
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
+        type: bool
+      - name: osd_estimations_wind_mps
+        description: "Wind speed estimation in m/s"
+        default_value: OFF
+        condition: USE_WIND_ESTIMATOR
+        field: estimations_wind_mps
         type: bool
 
       - name: osd_failsafe_switch_layout

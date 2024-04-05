@@ -418,6 +418,7 @@ typedef struct osdConfig_s {
 
 #ifdef USE_WIND_ESTIMATOR
     bool            estimations_wind_compensation;      // use wind compensation for estimated remaining flight/distance
+    bool            estimations_wind_mps;               // wind speed estimation in m/s
 #endif
     uint8_t         coordinate_digits;
     bool            osd_failsafe_switch_layout;
