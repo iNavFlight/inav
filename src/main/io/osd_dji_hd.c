@@ -1411,7 +1411,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_soft_notch_hz_2
             sbufWriteU16(dst, 1);                                       // BF: gyroConfig()->gyro_soft_notch_cutoff_2
             sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
-            sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
+            sbufWriteU8(dst, GYRO_LPF_256HZ);                           // BF: gyroConfig()->gyro_hardware_lpf);
             sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf
             sbufWriteU16(dst, gyroConfig()->gyro_main_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
             sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_lowpass2_hz);

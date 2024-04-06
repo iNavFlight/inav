@@ -1915,9 +1915,8 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_type", "%d",                  pidProfile()->dterm_lpf_type);
         BLACKBOX_PRINT_HEADER_LINE("deadband", "%d",                        rcControlsConfig()->deadband);
         BLACKBOX_PRINT_HEADER_LINE("yaw_deadband", "%d",                    rcControlsConfig()->yaw_deadband);
-        BLACKBOX_PRINT_HEADER_LINE("gyro_lpf", "%d",                        gyroConfig()->gyro_lpf);
+        BLACKBOX_PRINT_HEADER_LINE("gyro_lpf", "%d",                        GYRO_LPF_256HZ);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_hz", "%d",                     gyroConfig()->gyro_main_lpf_hz);
-        BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_type", "%d",                   gyroConfig()->gyro_main_lpf_type);
 #ifdef USE_DYNAMIC_FILTERS
         BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchQ", "%d",               gyroConfig()->dynamicGyroNotchQ);
         BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchMinHz", "%d",           gyroConfig()->dynamicGyroNotchMinHz);

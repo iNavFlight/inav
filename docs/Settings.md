@@ -1562,16 +1562,6 @@ Gyro processing anti-aliasing filter cutoff frequency. In normal operation this 
 
 ---
 
-### gyro_anti_aliasing_lpf_type
-
-Specifies the type of the software LPF of the gyro signals.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| PT1 |  |  |
-
----
-
 ### gyro_dyn_lpf_curve_expo
 
 Expo value for the throttle-to-frequency mapping for Dynamic LPF
@@ -1602,16 +1592,6 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
-### gyro_hardware_lpf
-
-Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 256HZ |  |  |
-
----
-
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -1619,16 +1599,6 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 | Default | Min | Max |
 | --- | --- | --- |
 | 60 | 0 | 500 |
-
----
-
-### gyro_main_lpf_type
-
-Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| BIQUAD |  |  |
 
 ---
 

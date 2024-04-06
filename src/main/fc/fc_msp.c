@@ -1295,7 +1295,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, 0);
-        sbufWriteU8(dst, gyroConfig()->gyro_lpf);
+        sbufWriteU8(dst, GYRO_LPF_256HZ);
         sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
@@ -2335,7 +2335,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             sbufReadU16(src); //Legacy yaw_jump_prevention_limit
-            gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
+            sbufReadU8(src); // was gyro lpf
             accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
