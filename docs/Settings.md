@@ -672,9 +672,9 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 
 ---
 
-### disarm_kill_switch
+### disarm_always
 
-Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel.
+Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2964,11 +2964,11 @@ Max. tailwind (in cm/s) if no landing direction with downwind is available
 
 ### nav_fw_launch_accel
 
-Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s
+Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1863 | 1000 | 20000 |
+| 1863 | 1500 | 20000 |
 
 ---
 
@@ -3119,6 +3119,16 @@ Forward velocity threshold for swing-launch detection [cm/s]
 | Default | Min | Max |
 | --- | --- | --- |
 | 300 | 100 | 10000 |
+
+---
+
+### nav_fw_launch_wiggle_to_wake_idle
+
+Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2 |
 
 ---
 
@@ -4362,6 +4372,16 @@ Use wind estimation for remaining flight time/distance estimation
 
 ---
 
+### osd_estimations_wind_mps
+
+Wind speed estimation in m/s
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_failsafe_switch_layout
 
 If enabled the OSD automatically switches to the first layout during failsafe
@@ -4882,16 +4902,6 @@ Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt
 
 ---
 
-### osd_stats_min_voltage_unit
-
-Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| BATTERY |  |  |
-
----
-
 ### osd_stats_page_auto_swap_time
 
 Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
@@ -4899,6 +4909,16 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 | Default | Min | Max |
 | --- | --- | --- |
 | 3 | 0 | 10 |
+
+---
+
+### osd_stats_show_metric_efficiency
+
+Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

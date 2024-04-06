@@ -1,5 +1,7 @@
 # Building with Docker
 
+> **On Windows building with this method is not advised and should be used only if Windows Linux Subsystem can not be used. In all other cases all Windows users should be using Linux Subsystem (WSL) instead**
+
 Building with [Docker](https://www.docker.com/) is remarkably easy: an isolated container will hold all the needed compilation tools so that they won't interfere with your system and you won't need to install and manage them by yourself. You'll only need to have Docker itself [installed](https://docs.docker.com/install/).
 
 The first time that you'll run a build it will take a little more time than following executions since it will be building its base image first. Once this initial process is completed, the firmware will be always built immediately.

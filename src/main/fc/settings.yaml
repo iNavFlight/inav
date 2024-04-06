@@ -7,7 +7,7 @@ tables:
     values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
@@ -68,9 +68,6 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
-  - name: osd_stats_min_voltage_unit
-    values: ["BATTERY", "CELL"]
-    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
     enum: videoSystem_e
@@ -182,7 +179,7 @@ tables:
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
   - name: dynamic_gyro_notch_mode
-    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
@@ -1204,8 +1201,6 @@ groups:
         field: mixer_config.tailsitterOrientationOffset
         type: bool
 
-
-
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
     members:
@@ -1496,8 +1491,8 @@ groups:
         description: "Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured."
         default_value: OFF
         type: bool
-      - name: disarm_kill_switch
-        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel."
+      - name: disarm_always
+        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low."
         default_value: ON
         type: bool
       - name: switch_disarm_delay
@@ -2877,10 +2872,10 @@ groups:
         min: 100
         max: 10000
       - name: nav_fw_launch_accel
-        description: "Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s"
+        description: "Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s"
         default_value: 1863
         field: fw.launch_accel_thresh
-        min: 1000
+        min: 1500
         max: 20000
       - name: nav_fw_launch_max_angle
         description: "Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]"
@@ -2900,6 +2895,13 @@ groups:
         field: fw.launch_idle_motor_timer
         min: 0
         max: 60000
+      - name: nav_fw_launch_wiggle_to_wake_idle
+        description: "Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails."
+        field: fw.launch_wiggle_wake_idle
+        type: uint8_t
+        default_value: 0
+        min: 0
+        max: 2
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500
@@ -3168,18 +3170,17 @@ groups:
         field: stats_energy_unit
         table: osd_stats_energy_unit
         type: uint8_t
-      - name: osd_stats_min_voltage_unit
-        description: "Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats."
-        default_value: "BATTERY"
-        field: stats_min_voltage_unit
-        table: osd_stats_min_voltage_unit
-        type: uint8_t
       - name: osd_stats_page_auto_swap_time
         description: "Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0."
         default_value: 3
         field: stats_page_auto_swap_time
         min: 0
         max: 10
+      - name: osd_stats_show_metric_efficiency
+        description: "Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units."
+        default_value: OFF
+        type: bool
+        field: stats_show_metric_efficiency
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
         default_value: 20
@@ -3499,6 +3500,12 @@ groups:
         default_value: ON
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
+        type: bool
+      - name: osd_estimations_wind_mps
+        description: "Wind speed estimation in m/s"
+        default_value: OFF
+        condition: USE_WIND_ESTIMATOR
+        field: estimations_wind_mps
         type: bool
 
       - name: osd_failsafe_switch_layout
