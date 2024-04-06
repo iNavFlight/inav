@@ -752,16 +752,6 @@ Re-purpose the craft name field for messages.
 
 ---
 
-### dji_workarounds
-
-Enables workarounds for different versions of MSP protocol used
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 0 | 255 |
-
----
-
 ### dshot_beeper_enabled
 
 Whether using DShot motors as beepers is enabled
@@ -1572,16 +1562,6 @@ Gyro processing anti-aliasing filter cutoff frequency. In normal operation this 
 
 ---
 
-### gyro_anti_aliasing_lpf_type
-
-Specifies the type of the software LPF of the gyro signals.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| PT1 |  |  |
-
----
-
 ### gyro_dyn_lpf_curve_expo
 
 Expo value for the throttle-to-frequency mapping for Dynamic LPF
@@ -1612,16 +1592,6 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
-### gyro_hardware_lpf
-
-Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 256HZ |  |  |
-
----
-
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -1629,16 +1599,6 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 | Default | Min | Max |
 | --- | --- | --- |
 | 60 | 0 | 500 |
-
----
-
-### gyro_main_lpf_type
-
-Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| BIQUAD |  |  |
 
 ---
 
@@ -2964,11 +2924,11 @@ Max. tailwind (in cm/s) if no landing direction with downwind is available
 
 ### nav_fw_launch_accel
 
-Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s
+Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1863 | 1000 | 20000 |
+| 1863 | 1500 | 20000 |
 
 ---
 
@@ -3119,6 +3079,16 @@ Forward velocity threshold for swing-launch detection [cm/s]
 | Default | Min | Max |
 | --- | --- | --- |
 | 300 | 100 | 10000 |
+
+---
+
+### nav_fw_launch_wiggle_to_wake_idle
+
+Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 2 |
 
 ---
 
@@ -4362,6 +4332,16 @@ Use wind estimation for remaining flight time/distance estimation
 
 ---
 
+### osd_estimations_wind_mps
+
+Wind speed estimation in m/s
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_failsafe_switch_layout
 
 If enabled the OSD automatically switches to the first layout during failsafe
@@ -4882,16 +4862,6 @@ Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt
 
 ---
 
-### osd_stats_min_voltage_unit
-
-Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| BATTERY |  |  |
-
----
-
 ### osd_stats_page_auto_swap_time
 
 Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
@@ -4899,6 +4869,16 @@ Auto swap display time interval between disarm stats pages (seconds). Reverts to
 | Default | Min | Max |
 | --- | --- | --- |
 | 3 | 0 | 10 |
+
+---
+
+### osd_stats_show_metric_efficiency
+
+Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

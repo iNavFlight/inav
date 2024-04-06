@@ -422,7 +422,6 @@ static const CMS_Menu cmsx_menuProfileOther = {
 static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- FILTERING  --", profileIndexString),
-    OSD_SETTING_ENTRY("HARDWARE LPF", SETTING_GYRO_HARDWARE_LPF),
     OSD_SETTING_ENTRY("GYRO MAIN", SETTING_GYRO_MAIN_LPF_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
 #ifdef USE_DYNAMIC_FILTERS

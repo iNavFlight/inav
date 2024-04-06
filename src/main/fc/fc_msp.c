@@ -1180,26 +1180,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
-    case MSP_OSD_CONFIG:
-#ifdef USE_OSD
-        sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
-        // send video system (AUTO/PAL/NTSC)
-        sbufWriteU8(dst, osdConfig()->video_system);
-        sbufWriteU8(dst, osdConfig()->units);
-        sbufWriteU8(dst, osdConfig()->rssi_alarm);
-        sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
-        sbufWriteU16(dst, osdConfig()->time_alarm);
-        sbufWriteU16(dst, osdConfig()->alt_alarm);
-        sbufWriteU16(dst, osdConfig()->dist_alarm);
-        sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
-        for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdLayoutsConfig()->item_pos[0][i]);
-        }
-#else
-        sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
-#endif
-        break;
-
     case MSP_3D:
         sbufWriteU16(dst, reversibleMotorsConfig()->deadband_low);
         sbufWriteU16(dst, reversibleMotorsConfig()->deadband_high);
@@ -1282,7 +1262,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, pidProfile()->heading_hold_rate_limit);
         sbufWriteU8(dst, HEADING_HOLD_ERROR_LPF_FREQ);
         sbufWriteU16(dst, 0);
-        sbufWriteU8(dst, gyroConfig()->gyro_lpf);
+        sbufWriteU8(dst, GYRO_LPF_256HZ);
         sbufWriteU8(dst, accelerometerConfig()->acc_lpf_hz);
         sbufWriteU8(dst, 0); //reserved
         sbufWriteU8(dst, 0); //reserved
@@ -1391,18 +1371,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0);
         sbufWriteU16(dst, 0);
     #endif
-
-        break;
-
-    case MSP_POSITION_ESTIMATION_CONFIG:
-
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_baro_p * 100); //     inav_w_z_baro_p float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_p * 100);  // 2   inav_w_z_gps_p  float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_v * 100);  // 2   inav_w_z_gps_v  float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_p * 100); // 2   inav_w_xy_gps_p float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_v * 100); // 2   inav_w_xy_gps_v float as value * 100
-        sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1
-        sbufWriteU8(dst, 1);    // 1   inav_use_gps_velned ON/OFF
 
         break;
 
@@ -2304,7 +2272,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             pidProfileMutable()->heading_hold_rate_limit = sbufReadU8(src);
             sbufReadU8(src); //HEADING_HOLD_ERROR_LPF_FREQ
             sbufReadU16(src); //Legacy yaw_jump_prevention_limit
-            gyroConfigMutable()->gyro_lpf = sbufReadU8(src);
+            sbufReadU8(src); // was gyro lpf
             accelerometerConfigMutable()->acc_lpf_hz = sbufReadU8(src);
             sbufReadU8(src); //reserved
             sbufReadU8(src); //reserved
@@ -2437,19 +2405,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
-    case MSP_SET_POSITION_ESTIMATION_CONFIG:
-        if (dataSize == 12) {
-            positionEstimationConfigMutable()->w_z_baro_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_z_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_z_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_xy_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_xy_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            gpsConfigMutable()->gpsMinSats = constrain(sbufReadU8(src), 5, 10);
-            sbufReadU8(src); // was positionEstimationConfigMutable()->use_gps_velned
-        } else
-            return MSP_RESULT_ERROR;
-        break;
-
     case MSP_RESET_CONF:
         if (!ARMING_FLAG(ARMED)) {
             suspendRxSignal();
@@ -2508,36 +2463,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 
 #ifdef USE_OSD
-    case MSP_SET_OSD_CONFIG:
-        sbufReadU8Safe(&tmp_u8, src);
-        // set all the other settings
-        if ((int8_t)tmp_u8 == -1) {
-            if (dataSize >= 10) {
-                osdConfigMutable()->video_system = sbufReadU8(src);
-                osdConfigMutable()->units = sbufReadU8(src);
-                osdConfigMutable()->rssi_alarm = sbufReadU8(src);
-                currentBatteryProfileMutable->capacity.warning = sbufReadU16(src);
-                osdConfigMutable()->time_alarm = sbufReadU16(src);
-                osdConfigMutable()->alt_alarm = sbufReadU16(src);
-                // Won't be read if they weren't provided
-                sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
-                sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
-            } else
-                return MSP_RESULT_ERROR;
-        } else {
-            // set a position setting
-            if ((dataSize >= 3) && (tmp_u8 < OSD_ITEM_COUNT)) // tmp_u8 == addr
-                osdLayoutsConfigMutable()->item_pos[0][tmp_u8] = sbufReadU16(src);
-            else
-                return MSP_RESULT_ERROR;
-        }
-        // Either a element position change or a units change needs
-        // a full redraw, since an element can change size significantly
-        // and the old position or the now unused space due to the
-        // size change need to be erased.
-        osdStartFullRedraw();
-        break;
-
     case MSP_OSD_CHAR_WRITE:
         if (dataSize >= 55) {
             osdCharacter_t chr;

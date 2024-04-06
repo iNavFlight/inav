@@ -110,9 +110,6 @@
 #define MSP_CALIBRATION_DATA            14
 #define MSP_SET_CALIBRATION_DATA        15
 
-#define MSP_POSITION_ESTIMATION_CONFIG  16
-#define MSP_SET_POSITION_ESTIMATION_CONFIG  17
-
 #define MSP_WP_MISSION_LOAD             18      // Load mission from NVRAM
 #define MSP_WP_MISSION_SAVE             19      // Save mission to NVRAM
 #define MSP_WP_GETINFO                  20
@@ -188,9 +185,6 @@
 
 #define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
 #define MSP_SET_TRANSPONDER_CONFIG      83 //in message          Set transponder settings
-
-#define MSP_OSD_CONFIG                  84 //out message         Get osd settings - betaflight
-#define MSP_SET_OSD_CONFIG              85 //in message          Set osd settings - betaflight
 
 #define MSP_OSD_CHAR_READ               86 //out message         Get osd settings - betaflight
 #define MSP_OSD_CHAR_WRITE              87 //in message          Set osd settings - betaflight
