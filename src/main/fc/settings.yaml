@@ -4008,12 +4008,6 @@ groups:
     headers: ["io/osd_dji_hd.h"]
     condition: USE_DJI_HD_OSD
     members:
-        - name: dji_workarounds
-          description: "Enables workarounds for different versions of MSP protocol used"
-          field: proto_workarounds
-          min: 0
-          max: UINT8_MAX
-          default_value: 1
         - name: dji_use_name_for_messages
           description: "Re-purpose the craft name field for messages."
           default_value: ON

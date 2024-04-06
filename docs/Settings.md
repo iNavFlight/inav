@@ -752,16 +752,6 @@ Re-purpose the craft name field for messages.
 
 ---
 
-### dji_workarounds
-
-Enables workarounds for different versions of MSP protocol used
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 0 | 255 |
-
----
-
 ### dshot_beeper_enabled
 
 Whether using DShot motors as beepers is enabled
