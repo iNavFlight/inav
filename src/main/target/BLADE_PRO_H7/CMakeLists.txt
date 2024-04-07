@@ -1,0 +1,1 @@
+target_stm32h743xi(BLADE_PRO_H7)
