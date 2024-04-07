@@ -759,7 +759,9 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
 
     const float maxRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
-    const float dampingFactor = bellCurve(MIN(rateTarget, maxRate), maxRate);
+    const float dampingFactor = attenuation(rateTarget, maxRate / 2.5f);
+
+    DEBUG_SET(DEBUG_ALWAYS, axis, dampingFactor * 1000);
 
     const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactor;
