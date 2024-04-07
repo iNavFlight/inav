@@ -758,16 +758,19 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 {
     const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
 
+    const float maxRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
+    const float dampingFactor = bellCurve(MIN(rateTarget, maxRate), maxRate);
+
     const float rateError = rateTarget - pidState->gyroRate;
-    const float newPTerm = pTermProcess(pidState, rateError, dT);
-    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv);
+    const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactor;
+    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * dampingFactor;
     const float newFFTerm = rateTarget * pidState->kFF;
 
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
     if (!pidState->itermFreezeActive) {
-        pidState->errorGyroIf += rateError * pidState->kI * dT;
+        pidState->errorGyroIf += rateError * pidState->kI * dT * dampingFactor;
     }
 
     applyItermLimiting(pidState);
