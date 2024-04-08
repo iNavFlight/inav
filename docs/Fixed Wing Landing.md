@@ -54,7 +54,7 @@ This means that practically 4 landing directions can be saved.
 > [!CAUTION]
 > The Configuator automatically determines the ground altitude based on databases on the Internet, which may be inaccurate. Please always compare with the measured GPS altitude at the landing site to avoid crashes.
 
-### Global paramters
+### Global parameters
 
 All settings are available via “Advanced Tuning” in the Configurator.
 
@@ -104,7 +104,7 @@ If the altitude of the waypoint and the "Approach Altitude" are different, the a
 
 ## Logic Conditions
 
-The current landing state can be retrieved via ID 41 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deplyoment of the landing flaps.
+The current landing state can be retrieved via ID 41 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deployment of the landing flaps.
 
 | Returned value | State |
 | --- | --- |
