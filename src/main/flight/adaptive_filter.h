@@ -29,7 +29,8 @@
 #define ADAPTIVE_FILTER_RATE_HZ 100
 #define ADAPTIVE_FILTER_LPF_HZ 1
 #define ADAPTIVE_FILTER_HPF_HZ 15
-#define ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD 20.0f
+#define ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_HIGH 5.0f
+#define ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_LOW -2.0f
 
 void adaptiveFilterPush(const flight_dynamics_index_t index, const float value);
 void adaptiveFilterPushRate(const flight_dynamics_index_t index, const float rate, const uint8_t configRate);
