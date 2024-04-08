@@ -36,6 +36,7 @@
 #include "build/debug.h"
 #include "fc/config.h"
 #include "fc/runtime_config.h"
+#include "fc/rc_controls.h"
 #include "sensors/gyro.h"
 
 STATIC_FASTRAM float32_t adaptiveFilterSamples[XYZ_AXIS_COUNT][ADAPTIVE_FILTER_BUFFER_SIZE];
@@ -130,6 +131,11 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         currentLpf = initialLpf;
         adaptiveFilterResetIntegrator();
         gyroUpdateDynamicLpf(currentLpf);
+        return;
+    }
+
+    //Do not run adaptive filter when throttle is low
+    if (rcCommand[THROTTLE] < 1200) {
         return;
     }
 
