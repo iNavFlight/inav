@@ -1946,18 +1946,6 @@ groups:
         field: fixedWingYawItermBankFreeze
         min: 0
         max: 90
-      - name: pidsum_limit
-        description: "A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
-        default_value: 500
-        field: pidSumLimit
-        min: PID_SUM_LIMIT_MIN
-        max: PID_SUM_LIMIT_MAX
-      - name: pidsum_limit_yaw
-        description: "A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
-        default_value: 350
-        field: pidSumLimitYaw
-        min: PID_SUM_LIMIT_MIN
-        max: PID_SUM_LIMIT_MAX
       - name: iterm_windup
         description: "Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)"
         default_value: 50
