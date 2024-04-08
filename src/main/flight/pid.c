@@ -107,6 +107,8 @@ typedef struct {
     pt3Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
+
+    float dampingFactor;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -746,7 +748,16 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float maxRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     const float dampingFactor = attenuation(rateTarget, maxRate / 2.5f);
 
-    DEBUG_SET(DEBUG_ALWAYS, axis, dampingFactor * 1000);
+    if (fabsf(dampingFactor) < fabsf(pidState->dampingFactor)) {
+        pidState->dampingFactor = dampingFactor;
+    } else {
+        pidState->dampingFactor = pidState->dampingFactor + (dampingFactor - pidState->dampingFactor) * dT * 10;
+    }
+
+    float newDF = pidState->dampingFactor;
+    
+    DEBUG_SET(DEBUG_ALWAYS, axis * 2, dampingFactor * 1000);
+    DEBUG_SET(DEBUG_ALWAYS, (axis * 2) + 1, newDF * 1000);
 
     const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactor;
@@ -1261,6 +1272,8 @@ void pidInit(void)
 #endif
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
+
+        pidState[axis].dampingFactor = 1.0f;
 
     #ifdef USE_D_BOOST
         // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration.
