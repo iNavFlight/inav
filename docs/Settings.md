@@ -1292,16 +1292,6 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 ---
 
-### fw_iterm_limit_stick_position
-
-Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.5 | 0 | 1 |
-
----
-
 ### fw_level_pitch_gain
 
 I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations
