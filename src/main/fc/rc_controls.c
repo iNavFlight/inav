@@ -218,8 +218,7 @@ void processRcStickPositions(bool isThrottleLow)
             tryArm();
             return;
         }
-    }
-    else {
+    } else {
         if (armingSwitchIsActive) {
             rcDisarmTimeMs = currentTimeMs;
             tryArm();

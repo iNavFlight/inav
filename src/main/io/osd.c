@@ -163,8 +163,16 @@
 #define OSD_MIN_FONT_VERSION 3
 
 static timeMs_t linearDescentMessageMs  = 0;
+
+typedef enum {
+    OSD_SAVE_MESSAGE_NONE,
+    OSD_SAVE_MESSAGE_WAITING,
+    OSD_SAVE_MESSAGE_SAVING,
+    OSD_SAVE_MESSAGE_SAVED
+} osd_saveMessage_e;
+
 static timeMs_t notify_settings_saved   = 0;
-static bool     savingSettings          = false;
+static uint8_t  savingSettings          = OSD_SAVE_MESSAGE_NONE;
 
 static unsigned currentLayout = 0;
 static int layoutOverride = -1;
@@ -226,12 +234,22 @@ static bool osdDisplayHasCanvas;
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 10);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
+void osdSaveProcessAborted(void) {
+    notify_settings_saved = 0;
+    savingSettings = OSD_SAVE_MESSAGE_NONE;
+}
+
+void osdSaveWaitingProcess(void) {
+    if (savingSettings == OSD_SAVE_MESSAGE_NONE)
+        savingSettings = OSD_SAVE_MESSAGE_WAITING;
+}
+
 void osdStartedSaveProcess(void) {
-    savingSettings = true;
+    savingSettings = OSD_SAVE_MESSAGE_SAVING;
 }
 
 void osdShowEEPROMSavedNotification(void) {
-    savingSettings = false;
+    savingSettings = OSD_SAVE_MESSAGE_SAVED;
     notify_settings_saved = millis() + 5000;
 }
 
@@ -5094,19 +5112,27 @@ static void osdShowStats(bool isSinglePageStatsCompatible, uint8_t page)
     // The following has been commented out as it will be added in #9688
     // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
 
-    if (savingSettings == true) {
+    if (savingSettings == OSD_SAVE_MESSAGE_SAVING) {
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS))) / 2, row++, OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS));
-    /*} else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
-        char emReArmMsg[23];
-        tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
-        tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
-        strcat(emReArmMsg, " **\0");
-        displayWrite(osdDisplayPort, statNameX, top++, OSD_MESSAGE_STR(emReArmMsg));*/
+    } else if (savingSettings == OSD_SAVE_MESSAGE_WAITING) {
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE))) / 2, row++, OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE));
     } else if (notify_settings_saved > 0) {
         if (millis() > notify_settings_saved) {
             notify_settings_saved = 0;
-        } else {
+            savingSettings = OSD_SAVE_MESSAGE_NONE;
+        } else if (savingSettings == OSD_SAVE_MESSAGE_SAVED) {
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED))) / 2, row++, OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED));
+        }
+    }
+
+    if (emergInflightRearmEnabled()) {
+        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+        if (rearmMs > 0) {
+            char emReArmMsg[23];
+            tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
+            tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
+            strcat(emReArmMsg, " **\0");
+            displayWrite(osdDisplayPort, statNameX, row++, OSD_MESSAGE_STR(emReArmMsg));
         }
     }
 
@@ -5401,9 +5427,10 @@ static void osdRefresh(timeUs_t currentTimeUs)
     }
 
     bool statsSinglePageCompatible = (osdDisplayPort->rows >= OSD_STATS_SINGLE_PAGE_MIN_ROWS);
-    static uint8_t statsCurrentPage = 0;
-    static bool statsDisplayed = false;
-    static bool statsAutoPagingEnabled = true;
+    static uint8_t  statsCurrentPage = 0;
+    static timeMs_t statsRefreshTime = 0;
+    static bool     statsDisplayed = false;
+    static bool     statsAutoPagingEnabled = true;
 
     // Detect arm/disarm
     if (armState != ARMING_FLAG(ARMED)) {
@@ -5471,25 +5498,24 @@ static void osdRefresh(timeUs_t currentTimeUs)
                 // Alternate screens for multi-page stats.
                 // Also, refreshes screen at swap interval for single-page stats.
                 if (OSD_ALTERNATING_CHOICES((osdConfig()->stats_page_auto_swap_time * 1000), 2)) {
-                    if (statsCurrentPage == 0) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 0)
                         statsCurrentPage = 1;
-                    }
                 } else {
-                    if (statsCurrentPage == 1) {
-                        osdShowStats(statsSinglePageCompatible, statsCurrentPage);
+                    if (statsCurrentPage == 1)
                         statsCurrentPage = 0;
-                    }
                 }
             } else {
                 // Process manual page change events for multi-page stats.
-                if (manualPageUpRequested) {
-                    osdShowStats(statsSinglePageCompatible, 1);
+                if (manualPageUpRequested)
                     statsCurrentPage = 1;
-                } else if (manualPageDownRequested) {
-                    osdShowStats(statsSinglePageCompatible, 0);
+                else if (manualPageDownRequested)
                     statsCurrentPage = 0;
-                }
+            }
+
+            // Only refresh the stats every 1/4 of a second.
+            if (statsRefreshTime <= millis()) {
+                statsRefreshTime =  millis() + 250;
+                osdShowStats(statsSinglePageCompatible, statsCurrentPage);
             }
         }
 
@@ -5846,24 +5872,26 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
         }
 
         /* Messages that are shown regardless of Arming state */
-
-        // The following has been commented out as it will be added in #9688
-        // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
-
-        if (savingSettings == true) {
+        if (savingSettings == OSD_SAVE_MESSAGE_SAVING) {
            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SAVING_SETTNGS);
-        /*} else if (rearmMs > 0) { // Show rearming time if settings not actively being saved. Ignore the settings saved message if rearm available.
+        } else if (savingSettings == OSD_SAVE_MESSAGE_WAITING) {
+            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WAITING_TO_SAVE);
+        } else if (notify_settings_saved > 0) {
+            if (millis() > notify_settings_saved) {
+                notify_settings_saved = 0;
+                savingSettings = OSD_SAVE_MESSAGE_NONE;
+            } else if (savingSettings == OSD_SAVE_MESSAGE_SAVED) {
+                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
+            }
+        }
+
+        uint16_t rearmMs = emergencyInFlightRearmTimeMS();
+        if (rearmMs > 0) {
             char emReArmMsg[23];
             tfp_sprintf(emReArmMsg, "** REARM PERIOD: ");
             tfp_sprintf(emReArmMsg + strlen(emReArmMsg), "%02d", (uint8_t)MS2S(rearmMs));
             strcat(emReArmMsg, " **\0");
-            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);*/
-        } else if (notify_settings_saved > 0) {
-            if (millis() > notify_settings_saved) {
-                notify_settings_saved = 0;
-            } else {
-                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_SETTINGS_SAVED);
-            }
+            messages[messageCount++] = OSD_MESSAGE_STR(emReArmMsg);
         }
 
         if (messageCount > 0) {

@@ -3132,8 +3132,7 @@ void updateHomePosition(void)
                     break;
             }
         }
-    }
-    else {
+    } else {
         static bool isHomeResetAllowed = false;
         // If pilot so desires he may reset home position to current position
         if (IS_RC_MODE_ACTIVE(BOXHOMERESET)) {
@@ -3143,8 +3142,7 @@ void updateHomePosition(void)
                 setHome = true;
                 isHomeResetAllowed = false;
             }
-        }
-        else {
+        } else {
             isHomeResetAllowed = true;
         }
 

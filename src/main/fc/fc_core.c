@@ -65,6 +65,7 @@
 #include "io/beeper.h"
 #include "io/dashboard.h"
 #include "io/gps.h"
+#include "io/osd.h"
 #include "io/serial.h"
 #include "io/statusindicator.h"
 #include "io/asyncfatfs/asyncfatfs.h"
@@ -499,11 +500,28 @@ bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm)
     return counter >= EMERGENCY_ARMING_MIN_ARM_COUNT;
 }
 
+uint16_t emergencyInFlightRearmTimeMS(void)
+{
+    uint16_t rearmMS = 0;
+
+    if (STATE(IN_FLIGHT_EMERG_REARM)) {
+        timeMs_t currentTimeMs = millis();
+        rearmMS = (uint16_t)((US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS) - currentTimeMs);
+    }
+
+    return rearmMS;
+}
+
 bool emergInflightRearmEnabled(void)
 {
     /* Emergency rearm allowed within 5s timeout period after disarm if craft still flying */
+//    bool emergRearmActive = STATE(IN_FLIGHT_EMERG_REARM);
+//    DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
     timeMs_t currentTimeMs = millis();
     emergRearmStabiliseTimeout = 0;
+
+//    if (ARMING_FLAG(ARMED) && emergRearmActive && (armTime < (1 * USECS_PER_SEC)))
+//        ENABLE_STATE(IN_FLIGHT_EMERG_REARM); // This stays active for 1 second after re-arming
 
     if ((lastDisarmReason != DISARM_SWITCH) ||
         (currentTimeMs > US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS)) {
@@ -872,7 +890,6 @@ static void applyThrottleTiltCompensation(void)
 
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
-
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
@@ -885,13 +902,15 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     if (!ARMING_FLAG(ARMED)) {
         armTime = 0;
 
-        // Delay saving for 0.5s to allow other functions to process save actions on disarm
-        if (currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC / 2) {
-            processDelayedSave();
-        }
+        // Delay saving for 0.5s to allow other functions to finish processing data to be stored on disarm
+        processDelayedSave((currentTimeUs - lastDisarmTimeUs > USECS_PER_SEC));
     }
 
     if (armTime > 1 * USECS_PER_SEC) {     // reset in flight emerg rearm flag 1 sec after arming once it's served its purpose
+#ifdef USE_OSD
+        if (STATE(IN_FLIGHT_EMERG_REARM))
+            osdSaveProcessAborted();
+#endif
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
     }
 
