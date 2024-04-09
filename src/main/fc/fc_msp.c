@@ -1200,25 +1200,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0);
         break;
 
-    case MSP_PID_ADVANCED:
-        sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
-        sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
-        sbufWriteU16(dst, 0); //pidProfile()->yaw_p_limit
-        sbufWriteU8(dst, 0); //BF: pidProfile()->deltaMethod
-        sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
-        sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
-        sbufWriteU8(dst, 0);
-        sbufWriteU16(dst, pidProfile()->pidSumLimit);
-        sbufWriteU8(dst, 0); //BF: pidProfile()->itermThrottleGain
-
-        /*
-         * To keep compatibility on MSP frame length level with Betaflight, axis axisAccelerationLimitYaw
-         * limit will be sent and received in [dps / 10]
-         */
-        sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitRollPitch / 10, 0, 65535));
-        sbufWriteU16(dst, constrain(pidProfile()->axisAccelerationLimitYaw / 10, 0, 65535));
-        break;
-
     case MSP_INAV_PID:
         sbufWriteU8(dst, 0); //Legacy, no longer in use async processing value
         sbufWriteU16(dst, 0); //Legacy, no longer in use async processing value
@@ -2160,29 +2141,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             motorConfigMutable()->motorPwmRate = sbufReadU16(src);
             servoConfigMutable()->servoPwmRate = sbufReadU16(src);
             sbufReadU8(src);    //Was gyroSync
-        } else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_PID_ADVANCED:
-        if (dataSize == 17) {
-            sbufReadU16(src);   // pidProfileMutable()->rollPitchItermIgnoreRate
-            sbufReadU16(src);   // pidProfileMutable()->yawItermIgnoreRate
-            sbufReadU16(src); //pidProfile()->yaw_p_limit
-
-            sbufReadU8(src); //BF: pidProfileMutable()->deltaMethod
-            sbufReadU8(src); //BF: pidProfileMutable()->vbatPidCompensation
-            sbufReadU8(src); //BF: pidProfileMutable()->setpointRelaxRatio
-            sbufReadU8(src);
-            pidProfileMutable()->pidSumLimit = sbufReadU16(src);
-            sbufReadU8(src); //BF: pidProfileMutable()->itermThrottleGain
-
-            /*
-             * To keep compatibility on MSP frame length level with Betaflight, axis axisAccelerationLimitYaw
-             * limit will be sent and received in [dps / 10]
-             */
-            pidProfileMutable()->axisAccelerationLimitRollPitch = sbufReadU16(src) * 10;
-            pidProfileMutable()->axisAccelerationLimitYaw = sbufReadU16(src) * 10;
         } else
             return MSP_RESULT_ERROR;
         break;

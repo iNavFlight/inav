@@ -196,9 +196,6 @@
 #define MSP_ADVANCED_CONFIG             90
 #define MSP_SET_ADVANCED_CONFIG         91
 
-#define MSP_PID_ADVANCED                94
-#define MSP_SET_PID_ADVANCED            95
-
 #define MSP_SENSOR_CONFIG               96
 #define MSP_SET_SENSOR_CONFIG           97
 
