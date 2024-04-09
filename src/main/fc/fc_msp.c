@@ -733,7 +733,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
         sbufWriteU16(dst, 0); // Was min_throttle
-        sbufWriteU16(dst, motorConfig()->maxthrottle);
+        sbufWriteU16(dst, getMaxThrottle());
         sbufWriteU16(dst, motorConfig()->mincommand);
 
         sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
@@ -774,7 +774,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
         sbufWriteU16(dst, 0); //Was min_throttle
-        sbufWriteU16(dst, motorConfig()->maxthrottle);
+        sbufWriteU16(dst, getMaxThrottle());
         sbufWriteU16(dst, motorConfig()->mincommand);
 
         sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
@@ -1858,7 +1858,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU16(src);   // midrc
 
         sbufReadU16(src); //Was min_throttle
-        motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        sbufReadU16(src); //Was maxThrottle
         motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
         currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -1906,7 +1906,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);       // midrc
 
             sbufReadU16(src);   // was min_throttle
-            motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            sbufReadU16(src);  // was maxThrottle
             motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
             currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
