@@ -1200,24 +1200,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0);
         break;
 
-    case MSP_FILTER_CONFIG :
-        sbufWriteU8(dst, gyroConfig()->gyro_main_lpf_hz);
-        sbufWriteU16(dst, pidProfile()->dterm_lpf_hz);
-        sbufWriteU16(dst, pidProfile()->yaw_lpf_hz);
-        sbufWriteU16(dst, 0); //Was gyroConfig()->gyro_notch_hz
-        sbufWriteU16(dst, 1); //Was  gyroConfig()->gyro_notch_cutoff
-        sbufWriteU16(dst, 0); //BF: pidProfile()->dterm_notch_hz
-        sbufWriteU16(dst, 1); //pidProfile()->dterm_notch_cutoff
-
-        sbufWriteU16(dst, 0); //BF: masterConfig.gyro_soft_notch_hz_2
-        sbufWriteU16(dst, 1); //BF: masterConfig.gyro_soft_notch_cutoff_2
-
-        sbufWriteU16(dst, accelerometerConfig()->acc_notch_hz);
-        sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
-
-        sbufWriteU16(dst, 0);    //Was gyroConfig()->gyro_stage2_lowpass_hz
-        break;
-
     case MSP_PID_ADVANCED:
         sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
         sbufWriteU16(dst, 0); // pidProfile()->yawItermIgnoreRate
@@ -2178,47 +2160,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             motorConfigMutable()->motorPwmRate = sbufReadU16(src);
             servoConfigMutable()->servoPwmRate = sbufReadU16(src);
             sbufReadU8(src);    //Was gyroSync
-        } else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_FILTER_CONFIG :
-        if (dataSize >= 5) {
-            gyroConfigMutable()->gyro_main_lpf_hz = sbufReadU8(src);
-            pidProfileMutable()->dterm_lpf_hz = constrain(sbufReadU16(src), 0, 500);
-            pidProfileMutable()->yaw_lpf_hz = constrain(sbufReadU16(src), 0, 255);
-            if (dataSize >= 9) {
-                sbufReadU16(src); //Was gyroConfigMutable()->gyro_notch_hz
-                sbufReadU16(src); //Was gyroConfigMutable()->gyro_notch_cutoff
-            } else {
-                return MSP_RESULT_ERROR;
-            }
-            if (dataSize >= 13) {
-                sbufReadU16(src);
-                sbufReadU16(src);
-                pidInitFilters();
-            } else {
-                return MSP_RESULT_ERROR;
-            }
-            if (dataSize >= 17) {
-                sbufReadU16(src); // Was gyroConfigMutable()->gyro_soft_notch_hz_2
-                sbufReadU16(src); // Was gyroConfigMutable()->gyro_soft_notch_cutoff_2
-            } else {
-                return MSP_RESULT_ERROR;
-            }
-
-            if (dataSize >= 21) {
-                accelerometerConfigMutable()->acc_notch_hz = constrain(sbufReadU16(src), 0, 255);
-                accelerometerConfigMutable()->acc_notch_cutoff = constrain(sbufReadU16(src), 1, 255);
-            } else {
-                return MSP_RESULT_ERROR;
-            }
-
-            if (dataSize >= 22) {
-                sbufReadU16(src); //Was gyro_stage2_lowpass_hz
-            } else {
-                return MSP_RESULT_ERROR;
-            }
         } else
             return MSP_RESULT_ERROR;
         break;
