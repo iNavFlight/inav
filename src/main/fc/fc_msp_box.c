@@ -213,7 +213,7 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
     }
 
-    bool navReadyAltControl = sensors(SENSOR_BARO);
+    bool navReadyAltControl = getHwBarometerStatus() != HW_SENSOR_NONE;
 #ifdef USE_GPS
     navReadyAltControl = navReadyAltControl || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro));
 
