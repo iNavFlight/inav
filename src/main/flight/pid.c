@@ -108,7 +108,10 @@ typedef struct {
 
     smithPredictor_t smithPredictor;
 
-    float dampingFactor;
+    float dampingFactorPrevious;
+    float dampingFactorLockValue;
+    float dampingFactotLockUntilMs;
+    pt1Filter_t dampingFactorFilter;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -322,6 +325,7 @@ bool pidInitFilters(void)
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, US2S(refreshRate));
+        pt1FilterInit(&pidState[i].dampingFactorFilter, 2.0f, US2S(refreshRate));
     }
 
 #ifdef USE_ANTIGRAVITY
@@ -748,27 +752,49 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     const float maxRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     const float dampingFactor = attenuation(rateTarget, maxRate / 2.5f);
 
-    if (fabsf(dampingFactor) < fabsf(pidState->dampingFactor)) {
-        pidState->dampingFactor = dampingFactor;
+    float dampingFactorP;
+    float dampingFactorD;
+    float dampingFactorI;
+
+    if (fabsf(dampingFactor) <= fabsf(pidState->dampingFactorPrevious)) {
+        dampingFactorP = dampingFactor;
+        dampingFactorD = dampingFactor;
+        dampingFactorI = dampingFactor;
+
+        pidState->dampingFactotLockUntilMs = millis() + scaleRangef(fabsf(dampingFactor), 1.0f, 0.0f, 0, 300);
+        pidState->dampingFactorLockValue = dampingFactor;
+
+        // pt1FilterReset(&pidState->dampingFactorFilter, pidState->dampingFactorPrevious);
+        pidState->dampingFactorPrevious = dampingFactor;
     } else {
-        pidState->dampingFactor = pidState->dampingFactor + (dampingFactor - pidState->dampingFactor) * dT * 10;
+        dampingFactorP = dampingFactor;
+        dampingFactorD = dampingFactor;
+
+        if (millis() > pidState->dampingFactorLockValue) {
+            dampingFactorI = dampingFactor;
+            pidState->dampingFactorPrevious = dampingFactor;
+        } else {
+            dampingFactorI = pidState->dampingFactorLockValue;
+        }
     }
 
-    float newDF = pidState->dampingFactor;
-    
-    DEBUG_SET(DEBUG_ALWAYS, axis * 2, dampingFactor * 1000);
-    DEBUG_SET(DEBUG_ALWAYS, (axis * 2) + 1, newDF * 1000);
+    if (axis == FD_ROLL) {
+        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->dampingFactorPrevious * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 1, dampingFactorP * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 2, dampingFactorI * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 3, dampingFactorD * 1000);
+    }
 
     const float rateError = rateTarget - pidState->gyroRate;
-    const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactor;
-    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * dampingFactor;
+    const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactorP;
+    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * dampingFactorD;
     const float newFFTerm = rateTarget * pidState->kFF;
 
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
     if (!pidState->itermFreezeActive) {
-        pidState->errorGyroIf += rateError * pidState->kI * dT * dampingFactor;
+        pidState->errorGyroIf += rateError * pidState->kI * dT * dampingFactorI;
     }
 
     applyItermLimiting(pidState);
@@ -1273,7 +1299,7 @@ void pidInit(void)
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
 
-        pidState[axis].dampingFactor = 1.0f;
+        pidState[axis].dampingFactorPrevious = 1.0f;
 
     #ifdef USE_D_BOOST
         // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration.
