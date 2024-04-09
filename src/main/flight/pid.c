@@ -757,12 +757,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     float dampingFactorI;
 
     /*
-    TODO conditions have to be reworked
-    when drowing, damp
-    when releasing, lock
-    locking procedure has to be separated from action
-    
+    New idea.... 
+    Iterm damping is applied (down to 0) when:
+    abs(error) > 10% rate and sticks were moved in the last 500ms (hard stop at this mark)
 
+    itermAttenuation  = MIN(curve(setpoint), (abs(error) > 10%) && (sticks were deflected in 500ms) ? 0 : 1)
+    
     */
 
     if (fabsf(dampingFactor) <= fabsf(pidState->dampingFactorPrevious)) {
