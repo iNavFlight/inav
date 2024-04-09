@@ -196,9 +196,6 @@
 #define MSP_ADVANCED_CONFIG             90
 #define MSP_SET_ADVANCED_CONFIG         91
 
-#define MSP_FILTER_CONFIG               92
-#define MSP_SET_FILTER_CONFIG           93
-
 #define MSP_SENSOR_CONFIG               96
 #define MSP_SET_SENSOR_CONFIG           97
 
@@ -238,7 +235,6 @@
 #define MSP_MISC                 114    //out message         powermeter trig
 #define MSP_MOTOR_PINS           115    //out message         which pins are in use for motors & servos, for GUI
 #define MSP_BOXNAMES             116    //out message         the aux switch names
-#define MSP_PIDNAMES             117    //out message         the PID names
 #define MSP_WP                   118    //out message         get a WP, WP# is in the payload, returns (WP#, lat, lon, alt, flags) WP#0-home, WP#16-poshold
 #define MSP_BOXIDS               119    //out message         get the permanent IDs associated to BOXes
 #define MSP_NAV_STATUS           121    //out message         Returns navigation status
