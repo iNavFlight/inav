@@ -756,9 +756,16 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
     float dampingFactorD;
     float dampingFactorI;
 
+    /*
+    TODO conditions have to be reworked
+    when drowing, damp
+    when releasing, lock
+    locking procedure has to be separated from action
+    
+
+    */
+
     if (fabsf(dampingFactor) <= fabsf(pidState->dampingFactorPrevious)) {
-        dampingFactorP = dampingFactor;
-        dampingFactorD = dampingFactor;
         dampingFactorI = dampingFactor;
 
         pidState->dampingFactotLockUntilMs = millis() + scaleRangef(fabsf(dampingFactor), 1.0f, 0.0f, 0, 300);
@@ -767,9 +774,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
         // pt1FilterReset(&pidState->dampingFactorFilter, pidState->dampingFactorPrevious);
         pidState->dampingFactorPrevious = dampingFactor;
     } else {
-        dampingFactorP = dampingFactor;
-        dampingFactorD = dampingFactor;
-
+        
         if (millis() > pidState->dampingFactorLockValue) {
             dampingFactorI = dampingFactor;
             pidState->dampingFactorPrevious = dampingFactor;
@@ -777,6 +782,10 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
             dampingFactorI = pidState->dampingFactorLockValue;
         }
     }
+
+    //P & D damping factors are always the same and based on current damping factor
+    dampingFactorP = dampingFactor;
+    dampingFactorD = dampingFactor;
 
     if (axis == FD_ROLL) {
         DEBUG_SET(DEBUG_ALWAYS, 0, pidState->dampingFactorPrevious * 1000);
