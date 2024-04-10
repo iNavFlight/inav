@@ -859,13 +859,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, currentBatteryProfile->capacity.unit);
         break;
 
-    case MSP_MOTOR_PINS:
-        // FIXME This is hardcoded and should not be.
-        for (int i = 0; i < 8; i++) {
-            sbufWriteU8(dst, i + 1);
-        }
-        break;
-
 #ifdef USE_GPS
     case MSP_RAW_GPS:
         sbufWriteU8(dst, gpsSol.fixType);
