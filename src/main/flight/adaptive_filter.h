@@ -25,7 +25,7 @@
 #include "common/axis.h"
 #include "common/time.h"
 
-#define ADAPTIVE_FILTER_BUFFER_SIZE 32
+#define ADAPTIVE_FILTER_BUFFER_SIZE 64
 #define ADAPTIVE_FILTER_RATE_HZ 100
 #define ADAPTIVE_FILTER_LPF_HZ 1
 #define ADAPTIVE_FILTER_HPF_HZ 15

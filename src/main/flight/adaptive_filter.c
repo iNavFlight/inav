@@ -157,11 +157,8 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         arm_std_f32(tempBuffer, ADAPTIVE_FILTER_BUFFER_SIZE, &std);
 
         const float filteredStd = pt1FilterApply(&stdFilter[axis], std);
-
         const float error = filteredStd - adaptiveIntegratorTarget;
-
         const float adjustedError = error * axisAttenuationFactor[axis];
-
         const float timeAdjustedError = adjustedError * dT;
 
         //Put into integrator
