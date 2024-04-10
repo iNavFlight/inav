@@ -729,47 +729,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         serializeBoxReply(dst);
         break;
 
-    case MSP_MISC:
-        sbufWriteU16(dst, PWM_RANGE_MIDDLE);
-
-        sbufWriteU16(dst, 0); // Was min_throttle
-        sbufWriteU16(dst, motorConfig()->maxthrottle);
-        sbufWriteU16(dst, motorConfig()->mincommand);
-
-        sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
-
-#ifdef USE_GPS
-        sbufWriteU8(dst, gpsConfig()->provider); // gps_type
-        sbufWriteU8(dst, 0); // TODO gps_baudrate (an index, cleanflight uses a uint32_t
-        sbufWriteU8(dst, gpsConfig()->sbasMode); // gps_ubx_sbas
-#else
-        sbufWriteU8(dst, 0); // gps_type
-        sbufWriteU8(dst, 0); // TODO gps_baudrate (an index, cleanflight uses a uint32_t
-        sbufWriteU8(dst, 0); // gps_ubx_sbas
-#endif
-        sbufWriteU8(dst, 0); // multiwiiCurrentMeterOutput
-        sbufWriteU8(dst, rxConfig()->rssi_channel);
-        sbufWriteU8(dst, 0);
-
-#ifdef USE_MAG
-        sbufWriteU16(dst, compassConfig()->mag_declination / 10);
-#else
-        sbufWriteU16(dst, 0);
-#endif
-
-#ifdef USE_ADC
-        sbufWriteU8(dst, batteryMetersConfig()->voltage.scale / 10);
-        sbufWriteU8(dst, currentBatteryProfile->voltage.cellMin / 10);
-        sbufWriteU8(dst, currentBatteryProfile->voltage.cellMax / 10);
-        sbufWriteU8(dst, currentBatteryProfile->voltage.cellWarning / 10);
-#else
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-#endif
-        break;
-
     case MSP2_INAV_MISC:
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
@@ -1851,54 +1810,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else {
             return MSP_RESULT_ERROR;
         }
-        break;
-
-    case MSP_SET_MISC:
-        if (dataSize == 22) {
-        sbufReadU16(src);   // midrc
-
-        sbufReadU16(src); //Was min_throttle
-        motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
-        motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
-
-        currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
-
-#ifdef USE_GPS
-        gpsConfigMutable()->provider = sbufReadU8(src); // gps_type
-        sbufReadU8(src); // gps_baudrate
-        gpsConfigMutable()->sbasMode = sbufReadU8(src); // gps_ubx_sbas
-#else
-        sbufReadU8(src); // gps_type
-        sbufReadU8(src); // gps_baudrate
-        sbufReadU8(src); // gps_ubx_sbas
-#endif
-        sbufReadU8(src); // multiwiiCurrentMeterOutput
-        tmp_u8 = sbufReadU8(src);
-        if (tmp_u8 <= MAX_SUPPORTED_RC_CHANNEL_COUNT) {
-            rxConfigMutable()->rssi_channel = tmp_u8;
-            rxUpdateRSSISource(); // Changing rssi_channel might change the RSSI source
-        }
-        sbufReadU8(src);
-
-#ifdef USE_MAG
-        compassConfigMutable()->mag_declination = sbufReadU16(src) * 10;
-#else
-        sbufReadU16(src);
-#endif
-
-#ifdef USE_ADC
-        batteryMetersConfigMutable()->voltage.scale = sbufReadU8(src) * 10;
-        currentBatteryProfileMutable->voltage.cellMin = sbufReadU8(src) * 10;         // vbatlevel_warn1 in MWC2.3 GUI
-        currentBatteryProfileMutable->voltage.cellMax = sbufReadU8(src) * 10;         // vbatlevel_warn2 in MWC2.3 GUI
-        currentBatteryProfileMutable->voltage.cellWarning = sbufReadU8(src) * 10;     // vbatlevel when buzzer starts to alert
-#else
-        sbufReadU8(src);
-        sbufReadU8(src);
-        sbufReadU8(src);
-        sbufReadU8(src);
-#endif
-        } else
-            return MSP_RESULT_ERROR;
         break;
 
     case MSP2_INAV_SET_MISC:
