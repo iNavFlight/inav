@@ -340,7 +340,7 @@ groups:
         description: "Target value for adaptive filter"
         default_value: 3.5
         field: adaptiveFilterTarget
-        min: 2
+        min: 1
         max: 6
         condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_min_hz
@@ -359,21 +359,21 @@ groups:
         condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_std_lpf_hz
         description: "Standard deviation low pass filter cutoff frequency"
-        default_value: 1
+        default_value: 2
         field: adaptiveFilterStdLpfHz
         min: 0
-        max: 5
+        max: 10
         condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_hpf_hz
         description: "High pass filter cutoff frequency"
-        default_value: 15
+        default_value: 10
         field: adaptiveFilterHpfHz
         min: 1
         max: 50
         condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_integrator_threshold_high
         description: "High threshold for adaptive filter integrator"
-        default_value: 5
+        default_value: 4
         field: adaptiveFilterIntegratorThresholdHigh
         min: 1
         max: 10
