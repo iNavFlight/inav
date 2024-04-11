@@ -330,6 +330,61 @@ groups:
         field: gravity_cmss_cal
         min: 0
         max: 2000
+      - name: gyro_adaptive_filter
+        description: "Enable adaptive filter for gyro data"
+        default_value: OFF
+        field: adaptiveFilterEnabled
+        type: bool
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_target
+        description: "Target value for adaptive filter"
+        default_value: 3.5
+        field: adaptiveFilterTarget
+        min: 2
+        max: 6
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_min_hz
+        description: "Minimum frequency for adaptive filter"
+        default_value: 50
+        field: adaptiveFilterMinHz
+        min: 30
+        max: 250
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_max_hz
+        description: "Maximum frequency for adaptive filter"
+        default_value: 150
+        field: adaptiveFilterMaxHz
+        min: 100
+        max: 500
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_std_lpf_hz
+        description: "Standard deviation low pass filter cutoff frequency"
+        default_value: 1
+        field: adaptiveFilterStdLpfHz
+        min: 0
+        max: 5
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_hpf_hz
+        description: "High pass filter cutoff frequency"
+        default_value: 15
+        field: adaptiveFilterHpfHz
+        min: 1
+        max: 50
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_integrator_threshold_high
+        description: "High threshold for adaptive filter integrator"
+        default_value: 5
+        field: adaptiveFilterIntegratorThresholdHigh
+        min: 1
+        max: 10
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_integrator_threshold_low
+        description: "Low threshold for adaptive filter integrator"
+        default_value: -2
+        field: adaptiveFilterIntegratorThresholdLow
+        min: -10
+        max: 0
+        condition: USE_ADAPTIVE_FILTER
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t

@@ -87,6 +87,16 @@ typedef struct gyroConfig_s {
     bool init_gyro_cal_enabled;
     int16_t gyro_zero_cal[XYZ_AXIS_COUNT];
     float gravity_cmss_cal;
+#ifdef USE_ADAPTIVE_FILTER
+    uint8_t adaptiveFilterEnabled;
+    float adaptiveFilterTarget;
+    uint16_t adaptiveFilterMinHz;
+    uint16_t adaptiveFilterMaxHz;
+    float adaptiveFilterStdLpfHz;
+    float adaptiveFilterHpfHz;
+    float adaptiveFilterIntegratorThresholdHigh;
+    float adaptiveFilterIntegratorThresholdLow;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

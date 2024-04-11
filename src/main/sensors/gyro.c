@@ -96,7 +96,7 @@ EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 9);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
@@ -123,6 +123,16 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .init_gyro_cal_enabled = SETTING_INIT_GYRO_CAL_DEFAULT,
     .gyro_zero_cal = {SETTING_GYRO_ZERO_X_DEFAULT, SETTING_GYRO_ZERO_Y_DEFAULT, SETTING_GYRO_ZERO_Z_DEFAULT},
     .gravity_cmss_cal = SETTING_INS_GRAVITY_CMSS_DEFAULT,
+#ifdef USE_ADAPTIVE_FILTER
+    .adaptiveFilterEnabled = SETTING_GYRO_ADAPTIVE_FILTER_DEFAULT,
+    .adaptiveFilterTarget = SETTING_GYRO_ADAPTIVE_FILTER_TARGET_DEFAULT,
+    .adaptiveFilterMinHz = SETTING_GYRO_ADAPTIVE_FILTER_MIN_HZ_DEFAULT,
+    .adaptiveFilterMaxHz = SETTING_GYRO_ADAPTIVE_FILTER_MAX_HZ_DEFAULT,
+    .adaptiveFilterStdLpfHz = SETTING_GYRO_ADAPTIVE_FILTER_STD_LPF_HZ_DEFAULT,
+    .adaptiveFilterHpfHz = SETTING_GYRO_ADAPTIVE_FILTER_HPF_HZ_DEFAULT,
+    .adaptiveFilterIntegratorThresholdHigh = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_HIGH_DEFAULT,
+    .adaptiveFilterIntegratorThresholdLow  = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_LOW_DEFAULT,
+#endif
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -251,7 +261,9 @@ static void gyroInitFilters(void)
     initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
 #ifdef USE_ADAPTIVE_FILTER
-    adaptiveFilterSetDefaultFrequency(gyroConfig()->gyro_main_lpf_hz, 50, 150);
+    if (gyroConfig()->adaptiveFilterEnabled) {
+        adaptiveFilterSetDefaultFrequency(gyroConfig()->gyro_main_lpf_hz, gyroConfig()->adaptiveFilterMinHz, gyroConfig()->adaptiveFilterMaxHz);
+    }
 #endif
 
 #ifdef USE_GYRO_KALMAN

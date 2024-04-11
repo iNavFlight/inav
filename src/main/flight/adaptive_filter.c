@@ -73,7 +73,7 @@ void adaptiveFilterPush(const flight_dynamics_index_t index, const float value) 
     if (!hpfFilterInitialized) {
         //Initialize the filter
         for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt1FilterInit(&hpfFilter[axis], ADAPTIVE_FILTER_HPF_HZ, US2S(getLooptime()));
+            pt1FilterInit(&hpfFilter[axis], gyroConfig()->adaptiveFilterHpfHz, US2S(getLooptime()));
         }
         hpfFilterInitialized = 1;
     }
@@ -121,7 +121,7 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
 
         //Initialize the filter
         for (flight_dynamics_index_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt1FilterInit(&stdFilter[axis], ADAPTIVE_FILTER_LPF_HZ, 1.0f / ADAPTIVE_FILTER_RATE_HZ);
+            pt1FilterInit(&stdFilter[axis], gyroConfig()->adaptiveFilterStdLpfHz, 1.0f / ADAPTIVE_FILTER_RATE_HZ);
         }
         adaptiveFilterInitialized = 1;
     }
@@ -167,14 +167,12 @@ void adaptiveFilterTask(timeUs_t currentTimeUs) {
         combinedStd += std;
     }
 
-    //TODO filter gets updated only when ARMED
-
-    if (adaptiveFilterIntegrator > ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_HIGH) {
+    if (adaptiveFilterIntegrator > gyroConfig()->adaptiveFilterIntegratorThresholdHigh) {
         //In this case there is too much noise, we need to lower the LPF frequency
         currentLpf = constrainf(currentLpf - 1.0f, minLpf, maxLpf);
         gyroUpdateDynamicLpf(currentLpf);
         adaptiveFilterResetIntegrator();
-    } else if (adaptiveFilterIntegrator < ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_LOW) {
+    } else if (adaptiveFilterIntegrator < gyroConfig()->adaptiveFilterIntegratorThresholdLow) {
         //In this case there is too little noise, we can to increase the LPF frequency
         currentLpf = constrainf(currentLpf + 1.0f, minLpf, maxLpf);
         gyroUpdateDynamicLpf(currentLpf);
