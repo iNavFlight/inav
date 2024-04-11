@@ -5062,26 +5062,6 @@ Allows to set type of PID controller used in control loop. Possible values: `NON
 
 ---
 
-### pidsum_limit
-
-A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
-
----
-
-### pidsum_limit_yaw
-
-A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
-
----
-
 ### pilot_name
 
 Pilot name
