@@ -3764,7 +3764,7 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 ### nav_min_ground_speed
 
-Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+Minimum ground speed for navigation flight modes [m/s]. Currently, this only affects fixed wing. Default 7 m/s.
 
 | Default | Min | Max |
 | --- | --- | --- |
