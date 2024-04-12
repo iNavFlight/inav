@@ -3714,7 +3714,7 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 ### nav_min_ground_speed
 
-Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+Minimum ground speed for navigation flight modes [m/s]. Currently, this only affects fixed wing. Default 7 m/s.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5049,26 +5049,6 @@ Allows to set type of PID controller used in control loop. Possible values: `NON
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
-
----
-
-### pidsum_limit
-
-A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
-
----
-
-### pidsum_limit_yaw
-
-A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
 
 ---
 
