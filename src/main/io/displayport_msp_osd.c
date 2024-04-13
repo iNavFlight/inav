@@ -100,7 +100,7 @@ static timeMs_t sendSubFrameMs = 0;
 static uint8_t currentOsdMode; // HDZero screen mode can change across layouts
 
 static uint8_t screen[SCREENSIZE];
-static BITARRAY_DECLARE(fontPage, SCREENSIZE);  // font page for each character on the screen
+static uint8_t fontPage[SCREENSIZE];  // font page for each character on the screen
 static BITARRAY_DECLARE(dirty, SCREENSIZE);     // change status for each character on the screen
 static BITARRAY_DECLARE(blinkChar, SCREENSIZE); // Does the character blink?
 static bool screenCleared;
@@ -171,7 +171,7 @@ static int setDisplayMode(displayPort_t *displayPort)
 static void init(void)
 {
     memset(screen, SYM_BLANK, sizeof(screen));
-    BITARRAY_CLR_ALL(fontPage);
+    memset(fontPage, 0, sizeof(fontPage));
     BITARRAY_CLR_ALL(dirty);
     BITARRAY_CLR_ALL(blinkChar);
 }
@@ -204,9 +204,8 @@ static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
     }
 
     *c = screen[pos];
-    if (bitArrayGet(fontPage, pos)) {
-        *c |= 0x100;
-    }
+    uint8_t page = fontPage[pos];
+    *c |= (page & 0x3) << 8;
 
     if (attr) {
         *attr = TEXT_ATTRIBUTES_NONE;
@@ -219,10 +218,10 @@ static int setChar(const uint16_t pos, const uint16_t c, textAttributes_t attr)
 {
     if (pos < SCREENSIZE) {
         uint8_t ch = c & 0xFF;
-        bool page = (c >> 8);
-        if (screen[pos] != ch || bitArrayGet(fontPage, pos) != page) {
+        uint8_t page = (c >> 8) & 0x3;
+        if (screen[pos] != ch || fontPage[pos] != page) {
             screen[pos] = ch;
-            (page) ? bitArraySet(fontPage, pos) : bitArrayClr(fontPage, pos);
+            fontPage[pos] = page & 0x3;
             (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) ? bitArraySet(blinkChar, pos) : bitArrayClr(blinkChar, pos);
             bitArraySet(dirty, pos);
         }
@@ -287,7 +286,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t col = pos % COLS;
         uint8_t attributes = 0;
         int endOfLine = row * COLS + screenCols;
-        bool page = bitArrayGet(fontPage, pos);
+        uint8_t page = fontPage[pos];
         bool blink = bitArrayGet(blinkChar, pos);
 
         uint8_t len = 4;
@@ -299,7 +298,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
             }
-        } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page && bitArrayGet(blinkChar, next) == blink);
+        } while (next == pos && next < endOfLine && fontPage[next] == page && bitArrayGet(blinkChar, next) == blink);
 
         if (!isBfCompatibleVideoSystem(osdConfig())) {
             attributes |= (page << DISPLAYPORT_MSP_ATTR_FONTPAGE);
