@@ -752,16 +752,6 @@ Re-purpose the craft name field for messages.
 
 ---
 
-### dji_workarounds
-
-Enables workarounds for different versions of MSP protocol used
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1 | 0 | 255 |
-
----
-
 ### dshot_beeper_enabled
 
 Whether using DShot motors as beepers is enabled
@@ -1572,16 +1562,6 @@ Gyro processing anti-aliasing filter cutoff frequency. In normal operation this 
 
 ---
 
-### gyro_anti_aliasing_lpf_type
-
-Specifies the type of the software LPF of the gyro signals.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| PT1 |  |  |
-
----
-
 ### gyro_dyn_lpf_curve_expo
 
 Expo value for the throttle-to-frequency mapping for Dynamic LPF
@@ -1612,16 +1592,6 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
-### gyro_hardware_lpf
-
-Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 256HZ |  |  |
-
----
-
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -1629,16 +1599,6 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 | Default | Min | Max |
 | --- | --- | --- |
 | 60 | 0 | 500 |
-
----
-
-### gyro_main_lpf_type
-
-Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| BIQUAD |  |  |
 
 ---
 
@@ -3764,7 +3724,7 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 ### nav_min_ground_speed
 
-Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+Minimum ground speed for navigation flight modes [m/s]. Currently, this only affects fixed wing. Default 7 m/s.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5099,26 +5059,6 @@ Allows to set type of PID controller used in control loop. Possible values: `NON
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
-
----
-
-### pidsum_limit
-
-A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
-
----
-
-### pidsum_limit_yaw
-
-A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
 
 ---
 
