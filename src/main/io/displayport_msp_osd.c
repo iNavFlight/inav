@@ -59,7 +59,7 @@ typedef enum {          // defines are from hdzero code
     SD_3016,
     HD_5018,
     HD_3016,           // Special HDZERO mode that just sends the centre 30x16 of the 50x18 canvas to the VRX
-    HD_6022,            // added to support DJI wtfos 60x22 grid
+    HD_6022,           // added to support DJI wtfos 60x22 grid
     HD_5320            // added to support Avatar and BetaflightHD
 } resolutionType_e;
 
@@ -97,11 +97,11 @@ static timeMs_t sendSubFrameMs = 0;
 // set screen size
 #define SCREENSIZE (ROWS*COLS)
 
-static uint8_t currentOsdMode; // HDZero screen mode can change across layouts
+static uint8_t currentOsdMode;               // HDZero screen mode can change across layouts
 
 static uint8_t screen[SCREENSIZE];
-static uint8_t attrs[SCREENSIZE];  // font page for each character on the screen
-static BITARRAY_DECLARE(dirty, SCREENSIZE);     // change status for each character on the screen
+static uint8_t attrs[SCREENSIZE];            // font page, blink and other attributes
+static BITARRAY_DECLARE(dirty, SCREENSIZE);  // change status for each character on the screen
 static bool screenCleared;
 static uint8_t screenRows, screenCols;
 static videoSystem_e osdVideoSystem;
