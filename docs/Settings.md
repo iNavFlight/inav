@@ -658,7 +658,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 32 |
+| 2 | 0 | 32 |
 
 ---
 
@@ -6198,7 +6198,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 100 |
+| 2 | 0 | 100 |
 
 ---
 
