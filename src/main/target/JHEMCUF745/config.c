@@ -15,11 +15,12 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdbool.h>
 #include <stdint.h>
-#include "platform.h"
 
-#include "fc/fc_msp_box.h"
-#include "io/piniobox.h"
+#include <platform.h>
+
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
