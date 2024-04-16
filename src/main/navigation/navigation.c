@@ -2859,21 +2859,21 @@ static bool isWaypointReached(const fpVector3_t * waypointPos, const int32_t * w
 {
     posControl.wpDistance = calculateDistanceToDestination(waypointPos);
 
-    // Check if waypoint was missed based on bearing to WP exceeding given angular limit relative to initial waypoint bearing.
+    // Check if waypoint was missed based on bearing to waypoint exceeding given angular limit relative to initial waypoint bearing.
     // Default angular limit = 100 degs with a reduced limit of 60 degs used if fixed wing waypoint turn smoothing option active
-    uint16_t relativeBearingErrorLimit = 10000;
+    uint16_t relativeBearingTargetAngle = 10000;
 
     if (STATE(AIRPLANE) && posControl.flags.wpTurnSmoothingActive) {
-        // If WP turn smoothing CUT option used WP is reached when start of turn is initiated
+        // If WP mode turn smoothing CUT option used waypoint is reached when start of turn is initiated
         if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_CUT) {
             posControl.flags.wpTurnSmoothingActive = false;
             return true;
         }
-        relativeBearingErrorLimit = 6000;
+        relativeBearingTargetAngle = 6000;
     }
 
 
-    if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointBearing)) > relativeBearingErrorLimit) {
+    if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointBearing)) > relativeBearingTargetAngle) {
         return true;
     }
 
