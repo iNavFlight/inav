@@ -1668,12 +1668,12 @@ groups:
     members:
       - name: deadband
         description: "These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle."
-        default_value: 5
+        default_value: 2
         min: 0
         max: 32
       - name: yaw_deadband
         description: "These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle."
-        default_value: 5
+        default_value: 2
         min: 0
         max: 100
       - name: pos_hold_deadband
