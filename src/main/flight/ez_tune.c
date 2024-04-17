@@ -34,6 +34,8 @@
 #include "sensors/gyro.h"
 #include "fc/controlrate_profile.h"
 
+#include "rx/rx.h"
+
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 0);
 
 PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
@@ -69,6 +71,9 @@ static float getYawPidScale(float input) {
  */
 void ezTuneUpdate(void) {
     if (ezTune()->enabled) {
+
+        //Enforce RC auto smoothing
+        rxConfigMutable()->autoSmooth = 1;
 
         // Setup filtering
         //Set Dterm LPF
