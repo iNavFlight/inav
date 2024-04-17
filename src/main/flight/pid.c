@@ -107,10 +107,8 @@ typedef struct {
 
     smithPredictor_t smithPredictor;
 
-    float dampingFactorPrevious;
-    float dampingFactorLockValue;
-    float dampingFactotLockUntilMs;
-    pt1Filter_t dampingFactorFilter;
+    timeMs_t targetOverThresholdTimeMs;
+
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -322,7 +320,6 @@ bool pidInitFilters(void)
 
     for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
         pt1FilterInit(&windupLpf[i], pidProfile()->iterm_relax_cutoff, US2S(refreshRate));
-        pt1FilterInit(&pidState[i].dampingFactorFilter, 2.0f, US2S(refreshRate));
     }
 
 #ifdef USE_ANTIGRAVITY
@@ -745,53 +742,43 @@ static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axi
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv)
 {
     const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
+    const float rateError = rateTarget - pidState->gyroRate;
 
     const float maxRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
     const float dampingFactor = attenuation(rateTarget, maxRate / 2.5f);
 
-    float dampingFactorP;
-    float dampingFactorD;
-    float dampingFactorI;
-
     /*
-    New idea.... 
-    Iterm damping is applied (down to 0) when:
-    abs(error) > 10% rate and sticks were moved in the last 500ms (hard stop at this mark)
+     * Iterm damping is applied (down to 0) when:
+     * abs(error) > 10% rate and sticks were moved in the last 500ms (hard stop at this mark)
 
-    itermAttenuation  = MIN(curve(setpoint), (abs(error) > 10%) && (sticks were deflected in 500ms) ? 0 : 1)
-    
-    */
+     * itermAttenuation  = MIN(curve(setpoint), (abs(error) > 10%) && (sticks were deflected in 500ms) ? 0 : 1)
+     */
 
-    if (fabsf(dampingFactor) <= fabsf(pidState->dampingFactorPrevious)) {
-        dampingFactorI = dampingFactor;
+    //If error is greater than 10% or max rate
+    const bool errorThresholdReached = fabsf(rateError) > maxRate * 0.1f;
 
-        pidState->dampingFactotLockUntilMs = millis() + scaleRangef(fabsf(dampingFactor), 1.0f, 0.0f, 0, 300);
-        pidState->dampingFactorLockValue = dampingFactor;
-
-        // pt1FilterReset(&pidState->dampingFactorFilter, pidState->dampingFactorPrevious);
-        pidState->dampingFactorPrevious = dampingFactor;
-    } else {
-        
-        if (millis() > pidState->dampingFactorLockValue) {
-            dampingFactorI = dampingFactor;
-            pidState->dampingFactorPrevious = dampingFactor;
-        } else {
-            dampingFactorI = pidState->dampingFactorLockValue;
-        }
+    //If stick (setpoint) was moved above threshold in the last 500ms
+    if (fabsf(rateTarget) > maxRate * 0.2f) {
+        pidState->targetOverThresholdTimeMs = millis();
     }
+
+    //If error is below threshold, we no longer track time for lock mechanism
+    if (!errorThresholdReached) {
+        pidState->targetOverThresholdTimeMs = 0;
+    }
+
+    const float dampingFactorI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->targetOverThresholdTimeMs) < 500) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
-    dampingFactorP = dampingFactor;
-    dampingFactorD = dampingFactor;
+    const float dampingFactorP = dampingFactor;
+    const float dampingFactorD = dampingFactor;
 
     if (axis == FD_ROLL) {
-        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->dampingFactorPrevious * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 1, dampingFactorP * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 2, dampingFactorI * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 3, dampingFactorD * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 0, dampingFactorP * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 1, dampingFactorI * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 2, dampingFactorD * 1000);
     }
 
-    const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactorP;
     const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * dampingFactorD;
     const float newFFTerm = rateTarget * pidState->kFF;
@@ -1308,8 +1295,6 @@ void pidInit(void)
 #endif
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
-
-        pidState[axis].dampingFactorPrevious = 1.0f;
 
     #ifdef USE_D_BOOST
         // Rate * 10 * 10. First 10 is to convert stick to DPS. Second 10 is to convert target to acceleration.
