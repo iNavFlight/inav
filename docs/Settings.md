@@ -932,6 +932,16 @@ EzTune response
 
 ---
 
+### ez_snappiness
+
+EzTune snappiness
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
 ### ez_stability
 
 EzTune stability
