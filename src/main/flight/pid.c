@@ -66,6 +66,14 @@
 #include "programming/logic_condition.h"
 
 typedef struct {
+    float aP;
+    float aI;
+    float aD;
+    float aFF;
+    timeMs_t targetOverThresholdTimeMs;
+} fwPidAttenuation_t;
+
+typedef struct {
     uint8_t axis;
     float kP;   // Proportional gain
     float kI;   // Integral gain
@@ -107,8 +115,7 @@ typedef struct {
 
     smithPredictor_t smithPredictor;
 
-    timeMs_t targetOverThresholdTimeMs;
-
+    fwPidAttenuation_t attenuation;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -739,12 +746,8 @@ static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axi
     UNUSED(dT_inv);
 }
 
-static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv)
-{
-    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
-    const float rateError = rateTarget - pidState->gyroRate;
-
-    const float maxRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
+static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, const float rateError) {
+    const float maxRate = currentControlRateProfile->stabilized.rates[pidState->axis] * 10.0f;
     const float dampingFactor = attenuation(rateTarget, maxRate / 2.5f);
 
     /*
@@ -759,35 +762,43 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     //If stick (setpoint) was moved above threshold in the last 500ms
     if (fabsf(rateTarget) > maxRate * 0.2f) {
-        pidState->targetOverThresholdTimeMs = millis();
+        pidState->attenuation.targetOverThresholdTimeMs = millis();
     }
 
     //If error is below threshold, we no longer track time for lock mechanism
     if (!errorThresholdReached) {
-        pidState->targetOverThresholdTimeMs = 0;
+        pidState->attenuation.targetOverThresholdTimeMs = 0;
     }
 
-    const float dampingFactorI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->targetOverThresholdTimeMs) < 500) ? 0.0f : 1.0f);
+    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < 500) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
-    const float dampingFactorP = dampingFactor;
-    const float dampingFactorD = dampingFactor;
+    pidState->attenuation.aP = dampingFactor;
+    pidState->attenuation.aD = dampingFactor;
 
-    if (axis == FD_ROLL) {
-        DEBUG_SET(DEBUG_ALWAYS, 0, dampingFactorP * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 1, dampingFactorI * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 2, dampingFactorD * 1000);
+    if (pidState->axis == FD_ROLL) {
+        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->attenuation.aP * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 1, pidState->attenuation.aI * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 2, pidState->attenuation.aD * 1000);
     }
+}
 
-    const float newPTerm = pTermProcess(pidState, rateError, dT) * dampingFactorP;
-    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * dampingFactorD;
+static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv)
+{
+    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
+    const float rateError = rateTarget - pidState->gyroRate;
+
+    fwRateAttenuation(pidState, rateTarget, rateError);
+
+    const float newPTerm = pTermProcess(pidState, rateError, dT) * pidState->attenuation.aP;
+    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * pidState->attenuation.aD;
     const float newFFTerm = rateTarget * pidState->kFF;
 
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
     if (!pidState->itermFreezeActive) {
-        pidState->errorGyroIf += rateError * pidState->kI * dT * dampingFactorI;
+        pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
     }
 
     applyItermLimiting(pidState);
