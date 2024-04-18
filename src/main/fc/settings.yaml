@@ -732,12 +732,6 @@ groups:
     type: motorConfig_t
     headers: ["flight/mixer.h"]
     members:
-      - name: max_throttle
-        description: "This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK for everyone (legacy). For modern ESCs, higher values (c. 2000) may be more appropriate. If you have brushed motors, the value should be set to 2000."
-        default_value: 1850
-        field: maxthrottle
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
       - name: min_command
         description: "This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly when powered up, try decreasing this value. It can also be used for calibrating all ESCs at once."
         default_value: 1000

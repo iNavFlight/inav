@@ -647,7 +647,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
                 correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
             } else {
-                correctedThrottleValue = motorConfig()->maxthrottle;
+                correctedThrottleValue = getMaxThrottle();
             }
             isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
         } else {
