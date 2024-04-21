@@ -54,6 +54,8 @@
 #include "usbd_cdc_interface.h"
 #include "stdbool.h"
 #include "drivers/time.h"
+#include "drivers/nvic.h"
+#include "build/atomic.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -366,14 +368,13 @@ uint32_t CDC_Receive_BytesAvailable(void)
 
 uint32_t CDC_Send_FreeBytes(void)
 {
-    /*
-        return the bytes free in the circular buffer
+    uint32_t freeBytes;
 
-        functionally equivalent to:
-        (APP_Rx_ptr_out > APP_Rx_ptr_in ? APP_Rx_ptr_out - APP_Rx_ptr_in : APP_RX_DATA_SIZE - APP_Rx_ptr_in + APP_Rx_ptr_in)
-        but without the impact of the condition check.
-    */
-    return ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
+    ATOMIC_BLOCK(NVIC_PRIO_VCP) {
+        freeBytes = ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
+    }
+
+    return freeBytes;
 }
 
 /**

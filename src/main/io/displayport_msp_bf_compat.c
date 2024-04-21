@@ -293,13 +293,12 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_THR:
         return BF_SYM_THR;
 
-/*
     case SYM_TEMP_F:
-        return BF_SYM_TEMP_F;
+        return BF_SYM_F;
 
     case SYM_TEMP_C:
-        return BF_SYM_TEMP_C;
-*/
+        return BF_SYM_C;
+
     case SYM_BLANK:
         return BF_SYM_BLANK;
 /*

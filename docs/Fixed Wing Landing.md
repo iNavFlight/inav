@@ -5,6 +5,8 @@
 INAV supports advanced automatic landings for fixed wing aircraft from version 7.1.
 The procedure is based on landings for man-carrying aircraft, so that safe landings at a specific location are possible.
 Supported are landings at safehome after "Return to Home" or at a defined LAND waypoint for missions. 
+Every landing locations can be defined with a target point and 2 different approach headings (colinear to the landing strips) with exclusive direction or opposite directions allowed. 
+This enables up to 4 different approach directions, based on the landing site and surrounding area. 
 
 ## General procedure:
 
@@ -34,7 +36,7 @@ The following graphics illustrate the process:
 
 ### The following parameters are set for each landing site (Safefome/LAND waypoint):
 
-All settings can also be conveniently made in the Configurator via Missionplanner.
+All settings can also be conveniently made in the Configurator via Mission Control.
 
 CLI command `fwapproach`:
 `fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level>`
@@ -54,7 +56,7 @@ This means that practically 4 landing directions can be saved.
 > [!CAUTION]
 > The Configuator automatically determines the ground altitude based on databases on the Internet, which may be inaccurate. Please always compare with the measured GPS altitude at the landing site to avoid crashes.
 
-### Global paramters
+### Global parameters
 
 All settings are available via “Advanced Tuning” in the Configurator.
 
@@ -80,6 +82,23 @@ In degrees. Min: 0, Max: 45, Default: 0
 * `nav_fw_land_max_tailwind`: Max. tailwind if no landing direction with downwind is available. Wind strengths below this value are ignored (error tolerance in the wind measurement). Landing then takes place in the main direction. If, for example, 90 degrees is configured, landing takes place in this direction, NOT in 270 degrees (see above).
 In cm/s. Min: 0; Max: 3000, Default: 140
 
+### General paramters and tuning tips
+
+* `nav_fw_wp_tracking_accuracy`: Its highly recommended that this parameter is used and tuned well. Only with WP-Tracking enabled, the Aircraft will try to precisely align with the runway during approach. 
+If WP-Tracking is not used, the Plane will head straight to the landiung location without flying in line with the intended landing strip. Wind can intensively alter the final landing heading.
+
+* `nav_fw_pitch2thr`: The navigation throttle modifier has to be tuned well to allow stable navigation during climbs and descents to prevent a stall. Make sure your plane maintains Ground or Airspeed, when climbing in any navigation mode. 
+The Craft should not get slower and not speed ub significantly during a navigation climb, if P2T is tuned properly.
+
+* `nav_wp_radius`: This parameter might be too high if you have set up your craft with INAV 6 or INAV 7. With a too high value, the turning points for the Crosswind-Leg and Final Approach are hit too early and make it difficult for the plane to align to the runway or cut short the approach. 
+Make sure this parameter is not set greater than 1000 (cm). The better your craft and navigation system is tuned, the lower this value can be. We recommend to start with 1000 for flying wings and 800 for a Plane with Tail.
+
+* Test your Navigation-Tuning: A better Navigation-Tune will reward you with smoother and more reliable landings. To test your nav systems limit, we recommend to create a waypoint missions with many 90° turn angles with shorter and shorter tracks. 
+With this Method, you can find out how well your plane can follow a navigation path and how long it takes to align to a waypoint track. A well tuned plane should be able to pull of a WP Mission that looks like this, where the distance between WP6 and WP7 si recommended to be the minimum approach length: 
+
+![Test Waypoint Track](https://github.com/iNavFlight/inav/assets/33039058/a929cd0c-80b1-42d6-815d-89a90e9daa1b)
+
+
 ## Waypoint missions
 
 Only one landing waypoint per mission can be active and saved and the landing waypoint must be the last waypoint of the mission. 
@@ -87,7 +106,7 @@ If the altitude of the waypoint and the "Approach Altitude" are different, the a
 
 ## Logic Conditions
 
-The current landing state can be retrieved via ID 41 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deplyoment of the landing flaps.
+The current landing state can be retrieved via ID 41 in "Flight" (FW Land State). This allows additional actions to be executed according to the landing phases, e.g. deployment of the landing flaps.
 
 | Returned value | State |
 | --- | --- |

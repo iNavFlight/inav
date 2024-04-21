@@ -193,9 +193,9 @@ typedef enum {
 } navRTHClimbFirst_e;
 
 typedef enum {  // keep aligned with fixedWingLaunchState_t
-    FW_LAUNCH_DETECTED = 4,
-    FW_LAUNCH_ABORTED = 9,
-    FW_LAUNCH_FLYING = 10,
+    FW_LAUNCH_DETECTED = 5,
+    FW_LAUNCH_ABORTED = 10,
+    FW_LAUNCH_FLYING = 11,
 } navFwLaunchStatus_e;
 
 typedef enum {
@@ -234,7 +234,6 @@ typedef struct positionEstimationConfig_s {
     uint8_t reset_altitude_type; // from nav_reset_type_e
     uint8_t reset_home_type; // nav_reset_type_e
     uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
-    uint8_t use_gps_velned;
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
@@ -368,6 +367,7 @@ typedef struct navConfig_s {
         uint16_t launch_time_thresh;         // Time threshold for launch detection (ms)
         uint16_t launch_motor_timer;         // Time to wait before setting launch_throttle (ms)
         uint16_t launch_idle_motor_timer;    // Time to wait before motor starts at_idle throttle (ms)
+        uint8_t  launch_wiggle_wake_idle;    // Activate the idle throttle by wiggling the plane. 0 = disabled, 1 or 2 specify the number of wiggles.
         uint16_t launch_motor_spinup_time;   // Time to speed-up motors from idle to launch_throttle (ESC desync prevention)
         uint16_t launch_end_time;            // Time to make the transition from launch angle to leveled and throttle transition from launch throttle to the stick position
         uint16_t launch_min_time;	         // Minimum time in launch mode to prevent possible bump of the sticks from leaving launch mode early
@@ -703,7 +703,6 @@ uint8_t getActiveWpNumber(void);
 int32_t navigationGetHomeHeading(void);
 
 #ifdef USE_FW_AUTOLAND
-bool isFwLandInProgess(void);
 bool canFwLandCanceld(void);
 #endif
 

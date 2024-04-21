@@ -84,7 +84,6 @@ enum djiOsdProtoWorkarounds_e {
 typedef struct djiOsdConfig_s {
     uint8_t use_name_for_messages;
     uint8_t esc_temperature_source;
-    uint8_t proto_workarounds;
     uint8_t messageSpeedSource;
     uint8_t rssi_source;
     uint8_t useAdjustments;
