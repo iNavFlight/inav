@@ -99,7 +99,6 @@ typedef struct {
     biquadFilter_t dBoostGyroLpf;
     float dBoostTargetAcceleration;
 #endif
-    uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
     bool itermLimitActive;
     bool itermFreezeActive;
@@ -159,6 +158,8 @@ typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
+static EXTENDED_FASTRAM bool restartAngleHoldMode = true;
+static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 
 #define FIXED_WING_LEVEL_TRIM_MAX_ANGLE 10.0f // Max angle auto trimming can demand
 #define FIXED_WING_LEVEL_TRIM_DIVIDER 50.0f
@@ -168,7 +169,7 @@ static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 6);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -262,8 +263,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .max_angle_inclination[FD_ROLL] = SETTING_MAX_ANGLE_INCLINATION_RLL_DEFAULT,
         .max_angle_inclination[FD_PITCH] = SETTING_MAX_ANGLE_INCLINATION_PIT_DEFAULT,
-        .pidSumLimit = SETTING_PIDSUM_LIMIT_DEFAULT,
-        .pidSumLimitYaw = SETTING_PIDSUM_LIMIT_YAW_DEFAULT,
         .pidItermLimitPercent = SETTING_PID_ITERM_LIMIT_PERCENT_DEFAULT,
 
         .fixedWingReferenceAirspeed = SETTING_FW_REFERENCE_AIRSPEED_DEFAULT,
@@ -465,8 +464,8 @@ static float calculateMultirotorTPAFactor(void)
     // TPA should be updated only when TPA is actually set
     if (currentControlRateProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
-    } else if (rcCommand[THROTTLE] < motorConfig()->maxthrottle) {
-        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(motorConfig()->maxthrottle - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
+    } else if (rcCommand[THROTTLE] < getMaxThrottle()) {
+        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
         tpaFactor = (100 - currentControlRateProfile->throttle.dynPID) / 100.0f;
     }
@@ -585,10 +584,18 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
 
 static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), pidProfile()->max_angle_inclination[axis]);
+#else
     float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
+#endif
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
+#ifdef USE_FW_AUTOLAND
+    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+#else
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
+#endif
         angleTarget += scaleRange(MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]), 0, currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN, 0, navConfig()->fw.minThrottleDownPitchAngle);
     }
 
@@ -763,12 +770,14 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     applyItermLimiting(pidState);
 
+    const uint16_t limit = getPidSumLimit(axis);
+
     if (pidProfile()->pidItermLimitPercent != 0){
-        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        float itermLimit = limit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
+    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -limit, +limit);
 
     if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
         if (!angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH)) {
@@ -778,7 +787,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
-        autotuneFixedWingUpdate(axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
+        autotuneFixedWingUpdate(axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -limit, +limit));
     }
 #endif
 
@@ -827,9 +836,11 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
      */
     const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
+    const uint16_t limit = getPidSumLimit(axis);
+
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
-    const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
+    const float newOutputLimited = constrainf(newOutput, -limit, +limit);
 
     float itermErrorRate = applyItermRelax(axis, rateTarget, rateError);
 
@@ -841,7 +852,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
 
     if (pidProfile()->pidItermLimitPercent != 0){
-        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        float itermLimit = limit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
@@ -1065,9 +1076,62 @@ void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis
 
 }
 
+bool isAngleHoldLevel(void)
+{
+    return angleHoldIsLevel;
+}
+
+void updateAngleHold(float *angleTarget, uint8_t axis)
+{
+    int8_t navAngleHoldAxis = navCheckActiveAngleHoldAxis();
+
+    if (!restartAngleHoldMode) {     // set restart flag when anglehold is inactive
+        restartAngleHoldMode = !FLIGHT_MODE(ANGLEHOLD_MODE) && navAngleHoldAxis == -1;
+    }
+
+    if ((FLIGHT_MODE(ANGLEHOLD_MODE) || axis == navAngleHoldAxis) && !isFlightAxisAngleOverrideActive(axis)) {
+        /* angleHoldTarget stores attitude values using a zero datum when level.
+         * This requires angleHoldTarget pitch to be corrected for fixedWingLevelTrim so it is 0
+         * when the craft is level even though attitude pitch is non zero in this case.
+         * angleTarget pitch is corrected back to fixedWingLevelTrim datum on return from function */
+
+        static int16_t angleHoldTarget[2];
+
+        if (restartAngleHoldMode) {      // set target attitude to current attitude on activation
+            angleHoldTarget[FD_ROLL] = attitude.raw[FD_ROLL];
+            angleHoldTarget[FD_PITCH] = attitude.raw[FD_PITCH] + DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
+            restartAngleHoldMode = false;
+        }
+
+        // set flag indicating anglehold is level
+        if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
+            angleHoldIsLevel = angleHoldTarget[FD_ROLL] == 0 && angleHoldTarget[FD_PITCH] == 0;
+        } else {
+            angleHoldIsLevel = angleHoldTarget[navAngleHoldAxis] == 0;
+        }
+
+        uint16_t bankLimit = pidProfile()->max_angle_inclination[axis];
+
+        // use Nav bank angle limits if Nav active
+        if (navAngleHoldAxis == FD_ROLL) {
+            bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_bank_angle);
+        } else if (navAngleHoldAxis == FD_PITCH) {
+            bankLimit = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+        }
+
+        int16_t levelTrim = axis == FD_PITCH ? DEGREES_TO_DECIDEGREES(fixedWingLevelTrim) : 0;
+        if (calculateRollPitchCenterStatus() == CENTERED) {
+            angleHoldTarget[axis] = ABS(angleHoldTarget[axis]) < 30 ? 0 : angleHoldTarget[axis];   // snap to level when within 3 degs of level
+            *angleTarget = constrain(angleHoldTarget[axis] - levelTrim, -bankLimit, bankLimit);
+        } else {
+            *angleTarget = constrain(attitude.raw[axis] + *angleTarget + levelTrim, -bankLimit, bankLimit);
+            angleHoldTarget[axis] = attitude.raw[axis] + levelTrim;
+        }
+    }
+}
+
 void FAST_CODE pidController(float dT)
 {
-
     const float dT_inv = 1.0f / dT;
 
     if (!pidFiltersConfigured) {
@@ -1088,7 +1152,6 @@ void FAST_CODE pidController(float dT)
     }
 
     for (int axis = 0; axis < 3; axis++) {
-        // Step 1: Calculate gyro rates
         pidState[axis].gyroRate = gyro.gyroADCf[axis];
 
         // Step 2: Read target
@@ -1116,21 +1179,35 @@ void FAST_CODE pidController(float dT)
 #endif
     }
 
-    // Step 3: Run control for ANGLE_MODE, HORIZON_MODE, and HEADING_LOCK
-    const float horizonRateMagnitude = calcHorizonRateMagnitude();
+    // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ANGLEHOLD_MODE
+    const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
     levelingEnabled = false;
+    angleHoldIsLevel = false;
+
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || isFlightAxisAngleOverrideActive(axis)) {
-            //If axis angle override, get the correct angle from Logic Conditions
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE) || FLIGHT_MODE(ANGLEHOLD_MODE) || isFlightAxisAngleOverrideActive(axis)) {
+            // If axis angle override, get the correct angle from Logic Conditions
             float angleTarget = getFlightAxisAngleOverride(axis, computePidLevelTarget(axis));
 
-            //Apply the Level PID controller
+            //apply 45 deg offset for tailsitter when isMixerTransitionMixing is activated
+            if (STATE(TAILSITTER) && isMixerTransitionMixing && axis == FD_PITCH){
+                angleTarget += DEGREES_TO_DECIDEGREES(45);
+            }
+
+            if (STATE(AIRPLANE)) {  // update anglehold mode
+                updateAngleHold(&angleTarget, axis);
+            }
+
+            // Apply the Level PID controller
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
             levelingEnabled = true;
+        } else {
+            restartAngleHoldMode = true;
         }
     }
 
+    // Apply Turn Assistance
     if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
         float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
         float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]));
@@ -1138,6 +1215,7 @@ void FAST_CODE pidController(float dT)
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
+    // Apply FPV camera mix
     if (canUseFpvCameraMix && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && currentControlRateProfile->misc.fpvCamAngleDegrees && STATE(MULTIROTOR)) {
         pidApplyFpvCameraAngleMix(pidState, currentControlRateProfile->misc.fpvCamAngleDegrees);
     }
@@ -1208,14 +1286,12 @@ void pidInit(void)
 
         pidState[axis].axis = axis;
         if (axis == FD_YAW) {
-            pidState[axis].pidSumLimit = pidProfile()->pidSumLimitYaw;
             if (yawLpfHz) {
                 pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;
             } else {
                 pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
             }
         } else {
-            pidState[axis].pidSumLimit = pidProfile()->pidSumLimit;
             pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
         }
     }
@@ -1251,7 +1327,7 @@ void pidInit(void)
     navPidInit(
         &fixedWingLevelTrimController,
         0.0f,
-        (float)pidProfile()->fixedWingLevelTrimGain / 100.0f,
+        (float)pidProfile()->fixedWingLevelTrimGain / 200.0f,
         0.0f,
         0.0f,
         2.0f,
@@ -1273,7 +1349,7 @@ bool isFixedWingLevelTrimActive(void)
     return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !areSticksDeflected() &&
            (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) &&
            !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
-           !navigationIsControllingAltitude();
+           !navigationIsControllingAltitude() && !(navCheckActiveAngleHoldAxis() == FD_PITCH && !angleHoldIsLevel);
 }
 
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
@@ -1307,8 +1383,8 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
      */
     pidControllerFlags_e flags = PID_LIMIT_INTEGRATOR;
 
-    // Iterm should freeze when conditions for setting level trim aren't met
-    if (!isFixedWingLevelTrimActive()) {
+    // Iterm should freeze when conditions for setting level trim aren't met or time since last expected update too long ago
+    if (!isFixedWingLevelTrimActive() || (dT > 5.0f * US2S(TASK_PERIOD_HZ(TASK_AUX_RATE_HZ)))) {
         flags |= PID_FREEZE_INTEGRATOR;
     }
 
@@ -1331,4 +1407,12 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
 float getFixedWingLevelTrim(void)
 {
     return STATE(AIRPLANE) ? fixedWingLevelTrim : 0;
+}
+
+uint16_t getPidSumLimit(const flight_dynamics_index_t axis) {
+    if (axis == FD_YAW) {
+        return STATE(MULTIROTOR) ? 400 : 500;
+    } else {
+        return 500;
+    }
 }

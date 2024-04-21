@@ -22,12 +22,16 @@
 #include "drivers/timer.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM1, CH1, PA8,  TIM_USE_PPM,   0, 0),
+    // DEF_TIM(TIM1, CH1, PA8,  TIM_USE_PPM,   0, 0),
 
     DEF_TIM(TIM4, CH2, PB7,  TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM4, CH1, PB6,  TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM3, CH1, PB4,  TIM_USE_OUTPUT_AUTO, 0, 0),
     DEF_TIM(TIM2, CH2, PB3,  TIM_USE_OUTPUT_AUTO, 0, 0),
+#if defined(SKYSTARSF405HD2)
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_OUTPUT_AUTO, 0, 0),
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_OUTPUT_AUTO, 0, 0),
+#endif
 
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_LED, 0, 0),
 };

@@ -41,12 +41,12 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO | TIM_USE_ANY, 0, 0), // S5_OUT / LED
     DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,               0, 0), // S6_OUT D1_ST2
 
-    DEF_TIM(TIM12, CH1, PB14, TIM_USE_PWM | TIM_USE_PPM,                   0, 0), // PPM (5th pin on FlexiIO port)
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM,                                 0, 0), // S2_IN
-    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S3_IN
-    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S4_IN
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S5_IN
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_PWM | TIM_USE_OUTPUT_AUTO, 0, 0), // S6_IN
+    // DEF_TIM(TIM12, CH1, PB14, TIM_USE_PWM | TIM_USE_PPM,                   0, 0), // PPM (5th pin on FlexiIO port)
+    // DEF_TIM(TIM12, CH2, PB15, TIM_USE_PWM,                                 0, 0), // S2_IN
+    DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_OUTPUT_AUTO, 0, 0), // S3_IN
+    DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_OUTPUT_AUTO, 0, 0), // S4_IN
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S5_IN
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 0), // S6_IN
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

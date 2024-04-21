@@ -78,7 +78,7 @@ typedef struct SPIDevice_s {
     ioTag_t mosi;
     ioTag_t miso;
     rccPeriphTag_t rcc;
-#if defined(STM32F7) || defined(STM32H7)
+#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
     uint8_t sckAF;
     uint8_t misoAF;
     uint8_t mosiAF;

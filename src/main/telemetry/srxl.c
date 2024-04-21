@@ -165,11 +165,13 @@ typedef struct
     INT8 dBm_A, // Average signal for A antenna in dBm
     INT8 dBm_B; // Average signal for B antenna in dBm.
     // If only 1 antenna, set B = A
+    UINT16 spare[2];
+    UINT16 fastbootUptime; // bit 15 = fastboot flag.  Bits 0-14= uptime in seconds.  0x0000 --> no data
 } STRU_TELE_RPM;
 */
 
 #define STRU_TELE_RPM_EMPTY_FIELDS_COUNT 8
-#define STRU_TELE_RPM_EMPTY_FIELDS_VALUE 0xff
+#define STRU_TELE_RPM_EMPTY_FIELDS_VALUE 0x00
 
 #define SPEKTRUM_RPM_UNUSED 0xffff
 #define SPEKTRUM_TEMP_UNUSED 0x7fff
@@ -303,7 +305,11 @@ bool srxlFrameGpsLoc(sbuf_t *dst, timeUs_t currentTimeUs)
     uint16_t altitudeLoBcd, groundCourseBcd, hdop;
     uint8_t hdopBcd, gpsFlags;
 
-    if (!feature(FEATURE_GPS) || !STATE(GPS_FIX) || gpsSol.numSat < 6) {
+    if (!feature(FEATURE_GPS) || !(STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) || gpsSol.numSat < 6) {
         return false;
     }
 
@@ -371,7 +377,11 @@ bool srxlFrameGpsStat(sbuf_t *dst, timeUs_t currentTimeUs)
     uint8_t numSatBcd, altitudeHighBcd;
     bool timeProvided = false;
 
-    if (!feature(FEATURE_GPS) || !STATE(GPS_FIX) || gpsSol.numSat < 6) {
+    if (!feature(FEATURE_GPS) || !(STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        )|| gpsSol.numSat < 6) {
         return false;
     }
 

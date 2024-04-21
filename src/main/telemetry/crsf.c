@@ -352,7 +352,13 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "ANGL";
         } else if (FLIGHT_MODE(HORIZON_MODE)) {
             flightMode = "HOR";
+        } else if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
+            flightMode = "ANGH";
         }
+#ifdef USE_FW_AUTOLAND
+    } else if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        flightMode = "LAND";
+#endif
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
         flightMode = "WAIT"; // Waiting for GPS lock

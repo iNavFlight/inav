@@ -21,7 +21,6 @@
 #include <stdbool.h>
 
 void systemInit(void);
-void systemClockSetup(uint8_t cpuUnderclock);
 
 typedef enum {
     FAILURE_DEVELOPER = 0,

@@ -2,21 +2,18 @@ include(gcc)
 set(arm_none_eabi_triplet "arm-none-eabi")
 
 # Keep version in sync with the distribution files below
-set(arm_none_eabi_gcc_version "10.3.1")
-set(arm_none_eabi_base_url "https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10")
+set(arm_none_eabi_gcc_version "13.2.1")
+# This is the output directory "pretty" name and URI name prefix
+set(base_dir_name "arm-gnu-toolchain-13.2.rel1")
+# This is the name inside the archive, which is no longer evincible from URI, alas
+set(archive_base_dir_name "arm-gnu-toolchain-13.2.Rel1")
+set(arm_none_eabi_base_url "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/${base_dir_name}")
 # suffix and checksum
-set(arm_none_eabi_win32 "win32.zip" 2bc8f0c4c4659f8259c8176223eeafc1)
-set(arm_none_eabi_linux_amd64 "x86_64-linux.tar.bz2" 2383e4eb4ea23f248d33adc70dc3227e)
-set(arm_none_eabi_linux_aarch64 "aarch64-linux.tar.bz2" 3fe3d8bb693bd0a6e4615b6569443d0d)
-set(arm_none_eabi_gcc_macos "mac.tar.bz2" 7f2a7b7b23797302a9d6182c6e482449)
-
-function(arm_none_eabi_gcc_distname var)
-    string(REPLACE "/" ";" url_parts ${arm_none_eabi_base_url})
-    list(LENGTH url_parts n)
-    math(EXPR last "${n} - 1")
-    list(GET url_parts ${last} basename)
-    set(${var} ${basename} PARENT_SCOPE)
-endfunction()
+set(arm_none_eabi_win32 "mingw-w64-i686-arm-none-eabi.zip" 7fd677088038cdf82f33f149e2e943ee)
+set(arm_none_eabi_linux_amd64 "x86_64-arm-none-eabi.tar.xz" 791754852f8c18ea04da7139f153a5b7)
+set(arm_none_eabi_linux_aarch64 "aarch64-arm-none-eabi.tar.xz" 5a08122e6d4caf97c6ccd1d29e62599c)
+set(arm_none_eabi_darwin_amd64 "darwin-x86_64-arm-none-eabi.tar.xz" 41d49840b0fc676d2ae35aab21a58693)
+set(arm_none_eabi_darwin_aarch64 "darwin-arm64-arm-none-eabi.tar.xz" 2c43e9d72206c1f81227b0a685df5ea6)
 
 function(host_uname_machine var)
     # We need to call uname -m manually, since at the point
@@ -47,7 +44,14 @@ function(arm_none_eabi_gcc_install)
             message("-- no precompiled ${arm_none_eabi_triplet} toolchain for machine ${machine}")
         endif()
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-        set(dist ${arm_none_eabi_gcc_macos})
+        host_uname_machine(machine)
+        if(machine STREQUAL "x86_64" OR machine STREQUAL "amd64")
+            set(dist ${arm_none_eabi_darwin_amd64})
+        elseif(machine STREQUAL "aarch64" OR machine STREQUAL "arm64")
+            set(dist ${arm_none_eabi_darwin_aarch64})
+        else()
+            message("-- no precompiled ${arm_none_eabi_triplet} toolchain for machine ${machine}")
+        endif()
     endif()
 
     if(dist STREQUAL "")
@@ -83,11 +87,27 @@ function(arm_none_eabi_gcc_install)
     if(NOT status EQUAL 0)
         message(FATAL_ERROR "error extracting ${basename}: ${status}")
     endif()
+    string(REPLACE "." ";" url_parts ${dist_suffix})
+    list(GET url_parts 0 host_dir_name)
+    set(dir_name "${archive_base_dir_name}-${host_dir_name}")
+    file(REMOVE_RECURSE "${TOOLS_DIR}/${base_dir_name}")
+    file(RENAME  "${TOOLS_DIR}/${dir_name}" "${TOOLS_DIR}/${base_dir_name}")
+    # This is **somewhat ugly**
+    # the newlib distributed by ARM generates suprious warnings from re-entrant POSIX functions
+    # that INAV doesn't use. These "harmless" warnings can be surpressed by removing the
+    # errant section from the only libnosys used by INAV ...
+    # So look the other way ... while this is "fixed"
+    execute_process(COMMAND arm-none-eabi-objcopy -w -R .gnu.warning.* "${TOOLS_DIR}/${base_dir_name}/arm-none-eabi/lib/thumb/v7e-m+fp/hard/libnosys.a"
+      RESULT_VARIABLE status
+      WORKING_DIRECTORY ${TOOLS_DIR}
+    )
+    if(NOT status EQUAL 0)
+        message(FATAL_ERROR "error fixing libnosys.a: ${status}")
+    endif()
 endfunction()
 
 function(arm_none_eabi_gcc_add_path)
-    arm_none_eabi_gcc_distname(dist_name)
-    set(gcc_path "${TOOLS_DIR}/${dist_name}/bin")
+    set(gcc_path "${TOOLS_DIR}/${base_dir_name}/bin")
     if(CMAKE_HOST_SYSTEM MATCHES ".*Windows.*")
         set(sep "\\;")
     else()
@@ -110,7 +130,7 @@ function(arm_none_eabi_gcc_check)
     message("-- found ${prog} ${version} at ${prog_path}")
     if(COMPILER_VERSION_CHECK AND NOT arm_none_eabi_gcc_version STREQUAL version)
         message("-- expecting ${prog} version ${arm_none_eabi_gcc_version}, but got version ${version} instead")
-        arm_none_eabi_gcc_install()
+	arm_none_eabi_gcc_install()
         return()
     endif()
 endfunction()

@@ -122,7 +122,7 @@ static uint8_t simModuleState = SIM_MODULE_NOT_DETECTED;
 static int simRssi;
 static uint8_t accEvent = ACC_EVENT_NONE;
 static char* accEventDescriptions[] = { "", "HIT! ", "DROP ", "HIT " };
-static char* modeDescriptions[] = { "MAN", "ACR", "AIR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "CRS", "LAU", "FS" };
+static char* modeDescriptions[] = { "MAN", "ACR", "AIR", "ANG", "HOR", "ALH", "POS", "RTH", "WP", "CRS", "LAU", "FS", "ANH" };
 static const char gpsFixIndicators[] = { '!', '*', ' ' };
 
 static bool checkGroundStationNumber(uint8_t* rv)
@@ -348,7 +348,11 @@ static void sendSMS(void)
 
     ZERO_FARRAY(pluscode_url);
 
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX)) {
+    if ((sensors(SENSOR_GPS) && STATE(GPS_FIX))
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         groundSpeed = gpsSol.groundSpeed / 100;
 
         char buf[20];

@@ -2,11 +2,17 @@
     "files.associations": {
         "chrono": "c",
         "cmath": "c",
-        "ranges": "c"
+        "ranges": "c",
+        "navigation.h": "c",
+        "rth_trackback.h": "c"
+        "platform.h": "c",
+        "timer.h": "c",
+        "bus.h": "c"
     },
     "editor.tabSize": 4,
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.expandTabs": true,
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4,  BreakBeforeBraces: Mozilla }"
+
 }

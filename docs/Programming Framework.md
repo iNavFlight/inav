@@ -83,7 +83,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 35            | Trigonometry: Tangent                           | Computes TAN of `Operand A` value in degrees. Output is multiplied by `Operand B` value. If `Operand B` is `0`, result is multiplied by `500` |
 | 36            | MAP_INPUT                     | Scales `Operand A` from [`0` : `Operand B`] to [`0` : `1000`]. Note: input will be constrained and then scaled |
 | 37            | MAP_OUTPUT                    | Scales `Operand A` from [`0` : `1000`] to [`0` : `Operand B`]. Note: input will be constrained and then scaled |
-| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B` |
+| 38            | RC_CHANNEL_OVERRIDE           | Overrides channel set by `Operand A` to value of `Operand B`. Note operand A should normally be set as a "Value", NOT as "Get RC Channel"|
 | 39            | SET_HEADING_TARGET            | Sets heading-hold target to `Operand A`, in degrees. Value wraps-around. |
 | 40            | Modulo                           | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
 | 41            | LOITER_RADIUS_OVERRIDE        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
@@ -156,6 +156,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 38            | ACTIVE_MIXER_PROFILE          | Which mixers are currently active (for vtol etc) |
 | 39            | MIXER_TRANSITION_ACTIVE       | Currently switching between mixers (quad to plane etc) |
 | 40            | ATTITUDE_YAW                  | current heading (yaw) in `degrees` |
+| 41            | FW Land Sate                  | integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
 
 #### FLIGHT_MODE
 

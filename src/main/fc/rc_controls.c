@@ -75,24 +75,23 @@ stickPositions_e rcStickPositions;
 
 FASTRAM int16_t rcCommand[4];           // interval [1000;2000] for THROTTLE and [-500;+500] for ROLL/PITCH/YAW
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig, PG_RC_CONTROLS_CONFIG, 4);
 
 PG_RESET_TEMPLATE(rcControlsConfig_t, rcControlsConfig,
     .deadband = SETTING_DEADBAND_DEFAULT,
     .yaw_deadband = SETTING_YAW_DEADBAND_DEFAULT,
     .pos_hold_deadband = SETTING_POS_HOLD_DEADBAND_DEFAULT,
-    .control_deadband = SETTING_CONTROL_DEADBAND_DEFAULT,
     .alt_hold_deadband = SETTING_ALT_HOLD_DEADBAND_DEFAULT,
     .mid_throttle_deadband = SETTING_3D_DEADBAND_THROTTLE_DEFAULT,
     .airmodeHandlingType = SETTING_AIRMODE_TYPE_DEFAULT,
     .airmodeThrottleThreshold = SETTING_AIRMODE_THROTTLE_THRESHOLD_DEFAULT,
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(armingConfig_t, armingConfig, PG_ARMING_CONFIG, 3);
 
 PG_RESET_TEMPLATE(armingConfig_t, armingConfig,
     .fixed_wing_auto_arm = SETTING_FIXED_WING_AUTO_ARM_DEFAULT,
-    .disarm_kill_switch = SETTING_DISARM_KILL_SWITCH_DEFAULT,
+    .disarm_always = SETTING_DISARM_ALWAYS_DEFAULT,
     .switchDisarmDelayMs = SETTING_SWITCH_DISARM_DELAY_DEFAULT,
     .prearmTimeoutMs = SETTING_PREARM_TIMEOUT_DEFAULT,
 );
@@ -104,7 +103,7 @@ bool areSticksInApModePosition(uint16_t ap_mode)
 
 bool areSticksDeflected(void)
 {
-    return (ABS(rcCommand[ROLL]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[PITCH]) > rcControlsConfig()->control_deadband) || (ABS(rcCommand[YAW]) > rcControlsConfig()->control_deadband);
+    return (ABS(rcCommand[ROLL]) > CONTROL_DEADBAND) || (ABS(rcCommand[PITCH]) > CONTROL_DEADBAND) || (ABS(rcCommand[YAW]) > CONTROL_DEADBAND);
 }
 
 bool isRollPitchStickDeflected(uint8_t deadband)
@@ -119,8 +118,7 @@ throttleStatus_e FAST_CODE NOINLINE calculateThrottleStatus(throttleStatusType_e
         value = rcCommand[THROTTLE];
     }
 
-    const uint16_t mid_throttle_deadband = rcControlsConfig()->mid_throttle_deadband;
-    bool midThrottle = value > (PWM_RANGE_MIDDLE - mid_throttle_deadband) && value < (PWM_RANGE_MIDDLE + mid_throttle_deadband);
+    bool midThrottle = value > (reversibleMotorsConfig()->deadband_low) && value < (reversibleMotorsConfig()->deadband_high);
     if ((feature(FEATURE_REVERSIBLE_MOTORS) && midThrottle) || (!feature(FEATURE_REVERSIBLE_MOTORS) && (value < rxConfig()->mincheck))) {
         return THROTTLE_LOW;
     }
@@ -233,7 +231,7 @@ void processRcStickPositions(bool isThrottleLow)
             if (ARMING_FLAG(ARMED) && !IS_RC_MODE_ACTIVE(BOXFAILSAFE) && rxIsReceivingSignal() && !failsafeIsActive()) {
                 const timeMs_t disarmDelay = currentTimeMs - rcDisarmTimeMs;
                 if (disarmDelay > armingConfig()->switchDisarmDelayMs) {
-                    if (armingConfig()->disarm_kill_switch || isThrottleLow) {
+                    if (armingConfig()->disarm_always || isThrottleLow) {
                         disarm(DISARM_SWITCH);
                     }
                 }
@@ -241,11 +239,6 @@ void processRcStickPositions(bool isThrottleLow)
             else {
                 rcDisarmTimeMs = currentTimeMs;
             }
-        }
-
-        // KILLSWITCH disarms instantly
-        if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
-            disarm(DISARM_KILLSWITCH);
         }
     }
 

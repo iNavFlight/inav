@@ -75,7 +75,6 @@
 #define OSD_MSG_PITOT_FAIL          "PITOT METER FAILURE"
 #define OSD_MSG_HW_FAIL             "HARDWARE FAILURE"
 #define OSD_MSG_FS_EN               "FAILSAFE MODE ENABLED"
-#define OSD_MSG_KILL_SW_EN          "KILLSWITCH MODE ENABLED"
 #define OSD_MSG_NO_RC_LINK          "NO RC LINK"
 #define OSD_MSG_THROTTLE_NOT_LOW    "THROTTLE IS NOT LOW"
 #define OSD_MSG_ROLLPITCH_OFFCENTER "ROLLPITCH NOT CENTERED"
@@ -93,6 +92,7 @@
 #define OSD_MSG_RTH_CLIMB           "ADJUSTING RTH ALTITUDE"
 #define OSD_MSG_RTH_TRACKBACK       "RTH BACK TRACKING"
 #define OSD_MSG_HEADING_HOME        "EN ROUTE TO HOME"
+#define OSD_MSG_RTH_LINEAR_DESCENT  "BEGIN LINEAR DESCENT"
 #define OSD_MSG_WP_FINISHED         "WP END>HOLDING POSITION"
 #define OSD_MSG_WP_LANDED           "WP END>LANDED"
 #define OSD_MSG_PREPARE_NEXT_WP     "PREPARING FOR NEXT WAYPOINT"
@@ -118,6 +118,10 @@
 #define OSD_MSG_UNABLE_ARM          "UNABLE TO ARM"
 #define OSD_MSG_SAVING_SETTNGS      "** SAVING SETTINGS **"
 #define OSD_MSG_SETTINGS_SAVED      "** SETTINGS SAVED **"
+#define OSD_MSG_ANGLEHOLD_ROLL      "(ANGLEHOLD ROLL)"
+#define OSD_MSG_ANGLEHOLD_PITCH     "(ANGLEHOLD PITCH)"
+#define OSD_MSG_ANGLEHOLD_LEVEL     "(ANGLEHOLD LEVEL)"
+#define OSD_MSG_MOVE_STICKS         "MOVE STICKS TO ABORT"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
@@ -276,6 +280,12 @@ typedef enum {
     OSD_MULTI_FUNCTION,
     OSD_ODOMETER,
     OSD_PILOT_LOGO,
+    OSD_CUSTOM_ELEMENT_1,
+    OSD_CUSTOM_ELEMENT_2,
+    OSD_CUSTOM_ELEMENT_3,
+    OSD_ADSB_WARNING,
+    OSD_ADSB_INFO,
+    OSD_BLACKBOX,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -293,11 +303,6 @@ typedef enum {
     OSD_STATS_ENERGY_UNIT_MAH,
     OSD_STATS_ENERGY_UNIT_WH,
 } osd_stats_energy_unit_e;
-
-typedef enum {
-    OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY,
-    OSD_STATS_MIN_VOLTAGE_UNIT_CELL,
-} osd_stats_min_voltage_unit_e;
 
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
@@ -408,12 +413,13 @@ typedef struct osdConfig_s {
 
     uint8_t         units;                              // from osd_unit_e
     uint8_t         stats_energy_unit;                  // from osd_stats_energy_unit_e
-    uint8_t         stats_min_voltage_unit;             // from osd_stats_min_voltage_unit_e
     uint8_t         stats_page_auto_swap_time;          // stats page auto swap interval time (seconds)
+    bool            stats_show_metric_efficiency;       // If true, show metric efficiency as well as for the selected units
 
 #ifdef USE_WIND_ESTIMATOR
     bool            estimations_wind_compensation;      // use wind compensation for estimated remaining flight/distance
-#endif	
+    bool            estimations_wind_mps;               // wind speed estimation in m/s
+#endif
     uint8_t         coordinate_digits;
     bool            osd_failsafe_switch_layout;
     uint8_t         plus_code_digits;                   // Number of digits to use in OSD_PLUS_CODE
@@ -451,6 +457,11 @@ typedef struct osdConfig_s {
     bool            use_pilot_logo;                     // If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
     uint8_t         inav_to_pilot_logo_spacing;         // The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
     uint16_t        arm_screen_display_time;            // Length of time the arm screen is displayed
+    #ifdef USE_ADSB
+    uint16_t adsb_distance_warning;                     // in metres
+    uint16_t adsb_distance_alert;                       // in metres
+    uint16_t adsb_ignore_plane_above_me_limit;          // in metres
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

@@ -76,7 +76,6 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXTURNASSIST,       .boxName = "TURN ASSIST",       .permanentId = 35 },
     { .boxId = BOXNAVLAUNCH,        .boxName = "NAV LAUNCH",        .permanentId = 36 },
     { .boxId = BOXAUTOTRIM,         .boxName = "SERVO AUTOTRIM",    .permanentId = 37 },
-    { .boxId = BOXKILLSWITCH,       .boxName = "KILLSWITCH",        .permanentId = 38 },
     { .boxId = BOXCAMERA1,          .boxName = "CAMERA CONTROL 1",  .permanentId = 39 },
     { .boxId = BOXCAMERA2,          .boxName = "CAMERA CONTROL 2",  .permanentId = 40 },
     { .boxId = BOXCAMERA3,          .boxName = "CAMERA CONTROL 3",  .permanentId = 41 },
@@ -102,6 +101,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXMULTIFUNCTION,    .boxName = "MULTI FUNCTION",    .permanentId = 61 },
     { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
     { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
+    { .boxId = BOXANGLEHOLD,        .boxName = "ANGLE HOLD",        .permanentId = 64 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -213,15 +213,12 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
     }
 
-    bool navReadyAltControl = sensors(SENSOR_BARO);
+    bool navReadyAltControl = getHwBarometerStatus() != HW_SENSOR_NONE;
 #ifdef USE_GPS
     navReadyAltControl = navReadyAltControl || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro));
 
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     bool navReadyPosControl = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
-    if (STATE(MULTIROTOR)) {
-        navReadyPosControl = navReadyPosControl && getHwCompassStatus() != HW_SENSOR_NONE;
-    }
 
     if (STATE(ALTITUDE_CONTROL) && navReadyAltControl && (navReadyPosControl || navFlowDeadReckoning)) {
         ADD_ACTIVE_BOX(BOXNAVPOSHOLD);
@@ -259,7 +256,7 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXNAVALTHOLD);
     }
 
-    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT) || 
+    if (STATE(AIRPLANE) || STATE(ROVER) || STATE(BOAT) ||
         platformTypeConfigured(PLATFORM_AIRPLANE) || platformTypeConfigured(PLATFORM_ROVER) || platformTypeConfigured(PLATFORM_BOAT)) {
         ADD_ACTIVE_BOX(BOXMANUAL);
     }
@@ -278,6 +275,9 @@ void initActiveBoxIds(void)
 #endif
         if (sensors(SENSOR_BARO)) {
             ADD_ACTIVE_BOX(BOXAUTOLEVEL);
+        }
+        if (sensors(SENSOR_ACC)) {
+            ADD_ACTIVE_BOX(BOXANGLEHOLD);
         }
     }
 
@@ -316,10 +316,9 @@ void initActiveBoxIds(void)
     }
 #endif
 
-    ADD_ACTIVE_BOX(BOXKILLSWITCH);
     ADD_ACTIVE_BOX(BOXFAILSAFE);
 
-#ifdef USE_RCDEVICE
+#if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)
     ADD_ACTIVE_BOX(BOXCAMERA1);
     ADD_ACTIVE_BOX(BOXCAMERA2);
     ADD_ACTIVE_BOX(BOXCAMERA3);
@@ -401,7 +400,6 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)),          BOXNAVLAUNCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)),                BOXAUTOTUNE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)),        BOXAUTOTRIM);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKILLSWITCH)),      BOXKILLSWITCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)),       BOXHOMERESET);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA1)),         BOXCAMERA1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA2)),         BOXCAMERA2);
@@ -432,6 +430,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(currentMixerProfileIndex),              BOXMIXERPROFILE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMIXERTRANSITION)), BOXMIXERTRANSITION);
 #endif
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {
         if (activeBoxes[activeBoxIds[i]]) {

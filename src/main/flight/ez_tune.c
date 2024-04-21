@@ -34,6 +34,8 @@
 #include "sensors/gyro.h"
 #include "fc/controlrate_profile.h"
 
+#include "rx/rx.h"
+
 PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 0);
 
 PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
@@ -70,6 +72,9 @@ static float getYawPidScale(float input) {
 void ezTuneUpdate(void) {
     if (ezTune()->enabled) {
 
+        //Enforce RC auto smoothing
+        rxConfigMutable()->autoSmooth = 1;
+
         // Setup filtering
         //Set Dterm LPF
         pidProfileMutable()->dterm_lpf_hz = MAX(ezTune()->filterHz - 5, 50);
@@ -77,11 +82,9 @@ void ezTuneUpdate(void) {
 
         //Set main gyro filter
         gyroConfigMutable()->gyro_main_lpf_hz = ezTune()->filterHz;
-        gyroConfigMutable()->gyro_main_lpf_type = FILTER_PT1;
 
         //Set anti-aliasing filter
         gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT;
-        gyroConfigMutable()->gyro_anti_aliasing_lpf_type = FILTER_PT1;
 
         //Enable Smith predictor
         pidProfileMutable()->smithPredictorDelay = computePt1FilterDelayMs(ezTune()->filterHz);

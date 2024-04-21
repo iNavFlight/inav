@@ -529,6 +529,15 @@ float accGetMeasuredMaxG(void)
     return acc.maxG;
 }
 
+void resetGForceStats(void) {
+    acc.maxG = 0.0f;
+
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        acc.extremes[axis].min = 100;
+        acc.extremes[axis].max = -100;
+    }
+}
+
 void accUpdate(void)
 {
 #ifdef USE_SIMULATOR
@@ -576,6 +585,7 @@ void accUpdate(void)
         // calc difference from this sample and 5hz filtered value, square and filter at 2hz
         const float accDiff = acc.accADCf[axis] - accFloorFilt;
         acc.accVibeSq[axis] = pt1FilterApply(&accVibeFilter[axis], accDiff * accDiff);
+        acc.accVibe = fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
     }
 
     // Filter acceleration
@@ -612,7 +622,7 @@ void accGetVibrationLevels(fpVector3_t *accVibeLevels)
 
 float accGetVibrationLevel(void)
 {
-    return fast_fsqrtf(acc.accVibeSq[X] + acc.accVibeSq[Y] + acc.accVibeSq[Z]);
+    return acc.accVibe;
 }
 
 uint32_t accGetClipCount(void)

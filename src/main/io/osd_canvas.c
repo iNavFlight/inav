@@ -345,7 +345,9 @@ static bool osdCanvasDrawArtificialHorizonWidget(displayPort_t *display, display
         int ahiWidth = osdConfig()->ahi_width;
         int ahiX = (canvas->width - ahiWidth) / 2;
         int ahiHeight = osdConfig()->ahi_height;
-        int ahiY = ((canvas->height - ahiHeight) / 2) + osdConfig()->ahi_vertical_offset;
+        int ahiY = ((canvas->height - ahiHeight) / 2);
+        ahiY += osdConfig()->ahi_vertical_offset;
+
         if (ahiY < 0) {
             ahiY = 0;
         }
