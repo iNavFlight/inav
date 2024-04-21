@@ -1712,6 +1712,20 @@ void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
     buff[ptr] = '\0';
 }
 
+static bool osdElementEnabled(uint8_t elementID, bool onlyCurrentLayout) {
+    bool elementEnabled = false;
+
+    if (onlyCurrentLayout)
+        elementEnabled = (osdLayoutsConfig()->item_pos[currentLayout][elementID]) ? true : false;
+    else {
+        for (uint8_t layout = 0; layout < 4 || elementEnabled; layout++) {
+            elementEnabled = (osdLayoutsConfig()->item_pos[layout][elementID]) ? true : false;
+        }
+    }
+
+    return elementEnabled;
+}
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -5122,19 +5136,21 @@ static void osdShowHDArmScreen(void)
     char craftNameBuf[MAX_NAME_LENGTH];
     char        versionBuf[osdDisplayPort->cols];
     uint8_t     safehomeRow     = 0;
-    uint8_t     armScreenRow    = 2; // Start at row 2
+    uint8_t     armScreenRow    = 1;
 
     armScreenRow = drawLogos(false, armScreenRow);
     armScreenRow++;
 
-    if (strlen(systemConfig()->craftName) > 0) {
+    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
-        strcpy(buf2, "ARMED!");
+        strcat(buf2, ": ! ARMED !");
         tfp_sprintf(buf, "%s - %s", craftNameBuf, buf2);
     } else {
-        strcpy(buf, "ARMED!");
+        strcpy(buf, " ! ARMED !");
     }
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+    memset(buf, '\0', sizeof(buf));
+
 #if defined(USE_GPS)
 #if defined (USE_SAFE_HOME)
     if (posControl.safehomeState.distance) {
@@ -5149,35 +5165,43 @@ static void osdShowHDArmScreen(void)
 #ifdef USE_MULTI_MISSION
         tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+        memset(buf, '\0', sizeof(buf));
 #else
         strcpy(buf, "*MISSION LOADED*");
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+        memset(buf, '\0', sizeof(buf));
 #endif
     }
-    armScreenRow++;
 
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
         if (STATE(GPS_FIX_HOME)) {
-            if (osdConfig()->osd_home_position_arm_screen){
-                osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
-                osdFormatCoordinate(buf2, SYM_LON, GPS_home.lon);
-                uint8_t gap = 1;
-                uint8_t col = strlen(buf) + strlen(buf2) + gap;
+            if (osdConfig()->osd_home_position_arm_screen) {
+                if (osdElementEnabled(OSD_PLUS_CODE, false)) {
+                    int digits = osdConfig()->plus_code_digits;
+                    olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
+                    tfp_sprintf(buf2, "+CODE: %s%c", buf, '\0');
+                    displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf2)) / 2, armScreenRow++, buf2);
+                    memset(buf, '\0', sizeof(buf));
+                    memset(buf2, '\0', sizeof(buf2));
+                } else {
+                    osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+                    osdFormatCoordinate(buf2, SYM_LON, GPS_home.lon);
+                    uint8_t gap = 1;
+                    uint8_t col = strlen(buf) + strlen(buf2) + gap;
 
-                if ((osdDisplayPort->cols %2) != (col %2)) {
-                    gap++;
-                    col++;
+                    if ((osdDisplayPort->cols %2) != (col %2)) {
+                        gap++;
+                        col++;
+                    }
+
+                    col = (osdDisplayPort->cols - col) / 2;
+
+                    displayWrite(osdDisplayPort, col, armScreenRow, buf);
+                    displayWrite(osdDisplayPort, col + strlen(buf) + gap, armScreenRow++, buf2);
+                    memset(buf, '\0', sizeof(buf));
+                    memset(buf2, '\0', sizeof(buf2));
                 }
-
-                col = (osdDisplayPort->cols - col) / 2;
-
-                displayWrite(osdDisplayPort, col, armScreenRow, buf);
-                displayWrite(osdDisplayPort, col + strlen(buf) + gap, armScreenRow++, buf2);
-
-                int digits = osdConfig()->plus_code_digits;
-                olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
-                displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             }
 
 #if defined (USE_SAFE_HOME)
@@ -5191,11 +5215,14 @@ static void osdShowHDArmScreen(void)
                 textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
                 // write this message below the ARMED message to make it obvious
                 displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, safehomeRow, buf, elemAttr);
+                memset(buf, '\0', sizeof(buf));
+                memset(buf2, '\0', sizeof(buf2));
             }
 #endif
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+            memset(buf, '\0', sizeof(buf));
         }
         armScreenRow++;
     }
@@ -5204,6 +5231,7 @@ static void osdShowHDArmScreen(void)
     if (rtcGetDateTimeLocal(&dt)) {
         tfp_sprintf(buf, "%04u-%02u-%02u  %02u:%02u:%02u", dt.year, dt.month, dt.day, dt.hours, dt.minutes, dt.seconds);
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+        memset(buf, '\0', sizeof(buf));
         armScreenRow++;
     }
 
@@ -5224,45 +5252,72 @@ static void osdShowSDArmScreen(void)
     char        buf2[MAX(osdDisplayPort->cols, FORMATTED_DATE_TIME_BUFSIZE)];
     char        craftNameBuf[MAX_NAME_LENGTH];
     char        versionBuf[osdDisplayPort->cols];
-    // We need 12 visible rows, start row never < first fully visible row 1
-    uint8_t     armScreenRow = osdDisplayPort->rows > 13 ? (osdDisplayPort->rows - 12) / 2 : 1;
+    uint8_t     armScreenRow = 1;
     uint8_t     safehomeRow = 0;
 
-    strcpy(buf, "ARMED!");
+    strcpy(buf, "! ARMED !");
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
-    safehomeRow = armScreenRow;
-    armScreenRow++;
+    memset(buf, '\0', sizeof(buf));
+#if defined(USE_GPS)
+#if defined (USE_SAFE_HOME) 
+    if (posControl.safehomeState.distance) {
+        safehomeRow = armScreenRow;
+        armScreenRow++;
+    }
+#endif
+#endif
 
-    if (strlen(systemConfig()->craftName) > 0) {
+    if (osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0)
+        osdFormatPilotName(buf2);
+
+    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(systemConfig()->craftName)) / 2, armScreenRow++, craftNameBuf );
+        if (strlen(buf2) > 0) {
+            strcat(buf2, ": ");
+            strcat(buf2, craftNameBuf);
+        } else
+            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(craftNameBuf)) / 2, armScreenRow++, craftNameBuf );
+    }
+
+    if (strlen(buf2) > 0) {
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf2)) / 2, armScreenRow++, buf2 );
+        memset(buf2, '\0', sizeof(buf2));
     }
 
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
 #ifdef USE_MULTI_MISSION
         tfp_sprintf(buf, "MISSION %u/%u (%u WP)", posControl.loadedMultiMissionIndex, posControl.multiMissionCount, posControl.waypointCount);
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow, buf);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+        memset(buf, '\0', sizeof(buf));
 #else
         strcpy(buf, "*MISSION LOADED*");
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow, buf);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+        memset(buf, '\0', sizeof(buf));
 #endif
     }
-    armScreenRow++;
 
 #if defined(USE_GPS)
     if (feature(FEATURE_GPS)) {
         if (STATE(GPS_FIX_HOME)) {
             if (osdConfig()->osd_home_position_arm_screen) {
-                osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
-                osdFormatCoordinate(buf2, SYM_LON, GPS_home.lon);
+                // Show pluscode if enabled on any OSD layout. Otherwise show GNSS cordinates.
+                if (osdElementEnabled(OSD_PLUS_CODE, false)) {
+                    int digits = osdConfig()->plus_code_digits;
+                    olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
+                    tfp_sprintf(buf2, "+CODE: %s%c", buf, '\0');
+                    displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf2)) / 2, armScreenRow++, buf2);
+                    memset(buf, '\0', sizeof(buf));
+                    memset(buf2, '\0', sizeof(buf2));
+                } else {
+                    osdFormatCoordinate(buf, SYM_LAT, GPS_home.lat);
+                    osdFormatCoordinate(buf2, SYM_LON, GPS_home.lon);
 
-                uint8_t gpsStartCol = (osdDisplayPort->cols - (strlen(buf) + strlen(buf2) + 2)) / 2;
-                displayWrite(osdDisplayPort, gpsStartCol, armScreenRow, buf);
-                displayWrite(osdDisplayPort, gpsStartCol + strlen(buf) + 2, armScreenRow++, buf2);
-
-                int digits = osdConfig()->plus_code_digits;
-                olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
-                displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+                    uint8_t gpsStartCol = (osdDisplayPort->cols - (strlen(buf) + strlen(buf2) + 2)) / 2;
+                    displayWrite(osdDisplayPort, gpsStartCol, armScreenRow, buf);
+                    displayWrite(osdDisplayPort, gpsStartCol + strlen(buf) + 2, armScreenRow++, buf2);
+                    memset(buf, '\0', sizeof(buf));
+                    memset(buf2, '\0', sizeof(buf2));
+                }
             }
 
 #if defined (USE_SAFE_HOME)
@@ -5276,11 +5331,14 @@ static void osdShowSDArmScreen(void)
                 textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
                 // write this message below the ARMED message to make it obvious
                 displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, safehomeRow, buf, elemAttr);
+                memset(buf, '\0', sizeof(buf));
+                memset(buf2, '\0', sizeof(buf2));
             }
 #endif
         } else {
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+            memset(buf, '\0', sizeof(buf));
         }
         armScreenRow++;
     }
@@ -5289,6 +5347,7 @@ static void osdShowSDArmScreen(void)
     if (rtcGetDateTimeLocal(&dt)) {
         tfp_sprintf(buf, "%04u-%02u-%02u  %02u:%02u:%02u", dt.year, dt.month, dt.day, dt.hours, dt.minutes, dt.seconds);
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
+        memset(buf, '\0', sizeof(buf));
         armScreenRow++;
     }
 
