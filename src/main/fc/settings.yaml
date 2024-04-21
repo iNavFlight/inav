@@ -2064,14 +2064,14 @@ groups:
         max: 100
         default_value: 90
       - name: nav_mc_vel_xy_dterm_attenuation_start
-        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins"
-        default_value: 10
+        description: "Horizontal velocity at which nav_mc_vel_xy_dterm_attenuation begins [m/s]"
+        default_value: 5
         field: navVelXyDtermAttenuationStart
         min: 0
         max: 100
       - name: nav_mc_vel_xy_dterm_attenuation_end
-        description: "A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum"
-        default_value: 60
+        description: "Horizontal velocity at which nav_mc_vel_xy_dterm_attenuation reaches maximum [m/s]"
+        default_value: 10
         field: navVelXyDtermAttenuationEnd
         min: 0
         max: 100

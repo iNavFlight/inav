@@ -3604,21 +3604,21 @@ Maximum D-term attenution percentage for horizontal velocity PID controller (Mul
 
 ### nav_mc_vel_xy_dterm_attenuation_end
 
-A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation reaches maximum
+Horizontal velocity at which nav_mc_vel_xy_dterm_attenuation reaches maximum [m/s]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 60 | 0 | 100 |
+| 10 | 0 | 100 |
 
 ---
 
 ### nav_mc_vel_xy_dterm_attenuation_start
 
-A point (in percent of both target and current horizontal velocity) where nav_mc_vel_xy_dterm_attenuation begins
+Horizontal velocity at which nav_mc_vel_xy_dterm_attenuation begins [m/s]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 100 |
+| 5 | 0 | 100 |
 
 ---
 

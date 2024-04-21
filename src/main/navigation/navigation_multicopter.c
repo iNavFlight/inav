@@ -552,20 +552,22 @@ static float computeNormalizedVelocity(const float value, const float maxValue)
 }
 
 static float computeVelocityScale(
-    const float value,
-    const float maxValue,
+    float activeSpeed,
     const float attenuationFactor,
-    const float attenuationStart,
-    const float attenuationEnd
+    const float attenuationStartVel,
+    const float attenuationEndVel
 )
 {
-    const float normalized = computeNormalizedVelocity(value, maxValue);
-
-    float scale = scaleRangef(normalized, attenuationStart, attenuationEnd, 0, attenuationFactor);
-    return constrainf(scale, 0, attenuationFactor);
+    activeSpeed -= attenuationStartVel;
+    if (activeSpeed <= 0.0f) {
+        return 0.0f;
+    }
+    const float normalized = computeNormalizedVelocity(activeSpeed, attenuationEndVel);
+    float scale = scaleRangef(normalized, 0.0f, 1.0f, 0.0f, attenuationFactor);
+    return constrainf(scale, 0.0f, attenuationFactor);
 }
 
-static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
+static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit)
 {
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
     const float measurementY = navGetCurrentActualPositionAndVelocity()->vel.y;
@@ -616,14 +618,12 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
      */
     const float setpointScale = computeVelocityScale(
         setpointXY,
-        maxSpeed,
         multicopterPosXyCoefficients.dTermAttenuation,
         multicopterPosXyCoefficients.dTermAttenuationStart,
         multicopterPosXyCoefficients.dTermAttenuationEnd
     );
     const float measurementScale = computeVelocityScale(
         posControl.actualState.velXY,
-        maxSpeed,
         multicopterPosXyCoefficients.dTermAttenuation,
         multicopterPosXyCoefficients.dTermAttenuationStart,
         multicopterPosXyCoefficients.dTermAttenuationEnd
@@ -742,7 +742,7 @@ static void applyMulticopterPositionController(timeUs_t currentTimeUs)
             // Get max speed for current NAV mode
             float maxSpeed = getActiveSpeed();
             updatePositionVelocityController_MC(maxSpeed);
-            updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX, maxSpeed);
+            updatePositionAccelController_MC(deltaMicrosPositionUpdate, NAV_ACCELERATION_XY_MAX);
 
             navDesiredVelocity[X] = constrain(lrintf(posControl.desiredState.vel.x), -32678, 32767);
             navDesiredVelocity[Y] = constrain(lrintf(posControl.desiredState.vel.y), -32678, 32767);
