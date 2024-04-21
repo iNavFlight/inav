@@ -631,13 +631,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     //Choose smaller attenuation factor and convert from attenuation to scale
     const float dtermScale = 1.0f - MIN(setpointScale, measurementScale);
 
-    // Apply accel attenuation factor
-    const float speedError = setpointXY != 0.0f ? fabsf(1.0f - (posControl.actualState.velXY / setpointXY)) : 1.0f;
-    float gainScale = 1.0f;
-    if (speedError < 0.25f) {
-        gainScale = (scaleRangef(speedError, 0.0f, 0.25f, pidProfile()->mc_vel_xy_accel_attenuate, 100.0f)) / 100.0f;
-    }
-
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
     // Thus we don't need to do anything else with calculated acceleration
@@ -649,7 +642,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         accelLimitXMin,
         accelLimitXMax,
         0,      // Flags
-        gainScale,   // Total gain scale
+        1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
     float newAccelY = navPidApply3(
@@ -660,7 +653,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         accelLimitYMin,
         accelLimitYMax,
         0,      // Flags
-        gainScale,   // Total gain scale
+        1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
 
