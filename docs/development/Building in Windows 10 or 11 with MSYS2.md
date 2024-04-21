@@ -1,4 +1,7 @@
 # Building in Windows with MSYS2
+
+> **Building with this method is not advised and should be used only if Windows Linux Subsystem can not be used. In all other cases all Windows users should be using Linux Subsystem (WSL) instead**
+
 - This environment does not require installing WSL, which may not be available or would get in the way of other virtualization and/or anti-cheat software
 - It is also much faster to install and get set up because of its small size(~3.65 GB total after building hex file as of 6.0.0)
 ## Setting up the environment

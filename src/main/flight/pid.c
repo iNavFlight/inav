@@ -99,7 +99,6 @@ typedef struct {
     biquadFilter_t dBoostGyroLpf;
     float dBoostTargetAcceleration;
 #endif
-    uint16_t pidSumLimit;
     filterApply4FnPtr ptermFilterApplyFn;
     bool itermLimitActive;
     bool itermFreezeActive;
@@ -170,7 +169,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 6);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -264,8 +263,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 
         .max_angle_inclination[FD_ROLL] = SETTING_MAX_ANGLE_INCLINATION_RLL_DEFAULT,
         .max_angle_inclination[FD_PITCH] = SETTING_MAX_ANGLE_INCLINATION_PIT_DEFAULT,
-        .pidSumLimit = SETTING_PIDSUM_LIMIT_DEFAULT,
-        .pidSumLimitYaw = SETTING_PIDSUM_LIMIT_YAW_DEFAULT,
         .pidItermLimitPercent = SETTING_PID_ITERM_LIMIT_PERCENT_DEFAULT,
 
         .fixedWingReferenceAirspeed = SETTING_FW_REFERENCE_AIRSPEED_DEFAULT,
@@ -466,8 +463,8 @@ static float calculateMultirotorTPAFactor(void)
     // TPA should be updated only when TPA is actually set
     if (currentControlRateProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
-    } else if (rcCommand[THROTTLE] < motorConfig()->maxthrottle) {
-        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(motorConfig()->maxthrottle - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
+    } else if (rcCommand[THROTTLE] < getMaxThrottle()) {
+        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
         tpaFactor = (100 - currentControlRateProfile->throttle.dynPID) / 100.0f;
     }
@@ -594,7 +591,7 @@ static float computePidLevelTarget(flight_dynamics_index_t axis) {
 
     // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
 #ifdef USE_FW_AUTOLAND
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !isFwLandInProgess()) {
+    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
 #else
     if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
 #endif
@@ -772,12 +769,14 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     applyItermLimiting(pidState);
 
+    const uint16_t limit = getPidSumLimit(axis);
+
     if (pidProfile()->pidItermLimitPercent != 0){
-        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        float itermLimit = limit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -pidState->pidSumLimit, +pidState->pidSumLimit);
+    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -limit, +limit);
 
     if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
         if (!angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH)) {
@@ -787,7 +786,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
-        autotuneFixedWingUpdate(axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -pidState->pidSumLimit, +pidState->pidSumLimit));
+        autotuneFixedWingUpdate(axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -limit, +limit));
     }
 #endif
 
@@ -836,9 +835,11 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
      */
     const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
+    const uint16_t limit = getPidSumLimit(axis);
+
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
-    const float newOutputLimited = constrainf(newOutput, -pidState->pidSumLimit, +pidState->pidSumLimit);
+    const float newOutputLimited = constrainf(newOutput, -limit, +limit);
 
     float itermErrorRate = applyItermRelax(axis, rateTarget, rateError);
 
@@ -850,7 +851,7 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
                              + ((newOutputLimited - newOutput) * pidState->kT * antiWindupScaler * dT);
 
     if (pidProfile()->pidItermLimitPercent != 0){
-        float itermLimit = pidState->pidSumLimit * pidProfile()->pidItermLimitPercent * 0.01f;
+        float itermLimit = limit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
@@ -1284,14 +1285,12 @@ void pidInit(void)
 
         pidState[axis].axis = axis;
         if (axis == FD_YAW) {
-            pidState[axis].pidSumLimit = pidProfile()->pidSumLimitYaw;
             if (yawLpfHz) {
                 pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) pt1FilterApply4;
             } else {
                 pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
             }
         } else {
-            pidState[axis].pidSumLimit = pidProfile()->pidSumLimit;
             pidState[axis].ptermFilterApplyFn = (filterApply4FnPtr) nullFilterApply4;
         }
     }
@@ -1407,4 +1406,12 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
 float getFixedWingLevelTrim(void)
 {
     return STATE(AIRPLANE) ? fixedWingLevelTrim : 0;
+}
+
+uint16_t getPidSumLimit(const flight_dynamics_index_t axis) {
+    if (axis == FD_YAW) {
+        return STATE(MULTIROTOR) ? 400 : 500;
+    } else {
+        return 500;
+    }
 }
