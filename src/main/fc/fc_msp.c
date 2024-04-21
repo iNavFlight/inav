@@ -1652,6 +1652,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, ezTune()->aggressiveness);
             sbufWriteU8(dst, ezTune()->rate);
             sbufWriteU8(dst, ezTune()->expo);
+            sbufWriteU8(dst, ezTune()->snappiness);
         }
         break;
 #endif
@@ -3256,21 +3257,25 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_EZ_TUNE_SET:
         {
-            if (dataSize == 10) {
-                ezTuneMutable()->enabled = sbufReadU8(src);
-                ezTuneMutable()->filterHz = sbufReadU16(src);
-                ezTuneMutable()->axisRatio = sbufReadU8(src);
-                ezTuneMutable()->response = sbufReadU8(src);
-                ezTuneMutable()->damping = sbufReadU8(src);
-                ezTuneMutable()->stability = sbufReadU8(src);
-                ezTuneMutable()->aggressiveness = sbufReadU8(src);
-                ezTuneMutable()->rate = sbufReadU8(src);
-                ezTuneMutable()->expo = sbufReadU8(src);
 
-                ezTuneUpdate();
-            } else {
+            if (dataSize < 10 || dataSize > 11) {
                 return MSP_RESULT_ERROR;
             }
+
+            ezTuneMutable()->enabled = sbufReadU8(src);
+            ezTuneMutable()->filterHz = sbufReadU16(src);
+            ezTuneMutable()->axisRatio = sbufReadU8(src);
+            ezTuneMutable()->response = sbufReadU8(src);
+            ezTuneMutable()->damping = sbufReadU8(src);
+            ezTuneMutable()->stability = sbufReadU8(src);
+            ezTuneMutable()->aggressiveness = sbufReadU8(src);
+            ezTuneMutable()->rate = sbufReadU8(src);
+            ezTuneMutable()->expo = sbufReadU8(src);
+
+            if (dataSize == 11) {
+                ezTuneMutable()->snappiness = sbufReadU8(src);
+            }
+            ezTuneUpdate();
         }
         break;
 

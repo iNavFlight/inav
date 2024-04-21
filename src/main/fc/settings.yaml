@@ -1555,6 +1555,12 @@ groups:
         field: expo
         min: 0
         max: 200
+      - name: ez_snappiness
+        description: "EzTune snappiness"
+        default_value: 0
+        field: snappiness
+        min: 0
+        max: 100
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
