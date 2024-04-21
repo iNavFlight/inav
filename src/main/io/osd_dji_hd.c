@@ -122,11 +122,10 @@
  * but reuse the packet decoder to minimize code duplication
  */
 
-PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 3);
 PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
     .use_name_for_messages  = SETTING_DJI_USE_NAME_FOR_MESSAGES_DEFAULT,
     .esc_temperature_source = SETTING_DJI_ESC_TEMP_SOURCE_DEFAULT,
-    .proto_workarounds = SETTING_DJI_WORKAROUNDS_DEFAULT,
     .messageSpeedSource = SETTING_DJI_MESSAGE_SPEED_SOURCE_DEFAULT,
     .rssi_source = SETTING_DJI_RSSI_SOURCE_DEFAULT,
     .useAdjustments = SETTING_DJI_USE_ADJUSTMENTS_DEFAULT,
@@ -505,8 +504,6 @@ static char * osdArmingDisabledReasonMessage(void)
         //     return OSD_MESSAGE_STR("HARDWARE FAILURE");
         case ARMING_DISABLED_BOXFAILSAFE:
             return OSD_MESSAGE_STR("FAILSAFE ENABLED");
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR("KILLSWITCH ENABLED");
         case ARMING_DISABLED_RC_LINK:
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
@@ -1349,12 +1346,11 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_ESC_SENSOR_DATA:
-            if (djiOsdConfig()->proto_workarounds & DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA) {
-                // Version 1.00.06 of DJI firmware is not using the standard MSP_ESC_SENSOR_DATA
+            {
                 uint16_t protoRpm = 0;
                 int16_t protoTemp = 0;
 
-#if defined(USE_ESC_SENSOR)
+    #if defined(USE_ESC_SENSOR)
                 if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
                     uint32_t motorRpmAcc = 0;
                     int32_t motorTempAcc = 0;
@@ -1368,7 +1364,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     protoRpm = motorRpmAcc / getMotorCount();
                     protoTemp = motorTempAcc / getMotorCount();
                 }
-#endif
+    #endif
 
                 switch (djiOsdConfig()->esc_temperature_source) {
                     // This is ESC temperature (as intended)
@@ -1393,47 +1389,6 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                 sbufWriteU8(dst, protoTemp);
                 sbufWriteU16(dst, protoRpm);
             }
-            else {
-                // Use standard MSP_ESC_SENSOR_DATA message
-                sbufWriteU8(dst, getMotorCount());
-                for (int i = 0; i < getMotorCount(); i++) {
-                    uint16_t motorRpm = 0;
-                    int16_t motorTemp = 0;
-
-                    // If ESC_SENSOR is enabled, pull the telemetry data and get motor RPM
-#if defined(USE_ESC_SENSOR)
-                    if (STATE(ESC_SENSOR_ENABLED)) {
-                        const escSensorData_t * escSensor = getEscTelemetry(i);
-                        motorRpm = escSensor->rpm;
-                        motorTemp = escSensor->temperature;
-                    }
-#endif
-
-                    // Now populate temperature field (which we may override for different purposes)
-                    switch (djiOsdConfig()->esc_temperature_source) {
-                        // This is ESC temperature (as intended)
-                        case DJI_OSD_TEMP_ESC:
-                            // No-op, temperature is already set to ESC
-                            break;
-
-                        // Re-purpose the field for core temperature
-                        case DJI_OSD_TEMP_CORE:
-                            getIMUTemperature(&motorTemp);
-                            motorTemp = motorTemp / 10;
-                            break;
-
-                        // Re-purpose the field for baro temperature
-                        case DJI_OSD_TEMP_BARO:
-                            getBaroTemperature(&motorTemp);
-                            motorTemp = motorTemp / 10;
-                            break;
-                    }
-
-                    // Add data for this motor to the packet
-                    sbufWriteU8(dst, motorTemp);
-                    sbufWriteU16(dst, motorRpm);
-                }
-            }
             break;
 
         case DJI_MSP_OSD_CONFIG:
@@ -1456,7 +1411,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_soft_notch_hz_2
             sbufWriteU16(dst, 1);                                       // BF: gyroConfig()->gyro_soft_notch_cutoff_2
             sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
-            sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
+            sbufWriteU8(dst, GYRO_LPF_256HZ);                           // BF: gyroConfig()->gyro_hardware_lpf);
             sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf
             sbufWriteU16(dst, gyroConfig()->gyro_main_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
             sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_lowpass2_hz);

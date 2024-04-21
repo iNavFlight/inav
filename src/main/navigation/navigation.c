@@ -175,7 +175,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .land_detect_sensitivity = SETTING_NAV_LAND_DETECT_SENSITIVITY_DEFAULT,                 // Changes sensitivity of landing detection
         .auto_disarm_delay = SETTING_NAV_AUTO_DISARM_DELAY_DEFAULT,                             // 2000 ms - time delay to disarm when auto disarm after landing enabled
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
-        .cruise_yaw_rate  = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                // 20dps
+        .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                // 20dps
         .rth_fs_landing_delay = SETTING_NAV_RTH_FS_LANDING_DELAY_DEFAULT,                       // Delay before landing in FS. 0 = immedate landing
     },
 
@@ -204,44 +204,44 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 
     // Fixed wing
     .fw = {
-        .max_bank_angle = SETTING_NAV_FW_BANK_ANGLE_DEFAULT,                    // degrees
-        .max_manual_climb_rate = SETTING_NAV_FW_MANUAL_CLIMB_RATE_DEFAULT,      // 3 m/s
-        .max_climb_angle = SETTING_NAV_FW_CLIMB_ANGLE_DEFAULT,                  // degrees
-        .max_dive_angle = SETTING_NAV_FW_DIVE_ANGLE_DEFAULT,                    // degrees
-        .cruise_speed = SETTING_NAV_FW_CRUISE_SPEED_DEFAULT,                    // cm/s
+        .max_bank_angle = SETTING_NAV_FW_BANK_ANGLE_DEFAULT,                                // degrees
+        .max_manual_climb_rate = SETTING_NAV_FW_MANUAL_CLIMB_RATE_DEFAULT,                  // 3 m/s
+        .max_climb_angle = SETTING_NAV_FW_CLIMB_ANGLE_DEFAULT,                              // degrees
+        .max_dive_angle = SETTING_NAV_FW_DIVE_ANGLE_DEFAULT,                                // degrees
+        .cruise_speed = SETTING_NAV_FW_CRUISE_SPEED_DEFAULT,                                // cm/s
         .control_smoothness = SETTING_NAV_FW_CONTROL_SMOOTHNESS_DEFAULT,
         .pitch_to_throttle_smooth = SETTING_NAV_FW_PITCH2THR_SMOOTHING_DEFAULT,
         .pitch_to_throttle_thresh = SETTING_NAV_FW_PITCH2THR_THRESHOLD_DEFAULT,
         .minThrottleDownPitchAngle = SETTING_FW_MIN_THROTTLE_DOWN_PITCH_DEFAULT,
-        .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                  // 75m
+        .loiter_radius = SETTING_NAV_FW_LOITER_RADIUS_DEFAULT,                              // 75m
         .loiter_direction = SETTING_FW_LOITER_DIRECTION_DEFAULT,
 
         //Fixed wing landing
-        .land_dive_angle = SETTING_NAV_FW_LAND_DIVE_ANGLE_DEFAULT,              // 2 degrees dive by default
+        .land_dive_angle = SETTING_NAV_FW_LAND_DIVE_ANGLE_DEFAULT,                          // 2 degrees dive by default
 
         // Fixed wing launch
-        .launch_velocity_thresh = SETTING_NAV_FW_LAUNCH_VELOCITY_DEFAULT,       // 3 m/s
-        .launch_accel_thresh = SETTING_NAV_FW_LAUNCH_ACCEL_DEFAULT,             // cm/s/s (1.9*G)
-        .launch_time_thresh = SETTING_NAV_FW_LAUNCH_DETECT_TIME_DEFAULT,        // 40ms
-        .launch_motor_timer = SETTING_NAV_FW_LAUNCH_MOTOR_DELAY_DEFAULT,        // ms
-        .launch_idle_motor_timer = SETTING_NAV_FW_LAUNCH_IDLE_MOTOR_DELAY_DEFAULT,   // ms
-        .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,  // ms, time to gredually increase throttle from idle to launch
-        .launch_end_time = SETTING_NAV_FW_LAUNCH_END_TIME_DEFAULT,              // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
-        .launch_min_time = SETTING_NAV_FW_LAUNCH_MIN_TIME_DEFAULT,              // ms, min time in launch mode
-        .launch_timeout = SETTING_NAV_FW_LAUNCH_TIMEOUT_DEFAULT,                // ms, timeout for launch procedure
-        .launch_max_altitude = SETTING_NAV_FW_LAUNCH_MAX_ALTITUDE_DEFAULT,      // cm, altitude where to consider launch ended
-        .launch_climb_angle = SETTING_NAV_FW_LAUNCH_CLIMB_ANGLE_DEFAULT,        // 18 degrees
-        .launch_max_angle = SETTING_NAV_FW_LAUNCH_MAX_ANGLE_DEFAULT,            // 45 deg
-        .launch_manual_throttle = SETTING_NAV_FW_LAUNCH_MANUAL_THROTTLE_DEFAULT,// OFF
-        .launch_land_abort_deadband = SETTING_NAV_FW_LAUNCH_LAND_ABORT_DEADBAND_DEFAULT,  // 100 us
-
+        .launch_velocity_thresh = SETTING_NAV_FW_LAUNCH_VELOCITY_DEFAULT,                   // 3 m/s
+        .launch_accel_thresh = SETTING_NAV_FW_LAUNCH_ACCEL_DEFAULT,                         // cm/s/s (1.9*G)
+        .launch_time_thresh = SETTING_NAV_FW_LAUNCH_DETECT_TIME_DEFAULT,                    // 40ms
+        .launch_motor_timer = SETTING_NAV_FW_LAUNCH_MOTOR_DELAY_DEFAULT,                    // ms
+        .launch_idle_motor_timer = SETTING_NAV_FW_LAUNCH_IDLE_MOTOR_DELAY_DEFAULT,          // ms
+        .launch_wiggle_wake_idle = SETTING_NAV_FW_LAUNCH_WIGGLE_TO_WAKE_IDLE_DEFAULT,       // uint8_t
+        .launch_motor_spinup_time = SETTING_NAV_FW_LAUNCH_SPINUP_TIME_DEFAULT,              // ms, time to greaually increase throttle from idle to launch
+        .launch_end_time = SETTING_NAV_FW_LAUNCH_END_TIME_DEFAULT,                          // ms, time to gradually decrease/increase throttle and decrease pitch angle from launch to the current flight mode
+        .launch_min_time = SETTING_NAV_FW_LAUNCH_MIN_TIME_DEFAULT,                          // ms, min time in launch mode
+        .launch_timeout = SETTING_NAV_FW_LAUNCH_TIMEOUT_DEFAULT,                            // ms, timeout for launch procedure
+        .launch_max_altitude = SETTING_NAV_FW_LAUNCH_MAX_ALTITUDE_DEFAULT,                  // cm, altitude where to consider launch ended
+        .launch_climb_angle = SETTING_NAV_FW_LAUNCH_CLIMB_ANGLE_DEFAULT,                    // 18 degrees
+        .launch_max_angle = SETTING_NAV_FW_LAUNCH_MAX_ANGLE_DEFAULT,                        // 45 deg
+        .launch_manual_throttle = SETTING_NAV_FW_LAUNCH_MANUAL_THROTTLE_DEFAULT,            // OFF
+        .launch_land_abort_deadband = SETTING_NAV_FW_LAUNCH_LAND_ABORT_DEADBAND_DEFAULT,    // 100 us
         .allow_manual_thr_increase = SETTING_NAV_FW_ALLOW_MANUAL_THR_INCREASE_DEFAULT,
         .useFwNavYawControl = SETTING_NAV_USE_FW_YAW_CONTROL_DEFAULT,
         .yawControlDeadband = SETTING_NAV_FW_YAW_DEADBAND_DEFAULT,
-        .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,// pitch angle mode deadband when Saoring mode enabled
-        .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,    // 0, improves course tracking accuracy during FW WP missions
-        .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,  // 60 degs
-        .wp_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,          // 0, smooths turns during FW WP mode missions
+        .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,            // pitch angle mode deadband when Saoring mode enabled
+        .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,                // 0, improves course tracking accuracy during FW WP missions
+        .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,              // 60 degs
+        .wp_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,                      // 0, smooths turns during FW WP mode missions
     }
 );
 

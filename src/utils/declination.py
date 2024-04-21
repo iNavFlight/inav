@@ -14,7 +14,7 @@ import datetime
 import pathlib
 import sys
 
-import igrf12
+import igrf
 import numpy as np
 
 SAMPLING_RES = 10
@@ -73,7 +73,7 @@ def declination_tables(query):
 
     for i, lat in enumerate(lats):
         for j, lon in enumerate(lons):
-            mag = igrf12.igrf(date, glat=lat, glon=lon, alt_km=0., isv=0, itype=1)
+            mag = igrf.igrf(date, glat=lat, glon=lon, alt_km=0., isv=0, itype=1)
             intensity[i][j] = mag.total / 1e5
             inclination[i][j] = mag.incl
             declination[i][j] = mag.decl
