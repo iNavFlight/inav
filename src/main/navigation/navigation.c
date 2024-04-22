@@ -356,6 +356,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(navigationFSMState_t previousState);
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FINISHED(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_ABORT(navigationFSMState_t previousState);
 #endif
 
@@ -1107,6 +1108,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]             = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]                   = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]                        = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED] = NAV_STATE_FW_LANDING_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT]    = NAV_STATE_FW_LANDING_ABORT,
         }
     },
@@ -1128,6 +1130,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]             = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_COURSE_HOLD]                   = NAV_STATE_COURSE_HOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_CRUISE]                        = NAV_STATE_CRUISE_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED] = NAV_STATE_FW_LANDING_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT]    = NAV_STATE_FW_LANDING_ABORT,
         }
     },
@@ -1141,11 +1144,26 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .mwState = MW_NAV_STATE_LAND_IN_PROGRESS,
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
-            [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_FW_LANDING_FLARE,   // re-process the state
-            [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_IDLE,
-            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_TIMEOUT]                                 = NAV_STATE_FW_LANDING_FLARE,   // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED] = NAV_STATE_FW_LANDING_FINISHED,
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                          = NAV_STATE_IDLE,
         }
     },
+
+    [NAV_STATE_FW_LANDING_FINISHED] = {
+        .persistentId = NAV_PERSISTENT_ID_FW_LANDING_FINISHED,
+        .onEntry = navOnEnteringState_NAV_STATE_FW_LANDING_FINISHED,
+        .timeoutMs = 10,
+        .stateFlags = NAV_REQUIRE_ANGLE,
+        .mapToFlightModes = NAV_FW_AUTOLAND,
+        .mwState = MW_NAV_STATE_LANDED,
+        .mwError = MW_NAV_ERROR_NONE,
+        .onEvent = {
+            [NAV_FSM_EVENT_TIMEOUT]                                 = NAV_STATE_FW_LANDING_FINISHED,   // re-process the state
+            [NAV_FSM_EVENT_SWITCH_TO_IDLE]                          = NAV_STATE_IDLE,
+        }
+    },
+
     [NAV_STATE_FW_LANDING_ABORT] = {
         .persistentId = NAV_PERSISTENT_ID_FW_LANDING_ABORT,
         .onEntry = navOnEnteringState_NAV_STATE_FW_LANDING_ABORT,
@@ -1699,9 +1717,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_ABOVE_HOME(n
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationFSMState_t previousState)
 {
-#ifndef USE_FW_AUTOLAND
     UNUSED(previousState);
-#endif
 
     //On ROVER and BOAT we immediately switch to the next event
     if (!STATE(ALTITUDE_CONTROL)) {
@@ -1714,7 +1730,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 
     /* If position sensors unavailable - land immediately (wait for timeout on GPS)
      * Continue to check for RTH sanity during landing */
-    if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || (previousState != NAV_STATE_WAYPOINT_REACHED && !validateRTHSanityChecker())) {
+    if (posControl.flags.estHeadingStatus == EST_NONE || checkForPositionSensorTimeout() || (FLIGHT_MODE(NAV_RTH_MODE) && !validateRTHSanityChecker())) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
@@ -1733,7 +1749,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         shIdx = posControl.safehomeState.index;
         missionFwLandConfigStartIdx = MAX_SAFE_HOMES;
 #endif
-        if (previousState == NAV_STATE_WAYPOINT_REACHED && missionIdx >= 0) {
+        if (FLIGHT_MODE(NAV_WP_MODE) && missionIdx >= 0) {
             approachSettingIdx = missionFwLandConfigStartIdx + missionIdx;
         } else if (shIdx >= 0) {
             approachSettingIdx = shIdx;
@@ -1741,7 +1757,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
 
         if (!posControl.fwLandState.landAborted && approachSettingIdx >= 0 && (fwAutolandApproachConfig(approachSettingIdx)->landApproachHeading1 != 0 || fwAutolandApproachConfig(approachSettingIdx)->landApproachHeading2 != 0)) {
 
-            if (previousState == NAV_STATE_WAYPOINT_REACHED) {
+            if (FLIGHT_MODE(NAV_WP_MODE)) {
                 posControl.fwLandState.landPos = posControl.activeWaypoint.pos;
                 posControl.fwLandState.landWp = true;
             } else {
@@ -2034,8 +2050,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_HOLD_TIME(navi
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navigationFSMState_t previousState)
 {
-    UNUSED(previousState);
-
 #ifdef USE_FW_AUTOLAND
     if (posControl.fwLandState.landAborted) {
         return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
@@ -2044,21 +2058,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_RTH_LAND(navig
 
     const navigationFSMEvent_t landEvent = navOnEnteringState_NAV_STATE_RTH_LANDING(previousState);
 
-#ifdef USE_FW_AUTOLAND
-    if (landEvent == NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING) {
-        return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING;
-    } else
-#endif
-    if (landEvent == NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME) {
-        return NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED;
-    } else if (landEvent == NAV_FSM_EVENT_SUCCESS) {
-        // Landing controller returned success - invoke RTH finishing state and finish the waypoint
+    if (landEvent == NAV_FSM_EVENT_SUCCESS) {
+        // Landing controller returned success - invoke RTH finish states and finish the waypoint
         navOnEnteringState_NAV_STATE_RTH_FINISHING(previousState);
-        return NAV_FSM_EVENT_SUCCESS;
+        navOnEnteringState_NAV_STATE_RTH_FINISHED(previousState);
     }
-    else {
-        return NAV_FSM_EVENT_NONE;
-    }
+
+    return landEvent;
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_NEXT(navigationFSMState_t previousState)
@@ -2369,18 +2375,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
 {
     UNUSED(previousState);
 
+    if (STATE(LANDING_DETECTED)) {
+        return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED;
+    }
+
     if ((posControl.flags.estHeadingStatus == EST_NONE) || checkForPositionSensorTimeout()) {
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
     if (isRollPitchStickDeflected(navConfig()->fw.launch_land_abort_deadband)) {
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
-    }
-
-    if (isLandingDetected()) {
-        posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
-        //disarm(DISARM_LANDING);
-        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
 
     if (getLandAltitude() <= fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt + navFwAutolandConfig()->glideAltitude - (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
@@ -2419,6 +2423,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
 {
     UNUSED(previousState);
 
+    if (STATE(LANDING_DETECTED)) {
+        return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED;
+    }
+
     if (isRollPitchStickDeflected(navConfig()->fw.launch_land_abort_deadband)) {
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
@@ -2426,12 +2434,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
     if (getHwRangefinderStatus() == HW_SENSOR_OK && getLandAltitude() <= posControl.fwLandState.landAltAgl + navFwAutolandConfig()->flareAltitude) {
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_FLARE;
         return NAV_FSM_EVENT_SUCCESS;
-    }
-
-    if (isLandingDetected()) {
-        posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
-        //disarm(DISARM_LANDING);
-        return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
 
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
@@ -2442,12 +2444,20 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(naviga
 {
     UNUSED(previousState);
 
-    if (isLandingDetected()) {
-        posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
-        //disarm(DISARM_LANDING);
-        return NAV_FSM_EVENT_SUCCESS;
+    if (STATE(LANDING_DETECTED)) {
+        return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED;
     }
+
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
+
+    return NAV_FSM_EVENT_NONE;
+}
+
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FINISHED(navigationFSMState_t previousState)
+{
+    UNUSED(previousState);
+
+    posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
 
     return NAV_FSM_EVENT_NONE;
 }
@@ -4910,9 +4920,9 @@ void abortForcedRTH(void)
 
 rthState_e getStateOfForcedRTH(void)
 {
-    /* If forced RTH activated and in AUTO_RTH or EMERG state */
+    /* If forced RTH activated and in AUTO_RTH, EMERG state or FW Auto Landing */
     if (posControl.flags.forcedRTHActivated && ((navGetStateFlags(posControl.navState) & (NAV_AUTO_RTH | NAV_CTL_EMERG | NAV_MIXERAT)) || FLIGHT_MODE(NAV_FW_AUTOLAND))) {
-        if (posControl.navState == NAV_STATE_RTH_FINISHED || posControl.navState == NAV_STATE_EMERGENCY_LANDING_FINISHED) {
+        if (posControl.navState == NAV_STATE_RTH_FINISHED || posControl.navState == NAV_STATE_EMERGENCY_LANDING_FINISHED || posControl.navState == NAV_STATE_FW_LANDING_FINISHED) {
             return RTH_HAS_LANDED;
         }
         else {
@@ -5156,12 +5166,9 @@ void resetFwAutolandApproach(int8_t idx)
     }
 }
 
-bool canFwLandCanceld(void)
+bool canFwLandingBeCancelled(void)
 {
-    return posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER
-    || posControl.navState == NAV_STATE_FW_LANDING_LOITER
-    || posControl.navState == NAV_STATE_FW_LANDING_APPROACH
-    || posControl.navState == NAV_STATE_FW_LANDING_GLIDE;
+    return FLIGHT_MODE(NAV_FW_AUTOLAND) && posControl.navState != NAV_STATE_FW_LANDING_FLARE;
 }
 
 #endif
