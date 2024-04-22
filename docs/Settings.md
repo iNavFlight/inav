@@ -658,7 +658,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 32 |
+| 2 | 0 | 32 |
 
 ---
 
@@ -929,6 +929,16 @@ EzTune response
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 0 | 200 |
+
+---
+
+### ez_snappiness
+
+EzTune snappiness
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
 
 ---
 
@@ -2359,16 +2369,6 @@ These are min/max values (in us) which, when a channel is smaller (min) or large
 | Default | Min | Max |
 | --- | --- | --- |
 | 1900 | PWM_RANGE_MIN | PWM_RANGE_MAX |
-
----
-
-### max_throttle
-
-This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK for everyone (legacy). For modern ESCs, higher values (c. 2000) may be more appropriate. If you have brushed motors, the value should be set to 2000.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1850 | PWM_RANGE_MIN | PWM_RANGE_MAX |
 
 ---
 
@@ -6188,7 +6188,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 100 |
+| 2 | 0 | 100 |
 
 ---
 

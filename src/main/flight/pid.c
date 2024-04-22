@@ -471,8 +471,8 @@ static float calculateMultirotorTPAFactor(void)
     // TPA should be updated only when TPA is actually set
     if (currentControlRateProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
-    } else if (rcCommand[THROTTLE] < motorConfig()->maxthrottle) {
-        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(motorConfig()->maxthrottle - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
+    } else if (rcCommand[THROTTLE] < getMaxThrottle()) {
+        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
         tpaFactor = (100 - currentControlRateProfile->throttle.dynPID) / 100.0f;
     }

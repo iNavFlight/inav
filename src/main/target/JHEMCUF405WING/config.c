@@ -22,30 +22,21 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "flight/dynamic_lpf.h"
-#include "sensors/gyro.h"
-#include "flight/mixer.h"
-#include "fc/rc_controls.h"
-#include "build/debug.h"
+#include <stdbool.h>
+#include <stdint.h>
 
-static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLpfMax, uint8_t expo) {
-    const float expof = expo / 10.0f;
-    static float curve;
-    curve = throttle * (1 - throttle) * expof + throttle;
-    return (dynLpfMax - dynLpfMin) * curve + dynLpfMin;
-}
+#include "platform.h"
 
-void dynamicLpfGyroTask(void) {
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
+#include "io/serial.h"
+#include "io/piniobox.h"
 
-    if (!gyroConfig()->useDynamicLpf) {
-        return;
-    }
-
-    const float throttleConstrained = (float) constrain(rcCommand[THROTTLE], getThrottleIdleValue(), getMaxThrottle());
-    const float throttle = scaleRangef(throttleConstrained, getThrottleIdleValue(), getMaxThrottle(), 0.0f, 1.0f);
-    const float cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
-
-    DEBUG_SET(DEBUG_DYNAMIC_GYRO_LPF, 0, cutoffFreq);
-
-    gyroUpdateDynamicLpf(cutoffFreq);
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_RX_SERIAL;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_MSP;
+	
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
 }
