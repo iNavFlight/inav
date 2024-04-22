@@ -561,7 +561,8 @@ static float computeVelocityScale(
     if (activeSpeed <= 0.0f) {
         return 0.0f;
     }
-    const float normalized = computeNormalizedVelocity(activeSpeed, attenuationEndVel);
+
+    const float normalized = computeNormalizedVelocity(activeSpeed, attenuationEndVel - attenuationStartVel);
     float scale = scaleRangef(normalized, 0.0f, 1.0f, 0.0f, attenuationFactor);
     return constrainf(scale, 0.0f, attenuationFactor);
 }
