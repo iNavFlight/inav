@@ -1715,11 +1715,11 @@ void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
 static bool osdElementEnabled(uint8_t elementID, bool onlyCurrentLayout) {
     bool elementEnabled = false;
 
-    if (onlyCurrentLayout)
-        elementEnabled = (osdLayoutsConfig()->item_pos[currentLayout][elementID]) ? true : false;
-    else {
-        for (uint8_t layout = 0; layout < 4 || elementEnabled; layout++) {
-            elementEnabled = (osdLayoutsConfig()->item_pos[layout][elementID]) ? true : false;
+    if (onlyCurrentLayout) {
+        elementEnabled = OSD_VISIBLE(osdLayoutsConfig()->item_pos[currentLayout][elementID]);
+    } else {
+        for (uint8_t layout = 0; layout < 4 && !elementEnabled; layout++) {
+            elementEnabled = OSD_VISIBLE(osdLayoutsConfig()->item_pos[layout][elementID]);
         }
     }
 
@@ -5141,25 +5141,30 @@ static void osdShowHDArmScreen(void)
     armScreenRow = drawLogos(false, armScreenRow);
     armScreenRow++;
 
+    if (!osdConfig()->use_pilot_logo && osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0)
+        osdFormatPilotName(buf2);
+
     if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
-        strcat(buf2, ": ! ARMED !");
-        tfp_sprintf(buf, "%s - %s", craftNameBuf, buf2);
+        if (strlen(buf2) > 0) {
+            strcat(buf2, " : ");
+        }
+        tfp_sprintf(buf, "%s%s: ! ARMED !", buf2, craftNameBuf);
     } else {
         strcpy(buf, " ! ARMED !");
     }
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
     memset(buf, '\0', sizeof(buf));
+    memset(buf2, '\0', sizeof(buf2));
 
 #if defined(USE_GPS)
 #if defined (USE_SAFE_HOME)
     if (posControl.safehomeState.distance) {
         safehomeRow = armScreenRow;
-        armScreenRow++;
+        armScreenRow +=2;
     }
 #endif // USE_SAFE_HOME
 #endif // USE_GPS
-    armScreenRow++;
 
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
 #ifdef USE_MULTI_MISSION
@@ -5177,6 +5182,7 @@ static void osdShowHDArmScreen(void)
     if (feature(FEATURE_GPS)) {
         if (STATE(GPS_FIX_HOME)) {
             if (osdConfig()->osd_home_position_arm_screen) {
+                // Show pluscode if enabled on any OSD layout. Otherwise show GNSS cordinates.
                 if (osdElementEnabled(OSD_PLUS_CODE, false)) {
                     int digits = osdConfig()->plus_code_digits;
                     olc_encode(GPS_home.lat, GPS_home.lon, digits, buf, sizeof(buf));
@@ -5224,7 +5230,6 @@ static void osdShowHDArmScreen(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             memset(buf, '\0', sizeof(buf));
         }
-        armScreenRow++;
     }
 #endif
 
@@ -5262,7 +5267,7 @@ static void osdShowSDArmScreen(void)
 #if defined (USE_SAFE_HOME) 
     if (posControl.safehomeState.distance) {
         safehomeRow = armScreenRow;
-        armScreenRow++;
+        armScreenRow += 2;
     }
 #endif
 #endif
@@ -5282,6 +5287,7 @@ static void osdShowSDArmScreen(void)
     if (strlen(buf2) > 0) {
         displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf2)) / 2, armScreenRow++, buf2 );
         memset(buf2, '\0', sizeof(buf2));
+        armScreenRow++;
     }
 
     if (posControl.waypointListValid && posControl.waypointCount > 0) {
@@ -5340,7 +5346,6 @@ static void osdShowSDArmScreen(void)
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             memset(buf, '\0', sizeof(buf));
         }
-        armScreenRow++;
     }
 #endif
 
