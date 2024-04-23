@@ -151,8 +151,6 @@ void pgResetFn_serialConfig(serialConfig_t *serialConfig)
         }
     }
 #endif
-
-    serialConfig->reboot_character = SETTING_REBOOT_CHARACTER_DEFAULT;
 }
 
 baudRate_e lookupBaudRateIndex(uint32_t baudRate)
