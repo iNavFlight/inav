@@ -725,3 +725,18 @@ bool areMotorsRunning(void)
 
     return false;
 }
+
+uint16_t getMaxThrottle(void) {
+
+    static uint16_t throttle = 0;
+
+    if (throttle == 0) { 
+        if (STATE(ROVER) || STATE(BOAT)) {
+            throttle = MAX_THROTTLE_ROVER;
+        } else {
+            throttle = MAX_THROTTLE;
+        }
+    }
+
+    return throttle;
+}
