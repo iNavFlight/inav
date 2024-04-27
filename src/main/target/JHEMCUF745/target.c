@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV Project.
+ * This file is part of INAV.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -22,23 +22,23 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#pragma once
+#include <platform.h>
+#include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/timer.h"
+#include "drivers/bus.h"
+#include "drivers/pinio.h"
 
-#include "config/parameter_group.h"
+timerHardware_t timerHardware[] = {
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_OUTPUT_AUTO,   0, 0), // M1, DMA1_ST7
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_OUTPUT_AUTO,   0, 0), // M2, DMA1_ST2
+    DEF_TIM(TIM1, CH1, PE9,  TIM_USE_OUTPUT_AUTO,   0, 0), // M3
+    DEF_TIM(TIM1, CH2, PE11, TIM_USE_OUTPUT_AUTO,   0, 1), // M4, DMA2_ST4
+    DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO,   0, 0), // M5, DMA2_ST7
+    DEF_TIM(TIM5, CH4, PA3,  TIM_USE_OUTPUT_AUTO,   0, 0), // M6, DMA1_ST1
+    DEF_TIM(TIM3, CH1, PB4,  TIM_USE_OUTPUT_AUTO,   0, 0), // S7
+    DEF_TIM(TIM3, CH2, PB5,  TIM_USE_OUTPUT_AUTO,   0, 0), // S8
+    DEF_TIM(TIM4, CH1, PD12, TIM_USE_LED,           0, 0), // LED_STRIP, DMA1_ST0
+};
 
-typedef struct ezTuneSettings_s {
-    uint8_t enabled;
-    uint16_t filterHz;
-    uint8_t axisRatio;
-    uint8_t response;
-    uint8_t damping;
-    uint8_t stability;
-    uint8_t aggressiveness;
-    uint8_t rate;
-    uint8_t expo;
-    uint8_t snappiness;
-} ezTuneSettings_t;
-
-PG_DECLARE_PROFILE(ezTuneSettings_t, ezTune);
-
-void ezTuneUpdate(void);
+const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
