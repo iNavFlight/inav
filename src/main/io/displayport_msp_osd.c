@@ -525,7 +525,7 @@ void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
     }
 }
 
-mspPort_t *getMspOsdPort()
+mspPort_t *getMspOsdPort(void)
 {
     if (mspPort.port) {
         return &mspPort;

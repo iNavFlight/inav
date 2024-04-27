@@ -728,7 +728,7 @@ bool areMotorsRunning(void)
     return false;
 }
 
-uint16_t getMaxThrottle() {
+uint16_t getMaxThrottle(void) {
 
     static uint16_t throttle = 0;
 
