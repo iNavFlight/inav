@@ -122,8 +122,8 @@ int8_t radarGetNearestPOI(void)
  */
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiType, uint16_t poiSymbol, int16_t poiP1, int16_t poiP2)
 {
-    int poi_x;
-    int poi_y;
+    int poi_x = -1;
+    int poi_y = -1;
     uint8_t center_x;
     uint8_t center_y;
     bool poi_is_oos = 0;
