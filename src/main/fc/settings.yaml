@@ -191,6 +191,9 @@ tables:
   - name: led_pin_pwm_mode
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
+  - name: gyro_filter_mode
+    values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
+    enum: gyroFilterType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -226,11 +229,11 @@ groups:
         field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_use_dyn_lpf
-        description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
-        default_value: OFF
-        field: useDynamicLpf
-        type: bool
+      - name: gyro_filter_mode
+        description: "Specifies the type of the software LPF of the gyro signals."
+        default_value: "STATIC"
+        field: gyroFilterMode
+        table: gyro_filter_mode
       - name: gyro_dyn_lpf_min_hz
         description: "Minimum frequency of the gyro Dynamic LPF"
         default_value: 200
@@ -330,12 +333,6 @@ groups:
         field: gravity_cmss_cal
         min: 0
         max: 2000
-      - name: gyro_adaptive_filter
-        description: "Enable adaptive filter for gyro data"
-        default_value: OFF
-        field: adaptiveFilterEnabled
-        type: bool
-        condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_target
         description: "Target value for adaptive filter"
         default_value: 3.5

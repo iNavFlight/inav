@@ -96,7 +96,7 @@ EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 9);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 10);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
@@ -105,7 +105,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
-    .useDynamicLpf = SETTING_GYRO_USE_DYN_LPF_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
     .gyroDynamicLpfMaxHz = SETTING_GYRO_DYN_LPF_MAX_HZ_DEFAULT,
     .gyroDynamicLpfCurveExpo = SETTING_GYRO_DYN_LPF_CURVE_EXPO_DEFAULT,
@@ -124,7 +123,6 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_zero_cal = {SETTING_GYRO_ZERO_X_DEFAULT, SETTING_GYRO_ZERO_Y_DEFAULT, SETTING_GYRO_ZERO_Z_DEFAULT},
     .gravity_cmss_cal = SETTING_INS_GRAVITY_CMSS_DEFAULT,
 #ifdef USE_ADAPTIVE_FILTER
-    .adaptiveFilterEnabled = SETTING_GYRO_ADAPTIVE_FILTER_DEFAULT,
     .adaptiveFilterTarget = SETTING_GYRO_ADAPTIVE_FILTER_TARGET_DEFAULT,
     .adaptiveFilterMinHz = SETTING_GYRO_ADAPTIVE_FILTER_MIN_HZ_DEFAULT,
     .adaptiveFilterMaxHz = SETTING_GYRO_ADAPTIVE_FILTER_MAX_HZ_DEFAULT,
@@ -132,6 +130,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .adaptiveFilterHpfHz = SETTING_GYRO_ADAPTIVE_FILTER_HPF_HZ_DEFAULT,
     .adaptiveFilterIntegratorThresholdHigh = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_HIGH_DEFAULT,
     .adaptiveFilterIntegratorThresholdLow  = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_LOW_DEFAULT,
+    .gyroFilterMode = SETTING_GYRO_FILTER_MODE_DEFAULT,
 #endif
 );
 
@@ -261,7 +260,7 @@ static void gyroInitFilters(void)
     initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
 #ifdef USE_ADAPTIVE_FILTER
-    if (gyroConfig()->adaptiveFilterEnabled) {
+    if (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE) {
         adaptiveFilterSetDefaultFrequency(gyroConfig()->gyro_main_lpf_hz, gyroConfig()->adaptiveFilterMinHz, gyroConfig()->adaptiveFilterMaxHz);
     }
 #endif
