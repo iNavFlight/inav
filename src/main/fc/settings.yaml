@@ -787,12 +787,6 @@ groups:
     type: motorConfig_t
     headers: ["flight/mixer.h"]
     members:
-      - name: max_throttle
-        description: "This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK for everyone (legacy). For modern ESCs, higher values (c. 2000) may be more appropriate. If you have brushed motors, the value should be set to 2000."
-        default_value: 1850
-        field: maxthrottle
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
       - name: min_command
         description: "This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly when powered up, try decreasing this value. It can also be used for calibrating all ESCs at once."
         default_value: 1000
@@ -1616,6 +1610,12 @@ groups:
         field: expo
         min: 0
         max: 200
+      - name: ez_snappiness
+        description: "EzTune snappiness"
+        default_value: 0
+        field: snappiness
+        min: 0
+        max: 100
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -1723,12 +1723,12 @@ groups:
     members:
       - name: deadband
         description: "These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle."
-        default_value: 5
+        default_value: 2
         min: 0
         max: 32
       - name: yaw_deadband
         description: "These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle."
-        default_value: 5
+        default_value: 2
         min: 0
         max: 100
       - name: pos_hold_deadband
@@ -2001,18 +2001,6 @@ groups:
         field: fixedWingYawItermBankFreeze
         min: 0
         max: 90
-      - name: pidsum_limit
-        description: "A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
-        default_value: 500
-        field: pidSumLimit
-        min: PID_SUM_LIMIT_MIN
-        max: PID_SUM_LIMIT_MAX
-      - name: pidsum_limit_yaw
-        description: "A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
-        default_value: 350
-        field: pidSumLimitYaw
-        min: PID_SUM_LIMIT_MIN
-        max: PID_SUM_LIMIT_MAX
       - name: iterm_windup
         description: "Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)"
         default_value: 50
@@ -2548,7 +2536,7 @@ groups:
         min: 10
         max: 2000
       - name: nav_min_ground_speed
-        description: "Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s."
+        description: "Minimum ground speed for navigation flight modes [m/s]. Currently, this only affects fixed wing. Default 7 m/s."
         default_value: 7
         field: general.min_ground_speed
         min: 6

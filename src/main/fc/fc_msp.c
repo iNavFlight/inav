@@ -504,6 +504,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU32(dst, 0); //Input reversing is not required since it can be done on mixer level
         }
         break;
+    case MSP2_INAV_SERVO_CONFIG:
+        for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+            sbufWriteU16(dst, servoParams(i)->min);
+            sbufWriteU16(dst, servoParams(i)->max);
+            sbufWriteU16(dst, servoParams(i)->middle);
+            sbufWriteU8(dst, servoParams(i)->rate);
+        }
+        break;
     case MSP_SERVO_MIX_RULES:
         for (int i = 0; i < MAX_SERVO_RULES; i++) {
             sbufWriteU8(dst, customServoMixers(i)->targetChannel);
@@ -764,7 +772,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
         sbufWriteU16(dst, 0); // Was min_throttle
-        sbufWriteU16(dst, motorConfig()->maxthrottle);
+        sbufWriteU16(dst, getMaxThrottle());
         sbufWriteU16(dst, motorConfig()->mincommand);
 
         sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
@@ -805,7 +813,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, PWM_RANGE_MIDDLE);
 
         sbufWriteU16(dst, 0); //Was min_throttle
-        sbufWriteU16(dst, motorConfig()->maxthrottle);
+        sbufWriteU16(dst, getMaxThrottle());
         sbufWriteU16(dst, motorConfig()->mincommand);
 
         sbufWriteU16(dst, currentBatteryProfile->failsafe_throttle);
@@ -1270,7 +1278,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0); //BF: pidProfile()->vbatPidCompensation
         sbufWriteU8(dst, 0); //BF: pidProfile()->setpointRelaxRatio
         sbufWriteU8(dst, 0);
-        sbufWriteU16(dst, pidProfile()->pidSumLimit);
+        sbufWriteU16(dst, 0); //Was pidsum limit
         sbufWriteU8(dst, 0); //BF: pidProfile()->itermThrottleGain
 
         /*
@@ -1644,6 +1652,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU8(dst, ezTune()->aggressiveness);
             sbufWriteU8(dst, ezTune()->rate);
             sbufWriteU8(dst, ezTune()->expo);
+            sbufWriteU8(dst, ezTune()->snappiness);
         }
         break;
 #endif
@@ -1951,7 +1960,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU16(src);   // midrc
 
         sbufReadU16(src); //Was min_throttle
-        motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+        sbufReadU16(src); //Was maxThrottle
         motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
         currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -1999,7 +2008,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU16(src);       // midrc
 
             sbufReadU16(src);   // was min_throttle
-            motorConfigMutable()->maxthrottle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            sbufReadU16(src);  // was maxThrottle
             motorConfigMutable()->mincommand = constrain(sbufReadU16(src), 0, PWM_RANGE_MAX);
 
             currentBatteryProfileMutable->failsafe_throttle = constrain(sbufReadU16(src), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -2125,6 +2134,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src);
             sbufReadU8(src); // used to be forwardFromChannel, ignored
             sbufReadU32(src); // used to be reversedSources
+            servoComputeScalingFactors(tmp_u8);
+        }
+        break;
+
+    case MSP2_INAV_SET_SERVO_CONFIG:
+        if (dataSize != 8) {
+            return MSP_RESULT_ERROR;
+        }
+        tmp_u8 = sbufReadU8(src);
+        if (tmp_u8 >= MAX_SUPPORTED_SERVOS) {
+            return MSP_RESULT_ERROR;
+        } else {
+            servoParamsMutable(tmp_u8)->min = sbufReadU16(src);
+            servoParamsMutable(tmp_u8)->max = sbufReadU16(src);
+            servoParamsMutable(tmp_u8)->middle = sbufReadU16(src);
+            servoParamsMutable(tmp_u8)->rate = sbufReadU8(src);
             servoComputeScalingFactors(tmp_u8);
         }
         break;
@@ -2307,7 +2332,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             sbufReadU8(src); //BF: pidProfileMutable()->vbatPidCompensation
             sbufReadU8(src); //BF: pidProfileMutable()->setpointRelaxRatio
             sbufReadU8(src);
-            pidProfileMutable()->pidSumLimit = sbufReadU16(src);
+            sbufReadU16(src); // Was pidsumLimit
             sbufReadU8(src); //BF: pidProfileMutable()->itermThrottleGain
 
             /*
@@ -3232,21 +3257,25 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_EZ_TUNE_SET:
         {
-            if (dataSize == 10) {
-                ezTuneMutable()->enabled = sbufReadU8(src);
-                ezTuneMutable()->filterHz = sbufReadU16(src);
-                ezTuneMutable()->axisRatio = sbufReadU8(src);
-                ezTuneMutable()->response = sbufReadU8(src);
-                ezTuneMutable()->damping = sbufReadU8(src);
-                ezTuneMutable()->stability = sbufReadU8(src);
-                ezTuneMutable()->aggressiveness = sbufReadU8(src);
-                ezTuneMutable()->rate = sbufReadU8(src);
-                ezTuneMutable()->expo = sbufReadU8(src);
 
-                ezTuneUpdate();
-            } else {
+            if (dataSize < 10 || dataSize > 11) {
                 return MSP_RESULT_ERROR;
             }
+
+            ezTuneMutable()->enabled = sbufReadU8(src);
+            ezTuneMutable()->filterHz = sbufReadU16(src);
+            ezTuneMutable()->axisRatio = sbufReadU8(src);
+            ezTuneMutable()->response = sbufReadU8(src);
+            ezTuneMutable()->damping = sbufReadU8(src);
+            ezTuneMutable()->stability = sbufReadU8(src);
+            ezTuneMutable()->aggressiveness = sbufReadU8(src);
+            ezTuneMutable()->rate = sbufReadU8(src);
+            ezTuneMutable()->expo = sbufReadU8(src);
+
+            if (dataSize == 11) {
+                ezTuneMutable()->snappiness = sbufReadU8(src);
+            }
+            ezTuneUpdate();
         }
         break;
 

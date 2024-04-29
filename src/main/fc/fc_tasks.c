@@ -94,6 +94,10 @@
 
 #include "config/feature.h"
 
+#if defined(SITL_BUILD)
+#include "target/SITL/serial_proxy.h"
+#endif
+
 void taskHandleSerial(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
@@ -425,6 +429,10 @@ void fcTasksInit(void)
 
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, true);
+#endif
+
+#if defined(SITL_BUILD)
+    serialProxyStart();
 #endif
 }
 

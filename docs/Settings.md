@@ -658,7 +658,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 32 |
+| 2 | 0 | 32 |
 
 ---
 
@@ -929,6 +929,16 @@ EzTune response
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 0 | 200 |
+
+---
+
+### ez_snappiness
+
+EzTune snappiness
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
 
 ---
 
@@ -2372,16 +2382,6 @@ These are min/max values (in us) which, when a channel is smaller (min) or large
 
 ---
 
-### max_throttle
-
-This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK for everyone (legacy). For modern ESCs, higher values (c. 2000) may be more appropriate. If you have brushed motors, the value should be set to 2000.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 1850 | PWM_RANGE_MIN | PWM_RANGE_MAX |
-
----
-
 ### mc_cd_lpf_hz
 
 Cutoff frequency for Control Derivative. This controls the cutoff for the LPF that is applied to the CD (Feed Forward) signal to the PID controller. Lower value will produce a smoother CD gain to the controller, but it will be more delayed. Higher values will produce CD gain that may have more noise in the signal depending on your RC link but wil be less delayed.
@@ -3724,7 +3724,7 @@ When ON, NAV engine will slow down when switching to the next waypoint. This pri
 
 ### nav_min_ground_speed
 
-Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s.
+Minimum ground speed for navigation flight modes [m/s]. Currently, this only affects fixed wing. Default 7 m/s.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5062,26 +5062,6 @@ Allows to set type of PID controller used in control loop. Possible values: `NON
 
 ---
 
-### pidsum_limit
-
-A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 500 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
-
----
-
-### pidsum_limit_yaw
-
-A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 350 | PID_SUM_LIMIT_MIN | PID_SUM_LIMIT_MAX |
-
----
-
 ### pilot_name
 
 Pilot name
@@ -6218,7 +6198,7 @@ These are values (in us) by how much RC input can be different before it's consi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 100 |
+| 2 | 0 | 100 |
 
 ---
 

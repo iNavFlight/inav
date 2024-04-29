@@ -1844,9 +1844,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->craftName);
         BLACKBOX_PRINT_HEADER_LINE("P interval", "%u/%u",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     getThrottleIdleValue());
-        BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     motorConfig()->maxthrottle);
+        BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     getMaxThrottle());
         BLACKBOX_PRINT_HEADER_LINE("gyro_scale", "0x%x",                    castFloatBytesToInt(1.0f));
-        BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  getThrottleIdleValue(),motorConfig()->maxthrottle);
+        BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  getThrottleIdleValue(),getMaxThrottle());
         BLACKBOX_PRINT_HEADER_LINE("acc_1G", "%u",                          acc.dev.acc_1G);
 
 #ifdef USE_ADC
@@ -1939,8 +1939,6 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
         BLACKBOX_PRINT_HEADER_LINE("acc_notch_hz", "%d",                    accelerometerConfig()->acc_notch_hz);
         BLACKBOX_PRINT_HEADER_LINE("acc_notch_cutoff", "%d",                accelerometerConfig()->acc_notch_cutoff);
-        BLACKBOX_PRINT_HEADER_LINE("pidSumLimit", "%d",                     pidProfile()->pidSumLimit);
-        BLACKBOX_PRINT_HEADER_LINE("pidSumLimitYaw", "%d",                  pidProfile()->pidSumLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitYaw", "%d",        pidProfile()->axisAccelerationLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitRollPitch", "%d",  pidProfile()->axisAccelerationLimitRollPitch);
 #ifdef USE_RPM_FILTER
