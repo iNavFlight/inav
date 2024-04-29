@@ -74,7 +74,7 @@ jobs:
           path: ./build_SITL/*_SITL
 
   build-SITL-Mac:
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies
