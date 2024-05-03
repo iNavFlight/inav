@@ -76,11 +76,7 @@ float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros)
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float targetVel = posControl.desiredState.climbRateDemand;
-
-    if (posControl.flags.rocToAltMode != ROC_TO_ALT_CONSTANT) {
-        targetVel = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
-    }
+    float targetVel = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
     posControl.pids.pos[Z].output_constrained = targetVel;      // only used for Blackbox and OSD info
 
@@ -141,6 +137,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
     }
     else {
         const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
@@ -928,8 +925,8 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            // target min descent rate 5m above takeoff altitude
-            updateClimbRateToAltitudeController(0, 500.0f, ROC_TO_ALT_TARGET);
+            // target min descent rate at distance 2 x emerg descent rate above takeoff altitude
+            updateClimbRateToAltitudeController(0, 2.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }

@@ -133,11 +133,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 {
     static pt1Filter_t velzFilterState;
 
-    float desiredClimbRate = posControl.desiredState.climbRateDemand;
-
-    if (posControl.flags.rocToAltMode != ROC_TO_ALT_CONSTANT) {
-        desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
-    }
+    float desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
     // Reduce max allowed climb pitch if performing loiter (stall prevention)
     if (needToCalculateCircularLoiter && desiredClimbRate > 0.0f) {
@@ -770,8 +766,8 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->failsafe_throttle, true);
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
-        // target min descent rate 10m above takeoff altitude
-        updateClimbRateToAltitudeController(0, 1000.0f, ROC_TO_ALT_TARGET);
+        // target min descent rate at distance 2 x emerg descent rate above takeoff altitude
+        updateClimbRateToAltitudeController(0, 2.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
