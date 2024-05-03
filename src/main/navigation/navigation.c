@@ -4081,10 +4081,11 @@ bool isLastMissionWaypoint(void)
 /* Checks if Nav hold position is active */
 bool isNavHoldPositionActive(void)
 {
-    // WP mode last WP hold and Timed hold positions
-    if (FLIGHT_MODE(NAV_WP_MODE)) {
-        return isLastMissionWaypoint() || posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME;
-    }
+    // WP mode last WP hold and Timed/Alt Enforce hold positions
+    return isLastMissionWaypoint() ||
+           NAV_Status.state == MW_NAV_STATE_HOLD_TIMED ||
+           posControl.waypointList[posControl.activeWaypointIndex].action == NAV_WP_ACTION_HOLD_TIME;
+
     // RTH mode (spiral climb and Home positions but excluding RTH Trackback point positions) and POSHOLD mode
     // Also hold position during emergency landing if position valid
     return (FLIGHT_MODE(NAV_RTH_MODE) && !posControl.flags.rthTrackbackActive) ||
