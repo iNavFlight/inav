@@ -4092,10 +4092,7 @@ bool isNavHoldPositionActive(void)
         return posControl.waypointList[posControl.activeWaypointIndex].action != NAV_WP_ACTION_WAYPOINT || isLastMissionWaypoint();
     }
 
-    return posControl.navState != NAV_STATE_FW_LANDING_APPROACH &&
-           posControl.navState != NAV_STATE_FW_LANDING_GLIDE &&
-           posControl.navState != NAV_STATE_FW_LANDING_FLARE &&
-           !posControl.flags.rthTrackbackActive;
+    return !FLIGHT_MODE(NAV_FW_AUTOLAND) && !posControl.flags.rthTrackbackActive;
 }
 
 float getActiveSpeed(void)
