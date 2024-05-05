@@ -52,8 +52,23 @@ void ioPortExpanderSet(uint8_t pin, uint8_t value)
     //Cast to 0/1
     value = (bool) value;
 
+    uint8_t oldState = ioPortExpanderState.state;
     ioPortExpanderState.state ^= (-value ^ ioPortExpanderState.state) & (1UL << pin);
-    ioPortExpanderState.shouldSync = true;
+
+    if (oldState != ioPortExpanderState.state) {
+        ioPortExpanderState.shouldSync = true;
+    }
+}
+
+uint8_t ioPortExpanderRead(uint8_t pin)
+{
+    if (pin > 7) {
+        return 0;
+    }
+
+    uint8_t value = pcf8574Read();
+
+    return (value & (1 << pin)) ? 1 : 0;
 }
 
 void ioPortExpanderSync(void)

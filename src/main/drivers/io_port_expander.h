@@ -35,3 +35,4 @@ typedef struct ioPortExpanderState_s {
 void ioPortExpanderInit(void);
 void ioPortExpanderSync(void);
 void ioPortExpanderSet(uint8_t pin, uint8_t value);
+uint8_t ioPortExpanderRead(uint8_t pin);
