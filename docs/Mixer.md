@@ -48,7 +48,7 @@ At least one servo mixing rule is needed for each servo. Each rule defines how a
 Each servo mixing rule has the following parameters:
 * Servo index: defines which servo the rule will apply to. The absolute value of the index is not important, what matters is only the relative difference between the used indexes. The rule with the smaller servo index will apply to the first servo, the next higher servo index to the second servo, etc. More than one rule can use the same servo index. The output of the rules with the same servo index are added together to give the final output for the specified servo.
 * Input: the input for the mixing rule, see a summary of the input types table bellow.
-* Weight: percentage of the input to forward to the servo. Range [-1000, 1000]. Mixing rule output = input * weight. If the output of a set of mixing rules is lower/higher than the defined servo min/max the output is clipped (the servo will never travel farther than the set min/max).
+* Weight: percentage of the input to forward to the servo. Range [-100, 100]. Mixing rule output = input * weight. If the output of a set of mixing rules is lower/higher than the defined servo min/max the output is clipped (the servo will never travel farther than the set min/max).
 * Speed: maximum rate of change of the mixing rule output. Used to limit the servo speed. 1 corresponds to maximum 10µs/s output rate of change. Set to 0 for no speed limit. For example: 10 = full sweep (1000 to 2000) in 10s, 100 = full sweep in 1s.
 
 | CLI input ID | Mixer input | Description |
