@@ -334,6 +334,7 @@ typedef enum {
     NAV_AUTO_WP_DONE        = (1 << 15),    // Waypoint mission reached the last waypoint and is idling
 
     NAV_MIXERAT             = (1 << 16),    // MIXERAT in progress
+    NAV_CTL_HOLD            = (1 << 17),    // Nav loiter active at position
 } navigationFSMStateFlags_t;
 
 typedef struct {
