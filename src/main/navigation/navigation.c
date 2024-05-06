@@ -4088,10 +4088,12 @@ bool isNavHoldPositionActive(void)
         return true;
     }
 
+    // No hold required for basic WP type unless it's the last mission waypoint
     if (FLIGHT_MODE(NAV_WP_MODE)) {
         return posControl.waypointList[posControl.activeWaypointIndex].action != NAV_WP_ACTION_WAYPOINT || isLastMissionWaypoint();
     }
 
+    // No hold required for Trackback WPs or for fixed wing autoland WPs not flagged as hold points (returned above if they are)
     return !FLIGHT_MODE(NAV_FW_AUTOLAND) && !posControl.flags.rthTrackbackActive;
 }
 
