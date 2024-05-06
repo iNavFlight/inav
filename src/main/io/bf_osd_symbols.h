@@ -33,11 +33,16 @@
 #define BF_SYM_PITCH                   0x15
 #define BF_SYM_TEMPERATURE             0x7A
 
+// Glide symbols
+#define BF_SYM_GLIDESLOPE              0x05 
+#define BF_SYM_GLIDE_DIST              0x24
+#define BF_SYM_GLIDE_MINS              0x9C
+
 // GPS and navigation
 #define BF_SYM_LAT                     0x89
 #define BF_SYM_LON                     0x98
 #define BF_SYM_ALTITUDE                0x7F
-#define BF_SYM_TOTAL_DISTANCE          0x71
+#define BF_SYM_TOTAL_DISTANCE          0x12
 #define BF_SYM_OVER_HOME               0x05
 
 // RSSI
@@ -94,9 +99,10 @@
 #define BF_SYM_ARROW_14                0x6D
 #define BF_SYM_ARROW_15                0x6E
 #define BF_SYM_ARROW_16                0x6F
-
 #define BF_SYM_ARROW_SMALL_UP          0x75
 #define BF_SYM_ARROW_SMALL_DOWN        0x76
+#define BF_SYM_ARROW_SMALL_RIGHT       0x77
+#define BF_SYM_ARROW_SMALL_LEFT        0x78
 
 // AH Bars
 #define BF_SYM_AH_BAR9_0               0x80
