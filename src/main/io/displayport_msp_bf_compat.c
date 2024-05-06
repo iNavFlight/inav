@@ -38,6 +38,7 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     }
 
     switch (ech) {
+        
     case SYM_RSSI:
         return BF_SYM_RSSI;
 
@@ -62,10 +63,9 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_DEGREES:
         return BF_SYM_GPS_DEGREE;
 
-/*
     case SYM_HEADING:
-        return BF_SYM_HEADING;
-
+        return BF_SYM_NONE;
+/*
     case SYM_SCALE:
         return BF_SYM_SCALE;
 
@@ -81,16 +81,15 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_2RSS:
         return BF_SYM_RSSI;
 
-/*
     case SYM_DB:
-        return BF_SYM_DB
+        return BF_SYM_RSSI;
 
     case SYM_DBM:
-        return BF_SYM_DBM;
+        return 'D';
 
     case SYM_SNR:
-        return BF_SYM_SNR;
-
+        return 'S';
+/*
     case SYM_AH_DECORATION_UP:
         return BF_SYM_AH_DECORATION_UP;
 
@@ -210,21 +209,21 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_TOTAL:
         return BF_SYM_TOTAL_DISTANCE;
-/*
-    case SYM_ALT_KM:
-        return BF_SYM_ALT_KM;
 
-    case SYM_ALT_KFT:
-        return BF_SYM_ALT_KFT;
+    case SYM_ALT_KM:
+        return 'K';
 
     case SYM_DIST_M:
-        return BF_SYM_DIST_M;
+        return 'K';
 
     case SYM_DIST_KM:
-        return BF_SYM_DIST_KM;
-
+        return 'K';
+/*
     case SYM_DIST_FT:
         return BF_SYM_DIST_FT;
+        
+    case SYM_ALT_KFT:
+        return BF_SYM_ALT_KFT;
 
     case SYM_DIST_MI:
         return BF_SYM_DIST_MI;
@@ -246,7 +245,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 */
     case SYM_WIND_HORIZONTAL:
         return 'W';     // W for wind
-
 /*
     case SYM_WIND_VERTICAL:
         return BF_SYM_WIND_VERTICAL;
@@ -292,6 +290,21 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 */
     case SYM_THR:
         return BF_SYM_THR;
+        
+    case SYM_AUTO_THR0:
+        return BF_SYM_AMP;
+
+    case SYM_AUTO_THR1:
+        return BF_SYM_THR;
+
+    case SYM_GLIDESLOPE:
+        return BF_SYM_GLIDESLOPE;
+
+    case SYM_GLIDE_DIST:
+        return BF_SYM_GLIDE_DIST;
+
+    case SYM_GLIDE_MINS:
+        return BF_SYM_GLIDE_MINS;
 
     case SYM_TEMP_F:
         return BF_SYM_F;
@@ -314,9 +327,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_FLY_M:
         return BF_SYM_FLY_M;
 /*
-    case SYM_GLIDESLOPE:
-        return BF_SYM_GLIDESLOPE;
-
     case SYM_WAYPOINT:
         return BF_SYM_WAYPOINT;
 
@@ -328,12 +338,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_ZERO_HALF_LEADING_DOT:
         return BF_SYM_ZERO_HALF_LEADING_DOT;
-
-    case SYM_AUTO_THR0:
-        return BF_SYM_AUTO_THR0;
-
-    case SYM_AUTO_THR1:
-        return BF_SYM_AUTO_THR1;
 
     case SYM_ROLL_LEFT:
         return BF_SYM_ROLL_LEFT;
@@ -350,10 +354,8 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_PITCH_DOWN:
         return BF_SYM_PITCH_DOWN;
  */
-
     case SYM_GFORCE:
         return 'G';
-
 /*
     case SYM_GFORCE_X:
         return BF_SYM_GFORCE_X;
@@ -421,12 +423,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_AH:
         return BF_SYM_AH;
 
-    case SYM_GLIDE_DIST:
-        return BF_SYM_GLIDE_DIST;
-
-    case SYM_GLIDE_MINS:
-        return BF_SYM_GLIDE_MINS;
-
     case SYM_AH_V_FT_0:
         return BF_SYM_AH_V_FT_0;
 
@@ -465,7 +461,6 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_AH_RIGHT:
         return BF_SYM_AH_RIGHT;
-
 /*
     case SYM_AH_DECORATION_COUNT:
         return BF_SYM_AH_DECORATION_COUNT;
