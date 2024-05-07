@@ -1664,7 +1664,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
     if (!pauseLanding && ((ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY))) {
         resetLandingDetector();     // force reset landing detector just in case
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
-        return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_HOVER_ABOVE_HOME; // success = land
+        return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME; // success = land
     } else {
         fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
         setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
@@ -1920,7 +1920,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
 
                     // Use linear climb between WPs arriving at WP altitude when within 10% of total distance to WP
-                    // Update climb rate until within 100cm of total climb xy distance to WP, then hold constant
+                    // Update climb rate until within 100cm of total climb xy distance to WP
                     float climbRate = 0.0f;
                     if (posControl.wpDistance - 0.1f * posControl.wpInitialDistance > 100.0f) {
                         climbRate = posControl.actualState.velXY * (posControl.activeWaypoint.pos.z - posControl.actualState.abs.pos.z) /

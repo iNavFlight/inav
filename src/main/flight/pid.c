@@ -169,7 +169,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 7);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 8);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
