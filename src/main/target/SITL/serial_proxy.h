@@ -22,18 +22,43 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#pragma once
 
+#include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
-#include "sensors/rangefinder.h"
-#include "drivers/rangefinder/rangefinder_virtual.h"
+#include <platform.h>
 
-extern virtualRangefinderVTable_t rangefinderMSPVtable;
-extern virtualRangefinderVTable_t rangefinderBenewakeVtable;
-extern virtualRangefinderVTable_t rangefinderUSD1Vtable;
-extern virtualRangefinderVTable_t rangefinderNanoradarVtable; //NRA15/NRA24
-extern virtualRangefinderVTable_t rangefinderFakeVtable;
+#if defined(SITL_BUILD)
 
-void mspRangefinderReceiveNewData(uint8_t * bufferPtr);
-void fakeRangefindersSetData(int32_t data);
+typedef enum
+{
+    OPT_SERIAL_STOP_BITS_ONE,
+    OPT_SERIAL_STOP_BITS_TWO,
+    OPT_SERIAL_STOP_BITS_INVALID
+} OptSerialStopBits_e;
+
+typedef enum
+{
+    OPT_SERIAL_PARITY_EVEN,
+    OPT_SERIAL_PARITY_NONE,
+    OPT_SERIAL_PARITY_ODD,
+    OPT_SERIAL_PARITY_INVALID
+} OptSerialParity_e;
+
+
+extern int serialUartIndex; ///1 for UART1
+extern char serialPort[64];
+extern int serialBaudRate;
+extern OptSerialStopBits_e serialStopBits;
+extern OptSerialParity_e serialParity;
+extern bool serialFCProxy;
+
+extern void serialProxyInit(void);
+extern void serialProxyStart(void);
+extern void serialProxyProcess(void);
+extern void serialProxyClose(void);
+extern bool serialProxyIsConnected(void);
+extern bool serialProxyWriteData(unsigned char *buffer, unsigned int nbChar);
+
+#endif

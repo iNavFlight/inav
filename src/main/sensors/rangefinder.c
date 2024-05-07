@@ -132,6 +132,22 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
             }
 #endif
             break;
+        case RANGEFINDER_USD1_V0:
+#if defined(USE_RANGEFINDER_USD1_V0)
+            if (virtualRangefinderDetect(dev, &rangefinderUSD1Vtable)) {
+                rangefinderHardware = RANGEFINDER_USD1_V0;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+        case RANGEFINDER_NANORADAR:
+#if defined(USE_RANGEFINDER_NANORADAR)
+            if (virtualRangefinderDetect(dev, &rangefinderNanoradarVtable)) {
+                rangefinderHardware = RANGEFINDER_NANORADAR;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
+            }
+#endif
+            break;
 
             case RANGEFINDER_US42:
 #ifdef USE_RANGEFINDER_US42
