@@ -27,7 +27,7 @@
 
 uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 {
-    uint16_t ech = ch | (page << 8);
+    uint16_t ech = ch | ((page & 0x3)<< 8) ;
 
     if (ech >= 0x20 && ech <= 0x5F) { // ASCII range
         return ch;

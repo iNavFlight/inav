@@ -36,7 +36,7 @@
 
 #include "rx/rx.h"
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 0);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 1);
 
 PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
     .enabled = SETTING_EZ_ENABLED_DEFAULT,
@@ -48,6 +48,7 @@ PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
     .aggressiveness = SETTING_EZ_AGGRESSIVENESS_DEFAULT,
     .rate = SETTING_EZ_RATE_DEFAULT,
     .expo = SETTING_EZ_EXPO_DEFAULT,
+    .snappiness = SETTING_EZ_SNAPPINESS_DEFAULT,
 );
 
 #define EZ_TUNE_PID_RP_DEFAULT { 40, 75, 23, 100 }
@@ -141,6 +142,9 @@ void ezTuneUpdate(void) {
 
         ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
         ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
+
+        //D-Boost snappiness
+        pidProfileMutable()->dBoostMin = scaleRangef(ezTune()->snappiness, 0, 100, 1.0f, 0.0f);
 
     }
 }

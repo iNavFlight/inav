@@ -100,7 +100,7 @@ jobs:
       - name: Build SITL
         run: |
           mkdir -p build_SITL && cd build_SITL
-          cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja ..
+          cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -G Ninja ..
           ninja
 
       - name: Upload artifacts

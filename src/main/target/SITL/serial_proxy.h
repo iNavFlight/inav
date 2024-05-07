@@ -22,23 +22,43 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#pragma once
 
-#include "config/parameter_group.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 
-typedef struct ezTuneSettings_s {
-    uint8_t enabled;
-    uint16_t filterHz;
-    uint8_t axisRatio;
-    uint8_t response;
-    uint8_t damping;
-    uint8_t stability;
-    uint8_t aggressiveness;
-    uint8_t rate;
-    uint8_t expo;
-    uint8_t snappiness;
-} ezTuneSettings_t;
+#include <platform.h>
 
-PG_DECLARE_PROFILE(ezTuneSettings_t, ezTune);
+#if defined(SITL_BUILD)
 
-void ezTuneUpdate(void);
+typedef enum
+{
+    OPT_SERIAL_STOP_BITS_ONE,
+    OPT_SERIAL_STOP_BITS_TWO,
+    OPT_SERIAL_STOP_BITS_INVALID
+} OptSerialStopBits_e;
+
+typedef enum
+{
+    OPT_SERIAL_PARITY_EVEN,
+    OPT_SERIAL_PARITY_NONE,
+    OPT_SERIAL_PARITY_ODD,
+    OPT_SERIAL_PARITY_INVALID
+} OptSerialParity_e;
+
+
+extern int serialUartIndex; ///1 for UART1
+extern char serialPort[64];
+extern int serialBaudRate;
+extern OptSerialStopBits_e serialStopBits;
+extern OptSerialParity_e serialParity;
+extern bool serialFCProxy;
+
+extern void serialProxyInit(void);
+extern void serialProxyStart(void);
+extern void serialProxyProcess(void);
+extern void serialProxyClose(void);
+extern bool serialProxyIsConnected(void);
+extern bool serialProxyWriteData(unsigned char *buffer, unsigned int nbChar);
+
+#endif

@@ -5,7 +5,7 @@ tables:
     values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO", "USD1_V0", "NRA"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
@@ -1555,6 +1555,12 @@ groups:
         field: expo
         min: 0
         max: 200
+      - name: ez_snappiness
+        description: "EzTune snappiness"
+        default_value: 0
+        field: snappiness
+        min: 0
+        max: 100
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -2266,9 +2272,10 @@ groups:
         min: 0
         max: 255
       - name: inav_use_gps_no_baro
+        description: "Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed."
         field: use_gps_no_baro
         type: bool
-        default_value: OFF
+        default_value: ON
       - name: inav_allow_dead_reckoning
         description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
