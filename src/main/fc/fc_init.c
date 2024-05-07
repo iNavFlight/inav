@@ -146,6 +146,10 @@
 
 #include "telemetry/telemetry.h"
 
+#if defined(SITL_BUILD)
+#include "target/SITL/serial_proxy.h"
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -222,18 +226,15 @@ void init(void)
     flashDeviceInitialized = flashInit();
 #endif
 
+#if defined(SITL_BUILD)
+    serialProxyInit();
+#endif
+
     initEEPROM();
     ensureEEPROMContainsValidData();
     suspendRxSignal();
     readEEPROM();
     resumeRxSignal();
-
-#ifdef USE_UNDERCLOCK
-    // Re-initialize system clock to their final values (if necessary)
-    systemClockSetup(systemConfig()->cpuUnderclock);
-#else
-    systemClockSetup(false);
-#endif
 
 #ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
@@ -255,7 +256,7 @@ void init(void)
     EXTIInit();
 #endif
 
-#ifdef USE_SPEKTRUM_BIND
+#if defined(USE_SPEKTRUM_BIND) && defined(USE_SERIALRX_SPEKTRUM)
     if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
         switch (rxConfig()->serialrx_provider) {
             case SERIALRX_SPEKTRUM1024:

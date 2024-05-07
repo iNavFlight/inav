@@ -1,3 +1,4 @@
+
 main_sources(COMMON_SRC
     main.c
 
@@ -237,6 +238,8 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_us42.h
     drivers/rangefinder/rangefinder_tof10120_i2c.c
     drivers/rangefinder/rangefinder_tof10120_i2c.h
+    drivers/rangefinder/rangefinder_teraranger_evo.c
+    drivers/rangefinder/rangefinder_teraranger_evo.h
 
     drivers/resource.c
     drivers/resource.h
@@ -344,6 +347,7 @@ main_sources(COMMON_SRC
     flight/ez_tune.c
     flight/ez_tune.h
 
+    io/adsb.c
     io/beeper.c
     io/beeper.h
     io/servo_sbus.c
@@ -482,6 +486,8 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
+    io/rangefinder_usd1_v0.c
+    io/rangefinder_nanoradar.c
     io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
@@ -560,6 +566,8 @@ main_sources(COMMON_SRC
     navigation/navigation_rover_boat.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
+    navigation/rth_trackback.c
+    navigation/rth_trackback.h
 
     sensors/barometer.c
     sensors/barometer.h

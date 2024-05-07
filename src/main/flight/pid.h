@@ -115,8 +115,6 @@ typedef struct pidProfile_s {
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
 
-    uint16_t pidSumLimit;
-    uint16_t pidSumLimitYaw;
     uint16_t pidItermLimitPercent;
 
     // Airplane-specific parameters
@@ -221,3 +219,4 @@ bool isFixedWingLevelTrimActive(void);
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
 float getFixedWingLevelTrim(void);
 bool isAngleHoldLevel(void);
+uint16_t getPidSumLimit(const flight_dynamics_index_t axis);

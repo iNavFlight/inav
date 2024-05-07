@@ -56,6 +56,8 @@
 #include "target/SITL/sim/realFlight.h"
 #include "target/SITL/sim/xplane.h"
 
+#include "target/SITL/serial_proxy.h"
+
 // More dummys
 const int timerHardwareCount = 0;
 timerHardware_t timerHardware[1];
@@ -170,19 +172,47 @@ bool parseMapping(char* mapStr)
     return true;
 }
 
+OptSerialStopBits_e parseStopBits(const char* optarg){
+    if ( strcmp(optarg, "One") == 0 ) {
+        return OPT_SERIAL_STOP_BITS_ONE;
+    } else if ( strcmp(optarg, "Two") == 0 ) {
+        return OPT_SERIAL_STOP_BITS_TWO;
+    } else  {
+        return OPT_SERIAL_STOP_BITS_INVALID;
+    }
+}
+
+OptSerialParity_e parseParity(const char* optarg){
+    if ( strcmp(optarg, "Even") == 0 ) {
+        return OPT_SERIAL_PARITY_EVEN;
+    } else if ( strcmp(optarg, "None") == 0 ) {
+        return OPT_SERIAL_PARITY_NONE;
+    } else if ( strcmp(optarg, "Odd") == 0 ) {
+        return OPT_SERIAL_PARITY_ODD;
+    } else  {
+        return OPT_SERIAL_PARITY_INVALID;
+    }
+}
+
 void printCmdLineOptions(void)
 {
     printVersion();
     fprintf(stderr, "Avaiable options:\n");
-    fprintf(stderr, "--path=[path]                        Path and filename of eeprom.bin. If not specified 'eeprom.bin' in program directory is used.\n");
-    fprintf(stderr, "--sim=[rf|xp]                        Simulator interface: rf = RealFligt, xp = XPlane. Example: --sim=rf\n");
-    fprintf(stderr, "--simip=[ip]                         IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
-    fprintf(stderr, "--simport=[port]                     Port oft the simulator host.\n");
-    fprintf(stderr, "--useimu                             Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
-    fprintf(stderr, "--chanmap=[mapstring]                Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
-    fprintf(stderr, "                                     The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
-    fprintf(stderr, "                                     For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
-    fprintf(stderr, "                                     --chanmap=M01-01,S01-02,S02-03\n");
+    fprintf(stderr, "--path=[path]                  Path and filename of eeprom.bin. If not specified 'eeprom.bin' in program directory is used.\n");
+    fprintf(stderr, "--sim=[rf|xp]                  Simulator interface: rf = RealFligt, xp = XPlane. Example: --sim=rf\n");
+    fprintf(stderr, "--simip=[ip]                   IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
+    fprintf(stderr, "--simport=[port]               Port oft the simulator host.\n");
+    fprintf(stderr, "--useimu                       Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
+    fprintf(stderr, "--serialuart=[uart]            UART number on which serial receiver is configured in SITL, f.e. 3 for UART3\n");
+    fprintf(stderr, "--serialport=[serialport]      Host's serial port to which serial receiver/proxy FC is connected, f.e. COM3, /dev/ttyACM3\n");
+    fprintf(stderr, "--baudrate=[baudrate]          Serial receiver baudrate (default: 115200).\n");
+    fprintf(stderr, "--stopbits=[None|One|Two]      Serial receiver stopbits (default: One).\n");
+    fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
+    fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
+    fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
+    fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
+    fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
+    fprintf(stderr, "                               --chanmap=M01-01,S01-02,S02-03\n");
 }
 
 void parseArguments(int argc, char *argv[])
@@ -202,7 +232,13 @@ void parseArguments(int argc, char *argv[])
             {"simport", required_argument, 0, 'p'},
             {"help", no_argument, 0, 'h'},
             {"path", required_argument, 0, 'e'},
-	    {"version", no_argument, 0, 'v'},
+            {"version", no_argument, 0, 'v'},
+            {"serialuart", required_argument, 0, '0'},
+            {"serialport", required_argument, 0, '1'},
+            {"baudrate", required_argument, 0, '2'},
+            {"stopbits", required_argument, 0, '3'},
+            {"parity", required_argument, 0, '4'},
+            {"fcproxy", no_argument, 0, '5'},
             {NULL, 0, NULL, 0}
         };
 
@@ -242,10 +278,54 @@ void parseArguments(int argc, char *argv[])
                     fprintf(stderr, "[EEPROM] Invalid path, using eeprom file in program directory\n.");
                 }
                 break;
-	    case 'v':
-		printVersion();
-		exit(0);
-	    default:
+            case 'v':
+                printVersion();
+                exit(0);
+            case '0':
+                serialUartIndex = atoi(optarg);
+                if ( (serialUartIndex<1) || (serialUartIndex>8) ) {
+                    fprintf(stderr, "[serialuart] Invalid argument\n.");
+                    exit(0);
+                }
+                break;
+            case '1':
+                if ( (strlen(optarg)<1) || (strlen(optarg)>63) ) {
+                    fprintf(stderr, "[serialport] Invalid argument\n.");
+                    exit(0);
+                } else {
+                    strcpy( serialPort, optarg );
+                }
+                break;
+            case '2':
+                serialBaudRate = atoi(optarg);
+                if ( serialBaudRate < 1200 )
+                {
+                    fprintf(stderr, "[baudrate] Invalid argument\n.");
+                    exit(0);
+                }
+                break;
+            case '3':
+                serialStopBits = parseStopBits(optarg);
+                if ( serialStopBits == OPT_SERIAL_STOP_BITS_INVALID )
+                {
+                    fprintf(stderr, "[stopbits] Invalid argument\n.");
+                    exit(0);
+                }
+                break;
+
+            case '4':
+                serialParity = parseParity(optarg);
+                if ( serialParity== OPT_SERIAL_PARITY_INVALID )
+                {
+                    fprintf(stderr, "[parity] Invalid argument\n.");
+                    exit(0);
+                }
+                break;
+            case '5':
+                serialFCProxy = true;
+                break;
+
+            default:
                 printCmdLineOptions();
                 exit(0);
         }
@@ -304,6 +384,7 @@ void systemReset(void)
 #else
     closefrom(3);
 #endif
+    serialProxyClose();
     execvp(c_argv[0], c_argv); // restart
 }
 
@@ -340,11 +421,6 @@ void IOConfigGPIO(IO_t io, ioConfig_t cfg)
 {
     UNUSED(io);
     UNUSED(cfg);
-}
-
-void systemClockSetup(uint8_t cpuUnderclock)
-{
-    UNUSED(cpuUnderclock);
 }
 
 void timerInit(void) {

@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #ifdef USE_MULTI_FUNCTIONS
 
 extern uint8_t multiFunctionFlags;

@@ -36,7 +36,7 @@
 #define RAD (M_PIf / 180.0f)
 
 #define DEGREES_TO_CENTIDEGREES(angle) ((angle) * 100)
-#define CENTIDEGREES_TO_DEGREES(angle) ((angle) / 100.0f)
+#define CENTIDEGREES_TO_DEGREES(angle) ((angle) * 0.01f)
 
 #define CENTIDEGREES_TO_DECIDEGREES(angle) ((angle) / 10.0f)
 #define DECIDEGREES_TO_CENTIDEGREES(angle) ((angle) * 10)
@@ -54,16 +54,20 @@
 #define RADIANS_TO_DECIDEGREES(angle) (((angle) * 10.0f) / RAD)
 
 #define RADIANS_TO_CENTIDEGREES(angle) (((angle) * 100.0f) / RAD)
-#define CENTIDEGREES_TO_RADIANS(angle) (((angle) / 100.0f) * RAD)
+#define CENTIDEGREES_TO_RADIANS(angle) (((angle) * 0.01f) * RAD)
+
+#define MILLIMETERS_TO_CENTIMETERS(mm)  (mm / 10.0f)
 
 #define CENTIMETERS_TO_CENTIFEET(cm)    (cm / 0.3048f)
 #define CENTIMETERS_TO_FEET(cm)         (cm / 30.48f)
-#define CENTIMETERS_TO_METERS(cm)       (cm / 100.0f)
+#define CENTIMETERS_TO_METERS(cm)       (cm * 0.01f)
 
 #define METERS_TO_CENTIMETERS(m)        (m * 100)
 #define METERS_TO_KILOMETERS(m)         (m / 1000.0f)
 #define METERS_TO_MILES(m)              (m / 1609.344f)
 #define METERS_TO_NAUTICALMILES(m)      (m / 1852.00f)
+
+#define MWH_TO_WH(mWh)                  (mWh / 1000.0f)
 
 #define CMSEC_TO_CENTIMPH(cms)          (cms * 2.2369363f)
 #define CMSEC_TO_CENTIKPH(cms)          (cms * 3.6f)
