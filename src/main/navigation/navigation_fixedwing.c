@@ -290,9 +290,12 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Detemine if a circular loiter is required.
     // For waypoints only use circular loiter when angular visibility is > 30 degs, otherwise head straight toward target
     #define TAN_15DEG    0.26795f
-    needToCalculateCircularLoiter = isNavHoldPositionActive() &&
-                                     (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
-                                     (distanceToActualTarget > 50.0f);
+
+    bool loiterApproachActive = isNavHoldPositionActive() &&
+                                distanceToActualTarget <= (navLoiterRadius / TAN_15DEG) &&
+                                distanceToActualTarget > 50.0f;
+    needToCalculateCircularLoiter = loiterApproachActive || (navGetCurrentStateFlags() & NAV_CTL_HOLD);
+
     //if vtol landing is required, fly straight to homepoint
     if ((posControl.navState == NAV_STATE_RTH_HEAD_HOME) && navigationRTHAllowsLanding() && checkMixerATRequired(MIXERAT_REQUEST_LAND)){
         needToCalculateCircularLoiter = false;
