@@ -154,7 +154,7 @@ static EXTENDED_FASTRAM float iTermAntigravityGain;
 #endif
 static EXTENDED_FASTRAM uint8_t usedPidControllerType;
 
-typedef void (*pidControllerFnPtr)(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv);
+typedef void (*pidControllerFnPtr)(pidState_t *pidState, float dT, float dT_inv);
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
 static EXTENDED_FASTRAM bool levelingEnabled = false;
@@ -744,16 +744,15 @@ static void applyItermLimiting(pidState_t *pidState) {
     }
 }
 
-static void nullRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv) {
+static void nullRateController(pidState_t *pidState, float dT, float dT_inv) {
     UNUSED(pidState);
-    UNUSED(axis);
     UNUSED(dT);
     UNUSED(dT_inv);
 }
 
-static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv)
+static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float dT, float dT_inv)
 {
-    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
+    const float rateTarget = getFlightAxisRateOverride(pidState->axis, pidState->rateTarget);
 
     const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
@@ -769,16 +768,16 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
     applyItermLimiting(pidState);
 
-    const uint16_t limit = getPidSumLimit(axis);
+    const uint16_t limit = getPidSumLimit(pidState->axis);
 
     if (pidProfile()->pidItermLimitPercent != 0){
         float itermLimit = limit * pidProfile()->pidItermLimitPercent * 0.01f;
         pidState->errorGyroIf = constrainf(pidState->errorGyroIf, -itermLimit, +itermLimit);
     }
 
-    axisPID[axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -limit, +limit);
+    axisPID[pidState->axis] = constrainf(newPTerm + newFFTerm + pidState->errorGyroIf + newDTerm, -limit, +limit);
 
-    if (FLIGHT_MODE(SOARING_MODE) && axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
+    if (FLIGHT_MODE(SOARING_MODE) && pidState->axis == FD_PITCH && calculateRollPitchCenterStatus() == CENTERED) {
         if (!angleFreefloatDeadband(DEGREES_TO_DECIDEGREES(navConfig()->fw.soaring_pitch_deadband), FD_PITCH)) {
             axisPID[FD_PITCH] = 0;  // center pitch servo if pitch attitude within soaring mode deadband
         }
@@ -786,16 +785,16 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, fligh
 
 #ifdef USE_AUTOTUNE_FIXED_WING
     if (FLIGHT_MODE(AUTO_TUNE) && !FLIGHT_MODE(MANUAL_MODE)) {
-        autotuneFixedWingUpdate(axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -limit, +limit));
+        autotuneFixedWingUpdate(pidState->axis, rateTarget, pidState->gyroRate, constrainf(newPTerm + newFFTerm, -limit, +limit));
     }
 #endif
 
 #ifdef USE_BLACKBOX
-    axisPID_P[axis] = newPTerm;
-    axisPID_I[axis] = pidState->errorGyroIf;
-    axisPID_D[axis] = newDTerm;
-    axisPID_F[axis] = newFFTerm;
-    axisPID_Setpoint[axis] = rateTarget;
+    axisPID_P[pidState->axis] = newPTerm;
+    axisPID_I[pidState->axis] = pidState->errorGyroIf;
+    axisPID_D[pidState->axis] = newDTerm;
+    axisPID_F[pidState->axis] = newFFTerm;
+    axisPID_Setpoint[pidState->axis] = rateTarget;
 #endif
 
     pidState->previousRateGyro = pidState->gyroRate;
@@ -818,10 +817,10 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
     return itermErrorRate;
 }
 
-static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, flight_dynamics_index_t axis, float dT, float dT_inv)
+static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, float dT, float dT_inv)
 {
 
-    const float rateTarget = getFlightAxisRateOverride(axis, pidState->rateTarget);
+    const float rateTarget = getFlightAxisRateOverride(pidState->axis, pidState->rateTarget);
 
     const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
@@ -835,13 +834,13 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
      */
     const float newCDTerm = rateTargetDeltaFiltered * pidState->kCD;
 
-    const uint16_t limit = getPidSumLimit(axis);
+    const uint16_t limit = getPidSumLimit(pidState->axis);
 
     // TODO: Get feedback from mixer on available correction range for each axis
     const float newOutput = newPTerm + newDTerm + pidState->errorGyroIf + newCDTerm;
     const float newOutputLimited = constrainf(newOutput, -limit, +limit);
 
-    float itermErrorRate = applyItermRelax(axis, rateTarget, rateError);
+    float itermErrorRate = applyItermRelax(pidState->axis, rateTarget, rateError);
 
 #ifdef USE_ANTIGRAVITY
     itermErrorRate *= iTermAntigravityGain;
@@ -859,14 +858,14 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     // Don't grow I-term if motors are at their limit
     applyItermLimiting(pidState);
 
-    axisPID[axis] = newOutputLimited;
+    axisPID[pidState->axis] = newOutputLimited;
 
 #ifdef USE_BLACKBOX
-    axisPID_P[axis] = newPTerm;
-    axisPID_I[axis] = pidState->errorGyroIf;
-    axisPID_D[axis] = newDTerm;
-    axisPID_F[axis] = newCDTerm;
-    axisPID_Setpoint[axis] = rateTarget;
+    axisPID_P[pidState->axis] = newPTerm;
+    axisPID_I[pidState->axis] = pidState->errorGyroIf;
+    axisPID_D[pidState->axis] = newDTerm;
+    axisPID_F[pidState->axis] = newCDTerm;
+    axisPID_Setpoint[pidState->axis] = rateTarget;
 #endif
 
     pidState->previousRateTarget = rateTarget;
@@ -1230,7 +1229,7 @@ void FAST_CODE pidController(float dT)
         checkItermLimitingActive(&pidState[axis]);
         checkItermFreezingActive(&pidState[axis], axis);
 
-        pidControllerApplyFn(&pidState[axis], axis, dT, dT_inv);
+        pidControllerApplyFn(&pidState[axis], dT, dT_inv);
     }
 }
 
