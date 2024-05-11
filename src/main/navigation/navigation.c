@@ -205,6 +205,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
     // Fixed wing
     .fw = {
         .max_bank_angle = SETTING_NAV_FW_BANK_ANGLE_DEFAULT,                                // degrees
+        .max_auto_climb_rate = SETTING_NAV_FW_AUTO_CLIMB_RATE_DEFAULT,                      // 5 m/s
         .max_manual_climb_rate = SETTING_NAV_FW_MANUAL_CLIMB_RATE_DEFAULT,                  // 3 m/s
         .max_climb_angle = SETTING_NAV_FW_CLIMB_ANGLE_DEFAULT,                              // degrees
         .max_dive_angle = SETTING_NAV_FW_DIVE_ANGLE_DEFAULT,                                // degrees
@@ -1662,7 +1663,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
     // Wait until target heading is reached for MR (with 15 deg margin for error), or continue for Fixed Wing
     if (!pauseLanding && ((ABS(wrap_18000(posControl.rthState.homePosition.heading - posControl.actualState.yaw)) < DEGREES_TO_CENTIDEGREES(15)) || STATE(FIXED_WING_LEGACY))) {
         resetLandingDetector();     // force reset landing detector just in case
-        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         return navigationRTHAllowsLanding() ? NAV_FSM_EVENT_SUCCESS : NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME; // success = land
     } else {
         fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_FINAL);
@@ -1853,7 +1854,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
         case NAV_WP_ACTION_LAND:
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
-            posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             posControl.wpAltitudeReached = false;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
@@ -1917,10 +1917,17 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     fpVector3_t tmpWaypoint;
                     tmpWaypoint.x = posControl.activeWaypoint.pos.x;
                     tmpWaypoint.y = posControl.activeWaypoint.pos.y;
-                    tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, posControl.wpInitialDistance / 10.0f, posControl.wpInitialDistance),
-                        posControl.wpInitialDistance, posControl.wpInitialDistance / 10.0f,
-                        posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
-                    setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
+                    setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+
+                    // Use linear climb between WPs arriving at WP altitude when within 10% of total distance to WP
+                    // Update climb rate until within 100cm of total climb xy distance to WP
+                    float climbRate = 0.0f;
+                    if (posControl.wpDistance - 0.1f * posControl.wpInitialDistance > 100.0f) {
+                        climbRate = posControl.actualState.velXY * (posControl.activeWaypoint.pos.z - posControl.actualState.abs.pos.z) /
+                                    (posControl.wpDistance - 0.1f * posControl.wpInitialDistance);
+                    }
+                    updateClimbRateToAltitudeController(climbRate, posControl.activeWaypoint.pos.z, ROC_TO_ALT_TARGET);
+
                     if(STATE(MULTIROTOR)) {
                         switch (wpHeadingControl.mode) {
                             case NAV_WP_HEAD_MODE_NONE:
@@ -2236,7 +2243,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
     }
 
     if (ABS(getEstimatedActualPosition(Z) - posControl.fwLandState.landAproachAltAgl) < (navConfig()->general.waypoint_enforce_altitude > 0 ? navConfig()->general.waypoint_enforce_altitude : FW_LAND_LOITER_ALT_TOLERANCE)) {
-        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_LOITER;
         return NAV_FSM_EVENT_SUCCESS;
     }
@@ -3200,7 +3207,7 @@ bool rthAltControlStickOverrideCheck(uint8_t axis)
         (axis == ROLL && STATE(MULTIROTOR) && !posControl.flags.rthTrackbackActive)) {
         return false;
     }
-    
+
     static timeMs_t rthOverrideStickHoldStartTime[2];
 
     if (rxGetChannelValue(axis) > rxConfig()->maxcheck) {
@@ -3288,8 +3295,7 @@ void setDesiredPosition(const fpVector3_t * pos, int32_t yaw, navSetWaypointFlag
 
     // Z-position
     if ((useMask & NAV_POS_UPDATE_Z) != 0) {
-        updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);   // Reset RoC/RoD -> altitude controller
-        posControl.desiredState.pos.z = pos->z;
+        updateClimbRateToAltitudeController(0, pos->z, ROC_TO_ALT_TARGET);
     }
 
     // Heading
@@ -3399,66 +3405,77 @@ bool isProbablyStillFlying(void)
 /*-----------------------------------------------------------
  * Z-position controller
  *-----------------------------------------------------------*/
-void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
+float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros)
 {
-#define MIN_TARGET_CLIMB_RATE   100.0f  // cm/s
+    const bool emergLandingIsActive = navigationIsExecutingAnEmergencyLanding();
+    float maxClimbRate = STATE(MULTIROTOR) ? navConfig()->mc.max_auto_climb_rate : navConfig()->fw.max_auto_climb_rate;
 
-    static timeUs_t lastUpdateTimeUs;
-    timeUs_t currentTimeUs = micros();
-
-    // Terrain following uses different altitude measurement
-    const float altitudeToUse = navGetCurrentActualPositionAndVelocity()->pos.z;
-
-    if (mode != ROC_TO_ALT_RESET && desiredClimbRate) {
-        /* ROC_TO_ALT_CONSTANT - constant climb rate
-         * ROC_TO_ALT_TARGET - constant climb rate until close to target altitude reducing to min rate when altitude reached
-         * Rate reduction starts at distance from target altitude of 5 x climb rate */
-
-        if (mode == ROC_TO_ALT_TARGET && fabsf(desiredClimbRate) > MIN_TARGET_CLIMB_RATE) {
-            const int8_t direction = desiredClimbRate > 0 ? 1 : -1;
-            const float absClimbRate = fabsf(desiredClimbRate);
-            const uint16_t maxRateCutoffAlt = absClimbRate * 5;
-            const float verticalVelScaled = scaleRangef(navGetCurrentActualPositionAndVelocity()->pos.z - targetAltitude,
-                                            0.0f, -maxRateCutoffAlt * direction, MIN_TARGET_CLIMB_RATE, absClimbRate);
-
-            desiredClimbRate = direction * constrainf(verticalVelScaled, MIN_TARGET_CLIMB_RATE, absClimbRate);
+    if (posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
+        if (posControl.flags.isAdjustingAltitude) {
+            maxClimbRate = STATE(MULTIROTOR) ? navConfig()->mc.max_manual_climb_rate : navConfig()->fw.max_manual_climb_rate;
         }
 
-        /*
-         * If max altitude is set, reset climb rate if altitude is reached and climb rate is > 0
-         * In other words, when altitude is reached, allow it only to shrink
-         */
-        if (navConfig()->general.max_altitude > 0 && altitudeToUse >= navConfig()->general.max_altitude && desiredClimbRate > 0) {
-            desiredClimbRate = 0;
-        }
-
-        if (STATE(FIXED_WING_LEGACY)) {
-            // Fixed wing climb rate controller is open-loop. We simply move the known altitude target
-            float timeDelta = US2S(currentTimeUs - lastUpdateTimeUs);
-            static bool targetHoldActive = false;
-
-            if (timeDelta <= HZ2S(MIN_POSITION_UPDATE_RATE_HZ) && desiredClimbRate) {
-                // Update target altitude only if actual altitude moving in same direction and lagging by < 5 m, otherwise hold target
-                if (navGetCurrentActualPositionAndVelocity()->vel.z * desiredClimbRate >= 0 && fabsf(posControl.desiredState.pos.z - altitudeToUse) < 500) {
-                    posControl.desiredState.pos.z += desiredClimbRate * timeDelta;
-                    targetHoldActive = false;
-                } else if (!targetHoldActive) {     // Reset and hold target to actual + climb rate boost until actual catches up
-                    posControl.desiredState.pos.z = altitudeToUse + desiredClimbRate;
-                    targetHoldActive = true;
-                }
-            } else {
-                targetHoldActive = false;
-            }
-        }
-        else {
-            // Multicopter climb-rate control is closed-loop, it's possible to directly calculate desired altitude setpoint to yield the required RoC/RoD
-            posControl.desiredState.pos.z = altitudeToUse + (desiredClimbRate / posControl.pids.pos[Z].param.kP);
-        }
-    } else {    // ROC_TO_ALT_RESET or zero desired climbrate
-        posControl.desiredState.pos.z = altitudeToUse;
+        return constrainf(posControl.desiredState.climbRateDemand, -maxClimbRate, maxClimbRate);
     }
 
-    lastUpdateTimeUs = currentTimeUs;
+    if (posControl.desiredState.climbRateDemand) {
+        maxClimbRate = constrainf(ABS(posControl.desiredState.climbRateDemand), 0.0f, maxClimbRate);
+    } else if (emergLandingIsActive) {
+        maxClimbRate = navConfig()->general.emerg_descent_rate;
+    }
+
+    const float targetAltitudeError = targetAltitude - navGetCurrentActualPositionAndVelocity()->pos.z;
+    float targetVel = 0.0f;
+
+    if (STATE(MULTIROTOR)) {
+        targetVel = getSqrtControllerVelocity(targetAltitude, deltaMicros);
+    } else {
+        targetVel = pidProfile()->fwAltControlResponseFactor * targetAltitudeError / 100.0f;
+    }
+
+    if (emergLandingIsActive && targetAltitudeError > -50.0f) {
+        return -100.0f;    // maintain 1 m/s descent during emerg landing when within 50cm of min speed landing altitude target
+    } else {
+        return constrainf(targetVel, -maxClimbRate, maxClimbRate);
+    }
+}
+
+void updateClimbRateToAltitudeController(float desiredClimbRate, float targetAltitude, climbRateToAltitudeControllerMode_e mode)
+{
+    /* ROC_TO_ALT_TARGET - constant climb rate until close to target altitude then reducing down as altitude is reached.
+     * Any non zero climb rate sets the max allowed climb rate. Default max climb rate limits are used when set to 0.
+     *
+     * ROC_TO_ALT_CURRENT - similar to ROC_TO_ALT_TARGET except target altitude set to current altitude.
+     * No climb rate or altitude target required.
+     *
+     * ROC_TO_ALT_CONSTANT - constant climb rate. Climb rate and direction required. Target alt not required. */
+
+    if (mode == ROC_TO_ALT_CURRENT) {
+        posControl.desiredState.pos.z = navGetCurrentActualPositionAndVelocity()->pos.z;
+        desiredClimbRate = 0.0f;
+    } else if (mode == ROC_TO_ALT_TARGET) {
+        posControl.desiredState.pos.z = targetAltitude;
+    }
+
+    posControl.desiredState.climbRateDemand = desiredClimbRate;
+    posControl.flags.rocToAltMode = mode;
+
+    /*
+     * If max altitude is set limit desired altitude and impose altitude limit for constant climbs unless climb rate is -ve.
+     * Inhibit during RTH mode and also WP mode with altitude enforce active to avoid climbs getting stuck at max alt limit.
+     */
+    if (navConfig()->general.max_altitude && !FLIGHT_MODE(NAV_RTH_MODE) && !(FLIGHT_MODE(NAV_WP_MODE) && navConfig()->general.waypoint_enforce_altitude)) {
+        posControl.desiredState.pos.z = MIN(posControl.desiredState.pos.z, navConfig()->general.max_altitude);
+
+        if (mode != ROC_TO_ALT_CONSTANT || (mode == ROC_TO_ALT_CONSTANT && desiredClimbRate < 0.0f)) {
+            return;
+        }
+
+        if (posControl.flags.isAdjustingAltitude) {
+            posControl.desiredState.pos.z = navConfig()->general.max_altitude;
+            posControl.flags.rocToAltMode = ROC_TO_ALT_TARGET;
+        }
+    }
 }
 
 static void resetAltitudeController(bool useTerrainFollowing)
@@ -4701,9 +4718,9 @@ void navigationUsePIDs(void)
                                         0.0f
     );
 
-    navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 10.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 10.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 10.0f,
+    navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 100.0f,
                                         0.0f,
                                         NAV_DTERM_CUT_HZ,
                                         0.0f
