@@ -135,9 +135,9 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 
     float desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
-    // Reduce max allowed climb pitch if performing loiter (stall prevention)
-    if (needToCalculateCircularLoiter && desiredClimbRate > 0.0f) {
-        desiredClimbRate *= 0.67f;
+    // Reduce max allowed climb rate by 2/3 if performing loiter (stall prevention)
+    if (needToCalculateCircularLoiter && desiredClimbRate > 0.67f * navConfig()->fw.max_auto_climb_rate) {
+        desiredClimbRate = 0.67f * navConfig()->fw.max_auto_climb_rate;
     }
 
     // Here we use negative values for dive for better clarity
