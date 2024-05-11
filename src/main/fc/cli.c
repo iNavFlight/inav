@@ -163,6 +163,7 @@ static const char * outputModeNames[] = {
     "AUTO",
     "MOTORS",
     "SERVOS",
+    "LED",
     NULL
 };
 
@@ -2821,6 +2822,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_MOTORS;
                 } else if(!sl_strcasecmp("SERVOS", tok)) {
                     mode = OUTPUT_MODE_SERVOS;
+                } else if(!sl_strcasecmp("LED", tok)) {
+                    mode = OUTPUT_MODE_LED;
                 } else {
                     cliShowParseError();
                     return;

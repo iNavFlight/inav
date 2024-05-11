@@ -123,6 +123,7 @@ typedef enum {
 
 #define TIM_IS_MOTOR(flags) ((flags) & TIM_USE_MOTOR)
 #define TIM_IS_SERVO(flags) ((flags) & TIM_USE_SERVO)
+#define TIM_IS_LED(flags) ((flags) & TIM_USE_LED)
 
 #define TIM_IS_MOTOR_ONLY(flags) (TIM_IS_MOTOR(flags) && !TIM_IS_SERVO(flags))
 #define TIM_IS_SERVO_ONLY(flags) (!TIM_IS_MOTOR(flags) && TIM_IS_SERVO(flags))

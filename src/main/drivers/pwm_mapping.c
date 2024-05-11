@@ -47,6 +47,7 @@ enum {
     MAP_TO_NONE,
     MAP_TO_MOTOR_OUTPUT,
     MAP_TO_SERVO_OUTPUT,
+    MAP_TO_LED_OUTPUT
 };
 
 typedef struct {
@@ -335,6 +336,8 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             type = MAP_TO_SERVO_OUTPUT;
         } else if (TIM_IS_MOTOR(timHw->usageFlags) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
             type = MAP_TO_MOTOR_OUTPUT;
+        } else if (TIM_IS_LED(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
+            type = MAP_TO_LED_OUTPUT;
         }
 
         switch(type) {
@@ -346,6 +349,10 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             case MAP_TO_SERVO_OUTPUT:
                 timHw->usageFlags &= TIM_USE_SERVO;
                 timOutputs->timServos[timOutputs->maxTimServoCount++] = timHw;
+                pwmClaimTimer(timHw->tim, timHw->usageFlags);
+                break;
+            case MAP_TO_LED_OUTPUT:
+                timHw->usageFlags &= TIM_USE_LED;
                 pwmClaimTimer(timHw->tim, timHw->usageFlags);
                 break;
             default:
