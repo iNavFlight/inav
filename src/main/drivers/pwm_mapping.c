@@ -214,16 +214,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 static void timerHardwareOverride(timerHardware_t * timer) {
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
-            if (TIM_IS_SERVO(timer->usageFlags)) {
-                timer->usageFlags &= ~TIM_USE_SERVO;
-                timer->usageFlags |= TIM_USE_MOTOR;
-            }
+            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_MOTOR;
             break;
         case OUTPUT_MODE_SERVOS:
-            if (TIM_IS_MOTOR(timer->usageFlags)) {
-                timer->usageFlags &= ~TIM_USE_MOTOR;
-                timer->usageFlags |= TIM_USE_SERVO;
-            }
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_SERVO;
+            break;
+        case OUTPUT_MODE_LED:
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
+            timer->usageFlags |= TIM_USE_LED;
             break;
     }
 }

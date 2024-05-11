@@ -34,6 +34,7 @@
 #define MSP2_INAV_OUTPUT_MAPPING_EXT            0x200D
 #define MSP2_INAV_TIMER_OUTPUT_MODE             0x200E
 #define MSP2_INAV_SET_TIMER_OUTPUT_MODE         0x200F
+#define MSP2_INAV_OUTPUT_MAPPING_EXT2           0x210D
 
 #define MSP2_INAV_MIXER                         0x2010
 #define MSP2_INAV_SET_MIXER                     0x2011

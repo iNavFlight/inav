@@ -1586,6 +1586,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, timerHardware[i].usageFlags);
             }
         break;
+    case MSP2_INAV_OUTPUT_MAPPING_EXT2:
+        for (uint8_t i = 0; i < timerHardwareCount; ++i)
+            if (!(timerHardware[i].usageFlags & (TIM_USE_PPM | TIM_USE_PWM))) {
+                #if defined(SITL_BUILD)
+                sbufWriteU8(dst, i);
+                #else
+                sbufWriteU8(dst, timer2id(timerHardware[i].tim));
+                #endif
+                sbufWriteU32(dst, timerHardware[i].usageFlags);
+            }
+        break;
     
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
