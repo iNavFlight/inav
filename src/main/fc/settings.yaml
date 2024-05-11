@@ -2075,6 +2075,12 @@ groups:
         field: bank_fw.pid[PID_POS_Z].D
         min: 0
         max: 255
+      - name: nav_fw_alt_control_response
+        description: "Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude."
+        default_value: 20
+        field: fwAltControlResponseFactor
+        min: 5
+        max: 100
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
@@ -2302,7 +2308,7 @@ groups:
         field: w_z_surface_p
         min: 0
         max: 100
-        default_value: 3.5 
+        default_value: 3.5
       - name: inav_w_z_surface_v
         description: "Weight of rangefinder measurements in estimated climb rate. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled"
         field: w_z_surface_v
@@ -2772,6 +2778,12 @@ groups:
         field: fw.max_bank_angle
         min: 5
         max: 80
+      - name: nav_fw_auto_climb_rate
+        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
+        default_value: 500
+        field: fw.max_auto_climb_rate
+        min: 10
+        max: 2000
       - name: nav_fw_manual_climb_rate
         description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
         default_value: 300
@@ -4115,7 +4127,7 @@ groups:
     type: navFwAutolandConfig_t
     headers: ["navigation/navigation.h"]
     condition: USE_FW_AUTOLAND
-    members: 
+    members:
       - name: nav_fw_land_approach_length
         description: "Length of the final approach"
         default_value: 35000
