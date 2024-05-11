@@ -1,0 +1,1 @@
+target_stm32f745xg(GEPRCF745_BT_HD)
