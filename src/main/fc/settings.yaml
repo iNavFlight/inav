@@ -3787,6 +3787,10 @@ groups:
         max: INT32_MAX
         condition: USE_ADC
         default_value: 0
+      - name: stats_flight_count
+        description: "Total number of flights. The value is updated on every disarm when \"stats\" are enabled."
+        default_value: 0
+        max: INT32_MAX
 
   - name: PG_TIME_CONFIG
     type: timeConfig_t
