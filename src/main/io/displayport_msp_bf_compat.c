@@ -334,7 +334,7 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
         return 'A';
 
     case SYM_AUTO_THR1:
-        return 'T';
+        return BF_SYM_THR;
 
     case SYM_ROLL_LEFT:
         return BF_SYM_ROLL;
