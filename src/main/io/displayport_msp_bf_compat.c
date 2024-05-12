@@ -328,28 +328,28 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_ZERO_HALF_LEADING_DOT:
         return BF_SYM_ZERO_HALF_LEADING_DOT;
+*/
 
     case SYM_AUTO_THR0:
-        return BF_SYM_AUTO_THR0;
+        return 'A';
 
     case SYM_AUTO_THR1:
-        return BF_SYM_AUTO_THR1;
+        return 'T';
 
     case SYM_ROLL_LEFT:
-        return BF_SYM_ROLL_LEFT;
+        return BF_SYM_ROLL;
 
     case SYM_ROLL_LEVEL:
-        return BF_SYM_ROLL_LEVEL;
+        return BF_SYM_ROLL;
 
     case SYM_ROLL_RIGHT:
-        return BF_SYM_ROLL_RIGHT;
+        return BF_SYM_ROLL;
 
     case SYM_PITCH_UP:
-        return BF_SYM_PITCH_UP;
+        return BF_SYM_PITCH;
 
     case SYM_PITCH_DOWN:
-        return BF_SYM_PITCH_DOWN;
- */
+        return BF_SYM_PITCH;
 
     case SYM_GFORCE:
         return 'G';
