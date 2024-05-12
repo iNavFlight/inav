@@ -18,7 +18,7 @@
 #define MIN_FLIGHT_TIME_TO_RECORD_STATS_S 10    //prevent recording stats for that short "flights" [s]
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 2);
 
 PG_RESET_TEMPLATE(statsConfig_t, statsConfig,
     .stats_enabled = SETTING_STATS_DEFAULT,
