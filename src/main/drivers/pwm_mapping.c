@@ -168,10 +168,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 
 #if defined(USE_LED_STRIP)
     if (feature(FEATURE_LED_STRIP)) {
-        const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
-        if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
-            return true;
+        for (int i = 0; i < timerHardwareCount; i++) {
+            if (timHw->tim == timerHardware[i].tim && timerHardware[i].usageFlags & TIM_USE_LED) {
+				return true;
+            }
         }
+
+        //const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+        //if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
+        //    return true;
+        //}
     }
 #endif
 
