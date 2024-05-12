@@ -32,7 +32,7 @@ PG_RESET_TEMPLATE(statsConfig_t, statsConfig,
 
 static uint32_t arm_millis;
 static uint32_t arm_distance_cm;
-static uint32_t prev_flight_count;
+static uint16_t prev_flight_count;
 
 #ifdef USE_ADC
 static uint32_t arm_mWhDrawn;
