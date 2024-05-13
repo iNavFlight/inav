@@ -90,13 +90,13 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_SNR:
         return BF_SYM_SNR;
-
-    case SYM_AH_DECORATION_UP:
-        return BF_SYM_AH_DECORATION_UP;
-
-    case SYM_AH_DECORATION_DOWN:
-        return BF_SYM_AH_DECORATION_DOWN;
 */
+    case SYM_AH_DIRECTION_UP:
+        return BF_SYM_ARROW_SMALL_UP;
+
+    case SYM_AH_DIRECTION_DOWN:
+        return BF_SYM_ARROW_SMALL_DOWN;
+
     case SYM_DIRECTION:
         return BF_SYM_ARROW_NORTH;
     
