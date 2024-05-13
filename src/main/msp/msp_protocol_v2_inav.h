@@ -92,6 +92,9 @@
 #define MSP2_INAV_LED_STRIP_CONFIG_EX           0x2048
 #define MSP2_INAV_SET_LED_STRIP_CONFIG_EX       0x2049
 
+#define MSP2_INAV_FW_APPROACH                   0x204A
+#define MSP2_INAV_SET_FW_APPROACH               0x204B
+
 #define MSP2_INAV_RATE_DYNAMICS                 0x2060
 #define MSP2_INAV_SET_RATE_DYNAMICS             0x2061
 
@@ -101,3 +104,9 @@
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
 
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
+
+#define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
+#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2101
+
+#define MSP2_INAV_SERVO_CONFIG                  0x2200
+#define MSP2_INAV_SET_SERVO_CONFIG              0x2201

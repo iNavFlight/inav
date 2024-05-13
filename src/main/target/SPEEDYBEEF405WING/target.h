@@ -148,8 +148,8 @@
 #define ADC_CHANNEL_4_PIN           PC4
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-#define RSSI_ADC_CHANNEL            ADC_CHN_4
-#define AIRSPEED_ADC_CHANNEL        ADC_CHN_3
+#define RSSI_ADC_CHANNEL            ADC_CHN_3
+#define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
 // *************** LED2812 ************************
 #define USE_LED_STRIP
@@ -169,3 +169,7 @@
 #define TARGET_IO_PORTD         (BIT(2))
 
 #define MAX_PWM_OUTPUT_PORTS       11
+
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PC13
