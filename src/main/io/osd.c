@@ -3435,10 +3435,10 @@ static bool osdDrawSingleElement(uint8_t item)
             float verticalWindSpeed;
             verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
             if (verticalWindSpeed < 0) {
-                buff[1] = SYM_AH_DIRECTION_DOWN;
+                buff[1] = SYM_AH_DECORATION_DOWN;
                 verticalWindSpeed = -verticalWindSpeed;
             } else {
-                buff[1] = SYM_AH_DIRECTION_UP;
+                buff[1] = SYM_AH_DECORATION_UP;
             }
             osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
             break;
