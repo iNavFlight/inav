@@ -248,7 +248,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
             tfp_sprintf(buff, "%3d", altc);
         }
 
-        buff[0] = (poiAltitude >= 0) ? SYM_AH_DIRECTION_UP : SYM_AH_DIRECTION_DOWN;
+        buff[0] = (poiAltitude >= 0) ? SYM_AH_DECORATION_UP : SYM_AH_DECORATION_DOWN;
     } else { // Display the distance by default 
         switch ((osd_unit_e)osdConfig()->units) {
             case OSD_UNIT_UK:
