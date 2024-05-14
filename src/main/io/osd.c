@@ -1260,7 +1260,7 @@ int osdGetHeadingAngle(int angle)
 static void osdDrawMapReferenceLine(uint8_t midX, uint8_t midY)
 {   
     float heading = osdConfig()->map2d_ref_line_heading;
-    float rollAngle = DEGREES_TO_RADIANS(90.f - (heading > 180.0 ? heading - 180.f: heading));
+    float rollAngle = DEGREES_TO_RADIANS(90.f - (heading > 180.f ? heading - 180.f: heading));
     const float ky = sin_approx(rollAngle);
     const float kx = cos_approx(rollAngle);
     const float ratio = osdDisplayIsPAL() ? 12.0f/15.0f : 12.0f/18.46f;

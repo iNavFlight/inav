@@ -3744,20 +3744,20 @@ groups:
         default_value: ON
         type: bool      
       - name: osd_map2d_vmargin
-        description: OSD 2D Map vertical lines margin (on top and bottom, spaces where nothing will be drawn)
+        description: OSD 2D Map vertical margin (on top and bottom, lines the map won't use for drawing)
         field: map2d_vmargin
         default_value: 3
         min: 0
         max: 10      
       - name: osd_map2d_hmargin
-        description: OSD 2D Map horizontal lines margin (on left and right)
+        description: OSD 2D Map horizontal margin (on left and right, columns the map won't use for drawing)
         field: map2d_hmargin
         default_value: 5
         min: 0
         max: 15
       
       - name: osd_map2d_ref_line_heading
-        description: OSD 2D Map reference line heading (0 is north, 90 east, 180 south and so on, -1 disabled)
+        description: OSD 2D Map reference line heading (0 is north, 90 east, 180 south and so on, -1 disabled). Requires using "up is north" map setting. The dashed line will be aligned to the heading set by this parameter. So should be set to the same heading as an easily recognizable and static feature nearby the place you are flying, for example a runway, a street, a fence, etc. Then you are able to compare the craft's position on the OSD map with this reference, making it easier to orientate yourself, align directional antennas and so on.
         field: map2d_ref_line_heading
         default_value: -1
         min: -1

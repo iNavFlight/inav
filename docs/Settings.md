@@ -4764,7 +4764,7 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ### osd_map2d_hmargin
 
-Horizontal margin (both left and right) for OSD 2D map borders. The map items won't be drawn into any of the columns within this number.
+OSD 2D Map horizontal margin (on left and right, columns the map won't use for drawing)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4774,7 +4774,7 @@ Horizontal margin (both left and right) for OSD 2D map borders. The map items wo
 
 ### osd_map2d_ref_line_heading
 
-Draws a dashed line on the center of the map display, if using "up is north" setting. The line is aligned at the heading set by this parameter. This should be set to the same heading as an easily recognizable feature nearby the place you are flying, for example the same heading as the runway (if flying from a club), street or a nearby fence. So now you are able to compare the craft's position on the OSD map with this reference, making it easier to orientate yourself, better align directional antennas and so on. Default setting of -1 disables this line.
+OSD 2D Map reference line heading (0 is north, 90 east, 180 south and so on, -1 disabled). Requires using "up is north" map setting. The dashed line will be aligned to the heading set by this parameter. So should be set to the same heading as an easily recognizable and static feature nearby the place you are flying, for example a runway, a street, a fence, etc. Then you are able to compare the craft's position on the OSD map with this reference, making it easier to orientate yourself, align directional antennas and so on.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4784,7 +4784,7 @@ Draws a dashed line on the center of the map display, if using "up is north" set
 
 ### osd_map2d_vmargin
 
-Vertical margin (both top and bottom) for OSD 2D map borders. The map items won't be drawn into any of the lines within this number.
+OSD 2D Map vertical margin (on top and bottom, lines the map won't use for drawing)
 
 | Default | Min | Max |
 | --- | --- | --- |
