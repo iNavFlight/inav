@@ -215,7 +215,7 @@ void initActiveBoxIds(void)
 
     bool navReadyAltControl = getHwBarometerStatus() != HW_SENSOR_NONE;
 #ifdef USE_GPS
-    navReadyAltControl = navReadyAltControl || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro));
+    navReadyAltControl = navReadyAltControl || feature(FEATURE_GPS);
 
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     bool navReadyPosControl = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
