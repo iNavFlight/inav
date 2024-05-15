@@ -108,15 +108,6 @@ static const gyroFilterAndRateConfig_t gyroConfigs[] = {
     { GYRO_LPF_256HZ,   3200,   { BMI160_BWP_OSR4 | BMI160_ODR_3200_Hz} },
     { GYRO_LPF_256HZ,   1600,   { BMI160_BWP_OSR2 | BMI160_ODR_1600_Hz} },
     { GYRO_LPF_256HZ,    800,   { BMI160_BWP_NORMAL | BMI160_ODR_800_Hz } },
-
-    { GYRO_LPF_188HZ,    800,   { BMI160_BWP_OSR2   | BMI160_ODR_800_Hz } },  // ODR = 800 Hz, LPF = 128 Hz
-    { GYRO_LPF_188HZ,    400,   { BMI160_BWP_NORMAL | BMI160_ODR_400_Hz } },  // ODR = 400 Hz, LPF = 137 Hz
-
-    { GYRO_LPF_98HZ,     800,   { BMI160_BWP_OSR4   | BMI160_ODR_800_Hz } },  // ODR = 800 Hz, LPF = 63 Hz
-    { GYRO_LPF_98HZ,     400,   { BMI160_BWP_OSR2   | BMI160_ODR_400_Hz } },  // ODR = 400 Hz, LPF = 68 Hz
-
-    { GYRO_LPF_42HZ,     800,   { BMI160_BWP_OSR4   | BMI160_ODR_800_Hz } },  // ODR = 800 Hz, LPF = 63 Hz
-    { GYRO_LPF_42HZ,     400,   { BMI160_BWP_OSR4   | BMI160_ODR_400_Hz } },  // ODR = 400 Hz, LPF = 34 Hz
 };
 
 static void bmi160AccAndGyroInit(gyroDev_t *gyro)
@@ -195,9 +186,9 @@ bool bmi160AccReadScratchpad(accDev_t *acc)
     bmi160ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
-        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->gyroRaw, 0);
-        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->gyroRaw, 1);
-        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->gyroRaw, 2);
+        acc->ADCRaw[X] = (float) int16_val_little_endian(ctx->accRaw, 0);
+        acc->ADCRaw[Y] = (float) int16_val_little_endian(ctx->accRaw, 1);
+        acc->ADCRaw[Z] = (float) int16_val_little_endian(ctx->accRaw, 2);
         return true;
     }
 

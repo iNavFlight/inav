@@ -41,8 +41,8 @@ void dynamicLpfGyroTask(void) {
         return;
     }
 
-    const float throttleConstrained = (float) constrain(rcCommand[THROTTLE], getThrottleIdleValue(), motorConfig()->maxthrottle);
-    const float throttle = scaleRangef(throttleConstrained, getThrottleIdleValue(), motorConfig()->maxthrottle, 0.0f, 1.0f);
+    const float throttleConstrained = (float) constrain(rcCommand[THROTTLE], getThrottleIdleValue(), getMaxThrottle());
+    const float throttle = scaleRangef(throttleConstrained, getThrottleIdleValue(), getMaxThrottle(), 0.0f, 1.0f);
     const float cutoffFreq = dynLpfCutoffFreq(throttle, gyroConfig()->gyroDynamicLpfMinHz, gyroConfig()->gyroDynamicLpfMaxHz, gyroConfig()->gyroDynamicLpfCurveExpo);
 
     DEBUG_SET(DEBUG_DYNAMIC_GYRO_LPF, 0, cutoffFreq);

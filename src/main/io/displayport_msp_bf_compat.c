@@ -27,7 +27,7 @@
 
 uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 {
-    uint16_t ech = ch | (page << 8);
+    uint16_t ech = ch | ((page & 0x3)<< 8) ;
 
     if (ech >= 0x20 && ech <= 0x5F) { // ASCII range
         return ch;
@@ -293,13 +293,12 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case SYM_THR:
         return BF_SYM_THR;
 
-/*
     case SYM_TEMP_F:
-        return BF_SYM_TEMP_F;
+        return BF_SYM_F;
 
     case SYM_TEMP_C:
-        return BF_SYM_TEMP_C;
-*/
+        return BF_SYM_C;
+
     case SYM_BLANK:
         return BF_SYM_BLANK;
 /*
@@ -329,28 +328,28 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
 
     case SYM_ZERO_HALF_LEADING_DOT:
         return BF_SYM_ZERO_HALF_LEADING_DOT;
+*/
 
     case SYM_AUTO_THR0:
-        return BF_SYM_AUTO_THR0;
+        return 'A';
 
     case SYM_AUTO_THR1:
-        return BF_SYM_AUTO_THR1;
+        return BF_SYM_THR;
 
     case SYM_ROLL_LEFT:
-        return BF_SYM_ROLL_LEFT;
+        return BF_SYM_ROLL;
 
     case SYM_ROLL_LEVEL:
-        return BF_SYM_ROLL_LEVEL;
+        return BF_SYM_ROLL;
 
     case SYM_ROLL_RIGHT:
-        return BF_SYM_ROLL_RIGHT;
+        return BF_SYM_ROLL;
 
     case SYM_PITCH_UP:
-        return BF_SYM_PITCH_UP;
+        return BF_SYM_PITCH;
 
     case SYM_PITCH_DOWN:
-        return BF_SYM_PITCH_DOWN;
- */
+        return BF_SYM_PITCH;
 
     case SYM_GFORCE:
         return 'G';
@@ -578,6 +577,48 @@ uint8_t getBfCharacter(uint8_t ch, uint8_t page)
     case (SYM_AH_V_START+4):
     case (SYM_AH_V_START+5):
         return BF_SYM_AH_BAR9_4;
+
+    // BF for ESP_RADAR Symbols
+    case SYM_HUD_CARDINAL:
+        return BF_SYM_ARROW_SOUTH;
+    case SYM_HUD_CARDINAL + 1:
+        return BF_SYM_ARROW_16;
+    case SYM_HUD_CARDINAL + 2:
+        return BF_SYM_ARROW_15;
+    case SYM_HUD_CARDINAL + 3:
+        return BF_SYM_ARROW_WEST;
+    case SYM_HUD_CARDINAL + 4:
+        return BF_SYM_ARROW_12;
+    case SYM_HUD_CARDINAL + 5:
+        return BF_SYM_ARROW_11;
+    case SYM_HUD_CARDINAL + 6:
+        return BF_SYM_ARROW_NORTH;
+    case SYM_HUD_CARDINAL + 7:
+        return BF_SYM_ARROW_7;
+    case SYM_HUD_CARDINAL + 8:
+        return BF_SYM_ARROW_6;
+    case SYM_HUD_CARDINAL + 9:
+        return BF_SYM_ARROW_EAST;
+    case SYM_HUD_CARDINAL + 10:
+        return BF_SYM_ARROW_3;
+    case SYM_HUD_CARDINAL + 11:
+        return BF_SYM_ARROW_2;
+
+    case SYM_HUD_ARROWS_R3:
+        return BF_SYM_AH_RIGHT;
+    case SYM_HUD_ARROWS_L3:
+        return BF_SYM_AH_LEFT;
+
+    case SYM_HUD_SIGNAL_0:
+        return BF_SYM_AH_BAR9_1;
+    case SYM_HUD_SIGNAL_1:
+        return BF_SYM_AH_BAR9_3;
+    case SYM_HUD_SIGNAL_2:
+        return BF_SYM_AH_BAR9_4;
+    case SYM_HUD_SIGNAL_3:
+        return BF_SYM_AH_BAR9_5;
+    case SYM_HUD_SIGNAL_4:
+        return BF_SYM_AH_BAR9_7;
 /*
     case SYM_VARIO_UP_2A:
         return BF_SYM_VARIO_UP_2A;

@@ -21,7 +21,7 @@
 #include "common/color.h"
 #include "rx/rx.h"
 
-#define LED_MAX_STRIP_LENGTH           32
+#define LED_MAX_STRIP_LENGTH           128
 #define LED_CONFIGURABLE_COLOR_COUNT   16
 #define LED_MODE_COUNT                  6
 #define LED_DIRECTION_COUNT             6
@@ -153,7 +153,6 @@ typedef struct ledStripConfig_s {
     hsvColor_t colors[LED_CONFIGURABLE_COLOR_COUNT];
     modeColorIndexes_t modeColors[LED_MODE_COUNT];
     specialColorIndexes_t specialColors;
-    uint8_t ledstrip_visual_beeper; // suppress LEDLOW mode if beeper is on
 } ledStripConfig_t;
 
 PG_DECLARE(ledStripConfig_t, ledStripConfig);

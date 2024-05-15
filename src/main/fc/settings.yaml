@@ -1,13 +1,11 @@
 tables:
   - name: alignment
     values: ["DEFAULT", "CW0", "CW90", "CW180", "CW270", "CW0FLIP", "CW90FLIP", "CW180FLIP", "CW270FLIP"]
-  - name: gyro_lpf
-    values: ["256HZ", "188HZ", "98HZ", "42HZ", "20HZ", "10HZ"]
   - name: acc_hardware
     values: ["NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX",  "FAKE"]
     enum: accelerationSensor_e
   - name: rangefinder_hardware
-    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE"]
+    values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO", "USD1_V0", "NRA"]
     enum: rangefinderType_e
   - name: mag_hardware
     values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
@@ -68,9 +66,6 @@ tables:
   - name: osd_stats_energy_unit
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
-  - name: osd_stats_min_voltage_unit
-    values: ["BATTERY", "CELL"]
-    enum: osd_stats_min_voltage_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
     enum: videoSystem_e
@@ -182,7 +177,7 @@ tables:
     values: ["OFF", "ON", "FS"]
     enum: rthTrackbackMode_e
   - name: dynamic_gyro_notch_mode
-    values: ["2D", "3D_R", "3D_P", "3D_Y", "3D_RP", "3D_RY", "3D_PY", "3D"]
+    values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
   - name: nav_fw_wp_turn_smoothing
     values: ["OFF", "ON", "ON-CUT"]
@@ -220,32 +215,17 @@ groups:
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
         default_value: 1000
         max: 9000
-      - name: gyro_hardware_lpf
-        description: "Hardware lowpass filter for gyro. This value should never be changed without a very strong reason! If you have to set gyro lpf below 256HZ, it means the frame is vibrating too much, and that should be fixed first."
-        default_value: "256HZ"
-        field: gyro_lpf
-        table: gyro_lpf
       - name: gyro_anti_aliasing_lpf_hz
         description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
-      - name: gyro_anti_aliasing_lpf_type
-        description: "Specifies the type of the software LPF of the gyro signals."
-        default_value: "PT1"
-        field: gyro_anti_aliasing_lpf_type
-        table: filter_type
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
         field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_main_lpf_type
-        description: "Defines the type of the main gyro LPF filter. Possible values: `PT1`, `BIQUAD`. `PT1` offers faster filter response while `BIQUAD` better attenuation."
-        default_value: BIQUAD
-        field: gyro_main_lpf_type
-        table: filter_type
       - name: gyro_use_dyn_lpf
         description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
         default_value: OFF
@@ -303,6 +283,7 @@ groups:
         min: 1
         max: 1000
       - name: gyro_to_use
+        description: "On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = second gyro"
         condition: USE_DUAL_GYRO
         min: 0
         max: 2
@@ -385,10 +366,12 @@ groups:
     headers: ["sensors/acceleration.h"]
     members:
       - name: acc_notch_hz
+        description: "Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is center frequency (Hz)"
         min: 0
         max: 255
         default_value: 0
       - name: acc_notch_cutoff
+        description: "Frequency of the software notch filter to remove mechanical vibrations from the accelerometer measurements. Value is cutoff frequency (Hz)"
         min: 1
         max: 255
         default_value: 1
@@ -468,6 +451,7 @@ groups:
         default_value: NONE
         table: opflow_hardware
       - name: opflow_scale
+        description: "Optical flow module scale factor"
         min: 0
         max: 10000
         default_value: 10.5
@@ -591,10 +575,12 @@ groups:
         default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
+        description: "Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay"
         min: 0
         max: 10000
         default_value: 350
       - name: pitot_scale
+        description: "Pitot tube scale factor"
         min: 0
         max: 100
         default_value: 1.0
@@ -644,6 +630,7 @@ groups:
         max: RSSI_VISIBLE_VALUE_MAX
       - name: sbus_sync_interval
         field: sbusSyncInterval
+        description: "SBUS sync interval in us. Default value is 3000us. Lower values may cause issues with some receivers."
         min: 500
         max: 10000
         default_value: 3000
@@ -745,12 +732,6 @@ groups:
     type: motorConfig_t
     headers: ["flight/mixer.h"]
     members:
-      - name: max_throttle
-        description: "This is the maximum value (in us) sent to esc when armed. Default of 1850 are OK for everyone (legacy). For modern ESCs, higher values (c. 2000) may be more appropriate. If you have brushed motors, the value should be set to 2000."
-        default_value: 1850
-        field: maxthrottle
-        min: PWM_RANGE_MIN
-        max: PWM_RANGE_MAX
       - name: min_command
         description: "This is the PWM value sent to ESCs when they are not armed. If ESCs beep slowly when powered up, try decreasing this value. It can also be used for calibrating all ESCs at once."
         default_value: 1000
@@ -1036,7 +1017,7 @@ groups:
         max: 1
       - name: throttle_idle
         description: "The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle."
-        default_value: 15
+        default_value: 8
         field: motor.throttleIdle
         min: 0
         max: 30
@@ -1191,8 +1172,11 @@ groups:
         field: mixer_config.switchTransitionTimer
         min: 0
         max: 200
-
-
+      - name: tailsitter_orientation_offset
+        description: "Apply a 90 deg pitch offset in sensor aliment for tailsitter flying mode"
+        default_value: OFF
+        field: mixer_config.tailsitterOrientationOffset
+        type: bool
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -1361,6 +1345,7 @@ groups:
         min: MANUAL_RATE_MIN
         max: MANUAL_RATE_MAX
       - name: fpv_mix_degrees
+        description: "The tilt angle of the FPV camera in degrees, used by the FPV ANGLE MIX mode"
         field: misc.fpvCamAngleDegrees
         min: 0
         max: 50
@@ -1483,8 +1468,8 @@ groups:
         description: "Auto-arm fixed wing aircraft on throttle above min_check, and disarming with stick commands are disabled, so power cycle is required to disarm. Requires enabled motorstop and no arm switch configured."
         default_value: OFF
         type: bool
-      - name: disarm_kill_switch
-        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low. Only applies when arming and disarming with an AUX channel."
+      - name: disarm_always
+        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low."
         default_value: ON
         type: bool
       - name: switch_disarm_delay
@@ -1570,6 +1555,12 @@ groups:
         field: expo
         min: 0
         max: 200
+      - name: ez_snappiness
+        description: "EzTune snappiness"
+        default_value: 0
+        field: snappiness
+        min: 0
+        max: 100
 
   - name: PG_RPM_FILTER_CONFIG
     headers: ["flight/rpm_filter.h"]
@@ -1677,21 +1668,16 @@ groups:
     members:
       - name: deadband
         description: "These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle."
-        default_value: 5
+        default_value: 2
         min: 0
         max: 32
       - name: yaw_deadband
         description: "These are values (in us) by how much RC input can be different before it's considered valid. For transmitters with jitter on outputs, this value can be increased. Defaults are zero, but can be increased up to 10 or so if rc inputs twitch while idle."
-        default_value: 5
+        default_value: 2
         min: 0
         max: 100
       - name: pos_hold_deadband
         description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used for adjustments in navigation modes."
-        default_value: 10
-        min: 2
-        max: 250
-      - name: control_deadband
-        description: "Stick deadband in [r/c points], applied after r/c deadband and expo. Used to check if sticks are centered."
         default_value: 10
         min: 2
         max: 250
@@ -1960,18 +1946,6 @@ groups:
         field: fixedWingYawItermBankFreeze
         min: 0
         max: 90
-      - name: pidsum_limit
-        description: "A limitation to overall amount of correction Flight PID can request on each axis (Roll/Pitch). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
-        default_value: 500
-        field: pidSumLimit
-        min: PID_SUM_LIMIT_MIN
-        max: PID_SUM_LIMIT_MAX
-      - name: pidsum_limit_yaw
-        description: "A limitation to overall amount of correction Flight PID can request on each axis (Yaw). If when doing a hard maneuver on one axis machine looses orientation on other axis - reducing this parameter may help"
-        default_value: 350
-        field: pidSumLimitYaw
-        min: PID_SUM_LIMIT_MIN
-        max: PID_SUM_LIMIT_MAX
       - name: iterm_windup
         description: "Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened when motors are reaching it's limit (when requested motor correction range is above percentage specified by this parameter)"
         default_value: 50
@@ -2048,6 +2022,7 @@ groups:
         max: 255
         default_value: 100
       - name: nav_mc_vel_xy_ff
+        description: "FF gain of Position-Rate (Velocity to Acceleration)"
         field: bank_mc.pid[PID_VEL_XY].FF
         min: 0
         max: 255
@@ -2059,6 +2034,7 @@ groups:
         min: 0
         max: 255
       - name: nav_mc_vel_xy_dterm_lpf_hz
+        description: "D-term low pass filter cutoff frequency for horizontal velocity PID controller (Multirotor). It allows to smooth the PosHold CRUISE, WP and RTH when Multirotor is traveling at full speed. Dterm is not attenuated at low speeds, breaking and accelerating."
         field: navVelXyDTermLpfHz
         min: 0
         max: 100
@@ -2099,6 +2075,12 @@ groups:
         field: bank_fw.pid[PID_POS_Z].D
         min: 0
         max: 255
+      - name: nav_fw_alt_control_response
+        description: "Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude."
+        default_value: 20
+        field: fwAltControlResponseFactor
+        min: 5
+        max: 100
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
@@ -2148,33 +2130,39 @@ groups:
         min: PID_SUM_LIMIT_MIN
         max: PID_SUM_LIMIT_MAX
       - name: mc_iterm_relax
+        description: "Iterm relax type. When enabled, Iterm will be relaxed when stick is centered. This will help to reduce bounceback and followthrough on multirotors. It is recommended to enable this feature on all multirotors."
         field: iterm_relax
         table: iterm_relax
         default_value: RP
       - name: mc_iterm_relax_cutoff
+        description: "Iterm relax cutoff frequency."
         field: iterm_relax_cutoff
         min: 1
         max: 100
         default_value: 15
       - name: d_boost_min
+        description: "D-term multiplier when pilot provides rapid stick input. Lower values give sharper response to stick input, higher values give smoother response."
         field: dBoostMin
         condition: USE_D_BOOST
         min: 0
         max: 1
         default_value: 0.5
       - name: d_boost_max
+        description: "D-term multiplier when rapid external conditions are detected. Lower values give sharper response to stick input, higher values give smoother response by scaling D-gains up."
         field: dBoostMax
         condition: USE_D_BOOST
         min: 1
         max: 3
         default_value: 1.25
       - name: d_boost_max_at_acceleration
+        description: "Acceleration threshold for D-term multiplier. When acceleration is above this value, D-term multiplier is set to `d_boost_max`"
         field: dBoostMaxAtAlleceleration
         condition: USE_D_BOOST
         min: 1000
         max: 16000
         default_value: 7500
       - name: d_boost_gyro_delta_lpf_hz
+        description: "Cutoff frequency for the low pass filter applied to the gyro delta signal used for D-term boost. Lower value will produce a smoother D-term boost signal, but it will be more delayed."
         field: dBoostGyroDeltaLpfHz
         condition: USE_D_BOOST
         min: 10
@@ -2188,7 +2176,7 @@ groups:
         min: 1
         max: 20
       - name: antigravity_accelerator
-        description: ""
+        description: "Multiplier for Antigravity gain. The bigger is the difference between actual and filtered throttle input, the bigger Antigravity gain"
         default_value: 1
         field: antigravityAccelerator
         condition: USE_ANTIGRAVITY
@@ -2283,15 +2271,11 @@ groups:
         field: gravity_calibration_tolerance
         min: 0
         max: 255
-      - name: inav_use_gps_velned
-        description: "Defined if INAV should use velocity data provided by GPS module for doing position and speed estimation. If set to OFF INAV will fallback to calculating velocity from GPS coordinates. Using native velocity data may improve performance on some GPS modules. Some GPS modules introduce significant delay and using native velocity may actually result in much worse performance."
-        default_value: ON
-        field: use_gps_velned
-        type: bool
       - name: inav_use_gps_no_baro
+        description: "Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed."
         field: use_gps_no_baro
         type: bool
-        default_value: OFF
+        default_value: ON
       - name: inav_allow_dead_reckoning
         description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
@@ -2320,21 +2304,25 @@ groups:
         min: 0
         max: 1000
       - name: inav_w_z_surface_p
+        description: "Weight of rangefinder measurements in estimated altitude. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled"
         field: w_z_surface_p
         min: 0
         max: 100
         default_value: 3.5
       - name: inav_w_z_surface_v
+        description: "Weight of rangefinder measurements in estimated climb rate. Setting is used on both airplanes and multirotors when rangefinder is present and Surface mode enabled"
         field: w_z_surface_v
         min: 0
         max: 100
         default_value: 6.1
       - name: inav_w_xy_flow_p
+        description: "Weight of optical flow measurements in estimated UAV position."
         field: w_xy_flow_p
         min: 0
         max: 100
         default_value: 1.0
       - name: inav_w_xy_flow_v
+        description: "Weight of optical flow measurements in estimated UAV speed."
         field: w_xy_flow_v
         min: 0
         max: 100
@@ -2344,19 +2332,19 @@ groups:
         field: w_z_baro_p
         min: 0
         max: 10
-        default_value: 0.4
+        default_value: 0.35
       - name: inav_w_z_gps_p
         description: "Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors."
         field: w_z_gps_p
         min: 0
         max: 10
-        default_value: 0.4
+        default_value: 0.2
       - name: inav_w_z_gps_v
         description: "Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors."
         field: w_z_gps_v
         min: 0
         max: 10
-        default_value: 0.8
+        default_value: 0.1
       - name: inav_w_xy_gps_p
         description: "Weight of GPS coordinates in estimated UAV position and speed."
         default_value: 1.0
@@ -2500,7 +2488,7 @@ groups:
         min: 10
         max: 2000
       - name: nav_min_ground_speed
-        description: "Minimum ground speed for navigation flight modes [m/s]. Default 7 m/s."
+        description: "Minimum ground speed for navigation flight modes [m/s]. Currently, this only affects fixed wing. Default 7 m/s."
         default_value: 7
         field: general.min_ground_speed
         min: 6
@@ -2796,6 +2784,12 @@ groups:
         field: fw.max_bank_angle
         min: 5
         max: 80
+      - name: nav_fw_auto_climb_rate
+        description: "Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]"
+        default_value: 500
+        field: fw.max_auto_climb_rate
+        min: 10
+        max: 2000
       - name: nav_fw_manual_climb_rate
         description: "Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]"
         default_value: 300
@@ -2855,15 +2849,12 @@ groups:
         field: fw.control_smoothness
         min: 0
         max: 9
-
       - name: nav_fw_land_dive_angle
         description: "Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees"
         default_value: 2
         field: fw.land_dive_angle
-        condition: NAV_FIXED_WING_LANDING
         min: -20
         max: 20
-
       - name: nav_fw_launch_velocity
         description: "Forward velocity threshold for swing-launch detection [cm/s]"
         default_value: 300
@@ -2871,10 +2862,10 @@ groups:
         min: 100
         max: 10000
       - name: nav_fw_launch_accel
-        description: "Forward acceleration threshold for bungee launch of throw launch [cm/s/s], 1G = 981 cm/s/s"
+        description: "Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s"
         default_value: 1863
         field: fw.launch_accel_thresh
-        min: 1000
+        min: 1500
         max: 20000
       - name: nav_fw_launch_max_angle
         description: "Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]"
@@ -2894,6 +2885,13 @@ groups:
         field: fw.launch_idle_motor_timer
         min: 0
         max: 60000
+      - name: nav_fw_launch_wiggle_to_wake_idle
+        description: "Trigger the idle throttle by wiggling the plane. 0 = disabled. 1 and 2 signify 1 or 2 yaw wiggles to activate. 1 wiggle has a higher detection point, for airplanes without a tail. 2 wiggles has a lower detection point, but requires the repeated action. This is intended for larger models and airplanes with tails."
+        field: fw.launch_wiggle_wake_idle
+        type: uint8_t
+        default_value: 0
+        min: 0
+        max: 2
       - name: nav_fw_launch_motor_delay
         description: "Delay between detected launch and launch sequence start and throttling up (ms)"
         default_value: 500
@@ -2940,10 +2938,10 @@ groups:
         default_value: OFF
         field: fw.launch_manual_throttle
         type: bool
-      - name: nav_fw_launch_abort_deadband
-        description: "Launch abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch."
+      - name: nav_fw_launch_land_abort_deadband
+        description: "Launch and landing abort stick deadband in [r/c points], applied after r/c deadband and expo. The Roll/Pitch stick needs to be deflected beyond this deadband to abort the launch or landing."
         default_value: 100
-        field: fw.launch_abort_deadband
+        field: fw.launch_land_abort_deadband
         min: 2
         max: 250
       - name: nav_fw_allow_manual_thr_increase
@@ -3072,35 +3070,41 @@ groups:
         max: INT16_MAX
       - name: mavlink_ext_status_rate
         field: mavlink.extended_status_rate
+        description: "Rate of the extended status message for MAVLink telemetry"
         type: uint8_t
         min: 0
         max: 255
         default_value: 2
       - name: mavlink_rc_chan_rate
+        description: "Rate of the RC channels message for MAVLink telemetry"
         field: mavlink.rc_channels_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 5
       - name: mavlink_pos_rate
+        description: "Rate of the position message for MAVLink telemetry"
         field: mavlink.position_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 2
       - name: mavlink_extra1_rate
+        description: "Rate of the extra1 message for MAVLink telemetry"
         field: mavlink.extra1_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 10
       - name: mavlink_extra2_rate
+        description: "Rate of the extra2 message for MAVLink telemetry"
         field: mavlink.extra2_rate
         type: uint8_t
         min: 0
         max: 255
         default_value: 2
       - name: mavlink_extra3_rate
+        description: "Rate of the extra3 message for MAVLink telemetry"
         field: mavlink.extra3_rate
         type: uint8_t
         min: 0
@@ -3113,16 +3117,6 @@ groups:
         min: 1
         max: 2
         default_value: 2
-
-  - name: PG_LED_STRIP_CONFIG
-    type: ledStripConfig_t
-    headers: ["common/color.h", "io/ledstrip.h"]
-    condition: USE_LED_STRIP
-    members:
-      - name: ledstrip_visual_beeper
-        description: ""
-        default_value: OFF
-        type: bool
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
@@ -3166,18 +3160,17 @@ groups:
         field: stats_energy_unit
         table: osd_stats_energy_unit
         type: uint8_t
-      - name: osd_stats_min_voltage_unit
-        description: "Display minimum voltage of the `BATTERY` or the average per `CELL` in the OSD stats."
-        default_value: "BATTERY"
-        field: stats_min_voltage_unit
-        table: osd_stats_min_voltage_unit
-        type: uint8_t
       - name: osd_stats_page_auto_swap_time
         description: "Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0."
         default_value: 3
         field: stats_page_auto_swap_time
         min: 0
         max: 10
+      - name: osd_stats_show_metric_efficiency
+        description: "Enabling this option will show metric efficiency statistics on the post flight stats screen. In addition to the efficiency statistics in your chosen units."
+        default_value: OFF
+        type: bool
+        field: stats_show_metric_efficiency
       - name: osd_rssi_alarm
         description: "Value below which to make the OSD RSSI indicator blink"
         default_value: 20
@@ -3438,16 +3431,19 @@ groups:
         min: 0
         max: 3
       - name: osd_left_sidebar_scroll
+        description: "Scroll type for the left sidebar"
         field: left_sidebar_scroll
         table: osd_sidebar_scroll
         type: uint8_t
         default_value: NONE
       - name: osd_right_sidebar_scroll
+        description: "Scroll type for the right sidebar"
         field: right_sidebar_scroll
         table: osd_sidebar_scroll
         type: uint8_t
         default_value: NONE
       - name: osd_sidebar_scroll_arrows
+        description: "Show arrows for scrolling the sidebars"
         field: sidebar_scroll_arrows
         type: bool
         default_value: OFF
@@ -3458,16 +3454,48 @@ groups:
         min: 1
         max: 2
       - name: osd_coordinate_digits
+        description: "Number of digits for the coordinates displayed in the OSD [8-11]."
         field: coordinate_digits
         min: 8
         max: 11
         default_value: 9
+
+      - name: osd_adsb_distance_warning
+        description: "Distance in meters of ADSB aircraft that is displayed"
+        default_value: 20000
+        condition: USE_ADSB
+        field: adsb_distance_warning
+        min: 1
+        max: 64000
+        type: uint16_t
+      - name: osd_adsb_distance_alert
+        description: "Distance inside which ADSB data flashes for proximity warning"
+        default_value: 3000
+        condition: USE_ADSB
+        field: adsb_distance_alert
+        min: 1
+        max: 64000
+        type: uint16_t
+      - name: osd_adsb_ignore_plane_above_me_limit
+        description: "Ignore adsb planes above, limit, 0 disabled (meters)"
+        default_value: 0
+        condition: USE_ADSB
+        field: adsb_ignore_plane_above_me_limit
+        min: 0
+        max: 64000
+        type: uint16_t
 
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
         default_value: ON
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_compensation
+        type: bool
+      - name: osd_estimations_wind_mps
+        description: "Wind speed estimation in m/s"
+        default_value: OFF
+        condition: USE_WIND_ESTIMATOR
+        field: estimations_wind_mps
         type: bool
 
       - name: osd_failsafe_switch_layout
@@ -3714,12 +3742,6 @@ groups:
         default_value: "400KHZ"
         condition: USE_I2C
         table: i2c_speed
-      - name: cpu_underclock
-        description: "This option is only available on certain architectures (F3 CPUs at the moment). It makes CPU clock lower to reduce interference to long-range RC systems working at 433MHz"
-        default_value: OFF
-        field: cpuUnderclock
-        condition: USE_UNDERCLOCK
-        type: bool
       - name: debug_mode
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
@@ -3871,6 +3893,7 @@ groups:
         table: vtx_low_power_disarm
         type: uint8_t
       - name: vtx_pit_mode_chan
+        description: "Pit mode channel."
         field: pitModeChan
         min: VTX_SETTINGS_MIN_CHANNEL
         max: VTX_SETTINGS_MAX_CHANNEL
@@ -3975,12 +3998,6 @@ groups:
     headers: ["io/osd_dji_hd.h"]
     condition: USE_DJI_HD_OSD
     members:
-        - name: dji_workarounds
-          description: "Enables workarounds for different versions of MSP protocol used"
-          field: proto_workarounds
-          min: 0
-          max: UINT8_MAX
-          default_value: 1
         - name: dji_use_name_for_messages
           description: "Re-purpose the craft name field for messages."
           default_value: ON
@@ -4111,3 +4128,51 @@ groups:
         field: osd_joystick_enter
         min: 0
         max: 100
+
+  - name: PG_FW_AUTOLAND_CONFIG
+    type: navFwAutolandConfig_t
+    headers: ["navigation/navigation.h"]
+    condition: USE_FW_AUTOLAND
+    members:
+      - name: nav_fw_land_approach_length
+        description: "Length of the final approach"
+        default_value: 35000
+        field: approachLength
+        min: 100
+        max: 100000
+      - name: nav_fw_land_final_approach_pitch2throttle_mod
+        description: "Modifier for pitch to throttle ratio at final approach. In Percent."
+        default_value: 100
+        field: finalApproachPitchToThrottleMod
+        min: 100
+        max: 400
+      - name: nav_fw_land_glide_alt
+        description: "Initial altitude of the glide phase"
+        default_value: 200
+        field: glideAltitude
+        min: 100
+        max: 5000
+      - name: nav_fw_land_flare_alt
+        description: "Initial altitude of the flare phase"
+        default_value: 150
+        field: flareAltitude
+        min: 0
+        max: 10000
+      - name: nav_fw_land_glide_pitch
+        description: "Pitch value for glide phase. In degrees."
+        default_value: 0
+        field: glidePitch
+        min: -15
+        max: 45
+      - name: nav_fw_land_flare_pitch
+        description: "Pitch value for flare phase. In degrees"
+        default_value: 8
+        field: flarePitch
+        min: -15
+        max: 45
+      - name: nav_fw_land_max_tailwind
+        description: "Max. tailwind (in cm/s) if no landing direction with downwind is available"
+        default_value: 140
+        field: maxTailwind
+        min: 0
+        max: 3000
