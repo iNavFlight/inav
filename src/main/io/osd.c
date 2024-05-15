@@ -5229,6 +5229,7 @@ static void osdShowHDArmScreen(void)
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             memset(buf, '\0', sizeof(buf));
+            armScreenRow++;
         }
     }
 #endif
@@ -5345,6 +5346,7 @@ static void osdShowSDArmScreen(void)
             strcpy(buf, "!NO HOME POSITION!");
             displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
             memset(buf, '\0', sizeof(buf));
+            armScreenRow++;
         }
     }
 #endif
