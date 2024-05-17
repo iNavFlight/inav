@@ -4414,7 +4414,7 @@ Value under which the OSD axis g force indicators will blink (g)
 
 ### osd_gps_offset_lat
 
-Offset GPS latitude  on OSD by this number (lat + osd_gps_offset_lat/100)
+Offset GPS latitude on OSD by this number (lat + osd_gps_offset_lat/100)
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -3220,7 +3220,7 @@ groups:
         min: -20
         max: 20
       - name: osd_gps_offset_lat
-        description: "Offset GPS latitude  on OSD by this number (lat + osd_gps_offset_lat/100)"
+        description: "Offset GPS latitude on OSD by this number (lat + osd_gps_offset_lat/100)"
         default_value: 0
         field: gps_offset_lat
         min: -9999
