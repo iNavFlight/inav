@@ -363,6 +363,8 @@ typedef struct osdConfig_s {
     float           gforce_alarm;
     float           gforce_axis_alarm_min;
     float           gforce_axis_alarm_max;
+    int16_t         gps_offset_lat;                     // offset OSD lat by this value (lat + osd_gps_offset_lat/100)
+    int16_t         gps_offset_lon;                     // offset OSD lon by this value (lon + osd_gps_offset_lon/100)
 #ifdef USE_SERIALRX_CRSF
     int8_t          snr_alarm;                          //CRSF SNR alarm in dB
     int8_t          link_quality_alarm;

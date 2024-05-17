@@ -223,7 +223,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 11);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 void osdStartedSaveProcess(void) {
@@ -782,7 +782,18 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
 {
     // up to 4 for number + 1 for the symbol + null terminator + fill the rest with decimals
     const int coordinateLength = osdConfig()->coordinate_digits + 1;
-
+    if (val != 0) {
+    switch (sym) {
+        case SYM_LAT:
+            val = val + osdConfig()->gps_offset_lat * 100000;
+            break;
+        case SYM_LON:
+            val = val + osdConfig()->gps_offset_lon * 100000;
+            break;
+        default:
+            break;
+        }
+	}
     buff[0] = sym;
     int32_t integerPart = val / GPS_DEGREES_DIVIDER;
     // Latitude maximum integer width is 3 (-90) while
