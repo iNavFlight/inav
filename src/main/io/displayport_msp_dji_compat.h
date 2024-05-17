@@ -22,15 +22,15 @@
 
 #include "platform.h"
 
-#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_BF_COMPAT)
+#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_DJI_COMPAT)
 #include "osd.h"
-uint8_t getBfCharacter(uint8_t ch, uint8_t page);
-#define isBfCompatibleVideoSystem(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT || osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT_HD)
+uint8_t getDJICharacter(uint8_t ch, uint8_t page);
+#define isDJICompatibleVideoSystem(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_DJICOMPAT || osdConfigPtr->video_system == VIDEO_SYSTEM_DJICOMPAT_HD)
 #else
-#define getBfCharacter(x, page) (x)
+#define getDJICharacter(x, page) (x)
 #ifdef OSD_UNIT_TEST
-#define isBfCompatibleVideoSystem(osdConfigPtr) (true)
+#define isDJICompatibleVideoSystem(osdConfigPtr) (true)
 #else
-#define isBfCompatibleVideoSystem(osdConfigPtr) (false)
+#define isDJICompatibleVideoSystem(osdConfigPtr) (false)
 #endif
 #endif
