@@ -66,30 +66,30 @@
 #define DJI_SYM_CROSSHAIR_LEFT          0x72
 #define DJI_SYM_CROSSHAIR_CENTRE        0x73
 #define DJI_SYM_CROSSHAIR_RIGHT         0x74
-#define DJI_SYM_AH_RIGHT                0x02
-#define DJI_SYM_AH_LEFT                 0x03
+#define DJI_SYM_AH_RIGHT                0x03
+#define DJI_SYM_AH_LEFT                 0x02
 #define DJI_SYM_AH_DECORATION           0x13
 #define DJI_SYM_SMALL_CROSSHAIR         0x7E
 
 // Crosshair Styles
-#define DJI_SYM_AH_CH_TYPE3             0x00
-#define DJI_SYM_AH_CH_TYPE3_1           0x7E
-#define DJI_SYM_AH_CH_TYPE3_2           0x00
-#define DJI_SYM_AH_CH_TYPE4             0x2D
-#define DJI_SYM_AH_CH_TYPE4_1           0x7E
-#define DJI_SYM_AH_CH_TYPE4_2           0x2D
-#define DJI_SYM_AH_CH_TYPE5             0x17
-#define DJI_SYM_AH_CH_TYPE5_1           0x7E
-#define DJI_SYM_AH_CH_TYPE5_2           0x17
-#define DJI_SYM_AH_CH_TYPE6             0x00
-#define DJI_SYM_AH_CH_TYPE6_1           0x09
-#define DJI_SYM_AH_CH_TYPE6_2           0x00
-#define DJI_SYM_AH_CH_TYPE7             0x78
-#define DJI_SYM_AH_CH_TYPE7_1           0x7E
-#define DJI_SYM_AH_CH_TYPE7_2           0x77
-#define DJI_SYM_AH_CH_TYPE8             0x02
-#define DJI_SYM_AH_CH_TYPE8_1           0x7E
-#define DJI_SYM_AH_CH_TYPE8_2           0x03
+#define DJI_SYM_CROSSHAIR_TYPE3         0x00 // DJI_SYM_NONE
+#define DJI_SYM_CROSSHAIR_TYPE3_1       0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_CROSSHAIR_TYPE3_2       0x00 // DJI_SYM_NONE
+#define DJI_SYM_CROSSHAIR_TYPE4         0x2D // DJI_SYM_HYPHEN
+#define DJI_SYM_CROSSHAIR_TYPE4_1       0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_CROSSHAIR_TYPE4_2       0x2D // DJI_SYM_HYPHEN
+#define DJI_SYM_CROSSHAIR_TYPE5         0x17 // DJI_SYM_STICK_OVERLAY_HORIZONTAL
+#define DJI_SYM_CROSSHAIR_TYPE5_1       0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_CROSSHAIR_TYPE5_2       0x17 // DJI_SYM_STICK_OVERLAY_HORIZONTAL
+#define DJI_SYM_CROSSHAIR_TYPE6         0x00 // DJI_SYM_NONE
+#define DJI_SYM_CROSSHAIR_TYPE6_1       0x09 // DJI_SYM_STICK_OVERLAY_SPRITE_MID
+#define DJI_SYM_CROSSHAIR_TYPE6_2       0x00 // DJI_SYM_NONE
+#define DJI_SYM_CROSSHAIR_TYPE7         0x78 // DJI_SYM_ARROW_SMALL_LEFT
+#define DJI_SYM_CROSSHAIR_TYPE7_1       0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_CROSSHAIR_TYPE7_2       0x77 // DJI_SYM_ARROW_SMALL_RIGHT
+#define DJI_SYM_CROSSHAIR_TYPE8         0x02 // DJI_SYM_AH_LEFT
+#define DJI_SYM_CROSSHAIR_TYPE8_1       0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_CROSSHAIR_TYPE8_2       0x03 // DJI_SYM_AH_RIGHT
 
 
 // Satellite Graphics
