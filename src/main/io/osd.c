@@ -3468,7 +3468,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     || STATE(GPS_ESTIMATED_FIX)
 #endif
             )) {
-                olc_encode(gpsSol.llh.lat, gpsSol.llh.lon, digits, buff, sizeof(buff));
+                olc_encode(gpsSol.llh.lat + osdConfig()->gps_offset_lat * 100000, gpsSol.llh.lon + osdConfig()->gps_offset_lon * 100000, digits, buff, sizeof(buff));
             } else {
                 // +codes with > 8 digits have a + at the 9th digit
                 // and we only support 10 and up.
