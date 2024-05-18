@@ -71,26 +71,6 @@
 #define DJI_SYM_AH_DECORATION           0x13
 #define DJI_SYM_SMALL_CROSSHAIR         0x7E
 
-// Crosshair Styles
-#define DJI_SYM_AH_CH_TYPE3             0x00
-#define DJI_SYM_AH_CH_TYPE3_1           0x7E
-#define DJI_SYM_AH_CH_TYPE3_2           0x00
-#define DJI_SYM_AH_CH_TYPE4             0x2D
-#define DJI_SYM_AH_CH_TYPE4_1           0x7E
-#define DJI_SYM_AH_CH_TYPE4_2           0x2D
-#define DJI_SYM_AH_CH_TYPE5             0x17
-#define DJI_SYM_AH_CH_TYPE5_1           0x7E
-#define DJI_SYM_AH_CH_TYPE5_2           0x17
-#define DJI_SYM_AH_CH_TYPE6             0x00
-#define DJI_SYM_AH_CH_TYPE6_1           0x09
-#define DJI_SYM_AH_CH_TYPE6_2           0x00
-#define DJI_SYM_AH_CH_TYPE7             0x78
-#define DJI_SYM_AH_CH_TYPE7_1           0x7E
-#define DJI_SYM_AH_CH_TYPE7_2           0x77
-#define DJI_SYM_AH_CH_TYPE8             0x02
-#define DJI_SYM_AH_CH_TYPE8_1           0x7E
-#define DJI_SYM_AH_CH_TYPE8_2           0x03
-
 // Satellite Graphics
 #define DJI_SYM_SAT_L                   0x1E
 #define DJI_SYM_SAT_R                   0x1F
@@ -182,3 +162,23 @@
 #define DJI_SYM_GPS_DEGREE              DJI_SYM_STICK_OVERLAY_SPRITE_HIGH  // kind of looks like the degree symbol
 #define DJI_SYM_GPS_MINUTE              0x27 // '
 #define DJI_SYM_GPS_SECOND              0x22 // "
+
+// Crosshair Styles
+#define DJI_SYM_AH_CH_TYPE3             DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE3_1           DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE3_2           DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE4             DJI_SYM_HYPHEN
+#define DJI_SYM_AH_CH_TYPE4_1           DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE4_2           DJI_SYM_HYPHEN
+#define DJI_SYM_AH_CH_TYPE5             DJI_SYM_STICK_OVERLAY_HORIZONTAL
+#define DJI_SYM_AH_CH_TYPE5_1           DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE5_2           DJI_SYM_STICK_OVERLAY_HORIZONTAL
+#define DJI_SYM_AH_CH_TYPE6             DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE6_1           DJI_SYM_STICK_OVERLAY_SPRITE_MID
+#define DJI_SYM_AH_CH_TYPE6_2           DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE7             DJI_SYM_ARROW_SMALL_LEFT
+#define DJI_SYM_AH_CH_TYPE7_1           DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE7_2           DJI_SYM_ARROW_SMALL_RIGHT
+#define DJI_SYM_AH_CH_TYPE8             DJI_SYM_AH_LEFT
+#define DJI_SYM_AH_CH_TYPE8_1           DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE8_2           DJI_SYM_AH_RIGHT
