@@ -469,40 +469,75 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_AH_RIGHT:
             return DJI_SYM_AH_RIGHT;
-
 /*
         case SYM_AH_DECORATION_COUNT:
             return DJI_SYM_AH_DECORATION_COUNT;
 */
         case SYM_AH_CH_LEFT:
-        case SYM_AH_CH_TYPE3:
-        case SYM_AH_CH_TYPE4:
-        case SYM_AH_CH_TYPE5:
-        case SYM_AH_CH_TYPE6:
-        case SYM_AH_CH_TYPE7:
-        case SYM_AH_CH_TYPE8:
         case SYM_AH_CH_AIRCRAFT1:
             return DJI_SYM_CROSSHAIR_LEFT;
 
+        case SYM_AH_CH_TYPE3:
+            return DJI_SYM_AH_CH_TYPE3;
+        
+        case SYM_AH_CH_TYPE4:
+            return DJI_SYM_AH_CH_TYPE4;
+        
+        case SYM_AH_CH_TYPE5:
+            return DJI_SYM_AH_CH_TYPE5;
+        
+        case SYM_AH_CH_TYPE6:
+            return DJI_SYM_AH_CH_TYPE6;
+        
+        case SYM_AH_CH_TYPE7:
+            return DJI_SYM_AH_CH_TYPE7;
+        
+        case SYM_AH_CH_TYPE8:
+            return DJI_SYM_AH_CH_TYPE8;
+
         case SYM_AH_CH_CENTER:
-        case (SYM_AH_CH_TYPE3+1):
-        case (SYM_AH_CH_TYPE4+1):
-        case (SYM_AH_CH_TYPE5+1):
-        case (SYM_AH_CH_TYPE6+1):
-        case (SYM_AH_CH_TYPE7+1):
-        case (SYM_AH_CH_TYPE8+1):
         case SYM_AH_CH_AIRCRAFT2:
             return DJI_SYM_CROSSHAIR_CENTRE;
 
+        case (SYM_AH_CH_TYPE3+1):
+            return DJI_SYM_AH_CH_TYPE3_1;
+        
+        case (SYM_AH_CH_TYPE4+1):
+            return DJI_SYM_AH_CH_TYPE4_1;
+        
+        case (SYM_AH_CH_TYPE5+1):
+            return DJI_SYM_AH_CH_TYPE5_1;
+        
+        case (SYM_AH_CH_TYPE6+1):
+            return DJI_SYM_AH_CH_TYPE6_1;
+        
+        case (SYM_AH_CH_TYPE7+1):
+            return DJI_SYM_AH_CH_TYPE7_1;
+        
+        case (SYM_AH_CH_TYPE8+1):
+            return DJI_SYM_AH_CH_TYPE8_1;
+
         case SYM_AH_CH_RIGHT:
-        case (SYM_AH_CH_TYPE3+2):
-        case (SYM_AH_CH_TYPE4+2):
-        case (SYM_AH_CH_TYPE5+2):
-        case (SYM_AH_CH_TYPE6+2):
-        case (SYM_AH_CH_TYPE7+2):
-        case (SYM_AH_CH_TYPE8+2):
         case SYM_AH_CH_AIRCRAFT3:
             return DJI_SYM_CROSSHAIR_RIGHT;
+
+        case (SYM_AH_CH_TYPE3+2):
+            return DJI_SYM_AH_CH_TYPE3_2;
+        
+        case (SYM_AH_CH_TYPE4+2):
+            return DJI_SYM_AH_CH_TYPE4_2;
+        
+        case (SYM_AH_CH_TYPE5+2):
+            return DJI_SYM_AH_CH_TYPE5_2;
+        
+        case (SYM_AH_CH_TYPE6+2):
+            return DJI_SYM_AH_CH_TYPE6_2;
+        
+        case (SYM_AH_CH_TYPE7+2):
+            return DJI_SYM_AH_CH_TYPE7_2;
+        
+        case (SYM_AH_CH_TYPE8+2):
+            return DJI_SYM_AH_CH_TYPE8_2;
         
         case SYM_AH_CH_AIRCRAFT0:
         case SYM_AH_CH_AIRCRAFT4:

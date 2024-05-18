@@ -34,7 +34,7 @@
 #define DJI_SYM_TEMPERATURE             0x7A
 #define DJI_SYM_MAX                     0x24
 
-// GPS and navigation
+// GPS and Navigation
 #define DJI_SYM_LAT                     0x89
 #define DJI_SYM_LON                     0x98
 #define DJI_SYM_ALTITUDE                0x7F
@@ -62,20 +62,41 @@
 #define DJI_SYM_HEADING_DIVIDED_LINE    0x1C
 #define DJI_SYM_HEADING_LINE            0x1D
 
-// AH Center screen Graphics
+// AH Center Screen Graphics
 #define DJI_SYM_CROSSHAIR_LEFT          0x72
 #define DJI_SYM_CROSSHAIR_CENTRE        0x73
 #define DJI_SYM_CROSSHAIR_RIGHT         0x74
-#define DJI_SYM_AH_RIGHT                0x02
-#define DJI_SYM_AH_LEFT                 0x03
+#define DJI_SYM_AH_RIGHT                0x03
+#define DJI_SYM_AH_LEFT                 0x02
 #define DJI_SYM_AH_DECORATION           0x13
 #define DJI_SYM_SMALL_CROSSHAIR         0x7E
+
+// Crosshair Styles
+#define DJI_SYM_AH_CH_TYPE3             0x00 // DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE3_1           0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE3_2           0x00 // DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE4             0x2D // DJI_SYM_HYPHEN
+#define DJI_SYM_AH_CH_TYPE4_1           0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE4_2           0x2D // DJI_SYM_HYPHEN
+#define DJI_SYM_AH_CH_TYPE5             0x17 // DJI_SYM_STICK_OVERLAY_HORIZONTAL
+#define DJI_SYM_AH_CH_TYPE5_1           0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE5_2           0x17 // DJI_SYM_STICK_OVERLAY_HORIZONTAL
+#define DJI_SYM_AH_CH_TYPE6             0x00 // DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE6_1           0x09 // DJI_SYM_STICK_OVERLAY_SPRITE_MID
+#define DJI_SYM_AH_CH_TYPE6_2           0x00 // DJI_SYM_NONE
+#define DJI_SYM_AH_CH_TYPE7             0x78 // DJI_SYM_ARROW_SMALL_LEFT
+#define DJI_SYM_AH_CH_TYPE7_1           0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE7_2           0x77 // DJI_SYM_ARROW_SMALL_RIGHT
+#define DJI_SYM_AH_CH_TYPE8             0x02 // DJI_SYM_AH_LEFT
+#define DJI_SYM_AH_CH_TYPE8_1           0x7E // DJI_SYM_SMALL_CROSSHAIR
+#define DJI_SYM_AH_CH_TYPE8_2           0x03 // DJI_SYM_AH_RIGHT
+
 
 // Satellite Graphics
 #define DJI_SYM_SAT_L                   0x1E
 #define DJI_SYM_SAT_R                   0x1F
 
-// Direction arrows
+// Direction Arrows
 #define DJI_SYM_ARROW_SOUTH             0x60
 #define DJI_SYM_ARROW_2                 0x61
 #define DJI_SYM_ARROW_3                 0x62
@@ -109,7 +130,7 @@
 #define DJI_SYM_AH_BAR9_7               0x87
 #define DJI_SYM_AH_BAR9_8               0x88
 
-// Progress bar
+// Progress Bar
 #define DJI_SYM_PB_START                0x8A
 #define DJI_SYM_PB_FULL                 0x8B
 #define DJI_SYM_PB_HALF                 0x8C
@@ -117,7 +138,7 @@
 #define DJI_SYM_PB_END                  0x8E
 #define DJI_SYM_PB_CLOSE                0x8F
 
-// Batt evolution
+// Batt Evolution
 #define DJI_SYM_BATT_FULL               0x90
 #define DJI_SYM_BATT_5                  0x91
 #define DJI_SYM_BATT_4                  0x92
@@ -129,7 +150,7 @@
 // Batt Icons
 #define DJI_SYM_MAIN_BATT               0x97
 
-// Voltage and amperage
+// Voltage and Amperage
 #define DJI_SYM_VOLT                    0x06
 #define DJI_SYM_AMP                     0x9A
 #define DJI_SYM_MAH                     0x07
@@ -147,10 +168,10 @@
 #define DJI_SYM_MPS                     0x9F
 #define DJI_SYM_FTPS                    0x99
 
-// Menu cursor
+// Menu Cursor
 #define DJI_SYM_CURSOR                  DJI_SYM_AH_LEFT
 
-// Stick overlays
+// Stick Overlays
 #define DJI_SYM_STICK_OVERLAY_SPRITE_HIGH 0x08
 #define DJI_SYM_STICK_OVERLAY_SPRITE_MID  0x09
 #define DJI_SYM_STICK_OVERLAY_SPRITE_LOW  0x0A
@@ -158,7 +179,7 @@
 #define DJI_SYM_STICK_OVERLAY_VERTICAL    0x16
 #define DJI_SYM_STICK_OVERLAY_HORIZONTAL  0x17
 
-// GPS degree/minute/second symbols
+// GPS degree/minute/second Symbols
 #define DJI_SYM_GPS_DEGREE              DJI_SYM_STICK_OVERLAY_SPRITE_HIGH  // kind of looks like the degree symbol
 #define DJI_SYM_GPS_MINUTE              0x27 // '
 #define DJI_SYM_GPS_SECOND              0x22 // "
