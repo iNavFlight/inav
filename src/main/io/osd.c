@@ -4181,9 +4181,9 @@ uint8_t drawLogos(bool singular, uint8_t row) {
         logoRow = row;
         if (singular) {
             logo_x = logoColOffset;
-    } else {
-            logo_x = logoColOffset + SYM_LOGO_WIDTH + logoSpacing;
-    }
+        } else {
+                logo_x = logoColOffset + SYM_LOGO_WIDTH + logoSpacing;
+        }
 
         for (uint8_t lRow = 0; lRow < SYM_LOGO_HEIGHT; lRow++) {
             for (uint8_t lCol = 0; lCol < SYM_LOGO_WIDTH; lCol++) {
@@ -4191,6 +4191,10 @@ uint8_t drawLogos(bool singular, uint8_t row) {
             }
             logoRow++;
         }
+    }
+
+    if (!usePilotLogo && !useINAVLogo) {
+        logoRow += SYM_LOGO_HEIGHT;
     }
 
     return logoRow;
