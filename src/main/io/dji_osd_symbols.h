@@ -147,9 +147,6 @@
 #define DJI_SYM_MPS                     0x9F
 #define DJI_SYM_FTPS                    0x99
 
-// Menu cursor
-#define DJI_SYM_CURSOR                  DJI_SYM_AH_LEFT
-
 // Stick overlays
 #define DJI_SYM_STICK_OVERLAY_SPRITE_HIGH 0x08
 #define DJI_SYM_STICK_OVERLAY_SPRITE_MID  0x09
