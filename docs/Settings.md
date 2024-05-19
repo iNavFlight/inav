@@ -1302,6 +1302,36 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 ---
 
+### fw_iterm_lock_engage_threshold
+
+Defines error rate (in percents of max rate) when Iterm Lock is engaged when sticks are release. Iterm Lock will stay active until error drops below this number
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 5 | 25 |
+
+---
+
+### fw_iterm_lock_rate_threshold
+
+Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 10 | 100 |
+
+---
+
+### fw_iterm_lock_time_max_ms
+
+Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 100 | 1000 |
+
+---
+
 ### fw_level_pitch_gain
 
 I-gain for the pitch trim for self-leveling flight modes. Higher values means that AUTOTRIM will be faster but might introduce oscillations
