@@ -65,6 +65,7 @@
 #include "sensors/sensors.h"
 #include "sensors/gyro.h"
 #include "sensors/acceleration.h"
+#include "sensors/compass.h"
 
 #define AIRMODE_DEADBAND 25
 #define MIN_RC_TICK_INTERVAL_MS             20
@@ -347,6 +348,7 @@ void processRcStickPositions(bool isThrottleLow)
     // Calibrating Mag
     if (rcSticks == THR_HI + YAW_HI + PIT_LO + ROL_CE) {
         ENABLE_STATE(CALIBRATE_MAG);
+        setLargeVehicleYawDegrees(32767); // Do not use the calibration method for wide or heavy vehicles.
         return;
     }
 

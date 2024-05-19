@@ -222,33 +222,33 @@ float scaleRangef(float x, float srcMin, float srcMax, float destMin, float dest
     return ((a / b) + destMin);
 }
 
-// Build rMat from Tait–Bryan angles (convention X1, Y2, Z3)
-void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles)
+fpMat3_t matrixTransposed(const fpMat3_t m)
 {
-    float cosx, sinx, cosy, siny, cosz, sinz;
-    float coszcosx, sinzcosx, coszsinx, sinzsinx;
+  const fpMat3_t result = {{{m.m[0][0], m.m[1][0], m.m[2][0]},
+                            {m.m[0][1], m.m[1][1], m.m[2][1]},
+                            {m.m[0][2], m.m[1][2], m.m[2][2]}}};
 
-    cosx = cos_approx(angles->angles.roll);
-    sinx = sin_approx(angles->angles.roll);
-    cosy = cos_approx(angles->angles.pitch);
-    siny = sin_approx(angles->angles.pitch);
-    cosz = cos_approx(angles->angles.yaw);
-    sinz = sin_approx(angles->angles.yaw);
+  return result;
+}
 
-    coszcosx = cosz * cosx;
-    sinzcosx = sinz * cosx;
-    coszsinx = sinx * cosz;
-    sinzsinx = sinx * sinz;
+void rotationMatrixFromAngles(fpMat3_t *m, float roll, float pitch, float yaw)
+{
+  const float cp = cos_approx(pitch);
+  const float sp = sin_approx(pitch);
+  const float sr = sin_approx(roll);
+  const float cr = cos_approx(roll);
+  const float sy = sin_approx(yaw);
+  const float cy = cos_approx(yaw);
 
-    rmat->m[0][X] = cosz * cosy;
-    rmat->m[0][Y] = -cosy * sinz;
-    rmat->m[0][Z] = siny;
-    rmat->m[1][X] = sinzcosx + (coszsinx * siny);
-    rmat->m[1][Y] = coszcosx - (sinzsinx * siny);
-    rmat->m[1][Z] = -sinx * cosy;
-    rmat->m[2][X] = (sinzsinx) - (coszcosx * siny);
-    rmat->m[2][Y] = (coszsinx) + (sinzcosx * siny);
-    rmat->m[2][Z] = cosy * cosx;
+  m->m[0][0] = cp * cy;
+  m->m[0][1] = (sr * sp * cy) - (cr * sy);
+  m->m[0][2] = (cr * sp * cy) + (sr * sy);
+  m->m[1][0] = cp * sy;
+  m->m[1][1] = (sr * sp * sy) + (cr * cy);
+  m->m[1][2] = (cr * sp * sy) - (sr * cy);
+  m->m[2][0] = -sp;
+  m->m[2][1] = sr * cp;
+  m->m[2][2] = cr * cp;
 }
 
 void rotationMatrixFromAxisAngle(fpMat3_t * rmat, const fpAxisAngle_t * a)

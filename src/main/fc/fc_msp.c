@@ -2522,10 +2522,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_MAG_CALIBRATION:
-        if (!ARMING_FLAG(ARMED))
-            ENABLE_STATE(CALIBRATE_MAG);
-        else
+        if (ARMING_FLAG(ARMED)) {
             return MSP_RESULT_ERROR;
+        }
+        ENABLE_STATE(CALIBRATE_MAG);
+        setLargeVehicleYawDegrees(sbufReadU16(src));
         break;
 
 #ifdef USE_OPFLOW

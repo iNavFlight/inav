@@ -50,6 +50,7 @@
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
+#include "sensors/compass.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -291,6 +292,7 @@ static int logicConditionCompute(
         case LOGIC_CONDITION_RESET_MAG_CALIBRATION:
 
             ENABLE_STATE(CALIBRATE_MAG);
+            setLargeVehicleYawDegrees(32767); // Do not use the calibration method for wide or heavy vehicles.
             return true;
             break;
 #endif  

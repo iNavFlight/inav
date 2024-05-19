@@ -65,12 +65,12 @@ void initBoardAlignment(void)
     rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(boardAlignment()->pitchDeciDegrees);
     rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(boardAlignment()->yawDeciDegrees  );
 
-    rotationMatrixFromAngles(&boardRotMatrix, &rotationAngles);
+    rotationMatrixFromAngles(&boardRotMatrix, rotationAngles.angles.roll, rotationAngles.angles.pitch, rotationAngles.angles.yaw);
     fp_angles_t tailSitter_rotationAngles;
     tailSitter_rotationAngles.angles.roll  = DECIDEGREES_TO_RADIANS(0);
     tailSitter_rotationAngles.angles.pitch = DECIDEGREES_TO_RADIANS(900);
     tailSitter_rotationAngles.angles.yaw   = DECIDEGREES_TO_RADIANS(0);
-    rotationMatrixFromAngles(&tailRotMatrix, &tailSitter_rotationAngles);
+    rotationMatrixFromAngles(&tailRotMatrix, tailSitter_rotationAngles.angles.roll, tailSitter_rotationAngles.angles.pitch, tailSitter_rotationAngles.angles.yaw);
 }
 
 void updateBoardAlignment(int16_t roll, int16_t pitch)

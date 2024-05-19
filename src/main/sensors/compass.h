@@ -80,5 +80,6 @@ void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
+void setLargeVehicleYawDegrees(uint16_t yawInput);
 
 #endif

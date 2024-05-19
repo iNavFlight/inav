@@ -38,7 +38,8 @@ typedef struct {
     float angle;
 } fpAxisAngle_t;
 
-void rotationMatrixFromAngles(fpMat3_t * rmat, const fp_angles_t * angles);
+fpMat3_t matrixTransposed(const fpMat3_t m);
+void rotationMatrixFromAngles(fpMat3_t *m, float roll, float pitch, float yaw);
 void rotationMatrixFromAxisAngle(fpMat3_t * rmat, const fpAxisAngle_t * a);
 
 static inline void vectorZero(fpVector3_t * v)
@@ -115,4 +116,16 @@ static inline fpVector3_t * vectorScale(fpVector3_t * result, const fpVector3_t 
 
     *result = ab;
     return result;
+}
+
+// matrix multiplication by a vector
+static inline fpVector3_t multiplyMatrixByVector(fpMat3_t m, fpVector3_t v)
+{
+  fpVector3_t vRet;
+
+  vRet.x = m.m[0][0] * v.x + m.m[0][1] * v.y + m.m[0][2] * v.z;
+  vRet.y = m.m[1][0] * v.x + m.m[1][1] * v.y + m.m[1][2] * v.z;
+  vRet.z = m.m[2][0] * v.x + m.m[2][1] * v.y + m.m[2][2] * v.z;
+
+  return vRet;
 }
