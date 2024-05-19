@@ -178,7 +178,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 8);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -312,6 +312,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
         .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
 #endif
+        .fwItermLockTimeMaxMs = SETTING_FW_ITERM_LOCK_TIME_MAX_MS_DEFAULT,
+        .fwItermLockRateLimit = SETTING_FW_ITERM_LOCK_RATE_THRESHOLD_DEFAULT,
 );
 
 bool pidInitFilters(void)
@@ -748,7 +750,8 @@ static void nullRateController(pidState_t *pidState, float dT, float dT_inv) {
 
 static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, const float rateError) {
     const float maxRate = currentControlRateProfile->stabilized.rates[pidState->axis] * 10.0f;
-    const float dampingFactor = attenuation(rateTarget, maxRate / 2.5f);
+
+    const float dampingFactor = attenuation(rateTarget, maxRate * pidProfile()->fwItermLockRateLimit / 100.0f);
 
     /*
      * Iterm damping is applied (down to 0) when:
@@ -770,7 +773,7 @@ static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, cons
         pidState->attenuation.targetOverThresholdTimeMs = 0;
     }
 
-    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < 500) ? 0.0f : 1.0f);
+    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
     pidState->attenuation.aP = dampingFactor;

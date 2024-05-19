@@ -155,6 +155,11 @@ typedef struct pidProfile_s {
     float smithPredictorDelay;
     uint16_t smithPredictorFilterHz;
 #endif
+
+
+    uint16_t fwItermLockTimeMaxMs;
+    uint8_t fwItermLockRateLimit;
+
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
