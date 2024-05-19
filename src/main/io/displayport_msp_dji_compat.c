@@ -41,10 +41,8 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_RSSI:
             return DJI_SYM_RSSI;
 
-/*
         case SYM_LQ:
-            return DJI_SYM_LINK_QUALITY;
-*/
+            return 'Q';
 
         case SYM_LAT:
             return DJI_SYM_LAT;
