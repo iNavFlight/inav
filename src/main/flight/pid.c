@@ -314,6 +314,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
 #endif
         .fwItermLockTimeMaxMs = SETTING_FW_ITERM_LOCK_TIME_MAX_MS_DEFAULT,
         .fwItermLockRateLimit = SETTING_FW_ITERM_LOCK_RATE_THRESHOLD_DEFAULT,
+        .fwItermLockEngageThreshold = SETTING_FW_ITERM_LOCK_ENGAGE_THRESHOLD_DEFAULT,
 );
 
 bool pidInitFilters(void)
@@ -761,7 +762,7 @@ static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, cons
      */
 
     //If error is greater than 10% or max rate
-    const bool errorThresholdReached = fabsf(rateError) > maxRate * 0.1f;
+    const bool errorThresholdReached = fabsf(rateError) > maxRate * pidProfile()->fwItermLockEngageThreshold / 100.0f;
 
     //If stick (setpoint) was moved above threshold in the last 500ms
     if (fabsf(rateTarget) > maxRate * 0.2f) {

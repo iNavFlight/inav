@@ -159,6 +159,7 @@ typedef struct pidProfile_s {
 
     uint16_t fwItermLockTimeMaxMs;
     uint8_t fwItermLockRateLimit;
+    uint8_t fwItermLockEngageThreshold;
 
 } pidProfile_t;
 

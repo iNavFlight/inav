@@ -2239,6 +2239,12 @@ groups:
         default_value: 40
         min: 10
         max: 100
+      - name: fw_iterm_lock_engage_threshold
+        description: Defines error rate (in percents of max rate) when Iterm Lock is engaged when sticks are release. Iterm Lock will stay active until error drops below this number
+        default_value: 10
+        min: 5
+        max: 25
+        field: fwItermLockEngageThreshold
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
