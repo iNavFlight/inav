@@ -1804,11 +1804,11 @@ Allows to chose when the home position is reset. Can help prevent resetting home
 
 ### inav_use_gps_no_baro
 
-_// TODO_
+Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -2759,6 +2759,26 @@ Enable the possibility to manually increase the throttle in auto throttle contro
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### nav_fw_alt_control_response
+
+Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 5 | 100 |
+
+---
+
+### nav_fw_auto_climb_rate
+
+Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 10 | 2000 |
 
 ---
 
