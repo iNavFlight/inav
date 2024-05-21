@@ -3681,7 +3681,7 @@ groups:
         max: 5000
       - name: osd_highlight_djis_missing_font_symbols
         description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
-        field: highlight_djis_fuckup
+        field: highlight_djis_missing_characters
         default_value: ON
         type: bool
   - name: PG_OSD_COMMON_CONFIG

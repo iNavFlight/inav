@@ -3875,7 +3875,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .airspeed_alarm_max = SETTING_OSD_AIRSPEED_ALARM_MAX_DEFAULT,
 #endif
 #ifndef DISABLE_MSP_DJI_COMPAT
-    .highlight_djis_fuckup = SETTING_OSD_HIGHLIGHT_DJIS_MISSING_FONT_SYMBOLS_DEFAULT,
+    .highlight_djis_missing_characters = SETTING_OSD_HIGHLIGHT_DJIS_MISSING_FONT_SYMBOLS_DEFAULT,
 #endif
 
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,

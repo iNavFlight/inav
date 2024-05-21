@@ -705,7 +705,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
             break;
     }
 
-    return (osdConfig()->highlight_djis_fuckup) ? '?' : SYM_BLANK; // Missing/not mapped character
+    return (osdConfig()->highlight_djis_missing_characters) ? '?' : SYM_BLANK; // Missing/not mapped character
 }
 
 #endif
