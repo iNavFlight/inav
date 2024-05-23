@@ -6,6 +6,10 @@
 
 > INAV 7 is the last INAV official release available for F411 based flight controllers. The next milestone, INAV 8 will not be available for F411 boards.
 
+# ICM426xx IMUs PSA
+
+> The filtering settings for the ICM426xx has changed to matche what is used by Ardupilot and Betaflight in INAV 7.1. When upgrading from older versions you may need to recalibrate the Accelerometer and if you are not using INAV's default tune you may also want to check if the tune is still good.
+
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 
 # PosHold, Navigation and RTH without compass PSA
