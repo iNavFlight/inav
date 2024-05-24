@@ -88,6 +88,7 @@ compassCalibrationType_e compassCalibrationType = COMPASS_CALIBRATION_TYPE_SAMPL
 sensorCalibrationState_t calState;
 
 bool compassCalibrationEnabled;
+bool simuladorCompassCalibrated;
 
 int16_t magPrev[XYZ_AXIS_COUNT];
 int16_t magAxisDeviation[XYZ_AXIS_COUNT];
@@ -310,6 +311,10 @@ bool compassInit(void)
     mag.dev.magSensorToUse = 0;
 #endif
 
+#ifdef USE_SIMULATOR
+    simuladorForceCompassCalibrationComplete(false);
+#endif
+
     if (!compassDetect(&mag.dev, compassConfig()->mag_hardware)) {
         return false;
     }
@@ -357,11 +362,26 @@ bool compassIsHealthy(void)
 
 bool compassIsCalibrationComplete(void)
 {
+#ifdef SITL_BUILD
+    return true;
+#endif
+    
+#ifdef USE_SIMULATOR
+    if (simuladorCompassCalibrated) {
+        return true;
+    }
+#endif
+
     if (calc_length_pythagorean_3D(compassConfig()->magZero.raw[X], compassConfig()->magZero.raw[Y], compassConfig()->magZero.raw[Z]) != 0.0f) {
         return true;
     }
 
     return false;
+}
+
+void simuladorForceCompassCalibrationComplete(bool val)
+{
+    simuladorCompassCalibrated = val;
 }
 
 /*

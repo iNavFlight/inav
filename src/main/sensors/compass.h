@@ -84,6 +84,7 @@ bool compassInit(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
 void setCompassCalibrationType(compassCalibrationType_e calType);
+void simuladorForceCompassCalibrationComplete(bool val);
 void setLargeVehicleYawDegrees(uint16_t yawInput);
 void compassUpdate(timeUs_t currentTimeUs);
 

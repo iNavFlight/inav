@@ -3816,7 +3816,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 DISABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
 
 #ifdef USE_BARO
-            if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
+            if (requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
                 baroStartCalibration();
             }
 #endif
@@ -3831,7 +3831,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         } else {
             if (!ARMING_FLAG(SIMULATOR_MODE_HITL)) { // Just once
 #ifdef USE_BARO
-                if ( requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
+                if (requestedSensors[SENSOR_INDEX_BARO] != BARO_NONE ) {
                     sensorsSet(SENSOR_BARO);
                     setTaskEnabled(TASK_BARO, true);
                     DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
@@ -3842,6 +3842,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_MAG
                 if (compassConfig()->mag_hardware != MAG_NONE) {
                     sensorsSet(SENSOR_MAG);
+                    simuladorForceCompassCalibrationComplete(true);
                     DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
                     mag.magADC[X] = 800;
                     mag.magADC[Y] = 0;
