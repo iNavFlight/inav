@@ -1844,11 +1844,11 @@ Allows to chose when the home position is reset. Can help prevent resetting home
 
 ### inav_use_gps_no_baro
 
-Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed.
+Defines if INAV should use only use GPS data for altitude estimation and not barometer. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| ON | OFF | ON |
+| OFF | OFF | ON |
 
 ---
 
