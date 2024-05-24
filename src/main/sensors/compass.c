@@ -64,7 +64,7 @@
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 
-mag_t mag;                   // mag access functions
+mag_t mag; // mag access functions
 
 #ifdef USE_MAG
 
@@ -84,10 +84,16 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
 );
 
- #define FIXED_COMPASS_CALIBRATION_RADIUS 200 // magnetic field strength
- 
-static bool magUpdatedAtLeastOnce = false;
+#define FIXED_COMPASS_CALIBRATION_RADIUS 200 // magnetic field strength
+
+typedef enum {
+    COMPASS_CALIBRATION_TYPE_SAMPLES = 0,
+    COMPASS_CALIBRATION_TYPE_FIXED
+} compassCalibrationType_e;
+
+static bool compassCalibrationEnabled;
 static uint16_t magFixedYawDegrees;
+static compassCalibrationType_e compassCalibrationType;
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 {
@@ -317,10 +323,7 @@ bool compassInit(void)
         sensorsClear(SENSOR_MAG);
     }
 
-    if (compassConfig()->rollDeciDegrees != 0 ||
-        compassConfig()->pitchDeciDegrees != 0 ||
-        compassConfig()->yawDeciDegrees != 0) {
-
+    if (compassConfig()->rollDeciDegrees != 0 || compassConfig()->pitchDeciDegrees != 0 || compassConfig()->yawDeciDegrees != 0) {
         // Externally aligned compass
         mag.dev.magAlign.useExternal = true;
 
@@ -344,12 +347,12 @@ bool compassInit(void)
 
 bool compassIsHealthy(void)
 {
-    return (mag.magADC[X] != 0) || (mag.magADC[Y] != 0) || (mag.magADC[Z] != 0);
-}
+    if (calc_length_pythagorean_3D(mag.magADC[X], mag.magADC[Y], mag.magADC[Z]) != 0.0f)
+    {
+        return true;
+    }
 
-bool compassIsReady(void)
-{
-    return magUpdatedAtLeastOnce;
+    return false;
 }
 
 bool compassIsCalibrationComplete(void)
@@ -357,19 +360,8 @@ bool compassIsCalibrationComplete(void)
     if (STATE(COMPASS_CALIBRATED)) {
         return true;
     }
-    else {
-        return false;
-    }
-}
 
-// Get rotated magnetometer field without off-set
-fpVector3_t getUncorrectedMagField(void)
-{
-    const fpVector3_t field = {.v = {mag.magADC[X] * compassConfig()->magGain[X] / 1024 + compassConfig()->magZero.raw[X],
-                                     mag.magADC[Y] * compassConfig()->magGain[Y] / 1024 + compassConfig()->magZero.raw[Y],
-                                     mag.magADC[Z] * compassConfig()->magGain[Z] / 1024 + compassConfig()->magZero.raw[Z]}};
-
-    return field;
+    return false;
 }
 
 /*
@@ -386,7 +378,7 @@ static bool magCalibrationFixedYaw(float yaw_deg)
 {
     if (gpsSol.fixType < GPS_FIX_3D)
     {
-        return false;
+        //return false;
     }
 
     // get the magnetic field intensity and orientation
@@ -394,20 +386,17 @@ static bool magCalibrationFixedYaw(float yaw_deg)
     float declination;
     float inclination;
 
-    if (!getMagFieldEF(gpsSol.llh.lat, gpsSol.llh.lon, &intensity, &declination, &inclination))
+    //if (!getMagFieldEF(gpsSol.llh.lat, gpsSol.llh.lon, &intensity, &declination, &inclination))
+    if (!getMagFieldEF(-199161508.0f, -440808763.0f, &intensity, &declination, &inclination))
     {
         return false;
     }
 
     // create a field vector and rotate to the required orientation
-    fpVector3_t field = {.v = {1000.0f * intensity,  // miliGauss
-                               0.0f, 
-                               0.0f}};
-
-    const float expected_radius = ABS(field.x / FIXED_COMPASS_CALIBRATION_RADIUS);
+    fpVector3_t field = {.v = {1000.0f * intensity, 0.0f,  0.0f}}; // field in miliGauss
 
     fpMat3_t R;
-    rotationMatrixFromAngles(&R, 0.0f, DEGREES_TO_RADIANS(inclination), -DEGREES_TO_RADIANS(declination));
+    rotationMatrixFromAngles(&R, 0.0f, -DEGREES_TO_RADIANS(inclination), -DEGREES_TO_RADIANS(declination));
 
     field = multiplyMatrixByVector(R, field);
 
@@ -417,14 +406,12 @@ static bool magCalibrationFixedYaw(float yaw_deg)
     // Rotate into body frame using provided yaw
     field = multiplyMatrixByVector(matrixTransposed(ahrs_matrix), field);
 
-    fpVector3_t measurement = getUncorrectedMagField();
-
-    fpVector3_t offsets = {.v = {-(field.x - measurement.x), (field.y - measurement.y) / 2.0f, (field.z - measurement.z) / 10.0f}};
+    fpVector3_t offsets = {.v = {field.x, field.y, field.z}};
 
     for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
 
-        compassConfigMutable()->magZero.raw[axis] = (int16_t)(offsets.v[axis]);
-        compassConfigMutable()->magGain[axis] = (int16_t)(1024.0f / expected_radius);
+        compassConfigMutable()->magZero.raw[axis] = (int16_t)(offsets.v[axis] - (0.5f * mag.magADC[axis]));
+        compassConfigMutable()->magGain[axis] = 1024;
     }
 
     return true;
@@ -433,25 +420,22 @@ static bool magCalibrationFixedYaw(float yaw_deg)
 void setLargeVehicleYawDegrees(uint16_t yawInput)
 {
     magFixedYawDegrees = yawInput;
-}
 
-bool useLargeVehicleCalibration(void)
-{
     if (magFixedYawDegrees == 32767) {
-        return false;
+        compassCalibrationType = COMPASS_CALIBRATION_TYPE_SAMPLES;
+    } else {
+        compassCalibrationType = COMPASS_CALIBRATION_TYPE_FIXED;
     }
-
-    return true;
 }
 
 void compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
 	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-		magUpdatedAtLeastOnce = true;
 		return;
 	}
 #endif
+
     static sensorCalibrationState_t calState;
     static timeUs_t calStartedAt = 0;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -461,13 +445,9 @@ void compassUpdate(timeUs_t currentTimeUs)
     ENABLE_STATE(COMPASS_CALIBRATED);
 #else
     // Check magZero
-    if (
-        compassConfig()->magZero.raw[X] == 0 && compassConfig()->magZero.raw[Y] == 0 && compassConfig()->magZero.raw[Z] == 0 &&
-        compassConfig()->magGain[X] == 1024 && compassConfig()->magGain[Y] == 1024 && compassConfig()->magGain[Z] == 1024  
-    ) {
+    if (calc_length_pythagorean_3D(compassConfig()->magZero.raw[X], compassConfig()->magZero.raw[Y], compassConfig()->magZero.raw[Z]) == 0.0f) {
         DISABLE_STATE(COMPASS_CALIBRATED);
-    }
-    else {
+    } else {
         ENABLE_STATE(COMPASS_CALIBRATED);
     }
 #endif
@@ -484,6 +464,8 @@ void compassUpdate(timeUs_t currentTimeUs)
     }
 
     if (STATE(CALIBRATE_MAG)) {
+        compassCalibrationEnabled = true;
+
         for (int axis = 0; axis < 3; axis++) {
             compassConfigMutable()->magZero.raw[axis] = 0;
             compassConfigMutable()->magGain[axis] = 1024;
@@ -492,12 +474,14 @@ void compassUpdate(timeUs_t currentTimeUs)
         }
 
         beeper(BEEPER_ACTION_SUCCESS);
+
+        sensorCalibrationResetState(&calState);
     
-        if (!useLargeVehicleCalibration()) {
+        if (compassCalibrationType == COMPASS_CALIBRATION_TYPE_SAMPLES) {
             calStartedAt = currentTimeUs;
-            sensorCalibrationResetState(&calState);
-            DISABLE_STATE(CALIBRATE_MAG);
         }
+
+        DISABLE_STATE(CALIBRATE_MAG);
     }
 
     if (calStartedAt != 0) {
@@ -547,10 +531,9 @@ void compassUpdate(timeUs_t currentTimeUs)
             saveConfigAndNotify();
         }
     }
-    else {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            mag.magADC[axis] = (mag.magADC[axis] - compassConfig()->magZero.raw[axis]) * 1024 / compassConfig()->magGain[axis];
-        }
+
+    for (int axis = 0; axis < XYZ_AXIS_COUNT && !compassCalibrationEnabled; axis++) {
+        mag.magADC[axis] -= compassConfig()->magZero.raw[axis] * 1024 / compassConfig()->magGain[axis];
     }
 
     if (mag.dev.magAlign.useExternal) {
@@ -574,14 +557,12 @@ void compassUpdate(timeUs_t currentTimeUs)
         applyBoardAlignment(mag.magADC);
     }
 
-    if (STATE(CALIBRATE_MAG) && useLargeVehicleCalibration()) {
+    if (compassCalibrationEnabled && compassCalibrationType == COMPASS_CALIBRATION_TYPE_FIXED) {
         if (magCalibrationFixedYaw(magFixedYawDegrees))
         {
-            DISABLE_STATE(CALIBRATE_MAG);
+            compassCalibrationEnabled = false;
         }
     }
-
-    magUpdatedAtLeastOnce = true;
 }
 
 #endif

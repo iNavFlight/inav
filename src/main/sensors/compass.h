@@ -77,7 +77,6 @@ PG_DECLARE(compassConfig_t, compassConfig);
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse);
 bool compassInit(void);
 void compassUpdate(timeUs_t currentTimeUs);
-bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
 void setLargeVehicleYawDegrees(uint16_t yawInput);
