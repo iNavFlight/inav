@@ -348,7 +348,7 @@ void processRcStickPositions(bool isThrottleLow)
     // Calibrating Mag
     if (rcSticks == THR_HI + YAW_HI + PIT_LO + ROL_CE) {
         ENABLE_STATE(CALIBRATE_MAG);
-        setLargeVehicleYawDegrees(COMPASS_CALIBRATION_TYPE_SAMPLES);
+        setCompassCalibrationType(COMPASS_CALIBRATION_TYPE_SAMPLES);
         return;
     }
 

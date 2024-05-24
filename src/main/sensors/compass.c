@@ -374,14 +374,14 @@ bool compassIsCalibrationComplete(void)
   them into consistency with the WMM tables at the given latitude and
   longitude.
 */
-static bool magCalibrationFixedYaw(float yaw_deg)
+static bool magFixedYawCalibration(float yaw_deg)
 {
-    if (!compassCalibrationEnabled) 
+    if (!compassCalibrationEnabled)
     {
         return false;
     }
 
-    if (compassCalibrationType != COMPASS_CALIBRATION_TYPE_FIXED) 
+    if (compassCalibrationType != COMPASS_CALIBRATION_TYPE_FIXED)
     {
         return false;
     }
@@ -426,11 +426,16 @@ static bool magCalibrationFixedYaw(float yaw_deg)
     return true;
 }
 
+void setCompassCalibrationType(compassCalibrationType_e calType)
+{
+    compassCalibrationType = calType;
+}
+
 void setLargeVehicleYawDegrees(uint16_t yawInput)
 {
     magFixedYawDegrees = yawInput;
 
-    if (magFixedYawDegrees == COMPASS_CALIBRATION_TYPE_SAMPLES) {
+    if (magFixedYawDegrees == 32767) {
         compassCalibrationType = COMPASS_CALIBRATION_TYPE_SAMPLES;
     } else {
         compassCalibrationType = COMPASS_CALIBRATION_TYPE_FIXED;
@@ -522,6 +527,7 @@ void compassUpdate(timeUs_t currentTimeUs)
             }
 
             calStartedAt = 0;
+            compassCalibrationEnabled = false;
             saveConfigAndNotify();
         }
     }
@@ -541,17 +547,16 @@ void compassUpdate(timeUs_t currentTimeUs)
 
         rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
         applyTailSitterAlignment(&rotated);
-         mag.magADC[X] = rotated.x;
-         mag.magADC[Y] = rotated.y;
-         mag.magADC[Z] = rotated.z;
-
+        mag.magADC[X] = rotated.x;
+        mag.magADC[Y] = rotated.y;
+        mag.magADC[Z] = rotated.z;
     } else {
         // On-board compass
         applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign.onBoard);
         applyBoardAlignment(mag.magADC);
     }
 
-    if (magCalibrationFixedYaw(magFixedYawDegrees)) {
+    if (magFixedYawCalibration(magFixedYawDegrees)) {
         compassCalibrationEnabled = false;
     }
 }

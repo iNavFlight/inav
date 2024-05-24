@@ -81,9 +81,10 @@ typedef enum {
 
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse);
 bool compassInit(void);
-void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
+void setCompassCalibrationType(compassCalibrationType_e calType);
 void setLargeVehicleYawDegrees(uint16_t yawInput);
+void compassUpdate(timeUs_t currentTimeUs);
 
 #endif

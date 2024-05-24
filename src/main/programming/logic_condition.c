@@ -292,7 +292,7 @@ static int logicConditionCompute(
         case LOGIC_CONDITION_RESET_MAG_CALIBRATION:
 
             ENABLE_STATE(CALIBRATE_MAG);
-            setLargeVehicleYawDegrees(COMPASS_CALIBRATION_TYPE_SAMPLES);
+            setCompassCalibrationType(COMPASS_CALIBRATION_TYPE_SAMPLES);
             return true;
             break;
 #endif  
