@@ -292,7 +292,7 @@ static int logicConditionCompute(
         case LOGIC_CONDITION_RESET_MAG_CALIBRATION:
 
             ENABLE_STATE(CALIBRATE_MAG);
-            setLargeVehicleYawDegrees(32767); // Do not use the calibration method for wide or heavy vehicles.
+            setLargeVehicleYawDegrees(COMPASS_CALIBRATION_TYPE_SAMPLES);
             return true;
             break;
 #endif  

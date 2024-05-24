@@ -880,7 +880,7 @@ bool isImuReady(void)
 
 bool isImuHeadingValid(void)
 {
-    return (sensors(SENSOR_MAG) && STATE(COMPASS_CALIBRATED)) || gpsHeadingInitialized;
+    return (sensors(SENSOR_MAG) && compassIsCalibrationComplete()) || gpsHeadingInitialized;
 }
 
 float calculateCosTiltAngle(void)

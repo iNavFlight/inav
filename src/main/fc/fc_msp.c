@@ -3821,7 +3821,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             }
 #endif
 #ifdef USE_MAG
-                DISABLE_STATE(COMPASS_CALIBRATED);
                 compassInit();
 #endif
                 simulatorData.flags = HITL_RESET_FLAGS;
@@ -3843,7 +3842,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_MAG
                 if (compassConfig()->mag_hardware != MAG_NONE) {
                     sensorsSet(SENSOR_MAG);
-                    ENABLE_STATE(COMPASS_CALIBRATED);
                     DISABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
                     mag.magADC[X] = 800;
                     mag.magADC[Y] = 0;

@@ -270,7 +270,7 @@ static void updateArmingStatus(void)
 
 #if defined(USE_MAG)
         /* CHECK: */
-        if (sensors(SENSOR_MAG) && !STATE(COMPASS_CALIBRATED)) {
+        if (sensors(SENSOR_MAG) && !compassIsCalibrationComplete()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_COMPASS_NOT_CALIBRATED);
         }
         else {

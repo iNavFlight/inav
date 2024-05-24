@@ -119,11 +119,11 @@ typedef enum {
     GPS_FIX                             = (1 << 1),
     CALIBRATE_MAG                       = (1 << 2),
     SMALL_ANGLE                         = (1 << 3),
-    FIXED_WING_LEGACY                   = (1 << 4),     // No new code should use this state. Use AIRPLANE, MULTIROTOR, ROVER, BOAT, ALTITUDE_CONTROL and MOVE_FORWARD_ONLY states
+    FIXED_WING_LEGACY                   = (1 << 4),     // no new code should use this state. Use AIRPLANE, MULTIROTOR, ROVER, BOAT, ALTITUDE_CONTROL and MOVE_FORWARD_ONLY states
     ANTI_WINDUP                         = (1 << 5),
     FLAPERON_AVAILABLE                  = (1 << 6),
     NAV_MOTOR_STOP_OR_IDLE              = (1 << 7),     // navigation requests MOTOR_STOP or motor idle regardless of throttle stick, will only activate if MOTOR_STOP feature is available
-    COMPASS_CALIBRATED                  = (1 << 8),
+    UNUSED_STATE_FLAG                   = (1 << 8),     // old COMPASS_CALIBRATED
     ACCELEROMETER_CALIBRATED            = (1 << 9),
 #ifdef USE_GPS_FIX_ESTIMATION
     GPS_ESTIMATED_FIX                   = (1 << 10),
@@ -138,14 +138,14 @@ typedef enum {
     MULTIROTOR                          = (1 << 18),
     ROVER                               = (1 << 19),
     BOAT                                = (1 << 20),
-    ALTITUDE_CONTROL                    = (1 << 21),    //It means it can fly
+    ALTITUDE_CONTROL                    = (1 << 21),    // it means it can fly
     MOVE_FORWARD_ONLY                   = (1 << 22),
     SET_REVERSIBLE_MOTORS_FORWARD       = (1 << 23),
     FW_HEADING_USE_YAW                  = (1 << 24),
     ANTI_WINDUP_DEACTIVATED             = (1 << 25),
     LANDING_DETECTED                    = (1 << 26),
     IN_FLIGHT_EMERG_REARM               = (1 << 27),
-    TAILSITTER                          = (1 << 28), //offset the pitch angle by 90 degrees
+    TAILSITTER                          = (1 << 28),    // offset the pitch angle by 90 degrees
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))

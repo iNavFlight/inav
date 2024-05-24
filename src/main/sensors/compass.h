@@ -74,6 +74,11 @@ typedef struct compassConfig_s {
 
 PG_DECLARE(compassConfig_t, compassConfig);
 
+typedef enum {
+    COMPASS_CALIBRATION_TYPE_FIXED = 0,
+    COMPASS_CALIBRATION_TYPE_SAMPLES = 32767
+} compassCalibrationType_e;
+
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse);
 bool compassInit(void);
 void compassUpdate(timeUs_t currentTimeUs);
