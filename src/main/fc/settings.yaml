@@ -2288,10 +2288,10 @@ groups:
         field: use_gps_velned
         type: bool
       - name: inav_use_gps_no_baro
-        description: "Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed."
+        description: "Defines if INAV should use only use GPS data for altitude estimation and not barometer. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed."
         field: use_gps_no_baro
         type: bool
-        default_value: ON
+        default_value: OFF
       - name: inav_allow_dead_reckoning
         description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
