@@ -1047,7 +1047,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
     gpsState.autoConfigStep = 0;
-
+    if (gpsState.gpsConfig->autoConfig) {
     do {
         pollVersion();
         gpsState.autoConfigStep++;
@@ -1066,7 +1066,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 	} while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
     }
     // Configure GPS module if enabled
-    if (gpsState.gpsConfig->autoConfig) {
+    
         // Configure GPS
         ptSpawn(gpsConfigure);
     }
@@ -1079,7 +1079,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData(false);
 
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
+        if ((gpsState.gpsConfig->autoConfig) && (gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
 
