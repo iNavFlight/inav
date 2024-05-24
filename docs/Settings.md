@@ -1302,13 +1302,33 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 ---
 
-### fw_iterm_limit_stick_position
+### fw_iterm_lock_engage_threshold
 
-Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side
+Defines error rate (in percents of max rate) when Iterm Lock is engaged when sticks are release. Iterm Lock will stay active until error drops below this number
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.5 | 0 | 1 |
+| 10 | 5 | 25 |
+
+---
+
+### fw_iterm_lock_rate_threshold
+
+Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 10 | 100 |
+
+---
+
+### fw_iterm_lock_time_max_ms
+
+Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 100 | 1000 |
 
 ---
 
@@ -1809,16 +1829,6 @@ Allows to chose when the home position is reset. Can help prevent resetting home
 | Default | Min | Max |
 | --- | --- | --- |
 | FIRST_ARM |  |  |
-
----
-
-### inav_use_gps_no_baro
-
-Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
 
 ---
 
