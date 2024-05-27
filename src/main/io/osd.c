@@ -2380,8 +2380,9 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = " WP ";
             else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
                 // If navigationRequiresAngleMode() returns false when ALTHOLD is active,
-                // it means it can be combined with ANGLE, HORIZON, ANGLEHOLD, ACRO, etc...
+                // it means it can be combined with ANGLE, HORIZON, ACRO, etc...
                 // and its display is handled by OSD_MESSAGES rather than OSD_FLYMODE.
+                // (Currently only applies to multirotor).
                 p = " AH ";
             }
             else if (FLIGHT_MODE(ANGLE_MODE))
@@ -5631,11 +5632,14 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
     if (buff != NULL) {
         const char *message = NULL;
-        // Warning: messageBuf is shared. Make sure it is used by single message in code below!
+        /* Warning: messageBuf is shared, use accordingly */
         char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH + 1)];
-        // We might have up to 6 messages to show.
-        const char *messages[6];
+
+        /* Warning, ensure number of messages returned does not exceed messages array size
+         * Messages array set 1 larger than maximum expected message count of 6 */
+        const char *messages[7];
         unsigned messageCount = 0;
+
         const char *failsafeInfoMessage = NULL;
         const char *invertedInfoMessage = NULL;
 
@@ -5643,7 +5647,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             if (STATE(LANDING_DETECTED)) {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
             } else if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                // Returns maximum of 5 messages
+                /* RETURNS MAXIMUM OF 5 MESSAGES */
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
                     messages[messageCount++] = STATE(LANDING_DETECTED) ? OSD_MESSAGE_STR(OSD_MSG_WP_LANDED) : OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
                 } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
@@ -5699,8 +5703,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     // if RTH activated whilst WP mode selected, remind pilot to cancel WP mode to exit RTH
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_RTH_CANCEL);
                 }
-            } else {    /* messages shown only when Failsafe, WP, RTH or Emergency Landing not active */
-                if (STATE(AIRPLANE)) {  // Returns maximum of 3 messages
+            } else {    /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active */
+                /* RETURNS MAXIMUM OF 4 MESSAGES */
+                if (STATE(AIRPLANE)) {      /* RETURNS MAXIMUM OF 3 MESSAGES */
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandingBeCancelled()) {
                          messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MOVE_STICKS);
@@ -5751,7 +5756,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
                         }
                     }
-                } else if (STATE(MULTIROTOR)) {     // Returns maximum of 1 messages
+                } else if (STATE(MULTIROTOR)) {     /* RETURNS MAXIMUM OF 2 MESSAGES */
                     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                         if (posControl.cruise.multicopterSpeed >= 50.0f) {
                             char buf[6];
@@ -5764,20 +5769,20 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     } else if (FLIGHT_MODE(HEADFREE_MODE)) {
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_HEADFREE);
                     }
-                }
+                    if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
+                        /* If ALTHOLD is separately enabled for multirotor together with ANGL/HORIZON/ACRO modes
+                         * then ANGL/HORIZON/ACRO are indicated by the OSD_FLYMODE field.
+                         * In this case indicate ALTHOLD is active via a system message */
 
-                if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
-                    // ALTHOLD might be enabled alongside ANGLE/HORIZON/ANGLEHOLD/ACRO
-                    // when it doesn't require ANGLE mode (required only in FW
-                    // right now). If it requires ANGLE, its display is handled by OSD_FLYMODE.
-                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
+                        messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
+                    }
                 }
 
                 if (posControl.flags.wpMissionPlannerActive) {
                     messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
                 }
             }
-        } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    // Returns maximum of 2 messages
+        } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    /* RETURNS MAXIMUM OF 2 MESSAGES */
             unsigned invalidIndex;
 
             // Check if we're unable to arm for some reason
@@ -5803,7 +5808,8 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_WP_MISSION_LOADED);
             }
         }
-        /* Messages that are shown regardless of Arming state */
+
+        /* Messages that are shown regardless of Arming state - RETURNS MAXIMUM OF 1 MESSAGES */
 
         // The following has been commented out as it will be added in #9688
         // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
