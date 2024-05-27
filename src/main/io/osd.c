@@ -5722,14 +5722,14 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_NAV_SOARING);
                     } else {
                         strcpy(messageBuf, "(AUTO-");
-                        if (isFixedWingLevelTrimActive()) {
-                            strcat(messageBuf, OSD_MSG_AUTOLEVEL);
-                        }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
+                            strcat(messageBuf, OSD_MSG_AUTOTRIM);
+                        }
+                        if (isFixedWingLevelTrimActive()) {
                             if (messageBuf[6] != '\0') {
                                 strcat(messageBuf, ":");
                             }
-                            strcat(messageBuf, OSD_MSG_AUTOTRIM);
+                            strcat(messageBuf, OSD_MSG_AUTOLEVEL);
                         }
                         if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
                             if (messageBuf[6] != '\0') {
