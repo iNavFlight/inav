@@ -5792,6 +5792,16 @@ General switch of the statistics recording feature (a.k.a. odometer)
 
 ---
 
+### stats_flight_count
+
+Total number of flights. The value is updated on every disarm when "stats" are enabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 |  | 65535 |
+
+---
+
 ### stats_total_dist
 
 Total flight distance [in meters]. The value is updated on every disarm when "stats" are enabled.

@@ -5,8 +5,10 @@
 
 #include "fc/settings.h"
 #include "fc/stats.h"
+#include "fc/runtime_config.h"
 
 #include "sensors/battery.h"
+#include "sensors/sensors.h"
 
 #include "drivers/time.h"
 #include "navigation/navigation.h"
@@ -16,6 +18,7 @@
 #include "config/parameter_group_ids.h"
 
 #define MIN_FLIGHT_TIME_TO_RECORD_STATS_S 10    //prevent recording stats for that short "flights" [s]
+#define MIN_FLIGHT_DISTANCE_M 10    // minimum distance flown for a flight to be registered [m]
 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 2);
@@ -62,9 +65,17 @@ void statsOnDisarm(void)
     if (statsConfig()->stats_enabled) {
         uint32_t dt = (millis() - arm_millis) / 1000;
         if (dt >= MIN_FLIGHT_TIME_TO_RECORD_STATS_S) {
-            statsConfigMutable()->stats_flight_count = prev_flight_count + 1; // only increment once per power on
             statsConfigMutable()->stats_total_time += dt;   //[s]
             statsConfigMutable()->stats_total_dist += (getTotalTravelDistance() - arm_distance_cm) / 100;   //[m]
+#ifdef USE_GPS
+            // flight counter is incremented at most once per power on
+            if (sensors(SENSOR_GPS)) {
+                if ((getTotalTravelDistance() - arm_distance_cm) / 100 >= MIN_FLIGHT_DISTANCE_M)
+                    statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
+            } else statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
+#else
+            statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
+#endif // USE_GPS
 #ifdef USE_ADC
             if (feature(FEATURE_VBAT) && isAmperageConfigured()) {
                 const uint32_t energy = getMWhDrawn() - arm_mWhDrawn;
