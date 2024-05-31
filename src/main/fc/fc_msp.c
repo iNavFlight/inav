@@ -1590,7 +1590,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_OUTPUT_MAPPING_EXT2:
         {
-            #if !defined(SITIL_BUILD)
+            #if !defined(SITL_BUILD)
             ioTag_t led_tag = IO_TAG(WS2811_PIN);
             #endif
             for (uint8_t i = 0; i < timerHardwareCount; ++i)
@@ -1602,7 +1602,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
-                    #if defined(SITIL_BUILD)
+                    #if defined(SITL_BUILD)
                     sbufWriteU8(dst, 0);
                     #else
                     // Extra label to help identify repurposed PINs.
