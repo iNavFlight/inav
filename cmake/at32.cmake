@@ -326,6 +326,11 @@ function(target_at32)
 
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
+
+    if (MSP_UART) 
+        list(APPEND target_definitions "MSP_UART=${MSP_UART}")
+    endif()
+
     if(args_COMPILE_DEFINITIONS)
         list(APPEND target_definitions ${args_COMPILE_DEFINITIONS})
     endif()

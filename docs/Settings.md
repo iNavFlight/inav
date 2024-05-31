@@ -4422,6 +4422,16 @@ Value under which the OSD axis g force indicators will blink (g)
 
 ---
 
+### osd_highlight_djis_missing_font_symbols
+
+Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### osd_home_position_arm_screen
 
 Should home position coordinates be displayed on the arming screen.
