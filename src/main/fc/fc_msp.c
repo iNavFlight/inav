@@ -1600,9 +1600,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                     sbufWriteU8(dst, timer2id(timerHardware[i].tim));
                     #endif
                     sbufWriteU32(dst, timerHardware[i].usageFlags);
+                    #if defined(SITIL_BUILD)
+                    sbufWriteU8(dst, 0);
+                    #else
                     // Extra label to help identify repurposed PINs.
                     // Eventually, we can try to add more labels for PPM pins, etc.
                     sbufWriteU8(dst, timerHardware[i].tag == led_tag ? PIN_LABEL_LED : PIN_LABEL_NONE);
+                    #endif
             }
         }
         break;
