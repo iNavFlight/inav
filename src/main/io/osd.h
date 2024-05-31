@@ -457,7 +457,10 @@ typedef struct osdConfig_s {
     bool            use_pilot_logo;                     // If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
     uint8_t         inav_to_pilot_logo_spacing;         // The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
     uint16_t        arm_screen_display_time;            // Length of time the arm screen is displayed
-    #ifdef USE_ADSB
+#ifndef DISABLE_MSP_DJI_COMPAT
+    bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
+#endif
+#ifdef USE_ADSB
     uint16_t adsb_distance_warning;                     // in metres
     uint16_t adsb_distance_alert;                       // in metres
     uint16_t adsb_ignore_plane_above_me_limit;          // in metres
