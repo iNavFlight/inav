@@ -51,7 +51,7 @@
 #include "msp/msp_serial.h"
 
 #include "displayport_msp_osd.h"
-#include "displayport_msp_bf_compat.h"
+#include "displayport_msp_dji_compat.h"
 
 #define FONT_VERSION 3
 
@@ -59,7 +59,7 @@ typedef enum {          // defines are from hdzero code
     SD_3016,
     HD_5018,
     HD_3016,           // Special HDZERO mode that just sends the centre 30x16 of the 50x18 canvas to the VRX
-    HD_6022,            // added to support DJI wtfos 60x22 grid
+    HD_6022,           // added to support DJI wtfos 60x22 grid
     HD_5320            // added to support Avatar and BetaflightHD
 } resolutionType_e;
 
@@ -97,12 +97,11 @@ static timeMs_t sendSubFrameMs = 0;
 // set screen size
 #define SCREENSIZE (ROWS*COLS)
 
-static uint8_t currentOsdMode; // HDZero screen mode can change across layouts
+static uint8_t currentOsdMode;               // HDZero screen mode can change across layouts
 
 static uint8_t screen[SCREENSIZE];
-static BITARRAY_DECLARE(fontPage, SCREENSIZE);  // font page for each character on the screen
-static BITARRAY_DECLARE(dirty, SCREENSIZE);     // change status for each character on the screen
-static BITARRAY_DECLARE(blinkChar, SCREENSIZE); // Does the character blink?
+static uint8_t attrs[SCREENSIZE];            // font page, blink and other attributes
+static BITARRAY_DECLARE(dirty, SCREENSIZE);  // change status for each character on the screen
 static bool screenCleared;
 static uint8_t screenRows, screenCols;
 static videoSystem_e osdVideoSystem;
@@ -158,6 +157,22 @@ static uint8_t determineHDZeroOsdMode(void)
     return HD_3016;
 }
 
+
+uint8_t setAttrPage(uint8_t origAttr, uint8_t page)
+{
+        return (origAttr & ~DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK) | (page & DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK);
+}
+
+uint8_t setAttrBlink(uint8_t origAttr, uint8_t blink)
+{
+    return (origAttr & ~DISPLAYPORT_MSP_ATTR_BLINK_MASK) | ((blink << DISPLAYPORT_MSP_ATTR_BLINK) & DISPLAYPORT_MSP_ATTR_BLINK_MASK);
+}
+
+uint8_t setAttrVersion(uint8_t origAttr, uint8_t version)
+{
+    return (origAttr & ~DISPLAYPORT_MSP_ATTR_VERSION_MASK) | ((version << DISPLAYPORT_MSP_ATTR_VERSION) & DISPLAYPORT_MSP_ATTR_VERSION_MASK);
+}
+
 static int setDisplayMode(displayPort_t *displayPort)
 {
     if (osdVideoSystem == VIDEO_SYSTEM_HDZERO) {
@@ -171,9 +186,8 @@ static int setDisplayMode(displayPort_t *displayPort)
 static void init(void)
 {
     memset(screen, SYM_BLANK, sizeof(screen));
-    BITARRAY_CLR_ALL(fontPage);
+    memset(attrs, 0, sizeof(attrs));
     BITARRAY_CLR_ALL(dirty);
-    BITARRAY_CLR_ALL(blinkChar);
 }
 
 static int clearScreen(displayPort_t *displayPort)
@@ -204,9 +218,8 @@ static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
     }
 
     *c = screen[pos];
-    if (bitArrayGet(fontPage, pos)) {
-        *c |= 0x100;
-    }
+    uint8_t page = getAttrPage(attrs[pos]);
+    *c |= page << 8;
 
     if (attr) {
         *attr = TEXT_ATTRIBUTES_NONE;
@@ -219,11 +232,12 @@ static int setChar(const uint16_t pos, const uint16_t c, textAttributes_t attr)
 {
     if (pos < SCREENSIZE) {
         uint8_t ch = c & 0xFF;
-        bool page = (c >> 8);
-        if (screen[pos] != ch || bitArrayGet(fontPage, pos) != page) {
+        uint8_t page = (c >> 8) & DISPLAYPORT_MSP_ATTR_FONTPAGE_MASK;
+        if (screen[pos] != ch || getAttrPage(attrs[pos]) != page) {
             screen[pos] = ch;
-            (page) ? bitArraySet(fontPage, pos) : bitArrayClr(fontPage, pos);
-            (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) ? bitArraySet(blinkChar, pos) : bitArrayClr(blinkChar, pos);
+            attrs[pos] = setAttrPage(attrs[pos], page);
+            uint8_t blink = (TEXT_ATTRIBUTES_HAVE_BLINK(attr)) ? 1 : 0;
+            attrs[pos] = setAttrBlink(attrs[pos], blink);
             bitArraySet(dirty, pos);
         }
     }
@@ -287,21 +301,21 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t col = pos % COLS;
         uint8_t attributes = 0;
         int endOfLine = row * COLS + screenCols;
-        bool page = bitArrayGet(fontPage, pos);
-        bool blink = bitArrayGet(blinkChar, pos);
+        uint8_t page = getAttrPage(attrs[pos]);
+        uint8_t blink = getAttrBlink(attrs[pos]);
 
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
+            subcmd[len] = isDJICompatibleVideoSystem(osdConfig()) ? getDJICharacter(screen[pos++], page): screen[pos++];
             len++;
 
             if (bitArrayGet(dirty, pos)) {
                 next = pos;
             }
-        } while (next == pos && next < endOfLine && bitArrayGet(fontPage, next) == page && bitArrayGet(blinkChar, next) == blink);
+        } while (next == pos && next < endOfLine && getAttrPage(attrs[next]) == page && getAttrBlink(attrs[next]) == blink);
 
-        if (!isBfCompatibleVideoSystem(osdConfig())) {
+        if (!isDJICompatibleVideoSystem(osdConfig())) {
             attributes |= (page << DISPLAYPORT_MSP_ATTR_FONTPAGE);
         }
 
@@ -451,7 +465,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
     if (mspOsdSerialInit()) {
         switch(videoSystem) {
         case VIDEO_SYSTEM_AUTO:
-        case VIDEO_SYSTEM_BFCOMPAT:
+        case VIDEO_SYSTEM_DJICOMPAT:
         case VIDEO_SYSTEM_PAL:
             currentOsdMode = SD_3016;
             screenRows = PAL_ROWS;
@@ -472,7 +486,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             screenRows = DJI_ROWS;
             screenCols = DJI_COLS;
             break;
-        case VIDEO_SYSTEM_BFCOMPAT_HD:
+        case VIDEO_SYSTEM_DJICOMPAT_HD:
         case VIDEO_SYSTEM_AVATAR:
             currentOsdMode = HD_5320;
             screenRows = AVATAR_ROWS;
@@ -486,10 +500,10 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
         init();
         displayInit(&mspOsdDisplayPort, &mspOsdVTable);
 
-        if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) {
-            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: BetaFlight Compatability mode";
-        } else if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT_HD) {
-            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: BetaFlight Compatability mode (HD)";
+        if (osdVideoSystem == VIDEO_SYSTEM_DJICOMPAT) {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: DJI Compatability mode";
+        } else if (osdVideoSystem == VIDEO_SYSTEM_DJICOMPAT_HD) {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: DJI Compatability mode (HD)";
         } else {
             mspOsdDisplayPort.displayPortType = "MSP DisplayPort";
         }
@@ -525,7 +539,7 @@ void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
     }
 }
 
-mspPort_t *getMspOsdPort()
+mspPort_t *getMspOsdPort(void)
 {
     if (mspPort.port) {
         return &mspPort;

@@ -1,3 +1,4 @@
+
 main_sources(COMMON_SRC
     main.c
 
@@ -485,6 +486,8 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
+    io/rangefinder_usd1_v0.c
+    io/rangefinder_nanoradar.c
     io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
@@ -497,8 +500,8 @@ main_sources(COMMON_SRC
     io/displayport_max7456.h
     io/displayport_msp.c
     io/displayport_msp.h
-    io/displayport_msp_bf_compat.c
-    io/displayport_msp_bf_compat.h
+    io/displayport_msp_dji_compat.c
+    io/displayport_msp_dji_compat.h
     io/displayport_oled.c
     io/displayport_oled.h
     io/displayport_msp_osd.c

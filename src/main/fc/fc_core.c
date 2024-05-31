@@ -342,6 +342,10 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
         }
 
+        if (ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED) && !IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
+        }
+
         /* CHECK: Arming switch */
         // If arming is disabled and the ARM switch is on
         // Note that this should be last check so all other blockers could be cleared correctly
@@ -896,7 +900,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
 #if defined(SITL_BUILD)
-    if (lockMainPID()) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) || lockMainPID()) {
 #endif
 
     gyroFilter();

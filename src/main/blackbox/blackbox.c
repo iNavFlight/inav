@@ -402,13 +402,15 @@ static const blackboxSimpleFieldDefinition_t blackboxGpsHFields[] = {
 
 // Rarely-updated fields
 static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
+    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},    
     {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 
     {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
     {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
     {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-
+    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
+    
     {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
@@ -436,8 +438,6 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
-    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
-    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
 
 typedef enum BlackboxState {
@@ -1259,7 +1259,8 @@ static void writeSlowFrame(void)
     int32_t values[3];
 
     blackboxWrite('S');
-
+    
+    blackboxWriteUnsignedVB(slowHistory.activeWpNumber);
     blackboxWriteUnsignedVB(slowHistory.flightModeFlags);
     blackboxWriteUnsignedVB(slowHistory.stateFlags);
 
@@ -1268,8 +1269,10 @@ static void writeSlowFrame(void)
      */
     values[0] = slowHistory.failsafePhase;
     values[1] = slowHistory.rxSignalReceived ? 1 : 0;
-    values[2] = slowHistory.rxFlightChannelsValid ? 1 : 0;
+    values[2] = slowHistory.rxFlightChannelsValid ? 1 : 0;    
     blackboxWriteTag2_3S32(values);
+
+    blackboxWriteUnsignedVB(slowHistory.rxUpdateRate);    
 
     blackboxWriteUnsignedVB(slowHistory.hwHealthStatus);
 
@@ -1296,8 +1299,6 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
-    blackboxWriteUnsignedVB(slowHistory.rxUpdateRate);
-    blackboxWriteUnsignedVB(slowHistory.activeWpNumber);
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1307,10 +1308,17 @@ static void writeSlowFrame(void)
  */
 static void loadSlowState(blackboxSlowState_t *slow)
 {
+    slow->activeWpNumber = getActiveWpNumber();
     memcpy(&slow->flightModeFlags, &rcModeActivationMask, sizeof(slow->flightModeFlags)); //was flightModeFlags;
-    // Also log Nav auto selected flight modes rather than just those selected by boxmode
-    if (!IS_RC_MODE_ACTIVE(BOXANGLE) && FLIGHT_MODE(ANGLE_MODE)) {
+    // Also log Nav auto enabled flight modes rather than just those selected by boxmode
+    if (FLIGHT_MODE(ANGLE_MODE)) {
         slow->flightModeFlags |= (1 << BOXANGLE);
+    }
+    if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+        slow->flightModeFlags |= (1 << BOXNAVALTHOLD);
+    }
+    if (FLIGHT_MODE(NAV_RTH_MODE)) {
+        slow->flightModeFlags |= (1 << BOXNAVRTH);
     }
     if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {
         slow->flightModeFlags |= (1 << BOXHEADINGHOLD);
@@ -1322,6 +1330,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
     slow->failsafePhase = failsafePhase();
     slow->rxSignalReceived = rxIsReceivingSignal();
     slow->rxFlightChannelsValid = rxAreFlightChannelsValid();
+    slow->rxUpdateRate = getRcUpdateFrequency();    
     slow->hwHealthStatus = (getHwGyroStatus()           << 2 * 0) |     // Pack hardware health status into a bit field.
                            (getHwAccelerometerStatus()  << 2 * 1) |     // Use raw hardwareSensorStatus_e values and pack them using 2 bits per value
                            (getHwCompassStatus()        << 2 * 2) |     // Report GYRO in 2 lowest bits, then ACC, COMPASS, BARO, GPS, RANGEFINDER and PITOT
@@ -1373,9 +1382,6 @@ static void loadSlowState(blackboxSlowState_t *slow)
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
 #endif
-
-    slow->rxUpdateRate = getRcUpdateFrequency();
-    slow->activeWpNumber = getActiveWpNumber();
 }
 
 /**

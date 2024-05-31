@@ -163,6 +163,7 @@ static const char * outputModeNames[] = {
     "AUTO",
     "MOTORS",
     "SERVOS",
+    "LED",
     NULL
 };
 
@@ -1171,7 +1172,7 @@ static void cliRxRange(char *cmdline)
         ptr = cmdline;
         i = fastA2I(ptr);
         if (i >= 0 && i < NON_AUX_CHANNEL_COUNT) {
-            int rangeMin, rangeMax;
+            int rangeMin = 0, rangeMax = 0;
 
             ptr = nextArg(ptr);
             if (ptr) {
@@ -2821,6 +2822,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_MOTORS;
                 } else if(!sl_strcasecmp("SERVOS", tok)) {
                     mode = OUTPUT_MODE_SERVOS;
+                } else if(!sl_strcasecmp("LED", tok)) {
+                    mode = OUTPUT_MODE_LED;
                 } else {
                     cliShowParseError();
                     return;
