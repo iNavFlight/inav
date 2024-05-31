@@ -55,7 +55,6 @@ Fly safe, fly smart with INAV 7.1 and a compass by your side!
 * SmartAudio and IRC Tramp VTX support
 * Telemetry: SmartPort, FPort, MAVlink, LTM, CRSF
 * Multi-color RGB LED Strip support
-* On Screen Display (OSD) - both character and pixel style
 * And many more!
 
 For a list of features, changes and some discussion please review consult the releases [page](https://github.com/iNavFlight/inav/releases) and the documentation.
