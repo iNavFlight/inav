@@ -1590,7 +1590,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
     case MSP2_INAV_OUTPUT_MAPPING_EXT2:
         {
-            #if defined(SITIL_BUILD)
+            #if !defined(SITIL_BUILD)
             ioTag_t led_tag = IO_TAG(WS2811_PIN);
             #endif
             for (uint8_t i = 0; i < timerHardwareCount; ++i)
