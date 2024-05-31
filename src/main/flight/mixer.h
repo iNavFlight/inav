@@ -48,7 +48,8 @@ typedef enum {
 typedef enum {
     OUTPUT_MODE_AUTO     = 0,
     OUTPUT_MODE_MOTORS,
-    OUTPUT_MODE_SERVOS
+    OUTPUT_MODE_SERVOS,
+    OUTPUT_MODE_LED
 } outputMode_e;
 
 typedef struct motorAxisCorrectionLimits_s {
