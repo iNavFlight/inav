@@ -53,55 +53,16 @@ The following procedure describes the process under Windows 10/11:
 Please read [Building in Windows 2010 or 11 with Linux Subsystem](https://github.com/iNavFlight/inav/blob/master/docs/development/Building%20in%20Windows%2010%20or%2011%20with%20Linux%20Subsystem.md)
 and follow the instructions up to "Building with Make".
 
-To activate MSP by default, go to the directory `src/main/target/[your target]`.
-If no config.c exists, create a new text file with this name and the following content:
+In the step 'prepare build environment' add the option `-DMSP_UART=SERIAL_PORT_USARTX` to `cmake`
 
-```
-/*
- * This file is part of INAV.
- *
- * INAV is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * INAV is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-#include <stdint.h>
-
-#include "platform.h"
-#include "io/serial.h"
-
-void targetConfiguration(void)
-{
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USARTX)].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USARTX)].msp_baudrateIndex = BAUD_115200;
-}
-
-```
-
-If the file already exists, add the following lines in the function `void targetConfiguration(void)` (before the last `}`)
-
-```
-serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USARTX)].functionMask = FUNCTION_MSP;
-serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USARTX)].msp_baudrateIndex = BAUD_115200;
-```
-
-Replace the X in SERIAL_PORT_USARTX (in both lines) with the number of UART/serial port on which MSP is to be activated.
+Replace the X in SERIAL_PORT_USARTX with the number of UART/serial port on which MSP is to be activated.
 
 Example:
-For UART 2: `SERIAL_PORT_USART2`
-For UART 3: `SERIAL_PORT_USART3`
+For UART 2: `cmake -DMSP_UART=SERIAL_PORT_USART2 ..`
+For UART 3: `cmake -DMSP_UART=SERIAL_PORT_USART3 ..`
 etc.
 
-Save the file and build the firmware as described in the document above.
+Build the firmware as described in the document above (`make [YOUR_TARGET]`).
 
 ## Flashing via Uart:
 
