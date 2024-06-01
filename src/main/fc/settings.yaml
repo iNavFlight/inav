@@ -1934,12 +1934,6 @@ groups:
         field: fixedWingCoordinatedPitchGain
         min: 0
         max: 2
-      - name: fw_iterm_limit_stick_position
-        description: "Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side"
-        default_value: 0.5
-        field: fixedWingItermLimitOnStickPosition
-        min: 0
-        max: 1
       - name: fw_yaw_iterm_freeze_bank_angle
         description: "Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solves the problem of the rudder counteracting turns by partially disabling yaw stabilization when making banked turns. Setting to 0 (the default) disables this feature. Only applies when autopilot is not active and TURN ASSIST is disabled."
         default_value: 0
@@ -2233,6 +2227,24 @@ groups:
         field: fixedWingLevelTrimGain
         min: 0
         max: 20
+      - name: fw_iterm_lock_time_max_ms
+        description: Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+        default_value: 500
+        field: fwItermLockTimeMaxMs
+        min: 100
+        max: 1000
+      - name: fw_iterm_lock_rate_threshold
+        description: Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+        field: fwItermLockRateLimit
+        default_value: 40
+        min: 10
+        max: 100
+      - name: fw_iterm_lock_engage_threshold
+        description: Defines error rate (in percents of max rate) when Iterm Lock is engaged when sticks are release. Iterm Lock will stay active until error drops below this number
+        default_value: 10
+        min: 5
+        max: 25
+        field: fwItermLockEngageThreshold
 
   - name: PG_PID_AUTOTUNE_CONFIG
     type: pidAutotuneConfig_t
@@ -2271,11 +2283,6 @@ groups:
         field: gravity_calibration_tolerance
         min: 0
         max: 255
-      - name: inav_use_gps_no_baro
-        description: "Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed."
-        field: use_gps_no_baro
-        type: bool
-        default_value: ON
       - name: inav_allow_dead_reckoning
         description: "Defines if INAV will dead-reckon over short GPS outages. May also be useful for indoors OPFLOW navigation"
         default_value: OFF
@@ -3453,7 +3460,6 @@ groups:
         min: 8
         max: 11
         default_value: 9
-
       - name: osd_adsb_distance_warning
         description: "Distance in meters of ADSB aircraft that is displayed"
         default_value: 20000
@@ -3478,7 +3484,6 @@ groups:
         min: 0
         max: 64000
         type: uint16_t
-
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
         default_value: ON
@@ -3491,12 +3496,10 @@ groups:
         condition: USE_WIND_ESTIMATOR
         field: estimations_wind_mps
         type: bool
-
       - name: osd_failsafe_switch_layout
         description: "If enabled the OSD automatically switches to the first layout during failsafe"
         default_value: OFF
         type: bool
-
       - name: osd_plus_code_digits
         description: "Numer of plus code digits before shortening with `osd_plus_code_short`. Precision at the equator: 10=13.9x13.9m; 11=2.8x3.5m; 12=56x87cm; 13=11x22cm."
         field: plus_code_digits
@@ -3508,213 +3511,186 @@ groups:
         field: plus_code_short
         default_value: "0"
         table: osd_plus_code_short
-
       - name: osd_ahi_style
         description: "Sets OSD Artificial Horizon style \"DEFAULT\" or \"LINE\" for the FrSky Graphical OSD."
         field: ahi_style
         default_value: "DEFAULT"
         table: osd_ahi_style
         type: uint8_t
-
       - name: osd_force_grid
         field: force_grid
         type: bool
         default_value: OFF
         description: Force OSD to work in grid mode even if the OSD device supports pixel level access (mainly used for development)
-
       - name: osd_ahi_bordered
         field: ahi_bordered
         type: bool
         description: Shows a border/corners around the AHI region (pixel OSD only)
         default_value: OFF
-
       - name: osd_ahi_width
         field: ahi_width
         max: 255
         description: AHI width in pixels (pixel OSD only)
         default_value: 132
-
       - name: osd_ahi_height
         field: ahi_height
         max: 255
         description: AHI height in pixels (pixel OSD only)
         default_value: 162
-
       - name: osd_ahi_vertical_offset
         field: ahi_vertical_offset
         min: -128
         max: 127
         description: AHI vertical offset from center (pixel OSD only)
         default_value: -18
-
       - name: osd_sidebar_horizontal_offset
         field: sidebar_horizontal_offset
         min: -128
         max: 127
         default_value: 0
         description: Sidebar horizontal offset from default position. Positive values move the sidebars closer to the edges.
-
       - name: osd_left_sidebar_scroll_step
         field: left_sidebar_scroll_step
         max: 255
         default_value: 0
         description: How many units each sidebar step represents. 0 means the default value for the scroll type.
-
       - name: osd_right_sidebar_scroll_step
         field: right_sidebar_scroll_step
         max: 255
         default_value: 0
         description: Same as left_sidebar_scroll_step, but for the right sidebar
-
       - name: osd_sidebar_height
         field: sidebar_height
         min: 0
         max: 5
         default_value: 3
         description: Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
-
       - name: osd_ahi_pitch_interval
         field: ahi_pitch_interval
         min: 0
         max: 30
         default_value: 0
         description: Draws AHI at increments of the set pitch interval over the full pitch range. AHI line is drawn with ends offset when pitch first exceeds interval with offset increasing with increasing pitch. Offset direction changes between climb and dive. Set to 0 to disable (Not for pixel OSD)
-
       - name: osd_home_position_arm_screen
         type: bool
         default_value: ON
         description: Should home position coordinates be displayed on the arming screen.
-
       - name: osd_pan_servo_index
         description: Index of the pan servo, used to adjust osd home heading direction based on camera pan. Note that this feature does not work with continiously rotating servos.
         field: pan_servo_index
         min: 0
         max: 16
         default_value: 0
-
       - name: osd_pan_servo_pwm2centideg
         description: Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
         field: pan_servo_pwm2centideg
         default_value: 0
         min: -36
         max: 36
-
       - name: osd_pan_servo_offcentre_warning
         description: Degrees either side of the pan servo centre; where it is assumed camera is wanted to be facing forwards, but isn't at 0. If in this range and not 0 for longer than 10 seconds, the pan servo offset OSD element will blink. 0 means the warning is disabled.
         field: pan_servo_offcentre_warning
         min: 0
         max: 45
         default_value: 10
-
       - name: osd_pan_servo_indicator_show_degrees
         description: Show the degress of offset from centre on the pan servo OSD display element.
         field: pan_servo_indicator_show_degrees
         type: bool
         default_value: OFF
-
       - name: osd_esc_rpm_precision
         description: Number of characters used to display the RPM value.
         field: esc_rpm_precision
         min: 3
         max: 6
         default_value: 3
-
       - name: osd_mah_precision
         description: Number of digits used for mAh precision. Currently used by mAh Used and Battery Remaining Capacity
         field: mAh_precision
         min: 4
         max: 6
         default_value: 4
-
       - name: osd_use_pilot_logo
         description: Use custom pilot logo with/instead of the INAV logo. The pilot logo must be characters 473 to 511
         field: use_pilot_logo
         type: bool
         default_value: OFF
-
       - name: osd_inav_to_pilot_logo_spacing
         description: The space between the INAV and pilot logos, if `osd_use_pilot_logo` is `ON`. This number may be adjusted so that it fits the odd/even col width displays. For example, if using an odd column width display, such as Walksnail, and this is set to 4. 1 will be added so that the logos are equally spaced from the centre of the screen.
         field: inav_to_pilot_logo_spacing
         min: 0
         max: 20
         default_value: 8
-
       - name: osd_arm_screen_display_time
         description: Amount of time to display the arm screen [ms]
         field: arm_screen_display_time
         min: 1000
         max: 5000
         default_value: 1500
-
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
         type: string
         max: 5
         default_value: "FLAP"
-
       - name: osd_switch_indicator_one_name
         description: "Character to use for OSD switch incicator 1."
         field: osd_switch_indicator1_name
         type: string
         max: 5
         default_value: "GEAR"
-
       - name: osd_switch_indicator_two_name
         description: "Character to use for OSD switch incicator 2."
         field: osd_switch_indicator2_name
         type: string
         max: 5
         default_value: "CAM"
-
       - name: osd_switch_indicator_three_name
         description: "Character to use for OSD switch incicator 3."
         field: osd_switch_indicator3_name
         type: string
         max: 5
         default_value: "LIGT"
-
       - name: osd_switch_indicator_zero_channel
         description: "RC Channel to use for OSD switch indicator 0."
         field: osd_switch_indicator0_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-
       - name: osd_switch_indicator_one_channel
         description: "RC Channel to use for OSD switch indicator 1."
         field: osd_switch_indicator1_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-
       - name: osd_switch_indicator_two_channel
         description: "RC Channel to use for OSD switch indicator 2."
         field: osd_switch_indicator2_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-
       - name: osd_switch_indicator_three_channel
         description: "RC Channel to use for OSD switch indicator 3."
         field: osd_switch_indicator3_channel
         min: 5
         max: MAX_SUPPORTED_RC_CHANNEL_COUNT
         default_value: 5
-
       - name: osd_switch_indicators_align_left
         description: "Align text to left of switch indicators"
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
-
       - name: osd_system_msg_display_time
         description: System message display cycle time for multiple messages (milliseconds).
         field: system_msg_display_time
         default_value: 1000
         min: 500
         max: 5000
-
+      - name: osd_highlight_djis_missing_font_symbols
+        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
+        field: highlight_djis_missing_characters
+        default_value: ON
+        type: bool
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

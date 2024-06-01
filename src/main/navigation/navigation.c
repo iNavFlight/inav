@@ -301,10 +301,6 @@ bool validateRTHSanityChecker(void);
 void updateHomePosition(void);
 bool abortLaunchAllowed(void);
 
-// static bool rthAltControlStickOverrideCheck(unsigned axis);
-// static void updateRthTrackback(bool forceSaveTrackPoint);
-// static fpVector3_t * rthGetTrackbackPos(void);
-
 #ifdef USE_FW_AUTOLAND
 static float getLandAltitude(void);
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
@@ -1449,10 +1445,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_INITIALIZE(navigati
         }
         else {
             // Switch to RTH trackback
-            bool trackbackActive = navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_ON ||
-                                   (navConfig()->general.flags.rth_trackback_mode == RTH_TRACKBACK_FS && posControl.flags.forcedRTHActivated);
-
-            if (trackbackActive && rth_trackback.activePointIndex >= 0 && !isWaypointMissionRTHActive()) {
+            if (rthTrackBackCanBeActivated() && rth_trackback.activePointIndex >= 0 && !isWaypointMissionRTHActive()) {
                 rthTrackBackUpdate(true);  // save final trackpoint for altitude and max trackback distance reference
                 posControl.flags.rthTrackbackActive = true;
                 calculateAndSetActiveWaypointToLocalPosition(getRthTrackBackPosition());
@@ -1571,7 +1564,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_TRACKBACK(navigatio
         return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
     }
 
-    if (rthTrackBackSetNewPosition()) {
+    if (!rthTrackBackSetNewPosition()) {
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE;
     }
 

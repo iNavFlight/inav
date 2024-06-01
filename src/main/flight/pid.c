@@ -66,6 +66,14 @@
 #include "programming/logic_condition.h"
 
 typedef struct {
+    float aP;
+    float aI;
+    float aD;
+    float aFF;
+    timeMs_t targetOverThresholdTimeMs;
+} fwPidAttenuation_t;
+
+typedef struct {
     uint8_t axis;
     float kP;   // Proportional gain
     float kI;   // Integral gain
@@ -106,6 +114,8 @@ typedef struct {
     pt3Filter_t rateTargetFilter;
 
     smithPredictor_t smithPredictor;
+
+    fwPidAttenuation_t attenuation;
 } pidState_t;
 
 STATIC_FASTRAM bool pidFiltersConfigured = false;
@@ -157,7 +167,6 @@ static EXTENDED_FASTRAM uint8_t usedPidControllerType;
 typedef void (*pidControllerFnPtr)(pidState_t *pidState, float dT, float dT_inv);
 static EXTENDED_FASTRAM pidControllerFnPtr pidControllerApplyFn;
 static EXTENDED_FASTRAM filterApplyFnPtr dTermLpfFilterApplyFn;
-static EXTENDED_FASTRAM bool levelingEnabled = false;
 static EXTENDED_FASTRAM bool restartAngleHoldMode = true;
 static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 
@@ -169,7 +178,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 8);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -268,7 +277,6 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingReferenceAirspeed = SETTING_FW_REFERENCE_AIRSPEED_DEFAULT,
         .fixedWingCoordinatedYawGain = SETTING_FW_TURN_ASSIST_YAW_GAIN_DEFAULT,
         .fixedWingCoordinatedPitchGain = SETTING_FW_TURN_ASSIST_PITCH_GAIN_DEFAULT,
-        .fixedWingItermLimitOnStickPosition = SETTING_FW_ITERM_LIMIT_STICK_POSITION_DEFAULT,
         .fixedWingYawItermBankFreeze = SETTING_FW_YAW_ITERM_FREEZE_BANK_ANGLE_DEFAULT,
 
         .navVelXyDTermLpfHz = SETTING_NAV_MC_VEL_XY_DTERM_LPF_HZ_DEFAULT,
@@ -304,6 +312,9 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
         .smithPredictorFilterHz = SETTING_SMITH_PREDICTOR_LPF_HZ_DEFAULT,
 #endif
+        .fwItermLockTimeMaxMs = SETTING_FW_ITERM_LOCK_TIME_MAX_MS_DEFAULT,
+        .fwItermLockRateLimit = SETTING_FW_ITERM_LOCK_RATE_THRESHOLD_DEFAULT,
+        .fwItermLockEngageThreshold = SETTING_FW_ITERM_LOCK_ENGAGE_THRESHOLD_DEFAULT,
 );
 
 bool pidInitFilters(void)
@@ -670,19 +681,6 @@ static void pidApplySetpointRateLimiting(pidState_t *pidState, flight_dynamics_i
     }
 }
 
-bool isFixedWingItermLimitActive(float stickPosition)
-{
-    /*
-     * Iterm anti windup whould be active only when pilot controls the rotation
-     * velocity directly, not when ANGLE or HORIZON are used
-     */
-    if (levelingEnabled) {
-        return false;
-    }
-
-    return fabsf(stickPosition) > pidProfile()->fixedWingItermLimitOnStickPosition;
-}
-
 static float pTermProcess(pidState_t *pidState, float rateError, float dT) {
     float newPTerm = rateError * pidState->kP;
 
@@ -751,20 +749,61 @@ static void nullRateController(pidState_t *pidState, float dT, float dT_inv) {
     UNUSED(dT_inv);
 }
 
+static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, const float rateError) {
+    const float maxRate = currentControlRateProfile->stabilized.rates[pidState->axis] * 10.0f;
+
+    const float dampingFactor = attenuation(rateTarget, maxRate * pidProfile()->fwItermLockRateLimit / 100.0f);
+
+    /*
+     * Iterm damping is applied (down to 0) when:
+     * abs(error) > 10% rate and sticks were moved in the last 500ms (hard stop at this mark)
+
+     * itermAttenuation  = MIN(curve(setpoint), (abs(error) > 10%) && (sticks were deflected in 500ms) ? 0 : 1)
+     */
+
+    //If error is greater than 10% or max rate
+    const bool errorThresholdReached = fabsf(rateError) > maxRate * pidProfile()->fwItermLockEngageThreshold / 100.0f;
+
+    //If stick (setpoint) was moved above threshold in the last 500ms
+    if (fabsf(rateTarget) > maxRate * 0.2f) {
+        pidState->attenuation.targetOverThresholdTimeMs = millis();
+    }
+
+    //If error is below threshold, we no longer track time for lock mechanism
+    if (!errorThresholdReached) {
+        pidState->attenuation.targetOverThresholdTimeMs = 0;
+    }
+
+    pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
+
+    //P & D damping factors are always the same and based on current damping factor
+    pidState->attenuation.aP = dampingFactor;
+    pidState->attenuation.aD = dampingFactor;
+
+    if (pidState->axis == FD_ROLL) {
+        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->attenuation.aP * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 1, pidState->attenuation.aI * 1000);
+        DEBUG_SET(DEBUG_ALWAYS, 2, pidState->attenuation.aD * 1000);
+    }
+}
+
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float dT, float dT_inv)
 {
     const float rateTarget = getFlightAxisRateOverride(pidState->axis, pidState->rateTarget);
 
     const float rateError = rateTarget - pidState->gyroRate;
-    const float newPTerm = pTermProcess(pidState, rateError, dT);
-    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv);
+
+    fwRateAttenuation(pidState, rateTarget, rateError);
+
+    const float newPTerm = pTermProcess(pidState, rateError, dT) * pidState->attenuation.aP;
+    const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * pidState->attenuation.aD;
     const float newFFTerm = rateTarget * pidState->kFF;
 
     /*
      * Integral should be updated only if axis Iterm is not frozen
      */
     if (!pidState->itermFreezeActive) {
-        pidState->errorGyroIf += rateError * pidState->kI * dT;
+        pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
     }
 
     applyItermLimiting(pidState);
@@ -1046,11 +1085,9 @@ static void pidApplyFpvCameraAngleMix(pidState_t *pidState, uint8_t fpvCameraAng
 
 void checkItermLimitingActive(pidState_t *pidState)
 {
-    bool shouldActivate;
-    if (usedPidControllerType == PID_TYPE_PIFF) {
-        shouldActivate = isFixedWingItermLimitActive(pidState->stickPosition);
-    } else
-    {
+    bool shouldActivate = false;
+
+    if (usedPidControllerType == PID_TYPE_PID) {
         shouldActivate = mixerIsOutputSaturated(); //just in case, since it is already managed by itermWindupPointPercent
     }
 
@@ -1180,7 +1217,6 @@ void FAST_CODE pidController(float dT)
 
     // Step 3: Run control for ANGLE_MODE, HORIZON_MODE and ANGLEHOLD_MODE
     const float horizonRateMagnitude = FLIGHT_MODE(HORIZON_MODE) ? calcHorizonRateMagnitude() : 0.0f;
-    levelingEnabled = false;
     angleHoldIsLevel = false;
 
     for (uint8_t axis = FD_ROLL; axis <= FD_PITCH; axis++) {
@@ -1200,7 +1236,6 @@ void FAST_CODE pidController(float dT)
             // Apply the Level PID controller
             pidLevel(angleTarget, &pidState[axis], axis, horizonRateMagnitude, dT);
             canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with ANGLE/HORIZON
-            levelingEnabled = true;
         } else {
             restartAngleHoldMode = true;
         }

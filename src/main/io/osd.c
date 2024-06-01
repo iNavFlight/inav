@@ -70,7 +70,7 @@
 #include "io/osd_common.h"
 #include "io/osd_hud.h"
 #include "io/osd_utils.h"
-#include "io/displayport_msp_bf_compat.h"
+#include "io/displayport_msp_dji_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 
@@ -223,7 +223,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 11);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 void osdStartedSaveProcess(void) {
@@ -253,51 +253,6 @@ bool osdIsNotMetric(void) {
     return !(osdConfig()->units == OSD_UNIT_METRIC || osdConfig()->units == OSD_UNIT_METRIC_MPH);
 }
 
-/*
- * Aligns text to the left side. Adds spaces at the end to keep string length unchanged.
- */
-/* -- Currently unused --
-static void osdLeftAlignString(char *buff)
-{
-    uint8_t sp = 0, ch = 0;
-    uint8_t len = strlen(buff);
-    while (buff[sp] == ' ') sp++;
-    for (ch = 0; ch < (len - sp); ch++) buff[ch] = buff[ch + sp];
-    for (sp = ch; sp < len; sp++) buff[sp] = ' ';
-}*/
-
-/*
- * This is a simplified distance conversion code that does not use any scaling
- * but is fully compatible with the DJI G2 MSP Displayport OSD implementation.
- * (Based on osdSimpleAltitudeSymbol() implementation)
- */
-/* void osdSimpleDistanceSymbol(char *buff, int32_t dist) {
-
-    int32_t convertedDistance;
-    char suffix;
-
-    switch ((osd_unit_e)osdConfig()->units) {
-        case OSD_UNIT_UK:
-            FALLTHROUGH;
-        case OSD_UNIT_GA:
-            FALLTHROUGH;
-        case OSD_UNIT_IMPERIAL:
-            convertedDistance = CENTIMETERS_TO_FEET(dist);
-            suffix = SYM_ALT_FT;
-            break;
-        case OSD_UNIT_METRIC_MPH:
-            FALLTHROUGH;
-        case OSD_UNIT_METRIC:
-            convertedDistance = CENTIMETERS_TO_METERS(dist);
-            suffix = SYM_ALT_M; // Intentionally use the altitude symbol, as the distance symbol is not defined in BFCOMPAT mode
-            break;
-    }
-
-    tfp_sprintf(buff, "%5d", (int) convertedDistance); // 5 digits, allowing up to 99999 meters/feet, which should be plenty for 99.9% of use cases
-    buff[5] = suffix;
-    buff[6] = '\0';
-} */
-
 /**
  * Converts distance into a string based on the current unit system
  * prefixed by a a symbol to indicate the unit used.
@@ -313,12 +268,12 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals)
     uint8_t symbol_mi = SYM_DIST_MI;
     uint8_t symbol_nm = SYM_DIST_NM;
 
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-    if (isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
+    if (isDJICompatibleVideoSystem(osdConfig())) {
         // Add one digit so up no switch to scaled decimal occurs above 99
         digits = 4U;
         sym_index = 4U;
-        // Use altitude symbols on purpose, as it seems distance symbols are not defined in BFCOMPAT mode
+        // Use altitude symbols on purpose, as it seems distance symbols are not defined in DJICOMPAT mode
         symbol_m = SYM_ALT_M;
         symbol_km = SYM_ALT_KM;
         symbol_ft = SYM_ALT_FT;
@@ -570,8 +525,8 @@ void osdFormatAltitudeSymbol(char *buff, int32_t alt)
         buff[0] = ' ';
     }
 
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values  
-    if (isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values  
+    if (isDJICompatibleVideoSystem(osdConfig())) {
         totalDigits++;
         digits++;
         symbolIndex++;
@@ -792,21 +747,21 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
     int32_t decimalPart = abs(val % (int)GPS_DEGREES_DIVIDER);
     STATIC_ASSERT(GPS_DEGREES_DIVIDER == 1e7, adjust_max_decimal_digits);
     int decimalDigits;
-    bool bfcompat = false;  // Assume BFCOMPAT mode is no enabled
+    bool djiCompat = false;  // Assume DJICOMPAT mode is no enabled
 
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-        if(isBfCompatibleVideoSystem(osdConfig())) {
-            bfcompat = true;
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+        if(isDJICompatibleVideoSystem(osdConfig())) {
+            djiCompat = true;
         }
 #endif
 
-    if (!bfcompat) {
+    if (!djiCompat) {
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, "%07d", (int)decimalPart);
         // Embbed the decimal separator
         buff[1 + integerDigits - 1] += SYM_ZERO_HALF_TRAILING_DOT - '0';
         buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
     } else {
-        // BFCOMPAT mode enabled
+        // DJICOMPAT mode enabled
         decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%06d", (int)decimalPart);
     }
     // Fill up to coordinateLength with zeros
@@ -1752,8 +1707,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_MAIN_BATT_VOLTAGE: {
         uint8_t base_digits = 2U;
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-        if(isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+        if(isDJICompatibleVideoSystem(osdConfig())) {
             base_digits = 3U;   // Add extra digit to account for decimal point taking an extra character space
         }
 #endif
@@ -1763,8 +1718,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE: {
         uint8_t base_digits = 2U;
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-        if(isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+        if(isDJICompatibleVideoSystem(osdConfig())) {
             base_digits = 3U;   // Add extra digit to account for decimal point taking an extra character space
         }
 #endif
@@ -1787,9 +1742,9 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAH_DRAWN: {
         uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
 
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-        if (isBfCompatibleVideoSystem(osdConfig())) {
-            //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+        if (isDJICompatibleVideoSystem(osdConfig())) {
+            //DJIcompat is unable to work with scaled values and it only has mAh symbol to work with
             tfp_sprintf(buff, "%5d", (int)getMAhDrawn());   // Use 5 digits to allow packs below 100Ah
             buff[5] = SYM_MAH;
             buff[6] = '\0';
@@ -1828,9 +1783,9 @@ static bool osdDrawSingleElement(uint8_t item)
         else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
             uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
 
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-            if (isBfCompatibleVideoSystem(osdConfig())) {
-                //BFcompat is unable to work with scaled values and it only has mAh symbol to work with
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+            if (isDJICompatibleVideoSystem(osdConfig())) {
+                //DJIcompat is unable to work with scaled values and it only has mAh symbol to work with
                 tfp_sprintf(buff, "%5d", (int)getBatteryRemainingCapacity());   // Use 5 digits to allow packs below 100Ah
                 buff[5] = SYM_MAH;
                 buff[6] = '\0';
@@ -2139,8 +2094,8 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[1] = SYM_HDP_R;
             int32_t centiHDOP = 100 * gpsSol.hdop / HDOP_SCALE;
             uint8_t digits = 2U;
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-            if (isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
+            if (isDJICompatibleVideoSystem(osdConfig())) {
                 digits = 3U;
             }
 #endif
@@ -2799,8 +2754,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 // time will be longer than 99 minutes. If it is, it will show 99:^^
                 if (glideTime > (99 * 60) + 59) {
                     tfp_sprintf(buff + 1, "%02d:", (int)(glideTime / 60));
-                    buff[4] = SYM_DIRECTION;
-                    buff[5] = SYM_DIRECTION;
+                    buff[4] = SYM_DECORATION;
+                    buff[5] = SYM_DECORATION;
                 } else {
                     tfp_sprintf(buff + 1, "%02d:%02d", (int)(glideTime / 60), (int)(glideTime % 60));
                 }
@@ -3147,8 +3102,8 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAIN_BATT_CELL_VOLTAGE:
         {
             uint8_t base_digits = 3U;
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-            if(isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+            if(isDJICompatibleVideoSystem(osdConfig())) {
                 base_digits = 4U;   // Add extra digit to account for decimal point taking an extra character space
             }
 #endif
@@ -3159,8 +3114,8 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_MAIN_BATT_SAG_COMPENSATED_CELL_VOLTAGE:
         {
             uint8_t base_digits = 3U;
-#ifndef DISABLE_MSP_BF_COMPAT // IF BFCOMPAT is not supported, there's no need to check for it
-            if(isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
+            if(isDJICompatibleVideoSystem(osdConfig())) {
                 base_digits = 4U;   // Add extra digit to account for decimal point taking an extra character space
             }
 #endif
@@ -3215,8 +3170,8 @@ static bool osdDrawSingleElement(uint8_t item)
             timeUs_t currentTimeUs = micros();
             timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
             uint8_t digits = 3U;
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-            if (isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
+            if (isDJICompatibleVideoSystem(osdConfig())) {
                 // Increase number of digits so values above 99 don't get scaled by osdFormatCentiNumber
                 digits = 4U;
             }
@@ -3248,7 +3203,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';    
-                        buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in BFCOMPAT mode
+                        buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in DJICOMPAT mode
                         buff[digits + 1] = SYM_MAH_MI_1;
                         buff[digits + 2] = '\0';
                     }
@@ -3418,7 +3373,7 @@ static bool osdDrawSingleElement(uint8_t item)
             horizontalWindSpeed = getEstimatedHorizontalWindSpeed(&angle);
             int16_t windDirection = osdGetHeadingAngle( CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
             buff[0] = SYM_WIND_HORIZONTAL;
-            buff[1] = SYM_DIRECTION + (windDirection*2 / 90);
+            buff[1] = SYM_DECORATION + (windDirection*2 / 90);
             osdFormatWindSpeedStr(buff + 2, horizontalWindSpeed, valid);
             break;
         }
@@ -3435,10 +3390,10 @@ static bool osdDrawSingleElement(uint8_t item)
             float verticalWindSpeed;
             verticalWindSpeed = -getEstimatedWindSpeed(Z);  //from NED to NEU
             if (verticalWindSpeed < 0) {
-                buff[1] = SYM_AH_DIRECTION_DOWN;
+                buff[1] = SYM_AH_DECORATION_DOWN;
                 verticalWindSpeed = -verticalWindSpeed;
             } else {
-                buff[1] = SYM_AH_DIRECTION_UP;
+                buff[1] = SYM_AH_DECORATION_UP;
             }
             osdFormatWindSpeedStr(buff + 2, verticalWindSpeed, valid);
             break;
@@ -3552,7 +3507,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 referenceSymbol = '-';
             }
-            displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_DIRECTION);
+            displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_DECORATION);
             displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 1, referenceSymbol);
             return true;
         }
@@ -3919,6 +3874,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .airspeed_alarm_min = SETTING_OSD_AIRSPEED_ALARM_MIN_DEFAULT,
     .airspeed_alarm_max = SETTING_OSD_AIRSPEED_ALARM_MAX_DEFAULT,
 #endif
+#ifndef DISABLE_MSP_DJI_COMPAT
+    .highlight_djis_missing_characters = SETTING_OSD_HIGHLIGHT_DJIS_MISSING_FONT_SYMBOLS_DEFAULT,
+#endif
 
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
     .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
@@ -4186,8 +4144,8 @@ uint8_t drawLogos(bool singular, uint8_t row) {
     uint8_t logoColOffset = 0;
     bool usePilotLogo = (osdConfig()->use_pilot_logo && osdDisplayIsHD());
 
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is in use, the pilot logo cannot be used, due to font issues.
-    if (isBfCompatibleVideoSystem(osdConfig()))
+#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is in use, the pilot logo cannot be used, due to font issues.
+    if (isDJICompatibleVideoSystem(osdConfig()))
         usePilotLogo = false;
 #endif
 
@@ -4727,8 +4685,8 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
 
     tfp_sprintf(outBuff, ": ");
     uint8_t digits = 3U;    // Total number of digits (including decimal point)
-#ifndef DISABLE_MSP_BF_COMPAT   // IF BFCOMPAT is not supported, there's no need to check for it and change the values
-    if (isBfCompatibleVideoSystem(osdConfig())) {
+#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
+    if (isDJICompatibleVideoSystem(osdConfig())) {
         // Add one digit so no switch to scaled decimal occurs above 99
         digits = 4U;
     }
