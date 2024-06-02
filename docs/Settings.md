@@ -1462,6 +1462,46 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
+### gimabl_pitch_channel
+
+Gimbal pitch rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimabl_roll_channel
+
+Gimbal roll rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimabl_sensitivity
+
+Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -16 | 15 |
+
+---
+
+### gimabl_yaw_channel
+
+Gimbal yaw rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
 ### gps_auto_baud
 
 Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS

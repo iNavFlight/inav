@@ -4146,3 +4146,31 @@ groups:
         field: maxTailwind
         min: 0
         max: 3000
+  - name: PG_GIMBAL_CONFIG
+    type: gimbalConfig_t
+    headers: ["drivers/gimbal_common.h"]
+    members:
+      - name: gimabl_yaw_channel
+        description: "Gimbal yaw rc channel index. 0 is no channel."
+        default_value: 0
+        field: yawChannel
+        min: 0
+        max: 32
+      - name: gimabl_roll_channel
+        description: "Gimbal roll rc channel index. 0 is no channel."
+        default_value: 0
+        field: yawChannel
+        min: 0
+        max: 32
+      - name: gimabl_pitch_channel
+        description: "Gimbal pitch rc channel index. 0 is no channel."
+        default_value: 0
+        field: yawChannel
+        min: 0
+        max: 32
+      - name: gimabl_sensitivity
+        description: "Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react."
+        default_value: 0
+        field: sensitivity
+        min: -16
+        max: 15

@@ -177,6 +177,8 @@ main_sources(COMMON_SRC
     drivers/flash_m25p16.h
     drivers/flash_w25n01g.c
     drivers/flash_w25n01g.h
+    drivers/gimbal_common.h
+    drivers/gimbal_common.c
     drivers/io.c
     drivers/io.h
     drivers/io_pcf8574.c
@@ -354,6 +356,8 @@ main_sources(COMMON_SRC
     io/servo_sbus.h
     io/frsky_osd.c
     io/frsky_osd.h
+    io/gimbal_htk.c
+    io/gimbal_htk.h
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c
