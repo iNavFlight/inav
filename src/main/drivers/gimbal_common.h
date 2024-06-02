@@ -17,6 +17,10 @@
 
 #pragma once
 
+#include "platform.h"
+
+#ifdef USE_SERIAL_GIMBAL
+
 #include <stdint.h>
 
 #include "config/feature.h"
@@ -35,3 +39,7 @@ typedef enum {
     GIMBAL_MODE_PITCH_LOCK = 1,
     GIMBAL_MODE_FOLLOW = 2
 } gimbal_htk_mode_e;
+
+#define GIMBAL_MODE_DEFAULT = GIMBAL_MODE_FOLLOW;
+
+#endif

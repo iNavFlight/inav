@@ -15,9 +15,15 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "platform.h"
+
+#ifdef USE_SERIAL_GIMBAL
+
 #include <stdint.h>
 #include <config/parameter_group_ids.h>
 
 #include "drivers/gimbal_common.h"
 
 PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
+
+#endif
