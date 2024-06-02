@@ -4145,7 +4145,7 @@ static void printConfig(const char *cmdline, bool doDiff)
             setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
-            cliPrintLinef("profile %d", currentControlProfileIndexSave + 1);
+            cliPrintLinef("control_profile %d", currentControlProfileIndexSave + 1);
             cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
