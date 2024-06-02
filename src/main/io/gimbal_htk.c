@@ -20,6 +20,7 @@
 #ifdef USE_SERIAL_GIMBAL
 
 #include <common/crc.h>
+#include <common/utils.h>
 
 #include <drivers/gimbal_common.h>
 #include <drivers/serial.h>
@@ -30,6 +31,8 @@
 #include <rx/rx.h>
 #include <fc/rc_modes.h>
 
+
+STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
 #define HTK_TX_BUFFER_SIZE 512
 static volatile uint8_t txBuffer[HTK_TX_BUFFER_SIZE];
@@ -67,6 +70,7 @@ void gimbal_htk_update(void)
         .sync = {HTKATTITUDE_SYNC0, HTKATTITUDE_SYNC1},
         .mode = GIMBAL_MODE_FOLLOW,
     };
+
 
     const gimbalConfig_t *cfg = gimbalConfig();
 
@@ -132,7 +136,7 @@ void gimbal_htk_update(void)
     attittude.crcl = crc16 & 0xFF;
 
     serialBeginWrite(htkPort);
-    //serialWriteBuf(htkPort, (uint8_t *)&attittude, sizeof(gimbalHtkAttitudePkt_t));
+    serialWriteBuf(htkPort, (uint8_t *)&attittude, sizeof(gimbalHtkAttitudePkt_t));
     serialEndWrite(htkPort);
     // Send new data
 }
