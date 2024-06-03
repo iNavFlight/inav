@@ -76,4 +76,7 @@ void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
 gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice);
 bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
 
+
+void taskUpdateGimbal(timeUs_t currentTimeUs);
+
 #endif

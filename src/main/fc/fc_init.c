@@ -53,6 +53,7 @@
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
+#include "drivers/gimbal_common.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
@@ -107,6 +108,7 @@
 #include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
+#include "io/gimbal_htk.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -685,6 +687,10 @@ void init(void)
 
 #ifdef USE_DSHOT
     initDShotCommands();
+#endif
+
+#ifdef USE_SERIAL_GIMBAL
+
 #endif
 
     // Latch active features AGAIN since some may be modified by init().

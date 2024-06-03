@@ -25,6 +25,8 @@
 
 #include "common/time.h"
 
+#include "fc/cli.h"
+
 #include "drivers/gimbal_common.h"
 
 
@@ -70,5 +72,20 @@ bool gimbalCommonDeviceIsReady(gimbalDevice_t *gimbalDevice)
     }
     return false;
 }
+
+void taskUpdateGimbal(timeUs_t currentTimeUs)
+{
+    if (cliMode) {
+        return;
+    }
+
+    gimbalDevice_t *gimbalDevice = gimbalCommonDevice();
+
+    if(gimbalDevice) {
+        gimbalCommonProcess(gimbalDevice, currentTimeUs);
+    }
+}
+
+
 
 #endif

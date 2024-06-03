@@ -34,6 +34,7 @@
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/gimbal_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -680,4 +681,12 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 100Hz @10ms
         .staticPriority = TASK_PRIORITY_HIGH,
     },
+#ifdef USE_SERIAL_GIMBAL
+    [TASK_GIMBAL] = {
+        .taskName = "GIMBAL",
+        .taskFunc = taskUpdateGimbal,
+        .desiredPeriod = TASK_PERIOD_HZ(50),
+        .staticPriority = TASK_PRIORITY_LOW,
+    }
+#endif
 };
