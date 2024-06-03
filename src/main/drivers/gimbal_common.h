@@ -24,10 +24,35 @@
 #include <stdint.h>
 
 #include "config/feature.h"
+#include "common/time.h"
+
+
+typedef enum {
+    GIMBAL_DEV_UNSUPPORTED = 0,
+    GIMBAL_DEV_SERIAL,
+    GIMBAL_DEV_UNKNOWN=0xFF
+} gimbalDevType_e;
+
+struct gimbalVTable_s;
+
+typedef struct gimbalDevice_s {
+    const struct gimbalVTable_s *vTable;
+} gimbalDevice_t;
+
+// {set,get}BandAndChannel: band and channel are 1 origin
+// {set,get}PowerByIndex: 0 = Power OFF, 1 = device dependent
+// {set,get}PitMode: 0 = OFF, 1 = ON
+
+typedef struct gimbalVTable_s {
+    void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+    gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimablDevice);
+    bool (*isReady)(const gimbalDevice_t *gimbalDevice);
+} gimbalVTable_t;
+
 
 typedef struct gimbalConfig_s {
-    uint8_t yawChannel;
-    uint8_t pitchChannel;
+    uint8_t panChannel;
+    uint8_t tiltChannel;
     uint8_t rollChannel;
     uint8_t sensitivity;
 } gimbalConfig_t;
@@ -41,5 +66,14 @@ typedef enum {
 } gimbal_htk_mode_e;
 
 #define GIMBAL_MODE_DEFAULT = GIMBAL_MODE_FOLLOW;
+
+void gimbalCommonInit(void);
+void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice);
+gimbalDevice_t *gimbalCommonDevice(void);
+
+// VTable functions
+void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice);
+bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
 
 #endif

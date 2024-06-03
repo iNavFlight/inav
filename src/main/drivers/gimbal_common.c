@@ -20,10 +20,55 @@
 #ifdef USE_SERIAL_GIMBAL
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <config/parameter_group_ids.h>
+
+#include "common/time.h"
 
 #include "drivers/gimbal_common.h"
 
+
 PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
+
+
+static gimbalDevice_t *commonGimbalDevice = NULL;
+
+void gimbalCommonInit(void)
+{
+}
+
+void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice)
+{
+    commonGimbalDevice = gimbalDevice;
+}
+
+gimbalDevice_t *gimbalCommonDevice(void)
+{
+    return commonGimbalDevice;
+}
+
+void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs)
+{
+    if (gimbalDevice && gimbalDevice->vTable->process) {
+        gimbalDevice->vTable->process(gimbalDevice, currentTimeUs);
+    }
+}
+
+gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice)
+{
+    if (!gimbalDevice || !gimbalDevice->vTable->getDeviceType) {
+        return GIMBAL_DEV_UNKNOWN;
+    }
+
+    return gimbalDevice->vTable->getDeviceType(gimbalDevice);
+}
+
+bool gimbalCommonDeviceIsReady(gimbalDevice_t *gimbalDevice)
+{
+    if (gimbalDevice && gimbalDevice->vTable->isReady) {
+        return gimbalDevice->vTable->isReady(gimbalDevice);
+    }
+    return false;
+}
 
 #endif

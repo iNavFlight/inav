@@ -4151,22 +4151,22 @@ groups:
     headers: ["drivers/gimbal_common.h"]
     condition: USE_SERIAL_GIMBAL
     members:
-      - name: gimabl_yaw_channel
-        description: "Gimbal yaw rc channel index. 0 is no channel."
+      - name: gimabl_pan_channel
+        description: "Gimbal pan rc channel index. 0 is no channel."
         default_value: 0
-        field: yawChannel
+        field: panChannel
         min: 0
         max: 32
       - name: gimabl_roll_channel
         description: "Gimbal roll rc channel index. 0 is no channel."
         default_value: 0
-        field: yawChannel
+        field: rollChannel
         min: 0
         max: 32
-      - name: gimabl_pitch_channel
-        description: "Gimbal pitch rc channel index. 0 is no channel."
+      - name: gimabl_tilt_channel
+        description: "Gimbal tilt rc channel index. 0 is no channel."
         default_value: 0
-        field: yawChannel
+        field: tiltChannel
         min: 0
         max: 32
       - name: gimabl_sensitivity
