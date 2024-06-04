@@ -44,9 +44,9 @@
 #define SYM_DBM                     0x13  // 019 dBm
 #define SYM_SNR                     0x14  // 020 SNR
 
-#define SYM_AH_DIRECTION_UP         0x15  // 021 Arrow up AHI
-#define SYM_AH_DIRECTION_DOWN       0x16  // 022 Arrow down AHI
-#define SYM_DIRECTION               0x17  // 023 to 030, directional little arrows
+#define SYM_AH_DECORATION_UP        0x15  // 021 Arrow up AHI
+#define SYM_AH_DECORATION_DOWN      0x16  // 022 Arrow down AHI
+#define SYM_DECORATION              0x17  // 023 to 030, directional little arrows
 
 #define SYM_VOLT                    0x1F  // 031 VOLTS
 #define SYM_MAH                     0x99  // 153 mAh
@@ -178,7 +178,11 @@
 #define SYM_ALERT                   0xDD  // 221 General alert symbol
 #define SYM_TERRAIN_FOLLOWING       0xFB  // 251 Terrain following (also Alt adjust)
 #define SYM_CROSS_TRACK_ERROR       0xFC  // 252 Cross track error
+#define SYM_ADSB                    0xFD  // 253 ADBS
+#define SYM_BLACKBOX                0xFE  // 254 Blackbox
 
+
+#define SYM_ADSB                    0xFD // 253 ADSB
 
 #define SYM_LOGO_START              0x101 // 257 to 297, INAV logo
 #define SYM_LOGO_WIDTH              10

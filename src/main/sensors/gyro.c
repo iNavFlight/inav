@@ -95,18 +95,15 @@ EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 8);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
-    .gyro_lpf = SETTING_GYRO_HARDWARE_LPF_DEFAULT,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
-    .gyro_anti_aliasing_lpf_type = SETTING_GYRO_ANTI_ALIASING_LPF_TYPE_DEFAULT,
     .looptime = SETTING_LOOPTIME_DEFAULT,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
-    .gyro_main_lpf_type = SETTING_GYRO_MAIN_LPF_TYPE_DEFAULT,
     .useDynamicLpf = SETTING_GYRO_USE_DYN_LPF_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
     .gyroDynamicLpfMaxHz = SETTING_GYRO_DYN_LPF_MAX_HZ_DEFAULT,
@@ -233,24 +230,13 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     return gyroHardware;
 }
 
-static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t type, uint16_t cutoff, uint32_t looptime)
+static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t cutoff, uint32_t looptime)
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
-        switch (type)
-        {
-            case FILTER_PT1:
-                *applyFn = (filterApplyFnPtr)pt1FilterApply;
-                for (int axis = 0; axis < 3; axis++) {
-                    pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
-                }
-                break;
-            case FILTER_BIQUAD:
-                *applyFn = (filterApplyFnPtr)biquadFilterApply;
-                for (int axis = 0; axis < 3; axis++) {
-                    biquadFilterInitLPF(&state[axis].biquad, cutoff, looptime);
-                }
-                break;
+        *applyFn = (filterApplyFnPtr)pt1FilterApply;
+        for (int axis = 0; axis < 3; axis++) {
+            pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
         }
     }
 }
@@ -258,10 +244,10 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint8_t 
 static void gyroInitFilters(void)
 {
     //First gyro LPF running at full gyro frequency 8kHz
-    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_type, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
+    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
 
     //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
-    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_type, gyroConfig()->gyro_main_lpf_hz, getLooptime());
+    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime());
 
 #ifdef USE_GYRO_KALMAN
     if (gyroConfig()->kalmanEnabled) {
@@ -295,7 +281,7 @@ bool gyroInit(void)
     sensorsSet(SENSOR_GYRO);
 
     // Driver initialisation
-    gyroDev[0].lpf = gyroConfig()->gyro_lpf;
+    gyroDev[0].lpf = GYRO_LPF_256HZ;
     gyroDev[0].requestedSampleIntervalUs = TASK_GYRO_LOOPTIME;
     gyroDev[0].sampleRateIntervalUs = TASK_GYRO_LOOPTIME;
     gyroDev[0].initFn(&gyroDev[0]);
@@ -566,14 +552,8 @@ int16_t gyroRateDps(int axis)
 }
 
 void gyroUpdateDynamicLpf(float cutoffFreq) {
-    if (gyroConfig()->gyro_main_lpf_type == FILTER_PT1) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            pt1FilterUpdateCutoff(&gyroLpf2State[axis].pt1, cutoffFreq);
-        }
-    } else if (gyroConfig()->gyro_main_lpf_type == FILTER_BIQUAD) {
-        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-            biquadFilterUpdate(&gyroLpf2State[axis].biquad, cutoffFreq, getLooptime(), BIQUAD_Q, FILTER_LPF);
-        }
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        pt1FilterUpdateCutoff(&gyroLpf2State[axis].pt1, cutoffFreq);
     }
 }
 

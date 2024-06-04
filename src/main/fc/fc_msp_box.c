@@ -76,7 +76,6 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXTURNASSIST,       .boxName = "TURN ASSIST",       .permanentId = 35 },
     { .boxId = BOXNAVLAUNCH,        .boxName = "NAV LAUNCH",        .permanentId = 36 },
     { .boxId = BOXAUTOTRIM,         .boxName = "SERVO AUTOTRIM",    .permanentId = 37 },
-    { .boxId = BOXKILLSWITCH,       .boxName = "KILLSWITCH",        .permanentId = 38 },
     { .boxId = BOXCAMERA1,          .boxName = "CAMERA CONTROL 1",  .permanentId = 39 },
     { .boxId = BOXCAMERA2,          .boxName = "CAMERA CONTROL 2",  .permanentId = 40 },
     { .boxId = BOXCAMERA3,          .boxName = "CAMERA CONTROL 3",  .permanentId = 41 },
@@ -214,9 +213,9 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXFPVANGLEMIX);
     }
 
-    bool navReadyAltControl = sensors(SENSOR_BARO);
+    bool navReadyAltControl = getHwBarometerStatus() != HW_SENSOR_NONE;
 #ifdef USE_GPS
-    navReadyAltControl = navReadyAltControl || (feature(FEATURE_GPS) && (STATE(AIRPLANE) || positionEstimationConfig()->use_gps_no_baro));
+    navReadyAltControl = navReadyAltControl || feature(FEATURE_GPS);
 
     const bool navFlowDeadReckoning = sensors(SENSOR_OPFLOW) && sensors(SENSOR_ACC) && positionEstimationConfig()->allow_dead_reckoning;
     bool navReadyPosControl = sensors(SENSOR_ACC) && feature(FEATURE_GPS);
@@ -317,7 +316,6 @@ void initActiveBoxIds(void)
     }
 #endif
 
-    ADD_ACTIVE_BOX(BOXKILLSWITCH);
     ADD_ACTIVE_BOX(BOXFAILSAFE);
 
 #if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)
@@ -402,7 +400,6 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(NAV_LAUNCH_MODE)),          BOXNAVLAUNCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(FLIGHT_MODE(AUTO_TUNE)),                BOXAUTOTUNE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOTRIM)),        BOXAUTOTRIM);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXKILLSWITCH)),      BOXKILLSWITCH);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXHOMERESET)),       BOXHOMERESET);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA1)),         BOXCAMERA1);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXCAMERA2)),         BOXCAMERA2);

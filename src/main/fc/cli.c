@@ -143,8 +143,9 @@ static void cliAssert(char *cmdline);
 #endif
 
 #ifdef USE_CLI_BATCH
-static bool commandBatchActive = false;
-static bool commandBatchError = false;
+static bool     commandBatchActive = false;
+static bool     commandBatchError = false;
+static uint8_t  commandBatchErrorCount = 0;
 #endif
 
 // sync this with features_e
@@ -162,6 +163,7 @@ static const char * outputModeNames[] = {
     "AUTO",
     "MOTORS",
     "SERVOS",
+    "LED",
     NULL
 };
 
@@ -257,6 +259,7 @@ static void cliPrintError(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -268,6 +271,7 @@ static void cliPrintErrorLine(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -370,6 +374,7 @@ static void cliPrintErrorVa(const char *format, va_list va)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -661,6 +666,7 @@ static void cliAssert(char *cmdline)
 #ifdef USE_CLI_BATCH
         if (commandBatchActive) {
             commandBatchError = true;
+            commandBatchErrorCount++;
         }
 #endif
     }
@@ -1166,7 +1172,7 @@ static void cliRxRange(char *cmdline)
         ptr = cmdline;
         i = fastA2I(ptr);
         if (i >= 0 && i < NON_AUX_CHANNEL_COUNT) {
-            int rangeMin, rangeMax;
+            int rangeMin = 0, rangeMax = 0;
 
             ptr = nextArg(ptr);
             if (ptr) {
@@ -2816,6 +2822,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_MOTORS;
                 } else if(!sl_strcasecmp("SERVOS", tok)) {
                     mode = OUTPUT_MODE_SERVOS;
+                } else if(!sl_strcasecmp("LED", tok)) {
+                    mode = OUTPUT_MODE_LED;
                 } else {
                     cliShowParseError();
                     return;
@@ -3420,7 +3428,10 @@ static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
 #ifdef USE_CLI_BATCH
 static void cliPrintCommandBatchWarning(const char *warning)
 {
-    cliPrintErrorLinef("ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING");
+    char errorBuf[59];
+    tfp_sprintf(errorBuf, "%d ERRORS WERE DETECTED - Please review and fix before continuing!", commandBatchErrorCount);
+
+    cliPrintErrorLinef(errorBuf);
     if (warning) {
         cliPrintErrorLinef(warning);
     }
@@ -3430,6 +3441,7 @@ static void resetCommandBatch(void)
 {
     commandBatchActive = false;
     commandBatchError = false;
+    commandBatchErrorCount = 0;
 }
 
 static void cliBatch(char *cmdline)
@@ -3438,6 +3450,7 @@ static void cliBatch(char *cmdline)
         if (!commandBatchActive) {
             commandBatchActive = true;
             commandBatchError = false;
+            commandBatchErrorCount = 0;
         }
         cliPrintLine("Command batch started");
     } else if (strncasecmp(cmdline, "end", 3) == 0) {

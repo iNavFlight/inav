@@ -61,16 +61,18 @@ typedef struct batteryMetersConfig_s {
 #endif
 
     struct {
-        int16_t scale;          // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
-        int16_t offset;         // offset of the current sensor in millivolt steps
-        currentSensor_e type;   // type of current meter used, either ADC or virtual
+        int16_t scale;                  // scale the current sensor output voltage to milliamps. Value in 1/10th mV/A
+        int16_t offset;                 // offset of the current sensor in millivolt steps
+        currentSensor_e type;           // type of current meter used, either ADC or virtual
     } current;
 
     batVoltageSource_e voltageSource;
 
-    uint32_t cruise_power;      // power drawn by the motor(s) at cruise throttle/speed (cW)
-    uint16_t idle_power;        // power drawn by the system when the motor(s) are stopped (cW)
-    uint8_t rth_energy_margin;  // Energy that should be left after RTH (%), used for remaining time/distance before RTH
+    batCapacityUnit_e capacity_unit;    // Describes unit of capacity.value, capacity.warning and capacity.critical
+
+    uint32_t cruise_power;              // power drawn by the motor(s) at cruise throttle/speed (cW)
+    uint16_t idle_power;                // power drawn by the system when the motor(s) are stopped (cW)
+    uint8_t rth_energy_margin;          // Energy that should be left after RTH (%), used for remaining time/distance before RTH
 
     float throttle_compensation_weight;
 
@@ -90,10 +92,9 @@ typedef struct batteryProfile_s {
 #endif
 
     struct {
-        uint32_t value;                     // mAh or mWh (see capacity.unit)
-        uint32_t warning;                   // mAh or mWh (see capacity.unit)
-        uint32_t critical;                  // mAh or mWh (see capacity.unit)
-        batCapacityUnit_e unit;             // Describes unit of capacity.value, capacity.warning and capacity.critical
+        uint32_t value;                     // mAh or mWh (see batteryMetersConfig()->capacity_unit)
+        uint32_t warning;                   // mAh or mWh (see batteryMetersConfig()->capacity_unit)
+        uint32_t critical;                  // mAh or mWh (see batteryMetersConfig()->capacity_unit)
     } capacity;
 
     uint8_t controlRateProfile;
