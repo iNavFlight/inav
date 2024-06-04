@@ -24,7 +24,6 @@
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
-	
     timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
     timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
 }
