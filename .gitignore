@@ -1,10 +1,12 @@
 *.o
 .DS_Store
 *~
+*.swp
 *.uvopt
 *.dep
 *.bak
 *.uvgui.*
+*.ubx
 .project
 .settings
 .cproject
@@ -16,6 +18,7 @@ startup_stm32f10x_md_gcc.s
 cov-int*
 /build/
 /build_SITL/
+/sitl/
 /obj/
 /patches/
 /tools/
