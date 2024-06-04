@@ -890,6 +890,12 @@ groups:
         condition: USE_ADC
         min: 0
         max: 65535
+      - name: battery_capacity_unit
+        description: "Unit used for `battery_capacity`, `battery_capacity_warning` and `battery_capacity_critical` [MAH/MWH] (milliAmpere hour / milliWatt hour)."
+        default_value: "MAH"
+        field: capacity_unit
+        table: bat_capacity_unit
+        type: uint8_t
       - name: current_meter_scale
         description: "This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt."
         default_value: :target
@@ -996,12 +1002,6 @@ groups:
         field: capacity.critical
         min: 0
         max: 4294967295
-      - name: battery_capacity_unit
-        description: "Unit used for `battery_capacity`, `battery_capacity_warning` and `battery_capacity_critical` [MAH/MWH] (milliAmpere hour / milliWatt hour)."
-        default_value: "MAH"
-        field: capacity.unit
-        table: bat_capacity_unit
-        type: uint8_t
       - name: controlrate_profile
         description: "Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile"
         default_value: 0

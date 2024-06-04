@@ -1780,7 +1780,7 @@ static bool osdDrawSingleElement(uint8_t item)
             tfp_sprintf(buff, "  NA");
         else if (!batteryWasFullWhenPluggedIn())
             tfp_sprintf(buff, "  NF");
-        else if (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH) {
+        else if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH) {
             uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
 
 #ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
@@ -1803,11 +1803,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[mah_digits + 1] = '\0';
                 unitsDrawn = true;
             }
-        } else // currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH
+        } else // batteryMetersConfig()->capacityUnit == BAT_CAPACITY_UNIT_MWH
             osdFormatCentiNumber(buff + 1, getBatteryRemainingCapacity() / 10, 0, 2, 0, 3, false);
 
         if (!unitsDrawn) {
-        buff[4] = currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
+        buff[4] = batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH ? SYM_MAH : SYM_WH;
         buff[5] = '\0';
         }
 
