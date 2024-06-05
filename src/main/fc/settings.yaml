@@ -4151,25 +4151,25 @@ groups:
     headers: ["drivers/gimbal_common.h"]
     condition: USE_SERIAL_GIMBAL
     members:
-      - name: gimabl_pan_channel
+      - name: gimbal_pan_channel
         description: "Gimbal pan rc channel index. 0 is no channel."
         default_value: 0
         field: panChannel
         min: 0
         max: 32
-      - name: gimabl_roll_channel
+      - name: gimbal_roll_channel
         description: "Gimbal roll rc channel index. 0 is no channel."
         default_value: 0
         field: rollChannel
         min: 0
         max: 32
-      - name: gimabl_tilt_channel
+      - name: gimbal_tilt_channel
         description: "Gimbal tilt rc channel index. 0 is no channel."
         default_value: 0
         field: tiltChannel
         min: 0
         max: 32
-      - name: gimabl_sensitivity
+      - name: gimbal_sensitivity
         description: "Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react."
         default_value: 0
         field: sensitivity

@@ -1462,7 +1462,7 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
-### gimabl_pan_channel
+### gimbal_pan_channel
 
 Gimbal pan rc channel index. 0 is no channel.
 
@@ -1472,7 +1472,7 @@ Gimbal pan rc channel index. 0 is no channel.
 
 ---
 
-### gimabl_roll_channel
+### gimbal_roll_channel
 
 Gimbal roll rc channel index. 0 is no channel.
 
@@ -1482,7 +1482,7 @@ Gimbal roll rc channel index. 0 is no channel.
 
 ---
 
-### gimabl_sensitivity
+### gimbal_sensitivity
 
 Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react.
 
@@ -1492,7 +1492,7 @@ Gimbal sensitivity is similar to gain and will affect how quickly the gimbal wil
 
 ---
 
-### gimabl_tilt_channel
+### gimbal_tilt_channel
 
 Gimbal tilt rc channel index. 0 is no channel.
 
