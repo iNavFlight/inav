@@ -15,12 +15,17 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdint.h>
+#include <unistd.h>
+
 #include "platform.h"
 
 #ifdef USE_SERIAL_GIMBAL
 
 #include <common/crc.h>
 #include <common/utils.h>
+#include <build/debug.h>
 
 #include <drivers/gimbal_common.h>
 #include <drivers/serial.h>
@@ -31,7 +36,6 @@
 #include <rx/rx.h>
 #include <fc/rc_modes.h>
 
-
 STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
 #define HTK_TX_BUFFER_SIZE 512
@@ -39,15 +43,56 @@ static volatile uint8_t txBuffer[HTK_TX_BUFFER_SIZE];
 
 static serialPort_t *htkPort = NULL;
 
-bool gimbal_htk_detect(void)
+gimbalVTable_t gimbalSerialVTable = {
+       //void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+    .process = gimbalSerialProcess,
+
+    //gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimablDevice);
+    .getDeviceType = gimbalSerialGetDeviceType,
+    //bool (*isReady)(const gimbalDevice_t *gimbalDevice); 
+    .isReady = gimbalSerialIsReady
+
+};
+
+gimbalDevice_t serialGimbalDevice = {
+    .vTable = &gimbalSerialVTable
+
+};
+
+gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice)
 {
-    serialPortConfig_t *portConfig = findNextSerialPortConfig(FUNCTION_HTK_GIMBAL);
+    UNUSED(gimbalDevice);
+    return GIMBAL_DEV_SERIAL;
+}
+
+bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice)
+{
+    return htkPort != NULL && gimbalDevice->vTable != NULL;
+}
+
+bool gimbalSerialInit(void)
+{
+    if(gimbalSerialDetect()) {
+        gimbalCommonSetDevice(&serialGimbalDevice);
+        return true;
+    }
+
+    return false;
+}
+
+bool gimbalSerialDetect(void)
+{
+
+    SD(fprintf(stderr, "[GIMBAL]: serial Detect...\n"));
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HTK_GIMBAL);
 
     if (portConfig) {
+        SD(fprintf(stderr, "[GIMBAL]: found port...\n"));
         htkPort = openSerialPort(portConfig->identifier, FUNCTION_HTK_GIMBAL, NULL, NULL,
                 115200, MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (htkPort) {
+            SD(fprintf(stderr, "[GIMBAL]: port open!\n"));
             htkPort->txBuffer = txBuffer;
             htkPort->txBufferSize = HTK_TX_BUFFER_SIZE;
             htkPort->txBufferTail = 0;
@@ -57,20 +102,23 @@ bool gimbal_htk_detect(void)
         }
     }
 
+    SD(fprintf(stderr, "[GIMBAL]: port not found :(...\n"));
     return false;
 }
 
-void gimbal_htk_update(void)
+void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
 {
-    if (!htkPort) {
+    UNUSED(currentTime);
+
+    if (!gimbalSerialIsReady(gimablDevice)) {
+        SD(fprintf(stderr, "[GIMBAL] gimabl not ready...\n"));
         return;
     }
 
     gimbalHtkAttitudePkt_t attittude = {
         .sync = {HTKATTITUDE_SYNC0, HTKATTITUDE_SYNC1},
-        .mode = GIMBAL_MODE_FOLLOW,
+        .mode = GIMBAL_MODE_DEFAULT
     };
-
 
     const gimbalConfig_t *cfg = gimbalConfig();
 

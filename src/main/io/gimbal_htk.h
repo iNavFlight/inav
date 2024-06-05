@@ -23,7 +23,6 @@
 
 #include <stdint.h>
 
-#define GIMBAL_HTK_MODE_DEFAULT GIMBAL_HTK_MODE_FOLLOW
 
 #define HTKATTITUDE_SYNC0  0xA5
 #define HTKATTITUDE_SYNC1  0x5A
@@ -43,6 +42,10 @@ typedef struct gimbalHtkAttitudePkt_s
 uint8_t gimbal_scale8(int8_t inputMin, int8_t inputMax, int8_t outputMin, int8_t outputMax, int8_t value);
 uint16_t gimbal_scale16(int16_t inputMin, int16_t inputMax, int16_t outputMin, int16_t outputMax, int16_t value);
 
-void gimbal_htk_update(void);
+bool gimbalSerialInit(void);
+bool gimbalSerialDetect(void);
+void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime);
+bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice);
+gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice);
 
 #endif
