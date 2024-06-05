@@ -33,6 +33,7 @@ typedef enum {
     GIMBAL_DEV_UNKNOWN=0xFF
 } gimbalDevType_e;
 
+
 struct gimbalVTable_s;
 
 typedef struct gimbalDevice_s {
@@ -65,7 +66,7 @@ typedef enum {
     GIMBAL_MODE_FOLLOW = 2
 } gimbal_htk_mode_e;
 
-#define GIMBAL_MODE_DEFAULT = GIMBAL_MODE_FOLLOW;
+#define GIMBAL_MODE_DEFAULT GIMBAL_MODE_FOLLOW
 
 void gimbalCommonInit(void);
 void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice);

@@ -427,6 +427,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 
+#ifdef USE_SERIAL_GIMBAL
+    setTaskEnabled(TASK_GIMBAL, true);
+#endif
+
 #if defined(SITL_BUILD)
     serialProxyStart();
 #endif
@@ -686,7 +690,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "GIMBAL",
         .taskFunc = taskUpdateGimbal,
         .desiredPeriod = TASK_PERIOD_HZ(50),
-        .staticPriority = TASK_PRIORITY_LOW,
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     }
 #endif
 };

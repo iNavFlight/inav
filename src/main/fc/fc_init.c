@@ -689,8 +689,11 @@ void init(void)
     initDShotCommands();
 #endif
 
+    fprintf(stderr, "HERE\n");
 #ifdef USE_SERIAL_GIMBAL
-
+    fprintf(stderr, "HERE2\n");
+    gimbalCommonInit();
+    gimbalSerialInit();
 #endif
 
     // Latch active features AGAIN since some may be modified by init().

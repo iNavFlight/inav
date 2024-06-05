@@ -19,6 +19,7 @@
 
 #ifdef USE_SERIAL_GIMBAL
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <config/parameter_group_ids.h>
@@ -51,7 +52,7 @@ gimbalDevice_t *gimbalCommonDevice(void)
 
 void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs)
 {
-    if (gimbalDevice && gimbalDevice->vTable->process) {
+    if (gimbalDevice && gimbalDevice->vTable->process && gimbalCommonIsReady(gimbalDevice)) {
         gimbalDevice->vTable->process(gimbalDevice, currentTimeUs);
     }
 }
@@ -65,7 +66,7 @@ gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice)
     return gimbalDevice->vTable->getDeviceType(gimbalDevice);
 }
 
-bool gimbalCommonDeviceIsReady(gimbalDevice_t *gimbalDevice)
+bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice)
 {
     if (gimbalDevice && gimbalDevice->vTable->isReady) {
         return gimbalDevice->vTable->isReady(gimbalDevice);
@@ -85,7 +86,5 @@ void taskUpdateGimbal(timeUs_t currentTimeUs)
         gimbalCommonProcess(gimbalDevice, currentTimeUs);
     }
 }
-
-
 
 #endif

@@ -74,6 +74,7 @@
 
 #define USE_MSP_OSD
 #define USE_OSD
+#define USE_SERIAL_GIMBAL
 
 #undef USE_DASHBOARD
 
