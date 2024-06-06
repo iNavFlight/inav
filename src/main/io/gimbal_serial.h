@@ -49,7 +49,7 @@ int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value);
 
 bool gimbalSerialInit(void);
 bool gimbalSerialDetect(void);
-void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime);
+void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime);
 bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice);
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice);
 

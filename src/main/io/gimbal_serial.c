@@ -45,12 +45,8 @@ static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
 static serialPort_t *htkPort = NULL;
 
 gimbalVTable_t gimbalSerialVTable = {
-       //void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
     .process = gimbalSerialProcess,
-
-    //gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimablDevice);
     .getDeviceType = gimbalSerialGetDeviceType,
-    //bool (*isReady)(const gimbalDevice_t *gimbalDevice); 
     .isReady = gimbalSerialIsReady
 
 };
@@ -115,16 +111,16 @@ bool gimbalSerialDetect(void)
 #endif
 
 #ifdef GIMBAL_UNIT_TEST
-void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
+void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 {
 }
 #else
-void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
+void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 {
     UNUSED(currentTime);
 
-    if (!gimbalSerialIsReady(gimablDevice)) {
-        SD(fprintf(stderr, "[GIMBAL] gimabl not ready...\n"));
+    if (!gimbalSerialIsReady(gimbalDevice)) {
+        SD(fprintf(stderr, "[GIMBAL] gimbal not ready...\n"));
         return;
     }
 

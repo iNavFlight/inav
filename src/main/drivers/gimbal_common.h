@@ -49,7 +49,7 @@ typedef struct gimbalDevice_s {
 
 typedef struct gimbalVTable_s {
     void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
-    gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimablDevice);
+    gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimbalDevice);
     bool (*isReady)(const gimbalDevice_t *gimbalDevice);
 } gimbalVTable_t;
 
