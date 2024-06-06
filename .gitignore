@@ -18,7 +18,7 @@ startup_stm32f10x_md_gcc.s
 cov-int*
 /build/
 /build_SITL/
-/sitl/
+/[hs]itl/
 /obj/
 /patches/
 /tools/
