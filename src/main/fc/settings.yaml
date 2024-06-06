@@ -2866,7 +2866,7 @@ groups:
         description: "Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s"
         default_value: 1863
         field: fw.launch_accel_thresh
-        min: 1500
+        min: 1350
         max: 20000
       - name: nav_fw_launch_max_angle
         description: "Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]"
