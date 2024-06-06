@@ -74,6 +74,11 @@ bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice)
     return false;
 }
 
+#ifdef GIMBAL_UNIT_TEST
+void taskUpdateGimbal(timeUs_t currentTimeUs)
+{
+}
+#else
 void taskUpdateGimbal(timeUs_t currentTimeUs)
 {
     if (cliMode) {
@@ -86,5 +91,6 @@ void taskUpdateGimbal(timeUs_t currentTimeUs)
         gimbalCommonProcess(gimbalDevice, currentTimeUs);
     }
 }
+#endif
 
 #endif

@@ -17,12 +17,18 @@
 
 #pragma once
 
-#include "platform.h"
-
-#ifdef USE_SERIAL_GIMBAL
-
 #include <stdint.h>
 
+#include "platform.h"
+
+#include "common/time.h"
+#include "drivers/gimbal_common.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef USE_SERIAL_GIMBAL
 
 #define HTKATTITUDE_SYNC0  0xA5
 #define HTKATTITUDE_SYNC1  0x5A
@@ -48,4 +54,8 @@ void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime);
 bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice);
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

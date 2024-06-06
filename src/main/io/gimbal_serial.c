@@ -30,7 +30,7 @@
 #include <drivers/gimbal_common.h>
 #include <drivers/serial.h>
 
-#include <io/gimbal_htk.h>
+#include <io/gimbal_serial.h>
 #include <io/serial.h>
 
 #include <rx/rx.h>
@@ -38,8 +38,8 @@
 
 STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
-#define HTK_TX_BUFFER_SIZE 512
-static volatile uint8_t txBuffer[HTK_TX_BUFFER_SIZE];
+#define GIMBAL_SERIAL_BUFFER_SIZE 512
+static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
 
 static serialPort_t *htkPort = NULL;
 
@@ -80,21 +80,27 @@ bool gimbalSerialInit(void)
     return false;
 }
 
+#ifdef GIMBAL_UNIT_TEST
+bool gimbalSerialDetect(void)
+{
+    return false;
+}
+#else
 bool gimbalSerialDetect(void)
 {
 
     SD(fprintf(stderr, "[GIMBAL]: serial Detect...\n"));
-    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_HTK_GIMBAL);
+    serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_GIMBAL);
 
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL]: found port...\n"));
-        htkPort = openSerialPort(portConfig->identifier, FUNCTION_HTK_GIMBAL, NULL, NULL,
-                115200, MODE_RXTX, SERIAL_NOT_INVERTED);
+        htkPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, NULL, NULL,
+                baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (htkPort) {
             SD(fprintf(stderr, "[GIMBAL]: port open!\n"));
             htkPort->txBuffer = txBuffer;
-            htkPort->txBufferSize = HTK_TX_BUFFER_SIZE;
+            htkPort->txBufferSize = GIMBAL_SERIAL_BUFFER_SIZE;
             htkPort->txBufferTail = 0;
             htkPort->txBufferHead = 0;
 
@@ -105,7 +111,13 @@ bool gimbalSerialDetect(void)
     SD(fprintf(stderr, "[GIMBAL]: port not found :(...\n"));
     return false;
 }
+#endif
 
+#ifdef GIMBAL_UNIT_TEST
+void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
+{
+}
+#else
 void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
 {
     UNUSED(currentTime);
@@ -171,9 +183,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
 
     attittude.sensibility = gimbal_scale8(-16, 15, 0, 31, cfg->sensitivity);
 
-    attittude.yaw = gimbal_scale16(1000, 2000, 0, 4095, yaw);
-    attittude.pitch = gimbal_scale16(1000, 2000, 0, 4095, pitch);
-    attittude.roll = gimbal_scale16(1000, 2000, 0, 4095, roll);
+    attittude.yaw = 3000;//gimbal_scale16(1000, 2000, 0, 4095, yaw);
+    attittude.pitch = 3000; //gimbal_scale16(1000, 2000, 0, 4095, pitch);
+    attittude.roll = 3000; // gimbal_scale16(1000, 2000, 0, 4095, roll);
 
     uint16_t crc16 = 0;
     uint8_t *b = (uint8_t *)&attittude;
@@ -188,6 +200,7 @@ void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
     serialEndWrite(htkPort);
     // Send new data
 }
+#endif
 
 uint8_t gimbal_scale8(int8_t inputMin, int8_t inputMax, int8_t outputMin, int8_t outputMax, int8_t value)
 {

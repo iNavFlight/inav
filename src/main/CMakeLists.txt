@@ -356,8 +356,8 @@ main_sources(COMMON_SRC
     io/servo_sbus.h
     io/frsky_osd.c
     io/frsky_osd.h
-    io/gimbal_htk.c
-    io/gimbal_htk.h
+    io/gimbal_serial.c
+    io/gimbal_serial.h
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c

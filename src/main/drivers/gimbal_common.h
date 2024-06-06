@@ -26,6 +26,9 @@
 #include "config/feature.h"
 #include "common/time.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     GIMBAL_DEV_UNSUPPORTED = 0,
@@ -79,5 +82,9 @@ bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
 
 
 void taskUpdateGimbal(timeUs_t currentTimeUs);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
