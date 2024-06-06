@@ -19,6 +19,7 @@ cov-int*
 /build/
 /build_SITL/
 /[hs]itl/
+/ninja/
 /obj/
 /patches/
 /tools/
