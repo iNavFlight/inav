@@ -45,8 +45,7 @@ typedef struct gimbalHtkAttitudePkt_s
 	uint64_t crcl:8;    //Data validation L
 } __attribute__((packed)) gimbalHtkAttitudePkt_t;
 
-uint8_t gimbal_scale8(int8_t inputMin, int8_t inputMax, int8_t outputMin, int8_t outputMax, int8_t value);
-uint16_t gimbal_scale16(int16_t inputMin, int16_t inputMax, int16_t outputMin, int16_t outputMax, int16_t value);
+int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value);
 
 bool gimbalSerialInit(void);
 bool gimbalSerialDetect(void);

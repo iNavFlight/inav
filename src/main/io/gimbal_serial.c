@@ -25,6 +25,7 @@
 
 #include <common/crc.h>
 #include <common/utils.h>
+#include <common/maths.h>
 #include <build/debug.h>
 
 #include <drivers/gimbal_common.h>
@@ -181,11 +182,11 @@ void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
         }
     }
 
-    attittude.sensibility = gimbal_scale8(-16, 15, 0, 31, cfg->sensitivity);
+    attittude.sensibility = cfg->sensitivity; //gimbal_scale5(-16, 15, -16, 15, cfg->sensitivity);
 
-    attittude.yaw = 3000;//gimbal_scale16(1000, 2000, 0, 4095, yaw);
-    attittude.pitch = 3000; //gimbal_scale16(1000, 2000, 0, 4095, pitch);
-    attittude.roll = 3000; // gimbal_scale16(1000, 2000, 0, 4095, roll);
+    attittude.yaw = gimbal_scale12(1000, 2000, yaw);
+    attittude.pitch = gimbal_scale12(1000, 2000, pitch);
+    attittude.roll = gimbal_scale12(1000, 2000, roll);
 
     uint16_t crc16 = 0;
     uint8_t *b = (uint8_t *)&attittude;
@@ -202,16 +203,44 @@ void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
 }
 #endif
 
-uint8_t gimbal_scale8(int8_t inputMin, int8_t inputMax, int8_t outputMin, int8_t outputMax, int8_t value)
+int8_t gimbal_scale5(int8_t inputMin, int8_t inputMax, int8_t outputMin, int8_t outputMax, int8_t value)
 {
-    float m = (1.0f * outputMax - outputMin) / (inputMax - inputMin);
-    return (uint8_t)((outputMin + (m * (value - inputMin))) + 0.5f);
+    int8_t ret = 0;
+    //uint8_t *rp = (uint8_t *)&ret;
+    ret =  scaleRange(value, inputMin, inputMax, outputMin, outputMax);
+    return ret;
+    // bit magic for ensuring signed representation
+    //if(ret < 0) {
+    //    *rp = *rp >> 3;
+    //    *rp |= (1 << 5);
+    //}
+    //return *rp & 0b11111;
+    //return *rp;
 }
 
-uint16_t gimbal_scale16(int16_t inputMin, int16_t inputMax, int16_t outputMin, int16_t outputMax, int16_t value)
+int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
 {
-    float m = (1.0f * outputMax - outputMin) / (inputMax - inputMin);
-    return (uint16_t)((outputMin + (m * (value - inputMin))) + 0.5f);
+    int16_t ret = 0;
+    //uint16_t *rp = (uint16_t *)&ret;
+    ret = scaleRange(value, inputMin, inputMax, -2048, 2047);
+    return ret;
+    // bit magic for signed representation
+    //if(ret < 0) {
+    //    *rp = *rp >> 4;
+    //    *rp |= (1 << 12);
+    //}
+    //return *rp & 0b111111111111;
+    //printf("bogus scale: %i(", ret);
+    //for (int i = 0; i < sizeof(ret) * 8; ++i) {
+    //    if (ret & (1 << ((sizeof(ret) * 8)- i))) {
+    //        printf("1");
+    //    } else {
+    //        printf("0");
+    //    }
+    //}
+    //printf(")\n");
+ 
+    //return *rp;
 }
 
 #endif
