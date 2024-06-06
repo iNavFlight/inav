@@ -199,48 +199,14 @@ void gimbalSerialProcess(gimbalDevice_t *gimablDevice, timeUs_t currentTime)
     serialBeginWrite(htkPort);
     serialWriteBuf(htkPort, (uint8_t *)&attittude, sizeof(gimbalHtkAttitudePkt_t));
     serialEndWrite(htkPort);
-    // Send new data
 }
 #endif
-
-int8_t gimbal_scale5(int8_t inputMin, int8_t inputMax, int8_t outputMin, int8_t outputMax, int8_t value)
-{
-    int8_t ret = 0;
-    //uint8_t *rp = (uint8_t *)&ret;
-    ret =  scaleRange(value, inputMin, inputMax, outputMin, outputMax);
-    return ret;
-    // bit magic for ensuring signed representation
-    //if(ret < 0) {
-    //    *rp = *rp >> 3;
-    //    *rp |= (1 << 5);
-    //}
-    //return *rp & 0b11111;
-    //return *rp;
-}
 
 int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
 {
     int16_t ret = 0;
-    //uint16_t *rp = (uint16_t *)&ret;
     ret = scaleRange(value, inputMin, inputMax, -2048, 2047);
     return ret;
-    // bit magic for signed representation
-    //if(ret < 0) {
-    //    *rp = *rp >> 4;
-    //    *rp |= (1 << 12);
-    //}
-    //return *rp & 0b111111111111;
-    //printf("bogus scale: %i(", ret);
-    //for (int i = 0; i < sizeof(ret) * 8; ++i) {
-    //    if (ret & (1 << ((sizeof(ret) * 8)- i))) {
-    //        printf("1");
-    //    } else {
-    //        printf("0");
-    //    }
-    //}
-    //printf(")\n");
- 
-    //return *rp;
 }
 
 #endif
