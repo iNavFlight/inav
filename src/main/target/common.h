@@ -190,10 +190,10 @@
 #define ADSB_LIMIT_CM                   6400000
 #endif
 
+#define USE_SERIAL_GIMBAL
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
-#define USE_SERIAL_GIMBAL
 #define USE_VTX_FFPV
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
