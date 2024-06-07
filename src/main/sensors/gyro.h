@@ -100,8 +100,8 @@ typedef struct gyroConfig_s {
     float adaptiveFilterHpfHz;
     float adaptiveFilterIntegratorThresholdHigh;
     float adaptiveFilterIntegratorThresholdLow;
-    uint8_t gyroFilterMode;
 #endif
+    uint8_t gyroFilterMode;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

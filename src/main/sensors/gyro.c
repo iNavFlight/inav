@@ -130,8 +130,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .adaptiveFilterHpfHz = SETTING_GYRO_ADAPTIVE_FILTER_HPF_HZ_DEFAULT,
     .adaptiveFilterIntegratorThresholdHigh = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_HIGH_DEFAULT,
     .adaptiveFilterIntegratorThresholdLow  = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_LOW_DEFAULT,
-    .gyroFilterMode = SETTING_GYRO_FILTER_MODE_DEFAULT,
 #endif
+    .gyroFilterMode = SETTING_GYRO_FILTER_MODE_DEFAULT,
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)

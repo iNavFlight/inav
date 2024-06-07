@@ -428,7 +428,7 @@ void fcTasksInit(void)
 #endif
 
 #ifdef USE_ADAPTIVE_FILTER
-    setTaskEnabled(TASK_ADAPTIVE_FILTER, true);
+    setTaskEnabled(TASK_ADAPTIVE_FILTER, (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE));
 #endif
 
 #if defined(SITL_BUILD)
