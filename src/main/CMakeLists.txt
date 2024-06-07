@@ -346,6 +346,8 @@ main_sources(COMMON_SRC
     flight/dynamic_lpf.h
     flight/ez_tune.c
     flight/ez_tune.h
+    flight/adaptive_filter.c
+    flight/adaptive_filter.h
 
     io/adsb.c
     io/beeper.c

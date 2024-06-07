@@ -211,3 +211,4 @@
 #endif
 
 #define USE_EZ_TUNE
+#define USE_ADAPTIVE_FILTER

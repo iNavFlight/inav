@@ -47,6 +47,7 @@
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
+#include "flight/adaptive_filter.h"
 
 #include "io/gps.h"
 
@@ -1205,6 +1206,10 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+    
+#ifdef USE_ADAPTIVE_FILTER
+        adaptiveFilterPushRate(axis, pidState[axis].rateTarget, currentControlRateProfile->stabilized.rates[axis]);
+#endif
 
 #ifdef USE_GYRO_KALMAN
         gyroKalmanUpdateSetpoint(axis, pidState[axis].rateTarget);

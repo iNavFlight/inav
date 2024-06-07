@@ -51,6 +51,7 @@
 #include "flight/rpm_filter.h"
 #include "flight/servos.h"
 #include "flight/wind_estimator.h"
+#include "flight/adaptive_filter.h"
 
 #include "navigation/navigation.h"
 
@@ -426,6 +427,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 
+#ifdef USE_ADAPTIVE_FILTER
+    setTaskEnabled(TASK_ADAPTIVE_FILTER, (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE));
+#endif
+
 #if defined(SITL_BUILD)
     serialProxyStart();
 #endif
@@ -680,4 +685,12 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .desiredPeriod = TASK_PERIOD_HZ(TASK_AUX_RATE_HZ),          // 100Hz @10ms
         .staticPriority = TASK_PRIORITY_HIGH,
     },
+#ifdef USE_ADAPTIVE_FILTER
+    [TASK_ADAPTIVE_FILTER] = {
+        .taskName = "ADAPTIVE_FILTER",
+        .taskFunc = adaptiveFilterTask,
+        .desiredPeriod = TASK_PERIOD_HZ(ADAPTIVE_FILTER_RATE_HZ),          // 100Hz @10ms
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
 };

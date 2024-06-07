@@ -19,6 +19,7 @@ set(CMSIS_DSP_SRC
     BasicMathFunctions/arm_scale_f32.c
     BasicMathFunctions/arm_sub_f32.c
     BasicMathFunctions/arm_mult_f32.c
+    BasicMathFunctions/arm_offset_f32.c
     TransformFunctions/arm_rfft_fast_f32.c
     TransformFunctions/arm_cfft_f32.c
     TransformFunctions/arm_rfft_fast_init_f32.c
@@ -27,6 +28,9 @@ set(CMSIS_DSP_SRC
     CommonTables/arm_common_tables.c
     ComplexMathFunctions/arm_cmplx_mag_f32.c
     StatisticsFunctions/arm_max_f32.c
+    StatisticsFunctions/arm_rms_f32.c
+    StatisticsFunctions/arm_std_f32.c
+    StatisticsFunctions/arm_mean_f32.c
 )
 list(TRANSFORM CMSIS_DSP_SRC PREPEND "${CMSIS_DSP_DIR}/Source/")
 

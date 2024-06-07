@@ -83,7 +83,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST"]
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", "ADAPTIVE_FILTER"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -191,6 +191,9 @@ tables:
   - name: led_pin_pwm_mode
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
+  - name: gyro_filter_mode
+    values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
+    enum: gyroFilterType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -226,11 +229,11 @@ groups:
         field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_use_dyn_lpf
-        description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
-        default_value: OFF
-        field: useDynamicLpf
-        type: bool
+      - name: gyro_filter_mode
+        description: "Specifies the type of the software LPF of the gyro signals."
+        default_value: "STATIC"
+        field: gyroFilterMode
+        table: gyro_filter_mode
       - name: gyro_dyn_lpf_min_hz
         description: "Minimum frequency of the gyro Dynamic LPF"
         default_value: 200
@@ -330,6 +333,55 @@ groups:
         field: gravity_cmss_cal
         min: 0
         max: 2000
+      - name: gyro_adaptive_filter_target
+        description: "Target value for adaptive filter"
+        default_value: 3.5
+        field: adaptiveFilterTarget
+        min: 1
+        max: 6
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_min_hz
+        description: "Minimum frequency for adaptive filter"
+        default_value: 50
+        field: adaptiveFilterMinHz
+        min: 30
+        max: 250
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_max_hz
+        description: "Maximum frequency for adaptive filter"
+        default_value: 150
+        field: adaptiveFilterMaxHz
+        min: 100
+        max: 500
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_std_lpf_hz
+        description: "Standard deviation low pass filter cutoff frequency"
+        default_value: 2
+        field: adaptiveFilterStdLpfHz
+        min: 0
+        max: 10
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_hpf_hz
+        description: "High pass filter cutoff frequency"
+        default_value: 10
+        field: adaptiveFilterHpfHz
+        min: 1
+        max: 50
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_integrator_threshold_high
+        description: "High threshold for adaptive filter integrator"
+        default_value: 4
+        field: adaptiveFilterIntegratorThresholdHigh
+        min: 1
+        max: 10
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_integrator_threshold_low
+        description: "Low threshold for adaptive filter integrator"
+        default_value: -2
+        field: adaptiveFilterIntegratorThresholdLow
+        min: -10
+        max: 0
+        condition: USE_ADAPTIVE_FILTER
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
