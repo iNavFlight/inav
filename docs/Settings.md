@@ -2998,7 +2998,7 @@ Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1863 | 1500 | 20000 |
+| 1863 | 1350 | 20000 |
 
 ---
 
