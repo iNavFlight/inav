@@ -163,6 +163,7 @@ static const char * outputModeNames[] = {
     "AUTO",
     "MOTORS",
     "SERVOS",
+    "LED",
     NULL
 };
 
@@ -292,7 +293,7 @@ static void cliPutp(void *p, char ch)
 
 typedef enum {
     DUMP_MASTER = (1 << 0),
-    DUMP_PROFILE = (1 << 1),
+    DUMP_CONTROL_PROFILE = (1 << 1),
     DUMP_BATTERY_PROFILE = (1 << 2),
     DUMP_MIXER_PROFILE = (1 << 3),
     DUMP_ALL = (1 << 4),
@@ -2821,6 +2822,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_MOTORS;
                 } else if(!sl_strcasecmp("SERVOS", tok)) {
                     mode = OUTPUT_MODE_SERVOS;
+                } else if(!sl_strcasecmp("LED", tok)) {
+                    mode = OUTPUT_MODE_LED;
                 } else {
                     cliShowParseError();
                     return;
@@ -3333,30 +3336,30 @@ static void cliPlaySound(char *cmdline)
     beeper(beeperModeForTableIndex(i));
 }
 
-static void cliProfile(char *cmdline)
+static void cliControlProfile(char *cmdline)
 {
     // CLI profile index is 1-based
     if (isEmpty(cmdline)) {
-        cliPrintLinef("profile %d", getConfigProfile() + 1);
+        cliPrintLinef("control_profile %d", getConfigProfile() + 1);
         return;
     } else {
         const int i = fastA2I(cmdline) - 1;
         if (i >= 0 && i < MAX_PROFILE_COUNT) {
             setConfigProfileAndWriteEEPROM(i);
-            cliProfile("");
+            cliControlProfile("");
         }
     }
 }
 
-static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
+static void cliDumpControlProfile(uint8_t profileIndex, uint8_t dumpMask)
 {
     if (profileIndex >= MAX_PROFILE_COUNT) {
         // Faulty values
         return;
     }
     setConfigProfile(profileIndex);
-    cliPrintHashLine("profile");
-    cliPrintLinef("profile %d\r\n", getConfigProfile() + 1);
+    cliPrintHashLine("control_profile");
+    cliPrintLinef("control_profile %d\r\n", getConfigProfile() + 1);
     dumpAllValues(PROFILE_VALUE, dumpMask);
     dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
     dumpAllValues(EZ_TUNE_VALUE, dumpMask);
@@ -3978,12 +3981,12 @@ static void printConfig(const char *cmdline, bool doDiff)
     const char *options;
     if ((options = checkCommand(cmdline, "master"))) {
         dumpMask = DUMP_MASTER; // only
-    } else if ((options = checkCommand(cmdline, "profile"))) {
-        dumpMask = DUMP_PROFILE; // only
-    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
-        dumpMask = DUMP_BATTERY_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "control_profile"))) {
+        dumpMask = DUMP_CONTROL_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "mixer_profile"))) {
         dumpMask = DUMP_MIXER_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
+        dumpMask = DUMP_BATTERY_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -3994,16 +3997,16 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = dumpMask | DO_DIFF;
     }
 
-    const int currentProfileIndexSave = getConfigProfile();
-    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+    const int currentControlProfileIndexSave = getConfigProfile();
     const int currentMixerProfileIndexSave = getConfigMixerProfile();
+    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
-    setConfigProfile(currentProfileIndexSave);
-    setConfigBatteryProfile(currentBatteryProfileIndexSave);
+    setConfigProfile(currentControlProfileIndexSave);
     setConfigMixerProfile(currentMixerProfileIndexSave);
+    setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -4125,25 +4128,25 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         if (dumpMask & DUMP_ALL) {
             // dump all profiles
-            const int currentProfileIndexSave = getConfigProfile();
-            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            const int currentControlProfileIndexSave = getConfigProfile();
             const int currentMixerProfileIndexSave = getConfigMixerProfile();
+            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
+                cliDumpControlProfile(ii, dumpMask);
+            }
             for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
                 cliDumpMixerProfile(ii, dumpMask);
-            }
-            for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
-                cliDumpProfile(ii, dumpMask);
             }
             for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
                 cliDumpBatteryProfile(ii, dumpMask);
             }
-            setConfigProfile(currentProfileIndexSave);
-            setConfigBatteryProfile(currentBatteryProfileIndexSave);
+            setConfigProfile(currentControlProfileIndexSave);
             setConfigMixerProfile(currentMixerProfileIndexSave);
+            setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
+            cliPrintLinef("control_profile %d", currentControlProfileIndexSave + 1);
             cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
-            cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
 #ifdef USE_CLI_BATCH
@@ -4151,17 +4154,18 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         } else {
             // dump just the current profiles
+            cliDumpControlProfile(getConfigProfile(), dumpMask);
             cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
-            cliDumpProfile(getConfigProfile(), dumpMask);
             cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
+
+    if (dumpMask & DUMP_CONTROL_PROFILE) {
+        cliDumpControlProfile(getConfigProfile(), dumpMask);
+    }
+
     if (dumpMask & DUMP_MIXER_PROFILE) {
         cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
-    }
-    
-    if (dumpMask & DUMP_PROFILE) {
-        cliDumpProfile(getConfigProfile(), dumpMask);
     }
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
@@ -4276,9 +4280,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
-        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDiff),
+        "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
     CLI_COMMAND_DEF("dump", "dump configuration",
-        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDump),
+        "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
@@ -4319,12 +4323,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
-    CLI_COMMAND_DEF("profile", "change profile",
-        "[<index>]", cliProfile),
-    CLI_COMMAND_DEF("battery_profile", "change battery profile",
-        "[<index>]", cliBatteryProfile),
-    CLI_COMMAND_DEF("mixer_profile", "change mixer profile",
-        "[<index>]", cliMixerProfile),
+    CLI_COMMAND_DEF("control_profile", "change control profile", "[<index>]", cliControlProfile),
+    CLI_COMMAND_DEF("mixer_profile", "change mixer profile", "[<index>]", cliMixerProfile),
+    CLI_COMMAND_DEF("battery_profile", "change battery profile", "[<index>]", cliBatteryProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
 #if defined(USE_SAFE_HOME)

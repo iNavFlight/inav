@@ -54,6 +54,11 @@ typedef enum {
 } servoProtocolType_e;
 
 typedef enum {
+    PIN_LABEL_NONE = 0,
+    PIN_LABEL_LED
+} pinLabel_e;
+
+typedef enum {
     PWM_INIT_ERROR_NONE = 0,
     PWM_INIT_ERROR_TOO_MANY_MOTORS,
     PWM_INIT_ERROR_TOO_MANY_SERVOS,

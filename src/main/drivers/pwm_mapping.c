@@ -47,6 +47,7 @@ enum {
     MAP_TO_NONE,
     MAP_TO_MOTOR_OUTPUT,
     MAP_TO_SERVO_OUTPUT,
+    MAP_TO_LED_OUTPUT
 };
 
 typedef struct {
@@ -167,10 +168,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 
 #if defined(USE_LED_STRIP)
     if (feature(FEATURE_LED_STRIP)) {
-        const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
-        if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
-            return true;
+        for (int i = 0; i < timerHardwareCount; i++) {
+            if (timHw->tim == timerHardware[i].tim && timerHardware[i].usageFlags & TIM_USE_LED) {
+				return true;
+            }
         }
+
+        //const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+        //if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
+        //    return true;
+        //}
     }
 #endif
 
@@ -213,16 +220,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 static void timerHardwareOverride(timerHardware_t * timer) {
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
-            if (TIM_IS_SERVO(timer->usageFlags)) {
-                timer->usageFlags &= ~TIM_USE_SERVO;
-                timer->usageFlags |= TIM_USE_MOTOR;
-            }
+            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_MOTOR;
             break;
         case OUTPUT_MODE_SERVOS:
-            if (TIM_IS_MOTOR(timer->usageFlags)) {
-                timer->usageFlags &= ~TIM_USE_MOTOR;
-                timer->usageFlags |= TIM_USE_SERVO;
-            }
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_SERVO;
+            break;
+        case OUTPUT_MODE_LED:
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
+            timer->usageFlags |= TIM_USE_LED;
             break;
     }
 }
@@ -335,6 +342,8 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             type = MAP_TO_SERVO_OUTPUT;
         } else if (TIM_IS_MOTOR(timHw->usageFlags) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
             type = MAP_TO_MOTOR_OUTPUT;
+        } else if (TIM_IS_LED(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
+            type = MAP_TO_LED_OUTPUT;
         }
 
         switch(type) {
@@ -346,6 +355,10 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             case MAP_TO_SERVO_OUTPUT:
                 timHw->usageFlags &= TIM_USE_SERVO;
                 timOutputs->timServos[timOutputs->maxTimServoCount++] = timHw;
+                pwmClaimTimer(timHw->tim, timHw->usageFlags);
+                break;
+            case MAP_TO_LED_OUTPUT:
+                timHw->usageFlags &= TIM_USE_LED;
                 pwmClaimTimer(timHw->tim, timHw->usageFlags);
                 break;
             default:

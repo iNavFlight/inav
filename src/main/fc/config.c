@@ -294,6 +294,14 @@ void createDefaultConfig(void)
     featureSet(FEATURE_AIRMODE);
 
     targetConfiguration();
+
+#ifdef MSP_UART
+    int port = findSerialPortIndexByIdentifier(MSP_UART);
+    if (port) {
+        serialConfigMutable()->portConfigs[port].functionMask = FUNCTION_MSP;
+        serialConfigMutable()->portConfigs[port].msp_baudrateIndex = BAUD_115200;
+    }
+#endif
 }
 
 void resetConfigs(void)

@@ -44,9 +44,9 @@
 #define SYM_DBM                     0x13  // 019 dBm
 #define SYM_SNR                     0x14  // 020 SNR
 
-#define SYM_AH_DIRECTION_UP         0x15  // 021 Arrow up AHI
-#define SYM_AH_DIRECTION_DOWN       0x16  // 022 Arrow down AHI
-#define SYM_DIRECTION               0x17  // 023 to 030, directional little arrows
+#define SYM_AH_DECORATION_UP        0x15  // 021 Arrow up AHI
+#define SYM_AH_DECORATION_DOWN      0x16  // 022 Arrow down AHI
+#define SYM_DECORATION              0x17  // 023 to 030, directional little arrows
 
 #define SYM_VOLT                    0x1F  // 031 VOLTS
 #define SYM_MAH                     0x99  // 153 mAh
