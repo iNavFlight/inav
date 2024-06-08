@@ -104,7 +104,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
     { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
     { .boxId = BOXANGLEHOLD,        .boxName = "ANGLE HOLD",        .permanentId = 64 },
-    { .boxId = BOXGIMBALPLOCK,      .boxName = "GIMBAL LEVEL PITCH",    .permanentId = 66 },
+    { .boxId = BOXGIMBALPLOCK,      .boxName = "GIMBAL LEVEL PITCH",    .permanentId = 65 },
     { .boxId = BOXGIMBALPRLOCK,     .boxName = "GIMBAL LEVEL PITCH ROLL",  .permanentId = 66 },
     { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
