@@ -71,6 +71,7 @@ bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice)
 
 bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice)
 {
+    UNUSED(gimbalDevice);
     return headTrackerPort;
 }
 
