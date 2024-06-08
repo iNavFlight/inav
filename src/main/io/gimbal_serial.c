@@ -178,10 +178,10 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     }
 
     // Follow center overrides all
-    if (IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
+    if (IS_RC_MODE_ACTIVE(BOXGIMBALCENTER) || IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
         attittude.mode = GIMBAL_MODE_FOLLOW;
     }
-
+    
     if (rxAreFlightChannelsValid() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         if (cfg->panChannel > 0) {
             pan = rxGetChannelValue(cfg->panChannel - 1);
@@ -196,6 +196,18 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
         if (cfg->rollChannel > 0) {
             roll = rxGetChannelValue(cfg->rollChannel - 1);
             roll = constrain(roll, 1000, 2000);
+        }
+    }
+
+    if(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
+        if (gimbalCommonHtrkIsEnabled() && (micros() - headTrackerState.lastUpdate) < MAX_INVALID_RX_PULSE_TIME) {
+            tilt = headTrackerState.tilt;
+            pan = headTrackerState.pan;
+            roll = headTrackerState.roll;
+        } else {
+            tilt = 0;
+            pan = 0;
+            roll = 0;
         }
     }
 
