@@ -2438,7 +2438,7 @@ Maximum inclination in level (angle) mode (PITCH axis). 100=10°
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 100 | 900 |
+| 450 | 100 | 900 |
 
 ---
 
@@ -2448,7 +2448,7 @@ Maximum inclination in level (angle) mode (ROLL axis). 100=10°
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 100 | 900 |
+| 450 | 100 | 900 |
 
 ---
 
@@ -2798,7 +2798,7 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 10 | 2000 |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -3488,7 +3488,7 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 500 | 10 | 2000 |
+| 750 | 10 | 2000 |
 
 ---
 
@@ -3548,7 +3548,7 @@ Maximum banking angle (deg) that multicopter navigation is allowed to set. Machi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 15 | 45 |
+| 35 | 15 | 45 |
 
 ---
 

@@ -1943,13 +1943,13 @@ groups:
         max: RPYL_PID_MAX
       - name: max_angle_inclination_rll
         description: "Maximum inclination in level (angle) mode (ROLL axis). 100=10°"
-        default_value: 300
+        default_value: 450
         field: max_angle_inclination[FD_ROLL]
         min: 100
         max: 900
       - name: max_angle_inclination_pit
         description: "Maximum inclination in level (angle) mode (PITCH axis). 100=10°"
-        default_value: 300
+        default_value: 450
         field: max_angle_inclination[FD_PITCH]
         min: 100
         max: 900
@@ -2542,7 +2542,7 @@ groups:
         table: nav_fw_wp_turn_smoothing
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
-        default_value: 300
+        default_value: 500
         field: general.auto_speed
         min: 10
         max: 2000
@@ -2560,7 +2560,7 @@ groups:
         max: 2000
       - name: nav_manual_speed
         description: "Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
-        default_value: 500
+        default_value: 750
         field: general.max_manual_speed
         min: 10
         max: 2000
@@ -2736,7 +2736,7 @@ groups:
         max: 120
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
-        default_value: 30
+        default_value: 35
         field: mc.max_bank_angle
         min: 15
         max: 45
