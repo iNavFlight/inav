@@ -104,8 +104,8 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXMIXERPROFILE,     .boxName = "MIXER PROFILE 2",   .permanentId = 62 },
     { .boxId = BOXMIXERTRANSITION,  .boxName = "MIXER TRANSITION",  .permanentId = 63 },
     { .boxId = BOXANGLEHOLD,        .boxName = "ANGLE HOLD",        .permanentId = 64 },
-    { .boxId = BOXGIMBALPLOCK,      .boxName = "GIMBAL LEVEL PITCH",    .permanentId = 65 },
-    { .boxId = BOXGIMBALPRLOCK,     .boxName = "GIMBAL LEVEL PITCH ROLL",  .permanentId = 66 },
+    { .boxId = BOXGIMBALTLOCK,      .boxName = "GIMBAL LEVEL TILT", .permanentId = 65 },
+    { .boxId = BOXGIMBALRLOCK,      .boxName = "GIMBAL LEVEL ROLL", .permanentId = 66 },
     { .boxId = BOXGIMBALCENTER,     .boxName = "GIMBAL CENTER",     .permanentId = 67 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
@@ -366,8 +366,8 @@ void initActiveBoxIds(void)
 
 #ifdef USE_SERIAL_GIMBAL
     if(gimbalCommonIsEnabled()) {
-        ADD_ACTIVE_BOX(BOXGIMBALPLOCK);
-        ADD_ACTIVE_BOX(BOXGIMBALPRLOCK);
+        ADD_ACTIVE_BOX(BOXGIMBALTLOCK);
+        ADD_ACTIVE_BOX(BOXGIMBALRLOCK);
         ADD_ACTIVE_BOX(BOXGIMBALCENTER);
     }
 #endif
@@ -445,8 +445,8 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
 
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALPLOCK)),     BOXGIMBALPLOCK);
-    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALPRLOCK)),    BOXGIMBALPRLOCK);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK)),     BOXGIMBALTLOCK);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALRLOCK)),     BOXGIMBALRLOCK);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),    BOXGIMBALCENTER);
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));

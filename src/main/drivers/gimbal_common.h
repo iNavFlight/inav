@@ -64,12 +64,15 @@ typedef struct gimbalConfig_s {
 PG_DECLARE(gimbalConfig_t, gimbalConfig);
 
 typedef enum {
-    GIMBAL_MODE_PITCH_ROLL_LOCK = 0,
-    GIMBAL_MODE_PITCH_LOCK = 1,
-    GIMBAL_MODE_FOLLOW = 2
+    GIMBAL_MODE_FOLLOW = 0,
+    GIMBAL_MODE_TILT_LOCK = (1<<0),
+    GIMBAL_MODE_ROLL_LOCK = (1<<1),
+    GIMBAL_MODE_PAN_LOCK  = (1<<2),
 } gimbal_htk_mode_e;
 
-#define GIMBAL_MODE_DEFAULT GIMBAL_MODE_FOLLOW
+#define GIMBAL_MODE_DEFAULT             GIMBAL_MODE_FOLLOW
+#define GIMBAL_MODE_TILT_ROLL_LOCK      (GIMBAL_MODE_TILT_LOCK | GIMBAL_MODE_ROLL_LOCK)
+#define GIMBAL_MODE_PAN_TILT_ROLL_LOCK  (GIMBAL_MODE_TILT_LOCK | GIMBAL_MODE_ROLL_LOCK | GIMBAL_MODE_PAN_LOCK)
 
 void gimbalCommonInit(void);
 void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice);

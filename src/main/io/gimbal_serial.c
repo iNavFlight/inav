@@ -135,12 +135,17 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     int pitch = 1500;
     int roll = 1500;
 
+    if (IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK)) {
+        attittude.mode |= GIMBAL_MODE_TILT_LOCK;
+    }
+
+    if (IS_RC_MODE_ACTIVE(BOXGIMBALRLOCK)) {
+        attittude.mode |= GIMBAL_MODE_ROLL_LOCK;
+    }
+
+    // Follow center overrides all
     if (IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         attittude.mode = GIMBAL_MODE_FOLLOW;
-    } else if (IS_RC_MODE_ACTIVE(BOXGIMBALPLOCK)) {
-        attittude.mode = GIMBAL_MODE_PITCH_LOCK;
-    } else if (IS_RC_MODE_ACTIVE(BOXGIMBALPRLOCK)) {
-        attittude.mode = GIMBAL_MODE_PITCH_ROLL_LOCK;
     }
 
     if (rxAreFlightChannelsValid() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
@@ -148,10 +153,10 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
             yaw = rxGetChannelValue(cfg->panChannel - 1);
             // const rxChannelRangeConfig_t *channelRanges =
             // rxChannelRangeConfigs(cfg->pitchChannel - 1);
-            if (yaw < 1000) {
-                yaw = 1000;
-            } else if (yaw > 2000) {
-                yaw = 2000;
+            if (yaw < 1050) {
+                yaw = 1050;
+            } else if (yaw > 1950) {
+                yaw = 1950;
             }
         }
 
