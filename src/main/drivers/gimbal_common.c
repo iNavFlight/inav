@@ -93,4 +93,10 @@ void taskUpdateGimbal(timeUs_t currentTimeUs)
 }
 #endif
 
+// TODO: check if any gimbal types are enabled
+bool gimbalCommonIsEnabled(void)
+{
+    return true;
+}
+
 #endif

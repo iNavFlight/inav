@@ -43,6 +43,8 @@
 
 #include "telemetry/telemetry.h"
 
+#include "drivers/gimbal_common.h"
+
 #define BOX_SUFFIX ';'
 #define BOX_SUFFIX_LEN 1
 
@@ -360,6 +362,14 @@ void initActiveBoxIds(void)
 #if (MAX_MIXER_PROFILE_COUNT > 1)
     ADD_ACTIVE_BOX(BOXMIXERPROFILE);
     ADD_ACTIVE_BOX(BOXMIXERTRANSITION);
+#endif
+
+#ifdef USE_SERIAL_GIMBAL
+    if(gimbalCommonIsEnabled()) {
+        ADD_ACTIVE_BOX(BOXGIMBALPLOCK);
+        ADD_ACTIVE_BOX(BOXGIMBALPRLOCK);
+        ADD_ACTIVE_BOX(BOXGIMBALCENTER);
+    }
 #endif
 }
 

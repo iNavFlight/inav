@@ -83,6 +83,8 @@ bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
 
 void taskUpdateGimbal(timeUs_t currentTimeUs);
 
+bool gimbalCommonIsEnabled(void);
+
 #ifdef __cplusplus
 }
 #endif
