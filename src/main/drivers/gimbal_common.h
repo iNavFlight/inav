@@ -51,6 +51,7 @@ typedef struct gimbalVTable_s {
     void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
     gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimbalDevice);
     bool (*isReady)(const gimbalDevice_t *gimbalDevice);
+    bool (*hasHeadTracker)(const gimbalDevice_t *gimbalDevice);
 } gimbalVTable_t;
 
 
@@ -87,6 +88,7 @@ bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
 void taskUpdateGimbal(timeUs_t currentTimeUs);
 
 bool gimbalCommonIsEnabled(void);
+bool gimbalCommonHtrkIsEnabled(void);
 
 #ifdef __cplusplus
 }

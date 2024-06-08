@@ -99,4 +99,15 @@ bool gimbalCommonIsEnabled(void)
     return true;
 }
 
+
+bool gimbalCommonHtrkIsEnabled(void)
+{
+    const gimbalDevice_t *dev = gimbalCommonDevice();
+    if(dev && dev->vTable->hasHeadTracker) {
+        return dev->vTable->hasHeadTracker(dev);
+    }
+
+    return false;
+}
+
 #endif

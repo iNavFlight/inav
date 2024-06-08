@@ -52,6 +52,7 @@ bool gimbalSerialDetect(void);
 void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime);
 bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice);
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice);
+bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice);
 
 #endif
 

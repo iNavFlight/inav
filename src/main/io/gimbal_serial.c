@@ -42,12 +42,14 @@ STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_
 #define GIMBAL_SERIAL_BUFFER_SIZE 512
 static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
 
-static serialPort_t *htkPort = NULL;
+static serialPort_t *headTrackerPort = NULL;
+static serialPort_t *gimbalPort = NULL;
 
 gimbalVTable_t gimbalSerialVTable = {
     .process = gimbalSerialProcess,
     .getDeviceType = gimbalSerialGetDeviceType,
-    .isReady = gimbalSerialIsReady
+    .isReady = gimbalSerialIsReady,
+    .hasHeadTracker = gimbalSerialHasHeadTracker,
 
 };
 
@@ -64,7 +66,12 @@ gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice)
 
 bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice)
 {
-    return htkPort != NULL && gimbalDevice->vTable != NULL;
+    return gimbalPort != NULL && gimbalDevice->vTable != NULL;
+}
+
+bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice)
+{
+    return headTrackerPort;
 }
 
 bool gimbalSerialInit(void)
@@ -85,28 +92,47 @@ bool gimbalSerialDetect(void)
 #else
 bool gimbalSerialDetect(void)
 {
-
     SD(fprintf(stderr, "[GIMBAL]: serial Detect...\n"));
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_GIMBAL);
 
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL]: found port...\n"));
-        htkPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, NULL, NULL,
+        gimbalPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, NULL, NULL,
                 baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 
-        if (htkPort) {
+        if (gimbalPort) {
             SD(fprintf(stderr, "[GIMBAL]: port open!\n"));
-            htkPort->txBuffer = txBuffer;
-            htkPort->txBufferSize = GIMBAL_SERIAL_BUFFER_SIZE;
-            htkPort->txBufferTail = 0;
-            htkPort->txBufferHead = 0;
-
-            return true;
+            gimbalPort->txBuffer = txBuffer;
+            gimbalPort->txBufferSize = GIMBAL_SERIAL_BUFFER_SIZE;
+            gimbalPort->txBufferTail = 0;
+            gimbalPort->txBufferHead = 0;
+        } else {
+            SD(fprintf(stderr, "[GIMBAL]: port NOT open!\n"));
+            return false;
         }
     }
 
-    SD(fprintf(stderr, "[GIMBAL]: port not found :(...\n"));
-    return false;
+    SD(fprintf(stderr, "[GIMBAL_HTRK]: headtracker Detect...\n"));
+    portConfig = findSerialPortConfig(FUNCTION_GIMBAL_HEADTRACKER);
+
+    if (portConfig) {
+        SD(fprintf(stderr, "[GIMBAL_HTRK]: found port...\n"));
+        headTrackerPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL_HEADTRACKER, NULL, NULL,
+                baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+
+        if (headTrackerPort) {
+            SD(fprintf(stderr, "[GIMBAL_HTRK]: port open!\n"));
+            headTrackerPort->txBuffer = txBuffer;
+            headTrackerPort->txBufferSize = GIMBAL_SERIAL_BUFFER_SIZE;
+            headTrackerPort->txBufferTail = 0;
+            headTrackerPort->txBufferHead = 0;
+        } else {
+            SD(fprintf(stderr, "[GIMBAL_HTRK]: port NOT open!\n"));
+            return false;
+        }
+    }
+
+    return gimbalPort || headTrackerPort;
 }
 #endif
 
@@ -179,9 +205,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     attittude.crch = (crc16 >> 8) & 0xFF;
     attittude.crcl = crc16 & 0xFF;
 
-    serialBeginWrite(htkPort);
-    serialWriteBuf(htkPort, (uint8_t *)&attittude, sizeof(gimbalHtkAttitudePkt_t));
-    serialEndWrite(htkPort);
+    serialBeginWrite(gimbalPort);
+    serialWriteBuf(gimbalPort, (uint8_t *)&attittude, sizeof(gimbalHtkAttitudePkt_t));
+    serialEndWrite(gimbalPort);
 }
 #endif
 
