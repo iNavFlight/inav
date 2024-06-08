@@ -2758,7 +2758,7 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 600 | 10 | 2000 |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -3418,7 +3418,7 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1000 | 10 | 2000 |
+| 750 | 10 | 2000 |
 
 ---
 
@@ -3438,7 +3438,7 @@ Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor onl
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1200 | 10 | 2000 |
+| 1000 | 10 | 2000 |
 
 ---
 
@@ -3478,7 +3478,7 @@ Maximum banking angle (deg) that multicopter navigation is allowed to set. Machi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 15 | 45 |
+| 35 | 15 | 45 |
 
 ---
 
