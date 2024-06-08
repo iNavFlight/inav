@@ -41,7 +41,16 @@
 STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
 #define GIMBAL_SERIAL_BUFFER_SIZE 512
+
+#ifndef GIMBAL_UNIT_TEST
 static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
+
+static gimbalSerialHtrkState_t headTrackerState = { 
+    .lastUpdate = 0,
+    .payloadSize = 0,
+    .state = WAITING_HDR1,
+};
+#endif
 
 static serialPort_t *headTrackerPort = NULL;
 static serialPort_t *gimbalPort = NULL;
@@ -53,13 +62,6 @@ gimbalVTable_t gimbalSerialVTable = {
     .hasHeadTracker = gimbalSerialHasHeadTracker,
 
 };
-
-static gimbalSerialHtrkState_t headTrackerState = { 
-    .lastUpdate = 0,
-    .payloadSize = 0,
-    .state = WAITING_HDR1,
-};
-
 
 static gimbalDevice_t serialGimbalDevice = {
     .vTable = &gimbalSerialVTable
@@ -147,6 +149,8 @@ bool gimbalSerialDetect(void)
 #ifdef GIMBAL_UNIT_TEST
 void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 {
+    UNUSED(gimbalDevice);
+    UNUSED(currentTime);
 }
 #else
 void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
@@ -240,6 +244,7 @@ int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
     return ret;
 }
 
+#ifndef GIMBAL_UNIT_TEST
 static void resetState(gimbalSerialHtrkState_t *state)
 {
     state->state = WAITING_HDR1;
@@ -303,5 +308,6 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
             break;
     }
 }
+#endif
 
 #endif
