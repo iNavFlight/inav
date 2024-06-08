@@ -34,16 +34,39 @@ extern "C" {
 #define HTKATTITUDE_SYNC1  0x5A
 typedef struct gimbalHtkAttitudePkt_s
 {
-	uint8_t  sync[2];   //data synchronization 0xA5, 0x5A
-	uint64_t mode:3;     //Gimbal Mode [0~7] [Only 0 1 2 modes are supported for the time being]
-	int64_t  sensibility:5;     //Cloud sensibility [-16~15]
-	uint64_t reserved:4;     //hold on to one's reserve
-	int64_t  roll:12;    //Roll angle [-2048~2047] => [-180~180]
-	int64_t  pitch:12;    //Pich angle [-2048~2047] => [-180~180]
-	int64_t  yaw:12;    //Yaw angle [-2048~2047] => [-180~180]
-	uint64_t crch:8;    //Data validation H
-	uint64_t crcl:8;    //Data validation L
+	uint8_t  sync[2];       //data synchronization 0xA5, 0x5A
+	uint64_t mode:3;        //Gimbal Mode [0~7] [Only 0 1 2 modes are supported for the time being]
+	int64_t  sensibility:5; // Stabilization sensibility [-16~15]
+	uint64_t reserved:4;    //hold on to one's reserve
+	int64_t  roll:12;       //Roll angle [-2048~2047] => [-180~180]
+	int64_t  tilt:12;       //Pich angle [-2048~2047] => [-180~180]
+	int64_t  pan:12;        //Yaw angle [-2048~2047] => [-180~180]
+	uint8_t  crch;          //Data validation H
+	uint8_t  crcl;          //Data validation L
 } __attribute__((packed)) gimbalHtkAttitudePkt_t;
+
+
+#define HEADTRACKER_PAYLOAD_SIZE (sizeof(gimbalHtkAttitudePkt_t) - 4)
+
+typedef enum {
+    WAITING_HDR1,
+    WAITING_HDR2,
+    WAITING_PAYLOAD,
+    WAITING_CRCH,
+    WAITING_CRCL,
+} gimbalHeadtrackerState_e;
+
+typedef struct gimbalSerialHtrkState_s {
+    timeUs_t lastUpdate;
+    uint8_t  payloadSize;
+	int16_t  roll;   //Roll angle [-2048~2047] => [-180~180]
+	int16_t  tilt;   //Pich angle [-2048~2047] => [-180~180]
+	int16_t  pan;    //Yaw angle [-2048~2047] => [-180~180]
+    gimbalHeadtrackerState_e state;
+    gimbalHtkAttitudePkt_t attittude;
+} gimbalSerialHtrkState_t;
+
+
 
 int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value);
 
@@ -53,6 +76,7 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime);
 bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice);
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice);
 bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice);
+void gimbalSerialHeadTrackerReceive(uint16_t c, void *data);
 
 #endif
 

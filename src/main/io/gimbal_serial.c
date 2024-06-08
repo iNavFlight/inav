@@ -30,6 +30,7 @@
 
 #include <drivers/gimbal_common.h>
 #include <drivers/serial.h>
+#include <drivers/time.h>
 
 #include <io/gimbal_serial.h>
 #include <io/serial.h>
@@ -53,9 +54,15 @@ gimbalVTable_t gimbalSerialVTable = {
 
 };
 
-gimbalDevice_t serialGimbalDevice = {
-    .vTable = &gimbalSerialVTable
+static gimbalSerialHtrkState_t headTrackerState = { 
+    .lastUpdate = 0,
+    .payloadSize = 0,
+    .state = WAITING_HDR1,
+};
 
+
+static gimbalDevice_t serialGimbalDevice = {
+    .vTable = &gimbalSerialVTable
 };
 
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice)
@@ -118,7 +125,7 @@ bool gimbalSerialDetect(void)
 
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL_HTRK]: found port...\n"));
-        headTrackerPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL_HEADTRACKER, NULL, NULL,
+        headTrackerPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL_HEADTRACKER, gimbalSerialHeadTrackerReceive, &headTrackerState,
                 baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (headTrackerPort) {
@@ -158,8 +165,8 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
     const gimbalConfig_t *cfg = gimbalConfig();
 
-    int yaw = 1500;
-    int pitch = 1500;
+    int pan = 1500;
+    int tilt = 1500;
     int roll = 1500;
 
     if (IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK)) {
@@ -177,13 +184,13 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
     if (rxAreFlightChannelsValid() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         if (cfg->panChannel > 0) {
-            yaw = rxGetChannelValue(cfg->panChannel - 1);
-            yaw = constrain(yaw, 1000, 2000);
+            pan = rxGetChannelValue(cfg->panChannel - 1);
+            pan = constrain(pan, 1000, 2000);
         }
 
         if (cfg->tiltChannel > 0) {
-            pitch = rxGetChannelValue(cfg->tiltChannel - 1);
-            pitch = constrain(pitch, 1000, 2000);
+            tilt = rxGetChannelValue(cfg->tiltChannel - 1);
+            tilt = constrain(tilt, 1000, 2000);
         }
 
         if (cfg->rollChannel > 0) {
@@ -194,8 +201,10 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
     attittude.sensibility = cfg->sensitivity; //gimbal_scale5(-16, 15, -16, 15, cfg->sensitivity);
 
-    attittude.yaw = gimbal_scale12(1000, 2000, yaw);
-    attittude.pitch = gimbal_scale12(1000, 2000, pitch);
+    // Radio endpoints may need to be adjusted, as it seems ot go a bit bananas
+    // at the extremes
+    attittude.pan = gimbal_scale12(1000, 2000, pan);
+    attittude.tilt = gimbal_scale12(1000, 2000, tilt);
     attittude.roll = gimbal_scale12(1000, 2000, roll);
 
     uint16_t crc16 = 0;
@@ -217,6 +226,70 @@ int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
     int16_t ret = 0;
     ret = scaleRange(value, inputMin, inputMax, -2048, 2047);
     return ret;
+}
+
+static void resetState(gimbalSerialHtrkState_t *state)
+{
+    state->state = WAITING_HDR1;
+    state->payloadSize = 0;
+}
+
+static bool checkCrc(gimbalHtkAttitudePkt_t *attitude)
+{
+    uint8_t *attitudePkt = (uint8_t *)attitude;
+    uint16_t crc = 0;
+
+    for(uint8_t i = 0; i < sizeof(gimbalHtkAttitudePkt_t) - 2; ++i) {
+        crc = crc16_ccitt(crc, attitudePkt[i]);
+    }
+
+    return (attitude->crch == ((crc >> 8) & 0xFF)) &&
+           (attitude->crcl == (crc & 0xFF));
+}
+
+
+void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
+{
+    gimbalSerialHtrkState_t *state = (gimbalSerialHtrkState_t *)data;
+    uint8_t *payload = (uint8_t *)&(state->attittude);
+    payload += 2;
+
+    switch(state->state) {
+        case WAITING_HDR1:
+            if(c == HTKATTITUDE_SYNC0) {
+                state->attittude.sync[0] = c;
+                state->state = WAITING_HDR2;
+            }
+            break;
+        case WAITING_HDR2:
+            if(c == HTKATTITUDE_SYNC1) {
+                state->attittude.sync[1] = c;
+                state->state = WAITING_PAYLOAD;
+            } else {
+                resetState(state);
+            }
+            break;
+        case WAITING_PAYLOAD:
+            payload[state->payloadSize++] = c;
+            if(state->payloadSize == HEADTRACKER_PAYLOAD_SIZE)
+            {
+                state->state = WAITING_CRCH;
+            }
+            break;
+        case WAITING_CRCH:
+            state->attittude.crch = c;
+            break;
+        case WAITING_CRCL:
+            state->attittude.crcl = c;
+            if(checkCrc(&(state->attittude))) {
+                state->lastUpdate = micros();
+                state->pan = state->attittude.pan;
+                state->tilt = state->attittude.tilt;
+                state->roll = state->attittude.roll;
+            }
+            resetState(state);
+            break;
+    }
 }
 
 #endif
