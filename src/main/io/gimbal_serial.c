@@ -151,29 +151,17 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     if (rxAreFlightChannelsValid() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         if (cfg->panChannel > 0) {
             yaw = rxGetChannelValue(cfg->panChannel - 1);
-            if (yaw < 1050) {
-                yaw = 1050;
-            } else if (yaw > 1950) {
-                yaw = 1950;
-            }
+            yaw = constrain(yaw, 1000, 2000);
         }
 
         if (cfg->tiltChannel > 0) {
             pitch = rxGetChannelValue(cfg->tiltChannel - 1);
-            if (pitch < 1050) {
-                pitch = 1050;
-            } else if (pitch > 1950) {
-                pitch = 1950;
-            }
+            pitch = constrain(pitch, 1000, 2000);
         }
 
         if (cfg->rollChannel > 0) {
             roll = rxGetChannelValue(cfg->rollChannel - 1);
-            if (roll < 1050) {
-                roll = 1050;
-            } else if (roll > 1950) {
-                roll = 1950;
-            }
+            roll = constrain(roll, 1000, 2000);
         }
     }
 
