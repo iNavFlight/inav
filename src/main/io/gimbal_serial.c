@@ -213,18 +213,25 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
             attitude.tilt = headTrackerState.tilt;
             attitude.pan = headTrackerState.pan;
             attitude.roll = headTrackerState.roll;
+            DEBUG_SET(DEBUG_HEADTRACKING, 4, 1);
         } else {
             attitude.tilt = 0;
             attitude.pan = 0;
             attitude.roll = 0;
+            DEBUG_SET(DEBUG_HEADTRACKING, 4, -1);
         }
     } else {
+        DEBUG_SET(DEBUG_HEADTRACKING, 4, 0);
         // Radio endpoints may need to be adjusted, as it seems ot go a bit
         // bananas at the extremes
         attitude.pan = gimbal_scale12(1000, 2000, pan);
         attitude.tilt = gimbal_scale12(1000, 2000, tilt);
         attitude.roll = gimbal_scale12(1000, 2000, roll);
     }
+
+    DEBUG_SET(DEBUG_HEADTRACKING, 5, attitude.pan);
+    DEBUG_SET(DEBUG_HEADTRACKING, 6, attitude.tilt);
+    DEBUG_SET(DEBUG_HEADTRACKING, 7, attitude.roll);
 
     attitude.sensibility = cfg->sensitivity;
 
@@ -272,9 +279,15 @@ static bool checkCrc(gimbalHtkAttitudePkt_t *attitude)
 
 void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
 {
+    static int charCount = 0;
+    static int pktCount = 0;
+    static int errorCount = 0;
     gimbalSerialHtrkState_t *state = (gimbalSerialHtrkState_t *)data;
     uint8_t *payload = (uint8_t *)&(state->attitude);
     payload += 2;
+
+    DEBUG_SET(DEBUG_HEADTRACKING, 0, charCount++);
+    DEBUG_SET(DEBUG_HEADTRACKING, 1, state->state);
 
     switch(state->state) {
         case WAITING_HDR1:
@@ -300,14 +313,18 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
             break;
         case WAITING_CRCH:
             state->attitude.crch = c;
+            state->state = WAITING_CRCL;
             break;
         case WAITING_CRCL:
             state->attitude.crcl = c;
             if(checkCrc(&(state->attitude))) {
-                state->expires = micros() + MAX_INVALID_RX_PULSE_TIME;
+                state->expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
                 state->pan = state->attitude.pan;
                 state->tilt = state->attitude.tilt;
                 state->roll = state->attitude.roll;
+                DEBUG_SET(DEBUG_HEADTRACKING, 2, pktCount++);
+            } else {
+                DEBUG_SET(DEBUG_HEADTRACKING, 3, errorCount++);
             }
             resetState(state);
             break;

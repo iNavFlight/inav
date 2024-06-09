@@ -30,6 +30,8 @@ extern "C" {
 
 #ifdef USE_SERIAL_GIMBAL
 
+#define MAX_HEADTRACKER_DATA_AGE_US HZ2US(25)
+
 #define HTKATTITUDE_SYNC0  0xA5
 #define HTKATTITUDE_SYNC1  0x5A
 typedef struct gimbalHtkAttitudePkt_s

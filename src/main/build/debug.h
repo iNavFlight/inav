@@ -75,6 +75,7 @@ typedef enum {
     DEBUG_LANDING,
     DEBUG_POS_EST,
     DEBUG_ADAPTIVE_FILTER,
+    DEBUG_HEADTRACKING,
     DEBUG_COUNT
 } debugType_e;
 
