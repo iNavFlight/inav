@@ -370,9 +370,7 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXGIMBALTLOCK);
         ADD_ACTIVE_BOX(BOXGIMBALRLOCK);
         ADD_ACTIVE_BOX(BOXGIMBALCENTER);
-        if (gimbalCommonHtrkIsEnabled()) {
-            ADD_ACTIVE_BOX(BOXGIMBALHTRK);
-        }
+        ADD_ACTIVE_BOX(BOXGIMBALHTRK);
     }
 #endif
 }
