@@ -1492,6 +1492,16 @@ Gimbal sensitivity is similar to gain and will affect how quickly the gimbal wil
 
 ---
 
+### gimbal_serial_single_uart
+
+Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gimbal_tilt_channel
 
 Gimbal tilt rc channel index. 0 is no channel.

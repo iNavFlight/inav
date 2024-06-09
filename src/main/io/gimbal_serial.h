@@ -66,6 +66,11 @@ typedef struct gimbalSerialHtrkState_s {
     gimbalHtkAttitudePkt_t attittude;
 } gimbalSerialHtrkState_t;
 
+typedef struct gimbalSerialConfig_s {
+    bool singleUart;
+} gimbalSerialConfig_t;
+
+PG_DECLARE(gimbalSerialConfig_t, gimbalSerialConfig);
 
 
 int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value);

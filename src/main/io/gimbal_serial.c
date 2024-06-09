@@ -38,6 +38,10 @@
 #include <rx/rx.h>
 #include <fc/rc_modes.h>
 
+#include <config/parameter_group_ids.h>
+
+PG_REGISTER(gimbalSerialConfig_t, gimbalSerialConfig, PG_GIMBAL_SERIAL_CONFIG, 0);
+
 STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
 #define GIMBAL_SERIAL_BUFFER_SIZE 512
@@ -104,10 +108,11 @@ bool gimbalSerialDetect(void)
 {
     SD(fprintf(stderr, "[GIMBAL]: serial Detect...\n"));
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_GIMBAL);
+    bool singleUart = gimbalSerialConfig()->singleUart;
 
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL]: found port...\n"));
-        gimbalPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, NULL, NULL,
+        gimbalPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, singleUart ? gimbalSerialHeadTrackerReceive : NULL, singleUart ? &headTrackerState :  NULL,
                 baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 
         if (gimbalPort) {
@@ -123,7 +128,7 @@ bool gimbalSerialDetect(void)
     }
 
     SD(fprintf(stderr, "[GIMBAL_HTRK]: headtracker Detect...\n"));
-    portConfig = findSerialPortConfig(FUNCTION_GIMBAL_HEADTRACKER);
+    portConfig = singleUart ? NULL : findSerialPortConfig(FUNCTION_GIMBAL_HEADTRACKER);
 
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL_HTRK]: found port...\n"));
