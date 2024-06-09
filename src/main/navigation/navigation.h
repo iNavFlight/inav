@@ -376,7 +376,7 @@ typedef struct navConfig_s {
         uint8_t  launch_ascent_transition_altitude; // Minimum altitude for transition to nav_fw_launch_climb_rate autolaunch phase
         uint8_t  launch_max_angle;                  // Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]
         bool     launch_manual_throttle;            // Allows launch with manual throttle control
-        uint8_t  launch_abort_deadband;             // roll/pitch stick movement deadband for launch abort
+        uint8_t  launch_land_abort_deadband;        // roll/pitch stick movement deadband for launch abort
         uint8_t  cruise_yaw_rate;                   // Max yaw rate (dps) when CRUISE MODE is enabled
         bool     allow_manual_thr_increase;
         bool     useFwNavYawControl;

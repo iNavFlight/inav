@@ -515,7 +515,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
         initialTime = navConfig()->fw.launch_motor_timer + navConfig()->fw.launch_motor_spinup_time;
 
         if (!fwLaunch.ascendPhaseActive && currentBatteryProfile->nav.fw.launch_climb_rate > 0 &&
-            (navConfig()->fw.launch_acsent_transition_altitude == 0  || ((METERS_TO_CENTIMETERS(navConfig()->fw.launch_acsent_transition_altitude) > 0) && (getEstimatedActualPosition(Z) >= METERS_TO_CENTIMETERS(navConfig()->fw.launch_acsent_transition_altitude)))) &&
+            (navConfig()->fw.launch_ascent_transition_altitude == 0  || ((METERS_TO_CENTIMETERS(navConfig()->fw.launch_ascent_transition_altitude) > 0) && (getEstimatedActualPosition(Z) >= METERS_TO_CENTIMETERS(navConfig()->fw.launch_ascent_transition_altitude)))) &&
             (getEstimatedActualVelocity(Z) >= (currentBatteryProfile->nav.fw.launch_climb_rate * 10)) 
            ) {
             fwLaunch.ascendPhaseActive = true;

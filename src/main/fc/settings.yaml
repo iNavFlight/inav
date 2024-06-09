@@ -3001,7 +3001,7 @@ groups:
       - name: nav_fw_launch_ascent_transition_altitude
         description: "Minimum altitude at which the `nav_fw_launch_climb_rate` and `nav_fw_launch_ascent_angle` will be used. The aircraft will need to be climbing at least at `nav_fw_launch_climb_rate` before the transition will happen. Default = 0 (disabled) [Metres]"
         default_value: 0
-        field: fw.launch_acsent_transition_altitude
+        field: fw.launch_ascent_transition_altitude
         min: 0
         max: 600
       - name: nav_fw_launch_manual_throttle

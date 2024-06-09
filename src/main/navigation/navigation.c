@@ -237,7 +237,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .launch_ascent_transition_altitude = SETTING_NAV_FW_LAUNCH_ASCENT_TRANSITION_ALTITUDE_DEFAULT,  // 0 (disabled) metres
         .launch_max_angle = SETTING_NAV_FW_LAUNCH_MAX_ANGLE_DEFAULT,                                    // 45 deg
         .launch_manual_throttle = SETTING_NAV_FW_LAUNCH_MANUAL_THROTTLE_DEFAULT,                        // OFF
-        .launch_abort_deadband = SETTING_NAV_FW_LAUNCH_ABORT_DEADBAND_DEFAULT,                          // 100 us
+        .launch_land_abort_deadband = SETTING_NAV_FW_LAUNCH_LAND_ABORT_DEADBAND_DEFAULT,                // 100 us
 
         .allow_manual_thr_increase = SETTING_NAV_FW_ALLOW_MANUAL_THR_INCREASE_DEFAULT,
         .useFwNavYawControl = SETTING_NAV_USE_FW_YAW_CONTROL_DEFAULT,
