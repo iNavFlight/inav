@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+
+#include <build/debug.h>
 #include <config/parameter_group_ids.h>
 
 #include "common/time.h"
@@ -42,6 +44,7 @@ void gimbalCommonInit(void)
 
 void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice)
 {
+    SD(fprintf(stderr, "[GIMBAL]: device added %p\n", gimbalDevice));
     commonGimbalDevice = gimbalDevice;
 }
 
@@ -102,15 +105,13 @@ bool gimbalCommonIsEnabled(void)
 
 bool gimbalCommonHtrkIsEnabled(void)
 {
-    return true;
-    /*
     const gimbalDevice_t *dev = gimbalCommonDevice();
     if(dev && dev->vTable->hasHeadTracker) {
-        return dev->vTable->hasHeadTracker(dev);
+        bool ret = dev->vTable->hasHeadTracker(dev);
+        return ret;
     }
 
     return false;
-    */
 }
 
 #endif

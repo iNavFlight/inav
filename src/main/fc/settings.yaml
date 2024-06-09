@@ -4234,5 +4234,6 @@ groups:
     members:
       - name: gimbal_serial_single_uart
         description: "Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal."
-        default_value: false
+        type: bool
+        default_value: OFF
         field: singleUart

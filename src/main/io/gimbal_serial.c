@@ -91,6 +91,7 @@ bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice)
 bool gimbalSerialInit(void)
 {
     if(gimbalSerialDetect()) {
+        SD(fprintf(stderr, "Setting gimbal device\n"));
         gimbalCommonSetDevice(&serialGimbalDevice);
         return true;
     }
@@ -147,6 +148,7 @@ bool gimbalSerialDetect(void)
         }
     }
 
+    SD(fprintf(stderr, "[GIMBAL]: gimbalPort: %p headTrackerPort: %p\n", gimbalPort, headTrackerPort));
     return gimbalPort || headTrackerPort;
 }
 #endif
