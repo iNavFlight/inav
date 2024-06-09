@@ -226,19 +226,12 @@ void OTG_WKUP_HANDLER(void)
 
 uint32_t CDC_Send_FreeBytes(void)
 {
-    /*
-        return the bytes free in the circular buffer
-
-        functionally equivalent to:
-        (APP_Rx_ptr_out > APP_Rx_ptr_in ? APP_Rx_ptr_out - APP_Rx_ptr_in : APP_RX_DATA_SIZE - APP_Rx_ptr_in + APP_Rx_ptr_in)
-        but without the impact of the condition check.
-    */
-    uint32_t freeBytes;
-    ATOMIC_BLOCK(NVIC_PRIO_VCP) {
-        freeBytes = ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
-    }
-
-    return freeBytes;
+  cdc_struct_type *pcdc = (cdc_struct_type *)otg_core_struct.dev.class_handler->pdata;
+  if(pcdc->g_tx_completed){
+    return APP_TX_BLOCK_SIZE;
+  }else{
+    return 0;
+  }
 }
 
 /**
@@ -251,92 +244,29 @@ uint32_t CDC_Send_FreeBytes(void)
  */
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
-    for (uint32_t i = 0; i < sendLength; i++) {
-        while (CDC_Send_FreeBytes() == 0) {
-            // block until there is free space in the ring buffer
-            delay(1);
-        }
-
-        ATOMIC_BLOCK(NVIC_PRIO_VCP) {
-            UserTxBuffer[UserTxBufPtrIn] = ptrBuffer[i];
-            UserTxBufPtrIn = (UserTxBufPtrIn + 1) % APP_TX_DATA_SIZE;
-        }
+  cdc_struct_type *pcdc = (cdc_struct_type *)otg_core_struct.dev.class_handler->pdata;
+  uint32_t start = millis();
+   
+  uint32_t pos=0;
+  while(pos < sendLength || (pos==sendLength && sendLength%64 == 0) ){//`==` is intended for sending 0 length packet
+    int tosend=sendLength-pos;
+    if(tosend>APP_TX_BLOCK_SIZE){
+      tosend=APP_TX_BLOCK_SIZE;
     }
-    return sendLength;
-}
-
-void TxTimerConfig(void){
-	  /* Initialize TIMx peripheral as follow:
-	       + Period = CDC_POLLING_INTERVAL*1000 - 1  every 5ms
-	       + Prescaler = ((SystemCoreClock/2)/10000) - 1
-	       + ClockDivision = 0
-	       + Counter direction = Up
-	  */
-  crm_periph_clock_enable(CRM_TMR20_PERIPH_CLOCK, TRUE);
-	//timer, period, perscaler
-	tmr_base_init(usbTxTmr,(CDC_POLLING_INTERVAL - 1),((system_core_clock)/10000 - 1));
-	//TMR_CLOCK_DIV1 = 0X00 NO DIV
-	tmr_clock_source_div_set(usbTxTmr,TMR_CLOCK_DIV1);
-	//COUNT UP
-	tmr_cnt_dir_set(usbTxTmr,TMR_COUNT_UP);
-
-	tmr_period_buffer_enable(usbTxTmr,TRUE);
-
-	tmr_interrupt_enable(usbTxTmr, TMR_OVF_INT, TRUE);
-
-	nvic_irq_enable(TMR20_OVF_IRQn,NVIC_PRIO_USB,0);
-
-	tmr_counter_enable(usbTxTmr,TRUE);
-
-}
-
-/**
-  * @brief  TIM period elapsed callback
-  * @param  htim: TIM handle
-  * @retval None
-  */
-void TMR20_OVF_IRQHandler(void)
-{
-
-    uint32_t buffsize;
-    static uint32_t lastBuffsize = 0;
-
-    cdc_struct_type *pcdc = (cdc_struct_type *)otg_core_struct.dev.class_handler->pdata;
-
-    if (pcdc->g_tx_completed == 1) {
-        // endpoint has finished transmitting previous block
-        if (lastBuffsize) {
-            bool needZeroLengthPacket = lastBuffsize % 64 == 0;
-
-            // move the ring buffer tail based on the previous succesful transmission
-            UserTxBufPtrOut += lastBuffsize;
-            if (UserTxBufPtrOut == APP_TX_DATA_SIZE) {
-                UserTxBufPtrOut = 0;
-            }
-            lastBuffsize = 0;
-
-            if (needZeroLengthPacket) {
-            	usb_vcp_send_data(&otg_core_struct.dev, (uint8_t*)&UserTxBuffer[UserTxBufPtrOut], 0);
-                return;
-            }
-        }
-        if (UserTxBufPtrOut != UserTxBufPtrIn) {
-            if (UserTxBufPtrOut > UserTxBufPtrIn) { /* Roll-back */
-                buffsize = APP_TX_DATA_SIZE - UserTxBufPtrOut;
-            } else {
-                buffsize = UserTxBufPtrIn - UserTxBufPtrOut;
-            }
-            if (buffsize > APP_TX_BLOCK_SIZE) {
-                buffsize = APP_TX_BLOCK_SIZE;
-            }
-
-            uint32_t txed=usb_vcp_send_data(&otg_core_struct.dev,(uint8_t*)&UserTxBuffer[UserTxBufPtrOut], buffsize);
-            if (txed==SUCCESS) {
-                lastBuffsize = buffsize;
-            }
-        }
+    while(pcdc->g_tx_completed != 1) {
+      if (millis() - start > USB_TIMEOUT) {
+        return pos;
+      }
     }
-    tmr_flag_clear(usbTxTmr,TMR_OVF_FLAG);
+    uint32_t txed=usb_vcp_send_data(&otg_core_struct.dev,(uint8_t *)(ptrBuffer+pos), tosend);
+    if(pos==sendLength){
+      break;
+    }
+    if (txed==SUCCESS) {
+      pos+=tosend;
+    }
+  }
+  return pos;
 }
 
 /************************************************************/
@@ -542,8 +472,6 @@ void usbVcpInitHardware(void)
                &cdc_class_handler,
                &cdc_desc_handler); 
 
-    //config TX timer
-    TxTimerConfig();
 }
 
 serialPort_t *usbVcpOpen(void)

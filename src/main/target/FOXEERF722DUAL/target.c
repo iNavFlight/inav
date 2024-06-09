@@ -22,6 +22,7 @@
 #include "drivers/timer.h"
 #include "drivers/sensor.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/pinio.h"
 
 BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,       0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
 #if defined(FOXEERF722DUAL)

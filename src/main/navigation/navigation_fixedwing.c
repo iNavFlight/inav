@@ -122,7 +122,7 @@ bool adjustFixedWingAltitudeFromRCInput(void)
     else {
         // Adjusting finished - reset desired position to stay exactly where pilot released the stick
         if (posControl.flags.isAdjustingAltitude) {
-            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         }
         return false;
     }
@@ -133,46 +133,30 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 {
     static pt1Filter_t velzFilterState;
 
-    // On a fixed wing we might not have a reliable climb rate source (if no BARO available), so we can't apply PID controller to
-    // velocity error. We use PID controller on altitude error and calculate desired pitch angle
+    float desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
-    // Update energies
-    const float demSPE = (posControl.desiredState.pos.z * 0.01f) * GRAVITY_MSS;
-    const float demSKE = 0.0f;
-
-    const float estSPE = (navGetCurrentActualPositionAndVelocity()->pos.z * 0.01f) * GRAVITY_MSS;
-    const float estSKE = 0.0f;
-
-    // speedWeight controls balance between potential and kinetic energy used for pitch controller
-    //  speedWeight = 1.0 : pitch will only control airspeed and won't control altitude
-    //  speedWeight = 0.5 : pitch will be used to control both airspeed and altitude
-    //  speedWeight = 0.0 : pitch will only control altitude
-    const float speedWeight = 0.0f; // no speed sensing for now
-
-    const float demSEB = demSPE * (1.0f - speedWeight) - demSKE * speedWeight;
-    const float estSEB = estSPE * (1.0f - speedWeight) - estSKE * speedWeight;
-
-    // SEB to pitch angle gain to account for airspeed (with respect to specified reference (tuning) speed
-    const float pitchGainInv = 1.0f / 1.0f;
-
-    // Here we use negative values for dive for better clarity
-    float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
-    const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
-
-    // Reduce max allowed climb pitch if performing loiter (stall prevention)
-    if (needToCalculateCircularLoiter) {
-        maxClimbDeciDeg = maxClimbDeciDeg * 0.67f;
+    // Reduce max allowed climb rate by 2/3 if performing loiter (stall prevention)
+    if (needToCalculateCircularLoiter && desiredClimbRate > 0.67f * navConfig()->fw.max_auto_climb_rate) {
+        desiredClimbRate = 0.67f * navConfig()->fw.max_auto_climb_rate;
     }
 
-    // PID controller to translate energy balance error [J] into pitch angle [decideg]
-    float targetPitchAngle = navPidApply3(&posControl.pids.fw_alt, demSEB, estSEB, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0, pitchGainInv, 1.0f);
+    // Here we use negative values for dive for better clarity
+    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+    const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
+
+    // PID controller to translate desired climb rate error into pitch angle [decideg]
+    float currentClimbRate = navGetCurrentActualPositionAndVelocity()->vel.z;
+    float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, desiredClimbRate, currentClimbRate, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, PID_DTERM_FROM_ERROR);
 
     // Apply low-pass filter to prevent rapid correction
     targetPitchAngle = pt1FilterApply4(&velzFilterState, targetPitchAngle, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
 
-    // Reconstrain pitch angle ( >0 - climb, <0 - dive)
+    // Reconstrain pitch angle (> 0 - climb, < 0 - dive)
     targetPitchAngle = constrainf(targetPitchAngle, minDiveDeciDeg, maxClimbDeciDeg);
     posControl.rcAdjustment[PITCH] = targetPitchAngle;
+
+    posControl.desiredState.vel.z = desiredClimbRate;
+    navDesiredVelocity[Z] = constrain(lrintf(posControl.desiredState.vel.z), -32678, 32767);
 }
 
 void applyFixedWingAltitudeAndThrottleController(timeUs_t currentTimeUs)
@@ -271,7 +255,7 @@ static int8_t loiterDirection(void) {
 
 static void calculateVirtualPositionTarget_FW(float trackingPeriod)
 {
-    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
         return;
     }
 
@@ -290,9 +274,12 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod)
     // Detemine if a circular loiter is required.
     // For waypoints only use circular loiter when angular visibility is > 30 degs, otherwise head straight toward target
     #define TAN_15DEG    0.26795f
-    needToCalculateCircularLoiter = isNavHoldPositionActive() &&
-                                     (distanceToActualTarget <= (navLoiterRadius / TAN_15DEG)) &&
-                                     (distanceToActualTarget > 50.0f);
+
+    bool loiterApproachActive = isNavHoldPositionActive() &&
+                                distanceToActualTarget <= (navLoiterRadius / TAN_15DEG) &&
+                                distanceToActualTarget > 50.0f;
+    needToCalculateCircularLoiter = loiterApproachActive || (navGetCurrentStateFlags() & NAV_CTL_HOLD);
+
     //if vtol landing is required, fly straight to homepoint
     if ((posControl.navState == NAV_STATE_RTH_HEAD_HOME) && navigationRTHAllowsLanding() && checkMixerATRequired(MIXERAT_REQUEST_LAND)){
         needToCalculateCircularLoiter = false;
@@ -405,7 +392,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
     static bool forceTurnDirection = false;
     int32_t virtualTargetBearing;
 
-    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
+    if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) || posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
         virtualTargetBearing = posControl.desiredState.yaw;
     } else {
         // We have virtual position target, calculate heading error
@@ -588,13 +575,21 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     // Apply low-pass filter to pitch angle to smooth throttle correction
     int16_t filteredPitch = (int16_t)pt1FilterApply4(&pitchToThrFilterState, pitch, getPitchToThrottleSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicrosPitchToThrCorr));
 
+    int16_t pitchToThrottle = currentBatteryProfile->nav.fw.pitch_to_throttle;
+
+#ifdef USE_FW_AUTOLAND
+    if (pitch < 0 && posControl.fwLandState.landState == FW_AUTOLAND_STATE_FINAL_APPROACH) {
+        pitchToThrottle *= navFwAutolandConfig()->finalApproachPitchToThrottleMod / 100.0f;
+    }
+#endif
+
     if (ABS(pitch - filteredPitch) > navConfig()->fw.pitch_to_throttle_thresh) {
         // Unfiltered throttle correction outside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(pitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(pitch) * pitchToThrottle;
     }
     else {
         // Filtered throttle correction inside of pitch deadband
-        return DECIDEGREES_TO_DEGREES(filteredPitch) * currentBatteryProfile->nav.fw.pitch_to_throttle;
+        return DECIDEGREES_TO_DEGREES(filteredPitch) * pitchToThrottle;
     }
 }
 
@@ -619,16 +614,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
         int16_t throttleCorrection = fixedWingPitchToThrottleCorrection(pitchCorrection, currentTimeUs);
 
-#ifdef NAV_FIXED_WING_LANDING
         if (navStateFlags & NAV_CTL_LAND) {
-            // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
+        // During LAND we do not allow to raise THROTTLE when nose is up to reduce speed
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, 0);
         } else {
-#endif
             throttleCorrection = constrain(throttleCorrection, minThrottleCorrection, maxThrottleCorrection);
-#ifdef NAV_FIXED_WING_LANDING
         }
-#endif
 
         // Speed controller - only apply in POS mode when NOT NAV_CTL_LAND
         if ((navStateFlags & NAV_CTL_POS) && !(navStateFlags & NAV_CTL_LAND)) {
@@ -639,11 +630,11 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         uint16_t correctedThrottleValue = constrain(currentBatteryProfile->nav.fw.cruise_throttle + throttleCorrection, currentBatteryProfile->nav.fw.min_throttle, currentBatteryProfile->nav.fw.max_throttle);
 
         // Manual throttle increase
-        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE)) {
+        if (navConfig()->fw.allow_manual_thr_increase && !FLIGHT_MODE(FAILSAFE_MODE) && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
             if (rcCommand[THROTTLE] < PWM_RANGE_MIN + (PWM_RANGE_MAX - PWM_RANGE_MIN) * 0.95){
                 correctedThrottleValue += MAX(0, rcCommand[THROTTLE] - currentBatteryProfile->nav.fw.cruise_throttle);
             } else {
-                correctedThrottleValue = motorConfig()->maxthrottle;
+                correctedThrottleValue = getMaxThrottle();
             }
             isAutoThrottleManuallyIncreased = (rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle);
         } else {
@@ -653,12 +644,23 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         rcCommand[THROTTLE] = setDesiredThrottle(correctedThrottleValue, false);
     }
 
-#ifdef NAV_FIXED_WING_LANDING
-    /*
-     * Then altitude is below landing slowdown min. altitude, enable final approach procedure
-     * TODO refactor conditions in this metod if logic is proven to be correct
-     */
-    if (navStateFlags & NAV_CTL_LAND || STATE(LANDING_DETECTED)) {
+#ifdef USE_FW_AUTOLAND
+    // Advanced autoland
+    if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
+        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
+        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+
+        if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
+
+        if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
+        }
+    }
+#endif
+    // "Traditional" landing as fallback option
+    if (navStateFlags & NAV_CTL_LAND) {
         int32_t finalAltitude = navConfig()->general.land_slowdown_minalt + posControl.rthState.homeTmpWaypoint.z;
 
         if ((posControl.flags.estAltStatus >= EST_USABLE && navGetCurrentActualPositionAndVelocity()->pos.z <= finalAltitude) ||
@@ -674,7 +676,6 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             rcCommand[PITCH] = pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(navConfig()->fw.land_dive_angle), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
-#endif
 }
 
 bool isFixedWingAutoThrottleManuallyIncreased(void)
@@ -708,6 +709,7 @@ bool isFixedWingLandingDetected(void)
     // Basic condition to start looking for landing
     bool startCondition = (navGetCurrentStateFlags() & (NAV_CTL_LAND | NAV_CTL_EMERG))
                           || FLIGHT_MODE(FAILSAFE_MODE)
+                          || FLIGHT_MODE(NAV_FW_AUTOLAND)
                           || (!navigationIsControllingThrottle() && throttleStickIsLow());
 
     if (!startCondition || posControl.flags.resetLandingDetector) {
@@ -767,8 +769,8 @@ void applyFixedWingEmergencyLandingController(timeUs_t currentTimeUs)
     rcCommand[THROTTLE] = setDesiredThrottle(currentBatteryProfile->failsafe_throttle, true);
 
     if (posControl.flags.estAltStatus >= EST_USABLE) {
-        // target min descent rate 10m above takeoff altitude
-        updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 1000.0f, ROC_TO_ALT_TARGET);
+        // target min descent rate at distance 2 x emerg descent rate above takeoff altitude
+        updateClimbRateToAltitudeController(0, 2.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_TARGET);
         applyFixedWingAltitudeAndThrottleController(currentTimeUs);
 
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));

@@ -115,15 +115,12 @@ typedef struct pidProfile_s {
 
     int16_t max_angle_inclination[ANGLE_INDEX_COUNT];       // Max possible inclination (roll and pitch axis separately
 
-    uint16_t pidSumLimit;
-    uint16_t pidSumLimitYaw;
     uint16_t pidItermLimitPercent;
 
     // Airplane-specific parameters
     float       fixedWingReferenceAirspeed;     // Reference tuning airspeed for the airplane - the speed for which PID gains are tuned
     float       fixedWingCoordinatedYawGain;    // This is the gain of the yaw rate required to keep the yaw rate consistent with the turn rate for a coordinated turn.
     float       fixedWingCoordinatedPitchGain;    // This is the gain of the pitch rate to keep the pitch angle constant during coordinated turns.
-    float       fixedWingItermLimitOnStickPosition;   //Do not allow Iterm to grow when stick position is above this point
     uint16_t    fixedWingYawItermBankFreeze;       // Freeze yaw Iterm when bank angle is more than this many degrees
 
     float       navVelXyDTermLpfHz;
@@ -151,11 +148,19 @@ typedef struct pidProfile_s {
 
     float fixedWingLevelTrim;
     float fixedWingLevelTrimGain;
+
+    uint8_t fwAltControlResponseFactor;
 #ifdef USE_SMITH_PREDICTOR
     float smithPredictorStrength;
     float smithPredictorDelay;
     uint16_t smithPredictorFilterHz;
 #endif
+
+
+    uint16_t fwItermLockTimeMaxMs;
+    uint8_t fwItermLockRateLimit;
+    uint8_t fwItermLockEngageThreshold;
+
 } pidProfile_t;
 
 typedef struct pidAutotuneConfig_s {
@@ -221,3 +226,4 @@ bool isFixedWingLevelTrimActive(void);
 void updateFixedWingLevelTrim(timeUs_t currentTimeUs);
 float getFixedWingLevelTrim(void);
 bool isAngleHoldLevel(void);
+uint16_t getPidSumLimit(const flight_dynamics_index_t axis);

@@ -483,8 +483,9 @@ static int logicConditionCompute(
             }
             break;
 
-#ifdef LED_PIN
+#ifdef USE_LED_STRIP
         case LOGIC_CONDITION_LED_PIN_PWM:
+
             if (operandA >=0 && operandA <= 100) {
                 ledPinStartPWM((uint8_t)operandA);
             } else {
@@ -767,7 +768,12 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break; 
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_LANDING: // 0/1
-            return (navGetCurrentStateFlags() & NAV_CTL_LAND) ? 1 : 0;
+#ifdef USE_FW_AUTOLAND
+            return ((navGetCurrentStateFlags() & NAV_CTL_LAND) || FLIGHT_MODE(NAV_FW_AUTOLAND)) ? 1 : 0;
+#else
+            return ((navGetCurrentStateFlags() & NAV_CTL_LAND)) ? 1 : 0;
+#endif
+            
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
@@ -809,6 +815,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
             return getConfigProfile() + 1;
             break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE: //int
+            return getConfigBatteryProfile() + 1;
+            break;
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE: // int
             return currentMixerProfileIndex + 1;
@@ -831,8 +841,12 @@ static int logicConditionGetFlightOperandValue(int operand) {
         
         case LOGIC_CONDITION_OPERAND_FLIGHT_RANGEFINDER_RAW:
             return rangefinderGetLatestRawAltitude();
-            break; 
-
+            break;
+#ifdef USE_FW_AUTOLAND
+        case LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE:
+            return posControl.fwLandState.landState;
+            break;
+#endif
         default:
             return 0;
             break;

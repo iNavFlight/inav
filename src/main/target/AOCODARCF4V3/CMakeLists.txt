@@ -1,0 +1,3 @@
+target_stm32f405xg(AOCODARCF4V3_SD)
+target_stm32f405xg(AOCODARCF4V3)
+

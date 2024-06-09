@@ -34,7 +34,7 @@ set(SITL_LINK_OPTIONS
     -Wl,-L${STM32_LINKER_DIR}
 )
 
-if(${WIN32} OR ${CYGWIN})
+if(${CYGWIN})
     set(SITL_LINK_OPTIONS ${SITL_LINK_OPTIONS} "-static-libgcc")
 endif()
 
@@ -99,6 +99,10 @@ function (target_sitl name)
     math(EXPR hse_value "${hse_mhz} * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
 
+    if (MSP_UART) 
+        list(APPEND target_definitions "MSP_UART=${MSP_UART}")
+    endif()
+
     string(TOLOWER ${PROJECT_NAME} lowercase_project_name)
     set(binary_name ${lowercase_project_name}_${FIRMWARE_VERSION}_${name})
     if(DEFINED BUILD_SUFFIX AND NOT "" STREQUAL "${BUILD_SUFFIX}")
@@ -131,7 +135,7 @@ function (target_sitl name)
         target_link_options(${exe_target} PRIVATE -T${script_path})
     endif()
 
-    if(${WIN32} OR ${CYGWIN})
+    if(${CYGWIN})
         set(exe_filename ${CMAKE_BINARY_DIR}/${binary_name}.exe)
     else()
         set(exe_filename ${CMAKE_BINARY_DIR}/${binary_name})

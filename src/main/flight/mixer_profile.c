@@ -79,7 +79,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
     }
 }
 
-void activateMixerConfig(){
+void activateMixerConfig(void){
     currentMixerProfileIndex = getConfigMixerProfile();
     currentMixerConfig = *mixerConfig();
     nextMixerProfileIndex = (currentMixerProfileIndex + 1) % MAX_MIXER_PROFILE_COUNT;

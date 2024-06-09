@@ -86,6 +86,7 @@ void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 const acc_extremes_t* accGetMeasuredExtremes(void);
 float accGetMeasuredMaxG(void);
 void updateAccExtremes(void);
+void resetGForceStats(void);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);
 uint32_t accGetClipCount(void);

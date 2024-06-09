@@ -19,7 +19,7 @@
 #include "common/color.h"
 #include "config/parameter_group.h"
 
-#define WS2811_LED_STRIP_LENGTH 32
+#define WS2811_LED_STRIP_LENGTH 128
 #define WS2811_BITS_PER_LED 24
 #define WS2811_DELAY_BUFFER_LENGTH 42 // for 50us delay 
 

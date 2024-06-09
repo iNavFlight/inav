@@ -48,7 +48,8 @@ typedef enum {
 typedef enum {
     OUTPUT_MODE_AUTO     = 0,
     OUTPUT_MODE_MOTORS,
-    OUTPUT_MODE_SERVOS
+    OUTPUT_MODE_SERVOS,
+    OUTPUT_MODE_LED
 } outputMode_e;
 
 typedef struct motorAxisCorrectionLimits_s {
@@ -81,7 +82,6 @@ PG_DECLARE(reversibleMotorsConfig_t, reversibleMotorsConfig);
 
 typedef struct motorConfig_s {
     // PWM values, in milliseconds, common range is 1000-2000 (1ms to 2ms)
-    uint16_t maxthrottle;                   // This is the maximum value for the ESCs at full power this value can be increased up to 2000
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
@@ -131,3 +131,5 @@ void stopPwmAllMotors(void);
 
 void loadPrimaryMotorMixer(void);
 bool areMotorsRunning(void);
+
+uint16_t getMaxThrottle(void);

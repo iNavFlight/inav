@@ -171,7 +171,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     float gainFF = tuneCurrent[axis].gainFF;
     float maxDesiredRate = maxRateSetting;
 
-    const float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
+    const float pidSumLimit = getPidSumLimit(axis);
     const float absDesiredRate = fabsf(desiredRate);
     const float absReachedRate = fabsf(reachedRate);
     const float absPidOutput = fabsf(pidOutput);

@@ -391,9 +391,10 @@ static void configureGNSS10(void)
             {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
 
             // Beidou
+            // M10 can't use BDS_B1I and Glonass together. Instead, use BDS_B1C
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && ! gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
@@ -955,12 +956,18 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Configure GNSS for M8N and later
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-        if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
+        bool use_VALSET = 0;
+        if ( (gpsState.swVersionMajor > 23) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor > 1) ) {
+            use_VALSET = 1;
+        }
+
+        if ( use_VALSET && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) ) {
             configureGNSS10();
         } else {
             configureGNSS();
         }
-        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
         if(_ack_state == UBX_ACK_GOT_NAK) {
             gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
@@ -1041,25 +1048,26 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
     gpsState.autoConfigStep = 0;
 
-    do {
-        pollVersion();
-        gpsState.autoConfigStep++;
-        ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-    } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
-
-    gpsState.autoConfigStep = 0;
-    ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
-    // M7 and earlier will never get pass this step, so skip it (#9440).
-    // UBLOX documents that this is M8N and later
-    if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
-	do {
-	    pollGnssCapabilities();
-	    gpsState.autoConfigStep++;
-	    ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-	} while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
-    }
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
+        do {
+            pollVersion();
+            gpsState.autoConfigStep++;
+            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+
+        gpsState.autoConfigStep = 0;
+        ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        // M7 and earlier will never get pass this step, so skip it (#9440).
+        // UBLOX documents that this is M8N and later
+        if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
+            do {
+                pollGnssCapabilities();
+                gpsState.autoConfigStep++;
+                ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
+            } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+        }
+
         // Configure GPS
         ptSpawn(gpsConfigure);
     }
@@ -1072,7 +1080,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         ptSemaphoreWait(semNewDataReady);
         gpsProcessNewSolutionData(false);
 
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
+        if ((gpsState.gpsConfig->autoConfig) && (gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
 

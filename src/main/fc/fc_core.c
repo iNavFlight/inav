@@ -237,7 +237,7 @@ static void updateArmingStatus(void)
 
         /* CHECK: pitch / roll sticks centered when NAV_LAUNCH_MODE enabled */
         if (isNavLaunchEnabled()) {
-            if (isRollPitchStickDeflected(rcControlsConfig()->control_deadband)) {
+            if (isRollPitchStickDeflected(CONTROL_DEADBAND)) {
                 ENABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
             } else {
                 DISABLE_ARMING_FLAG(ARMING_DISABLED_ROLLPITCH_NOT_CENTERED);
@@ -307,14 +307,6 @@ static void updateArmingStatus(void)
             DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXFAILSAFE);
         }
 
-        /* CHECK: BOXKILLSWITCH */
-        if (IS_RC_MODE_ACTIVE(BOXKILLSWITCH)) {
-            ENABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
-        }
-        else {
-            DISABLE_ARMING_FLAG(ARMING_DISABLED_BOXKILLSWITCH);
-        }
-
         /* CHECK: Do not allow arming if Servo AutoTrim is enabled */
         if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
            ENABLE_ARMING_FLAG(ARMING_DISABLED_SERVO_AUTOTRIM);
@@ -348,6 +340,10 @@ static void updateArmingStatus(void)
             }
         } else {
             DISABLE_ARMING_FLAG(ARMING_DISABLED_NO_PREARM);
+        }
+
+        if (ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED) && !IS_RC_MODE_ACTIVE(BOXARM)) {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
         }
 
         /* CHECK: Arming switch */
@@ -456,7 +452,6 @@ void disarm(disarmReason_t disarmReason)
 #ifdef USE_PROGRAMMING_FRAMEWORK
         programmingPidReset();
 #endif
-
         beeper(BEEPER_DISARMING);      // emit disarm tone
 
         prearmWasReset = false;
@@ -514,7 +509,7 @@ bool emergInflightRearmEnabled(void)
     timeMs_t currentTimeMs = millis();
     emergRearmStabiliseTimeout = 0;
 
-    if ((lastDisarmReason != DISARM_SWITCH && lastDisarmReason != DISARM_KILLSWITCH) ||
+    if ((lastDisarmReason != DISARM_SWITCH) ||
         (currentTimeMs > US2MS(lastDisarmTimeUs) + EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS)) {
         return false;
     }
@@ -709,7 +704,7 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     /* Turn assistant mode */
-    if (IS_RC_MODE_ACTIVE(BOXTURNASSIST)) {
+    if (IS_RC_MODE_ACTIVE(BOXTURNASSIST) || navigationRequiresTurnAssistance()) {
          ENABLE_FLIGHT_MODE(TURN_ASSISTANT);
     } else {
         DISABLE_FLIGHT_MODE(TURN_ASSISTANT);
@@ -905,7 +900,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
 #if defined(SITL_BUILD)
-    if (lockMainPID()) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) || lockMainPID()) {
 #endif
 
     gyroFilter();
@@ -1019,6 +1014,10 @@ void taskUpdateRxMain(timeUs_t currentTimeUs)
 float getFlightTime(void)
 {
     return US2S(flightTime);
+}
+
+void resetFlightTime(void) {
+    flightTime = 0;
 }
 
 float getArmTime(void)

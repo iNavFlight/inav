@@ -29,7 +29,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8, CH3, PC8,  TIM_USE_OUTPUT_AUTO, 0, 1), // S3  UP(2,1)
     DEF_TIM(TIM8, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 0, 0), // S4  UP(2,1)
 
-    DEF_TIM(TIM2, CH1, PA15, TIM_USE_OUTPUT_AUTO | TIM_USE_LED                        , 0, 0), // S5  UP(1,7)
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_OUTPUT_AUTO, 0, 0), // S5  UP(1,7) -- LED
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S6  UP(2,5)
     DEF_TIM(TIM4, CH3, PB8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S7  D(1,7)!S5 UP(2,6)
