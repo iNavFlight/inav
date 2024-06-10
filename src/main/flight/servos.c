@@ -347,6 +347,12 @@ void servoMixer(float dT)
     input[INPUT_RC_CH16]     = GET_RX_CHANNEL_INPUT(AUX12);
 #undef GET_RX_CHANNEL_INPUT
 
+#ifdef USE_SERIAL_GIMBAL
+    input[INPUT_HEADTRACKER_PAN] = 0;
+    input[INPUT_HEADTRACKER_TILT] = 0;
+    input[INPUT_HEADTRACKER_ROLL] = 0;
+#endif
+
 #ifdef USE_SIMULATOR
 	simulatorData.input[INPUT_STABILIZED_ROLL] = input[INPUT_STABILIZED_ROLL];
 	simulatorData.input[INPUT_STABILIZED_PITCH] = input[INPUT_STABILIZED_PITCH];
