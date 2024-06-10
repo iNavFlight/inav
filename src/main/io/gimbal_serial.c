@@ -136,7 +136,7 @@ bool gimbalSerialDetect(void)
         }
     }
 
-    SD(fprintf(stderr, "[GIMBAL]: gimbalPort\n", gimbalPort));
+    SD(fprintf(stderr, "[GIMBAL]: gimbalPort: %p\n", gimbalPort));
     return gimbalPort;
 }
 #endif
