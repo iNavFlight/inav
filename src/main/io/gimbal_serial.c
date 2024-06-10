@@ -367,15 +367,13 @@ bool gimbalSerialHeadTrackerDetect(void)
 
 bool gimbalSerialHeadTrackerInit(void)
 {
-    if(gimbalSerialHeadTrackerDetect()) {
-        SD(fprintf(stderr, "Setting gimbal device\n"));
-        gimbalCommonSetDevice(&serialGimbalDevice);
-        return true;
-    }
-
-
     if(headTrackerConfig()->devType == HEADTRACKER_SERIAL) {
-        headTrackerCommonSetDevice(&headTrackerDevice);
+        if (gimbalSerialHeadTrackerDetect()) {
+            SD(fprintf(stderr, "Setting gimbal device\n"));
+            headTrackerCommonSetDevice(&headTrackerDevice);
+
+            return true;
+        }
     }
 
     return false;
