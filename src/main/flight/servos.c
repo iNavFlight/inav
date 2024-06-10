@@ -38,6 +38,7 @@
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
+#include "drivers/gimbal_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -348,9 +349,15 @@ void servoMixer(float dT)
 #undef GET_RX_CHANNEL_INPUT
 
 #ifdef USE_SERIAL_GIMBAL
-    input[INPUT_HEADTRACKER_PAN] = 0;
-    input[INPUT_HEADTRACKER_TILT] = 0;
-    input[INPUT_HEADTRACKER_ROLL] = 0;
+    if(gimbalCommonHtrkIsEnabled() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
+    } else {
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
+    }
 #endif
 
 #ifdef USE_SIMULATOR
