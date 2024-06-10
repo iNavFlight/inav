@@ -432,6 +432,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_GIMBAL, true);
 #endif
 
+#ifdef USE_HEADTRACKER
+    setTaskEnabled(TASK_HEADTRACKER, true);
+#endif
+
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE));
 #endif
@@ -707,4 +711,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
+
+#ifdef USE_SERIAL_GIMBAL
+    [TASK_HEADTRACKER] = {
+        .taskName = "HEADTRACKER",
+        .taskFunc = taskUpdateGimbal,
+        .desiredPeriod = TASK_PERIOD_HZ(50),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
 };

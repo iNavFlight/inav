@@ -1822,6 +1822,16 @@ This setting limits yaw rotation rate that HEADING_HOLD controller can request f
 
 ---
 
+### headtracker_type
+
+Type of headtrackr dervice
+
+| Default | Min | Max |
+| --- | --- | --- |
+| SERIAL |  |  |
+
+---
+
 ### hott_alarm_sound_interval
 
 Battery alarm delay in seconds for Hott telemetry

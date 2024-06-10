@@ -29,6 +29,7 @@
 #include <build/debug.h>
 
 #include <drivers/gimbal_common.h>
+#include <drivers/headtracker_common.h>
 #include <drivers/serial.h>
 #include <drivers/time.h>
 
@@ -332,6 +333,94 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
             break;
     }
 }
+
+#ifdef USE_HEADTRACKER
+
+static headtrackerVTable_t headTrackerVTable = {
+    .process = headtrackerSerialProcess,
+    .getDeviceType = headtrackerSerialGetDeviceType,
+    .isReady = headTrackerSerialIsReady,
+    .isValid = headTrackerSerialIsValid,
+    .getPanPWM = headTrackerSerialGetPanPWM,
+    .getTiltPWM = headTrackerSerialGetTiltPWM,
+    .getRollPWM = headTrackerSerialGetRollPWM,
+};
+
+headTrackerDevice_t headTrackerDevice = {
+    .vTable = &headTrackerVTable,
+};
+
+bool gimbalSerialHeadTrackerInit(void)
+{
+    if(headTrackerConfig()->devType == HEADTRACKER_SERIAL) {
+        headTrackerCommonSetDevice(&headTrackerDevice);
+    }
+
+    return false;
+}
+
+void headtrackerSerialProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    headTrackerDevice->expires = headTrackerState.expires;
+    return;
+}
+
+headTrackerDevType_e headtrackerSerialGetDeviceType(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+    return HEADTRACKER_SERIAL;
+}
+
+bool headTrackerSerialIsReady(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+
+    if(headTrackerPort || (gimbalSerialConfig()->singleUart && gimbalPort)) {
+        return  headTrackerSerialIsValid(headTrackerDevice);
+    }
+
+    return false;
+}
+
+bool headTrackerSerialIsValid(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+    return micros() < headTrackerState.expires;
+}
+
+int headTrackerSerialGetPanPWM(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+    if(micros() < headTrackerState.expires) {
+        return scaleRange(headTrackerState.pan, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    }
+
+    return PWM_RANGE_MIDDLE;
+}
+
+int headTrackerSerialGetTiltPWM(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+    if(micros() < headTrackerState.expires) {
+        return scaleRange(headTrackerState.tilt, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    }
+
+    return PWM_RANGE_MIDDLE;
+}
+
+int headTrackerSerialGetRollPWM(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+    if(micros() < headTrackerState.expires) {
+        return scaleRange(headTrackerState.roll, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    }
+
+    return PWM_RANGE_MIDDLE;
+}
+
+#endif
+
 #endif
 
 #endif

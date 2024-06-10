@@ -39,6 +39,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
 #include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -349,10 +350,11 @@ void servoMixer(float dT)
 #undef GET_RX_CHANNEL_INPUT
 
 #ifdef USE_SERIAL_GIMBAL
-    if(gimbalCommonHtrkIsEnabled() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
-        input[INPUT_HEADTRACKER_PAN] = 0;
-        input[INPUT_HEADTRACKER_TILT] = 0;
-        input[INPUT_HEADTRACKER_ROLL] = 0;
+    headTrackerDevice_t *dev = headTrackerCommonDevice();
+    if(dev && headTrackerCommonIsValid(dev) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
+        input[INPUT_HEADTRACKER_PAN] = headTrackerCommonGetPanPWM(dev) - PWM_RANGE_MIDDLE;
+        input[INPUT_HEADTRACKER_TILT] = headTrackerCommonGetTiltPWM(dev) - PWM_RANGE_MIDDLE;
+        input[INPUT_HEADTRACKER_ROLL] = headTrackerCommonGetRollPWM(dev) - PWM_RANGE_MIDDLE;
     } else {
         input[INPUT_HEADTRACKER_PAN] = 0;
         input[INPUT_HEADTRACKER_TILT] = 0;

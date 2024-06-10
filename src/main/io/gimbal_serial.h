@@ -23,6 +23,7 @@
 
 #include "common/time.h"
 #include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,6 +85,18 @@ bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice);
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice);
 bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice);
 void gimbalSerialHeadTrackerReceive(uint16_t c, void *data);
+
+
+#ifdef USE_HEADTRACKER
+bool gimbalSerialHeadTrackerInit(void);
+void headtrackerSerialProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs);
+headTrackerDevType_e headtrackerSerialGetDeviceType(const headTrackerDevice_t *headTrackerDevice);
+bool headTrackerSerialIsReady(const headTrackerDevice_t *headTrackerDevice);
+bool headTrackerSerialIsValid(const headTrackerDevice_t *headTrackerDevice);
+int headTrackerSerialGetPanPWM(const headTrackerDevice_t *headTrackerDevice);
+int headTrackerSerialGetTiltPWM(const headTrackerDevice_t *headTrackerDevice);
+int headTrackerSerialGetRollPWM(const headTrackerDevice_t *headTrackerDevice);
+#endif
 
 #endif
 

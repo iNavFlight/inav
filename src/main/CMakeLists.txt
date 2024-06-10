@@ -179,6 +179,8 @@ main_sources(COMMON_SRC
     drivers/flash_w25n01g.h
     drivers/gimbal_common.h
     drivers/gimbal_common.c
+    drivers/headtracker_common.h
+    drivers/headtracker_common.c
     drivers/io.c
     drivers/io.h
     drivers/io_pcf8574.c

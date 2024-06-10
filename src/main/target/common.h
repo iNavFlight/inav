@@ -191,6 +191,7 @@
 #endif
 
 #define USE_SERIAL_GIMBAL
+#define USE_HEADTRACKER
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)

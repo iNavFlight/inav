@@ -194,6 +194,9 @@ tables:
   - name: gyro_filter_mode
     values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
+  - name: headtracker_dev_type
+    values: ["NONE", "SERIAL", "MSP"]
+    enum: headTrackerDevType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -4232,8 +4235,19 @@ groups:
     headers: ["io/gimbal_serial.h"]
     condition: USE_SERIAL_GIMBAL
     members:
-      - name: gimbal_serial_single_uart
-        description: "Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal."
-        type: bool
-        default_value: OFF
-        field: singleUart
+    - name: gimbal_serial_single_uart
+      description: "Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal."
+      type: bool
+      default_value: OFF
+      field: singleUart
+  - name: PG_HEADTRACKER_CONFIG
+    type: headTrackerConfig_t
+    headers: ["drivers/headtracker_common.h"]
+    condition: USE_HEADTRACKER
+    members:
+    - name: headtracker_type
+      description: "Type of headtrackr dervice"
+      default_value: "SERIAL"
+      field: devType
+      type: uint8_t
+      table: headtracker_dev_type

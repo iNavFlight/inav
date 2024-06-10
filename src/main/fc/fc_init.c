@@ -54,6 +54,7 @@
 #include "drivers/io.h"
 #include "drivers/flash.h"
 #include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
@@ -689,11 +690,18 @@ void init(void)
     initDShotCommands();
 #endif
 
-    fprintf(stderr, "HERE\n");
 #ifdef USE_SERIAL_GIMBAL
-    fprintf(stderr, "HERE2\n");
     gimbalCommonInit();
+    // Needs to be called before gimbalSerialHeadTrackerInit
     gimbalSerialInit();
+#endif
+
+#ifdef USE_HEADTRACKER
+    headTrackerCommonInit();
+#ifdef USE_SERIAL_GIMBAL
+    // Needs to be called after gimbalSerialInit
+    gimbalSerialHeadTrackerInit();
+#endif
 #endif
 
     // Latch active features AGAIN since some may be modified by init().
