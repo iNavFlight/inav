@@ -89,6 +89,7 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data);
 
 #ifdef USE_HEADTRACKER
 bool gimbalSerialHeadTrackerInit(void);
+bool gimbalSerialHeadTrackerDetect(void);
 void headtrackerSerialProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs);
 headTrackerDevType_e headtrackerSerialGetDeviceType(const headTrackerDevice_t *headTrackerDevice);
 bool headTrackerSerialIsReady(const headTrackerDevice_t *headTrackerDevice);
