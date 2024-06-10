@@ -349,7 +349,7 @@ void servoMixer(float dT)
     input[INPUT_RC_CH16]     = GET_RX_CHANNEL_INPUT(AUX12);
 #undef GET_RX_CHANNEL_INPUT
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_HEADTRACKER
     headTrackerDevice_t *dev = headTrackerCommonDevice();
     if(dev && headTrackerCommonIsValid(dev) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         input[INPUT_HEADTRACKER_PAN] = headTrackerCommonGetPanPWM(dev) - PWM_RANGE_MIDDLE;
@@ -360,6 +360,10 @@ void servoMixer(float dT)
         input[INPUT_HEADTRACKER_TILT] = 0;
         input[INPUT_HEADTRACKER_ROLL] = 0;
     }
+#else
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
 #endif
 
 #ifdef USE_SIMULATOR

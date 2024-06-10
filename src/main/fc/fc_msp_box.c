@@ -44,6 +44,7 @@
 #include "telemetry/telemetry.h"
 
 #include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #define BOX_SUFFIX ';'
 #define BOX_SUFFIX_LEN 1
@@ -370,6 +371,10 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXGIMBALTLOCK);
         ADD_ACTIVE_BOX(BOXGIMBALRLOCK);
         ADD_ACTIVE_BOX(BOXGIMBALCENTER);
+    }
+#endif
+#ifdef USE_HEADTRACKER
+    if(headTrackerConfig()->devType != HEADTRACKER_NONE) {
         ADD_ACTIVE_BOX(BOXGIMBALHTRK);
     }
 #endif
@@ -447,15 +452,19 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #endif
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXANGLEHOLD)),       BOXANGLEHOLD);
 
+#ifdef USE_SERIAL_GIMBAL
     if(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)), BOXGIMBALCENTER);
-    } else if (gimbalCommonHtrkIsEnabled() && IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
+#ifdef USE_HEADTRACKER
+    } else if (headTrackerCommonIsReady(headTrackerCommonDevice()) && IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)), BOXGIMBALHTRK);
+#endif
     } else {
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALTLOCK);
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALRLOCK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALRLOCK);
         CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)),     BOXGIMBALRLOCK);
     }
+#endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
     for (uint32_t i = 0; i < activeBoxIdCount; i++) {

@@ -112,10 +112,17 @@ bool gimbalSerialDetect(void)
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_GIMBAL);
     bool singleUart = gimbalSerialConfig()->singleUart;
 
+
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL]: found port...\n"));
+#ifdef USE_HEADTRACKER
         gimbalPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, singleUart ? gimbalSerialHeadTrackerReceive : NULL, singleUart ? &headTrackerState :  NULL,
                 baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+#else
+        UNUSED(singleUart);
+        gimbalPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, NULL, NULL,
+                baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+#endif
 
         if (gimbalPort) {
             SD(fprintf(stderr, "[GIMBAL]: port open!\n"));
@@ -129,28 +136,8 @@ bool gimbalSerialDetect(void)
         }
     }
 
-    SD(fprintf(stderr, "[GIMBAL_HTRK]: headtracker Detect...\n"));
-    portConfig = singleUart ? NULL : findSerialPortConfig(FUNCTION_GIMBAL_HEADTRACKER);
-
-    if (portConfig) {
-        SD(fprintf(stderr, "[GIMBAL_HTRK]: found port...\n"));
-        headTrackerPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL_HEADTRACKER, gimbalSerialHeadTrackerReceive, &headTrackerState,
-                baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
-
-        if (headTrackerPort) {
-            SD(fprintf(stderr, "[GIMBAL_HTRK]: port open!\n"));
-            headTrackerPort->txBuffer = txBuffer;
-            headTrackerPort->txBufferSize = GIMBAL_SERIAL_BUFFER_SIZE;
-            headTrackerPort->txBufferTail = 0;
-            headTrackerPort->txBufferHead = 0;
-        } else {
-            SD(fprintf(stderr, "[GIMBAL_HTRK]: port NOT open!\n"));
-            return false;
-        }
-    }
-
-    SD(fprintf(stderr, "[GIMBAL]: gimbalPort: %p headTrackerPort: %p\n", gimbalPort, headTrackerPort));
-    return gimbalPort || headTrackerPort;
+    SD(fprintf(stderr, "[GIMBAL]: gimbalPort\n", gimbalPort));
+    return gimbalPort;
 }
 #endif
 
@@ -350,8 +337,43 @@ headTrackerDevice_t headTrackerDevice = {
     .vTable = &headTrackerVTable,
 };
 
+bool gimbalSerialHeadTrackerDetect(void)
+{
+    bool singleUart = gimbalSerialConfig()->singleUart;
+
+    SD(fprintf(stderr, "[GIMBAL_HTRK]: headtracker Detect...\n"));
+    serialPortConfig_t *portConfig = singleUart ? NULL : findSerialPortConfig(FUNCTION_GIMBAL_HEADTRACKER);
+
+    if (portConfig) {
+        SD(fprintf(stderr, "[GIMBAL_HTRK]: found port...\n"));
+        headTrackerPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL_HEADTRACKER, gimbalSerialHeadTrackerReceive, &headTrackerState,
+                baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
+
+        if (headTrackerPort) {
+            SD(fprintf(stderr, "[GIMBAL_HTRK]: port open!\n"));
+            headTrackerPort->txBuffer = txBuffer;
+            headTrackerPort->txBufferSize = GIMBAL_SERIAL_BUFFER_SIZE;
+            headTrackerPort->txBufferTail = 0;
+            headTrackerPort->txBufferHead = 0;
+        } else {
+            SD(fprintf(stderr, "[GIMBAL_HTRK]: port NOT open!\n"));
+            return false;
+        }
+    }
+
+    SD(fprintf(stderr, "[GIMBAL]: gimbalPort: %p headTrackerPort: %p\n", gimbalPort, headTrackerPort));
+    return (singleUart && gimbalPort) || headTrackerPort;
+}
+
 bool gimbalSerialHeadTrackerInit(void)
 {
+    if(gimbalSerialHeadTrackerDetect()) {
+        SD(fprintf(stderr, "Setting gimbal device\n"));
+        gimbalCommonSetDevice(&serialGimbalDevice);
+        return true;
+    }
+
+
     if(headTrackerConfig()->devType == HEADTRACKER_SERIAL) {
         headTrackerCommonSetDevice(&headTrackerDevice);
     }

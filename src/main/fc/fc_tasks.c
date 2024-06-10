@@ -35,6 +35,7 @@
 #include "drivers/stack_check.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -712,10 +713,10 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_HEADTRACKER
     [TASK_HEADTRACKER] = {
         .taskName = "HEADTRACKER",
-        .taskFunc = taskUpdateGimbal,
+        .taskFunc = taskUpdateHeadTracker,
         .desiredPeriod = TASK_PERIOD_HZ(50),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
