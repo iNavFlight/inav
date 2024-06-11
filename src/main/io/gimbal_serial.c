@@ -323,7 +323,7 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
 
 #ifdef USE_HEADTRACKER
 
-static headtrackerVTable_t headTrackerVTable = {
+static headTrackerVTable_t headTrackerVTable = {
     .process = headtrackerSerialProcess,
     .getDeviceType = headtrackerSerialGetDeviceType,
     .isReady = headTrackerSerialIsReady,

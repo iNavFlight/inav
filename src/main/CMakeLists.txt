@@ -362,6 +362,8 @@ main_sources(COMMON_SRC
     io/frsky_osd.h
     io/gimbal_serial.c
     io/gimbal_serial.h
+    io/headtracker_msp.c
+    io/headtracker_msp.h
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c

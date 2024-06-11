@@ -29,12 +29,13 @@
 #include "common/time.h"
 #include "common/maths.h"
 
+#include "drivers/time.h"
+
 #include "fc/cli.h"
 
 #include "rx/rx.h"
 
 #include "drivers/headtracker_common.h"
-#include "drivers/time.h"
 
 
 PG_REGISTER(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
@@ -64,7 +65,7 @@ void headTrackerCommonProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t c
     }
 }
 
-headTrackerDevType_e headTrackerCommonGetDeviceType(headTrackerDevice_t *headTrackerDevice)
+headTrackerDevType_e headTrackerCommonGetDeviceType(const headTrackerDevice_t *headTrackerDevice)
 {
     if (!headTrackerDevice || !headTrackerDevice->vTable->getDeviceType) {
         return HEADTRACKER_UNKNOWN;
@@ -73,7 +74,7 @@ headTrackerDevType_e headTrackerCommonGetDeviceType(headTrackerDevice_t *headTra
     return headTrackerDevice->vTable->getDeviceType(headTrackerDevice);
 }
 
-bool headTrackerCommonIsReady(headTrackerDevice_t *headTrackerDevice)
+bool headTrackerCommonIsReady(const headTrackerDevice_t *headTrackerDevice)
 {
     if (headTrackerDevice && headTrackerDevice->vTable->isReady) {
         return headTrackerDevice->vTable->isReady(headTrackerDevice);
@@ -137,7 +138,7 @@ bool headTrackerCommonIsEnabled(void)
     return false;
 }
 
-bool headTrackerCommonIsValid(headTrackerDevice_t *dev) {
+bool headTrackerCommonIsValid(const headTrackerDevice_t *dev) {
     if(dev && dev->vTable && dev->vTable->isValid) {
         return dev->vTable->isValid(dev);
     }

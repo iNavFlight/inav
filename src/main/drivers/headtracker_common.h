@@ -23,8 +23,13 @@
 
 #include <stdint.h>
 
-#include "config/feature.h"
 #include "common/time.h"
+
+#include "drivers/time.h"
+
+#include "config/feature.h"
+
+#define MAX_HEADTRACKER_DATA_AGE_US HZ2US(25)
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,7 +65,7 @@ typedef struct headTrackerVTable_s {
     int (*getPanPWM)(const headTrackerDevice_t *headTrackerDevice);
     int (*getTiltPWM)(const headTrackerDevice_t *headTrackerDevice);
     int (*getRollPWM)(const headTrackerDevice_t *headTrackerDevice);
-} headtrackerVTable_t;
+} headTrackerVTable_t;
 
 
 typedef struct headTrackerConfig_s {
@@ -75,9 +80,9 @@ headTrackerDevice_t *headTrackerCommonDevice(void);
 
 // VTable functions
 void headTrackerCommonProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs);
-headTrackerDevType_e headTrackerCommonGetDeviceType(headTrackerDevice_t *headTrackerDevice);
-bool headTrackerCommonIsReady(headTrackerDevice_t *headtrackerDevice);
-bool headTrackerCommonIsValid(headTrackerDevice_t *headtrackerDevice);
+headTrackerDevType_e headTrackerCommonGetDeviceType(const headTrackerDevice_t *headTrackerDevice);
+bool headTrackerCommonIsReady(const headTrackerDevice_t *headtrackerDevice);
+bool headTrackerCommonIsValid(const headTrackerDevice_t *headtrackerDevice);
 int headTrackerCommonGetPanPWM(const headTrackerDevice_t *headTrackerDevice);
 int headTrackerCommonGetTiltPWM(const headTrackerDevice_t *headTrackerDevice);
 int headTrackerCommonGetRollPWM(const headTrackerDevice_t *headTrackerDevice);

@@ -96,6 +96,7 @@
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
+#include "io/headtracker_msp.h"
 
 #include "io/osd/custom_elements.h"
 
@@ -4048,7 +4049,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
-    UNUSED(src);
+    int dataSize = sbufBytesRemaining(src);
+    UNUSED(dataSize);
 
     switch (cmdMSP) {
 #if defined(USE_RANGEFINDER_MSP)
@@ -4084,6 +4086,12 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 #if defined(USE_PITOT_MSP)
         case MSP2_SENSOR_AIRSPEED:
             mspPitotmeterReceiveNewData(sbufPtr(src));
+            break;
+#endif
+
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_MSP))
+        case MSP2_SENSOR_HEADTRACKER:
+            mspHeadTrackerReceiverNewData(sbufPtr(src), dataSize);
             break;
 #endif
     }
