@@ -40,15 +40,13 @@
 
 #include "drivers/headtracker_common.h"
 
-PG_REGISTER_WITH_RESET_FN(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
 
 static headTrackerDevice_t *commonHeadTrackerDevice = NULL;
 
-void pgResetFn_headTrackerConfig(headTrackerConfig_t *conf)
-{
-    memset(conf, 0, sizeof(headTrackerConfig_t));
-    conf->devType = SETTING_HEADTRACKER_TYPE_DEFAULT;
-}
+PG_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig,
+    .devType = SETTING_HEADTRACKER_TYPE_DEFAULT
+);
 
 void headTrackerCommonInit(void)
 {
