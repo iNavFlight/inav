@@ -42,11 +42,11 @@
 
 PG_REGISTER_WITH_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
 
-static headTrackerDevice_t *commonHeadTrackerDevice = NULL;
-
 PG_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig,
     .devType = SETTING_HEADTRACKER_TYPE_DEFAULT
 );
+
+static headTrackerDevice_t *commonHeadTrackerDevice = NULL;
 
 void headTrackerCommonInit(void)
 {

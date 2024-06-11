@@ -46,6 +46,10 @@
 
 PG_REGISTER_WITH_RESET_TEMPLATE(gimbalSerialConfig_t, gimbalSerialConfig, PG_GIMBAL_SERIAL_CONFIG, 0);
 
+PG_RESET_TEMPLATE(gimbalSerialConfig_t, gimbalSerialConfig,
+    .singleUart = SETTING_GIMBAL_SERIAL_SINGLE_UART_DEFAULT
+);
+
 STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
 #define GIMBAL_SERIAL_BUFFER_SIZE 512
@@ -74,11 +78,6 @@ gimbalVTable_t gimbalSerialVTable = {
 static gimbalDevice_t serialGimbalDevice = {
     .vTable = &gimbalSerialVTable
 };
-
-PG_RESET_TEMPLATE(gimbalSerialConfig_t, gimbalSerialConfig,
-    .singleUart = SETTING_GIMBAL_SERIAL_SINGLE_UART_DEFAULT
-);
-
 
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice)
 {
