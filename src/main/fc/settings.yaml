@@ -2416,7 +2416,7 @@ groups:
         field: general.flags.landing_bump_detection
         type: bool
       - name: nav_mc_inverted_crash_detection
-        description: "Setting a value > 0 enables inverted crash detection for multirotors. It is intended for situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control. When enabled the setting defines the additional number of seconds before disarm beyond a minimum fixed time delay such that the minimum possible time delay before disarm is 3s."
+        description: "Setting a value > 0 enables inverted crash detection for multirotors. It is intended for situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or some other reason. When enabled the setting defines the additional number of seconds before disarm beyond a minimum fixed time delay such that the minimum possible time delay before disarm is 4s."
         default_value: 0
         field: mc.inverted_crash_detection
         min: 0

@@ -808,7 +808,7 @@ bool isMulticopterCrashedInverted(void)
             return false;
         } else if (ABS(initialAltitude - navGetCurrentActualPositionAndVelocity()->pos.z) < 200) {
             /* Check altitude change < 2m during disarm timeout period indicating MR not in flight.
-             * Minimum 3s disarm delay + extra user set delay time = Min time of 5s given min user setting is 1s if enabled */
+             * Minimum 3s disarm delay + extra user set delay time = Min time of 4s given min user setting is 1s if enabled */
 
             uint16_t disarmTimeDelay = 3000 + S2MS(navConfig()->mc.inverted_crash_detection);
             return millis() - startTime > disarmTimeDelay;
