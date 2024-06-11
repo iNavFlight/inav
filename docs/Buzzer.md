@@ -102,6 +102,15 @@ To restore set from preferences use:
 
 ```
 beeper -PREFERED
+```
+
+To activate an external beeper via aux channel switch, assign aux channel and set both:
+
+```
+beeper RX_SET
+beeper MULTI_BEEPS
+```
+If MULTI_BEEPS is not set, the beeper will not sound after GPS lock.
 
 As with other CLI commands, the `save` command is needed to save the new settings.
 
