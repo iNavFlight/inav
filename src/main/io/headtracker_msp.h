@@ -34,5 +34,8 @@ typedef struct headtrackerMspMessage_s {
     int16_t sensitivity;    // -16~15. Scale is min/max angle for gimbal
 } __attribute__((packed)) headtrackerMspMessage_t;
 
+void mspHeadTrackerInit(void);
+
 void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize);
+
 #endif

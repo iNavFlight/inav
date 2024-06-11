@@ -31,7 +31,6 @@ extern "C" {
 
 #ifdef USE_SERIAL_GIMBAL
 
-#define MAX_HEADTRACKER_DATA_AGE_US HZ2US(25)
 
 #define HTKATTITUDE_SYNC0  0xA5
 #define HTKATTITUDE_SYNC1  0x5A
@@ -87,7 +86,7 @@ bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice);
 void gimbalSerialHeadTrackerReceive(uint16_t c, void *data);
 
 
-#ifdef USE_HEADTRACKER
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
 bool gimbalSerialHeadTrackerInit(void);
 bool gimbalSerialHeadTrackerDetect(void);
 void headtrackerSerialProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs);

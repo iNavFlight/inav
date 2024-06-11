@@ -91,7 +91,7 @@ bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice)
 
 bool gimbalSerialInit(void)
 {
-    if(gimbalSerialDetect()) {
+    if (gimbalSerialDetect()) {
         SD(fprintf(stderr, "Setting gimbal device\n"));
         gimbalCommonSetDevice(&serialGimbalDevice);
         return true;
@@ -108,6 +108,7 @@ bool gimbalSerialDetect(void)
 #else
 bool gimbalSerialDetect(void)
 {
+    
     SD(fprintf(stderr, "[GIMBAL]: serial Detect...\n"));
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_GIMBAL);
     bool singleUart = gimbalSerialConfig()->singleUart;
@@ -321,7 +322,7 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
     }
 }
 
-#ifdef USE_HEADTRACKER
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
 
 static headTrackerVTable_t headTrackerVTable = {
     .process = headtrackerSerialProcess,

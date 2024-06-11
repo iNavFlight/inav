@@ -110,6 +110,7 @@
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
 #include "io/gimbal_serial.h"
+#include "io/headtracker_msp.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -698,9 +699,12 @@ void init(void)
 
 #ifdef USE_HEADTRACKER
     headTrackerCommonInit();
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_HEADTRACKER_SERIAL
     // Needs to be called after gimbalSerialInit
     gimbalSerialHeadTrackerInit();
+#endif
+#ifdef USE_HEADTRACKER_MSP
+    mspHeadTrackerInit();
 #endif
 #endif
 
