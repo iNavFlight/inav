@@ -799,19 +799,23 @@ bool isMulticopterCrashedInverted(void)
 {
     static timeMs_t startTime = 0;
 
-    if ((ABS(attitude.values.roll) > 1000 || ABS(attitude.values.pitch) > 700) && fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < MC_LAND_CHECK_VEL_Z_MOVING) {
+    if (ABS(attitude.values.roll) > 1000 || ABS(attitude.values.pitch) > 700) {
+        static uint32_t initialAltitude;
+
         if (startTime == 0) {
             startTime = millis();
-        } else {
-            /* minimum 2s disarm delay + extra user set delay time. Min time of 3s given min user setting is 1s if enabled */
-            uint16_t disarmTimeDelay = 2000 + S2MS(navConfig()->mc.inverted_crash_detection);
+            initialAltitude = navGetCurrentActualPositionAndVelocity()->pos.z;
+            return false;
+        } else if (ABS(initialAltitude - navGetCurrentActualPositionAndVelocity()->pos.z) < 200) {
+            /* Check altitude change < 2m during disarm timeout period indicating MR not in flight.
+             * Minimum 3s disarm delay + extra user set delay time = Min time of 5s given min user setting is 1s if enabled */
 
+            uint16_t disarmTimeDelay = 3000 + S2MS(navConfig()->mc.inverted_crash_detection);
             return millis() - startTime > disarmTimeDelay;
         }
-    } else {
-        startTime = 0;
     }
 
+    startTime = 0;
     return false;
 }
 
