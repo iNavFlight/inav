@@ -1618,7 +1618,7 @@ Maximum frequency for adaptive filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 150 | 100 | 500 |
+| 150 | 0 | 505 |
 
 ---
 
@@ -1628,7 +1628,7 @@ Minimum frequency for adaptive filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 30 | 250 |
+| 50 | 0 | 250 |
 
 ---
 

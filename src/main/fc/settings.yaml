@@ -344,15 +344,15 @@ groups:
         description: "Minimum frequency for adaptive filter"
         default_value: 50
         field: adaptiveFilterMinHz
-        min: 30
+        min: 0
         max: 250
         condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_max_hz
         description: "Maximum frequency for adaptive filter"
         default_value: 150
         field: adaptiveFilterMaxHz
-        min: 100
-        max: 500
+        min: 0
+        max: 505
         condition: USE_ADAPTIVE_FILTER
       - name: gyro_adaptive_filter_std_lpf_hz
         description: "Standard deviation low pass filter cutoff frequency"
