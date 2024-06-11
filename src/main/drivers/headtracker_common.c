@@ -22,9 +22,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <build/debug.h>
 #include <config/parameter_group_ids.h>
+
+#include "settings_generated.h"
 
 #include "common/time.h"
 #include "common/maths.h"
@@ -37,11 +40,15 @@
 
 #include "drivers/headtracker_common.h"
 
-
-PG_REGISTER(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
-
+PG_REGISTER_WITH_RESET_FN(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
 
 static headTrackerDevice_t *commonHeadTrackerDevice = NULL;
+
+void pgResetFn_headTrackerConfig(headTrackerConfig_t *conf)
+{
+    memset(conf, 0, sizeof(headTrackerConfig_t));
+    conf->devType = SETTING_HEADTRACKER_TYPE_DEFAULT;
+}
 
 void headTrackerCommonInit(void)
 {

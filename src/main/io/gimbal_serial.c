@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -41,7 +42,9 @@
 
 #include <config/parameter_group_ids.h>
 
-PG_REGISTER(gimbalSerialConfig_t, gimbalSerialConfig, PG_GIMBAL_SERIAL_CONFIG, 0);
+#include "settings_generated.h"
+
+PG_REGISTER_WITH_RESET_FN(gimbalSerialConfig_t, gimbalSerialConfig, PG_GIMBAL_SERIAL_CONFIG, 0);
 
 STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_not_10);
 
@@ -71,6 +74,13 @@ gimbalVTable_t gimbalSerialVTable = {
 static gimbalDevice_t serialGimbalDevice = {
     .vTable = &gimbalSerialVTable
 };
+
+void pgResetFn_gimbalSerialConfig(gimbalSerialConfig_t *conf)
+{
+    memset(conf, 0, sizeof(gimbalSerialConfig));
+    conf->singleUart = SETTING_GIMBAL_SERIAL_SINGLE_UART_DEFAULT;
+}
+
 
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice)
 {
