@@ -31,7 +31,7 @@ jobs:
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         with:
           path: downloads
           key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
