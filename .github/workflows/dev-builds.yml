@@ -163,6 +163,10 @@ jobs:
     needs: [build, build-SITL-Linux, build-SITL-Mac, build-SITL-Windows, test]
     runs-on: ubuntu-latest
     steps:
+      - name: Get current date
+        id: date
+        run: |
+          echo "{release_tag}={$(date +'%Y%m%d')}" >> $GITHUB_STATE
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -193,8 +197,8 @@ jobs:
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: inav-nightly-${{ github.run_number }}
-          repository: iNavFlight/inav-configurator
+          name: inav-nightly-${{ env.release_tag }}-${{ github.sha}}
+          repository: iNavFlight/inav
           prerelease: true
           draft: true
           generate_release_notes: true
