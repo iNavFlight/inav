@@ -189,7 +189,7 @@ jobs:
           merge-multiple: true
       - name: Consolidate sitl files
         run: |
-          zip -9 sitl-resources.zip resources/
+          zip -r -9 sitl-resources.zip resources/
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
