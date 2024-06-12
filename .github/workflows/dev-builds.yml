@@ -166,7 +166,7 @@ jobs:
       - name: Get current date
         id: date
         run: |
-          echo "{release_tag}={$(date +'%Y%m%d')}" >> $GITHUB_STATE
+          echo "release_tag={$(date +'%Y%m%d')}" >> $GITHUB_STATE
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
