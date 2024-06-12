@@ -168,32 +168,31 @@ jobs:
     steps:
       - name: download artifacts
         uses: actions/download-artifact@v4
-        path: hexes
         with:
+          path: hexes
           name: inav-*
           merge-multiple: true
       - name: download sitl linux
         uses: actions/download-artifact@v4
-        path: resources/sitl/linux
         with:
+          path: resources/sitl/linux
           name: sitl-*-Linux
           merge-multiple: true
       - name: download sitl windows
         uses: actions/download-artifact@v4
-        path: resources/sitl/windows
         with:
+          path: resources/sitl/windows
           name: sitl-*-WIN
           merge-multiple: true
       - name: download sitl mac
         uses: actions/download-artifact@v4
-        path: resources/sitl/macos
         with:
+          path: resources/sitl/macos
           name: sitl-*-MacOS
           merge-multiple: true
       - name: Consolidate sitl files
         run: |
           zip -a -9 sitl-resources.zip resources/
-
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
@@ -204,7 +203,5 @@ jobs:
           make_latest: false
           files: |
             hexes/*.hex
-            sitl-linux/*.hex
-            sitl-windows/*.exe
-            sitl-mac/*.hex
+            sitl-resources.zip
 
