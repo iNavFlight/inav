@@ -368,7 +368,7 @@ static uint32_t txBytesFree(const displayPort_t *displayPort)
 static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    metadata->charCount = 512;
+    metadata->charCount = 1024;
     metadata->version = FONT_VERSION;
     return true;
 }
