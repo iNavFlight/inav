@@ -98,7 +98,7 @@ typedef struct {
     bool                requestTelemetry;
 } pwmOutputMotor_t;
 
-static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
+static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUTS];
 
 static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
@@ -142,7 +142,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 
 static pwmOutputPort_t *pwmOutAllocatePort(void)
 {
-    if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
+    if (allocatedOutputPortCount >= MAX_PWM_OUTPUTS) {
         LOG_ERROR(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }

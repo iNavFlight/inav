@@ -53,8 +53,8 @@ enum {
 typedef struct {
     int maxTimMotorCount;
     int maxTimServoCount;
-    const timerHardware_t * timMotors[MAX_PWM_OUTPUT_PORTS];
-    const timerHardware_t * timServos[MAX_PWM_OUTPUT_PORTS];
+    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
+    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
 } timMotorServoHardware_t;
 
 static pwmInitError_e pwmInitError = PWM_INIT_ERROR_NONE;
