@@ -40,7 +40,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BUILD_NAME }}
+          name: ${{ env.BUILD_NAME }}.${{ matrix.id }}
           path: ./build/*.hex
 
   build-SITL-Linux:
