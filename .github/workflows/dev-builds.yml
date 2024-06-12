@@ -166,7 +166,7 @@ jobs:
       - name: Get current date
         id: date
         run: |
-          echo "release_tag={$(date +'%Y%m%d')}" >> $GITHUB_STATE
+          echo "RELEASE_DATE=$(date +'%Y%m%d')" >> $GITHUB_STATE
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -197,7 +197,7 @@ jobs:
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: inav-nightly-$(date '+%Y%m%d')-${{ github.run_id }}-${{ github.sha}}
+          name: inav-dev-release-${{ env.RELEASE_DATE }}-${{ github.run_id }}-${{ github.sha}}
           # To create release on a different repo, we need a token setup
           #token: ${{ secrets.GITHUB_TOKEN }}
           repository: iNavFlight/inav
