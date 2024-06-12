@@ -8,6 +8,9 @@ on:
     - main
       master
       mmosca-update-github-actions
+  pull_request:
+    branches:
+    - mmosca-update-github-actions
 
 jobs:
   build:
