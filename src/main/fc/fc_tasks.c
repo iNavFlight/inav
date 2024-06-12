@@ -438,7 +438,11 @@ void fcTasksInit(void)
 #endif
 
 #ifdef USE_ADAPTIVE_FILTER
-    setTaskEnabled(TASK_ADAPTIVE_FILTER, (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE));
+    setTaskEnabled(TASK_ADAPTIVE_FILTER, (
+        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
+        gyroConfig()->adaptiveFilterMinHz > 0 && 
+        gyroConfig()->adaptiveFilterMaxHz > 0
+    ));
 #endif
 
 #if defined(SITL_BUILD)
