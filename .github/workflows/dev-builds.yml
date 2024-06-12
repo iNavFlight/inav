@@ -193,7 +193,7 @@ jobs:
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: inav-nightly-${{ GITHUB_RUN_NUMBER }}
+          name: inav-nightly-${{ github.run_number }}
           repository: iNavFlight/inav-configurator
           prerelease: true
           draft: true
