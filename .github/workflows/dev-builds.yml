@@ -32,7 +32,7 @@ jobs:
           # from the hash of the latest commit in the PR, that's
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          BUILD_SUFFIX=dev-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
@@ -66,7 +66,7 @@ jobs:
           # from the hash of the latest commit in the PR, that's
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          BUILD_SUFFIX=dev-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t\)]+/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
@@ -98,7 +98,7 @@ jobs:
           # from the hash of the latest commit in the PR, that's
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          BUILD_SUFFIX=dev-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t\)]+/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
@@ -137,7 +137,7 @@ jobs:
           # from the hash of the latest commit in the PR, that's
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
-          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          BUILD_SUFFIX=dev-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t\)]+/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
@@ -193,7 +193,8 @@ jobs:
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: inav-nightly
+          name: inav-nightly-${{ GITHUB_RUN_NUMBER }}
+          repository: iNavFlight/inav-configurator
           prerelease: true
           draft: true
           generate_release_notes: true
