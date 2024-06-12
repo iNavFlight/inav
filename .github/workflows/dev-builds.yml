@@ -3,14 +3,11 @@ name: Build pre-release
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
 on: 
-#  push:
-#    branches:
-#    - main
-#      master
-#      mmosca-update-github-actions
+  push:
+    branches:
+    - master
+      mmosca-update-github-actions
   pull_request:
-#    branches:
-#    - mmosca-update-github-actions
 
 jobs:
   build:
@@ -154,7 +151,6 @@ jobs:
 
 
   test:
-    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -171,25 +167,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: hexes
-          name: inav-*
+          pattern: inav-*
           merge-multiple: true
       - name: download sitl linux
         uses: actions/download-artifact@v4
         with:
           path: resources/sitl/linux
-          name: sitl-*-Linux
+          pattern: sitl-*-Linux
           merge-multiple: true
       - name: download sitl windows
         uses: actions/download-artifact@v4
         with:
           path: resources/sitl/windows
-          name: sitl-*-WIN
+          pattern: sitl-*-WIN
           merge-multiple: true
       - name: download sitl mac
         uses: actions/download-artifact@v4
         with:
           path: resources/sitl/macos
-          name: sitl-*-MacOS
+          pattern: sitl-*-MacOS
           merge-multiple: true
       - name: Consolidate sitl files
         run: |
