@@ -197,7 +197,7 @@ jobs:
       - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: inav-nightly-${{ env.release_tag }}-${{ github.run_id }}-${{ github.sha}}
+          name: inav-nightly-$(date '+%Y%m%d')-${{ github.run_id }}-${{ github.sha}}
           # To create release on a different repo, we need a token setup
           #token: ${{ secrets.GITHUB_TOKEN }}
           repository: iNavFlight/inav
