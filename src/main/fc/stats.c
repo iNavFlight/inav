@@ -70,9 +70,12 @@ void statsOnDisarm(void)
 #ifdef USE_GPS
             // flight counter is incremented at most once per power on
             if (sensors(SENSOR_GPS)) {
-                if ((getTotalTravelDistance() - arm_distance_cm) / 100 >= MIN_FLIGHT_DISTANCE_M)
+                if ((getTotalTravelDistance() - arm_distance_cm) / 100 >= MIN_FLIGHT_DISTANCE_M) {
                     statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
-            } else statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
+                }
+            } else {
+                statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
+            }
 #else
             statsConfigMutable()->stats_flight_count = prev_flight_count + 1;
 #endif // USE_GPS
