@@ -7,7 +7,7 @@ on:
     branches:
     - master
       mmosca-update-github-actions
-  pull_request:
+  #pull_request:
 
 jobs:
   build:
@@ -210,7 +210,7 @@ jobs:
           #token: ${{ secrets.GITHUB_TOKEN }}
           repository: iNavFlight/inav
           prerelease: true
-          draft: true
+          draft: false
           generate_release_notes: true
           make_latest: false
           files: |
