@@ -41,7 +41,7 @@ jobs:
           path: downloads
           key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
       - name: Build targets (${{ matrix.id }})
-        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
+        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -DVERSION_TYPE=dev -G Ninja .. && ninja ci
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -71,7 +71,7 @@ jobs:
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja
+        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja -DVERSION_TYPE=dev .. && ninja
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -105,7 +105,7 @@ jobs:
       - name: Build SITL
         run: |
           mkdir -p build_SITL && cd build_SITL
-          cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -G Ninja ..
+          cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DVERSION_TYPE=dev -G Ninja ..
           ninja
 
       - name: Upload artifacts
@@ -144,7 +144,7 @@ jobs:
           #echo "VERSION_TAG=-$(date '+%Y%m%d')" >> $GITHUB_ENV
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DVERSION_TYPE="dev" -G Ninja .. && ninja
+        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DVERSION_TYPE=dev -G Ninja .. && ninja
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
