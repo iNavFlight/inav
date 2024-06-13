@@ -18,7 +18,7 @@
 #include "config/parameter_group_ids.h"
 
 #define MIN_FLIGHT_TIME_TO_RECORD_STATS_S 10    //prevent recording stats for that short "flights" [s]
-#define MIN_FLIGHT_DISTANCE_M 10    // minimum distance flown for a flight to be registered [m]
+#define MIN_FLIGHT_DISTANCE_M 30    // minimum distance flown for a flight to be registered [m]
 
 
 PG_REGISTER_WITH_RESET_TEMPLATE(statsConfig_t, statsConfig, PG_STATS_CONFIG, 2);
