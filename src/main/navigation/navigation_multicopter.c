@@ -802,7 +802,12 @@ bool isMulticopterLandingDetected(void)
     const timeMs_t currentTimeMs = millis();
 
 #if defined(USE_BARO)
-    if (sensors(SENSOR_BARO) && navConfig()->general.flags.landing_bump_detection && isLandingGbumpDetected(currentTimeMs)) {
+    /* G bump landing detection only used when xy velocity is usable and low or failsafe is active */
+    bool gBumpDetectionUsable = navConfig()->general.flags.landing_bump_detection && sensors(SENSOR_BARO) &&
+                                ((posControl.flags.estPosStatus >= EST_USABLE && posControl.actualState.velXY < MC_LAND_CHECK_VEL_XY_MOVING) ||
+                                FLIGHT_MODE(FAILSAFE_MODE));
+
+    if (gBumpDetectionUsable && isLandingGbumpDetected(currentTimeMs)) {
         return true;    // Landing flagged immediately if landing bump detected
     }
 #endif
