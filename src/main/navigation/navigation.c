@@ -3353,7 +3353,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             if (STATE(AIRPLANE) && isFlightDetected()) {
                 // Cancel landing detection flag if fixed wing redetected in flight
                 resetLandingDetector();
-            } else {
+            } else if (STATE(MULTIROTOR)) {
                 // For multirotor - reactivate landing detector without disarm when throttle raised toward hover throttle
                 landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
             }
