@@ -7,7 +7,7 @@ on:
     branches:
     - master
       mmosca-update-github-actions
-  pull_request:
+  #pull_request:
 
 jobs:
   build:
