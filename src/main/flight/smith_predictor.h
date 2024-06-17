@@ -38,7 +38,7 @@ typedef struct smithPredictor_s {
     uint8_t idx;
     float data[MAX_SMITH_SAMPLES + 1];
     pt1Filter_t smithPredictorFilter;
-    float smithPredictorStrength;
+    float measurementSmithPredictor;
 } smithPredictor_t;
 
 float smithPredictorApply(smithPredictor_t *predictor, float sample);

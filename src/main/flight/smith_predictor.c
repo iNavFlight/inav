@@ -45,7 +45,7 @@ float smithPredictorApply(smithPredictor_t *predictor, float sample) {
 
         // filter the delayed data to help reduce the overall noise this prediction adds
         float delayed = pt1FilterApply(&predictor->smithPredictorFilter, predictor->data[predictor->idx]);
-        float delayCompensatedSample = predictor->smithPredictorStrength * (sample - delayed);
+        float delayCompensatedSample = predictor->measurementSmithPredictor * (sample - delayed);
 
         sample += delayCompensatedSample;
     }
@@ -57,7 +57,7 @@ void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength
         predictor->enabled = true;
         predictor->samples = (delay * 1000) / looptime;
         predictor->idx = 0;
-        predictor->smithPredictorStrength = strength;
+        predictor->measurementSmithPredictor = strength;
         pt1FilterInit(&predictor->smithPredictorFilter, filterLpfHz, US2S(looptime));
     } else {
         predictor->enabled = false;

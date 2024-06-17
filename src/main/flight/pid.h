@@ -151,9 +151,9 @@ typedef struct pidProfile_s {
 
     uint8_t fwAltControlResponseFactor;
 #ifdef USE_SMITH_PREDICTOR
-    float smithPredictorStrength;
-    float smithPredictorDelay;
-    uint16_t smithPredictorFilterHz;
+    float measurementSmithPredictor;
+    float measurementSmithPredictorDelay;
+    uint16_t measurementSmithPredictorFilterHz;
 #endif
 
 
