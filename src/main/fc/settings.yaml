@@ -192,7 +192,7 @@ tables:
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
-    values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
+    values: ["STATIC", "DYNAMIC", "ADAPTIVE", "LULU"]
     enum: gyroFilterType_e
 
 constants:
@@ -216,22 +216,27 @@ groups:
     members:
       - name: looptime
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
-        default_value: 1000
+        default_value: 500
         max: 9000
       - name: gyro_anti_aliasing_lpf_hz
-        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In samples"
-        default_value: 1
+        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
+        default_value: 250
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
-      - name: gyro_main_lpf_hz
-        description: "Software based gyro main lowpass filter. Value is samples"
+      - name: gyro_lulu_sample_count
+        description: "Gyro lulu sample count, in number of samples."
         default_value: 3
+        field: gyroLuluSampleCount
+        max: 15
+      - name: gyro_main_lpf_hz
+        description: "Software based gyro main lowpass filter. Value is Hz"
+        default_value: 60
         field: gyro_main_lpf_hz
         min: 0
         max: 500
       - name: gyro_filter_mode
         description: "Specifies the type of the software LPF of the gyro signals."
-        default_value: "STATIC"
+        default_value: "LULU"
         field: gyroFilterMode
         table: gyro_filter_mode
       - name: gyro_dyn_lpf_min_hz

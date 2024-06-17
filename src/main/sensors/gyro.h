@@ -55,7 +55,8 @@ typedef enum {
 typedef enum {
     GYRO_FILTER_MODE_STATIC = 0,
     GYRO_FILTER_MODE_DYNAMIC = 1,
-    GYRO_FILTER_MODE_ADAPTIVE = 2
+    GYRO_FILTER_MODE_ADAPTIVE = 2,
+    GYRO_FILTER_MODE_LULU = 3
 } gyroFilterMode_e;
 
 typedef struct gyro_s {
@@ -102,6 +103,8 @@ typedef struct gyroConfig_s {
     float adaptiveFilterIntegratorThresholdLow;
 #endif
     uint8_t gyroFilterMode;
+
+    uint8_t gyroLuluSampleCount;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

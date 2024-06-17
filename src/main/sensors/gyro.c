@@ -240,14 +240,18 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     return gyroHardware;
 }
 
-static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t cutoff, uint32_t looptime)
+static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t cutoff, uint32_t looptime, filterType_e filterType)
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
-        *applyFn = (filterApplyFnPtr)luluFilterApply;
         for (int axis = 0; axis < 3; axis++) {
-//            pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
-            luluFilterInit(&state[axis].lulu, cutoff);
+            if(filterType == FILTER_LULU) {
+                luluFilterInit(&state[axis].lulu, cutoff);
+                *applyFn = (filterApplyFnPtr)luluFilterApply;
+            } else {
+                pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
+                *applyFn = (filterApplyFnPtr)pt1FilterApply;
+            }
         }
     }
 }
@@ -255,10 +259,14 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t
 static void gyroInitFilters(void)
 {
     //First gyro LPF running at full gyro frequency 8kHz
-    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
+    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime(), FILTER_PT1);
 
-    //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
-    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime());
+    if(gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_LULU) {
+        initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyroLuluSampleCount, getLooptime(), FILTER_LULU);
+    } else {
+        //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
+        initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime(), FILTER_PT1);
+    }
 
 #ifdef USE_ADAPTIVE_FILTER
     if (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE) {

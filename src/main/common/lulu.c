@@ -18,15 +18,7 @@
 
 void luluFilterInit(luluFilter_t *filter, int N)
 {
-	if (N > 15)
-	{
-		N = 15;
-	}
-	if (N < 1)
-	{
-		N = 1;
-	}
-	filter->N = N;
+	filter->N = constrain(N, 1, 15);
 	filter->windowSize = filter->N * 2 + 1;
 	filter->windowBufIndex = 0;
 
