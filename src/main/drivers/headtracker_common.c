@@ -43,7 +43,10 @@
 PG_REGISTER_WITH_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig,
-    .devType = SETTING_HEADTRACKER_TYPE_DEFAULT
+    .devType = SETTING_HEADTRACKER_TYPE_DEFAULT,
+    .pan_ratio = SETTING_HEADTRACKER_PAN_RATIO_DEFAULT,
+    .tilt_ratio = SETTING_HEADTRACKER_TILT_RATIO_DEFAULT,
+    .roll_ratio = SETTING_HEADTRACKER_ROLL_RATIO_DEFAULT,
 );
 
 static headTrackerDevice_t *commonHeadTrackerDevice = NULL;
