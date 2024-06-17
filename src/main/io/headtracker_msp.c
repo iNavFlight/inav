@@ -23,6 +23,7 @@
 
 #include "common/utils.h"
 #include "common/time.h"
+#include "common/maths.h"
 
 #include "drivers/headtracker_common.h"
 
