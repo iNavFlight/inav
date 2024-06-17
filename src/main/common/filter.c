@@ -327,7 +327,7 @@ void initFilter(const uint8_t filterType, filter_t *filter, const float cutoffFr
         } if (filterType == FILTER_PT3) {
             pt3FilterInit(&filter->pt3, pt3FilterGain(cutoffFrequency, dT));
         } if (filterType == FILTER_LULU) {
-            pt3FilterInit(&filter->lulu, cutoffFrequency);
+            luluFilterInit(&filter->lulu, cutoffFrequency);
         } else {
             biquadFilterInitLPF(&filter->biquad, cutoffFrequency, refreshRate);
         }
