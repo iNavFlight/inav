@@ -1714,7 +1714,7 @@ Gyro lulu sample count, in number of samples.
 
 ### gyro_main_lpf_hz
 
-Software based gyro main lowpass filter. Value is Hz
+Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 
 | Default | Min | Max |
 | --- | --- | --- |

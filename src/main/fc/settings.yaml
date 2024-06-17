@@ -229,7 +229,7 @@ groups:
         field: gyroLuluSampleCount
         max: 15
       - name: gyro_main_lpf_hz
-        description: "Software based gyro main lowpass filter. Value is Hz"
+        description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
         field: gyro_main_lpf_hz
         min: 0
