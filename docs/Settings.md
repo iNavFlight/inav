@@ -3564,7 +3564,7 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ### nav_landing_bump_detection
 
-Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS).
 
 | Default | Min | Max |
 | --- | --- | --- |
