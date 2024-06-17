@@ -37,12 +37,12 @@ extern "C" {
 typedef struct gimbalHtkAttitudePkt_s
 {
 	uint8_t  sync[2];       //data synchronization 0xA5, 0x5A
-	uint64_t mode:3;        //Gimbal Mode [0~7] [Only 0 1 2 modes are supported for the time being]
-	int64_t  sensibility:5; // Stabilization sensibility [-16~15]
-	uint64_t reserved:4;    //hold on to one's reserve
-	int64_t  roll:12;       //Roll angle [-2048~2047] => [-180~180]
-	int64_t  tilt:12;       //Pich angle [-2048~2047] => [-180~180]
-	int64_t  pan:12;        //Yaw angle [-2048~2047] => [-180~180]
+	uint8_t mode:3;        //Gimbal Mode [0~7] [Only 0 1 2 modes are supported for the time being]
+	int16_t  sensibility:5; // Stabilization sensibility [-16~15]
+	uint8_t reserved:4;    //hold on to one's reserve
+	int32_t  roll:12;       //Roll angle [-2048~2047] => [-180~180]
+	int32_t  tilt:12;       //Pich angle [-2048~2047] => [-180~180]
+	int32_t  pan:12;        //Yaw angle [-2048~2047] => [-180~180]
 	uint8_t  crch;          //Data validation H
 	uint8_t  crcl;          //Data validation L
 } __attribute__((packed)) gimbalHtkAttitudePkt_t;
