@@ -209,7 +209,7 @@ jobs:
           # To create release on a different repo, we need a token setup
           token: ${{ secrets.NIGHTLY_TOKEN }}
           #repository: iNavFlight/inav-nightly
-          reposiroty: mmosca-test-org/test-repo
+          repository: mmosca-test-org/test-repo
           prerelease: true
           draft: false
           generate_release_notes: true
