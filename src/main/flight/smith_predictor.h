@@ -41,5 +41,5 @@ typedef struct smithPredictor_s {
     float smithPredictorStrength;
 } smithPredictor_t;
 
-float applySmithPredictor(uint8_t axis, smithPredictor_t *predictor, float sample);
+float applySmithPredictor(smithPredictor_t *predictor, float sample);
 void smithPredictorInit(smithPredictor_t *predictor, float delay, float strength, uint16_t filterLpfHz, uint32_t looptime);
