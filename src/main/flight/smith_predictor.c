@@ -34,7 +34,7 @@
 #include "flight/smith_predictor.h"
 #include "build/debug.h"
 
-float applySmithPredictor(smithPredictor_t *predictor, float sample) {
+float smithPredictorApply(smithPredictor_t *predictor, float sample) {
     if (predictor->enabled) {
         predictor->data[predictor->idx] = sample;
 
