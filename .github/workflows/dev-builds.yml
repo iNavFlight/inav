@@ -211,9 +211,23 @@ jobs:
           repository: iNavFlight/inav-nightly
           prerelease: true
           draft: false
-          generate_release_notes: true
+          #generate_release_notes: true
           make_latest: false
           files: |
             hexes/*.hex
             sitl-resources.zip
+          body: |
+            ${{ steps.notes.outputs.notes }}
+
+            ### Repository:
+            ${{ github.repository }} ([link](${{ github.event.repository.html_url }}))
+
+            ### Branch:
+            ${{ github.ref_name }} ([link](${{ github.event.repository.html_url }}/tree/${{ github.ref_name }}))
+
+            ### Latest changeset:
+            ${{ github.event.head_commit.id }} ([link](${{ github.event.head_commit.url }}))
+
+            ### Changes:
+            ${{ github.event.head_commit.message }}
 
