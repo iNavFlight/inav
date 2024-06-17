@@ -40,7 +40,7 @@
 
 #include "drivers/headtracker_common.h"
 
-PG_REGISTER_WITH_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 0);
+PG_REGISTER_WITH_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig, PG_HEADTRACKER_CONFIG, 1);
 
 PG_RESET_TEMPLATE(headTrackerConfig_t, headTrackerConfig,
     .devType = SETTING_HEADTRACKER_TYPE_DEFAULT

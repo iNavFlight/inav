@@ -317,9 +317,9 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
             state->attitude.crcl = c;
             if(checkCrc(&(state->attitude))) {
                 state->expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
-                state->pan = state->attitude.pan;
-                state->tilt = state->attitude.tilt;
-                state->roll = state->attitude.roll;
+                state->pan = constrain(state->attitude.pan * headTrackerConfig()->pan_ratio) + 0.5, -2048, 2047);
+                state->tilt = constrain(state->attitude.tilt * headTrackerConfig()->tilt_ratio) + 0.5, -2048, 2047);
+                state->roll = constrain(state->attitude.roll * headTrackerConfig()->roll_ratio) + 0.5, -2048, 2047);
                 DEBUG_SET(DEBUG_HEADTRACKING, 2, pktCount++);
             } else {
                 DEBUG_SET(DEBUG_HEADTRACKING, 3, errorCount++);

@@ -4251,3 +4251,24 @@ groups:
       field: devType
       type: uint8_t
       table: headtracker_dev_type
+    - name: headtracker_pan_ratio
+      description: "Head pan movement vs camera movement ratio"
+      type: float
+      default_value: 1
+      field: tilt_ratio
+      min: 0
+      max: 3
+    - name: headtracker_tilt_ratio
+      description: "Head tilt movement vs camera movement ratio"
+      type: float
+      default_value: 1
+      field: tilt_ratio
+      min: 0
+      max: 3
+    - name: headtracker_roll_ratio
+      description: "Head roll movement vs camera movement ratio"
+      type: float
+      default_value: 1
+      field: tilt_ratio
+      min: 0
+      max: 3

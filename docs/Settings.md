@@ -1822,6 +1822,36 @@ This setting limits yaw rotation rate that HEADING_HOLD controller can request f
 
 ---
 
+### headtracker_pan_ratio
+
+Head pan movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 3 |
+
+---
+
+### headtracker_roll_ratio
+
+Head roll movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 3 |
+
+---
+
+### headtracker_tilt_ratio
+
+Head tilt movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 3 |
+
+---
+
 ### headtracker_type
 
 Type of headtrackr dervice

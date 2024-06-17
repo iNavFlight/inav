@@ -70,6 +70,9 @@ typedef struct headTrackerVTable_s {
 
 typedef struct headTrackerConfig_s {
     headTrackerDevType_e devType;
+    float pan_ratio;
+    float tilt_ratio;
+    float roll_ratio;
 } headTrackerConfig_t;
 
 PG_DECLARE(headTrackerConfig_t, headTrackerConfig);
