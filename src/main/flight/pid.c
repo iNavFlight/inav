@@ -179,7 +179,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 10);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -312,6 +312,10 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .measurementSmithPredictor = SETTING_GYRO_PREDICTOR_STRENGTH_DEFAULT,
         .measurementSmithPredictorDelay = SETTING_GYRO_PREDICTOR_DELAY_DEFAULT,
         .measurementSmithPredictorFilterHz = SETTING_GYRO_PREDICTOR_LPF_HZ_DEFAULT,
+
+        .dtermSmithPredictor = SETTING_DTERM_PREDICTOR_STRENGTH_DEFAULT,
+        .dtermSmithPredictorDelay = SETTING_DTERM_PREDICTOR_DELAY_DEFAULT,
+        .dtermSmithPredictorFilterHz = SETTING_DTERM_PREDICTOR_LPF_HZ_DEFAULT,
 #endif
         .fwItermLockTimeMaxMs = SETTING_FW_ITERM_LOCK_TIME_MAX_MS_DEFAULT,
         .fwItermLockRateLimit = SETTING_FW_ITERM_LOCK_RATE_THRESHOLD_DEFAULT,

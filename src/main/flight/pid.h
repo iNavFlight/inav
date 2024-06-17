@@ -154,8 +154,11 @@ typedef struct pidProfile_s {
     float measurementSmithPredictor;
     float measurementSmithPredictorDelay;
     uint16_t measurementSmithPredictorFilterHz;
-#endif
 
+    float dtermSmithPredictor;
+    float dtermSmithPredictorDelay;
+    uint16_t dtermSmithPredictorFilterHz;
+#endif
 
     uint16_t fwItermLockTimeMaxMs;
     uint8_t fwItermLockRateLimit;
