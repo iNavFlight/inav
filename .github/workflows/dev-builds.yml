@@ -6,8 +6,6 @@ on:
   push:
     branches:
     - master
-      mmosca-update-github-actions
-  #pull_request:
 
 jobs:
   build:
