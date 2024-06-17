@@ -207,10 +207,10 @@ jobs:
           name: inav-${{ steps.version.outputs.version }}-dev-${{ steps.date.outputs.today }}-${{ github.run_number }}-${{ github.sha }}
           tag_name: v${{ steps.date.outputs.today }}.${{ github.run_number }}
           # To create release on a different repo, we need a token setup
-          #token: ${{ secrets.GITHUB_TOKEN }}
-          repository: iNavFlight/inav
+          token: ${{ secrets.NIGHTLY_TOKEN }}
+          repository: iNavFlight/inav-nightly
           prerelease: true
-          draft: true
+          draft: false
           generate_release_notes: true
           make_latest: false
           files: |
