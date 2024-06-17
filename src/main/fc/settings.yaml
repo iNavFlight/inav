@@ -119,7 +119,7 @@ tables:
   - name: filter_type
     values: ["PT1", "BIQUAD"]
   - name: filter_type_full
-    values: ["PT1", "BIQUAD", "PT2", "PT3"]
+    values: ["PT1", "BIQUAD", "PT2", "PT3", "LULU"]
   - name: log_level
     values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
   - name: iterm_relax
@@ -219,13 +219,13 @@ groups:
         default_value: 1000
         max: 9000
       - name: gyro_anti_aliasing_lpf_hz
-        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
-        default_value: 250
+        description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In samples"
+        default_value: 1
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
       - name: gyro_main_lpf_hz
-        description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
-        default_value: 60
+        description: "Software based gyro main lowpass filter. Value is samples"
+        default_value: 3
         field: gyro_main_lpf_hz
         min: 0
         max: 500
@@ -254,7 +254,7 @@ groups:
         max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"
-        default_value: ON
+        default_value: OFF
         field: dynamicGyroNotchEnabled
         condition: USE_DYNAMIC_FILTERS
         type: bool
@@ -293,7 +293,7 @@ groups:
         default_value: 0
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
-        default_value: ON
+        default_value: OFF
         condition: USE_GYRO_KALMAN
         field: kalmanEnabled
         type: bool

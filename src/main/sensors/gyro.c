@@ -244,9 +244,10 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
-        *applyFn = (filterApplyFnPtr)pt1FilterApply;
+        *applyFn = (filterApplyFnPtr)luluFilterApply;
         for (int axis = 0; axis < 3; axis++) {
-            pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
+//            pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
+            luluFilterInit(&state[axis].lulu, cutoff);
         }
     }
 }
