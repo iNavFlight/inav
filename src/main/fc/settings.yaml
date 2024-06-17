@@ -2463,7 +2463,7 @@ groups:
         min: 1
         max: 15
       - name: nav_landing_bump_detection
-        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors."
+        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS)."
         default_value: OFF
         field: general.flags.landing_bump_detection
         type: bool
