@@ -205,7 +205,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: inav-${{ steps.version.outputs.version }}-dev-${{ steps.date.outputs.today }}-${{ github.run_number }}-${{ github.sha }}
-          tag_name: v${{ steps.date.outputs.today }}.${{ github.run_number }}
+          # tag_name: v${{ steps.date.outputs.today }}.${{ github.run_number }}
           # To create release on a different repo, we need a token setup
           token: ${{ secrets.NIGHTLY_TOKEN }}
           #repository: iNavFlight/inav-nightly
