@@ -477,37 +477,6 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 }
 #endif
 
-/*
- * This is a simplified altitude conversion code that does not use any scaling
- * but is fully compatible with the DJI G2 MSP Displayport OSD implementation.
- */
-/* void osdSimpleAltitudeSymbol(char *buff, int32_t alt) {
-
-    int32_t convertedAltutude = 0;
-    char suffix = '\0';
-
-    switch ((osd_unit_e)osdConfig()->units) {
-        case OSD_UNIT_UK:
-            FALLTHROUGH;
-        case OSD_UNIT_GA:
-            FALLTHROUGH;
-        case OSD_UNIT_IMPERIAL:
-            convertedAltutude = CENTIMETERS_TO_FEET(alt);
-            suffix = SYM_ALT_FT;
-            break;
-        case OSD_UNIT_METRIC_MPH:
-            FALLTHROUGH;
-        case OSD_UNIT_METRIC:
-            convertedAltutude = CENTIMETERS_TO_METERS(alt);
-            suffix = SYM_ALT_M;
-            break;
-    }
-
-    tfp_sprintf(buff, "%4d", (int) convertedAltutude);
-    buff[4] = suffix;
-    buff[5] = '\0';
-} */
-
 /**
 * Converts altitude into a string based on the current unit system
 * prefixed by a a symbol to indicate the unit used.
