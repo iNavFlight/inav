@@ -5645,7 +5645,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
 
         if (ARMING_FLAG(ARMED)) {
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                /* ADDS MAXIMUM OF 5 MESSAGES TO TOTAL */
+                /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL NORMALLY, 5 MESSAGES DURING FAILSAFE */
                 if (navGetCurrentStateFlags() & NAV_AUTO_WP_DONE) {
                     messages[messageCount++] = STATE(LANDING_DETECTED) ? OSD_MESSAGE_STR(OSD_MSG_WP_LANDED) : OSD_MESSAGE_STR(OSD_MSG_WP_FINISHED);
                 } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
@@ -5705,7 +5705,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
             } else {
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
-                /* ADDS MAXIMUM OF 4 MESSAGES TO TOTAL */
+                /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
 #ifdef USE_FW_AUTOLAND
                     if (canFwLandingBeCancelled()) {
@@ -5763,10 +5763,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                         messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ALTITUDE_HOLD);
                     }
                 }
-
-                if (posControl.flags.wpMissionPlannerActive) {
-                    messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
-                }
             }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
             unsigned invalidIndex;
@@ -5795,7 +5791,11 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             }
         }
 
-        /* Messages that are shown regardless of Arming state - ADDS MAXIMUM OF 1 MESSAGES TO TOTAL */
+        /* Messages that are shown regardless of Arming state */
+        /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL NORMALLY, 1 MESSAGE DURING FAILSAFE */
+        if (posControl.flags.wpMissionPlannerActive && !FLIGHT_MODE(FAILSAFE_MODE)) {
+            messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_MISSION_PLANNER);
+        }
 
         // The following has been commented out as it will be added in #9688
         // uint16_t rearmMs = (emergInflightRearmEnabled()) ? emergencyInFlightRearmTimeMS() : 0;
