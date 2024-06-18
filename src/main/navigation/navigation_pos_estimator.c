@@ -299,7 +299,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
             static float baroAltPrevious = 0;
             posEstimator.baro.baroAltRate = (posEstimator.baro.alt - baroAltPrevious) / US2S(baroDtUs);
             baroAltPrevious = posEstimator.baro.alt;
-            updateBaroAltitudeRate(posEstimator.baro.baroAltRate, true);
+            updateBaroAltitudeRate(posEstimator.baro.baroAltRate);
         }
     }
     else {

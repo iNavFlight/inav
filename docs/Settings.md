@@ -3584,7 +3584,7 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 ### nav_mc_inverted_crash_detection
 
-Setting a value > 0 enables inverted crash detection for multirotors. It is intended for situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or some other reason. When enabled the setting defines the additional number of seconds before disarm beyond a minimum fixed time delay such that the minimum possible time delay before disarm is 4s.
+Setting a value > 0 enables inverted crash detection for multirotors. It is intended for situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or for some other reason. When enabled this setting defines the additional number of seconds before disarm beyond a minimum fixed time delay of 3s. Requires a barometer to work.
 
 | Default | Min | Max |
 | --- | --- | --- |
