@@ -15,25 +15,20 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define STR_HELPER(x) #x
-#define STR(x) STR_HELPER(x)
-#define FC_VERSION_STRING STR(FC_VERSION_MAJOR) "." STR(FC_VERSION_MINOR) "." STR(FC_VERSION_PATCH_LEVEL)
-#ifndef FC_VERSION_TYPE
-#define FC_VERSION_TYPE ""
-#endif
-#define FC_FIRMWARE_NAME "INAV"
+#include <stdint.h>
+#include "platform.h"
 
+#include "fc/fc_msp_box.h"
 
-#define MW_VERSION              231
+#include "io/piniobox.h"
 
-extern const char* const compilerVersion;
-extern const char* const targetName;
+#include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 
-#define GIT_SHORT_REVISION_LENGTH   8 // lower case hexadecimal digits.
-extern const char* const shortGitRevision;
+void targetConfiguration(void)
+{
+    // Make sure S1-S4 default to Motors
 
-#define BUILD_DATE_LENGTH 11
-extern const char* const buildDate;  // "MMM DD YYYY" MMM = Jan/Feb/...
-
-#define BUILD_TIME_LENGTH 8
-extern const char* const buildTime;  // "HH:MM:SS"
+    timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
+    timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
+}

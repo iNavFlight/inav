@@ -1582,6 +1582,76 @@ For developer ground test use. Disables motors, sets heading status = Trusted on
 
 ---
 
+### gyro_adaptive_filter_hpf_hz
+
+High pass filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 1 | 50 |
+
+---
+
+### gyro_adaptive_filter_integrator_threshold_high
+
+High threshold for adaptive filter integrator
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 1 | 10 |
+
+---
+
+### gyro_adaptive_filter_integrator_threshold_low
+
+Low threshold for adaptive filter integrator
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -2 | -10 | 0 |
+
+---
+
+### gyro_adaptive_filter_max_hz
+
+Maximum frequency for adaptive filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 150 | 0 | 505 |
+
+---
+
+### gyro_adaptive_filter_min_hz
+
+Minimum frequency for adaptive filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 250 |
+
+---
+
+### gyro_adaptive_filter_std_lpf_hz
+
+Standard deviation low pass filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 10 |
+
+---
+
+### gyro_adaptive_filter_target
+
+Target value for adaptive filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3.5 | 1 | 6 |
+
+---
+
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -1622,6 +1692,16 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
+### gyro_filter_mode
+
+Specifies the type of the software LPF of the gyro signals.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| STATIC |  |  |
+
+---
+
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -1639,16 +1719,6 @@ On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = s
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 2 |
-
----
-
-### gyro_use_dyn_lpf
-
-Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
 
 ---
 
@@ -2368,7 +2438,7 @@ Maximum inclination in level (angle) mode (PITCH axis). 100=10°
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 100 | 900 |
+| 450 | 100 | 900 |
 
 ---
 
@@ -2378,7 +2448,7 @@ Maximum inclination in level (angle) mode (ROLL axis). 100=10°
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 100 | 900 |
+| 450 | 100 | 900 |
 
 ---
 
@@ -2728,7 +2798,7 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 10 | 2000 |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -2958,7 +3028,7 @@ Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1863 | 1500 | 20000 |
+| 1863 | 1350 | 20000 |
 
 ---
 
@@ -3404,7 +3474,7 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ### nav_landing_bump_detection
 
-Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS).
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3418,7 +3488,7 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 500 | 10 | 2000 |
+| 750 | 10 | 2000 |
 
 ---
 
@@ -3478,7 +3548,7 @@ Maximum banking angle (deg) that multicopter navigation is allowed to set. Machi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 15 | 45 |
+| 35 | 15 | 45 |
 
 ---
 

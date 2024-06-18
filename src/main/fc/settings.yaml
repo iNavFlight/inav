@@ -83,7 +83,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST"]
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", "ADAPTIVE_FILTER"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -191,6 +191,9 @@ tables:
   - name: led_pin_pwm_mode
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
+  - name: gyro_filter_mode
+    values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
+    enum: gyroFilterType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -226,11 +229,11 @@ groups:
         field: gyro_main_lpf_hz
         min: 0
         max: 500
-      - name: gyro_use_dyn_lpf
-        description: "Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position."
-        default_value: OFF
-        field: useDynamicLpf
-        type: bool
+      - name: gyro_filter_mode
+        description: "Specifies the type of the software LPF of the gyro signals."
+        default_value: "STATIC"
+        field: gyroFilterMode
+        table: gyro_filter_mode
       - name: gyro_dyn_lpf_min_hz
         description: "Minimum frequency of the gyro Dynamic LPF"
         default_value: 200
@@ -330,6 +333,55 @@ groups:
         field: gravity_cmss_cal
         min: 0
         max: 2000
+      - name: gyro_adaptive_filter_target
+        description: "Target value for adaptive filter"
+        default_value: 3.5
+        field: adaptiveFilterTarget
+        min: 1
+        max: 6
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_min_hz
+        description: "Minimum frequency for adaptive filter"
+        default_value: 50
+        field: adaptiveFilterMinHz
+        min: 0
+        max: 250
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_max_hz
+        description: "Maximum frequency for adaptive filter"
+        default_value: 150
+        field: adaptiveFilterMaxHz
+        min: 0
+        max: 505
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_std_lpf_hz
+        description: "Standard deviation low pass filter cutoff frequency"
+        default_value: 2
+        field: adaptiveFilterStdLpfHz
+        min: 0
+        max: 10
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_hpf_hz
+        description: "High pass filter cutoff frequency"
+        default_value: 10
+        field: adaptiveFilterHpfHz
+        min: 1
+        max: 50
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_integrator_threshold_high
+        description: "High threshold for adaptive filter integrator"
+        default_value: 4
+        field: adaptiveFilterIntegratorThresholdHigh
+        min: 1
+        max: 10
+        condition: USE_ADAPTIVE_FILTER
+      - name: gyro_adaptive_filter_integrator_threshold_low
+        description: "Low threshold for adaptive filter integrator"
+        default_value: -2
+        field: adaptiveFilterIntegratorThresholdLow
+        min: -10
+        max: 0
+        condition: USE_ADAPTIVE_FILTER
 
   - name: PG_ADC_CHANNEL_CONFIG
     type: adcChannelConfig_t
@@ -890,6 +942,12 @@ groups:
         condition: USE_ADC
         min: 0
         max: 65535
+      - name: battery_capacity_unit
+        description: "Unit used for `battery_capacity`, `battery_capacity_warning` and `battery_capacity_critical` [MAH/MWH] (milliAmpere hour / milliWatt hour)."
+        default_value: "MAH"
+        field: capacity_unit
+        table: bat_capacity_unit
+        type: uint8_t
       - name: current_meter_scale
         description: "This sets the output voltage to current scaling for the current sensor in 0.1 mV/A steps. 400 is 40mV/A such as the ACS756 sensor outputs. 183 is the setting for the uberdistro with a 0.25mOhm shunt."
         default_value: :target
@@ -996,12 +1054,6 @@ groups:
         field: capacity.critical
         min: 0
         max: 4294967295
-      - name: battery_capacity_unit
-        description: "Unit used for `battery_capacity`, `battery_capacity_warning` and `battery_capacity_critical` [MAH/MWH] (milliAmpere hour / milliWatt hour)."
-        default_value: "MAH"
-        field: capacity.unit
-        table: bat_capacity_unit
-        type: uint8_t
       - name: controlrate_profile
         description: "Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile"
         default_value: 0
@@ -1891,13 +1943,13 @@ groups:
         max: RPYL_PID_MAX
       - name: max_angle_inclination_rll
         description: "Maximum inclination in level (angle) mode (ROLL axis). 100=10°"
-        default_value: 300
+        default_value: 450
         field: max_angle_inclination[FD_ROLL]
         min: 100
         max: 900
       - name: max_angle_inclination_pit
         description: "Maximum inclination in level (angle) mode (PITCH axis). 100=10°"
-        default_value: 300
+        default_value: 450
         field: max_angle_inclination[FD_PITCH]
         min: 100
         max: 900
@@ -2411,7 +2463,7 @@ groups:
         min: 1
         max: 15
       - name: nav_landing_bump_detection
-        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors."
+        description: "Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS)."
         default_value: OFF
         field: general.flags.landing_bump_detection
         type: bool
@@ -2496,7 +2548,7 @@ groups:
         table: nav_fw_wp_turn_smoothing
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
-        default_value: 300
+        default_value: 500
         field: general.auto_speed
         min: 10
         max: 2000
@@ -2514,7 +2566,7 @@ groups:
         max: 2000
       - name: nav_manual_speed
         description: "Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mode [cm/s] [Multirotor only]"
-        default_value: 500
+        default_value: 750
         field: general.max_manual_speed
         min: 10
         max: 2000
@@ -2690,7 +2742,7 @@ groups:
         max: 120
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
-        default_value: 30
+        default_value: 35
         field: mc.max_bank_angle
         min: 15
         max: 45
@@ -2872,7 +2924,7 @@ groups:
         description: "Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 981 cm/s/s"
         default_value: 1863
         field: fw.launch_accel_thresh
-        min: 1500
+        min: 1350
         max: 20000
       - name: nav_fw_launch_max_angle
         description: "Max tilt angle (pitch/roll combined) to consider launch successful. Set to 180 to disable completely [deg]"

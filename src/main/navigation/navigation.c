@@ -4438,7 +4438,7 @@ uint32_t distanceToFirstWP(void)
 
 bool navigationPositionEstimateIsHealthy(void)
 {
-    return (posControl.flags.estPosStatus >= EST_USABLE) && STATE(GPS_FIX_HOME);
+    return posControl.flags.estPosStatus >= EST_USABLE && posControl.flags.estAltStatus >= EST_USABLE && STATE(GPS_FIX_HOME);
 }
 
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
