@@ -217,6 +217,10 @@ jobs:
           body: |
             ${{ steps.notes.outputs.notes }}
 
+            ### Flashing
+            These are nightly builds and configuration settings can be added and removed often. Flashing with Full chip erase is strongly recommended to avoid issues.
+            Firmware related issues should be open in the iNavflight/inav repository, not in inav-nightly.
+
             ### Repository:
             ${{ github.repository }} ([link](${{ github.event.repository.html_url }}))
 
