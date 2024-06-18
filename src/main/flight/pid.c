@@ -1385,7 +1385,7 @@ pidBank_t * pidBankMutable(void) {
 
 bool isFixedWingLevelTrimActive(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !areSticksDeflected() &&
+    return isFwAutoModeActive(BOXAUTOLEVEL) && !areSticksDeflected() &&
            (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) &&
            !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
            !navigationIsControllingAltitude() && !(navCheckActiveAngleHoldAxis() == FD_PITCH && !angleHoldIsLevel);
@@ -1409,7 +1409,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     previousArmingState = ARMING_FLAG(ARMED);
 
     // return if not active or disarmed
-    if (!IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) || !ARMING_FLAG(ARMED)) {
+    if (!isFwAutoModeActive(BOXAUTOLEVEL) || !ARMING_FLAG(ARMED)) {
         return;
     }
 
