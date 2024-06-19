@@ -1828,7 +1828,7 @@ Head pan movement vs camera movement ratio
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 3 |
+| 1 | 0 | 5 |
 
 ---
 
@@ -1838,7 +1838,7 @@ Head roll movement vs camera movement ratio
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 3 |
+| 1 | 0 | 5 |
 
 ---
 
@@ -1848,7 +1848,7 @@ Head tilt movement vs camera movement ratio
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1 | 0 | 3 |
+| 1 | 0 | 5 |
 
 ---
 

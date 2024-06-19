@@ -4257,18 +4257,18 @@ groups:
       default_value: 1
       field: pan_ratio
       min: 0
-      max: 3
+      max: 5
     - name: headtracker_tilt_ratio
       description: "Head tilt movement vs camera movement ratio"
       type: float
       default_value: 1
       field: tilt_ratio
       min: 0
-      max: 3
+      max: 5
     - name: headtracker_roll_ratio
       description: "Head roll movement vs camera movement ratio"
       type: float
       default_value: 1
       field: roll_ratio
       min: 0
-      max: 3
+      max: 5
