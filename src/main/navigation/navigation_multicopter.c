@@ -822,7 +822,7 @@ bool isMulticopterLandingDetected(void)
 #if defined(USE_BARO)
     if (sensors(SENSOR_BARO)) {
         /* Inverted crash landing detection - immediate disarm */
-        if (navConfig()->mc.inverted_crash_detection && isMulticopterCrashedInverted(currentTimeMs)) {
+        if (navConfig()->mc.inverted_crash_detection && !FLIGHT_MODE(TURTLE_MODE) && isMulticopterCrashedInverted(currentTimeMs)) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
             disarm(DISARM_LANDING);
         }
