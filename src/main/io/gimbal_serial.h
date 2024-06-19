@@ -59,11 +59,7 @@ typedef enum {
 } gimbalHeadtrackerState_e;
 
 typedef struct gimbalSerialHtrkState_s {
-    timeUs_t expires;
     uint8_t  payloadSize;
-	int16_t  roll;   //Roll angle [-2048~2047] => [-180~180]
-	int16_t  tilt;   //Pich angle [-2048~2047] => [-180~180]
-	int16_t  pan;    //Yaw angle [-2048~2047] => [-180~180]
     gimbalHeadtrackerState_e state;
     gimbalHtkAttitudePkt_t attitude;
 } gimbalSerialHtrkState_t;

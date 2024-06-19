@@ -58,7 +58,6 @@ STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_
 static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
 
 static gimbalSerialHtrkState_t headTrackerState = { 
-    .expires = 0,
     .payloadSize = 0,
     .state = WAITING_HDR1,
 };
@@ -78,6 +77,30 @@ gimbalVTable_t gimbalSerialVTable = {
 static gimbalDevice_t serialGimbalDevice = {
     .vTable = &gimbalSerialVTable
 };
+
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
+
+static headTrackerVTable_t headTrackerVTable = {
+    .process = headtrackerSerialProcess,
+    .getDeviceType = headtrackerSerialGetDeviceType,
+    .isReady = headTrackerSerialIsReady,
+    .isValid = headTrackerSerialIsValid,
+    .getPanPWM = headTrackerSerialGetPanPWM,
+    .getTiltPWM = headTrackerSerialGetTiltPWM,
+    .getRollPWM = headTrackerSerialGetRollPWM,
+};
+
+
+headTrackerDevice_t headTrackerDevice = {
+    .vTable = &headTrackerVTable,
+    .pan = 0,
+    .tilt = 0,
+    .roll = 0,
+    .expires = 0
+};
+
+#endif
+
 
 gimbalDevType_e gimbalSerialGetDeviceType(const gimbalDevice_t *gimbalDevice)
 {
@@ -207,14 +230,14 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     }
 
     if(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
-        if (gimbalCommonHtrkIsEnabled() && (micros() < headTrackerState.expires)) {
-            attitude.tilt = headTrackerState.tilt;
-            attitude.pan = headTrackerState.pan;
-            attitude.roll = headTrackerState.roll;
+        if (gimbalCommonHtrkIsEnabled() && (micros() < headTrackerDevice.expires)) {
+            attitude.pan = headTrackerDevice.pan;
+            attitude.tilt = headTrackerDevice.tilt;
+            attitude.roll = headTrackerDevice.roll;
             DEBUG_SET(DEBUG_HEADTRACKING, 4, 1);
         } else {
-            attitude.tilt = 0;
             attitude.pan = 0;
+            attitude.tilt = 0;
             attitude.roll = 0;
             DEBUG_SET(DEBUG_HEADTRACKING, 4, -1);
         }
@@ -316,10 +339,10 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
         case WAITING_CRCL:
             state->attitude.crcl = c;
             if(checkCrc(&(state->attitude))) {
-                state->expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
-                state->pan = constrain((state->attitude.pan * headTrackerConfig()->pan_ratio) + 0.5f, -2048, 2047);
-                state->tilt = constrain((state->attitude.tilt * headTrackerConfig()->tilt_ratio) + 0.5f, -2048, 2047);
-                state->roll = constrain((state->attitude.roll * headTrackerConfig()->roll_ratio) + 0.5f, -2048, 2047);
+                headTrackerDevice.expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
+                headTrackerDevice.pan = constrain((state->attitude.pan * headTrackerConfig()->pan_ratio) + 0.5f, -2048, 2047);
+                headTrackerDevice.tilt = constrain((state->attitude.tilt * headTrackerConfig()->tilt_ratio) + 0.5f, -2048, 2047);
+                headTrackerDevice.roll = constrain((state->attitude.roll * headTrackerConfig()->roll_ratio) + 0.5f, -2048, 2047);
                 DEBUG_SET(DEBUG_HEADTRACKING, 2, pktCount++);
             } else {
                 DEBUG_SET(DEBUG_HEADTRACKING, 3, errorCount++);
@@ -330,20 +353,6 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
 }
 
 #if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
-
-static headTrackerVTable_t headTrackerVTable = {
-    .process = headtrackerSerialProcess,
-    .getDeviceType = headtrackerSerialGetDeviceType,
-    .isReady = headTrackerSerialIsReady,
-    .isValid = headTrackerSerialIsValid,
-    .getPanPWM = headTrackerSerialGetPanPWM,
-    .getTiltPWM = headTrackerSerialGetTiltPWM,
-    .getRollPWM = headTrackerSerialGetRollPWM,
-};
-
-headTrackerDevice_t headTrackerDevice = {
-    .vTable = &headTrackerVTable,
-};
 
 bool gimbalSerialHeadTrackerDetect(void)
 {
@@ -389,8 +398,8 @@ bool gimbalSerialHeadTrackerInit(void)
 
 void headtrackerSerialProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs)
 {
+    UNUSED(headTrackerDevice);
     UNUSED(currentTimeUs);
-    headTrackerDevice->expires = headTrackerState.expires;
     return;
 }
 
@@ -413,15 +422,13 @@ bool headTrackerSerialIsReady(const headTrackerDevice_t *headTrackerDevice)
 
 bool headTrackerSerialIsValid(const headTrackerDevice_t *headTrackerDevice)
 {
-    UNUSED(headTrackerDevice);
-    return micros() < headTrackerState.expires;
+    return micros() < headTrackerDevice->expires;
 }
 
 int headTrackerSerialGetPanPWM(const headTrackerDevice_t *headTrackerDevice)
 {
-    UNUSED(headTrackerDevice);
-    if(micros() < headTrackerState.expires) {
-        return scaleRange(headTrackerState.pan, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    if(micros() < headTrackerDevice->expires) {
+        return scaleRange(headTrackerDevice->pan, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
     }
 
     return PWM_RANGE_MIDDLE;
@@ -429,9 +436,8 @@ int headTrackerSerialGetPanPWM(const headTrackerDevice_t *headTrackerDevice)
 
 int headTrackerSerialGetTiltPWM(const headTrackerDevice_t *headTrackerDevice)
 {
-    UNUSED(headTrackerDevice);
-    if(micros() < headTrackerState.expires) {
-        return scaleRange(headTrackerState.tilt, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    if(micros() < headTrackerDevice->expires) {
+        return scaleRange(headTrackerDevice->tilt, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
     }
 
     return PWM_RANGE_MIDDLE;
@@ -439,9 +445,8 @@ int headTrackerSerialGetTiltPWM(const headTrackerDevice_t *headTrackerDevice)
 
 int headTrackerSerialGetRollPWM(const headTrackerDevice_t *headTrackerDevice)
 {
-    UNUSED(headTrackerDevice);
-    if(micros() < headTrackerState.expires) {
-        return scaleRange(headTrackerState.roll, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    if(micros() < headTrackerDevice->expires) {
+        return scaleRange(headTrackerDevice->roll, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
     }
 
     return PWM_RANGE_MIDDLE;

@@ -90,7 +90,6 @@ int headTrackerCommonGetPanPWM(const headTrackerDevice_t *headTrackerDevice);
 int headTrackerCommonGetTiltPWM(const headTrackerDevice_t *headTrackerDevice);
 int headTrackerCommonGetRollPWM(const headTrackerDevice_t *headTrackerDevice);
 
-
 void taskUpdateHeadTracker(timeUs_t currentTimeUs);
 
 bool headtrackerCommonIsEnabled(void);
