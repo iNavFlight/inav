@@ -124,3 +124,10 @@ Please refer to the development section in the [docs/development](https://github
 
 ## INAV Releases
 https://github.com/iNavFlight/inav/releases
+
+## Nightly builds
+
+https://github.com/iNavFlight/inav-nightly/releases
+
+https://github.com/iNavFlight/inav-configurator-nightly/releases
+
