@@ -144,3 +144,4 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 
 void updateActivatedModes(void);
 void updateUsedModeActivationConditionFlags(void);
+bool isFwAutoModeActive(boxId_e mode);

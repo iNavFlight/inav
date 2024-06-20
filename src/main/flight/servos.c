@@ -84,7 +84,7 @@ void Reset_servoMixers(servoMixer_t *instance)
 #ifdef USE_PROGRAMMING_FRAMEWORK
             ,.conditionId = -1
 #endif
-        );       
+        );
     }
 }
 
@@ -98,7 +98,7 @@ void pgResetFn_servoParams(servoParam_t *instance)
             .max = DEFAULT_SERVO_MAX,
             .middle = DEFAULT_SERVO_MIDDLE,
             .rate = 100
-        );        
+        );
     }
 }
 
@@ -196,7 +196,7 @@ void servosInit(void)
 }
 
 int getServoCount(void)
-{   
+{
     if (mixerUsesServos) {
         return 1 + maxServoIndex - minServoIndex;
     }
@@ -248,7 +248,7 @@ static void filterServos(void)
 void writeServos(void)
 {
     filterServos();
-    
+
 #if !defined(SITL_BUILD)
     int servoIndex = 0;
     bool zeroServoValue = false;
@@ -468,7 +468,7 @@ void processServoAutotrimMode(void)
     static int32_t servoMiddleAccum[MAX_SUPPORTED_SERVOS];
     static int32_t servoMiddleAccumCount[MAX_SUPPORTED_SERVOS];
 
-    if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM)) {
+    if (isFwAutoModeActive(BOXAUTOTRIM)) {
         switch (trimState) {
             case AUTOTRIM_IDLE:
                 if (ARMING_FLAG(ARMED)) {
@@ -563,7 +563,7 @@ void processServoAutotrimMode(void)
 void processContinuousServoAutotrim(const float dT)
 {
     static timeMs_t lastUpdateTimeMs;
-    static servoAutotrimState_e trimState = AUTOTRIM_IDLE;    
+    static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static uint32_t servoMiddleUpdateCount;
 
     const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
@@ -575,16 +575,16 @@ void processContinuousServoAutotrim(const float dT)
             const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
             const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
             const bool sticksAreCentered = !areSticksDeflected();
-            const bool planeIsFlyingLevel = ABS(attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim())) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT 
+            const bool planeIsFlyingLevel = ABS(attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim())) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT
                                             && ABS(attitude.values.roll) <= SERVO_AUTOTRIM_ATTITUDE_LIMIT;
             if (
-                planeIsFlyingStraight && 
-                noRotationCommanded && 
+                planeIsFlyingStraight &&
+                noRotationCommanded &&
                 planeIsFlyingLevel &&
                 sticksAreCentered &&
-                !FLIGHT_MODE(MANUAL_MODE) && 
+                !FLIGHT_MODE(MANUAL_MODE) &&
                 isGPSHeadingValid() // TODO: proper flying detection
-            ) { 
+            ) {
                 // Plane is flying straight and level: trim servos
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
@@ -629,7 +629,7 @@ void processContinuousServoAutotrim(const float dT)
     DEBUG_SET(DEBUG_AUTOTRIM, 1, servoMiddleUpdateCount);
     DEBUG_SET(DEBUG_AUTOTRIM, 3, MAX(RADIANS_TO_DEGREES(rotRateMagnitudeFiltered), targetRateMagnitudeFiltered));
     DEBUG_SET(DEBUG_AUTOTRIM, 5, axisPID_I[FD_ROLL]);
-    DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);    
+    DEBUG_SET(DEBUG_AUTOTRIM, 7, axisPID_I[FD_PITCH]);
 }
 
 void processServoAutotrim(const float dT) {

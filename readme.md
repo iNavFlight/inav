@@ -122,5 +122,13 @@ Before creating new issues please check to see if there is an existing one, sear
 
 Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
 
+Nightly builds are avaialble for testing on the following links:
+
+https://github.com/iNavFlight/inav-nightly/releases
+
+https://github.com/iNavFlight/inav-configurator-nightly/releases
+
 ## INAV Releases
 https://github.com/iNavFlight/inav/releases
+
+
