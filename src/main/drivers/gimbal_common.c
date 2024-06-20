@@ -32,9 +32,20 @@
 
 #include "drivers/gimbal_common.h"
 
+#include "settings_generated.h"
 
-PG_REGISTER(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 0);
 
+PG_REGISTER_WITH_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 1);
+
+PG_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, 
+    .panChannel = SETTING_GIMBAL_PAN_CHANNEL_DEFAULT,
+    .tiltChannel = SETTING_GIMBAL_TILT_CHANNEL_DEFAULT,
+    .rollChannel = SETTING_GIMBAL_ROLL_CHANNEL_DEFAULT,
+    .sensitivity = SETTING_GIMBAL_SENSITIVITY_DEFAULT,
+    .panTrim = SETTING_GIMBAL_PAN_TRIM_DEFAULT,
+    .tiltTrim = SETTING_GIMBAL_TILT_TRIM_DEFAULT,
+    .rollTrim = SETTING_GIMBAL_ROLL_TRIM_DEFAULT
+);
 
 static gimbalDevice_t *commonGimbalDevice = NULL;
 

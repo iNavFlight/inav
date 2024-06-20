@@ -193,9 +193,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
     const gimbalConfig_t *cfg = gimbalConfig();
 
-    int pan = PWM_RANGE_MIDDLE;
-    int tilt = PWM_RANGE_MIDDLE;
-    int roll = PWM_RANGE_MIDDLE;
+    int pan = PWM_RANGE_MIDDLE + cfg->panTrim;
+    int tilt = PWM_RANGE_MIDDLE + cfg->tiltTrim;
+    int roll = PWM_RANGE_MIDDLE + cfg->rollTrim;
 
     if (IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK)) {
         attitude.mode |= GIMBAL_MODE_TILT_LOCK;
