@@ -1222,6 +1222,41 @@ int osdGetHeadingAngle(int angle)
 
 #if defined(USE_GPS)
 
+/* Draws a reference line in the center of screen, based on configurable heading (assuming north is up).
+ * Code borrowed and simplified from osdGridDrawArtificialHorizon(), since it's essentially the same thing
+ * as the artificial horizon line, but fixed on the same position and with roll only, no pitch.
+ */
+static void osdDrawMapReferenceLine(uint8_t midX, uint8_t midY)
+{   
+    float heading = osdConfig()->map2d_ref_line_heading;
+    float rollAngle = DEGREES_TO_RADIANS(90.f - (heading > 180.f ? heading - 180.f: heading));
+    const float ky = sin_approx(rollAngle);
+    const float kx = cos_approx(rollAngle);
+    const float ratio = osdDisplayIsPAL() ? 12.0f/15.0f : 12.0f/18.46f;
+
+    // Reduce the size so as not to be confused with the AHI, if both are used at the same time
+    static const uint8_t ref_line_width = OSD_AHI_WIDTH - 6U;
+    static const uint8_t ref_line_height = OSD_AHI_HEIGHT - 4U;
+
+    if (fabsf(ky) < fabsf(kx)) {             
+        for (int8_t dx = -ref_line_width / 2; dx <= ref_line_width / 2; dx++) {            
+            float fy = (ratio * dx) * (ky / kx) + 0.49f;
+            int8_t dy = floorf(fy);
+            const uint8_t chX = midX + dx, chY = midY - dy;
+            uint16_t c = SYM_AH_H_START + ((OSD_AHI_H_SYM_COUNT - 1) - (uint8_t)((fy - dy) * OSD_AHI_H_SYM_COUNT));
+            displayWriteChar(osdDisplayPort, chX, chY, c);                
+        }
+    } else {       
+        for (int8_t dy = -ref_line_height / 2; dy <= ref_line_height / 2; dy++) {
+            const float fx = (dy / ratio) * (kx / ky) + 0.5f;
+            const int8_t dx = floorf(fx);
+            const uint8_t chX = midX + dx, chY = midY - dy;
+            uint16_t c = SYM_AH_V_START + (fx - dx) * OSD_AHI_V_SYM_COUNT;
+            displayWriteChar(osdDisplayPort, chX, chY, c);                            
+        }
+    }
+}
+
 /* Draws a map with the given symbol in the center and given point of interest
  * defined by its distance in meters and direction in degrees.
  * referenceHeading indicates the up direction in the map, in degrees, while
@@ -1234,10 +1269,9 @@ static void osdDrawMap(int referenceHeading, uint16_t referenceSym, uint16_t cen
                        uint32_t poiDistance, int16_t poiDirection, uint16_t poiSymbol,
                        uint16_t *drawn, uint32_t *usedScale)
 {
-    // TODO: These need to be tested with several setups. We might
-    // need to make them configurable.
-    const int hMargin = 5;
-    const int vMargin = 3;
+    // Configurable horizontal and vertical margins
+    const int hMargin = osdConfig()->map2d_hmargin;
+    const int vMargin = osdConfig()->map2d_vmargin;
 
     // TODO: Get this from the display driver?
     const int charWidth = 12;
@@ -1250,7 +1284,14 @@ static void osdDrawMap(int referenceHeading, uint16_t referenceSym, uint16_t cen
     uint8_t midX = osdDisplayPort->cols / 2;
     uint8_t midY = osdDisplayPort->rows / 2;
 
-    // Fixed marks
+    // Fixed marks  
+    if(osdConfig()->map2d_ref_line_heading >= 0 && referenceSym == 'N') {
+        // Reference line is only drawn if enabled (ref heading == -1 disables it)
+        // and using North as the map reference
+        osdDrawMapReferenceLine(midX, midY);
+    }
+
+    // Draw the center symbol after the reference line so it overwrites the line center character
     displayWriteChar(osdDisplayPort, midX, midY, centerSym);
 
     // First, erase the previous drawing.
@@ -3922,7 +3963,11 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 
     .stats_energy_unit = SETTING_OSD_STATS_ENERGY_UNIT_DEFAULT,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
-    .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT
+    .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,    
+
+    .map2d_vmargin = SETTING_OSD_MAP2D_VMARGIN_DEFAULT,
+    .map2d_hmargin = SETTING_OSD_MAP2D_HMARGIN_DEFAULT,
+    .map2d_ref_line_heading = SETTING_OSD_MAP2D_REF_LINE_HEADING_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)

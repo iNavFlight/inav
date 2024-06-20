@@ -4762,6 +4762,36 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ---
 
+### osd_map2d_hmargin
+
+OSD 2D Map horizontal margin (on left and right, columns the map won't use for drawing)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 0 | 15 |
+
+---
+
+### osd_map2d_ref_line_heading
+
+OSD 2D Map reference line heading (0 is north, 90 east, 180 south and so on, -1 disabled). Requires using "up is north" map setting. The dashed line will be aligned to the heading set by this parameter. So should be set to the same heading as an easily recognizable and static feature nearby the place you are flying, for example a runway, a street, a fence, etc. Then you are able to compare the craft's position on the OSD map with this reference, making it easier to orientate yourself, align directional antennas and so on.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -1 | -1 | 359 |
+
+---
+
+### osd_map2d_vmargin
+
+OSD 2D Map vertical margin (on top and bottom, lines the map won't use for drawing)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 0 | 10 |
+
+---
+
 ### osd_msp_displayport_fullframe_interval
 
 Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)
