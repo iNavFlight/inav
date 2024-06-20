@@ -57,10 +57,13 @@ STATIC_ASSERT(sizeof(gimbalHtkAttitudePkt_t) == 10, gimbalHtkAttitudePkt_t_size_
 #ifndef GIMBAL_UNIT_TEST
 static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
 
+#if defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL)
 static gimbalSerialHtrkState_t headTrackerState = { 
     .payloadSize = 0,
     .state = WAITING_HDR1,
 };
+#endif
+
 #endif
 
 static serialPort_t *headTrackerPort = NULL;
@@ -141,7 +144,7 @@ bool gimbalSerialDetect(void)
 
     if (portConfig) {
         SD(fprintf(stderr, "[GIMBAL]: found port...\n"));
-#ifdef USE_HEADTRACKER
+#if defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL)
         gimbalPort = openSerialPort(portConfig->identifier, FUNCTION_GIMBAL, singleUart ? gimbalSerialHeadTrackerReceive : NULL, singleUart ? &headTrackerState :  NULL,
                 baudRates[portConfig->peripheral_baudrateIndex], MODE_RXTX, SERIAL_NOT_INVERTED);
 #else
@@ -278,6 +281,8 @@ int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
 }
 
 #ifndef GIMBAL_UNIT_TEST
+
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
 static void resetState(gimbalSerialHtrkState_t *state)
 {
     state->state = WAITING_HDR1;
@@ -296,7 +301,6 @@ static bool checkCrc(gimbalHtkAttitudePkt_t *attitude)
     return (attitude->crch == ((crc >> 8) & 0xFF)) &&
            (attitude->crcl == (crc & 0xFF));
 }
-
 
 void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
 {
@@ -352,7 +356,6 @@ void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
     }
 }
 
-#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
 
 bool gimbalSerialHeadTrackerDetect(void)
 {
@@ -407,6 +410,14 @@ headTrackerDevType_e headtrackerSerialGetDeviceType(const headTrackerDevice_t *h
 {
     UNUSED(headTrackerDevice);
     return HEADTRACKER_SERIAL;
+}
+
+#else
+
+void gimbalSerialHeadTrackerReceive(uint16_t c, void *data)
+{
+    UNUSED(c);
+    UNUSED(data);
 }
 
 #endif
