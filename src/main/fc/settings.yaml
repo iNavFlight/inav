@@ -83,7 +83,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", "ADAPTIVE_FILTER"]
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", "ADAPTIVE_FILTER", "HEADTRACKER" ]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -194,6 +194,9 @@ tables:
   - name: gyro_filter_mode
     values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
+  - name: headtracker_dev_type
+    values: ["NONE", "SERIAL", "MSP"]
+    enum: headTrackerDevType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -4198,3 +4201,74 @@ groups:
         field: maxTailwind
         min: 0
         max: 3000
+  - name: PG_GIMBAL_CONFIG
+    type: gimbalConfig_t
+    headers: ["drivers/gimbal_common.h"]
+    condition: USE_SERIAL_GIMBAL
+    members:
+      - name: gimbal_pan_channel
+        description: "Gimbal pan rc channel index. 0 is no channel."
+        default_value: 0
+        field: panChannel
+        min: 0
+        max: 32
+      - name: gimbal_roll_channel
+        description: "Gimbal roll rc channel index. 0 is no channel."
+        default_value: 0
+        field: rollChannel
+        min: 0
+        max: 32
+      - name: gimbal_tilt_channel
+        description: "Gimbal tilt rc channel index. 0 is no channel."
+        default_value: 0
+        field: tiltChannel
+        min: 0
+        max: 32
+      - name: gimbal_sensitivity
+        description: "Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react."
+        default_value: 0
+        field: sensitivity
+        min: -16
+        max: 15
+  - name: PG_GIMBAL_SERIAL_CONFIG
+    type: gimbalSerialConfig_t
+    headers: ["io/gimbal_serial.h"]
+    condition: USE_SERIAL_GIMBAL
+    members:
+    - name: gimbal_serial_single_uart
+      description: "Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal."
+      type: bool
+      default_value: OFF
+      field: singleUart
+  - name: PG_HEADTRACKER_CONFIG
+    type: headTrackerConfig_t
+    headers: ["drivers/headtracker_common.h"]
+    condition: USE_HEADTRACKER
+    members:
+    - name: headtracker_type
+      description: "Type of headtrackr dervice"
+      default_value: "NONE"
+      field: devType
+      type: uint8_t
+      table: headtracker_dev_type
+    - name: headtracker_pan_ratio
+      description: "Head pan movement vs camera movement ratio"
+      type: float
+      default_value: 1
+      field: pan_ratio
+      min: 0
+      max: 5
+    - name: headtracker_tilt_ratio
+      description: "Head tilt movement vs camera movement ratio"
+      type: float
+      default_value: 1
+      field: tilt_ratio
+      min: 0
+      max: 5
+    - name: headtracker_roll_ratio
+      description: "Head roll movement vs camera movement ratio"
+      type: float
+      default_value: 1
+      field: roll_ratio
+      min: 0
+      max: 5

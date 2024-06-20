@@ -1462,6 +1462,56 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
+### gimbal_pan_channel
+
+Gimbal pan rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_roll_channel
+
+Gimbal roll rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_sensitivity
+
+Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -16 | 15 |
+
+---
+
+### gimbal_serial_single_uart
+
+Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### gimbal_tilt_channel
+
+Gimbal tilt rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
 ### gps_auto_baud
 
 Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
@@ -1769,6 +1819,46 @@ This setting limits yaw rotation rate that HEADING_HOLD controller can request f
 | Default | Min | Max |
 | --- | --- | --- |
 | 90 | HEADING_HOLD_RATE_LIMIT_MIN | HEADING_HOLD_RATE_LIMIT_MAX |
+
+---
+
+### headtracker_pan_ratio
+
+Head pan movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_roll_ratio
+
+Head roll movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_tilt_ratio
+
+Head tilt movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_type
+
+Type of headtrackr dervice
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NONE |  |  |
 
 ---
 

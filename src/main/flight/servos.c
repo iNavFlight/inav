@@ -38,6 +38,8 @@
 #include "drivers/pwm_output.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -346,6 +348,23 @@ void servoMixer(float dT)
     input[INPUT_RC_CH15]     = GET_RX_CHANNEL_INPUT(AUX11);
     input[INPUT_RC_CH16]     = GET_RX_CHANNEL_INPUT(AUX12);
 #undef GET_RX_CHANNEL_INPUT
+
+#ifdef USE_HEADTRACKER
+    headTrackerDevice_t *dev = headTrackerCommonDevice();
+    if(dev && headTrackerCommonIsValid(dev) && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
+        input[INPUT_HEADTRACKER_PAN] = headTrackerCommonGetPanPWM(dev) - PWM_RANGE_MIDDLE;
+        input[INPUT_HEADTRACKER_TILT] = headTrackerCommonGetTiltPWM(dev) - PWM_RANGE_MIDDLE;
+        input[INPUT_HEADTRACKER_ROLL] = headTrackerCommonGetRollPWM(dev) - PWM_RANGE_MIDDLE;
+    } else {
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
+    }
+#else
+        input[INPUT_HEADTRACKER_PAN] = 0;
+        input[INPUT_HEADTRACKER_TILT] = 0;
+        input[INPUT_HEADTRACKER_ROLL] = 0;
+#endif
 
 #ifdef USE_SIMULATOR
 	simulatorData.input[INPUT_STABILIZED_ROLL] = input[INPUT_STABILIZED_ROLL];
