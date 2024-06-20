@@ -1858,7 +1858,7 @@ Type of headtrackr dervice
 
 | Default | Min | Max |
 | --- | --- | --- |
-| SERIAL |  |  |
+| NONE |  |  |
 
 ---
 

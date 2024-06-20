@@ -4247,7 +4247,7 @@ groups:
     members:
     - name: headtracker_type
       description: "Type of headtrackr dervice"
-      default_value: "SERIAL"
+      default_value: "NONE"
       field: devType
       type: uint8_t
       table: headtracker_dev_type
