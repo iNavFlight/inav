@@ -16,6 +16,7 @@
  */
 
 #include <platform.h>
+#include <stdio.h>
 
 #if (defined(USE_HEADTRACKER_MSP) && defined(USE_HEADTRACKER))
 
@@ -43,12 +44,12 @@ typedef struct headTrackerVTable_s {
 
 static headTrackerVTable_t headTrackerMspVTable = {
     .process = NULL,
-    .getDeviceType = NULL,
+    .getDeviceType = heatTrackerMspGetDeviceType,
     .isReady = NULL,
-    .isValid = headTrackerCommonIsValid,
-    .getPanPWM = headTrackerCommonGetPanPWM,
-    .getTiltPWM = headTrackerCommonGetTiltPWM,
-    .getRollPWM = headTrackerCommonGetRollPWM,
+    .isValid = NULL,
+    //.getPanPWM = headTrackerCommonGetPanPWM,
+    //.getTiltPWM = headTrackerCommonGetTiltPWM,
+    //.getRollPWM = headTrackerCommonGetRollPWM,
 };
 
 static headTrackerDevice_t headTrackerMspDevice = {
@@ -69,6 +70,7 @@ void mspHeadTrackerInit(void)
 void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
 {
     if(dataSize != sizeof(headtrackerMspMessage_t)) {
+        SD(fprintf(stderr, "[headTracker]: invalid data size %d\n", dataSize));
         return;
     }
 
@@ -79,7 +81,15 @@ void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
     headTrackerMspDevice.roll = constrain((status->roll * headTrackerConfig()->roll_ratio) + 0.5f, -2048, 2047);
     headTrackerMspDevice.expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
 
+    SD(fprintf(stderr, "[headTracker]: pan: %d tilt: %d roll: %d\n", status->pan, status->tilt, status->roll));
+    SD(fprintf(stderr, "[headTracker]: scaled pan: %d tilt: %d roll: %d\n", headTrackerMspDevice.pan, headTrackerMspDevice.tilt, headTrackerMspDevice.roll));
+
     UNUSED(status);
+}
+
+headTrackerDevType_e heatTrackerMspGetDeviceType(const headTrackerDevice_t *headTrackerDevice) {
+    UNUSED(headTrackerDevice);
+    return HEADTRACKER_MSP;
 }
 
 #endif

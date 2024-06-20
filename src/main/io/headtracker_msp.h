@@ -39,4 +39,6 @@ void mspHeadTrackerInit(void);
 
 void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize);
 
+headTrackerDevType_e heatTrackerMspGetDeviceType(const headTrackerDevice_t *headTrackerDevice);
+
 #endif

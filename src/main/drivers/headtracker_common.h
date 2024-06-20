@@ -65,6 +65,9 @@ typedef struct headTrackerVTable_s {
     int (*getPanPWM)(const headTrackerDevice_t *headTrackerDevice);
     int (*getTiltPWM)(const headTrackerDevice_t *headTrackerDevice);
     int (*getRollPWM)(const headTrackerDevice_t *headTrackerDevice);
+    int (*getPan)(const headTrackerDevice_t *headTrackerDevice);
+    int (*getTilt)(const headTrackerDevice_t *headTrackerDevice);
+    int (*getRoll)(const headTrackerDevice_t *headTrackerDevice);
 } headTrackerVTable_t;
 
 
@@ -86,9 +89,16 @@ void headTrackerCommonProcess(headTrackerDevice_t *headTrackerDevice, timeUs_t c
 headTrackerDevType_e headTrackerCommonGetDeviceType(const headTrackerDevice_t *headTrackerDevice);
 bool headTrackerCommonIsReady(const headTrackerDevice_t *headtrackerDevice);
 bool headTrackerCommonIsValid(const headTrackerDevice_t *headtrackerDevice);
+
+// Scaled value, constrained to PWM_RANGE_MIN~PWM_RANGE_MAX
 int headTrackerCommonGetPanPWM(const headTrackerDevice_t *headTrackerDevice);
 int headTrackerCommonGetTiltPWM(const headTrackerDevice_t *headTrackerDevice);
 int headTrackerCommonGetRollPWM(const headTrackerDevice_t *headTrackerDevice);
+
+// Scaled value, constrained to -2048~2047
+int headTrackerCommonGetPan(const headTrackerDevice_t *headTrackerDevice);
+int headTrackerCommonGetTilt(const headTrackerDevice_t *headTrackerDevice);
+int headTrackerCommonGetRoll(const headTrackerDevice_t *headTrackerDevice);
 
 void taskUpdateHeadTracker(timeUs_t currentTimeUs);
 

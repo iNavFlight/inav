@@ -83,11 +83,11 @@ static gimbalDevice_t serialGimbalDevice = {
 static headTrackerVTable_t headTrackerVTable = {
     .process = headtrackerSerialProcess,
     .getDeviceType = headtrackerSerialGetDeviceType,
-    .isReady = headTrackerSerialIsReady,
+    //.isReady = headTrackerSerialIsReady,
     .isValid = headTrackerSerialIsValid,
-    .getPanPWM = headTrackerSerialGetPanPWM,
-    .getTiltPWM = headTrackerSerialGetTiltPWM,
-    .getRollPWM = headTrackerSerialGetRollPWM,
+    //.getPanPWM = headTrackerSerialGetPanPWM,
+    //.getTiltPWM = headTrackerSerialGetTiltPWM,
+    //.getRollPWM = headTrackerSerialGetRollPWM,
 };
 
 
@@ -229,11 +229,13 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
         }
     }
 
+#ifdef USE_HEADTRACKER
     if(IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
-        if (gimbalCommonHtrkIsEnabled() && (micros() < headTrackerDevice.expires)) {
-            attitude.pan = headTrackerDevice.pan;
-            attitude.tilt = headTrackerDevice.tilt;
-            attitude.roll = headTrackerDevice.roll;
+        headTrackerDevice_t *dev = headTrackerCommonDevice();
+        if (gimbalCommonHtrkIsEnabled() && dev && headTrackerCommonIsValid(dev)) {
+            attitude.pan = headTrackerCommonGetPan(dev);
+            attitude.tilt = headTrackerCommonGetTilt(dev);
+            attitude.roll = headTrackerCommonGetRoll(dev);
             DEBUG_SET(DEBUG_HEADTRACKING, 4, 1);
         } else {
             attitude.pan = 0;
@@ -242,6 +244,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
             DEBUG_SET(DEBUG_HEADTRACKING, 4, -1);
         }
     } else {
+#else
+    {
+#endif
         DEBUG_SET(DEBUG_HEADTRACKING, 4, 0);
         // Radio endpoints may need to be adjusted, as it seems ot go a bit
         // bananas at the extremes

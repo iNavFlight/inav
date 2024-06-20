@@ -90,31 +90,63 @@ bool headTrackerCommonIsReady(const headTrackerDevice_t *headTrackerDevice)
     return false;
 }
 
+int headTrackerCommonGetPan(const headTrackerDevice_t *headTrackerDevice)
+{
+    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getPan) {
+        return headTrackerDevice->vTable->getPan(headTrackerDevice);
+    }
+
+    return constrain(headTrackerDevice->pan * headTrackerConfig()->pan_ratio, -2048, 2047);
+}
+
+int headTrackerCommonGetTilt(const headTrackerDevice_t *headTrackerDevice)
+{
+    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getTilt) {
+        return headTrackerDevice->vTable->getTilt(headTrackerDevice);
+    }
+
+    return constrain(headTrackerDevice->tilt * headTrackerConfig()->tilt_ratio, -2048, 2047);
+}
+
+int headTrackerCommonGetRoll(const headTrackerDevice_t *headTrackerDevice)
+{
+    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getRoll) {
+        return headTrackerDevice->vTable->getRollPWM(headTrackerDevice);
+    }
+
+    return constrain(headTrackerDevice->roll * headTrackerConfig()->roll_ratio, -2048, 2047);
+}
+
+int headTracker2PWM(int value)
+{
+    return constrain(scaleRange(value, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX), PWM_RANGE_MIN, PWM_RANGE_MAX);
+}
+
 int headTrackerCommonGetPanPWM(const headTrackerDevice_t *headTrackerDevice)
 {
     if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getPanPWM) {
         return headTrackerDevice->vTable->getPanPWM(headTrackerDevice);
     }
 
-    return constrain(headTrackerDevice->pan, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    return headTracker2PWM(headTrackerCommonGetPan(headTrackerDevice));
 }
 
 int headTrackerCommonGetTiltPWM(const headTrackerDevice_t *headTrackerDevice)
 {
-    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getPanPWM) {
+    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getTiltPWM) {
         return headTrackerDevice->vTable->getTiltPWM(headTrackerDevice);
     }
 
-    return constrain(headTrackerDevice->tilt, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    return headTracker2PWM(headTrackerCommonGetTilt(headTrackerDevice));
 }
 
 int headTrackerCommonGetRollPWM(const headTrackerDevice_t *headTrackerDevice)
 {
-    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getPanPWM) {
-        return headTrackerDevice->vTable->getTiltPWM(headTrackerDevice);
+    if(headTrackerDevice && headTrackerDevice->vTable && headTrackerDevice->vTable->getRollPWM) {
+        return headTrackerDevice->vTable->getRollPWM(headTrackerDevice);
     }
 
-    return constrain(headTrackerDevice->roll, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    return headTracker2PWM(headTrackerCommonGetRoll(headTrackerDevice));
 }
 
 
