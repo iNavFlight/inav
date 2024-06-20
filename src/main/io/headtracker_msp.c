@@ -47,9 +47,6 @@ static headTrackerVTable_t headTrackerMspVTable = {
     .getDeviceType = heatTrackerMspGetDeviceType,
     .isReady = NULL,
     .isValid = NULL,
-    //.getPanPWM = headTrackerCommonGetPanPWM,
-    //.getTiltPWM = headTrackerCommonGetTiltPWM,
-    //.getRollPWM = headTrackerCommonGetRollPWM,
 };
 
 static headTrackerDevice_t headTrackerMspDevice = {

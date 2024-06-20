@@ -83,11 +83,6 @@ static gimbalDevice_t serialGimbalDevice = {
 static headTrackerVTable_t headTrackerVTable = {
     .process = headtrackerSerialProcess,
     .getDeviceType = headtrackerSerialGetDeviceType,
-    //.isReady = headTrackerSerialIsReady,
-    //.isValid = headTrackerSerialIsValid,
-    //.getPanPWM = headTrackerSerialGetPanPWM,
-    //.getTiltPWM = headTrackerSerialGetTiltPWM,
-    //.getRollPWM = headTrackerSerialGetRollPWM,
 };
 
 
@@ -413,51 +408,6 @@ headTrackerDevType_e headtrackerSerialGetDeviceType(const headTrackerDevice_t *h
     UNUSED(headTrackerDevice);
     return HEADTRACKER_SERIAL;
 }
-
-/*
-bool headTrackerSerialIsReady(const headTrackerDevice_t *headTrackerDevice)
-{
-    UNUSED(headTrackerDevice);
-
-    if(headTrackerPort || (gimbalSerialConfig()->singleUart && gimbalPort)) {
-        return  headTrackerCommonIsReady(headTrackerDevice);
-    }
-
-    return false;
-}
-
-bool headTrackerSerialIsValid(const headTrackerDevice_t *headTrackerDevice)
-{
-    return micros() < headTrackerDevice->expires;
-}
-
-int headTrackerSerialGetPanPWM(const headTrackerDevice_t *headTrackerDevice)
-{
-    if(micros() < headTrackerDevice->expires) {
-        return scaleRange(headTrackerDevice->pan, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
-    }
-
-    return PWM_RANGE_MIDDLE;
-}
-
-int headTrackerSerialGetTiltPWM(const headTrackerDevice_t *headTrackerDevice)
-{
-    if(micros() < headTrackerDevice->expires) {
-        return scaleRange(headTrackerDevice->tilt, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
-    }
-
-    return PWM_RANGE_MIDDLE;
-}
-
-int headTrackerSerialGetRollPWM(const headTrackerDevice_t *headTrackerDevice)
-{
-    if(micros() < headTrackerDevice->expires) {
-        return scaleRange(headTrackerDevice->roll, -2048, 2047, PWM_RANGE_MIN, PWM_RANGE_MAX);
-    }
-
-    return PWM_RANGE_MIDDLE;
-}
-*/
 
 #endif
 
