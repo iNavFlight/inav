@@ -73,9 +73,9 @@ void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
 
     headtrackerMspMessage_t *status = (headtrackerMspMessage_t *)data;
 
-    headTrackerMspDevice.pan = constrain((status->pan * headTrackerConfig()->pan_ratio) + 0.5f, -2048, 2047);
-    headTrackerMspDevice.tilt = constrain((status->tilt * headTrackerConfig()->tilt_ratio) + 0.5f, -2048, 2047);
-    headTrackerMspDevice.roll = constrain((status->roll * headTrackerConfig()->roll_ratio) + 0.5f, -2048, 2047);
+    headTrackerMspDevice.pan = constrain(status->pan, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
+    headTrackerMspDevice.tilt = constrain(status->tilt, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
+    headTrackerMspDevice.roll = constrain(status->roll, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
     headTrackerMspDevice.expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
 
     SD(fprintf(stderr, "[headTracker]: pan: %d tilt: %d roll: %d\n", status->pan, status->tilt, status->roll));
