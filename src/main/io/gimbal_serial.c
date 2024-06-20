@@ -84,7 +84,7 @@ static headTrackerVTable_t headTrackerVTable = {
     .process = headtrackerSerialProcess,
     .getDeviceType = headtrackerSerialGetDeviceType,
     //.isReady = headTrackerSerialIsReady,
-    .isValid = headTrackerSerialIsValid,
+    //.isValid = headTrackerSerialIsValid,
     //.getPanPWM = headTrackerSerialGetPanPWM,
     //.getTiltPWM = headTrackerSerialGetTiltPWM,
     //.getRollPWM = headTrackerSerialGetRollPWM,
@@ -414,12 +414,13 @@ headTrackerDevType_e headtrackerSerialGetDeviceType(const headTrackerDevice_t *h
     return HEADTRACKER_SERIAL;
 }
 
+/*
 bool headTrackerSerialIsReady(const headTrackerDevice_t *headTrackerDevice)
 {
     UNUSED(headTrackerDevice);
 
     if(headTrackerPort || (gimbalSerialConfig()->singleUart && gimbalPort)) {
-        return  headTrackerSerialIsValid(headTrackerDevice);
+        return  headTrackerCommonIsReady(headTrackerDevice);
     }
 
     return false;
@@ -456,6 +457,7 @@ int headTrackerSerialGetRollPWM(const headTrackerDevice_t *headTrackerDevice)
 
     return PWM_RANGE_MIDDLE;
 }
+*/
 
 #endif
 
