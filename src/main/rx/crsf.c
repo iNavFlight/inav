@@ -331,4 +331,11 @@ bool crsfRxIsActive(void)
 {
     return serialPort != NULL;
 }
+
+
+void crsfBind(void)
+{
+
+}
+
 #endif

@@ -104,6 +104,7 @@ bool cliMode = false;
 #include "rx/rx.h"
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
+#include "rx/crsf.h"
 
 #include "scheduler/scheduler.h"
 
@@ -3223,6 +3224,12 @@ void cliRxBind(char *cmdline){
         case SERIALRX_SRXL2:
             srxl2Bind();
             cliPrint("Binding SRXL2 receiver...");
+            break;
+#endif
+#if defined(USE_SERIALRX_CRSF)
+        case SERIALRX_CRSF:
+            crsfBind();
+            cliPrint("Binding CRSF receiver...");
             break;
 #endif
         }
