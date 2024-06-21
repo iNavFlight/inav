@@ -3772,6 +3772,16 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 
 ---
 
+### nav_mc_inverted_crash_detection
+
+Setting a value > 0 enables inverted crash detection for multirotors. It will auto disarm in situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or for some other reason. When enabled this setting defines the additional number of seconds before disarm beyond a minimum fixed time delay of 3s. Requires a barometer to work.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 15 |
+
+---
+
 ### nav_mc_manual_climb_rate
 
 Maximum climb/descent rate firmware is allowed when processing pilot input for ALTHOLD control mode [cm/s]

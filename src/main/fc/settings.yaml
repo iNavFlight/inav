@@ -2470,6 +2470,12 @@ groups:
         default_value: OFF
         field: general.flags.landing_bump_detection
         type: bool
+      - name: nav_mc_inverted_crash_detection
+        description: "Setting a value > 0 enables inverted crash detection for multirotors. It will auto disarm in situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or for some other reason. When enabled this setting defines the additional number of seconds before disarm beyond a minimum fixed time delay of 3s. Requires a barometer to work."
+        default_value: 0
+        field: mc.inverted_crash_detection
+        min: 0
+        max: 15
       - name: nav_mc_althold_throttle
         description: "If set to STICK the FC remembers the throttle stick position when enabling ALTHOLD and treats it as the neutral midpoint for holding altitude. If set to MID_STICK or HOVER the neutral midpoint is set to the mid stick position or the hover throttle position respectively."
         default_value: "STICK"
