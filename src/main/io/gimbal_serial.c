@@ -193,9 +193,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
     const gimbalConfig_t *cfg = gimbalConfig();
 
-    int pan = PWM_RANGE_MIDDLE + cfg->panTrim;
-    int tilt = PWM_RANGE_MIDDLE + cfg->tiltTrim;
-    int roll = PWM_RANGE_MIDDLE + cfg->rollTrim;
+    int panPWM = PWM_RANGE_MIDDLE + cfg->panTrim;
+    int tiltPWM = PWM_RANGE_MIDDLE + cfg->tiltTrim;
+    int rollPWM = PWM_RANGE_MIDDLE + cfg->rollTrim;
 
     if (IS_RC_MODE_ACTIVE(BOXGIMBALTLOCK)) {
         attitude.mode |= GIMBAL_MODE_TILT_LOCK;
@@ -212,18 +212,18 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     
     if (rxAreFlightChannelsValid() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         if (cfg->panChannel > 0) {
-            pan = rxGetChannelValue(cfg->panChannel - 1);
-            pan = constrain(pan, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            panPWM = rxGetChannelValue(cfg->panChannel - 1);
+            panPWM = constrain(panPWM, PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
 
         if (cfg->tiltChannel > 0) {
-            tilt = rxGetChannelValue(cfg->tiltChannel - 1);
-            tilt = constrain(tilt, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            tiltPWM = rxGetChannelValue(cfg->tiltChannel - 1);
+            tiltPWM = constrain(tiltPWM, PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
 
         if (cfg->rollChannel > 0) {
-            roll = rxGetChannelValue(cfg->rollChannel - 1);
-            roll = constrain(roll, PWM_RANGE_MIN, PWM_RANGE_MAX);
+            rollPWM = rxGetChannelValue(cfg->rollChannel - 1);
+            rollPWM = constrain(rollPWM, PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
     }
 
@@ -236,9 +236,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
             attitude.roll = headTrackerCommonGetRoll(dev);
             DEBUG_SET(DEBUG_HEADTRACKING, 4, 1);
         } else {
-            attitude.pan = 0;
-            attitude.tilt = 0;
-            attitude.roll = 0;
+            attitude.pan = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->panTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            attitude.tilt = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->tiltTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            attitude.roll = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->rollTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
             DEBUG_SET(DEBUG_HEADTRACKING, 4, -1);
         }
     } else {
@@ -248,9 +248,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
         DEBUG_SET(DEBUG_HEADTRACKING, 4, 0);
         // Radio endpoints may need to be adjusted, as it seems ot go a bit
         // bananas at the extremes
-        attitude.pan = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, pan);
-        attitude.tilt = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, tilt);
-        attitude.roll = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, roll);
+        attitude.pan = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, panPWM);
+        attitude.tilt = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, tiltPWM);
+        attitude.roll = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, rollPWM);
     }
 
     DEBUG_SET(DEBUG_HEADTRACKING, 5, attitude.pan);
@@ -276,7 +276,7 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
 {
     int16_t ret = 0;
-    ret = scaleRange(value, inputMin, inputMax, -2048, 2047);
+    ret = scaleRange(value, inputMin, inputMax, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
     return ret;
 }
 
