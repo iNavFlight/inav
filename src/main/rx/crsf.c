@@ -268,13 +268,12 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
         }
         else if(crsfFrame.frame.type == CRSF_FRAMETYPE_SUBSET_RC_CHANNELS_PACKED) {
             const uint8_t crc = crsfFrameCRC();
-            int payloadSize = CRSF_FRAME_RC_CHANNELS_SUBSET_11_PAYLOAD_SIZE;
             const crsfPayloadSubsetRcChannelsHeaderPacked_t* rcChannelsHeader = (crsfPayloadSubsetRcChannelsHeaderPacked_t*)(&crsfFrame.frame.payload);
-            const crsfPayloadSubsetRcChannels11Packed_t* rcChannels11 = (crsfPayloadSubsetRcChannels11Packed_t*)(&crsfFrame.frame.payload + sizeof(ctrsPayloadSubsetRcChannelsHeaderPacked_t));
-            const crsfPayloadSubsetRcChannels12Packed_t* rcChannels12 = (crsfPayloadSubsetRcChannels12Packed_t*)(&crsfFrame.frame.payload + sizeof(ctrsPayloadSubsetRcChannelsHeaderPacked_t));
-            const crsfPayloadSubsetRcChannels13Packed_t* rcChannels13 = (crsfPayloadSubsetRcChannels13Packed_t*)(&crsfFrame.frame.payload + sizeof(ctrsPayloadSubsetRcChannelsHeaderPacked_t));
+            const crsfPayloadSubsetRcChannels11Packed_t* rcChannels11 = (crsfPayloadSubsetRcChannels11Packed_t*)(&crsfFrame.frame.payload + sizeof(crsfPayloadSubsetRcChannelsHeaderPacked_t));
+            const crsfPayloadSubsetRcChannels12Packed_t* rcChannels12 = (crsfPayloadSubsetRcChannels12Packed_t*)(&crsfFrame.frame.payload + sizeof(crsfPayloadSubsetRcChannelsHeaderPacked_t));
+            const crsfPayloadSubsetRcChannels13Packed_t* rcChannels13 = (crsfPayloadSubsetRcChannels13Packed_t*)(&crsfFrame.frame.payload + sizeof(crsfPayloadSubsetRcChannelsHeaderPacked_t));
 
-            payloadSize = crsfFrame.frame.frameLength - CRSF_FRAME_LENGTH_TYPE_CRC;
+            int payloadSize = crsfFrame.frame.frameLength - CRSF_FRAME_LENGTH_TYPE_CRC; // TYPE_CRC or _CRC?
             if (crc != crsfFrame.frame.payload[payloadSize]) {
                 return RX_FRAME_PENDING;
             }
@@ -307,7 +306,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                     return RX_FRAME_PENDING;
             }
 
-            if(crsfFrame.frame.frameLength != payloadSize + CRSF_FRAME_LENGTH_TYPE_CRC) {
+            if(crsfFrame.frame.frameLength != payloadSize + CRSF_FRAME_LENGTH_TYPE_CRC) { // TYPE_CRC or _CRC?
                 return RX_FRAME_PENDING;
             }
 
