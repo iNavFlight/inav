@@ -313,7 +313,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             int firstChannel = rcChannelsHeader->firstChannel;
             switch(rcChannelsHeader->resolution) {
                 case CRSF_11_BIT:
-                    for (int i = 0; i < channelCount;) {
+                    for (int i = 0; i < channelCount; rcChannels11++) {
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
                             crsfChannelData[firstChannel + i++] = rcChannels11->chan0;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
@@ -333,7 +333,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                     }
                     return RX_FRAME_COMPLETE;
                 case CRSF_12_BIT:
-                    for (int i = 0; i < channelCount;) {
+                    for (int i = 0; i < channelCount; rcChannels12++) {
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
                             crsfChannelData[firstChannel + i++] = rcChannels12->chan0 >> 1; // Drop 1 bit to match 11 bit range
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
@@ -342,7 +342,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
                     return RX_FRAME_COMPLETE;
                 case CRSF_13_BIT:
-                    for (int i = 0; i < channelCount;) {
+                    for (int i = 0; i < channelCount; rcChannels13++) {
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
                             crsfChannelData[firstChannel + i++] = rcChannels13->chan0 >> 2; // Drop 2 bits to match 11 bit range
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
