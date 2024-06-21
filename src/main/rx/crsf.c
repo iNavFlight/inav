@@ -278,7 +278,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                 return RX_FRAME_PENDING;
             }
 
-            int channelCount = 16;
+            int channelCount = 0;
 
             switch(rcChannelsHeader->resolution) {
                 case CRSF_11_BIT:
@@ -306,7 +306,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                     return RX_FRAME_PENDING;
             }
 
-            if(crsfFrame.frame.frameLength != payloadSize + CRSF_FRAME_LENGTH_TYPE_CRC) { // TYPE_CRC or _CRC?
+            if(crsfFrame.frame.frameLength != payloadSize + CRSF_FRAME_LENGTH_TYPE_CRC || channelCount == 0) { // TYPE_CRC or _CRC?
                 return RX_FRAME_PENDING;
             }
 
