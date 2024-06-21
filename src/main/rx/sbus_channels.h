@@ -22,6 +22,8 @@
 
 #define SBUS_MAX_CHANNEL 18
 
+#define SBUS_FLAG_CHANNEL_17        (1 << 0)
+#define SBUS_FLAG_CHANNEL_18        (1 << 1)
 #define SBUS_FLAG_SIGNAL_LOSS       (1 << 2)
 #define SBUS_FLAG_FAILSAFE_ACTIVE   (1 << 3)
 
