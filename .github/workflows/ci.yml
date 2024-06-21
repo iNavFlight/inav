@@ -5,13 +5,13 @@ name: Build firmware
 on: 
   pull_request:
     paths:
-      - src/**
-      - .github/**
-      - cmake/**
-      - lib/**
-      - docs/Settings.md
-      - CMakeLists.txt
-      - *.sh
+      - 'src/**'
+      - '.github/**'
+      - 'cmake/**'
+      - 'lib/**'
+      - 'docs/Settings.md'
+      - 'CMakeLists.txt'
+      - '*.sh'
 
 jobs:
   build:
