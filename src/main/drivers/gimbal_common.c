@@ -31,6 +31,7 @@
 #include "fc/cli.h"
 
 #include "drivers/gimbal_common.h"
+#include "rx/rx.h"
 
 #include "settings_generated.h"
 
@@ -123,6 +124,16 @@ bool gimbalCommonHtrkIsEnabled(void)
     }
 
     return false;
+}
+
+
+int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice)
+{
+    if (gimbalDevice && gimbalDevice->vTable->getGimbalPanPWM) {
+        return gimbalDevice->vTable->getGimbalPanPWM(gimbalDevice);
+    }
+
+    return gimbalDevice ? gimbalDevice->currentPanPWM : PWM_RANGE_MIDDLE;
 }
 
 #endif

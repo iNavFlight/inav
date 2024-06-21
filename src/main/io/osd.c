@@ -62,6 +62,7 @@
 #include "drivers/osd_symbols.h"
 #include "drivers/time.h"
 #include "drivers/vtx_common.h"
+#include "drivers/gimbal_common.h"
 
 #include "io/adsb.h"
 #include "io/flashfs.h"
@@ -1203,8 +1204,15 @@ int16_t osdGetHeading(void)
 int16_t osdGetPanServoOffset(void)
 {
     int8_t servoIndex = osdConfig()->pan_servo_index;
-    int16_t servoPosition = servo[servoIndex];
     int16_t servoMiddle = servoParams(servoIndex)->middle;
+    int16_t servoPosition = servo[servoIndex];
+
+    gimbalDevice_t *dev = gimbalCommonDevice();
+    if (dev && gimbalCommonIsReady(dev)) {
+        servoPosition = gimbalCommonGetPanPwm(dev);
+        servoMiddle = PWM_RANGE_MIDDLE;
+    }
+
     return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
 }
 

@@ -78,7 +78,8 @@ gimbalVTable_t gimbalSerialVTable = {
 };
 
 static gimbalDevice_t serialGimbalDevice = {
-    .vTable = &gimbalSerialVTable
+    .vTable = &gimbalSerialVTable,
+    .currentPanPWM = PWM_RANGE_MIDDLE
 };
 
 #if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
@@ -234,6 +235,7 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
             attitude.pan = headTrackerCommonGetPan(dev);
             attitude.tilt = headTrackerCommonGetTilt(dev);
             attitude.roll = headTrackerCommonGetRoll(dev);
+
             DEBUG_SET(DEBUG_HEADTRACKING, 4, 1);
         } else {
             attitude.pan = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->panTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
@@ -267,11 +269,21 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     attitude.crch = (crc16 >> 8) & 0xFF;
     attitude.crcl = crc16 & 0xFF;
 
+    serialGimbalDevice.currentPanPWM = gimbal2pwm(attitude.pan);
+
     serialBeginWrite(gimbalPort);
     serialWriteBuf(gimbalPort, (uint8_t *)&attitude, sizeof(gimbalHtkAttitudePkt_t));
     serialEndWrite(gimbalPort);
 }
 #endif
+
+int16_t gimbal2pwm(int16_t value)
+{
+    int16_t ret = 0;
+    ret = scaleRange(value, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX, PWM_RANGE_MIN, PWM_RANGE_MAX);
+    return ret;
+}
+
 
 int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value)
 {
