@@ -336,30 +336,30 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
                 case CRSF_12_BIT:
                     for (int i = 0; i < channelCount;) {
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels12->chan0;
+                            crsfChannelData[firstChannel + i++] = rcChannels12->chan0 >> 1; // Drop 1 bit to match 11 bit range
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels12->chan1;
+                            crsfChannelData[firstChannel + i++] = rcChannels12->chan1 >> 1;
                     }
 
                     return RX_FRAME_COMPLETE;
                 case CRSF_13_BIT:
                     for (int i = 0; i < channelCount;) {
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan0;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan0 >> 2; // Drop 2 bits to match 11 bit range
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan1;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan1 >> 2;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan2;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan2 >> 2;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan3;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan3 >> 2;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan4;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan4 >> 2;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan5;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan5 >> 2;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan6;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan6 >> 2;
                         if(firstChannel + i < CRSF_MAX_CHANNEL)
-                            crsfChannelData[firstChannel + i++] = rcChannels13->chan7;
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan7 >> 2;
                     }
                     return RX_FRAME_COMPLETE;
                 default:
@@ -415,7 +415,8 @@ STATIC_UNIT_TESTED uint16_t crsfReadRawRC(const rxRuntimeConfig_t *rxRuntimeConf
      * scale factor = (2012-988) / (1811-172) = 0.62477120195241
      * offset = 988 - 172 * 0.62477120195241 = 880.53935326418548
      */
-    // TODO: handle 12 and 13 bit resolution
+
+    // TODO: different scaling for different resolutions. Currently dropping everything down to 11bits
     return (crsfChannelData[chan] * 1024 / 1639) + 881;
 }
 
