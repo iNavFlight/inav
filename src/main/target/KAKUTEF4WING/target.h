@@ -40,24 +40,21 @@
 #define ICM42605_EXTI_PIN        PB12
 
 // *************** I2C ****************
-#define USE_I2C
-#define USE_I2C_DEVICE_1
-#define I2C1_SCL                PB8        
-#define I2C1_SDA                PB9       
+#define USE_I2C     
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10     
 #define I2C2_SDA                PB11      
 
-// ********** External MAG On I2C1******
+// ********** External MAG On I2C2******
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             BUS_I2C2
 #define USE_MAG_ALL
 
-// ********** External Devices On I2C1******
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define PITOT_I2C_BUS           BUS_I2C1
+// ********** External Devices On I2C2******
+#define TEMPERATURE_I2C_BUS     BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C2
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define RANGEFINDER_I2C_BUS     BUS_I2C2
 
 // ********** Internal BARO On I2C2*********
 #define USE_BARO
@@ -81,23 +78,23 @@
 // *************** USB VCP ********************
 #define USB_IO
 #define USE_VCP
-#define VBUS_SENSING_PIN        PA8
+#define VBUS_SENSING_PIN        PA10
 #define VBUS_SENSING_ENABLED
 
 // *************** UART ********************
 #define USE_UART_INVERTER
 //UART1
 #define USE_UART1
-#define UART1_RX_PIN            PA10
-#define UART1_TX_PIN            PA9
+#define UART1_RX_PIN            PB7
+#define UART1_TX_PIN            PB6
 
 //UART2
 #define USE_UART2
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
 
-//The 5V pads close to UART3 a are powered by both BEC and USB
-//We config UART3 to serialRX,  So Receiver is powered when USB Plug-IN.
+//The 4V5 pads close to UART3 are powered by both BEC and USB
+//Config UART3 to serialRX,  So Receiver is powered when USB Plug-IN.
 //UART3: SerialRX by Default
 #define USE_UART3
 #define UART3_RX_PIN            PC11
@@ -142,6 +139,8 @@
 
 // *************** Battery Voltage Sense***********
 #define USE_ADC
+#define ADC_INSTANCE                ADC1
+#define ADC1_DMA_STREAM             DMA2_Stream4
 #define ADC_CHANNEL_1_PIN           PC0
 #define ADC_CHANNEL_2_PIN           PC1
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
@@ -152,14 +151,14 @@
 // *************** LED_STRIP **********************
 #define USE_LED_STRIP
 #define WS2811_PIN                      PA1
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST4_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream4
-#define WS2811_DMA_CHANNEL              DMA_Channel_6
+#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST6_HANDLER
+#define WS2811_DMA_STREAM               DMA1_Stream6
+#define WS2811_DMA_CHANNEL              DMA_Channel_3
 
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PB7    // USER1
+#define PINIO1_PIN                  PB14    // USER1
 #define PINIO2_PIN                  PB15   // USER2
       
 #define DEFAULT_FEATURES     (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_GPS)
