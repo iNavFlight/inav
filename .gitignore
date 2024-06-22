@@ -40,4 +40,9 @@ make/local.mk
 launch.json
 .vscode/tasks.json
 .vscode/c_cpp_properties.json
+
 /cmake-build-debug/
+
+# Assitnow token and files for test script
+tokens.yaml
+*.ubx

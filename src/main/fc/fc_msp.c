@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
@@ -87,6 +88,7 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/opflow.h"
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
@@ -3287,6 +3289,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+    case MSP2_INAV_GPS_UBLOX_COMMAND:
+        if(dataSize < 8 || !isGpsUblox()) {
+            SD(fprintf(stderr, "[GPS] Not ublox!\n"));
+            return MSP_RESULT_ERROR;
+        }
+
+        SD(fprintf(stderr, "[GPS] Sending ubx command: %i!\n", dataSize));
+        gpsUbloxSendCommand(src->ptr, dataSize, 0);
+        break;
 
 #ifdef USE_EZ_TUNE
 
@@ -4134,6 +4145,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
+    SD(fprintf(stderr, "[MSP] CommandId: 0x%04x bytes: %i!\n", cmdMSP, sbufBytesRemaining(src)));
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
