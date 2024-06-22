@@ -216,8 +216,8 @@ def sendMspMessages(s, ubxMessages):
         if(len(msp) > 8):
             print ("%i/%i msp: %i ubx: %i" % (printed, len(ubxMessages), len(msp), len(cmd)))
             try:
-                #s.write(msp)
-                s.sendall(msp)
+                s.write(msp)
+                #s.sendall(msp)
             except serial.SerialException as err:
                 print (err)
                 print (cmd)
@@ -313,9 +313,9 @@ of.write(offline_req.content)
 of.close()
 
 print ("Connecting...")
-#s = serial.Serial(serial_port, 230400)
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('localhost', 5760))
+s = serial.Serial(serial_port, 230400)
+#s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#s.connect(('localhost', 5760))
 print ("Connected.")
 
 if not dry_run:
