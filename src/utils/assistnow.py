@@ -9,6 +9,9 @@
 import requests
 import yaml
 import sys
+import socket
+import selectors
+import types
 import serial
 import getopt
 import io
@@ -160,18 +163,28 @@ def crc8_dvb_s2( crc:int,  b:int) -> int:
 
 def ubloxToMsp(ubxCmd):
     ubloxLen = len(ubxCmd)
-    msp = bytearray(b'$X>\x00\x50\x20')
+    #msp = bytearray(b"$X<\x00d\x00\x00\x00\x8F")
+    crc = 0
+    msp = bytearray(b"$X<\x00\x50\x20")
+    crc = crc8_dvb_s2(crc, 0x00)
+    crc = crc8_dvb_s2(crc, 0x50)
+    crc = crc8_dvb_s2(crc, 0x20)
     msp.append(ubloxLen & 0xFF)
+    crc = crc8_dvb_s2(crc, ubloxLen & 0xFF)
     msp.append((ubloxLen >> 8) & 0xFF)
+    crc = crc8_dvb_s2(crc, (ubloxLen >> 8) & 0xFF)
+
+    if(len(msp) != 8):
+        print ("Wrong size")
 
     for i in range(ubloxLen):
         msp.append(ubxCmd[i])
+        crc = crc8_dvb_s2(crc, ubxCmd[i])
     
-    crc = 0
-    for i in range(ubloxLen + 5):
-        crc = crc8_dvb_s2(crc, int(msp[i + 3]))
-
     #print ("msp: %s" % (bytes(msp)))
+
+    msp.append(crc & 0xFF)
+    print ("CRC: %i" % (crc))
 
     return bytes(msp)
 
@@ -191,24 +204,26 @@ def sendUbxMessages(s, ubxMessages):
                 print (err)
                 print (cmd)
                 break
-            time.sleep(1.0)
+            #time.sleep(0.1)
 
 
 def sendMspMessages(s, ubxMessages):
     printed = 0
     for cmd in ubxMessages:
         msp = ubloxToMsp(cmd)
+        #msp = bytearray(b"$X<\x00d\x00\x00\x00\x8F")
         printed += 1
         if(len(msp) > 8):
             print ("%i/%i msp: %i ubx: %i" % (printed, len(ubxMessages), len(msp), len(cmd)))
             try:
-                s.write(msp)
+                #s.write(msp)
+                s.sendall(msp)
             except serial.SerialException as err:
                 print (err)
                 print (cmd)
                 print (msp)
                 break
-            time.sleep(1.0)
+            #time.sleep(1.0)
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], "s:t:pd", ["serial=", "tokens=", "passthrough", "dry-run"])
@@ -231,9 +246,9 @@ for o, a in opts:
         usage()
         sys.exit(2)
 
-if serial_port == None and not dry_run:
-    usage()
-    sys.exit(2)
+#if serial_port == None and not dry_run:
+#    usage()
+#    sys.exit(2)
 
 loadTokens(token_file)
 
@@ -297,7 +312,11 @@ of = open("aoff.ubx", "wb")
 of.write(offline_req.content)
 of.close()
 
-s = serial.Serial(serial_port, 230400)
+print ("Connecting...")
+#s = serial.Serial(serial_port, 230400)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(('localhost', 5760))
+print ("Connected.")
 
 if not dry_run:
     if not passthrough:
@@ -306,7 +325,7 @@ if not dry_run:
         print ("Online cmds...")
         sendMspMessages(s, online_cmds)
     else:
-        serial.write('#\r\n')
-        serial.write('gpspassthrough\r\n')
+        #serial.write('#\r\n')
+        #serial.write('gpspassthrough\r\n')
         sendUbxMessages(s, offline_cmds)
         sendUbxMessages(s, online_cmds)
