@@ -157,6 +157,8 @@ A shorter form is also supported to enable and disable a single function using `
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
 | UNUSED                | 24            | 16777216 |
 | MSP_DISPLAYPORT       | 25            | 33554432 |
+| GIMBAL_SERIAL         | 26            | 67108864 |
+| HEADTRACKER_SERIAL    | 27            | 134217728 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 
