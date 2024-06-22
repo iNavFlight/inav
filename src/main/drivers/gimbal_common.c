@@ -133,7 +133,7 @@ int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice)
         return gimbalDevice->vTable->getGimbalPanPWM(gimbalDevice);
     }
 
-    return gimbalDevice ? gimbalDevice->currentPanPWM : PWM_RANGE_MIDDLE;
+    return gimbalDevice ? gimbalDevice->currentPanPWM : PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
 }
 
 #endif

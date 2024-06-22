@@ -1210,7 +1210,7 @@ int16_t osdGetPanServoOffset(void)
     gimbalDevice_t *dev = gimbalCommonDevice();
     if (dev && gimbalCommonIsReady(dev)) {
         servoPosition = gimbalCommonGetPanPwm(dev);
-        servoMiddle = PWM_RANGE_MIDDLE;
+        servoMiddle = PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
     }
 
     return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);

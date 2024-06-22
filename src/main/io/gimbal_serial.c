@@ -213,17 +213,17 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
     
     if (rxAreFlightChannelsValid() && !IS_RC_MODE_ACTIVE(BOXGIMBALCENTER)) {
         if (cfg->panChannel > 0) {
-            panPWM = rxGetChannelValue(cfg->panChannel - 1);
+            panPWM = rxGetChannelValue(cfg->panChannel - 1) + cfg->panTrim;
             panPWM = constrain(panPWM, PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
 
         if (cfg->tiltChannel > 0) {
-            tiltPWM = rxGetChannelValue(cfg->tiltChannel - 1);
+            tiltPWM = rxGetChannelValue(cfg->tiltChannel - 1) + cfg->tiltTrim;
             tiltPWM = constrain(tiltPWM, PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
 
         if (cfg->rollChannel > 0) {
-            rollPWM = rxGetChannelValue(cfg->rollChannel - 1);
+            rollPWM = rxGetChannelValue(cfg->rollChannel - 1) + cfg->rollTrim;
             rollPWM = constrain(rollPWM, PWM_RANGE_MIN, PWM_RANGE_MAX);
         }
     }
