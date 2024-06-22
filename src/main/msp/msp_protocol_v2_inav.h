@@ -97,7 +97,6 @@
 #define MSP2_INAV_SET_FW_APPROACH               0x204B
 
 #define MSP2_INAV_GPS_UBLOX_COMMAND             0x2050
-#define MSP2_INAV_GPS_UBLOX_COMMAND_RESULT      0x2051
 
 #define MSP2_INAV_RATE_DYNAMICS                 0x2060
 #define MSP2_INAV_SET_RATE_DYNAMICS             0x2061

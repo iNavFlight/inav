@@ -214,17 +214,14 @@ static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
 
 bool gpsUbloxSendCommand(uint8_t *rawCommand, uint16_t commandLen, uint16_t timeout)
 {
+    UNUSED(timeout);
+
     serialWriteBuf(gpsState.gpsPort, rawCommand, commandLen);
 
     union send_buffer_t *sb = (union send_buffer_t *)(rawCommand);
 
     _ack_waiting_msg = sb->message.header.msg_id;
     _ack_state = UBX_ACK_WAITING;
-
-    UNUSED(timeout);
-    //if (timeout > 0) {
-    //    ptWait(_ack_state == UBX_ACK_GOT_ACK);
-    //}
 
     return true;
 }
