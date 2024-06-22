@@ -19,6 +19,10 @@
 
 #include "platform.h"
 
+#define MAX_HEADTRACKER_DATA_AGE_US HZ2US(25)
+#define HEADTRACKER_RANGE_MIN   -2048
+#define HEADTRACKER_RANGE_MAX   2047
+
 #ifdef USE_HEADTRACKER
 
 #include <stdint.h>
@@ -29,9 +33,6 @@
 
 #include "config/feature.h"
 
-#define MAX_HEADTRACKER_DATA_AGE_US HZ2US(25)
-#define HEADTRACKER_RANGE_MIN   -2048
-#define HEADTRACKER_RANGE_MAX   2047
 
 #ifdef __cplusplus
 extern "C" {
