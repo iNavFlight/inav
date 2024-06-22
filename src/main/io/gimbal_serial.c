@@ -60,6 +60,7 @@ static volatile uint8_t txBuffer[GIMBAL_SERIAL_BUFFER_SIZE];
 #if defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL)
 static gimbalSerialHtrkState_t headTrackerState = { 
     .payloadSize = 0,
+    .attitude = {},
     .state = WAITING_HDR1,
 };
 #endif
@@ -189,7 +190,10 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
     gimbalHtkAttitudePkt_t attitude = {
         .sync = {HTKATTITUDE_SYNC0, HTKATTITUDE_SYNC1},
-        .mode = GIMBAL_MODE_DEFAULT
+        .mode = GIMBAL_MODE_DEFAULT,
+        .pan = 0,
+        .tilt = 0,
+        .roll = 0
     };
 
     const gimbalConfig_t *cfg = gimbalConfig();
@@ -238,9 +242,9 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 
             DEBUG_SET(DEBUG_HEADTRACKING, 4, 1);
         } else {
-            attitude.pan = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->panTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
-            attitude.tilt = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->tiltTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
-            attitude.roll = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->rollTrim), PWM_RANGE_MIN, PWM_RANGE_MAX);
+            attitude.pan = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->panTrim), HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
+            attitude.tilt = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->tiltTrim), HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
+            attitude.roll = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->rollTrim), HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
             DEBUG_SET(DEBUG_HEADTRACKING, 4, -1);
         }
     } else {
