@@ -114,12 +114,26 @@ void processAirmode(void) {
     } else if (STATE(MULTIROTOR)) {
         processAirmodeMultirotor();
     }
-
 }
 
 bool isUsingNavigationModes(void)
 {
     return isUsingNAVModes;
+}
+
+bool isFwAutoModeActive(boxId_e mode)
+{
+    /* Sets activation priority of fixed wing auto tune/trim modes: Autotune -> Autotrim -> Autolevel */
+
+    if (mode == BOXAUTOTUNE) {
+        return IS_RC_MODE_ACTIVE(BOXAUTOTUNE);
+    } else if (mode == BOXAUTOTRIM) {
+        return IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !IS_RC_MODE_ACTIVE(BOXAUTOTUNE);
+    } else if (mode == BOXAUTOLEVEL) {
+        return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !IS_RC_MODE_ACTIVE(BOXAUTOTUNE) && !IS_RC_MODE_ACTIVE(BOXAUTOTRIM);
+    }
+
+    return false;
 }
 
 bool IS_RC_MODE_ACTIVE(boxId_e boxId)

@@ -84,6 +84,8 @@
 #define USE_RANGEFINDER_US42
 #define USE_RANGEFINDER_TOF10120_I2C
 #define USE_RANGEFINDER_TERARANGER_EVO_I2C
+#define USE_RANGEFINDER_USD1_V0
+#define USE_RANGEFINDER_NANORADAR
 
 // Allow default optic flow boards
 #define USE_OPFLOW
@@ -114,8 +116,6 @@
 #define USE_MSP_OSD
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
-
-#define NAV_AUTO_MAG_DECLINATION_PRECISE
 
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
@@ -190,6 +190,10 @@
 #define ADSB_LIMIT_CM                   6400000
 #endif
 
+#define USE_SERIAL_GIMBAL
+#define USE_HEADTRACKER
+#define USE_HEADTRACKER_SERIAL
+#define USE_HEADTRACKER_MSP
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
@@ -211,3 +215,4 @@
 #endif
 
 #define USE_EZ_TUNE
+#define USE_ADAPTIVE_FILTER

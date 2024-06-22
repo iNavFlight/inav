@@ -17,9 +17,13 @@
 
 #pragma once
 
+#ifdef FLYWOOF405PRO
 #define TARGET_BOARD_IDENTIFIER "F4PR"
 #define USBD_PRODUCT_STRING  "FLYWOOF405PRO"
-
+#else
+#define TARGET_BOARD_IDENTIFIER "F4HD"
+#define USBD_PRODUCT_STRING  "FLYWOOF405HD"
+#endif
 
 #define LED0                    PC14  //Green
 #define BEEPER                  PC13
@@ -84,11 +88,12 @@
 #define SPI3_MISO_PIN   	    PC11
 #define SPI3_MOSI_PIN   	    PC12
 
+#ifdef FLYWOOF405PRO
 #define USE_OSD
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI3
-#define MAX7456_CS_PIN          PB14//
-
+#define MAX7456_CS_PIN          PB14
+#endif
 // *************** Onboard flash  ********************
 
 #define USE_FLASHFS
@@ -109,6 +114,10 @@
 #define UART1_TX_PIN            PB6
 #define UART1_RX_PIN            PA10
 
+#define USE_UART2
+#define UART2_TX_PIN            PD5
+#define UART2_RX_PIN            PD6
+
 #define USE_UART3
 #define UART3_TX_PIN            PB10
 #define UART3_RX_PIN            PB11
@@ -125,7 +134,7 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
 
-#define SERIAL_PORT_COUNT       6
+#define SERIAL_PORT_COUNT       7
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -159,6 +168,6 @@
 #define TARGET_IO_PORTA         0xffff
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
-#define TARGET_IO_PORTD         (BIT(2))
+#define TARGET_IO_PORTD         0xffff
 
 #define MAX_PWM_OUTPUT_PORTS       8

@@ -36,6 +36,7 @@
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 
+#include "fc/fc_core.h"
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_curves.h"
@@ -63,28 +64,22 @@ static pt1Filter_t altholdThrottleFilterState;
 static bool prepareForTakeoffOnReset = false;
 static sqrt_controller_t alt_hold_sqrt_controller;
 
+float getSqrtControllerVelocity(float targetAltitude, timeDelta_t deltaMicros)
+{
+    return sqrtControllerApply(
+            &alt_hold_sqrt_controller,
+            targetAltitude,
+            navGetCurrentActualPositionAndVelocity()->pos.z,
+            US2S(deltaMicros)
+    );
+}
+
 // Position to velocity controller for Z axis
 static void updateAltitudeVelocityController_MC(timeDelta_t deltaMicros)
 {
-    float targetVel = sqrtControllerApply(
-        &alt_hold_sqrt_controller,
-        posControl.desiredState.pos.z,
-        navGetCurrentActualPositionAndVelocity()->pos.z,
-        US2S(deltaMicros)
-    );
+    float targetVel = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
-    // hard limit desired target velocity to max_climb_rate
-    float vel_max_z = 0.0f;
-
-    if (posControl.flags.isAdjustingAltitude) {
-        vel_max_z = navConfig()->mc.max_manual_climb_rate;
-    } else {
-        vel_max_z = navConfig()->mc.max_auto_climb_rate;
-    }
-
-    targetVel = constrainf(targetVel, -vel_max_z, vel_max_z);
-
-    posControl.pids.pos[Z].output_constrained = targetVel;
+    posControl.pids.pos[Z].output_constrained = targetVel;      // only used for Blackbox and OSD info
 
     // Limit max up/down acceleration target
     const float smallVelChange = US2S(deltaMicros) * (GRAVITY_CMSS * 0.1f);
@@ -132,8 +127,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         // In terrain follow mode we apply different logic for terrain control
         if (posControl.flags.estAglStatus == EST_TRUSTED && altTarget > 10.0f) {
             // We have solid terrain sensor signal - directly map throttle to altitude
-            updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
-            posControl.desiredState.pos.z = altTarget;
+            updateClimbRateToAltitudeController(0, altTarget, ROC_TO_ALT_TARGET);
         }
         else {
             updateClimbRateToAltitudeController(-50.0f, 0, ROC_TO_ALT_CONSTANT);
@@ -144,6 +138,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
     }
     else {
         const int16_t rcThrottleAdjustment = applyDeadbandRescaled(rcCommand[THROTTLE] - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
+
         if (rcThrottleAdjustment) {
             // set velocity proportional to stick movement
             float rcClimbRate;
@@ -165,7 +160,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
         else {
             // Adjusting finished - reset desired position to stay exactly where pilot released the stick
             if (posControl.flags.isAdjustingAltitude) {
-                updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_RESET);
+                updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
             }
 
             return false;
@@ -762,15 +757,12 @@ bool isMulticopterFlying(void)
 /*-----------------------------------------------------------
  * Multicopter land detector
  *-----------------------------------------------------------*/
-  #if defined(USE_BARO)
-float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue)
-{
-    static float baroAltRate;
-    if (updateValue) {
-        baroAltRate = newBaroAltRate;
-    }
+#if defined(USE_BARO)
+static float baroAltRate;
 
-    return baroAltRate;
+void updateBaroAltitudeRate(float newBaroAltRate)
+{
+    baroAltRate = newBaroAltRate;
 }
 
 static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
@@ -781,7 +773,6 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
      * Throttle trigger: must be below hover throttle with lower threshold for manual throttle control */
 
     static timeMs_t gSpikeDetectTimeMs = 0;
-    float baroAltRate = updateBaroAltitudeRate(0, false);
 
     if (!gSpikeDetectTimeMs && acc.accADCf[Z] > 2.0f && baroAltRate < 0.0f) {
         gSpikeDetectTimeMs = currentTimeMs;
@@ -799,7 +790,28 @@ static bool isLandingGbumpDetected(timeMs_t currentTimeMs)
 
     return false;
 }
+
+bool isMulticopterCrashedInverted(timeMs_t currentTimeMs)
+{
+    /* Disarms MR if inverted on the ground. Checks vertical velocity is low based on Baro rate below 2 m/s */
+
+    static timeMs_t startTime = 0;
+
+    if ((ABS(attitude.values.roll) > 1000 || ABS(attitude.values.pitch) > 700) && fabsf(baroAltRate) < 200.0f) {
+        if (startTime == 0) {
+            startTime = currentTimeMs;
+        }
+
+        /* Minimum 3s disarm delay + extra user set delay time (min overall delay of 4s) */
+        uint16_t disarmTimeDelay = 3000 + S2MS(navConfig()->mc.inverted_crash_detection);
+        return currentTimeMs - startTime > disarmTimeDelay;
+    }
+
+    startTime = 0;
+    return false;
+}
 #endif
+
 bool isMulticopterLandingDetected(void)
 {
     DEBUG_SET(DEBUG_LANDING, 4, 0);
@@ -808,8 +820,22 @@ bool isMulticopterLandingDetected(void)
     const timeMs_t currentTimeMs = millis();
 
 #if defined(USE_BARO)
-    if (sensors(SENSOR_BARO) && navConfig()->general.flags.landing_bump_detection && isLandingGbumpDetected(currentTimeMs)) {
-        return true;    // Landing flagged immediately if landing bump detected
+    if (sensors(SENSOR_BARO)) {
+        /* Inverted crash landing detection - immediate disarm */
+        if (navConfig()->mc.inverted_crash_detection && !FLIGHT_MODE(TURTLE_MODE) && isMulticopterCrashedInverted(currentTimeMs)) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
+            disarm(DISARM_LANDING);
+        }
+
+        /* G bump landing detection *
+         * Only used when xy velocity is low or failsafe is active */
+        bool gBumpDetectionUsable = navConfig()->general.flags.landing_bump_detection &&
+                                    ((posControl.flags.estPosStatus >= EST_USABLE && posControl.actualState.velXY < MC_LAND_CHECK_VEL_XY_MOVING) ||
+                                    FLIGHT_MODE(FAILSAFE_MODE));
+
+        if (gBumpDetectionUsable && isLandingGbumpDetected(currentTimeMs)) {
+            return true;    // Landing flagged immediately if landing bump detected
+        }
     }
 #endif
 
@@ -931,8 +957,8 @@ static void applyMulticopterEmergencyLandingController(timeUs_t currentTimeUs)
 
         // Check if last correction was not too long ago
         if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-            // target min descent rate 5m above takeoff altitude
-            updateClimbRateToAltitudeController(-navConfig()->general.emerg_descent_rate, 500.0f, ROC_TO_ALT_TARGET);
+            // target min descent rate at distance 2 x emerg descent rate above takeoff altitude
+            updateClimbRateToAltitudeController(0, 2.0f * navConfig()->general.emerg_descent_rate, ROC_TO_ALT_TARGET);
             updateAltitudeVelocityController_MC(deltaMicrosPositionUpdate);
             updateAltitudeThrottleController_MC(deltaMicrosPositionUpdate);
         }

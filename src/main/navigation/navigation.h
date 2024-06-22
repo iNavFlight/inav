@@ -260,11 +260,9 @@ typedef struct positionEstimationConfig_s {
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
 
-    uint8_t use_gps_no_baro;
-
 #ifdef USE_GPS_FIX_ESTIMATION
     uint8_t allow_gps_fix_estimation;
-#endif    
+#endif
 } positionEstimationConfig_t;
 
 PG_DECLARE(positionEstimationConfig_t, positionEstimationConfig);
@@ -328,7 +326,7 @@ typedef struct navConfig_s {
 
     struct {
         uint8_t  max_bank_angle;                // multicopter max banking angle (deg)
-        uint16_t max_auto_climb_rate;           // max vertical speed limitation cm/sec
+        uint16_t max_auto_climb_rate;           // max vertical speed limitation nav modes cm/sec
         uint16_t max_manual_climb_rate;         // manual velocity control max vertical speed
 
 #ifdef USE_MR_BRAKING_MODE
@@ -346,10 +344,12 @@ typedef struct navConfig_s {
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
         uint8_t althold_throttle_type;          // throttle zero datum type for alt hold
+        uint8_t inverted_crash_detection;       // Enables inverted crash detection, setting defines disarm time delay (0 = disabled)
     } mc;
 
     struct {
         uint8_t  max_bank_angle;             // Fixed wing max banking angle (deg)
+        uint16_t max_auto_climb_rate;        // max vertical speed limitation nav modes cm/sec
         uint16_t max_manual_climb_rate;      // manual velocity control max vertical speed
         uint8_t  max_climb_angle;            // Fixed wing max banking angle (deg)
         uint8_t  max_dive_angle;             // Fixed wing max banking angle (deg)
@@ -689,7 +689,7 @@ float getEstimatedAglPosition(void);
 bool isEstimatedAglTrusted(void);
 
 void checkManualEmergencyLandingControl(bool forcedActivation);
-float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
+void updateBaroAltitudeRate(float newBaroAltRate);
 bool rthAltControlStickOverrideCheck(uint8_t axis);
 
 int8_t navCheckActiveAngleHoldAxis(void);
@@ -702,7 +702,7 @@ uint8_t getActiveWpNumber(void);
 int32_t navigationGetHomeHeading(void);
 
 #ifdef USE_FW_AUTOLAND
-bool canFwLandCanceld(void);
+bool canFwLandingBeCancelled(void);
 #endif
 
 /* Compatibility data */

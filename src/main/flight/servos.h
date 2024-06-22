@@ -63,6 +63,9 @@ typedef enum {
     INPUT_GVAR_6                    = 36,
     INPUT_GVAR_7                    = 37,
     INPUT_MIXER_TRANSITION          = 38,
+    INPUT_HEADTRACKER_PAN           = 39,
+    INPUT_HEADTRACKER_TILT          = 40,
+    INPUT_HEADTRACKER_ROLL          = 41,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
