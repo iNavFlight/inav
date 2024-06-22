@@ -110,6 +110,8 @@
 
 #include "rx/rx.h"
 #include "rx/msp.h"
+#include "rx/srxl2.h"
+#include "rx/crsf.h"
 
 #include "scheduler/scheduler.h"
 
@@ -1030,6 +1032,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_MIXER:
         sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
         break;
+    
 
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
@@ -2887,7 +2890,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-
+    
     case MSP_SET_FAILSAFE_CONFIG:
         if (dataSize == 20) {
             failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
@@ -3352,6 +3355,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         break;
 
+    case MSP2_BETAFLIGHT_BIND:
+        if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
+            switch (rxConfig()->serialrx_provider) {
+            default:
+                return MSP_RESULT_ERROR;
+    #if defined(USE_SERIALRX_SRXL2)
+            case SERIALRX_SRXL2:
+                srxl2Bind();
+                break;
+    #endif
+    #if defined(USE_SERIALRX_CRSF)
+            case SERIALRX_CRSF:
+                crsfBind();
+                break;
+    #endif
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
 
     default:
         return MSP_RESULT_ERROR;
