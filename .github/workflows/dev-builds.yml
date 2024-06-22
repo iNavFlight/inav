@@ -203,7 +203,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: inav-${{ steps.version.outputs.version }}-dev-${{ steps.date.outputs.today }}-${{ github.run_number }}-${{ github.sha }}
-          tag_name: v${{ steps.date.outputs.today }}.${{ github.run_number }}
+          tag_name: v${{ steps.version.outputs.version }}-${{ steps.date.outputs.today }}.${{ github.run_number }}
           # To create release on a different repo, we need a token setup
           token: ${{ secrets.NIGHTLY_TOKEN }}
           repository: iNavFlight/inav-nightly
@@ -216,6 +216,10 @@ jobs:
             sitl-resources.zip
           body: |
             ${{ steps.notes.outputs.notes }}
+
+            ### Flashing
+            These are nightly builds and configuration settings can be added and removed often. Flashing with Full chip erase is strongly recommended to avoid issues.
+            Firmware related issues should be opened in the iNavflight/inav repository, not in inav-nightly.
 
             ### Repository:
             ${{ github.repository }} ([link](${{ github.event.repository.html_url }}))

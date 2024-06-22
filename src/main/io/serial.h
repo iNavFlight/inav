@@ -57,6 +57,8 @@ typedef enum {
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
     FUNCTION_UNUSED_2                   = (1 << 24), // 16777216
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
+    FUNCTION_GIMBAL                     = (1 << 26), // 67108864
+    FUNCTION_GIMBAL_HEADTRACKER         = (1 << 27), // 134217728
 } serialPortFunction_e;
 
 #define FUNCTION_VTX_MSP FUNCTION_MSP_OSD

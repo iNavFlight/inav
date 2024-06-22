@@ -190,6 +190,10 @@
 #define ADSB_LIMIT_CM                   6400000
 #endif
 
+#define USE_SERIAL_GIMBAL
+#define USE_HEADTRACKER
+#define USE_HEADTRACKER_SERIAL
+#define USE_HEADTRACKER_MSP
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)

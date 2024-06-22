@@ -104,6 +104,15 @@ typedef enum {
     CRSF_FRAMETYPE_DISPLAYPORT_CMD = 0x7D, // displayport control command
 } crsfFrameType_e;
 
+enum {
+    CRSF_COMMAND_SUBCMD_RX = 0x10,    // receiver command
+    CRSF_COMMAND_SUBCMD_GENERAL = 0x0A,    // general command
+};
+
+enum {
+    CRSF_COMMAND_SUBCMD_RX_BIND = 0x01,    // bind command
+};
+
 typedef struct crsfFrameDef_s {
     uint8_t deviceAddress;
     uint8_t frameLength;
@@ -124,3 +133,5 @@ struct rxConfig_s;
 struct rxRuntimeConfig_s;
 bool crsfRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);
 bool crsfRxIsActive(void);
+
+void crsfBind(void);
