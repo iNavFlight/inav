@@ -30,18 +30,6 @@
 
 #include "io/headtracker_msp.h"
 
-/*
-typedef struct headTrackerVTable_s {
-    void (*process)(headTrackerDevice_t *headTrackerDevice, timeUs_t currentTimeUs);
-    headTrackerDevType_e (*getDeviceType)(const headTrackerDevice_t *headTrackerDevice);
-    bool (*isReady)(const headTrackerDevice_t *headTrackerDevice);
-    bool (*isValid)(const headTrackerDevice_t *headTrackerDevice);
-    int (*getPanPWM)(const headTrackerDevice_t *headTrackerDevice);
-    int (*getTiltPWM)(const headTrackerDevice_t *headTrackerDevice);
-    int (*getRollPWM)(const headTrackerDevice_t *headTrackerDevice);
-} headtrackerVTable_t;
-*/
-
 static headTrackerVTable_t headTrackerMspVTable = {
     .process = NULL,
     .getDeviceType = heatTrackerMspGetDeviceType,
@@ -77,9 +65,6 @@ void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
     headTrackerMspDevice.tilt = constrain(status->tilt, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
     headTrackerMspDevice.roll = constrain(status->roll, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
     headTrackerMspDevice.expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
-
-    SD(fprintf(stderr, "[headTracker]: pan: %d tilt: %d roll: %d\n", status->pan, status->tilt, status->roll));
-    SD(fprintf(stderr, "[headTracker]: scaled pan: %d tilt: %d roll: %d\n", headTrackerMspDevice.pan, headTrackerMspDevice.tilt, headTrackerMspDevice.roll));
 
     UNUSED(status);
 }

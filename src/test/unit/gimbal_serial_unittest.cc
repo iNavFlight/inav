@@ -24,6 +24,7 @@
 #include "unittest_macros.h"
 
 #include "io/gimbal_serial.h"
+#include "drivers/headtracker_common.h"
 
 void dumpMemory(uint8_t *mem, int size)
 {
