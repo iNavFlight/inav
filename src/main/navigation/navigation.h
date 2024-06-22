@@ -344,6 +344,7 @@ typedef struct navConfig_s {
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
         uint8_t althold_throttle_type;          // throttle zero datum type for alt hold
+        uint8_t inverted_crash_detection;       // Enables inverted crash detection, setting defines disarm time delay (0 = disabled)
     } mc;
 
     struct {
@@ -688,7 +689,7 @@ float getEstimatedAglPosition(void);
 bool isEstimatedAglTrusted(void);
 
 void checkManualEmergencyLandingControl(bool forcedActivation);
-float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
+void updateBaroAltitudeRate(float newBaroAltRate);
 bool rthAltControlStickOverrideCheck(uint8_t axis);
 
 int8_t navCheckActiveAngleHoldAxis(void);

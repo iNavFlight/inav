@@ -47,6 +47,7 @@
 #include "flight/rpm_filter.h"
 #include "flight/kalman.h"
 #include "flight/smith_predictor.h"
+#include "flight/adaptive_filter.h"
 
 #include "io/gps.h"
 
@@ -1099,7 +1100,7 @@ void checkItermFreezingActive(pidState_t *pidState, flight_dynamics_index_t axis
     if (usedPidControllerType == PID_TYPE_PIFF && pidProfile()->fixedWingYawItermBankFreeze != 0 && axis == FD_YAW) {
         // Do not allow yaw I-term to grow when bank angle is too large
         float bankAngle = DECIDEGREES_TO_DEGREES(attitude.values.roll);
-        if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance())){
+        if (fabsf(bankAngle) > pidProfile()->fixedWingYawItermBankFreeze && !(FLIGHT_MODE(AUTO_TUNE) || FLIGHT_MODE(TURN_ASSISTANT))) {
             pidState->itermFreezeActive = true;
         } else
         {
@@ -1205,6 +1206,10 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
+    
+#ifdef USE_ADAPTIVE_FILTER
+        adaptiveFilterPushRate(axis, pidState[axis].rateTarget, currentControlRateProfile->stabilized.rates[axis]);
+#endif
 
 #ifdef USE_GYRO_KALMAN
         gyroKalmanUpdateSetpoint(axis, pidState[axis].rateTarget);
@@ -1242,7 +1247,7 @@ void FAST_CODE pidController(float dT)
     }
 
     // Apply Turn Assistance
-    if ((FLIGHT_MODE(TURN_ASSISTANT) || navigationRequiresTurnAssistance()) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
+    if (FLIGHT_MODE(TURN_ASSISTANT) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
         float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
         float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]));
         pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
@@ -1380,7 +1385,7 @@ pidBank_t * pidBankMutable(void) {
 
 bool isFixedWingLevelTrimActive(void)
 {
-    return IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) && !areSticksDeflected() &&
+    return isFwAutoModeActive(BOXAUTOLEVEL) && !areSticksDeflected() &&
            (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) &&
            !FLIGHT_MODE(SOARING_MODE) && !FLIGHT_MODE(MANUAL_MODE) &&
            !navigationIsControllingAltitude() && !(navCheckActiveAngleHoldAxis() == FD_PITCH && !angleHoldIsLevel);
@@ -1404,7 +1409,7 @@ void updateFixedWingLevelTrim(timeUs_t currentTimeUs)
     previousArmingState = ARMING_FLAG(ARMED);
 
     // return if not active or disarmed
-    if (!IS_RC_MODE_ACTIVE(BOXAUTOLEVEL) || !ARMING_FLAG(ARMED)) {
+    if (!isFwAutoModeActive(BOXAUTOLEVEL) || !ARMING_FLAG(ARMED)) {
         return;
     }
 

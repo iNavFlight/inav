@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
@@ -87,6 +88,7 @@
 #include "io/asyncfatfs/asyncfatfs.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
+#include "io/gps_ublox.h"
 #include "io/opflow.h"
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
@@ -97,6 +99,7 @@
 #include "io/vtx_string.h"
 #include "io/vtx_table.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
+#include "io/headtracker_msp.h"
 
 #include "io/osd/custom_elements.h"
 
@@ -110,6 +113,8 @@
 
 #include "rx/rx.h"
 #include "rx/msp.h"
+#include "rx/srxl2.h"
+#include "rx/crsf.h"
 
 #include "scheduler/scheduler.h"
 
@@ -857,7 +862,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, currentBatteryProfile->capacity.value);
         sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
         sbufWriteU32(dst, currentBatteryProfile->capacity.critical);
-        sbufWriteU8(dst, currentBatteryProfile->capacity.unit);
+        sbufWriteU8(dst, batteryMetersConfig()->capacity_unit);
         break;
 
     case MSP2_INAV_MISC2:
@@ -896,7 +901,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, currentBatteryProfile->capacity.value);
         sbufWriteU32(dst, currentBatteryProfile->capacity.warning);
         sbufWriteU32(dst, currentBatteryProfile->capacity.critical);
-        sbufWriteU8(dst, currentBatteryProfile->capacity.unit);
+        sbufWriteU8(dst, batteryMetersConfig()->capacity_unit);
         break;
 
 #ifdef USE_GPS
@@ -1030,6 +1035,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_MIXER:
         sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
         break;
+    
 
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
@@ -2083,13 +2089,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
-            currentBatteryProfileMutable->capacity.unit = sbufReadU8(src);
+            batteryMetersConfigMutable()->capacity_unit = sbufReadU8(src);
             if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
                 batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
                 return MSP_RESULT_ERROR;
             }
-            if ((currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
-                currentBatteryProfileMutable->capacity.unit = BAT_CAPACITY_UNIT_MAH;
+            if ((batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MAH) && (batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MWH)) {
+                batteryMetersConfigMutable()->capacity_unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
             }
         } else
@@ -2122,13 +2128,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
-            currentBatteryProfileMutable->capacity.unit = sbufReadU8(src);
+            batteryMetersConfigMutable()->capacity_unit = sbufReadU8(src);
             if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
                 batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
                 return MSP_RESULT_ERROR;
             }
-            if ((currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MAH) && (currentBatteryProfile->capacity.unit != BAT_CAPACITY_UNIT_MWH)) {
-                currentBatteryProfileMutable->capacity.unit = BAT_CAPACITY_UNIT_MAH;
+            if ((batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MAH) && (batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MWH)) {
+                batteryMetersConfigMutable()->capacity_unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
             }
         } else
@@ -2963,7 +2969,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-
+    
     case MSP_SET_FAILSAFE_CONFIG:
         if (dataSize == 20) {
             failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
@@ -3360,6 +3366,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+    case MSP2_INAV_GPS_UBLOX_COMMAND:
+        if(dataSize < 8 || !isGpsUblox()) {
+            SD(fprintf(stderr, "[GPS] Not ublox!\n"));
+            return MSP_RESULT_ERROR;
+        }
+
+        SD(fprintf(stderr, "[GPS] Sending ubx command: %i!\n", dataSize));
+        gpsUbloxSendCommand(src->ptr, dataSize, 0);
+        break;
 
 #ifdef USE_EZ_TUNE
 
@@ -3428,6 +3443,26 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         break;
 
+    case MSP2_BETAFLIGHT_BIND:
+        if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
+            switch (rxConfig()->serialrx_provider) {
+            default:
+                return MSP_RESULT_ERROR;
+    #if defined(USE_SERIALRX_SRXL2)
+            case SERIALRX_SRXL2:
+                srxl2Bind();
+                break;
+    #endif
+    #if defined(USE_SERIALRX_CRSF)
+            case SERIALRX_CRSF:
+                crsfBind();
+                break;
+    #endif
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
 
     default:
         return MSP_RESULT_ERROR;
@@ -4178,7 +4213,8 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
-    UNUSED(src);
+    int dataSize = sbufBytesRemaining(src);
+    UNUSED(dataSize);
 
     switch (cmdMSP) {
 #if defined(USE_RANGEFINDER_MSP)
@@ -4216,6 +4252,12 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
             mspPitotmeterReceiveNewData(sbufPtr(src));
             break;
 #endif
+
+#if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_MSP))
+        case MSP2_SENSOR_HEADTRACKER:
+            mspHeadTrackerReceiverNewData(sbufPtr(src), dataSize);
+            break;
+#endif
     }
 
     return MSP_RESULT_NO_REPLY;
@@ -4233,6 +4275,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
+    SD(fprintf(stderr, "[MSP] CommandId: 0x%04x bytes: %i!\n", cmdMSP, sbufBytesRemaining(src)));
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {

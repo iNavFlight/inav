@@ -119,7 +119,7 @@ STATIC_ASSERT(NAV_MAX_WAYPOINTS < 254, NAV_MAX_WAYPOINTS_exceeded_allowable_rang
 PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_WAYPOINT_MISSION_STORAGE, 2);
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 7);
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
     .general = {
@@ -175,7 +175,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .land_detect_sensitivity = SETTING_NAV_LAND_DETECT_SENSITIVITY_DEFAULT,                 // Changes sensitivity of landing detection
         .auto_disarm_delay = SETTING_NAV_AUTO_DISARM_DELAY_DEFAULT,                             // 2000 ms - time delay to disarm when auto disarm after landing enabled
         .rth_linear_descent_start_distance = SETTING_NAV_RTH_LINEAR_DESCENT_START_DISTANCE_DEFAULT,
-        .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                // 20dps
+        .cruise_yaw_rate = SETTING_NAV_CRUISE_YAW_RATE_DEFAULT,                                 // 20dps
         .rth_fs_landing_delay = SETTING_NAV_RTH_FS_LANDING_DELAY_DEFAULT,                       // Delay before landing in FS. 0 = immedate landing
     },
 
@@ -193,13 +193,14 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .braking_boost_timeout = SETTING_NAV_MC_BRAKING_BOOST_TIMEOUT_DEFAULT,                   // Timout boost after 750ms
         .braking_boost_speed_threshold = SETTING_NAV_MC_BRAKING_BOOST_SPEED_THRESHOLD_DEFAULT,   // Boost can happen only above 1.5m/s
         .braking_boost_disengage_speed = SETTING_NAV_MC_BRAKING_BOOST_DISENGAGE_SPEED_DEFAULT,   // Disable boost at 1m/s
-        .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                        // Max braking angle
+        .braking_bank_angle = SETTING_NAV_MC_BRAKING_BANK_ANGLE_DEFAULT,                         // Max braking angle
 #endif
 
-        .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,        // posDecelerationTime * 100
-        .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                         // posResponseExpo * 100
+        .posDecelerationTime = SETTING_NAV_MC_POS_DECELERATION_TIME_DEFAULT,                     // posDecelerationTime * 100
+        .posResponseExpo = SETTING_NAV_MC_POS_EXPO_DEFAULT,                                      // posResponseExpo * 100
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,
-        .althold_throttle_type = SETTING_NAV_MC_ALTHOLD_THROTTLE_DEFAULT,           // STICK
+        .althold_throttle_type = SETTING_NAV_MC_ALTHOLD_THROTTLE_DEFAULT,                        // STICK
+        .inverted_crash_detection = SETTING_NAV_MC_INVERTED_CRASH_DETECTION_DEFAULT,             // 0 - disarm time delay for inverted crash detection
     },
 
     // Fixed wing
@@ -3321,10 +3322,6 @@ void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t d
  *-----------------------------------------------------------*/
 void updateLandingStatus(timeMs_t currentTimeMs)
 {
-    if (STATE(AIRPLANE) && !navConfig()->general.flags.disarm_on_landing) {
-        return;     // no point using this with a fixed wing if not set to disarm
-    }
-
     static timeMs_t lastUpdateTimeMs = 0;
     if ((currentTimeMs - lastUpdateTimeMs) <= HZ2MS(100)) {  // limit update to 100Hz
         return;
@@ -3354,8 +3351,13 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             ENABLE_ARMING_FLAG(ARMING_DISABLED_LANDING_DETECTED);
             disarm(DISARM_LANDING);
         } else if (!navigationInAutomaticThrottleMode()) {
-            // for multirotor only - reactivate landing detector without disarm when throttle raised toward hover throttle
-            landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+            if (STATE(AIRPLANE) && isFlightDetected()) {
+                // Cancel landing detection flag if fixed wing redetected in flight
+                resetLandingDetector();
+            } else if (STATE(MULTIROTOR)) {
+                // For multirotor - reactivate landing detector without disarm when throttle raised toward hover throttle
+                landingDetectorIsActive = rxGetChannelValue(THROTTLE) < (0.5 * (currentBatteryProfile->nav.mc.hover_throttle + getThrottleIdleValue()));
+            }
         }
     } else if (isLandingDetected()) {
         ENABLE_STATE(LANDING_DETECTED);
@@ -4437,7 +4439,7 @@ uint32_t distanceToFirstWP(void)
 
 bool navigationPositionEstimateIsHealthy(void)
 {
-    return (posControl.flags.estPosStatus >= EST_USABLE) && STATE(GPS_FIX_HOME);
+    return posControl.flags.estPosStatus >= EST_USABLE && posControl.flags.estAltStatus >= EST_USABLE && STATE(GPS_FIX_HOME);
 }
 
 navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)

@@ -109,7 +109,7 @@ void ezTuneUpdate(void) {
 #endif
 
         //Disable dynamic LPF
-        gyroConfigMutable()->useDynamicLpf = 0;
+        gyroConfigMutable()->gyroFilterMode = GYRO_FILTER_MODE_STATIC;
 
         //Setup PID controller
 

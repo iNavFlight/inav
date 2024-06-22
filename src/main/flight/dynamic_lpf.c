@@ -37,7 +37,7 @@ static float dynLpfCutoffFreq(float throttle, uint16_t dynLpfMin, uint16_t dynLp
 
 void dynamicLpfGyroTask(void) {
 
-    if (!gyroConfig()->useDynamicLpf) {
+    if (gyroConfig()->gyroFilterMode != GYRO_FILTER_MODE_DYNAMIC) {
         return;
     }
 

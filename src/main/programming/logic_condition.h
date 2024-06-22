@@ -142,6 +142,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE, //0,1           // 39
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW, // deg                     // 40
     LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE,                           // 41
+    LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE, // int                     // 42
 } logicFlightOperands_e;
 
 typedef enum {

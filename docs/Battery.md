@@ -201,7 +201,6 @@ Up to 3 battery profiles are supported. You can select the battery profile from 
 - `vbat_max_cell_voltage`
 - `vbat_warning_cell_voltage`
 - `vbat_min_cell_voltage`
-- `battery_capacity_unit`
 - `battery_capacity`
 - `battery_capacity_warning`
 - `battery_capacity_critical`
@@ -253,7 +252,6 @@ feature BAT_PROF_AUTOSWITCH
 battery_profile 1
 
 set bat_cells = 3
-set battery_capacity_unit = MAH
 set battery_capacity = 2200
 set battery_capacity_warning = 440
 set battery_capacity_critical = 220
@@ -262,7 +260,6 @@ set battery_capacity_critical = 220
 battery_profile 2
 
 set bat_cells = 4
-set battery_capacity_unit = MAH
 set battery_capacity = 1500
 set battery_capacity_warning = 300
 set battery_capacity_critical = 150

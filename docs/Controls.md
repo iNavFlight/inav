@@ -23,9 +23,9 @@ The stick positions are combined to activate different functions:
 
 | Function                      | Throttle | Yaw     | Pitch  | Roll   |
 | ----------------------------- | -------- | ------- | ------ | ------ |
-| Profile 1                     | LOW      | LOW     | CENTER | LOW    |
-| Profile 2                     | LOW      | LOW     | HIGH   | CENTER |
-| Profile 3                     | LOW      | LOW     | CENTER | HIGH   |
+| Control Profile 1             | LOW      | LOW     | CENTER | LOW    |
+| Control Profile 2             | LOW      | LOW     | HIGH   | CENTER |
+| Control Profile 3             | LOW      | LOW     | CENTER | HIGH   |
 | Battery profile 1             | HIGH     | LOW     | CENTER | LOW    |
 | Battery profile 2             | HIGH     | LOW     | HIGH   | CENTER |
 | Battery profile 3             | HIGH     | LOW     | CENTER | HIGH   |
