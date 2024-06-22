@@ -6,6 +6,14 @@ on:
   push:
     branches:
     - master
+    paths:
+      - 'src/**'
+      - '.github/**'
+      - 'cmake/**'
+      - 'lib/**'
+      - 'docs/Settings.md'
+      - 'CMakeLists.txt'
+      - '*.sh'
 
 jobs:
   build:
