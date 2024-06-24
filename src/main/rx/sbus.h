@@ -23,6 +23,6 @@ bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeCon
 bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
 
 #ifdef USE_SBUS2_TELEMETRY
-uint8_t sbusGetCurrentTelemetryFrame(void);
+uint8_t sbusGetCurrentTelemetryPage(void);
 uint8_t sbusGetLastFrameTime(void);
 #endif

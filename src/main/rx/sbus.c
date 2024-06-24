@@ -66,7 +66,7 @@ typedef struct sbusFrameData_s {
     timeUs_t lastActivityTimeUs;
 } sbusFrameData_t;
 
-static uint8_t sbus2ActiveTelemetryFrame = 0;
+static uint8_t sbus2ActiveTelemetryPage = 0;
 timeUs_t frameTime = 0;
 
 // Receive ISR callback
@@ -101,19 +101,18 @@ static void sbusDataReceive(uint16_t c, void *data)
                 // Do some sanity check
                 switch (frame->endByte) {
                     case 0x00:  // This is S.BUS 1
-                    case 0x04:  // S.BUS 2 receiver voltage
-                        sbus2ActiveTelemetryFrame = 0;
-                        goto process_end_frame;
-                    case 0x14:  // S.BUS 2 GPS/baro
-                        sbus2ActiveTelemetryFrame = 1;
-                        goto process_end_frame;
-                    case 0x24:  // Unknown SBUS2 data
-                        sbus2ActiveTelemetryFrame = 2;
-                        goto process_end_frame;
-                    case 0x34:  // Unknown SBUS2 data
-                        sbus2ActiveTelemetryFrame = 3;
-                    process_end_frame:
-                        frameTime = currentTimeUs;
+                    case 0x04:  // S.BUS 2 telemetry page 1
+                    case 0x14:  // S.BUS 2 telemetry page 2
+                    case 0x24:  // S.BUS 2 telemetry page 3
+                    case 0x34:  // S.BUS 2 telemetry page 4
+                        if(frame->endByte & 0x4) {
+                            sbus2ActiveTelemetryPage = (frame->endByte >> 4) & 0xF;
+                            frameTime = currentTimeUs;
+                        } else {
+                            sbus2ActiveTelemetryPage = 0;
+                            frameTime = -1;
+                        }
+
 
                         frameValid = true;
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
@@ -223,8 +222,8 @@ uint8_t sbusGetLastFrameTime(void) {
     return frameTime;
 }
 
-uint8_t sbusGetCurrentTelemetryFrame(void) {
-    return sbus2ActiveTelemetryFrame;
+uint8_t sbusGetCurrentTelemetryPage(void) {
+    return sbus2ActiveTelemetryPage;
 }
 #endif // USE_TELEMETRY && USE_SBUS2_TELEMETRY
 
