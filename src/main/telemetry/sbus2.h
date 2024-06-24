@@ -108,4 +108,5 @@ extern const uint8_t Slot_ID[SBUS2_SLOT_COUNT];
 extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS];
 extern uint8_t sbusTelemetryDataStatus[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS];
 
+void handleSbus2Telemetry(timeUs_t currentTimeUs);
 #endif
