@@ -259,7 +259,7 @@ groups:
         max: 10
       - name: dynamic_gyro_notch_enabled
         description: "Enable/disable dynamic gyro notch also known as Matrix Filter"
-        default_value: OFF
+        default_value: ON
         field: dynamicGyroNotchEnabled
         condition: USE_DYNAMIC_FILTERS
         type: bool
@@ -298,7 +298,7 @@ groups:
         default_value: 0
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
-        default_value: OFF
+        default_value: ON
         condition: USE_GYRO_KALMAN
         field: kalmanEnabled
         type: bool
