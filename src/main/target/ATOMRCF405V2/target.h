@@ -81,7 +81,7 @@
  */
 #define USE_MAG
 #define MAG_I2C_BUS                     DEFAULT_I2C_BUS
-#defiine USE_MAG_ALL
+#define USE_MAG_ALL
 
 /*
  * Barometer
