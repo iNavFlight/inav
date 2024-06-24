@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "lulu.h"
+
 typedef struct rateLimitFilter_s {
     float state;
 } rateLimitFilter_t;
@@ -50,13 +52,15 @@ typedef union {
     pt1Filter_t pt1;
     pt2Filter_t pt2;
     pt3Filter_t pt3;
+    luluFilter_t lulu;
 } filter_t;
 
 typedef enum {
     FILTER_PT1 = 0,
     FILTER_BIQUAD,
     FILTER_PT2,
-    FILTER_PT3
+    FILTER_PT3,
+    FILTER_LULU
 } filterType_e;
 
 typedef enum {

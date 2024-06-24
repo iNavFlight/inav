@@ -26,18 +26,28 @@ typedef enum rc_alias {
     PITCH,
     YAW,
     THROTTLE,
-    AUX1,
-    AUX2,
-    AUX3,
-    AUX4,
-    AUX5,
-    AUX6,
-    AUX7,
-    AUX8,
-    AUX9,
-    AUX10,
-    AUX11,
-    AUX12
+    AUX1, // 5
+    AUX2, // 6
+    AUX3, // 7
+    AUX4, // 8
+    AUX5, // 9
+    AUX6, // 10
+    AUX7, // 11
+    AUX8, // 12
+    AUX9, // 13
+    AUX10, // 14
+    AUX11, // 15
+    AUX12, // 16
+    AUX13, // 17
+    AUX14, // 18
+#ifdef USE_24CHANNELS
+    AUX15, // 19
+    AUX16, // 20
+    AUX17, // 21
+    AUX18, // 22
+    AUX19, // 23
+    AUX20, // 24
+#endif
 } rc_alias_e;
 
 typedef enum {

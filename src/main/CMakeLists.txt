@@ -31,6 +31,8 @@ main_sources(COMMON_SRC
     common/gps_conversion.h
     common/log.c
     common/log.h
+    common/lulu.c
+    common/lulu.h
     common/maths.c
     common/maths.h
     common/memory.c

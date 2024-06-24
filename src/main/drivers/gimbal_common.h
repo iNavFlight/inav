@@ -41,6 +41,7 @@ struct gimbalVTable_s;
 
 typedef struct gimbalDevice_s {
     const struct gimbalVTable_s *vTable;
+    int16_t currentPanPWM;
 } gimbalDevice_t;
 
 // {set,get}BandAndChannel: band and channel are 1 origin
@@ -52,6 +53,7 @@ typedef struct gimbalVTable_s {
     gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimbalDevice);
     bool (*isReady)(const gimbalDevice_t *gimbalDevice);
     bool (*hasHeadTracker)(const gimbalDevice_t *gimbalDevice);
+    int16_t (*getGimbalPanPWM)(const gimbalDevice_t *gimbalDevice);
 } gimbalVTable_t;
 
 
@@ -60,6 +62,9 @@ typedef struct gimbalConfig_s {
     uint8_t tiltChannel;
     uint8_t rollChannel;
     uint8_t sensitivity;
+    uint16_t panTrim;
+    uint16_t tiltTrim;
+    uint16_t rollTrim;
 } gimbalConfig_t;
 
 PG_DECLARE(gimbalConfig_t, gimbalConfig);
@@ -89,6 +94,8 @@ void taskUpdateGimbal(timeUs_t currentTimeUs);
 
 bool gimbalCommonIsEnabled(void);
 bool gimbalCommonHtrkIsEnabled(void);
+
+int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice);
 
 #ifdef __cplusplus
 }

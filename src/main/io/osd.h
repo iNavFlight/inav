@@ -283,9 +283,10 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_1,
     OSD_CUSTOM_ELEMENT_2,
     OSD_CUSTOM_ELEMENT_3,
-    OSD_ADSB_WARNING,
+    OSD_ADSB_WARNING, //150
     OSD_ADSB_INFO,
     OSD_BLACKBOX,
+    OSD_FORMATION_FLIGHT, //153
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -460,11 +461,12 @@ typedef struct osdConfig_s {
 #ifndef DISABLE_MSP_DJI_COMPAT
     bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
 #endif
-#ifdef USE_ADSB
+ #ifdef USE_ADSB
     uint16_t adsb_distance_warning;                     // in metres
     uint16_t adsb_distance_alert;                       // in metres
     uint16_t adsb_ignore_plane_above_me_limit;          // in metres
-#endif
+ #endif
+    uint8_t  radar_peers_display_time;                  // in seconds
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

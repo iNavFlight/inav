@@ -1472,6 +1472,16 @@ Gimbal pan rc channel index. 0 is no channel.
 
 ---
 
+### gimbal_pan_trim
+
+Trim gimbal pan center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
 ### gimbal_roll_channel
 
 Gimbal roll rc channel index. 0 is no channel.
@@ -1479,6 +1489,16 @@ Gimbal roll rc channel index. 0 is no channel.
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 32 |
+
+---
+
+### gimbal_roll_trim
+
+Trim gimbal roll center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
 
 ---
 
@@ -1509,6 +1529,16 @@ Gimbal tilt rc channel index. 0 is no channel.
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 32 |
+
+---
+
+### gimbal_tilt_trim
+
+Trim gimbal tilt center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
 
 ---
 
@@ -1749,6 +1779,16 @@ Specifies the type of the software LPF of the gyro signals.
 | Default | Min | Max |
 | --- | --- | --- |
 | STATIC |  |  |
+
+---
+
+### gyro_lulu_sample_count
+
+Gyro lulu sample count, in number of samples.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 |  | 15 |
 
 ---
 
@@ -2288,7 +2328,7 @@ This is the main loop time (in us). Changing this affects PID effect with some P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1000 |  | 9000 |
+| 500 |  | 9000 |
 
 ---
 
@@ -4939,6 +4979,16 @@ Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requ
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 |  |  |
+
+---
+
+### osd_radar_peers_display_time
+
+Time in seconds to display next peer 
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 1 | 10 |
 
 ---
 
