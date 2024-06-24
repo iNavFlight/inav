@@ -33,3 +33,4 @@
 #define MSP2_COMMON_SET_RADAR_POS       0x100B //SET radar position information
 #define MSP2_COMMON_SET_RADAR_ITD       0x100C //SET radar information to display
 
+#define MSP2_BETAFLIGHT_BIND            0x3000

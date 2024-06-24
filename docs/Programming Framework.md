@@ -86,7 +86,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 38            | Override RC Channel           | Overrides channel set by `Operand A` to value of `Operand B`. Note operand A should normally be set as a "Value", NOT as "Get RC Channel"|
 | 39            | Set Heading Target            | Sets heading-hold target to `Operand A`, in centidegrees. Value wraps-around. |
 | 40            | Modulo                        | Modulo. Divide `Operand A` by `Operand B` and returns the remainder |
-| 41            | Override Loiter Radius        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. If the value is lower than the loiter radius set in the **Advanced Tuning**, that will be used. |
+| 41            | Override Loiter Radius        | Sets the loiter radius to `Operand A` [`0` : `100000`] in cm. Must be larger than the loiter radius set in the **Advanced Tuning**. |
 | 42            | Set Control Profile           | Sets the active config profile (PIDFF/Rates/Filters/etc) to `Operand A`. `Operand A` must be a valid profile number, currently from 1 to 3. If not, the profile will not change |
 | 43            | Use Lowest Value              | Finds the lowest value of `Operand A` and `Operand B` |
 | 44            | Use Highest Value             | Finds the highest value of `Operand A` and `Operand B` |

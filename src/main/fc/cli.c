@@ -104,6 +104,7 @@ bool cliMode = false;
 #include "rx/rx.h"
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
+#include "rx/crsf.h"
 
 #include "scheduler/scheduler.h"
 
@@ -3225,6 +3226,12 @@ void cliRxBind(char *cmdline){
             cliPrint("Binding SRXL2 receiver...");
             break;
 #endif
+#if defined(USE_SERIALRX_CRSF)
+        case SERIALRX_CRSF:
+            crsfBind();
+            cliPrint("Binding CRSF receiver...");
+            break;
+#endif
         }
     }
 }
@@ -3662,13 +3669,14 @@ static void cliStatus(char *cmdline)
     char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
-    cliPrintLinef("%s/%s %s %s / %s (%s)",
+    cliPrintLinef("%s/%s %s %s / %s (%s) %s",
         FC_FIRMWARE_NAME,
         targetName,
         FC_VERSION_STRING,
         buildDate,
         buildTime,
-        shortGitRevision
+        shortGitRevision,
+        FC_VERSION_TYPE
     );
     cliPrintLinef("GCC-%s",
         compilerVersion
@@ -3906,13 +3914,14 @@ static void cliVersion(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrintLinef("# %s/%s %s %s / %s (%s)",
+    cliPrintLinef("# %s/%s %s %s / %s (%s) %s",
         FC_FIRMWARE_NAME,
         targetName,
         FC_VERSION_STRING,
         buildDate,
         buildTime,
-        shortGitRevision
+        shortGitRevision,
+        FC_VERSION_TYPE
     );
     cliPrintLinef("# GCC-%s",
         compilerVersion

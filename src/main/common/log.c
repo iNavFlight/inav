@@ -20,11 +20,12 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#if defined(SEMIHOSTING)
+#if defined(SEMIHOSTING) || defined(SITL_BUILD)
 #include <stdio.h>
 #endif
 
 #include "build/version.h"
+#include "build/debug.h"
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
@@ -125,6 +126,7 @@ static void logPrint(const char *buf, size_t size)
         fputc(buf[ii], stdout);
     }
 #endif
+    SD(printf("%s\n", buf));
     if (logPort) {
         // Send data via UART (if configured & connected - a safeguard against zombie VCP)
         if (serialIsConnected(logPort)) {

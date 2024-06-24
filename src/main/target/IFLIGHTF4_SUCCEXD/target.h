@@ -39,6 +39,11 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW180_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PA4
+
 // *************** SPI2 OSD *****************************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
