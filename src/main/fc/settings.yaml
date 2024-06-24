@@ -236,7 +236,7 @@ groups:
         max: 500
       - name: gyro_filter_mode
         description: "Specifies the type of the software LPF of the gyro signals."
-        default_value: "LULU"
+        default_value: "STATIC"
         field: gyroFilterMode
         table: gyro_filter_mode
       - name: gyro_dyn_lpf_min_hz
