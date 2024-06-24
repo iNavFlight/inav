@@ -1782,6 +1782,16 @@ Specifies the type of the software LPF of the gyro signals.
 
 ---
 
+### gyro_lulu_sample_count
+
+Gyro lulu sample count, in number of samples.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 |  | 15 |
+
+---
+
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -2318,7 +2328,7 @@ This is the main loop time (in us). Changing this affects PID effect with some P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1000 |  | 9000 |
+| 500 |  | 9000 |
 
 ---
 
