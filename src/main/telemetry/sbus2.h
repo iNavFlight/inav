@@ -20,23 +20,25 @@
 
 #include <stdint.h>
 
+#include "platform.h"
+
 #define SBUS2_TELEMETRY_PAYLOAD_SIZE 3
 
-#define SBUS2_SLOT_COUNT    32
+#define SBUS2_SLOT_COUNT            32
+#define SBUS2_TELEMETRY_ITEM_SIZE   3
+#define SBUS2_TELEMETRY_SLOTS       8
+#define SBUS2_TELEMETRY_PAGES       4
+
+#ifdef USE_SBUS2_TELEMETRY
 
 // Information on SBUS2 sensors from: https://github.com/BrushlessPower/SBUS2-Telemetry/tree/master
-
-extern const uint8_t Slot_ID[SBUS2_SLOT_COUNT];
-
-
 // Temperature:
 // Max 125C
 // value | 0x4000
 typedef struct sbus2_telemetry_temp_payload_s {
     uint8_t tempHigh; // temp | 0x4000; // 125c
     uint8_t tempLow;
-} sbsu2_telemetry_temp_payload_t;
-
+} __attribute__((packed)) sbsu2_telemetry_temp_payload_t;
 
 // Temperature:
 // Max 200C
@@ -44,14 +46,14 @@ typedef struct sbus2_telemetry_temp_payload_s {
 typedef struct sbus2_telemetry_temp200_payload_s {
     uint8_t tempLow; // temp | 0x8000; // 200c
     uint8_t tempHigh;
-} sbsu2_telemetry_temp200_payload_t;
+} __attribute__((packed)) sbsu2_telemetry_temp200_payload_t;
 
 // RPM:
 // (RPM / 6) max: 0xFFFF
 typedef struct sbus2_telemetry_rpm_payload_s {
     uint8_t rpmHigh; // RPM / 6, capped at 0xFFFF
     uint8_t rpmLow;
-} sbsu2_telemetry_rpm_payload_t;
+} __attribute__((packed)) sbsu2_telemetry_rpm_payload_t;
 
 // Voltage: 1 or 2 slots
 // 0x8000 = rx voltage?
@@ -59,7 +61,7 @@ typedef struct sbus2_telemetry_rpm_payload_s {
 typedef struct sbus2_telemetry_voltage_payload_s {
     uint8_t voltageHigh; // 2 slots // Voltage 1: value | 0x8000 
     uint8_t voltageLow;  // max input value: 0x1FFF
-} sbsu2_telemetry_voltage_payload_t;
+} __attribute__((packed)) sbsu2_telemetry_voltage_payload_t;
 
 // Current
 // 3 frames
@@ -73,13 +75,12 @@ typedef struct sbus2_telemetry_voltage_payload_s {
 typedef struct sbus2_telemetry_current_payload_s {
     uint8_t currentHigh;
     uint8_t currentLow;
-} sbsu2_telemetry_current_payload_t;
+} __attribute__((packed)) sbsu2_telemetry_current_payload_t;
 
 typedef struct sbus2_telemetry_capacity_payload_s {
     uint8_t capacityHigh;
     uint8_t capacityLow;
-} sbsu2_telemetry_capacity_payload_t;
-
+} __attribute__((packed)) sbsu2_telemetry_capacity_payload_t;
 
 // GPS
 // frames:
@@ -89,10 +90,10 @@ typedef struct sbus2_telemetry_capacity_payload_s {
 // 4,5: LAT
 // 5,6: LON
 
-
 typedef struct sbus2_telemetry_frame_s {
     uint8_t slotId;
-    union {
+    union
+    {
         uint8_t data[2];
         sbsu2_telemetry_temp_payload_t temp125;
         sbsu2_telemetry_temp200_payload_t temp200;
@@ -101,4 +102,10 @@ typedef struct sbus2_telemetry_frame_s {
         sbsu2_telemetry_current_payload_t current;
         sbsu2_telemetry_capacity_payload_t capacity;
     } payload;
-} sbus2_telemetry_frame_t;
+} __attribute__((packed)) sbus2_telemetry_frame_t;
+
+extern const uint8_t Slot_ID[SBUS2_SLOT_COUNT];
+extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS];
+extern uint8_t sbusTelemetryDataStatus[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS];
+
+#endif

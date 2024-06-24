@@ -15,7 +15,15 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
+
+#include "platform.h"
+
+#include "build/debug.h"
+
 #include "sbus2.h"
+
+#ifdef USE_SBUS2_TELEMETRY
 
 const uint8_t Slot_ID[SBUS2_SLOT_COUNT] = {
     0x03, 0x83, 0x43, 0xC3, 0x23, 0xA3, 0x63, 0xE3,
@@ -25,3 +33,8 @@ const uint8_t Slot_ID[SBUS2_SLOT_COUNT] = {
 };
 
 
+sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS] = {{}};
+uint8_t sbusTelemetryDataStatus[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS] = {{}};
+
+
+#endif

@@ -21,3 +21,7 @@
 
 bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
 bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+
+#ifdef USE_SBUS2_TELEMETRY
+uint8_t sbusGetCurrentTelemetryFrame();
+#endif
