@@ -24,12 +24,12 @@
 
 #define SBUS2_TELEMETRY_PAYLOAD_SIZE 3
 
-#define SBUS2_SLOT_COUNT            32
 #define SBUS2_TELEMETRY_ITEM_SIZE   3
 #define SBUS2_TELEMETRY_SLOTS       8
 #define SBUS2_TELEMETRY_PAGES       4
+#define SBUS2_SLOT_COUNT            (SBUS2_TELEMETRY_PAGES * SBUS2_TELEMETRY_SLOTS)
 
-#ifdef USE_SBUS2_TELEMETRY
+#if defined(USE_TELEMETRY) && defined(USE_SBUS2_TELEMETRY)
 
 // Information on SBUS2 sensors from: https://github.com/BrushlessPower/SBUS2-Telemetry/tree/master
 // Temperature:

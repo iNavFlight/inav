@@ -66,6 +66,9 @@ typedef struct sbusFrameData_s {
     timeUs_t lastActivityTimeUs;
 } sbusFrameData_t;
 
+static uint8_t sbus2ActiveTelemetryFrame = 0;
+timeUs_t frameTime = 0;
+
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
@@ -99,9 +102,19 @@ static void sbusDataReceive(uint16_t c, void *data)
                 switch (frame->endByte) {
                     case 0x00:  // This is S.BUS 1
                     case 0x04:  // S.BUS 2 receiver voltage
+                        sbus2ActiveTelemetryFrame = 0;
+                        goto process_end_frame;
                     case 0x14:  // S.BUS 2 GPS/baro
+                        sbus2ActiveTelemetryFrame = 1;
+                        goto process_end_frame;
                     case 0x24:  // Unknown SBUS2 data
+                        sbus2ActiveTelemetryFrame = 2;
+                        goto process_end_frame;
                     case 0x34:  // Unknown SBUS2 data
+                        sbus2ActiveTelemetryFrame = 3;
+                    process_end_frame:
+                        frameTime = currentTimeUs;
+
                         frameValid = true;
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
                         break;
@@ -179,9 +192,10 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
         sbusDataReceive,
         &sbusFrameData,
         sbusBaudRate,
-        portShared ? MODE_RXTX : MODE_RX,
+        (portShared || rxConfig->serialrx_provider == SERIALRX_SBUS2) ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS |
             (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) |
+            ((rxConfig->serialrx_provider == SERIALRX_SBUS2) ? SERIAL_BIDIR : 0) |
             (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
@@ -203,4 +217,15 @@ bool sbusInitFast(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 {
     return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE_FAST);
 }
-#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_SBUS2_TELEMETRY)
+uint8_t sbusGetLastFrameTime(void) {
+    return frameTime;
+}
+
+uint8_t sbusGetCurrentTelemetryFrame(void) {
+    return sbus2ActiveTelemetryFrame;
+}
+#endif // USE_TELEMETRY && USE_SBUS2_TELEMETRY
+
+#endif // USE_SERIAL_RX
