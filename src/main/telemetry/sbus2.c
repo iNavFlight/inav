@@ -21,6 +21,7 @@
 
 #include "build/debug.h"
 
+#include "common/utils.h"
 #include "common/time.h"
 
 #include "telemetry/sbus2.h"
