@@ -3893,10 +3893,10 @@ static void cliStatus(char *cmdline)
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
         cliPrintLinefeed();
-        cliPrintLinef("SATS: %i", gpsSol.numSat);
-        cliPrintLinef("HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
-        cliPrintLinef("EPH: %f m", (double)(gpsSol.eph / 100.0f));
-        cliPrintLinef("EPV: %f m", (double)(gpsSol.epv / 100.0f));
+        cliPrintLinef("  SATS: %i", gpsSol.numSat);
+        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
+        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
+        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
