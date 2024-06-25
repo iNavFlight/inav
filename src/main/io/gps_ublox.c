@@ -43,6 +43,7 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/cli.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
@@ -83,6 +84,8 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,460800,0*13\r\n",     // GPS_BAUDRATE_460800
     "$PUBX,41,1,0003,0001,921600,0*15\r\n"      // GPS_BAUDRATE_921600
 };
+
+static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
 // Packet checksum accumulators
 static uint8_t _ck_a;
@@ -145,6 +148,7 @@ static union {
     ubx_nav_timeutc timeutc;
     ubx_ack_ack ack;
     ubx_mon_gnss gnss;
+    ubx_nav_sig navsig;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
@@ -551,6 +555,7 @@ static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
 
 static bool gpsParseFrameUBLOX(void)
 {
+    DEBUG_SET(DEBUG_GPS, 7, 42);
     switch (_msg_id) {
     case MSG_POSLLH:
         gpsSolDRV.llh.lon = _buffer.posllh.longitude;
@@ -601,6 +606,10 @@ static bool gpsParseFrameUBLOX(void)
         }
         break;
     case MSG_PVT:
+        {
+            static int pvtCount = 0;
+            DEBUG_SET(DEBUG_GPS, 1, pvtCount++);
+        }
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
         gpsSolDRV.fixType = next_fix_type;
         gpsSolDRV.llh.lon = _buffer.pvt.longitude;
@@ -682,6 +691,30 @@ static bool gpsParseFrameUBLOX(void)
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
                 gpsState.lastCapaUpdMs = millis();
             }
+        }
+        break;
+    case MSG_NAV_SAT:
+        if (_class == CLASS_NAV) {
+            static int satInfoCount = 0;
+            DEBUG_SET(DEBUG_GPS, 2, satInfoCount++);
+            gpsSolDRV.numSat = _buffer.svinfo.numCh;
+        }
+        break;
+    case MSG_SIG_INFO:
+        if (_class == CLASS_NAV && _buffer.navsig.version == 0) {
+            if(_buffer.navsig.numSigs < UBLOX_MAX_SIGNALS) 
+            {
+                for(int i=0; i < UBLOX_MAX_SIGNALS && i < _buffer.navsig.numSigs; ++i)
+                {
+                    memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
+                }
+                for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
+                {
+                    satelites[i].svId = 0; // no used
+                }
+            }
+            static int sigInfoCount = 0;
+            DEBUG_SET(DEBUG_GPS, 0, sigInfoCount++);
         }
         break;
     case MSG_ACK_ACK:
@@ -856,27 +889,20 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
-        configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9 || gpsState.swVersionMajor > 23 || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >=1)) { // > 23.01, don't use configureMSG
+        ubx_config_data8_payload_t rateValues[] = {
+            {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0},
+            {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0},
+            {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0},
+            {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0},
+            {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1},
+            {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0},
+            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1},
+        };
 
-        configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
+        ubloxSendSetCfgBytes(rateValues, 7);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_NAV_SIG, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        //ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
             configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
@@ -1134,11 +1160,22 @@ void gpsHandleUBLOX(void)
 
 bool isGpsUblox(void)
 {
-    if(gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) {
+    if(gpsState.gpsPort != NULL && (gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
         return true;
     }
 
     return false;
 }
+
+
+const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index)
+{
+    if(index < UBLOX_MAX_SIGNALS) {
+        return &satelites[index];
+    }
+
+    return NULL;
+}
+
 
 #endif
