@@ -555,7 +555,6 @@ static uint32_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
 
 static bool gpsParseFrameUBLOX(void)
 {
-    DEBUG_SET(DEBUG_GPS, 7, 42);
     switch (_msg_id) {
     case MSG_POSLLH:
         gpsSolDRV.llh.lon = _buffer.posllh.longitude;
@@ -702,6 +701,8 @@ static bool gpsParseFrameUBLOX(void)
         break;
     case MSG_SIG_INFO:
         if (_class == CLASS_NAV && _buffer.navsig.version == 0) {
+            static int sigInfoCount = 0;
+            DEBUG_SET(DEBUG_GPS, 0, sigInfoCount++);
             if(_buffer.navsig.numSigs < UBLOX_MAX_SIGNALS) 
             {
                 for(int i=0; i < UBLOX_MAX_SIGNALS && i < _buffer.navsig.numSigs; ++i)
@@ -713,8 +714,6 @@ static bool gpsParseFrameUBLOX(void)
                     satelites[i].svId = 0; // no used
                 }
             }
-            static int sigInfoCount = 0;
-            DEBUG_SET(DEBUG_GPS, 0, sigInfoCount++);
         }
         break;
     case MSG_ACK_ACK:
@@ -902,7 +901,6 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
         ubloxSendSetCfgBytes(rateValues, 7);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
-        //ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
             configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
