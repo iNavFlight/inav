@@ -42,9 +42,15 @@ uint8_t sbusTelemetryDataStatus[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS] = 
 
 void handleSbus2Telemetry(timeUs_t currentTimeUs) 
 {
+    UNUSED(currentTimeUs);
+
+    // update telemetry info
+}
+
+void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
+{
     uint8_t telemetryPage = sbusGetCurrentTelemetryPage();
     uint8_t lastFrame = sbusGetLastFrameTime();
-
     timeUs_t elapsedTime = currentTimeUs - lastFrame - MS2US(2);
 
     // 2ms after sbus2 frame = slot 0
