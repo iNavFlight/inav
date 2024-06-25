@@ -4414,6 +4414,7 @@ static void cliUbloxPrintSatelites(char *arg)
         } else {
             cliPrintLine("signal: Unknown");
         }
+        cliPrintLinefeed();
     }
 }
 #endif
