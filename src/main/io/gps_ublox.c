@@ -696,7 +696,10 @@ static bool gpsParseFrameUBLOX(void)
         if (_class == CLASS_NAV) {
             static int satInfoCount = 0;
             DEBUG_SET(DEBUG_GPS, 2, satInfoCount++);
-            gpsSolDRV.numSat = _buffer.svinfo.numCh;
+            if (!gpsState.flags.pvt) { // PVT is the prefered source
+                gpsSolDRV.numSat = _buffer.svinfo.numCh;
+            }
+            // TODO: populate satelites[] with sat info
         }
         break;
     case MSG_SIG_INFO:
@@ -888,19 +891,59 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9 || gpsState.swVersionMajor > 23 || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >=1)) { // > 23.01, don't use configureMSG
-        ubx_config_data8_payload_t rateValues[] = {
-            {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0},
-            {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0},
-            {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0},
-            {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0},
-            {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1},
-            {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0},
-            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1},
-        };
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
+        // > 23.01, don't use configureMSG
+        if (gpsState.swVersionMajor > 23 || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >= 1)) {
+            ubx_config_data8_payload_t rateValues[] = {
+                {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0},
+                {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0},
+                {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0},
+                {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0},
+                {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1},
+                {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1},
+                {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0},
+            };
 
-        ubloxSendSetCfgBytes(rateValues, 7);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            ubloxSendSetCfgBytes(rateValues, 5);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
+
+            // Try to enable SIG
+            ubloxSendSetCfgBytes(rateValues+5, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+            gpsState.flags.sig = _ack_state == UBX_ACK_GOT_ACK;
+
+            // Try to enable SAT if SIG fails
+            rateValues[6].value = gpsState.flags.sig ? 0 : 1;
+            ubloxSendSetCfgBytes(rateValues+6, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+            gpsState.flags.sat = _ack_state == UBX_ACK_GOT_ACK ? rateValues[6].value : 0;
+
+        } else {
+            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
+
+            configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 0);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            gpsState.flags.sat = 0;
+
+            configureMSG(MSG_CLASS_UBX, MSG_SIG_INFO, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+            gpsState.flags.sig = _ack_state == UBX_ACK_GOT_ACK;
+        }
 
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
             configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
@@ -936,9 +979,20 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
             configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
+            gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
 
             configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+            // Needed for satelite information on older devices
+            configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
+            ptWait(_ack_state == UBX_ACK_GOT_ACK ||
+                   _ack_state == UBX_ACK_GOT_NAK);
+            if (_ack_state == UBX_ACK_GOT_ACK) {
+                gpsState.flags.sat = 1;
+            } else {
+                gpsState.flags.sat = 0;
+            }
 
             if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
                 configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
@@ -983,6 +1037,10 @@ STATIC_PROTOTHREAD(gpsConfigure)
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
         }
     }
+
+    DEBUG_SET(DEBUG_GPS, 5, gpsState.flags.pvt);
+    DEBUG_SET(DEBUG_GPS, 6, gpsState.flags.sat);
+    DEBUG_SET(DEBUG_GPS, 7, gpsState.flags.sig);
 
     // Configure SBAS
     // If particular SBAS setting is not supported by the hardware we'll get a NAK,

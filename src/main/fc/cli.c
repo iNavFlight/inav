@@ -4386,8 +4386,8 @@ static const char *_ubloxGetQuality(uint8_t quality)
 static void cliUbloxPrintSatelites(char *arg)
 {
     UNUSED(arg);
-    if(!isGpsUblox()) {
-        cliPrint("GPS is not UBLOX");
+    if(!isGpsUblox() /*|| !(gpsState.flags.sig || gpsState.flags.sat)*/) {
+        cliPrint("GPS is not UBLOX or does not report satelites.");
         return;
     }
 
