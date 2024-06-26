@@ -4396,11 +4396,11 @@ static void cliUbloxPrintSatelites(char *arg)
     for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
     {
         const ubx_nav_sig_info *sat = gpsGetUbloxSatelite(i);
-        if(sat == NULL || sat->svId == 0) {
+        if(sat == NULL) {
             continue;
         }
 
-        cliPrintLinef("satelite: %d:%d", sat->gnssId, sat->svId);
+        cliPrintLinef("satelite[%d]: %d:%d", i+1, sat->gnssId, sat->svId);
         cliPrintLinef("sigId: %d (%s)", sat->sigId, _ubloxGetSigId(sat->gnssId, sat->sigId));
         cliPrintLinef("signal strength: %i dbHz", sat->cno);
         cliPrintLinef("quality: %i (%s)", sat->quality, _ubloxGetQuality(sat->quality));
