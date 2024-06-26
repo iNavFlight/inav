@@ -696,19 +696,35 @@ static bool gpsParseFrameUBLOX(void)
         if (_class == CLASS_NAV) {
             static int satInfoCount = 0;
             DEBUG_SET(DEBUG_GPS, 2, satInfoCount++);
+            DEBUG_SET(DEBUG_GPS, 3, _buffer.svinfo.numSvs);
             if (!gpsState.flags.pvt) { // PVT is the prefered source
-                gpsSolDRV.numSat = _buffer.svinfo.numCh;
+                gpsSolDRV.numSat = _buffer.svinfo.numSvs;
             }
-            // TODO: populate satelites[] with sat info
+
+            for(int i =0; i < MIN(_buffer.svinfo.numSvs, UBLOX_MAX_SIGNALS); ++i) {
+                satelites[i].svId = _buffer.svinfo.channel[i].svId;
+                satelites[i].gnssId = _buffer.svinfo.channel[i].gnssId;
+                satelites[i].sigId = 0;
+                satelites[i].cno = _buffer.svinfo.channel[i].cno;
+                satelites[i].cno = _buffer.svinfo.channel[i].flags;
+                satelites[i].quality = _buffer.svinfo.channel[i].flags & 0x3;
+                satelites[i].sigFlags = (_buffer.svinfo.channel[i].flags >> 4 & 0x3); // Healthy, not healthy
+                //satelites[i].cno = _buffer.svinfo.channel[i].quality;
+            }
+            for(int i =_buffer.svinfo.numSvs; i < UBLOX_MAX_SIGNALS; ++i) {
+                satelites->svId = 0;
+            }
+
         }
         break;
     case MSG_SIG_INFO:
         if (_class == CLASS_NAV && _buffer.navsig.version == 0) {
             static int sigInfoCount = 0;
             DEBUG_SET(DEBUG_GPS, 0, sigInfoCount++);
+            DEBUG_SET(DEBUG_GPS, 4, _buffer.navsig.numSigs);
             if(_buffer.navsig.numSigs < UBLOX_MAX_SIGNALS) 
             {
-                for(int i=0; i < UBLOX_MAX_SIGNALS && i < _buffer.navsig.numSigs; ++i)
+                for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
                 {
                     memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
                 }
@@ -1245,12 +1261,12 @@ bool ubloxVersionGT(uint8_t mj, uint8_t mn)
 
 bool ubloxVersionGTE(uint8_t mj, uint8_t mn)
 {
-    return ubloxVersionGT(mj, mn) || ubloxVersionE(mj, mn);
+    return ubloxVersionE(mj, mn) || ubloxVersionGT(mj, mn);
 }
 
 bool ubloxVersionLTE(uint8_t mj, uint8_t mn)
 {
-    return ubloxVersionLT(mj, mn) || ubloxVersionE(mj, mn);
+    return ubloxVersionE(mj, mn) || ubloxVersionLT(mj, mn);
 }
 
 bool ubloxVersionE(uint8_t mj, uint8_t mn)

@@ -180,7 +180,7 @@ typedef struct {
 typedef struct {
     uint8_t gnssId;   // gnssid 0 = GPS, 1 = SBAS, 2 = GALILEO, 3 = BEIDOU, 4 = IMES, 5 = QZSS, 6 = GLONASS
     uint8_t svId;     // space vehicle ID
-    uint8_t sigId;    // new style signal ID (gnssId:sigId)
+    uint8_t sigId;    // signal ID 
     uint8_t freqId;   // 0-13 slot +, 0-13, glonass only
     int16_t prRes;    // pseudo range residual (0.1m)
     uint8_t cno;      // carrier to noise density ratio (dbHz)
@@ -306,22 +306,21 @@ typedef struct {
 } ubx_nav_velned;
 
 typedef struct {
-    uint8_t chn;                // Channel number, 255 for SVx not assigned to channel
-    uint8_t svid;               // Satellite ID
-    uint8_t flags;              // Bitmask
-    uint8_t quality;            // Bitfield
+    uint8_t gnssId;             // Channel number, 255 for SVx not assigned to channel
+    uint8_t svId;               // Satellite ID
     uint8_t cno;                // Carrier to Noise Ratio (Signal Strength) // dbHz, 0-55.
-    uint8_t elev;               // Elevation in integer degrees
-    int16_t azim;               // Azimuth in integer degrees
-    int32_t prRes;              // Pseudo range residual in centimetres
+    int8_t elev;                // Elevation in integer degrees +/-90
+    int16_t azim;               // Azimuth in integer degrees 0-360
+    int16_t prRes;              // Pseudo range residual in .1m
+    uint32_t flags;              // Bitmask
 } ubx_nav_svinfo_channel;
 
 typedef struct {
-    uint32_t time;              // GPS Millisecond time of week
-    uint8_t numCh;              // Number of channels
-    uint8_t globalFlags;        // Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
+    uint32_t itow;              // GPS Millisecond time of week
+    uint8_t version;            // Version = 0
+    uint8_t numSvs;             // (Space vehicle) Satelite count
     uint16_t reserved2;         // Reserved
-    ubx_nav_svinfo_channel channel[16];         // 16 satellites * 12 byte
+    ubx_nav_svinfo_channel channel[UBLOX_MAX_SIGNALS]; // UBLOX_MAX_SIGNALS satellites * 12 byte
 } ubx_nav_svinfo;
 
 typedef struct {
