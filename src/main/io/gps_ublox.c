@@ -893,7 +893,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
         // > 23.01, don't use configureMSG
-        if (gpsState.swVersionMajor > 23 || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor >= 1)) {
+        if (ubloxVersionGTE(23, 1)) {
             ubx_config_data8_payload_t rateValues[] = {
                 {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0},
                 {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0},
@@ -936,13 +936,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
             gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
 
-            configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 0);
+            // NAV-SIG is available from 23.1 onwards, NAV-SAT from 15.0 to 23.1
+            configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, ubloxVersionGTE(15,0));
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            gpsState.flags.sat = 0;
+            gpsState.flags.sat = ubloxVersionGTE(15, 0);
 
-            configureMSG(MSG_CLASS_UBX, MSG_SIG_INFO, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-            gpsState.flags.sig = _ack_state == UBX_ACK_GOT_ACK;
+            gpsState.flags.sig = 0;
         }
 
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
@@ -984,6 +983,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
             configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
+            //if(ubloxVersionGTE(15,0) && ubloxVersionLTE(23, 1))
             // Needed for satelite information on older devices
             configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
             ptWait(_ack_state == UBX_ACK_GOT_ACK ||
@@ -1053,7 +1053,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
         bool use_VALSET = 0;
-        if ( (gpsState.swVersionMajor > 23) || (gpsState.swVersionMajor == 23 && gpsState.swVersionMinor > 1) ) {
+        if (ubloxVersionGTE(23,1)) {
             use_VALSET = 1;
         }
 
@@ -1063,7 +1063,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
             configureGNSS();
         }
 
-         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
         if(_ack_state == UBX_ACK_GOT_NAK) {
             gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
@@ -1233,5 +1233,29 @@ const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index)
     return NULL;
 }
 
+bool ubloxVersionLT(uint8_t mj2, uint8_t mn2)
+{
+    return gpsState.swVersionMajor < mj2 || (gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor < mn2);
+}
+
+bool ubloxVersionGT(uint8_t mj2, uint8_t mn2)
+{
+    return gpsState.swVersionMajor > mj2 || (gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor > mn2);
+}
+
+bool ubloxVersionGTE(uint8_t mj2, uint8_t mn2)
+{
+    return ubloxVersionGT(mj2, mn2) || ubloxVersionE(mj2, mn2);
+}
+
+bool ubloxVersionLTE(uint8_t mj2, uint8_t mn2)
+{
+    return ubloxVersionLT(mj2, mn2) || ubloxVersionE(mj2, mn2);
+}
+
+bool ubloxVersionE(uint8_t mj1, uint8_t mn1, uint8_t mj2, uint8_t mn2)
+{
+    return gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor == mn2;
+}
 
 #endif
