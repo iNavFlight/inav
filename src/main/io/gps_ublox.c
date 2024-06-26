@@ -890,26 +890,38 @@ STATIC_PROTOTHREAD(gpsConfigure)
     }
     ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    // Disable NMEA messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+    // Disable NMEA messages
+    if (ubloxVersionGTE(23, 1)) {
+        ubx_config_data8_payload_t nmeaValues[] = {
+            { UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, 0 },
+        };
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        ubloxSendSetCfgBytes(nmeaValues, 5);
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK), GPS_CFG_CMD_TIMEOUT_MS);
+    } else {
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GLL, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GLL, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSA, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSA, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSV, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSV, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_RMC, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_RMC, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_VGS, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_VGS, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    }
 
     // Configure UBX binary messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
@@ -972,6 +984,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }// end message config
 
+    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_SHORT_TIMEOUT);
     if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
         configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
     } else {
