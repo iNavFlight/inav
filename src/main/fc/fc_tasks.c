@@ -34,6 +34,8 @@
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -427,8 +429,20 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 
+#ifdef USE_SERIAL_GIMBAL
+    setTaskEnabled(TASK_GIMBAL, true);
+#endif
+
+#ifdef USE_HEADTRACKER
+    setTaskEnabled(TASK_HEADTRACKER, true);
+#endif
+
 #ifdef USE_ADAPTIVE_FILTER
-    setTaskEnabled(TASK_ADAPTIVE_FILTER, (gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE));
+    setTaskEnabled(TASK_ADAPTIVE_FILTER, (
+        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
+        gyroConfig()->adaptiveFilterMinHz > 0 && 
+        gyroConfig()->adaptiveFilterMaxHz > 0
+    ));
 #endif
 
 #if defined(SITL_BUILD)
@@ -693,4 +707,23 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
+
+#ifdef USE_SERIAL_GIMBAL
+    [TASK_GIMBAL] = {
+        .taskName = "GIMBAL",
+        .taskFunc = taskUpdateGimbal,
+        .desiredPeriod = TASK_PERIOD_HZ(50),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_HEADTRACKER
+    [TASK_HEADTRACKER] = {
+        .taskName = "HEADTRACKER",
+        .taskFunc = taskUpdateHeadTracker,
+        .desiredPeriod = TASK_PERIOD_HZ(50),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
 };

@@ -2,17 +2,26 @@ name: Build firmware
 # Don't enable CI on push, just on PR. If you
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
-on: pull_request
+on: 
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/**'
+      - 'cmake/**'
+      - 'lib/**'
+      - 'docs/Settings.md'
+      - 'CMakeLists.txt'
+      - '*.sh'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Setup environment
@@ -31,22 +40,22 @@ jobs:
           VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-      - uses: actions/cache@v1
+      - uses: actions/cache@v4
         with:
           path: downloads
           key: ${{ runner.os }}-downloads-${{ hashFiles('CMakeLists.txt') }}-${{ hashFiles('**/cmake/*')}}
       - name: Build targets (${{ matrix.id }})
-        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -G Ninja .. && ninja ci
+        run: mkdir -p build && cd build && cmake -DWARNINGS_AS_ERRORS=ON -DCI_JOB_INDEX=${{ matrix.id }} -DCI_JOB_COUNT=${{ strategy.job-total }} -DBUILD_SUFFIX=${{ env.BUILD_SUFFIX }} -DMAIN_COMPILE_OPTIONS=-pipe -G Ninja .. && ninja -j4 ci
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BUILD_NAME }}
+          name: ${{ env.BUILD_NAME }}.${{ matrix.id }}
           path: ./build/*.hex
 
   build-SITL-Linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Setup environment
@@ -66,17 +75,17 @@ jobs:
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja
+        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BUILD_NAME }}_SITL
+          name: ${{ env.BUILD_NAME }}_SITL-Linux
           path: ./build_SITL/*_SITL
 
   build-SITL-Mac:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           brew install cmake ninja ruby
@@ -101,10 +110,10 @@ jobs:
         run: |
           mkdir -p build_SITL && cd build_SITL
           cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -G Ninja ..
-          ninja
+          ninja -j3
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD_NAME }}_SITL-MacOS
           path: ./build_SITL/*_SITL
@@ -115,7 +124,7 @@ jobs:
       run:
         shell: C:\tools\cygwin\bin\bash.exe -o igncr '{0}'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Cygwin
         uses: egor-tensin/setup-cygwin@v4
         with:
@@ -137,19 +146,19 @@ jobs:
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja
+        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD_NAME }}_SITL-WIN
           path: ./build_SITL/*.exe
 
 
   test:
-    needs: [build]
+    #needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get -y install ninja-build
       - name: Run Tests

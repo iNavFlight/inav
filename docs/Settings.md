@@ -1462,6 +1462,86 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
+### gimbal_pan_channel
+
+Gimbal pan rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_pan_trim
+
+Trim gimbal pan center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
+### gimbal_roll_channel
+
+Gimbal roll rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_roll_trim
+
+Trim gimbal roll center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
+### gimbal_sensitivity
+
+Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -16 | 15 |
+
+---
+
+### gimbal_serial_single_uart
+
+Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### gimbal_tilt_channel
+
+Gimbal tilt rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_tilt_trim
+
+Trim gimbal tilt center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
 ### gps_auto_baud
 
 Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
@@ -1618,7 +1698,7 @@ Maximum frequency for adaptive filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 150 | 100 | 500 |
+| 150 | 0 | 505 |
 
 ---
 
@@ -1628,7 +1708,7 @@ Minimum frequency for adaptive filter
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 50 | 30 | 250 |
+| 50 | 0 | 250 |
 
 ---
 
@@ -1702,6 +1782,16 @@ Specifies the type of the software LPF of the gyro signals.
 
 ---
 
+### gyro_lulu_sample_count
+
+Gyro lulu sample count, in number of samples.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 |  | 15 |
+
+---
+
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -1769,6 +1859,46 @@ This setting limits yaw rotation rate that HEADING_HOLD controller can request f
 | Default | Min | Max |
 | --- | --- | --- |
 | 90 | HEADING_HOLD_RATE_LIMIT_MIN | HEADING_HOLD_RATE_LIMIT_MAX |
+
+---
+
+### headtracker_pan_ratio
+
+Head pan movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_roll_ratio
+
+Head roll movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_tilt_ratio
+
+Head tilt movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_type
+
+Type of headtrackr dervice
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NONE |  |  |
 
 ---
 
@@ -2198,7 +2328,7 @@ This is the main loop time (in us). Changing this affects PID effect with some P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1000 |  | 9000 |
+| 500 |  | 9000 |
 
 ---
 
@@ -3474,7 +3604,7 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ### nav_landing_bump_detection
 
-Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS).
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3649,6 +3779,16 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 | Default | Min | Max |
 | --- | --- | --- |
 | 1300 | 1000 | 2000 |
+
+---
+
+### nav_mc_inverted_crash_detection
+
+Setting a value > 0 enables inverted crash detection for multirotors. It will auto disarm in situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or for some other reason. When enabled this setting defines the additional number of seconds before disarm beyond a minimum fixed time delay of 3s. Requires a barometer to work.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 15 |
 
 ---
 
@@ -4839,6 +4979,16 @@ Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requ
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 |  |  |
+
+---
+
+### osd_radar_peers_display_time
+
+Time in seconds to display next peer 
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 1 | 10 |
 
 ---
 

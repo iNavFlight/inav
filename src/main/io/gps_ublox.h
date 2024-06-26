@@ -424,6 +424,9 @@ bool gpsUbloxGlonassDefault(void);
 bool gpsUbloxGalileoEnabled(void);
 bool gpsUbloxBeidouEnabled(void);
 bool gpsUbloxGlonassEnabled(void);
+bool gpsUbloxSendCommand(uint8_t *rawCommand, uint16_t commandLen, uint16_t timeout);
+
+bool isGpsUblox(void);
 
 
 #ifdef __cplusplus

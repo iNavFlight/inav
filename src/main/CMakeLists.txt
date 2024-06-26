@@ -31,6 +31,8 @@ main_sources(COMMON_SRC
     common/gps_conversion.h
     common/log.c
     common/log.h
+    common/lulu.c
+    common/lulu.h
     common/maths.c
     common/maths.h
     common/memory.c
@@ -177,6 +179,10 @@ main_sources(COMMON_SRC
     drivers/flash_m25p16.h
     drivers/flash_w25n01g.c
     drivers/flash_w25n01g.h
+    drivers/gimbal_common.h
+    drivers/gimbal_common.c
+    drivers/headtracker_common.h
+    drivers/headtracker_common.c
     drivers/io.c
     drivers/io.h
     drivers/io_pcf8574.c
@@ -356,6 +362,10 @@ main_sources(COMMON_SRC
     io/servo_sbus.h
     io/frsky_osd.c
     io/frsky_osd.h
+    io/gimbal_serial.c
+    io/gimbal_serial.h
+    io/headtracker_msp.c
+    io/headtracker_msp.h
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c
