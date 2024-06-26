@@ -96,7 +96,7 @@ EXTENDED_FASTRAM secondaryDynamicGyroNotchState_t secondaryDynamicGyroNotchState
 
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 12);
 
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT,
@@ -241,18 +241,13 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     return gyroHardware;
 }
 
-static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t cutoff, uint32_t looptime, filterType_e filterType)
+static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t cutoff, uint32_t looptime)
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
         for (int axis = 0; axis < 3; axis++) {
-            if(filterType == FILTER_LULU) {
-                luluFilterInit(&state[axis].lulu, cutoff);
-                *applyFn = (filterApplyFnPtr)luluFilterApply;
-            } else {
-                pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
-                *applyFn = (filterApplyFnPtr)pt1FilterApply;
-            }
+            pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
+            *applyFn = (filterApplyFnPtr)pt1FilterApply;
         }
     }
 }
@@ -260,13 +255,19 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t
 static void gyroInitFilters(void)
 {
     //First gyro LPF running at full gyro frequency 8kHz
-    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime(), FILTER_PT1);
+    initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
 
-    if(gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_LULU) {
-        initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyroLuluSampleCount, getLooptime(), FILTER_LULU);
+    /*
+    luluFilterInit(&state[axis].lulu, cutoff);
+    *applyFn = (filterApplyFnPtr)luluFilterApply;
+    
+    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyroLuluSampleCount, getLooptime(), FILTER_LULU);
+    */
+
+    if(gyroConfig()->gyroFilterMode != GYRO_FILTER_MODE_OFF) {
+        initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime());
     } else {
-        //Second gyro LPF runnig and PID frequency - this filter is dynamic when gyro_use_dyn_lpf = ON
-        initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime(), FILTER_PT1);
+        gyroLpf2ApplyFn = nullFilterApply;
     }
 
 #ifdef USE_ADAPTIVE_FILTER

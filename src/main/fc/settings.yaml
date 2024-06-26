@@ -192,7 +192,7 @@ tables:
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
-    values: ["STATIC", "DYNAMIC", "ADAPTIVE", "LULU"]
+    values: ["OFF", "STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]

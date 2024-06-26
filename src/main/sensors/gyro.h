@@ -53,10 +53,10 @@ typedef enum {
 } dynamicGyroNotchMode_e;
 
 typedef enum {
-    GYRO_FILTER_MODE_STATIC = 0,
-    GYRO_FILTER_MODE_DYNAMIC = 1,
-    GYRO_FILTER_MODE_ADAPTIVE = 2,
-    GYRO_FILTER_MODE_LULU = 3
+    GYRO_FILTER_MODE_OFF = 0,
+    GYRO_FILTER_MODE_STATIC = 1,
+    GYRO_FILTER_MODE_DYNAMIC = 2,
+    GYRO_FILTER_MODE_ADAPTIVE = 3
 } gyroFilterMode_e;
 
 typedef struct gyro_s {
