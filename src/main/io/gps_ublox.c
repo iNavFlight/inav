@@ -607,8 +607,10 @@ static bool gpsParseFrameUBLOX(void)
     case MSG_PVT:
         {
             static int pvtCount = 0;
-            DEBUG_SET(DEBUG_GPS, 1, pvtCount++);
+            DEBUG_SET(DEBUG_GPS, 0, pvtCount++);
         }
+
+        gpsState.flags.pvt = 1;
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
         gpsSolDRV.fixType = next_fix_type;
         gpsSolDRV.llh.lon = _buffer.pvt.longitude;
@@ -695,7 +697,8 @@ static bool gpsParseFrameUBLOX(void)
     case MSG_NAV_SAT:
         if (_class == CLASS_NAV) {
             static int satInfoCount = 0;
-            DEBUG_SET(DEBUG_GPS, 2, satInfoCount++);
+            gpsState.flags.sat = 1;
+            DEBUG_SET(DEBUG_GPS, 1, satInfoCount++);
             DEBUG_SET(DEBUG_GPS, 3, _buffer.svinfo.numSvs);
             if (!gpsState.flags.pvt) { // PVT is the prefered source
                 gpsSolDRV.numSat = _buffer.svinfo.numSvs;
@@ -720,8 +723,9 @@ static bool gpsParseFrameUBLOX(void)
     case MSG_SIG_INFO:
         if (_class == CLASS_NAV && _buffer.navsig.version == 0) {
             static int sigInfoCount = 0;
-            DEBUG_SET(DEBUG_GPS, 0, sigInfoCount++);
+            DEBUG_SET(DEBUG_GPS, 2, sigInfoCount++);
             DEBUG_SET(DEBUG_GPS, 4, _buffer.navsig.numSigs);
+            gpsState.flags.sig = 1;
             if(_buffer.navsig.numSigs < UBLOX_MAX_SIGNALS) 
             {
                 for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
@@ -748,6 +752,10 @@ static bool gpsParseFrameUBLOX(void)
     default:
         return false;
     }
+
+    DEBUG_SET(DEBUG_GPS, 5, gpsState.flags.pvt);
+    DEBUG_SET(DEBUG_GPS, 6, gpsState.flags.sat);
+    DEBUG_SET(DEBUG_GPS, 7, gpsState.flags.sig);
 
     // we only return true when we get new position and speed data
     // this ensures we don't use stale data
@@ -907,58 +915,23 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
-        // > 23.01, don't use configureMSG
-        if (ubloxVersionGTE(23, 1)) {
+    // > 23.01, don't use configureMSG, and have PVT
+
+    if (ubloxVersionGTE(23, 1)) {
             ubx_config_data8_payload_t rateValues[] = {
-                {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0},
-                {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0},
-                {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0},
-                {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0},
-                {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1},
-                {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1},
-                {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0},
+                {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0}, // 0
+                {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0}, // 1
+                {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0}, // 2
+                {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0}, // 3
+                {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1}, // 4
+                {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1}, // 5
+                {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0}  // 6
             };
 
-            ubloxSendSetCfgBytes(rateValues, 5);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
 
-            // Try to enable SIG
-            ubloxSendSetCfgBytes(rateValues+5, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-            gpsState.flags.sig = _ack_state == UBX_ACK_GOT_ACK;
+            ubloxSendSetCfgBytes(rateValues, 7);
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
-            // Try to enable SAT if SIG fails
-            rateValues[6].value = gpsState.flags.sig ? 0 : 1;
-            ubloxSendSetCfgBytes(rateValues+6, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-            gpsState.flags.sat = _ack_state == UBX_ACK_GOT_ACK ? rateValues[6].value : 0;
-
-        } else {
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
-
-            // NAV-SIG is available from 23.1 onwards, NAV-SAT from 15.0 to 23.1
-            configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, ubloxVersionGTE(15,0));
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            gpsState.flags.sat = ubloxVersionGTE(15, 0);
-
-            gpsState.flags.sig = 0;
-        }
 
         if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
             configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
@@ -972,91 +945,41 @@ STATIC_PROTOTHREAD(gpsConfigure)
             configureRATE(hz2rate(5)); // 5Hz
             ptWait(_ack_state == UBX_ACK_GOT_ACK);
         }
-    }
-    else {
-        // u-Blox 5/6/7/8 or unknown
-        // u-Blox 7-8 support PVT
-        if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7) {
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    } else {
+        configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            gpsState.flags.pvt = _ack_state == UBX_ACK_GOT_ACK;
+        // Protocol < 23.01 does not have MSG_PVT
+        //configureMSG(MSG_CLASS_UBX, MSG_PVT, 0);
+        //ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        // This may fail on old UBLOX units, advance forward on both ACK and NAK
+        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
-            //if(ubloxVersionGTE(15,0) && ubloxVersionLTE(23, 1))
-            // Needed for satelite information on older devices
-            configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK ||
-                   _ack_state == UBX_ACK_GOT_NAK);
-            if (_ack_state == UBX_ACK_GOT_ACK) {
-                gpsState.flags.sat = 1;
-            } else {
-                gpsState.flags.sat = 0;
-            }
+        configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-            if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
-                configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
-            }
-            else {
-                configureRATE(hz2rate(5)); // 5Hz
-            }
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+        // Configure data rate to 5HZ
+        configureRATE(hz2rate(5));
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    }// end message config
 
-            if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
-                configureRATE(hz2rate(5)); // 5Hz
-                ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            }
-        }
-        // u-Blox 5/6 doesn't support PVT, use legacy config
-        // UNKNOWN also falls here, use as a last resort
-        else {
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            // This may fail on old UBLOX units, advance forward on both ACK and NAK
-            configureMSG(MSG_CLASS_UBX, MSG_PVT, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            // Configure data rate to 5HZ
-            configureRATE(200);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-        }
-    }
-
-    DEBUG_SET(DEBUG_GPS, 5, gpsState.flags.pvt);
-    DEBUG_SET(DEBUG_GPS, 6, gpsState.flags.sat);
-    DEBUG_SET(DEBUG_GPS, 7, gpsState.flags.sig);
+    gpsState.flags.pvt = 0;
+    gpsState.flags.sat = 0;
+    gpsState.flags.sig = 0;
 
     // Configure SBAS
     // If particular SBAS setting is not supported by the hardware we'll get a NAK,
