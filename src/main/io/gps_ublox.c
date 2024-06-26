@@ -1233,29 +1233,29 @@ const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index)
     return NULL;
 }
 
-bool ubloxVersionLT(uint8_t mj2, uint8_t mn2)
+bool ubloxVersionLT(uint8_t mj, uint8_t mn)
 {
-    return gpsState.swVersionMajor < mj2 || (gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor < mn2);
+    return gpsState.swVersionMajor < mj || (gpsState.swVersionMajor == mj && gpsState.swVersionMinor < mn);
 }
 
-bool ubloxVersionGT(uint8_t mj2, uint8_t mn2)
+bool ubloxVersionGT(uint8_t mj, uint8_t mn)
 {
-    return gpsState.swVersionMajor > mj2 || (gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor > mn2);
+    return gpsState.swVersionMajor > mj || (gpsState.swVersionMajor == mj && gpsState.swVersionMinor > mn);
 }
 
-bool ubloxVersionGTE(uint8_t mj2, uint8_t mn2)
+bool ubloxVersionGTE(uint8_t mj, uint8_t mn)
 {
-    return ubloxVersionGT(mj2, mn2) || ubloxVersionE(mj2, mn2);
+    return ubloxVersionGT(mj, mn) || ubloxVersionE(mj, mn);
 }
 
-bool ubloxVersionLTE(uint8_t mj2, uint8_t mn2)
+bool ubloxVersionLTE(uint8_t mj, uint8_t mn)
 {
-    return ubloxVersionLT(mj2, mn2) || ubloxVersionE(mj2, mn2);
+    return ubloxVersionLT(mj, mn) || ubloxVersionE(mj, mn);
 }
 
-bool ubloxVersionE(uint8_t mj2, uint8_t mn2)
+bool ubloxVersionE(uint8_t mj, uint8_t mn)
 {
-    return gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor == mn2;
+    return gpsState.swVersionMajor == mj && gpsState.swVersionMinor == mn;
 }
 
 #endif

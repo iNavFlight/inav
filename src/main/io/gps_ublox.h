@@ -469,11 +469,11 @@ bool isGpsUblox(void);
 
 const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index);
 
-bool ubloxVersionLTE(uint8_t mj2, uint8_t mn2);
-bool ubloxVersionLT(uint8_t mj2, uint8_t mn2);
-bool ubloxVersionGT(uint8_t mj2, uint8_t mn2);
-bool ubloxVersionGTE(uint8_t mj2, uint8_t mn2);
-bool ubloxVersionE(uint8_t mj2, uint8_t mn2);
+bool ubloxVersionLTE(uint8_t mj, uint8_t mn);
+bool ubloxVersionLT(uint8_t mj, uint8_t mn);
+bool ubloxVersionGT(uint8_t mj, uint8_t mn);
+bool ubloxVersionGTE(uint8_t mj, uint8_t mn);
+bool ubloxVersionE(uint8_t mj, uint8_t mn);
 
 #ifdef __cplusplus
 }
