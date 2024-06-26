@@ -1253,7 +1253,7 @@ bool ubloxVersionLTE(uint8_t mj2, uint8_t mn2)
     return ubloxVersionLT(mj2, mn2) || ubloxVersionE(mj2, mn2);
 }
 
-bool ubloxVersionE(uint8_t mj1, uint8_t mn1, uint8_t mj2, uint8_t mn2)
+bool ubloxVersionE(uint8_t mj2, uint8_t mn2)
 {
     return gpsState.swVersionMajor == mj2 && gpsState.swVersionMinor == mn2;
 }
