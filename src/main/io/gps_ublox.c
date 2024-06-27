@@ -1033,6 +1033,11 @@ STATIC_PROTOTHREAD(gpsConfigure)
         }
     }
 
+	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
+	{
+		satelites[i].svId = 0xFF;
+	}
+
     ptEnd(0);
 }
 
