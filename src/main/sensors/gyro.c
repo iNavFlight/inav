@@ -88,6 +88,9 @@ STATIC_FASTRAM filter_t gyroLpfState[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr gyroLpf2ApplyFn;
 STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 
+STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
+STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
+
 #ifdef USE_DYNAMIC_FILTERS
 
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
