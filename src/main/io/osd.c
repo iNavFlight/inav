@@ -224,7 +224,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 12);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
 
 void osdStartedSaveProcess(void) {
@@ -2513,6 +2513,121 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
+    case OSD_FORMATION_FLIGHT:
+    {
+        static uint8_t currentPeerIndex = 0;
+        static timeMs_t lastPeerSwitch;
+
+        if ((STATE(GPS_FIX) && isImuHeadingValid())) {
+            if ((radar_pois[currentPeerIndex].gps.lat == 0 || radar_pois[currentPeerIndex].gps.lon == 0 || radar_pois[currentPeerIndex].state >= 2) || (millis() > (osdConfig()->radar_peers_display_time * 1000) + lastPeerSwitch)) {
+                lastPeerSwitch = millis();
+
+                for(uint8_t i = 1; i < RADAR_MAX_POIS - 1; i++) {
+                    uint8_t nextPeerIndex = (currentPeerIndex + i) % (RADAR_MAX_POIS - 1);
+                    if (radar_pois[nextPeerIndex].gps.lat != 0 && radar_pois[nextPeerIndex].gps.lon != 0 && radar_pois[nextPeerIndex].state < 2) {
+                        currentPeerIndex = nextPeerIndex;
+                        break;
+                    }
+                }
+            }
+
+            radar_pois_t *currentPeer = &(radar_pois[currentPeerIndex]);
+            if (currentPeer->gps.lat != 0 && currentPeer->gps.lon != 0 && currentPeer->state < 2) {
+                fpVector3_t poi;
+                geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &currentPeer->gps, GEO_ALT_RELATIVE);
+
+                currentPeer->distance = calculateDistanceToDestination(&poi) / 100; // In m
+                currentPeer->altitude = (int16_t )((currentPeer->gps.alt - osdGetAltitudeMsl()) / 100);
+                currentPeer->direction = (int16_t )(calculateBearingToDestination(&poi) / 100); // In °
+
+                int16_t panServoDirOffset = 0;
+                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                    panServoDirOffset = osdGetPanServoOffset();
+                }
+
+                //line 1
+                //[peer heading][peer ID][LQ][direction to peer]
+
+                //[peer heading]
+                int relativePeerHeading = osdGetHeadingAngle(currentPeer->heading - (int)DECIDEGREES_TO_DEGREES(osdGetHeading()));
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY, SYM_DECORATION + ((relativePeerHeading + 22) / 45) % 8);
+
+                //[peer ID]
+                displayWriteChar(osdDisplayPort, elemPosX + 1, elemPosY, 65 + currentPeerIndex);
+
+                //[LQ]
+                displayWriteChar(osdDisplayPort, elemPosX + 2, elemPosY, SYM_HUD_SIGNAL_0 + currentPeer->lq);
+
+                //[direction to peer]
+                int directionToPeerError = wrap_180(osdGetHeadingAngle(currentPeer->direction) + panServoDirOffset - (int)DECIDEGREES_TO_DEGREES(osdGetHeading()));
+                uint16_t iconIndexOffset = constrain(((directionToPeerError + 180) / 30), 0, 12);
+                if (iconIndexOffset == 12) {
+                    iconIndexOffset = 0; // Directly behind
+                }
+                displayWriteChar(osdDisplayPort, elemPosX + 3, elemPosY, SYM_HUD_CARDINAL + iconIndexOffset);
+
+
+                //line 2
+                switch ((osd_unit_e)osdConfig()->units) {
+                    case OSD_UNIT_UK:
+                                FALLTHROUGH;
+                    case OSD_UNIT_IMPERIAL:
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(currentPeer->distance * 100), FEET_PER_MILE, 0, 4, 4, false);
+                        break;
+                    case OSD_UNIT_GA:
+                        osdFormatCentiNumber(buff, CENTIMETERS_TO_CENTIFEET(currentPeer->distance * 100), (uint32_t)FEET_PER_NAUTICALMILE, 0, 4, 4, false);
+                        break;
+                    default:
+                                FALLTHROUGH;
+                    case OSD_UNIT_METRIC_MPH:
+                                FALLTHROUGH;
+                    case OSD_UNIT_METRIC:
+                        osdFormatCentiNumber(buff, currentPeer->distance * 100, METERS_PER_KILOMETER, 0, 4, 4, false);
+                        break;
+                }
+                displayWrite(osdDisplayPort, elemPosX, elemPosY + 1, buff);
+
+
+                //line 3
+                displayWriteChar(osdDisplayPort, elemPosX, elemPosY + 2, (currentPeer->altitude >= 0) ? SYM_AH_DECORATION_UP : SYM_AH_DECORATION_DOWN);
+
+                int altc = currentPeer->altitude;
+                switch ((osd_unit_e)osdConfig()->units) {
+                    case OSD_UNIT_UK:
+                                FALLTHROUGH;
+                    case OSD_UNIT_GA:
+                                FALLTHROUGH;
+                    case OSD_UNIT_IMPERIAL:
+                        // Convert to feet
+                        altc = CENTIMETERS_TO_FEET(altc * 100);
+                        break;
+                    default:
+                                FALLTHROUGH;
+                    case OSD_UNIT_METRIC_MPH:
+                                FALLTHROUGH;
+                    case OSD_UNIT_METRIC:
+                        // Already in metres
+                        break;
+                }
+
+                altc = ABS(constrain(altc, -999, 999));
+                tfp_sprintf(buff, "%3d", altc);
+                displayWrite(osdDisplayPort, elemPosX + 1, elemPosY + 2, buff);
+
+                return true;
+            }
+        }
+
+        //clear screen
+        for(uint8_t i = 0; i < 4; i++){
+            displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY, SYM_BLANK);
+            displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY + 1, SYM_BLANK);
+            displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY + 2, SYM_BLANK);
+        }
+
+        return true;
+    }
+
     case OSD_CROSSHAIRS: // Hud is a sub-element of the crosshair
 
         osdCrosshairPosition(&elemPosX, &elemPosY);
@@ -3930,7 +4045,9 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
 
     .stats_energy_unit = SETTING_OSD_STATS_ENERGY_UNIT_DEFAULT,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
-    .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT
+    .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,
+
+    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)

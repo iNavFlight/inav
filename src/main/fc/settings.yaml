@@ -119,7 +119,7 @@ tables:
   - name: filter_type
     values: ["PT1", "BIQUAD"]
   - name: filter_type_full
-    values: ["PT1", "BIQUAD", "PT2", "PT3"]
+    values: ["PT1", "BIQUAD", "PT2", "PT3", "LULU"]
   - name: log_level
     values: ["ERROR", "WARNING", "INFO", "VERBOSE", "DEBUG"]
   - name: iterm_relax
@@ -192,7 +192,7 @@ tables:
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
-    values: ["STATIC", "DYNAMIC", "ADAPTIVE"]
+    values: ["STATIC", "DYNAMIC", "ADAPTIVE", "LULU"]
     enum: gyroFilterType_e
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]
@@ -219,13 +219,18 @@ groups:
     members:
       - name: looptime
         description: "This is the main loop time (in us). Changing this affects PID effect with some PID controllers (see PID section for details). A very conservative value of 3500us/285Hz should work for everyone. Setting it to zero does not limit loop time, so it will go as fast as possible."
-        default_value: 1000
+        default_value: 500
         max: 9000
       - name: gyro_anti_aliasing_lpf_hz
         description: "Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz"
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
+      - name: gyro_lulu_sample_count
+        description: "Gyro lulu sample count, in number of samples."
+        default_value: 3
+        field: gyroLuluSampleCount
+        max: 15
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
         default_value: 60
@@ -3504,6 +3509,12 @@ groups:
       - name: osd_hud_radar_distance_display_time
         description: "Time in seconds to display the distance in radar"
         field: hud_radar_distance_display_time
+        min: 1
+        max: 10
+        default_value: 3
+      - name: osd_radar_peers_display_time
+        description: "Time in seconds to display next peer "
+        field: radar_peers_display_time
         min: 1
         max: 10
         default_value: 3
