@@ -1414,18 +1414,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         break;
 
-    case MSP_POSITION_ESTIMATION_CONFIG:
-
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_baro_p * 100); //     inav_w_z_baro_p float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_p * 100);  // 2   inav_w_z_gps_p  float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_v * 100);  // 2   inav_w_z_gps_v  float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_p * 100); // 2   inav_w_xy_gps_p float as value * 100
-        sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_v * 100); // 2   inav_w_xy_gps_v float as value * 100
-        sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1
-        sbufWriteU8(dst, 1);    // 1   inav_use_gps_velned ON/OFF
-
-        break;
-
     case MSP_REBOOT:
         if (!ARMING_FLAG(ARMED)) {
             if (mspPostProcessFn) {
@@ -2519,19 +2507,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 sbufReadU16(src);
             }
 #endif
-        } else
-            return MSP_RESULT_ERROR;
-        break;
-
-    case MSP_SET_POSITION_ESTIMATION_CONFIG:
-        if (dataSize == 12) {
-            positionEstimationConfigMutable()->w_z_baro_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_z_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_z_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_xy_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            positionEstimationConfigMutable()->w_xy_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
-            gpsConfigMutable()->gpsMinSats = constrain(sbufReadU8(src), 5, 10);
-            sbufReadU8(src); // was positionEstimationConfigMutable()->use_gps_velned
         } else
             return MSP_RESULT_ERROR;
         break;
