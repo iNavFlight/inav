@@ -1,10 +1,10 @@
 # INAV Programming Framework
 
-INAV Programming Framework (IPF) is a mechanism that allows you to to create 
+INAV Programming Framework (IPF) is a mechanism that allows you to to create
 custom functionality in INAV. You can choose for certain actions to be done,
 based on custom conditions you select.
 
-Logic conditions can be based on things such as RC channel values, switches, altitude, 
+Logic conditions can be based on things such as RC channel values, switches, altitude,
 distance, timers, etc. The conditions you create  can also make use of other conditions
 you've entered previously.
 The results can be used in:
@@ -56,8 +56,8 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 9             | XOR                           | `true` if `Operand A` or `Operand B` is `true`, but not both |
 | 10            | NAND                          | `false` if `Operand A` and `Operand B` are both `true`|
 | 11            | NOR                           | `true` if `Operand A` and `Operand B` are both `false` |
-| 12            | NOT                           | The boolean opposite to `Operand A` |         
-| 13            | Sticky                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|         
+| 12            | NOT                           | The boolean opposite to `Operand A` |
+| 13            | Sticky                        | `Operand A` is the activation operator, `Operand B` is the deactivation operator. After the activation is `true`, the operator will return `true` until Operand B is evaluated as `true`|
 | 14            | Basic: Add                    | Add `Operand A` to `Operand B` and returns the result |
 | 15            | Basic: Subtract               | Substract `Operand B` from `Operand A` and returns the result |
 | 16            | Basic: Multiply               | Multiply `Operand A` by `Operand B` and returns the result |
@@ -147,7 +147,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 26            | Stabilized Pitch                      | Pitch PID controller output `[-500:500]` |
 | 27            | Stabilized Yaw                        | Yaw PID controller output `[-500:500]` |
 | 28            | 3D home distance [m]                  | 3D distance to home in `meters`. Calculated from Home distance and Altitude using Pythagorean theorem |
-| 29            | CRSF LQ                               | Link quality as returned by the CRSF protocol | 
+| 29            | CRSF LQ                               | Link quality as returned by the CRSF protocol |
 | 30            | CRSF SNR                              | SNR as returned by the CRSF protocol |
 | 31            | GPS Valid Fix                         | Boolean `0`/`1`. True when the GPS has a valid 3D Fix |
 | 32            | Loiter Radius [cm]                    | The current loiter radius in cm. |
@@ -161,6 +161,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 40            | Yaw [deg]                             | Current heading (yaw) in `degrees` |
 | 41            | FW Land Sate                          | Integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
 | 42            | Current battery profile               | The active battery profile. Integer `[1..MAX_PROFILE_COUNT]` |
+| 43            | Flown Loiter Radius [m]               | The actual loiter radius flown by a fixed wing during hold modes, in `meters` |
 
 #### FLIGHT_MODE
 
@@ -183,7 +184,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | 12            | USER 3            | `true` when the **USER 3** mode is active. |
 | 13            | USER 4            | `true` when the **USER 4** mode is active. |
 | 14            | Acro              | `true` when you are in the **Acro** flight mode. |
-| 15            | Waypoint Mission  | `true` when you are in the **WP Mission** flight mode. | 
+| 15            | Waypoint Mission  | `true` when you are in the **WP Mission** flight mode. |
 
 #### WAYPOINTS
 
@@ -216,7 +217,7 @@ The flight mode operands return `true` when the mode is active. These are modes 
 | JUMP          | 6     |
 | SET_HEAD      | 7     |
 | LAND          | 8     |
-    
+
 ### Flags
 
 All flags are reseted on ARM and DISARM event.
@@ -333,7 +334,7 @@ Steps:
 
 ## Common issues / questions about IPF
 
-One common mistake involves setting RC channel values. To override (set) the 
+One common mistake involves setting RC channel values. To override (set) the
 value of a specific RC channel, choose "Override RC value", then for operand A
 choose *value* and enter the channel number. Choosing "get RC value" is a common mistake,
 which does something other than what you probably want.

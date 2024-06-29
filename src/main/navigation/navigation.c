@@ -5074,5 +5074,12 @@ bool canFwLandingBeCancelled(void)
 {
     return FLIGHT_MODE(NAV_FW_AUTOLAND) && posControl.navState != NAV_STATE_FW_LANDING_FLARE;
 }
-
 #endif
+uint16_t getFlownLoiterRadius(void)
+{
+    if (STATE(AIRPLANE) && navGetCurrentStateFlags() & NAV_CTL_HOLD) {
+        return CENTIMETERS_TO_METERS(calculateDistanceToDestination(&posControl.desiredState.pos));
+    }
+
+    return 0;
+}
