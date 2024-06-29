@@ -83,6 +83,14 @@ static gimbalDevice_t serialGimbalDevice = {
     .currentPanPWM = PWM_RANGE_MIDDLE
 };
 
+static gimbalSerialState_t serialGimbalState = {
+    .lastPan = 0,
+    .lastTilt = 0,
+    .lastRoll = 0,
+    .lastUpdate = 0,
+    .lastSensitivity = 0,
+};
+
 #if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_SERIAL))
 
 static headTrackerVTable_t headTrackerVTable = {
@@ -247,11 +255,42 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
             attitude.roll = constrain(gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, PWM_RANGE_MIDDLE + cfg->rollTrim), HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
             DEBUG_SET(DEBUG_HEADTRACKING, 4, -1);
         }
+
+        serialGimbalState.lastUpdate = currentTime;
+        serialGimbalState.lastSensitivity = gimbalConfig()->sensitivity;
+        // make sure to update gimbal when mode changes, even with jitter prevention
+        serialGimbalState.lastPan = 0;
+        serialGimbalState.lastTilt = 0;
+        serialGimbalState.lastRoll = 0;
     } else {
 #else
     {
 #endif
         DEBUG_SET(DEBUG_HEADTRACKING, 4, 0);
+
+        if (gimbalConfig()->jitterReduction) {
+            bool sendUpdate = false;
+            if (gimbalCheckDeadband(serialGimbalState.lastPan, panPWM)) {
+                sendUpdate = true;
+            } else if (gimbalCheckDeadband(serialGimbalState.lastTilt, tiltPWM)) {
+                sendUpdate = true;
+            } else if (gimbalCheckDeadband(serialGimbalState.lastRoll, rollPWM)) {
+                sendUpdate = true;
+            } else if (gimbalConfig()->minUpdateRate > 0 && (currentTime - serialGimbalState.lastUpdate) > HZ2US(gimbalConfig()->minUpdateRate)) {
+                sendUpdate = true;
+            } else if(serialGimbalState.lastSensitivity != gimbalConfig()->sensitivity) {
+                sendUpdate = true;
+            }
+
+            if (!sendUpdate) return;
+        }
+
+        serialGimbalState.lastUpdate = currentTime;
+        serialGimbalState.lastPan = panPWM;
+        serialGimbalState.lastTilt = tiltPWM;
+        serialGimbalState.lastRoll = rollPWM;
+        serialGimbalState.lastSensitivity = gimbalConfig()->sensitivity;
+
         // Radio endpoints may need to be adjusted, as it seems ot go a bit
         // bananas at the extremes
         attitude.pan = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, panPWM);

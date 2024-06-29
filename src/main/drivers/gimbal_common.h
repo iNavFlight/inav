@@ -65,6 +65,9 @@ typedef struct gimbalConfig_s {
     uint16_t panTrim;
     uint16_t tiltTrim;
     uint16_t rollTrim;
+    bool jitterReduction;
+    uint8_t inputDeadBand;
+    uint8_t minUpdateRate;
 } gimbalConfig_t;
 
 PG_DECLARE(gimbalConfig_t, gimbalConfig);
@@ -96,6 +99,8 @@ bool gimbalCommonIsEnabled(void);
 bool gimbalCommonHtrkIsEnabled(void);
 
 int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice);
+
+bool gimbalCheckDeadband(uint16_t oldValue, uint16_t newValue);
 
 #ifdef __cplusplus
 }
