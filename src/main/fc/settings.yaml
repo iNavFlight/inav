@@ -1971,6 +1971,27 @@ groups:
         default_value: "PT2"
         field: dterm_lpf_type
         table: filter_type_full
+      - name: dterm_predictor_strength
+        description: "The strength factor of a Smith Predictor of PID D-term. In percents"
+        default_value: 0.5
+        field: dtermSmithPredictor
+        condition: USE_SMITH_PREDICTOR
+        min: 0
+        max: 1
+      - name: dterm_predictor_delay
+        description: "Expected delay of the dterm signal. In milliseconds"
+        default_value: 0
+        field: dtermSmithPredictorDelay
+        condition: USE_SMITH_PREDICTOR
+        min: 0
+        max: 8
+      - name: dterm_predictor_lpf_hz
+        description: "Cutoff frequency for the D-term Smith Predictor Low Pass Filter"
+        default_value: 50
+        field: dtermSmithPredictorFilterHz
+        condition: USE_SMITH_PREDICTOR
+        min: 1
+        max: 500
       - name: yaw_lpf_hz
         description: "Yaw P term low pass filter cutoff frequency. Should be disabled (set to `0`) on small multirotors (7 inches and below)"
         default_value: 0
@@ -2260,24 +2281,24 @@ groups:
         field: fixedWingLevelTrim
         min: -10
         max: 10
-      - name: smith_predictor_strength
+      - name: gyro_predictor_strength
         description: "The strength factor of a Smith Predictor of PID measurement. In percents"
         default_value: 0.5
-        field: smithPredictorStrength
+        field: measurementSmithPredictor
         condition: USE_SMITH_PREDICTOR
         min: 0
         max: 1
-      - name: smith_predictor_delay
+      - name: gyro_predictor_delay
         description: "Expected delay of the gyro signal. In milliseconds"
         default_value: 0
-        field: smithPredictorDelay
+        field: measurementSmithPredictorDelay
         condition: USE_SMITH_PREDICTOR
         min: 0
         max: 8
-      - name: smith_predictor_lpf_hz
+      - name: gyro_predictor_lpf_hz
         description: "Cutoff frequency for the Smith Predictor Low Pass Filter"
         default_value: 50
-        field: smithPredictorFilterHz
+        field: measurementSmithPredictorFilterHz
         condition: USE_SMITH_PREDICTOR
         min: 1
         max: 500

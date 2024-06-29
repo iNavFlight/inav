@@ -792,6 +792,36 @@ Defines the type of stage 1 D-term LPF filter. Possible values: `PT1`, `BIQUAD`,
 
 ---
 
+### dterm_predictor_delay
+
+Expected delay of the dterm signal. In milliseconds
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 8 |
+
+---
+
+### dterm_predictor_lpf_hz
+
+Cutoff frequency for the D-term Smith Predictor Low Pass Filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 1 | 500 |
+
+---
+
+### dterm_predictor_strength
+
+The strength factor of a Smith Predictor of PID D-term. In percents
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.5 | 0 | 1 |
+
+---
+
 ### dynamic_gyro_notch_3d_q
 
 Q factor for 3D dynamic notches
@@ -1799,6 +1829,36 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 | Default | Min | Max |
 | --- | --- | --- |
 | 60 | 0 | 500 |
+
+---
+
+### gyro_predictor_delay
+
+Expected delay of the gyro signal. In milliseconds
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 8 |
+
+---
+
+### gyro_predictor_lpf_hz
+
+Cutoff frequency for the Smith Predictor Low Pass Filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 1 | 500 |
+
+---
+
+### gyro_predictor_strength
+
+The strength factor of a Smith Predictor of PID measurement. In percents
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.5 | 0 | 1 |
 
 ---
 
@@ -5979,36 +6039,6 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
-
----
-
-### smith_predictor_delay
-
-Expected delay of the gyro signal. In milliseconds
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 8 |
-
----
-
-### smith_predictor_lpf_hz
-
-Cutoff frequency for the Smith Predictor Low Pass Filter
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 50 | 1 | 500 |
-
----
-
-### smith_predictor_strength
-
-The strength factor of a Smith Predictor of PID measurement. In percents
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0.5 | 0 | 1 |
 
 ---
 
