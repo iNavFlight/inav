@@ -135,7 +135,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .adaptiveFilterIntegratorThresholdLow  = SETTING_GYRO_ADAPTIVE_FILTER_INTEGRATOR_THRESHOLD_LOW_DEFAULT,
 #endif
     .gyroFilterMode = SETTING_GYRO_FILTER_MODE_DEFAULT,
-    .gyroLuluSampleCount = SETTING_GYRO_LULU_SAMPLE_COUNT_DEFAULT
+    .gyroLuluSampleCount = SETTING_GYRO_LULU_SAMPLE_COUNT_DEFAULT,
+    .gyroLuluEnabled = SETTING_GYRO_LULU_ENABLED_DEFAULT
 );
 
 STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHardware)
@@ -248,9 +249,9 @@ static void initGyroFilter(filterApplyFnPtr *applyFn, filter_t state[], uint16_t
 {
     *applyFn = nullFilterApply;
     if (cutoff > 0) {
+        *applyFn = (filterApplyFnPtr)pt1FilterApply;
         for (int axis = 0; axis < 3; axis++) {
             pt1FilterInit(&state[axis].pt1, cutoff, US2S(looptime));
-            *applyFn = (filterApplyFnPtr)pt1FilterApply;
         }
     }
 }
@@ -260,14 +261,17 @@ static void gyroInitFilters(void)
     //First gyro LPF running at full gyro frequency 8kHz
     initGyroFilter(&gyroLpfApplyFn, gyroLpfState, gyroConfig()->gyro_anti_aliasing_lpf_hz, getGyroLooptime());
 
-    /*
-    luluFilterInit(&state[axis].lulu, cutoff);
-    *applyFn = (filterApplyFnPtr)luluFilterApply;
-    
-    initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyroLuluSampleCount, getLooptime(), FILTER_LULU);
-    */
+    if (gyroConfig()->gyroLuluEnabled && gyroConfig()->gyroLuluSampleCount > 0) {
+        gyroLuluApplyFn = (filterApplyFnPtr)luluFilterApply;
 
-    if(gyroConfig()->gyroFilterMode != GYRO_FILTER_MODE_OFF) {
+        for (int axis = 0; axis < 3; axis++) {
+            luluFilterInit(&gyroLuluState[axis].lulu, gyroConfig()->gyroLuluSampleCount);
+        }
+    } else {
+        gyroLuluApplyFn = nullFilterApply;
+    }
+
+    if (gyroConfig()->gyroFilterMode != GYRO_FILTER_MODE_OFF) {
         initGyroFilter(&gyroLpf2ApplyFn, gyroLpf2State, gyroConfig()->gyro_main_lpf_hz, getLooptime());
     } else {
         gyroLpf2ApplyFn = nullFilterApply;
@@ -467,6 +471,17 @@ void FAST_CODE NOINLINE gyroFilter(void)
         gyroADCf = rpmFilterGyroApply(axis, gyroADCf);
 #endif
 
+        // LULU gyro filter
+        DEBUG_SET(DEBUG_LULU, axis, gyroADCf); //Pre LULU debug
+        float preLulu = gyroADCf;
+        gyroADCf = gyroLuluApplyFn((filter_t *) &gyroLuluState[axis], gyroADCf);
+        DEBUG_SET(DEBUG_LULU, axis + 3, gyroADCf); //Post LULU debug
+
+        if (axis == ROLL) {
+            DEBUG_SET(DEBUG_LULU, 6, gyroADCf - preLulu); //LULU delta debug
+        }
+
+        // Gyro Main LPF
         gyroADCf = gyroLpf2ApplyFn((filter_t *) &gyroLpf2State[axis], gyroADCf);
 
 #ifdef USE_ADAPTIVE_FILTER

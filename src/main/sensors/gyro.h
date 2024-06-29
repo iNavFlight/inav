@@ -105,6 +105,7 @@ typedef struct gyroConfig_s {
     uint8_t gyroFilterMode;
 
     uint8_t gyroLuluSampleCount;
+    bool gyroLuluEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

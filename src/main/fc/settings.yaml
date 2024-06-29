@@ -83,7 +83,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", "ADAPTIVE_FILTER", "HEADTRACKER" ]
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", "ADAPTIVE_FILTER", "HEADTRACKER", "LULU" ]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -226,10 +226,16 @@ groups:
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
+      - name: gyro_lulu_enabled
+        description: "Enable/disable gyro LULU filter"
+        default_value: OFF
+        field: gyroLuluEnabled
+        type: bool
       - name: gyro_lulu_sample_count
         description: "Gyro lulu sample count, in number of samples."
         default_value: 3
         field: gyroLuluSampleCount
+        min: 1
         max: 15
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
