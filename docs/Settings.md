@@ -1462,6 +1462,36 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
+### gimbal_jitter_deadband
+
+How much position change needs to happen, before considering it different from last position. Having a value to big will decrease gimbal precision. If your controls are not precise, it is better addressed in the radio.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20 |
+
+---
+
+### gimbal_jitter_min_update_rate
+
+Try to update gimbal position at least this many times a second. (Hz) 0 only sends command if inputs changed more than +/- gimbal_jitter_deadband.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 50 |
+
+---
+
+### gimbal_jitter_reduction
+
+Some gimbal reset the stabilization state when receiving a position command. When this setting is ON, only send commands to the gimbal is the position has changed.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gimbal_pan_channel
 
 Gimbal pan rc channel index. 0 is no channel.

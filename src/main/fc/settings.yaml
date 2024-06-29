@@ -4265,6 +4265,25 @@ groups:
         default_value: 0
         min: -500
         max: 500
+      - name: gimbal_jitter_reduction
+        description: "Some gimbal reset the stabilization state when receiving a position command. When this setting is ON, only send commands to the gimbal is the position has changed."
+        field: jitterReduction
+        type: bool
+        default_value: OFF
+      - name: gimbal_jitter_deadband
+        description: "How much position change needs to happen, before considering it different from last position. Having a value to big will decrease gimbal precision. If your controls are not precise, it is better addressed in the radio."
+        field: inputDeadBand
+        type: uint8_t
+        default_value: 0
+        min: 0
+        max: 20
+      - name: gimbal_jitter_min_update_rate
+        field: minUpdateRate
+        description: "Try to update gimbal position at least this many times a second. (Hz) 0 only sends command if inputs changed more than +/- gimbal_jitter_deadband."
+        type: uint8_t
+        default_value: 0
+        min: 0
+        max: 50
   - name: PG_GIMBAL_SERIAL_CONFIG
     type: gimbalSerialConfig_t
     headers: ["io/gimbal_serial.h"]

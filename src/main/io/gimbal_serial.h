@@ -68,6 +68,14 @@ typedef struct gimbalSerialConfig_s {
     bool singleUart;
 } gimbalSerialConfig_t;
 
+typedef struct gimablSerialState_s {
+    uint16_t lastPan;
+    uint16_t lastTilt;
+    uint16_t lastRoll;
+    timeUs_t lastUpdate;
+    uint8_t lastSensitivity;
+} gimbalSerialState_t;
+
 PG_DECLARE(gimbalSerialConfig_t, gimbalSerialConfig);
 
 int16_t gimbal_scale12(int16_t inputMin, int16_t inputMax, int16_t value);
