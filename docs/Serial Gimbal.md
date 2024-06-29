@@ -7,8 +7,7 @@ While these gimbals also support PWM as input, using the Serial protocol gives i
 The Serial Gimbal supports 2 differents inputs.
 
 ## PWM Channels
-This is the simplest way to control the Gimbal, and just lets the Gimbal use the value of a given RC PWM Channel. You can control all 3 gimbal axis, plust the Gimbal sensitivity. Unlike the raw PWM input, modes are controlled by INAV modes, instead of a PWM channels. If an rc channel is set to 0, that input will be ignore. So, if you setup the serial gimbal and don't assign any rc channels, it will stay centered, with default sensitivity and will obey the Gimbal MODES setup in the Modes tab.
-Since it is using rc channels as inputs, you can have a mixer in your radio and setup a head tracker in the traditional way, like you would with home made servo gimbal.
+This is the simplest way to control the Gimbal, as you can use your radio mixer and sliders to Control the gimbal by assigning RC channels to functions in the ```Configuration``` tab. You can control all 3 gimbal axis, plust the Gimbal sensitivity. Unlike the raw PWM input, gimbal modes are controlled by INAV modes and you can control roll channel as well, instead of wiring 4 servo outputs. If an rc channel is set to 0, that input will be ignore and will be equivalent to a centered RC channel. So, if you setup the serial gimbal and don't assign any rc channels, it will stay centered, with default sensitivity and will obey the Gimbal MODES setup in the Modes tab.
 
 ## Headtracker Input
 Headtracker input is only used when you have a Headtracker device configured and the ```Gimbal Headtracker``` mode is active. 
