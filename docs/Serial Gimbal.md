@@ -7,7 +7,7 @@ While these gimbals also support PWM as input, using the Serial protocol gives i
 The Serial Gimbal supports 2 differents inputs.
 
 ## PWM Channels
-This is the simplest way to control the Gimbal, as you can use your radio mixer and sliders to Control the gimbal by assigning RC channels to functions in the ```Configuration``` tab. You can control all 3 gimbal axis, plust the Gimbal sensitivity. Unlike the raw PWM input, gimbal modes are controlled by INAV modes and you can control roll channel as well, instead of wiring 4 servo outputs. If an rc channel is set to 0, that input will be ignore and will be equivalent to a centered RC channel. So, if you setup the serial gimbal and don't assign any rc channels, it will stay centered, with default sensitivity and will obey the Gimbal MODES setup in the Modes tab.
+This is the simplest way to control the Gimbal, as you can use your radio mixer and sliders to Control the gimbal by assigning RC channels to functions in the ```Configuration``` tab. You can control all 3 gimbal axis and unlike the raw PWM input, gimbal modes are controlled by INAV modes and you can control roll channel as well, instead of wiring 4 servo outputs. If an rc channel is set to 0, that input will be ignore and will be equivalent to a centered RC channel. So, if you setup the serial gimbal and don't assign any rc channels, it will stay centered, with default sensitivity and will obey the Gimbal MODES setup in the Modes tab.
 
 ## Headtracker Input
 Headtracker input is only used when you have a Headtracker device configured and the ```Gimbal Headtracker``` mode is active. 
@@ -30,3 +30,27 @@ This mode locks the camera tilt (pitch axis) and keeps it level with the horizon
 
 ## Gimbal Level Roll
 This mode locks the camera roll and keeps it level with the horizon. Rolling the aircraft will move the camera so it stays level with the horizon. It can be combined with ```Gimbal Level Tilt```.
+
+# Advanced settings
+The gimbal also supports some advanced settings not exposed in the configurator.
+
+## Gimbal Trim
+You can set a trim setting for the gimbal, the idea is that it will shift the notion of center of the gimbal, like a trim and let you setup a fixed camera up tilt, like you would have in a traditional fpv quad setup.
+
+```
+gimbal_pan_trim = 0
+Allowed range: -500 - 500
+
+gimbal_tilt_trim = 0
+Allowed range: -500 - 500
+
+gimbal_roll_trim = 0
+Allowed range: -500 - 500
+```
+
+## Gimbal and Headtracker on a single uart
+As INAV does not process any inputs from the Walksnail Gimbal, it is possible to share the uard with the Walksnail Headtracking output by connect the fc TX to the gimbal and RX to receive the headtracker input.
+```
+gimbal_serial_single_uart = OFF
+Allowed values: OFF, ON
+```
