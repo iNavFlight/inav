@@ -1200,26 +1200,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
-    case MSP_OSD_CONFIG:
-#ifdef USE_OSD
-        sbufWriteU8(dst, OSD_DRIVER_MAX7456); // OSD supported
-        // send video system (AUTO/PAL/NTSC)
-        sbufWriteU8(dst, osdConfig()->video_system);
-        sbufWriteU8(dst, osdConfig()->units);
-        sbufWriteU8(dst, osdConfig()->rssi_alarm);
-        sbufWriteU16(dst, currentBatteryProfile->capacity.warning);
-        sbufWriteU16(dst, osdConfig()->time_alarm);
-        sbufWriteU16(dst, osdConfig()->alt_alarm);
-        sbufWriteU16(dst, osdConfig()->dist_alarm);
-        sbufWriteU16(dst, osdConfig()->neg_alt_alarm);
-        for (int i = 0; i < OSD_ITEM_COUNT; i++) {
-            sbufWriteU16(dst, osdLayoutsConfig()->item_pos[0][i]);
-        }
-#else
-        sbufWriteU8(dst, OSD_DRIVER_NONE); // OSD not supported
-#endif
-        break;
-
     case MSP_3D:
         sbufWriteU16(dst, reversibleMotorsConfig()->deadband_low);
         sbufWriteU16(dst, reversibleMotorsConfig()->deadband_high);
@@ -2594,36 +2574,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
 
 #ifdef USE_OSD
-    case MSP_SET_OSD_CONFIG:
-        sbufReadU8Safe(&tmp_u8, src);
-        // set all the other settings
-        if ((int8_t)tmp_u8 == -1) {
-            if (dataSize >= 10) {
-                osdConfigMutable()->video_system = sbufReadU8(src);
-                osdConfigMutable()->units = sbufReadU8(src);
-                osdConfigMutable()->rssi_alarm = sbufReadU8(src);
-                currentBatteryProfileMutable->capacity.warning = sbufReadU16(src);
-                osdConfigMutable()->time_alarm = sbufReadU16(src);
-                osdConfigMutable()->alt_alarm = sbufReadU16(src);
-                // Won't be read if they weren't provided
-                sbufReadU16Safe(&osdConfigMutable()->dist_alarm, src);
-                sbufReadU16Safe(&osdConfigMutable()->neg_alt_alarm, src);
-            } else
-                return MSP_RESULT_ERROR;
-        } else {
-            // set a position setting
-            if ((dataSize >= 3) && (tmp_u8 < OSD_ITEM_COUNT)) // tmp_u8 == addr
-                osdLayoutsConfigMutable()->item_pos[0][tmp_u8] = sbufReadU16(src);
-            else
-                return MSP_RESULT_ERROR;
-        }
-        // Either a element position change or a units change needs
-        // a full redraw, since an element can change size significantly
-        // and the old position or the now unused space due to the
-        // size change need to be erased.
-        osdStartFullRedraw();
-        break;
-
     case MSP_OSD_CHAR_WRITE:
         if (dataSize >= 55) {
             osdCharacter_t chr;
