@@ -5454,7 +5454,7 @@ Selection of rangefinder hardware.
 
 ### rangefinder_median_filter
 
-3-point median filtering for rangefinder readouts
+5-point median filtering for rangefinder readouts
 
 | Default | Min | Max |
 | --- | --- | --- |

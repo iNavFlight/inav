@@ -496,7 +496,7 @@ groups:
         description: "Selection of rangefinder hardware."
         default_value: "NONE"
       - name: rangefinder_median_filter
-        description: "3-point median filtering for rangefinder readouts"
+        description: "5-point median filtering for rangefinder readouts"
         default_value: OFF
         field: use_median_filtering
         type: bool
