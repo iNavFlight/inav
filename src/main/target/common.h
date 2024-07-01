@@ -195,6 +195,11 @@
 #define USE_HEADTRACKER_SERIAL
 #define USE_HEADTRACKER_MSP
 
+#ifndef STM32F4
+// needs bi-direction inverter, no available on F4 hardware.
+#define USE_SBUS2_TELEMETRY
+#endif
+
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
 #define USE_VTX_FFPV

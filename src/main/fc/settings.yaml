@@ -23,7 +23,7 @@ tables:
     values: ["NONE", "SERIAL", "MSP", "SIM (SITL)"]
     enum: rxReceiverType_e
   - name: serial_rx
-    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK", "FBUS"]
+    values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK", "FBUS", "SBUS2"]
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD"]
   - name: motor_pwm_protocol

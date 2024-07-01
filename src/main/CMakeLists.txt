@@ -612,6 +612,8 @@ main_sources(COMMON_SRC
     telemetry/mavlink.h
     telemetry/msp_shared.c
     telemetry/msp_shared.h
+    telemetry/sbus2.c
+    telemetry/sbus2.h
     telemetry/smartport.c
     telemetry/smartport.h
     telemetry/sim.c

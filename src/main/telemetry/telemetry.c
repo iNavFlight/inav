@@ -245,6 +245,10 @@ void telemetryProcess(timeUs_t currentTimeUs)
 #ifdef USE_TELEMETRY_GHST
     handleGhstTelemetry(currentTimeUs);
 #endif
+
+#ifdef USE_TELMETRY_SBUS2
+    handleSbus2Telemetry(currentTimeUs);
+#endif
 }
 
 #endif

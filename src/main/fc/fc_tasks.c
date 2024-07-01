@@ -437,6 +437,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_HEADTRACKER, true);
 #endif
 
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    setTaskEnabled(TASK_TELEMETRY_SBUS2, rxConfig->serialrx_provider == SERIALRX_SBUS2);
+#endif
+
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (
         gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
@@ -723,6 +727,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskUpdateHeadTracker,
         .desiredPeriod = TASK_PERIOD_HZ(50),
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    [TASK_TELEMETRY_SBUS2] = {
+        .taskName = "SBUS2_TELEMETRY",
+        .taskFunc = taskSendSbus2Telemetry,
+        .desiredPeriod = TASK_PERIOD_US(300),
+        .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
 

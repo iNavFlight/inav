@@ -81,6 +81,7 @@ typedef enum {
     SERIALRX_GHST,
     SERIALRX_MAVLINK,
     SERIALRX_FBUS,
+    SERIALRX_SBUS2,
 } rxSerialReceiverType_e;
 
 #ifdef USE_24CHANNELS
