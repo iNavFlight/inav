@@ -187,9 +187,39 @@ static const char * const blackboxIncludeFlagNames[] = {
 };
 #endif
 
-/* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
+static const char *debugModeNames[DEBUG_COUNT] = {
+    "NONE",
+    "AGL",
+    "FLOW_RAW",
+    "FLOW",
+    "ALWAYS",
+    "SAG_COMP_VOLTAGE",
+    "VIBE",
+    "CRUISE",
+    "REM_FLIGHT_TIME",
+    "SMARTAUDIO",
+    "ACC",
+    "NAV_YAW",
+    "PCF8574",
+    "DYN_GYRO_LPF",
+    "AUTOLEVEL",
+    "ALTITUDE",
+    "AUTOTRIM",
+    "AUTOTUNE",
+    "RATE_DYNAMICS",
+    "LANDING",
+    "POS_EST",
+    "ADAPTIVE_FILTER",
+    "HEADTRACKER",
+    "GPS"
+};
+
+/* Sensor names (used in lookup tables for *_hardware settings and in status
+   command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
+static const char *const gyroNames[] = {
+    "NONE",     "AUTO",   "MPU6000",  "MPU6500", "MPU9250", "BMI160",
+    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -252,6 +282,7 @@ static void cliPrintLine(const char *str)
     cliPrint(str);
     cliPrintLinefeed();
 }
+
 
 static void cliPrintError(const char *str)
 {
@@ -3858,10 +3889,14 @@ static void cliStatus(char *cmdline)
     cliPrintLinefeed();
 #endif
 
-    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+    if (featureConfigured(FEATURE_GPS) && isGpsUblox()) {
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
         cliPrintLinefeed();
+        cliPrintLinef("  SATS: %i", gpsSol.numSat);
+        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
+        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
+        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
@@ -4259,6 +4294,131 @@ typedef struct {
 }
 #endif
 
+static void cliCmdDebug(char *arg)
+{
+    UNUSED(arg);
+    if (debugMode != DEBUG_NONE) {
+        cliPrintLinef("Debug fields: [%s (%i)]", debugMode < DEBUG_COUNT ? debugModeNames[debugMode] : "unknown", debugMode);
+        for (int i = 0; i < DEBUG32_VALUE_COUNT; i++) {
+            cliPrintLinef("debug[%d] = %d", i, debug[i]);
+        }
+    } else {
+        cliPrintLine("Debug mode is disabled");
+    }
+}
+
+
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_UBLOX)
+
+static const char* _ubloxGetSigId(uint8_t gnssId, uint8_t sigId)
+{
+    if(gnssId == 0) {
+        switch(sigId) {
+            case 0: return "GPS L1C/A";
+            case 3: return "GPS L2 CL";
+            case 4: return "GPS L2 CM";
+            case 6: return "GPS L5 I";
+            case 7: return "GPS L5 Q";
+            default: return "GPS Unknown";
+        }
+    } else if(gnssId == 1) {
+        switch(sigId) {
+            case 0: return "SBAS L1C/A";
+            default: return "SBAS Unknown";
+        }
+    } else if(gnssId == 2) {
+        switch(sigId) {
+            case 0: return "Galileo E1 C";
+            case 1: return "Galileo E1 B";
+            case 3: return "Galileo E5 al";
+            case 4: return "Galileo E5 aQ";
+            case 5: return "Galileo E5 bl";
+            case 6: return "Galileo E5 bQ";
+            default: return "Galileo Unknown";
+        }
+    } else if(gnssId == 3) {
+        switch(sigId) {
+            case 0: return "BeiDou B1I D1";
+            case 1: return "BeiDou B1I D2";
+            case 2: return "BeiDou B2I D1";
+            case 3: return "BeiDou B2I D2";
+            case 5: return "BeiDou B1C";
+            case 7: return "BeiDou B2a";
+            default: return "BeiDou Unknown";
+        }
+    } else if(gnssId == 5) {
+        switch(sigId) {
+            case 0: return "QZSS L1C/A";
+            case 1: return "QZSS L1S";
+            case 4: return "QZSS L2 CM";
+            case 5: return "QZSS L2 CL";
+            case 8: return "QZSS L5 I";
+            case 9: return "QZSS L5 Q";
+            default: return "QZSS Unknown";
+        }
+    } else if(gnssId == 6) {
+        switch(sigId) {
+            case 0: return "GLONASS L1 OF";
+            case 2: return "GLONASS L2 OF";
+            default: return "GLONASS Unknown";
+        }
+    }
+
+    return "Unknown GNSS/SigId";
+}
+
+static const char *_ubloxGetQuality(uint8_t quality)
+{
+    switch(quality) {
+        case 0: return "No signal";
+        case 1: return "Searching signal...";
+        case 2: return "Signal acquired";
+        case 3: return "Signal detected but unusable";
+        case 4: return "Code locked and time synch";
+        case 5:
+        case 6:
+        case 7: 
+            return "Code and carrier locked and time synch";
+        default: return "Unknown";
+    }
+}
+
+static void cliUbloxPrintSatelites(char *arg)
+{
+    UNUSED(arg);
+    if(!isGpsUblox() /*|| !(gpsState.flags.sig || gpsState.flags.sat)*/) {
+        cliPrint("GPS is not UBLOX or does not report satelites.");
+        return;
+    }
+
+    cliPrintLine("UBLOX Satelites");
+
+    for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
+    {
+        const ubx_nav_sig_info *sat = gpsGetUbloxSatelite(i);
+        if(sat == NULL) {
+            continue;
+        }
+
+        cliPrintLinef("satelite[%d]: %d:%d", i+1, sat->gnssId, sat->svId);
+        cliPrintLinef("sigId: %d (%s)", sat->sigId, _ubloxGetSigId(sat->gnssId, sat->sigId));
+        cliPrintLinef("signal strength: %i dbHz", sat->cno);
+        cliPrintLinef("quality: %i (%s)", sat->quality, _ubloxGetQuality(sat->quality));
+        //cliPrintLinef("Correlation: %i", sat->corrSource);
+        //cliPrintLinef("Iono model: %i", sat->ionoModel);
+        cliPrintLinef("signal flags: 0x%02X", sat->sigFlags);
+        if(sat->sigFlags & 0x01) {
+            cliPrintLine("signal: Healthy");
+        } else if (sat->sigFlags & 0x02) {
+            cliPrintLine("signal: Unhealthy");
+        } else {
+            cliPrintLine("signal: Unknown");
+        }
+        cliPrintLinefeed();
+    }
+}
+#endif
+
 static void cliHelp(char *cmdline);
 
 // should be sorted a..z for bsearch()
@@ -4318,6 +4478,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
+    CLI_COMMAND_DEF("gpssats", "show GPS satellites", NULL, cliUbloxPrintSatelites),
 #endif
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
@@ -4370,6 +4531,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
+    CLI_COMMAND_DEF("showdebug", "Show debug fields.", NULL, cliCmdDebug),
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
 #ifdef USE_TEMPERATURE_SENSOR

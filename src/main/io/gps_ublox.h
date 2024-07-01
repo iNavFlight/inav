@@ -28,7 +28,8 @@ extern "C" {
 
 #define GPS_CFG_CMD_TIMEOUT_MS              500
 #define GPS_VERSION_RETRY_TIMES             3
-#define MAX_UBLOX_PAYLOAD_SIZE              256
+#define UBLOX_MAX_SIGNALS                   32
+#define MAX_UBLOX_PAYLOAD_SIZE              640 // enough for anyone? // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS + 8 for (32 * 16) + 8 = 520 bytes
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
 #define GPS_CAPA_INTERVAL                   5000
@@ -55,6 +56,18 @@ extern "C" {
 #define UBX_HW_VERSION_UBLOX9   900
 #define UBX_HW_VERSION_UBLOX10  1000
 
+#define UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1   0x2091002a // U1
+#define UBLOX_CFG_MSGOUT_NAV_SAT_UART1      0x20910016 // U1
+#define UBLOX_CFG_MSGOUT_NAV_SIG_UART1      0x20910346 // U1
+#define UBLOX_CFG_MSGOUT_NAV_STATUS_UART1   0x2091001b // U1
+#define UBLOX_CFG_MSGOUT_NAV_VELNED_UART1   0x20910043 // U1
+#define UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1  0x2091005c // U1
+#define UBLOX_CFG_MSGOUT_NAV_PVT_UART1      0x20910007 // U1
+#define UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1  0x209100bb // U1
+#define UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1  0x209100ca // U1
+#define UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1  0x209100c0 // U1
+#define UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1  0x209100ac // U1
+#define UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1  0x209100b1 // U1
 
 #define UBLOX_CFG_SIGNAL_SBAS_ENA       0x10310020 // U1
 #define UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA  0x10310005 // U1
@@ -169,6 +182,34 @@ typedef struct {
     uint8_t reserved;
 } __attribute__((packed)) ubx_config_data_header_v1_t;
 
+typedef struct {
+    uint8_t gnssId;   // gnssid 0 = GPS, 1 = SBAS, 2 = GALILEO, 3 = BEIDOU, 4 = IMES, 5 = QZSS, 6 = GLONASS
+    uint8_t svId;     // space vehicle ID
+    uint8_t sigId;    // signal ID 
+    uint8_t freqId;   // 0-13 slot +, 0-13, glonass only
+    int16_t prRes;    // pseudo range residual (0.1m)
+    uint8_t cno;      // carrier to noise density ratio (dbHz)
+    uint8_t quality;  // 0 = no signal, 1 = search, 2 = acq, 3 = detected, 4 = code lock + time, 5,6,7 = code/carrier lock + time
+    uint8_t corrSource; // Correction source: 0 = no correction, 1 = SBAS, 2 = BeiDou, 3 = RTCM2, 4 = RTCM3 OSR, 5 = RTCM3 SSR, 6 = QZSS SLAS, 7 = SPARTN
+    uint8_t ionoModel;  // 0 = no mode, 1 = Klobuchar GPS, 2 = SBAS, 3 = Klobuchar BeiDou, 8 = Iono derived from dual frequency observations
+    uint16_t sigFlags;  // bit:0-1, 0 = unknown, 1 = healthy, 2 = unhealthy
+                        // bit2: pseudorange smoothed,
+                        // bit3: pseudorange used,
+                        // bit4: carrioer range used;
+                        // bit5: doppler used
+                        // bit6: pseudorange corrections used
+                        // bit7: carrier correction used
+                        // bit8: doper corrections used
+    uint8_t reserved;
+} __attribute__((packed)) ubx_nav_sig_info;
+
+typedef struct {
+    uint32_t time;              // GPS iToW
+    uint8_t version;            // We support version 0
+    uint8_t numSigs;            // number of signals
+    uint16_t reserved;
+    ubx_nav_sig_info sig[UBLOX_MAX_SIGNALS];  // 32 signals
+}  __attribute__((packed)) ubx_nav_sig;
 
 #define MAX_GNSS 7
 #define MAX_GNSS_SIZE_BYTES (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)*MAX_GNSS)
@@ -270,22 +311,21 @@ typedef struct {
 } ubx_nav_velned;
 
 typedef struct {
-    uint8_t chn;                // Channel number, 255 for SVx not assigned to channel
-    uint8_t svid;               // Satellite ID
-    uint8_t flags;              // Bitmask
-    uint8_t quality;            // Bitfield
+    uint8_t gnssId;             // Channel number, 255 for SVx not assigned to channel
+    uint8_t svId;               // Satellite ID
     uint8_t cno;                // Carrier to Noise Ratio (Signal Strength) // dbHz, 0-55.
-    uint8_t elev;               // Elevation in integer degrees
-    int16_t azim;               // Azimuth in integer degrees
-    int32_t prRes;              // Pseudo range residual in centimetres
+    int8_t elev;                // Elevation in integer degrees +/-90
+    int16_t azim;               // Azimuth in integer degrees 0-360
+    int16_t prRes;              // Pseudo range residual in .1m
+    uint32_t flags;              // Bitmask
 } ubx_nav_svinfo_channel;
 
 typedef struct {
-    uint32_t time;              // GPS Millisecond time of week
-    uint8_t numCh;              // Number of channels
-    uint8_t globalFlags;        // Bitmask, Chip hardware generation 0:Antaris, 1:u-blox 5, 2:u-blox 6
+    uint32_t itow;              // GPS Millisecond time of week
+    uint8_t version;            // Version = 0
+    uint8_t numSvs;             // (Space vehicle) Satelite count
     uint16_t reserved2;         // Reserved
-    ubx_nav_svinfo_channel channel[16];         // 16 satellites * 12 byte
+    ubx_nav_svinfo_channel channel[UBLOX_MAX_SIGNALS]; // UBLOX_MAX_SIGNALS satellites * 12 byte
 } ubx_nav_svinfo;
 
 typedef struct {
@@ -350,6 +390,8 @@ typedef struct {
     uint8_t reserverd3;
 } ubx_mon_gnss;
 
+
+
 typedef struct {
     uint8_t msg_class;
     uint8_t msg;
@@ -394,7 +436,8 @@ typedef enum {
     MSG_CFG_NAV_SETTINGS = 0x24,
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e,
-    MSG_MON_GNSS = 0x28
+    MSG_MON_GNSS = 0x28,
+    MSG_SIG_INFO = 0x43
 } ubx_protocol_bytes_t;
 
 typedef enum {
@@ -428,6 +471,13 @@ bool gpsUbloxSendCommand(uint8_t *rawCommand, uint16_t commandLen, uint16_t time
 
 bool isGpsUblox(void);
 
+const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index);
+
+bool ubloxVersionLTE(uint8_t mj, uint8_t mn);
+bool ubloxVersionLT(uint8_t mj, uint8_t mn);
+bool ubloxVersionGT(uint8_t mj, uint8_t mn);
+bool ubloxVersionGTE(uint8_t mj, uint8_t mn);
+bool ubloxVersionE(uint8_t mj, uint8_t mn);
 
 #ifdef __cplusplus
 }
