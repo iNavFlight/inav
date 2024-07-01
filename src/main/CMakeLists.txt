@@ -563,6 +563,8 @@ main_sources(COMMON_SRC
     io/vtx_control.h
     io/vtx_msp.c
     io/vtx_msp.h
+    io/vtx_table.c
+    io/vtx_table.h
 
     navigation/navigation.c
     navigation/navigation.h

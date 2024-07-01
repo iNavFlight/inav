@@ -97,6 +97,7 @@
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
+#include "io/vtx_table.h"
 #include "io/gps_private.h"  //for MSP_SIMULATOR
 #include "io/headtracker_msp.h"
 
@@ -1498,6 +1499,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
+
     case MSP_NAME:
         {
             const char *name = systemConfig()->craftName;
@@ -2728,6 +2730,81 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
         } else {
             return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
+#ifdef USE_VTX_TABLE
+    case MSP_SET_VTXTABLE_BAND:
+        {
+            char bandName[VTX_TABLE_BAND_NAME_LENGTH + 1];
+            memset(bandName, 0, VTX_TABLE_BAND_NAME_LENGTH + 1);
+            uint16_t frequencies[VTX_TABLE_MAX_CHANNELS];
+            const uint8_t band = sbufReadU8(src);
+            const uint8_t bandNameLength = sbufReadU8(src);
+            for (int i = 0; i < bandNameLength; i++) {
+                const char nameChar = sbufReadU8(src);
+                if (i < VTX_TABLE_BAND_NAME_LENGTH) {
+                    bandName[i] = toupper(nameChar);
+                }
+            }
+            const char bandLetter = toupper(sbufReadU8(src));
+            const bool isFactoryBand = (bool)sbufReadU8(src);
+            const uint8_t channelCount = sbufReadU8(src);
+            for (int i = 0; i < channelCount; i++) {
+                const uint16_t frequency = sbufReadU16(src);
+                if (i < vtxTableConfig()->channels) {
+                    frequencies[i] = frequency;
+                }
+            }
+
+            if (band > 0 && band <= vtxTableConfig()->bands) {
+                vtxTableStrncpyWithPad(vtxTableConfigMutable()->bandNames[band - 1], bandName, VTX_TABLE_BAND_NAME_LENGTH);
+                vtxTableConfigMutable()->bandLetters[band - 1] = bandLetter;
+                vtxTableConfigMutable()->isFactoryBand[band - 1] = isFactoryBand;
+                for (int i = 0; i < vtxTableConfig()->channels; i++) {
+                    vtxTableConfigMutable()->frequency[band - 1][i] = frequencies[i];
+                }
+                // If this is the currently selected band then reset the frequency
+                if (band == vtxSettingsConfig()->band) {
+                    uint16_t newChannel = 0;
+                    if (vtxSettingsConfig()->channel > 0 && vtxSettingsConfig()->channel <= vtxTableConfig()->channels) {
+                        newChannel = vtxSettingsConfig()->channel;
+                    }
+                    vtxSettingsConfigMutable()->channel = newChannel;
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), band, newChannel);
+                }
+                //vtxTableNeedsInit = true;  // reinintialize vtxtable after eeprom write
+            } else {
+                return MSP_RESULT_ERROR;
+            }
+            //setMspVtxDeviceStatusReady(srcDesc);
+        }
+        break;
+
+    case MSP_SET_VTXTABLE_POWERLEVEL:
+        {
+            char powerLevelLabel[VTX_TABLE_POWER_LABEL_LENGTH + 1];
+            memset(powerLevelLabel, 0, VTX_TABLE_POWER_LABEL_LENGTH + 1);
+            const uint8_t powerLevel = sbufReadU8(src);
+            const uint16_t powerValue = sbufReadU16(src);
+            const uint8_t powerLevelLabelLength = sbufReadU8(src);
+            for (int i = 0; i < powerLevelLabelLength; i++) {
+                const char labelChar = sbufReadU8(src);
+                if (i < VTX_TABLE_POWER_LABEL_LENGTH) {
+                    powerLevelLabel[i] = toupper(labelChar);
+                }
+            }
+
+            if (powerLevel > 0 && powerLevel <= vtxTableConfig()->powerLevels) {
+                vtxTableConfigMutable()->powerValues[powerLevel - 1] = powerValue;
+                vtxTableStrncpyWithPad(vtxTableConfigMutable()->powerLabels[powerLevel - 1], powerLevelLabel, VTX_TABLE_POWER_LABEL_LENGTH);
+                //vtxTableNeedsInit = true;  // reinintialize vtxtable after eeprom write
+                vtxCommonSetPowerByIndex(vtxCommonDevice(), powerLevel - 1);
+            } else {
+                return MSP_RESULT_ERROR;
+            }
+            //setMspVtxDeviceStatusReady(srcDesc);
         }
         break;
 #endif
@@ -4072,8 +4149,61 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             *ret = MSP_RESULT_ERROR;
         }
         break;
-#endif
+#endif 
 
+#ifdef USE_VTX_TABLE
+    case MSP_VTXTABLE_BAND:
+        {
+            const uint8_t band = sbufBytesRemaining(src) ? sbufReadU8(src) : 0;
+            if (band > 0 && band <= VTX_TABLE_MAX_BANDS) {
+                sbufWriteU8(dst, band);  // band number (same as request)
+                sbufWriteU8(dst,
+                            VTX_TABLE_BAND_NAME_LENGTH);  // band name length
+                for (int i = 0; i < VTX_TABLE_BAND_NAME_LENGTH;
+                     i++) {  // band name bytes
+                    sbufWriteU8(dst, vtxTableConfig()->bandNames[band - 1][i]);
+                }
+                sbufWriteU8(
+                    dst,
+                    vtxTableConfig()->bandLetters[band - 1]);  // band letter
+                sbufWriteU8(
+                    dst,
+                    vtxTableConfig()
+                        ->isFactoryBand[band - 1]);  // CUSTOM = 0; FACTORY = 1
+                sbufWriteU8(
+                    dst,
+                    vtxTableConfig()
+                        ->channels);  // number of channel frequencies to follow
+                for (int i = 0; i < vtxTableConfig()->channels;
+                     i++) {  // the frequency for each channel
+                    sbufWriteU16(dst, vtxTableConfig()->frequency[band - 1][i]);
+                }
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+            //setMspVtxDeviceStatusReady(srcDesc);
+        }
+        break;
+    case MSP_VTXTABLE_POWERLEVEL:
+        {
+            const uint8_t powerLevel = sbufBytesRemaining(src) ? sbufReadU8(src) : 0;
+            if (powerLevel > 0 && powerLevel <= VTX_TABLE_MAX_POWER_LEVELS) {
+                sbufWriteU8(dst, powerLevel);  // powerLevel number (same as request)
+                sbufWriteU16(dst, vtxTableConfig()->powerValues[powerLevel - 1]);
+                sbufWriteU8(dst, VTX_TABLE_POWER_LABEL_LENGTH); // powerLevel label length
+                for (int i = 0; i < VTX_TABLE_POWER_LABEL_LENGTH; i++) { // powerlevel label bytes
+                    sbufWriteU8(dst, vtxTableConfig()->powerLabels[powerLevel - 1][i]);
+                }
+                *ret = MSP_RESULT_ACK;
+            } else {
+                *ret = MSP_RESULT_ERROR;
+            }
+            //setMspVtxDeviceStatusReady(srcDesc);
+        }
+        break;
+#endif
+    
     default:
         // Not handled
         return false;
