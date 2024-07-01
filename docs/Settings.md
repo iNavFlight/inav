@@ -5592,16 +5592,6 @@ Exposition value used for the YAW axis by all the stabilized flights modes (all 
 
 ---
 
-### reboot_character
-
-Special character used to trigger reboot
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 82 | 48 | 126 |
-
----
-
 ### receiver_type
 
 Selection of receiver (RX) type. Additional configuration of a `serialrx_provider` and a UART will be needed for `SERIAL`

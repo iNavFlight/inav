@@ -1453,16 +1453,6 @@ groups:
         description: "The end  stick weight for Rate Dynamics"
         condition: USE_RATE_DYNAMICS
 
-  - name: PG_SERIAL_CONFIG
-    type: serialConfig_t
-    headers: ["io/serial.h"]
-    members:
-      - name: reboot_character
-        description: "Special character used to trigger reboot"
-        default_value: 82
-        min: 48
-        max: 126
-
   - name: PG_IMU_CONFIG
     type: imuConfig_t
     headers: ["flight/imu.h"]
