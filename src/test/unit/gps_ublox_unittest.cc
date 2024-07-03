@@ -96,5 +96,5 @@ TEST(GPSUbloxTest, navSigStructureSizes) {
 
     EXPECT_TRUE(sizeof(ubx_nav_svinfo_channel) == 12);
 
-    EXPECT_TRUE(sizeof(ubx_nav_svinfo) == (8 + (12 * UBLOX_MAX_SIGNALS);
+    EXPECT_TRUE(sizeof(ubx_nav_svinfo) == (8 + (12 * UBLOX_MAX_SIGNALS)));
 }
