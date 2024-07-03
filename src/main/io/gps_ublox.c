@@ -720,23 +720,32 @@ static bool gpsParseFrameUBLOX(void)
 
         }
         break;
-    case MSG_SIG_INFO:
+    case MSG_NAV_SIG:
         if (_class == CLASS_NAV && _buffer.navsig.version == 0) {
             static int sigInfoCount = 0;
             DEBUG_SET(DEBUG_GPS, 2, sigInfoCount++);
-            DEBUG_SET(DEBUG_GPS, 4, _buffer.navsig.numSigs);
             gpsState.flags.sig = 1;
+            //
+            //gpsSolDRV.numSat = _buffer.navSig.numSigs; // if good
+            int okSats = 0;
             if(_buffer.navsig.numSigs > 0) 
             {
                 for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
                 {
                     memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
+                    if ((_buffer.navsig.sig[i].sigFlags & UBLOX_SIG_HEALTH_MASK) == UBLOX_SIG_HEALTH_HEALTHY &&
+                        _buffer.navsig.sig[i].quality >= UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC)
+                    {
+                        okSats++;
+                    }
                 }
                 for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
                 {
                     satelites[i].svId = 0xFF; // no used
                 }
             }
+            //DEBUG_SET(DEBUG_GPS, 4, _buffer.navsig.numSigs);
+            DEBUG_SET(DEBUG_GPS, 4, okSats);
         }
         break;
     case MSG_ACK_ACK:

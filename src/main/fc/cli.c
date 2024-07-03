@@ -4370,15 +4370,15 @@ static const char* _ubloxGetSigId(uint8_t gnssId, uint8_t sigId)
 static const char *_ubloxGetQuality(uint8_t quality)
 {
     switch(quality) {
-        case 0: return "No signal";
-        case 1: return "Searching signal...";
-        case 2: return "Signal acquired";
-        case 3: return "Signal detected but unusable";
-        case 4: return "Code locked and time synch";
-        case 5:
-        case 6:
-        case 7: 
-            return "Code and carrier locked and time synch";
+        case UBLOX_SIG_QUALITY_NOSIGNAL: return "No signal";
+        case UBLOX_SIG_QUALITY_SEARCHING: return "Searching signal...";
+        case UBLOX_SIG_QUALITY_ACQUIRED: return "Signal acquired";
+        case UBLOX_SIG_QUALITY_UNUSABLE: return "Signal detected but unusable";
+        case UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC: return "Code locked and time sync";
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC:
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC2:
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3: 
+            return "Code and carrier locked and time sync";
         default: return "Unknown";
     }
 }
@@ -4407,12 +4407,17 @@ static void cliUbloxPrintSatelites(char *arg)
         //cliPrintLinef("Correlation: %i", sat->corrSource);
         //cliPrintLinef("Iono model: %i", sat->ionoModel);
         cliPrintLinef("signal flags: 0x%02X", sat->sigFlags);
-        if(sat->sigFlags & 0x01) {
-            cliPrintLine("signal: Healthy");
-        } else if (sat->sigFlags & 0x02) {
-            cliPrintLine("signal: Unhealthy");
-        } else {
-            cliPrintLine("signal: Unknown");
+        switch(sat->sigFlags & UBLOX_SIG_HEALTH_MASK) {
+            case UBLOX_SIG_HEALTH_HEALTHY:
+                cliPrintLine("signal: Healthy");
+                break;
+            case UBLOX_SIG_HEALTH_UNHEALTHY:
+                cliPrintLine("signal: Unhealthy");
+                break;
+            case UBLOX_SIG_HEALTH_UNKNOWN:
+            default:
+                cliPrintLinef("signal: Unknown (0x%X)", sat->sigFlags & UBLOX_SIG_HEALTH_MASK);
+                break;
         }
         cliPrintLinefeed();
     }

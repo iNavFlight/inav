@@ -21,6 +21,7 @@
 #include <stdbool.h>
 
 #include "common/time.h"
+#include "build/debug.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,8 +29,8 @@ extern "C" {
 
 #define GPS_CFG_CMD_TIMEOUT_MS              500
 #define GPS_VERSION_RETRY_TIMES             3
-#define UBLOX_MAX_SIGNALS                   32
-#define MAX_UBLOX_PAYLOAD_SIZE              640 // enough for anyone? // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS + 8 for (32 * 16) + 8 = 520 bytes
+#define UBLOX_MAX_SIGNALS                   64
+#define MAX_UBLOX_PAYLOAD_SIZE              1048 // enough for anyone? // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS * 16 + 8 for (64 * 16) + 8 = 1032 bytes
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
 #define GPS_CAPA_INTERVAL                   5000
@@ -182,6 +183,33 @@ typedef struct {
     uint8_t reserved;
 } __attribute__((packed)) ubx_config_data_header_v1_t;
 
+#define UBLOX_SIG_HEALTH_MASK   (BIT(0) | BIT(1))
+#define UBLOX_SIG_PRSMOOTHED    (BIT(2))
+#define UBLOX_SIG_PRUSED        (BIT(3))
+#define UBLOX_SIG_CRUSED        (BIT(4))
+#define UBLOX_SIG_DOUSED        (BIT(5))
+#define UBLOX_SIG_PRCORRUSED    (BIT(6))
+#define UBLOX_SIG_CRCORRUSED    (BIT(7))
+#define UBLOX_SIG_DOCORRUSED    (BIT(8))
+#define UBLOX_SIG_AUTHSTATUS    (BIT(9))
+
+typedef enum {
+    UBLOX_SIG_HEALTH_UNKNOWN = 0,
+    UBLOX_SIG_HEALTH_HEALTHY = 1,
+    UBLOX_SIG_HEALTH_UNHEALTHY = 2
+} ublox_nav_sig_health_e;
+
+typedef enum {
+    UBLOX_SIG_QUALITY_NOSIGNAL = 0,
+    UBLOX_SIG_QUALITY_SEARCHING = 1,
+    UBLOX_SIG_QUALITY_ACQUIRED = 2,
+    UBLOX_SIG_QUALITY_UNUSABLE = 3,
+    UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC = 4,
+    UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC = 5,
+    UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC2 = 6,
+    UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3 = 7,
+} ublox_nav_sig_quality;
+
 typedef struct {
     uint8_t gnssId;   // gnssid 0 = GPS, 1 = SBAS, 2 = GALILEO, 3 = BEIDOU, 4 = IMES, 5 = QZSS, 6 = GLONASS
     uint8_t svId;     // space vehicle ID
@@ -192,7 +220,7 @@ typedef struct {
     uint8_t quality;  // 0 = no signal, 1 = search, 2 = acq, 3 = detected, 4 = code lock + time, 5,6,7 = code/carrier lock + time
     uint8_t corrSource; // Correction source: 0 = no correction, 1 = SBAS, 2 = BeiDou, 3 = RTCM2, 4 = RTCM3 OSR, 5 = RTCM3 SSR, 6 = QZSS SLAS, 7 = SPARTN
     uint8_t ionoModel;  // 0 = no mode, 1 = Klobuchar GPS, 2 = SBAS, 3 = Klobuchar BeiDou, 8 = Iono derived from dual frequency observations
-    uint16_t sigFlags;  // bit:0-1, 0 = unknown, 1 = healthy, 2 = unhealthy
+    uint16_t sigFlags;  // bit:0-1 UBLOX_SIG_HEALTH_MASK
                         // bit2: pseudorange smoothed,
                         // bit3: pseudorange used,
                         // bit4: carrioer range used;
@@ -200,7 +228,7 @@ typedef struct {
                         // bit6: pseudorange corrections used
                         // bit7: carrier correction used
                         // bit8: doper corrections used
-    uint8_t reserved;
+    uint8_t reserved[4];
 } __attribute__((packed)) ubx_nav_sig_info;
 
 typedef struct {
@@ -429,7 +457,6 @@ typedef enum {
     MSG_TIMEUTC = 0x21,
     MSG_SVINFO = 0x30,
     MSG_NAV_SAT = 0x35,
-    MSG_NAV_SIG = 0x35,
     MSG_CFG_PRT = 0x00,
     MSG_CFG_RATE = 0x08,
     MSG_CFG_SET_RATE = 0x01,
@@ -437,7 +464,7 @@ typedef enum {
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e,
     MSG_MON_GNSS = 0x28,
-    MSG_SIG_INFO = 0x43
+    MSG_NAV_SIG = 0x43
 } ubx_protocol_bytes_t;
 
 typedef enum {

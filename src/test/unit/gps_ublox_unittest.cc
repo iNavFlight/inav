@@ -88,3 +88,9 @@ TEST(GPSUbloxTest, TestUbloxCfgFillBytes)
     // std::cout << "'" << buf << "'" << std::endl;
     //EXPECT_FALSE(strcmp(buf, " 123.45"));
 }
+
+TEST(GPSUbloxTest, navSigStructureSizes) {
+    EXPECT_TRUE(sizeof(ubx_nav_sig_info) == 16);
+
+    EXPECT_TRUE(sizeof(ubx_nav_sig) == (8 + (16 * UBLOX_MAX_SIGNALS)));
+}
