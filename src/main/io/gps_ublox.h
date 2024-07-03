@@ -21,6 +21,7 @@
 #include <stdbool.h>
 
 #include "common/time.h"
+#include "common/maths.h"
 #include "common/utils.h"
 #include "build/debug.h"
 
@@ -30,11 +31,15 @@ extern "C" {
 
 #define GPS_CFG_CMD_TIMEOUT_MS              500
 #define GPS_VERSION_RETRY_TIMES             3
+#ifndef UBLOX_MAX_SIGNALS
 #define UBLOX_MAX_SIGNALS                   64
-#define MAX_UBLOX_PAYLOAD_SIZE              1048 // enough for anyone? // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS * 16 + 8 for (64 * 16) + 8 = 1032 bytes
+#endif
+#define MAX_UBLOX_PAYLOAD_SIZE              ((UBLOX_MAX_SIGNALS * 16) + 8) // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS * 16 + 8
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
 #define GPS_CAPA_INTERVAL                   5000
+
+STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 
 #define UBX_DYNMODEL_PEDESTRIAN 3
 #define UBX_DYNMODEL_AUTOMOVITE 4
@@ -232,6 +237,8 @@ typedef struct {
     uint8_t reserved[4];
 } __attribute__((packed)) ubx_nav_sig_info;
 
+STATIC_ASSERT(sizeof(ubx_nav_sig_info) == 16, wrong_ubx_nav_sig_info_size);
+
 typedef struct {
     uint32_t time;              // GPS iToW
     uint8_t version;            // We support version 0
@@ -348,6 +355,8 @@ typedef struct {
     int16_t prRes;              // Pseudo range residual in .1m
     uint32_t flags;              // Bitmask
 } ubx_nav_svinfo_channel;
+
+STATIC_ASSERT(sizeof(ubx_nav_svinfo_channel) == 12, wrong_ubx_nav_svinfo_channel_size);
 
 typedef struct {
     uint32_t itow;              // GPS Millisecond time of week
