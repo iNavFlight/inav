@@ -21,6 +21,7 @@
 #include <stdbool.h>
 
 #include "common/time.h"
+#include "common/utils.h"
 #include "build/debug.h"
 
 #ifdef __cplusplus
@@ -350,7 +351,7 @@ typedef struct {
 
 typedef struct {
     uint32_t itow;              // GPS Millisecond time of week
-    uint8_t version;            // Version = 0
+    uint8_t version;            // Version = 0-1
     uint8_t numSvs;             // (Space vehicle) Satelite count
     uint16_t reserved2;         // Reserved
     ubx_nav_svinfo_channel channel[UBLOX_MAX_SIGNALS]; // UBLOX_MAX_SIGNALS satellites * 12 byte

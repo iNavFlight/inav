@@ -705,19 +705,11 @@ static bool gpsParseFrameUBLOX(void)
             }
 
             for(int i =0; i < MIN(_buffer.svinfo.numSvs, UBLOX_MAX_SIGNALS); ++i) {
-                satelites[i].svId = _buffer.svinfo.channel[i].svId;
-                satelites[i].gnssId = _buffer.svinfo.channel[i].gnssId;
-                satelites[i].sigId = 0;
-                satelites[i].cno = _buffer.svinfo.channel[i].cno;
-                satelites[i].cno = _buffer.svinfo.channel[i].flags;
-                satelites[i].quality = _buffer.svinfo.channel[i].flags & 0x3;
-                satelites[i].sigFlags = (_buffer.svinfo.channel[i].flags >> 4 & 0x3); // Healthy, not healthy
-                //satelites[i].cno = _buffer.svinfo.channel[i].quality;
+                ubloxNavSat2NavSig(&_buffer.svinfo.channel[i], &satelites[i]);
             }
             for(int i =_buffer.svinfo.numSvs; i < UBLOX_MAX_SIGNALS; ++i) {
-                satelites->svId = 0;
+                satelites->svId = 0xFF;
             }
-
         }
         break;
     case MSG_NAV_SIG:
