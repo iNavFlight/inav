@@ -3893,7 +3893,7 @@ static void cliStatus(char *cmdline)
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
         if(ubloxVersionLT(15, 0)) {
-            cliPrintf(" (UBLOX SW >= 15.0 required)");
+            cliPrintf(" (UBLOX Proto >= 15.0 required)");
         }
         cliPrintLinefeed();
         cliPrintLinef("  SATS: %i", gpsSol.numSat);

@@ -68,7 +68,7 @@ void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *
     navSig->gnssId = navSat->gnssId;
     navSig->cno = navSat->cno;
     navSig->prRes = navSat->prRes;
-    navSig->quality = navSat->flags & (BIT(0)|BIT(1)|BIT(3));
+    navSig->quality = navSat->flags & (BIT(0)|BIT(1)|BIT(2));
     navSig->sigFlags = (navSat->flags >> 4) & (BIT(0)|BIT(1));  // Healthy, not healthy
     // non-converted items:
     //uint8_t sigId;    // signal ID 

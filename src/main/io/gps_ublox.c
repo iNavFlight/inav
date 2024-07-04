@@ -431,10 +431,10 @@ static void configureGNSS(void)
 {
     int blocksUsed = 0;
     send_buffer.message.header.msg_class = CLASS_CFG;
-        send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
+    send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
     send_buffer.message.payload.gnss.msgVer = 0;
     send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
-        send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
+    send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
 
     /* SBAS, always generated */
     blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
@@ -442,11 +442,11 @@ static void configureGNSS(void)
     /* Galileo */
     blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* BeiDou */
-        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* BeiDou */
+    blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* GLONASS */
-        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* GLONASS */
+    blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
     send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
     send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
@@ -708,6 +708,7 @@ static bool gpsParseFrameUBLOX(void)
                 ubloxNavSat2NavSig(&_buffer.svinfo.channel[i], &satelites[i]);
             }
             for(int i =_buffer.svinfo.numSvs; i < UBLOX_MAX_SIGNALS; ++i) {
+                satelites->gnssId = 0xFF;
                 satelites->svId = 0xFF;
             }
         }
@@ -728,6 +729,7 @@ static bool gpsParseFrameUBLOX(void)
                 for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
                 {
                     satelites[i].svId = 0xFF; // no used
+                    satelites[i].gnssId = 0xFF;
                 }
             }
         }
@@ -1028,7 +1030,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
 	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
 	{
-		satelites[i].svId = 0xFF;
+        satelites[i].svId = 0xFF; // no used
+        satelites[i].gnssId = 0xFF;
 	}
 
     ptEnd(0);
@@ -1160,6 +1163,7 @@ void gpsRestartUBLOX(void)
 	{
         memset(&satelites[i], 0, sizeof(ubx_nav_sig_info));
 		satelites[i].svId = 0xFF;
+		satelites[i].gnssId = 0xFF;
 	}
 
     ptSemaphoreInit(semNewDataReady);
@@ -1191,7 +1195,7 @@ bool isGpsUblox(void)
 
 const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index)
 {
-    if(index < UBLOX_MAX_SIGNALS && satelites[index].svId != 0xFF) {
+    if(index < UBLOX_MAX_SIGNALS && satelites[index].svId != 0xFF && satelites[index].gnssId != 0xFF) {
         return &satelites[index];
     }
 
