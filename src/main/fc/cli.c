@@ -3892,6 +3892,9 @@ static void cliStatus(char *cmdline)
     if (featureConfigured(FEATURE_GPS) && isGpsUblox()) {
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
+        if(ubloxVersionLT(15, 0)) {
+            cliPrintf(" (UBLOX SW >= 15.0 required)");
+        }
         cliPrintLinefeed();
         cliPrintLinef("  SATS: %i", gpsSol.numSat);
         cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
