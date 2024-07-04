@@ -76,7 +76,8 @@ typedef enum {
     DEBUG_POS_EST,
     DEBUG_ADAPTIVE_FILTER,
     DEBUG_HEADTRACKING,
-    DEBUG_COUNT
+    DEBUG_GPS,
+    DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 
 #ifdef SITL_BUILD
