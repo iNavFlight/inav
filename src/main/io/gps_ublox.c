@@ -704,7 +704,7 @@ static bool gpsParseFrameUBLOX(void)
                 gpsSolDRV.numSat = _buffer.svinfo.numSvs;
             }
 
-            for(int i =0; i < MIN(_buffer.svinfo.numSvs, UBLOX_MAX_SIGNALS); ++i) {
+            for(int i = 0; i < MIN(_buffer.svinfo.numSvs, UBLOX_MAX_SIGNALS); ++i) {
                 ubloxNavSat2NavSig(&_buffer.svinfo.channel[i], &satelites[i]);
             }
             for(int i =_buffer.svinfo.numSvs; i < UBLOX_MAX_SIGNALS; ++i) {
@@ -978,7 +978,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     }// end message config
 
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_SHORT_TIMEOUT);
-    if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
+    if ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
         configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
     } else {
         configureRATE(hz2rate(5)); // 5Hz
@@ -1156,6 +1156,12 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
 void gpsRestartUBLOX(void)
 {
+	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
+	{
+        memset(&satelites[i], 0, sizeof(ubx_nav_sig_info));
+		satelites[i].svId = 0xFF;
+	}
+
     ptSemaphoreInit(semNewDataReady);
     ptRestart(ptGetHandle(gpsProtocolReceiverThread));
     ptRestart(ptGetHandle(gpsProtocolStateThread));
