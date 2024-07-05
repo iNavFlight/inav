@@ -865,25 +865,57 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // Set dynamic model
-    switch (gpsState.gpsConfig->dynModel) {
-        case GPS_DYNMODEL_PEDESTRIAN:
-            configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
-            break;
-        case GPS_DYNMODEL_AUTOMOTIVE:
-            configureNAV5(UBX_DYNMODEL_AUTOMOVITE, UBX_FIXMODE_AUTO);
-            break;
-        case GPS_DYNMODEL_AIR_1G:
-            configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
-            break;
-        case GPS_DYNMODEL_AIR_2G:   // Default to this
-        default:
-            configureNAV5(UBX_DYNMODEL_AIR_2G, UBX_FIXMODE_AUTO);
-            break;
-        case GPS_DYNMODEL_AIR_4G:
-            configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
-            break;
+    if (ubloxVersionGTE(23, 1)) {
+        ubx_config_data8_payload_t dynmodelCfg[] = {
+            {UBLOX_CFG_NAVPSG_DYNMODEL, UBX_DYNMODEL_AIR_2G},
+            {UBLOX_CFG_NAVPSG_FIXMODE, UBX_FIXMODE_AUTO}
+        };
+
+        switch (gpsState.gpsConfig->dynModel) {
+            case GPS_DYNMODEL_PEDESTRIAN:
+                dynmodelCfg[0].value = UBX_DYNMODEL_PEDESTRIAN;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AUTOMOTIVE:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AUTOMOVITE;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AIR_1G:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AIR_1G;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AIR_2G:  // Default to this
+            default:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AIR_2G;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AIR_4G:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AIR_4G;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+        }
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    } else {
+        switch (gpsState.gpsConfig->dynModel) {
+            case GPS_DYNMODEL_PEDESTRIAN:
+                configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AUTOMOTIVE:
+                configureNAV5(UBX_DYNMODEL_AUTOMOVITE, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AIR_1G:
+                configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AIR_2G:  // Default to this
+            default:
+                configureNAV5(UBX_DYNMODEL_AIR_2G, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AIR_4G:
+                configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
+                break;
+        }
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
     // Disable NMEA messages
@@ -960,6 +992,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
         configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
     } else { // Really old stuff, consider upgrading :), ols setting API, no PVT or NAV_SAT or NAV_SIG
+        // TODO: remove in INAV 9.0.0
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
@@ -1006,7 +1039,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) { // TODO: This check can be remove in INAV 9.0.0
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
         bool use_VALSET = 0;
         if (ubloxVersionGTE(23,1)) {
@@ -1030,7 +1063,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
 	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
 	{
-        satelites[i].svId = 0xFF; // no used
+        // Mark satelites as unused
+        satelites[i].svId = 0xFF;
         satelites[i].gnssId = 0xFF;
 	}
 
