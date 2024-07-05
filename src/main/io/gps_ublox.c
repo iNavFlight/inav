@@ -867,8 +867,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
     // Set dynamic model
     if (ubloxVersionGTE(23, 1)) {
         ubx_config_data8_payload_t dynmodelCfg[] = {
-            {UBLOX_CFG_NAVPSG_DYNMODEL, UBX_DYNMODEL_AIR_2G},
-            {UBLOX_CFG_NAVPSG_FIXMODE, UBX_FIXMODE_AUTO}
+            {UBLOX_CFG_NAVSPG_DYNMODEL, UBX_DYNMODEL_AIR_2G},
+            {UBLOX_CFG_NAVSPG_FIXMODE, UBX_FIXMODE_AUTO}
         };
 
         switch (gpsState.gpsConfig->dynModel) {
