@@ -501,7 +501,7 @@ static void configureRATE(uint16_t measRate)
         measRate = MAX(25, measRate);
     }
 
-    if (ubloxVersionLT(23, 1)) {
+    if (ubloxVersionLTE(23, 1)) {
         send_buffer.message.header.msg_class = CLASS_CFG;
         send_buffer.message.header.msg_id = MSG_CFG_RATE;
         send_buffer.message.header.length = 6;
