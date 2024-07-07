@@ -903,7 +903,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // Set dynamic model
-    if (ubloxVersionGTE(23, 1)) {
+    if (ubloxVersionGT(23, 1)) {
         ubx_config_data8_payload_t dynmodelCfg[] = {
             {UBLOX_CFG_NAVSPG_DYNMODEL, UBX_DYNMODEL_AIR_2G},
             {UBLOX_CFG_NAVSPG_FIXMODE, UBX_FIXMODE_AUTO}
@@ -957,7 +957,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
     // Disable NMEA messages
-    if (ubloxVersionGTE(23, 1)) {
+    if (ubloxVersionGT(23, 1)) {
         ubx_config_data8_payload_t nmeaValues[] = {
             { UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 0 },
             { UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1, 0 },
@@ -992,7 +992,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
-    if (ubloxVersionGTE(23, 1)) { // M9+, new setting API, PVT and NAV_SIG
+    if (ubloxVersionGT(23, 1)) { // M9+, new setting API, PVT and NAV_SIG
         ubx_config_data8_payload_t rateValues[] = {
             {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0}, // 0
             {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0}, // 1
@@ -1080,7 +1080,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) { // TODO: This check can be remove in INAV 9.0.0
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
         bool use_VALSET = 0;
-        if (ubloxVersionGTE(23,1)) {
+        if (ubloxVersionGT(23,1)) {
             use_VALSET = 1;
         }
 
