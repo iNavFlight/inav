@@ -15,6 +15,9 @@
 > INAV 8.0 will mark those GPS as deprecated and INAV 9.0.0 will require UBLOX units with Protocol version 15.00 or newer. This means that you need a GPS unit based on UBLOX M8 or newer.
 
 > If you want to check the protocol version of your unit, it is displayed in INAV's 7.0.0+ status cli command.
+> INAV 8.0.0 will warn you if your GPS is too old.
+> ```GPS: HW Version: Unknown Proto: 0.00 Baud: 115200 (UBLOX Proto >= 15.0 required)```
+
 
 > M8, M9 and M10 GPS are the most common units in use today, are readly available and have similar capabilities.
 >Mantaining and testing GPS changes across this many UBLOX versions is a challenge and takes a lot of time. Removing the support for older devices will simplify code.
