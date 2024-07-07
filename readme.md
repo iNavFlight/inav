@@ -10,6 +10,18 @@
 
 > The filtering settings for the ICM426xx has changed to match what is used by Ardupilot and Betaflight in INAV 7.1. When upgrading from older versions you may need to recalibrate the Accelerometer and if you are not using INAV's default tune you may also want to check if the tune is still good.
 
+# M7, M6 and older UBLOX GPS units PSA
+
+> INAV 8.0 will mark those GPS as deprecated and INAV 9.0.0 will require UBLOX units with Protocol version 15.00 or newer. This means that you need a GPS unit based on UBLOX M8 or newer.
+
+> If you want to check the protocol version of your unit, it is displayed in INAV's 7.0.0+ status cli command.
+> INAV 8.0.0 will warn you if your GPS is too old.
+> ```GPS: HW Version: Unknown Proto: 0.00 Baud: 115200 (UBLOX Proto >= 15.0 required)```
+
+
+> M8, M9 and M10 GPS are the most common units in use today, are readly available and have similar capabilities.
+>Mantaining and testing GPS changes across this many UBLOX versions is a challenge and takes a lot of time. Removing the support for older devices will simplify code.
+
 ![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
 
 # PosHold, Navigation and RTH without compass PSA
