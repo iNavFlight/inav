@@ -69,7 +69,7 @@ int ubloxCfgFillU2(ubx_config_data16_t *cfg, ubx_config_data16_payload_t *kvPair
     cfg->header.preamble1 = 0xb5;
     cfg->header.preamble2 = 0x62;
     cfg->header.msg_class = 0x06;
-    cfg->header.msg_id = 0x16A;
+    cfg->header.msg_id = 0x8A;
     cfg->header.length = sizeof(ubx_config_data_header_v1_t) + ((sizeof(ubx_config_data16_payload_t) * count));
     cfg->configHeader.layers = 0x1;
     cfg->configHeader.transaction = 0;
