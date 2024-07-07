@@ -1005,7 +1005,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
 
         ubloxSendSetCfgBytes(rateValues, 7);
         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-    } else if(ubloxVersionGTE(15,0)) { // M8 and potentially M7, PVT, NAV_SAT, old setting API
+    } else if(ubloxVersionGTE(15,0)) { // M8, PVT, NAV_SAT, old setting API
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
