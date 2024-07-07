@@ -84,6 +84,10 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1  0x209100b1 // U1
 #define UBLOX_CFG_NAVSPG_FIXMODE            0x20110011 // E1
 #define UBLOX_CFG_NAVSPG_DYNMODEL           0x20110021 // E1
+#define UBLOX_CFG_RATE_MEAS                 0x30210001 // U2
+#define UBLOX_CFG_RATE_NAV                  0x30210002 // U2
+#define UBLOX_CFG_RATE_TIMEREF              0x30210002 // E1
+
 
 
 #define UBLOX_CFG_SIGNAL_SBAS_ENA       0x10310020 // U1
@@ -282,6 +286,13 @@ typedef struct {
     uint8_t value;
 } __attribute__((packed)) ubx_config_data8_payload_t;
 
+typedef struct {
+    uint32_t key;
+    uint16_t value;
+} __attribute__((packed)) ubx_config_data16_payload_t;
+
+
+
 
 #define MAX_CONFIG_SET_VAL_VALUES   32
 
@@ -293,6 +304,17 @@ typedef struct {
         uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data8_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
     } data;
 } __attribute__((packed)) ubx_config_data8_t;
+
+typedef struct {
+    ubx_header header;
+    ubx_config_data_header_v1_t configHeader;
+    union {
+        ubx_config_data16_payload_t payload[0];
+        uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data16_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
+    } data;
+} __attribute__((packed)) ubx_config_data16_t;
+
+
 
 typedef struct {
     ubx_header header;

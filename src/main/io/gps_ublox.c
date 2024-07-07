@@ -288,6 +288,19 @@ static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t co
     _ack_state = UBX_ACK_WAITING;
 }
 
+// M10 ublox protocol info:
+// https://content.u-blox.com/sites/default/files/u-blox-M10-SPG-5.10_InterfaceDescription_UBX-21035062.pdf
+static void ubloxSendSetCfgU2(ubx_config_data16_payload_t *kvPairs, uint8_t count)
+{
+    ubx_config_data16_t cfg = {};
+
+    ubloxCfgFillU2(&cfg, kvPairs, count);
+
+    serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
+    _ack_waiting_msg = cfg.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+}
+
 // Info on protocol used by M8-M9, check UBX-CFG-GNSS for gnss configuration
 // https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
 // https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.32_InterfaceDescription_UBX-22008968.pdf
@@ -482,13 +495,38 @@ static void configureMSG(uint8_t msg_class, uint8_t id, uint8_t rate)
  */
 static void configureRATE(uint16_t measRate)
 {
-    send_buffer.message.header.msg_class = CLASS_CFG;
-    send_buffer.message.header.msg_id = MSG_CFG_RATE;
-    send_buffer.message.header.length = 6;
-    send_buffer.message.payload.rate.meas=measRate;
-    send_buffer.message.payload.rate.nav=1;
-    send_buffer.message.payload.rate.time=1;
-    sendConfigMessageUBLOX();
+    if(ubloxVersionLT(24, 0)) {
+        measRate = MAX(50, measRate);
+    } else {
+        measRate = MAX(25, measRate);
+    }
+
+    if (ubloxVersionLT(23, 1)) {
+        send_buffer.message.header.msg_class = CLASS_CFG;
+        send_buffer.message.header.msg_id = MSG_CFG_RATE;
+        send_buffer.message.header.length = 6;
+        send_buffer.message.payload.rate.meas = measRate;
+        send_buffer.message.payload.rate.nav = 1;
+        send_buffer.message.payload.rate.time = 1;
+        sendConfigMessageUBLOX();
+    } else { // M10+
+        // 1 is already default, for TIMEREF.
+        // The wait the configuration happens,
+        // it is tricky to wait for multiple commands.
+        // SendSetCfg could be refactored to support U1, U2, U3 and U4 messages
+        // at the same time. For now, leave it out.
+        //
+        //ubx_config_data8_payload_t rateValues[] = {
+        //    {UBLOX_CFG_RATE_TIMEREF, 1}, // 0
+        //};
+        //ubloxSendSetCfgBytes(rateValues, 1);
+
+        ubx_config_data16_payload_t rate16Values[] = {
+            {UBLOX_CFG_RATE_MEAS, measRate},
+            {UBLOX_CFG_RATE_NAV, 1}
+        };
+        ubloxSendSetCfgU2(rate16Values, 2);
+    }
 }
 
 /*
