@@ -2712,13 +2712,14 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_ATTITUDE_PITCH:
-        if (ABS(attitude.values.pitch) < 1)
+        int16_t levelDatumPitch = attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim());
+        if (ABS(levelDatumPitch) < 1)
             buff[0] = 'P';
-        else if (attitude.values.pitch > 0)
+        else if (levelDatumPitch > 0)
             buff[0] = SYM_PITCH_DOWN;
-        else if (attitude.values.pitch < 0)
+        else if (levelDatumPitch < 0)
             buff[0] = SYM_PITCH_UP;
-        osdFormatCentiNumber(buff + 1, DECIDEGREES_TO_CENTIDEGREES(ABS(attitude.values.pitch)), 0, 1, 0, 3, false);
+        osdFormatCentiNumber(buff + 1, DECIDEGREES_TO_CENTIDEGREES(ABS(levelDatumPitch)), 0, 1, 0, 3, false);
         break;
 
     case OSD_ARTIFICIAL_HORIZON:
@@ -2727,6 +2728,7 @@ static bool osdDrawSingleElement(uint8_t item)
             float pitchAngle = DECIDEGREES_TO_RADIANS(attitude.values.pitch);
 
             pitchAngle -= osdConfig()->ahi_camera_uptilt_comp ? DEGREES_TO_RADIANS(osdConfig()->camera_uptilt) : 0;
+            pitchAngle += DEGREES_TO_RADIANS(getFixedWingLevelTrim());
             if (osdConfig()->ahi_reverse_roll) {
                 rollAngle = -rollAngle;
             }
