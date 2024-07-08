@@ -2712,15 +2712,17 @@ static bool osdDrawSingleElement(uint8_t item)
         break;
 
     case OSD_ATTITUDE_PITCH:
-        int16_t levelDatumPitch = attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim());
-        if (ABS(levelDatumPitch) < 1)
-            buff[0] = 'P';
-        else if (levelDatumPitch > 0)
-            buff[0] = SYM_PITCH_DOWN;
-        else if (levelDatumPitch < 0)
-            buff[0] = SYM_PITCH_UP;
-        osdFormatCentiNumber(buff + 1, DECIDEGREES_TO_CENTIDEGREES(ABS(levelDatumPitch)), 0, 1, 0, 3, false);
-        break;
+        {
+            float levelDatumPitch = attitude.values.pitch + DEGREES_TO_DECIDEGREES(getFixedWingLevelTrim());
+            if (ABS(levelDatumPitch) < 1)
+                buff[0] = 'P';
+            else if (levelDatumPitch > 0)
+                buff[0] = SYM_PITCH_DOWN;
+            else if (levelDatumPitch < 0)
+                buff[0] = SYM_PITCH_UP;
+            osdFormatCentiNumber(buff + 1, DECIDEGREES_TO_CENTIDEGREES(ABS(levelDatumPitch)), 0, 1, 0, 3, false);
+            break;
+        }
 
     case OSD_ARTIFICIAL_HORIZON:
         {
