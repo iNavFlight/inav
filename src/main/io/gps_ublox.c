@@ -1271,7 +1271,7 @@ void gpsHandleUBLOX(void)
 
 bool isGpsUblox(void)
 {
-    if(gpsState.gpsPort != NULL && (gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
+    if(gpsState.gpsPort != NULL && (gpsState.gpsConfig->provider == GPS_UBLOX)) {
         return true;
     }
 
