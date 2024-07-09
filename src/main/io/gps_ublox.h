@@ -41,11 +41,18 @@ extern "C" {
 
 STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 
+#define UBX_DYNMODEL_PORTABLE   0
+#define UBX_DYNMODEL_STATIONARY 2
 #define UBX_DYNMODEL_PEDESTRIAN 3
 #define UBX_DYNMODEL_AUTOMOVITE 4
+#define UBX_DYNMODEL_SEA        5
 #define UBX_DYNMODEL_AIR_1G     6
 #define UBX_DYNMODEL_AIR_2G     7
 #define UBX_DYNMODEL_AIR_4G     8
+#define UBX_DYNMODEL_WRIST      9
+#define UBX_DYNMODEL_BIKE       10
+#define UBX_DYNMODEL_MOWER      11
+#define UBX_DYNMODEL_ESCOOTER   12
 
 #define UBX_FIXMODE_2D_ONLY 1
 #define UBX_FIXMODE_3D_ONLY 2
@@ -75,6 +82,13 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1  0x209100c0 // U1
 #define UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1  0x209100ac // U1
 #define UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1  0x209100b1 // U1
+#define UBLOX_CFG_NAVSPG_FIXMODE            0x20110011 // E1
+#define UBLOX_CFG_NAVSPG_DYNMODEL           0x20110021 // E1
+#define UBLOX_CFG_RATE_MEAS                 0x30210001 // U2
+#define UBLOX_CFG_RATE_NAV                  0x30210002 // U2
+#define UBLOX_CFG_RATE_TIMEREF              0x30210002 // E1
+
+
 
 #define UBLOX_CFG_SIGNAL_SBAS_ENA       0x10310020 // U1
 #define UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA  0x10310005 // U1
@@ -272,6 +286,13 @@ typedef struct {
     uint8_t value;
 } __attribute__((packed)) ubx_config_data8_payload_t;
 
+typedef struct {
+    uint32_t key;
+    uint16_t value;
+} __attribute__((packed)) ubx_config_data16_payload_t;
+
+
+
 
 #define MAX_CONFIG_SET_VAL_VALUES   32
 
@@ -283,6 +304,17 @@ typedef struct {
         uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data8_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
     } data;
 } __attribute__((packed)) ubx_config_data8_t;
+
+typedef struct {
+    ubx_header header;
+    ubx_config_data_header_v1_t configHeader;
+    union {
+        ubx_config_data16_payload_t payload[0];
+        uint8_t buffer[(MAX_CONFIG_SET_VAL_VALUES * sizeof(ubx_config_data16_payload_t)) + 2]; // 12 key/value pairs + 2 checksum bytes
+    } data;
+} __attribute__((packed)) ubx_config_data16_t;
+
+
 
 typedef struct {
     ubx_header header;

@@ -77,6 +77,7 @@ typedef enum {
     DEBUG_ADAPTIVE_FILTER,
     DEBUG_HEADTRACKING,
     DEBUG_GPS,
+    DEBUG_LULU,
     DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
 

@@ -1812,13 +1812,23 @@ Specifies the type of the software LPF of the gyro signals.
 
 ---
 
+### gyro_lulu_enabled
+
+Enable/disable gyro LULU filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gyro_lulu_sample_count
 
 Gyro lulu sample count, in number of samples.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 3 |  | 15 |
+| 3 | 1 | 15 |
 
 ---
 
