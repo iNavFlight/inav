@@ -42,7 +42,7 @@ tables:
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["UBLOX", "UBLOX7", "MSP", "FAKE"]
+    values: ["UBLOX", "MSP", "FAKE"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]

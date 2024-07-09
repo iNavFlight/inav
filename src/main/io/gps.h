@@ -34,7 +34,6 @@
 
 typedef enum {
     GPS_UBLOX = 0,
-    GPS_UBLOX7PLUS,
     GPS_MSP,
     GPS_FAKE,
     GPS_PROVIDER_COUNT
