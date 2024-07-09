@@ -162,6 +162,7 @@ static serialPortConfig_t *portConfig;
 
 static bool mavlinkTelemetryEnabled =  false;
 static portSharing_e mavlinkPortSharing;
+static uint8_t txbuff_free = 100;
 
 /* MAVLink datastream rates in Hz */
 static uint8_t mavRates[] = {
@@ -1111,6 +1112,13 @@ static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     return true;
 }
 
+static bool handleIncoming_RADIO_STATUS(void) {
+    mavlink_radio_status_t msg;
+    mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
+    txbuff_free = msg.txbuf;
+    return true;
+}
+
 #ifdef USE_ADSB
 static bool handleIncoming_ADSB_VEHICLE(void) {
     mavlink_adsb_vehicle_t msg;
@@ -1181,6 +1189,8 @@ static bool processMAVLinkIncomingTelemetry(void)
                 case MAVLINK_MSG_ID_ADSB_VEHICLE:
                     return handleIncoming_ADSB_VEHICLE();
 #endif
+                case MAVLINK_MSG_ID_RADIO_STATUS:
+                    return handleIncoming_RADIO_STATUS();
                 default:
                     return false;
             }
@@ -1207,7 +1217,7 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         incomingRequestServed = true;
     }
 
-    if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
+    if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY && txbuff_free >= 90) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
         if (!incomingRequestServed ||
             (
