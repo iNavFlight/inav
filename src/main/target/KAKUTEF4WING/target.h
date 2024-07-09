@@ -140,7 +140,7 @@
 // *************** Battery Voltage Sense***********
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
-#define ADC1_DMA_STREAM             DMA2_Stream4
+#define ADC1_DMA_STREAM             DMA2_Stream0
 #define ADC_CHANNEL_1_PIN           PC0
 #define ADC_CHANNEL_2_PIN           PC1
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
