@@ -48,7 +48,7 @@ tables:
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
     enum: sbasMode_e
   - name: gps_dyn_model
-    values: ["PEDESTRIAN","AUTOMOTIVE", "AIR_1G", "AIR_2G", "AIR_4G"]
+    values: ["PEDESTRIAN","AUTOMOTIVE", "AIR_1G", "AIR_2G", "AIR_4G", "SEA", "MOWER"]
     enum: gpsDynModel_e
   - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
