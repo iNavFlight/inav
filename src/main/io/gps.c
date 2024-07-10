@@ -102,13 +102,6 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     { false, 0, NULL, NULL },
 #endif
 
-    /* UBLOX7PLUS binary */
-#ifdef USE_GPS_PROTO_UBLOX
-    { false, MODE_RXTX, &gpsRestartUBLOX, &gpsHandleUBLOX },
-#else
-    { false, 0,  NULL, NULL },
-#endif
-
     /* MSP GPS */
 #ifdef USE_GPS_PROTO_MSP
     { true, 0, &gpsRestartMSP, &gpsHandleMSP },
