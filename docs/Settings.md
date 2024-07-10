@@ -1594,7 +1594,7 @@ Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS pos
 
 ### gps_provider
 
-Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N).
+Which GPS protocol to be used.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1614,7 +1614,7 @@ Which SBAS mode to be used
 
 ### gps_ublox_nav_hz
 
-Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1782,13 +1782,23 @@ Specifies the type of the software LPF of the gyro signals.
 
 ---
 
+### gyro_lulu_enabled
+
+Enable/disable gyro LULU filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gyro_lulu_sample_count
 
 Gyro lulu sample count, in number of samples.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 3 |  | 15 |
+| 3 | 1 | 15 |
 
 ---
 
