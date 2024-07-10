@@ -80,11 +80,19 @@ jobs:
           pattern: matrix-inav-*
           merge-multiple: true
           path: binaries
-      - name: Upload single zip
+      - name: Build target list
+        run: |
+          ls -1 binaries/*.hex > targets.txt
+      - name: Upload firmware images
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD_NAME }}
           path: binaries/*.hex
+      - name: Upload firmware images
+        uses: actions/upload-artifact@v4
+        with:
+          name: targets
+          path: targets.txt
 
   build-SITL-Linux:
     runs-on: ubuntu-latest
