@@ -27,6 +27,7 @@
 #define SBUS2_TELEMETRY_ITEM_SIZE   3
 #define SBUS2_TELEMETRY_SLOTS       8
 #define SBUS2_TELEMETRY_PAGES       4
+
 #define SBUS2_SLOT_COUNT            (SBUS2_TELEMETRY_PAGES * SBUS2_TELEMETRY_SLOTS)
 
 #if defined(USE_TELEMETRY) && defined(USE_SBUS2_TELEMETRY)
@@ -105,8 +106,9 @@ typedef struct sbus2_telemetry_frame_s {
 } __attribute__((packed)) sbus2_telemetry_frame_t;
 
 extern const uint8_t Slot_ID[SBUS2_SLOT_COUNT];
-extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS];
-extern uint8_t sbusTelemetryDataStatus[SBUS2_TELEMETRY_PAGES][SBUS2_TELEMETRY_SLOTS];
+extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_SLOT_COUNT];
+extern uint8_t sbusTelemetryDataUsed[SBUS2_SLOT_COUNT];
+extern timeUs_t sbusTelemetryDataLastSent[SBUS2_SLOT_COUNT];
 
 // refresh telemetry buffers 
 void handleSbus2Telemetry(timeUs_t currentTimeUs);

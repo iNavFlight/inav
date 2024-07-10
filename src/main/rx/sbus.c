@@ -199,7 +199,7 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
         );
 
 #ifdef USE_TELEMETRY
-    if (portShared) {
+    if (portShared || (rxConfig->serialrx_provider == SERIALRX_SBUS2)) {
         telemetrySharedPort = sBusPort;
     }
 #endif
