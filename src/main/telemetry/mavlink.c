@@ -1217,7 +1217,7 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         incomingRequestServed = true;
     }
 
-    if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY && txbuff_free >= 90) {
+    if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY && txbuff_free >= telemetryConfig()->mavlink.min_txbuff) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
         if (!incomingRequestServed ||
             (
