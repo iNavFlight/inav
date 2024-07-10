@@ -2548,7 +2548,7 @@ Minimum percent of TX buffer space free, before attempting to transmit telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
-|  | 0 | 100 |
+| 100 | 0 | 100 |
 
 ---
 

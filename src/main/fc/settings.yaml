@@ -3192,9 +3192,9 @@ groups:
         max: 2
         default_value: 2
       - name: mavlink_min_txbuffer
-        file: mavlink.min_txbuff
+        field: mavlink.min_txbuff
         description: "Minimum percent of TX buffer space free, before attempting to transmit telemetry. Requuires RADIO_STATUS messages to be processed. 0 = always transmits."
-        default: 100
+        default_value: 100
         min: 0
         max: 100
 
