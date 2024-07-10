@@ -1116,6 +1116,13 @@ static bool handleIncoming_RADIO_STATUS(void) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
     txbuff_free = msg.txbuf;
+
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
+        rxLinkStatistics.uplinkRSSI = -msg.remrssi;  // dbM
+        rxLinkStatistics.uplinkSNR = msg.noise;      // dbM * 2?
+        rxLinkStatistics.uplinkLQ = scaleRange(msg.rssi, 0, 254, 0, 100);  // May be elrs specific
+    }
     return true;
 }
 
