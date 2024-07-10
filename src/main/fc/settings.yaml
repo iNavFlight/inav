@@ -1666,7 +1666,7 @@ groups:
     condition: USE_GPS
     members:
       - name: gps_provider
-        description: "Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N)."
+        description: "Which GPS protocol to be used."
         default_value: "UBLOX"
         field: provider
         table: gps_provider

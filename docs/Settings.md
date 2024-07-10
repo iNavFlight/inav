@@ -1594,7 +1594,7 @@ Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS pos
 
 ### gps_provider
 
-Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N).
+Which GPS protocol to be used.
 
 | Default | Min | Max |
 | --- | --- | --- |
