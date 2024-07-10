@@ -198,21 +198,6 @@ static const gyroFilterAndRateConfig_t icm42605GyroConfigs[] = {
     { GYRO_LPF_256HZ,   2000,   { 3,    5  } }, /* 250 Hz LPF */
     { GYRO_LPF_256HZ,   1000,   { 1,    6  } }, /* 250 Hz LPF */
     { GYRO_LPF_256HZ,    500,   { 0,    15 } }, /* 250 Hz LPF */
-
-    { GYRO_LPF_188HZ,   1000,   { 3,   6  } },  /* 125 HZ */
-    { GYRO_LPF_188HZ,    500,   { 1,   15 } },  /* 125 HZ */
-
-    { GYRO_LPF_98HZ,    1000,   { 4,    6  } }, /* 100 HZ*/
-    { GYRO_LPF_98HZ,     500,   { 2,    15 } }, /* 100 HZ*/
-
-    { GYRO_LPF_42HZ,    1000,   { 6,    6  } }, /* 50 HZ */
-    { GYRO_LPF_42HZ,     500,   { 4,    15 } },
-
-    { GYRO_LPF_20HZ,    1000,   { 7,    6  } }, /* 25 HZ */
-    { GYRO_LPF_20HZ,     500,   { 6,    15 } },
-
-    { GYRO_LPF_10HZ,    1000,   { 7,    6  } }, /* 25 HZ */
-    { GYRO_LPF_10HZ,     500,   { 7,    15 } }  /* 12.5 HZ */
 };
 
 static void icm42605AccAndGyroInit(gyroDev_t *gyro)

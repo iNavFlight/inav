@@ -104,6 +104,7 @@ bool cliMode = false;
 #include "rx/rx.h"
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
+#include "rx/crsf.h"
 
 #include "scheduler/scheduler.h"
 
@@ -143,8 +144,9 @@ static void cliAssert(char *cmdline);
 #endif
 
 #ifdef USE_CLI_BATCH
-static bool commandBatchActive = false;
-static bool commandBatchError = false;
+static bool     commandBatchActive = false;
+static bool     commandBatchError = false;
+static uint8_t  commandBatchErrorCount = 0;
 #endif
 
 // sync this with features_e
@@ -162,6 +164,7 @@ static const char * outputModeNames[] = {
     "AUTO",
     "MOTORS",
     "SERVOS",
+    "LED",
     NULL
 };
 
@@ -184,9 +187,39 @@ static const char * const blackboxIncludeFlagNames[] = {
 };
 #endif
 
-/* Sensor names (used in lookup tables for *_hardware settings and in status command output) */
+static const char *debugModeNames[DEBUG_COUNT] = {
+    "NONE",
+    "AGL",
+    "FLOW_RAW",
+    "FLOW",
+    "ALWAYS",
+    "SAG_COMP_VOLTAGE",
+    "VIBE",
+    "CRUISE",
+    "REM_FLIGHT_TIME",
+    "SMARTAUDIO",
+    "ACC",
+    "NAV_YAW",
+    "PCF8574",
+    "DYN_GYRO_LPF",
+    "AUTOLEVEL",
+    "ALTITUDE",
+    "AUTOTRIM",
+    "AUTOTUNE",
+    "RATE_DYNAMICS",
+    "LANDING",
+    "POS_EST",
+    "ADAPTIVE_FILTER",
+    "HEADTRACKER",
+    "GPS"
+};
+
+/* Sensor names (used in lookup tables for *_hardware settings and in status
+   command output) */
 // sync with gyroSensor_e
-static const char * const gyroNames[] = { "NONE", "AUTO", "MPU6000", "MPU6500", "MPU9250", "BMI160", "ICM20689", "BMI088", "ICM42605", "BMI270","LSM6DXX", "FAKE"};
+static const char *const gyroNames[] = {
+    "NONE",     "AUTO",   "MPU6000",  "MPU6500", "MPU9250", "BMI160",
+    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -250,6 +283,7 @@ static void cliPrintLine(const char *str)
     cliPrintLinefeed();
 }
 
+
 static void cliPrintError(const char *str)
 {
     cliPrint("### ERROR: ");
@@ -257,6 +291,7 @@ static void cliPrintError(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -268,6 +303,7 @@ static void cliPrintErrorLine(const char *str)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -289,7 +325,7 @@ static void cliPutp(void *p, char ch)
 
 typedef enum {
     DUMP_MASTER = (1 << 0),
-    DUMP_PROFILE = (1 << 1),
+    DUMP_CONTROL_PROFILE = (1 << 1),
     DUMP_BATTERY_PROFILE = (1 << 2),
     DUMP_MIXER_PROFILE = (1 << 3),
     DUMP_ALL = (1 << 4),
@@ -370,6 +406,7 @@ static void cliPrintErrorVa(const char *format, va_list va)
 #ifdef USE_CLI_BATCH
     if (commandBatchActive) {
         commandBatchError = true;
+        commandBatchErrorCount++;
     }
 #endif
 }
@@ -661,6 +698,7 @@ static void cliAssert(char *cmdline)
 #ifdef USE_CLI_BATCH
         if (commandBatchActive) {
             commandBatchError = true;
+            commandBatchErrorCount++;
         }
 #endif
     }
@@ -1166,7 +1204,7 @@ static void cliRxRange(char *cmdline)
         ptr = cmdline;
         i = fastA2I(ptr);
         if (i >= 0 && i < NON_AUX_CHANNEL_COUNT) {
-            int rangeMin, rangeMax;
+            int rangeMin = 0, rangeMax = 0;
 
             ptr = nextArg(ptr);
             if (ptr) {
@@ -2816,6 +2854,8 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_MOTORS;
                 } else if(!sl_strcasecmp("SERVOS", tok)) {
                     mode = OUTPUT_MODE_SERVOS;
+                } else if(!sl_strcasecmp("LED", tok)) {
+                    mode = OUTPUT_MODE_LED;
                 } else {
                     cliShowParseError();
                     return;
@@ -3217,6 +3257,12 @@ void cliRxBind(char *cmdline){
             cliPrint("Binding SRXL2 receiver...");
             break;
 #endif
+#if defined(USE_SERIALRX_CRSF)
+        case SERIALRX_CRSF:
+            crsfBind();
+            cliPrint("Binding CRSF receiver...");
+            break;
+#endif
         }
     }
 }
@@ -3328,30 +3374,30 @@ static void cliPlaySound(char *cmdline)
     beeper(beeperModeForTableIndex(i));
 }
 
-static void cliProfile(char *cmdline)
+static void cliControlProfile(char *cmdline)
 {
     // CLI profile index is 1-based
     if (isEmpty(cmdline)) {
-        cliPrintLinef("profile %d", getConfigProfile() + 1);
+        cliPrintLinef("control_profile %d", getConfigProfile() + 1);
         return;
     } else {
         const int i = fastA2I(cmdline) - 1;
         if (i >= 0 && i < MAX_PROFILE_COUNT) {
             setConfigProfileAndWriteEEPROM(i);
-            cliProfile("");
+            cliControlProfile("");
         }
     }
 }
 
-static void cliDumpProfile(uint8_t profileIndex, uint8_t dumpMask)
+static void cliDumpControlProfile(uint8_t profileIndex, uint8_t dumpMask)
 {
     if (profileIndex >= MAX_PROFILE_COUNT) {
         // Faulty values
         return;
     }
     setConfigProfile(profileIndex);
-    cliPrintHashLine("profile");
-    cliPrintLinef("profile %d\r\n", getConfigProfile() + 1);
+    cliPrintHashLine("control_profile");
+    cliPrintLinef("control_profile %d\r\n", getConfigProfile() + 1);
     dumpAllValues(PROFILE_VALUE, dumpMask);
     dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
     dumpAllValues(EZ_TUNE_VALUE, dumpMask);
@@ -3420,7 +3466,10 @@ static void cliDumpMixerProfile(uint8_t profileIndex, uint8_t dumpMask)
 #ifdef USE_CLI_BATCH
 static void cliPrintCommandBatchWarning(const char *warning)
 {
-    cliPrintErrorLinef("ERRORS WERE DETECTED - PLEASE REVIEW BEFORE CONTINUING");
+    char errorBuf[59];
+    tfp_sprintf(errorBuf, "%d ERRORS WERE DETECTED - Please review and fix before continuing!", commandBatchErrorCount);
+
+    cliPrintErrorLinef(errorBuf);
     if (warning) {
         cliPrintErrorLinef(warning);
     }
@@ -3430,6 +3479,7 @@ static void resetCommandBatch(void)
 {
     commandBatchActive = false;
     commandBatchError = false;
+    commandBatchErrorCount = 0;
 }
 
 static void cliBatch(char *cmdline)
@@ -3438,6 +3488,7 @@ static void cliBatch(char *cmdline)
         if (!commandBatchActive) {
             commandBatchActive = true;
             commandBatchError = false;
+            commandBatchErrorCount = 0;
         }
         cliPrintLine("Command batch started");
     } else if (strncasecmp(cmdline, "end", 3) == 0) {
@@ -3649,13 +3700,14 @@ static void cliStatus(char *cmdline)
     char buf[MAX(FORMATTED_DATE_TIME_BUFSIZE, SETTING_MAX_NAME_LENGTH)];
     dateTime_t dt;
 
-    cliPrintLinef("%s/%s %s %s / %s (%s)",
+    cliPrintLinef("%s/%s %s %s / %s (%s) %s",
         FC_FIRMWARE_NAME,
         targetName,
         FC_VERSION_STRING,
         buildDate,
         buildTime,
-        shortGitRevision
+        shortGitRevision,
+        FC_VERSION_TYPE
     );
     cliPrintLinef("GCC-%s",
         compilerVersion
@@ -3837,10 +3889,17 @@ static void cliStatus(char *cmdline)
     cliPrintLinefeed();
 #endif
 
-    if (featureConfigured(FEATURE_GPS) && (gpsConfig()->provider == GPS_UBLOX || gpsConfig()->provider == GPS_UBLOX7PLUS)) {
+    if (featureConfigured(FEATURE_GPS) && isGpsUblox()) {
         cliPrint("GPS: ");
         cliPrintf("HW Version: %s Proto: %d.%02d Baud: %d", getGpsHwVersion(), getGpsProtoMajorVersion(), getGpsProtoMinorVersion(), getGpsBaudrate());
+        if(ubloxVersionLT(15, 0)) {
+            cliPrintf(" (UBLOX Proto >= 15.0 required)");
+        }
         cliPrintLinefeed();
+        cliPrintLinef("  SATS: %i", gpsSol.numSat);
+        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
+        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
+        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
@@ -3893,13 +3952,14 @@ static void cliVersion(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrintLinef("# %s/%s %s %s / %s (%s)",
+    cliPrintLinef("# %s/%s %s %s / %s (%s) %s",
         FC_FIRMWARE_NAME,
         targetName,
         FC_VERSION_STRING,
         buildDate,
         buildTime,
-        shortGitRevision
+        shortGitRevision,
+        FC_VERSION_TYPE
     );
     cliPrintLinef("# GCC-%s",
         compilerVersion
@@ -3968,12 +4028,12 @@ static void printConfig(const char *cmdline, bool doDiff)
     const char *options;
     if ((options = checkCommand(cmdline, "master"))) {
         dumpMask = DUMP_MASTER; // only
-    } else if ((options = checkCommand(cmdline, "profile"))) {
-        dumpMask = DUMP_PROFILE; // only
-    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
-        dumpMask = DUMP_BATTERY_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "control_profile"))) {
+        dumpMask = DUMP_CONTROL_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "mixer_profile"))) {
         dumpMask = DUMP_MIXER_PROFILE; // only
+    } else if ((options = checkCommand(cmdline, "battery_profile"))) {
+        dumpMask = DUMP_BATTERY_PROFILE; // only
     } else if ((options = checkCommand(cmdline, "all"))) {
         dumpMask = DUMP_ALL;   // all profiles and rates
     } else {
@@ -3984,16 +4044,16 @@ static void printConfig(const char *cmdline, bool doDiff)
         dumpMask = dumpMask | DO_DIFF;
     }
 
-    const int currentProfileIndexSave = getConfigProfile();
-    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+    const int currentControlProfileIndexSave = getConfigProfile();
     const int currentMixerProfileIndexSave = getConfigMixerProfile();
+    const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
     backupConfigs();
     // reset all configs to defaults to do differencing
     resetConfigs();
     // restore the profile indices, since they should not be reset for proper comparison
-    setConfigProfile(currentProfileIndexSave);
-    setConfigBatteryProfile(currentBatteryProfileIndexSave);
+    setConfigProfile(currentControlProfileIndexSave);
     setConfigMixerProfile(currentMixerProfileIndexSave);
+    setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
     if (checkCommand(options, "showdefaults")) {
         dumpMask = dumpMask | SHOW_DEFAULTS;   // add default values as comments for changed values
@@ -4115,25 +4175,25 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         if (dumpMask & DUMP_ALL) {
             // dump all profiles
-            const int currentProfileIndexSave = getConfigProfile();
-            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            const int currentControlProfileIndexSave = getConfigProfile();
             const int currentMixerProfileIndexSave = getConfigMixerProfile();
+            const int currentBatteryProfileIndexSave = getConfigBatteryProfile();
+            for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
+                cliDumpControlProfile(ii, dumpMask);
+            }
             for (int ii = 0; ii < MAX_MIXER_PROFILE_COUNT; ++ii) {
                 cliDumpMixerProfile(ii, dumpMask);
-            }
-            for (int ii = 0; ii < MAX_PROFILE_COUNT; ++ii) {
-                cliDumpProfile(ii, dumpMask);
             }
             for (int ii = 0; ii < MAX_BATTERY_PROFILE_COUNT; ++ii) {
                 cliDumpBatteryProfile(ii, dumpMask);
             }
-            setConfigProfile(currentProfileIndexSave);
-            setConfigBatteryProfile(currentBatteryProfileIndexSave);
+            setConfigProfile(currentControlProfileIndexSave);
             setConfigMixerProfile(currentMixerProfileIndexSave);
+            setConfigBatteryProfile(currentBatteryProfileIndexSave);
 
             cliPrintHashLine("restore original profile selection");
+            cliPrintLinef("control_profile %d", currentControlProfileIndexSave + 1);
             cliPrintLinef("mixer_profile %d", currentMixerProfileIndexSave + 1);
-            cliPrintLinef("profile %d", currentProfileIndexSave + 1);
             cliPrintLinef("battery_profile %d", currentBatteryProfileIndexSave + 1);
 
 #ifdef USE_CLI_BATCH
@@ -4141,17 +4201,18 @@ static void printConfig(const char *cmdline, bool doDiff)
 #endif
         } else {
             // dump just the current profiles
+            cliDumpControlProfile(getConfigProfile(), dumpMask);
             cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
-            cliDumpProfile(getConfigProfile(), dumpMask);
             cliDumpBatteryProfile(getConfigBatteryProfile(), dumpMask);
         }
     }
+
+    if (dumpMask & DUMP_CONTROL_PROFILE) {
+        cliDumpControlProfile(getConfigProfile(), dumpMask);
+    }
+
     if (dumpMask & DUMP_MIXER_PROFILE) {
         cliDumpMixerProfile(getConfigMixerProfile(), dumpMask);
-    }
-    
-    if (dumpMask & DUMP_PROFILE) {
-        cliDumpProfile(getConfigProfile(), dumpMask);
     }
 
     if (dumpMask & DUMP_BATTERY_PROFILE) {
@@ -4236,6 +4297,136 @@ typedef struct {
 }
 #endif
 
+static void cliCmdDebug(char *arg)
+{
+    UNUSED(arg);
+    if (debugMode != DEBUG_NONE) {
+        cliPrintLinef("Debug fields: [%s (%i)]", debugMode < DEBUG_COUNT ? debugModeNames[debugMode] : "unknown", debugMode);
+        for (int i = 0; i < DEBUG32_VALUE_COUNT; i++) {
+            cliPrintLinef("debug[%d] = %d", i, debug[i]);
+        }
+    } else {
+        cliPrintLine("Debug mode is disabled");
+    }
+}
+
+
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_UBLOX)
+
+static const char* _ubloxGetSigId(uint8_t gnssId, uint8_t sigId)
+{
+    if(gnssId == 0) {
+        switch(sigId) {
+            case 0: return "GPS L1C/A";
+            case 3: return "GPS L2 CL";
+            case 4: return "GPS L2 CM";
+            case 6: return "GPS L5 I";
+            case 7: return "GPS L5 Q";
+            default: return "GPS Unknown";
+        }
+    } else if(gnssId == 1) {
+        switch(sigId) {
+            case 0: return "SBAS L1C/A";
+            default: return "SBAS Unknown";
+        }
+    } else if(gnssId == 2) {
+        switch(sigId) {
+            case 0: return "Galileo E1 C";
+            case 1: return "Galileo E1 B";
+            case 3: return "Galileo E5 al";
+            case 4: return "Galileo E5 aQ";
+            case 5: return "Galileo E5 bl";
+            case 6: return "Galileo E5 bQ";
+            default: return "Galileo Unknown";
+        }
+    } else if(gnssId == 3) {
+        switch(sigId) {
+            case 0: return "BeiDou B1I D1";
+            case 1: return "BeiDou B1I D2";
+            case 2: return "BeiDou B2I D1";
+            case 3: return "BeiDou B2I D2";
+            case 5: return "BeiDou B1C";
+            case 7: return "BeiDou B2a";
+            default: return "BeiDou Unknown";
+        }
+    } else if(gnssId == 5) {
+        switch(sigId) {
+            case 0: return "QZSS L1C/A";
+            case 1: return "QZSS L1S";
+            case 4: return "QZSS L2 CM";
+            case 5: return "QZSS L2 CL";
+            case 8: return "QZSS L5 I";
+            case 9: return "QZSS L5 Q";
+            default: return "QZSS Unknown";
+        }
+    } else if(gnssId == 6) {
+        switch(sigId) {
+            case 0: return "GLONASS L1 OF";
+            case 2: return "GLONASS L2 OF";
+            default: return "GLONASS Unknown";
+        }
+    }
+
+    return "Unknown GNSS/SigId";
+}
+
+static const char *_ubloxGetQuality(uint8_t quality)
+{
+    switch(quality) {
+        case UBLOX_SIG_QUALITY_NOSIGNAL: return "No signal";
+        case UBLOX_SIG_QUALITY_SEARCHING: return "Searching signal...";
+        case UBLOX_SIG_QUALITY_ACQUIRED: return "Signal acquired";
+        case UBLOX_SIG_QUALITY_UNUSABLE: return "Signal detected but unusable";
+        case UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC: return "Code locked and time sync";
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC:
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC2:
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3: 
+            return "Code and carrier locked and time sync";
+        default: return "Unknown";
+    }
+}
+
+static void cliUbloxPrintSatelites(char *arg)
+{
+    UNUSED(arg);
+    if(!isGpsUblox() /*|| !(gpsState.flags.sig || gpsState.flags.sat)*/) {
+        cliPrint("GPS is not UBLOX or does not report satelites.");
+        return;
+    }
+
+    cliPrintLine("UBLOX Satelites");
+
+    for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
+    {
+        const ubx_nav_sig_info *sat = gpsGetUbloxSatelite(i);
+        if(sat == NULL) {
+            continue;
+        }
+
+        cliPrintLinef("satelite[%d]: %d:%d", i+1, sat->gnssId, sat->svId);
+        cliPrintLinef("sigId: %d (%s)", sat->sigId, _ubloxGetSigId(sat->gnssId, sat->sigId));
+        cliPrintLinef("signal strength: %i dbHz", sat->cno);
+        cliPrintLinef("quality: %i (%s)", sat->quality, _ubloxGetQuality(sat->quality));
+        //cliPrintLinef("Correlation: %i", sat->corrSource);
+        //cliPrintLinef("Iono model: %i", sat->ionoModel);
+        cliPrintLinef("signal flags: 0x%02X", sat->sigFlags);
+        switch(sat->sigFlags & UBLOX_SIG_HEALTH_MASK) {
+            case UBLOX_SIG_HEALTH_HEALTHY:
+                cliPrintLine("signal: Healthy");
+                break;
+            case UBLOX_SIG_HEALTH_UNHEALTHY:
+                cliPrintLine("signal: Unhealthy");
+                break;
+            case UBLOX_SIG_HEALTH_UNKNOWN:
+            default:
+                cliPrintLinef("signal: Unknown (0x%X)", sat->sigFlags & UBLOX_SIG_HEALTH_MASK);
+                break;
+        }
+        cliPrintLinefeed();
+    }
+}
+#endif
+
 static void cliHelp(char *cmdline);
 
 // should be sorted a..z for bsearch()
@@ -4266,9 +4457,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("defaults", "reset to defaults and reboot", NULL, cliDefaults),
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
-        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDiff),
+        "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
     CLI_COMMAND_DEF("dump", "dump configuration",
-        "[master|battery_profile|profile|rates|all] {showdefaults}", cliDump),
+        "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
     CLI_COMMAND_DEF("eleres_bind", NULL, NULL, cliEleresBind),
 #endif // USE_RX_ELERES
@@ -4295,6 +4486,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
+    CLI_COMMAND_DEF("gpssats", "show GPS satellites", NULL, cliUbloxPrintSatelites),
 #endif
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
@@ -4309,12 +4501,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
-    CLI_COMMAND_DEF("profile", "change profile",
-        "[<index>]", cliProfile),
-    CLI_COMMAND_DEF("battery_profile", "change battery profile",
-        "[<index>]", cliBatteryProfile),
-    CLI_COMMAND_DEF("mixer_profile", "change mixer profile",
-        "[<index>]", cliMixerProfile),
+    CLI_COMMAND_DEF("control_profile", "change control profile", "[<index>]", cliControlProfile),
+    CLI_COMMAND_DEF("mixer_profile", "change mixer profile", "[<index>]", cliMixerProfile),
+    CLI_COMMAND_DEF("battery_profile", "change battery profile", "[<index>]", cliBatteryProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
 #if defined(USE_SAFE_HOME)
@@ -4350,6 +4539,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_SDCARD
     CLI_COMMAND_DEF("sd_info", "sdcard info", NULL, cliSdInfo),
 #endif
+    CLI_COMMAND_DEF("showdebug", "Show debug fields.", NULL, cliCmdDebug),
     CLI_COMMAND_DEF("status", "show status", NULL, cliStatus),
     CLI_COMMAND_DEF("tasks", "show task stats", NULL, cliTasks),
 #ifdef USE_TEMPERATURE_SENSOR

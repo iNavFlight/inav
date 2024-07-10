@@ -1,56 +1,59 @@
-# Profiles
+# Control Profiles
 
 A profile is a set of configuration settings.
 
-Currently three profiles are supported. The default profile is profile `1`.
+Currently, INAV gives you three control profiles. The default control profile is `1`.
 
-## Changing profiles
+## Changing contorl profiles
 ### Stick Commands
-Profiles can be selected using a GUI or the following stick combinations:
+Control profiles can be selected using a GUI or the following stick combinations:
 
-| Profile | Throttle | Yaw   | Pitch  | Roll   |
-| ------- | -------- | ----- | ------ | ------ |
-| 1       | Down     | Left  | Middle | Left   |
-| 2       | Down     | Left  | Up     | Middle |
-| 3       | Down     | Left  | Middle | Right  |
+| Profile # | Throttle | Yaw   | Pitch  | Roll   |
+| -------- | -------- | ----- | ------ | ------ |
+| 1        | Down     | Left  | Middle | Left   |
+| 2        | Down     | Left  | Up     | Middle |
+| 3        | Down     | Left  | Middle | Right  |
 
 ### CLI
-The CLI `profile` command can also be used to change profiles:
+The CLI `control_profile` command can also be used to change control profiles:
 
 ```
-profile <index>
+control_profile <index>
 ```
 
 ### Programming (4.0.0 onwards)
-You can change profiles using the programming frame work. This allows a lot of flexability in how you change profiles.
+You can change control profiles using the programming frame work. This allows a lot of flexability in how you change profiles.
 
 For example, using a simple switch on channel 15.
 
 [![For example, using a simple switch](https://i.imgur.com/SS9CaaOl.png)](https://i.imgur.com/SS9CaaO.png)
 
-Or using the speed to change profiles. In this example: 
-- when lower than 25 cm/s (basically not flying), profiles are not effected.
-- Below 2682 cm/s (60 mph | 97 Km/h) use Profile 1
-- Above 5364 cm/s (120 mph | 193 Km/h) use Profile 3
-- Between 2683 and 5364 cm/s, use Profile 2
+Or using the speed to change control profiles. In this example: 
+- when lower than 25 cm/s (basically not flying), control profiles are not effected.
+- Below 2682 cm/s (60 mph | 97 Km/h) use control profile 1
+- Above 5364 cm/s (120 mph | 193 Km/h) use control profile 3
+- Between 2683 and 5364 cm/s, use control profile 2
 
 [![Using speed to change profiles](https://i.imgur.com/WjkuhhWl.png)](https://i.imgur.com/WjkuhhW.png)
 
-#### Configurator use with profile changing logic.
+> [!NOTE]
+> From INAV 8.0, the programming framework operator is **Set Control Profile** and the **Flight** Operand is **Active Control Profile**. Pre-INAV 8.0, they were **Set Profile** and **Active Profile** respectively.
 
-If you have logic conditions that change the profiles. You may find that if you manually change the profile using the drop down boxes in the top right of Configurator; that they switch back to a different profile. This is because the logic conditions are still running in the background. If this is the case, the simplest solutuion is to temporarily disable the switches that trigger the `set profile` operations. Remember to re-enable these switches after you have made your changes.
+#### Configurator use with control profile changing logic.
+
+If you have logic conditions that change the profiles. You may find that if you manually change the control profile; using the drop down boxes in the top right of Configurator. That they switch back to a different control profile. This is because the logic conditions are still running in the background. If this is the case, the simplest solutuion is to temporarily disable the switches that trigger the `Set Control Profile` operations. Remember to re-enable these switches after you have made your changes.
 
 [![Disabled SET PROFILE switches](https://i.imgur.com/AeH9ll7l.png)](https://i.imgur.com/AeH9ll7.png)
 
 ## Profile Contents
-The values contained within a profile can be seen by using the CLI `dump profile` command.
+The values contained within a control profile can be seen by using the CLI `dump control_profile` command.
 
 e.g
 ```
-# dump profile
+# dump control_profile
 
-# profile
-profile 1
+# control_profile
+control_profile 1
 
 set mc_p_pitch = 40
 set mc_i_pitch = 30

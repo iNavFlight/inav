@@ -56,7 +56,7 @@
 navigationPosEstimator_t posEstimator;
 static float initialBaroAltitudeOffset = 0.0f;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 7);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -64,8 +64,6 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .reset_altitude_type = SETTING_INAV_RESET_ALTITUDE_DEFAULT,
         .reset_home_type = SETTING_INAV_RESET_HOME_DEFAULT,
         .gravity_calibration_tolerance = SETTING_INAV_GRAVITY_CAL_TOLERANCE_DEFAULT,  // 5 cm/s/s calibration error accepted (0.5% of gravity)
-        .use_gps_velned = SETTING_INAV_USE_GPS_VELNED_DEFAULT,                        // "Disabled" is mandatory with gps_dyn_model = Pedestrian
-        .use_gps_no_baro = SETTING_INAV_USE_GPS_NO_BARO_DEFAULT,                      // Use GPS altitude if no baro is available on all aircrafts
         .allow_dead_reckoning = SETTING_INAV_ALLOW_DEAD_RECKONING_DEFAULT,
 
         .max_surface_altitude = SETTING_INAV_MAX_SURFACE_ALTITUDE_DEFAULT,
@@ -90,7 +88,10 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .w_acc_bias = SETTING_INAV_W_ACC_BIAS_DEFAULT,
 
         .max_eph_epv = SETTING_INAV_MAX_EPH_EPV_DEFAULT,
-        .baro_epv = SETTING_INAV_BARO_EPV_DEFAULT
+        .baro_epv = SETTING_INAV_BARO_EPV_DEFAULT,
+#ifdef USE_GPS_FIX_ESTIMATION
+        .allow_gps_fix_estimation = SETTING_INAV_ALLOW_GPS_FIX_ESTIMATION_DEFAULT
+#endif
 );
 
 #define resetTimer(tim, currentTimeUs) { (tim)->deltaTime = 0; (tim)->lastTriggeredTime = currentTimeUs; }
@@ -159,47 +160,6 @@ static timeUs_t getGPSDeltaTimeFilter(timeUs_t dTus)
     return dTus;                                                 // Filter failed. Set GPS Hz by measurement
 }
 
-#if defined(NAV_GPS_GLITCH_DETECTION)
-static bool detectGPSGlitch(timeUs_t currentTimeUs)
-{
-    static timeUs_t previousTime = 0;
-    static fpVector3_t lastKnownGoodPosition;
-    static fpVector3_t lastKnownGoodVelocity;
-
-    bool isGlitching = false;
-
-    if (previousTime == 0) {
-        isGlitching = false;
-    }
-    else {
-        fpVector3_t predictedGpsPosition;
-        float gpsDistance;
-        float dT = US2S(currentTimeUs - previousTime);
-
-        /* We predict new position based on previous GPS velocity and position */
-        predictedGpsPosition.x = lastKnownGoodPosition.x + lastKnownGoodVelocity.x * dT;
-        predictedGpsPosition.y = lastKnownGoodPosition.y + lastKnownGoodVelocity.y * dT;
-
-        /* New pos is within predefined radius of predicted pos, radius is expanded exponentially */
-        gpsDistance = calc_length_pythagorean_2D(predictedGpsPosition.x - lastKnownGoodPosition.x, predictedGpsPosition.y - lastKnownGoodPosition.y);
-        if (gpsDistance <= (INAV_GPS_GLITCH_RADIUS + 0.5f * INAV_GPS_GLITCH_ACCEL * dT * dT)) {
-            isGlitching = false;
-        }
-        else {
-            isGlitching = true;
-        }
-    }
-
-    if (!isGlitching) {
-        previousTime = currentTimeUs;
-        lastKnownGoodPosition = posEstimator.gps.pos;
-        lastKnownGoodVelocity = posEstimator.gps.vel;
-    }
-
-    return isGlitching;
-}
-#endif
-
 /**
  * Update GPS topic
  *  Function is called on each GPS update
@@ -219,8 +179,16 @@ void onNewGPSData(void)
     newLLH.lon = gpsSol.llh.lon;
     newLLH.alt = gpsSol.llh.alt;
 
-    if (sensors(SENSOR_GPS)) {
-        if (!STATE(GPS_FIX)) {
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
+        if (!(STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+            )) {
             isFirstGPSUpdate = true;
             return;
         }
@@ -259,7 +227,7 @@ void onNewGPSData(void)
 
                 /* Use VELNED provided by GPS if available, calculate from coordinates otherwise */
                 float gpsScaleLonDown = constrainf(cos_approx((ABS(gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f), 0.01f, 1.0f);
-                if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelNE) {
+                if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && gpsSol.flags.validVelNE) {
                     posEstimator.gps.vel.x = gpsSol.velNED[X];
                     posEstimator.gps.vel.y = gpsSol.velNED[Y];
                 }
@@ -268,25 +236,12 @@ void onNewGPSData(void)
                     posEstimator.gps.vel.y = (posEstimator.gps.vel.y + (gpsScaleLonDown * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR * (gpsSol.llh.lon - previousLon) / dT)) / 2.0f;
                 }
 
-                if (positionEstimationConfig()->use_gps_velned && gpsSol.flags.validVelD) {
+                if (gpsSol.flags.validVelD) {
                     posEstimator.gps.vel.z = -gpsSol.velNED[Z];   // NEU
                 }
                 else {
                     posEstimator.gps.vel.z = (posEstimator.gps.vel.z + (gpsSol.llh.alt - previousAlt) / dT) / 2.0f;
                 }
-
-#if defined(NAV_GPS_GLITCH_DETECTION)
-                /* GPS glitch protection. We have local coordinates and local velocity for current GPS update. Check if they are sane */
-                if (detectGPSGlitch(currentTimeUs)) {
-                    posEstimator.gps.glitchRecovery = false;
-                    posEstimator.gps.glitchDetected = true;
-                }
-                else {
-                    /* Store previous glitch flag in glitchRecovery to indicate a valid reading after a glitch */
-                    posEstimator.gps.glitchRecovery = posEstimator.gps.glitchDetected;
-                    posEstimator.gps.glitchDetected = false;
-                }
-#endif
 
                 /* FIXME: use HDOP/VDOP */
                 if (gpsSol.flags.validEPE) {
@@ -344,7 +299,7 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
             static float baroAltPrevious = 0;
             posEstimator.baro.baroAltRate = (posEstimator.baro.alt - baroAltPrevious) / US2S(baroDtUs);
             baroAltPrevious = posEstimator.baro.alt;
-            updateBaroAltitudeRate(posEstimator.baro.baroAltRate, true);
+            updateBaroAltitudeRate(posEstimator.baro.baroAltRate);
         }
     }
     else {
@@ -502,7 +457,11 @@ static bool navIsAccelerationUsable(void)
 
 static bool navIsHeadingUsable(void)
 {
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+        || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         // If we have GPS - we need true IMU north (valid heading)
         return isImuHeadingValid();
     }
@@ -517,7 +476,11 @@ static uint32_t calculateCurrentValidityFlags(timeUs_t currentTimeUs)
     /* Figure out if we have valid position data from our data sources */
     uint32_t newFlags = 0;
 
-    if (sensors(SENSOR_GPS) && posControl.gpsOrigin.valid &&
+    if ((sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && posControl.gpsOrigin.valid &&
         ((currentTimeUs - posEstimator.gps.lastUpdateTime) <= MS2US(INAV_GPS_TIMEOUT_MS)) &&
         (posEstimator.gps.eph < positionEstimationConfig()->max_eph_epv)) {
         if (posEstimator.gps.epv < positionEstimationConfig()->max_eph_epv) {
@@ -589,15 +552,20 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
 
     bool correctOK = false;
-    
-    //ignore baro if difference is too big, baro is probably wrong
-    const float gpsBaroResidual = ctx->newFlags & EST_GPS_Z_VALID ? fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt) : 0.0f;
-    //fade out the baro to prevent sudden jump
-    const float start_epv = positionEstimationConfig()->max_eph_epv;
-    const float end_epv = positionEstimationConfig()->max_eph_epv * 2.0f;
-    const float wBaro = scaleRangef(constrainf(gpsBaroResidual, start_epv, end_epv), start_epv, end_epv, 1.0f, 0.0f);
-    //use both baro and gps
-    if ((ctx->newFlags & EST_BARO_VALID) && (!positionEstimationConfig()->use_gps_no_baro) && (wBaro > 0.01f)) {
+
+    float wBaro = 0.0f;
+    if (ctx->newFlags & EST_BARO_VALID) {
+        // Ignore baro if difference is too big, baro is probably wrong
+        const float gpsBaroResidual = ctx->newFlags & EST_GPS_Z_VALID ? fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt) : 0.0f;
+
+        // Fade out the baro to prevent sudden jump
+        const float start_epv = positionEstimationConfig()->max_eph_epv;
+        const float end_epv = positionEstimationConfig()->max_eph_epv * 2.0f;
+        wBaro = scaleRangef(constrainf(gpsBaroResidual, start_epv, end_epv), start_epv, end_epv, 1.0f, 0.0f);
+    }
+
+    // Always use Baro if no GPS otherwise only use if accuracy OK compared to GPS
+    if (wBaro > 0.01f) {
         timeUs_t currentTimeUs = micros();
 
         if (!ARMING_FLAG(ARMED)) {
@@ -633,6 +601,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         correctOK = true;
     }
+
     if (ctx->newFlags & EST_GPS_Z_VALID) {
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
@@ -713,7 +682,11 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
 static void estimationCalculateGroundCourse(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    if (STATE(GPS_FIX) && navIsHeadingUsable()) {
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+    ) && navIsHeadingUsable()) {
         uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(posEstimator.est.vel.y, posEstimator.est.vel.x)));
         posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
     }
@@ -862,13 +835,6 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
                                               (MIN(navEPV, 1000) & 0x3FF));                   // Horizontal and vertical uncertainties (max value = 1000, fit into 20bits)
     }
 }
-
-#if defined(NAV_GPS_GLITCH_DETECTION)
-bool isGPSGlitchDetected(void)
-{
-    return posEstimator.gps.glitchDetected;
-}
-#endif
 
 float getEstimatedAglPosition(void) {
     return posEstimator.est.aglAlt;

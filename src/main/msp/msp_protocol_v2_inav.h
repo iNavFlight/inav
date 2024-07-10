@@ -31,9 +31,10 @@
 #define MSP2_INAV_OUTPUT_MAPPING                0x200A
 #define MSP2_INAV_MC_BRAKING                    0x200B
 #define MSP2_INAV_SET_MC_BRAKING                0x200C
-#define MSP2_INAV_OUTPUT_MAPPING_EXT            0x200D
+#define MSP2_INAV_OUTPUT_MAPPING_EXT            0x200D // Obsolete, replaced by MSP2_INAV_OUTPUT_MAPPING_EXT2
 #define MSP2_INAV_TIMER_OUTPUT_MODE             0x200E
 #define MSP2_INAV_SET_TIMER_OUTPUT_MODE         0x200F
+#define MSP2_INAV_OUTPUT_MAPPING_EXT2           0x210D
 
 #define MSP2_INAV_MIXER                         0x2010
 #define MSP2_INAV_SET_MIXER                     0x2011
@@ -95,6 +96,8 @@
 #define MSP2_INAV_FW_APPROACH                   0x204A
 #define MSP2_INAV_SET_FW_APPROACH               0x204B
 
+#define MSP2_INAV_GPS_UBLOX_COMMAND             0x2050
+
 #define MSP2_INAV_RATE_DYNAMICS                 0x2060
 #define MSP2_INAV_SET_RATE_DYNAMICS             0x2061
 
@@ -103,6 +106,10 @@
 
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
 
+#define MSP2_ADSB_VEHICLE_LIST                  0x2090
+
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
 #define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2101
 
+#define MSP2_INAV_SERVO_CONFIG                  0x2200
+#define MSP2_INAV_SET_SERVO_CONFIG              0x2201

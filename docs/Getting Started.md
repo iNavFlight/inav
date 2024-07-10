@@ -70,7 +70,7 @@ Now, there are two ways to [configure CF](Configuration.md); via  the Configurat
     * Verify the range of each channel goes from ~1000 to ~2000.  See also [controls](Controls.md). and `rx_min_usec` and `rx_max_usec`.
     * You can also set EXPO here instead of your Tx.
     * Click Save!
-* Modes tab: Setup the desired modes. See the [modes](Modes.md) chapter for what each mode does, but for the beginning you mainly need HORIZON, if any.
+* Modes tab: Setup the desired modes. See the [Modes in the wiki](https://github.com/iNavFlight/inav/wiki/Modes) for what each mode does.
 
 * Before finishing this section, you should calibrate the ESCs, install the FC to the frame, and connect the RSSI cable, buzzer and battery if you have chosen to use those.
 

@@ -1,3 +1,4 @@
+
 main_sources(COMMON_SRC
     main.c
 
@@ -30,6 +31,8 @@ main_sources(COMMON_SRC
     common/gps_conversion.h
     common/log.c
     common/log.h
+    common/lulu.c
+    common/lulu.h
     common/maths.c
     common/maths.h
     common/memory.c
@@ -176,6 +179,10 @@ main_sources(COMMON_SRC
     drivers/flash_m25p16.h
     drivers/flash_w25n01g.c
     drivers/flash_w25n01g.h
+    drivers/gimbal_common.h
+    drivers/gimbal_common.c
+    drivers/headtracker_common.h
+    drivers/headtracker_common.c
     drivers/io.c
     drivers/io.h
     drivers/io_pcf8574.c
@@ -237,6 +244,8 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_us42.h
     drivers/rangefinder/rangefinder_tof10120_i2c.c
     drivers/rangefinder/rangefinder_tof10120_i2c.h
+    drivers/rangefinder/rangefinder_teraranger_evo.c
+    drivers/rangefinder/rangefinder_teraranger_evo.h
 
     drivers/resource.c
     drivers/resource.h
@@ -343,13 +352,20 @@ main_sources(COMMON_SRC
     flight/dynamic_lpf.h
     flight/ez_tune.c
     flight/ez_tune.h
+    flight/adaptive_filter.c
+    flight/adaptive_filter.h
 
+    io/adsb.c
     io/beeper.c
     io/beeper.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
     io/frsky_osd.h
+    io/gimbal_serial.c
+    io/gimbal_serial.h
+    io/headtracker_msp.c
+    io/headtracker_msp.h
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c
@@ -482,6 +498,8 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
+    io/rangefinder_usd1_v0.c
+    io/rangefinder_nanoradar.c
     io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
@@ -494,8 +512,8 @@ main_sources(COMMON_SRC
     io/displayport_max7456.h
     io/displayport_msp.c
     io/displayport_msp.h
-    io/displayport_msp_bf_compat.c
-    io/displayport_msp_bf_compat.h
+    io/displayport_msp_dji_compat.c
+    io/displayport_msp_dji_compat.h
     io/displayport_oled.c
     io/displayport_oled.h
     io/displayport_msp_osd.c
@@ -560,6 +578,8 @@ main_sources(COMMON_SRC
     navigation/navigation_rover_boat.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
+    navigation/rth_trackback.c
+    navigation/rth_trackback.h
 
     sensors/barometer.c
     sensors/barometer.h

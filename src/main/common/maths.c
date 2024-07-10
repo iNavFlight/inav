@@ -123,6 +123,15 @@ int32_t wrap_18000(int32_t angle)
     return angle;
 }
 
+int16_t wrap_180(int16_t angle)
+{
+    if (angle > 180)
+        angle -= 360;
+    if (angle < -180)
+        angle += 360;
+    return angle;
+}
+
 int32_t wrap_36000(int32_t angle)
 {
     if (angle >= 36000)
@@ -516,9 +525,25 @@ bool sensorCalibrationSolveForScale(sensorCalibrationState_t * state, float resu
     return sensorCalibrationValidateResult(result);
 }
 
+float gaussian(const float x, const float mu, const float sigma) {
+    return exp(-pow((double)(x - mu), 2) / (2 * pow((double)sigma, 2)));
+}
+
 float bellCurve(const float x, const float curveWidth)
 {
-    return powf(M_Ef, -sq(x) / (2.0f * sq(curveWidth)));
+    return gaussian(x, 0.0f, curveWidth);
+}
+
+/**
+ * @brief Calculate the attenuation of a value using a Gaussian function.
+ * Retuns 1 for input 0 and ~0 for input width.
+ * @param input The input value.
+ * @param width The width of the Gaussian function.
+ * @return The attenuation of the input value.
+*/
+float attenuation(const float input, const float width) {
+    const float sigma = width / 2.35482f; // Approximately width / sqrt(2 * ln(2))
+    return gaussian(input, 0.0f, sigma);
 }
 
 float fast_fsqrtf(const float value) {
