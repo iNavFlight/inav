@@ -104,9 +104,6 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
     // 
 }
 
-#define SBUS2_DEADTIME              MS2US(2)
-#define SBUS2_SLOT_TIME             700
-#define SBUS2_SLOT_DELAY_MAX        200
 uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed)
 {
     if (elapsed < SBUS2_DEADTIME) {
