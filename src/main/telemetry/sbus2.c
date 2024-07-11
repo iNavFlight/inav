@@ -23,11 +23,22 @@
 
 #include "common/utils.h"
 #include "common/time.h"
+#include "common/axis.h"
 
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
 
 #include "rx/sbus.h"
+
+#include "sensors/battery.h"
+#include "sensors/sensors.h"
+
+#include "navigation/navigation.h"
+
+#ifdef USE_ESC_SENSOR
+#include "sensors/esc_sensor.h"
+#include "flight/mixer.h"
+#endif
 
 #ifdef USE_TELEMETRY_SBUS2
 
@@ -48,16 +59,50 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
 
-    // TODO: placeholder
+    float voltage = getBatteryVoltage() * 0.01f;
+    float cellVoltage = getBatteryAverageCellVoltage() * 0.01f;
+    float current = getAmperage() * 0.01f;
+    float capacity = getMAhDrawn();
+    float altitude = getEstimatedActualPosition(Z) * 0.01f;
+    float vario = getEstimatedActualVelocity(Z);
+    float temperature = 0;
+    uint32_t rpm = 0;
 
-    for (int i = 1; i < SBUS2_SLOT_COUNT; ++i) {
-        int16_t temp = 41 + i;
-        send_SBS01T(i, temp);
+#ifdef USE_ESC_SENSOR
+    escSensorData_t * escSensor = escSensorGetData();
+    if (escSensor && escSensor->dataAge <= ESC_DATA_MAX_AGE) {
+        rpm = escSensor->rpm;
+        temperature = escSensor->temperature;
+    } else {
+        rpm = 0;
+        temperature = 0;
     }
+#endif
 
-    DEBUG_SET(DEBUG_SBUS2, 5, 42);
+    temperature = 42.16f;
+
+    DEBUG_SET(DEBUG_SBUS2, 0, voltage);
+    DEBUG_SET(DEBUG_SBUS2, 1, cellVoltage);
+    DEBUG_SET(DEBUG_SBUS2, 2, current);
+    DEBUG_SET(DEBUG_SBUS2, 3, capacity);
+    DEBUG_SET(DEBUG_SBUS2, 4, altitude);
+    DEBUG_SET(DEBUG_SBUS2, 5, vario);
+    DEBUG_SET(DEBUG_SBUS2, 6, rpm);
+    DEBUG_SET(DEBUG_SBUS2, 7, temperature);
+
+    // 2 slots
+    send_voltagef(1, voltage, cellVoltage);
+    // 3 slots
+    send_s1678_currentf(3, current, capacity, voltage);
+    // 1 slot
+    send_RPM(6, rpm);
+    // 1 slot - esc temp
+    //send_temp125(7, temperature);
+    send_SBS01T(7, temperature);
+
+    // 8 slots - gps
+    // 
 }
-
 
 #define SBUS2_DEADTIME              MS2US(2)
 #define SBUS2_SLOT_TIME             700
@@ -83,40 +128,31 @@ void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
 {
     if (!telemetrySharedPort || rxConfig()->receiverType != RX_TYPE_SERIAL ||
         rxConfig()->serialrx_provider != SERIALRX_SBUS2) {
-        DEBUG_SET(DEBUG_SBUS2, 0, -1);
         return;
     }
 
     timeUs_t elapsedTime = currentTimeUs - sbusGetLastFrameTime();
 
     if(elapsedTime > MS2US(8)) {
-        DEBUG_SET(DEBUG_SBUS2, 0, -2);
         return;
     }
 
-    DEBUG_SET(DEBUG_SBUS2, 0, 1);
 
     uint8_t telemetryPage = sbusGetCurrentTelemetryPage();
 
     uint8_t slot = sbus2GetTelemetrySlot(elapsedTime);
 
     if(slot < SBUS2_TELEMETRY_SLOTS) {
-        DEBUG_SET(DEBUG_SBUS2, 1, telemetryPage);
-        DEBUG_SET(DEBUG_SBUS2, 2, slot);
-        DEBUG_SET(DEBUG_SBUS2, 4, -1);
         int slotIndex = (telemetryPage * SBUS2_TELEMETRY_SLOTS) + slot;
         if (slotIndex < SBUS2_SLOT_COUNT) {
-            DEBUG_SET(DEBUG_SBUS2, 3, slotIndex);
             if (sbusTelemetryDataUsed[slotIndex] != 0 && sbusTelemetryMinDelay[slotIndex] < currentTimeUs) {
                 sbusTelemetryData[slotIndex].slotId = sbus2SlotIds[slotIndex];
                 // send
                 serialWriteBuf(telemetrySharedPort,
                                (const uint8_t *)&sbusTelemetryData[slotIndex],
                                sizeof(sbus2_telemetry_frame_t));
-                sbusTelemetryMinDelay[slotIndex] = currentTimeUs + MS2US(2);
+                sbusTelemetryMinDelay[slotIndex] = currentTimeUs + MS2US(1);
                 sbusTelemetryDataUsed[slotIndex] = 0;
-
-                DEBUG_SET(DEBUG_SBUS2, 4, slotIndex);
             }
         }
     }
@@ -156,9 +192,8 @@ void send_SBS01T(uint8_t port, int16_t temp){
   value = value + 100;
   bytes[0] = value;// >> 8;
   bytes[1] = value >> 8;
-  SBUS2_transmit_telemetry_data( port , bytes);
+  SBUS2_transmit_telemetry_data(port , bytes);
 }
-
 
 void send_voltage(uint8_t port,uint16_t voltage1, uint16_t voltage2)
 {
