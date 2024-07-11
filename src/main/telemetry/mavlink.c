@@ -1222,6 +1222,11 @@ static bool processMAVLinkIncomingTelemetry(void)
     return false;
 }
 
+static bool isMAVLinkTelemetryHalfDuplex(void) {
+    return telemetryConfig()->halfDuplex ||
+            (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_MAVLINK && tristateWithDefaultOffIsActive(rxConfig()->halfDuplex));
+}
+
 void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
     if (!mavlinkTelemetryEnabled) {
@@ -1232,18 +1237,18 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         return;
     }
 
-    // Process incoming MAVLink - ignore the return indicating whether or not a message was processed
-    // Very few telemetry links are dynamic uplink/downlink split so uplink telemetry shouldn't reduce downlink bandwidth availability
-    processMAVLinkIncomingTelemetry();
-
-    // Determine whether to send telemetry back
+    // Process incoming MAVLink
+    bool receivedMessage = processMAVLinkIncomingTelemetry();
     bool shouldSendTelemetry = false;
+
+    // Determine whether to send telemetry back based on flow control / pacing
     if (txbuff_valid) {
         // Use flow control if available
         shouldSendTelemetry = txbuff_free >= 33;
     } else {
-        // If not, use blind frame pacing
-        shouldSendTelemetry = (currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY;
+        // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
+        bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);
+        shouldSendTelemetry = ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) && !halfDuplexBackoff;
     }
 
     if (shouldSendTelemetry) {

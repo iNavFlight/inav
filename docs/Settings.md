@@ -2518,7 +2518,7 @@ Rate of the extra1 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 2 | 0 | 255 |
 
 ---
 
@@ -2558,7 +2558,7 @@ Rate of the RC channels message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 255 |
+| 1 | 0 | 255 |
 
 ---
 
