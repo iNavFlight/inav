@@ -77,7 +77,6 @@ static void sbusDataReceive(uint16_t c, void *data)
     const timeUs_t currentTimeUs = micros();
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
-    bool isSbus2Frame = true;
 
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
     if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
@@ -110,7 +109,6 @@ static void sbusDataReceive(uint16_t c, void *data)
                         if(frame->endByte & 0x4) {
                             sbus2ActiveTelemetryPage = (frame->endByte >> 4) & 0xF;
                             frameTime = currentTimeUs;
-                            isSbus2Frame = true;
                         } else {
                             sbus2ActiveTelemetryPage = 0;
                             sbus2ActiveTelemetrySlot = 0;
