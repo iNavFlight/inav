@@ -1207,6 +1207,11 @@ static bool processMAVLinkIncomingTelemetry(void)
     return false;
 }
 
+static bool isMAVLinkTelemetryHalfDuplex(void) {
+    return  (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_MAVLINK && tristateWithDefaultOffIsActive(rxConfig()->halfDuplex))
+            || telemetryConfig()->halfDuplex;
+}
+
 void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
     static bool incomingRequestServed;
@@ -1226,16 +1231,10 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY && txbuff_free >= telemetryConfig()->mavlink.min_txbuff) {
         // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed ||
-            (
-                 (rxConfig()->receiverType == RX_TYPE_SERIAL) &&
-                 (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
-                 !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
-            )
-        ) {
+        if (!incomingRequestServed || !isMAVLinkTelemetryHalfDuplex()) {
             processMAVLinkTelemetry(currentTimeUs);
+            lastMavlinkMessage = currentTimeUs;
         }
-        lastMavlinkMessage = currentTimeUs;
         incomingRequestServed = false;
     }
 }
