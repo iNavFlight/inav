@@ -67,6 +67,7 @@ typedef struct sbusFrameData_s {
 } sbusFrameData_t;
 
 static uint8_t sbus2ActiveTelemetryPage = 0;
+static uint8_t sbus2ActiveTelemetrySlot = 0;
 timeUs_t frameTime = 0;
 
 // Receive ISR callback
@@ -76,6 +77,7 @@ static void sbusDataReceive(uint16_t c, void *data)
     const timeUs_t currentTimeUs = micros();
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
+    bool isSbus2Frame = true;
 
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
     if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
@@ -108,8 +110,10 @@ static void sbusDataReceive(uint16_t c, void *data)
                         if(frame->endByte & 0x4) {
                             sbus2ActiveTelemetryPage = (frame->endByte >> 4) & 0xF;
                             frameTime = currentTimeUs;
+                            isSbus2Frame = true;
                         } else {
                             sbus2ActiveTelemetryPage = 0;
+                            sbus2ActiveTelemetrySlot = 0;
                             frameTime = -1;
                         }
 
@@ -152,6 +156,8 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
     // Reset the frameDone flag - tell ISR that we're ready to receive next frame
     sbusFrameData->frameDone = false;
+
+    //taskSendSbus2Telemetry(micros());
 
     // Calculate "virtual link quality based on packet loss metric"
     if (retValue & RX_FRAME_COMPLETE) {
@@ -217,9 +223,16 @@ bool sbusInitFast(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
     return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE_FAST);
 }
 
-#if defined(USE_TELEMETRY) && defined(USE_SBUS2_TELEMETRY)
-uint8_t sbusGetLastFrameTime(void) {
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+timeUs_t sbusGetLastFrameTime(void) {
     return frameTime;
+}
+
+uint8_t sbusGetCurrentTelemetryNextSlot(void)
+{
+    uint8_t current = sbus2ActiveTelemetrySlot;
+    sbus2ActiveTelemetrySlot++;
+    return current;
 }
 
 uint8_t sbusGetCurrentTelemetryPage(void) {

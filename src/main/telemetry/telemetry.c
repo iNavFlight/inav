@@ -23,6 +23,8 @@
 
 #ifdef USE_TELEMETRY
 
+#include "build/debug.h"
+
 #include "common/utils.h"
 
 #include "config/parameter_group.h"
@@ -49,6 +51,7 @@
 #include "telemetry/ibus.h"
 #include "telemetry/crsf.h"
 #include "telemetry/srxl.h"
+#include "telemetry/sbus2.h"
 #include "telemetry/sim.h"
 #include "telemetry/ghst.h"
 
@@ -246,8 +249,9 @@ void telemetryProcess(timeUs_t currentTimeUs)
     handleGhstTelemetry(currentTimeUs);
 #endif
 
-#ifdef USE_TELMETRY_SBUS2
+#ifdef USE_TELEMETRY_SBUS2
     handleSbus2Telemetry(currentTimeUs);
+    DEBUG_SET(DEBUG_SBUS2, 7, 1);
 #endif
 }
 

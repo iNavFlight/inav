@@ -93,6 +93,7 @@
 #include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
+#include "telemetry/sbus2.h"
 
 #include "config/feature.h"
 
@@ -438,7 +439,7 @@ void fcTasksInit(void)
 #endif
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
-    setTaskEnabled(TASK_TELEMETRY_SBUS2, rxConfig->serialrx_provider == SERIALRX_SBUS2);
+    setTaskEnabled(TASK_TELEMETRY_SBUS2,rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_SBUS2);
 #endif
 
 #ifdef USE_ADAPTIVE_FILTER
@@ -734,7 +735,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_TELEMETRY_SBUS2] = {
         .taskName = "SBUS2_TELEMETRY",
         .taskFunc = taskSendSbus2Telemetry,
-        .desiredPeriod = TASK_PERIOD_US(300),
+        .desiredPeriod = TASK_PERIOD_HZ(2000),
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif

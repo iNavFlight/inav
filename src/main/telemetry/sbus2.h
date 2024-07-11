@@ -22,88 +22,34 @@
 
 #include "platform.h"
 
+#include "common/time.h"
+
 #define SBUS2_TELEMETRY_PAYLOAD_SIZE 3
 
 #define SBUS2_TELEMETRY_ITEM_SIZE   3
 #define SBUS2_TELEMETRY_SLOTS       8
 #define SBUS2_TELEMETRY_PAGES       4
 
+#define SBUS2_DEADTIME              MS2US(2)
+#define SBUS2_SLOT_TIME             700
+#define SBUS2_SLOT_DELAY_MAX        200
+
 #define SBUS2_SLOT_COUNT            (SBUS2_TELEMETRY_PAGES * SBUS2_TELEMETRY_SLOTS)
 
-#if defined(USE_TELEMETRY) && defined(USE_SBUS2_TELEMETRY)
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
 
 // Information on SBUS2 sensors from: https://github.com/BrushlessPower/SBUS2-Telemetry/tree/master
-// Temperature:
-// Max 125C
-// value | 0x4000
-typedef struct sbus2_telemetry_temp_payload_s {
-    uint8_t tempHigh; // temp | 0x4000; // 125c
-    uint8_t tempLow;
-} __attribute__((packed)) sbsu2_telemetry_temp_payload_t;
-
-// Temperature:
-// Max 200C
-// temp | 0x8000
-typedef struct sbus2_telemetry_temp200_payload_s {
-    uint8_t tempLow; // temp | 0x8000; // 200c
-    uint8_t tempHigh;
-} __attribute__((packed)) sbsu2_telemetry_temp200_payload_t;
-
-// RPM:
-// (RPM / 6) max: 0xFFFF
-typedef struct sbus2_telemetry_rpm_payload_s {
-    uint8_t rpmHigh; // RPM / 6, capped at 0xFFFF
-    uint8_t rpmLow;
-} __attribute__((packed)) sbsu2_telemetry_rpm_payload_t;
-
-// Voltage: 1 or 2 slots
-// 0x8000 = rx voltage?
-// max input: 0x1FFF
-typedef struct sbus2_telemetry_voltage_payload_s {
-    uint8_t voltageHigh; // 2 slots // Voltage 1: value | 0x8000 
-    uint8_t voltageLow;  // max input value: 0x1FFF
-} __attribute__((packed)) sbsu2_telemetry_voltage_payload_t;
-
-// Current
-// 3 frames
-// 1: current
-// Max input: 0x3FFF
-// input |= 0x4000
-// input &= 0x7FFF
-// 2: voltage
-// same as voltage frame. may not need ot be capped.
-// 3: Capacity
-typedef struct sbus2_telemetry_current_payload_s {
-    uint8_t currentHigh;
-    uint8_t currentLow;
-} __attribute__((packed)) sbsu2_telemetry_current_payload_t;
-
-typedef struct sbus2_telemetry_capacity_payload_s {
-    uint8_t capacityHigh;
-    uint8_t capacityLow;
-} __attribute__((packed)) sbsu2_telemetry_capacity_payload_t;
-
-// GPS
-// frames:
-// 1: Speed
-// 2: Altitude
-// 3: Vario
-// 4,5: LAT
-// 5,6: LON
-
 typedef struct sbus2_telemetry_frame_s {
     uint8_t slotId;
     union
     {
         uint8_t data[2];
-        sbsu2_telemetry_temp_payload_t temp125;
-        sbsu2_telemetry_temp200_payload_t temp200;
-        sbsu2_telemetry_rpm_payload_t rpm;
-        sbsu2_telemetry_voltage_payload_t voltage;
-        sbsu2_telemetry_current_payload_t current;
-        sbsu2_telemetry_capacity_payload_t capacity;
+        uint16_t u16;
     } payload;
 } __attribute__((packed)) sbus2_telemetry_frame_t;
+
+
+STATIC_ASSERT(sizeof(sbus2_telemetry_frame_t) == 3, sbus2_telemetry_size);
 
 extern const uint8_t Slot_ID[SBUS2_SLOT_COUNT];
 extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_SLOT_COUNT];
@@ -115,4 +61,101 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs);
 
 // time critical, send sbus2 data
 void taskSendSbus2Telemetry(timeUs_t currentTimeUs);
+
+uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed);
+
+// Sensor code from https://github.com/BrushlessPower/SBUS2-Telemetry
+// SBUS2 telemetry: 2ms deadtime after rc package
+// One new slot every 700us
+
+/*
+ * ++++++++++++++++++++++++++++++++
+ * Temperature Sensors
+ * ++++++++++++++++++++++++++++++++
+ */
+void send_temp125(uint8_t port, int16_t temp);
+void send_alarm_as_temp125(uint8_t port, int16_t alarm);
+void send_SBS01TE(uint8_t port, int16_t temp);
+void send_SBS01T(uint8_t port, int16_t temp);
+void send_F1713(uint8_t port, int16_t temp);
+
+/*
+ * ++++++++++++++++++++++++++++++++
+ * RPM Sensors
+ * ++++++++++++++++++++++++++++++++
+ */
+void send_RPM(uint8_t port, uint32_t RPM);
+void send_SBS01RB(uint8_t port, uint32_t RPM);
+void send_SBS01RM(uint8_t port, uint32_t RPM);
+void send_SBS01RO(uint8_t port, uint32_t RPM);
+void send_SBS01R(uint8_t port, uint32_t RPM);
+
+/*
+ * ++++++++++++++++++++++++++++++++
+ * Voltage/Current Sensors
+ * ++++++++++++++++++++++++++++++++
+ */
+void send_voltage(uint8_t port,uint16_t voltage1, uint16_t voltage2);
+void send_voltagef(uint8_t port,float voltage1, float voltage2);
+void send_s1678_current(uint8_t port, uint16_t current, uint16_t capacity, uint16_t voltage);
+void send_s1678_currentf(uint8_t port, float current, uint16_t capacity, float voltage);
+void send_SBS01C(uint8_t port, uint16_t current, uint16_t capacity, uint16_t voltage);
+void send_SBS01Cf(uint8_t port, float current, uint16_t capacity, float voltage);
+void send_F1678(uint8_t port, uint16_t current, uint16_t capacity, uint16_t voltage);
+void send_F1678f(uint8_t port, float current, uint16_t capacity, float voltage);
+void send_SBS01V(uint8_t port,uint16_t voltage1, uint16_t voltage2);
+void send_SBS01Vf(uint8_t port,float voltage1, float voltage2);
+
+
+/*
+ * ++++++++++++++++++++++++++++++++
+ * Vario Sensors
+ * ++++++++++++++++++++++++++++++++
+ */
+void send_f1712_vario(uint8_t port, int16_t altitude, int16_t vario);
+void send_f1712_variof(uint8_t port, int16_t altitude, float vario);
+void send_f1672_vario(uint8_t port, int16_t altitude, int16_t vario);
+void send_f1672_variof(uint8_t port, int16_t altitude, float vario);
+void send_F1712(uint8_t port, int16_t altitude, int16_t vario);
+void send_F1712f(uint8_t port, int16_t altitude, float vario);
+void send_F1672(uint8_t port, int16_t altitude, int16_t vario);
+void send_F1672f(uint8_t port, int16_t altitude, float vario);
+
+/*
+ * ++++++++++++++++++++++++++++++++
+ * GPS Sensors
+ * Note the different Input Types!
+ * Example:
+ * Position Berlin Fernsehturm
+ * https://www.koordinaten-umrechner.de/decimal/52.520832,13.409430?karte=OpenStreetMap&zoom=19
+ * Degree Minutes 52° 31.2499 and 13° 24.5658
+ * Decimal Degree 52.520832 and 13.409430
+ * ++++++++++++++++++++++++++++++++
+ */
+// Degree Minutes as Integer -> 52312499
+void send_f1675_gps(uint8_t port, uint16_t speed, int16_t hight, int16_t vario, int32_t latitude, int32_t longitude); 
+// Degree Minutes as Integer -> 52 and 312499
+void send_F1675min(uint8_t port, uint16_t speed, int16_t hight, int16_t vario, int8_t lat_deg, int32_t lat_min, int8_t lon_deg, int32_t lon_min); 
+// Degree Minutes as Float -> 52 and 31.2499
+void send_F1675minf(uint8_t port, uint16_t speed, int16_t hight, int16_t vario, int8_t lat_deg, float lat_min, int8_t lon_deg, float lon_min); 
+// Decimal Degrees as Float -> 52.520832
+void send_F1675f(uint8_t port, uint16_t speed, int16_t hight, int16_t vario, float latitude, float longitude);
+// Decimal Degrees as Integer -> 52520832
+void send_F1675(uint8_t port, uint16_t speed, int16_t hight, int16_t vario, int32_t latitude, int32_t longitude);
+void send_SBS10G(uint8_t port, uint16_t hours, uint16_t minutes, uint16_t seconds, float latitude, float longitude, float altitudeMeters, uint16_t speed, float gpsVario);
+
+/*
+ * ++++++++++++++++++++++++++++++++
+ * ESC Sensors
+ * Note These sensors only exists on the newer Futaba Radios 18SZ, 16IZ, etc
+ * ++++++++++++++++++++++++++++++++
+ */
+
+void send_kontronik(uint8_t port,  uint16_t voltage, uint16_t capacity, uint32_t rpm, uint16_t current, uint16_t temp, uint16_t becTemp, uint16_t becCurrent, uint16_t pwm);
+void send_scorpion(uint8_t port,  uint16_t voltage, uint16_t capacity, uint32_t rpm, uint16_t current, uint16_t temp, uint16_t becTemp, uint16_t becCurrent, uint16_t pwm); 
+
+void send_jetcat(uint8_t port, uint32_t rpm, uint16_t egt, uint16_t pump_volt, uint32_t setrpm, uint16_t thrust, uint16_t fuel, uint16_t fuelflow, uint16_t altitude, uint16_t quality, uint16_t volt, uint16_t current, uint16_t speed, uint16_t status, uint32_t secondrpm);
+
+void SBUS2_transmit_telemetry_data(uint8_t slotId , const uint8_t *bytes);
+
 #endif
