@@ -355,6 +355,7 @@ void blackboxDeviceClose(void)
 #if defined(SITL_BUILD)
     case BLACKBOX_DEVICE_FILE:
         fclose(blackboxFile.file_handler);
+        blackboxFile.file_handler = NULL;
         break;
 #endif
     default:
