@@ -11,7 +11,8 @@ The SBUS2 signal should be connected to the TX PIN, not the RX PIN, like on a tr
 
 # Sensor mapping
 
-The follow fixed sensor mapping is used:
+The following fixed sensor mapping is used:
+
 | Slot | Sensort Type | Info |
 | --- | --- | --- |
 | 1 | Voltage | Pack voltage and cell voltage |
