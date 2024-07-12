@@ -149,7 +149,7 @@ void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
                                (const uint8_t *)&sbusTelemetryData[slotIndex],
                                sizeof(sbus2_telemetry_frame_t));
                 sbusTelemetryMinDelay[slotIndex] = currentTimeUs + MS2US(1);
-                sbusTelemetryDataUsed[slotIndex] = 0;
+                //sbusTelemetryDataUsed[slotIndex] = 0;
             }
         }
     }
