@@ -31,8 +31,8 @@
 #define SBUS2_TELEMETRY_PAGES       4
 
 #define SBUS2_DEADTIME              MS2US(2)
-#define SBUS2_SLOT_TIME             700
-#define SBUS2_SLOT_DELAY_MAX        300
+#define SBUS2_SLOT_TIME             650
+#define SBUS2_SLOT_DELAY_MAX        350
 
 #define SBUS2_SLOT_COUNT            (SBUS2_TELEMETRY_PAGES * SBUS2_TELEMETRY_SLOTS)
 

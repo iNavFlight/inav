@@ -735,8 +735,8 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_TELEMETRY_SBUS2] = {
         .taskName = "SBUS2_TELEMETRY",
         .taskFunc = taskSendSbus2Telemetry,
-        .desiredPeriod = TASK_PERIOD_HZ(2000),
-        .staticPriority = TASK_PRIORITY_IDLE,
+        .desiredPeriod = TASK_PERIOD_US(125), // 8kHz 2ms dead time + 650us window / sensor.
+        .staticPriority = TASK_PRIORITY_REALTIME, // timing is critical. Ideally, should be a timer interrupt triggered by sbus packet
     },
 #endif
 

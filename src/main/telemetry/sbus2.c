@@ -32,6 +32,10 @@
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
+#include "sensors/temperature.h"
+#include "sensors/diagnostics.h"
+
+#include "io/gps.h"
 
 #include "navigation/navigation.h"
 
@@ -79,7 +83,7 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
     }
 #endif
 
-    temperature = 42.16f;
+    //temperature = 42.16f;
 
     DEBUG_SET(DEBUG_SBUS2, 0, voltage);
     DEBUG_SET(DEBUG_SBUS2, 1, cellVoltage);
@@ -97,8 +101,46 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
     // 1 slot
     send_RPM(6, rpm);
     // 1 slot - esc temp
-    //send_temp125(7, temperature);
+    static int change = 0;
+    change++;
+    int delta = change / 10;
+    delta = delta % 20;
     send_SBS01T(7, temperature);
+
+    // 8 slots, gps
+    uint16_t speed = 0;
+    float latitude = 0;
+    float longitude = 0;
+
+#ifdef USE_GPS
+    if (gpsSol.fixType >= GPS_FIX_2D) {
+        speed = (CMSEC_TO_KPH(gpsSol.groundSpeed) + 0.5f);
+        latitude = gpsSol.llh.lat * 1e-7;
+        longitude = gpsSol.llh.lon * 1e-7;
+    }
+#endif
+
+    send_F1675f(8, speed, altitude, vario, latitude, longitude);
+    // imu 1 slot
+    int16_t temp16;
+    bool valid = getIMUTemperature(&temp16);
+    send_SBS01T(16, valid ? temp16 / 10 : 0);
+    // baro
+    valid = 0;
+    valid = getBaroTemperature(&temp16);
+    send_SBS01T(17, valid ? temp16 / 10 : 0);
+    // temp sensors 18-25
+#ifdef USE_TEMPERATURE_SENSOR
+    for(int i = 0; i < 8; i++) {
+        temp16 = 0;
+        valid = getSensorTemperature(0, &temp16);
+        send_SBS01T(18 + i, valid ? temp16 / 10 : 0);
+    }
+#else
+    for(int i = 0; i < 8; i++) {
+        send_SBS01T(18 + i, 0);
+    }
+#endif
 
     // 8 slots - gps
     // 
@@ -121,7 +163,7 @@ uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed)
     return slot;
 }
 
-void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
+FAST_CODE void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
 {
     if (!telemetrySharedPort || rxConfig()->receiverType != RX_TYPE_SERIAL ||
         rxConfig()->serialrx_provider != SERIALRX_SBUS2) {
