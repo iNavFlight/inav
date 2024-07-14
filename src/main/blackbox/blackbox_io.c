@@ -584,6 +584,10 @@ bool isBlackboxDeviceWorking(void)
         case BLACKBOX_DEVICE_FLASH:
             return flashfsIsReady();
 #endif
+#if defined(SITL_BUILD)
+        case BLACKBOX_DEVICE_FILE:
+            return blackboxFile.file_handler != NULL;
+#endif
     default:
         return false;
     }
