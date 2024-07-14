@@ -37,6 +37,12 @@ typedef enum {
 } ltmUpdateRate_e;
 
 typedef enum {
+    MAVLINK_RADIO_GENERIC,
+    MAVLINK_RADIO_ELRS,
+    MAVLINK_RADIO_SIK,
+} mavlinkRadio_e;
+
+typedef enum {
     SMARTPORT_FUEL_UNIT_PERCENT,
     SMARTPORT_FUEL_UNIT_MAH,
     SMARTPORT_FUEL_UNIT_MWH
@@ -73,6 +79,7 @@ typedef struct telemetryConfig_s {
         uint8_t extra3_rate;
         uint8_t version;
         uint8_t min_txbuff;
+        uint8_t radio_type;
     } mavlink;
 } telemetryConfig_t;
 

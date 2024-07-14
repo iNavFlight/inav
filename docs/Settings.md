@@ -2562,6 +2562,16 @@ Rate of the position message for MAVLink telemetry
 
 ---
 
+### mavlink_radio_type
+
+Mavlink radio type. Affects how RSSI and LQ are reported on OSD.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
+
+---
+
 ### mavlink_rc_chan_rate
 
 Rate of the RC channels message for MAVLink telemetry

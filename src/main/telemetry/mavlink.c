@@ -1126,6 +1126,27 @@ static bool handleIncoming_PARAM_REQUEST_LIST(void) {
     return true;
 }
 
+static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
+    switch(telemetryConfig()->mavlink.radio_type) {
+        case MAVLINK_RADIO_SIK:
+            rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
+            rxLinkStatistics.uplinkSNR = msg->noise * 1.9;
+            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            break;
+        case MAVLINK_RADIO_ELRS:
+            rxLinkStatistics.uplinkRSSI = -msg->remrssi;
+            rxLinkStatistics.uplinkSNR = msg->noise;
+            rxLinkStatistics.uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
+            break;
+        case MAVLINK_RADIO_GENERIC:
+        default:
+            rxLinkStatistics.uplinkRSSI = msg->rssi;
+            rxLinkStatistics.uplinkSNR = msg->noise;
+            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            break;
+    }
+}
+
 static bool handleIncoming_RADIO_STATUS(void) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
@@ -1134,10 +1155,7 @@ static bool handleIncoming_RADIO_STATUS(void) {
        
     if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
         rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
-        // TODO: decide what to do here
-        rxLinkStatistics.uplinkRSSI = -msg.remrssi;  // dbM
-        rxLinkStatistics.uplinkSNR = msg.noise;      // dbM * 2?
-        rxLinkStatistics.uplinkLQ = scaleRange(msg.rssi, 0, 254, 0, 100);  // May be elrs specific
+        mavlinkParseRxStats(&msg);
     }
 
     return true;

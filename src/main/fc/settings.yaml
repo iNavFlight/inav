@@ -198,6 +198,9 @@ tables:
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]
     enum: headTrackerDevType_e
+  - name: mavlink_radio_type
+    values: ["GENERIC", "ELRS", "SIK"]
+    enum: mavlinkRadio_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -3197,6 +3200,12 @@ groups:
         default_value: 33
         min: 0
         max: 100
+      - name: mavlink_radio_type
+        description: "Mavlink radio type. Affects how RSSI and LQ are reported on OSD."
+        field: mavlink.radio_type
+        table: mavlink_radio_type
+        default_value: "GENERIC"
+        type: uint8_t
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
