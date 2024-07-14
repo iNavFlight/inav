@@ -1130,7 +1130,7 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
     switch(telemetryConfig()->mavlink.radio_type) {
         case MAVLINK_RADIO_SIK:
             rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
-            rxLinkStatistics.uplinkSNR = msg->noise * 1.9;
+            rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
             rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
             break;
         case MAVLINK_RADIO_ELRS:
