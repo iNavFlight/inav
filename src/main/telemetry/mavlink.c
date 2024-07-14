@@ -1129,6 +1129,7 @@ static bool handleIncoming_PARAM_REQUEST_LIST(void) {
 static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
     switch(telemetryConfig()->mavlink.radio_type) {
         case MAVLINK_RADIO_SIK:
+            // rssi scaling info from: https://ardupilot.org/rover/docs/common-3dr-radio-advanced-configuration-and-technical-information.html
             rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
             rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
             rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
