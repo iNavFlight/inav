@@ -1253,7 +1253,7 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
     // Determine whether to send telemetry back based on flow control / pacing
     if (txbuff_valid) {
         // Use flow control if available
-        shouldSendTelemetry = txbuff_free >= 33;
+        shouldSendTelemetry = txbuff_free >= telmetryConfig()->mavlink.min_txbuff;
     } else {
         // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
         bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);
