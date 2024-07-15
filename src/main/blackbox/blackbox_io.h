@@ -31,6 +31,9 @@ typedef enum BlackboxDevice {
 #ifdef USE_SDCARD
     BLACKBOX_DEVICE_SDCARD = 2,
 #endif
+#if defined(SITL_BUILD)
+    BLACKBOX_DEVICE_FILE = 3,
+#endif
 
     BLACKBOX_DEVICE_END
 } BlackboxDevice;
