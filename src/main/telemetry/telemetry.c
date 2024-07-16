@@ -139,6 +139,10 @@ void telemetryInit(void)
     initGhstTelemetry();
 #endif
 
+#ifdef USE_TELEMETRY_SBUS2
+    initSbus2Telemetry();
+#endif
+
     telemetryCheckState();
 }
 

@@ -64,6 +64,9 @@ void taskSendSbus2Telemetry(timeUs_t currentTimeUs);
 
 uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed);
 
+void initSbus2Telemetry(void);
+void sbus2startDeadTime(timeUs_t currentTime);
+
 // Sensor code from https://github.com/BrushlessPower/SBUS2-Telemetry
 // SBUS2 telemetry: 2ms deadtime after rc package
 // One new slot every 700us

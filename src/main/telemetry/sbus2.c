@@ -25,6 +25,8 @@
 #include "common/time.h"
 #include "common/axis.h"
 
+#include "drivers/timer.h"
+
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
 
@@ -906,6 +908,38 @@ void SBUS2_transmit_telemetry_data(uint8_t slotId , const uint8_t *bytes)
         sbusTelemetryDataUsed[slotId] = 1;
     }
 
+}
+
+void sbus2startDeadTime(timeUs_t currentTime)
+{
+    UNUSED(currentTime);
+}
+
+void initSbus2Telemetry(void)
+{
+    /*
+    const timerHardware_t *timerRx = timerGetByUsageFlag(TIM_USE_ANY);
+    TCH_t *tch = timerGetTCH(timerRx);
+
+    uint32_t baseClock = timerClock(tch->timHw->tim);
+    uint32_t clock = baseClock;
+    uint32_t timerPeriod;
+    uint32_t baud = 1000000;
+    
+
+    do {
+        timerPeriod = clock / baud;
+        if (timerPeriod > 0xFFFF) {
+            if (clock > 1) {
+                clock = clock / 2;   // this is wrong - mhz stays the same ... This will double baudrate until ok (but minimum baudrate is < 1200)
+            } else {
+                // TODO unable to continue, unable to determine clock and timerPeriods for the given baud
+            }
+        }
+    } while (timerPeriod > 0xFFFF);
+
+    timerConfigure(tch, timerPeriod, baseClock);
+    */
 }
 
 #endif
