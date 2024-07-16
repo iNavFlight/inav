@@ -25,7 +25,7 @@ tables:
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK", "FBUS", "SBUS2"]
   - name: blackbox_device
-    values: ["SERIAL", "SPIFLASH", "SDCARD"]
+    values: ["SERIAL", "SPIFLASH", "SDCARD", "FILE"]
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
   - name: servo_protocol
@@ -3155,7 +3155,7 @@ groups:
         type: uint8_t
         min: 0
         max: 255
-        default_value: 5
+        default_value: 1
       - name: mavlink_pos_rate
         description: "Rate of the position message for MAVLink telemetry"
         field: mavlink.position_rate
@@ -3169,7 +3169,7 @@ groups:
         type: uint8_t
         min: 0
         max: 255
-        default_value: 10
+        default_value: 2
       - name: mavlink_extra2_rate
         description: "Rate of the extra2 message for MAVLink telemetry"
         field: mavlink.extra2_rate
