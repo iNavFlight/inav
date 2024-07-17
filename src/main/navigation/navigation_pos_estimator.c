@@ -342,6 +342,12 @@ static bool gravityCalibrationComplete(void)
 
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
+
+static bool gravityCalibrationIsValid(void)
+{
+    return gravityCalibrationComplete() || posEstimator.imu.calibratedGravityCMSS;
+}
+
 #define ACC_VIB_FACTOR_S 1.0f
 #define ACC_VIB_FACTOR_E 3.0f
 static void updateIMUEstimationWeight(const float dt)
@@ -409,12 +415,13 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
         if (gyroConfig()->init_gyro_cal_enabled) {
-            if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
+            if (!ARMING_FLAG(WAS_EVER_ARMED)) {
                 zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
 
                 if (gravityCalibrationComplete()) {
                     zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
                     setGravityCalibration(posEstimator.imu.calibratedGravityCMSS);
+                    restartGravityCalibration();    // Repeat calibration until first arm to continuously update zero datum
                     LOG_DEBUG(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
                 }
             }
@@ -423,8 +430,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.calibratedGravityCMSS = gyroConfig()->gravity_cmss_cal;
         }
 
-        /* If calibration is incomplete - report zero acceleration */
-        if (gravityCalibrationComplete()) {
+        if (gravityCalibrationIsValid()) {
 #ifdef USE_SIMULATOR
             if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
                 posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
@@ -432,7 +438,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 #endif
             posEstimator.imu.accelNEU.z -= posEstimator.imu.calibratedGravityCMSS;
         }
-        else {
+        else {      // If calibration is incomplete - report zero acceleration
             posEstimator.imu.accelNEU.x = 0.0f;
             posEstimator.imu.accelNEU.y = 0.0f;
             posEstimator.imu.accelNEU.z = 0.0f;
@@ -521,7 +527,9 @@ static void estimationPredict(estimationContext_t * ctx)
     if ((ctx->newFlags & EST_Z_VALID)) {
         posEstimator.est.pos.z += posEstimator.est.vel.z * ctx->dt;
         posEstimator.est.pos.z += posEstimator.imu.accelNEU.z * sq(ctx->dt) / 2.0f;
-        posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt;
+        if (ARMING_FLAG(WAS_EVER_ARMED)) {   // Hold at zero until first armed
+            posEstimator.est.vel.z += posEstimator.imu.accelNEU.z * ctx->dt;
+        }
     }
 
     /* Prediction step: XY-axis */
@@ -599,7 +607,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->accBiasCorr.z -= wBaro * baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p);
         }
 
-        correctOK = true;
+        correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
     }
 
     if (ctx->newFlags & EST_GPS_Z_VALID) {
@@ -623,7 +631,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->accBiasCorr.z -= gpsAltResudual * sq(positionEstimationConfig()->w_z_gps_p);
         }
 
-        correctOK = true;
+        correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
     }
 
     return correctOK;
@@ -907,5 +915,5 @@ void updatePositionEstimator(void)
 
 bool navIsCalibrationComplete(void)
 {
-    return gravityCalibrationComplete();
+    return gravityCalibrationIsValid();
 }
