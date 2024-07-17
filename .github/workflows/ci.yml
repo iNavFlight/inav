@@ -49,8 +49,50 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BUILD_NAME }}.${{ matrix.id }}
+          name: matrix-${{ env.BUILD_NAME }}.${{ matrix.id }}
           path: ./build/*.hex
+          retention-days: 1
+
+  upload-artifacts:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup environment
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        run: |
+          # This is the hash of the commit for the PR
+          # when the action is triggered by PR, empty otherwise
+          COMMIT_ID=${{ github.event.pull_request.head.sha }}
+          # This is the hash of the commit when triggered by push
+          # but the hash of refs/pull/<n>/merge, which is different
+          # from the hash of the latest commit in the PR, that's
+          # why we try github.event.pull_request.head.sha first
+          COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
+          BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
+          echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: matrix-inav-*
+          merge-multiple: true
+          path: binaries
+      - name: Build target list
+        run: |
+          ls -1 binaries/*.hex | cut -d/ -f2 > targets.txt
+      - name: Upload firmware images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BUILD_NAME }}
+          path: binaries/*.hex
+      - name: Upload firmware images
+        uses: actions/upload-artifact@v4
+        with:
+          name: targets
+          path: targets.txt
 
   build-SITL-Linux:
     runs-on: ubuntu-latest

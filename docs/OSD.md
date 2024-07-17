@@ -2,6 +2,15 @@
 
 The On Screen Display, or OSD, is a feature that overlays flight data over the video image. This can be done on the flight controller, using the analogue MAX7456 chip. Digital systems take the OSD data, via MSP DisplayPort, send it to the video receiver; which combines the data with the image. You can specify what elements are displayed, and their locations on the image. Most systems are character based, and use the MAX7456 analogue setup, or MSP DisplayPort. However, there are some different systems which are also supported. Such as the canvas based FrSKY PixelOSD on analogue. Canvas OSDs draw shapes on the image. Whereas character based OSDs use font characters to display the data.
 
+
+General OSD information is in this document. Other documents cover specific OSD-related topics:
+* [Custom OSD Messages](https://github.com/iNavFlight/inav/wiki/OSD-custom-messages)
+* [OSD Hud and ESP32 radars](https://github.com/iNavFlight/inav/wiki/OSD-Hud-and-ESP32-radars)
+* [OSD Joystick](https://github.com/iNavFlight/inav/blob/master/docs/OSD%20Joystick.md)
+* [DJI compatible OSD.md](https://github.com/iNavFlight/inav/blob/master/docs/DJI%20compatible%20OSD.md)
+* [Pixel OSD FAQ](https://github.com/iNavFlight/inav/wiki/Pixel-OSD-FAQs)
+
+
 ## Features and Limitations
 Not all OSDs are created equally. This table shows the differences between the different systems available.
 

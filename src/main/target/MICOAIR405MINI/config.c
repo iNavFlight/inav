@@ -1,5 +1,5 @@
 /*
- * This file is part of INAV
+ * This file is part of Cleanflight.
  *
  * Cleanflight is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,23 +15,20 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include <stdint.h>
+#include "platform.h"
+#include "config/config_master.h"
+#include "config/feature.h"
+#include "io/serial.h"
+#include "fc/config.h"
+#include "sensors/gyro.h"
 
-#include "gps_ublox.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-int ubloxCfgFillBytes(ubx_config_data8_t *cfg, ubx_config_data8_payload_t *kvPairs, uint8_t count);
-int ubloxCfgFillU2(ubx_config_data16_t *cfg, ubx_config_data16_payload_t *kvPairs, uint8_t count);
-
-void ublox_update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b);
-
-void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *navSig);
-
-#ifdef __cplusplus
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;
+    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_MSP_OSD;
+    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[5].functionMask = FUNCTION_ESCSERIAL;
 }
-#endif

@@ -205,7 +205,7 @@ Note:
 
 ## SIM (SITL) Joystick
 
-Enables the use of a joystick in the INAV SITL with a flight simulator. See the [SITL documentation](SITL/SITL).
+Enables the use of a joystick in the INAV SITL with a flight simulator. See the [SITL documentation](SITL/SITL.md).
 
 ## Configuration
 

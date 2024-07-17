@@ -25,7 +25,7 @@ tables:
   - name: serial_rx
     values: ["SPEK1024", "SPEK2048", "SBUS", "SUMD", "IBUS", "JETIEXBUS", "CRSF", "FPORT", "SBUS_FAST", "FPORT2", "SRXL2", "GHST", "MAVLINK", "FBUS"]
   - name: blackbox_device
-    values: ["SERIAL", "SPIFLASH", "SDCARD"]
+    values: ["SERIAL", "SPIFLASH", "SDCARD", "FILE"]
   - name: motor_pwm_protocol
     values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
   - name: servo_protocol
@@ -42,13 +42,13 @@ tables:
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
     enum: imu_inertia_comp_method_e
   - name: gps_provider
-    values: ["UBLOX", "UBLOX7", "MSP", "FAKE"]
+    values: ["UBLOX", "MSP", "FAKE"]
     enum: gpsProvider_e
   - name: gps_sbas_mode
     values: ["AUTO", "EGNOS", "WAAS", "MSAS", "GAGAN", "SPAN", "NONE"]
     enum: sbasMode_e
   - name: gps_dyn_model
-    values: ["PEDESTRIAN","AUTOMOTIVE", "AIR_1G", "AIR_2G", "AIR_4G"]
+    values: ["PEDESTRIAN","AUTOMOTIVE", "AIR_1G", "AIR_2G", "AIR_4G", "SEA", "MOWER"]
     enum: gpsDynModel_e
   - name: reset_type
     values: ["NEVER", "FIRST_ARM", "EACH_ARM"]
@@ -84,7 +84,7 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", 
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS" ]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU"]
   - name: aux_operator
     values: ["OR", "AND"]
     enum: modeActivationOperator_e
@@ -193,7 +193,7 @@ tables:
     values: ["SHARED_LOW", "SHARED_HIGH", "LOW", "HIGH"]
     enum: led_pin_pwm_mode_e
   - name: gyro_filter_mode
-    values: ["STATIC", "DYNAMIC", "ADAPTIVE", "LULU"]
+    values: ["OFF", "STATIC", "DYNAMIC", "ADAPTIVE"]
     enum: gyroFilterType_e
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]
@@ -227,10 +227,16 @@ groups:
         default_value: 250
         field: gyro_anti_aliasing_lpf_hz
         max: 1000
+      - name: gyro_lulu_enabled
+        description: "Enable/disable gyro LULU filter"
+        default_value: OFF
+        field: gyroLuluEnabled
+        type: bool
       - name: gyro_lulu_sample_count
         description: "Gyro lulu sample count, in number of samples."
         default_value: 3
         field: gyroLuluSampleCount
+        min: 1
         max: 15
       - name: gyro_main_lpf_hz
         description: "Software based gyro main lowpass filter. Value is cutoff frequency (Hz)"
@@ -1660,7 +1666,7 @@ groups:
     condition: USE_GPS
     members:
       - name: gps_provider
-        description: "Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N)."
+        description: "Which GPS protocol to be used."
         default_value: "UBLOX"
         field: provider
         table: gps_provider
@@ -1715,7 +1721,7 @@ groups:
         min: 5
         max: 10
       - name: gps_ublox_nav_hz
-        description: "Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
+        description: "Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer."
         default_value: 10
         field: ubloxNavHz
         type: uint8_t
@@ -3170,7 +3176,7 @@ groups:
         type: uint8_t
         min: 0
         max: 255
-        default_value: 5
+        default_value: 1
       - name: mavlink_pos_rate
         description: "Rate of the position message for MAVLink telemetry"
         field: mavlink.position_rate
@@ -3184,7 +3190,7 @@ groups:
         type: uint8_t
         min: 0
         max: 255
-        default_value: 10
+        default_value: 2
       - name: mavlink_extra2_rate
         description: "Rate of the extra2 message for MAVLink telemetry"
         field: mavlink.extra2_rate
