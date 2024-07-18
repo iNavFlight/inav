@@ -614,6 +614,8 @@ main_sources(COMMON_SRC
     telemetry/msp_shared.h
     telemetry/sbus2.c
     telemetry/sbus2.h
+    telemetry/sbus2_sensors.c
+    telemetry/sbus2_sensors.h
     telemetry/smartport.c
     telemetry/smartport.h
     telemetry/sim.c
