@@ -18,6 +18,8 @@
 #include "telemetry/sbus2.h"
 #include "telemetry/sbus2_sensors.h"
 
+
+#ifdef USE_TELEMETRY_SBUS2
 void send_RPM(uint8_t port, uint32_t RPM)
 {
    uint32_t value =  0;
@@ -727,3 +729,4 @@ void SBUS2_transmit_telemetry_data(uint8_t slotId , const uint8_t *bytes)
     }
 
 }
+#endif

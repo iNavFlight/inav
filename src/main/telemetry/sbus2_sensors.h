@@ -22,6 +22,8 @@
 
 #include "platform.h"
 
+#ifdef USE_TELEMETRY_SBUS2
+
 // Sensor code from https://github.com/BrushlessPower/SBUS2-Telemetry
 // SBUS2 telemetry: 2ms deadtime after rc package
 // One new slot every 700us
@@ -116,3 +118,4 @@ void send_jetcat(uint8_t port, uint32_t rpm, uint16_t egt, uint16_t pump_volt, u
 
 void SBUS2_transmit_telemetry_data(uint8_t slotId , const uint8_t *bytes);
 
+#endif
