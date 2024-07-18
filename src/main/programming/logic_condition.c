@@ -513,7 +513,7 @@ static int logicConditionCompute(
 
 void logicConditionProcess(uint8_t i) {
 
-    const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+    const int32_t activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
 
     if (logicConditions(i)->enabled && activatorValue && !cliMode) {
 
@@ -522,9 +522,9 @@ void logicConditionProcess(uint8_t i) {
          * Latched LCs can only go from OFF to ON, not the other way
          */
         if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
-            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-            const int newValue = logicConditionCompute(
+            const int32_t operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int32_t operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int32_t newValue = logicConditionCompute(
                 logicConditionStates[i].value,
                 logicConditions(i)->operation,
                 operandAValue,
@@ -938,8 +938,8 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
     }
 }
 
-int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
-    int retVal = 0;
+int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand) {
+    int32_t retVal = 0;
 
     switch (type) {
 
@@ -994,7 +994,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 /*
  * conditionId == -1 is always evaluated as true
  */
-int logicConditionGetValue(int8_t conditionId) {
+int32_t logicConditionGetValue(int8_t conditionId) {
     if (conditionId >= 0) {
         return logicConditionStates[conditionId].value;
     } else {
