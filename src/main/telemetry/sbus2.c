@@ -141,9 +141,6 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
         send_SBS01T(18 + i, 0);
     }
 #endif
-
-    // 8 slots - gps
-    // 
 }
 
 uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed)
