@@ -251,7 +251,6 @@ void telemetryProcess(timeUs_t currentTimeUs)
 
 #ifdef USE_TELEMETRY_SBUS2
     handleSbus2Telemetry(currentTimeUs);
-    DEBUG_SET(DEBUG_SBUS2, 7, 1);
 #endif
 }
 
