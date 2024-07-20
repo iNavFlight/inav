@@ -37,8 +37,6 @@
 #define SBUS2_TRANSMIT_TIME         ((8 + 1 + 2 + 1 + 1) * 3 * 10) // 8e2, 100000 baud + star and stop bits
 #define SBUS2_SLOT_DELAY            200
 
-#define SBUS2_SLOT_DELAY_MAX        (MIN(350u, (SBUS2_SLOT_TIME / 2u)))
-
 #define SBUS2_SLOT_COUNT            (SBUS2_TELEMETRY_PAGES * SBUS2_TELEMETRY_SLOTS)
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
