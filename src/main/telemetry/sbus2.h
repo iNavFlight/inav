@@ -33,6 +33,10 @@
 
 #define SBUS2_DEADTIME              MS2US(2)
 #define SBUS2_SLOT_TIME             650u
+
+#define SBUS2_TRANSMIT_TIME         ((8 + 1 + 2 + 1 + 1) * 3 * 10) // 8e2, 100000 baud + star and stop bits
+#define SBUS2_SLOT_DELAY            200
+
 #define SBUS2_SLOT_DELAY_MAX        (MIN(350u, (SBUS2_SLOT_TIME / 2u)))
 
 #define SBUS2_SLOT_COUNT            (SBUS2_TELEMETRY_PAGES * SBUS2_TELEMETRY_SLOTS)
@@ -55,7 +59,7 @@ STATIC_ASSERT(sizeof(sbus2_telemetry_frame_t) == 3, sbus2_telemetry_size);
 extern const uint8_t sbus2SlotIds[SBUS2_SLOT_COUNT];
 extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_SLOT_COUNT];
 extern uint8_t sbusTelemetryDataUsed[SBUS2_SLOT_COUNT];
-extern timeUs_t sbusTelemetryDataLastSent[SBUS2_SLOT_COUNT];
+//extern timeUs_t sbusTelemetryDataLastSent[SBUS2_SLOT_COUNT];
 
 // refresh telemetry buffers 
 void handleSbus2Telemetry(timeUs_t currentTimeUs);
@@ -64,5 +68,6 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs);
 void taskSendSbus2Telemetry(timeUs_t currentTimeUs);
 
 uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed);
+void sbus2IncrementTelemetrySlot(timeUs_t now);
 
 #endif
