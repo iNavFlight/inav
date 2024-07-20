@@ -129,16 +129,13 @@ void handleSbus2Telemetry(timeUs_t currentTimeUs)
     valid = 0;
     valid = getBaroTemperature(&temp16);
     send_SBS01T(17, valid ? temp16 / 10 : 0);
+
     // temp sensors 18-25
 #ifdef USE_TEMPERATURE_SENSOR
     for(int i = 0; i < 8; i++) {
         temp16 = 0;
         valid = getSensorTemperature(0, &temp16);
         send_SBS01T(18 + i, valid ? temp16 / 10 : 0);
-    }
-#else
-    for(int i = 0; i < 8; i++) {
-        send_SBS01T(18 + i, 0);
     }
 #endif
 }
