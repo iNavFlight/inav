@@ -390,3 +390,21 @@ In configurator set IBUS telemetry and RX on this same port, enable telemetry fe
 
 Warning:
 Schematic above work also for connect telemetry only, but not work for connect rx only - will stop FC.
+
+
+## Futaba SBUS2 telemetry
+
+SBUS2 telemetry requires a single connection from the TX pin of a bidirectional serial port to the SBUS2 pin on a Futaba T-FHSS or FASSTest telemetry receiver. (tested T16IZ radio and R7108SB and R3204SB receivers)
+
+It shares 1 line for both TX and RX, the rx pin cannot be used for other serial port stuff.
+It runs at a fixed baud rate of 100000, so it needs a hardware uart capable of inverted signals. It is not available on F4 mcus.
+
+```
+     _______
+    /       \                                              /-------------\
+    | STM32 |-->UART TX-->[Bi-directional @ 100000 baud]-->| Futaba RX   |
+    |  uC   |-  UART RX--x[not connected]                  | SBUS2 port  |
+    \_______/                                              \-------------/
+```
+
+For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_telemetry.md)
