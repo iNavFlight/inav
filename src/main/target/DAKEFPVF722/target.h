@@ -57,6 +57,21 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW90_DEG
+#define MPU6000_CS_PIN          PA4
+#define MPU6000_SPI_BUS         BUS_SPI1
+
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW90_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PA4
+
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        CW90_DEG
+#define BMI270_SPI_BUS          BUS_SPI1
+#define BMI270_CS_PIN           PA4
+
 //Baro 
 #define USE_BARO
 #define USE_BARO_BMP280

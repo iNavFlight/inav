@@ -211,7 +211,9 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "POS_EST",
     "ADAPTIVE_FILTER",
     "HEADTRACKER",
-    "GPS"
+    "GPS",
+    "LULU",
+    "SBUS2"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
