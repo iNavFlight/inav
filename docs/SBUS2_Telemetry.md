@@ -1,10 +1,10 @@
 # Futaba SBUS2 Telemetry
 
-Basic experimental support for SBUS2 telemetry has been added to INAV 8.0.0. Currently it is limited to F7 and H7 mcus only. The main reason it is limited to those MCUs is due to it requiring an inverted UART signal, and the SBUS pads in F405 usually are not bi-directional.
+Basic experimental support for SBUS2 telemetry has been added to INAV 8.0.0. Currently it is limited to F7 and H7 mcus only. The main reason it is limited to those MCUs is due to the requirement for an inverted UART signal and the SBUS pads in F405 usually are not bi-directional.
 
 The basic sensors have been tested with a Futaba T16IZ running software version 6.0E.
 
-An alternative to using INAV's SBUS2 support is to use SBS-01ML MAVlink Telemetry Drone Sensor instead. (not tested)
+An alternative to using INAV's SBUS2 support is to use SBS-01ML MAVlink Telemetry Drone Sensor instead. (not tested and not supported with older futaba radios, including my 16IZ).
 
 # Wiring
 The SBUS2 signal should be connected to the TX PIN, not the RX PIN, like on a traditional SBUS setup.
