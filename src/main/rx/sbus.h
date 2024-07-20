@@ -19,5 +19,13 @@
 
 #define SBUS_DEFAULT_INTERFRAME_DELAY_US    3000    // According to FrSky interframe is 6.67ms, we go smaller just in case
 
+#include "rx/rx.h"
+
 bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
 bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+
+#ifdef USE_TELEMETRY_SBUS2
+uint8_t sbusGetCurrentTelemetryPage(void);
+uint8_t sbusGetCurrentTelemetryNextSlot(void);
+timeUs_t sbusGetLastFrameTime(void);
+#endif

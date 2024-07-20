@@ -73,6 +73,10 @@
 #define CMSEC_TO_CENTIKPH(cms)          (cms * 3.6f)
 #define CMSEC_TO_CENTIKNOTS(cms)        (cms * 1.943845f)
 
+#define CMSEC_TO_MPH(cms)          (CMSEC_TO_CENTIMPH(cms) / 100.0f)
+#define CMSEC_TO_KPH(cms)          (CMSEC_TO_CENTIKPH(cms) / 100.0f)
+#define CMSEC_TO_KNOTS(cms)        (CMSEC_TO_CENTIKNOTS(cms) / 100.0f)
+
 #define C_TO_KELVIN(temp) (temp + 273.15f)
 
 // Standard Sea Level values
