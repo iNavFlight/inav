@@ -56,7 +56,6 @@ const uint8_t sbus2SlotIds[SBUS2_SLOT_COUNT] = {
 
 sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_SLOT_COUNT] = {};
 uint8_t sbusTelemetryDataUsed[SBUS2_SLOT_COUNT] = {};
-//timeUs_t sbusTelemetryMinDelay[SBUS2_SLOT_COUNT] = {};
 static uint8_t currentSlot = 0;
 static timeUs_t nextSlotTime = 0;
 
@@ -161,19 +160,6 @@ uint8_t sbus2GetTelemetrySlot(timeUs_t elapsed)
     }
 
     return 0xFF;
-
-    /*
-
-    elapsed = elapsed - SBUS2_DEADTIME;
-
-    uint8_t slot = (elapsed % SBUS2_SLOT_TIME) - 1;
-
-    if (elapsed - (slot * SBUS2_SLOT_TIME) > SBUS2_SLOT_DELAY_MAX) {
-        slot = 0xFF;
-    }
-
-    return slot;
-    */
 }
 
 void sbus2IncrementTelemetrySlot(timeUs_t currentTimeUs)
@@ -209,13 +195,10 @@ FAST_CODE void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
         int slotIndex = (telemetryPage * SBUS2_TELEMETRY_SLOTS) + slot;
         if (slotIndex < SBUS2_SLOT_COUNT) {
             if (sbusTelemetryDataUsed[slotIndex] != 0) {
-                //sbusTelemetryData[slotIndex].slotId = sbus2SlotIds[slotIndex];
                 // send
                 serialWriteBuf(telemetrySharedPort,
                                (const uint8_t *)&sbusTelemetryData[slotIndex],
                                sizeof(sbus2_telemetry_frame_t));
-                //sbusTelemetryMinDelay[slotIndex] = currentTimeUs + MS2US(1);
-                //sbusTelemetryDataUsed[slotIndex] = 0;
             }
         }
         sbus2IncrementTelemetrySlot(currentTimeUs);

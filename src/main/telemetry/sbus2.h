@@ -59,7 +59,6 @@ STATIC_ASSERT(sizeof(sbus2_telemetry_frame_t) == 3, sbus2_telemetry_size);
 extern const uint8_t sbus2SlotIds[SBUS2_SLOT_COUNT];
 extern sbus2_telemetry_frame_t sbusTelemetryData[SBUS2_SLOT_COUNT];
 extern uint8_t sbusTelemetryDataUsed[SBUS2_SLOT_COUNT];
-//extern timeUs_t sbusTelemetryDataLastSent[SBUS2_SLOT_COUNT];
 
 // refresh telemetry buffers 
 void handleSbus2Telemetry(timeUs_t currentTimeUs);
