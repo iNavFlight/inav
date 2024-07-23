@@ -109,6 +109,7 @@
 #include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
+#include "io/gimbal_mavlink.h"
 #include "io/gimbal_serial.h"
 #include "io/headtracker_msp.h"
 #include "io/gps.h"
@@ -693,11 +694,13 @@ void init(void)
 
 #ifdef USE_GIMBAL
     gimbalCommonInit();
-
 #ifdef USE_GIMBAL_SERIAL
     gimbalSerialInit();
 #endif
+#ifdef USE_GIMBAL_MAVLINK
+    gimbalMavlinkInit();
 #endif
+#endif // USE_GIMBAL
 
 #ifdef USE_HEADTRACKER
     headTrackerCommonInit();

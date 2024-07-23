@@ -51,7 +51,7 @@ typedef struct gimbalDevice_s {
 // {set,get}PitMode: 0 = OFF, 1 = ON
 
 typedef struct gimbalVTable_s {
-    void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+    void (*process)(const gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
     gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimbalDevice);
     bool (*isReady)(const gimbalDevice_t *gimbalDevice);
     bool (*hasHeadTracker)(const gimbalDevice_t *gimbalDevice);
@@ -89,9 +89,9 @@ void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice);
 gimbalDevice_t *gimbalCommonDevice(void);
 
 // VTable functions
-void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
-gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice);
-bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
+void gimbalCommonProcess(const gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+gimbalDevType_e gimbalCommonGetDeviceType(const gimbalDevice_t *gimbalDevice);
+bool gimbalCommonIsReady(const gimbalDevice_t *gimbalDevice);
 
 
 void taskUpdateGimbal(timeUs_t currentTimeUs);

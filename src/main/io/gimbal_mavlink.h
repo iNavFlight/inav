@@ -23,7 +23,6 @@
 
 #include "common/time.h"
 #include "drivers/gimbal_common.h"
-#include "drivers/headtracker_common.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,10 +30,11 @@ extern "C" {
 
 #ifdef USE_GIMBAL_MAVLINK
 
-bool gimbalMavlinklInit(void);
+bool gimbalMavlinkInit(void);
 bool gimbalMavlinkDetect(void);
-void gimbalMavlinkProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime);
+void gimbalMavlinkProcess(const gimbalDevice_t *gimbalDevice, timeUs_t currentTime);
 bool gimbalMavlinkIsReady(const gimbalDevice_t *gimbalDevice);
+bool gimbalMavlinkHasHeadTracker(const gimbalDevice_t *gimbalDevice);
 gimbalDevType_e gimbalMavlinkGetDeviceType(const gimbalDevice_t *gimbalDevice);
 
 #endif
