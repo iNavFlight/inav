@@ -56,7 +56,7 @@
 navigationPosEstimator_t posEstimator;
 static float initialBaroAltitudeOffset = 0.0f;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 8);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         // Inertial position estimator parameters
@@ -89,6 +89,8 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
 
         .max_eph_epv = SETTING_INAV_MAX_EPH_EPV_DEFAULT,
         .baro_epv = SETTING_INAV_BARO_EPV_DEFAULT,
+
+        .default_alt_sensor = SETTING_INAV_DEFAULT_ALT_SENSOR_DEFAULT,
 #ifdef USE_GPS_FIX_ESTIMATION
         .allow_gps_fix_estimation = SETTING_INAV_ALLOW_GPS_FIX_ESTIMATION_DEFAULT
 #endif
@@ -560,20 +562,28 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
 
     bool correctOK = false;
+    float wBaro = 1.0f;
+    float wGps = 1.0f;
 
-    float wBaro = 0.0f;
-    if (ctx->newFlags & EST_BARO_VALID) {
-        // Ignore baro if difference is too big, baro is probably wrong
-        const float gpsBaroResidual = ctx->newFlags & EST_GPS_Z_VALID ? fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt) : 0.0f;
+    if (ctx->newFlags & EST_BARO_VALID && ctx->newFlags & EST_GPS_Z_VALID) {
+        const uint8_t defaultAltitudeSource = positionEstimationConfig()->default_alt_sensor;
+        const float gpsBaroResidual = fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt);
 
-        // Fade out the baro to prevent sudden jump
-        const float start_epv = positionEstimationConfig()->max_eph_epv;
-        const float end_epv = positionEstimationConfig()->max_eph_epv * 2.0f;
+        // Fade out the non default sensor to prevent sudden jump
+        uint16_t residualErrorEpvLimit = defaultAltitudeSource == ALTITUDE_SOURCE_BARO ? 2 * positionEstimationConfig()->baro_epv : positionEstimationConfig()->max_eph_epv;
+        const float start_epv = residualErrorEpvLimit;
+        const float end_epv = residualErrorEpvLimit * 2.0f;
+
+        // Calculate residual gps/baro sensor weighting based on assumed default altitude source = GPS
         wBaro = scaleRangef(constrainf(gpsBaroResidual, start_epv, end_epv), start_epv, end_epv, 1.0f, 0.0f);
+
+        if (defaultAltitudeSource == ALTITUDE_SOURCE_BARO) {    // flip residual sensor weighting if default = BARO
+            wGps = wBaro;
+            wBaro = 1.0f;
+        }
     }
 
-    // Always use Baro if no GPS otherwise only use if accuracy OK compared to GPS
-    if (wBaro > 0.01f) {
+    if (ctx->newFlags & EST_BARO_VALID && wBaro) {
         timeUs_t currentTimeUs = micros();
 
         if (!ARMING_FLAG(ARMED)) {
@@ -596,21 +606,24 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
                                              ((ctx->newFlags & EST_BARO_VALID) && posEstimator.state.isBaroGroundValid && posEstimator.baro.alt < posEstimator.state.baroGroundAlt));
 
         // Altitude
-        const float baroAltResidual = (isAirCushionEffectDetected ? posEstimator.state.baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z;
-        ctx->estPosCorr.z += wBaro * baroAltResidual * positionEstimationConfig()->w_z_baro_p * ctx->dt;
-        ctx->estVelCorr.z += wBaro * baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p) * ctx->dt;
+        const float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? posEstimator.state.baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
+        const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
+
+        ctx->estPosCorr.z += baroAltResidual * positionEstimationConfig()->w_z_baro_p * ctx->dt;
+        ctx->estVelCorr.z += baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p) * ctx->dt;
+        ctx->estVelCorr.z += baroVelZResidual * positionEstimationConfig()->w_z_baro_p * ctx->dt;
 
         ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, posEstimator.baro.epv, positionEstimationConfig()->w_z_baro_p);
 
         // Accelerometer bias
         if (!isAirCushionEffectDetected) {
-            ctx->accBiasCorr.z -= wBaro * baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p);
+            ctx->accBiasCorr.z -= baroAltResidual * sq(positionEstimationConfig()->w_z_baro_p);
         }
 
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
     }
 
-    if (ctx->newFlags & EST_GPS_Z_VALID) {
+    if (ctx->newFlags & EST_GPS_Z_VALID && wGps) {
         // Reset current estimate to GPS altitude if estimate not valid
         if (!(ctx->newFlags & EST_Z_VALID)) {
             ctx->estPosCorr.z += posEstimator.gps.pos.z - posEstimator.est.pos.z;
@@ -619,16 +632,17 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         }
         else {
             // Altitude
-            const float gpsAltResudual = posEstimator.gps.pos.z - posEstimator.est.pos.z;
-            const float gpsVelZResudual = posEstimator.gps.vel.z - posEstimator.est.vel.z;
+            const float gpsAltResidual = wGps * (posEstimator.gps.pos.z - posEstimator.est.pos.z);
+            const float gpsVelZResidual = wGps * (posEstimator.gps.vel.z - posEstimator.est.vel.z);
 
-            ctx->estPosCorr.z += gpsAltResudual * positionEstimationConfig()->w_z_gps_p * ctx->dt;
-            ctx->estVelCorr.z += gpsAltResudual * sq(positionEstimationConfig()->w_z_gps_p) * ctx->dt;
-            ctx->estVelCorr.z += gpsVelZResudual * positionEstimationConfig()->w_z_gps_v * ctx->dt;
-            ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, MAX(posEstimator.gps.epv, gpsAltResudual), positionEstimationConfig()->w_z_gps_p);
+            ctx->estPosCorr.z += gpsAltResidual * positionEstimationConfig()->w_z_gps_p * ctx->dt;
+            ctx->estVelCorr.z += gpsAltResidual * sq(positionEstimationConfig()->w_z_gps_p) * ctx->dt;
+            ctx->estVelCorr.z += gpsVelZResidual * positionEstimationConfig()->w_z_gps_v * ctx->dt;
+
+            ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, MAX(posEstimator.gps.epv, gpsAltResidual), positionEstimationConfig()->w_z_gps_p);
 
             // Accelerometer bias
-            ctx->accBiasCorr.z -= gpsAltResudual * sq(positionEstimationConfig()->w_z_gps_p);
+            ctx->accBiasCorr.z -= gpsAltResidual * sq(positionEstimationConfig()->w_z_gps_p);
         }
 
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed

@@ -1992,6 +1992,16 @@ Uncertainty value for barometric sensor [cm]
 
 ---
 
+### inav_default_alt_sensor
+
+Sets the default altitude sensor to use, GPS or BARO, when the altitude error between the sensors exceeds a set limit. Only the default sensor will be used in this case. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GPS |  |  |
+
+---
+
 ### inav_gravity_cal_tolerance
 
 Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value.

@@ -83,7 +83,7 @@ tables:
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
-      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST", 
+      "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
       "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU"]
   - name: aux_operator
     values: ["OR", "AND"]
@@ -198,6 +198,9 @@ tables:
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]
     enum: headTrackerDevType_e
+  - name: default_altitude_source
+    values: ["GPS", "BARO"]
+    enum: navDefaultAltitudeSensor_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -2461,6 +2464,11 @@ groups:
         field: baro_epv
         min: 0
         max: 9999
+      - name: inav_default_alt_sensor
+        description: "Sets the default altitude sensor to use, GPS or BARO, when the altitude error between the sensors exceeds a set limit. Only the default sensor will be used in this case. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv."
+        default_value: "GPS"
+        field: default_alt_sensor
+        table: default_altitude_source
 
   - name: PG_NAV_CONFIG
     type: navConfig_t
