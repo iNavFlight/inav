@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef USE_GIMBAL_SERIAL
+#ifdef USE_GIMBAL_MAVLINK
 
 #include <common/crc.h>
 #include <common/utils.h>
