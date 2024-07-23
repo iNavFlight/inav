@@ -173,13 +173,13 @@ bool gimbalSerialDetect(void)
 #endif
 
 #ifdef GIMBAL_UNIT_TEST
-void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
+void gimbalSerialProcess(const gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 {
     UNUSED(gimbalDevice);
     UNUSED(currentTime);
 }
 #else
-void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
+void gimbalSerialProcess(const gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 {
     UNUSED(currentTime);
 
