@@ -56,11 +56,13 @@ extern uint8_t __config_end;
 
 // Temperature sensors
 #if !defined(TEMPERATURE_I2C_BUS) && defined(DEFAULT_I2C_BUS)
-
 #define TEMPERATURE_I2C_BUS DEFAULT_I2C_BUS
-
 #endif
 
+// Rangefinder sensors
+#if !defined(RANGEFINDER_I2C_BUS) && defined(DEFAULT_I2C_BUS)
+#define RANGEFINDER_I2C_BUS DEFAULT_I2C_BUS
+#endif
 
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
 // since it's used to display CMS on MWOSD
@@ -100,6 +102,10 @@ extern uint8_t __config_end;
 
 #endif // USE_MAG_ALL
 
+#if defined(DEFAULT_I2C_BUS) && !defined(MAG_I2C_BUS)
+#define MAG_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
 #endif // USE_MAG
 
 #if defined(USE_BARO)
@@ -115,6 +121,10 @@ extern uint8_t __config_end;
 #define USE_BARO_MS5611
 //#define USE_BARO_SPI_BMP280
 #define USE_BARO_SPL06
+#endif
+
+#if defined(DEFAULT_I2C_BUS) && !defined(BARO_I2C_BUS)
+#define BARO_I2C_BUS DEFAULT_I2C_BUS
 #endif
 
 #endif
