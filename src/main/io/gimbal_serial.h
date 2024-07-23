@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL_SERIAL
 
 
 #define HTKATTITUDE_SYNC0  0xA5

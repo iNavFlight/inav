@@ -17,7 +17,7 @@
 
 #include "platform.h"
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
 
 #include <stdio.h>
 #include <stdint.h>
@@ -45,7 +45,8 @@ PG_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig,
     .sensitivity = SETTING_GIMBAL_SENSITIVITY_DEFAULT,
     .panTrim = SETTING_GIMBAL_PAN_TRIM_DEFAULT,
     .tiltTrim = SETTING_GIMBAL_TILT_TRIM_DEFAULT,
-    .rollTrim = SETTING_GIMBAL_ROLL_TRIM_DEFAULT
+    .rollTrim = SETTING_GIMBAL_ROLL_TRIM_DEFAULT,
+    .gimbalType = SETTING_GIMBAL_TYPE_DEFAULT,
 );
 
 static gimbalDevice_t *commonGimbalDevice = NULL;

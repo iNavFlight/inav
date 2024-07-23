@@ -19,7 +19,7 @@
 
 #include "platform.h"
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
 
 #include <stdint.h>
 
@@ -33,6 +33,7 @@ extern "C" {
 typedef enum {
     GIMBAL_DEV_UNSUPPORTED = 0,
     GIMBAL_DEV_SERIAL,
+    GIMBAL_DEV_MAVLINK,
     GIMBAL_DEV_UNKNOWN=0xFF
 } gimbalDevType_e;
 
@@ -65,6 +66,7 @@ typedef struct gimbalConfig_s {
     uint16_t panTrim;
     uint16_t tiltTrim;
     uint16_t rollTrim;
+    gimbalDevType_e gimbalType;
 } gimbalConfig_t;
 
 PG_DECLARE(gimbalConfig_t, gimbalConfig);

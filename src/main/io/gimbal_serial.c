@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL_SERIAL
 
 #include <common/crc.h>
 #include <common/utils.h>

@@ -691,10 +691,12 @@ void init(void)
     initDShotCommands();
 #endif
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
     gimbalCommonInit();
-    // Needs to be called before gimbalSerialHeadTrackerInit
+
+#ifdef USE_GIMBAL_SERIAL
     gimbalSerialInit();
+#endif
 #endif
 
 #ifdef USE_HEADTRACKER

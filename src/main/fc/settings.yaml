@@ -198,6 +198,9 @@ tables:
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]
     enum: headTrackerDevType_e
+  - name: gimbal_dev_type
+    values: ["NONE", "SERIAL", "MAVLINK"]
+    enum: gimbalDevType_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -4228,8 +4231,14 @@ groups:
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["drivers/gimbal_common.h"]
-    condition: USE_SERIAL_GIMBAL
+    condition: USE_GIMBAL
     members:
+      - name: gimbal_type
+        field: gimbalType
+        description: "Type of gimbval dervice"
+        default_value: "SERIAL"
+        table: gimbal_dev_type
+        type: uint8_t
       - name: gimbal_pan_channel
         description: "Gimbal pan rc channel index. 0 is no channel."
         default_value: 0
@@ -4275,7 +4284,7 @@ groups:
   - name: PG_GIMBAL_SERIAL_CONFIG
     type: gimbalSerialConfig_t
     headers: ["io/gimbal_serial.h"]
-    condition: USE_SERIAL_GIMBAL
+    condition: USE_GIMBAL_SERIAL
     members:
     - name: gimbal_serial_single_uart
       description: "Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal."
