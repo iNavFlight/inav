@@ -45,6 +45,8 @@
 #define I2C2_SCL                PB10     
 #define I2C2_SDA                PB11      
 
+#define DEFAULT_I2C_BUS         BUS_I2C2
+
 // ********** External MAG On I2C2******
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C2

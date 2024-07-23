@@ -29,6 +29,22 @@ extern uint8_t __config_end;
 # undef USE_OLED_UG2864
 #endif
 
+
+// Make sure DEFAULT_I2C_BUS is valid
+#ifndef DEFAULT_I2C_BUS
+
+#ifdef USE_I2C_DEVICE_1
+#define DEFAULT_I2C_BUS BUS_I2C1
+#elif USE_I2C_DEVICE_2
+#define DEFAULT_I2C_BUS BUS_I2C2
+#elif USE_I2C_DEVICE_3
+#define DEFAULT_I2C_BUS BUS_I2C3
+#elif USE_I2C_DEVICE_4
+#define DEFAULT_I2C_BUS BUS_I2C4
+#endif
+
+#endif
+
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
 // since it's used to display CMS on MWOSD
 #if !defined(USE_MSP_DISPLAYPORT) && !defined(USE_OSD)
