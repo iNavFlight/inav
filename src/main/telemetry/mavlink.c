@@ -937,6 +937,11 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_RC_CHANNELS)) {
         mavlinkSendRCChannelsAndRSSI();
+#ifdef USE_GIMBAL_MAVLINK
+        if(gimbalConfig()->gimbalType == GIMBAL_DEV_MAVLINK) {
+            mavlinkSendGimbalAttitude();
+        }
+#endif
     }
 
 #ifdef USE_GPS
@@ -956,12 +961,6 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
         mavlinkSendBatteryTemperatureStatusText();
     }
-
-#ifdef USE_GIMBAL_MAVLINK
-    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
-        mavlinkSendGimbalAttitude();
-    }
-#endif
 }
 
 static bool handleIncoming_MISSION_CLEAR_ALL(void)

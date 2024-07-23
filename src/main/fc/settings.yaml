@@ -3194,7 +3194,13 @@ groups:
         min: 1
         max: 2
         default_value: 2
-
+      - name: mavlink_gimbal_rate
+        description: "Rate of the gimbal messages for MAVLink telemetry"
+        field: mavlink.gimbal_rate
+        type: uint8_t
+        min: 0
+        max: 255
+        default_value: 10
   - name: PG_OSD_CONFIG
     type: osdConfig_t
     headers: ["io/osd.h", "drivers/osd.h"]

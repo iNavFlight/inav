@@ -92,7 +92,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
         .extra1_rate = SETTING_MAVLINK_EXTRA1_RATE_DEFAULT,
         .extra2_rate = SETTING_MAVLINK_EXTRA2_RATE_DEFAULT,
         .extra3_rate = SETTING_MAVLINK_EXTRA3_RATE_DEFAULT,
-        .version = SETTING_MAVLINK_VERSION_DEFAULT
+        .version = SETTING_MAVLINK_VERSION_DEFAULT,
     }
 );
 
