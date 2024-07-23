@@ -65,7 +65,7 @@ gimbalDevType_e gimbalMavlinkGetDeviceType(const gimbalDevice_t *gimbalDevice)
 
 bool gimbalMavlinkIsReady(const gimbalDevice_t *gimbalDevice)
 {
-    return gimbalPort != NULL && gimbalDevice->vTable != NULL;
+    return gimbalPort != NULL && gimbalDevice->vTable != NULL && isMAVLinkTelemetryEnabled();
 }
 
 bool gimbalMavlinkHasHeadTracker(const gimbalDevice_t *gimbalDevice)

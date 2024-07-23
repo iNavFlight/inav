@@ -285,6 +285,12 @@ void initMAVLinkTelemetry(void)
     mavlinkPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_MAVLINK);
 }
 
+
+bool isMAVLinkTelemetryEnabled(void)
+{
+    return portConfig && mavlinkPort;
+}
+
 void configureMAVLinkTelemetryPort(void)
 {
     if (!portConfig) {

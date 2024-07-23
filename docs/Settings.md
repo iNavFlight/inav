@@ -2552,16 +2552,6 @@ Rate of the extra3 message for MAVLink telemetry
 
 ---
 
-### mavlink_gimbal_rate
-
-Rate of the gimbal messages for MAVLink telemetry
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 10 | 0 | 255 |
-
----
-
 ### mavlink_pos_rate
 
 Rate of the position message for MAVLink telemetry
