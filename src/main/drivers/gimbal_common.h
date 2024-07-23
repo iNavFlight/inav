@@ -42,6 +42,7 @@ struct gimbalVTable_s;
 
 typedef struct gimbalDevice_s {
     const struct gimbalVTable_s *vTable;
+    // for OSD display
     int16_t currentPanPWM;
 } gimbalDevice_t;
 
@@ -54,6 +55,7 @@ typedef struct gimbalVTable_s {
     gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimbalDevice);
     bool (*isReady)(const gimbalDevice_t *gimbalDevice);
     bool (*hasHeadTracker)(const gimbalDevice_t *gimbalDevice);
+    // Used by OSD pan compensation
     int16_t (*getGimbalPanPWM)(const gimbalDevice_t *gimbalDevice);
 } gimbalVTable_t;
 
@@ -97,6 +99,7 @@ void taskUpdateGimbal(timeUs_t currentTimeUs);
 bool gimbalCommonIsEnabled(void);
 bool gimbalCommonHtrkIsEnabled(void);
 
+// For OSD pan compensation
 int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice);
 
 #ifdef __cplusplus
