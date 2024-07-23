@@ -44,6 +44,8 @@
 #include "drivers/time.h"
 #include "drivers/display.h"
 #include "drivers/osd_symbols.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -905,6 +907,27 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 }
 
+#ifdef USE_GIMBAL_MAVLINK
+void mavlinkSendGimbalAttitude(void)
+{
+    // https://mavlink.io/en/messages/common.html#GIMBAL_DEVICE_SET_ATTITUDE
+    uint8_t targetSystem = 0;
+    uint8_t targetComponent = 0;
+    uint8_t time_boot_ms = 0;
+    uint16_t flags = GIMBAL_DEVICE_FLAGS_NEUTRAL;
+    float q[4] = {NAN, NAN, NAN, NAN}; // w, x, y, z. NaN to be ignored
+    float angular_velocity_x = 0;
+    float angular_velocity_y = 0;
+    float angular_velocity_z = 0;
+    uint32_t failure_flags = 0;
+
+    mavlink_msg_gimbal_device_attitude_status_pack(mavSystemId, mavComponentId, &mavSendMsg, 
+        targetSystem, targetComponent, time_boot_ms, flags, q, angular_velocity_x, angular_velocity_y, angular_velocity_z, failure_flags);
+
+    mavlinkSendMessage();
+}
+#endif
+
 void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
     // is executed @ TELEMETRY_MAVLINK_MAXRATE rate
@@ -934,6 +957,11 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
         mavlinkSendBatteryTemperatureStatusText();
     }
 
+#ifdef USE_GIMBAL_MAVLINK
+    if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
+        mavlinkSendGimbalAttitude();
+    }
+#endif
 }
 
 static bool handleIncoming_MISSION_CLEAR_ALL(void)
