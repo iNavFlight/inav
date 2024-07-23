@@ -66,6 +66,10 @@ typedef struct sbusFrameData_s {
     timeUs_t lastActivityTimeUs;
 } sbusFrameData_t;
 
+static uint8_t sbus2ActiveTelemetryPage = 0;
+static uint8_t sbus2ActiveTelemetrySlot = 0;
+timeUs_t frameTime = 0;
+
 // Receive ISR callback
 static void sbusDataReceive(uint16_t c, void *data)
 {
@@ -98,10 +102,20 @@ static void sbusDataReceive(uint16_t c, void *data)
                 // Do some sanity check
                 switch (frame->endByte) {
                     case 0x00:  // This is S.BUS 1
-                    case 0x04:  // S.BUS 2 receiver voltage
-                    case 0x14:  // S.BUS 2 GPS/baro
-                    case 0x24:  // Unknown SBUS2 data
-                    case 0x34:  // Unknown SBUS2 data
+                    case 0x04:  // S.BUS 2 telemetry page 1
+                    case 0x14:  // S.BUS 2 telemetry page 2
+                    case 0x24:  // S.BUS 2 telemetry page 3
+                    case 0x34:  // S.BUS 2 telemetry page 4
+                        if(frame->endByte & 0x4) {
+                            sbus2ActiveTelemetryPage = (frame->endByte >> 4) & 0xF;
+                            frameTime = currentTimeUs;
+                        } else {
+                            sbus2ActiveTelemetryPage = 0;
+                            sbus2ActiveTelemetrySlot = 0;
+                            frameTime = -1;
+                        }
+
+
                         frameValid = true;
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
                         break;
@@ -141,6 +155,8 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
     // Reset the frameDone flag - tell ISR that we're ready to receive next frame
     sbusFrameData->frameDone = false;
 
+    //taskSendSbus2Telemetry(micros());
+
     // Calculate "virtual link quality based on packet loss metric"
     if (retValue & RX_FRAME_COMPLETE) {
         lqTrackerAccumulate(rxRuntimeConfig->lqTracker, ((retValue & RX_FRAME_DROPPED) || (retValue & RX_FRAME_FAILSAFE)) ? 0 : RSSI_MAX_VALUE);
@@ -179,14 +195,15 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
         sbusDataReceive,
         &sbusFrameData,
         sbusBaudRate,
-        portShared ? MODE_RXTX : MODE_RX,
+        (portShared || rxConfig->serialrx_provider == SERIALRX_SBUS2) ? MODE_RXTX : MODE_RX,
         SBUS_PORT_OPTIONS |
             (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) |
+            ((rxConfig->serialrx_provider == SERIALRX_SBUS2) ? SERIAL_BIDIR : 0) |
             (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
 #ifdef USE_TELEMETRY
-    if (portShared) {
+    if (portShared || (rxConfig->serialrx_provider == SERIALRX_SBUS2)) {
         telemetrySharedPort = sBusPort;
     }
 #endif
@@ -203,4 +220,22 @@ bool sbusInitFast(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
 {
     return sbusInitEx(rxConfig, rxRuntimeConfig, SBUS_BAUDRATE_FAST);
 }
-#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+timeUs_t sbusGetLastFrameTime(void) {
+    return frameTime;
+}
+
+uint8_t sbusGetCurrentTelemetryNextSlot(void)
+{
+    uint8_t current = sbus2ActiveTelemetrySlot;
+    sbus2ActiveTelemetrySlot++;
+    return current;
+}
+
+uint8_t sbusGetCurrentTelemetryPage(void) {
+    return sbus2ActiveTelemetryPage;
+}
+#endif // USE_TELEMETRY && USE_SBUS2_TELEMETRY
+
+#endif // USE_SERIAL_RX

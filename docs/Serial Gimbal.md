@@ -17,7 +17,7 @@ In head tracker mode, the Serial Gimbal will ignore the axis rc channel inputs a
 
 # Gimbal Modes
 ## No Gimbal mode selected
-Like ACRO is the default mode for flight modes, the Gimbal will default to ```FPV Mode``` or ```Follow Mode``` when no mode is selected. The gimbal will try to stablized the footag and will follow the aircraft pitch, roll and yaw movements and use user inputs to point the camera where the user wants.
+Like ACRO is the default mode for flight modes, the Gimbal will default to ```FPV Mode``` or ```Follow Mode``` when no mode is selected. The gimbal will try to stablized the footage and will follow the aircraft pitch, roll and yaw movements and use user inputs to point the camera where the user wants.
 
 ## Gimbal Center
 This locks the gimbal camera to the center position and ignores any user input. Useful to reset the camera if you loose orientation.
@@ -49,7 +49,7 @@ Allowed range: -500 - 500
 ```
 
 ## Gimbal and Headtracker on a single uart
-As INAV does not process any inputs from the Walksnail Gimbal, it is possible to share the uard with the Walksnail Headtracking output by connect the fc TX to the gimbal and RX to receive the headtracker input.
+As INAV does not process any inputs from the Walksnail Gimbal, it is possible to share the uart with the Walksnail Headtracking output by connect the fc TX to the gimbal and RX to receive the headtracker input.
 ```
 gimbal_serial_single_uart = OFF
 Allowed values: OFF, ON

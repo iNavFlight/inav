@@ -133,6 +133,10 @@ typedef enum {
     TASK_HEADTRACKER,
 #endif
 
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    TASK_TELEMETRY_SBUS2,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 

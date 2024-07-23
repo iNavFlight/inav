@@ -15,17 +15,28 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-#define SBUS_DEFAULT_INTERFRAME_DELAY_US    3000    // According to FrSky interframe is 6.67ms, we go smaller just in case
+#include "platform.h"
 
-#include "rx/rx.h"
+#include "build/build_config.h"
 
-bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
+#include "drivers/time.h"
+#include "drivers/bus_spi.h"
+#include "drivers/io.h"
+#include "drivers/io_impl.h"
 
-#ifdef USE_TELEMETRY_SBUS2
-uint8_t sbusGetCurrentTelemetryPage(void);
-uint8_t sbusGetCurrentTelemetryNextSlot(void);
-timeUs_t sbusGetLastFrameTime(void);
-#endif
+void initialisePreBootHardware(void)
+{
+    // User1
+    IOInit(DEFIO_IO(PB14), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(DEFIO_IO(PB14), IOCFG_OUT_PP);
+    IOLo(DEFIO_IO(PB14));
+
+    // User2
+    IOInit(DEFIO_IO(PB15), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
+    IOConfigGPIO(DEFIO_IO(PB15), IOCFG_OUT_PP);
+    IOLo(DEFIO_IO(PB15));
+}
