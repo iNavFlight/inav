@@ -47,11 +47,13 @@ timerHardware_t timerHardware[] = {
 #if defined(AOCODARCF7MINI_V2)
     DEF_TIM(TIM8, CH3, PC8,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S5   D(2, 4, 7)
     DEF_TIM(TIM8, CH4, PC9,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S6   D(2, 7, 7)
+    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S7   D(1, 0, 2)
 #else
+    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S5
     DEF_TIM(TIM2, CH2, PB3,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S6   D(1, 6, 3)
+    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_OUTPUT_AUTO, 0, 0),    // S7
 #endif
 
-    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S7   D(1, 0, 2)    
     DEF_TIM(TIM4, CH2, PB7,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S8   D(1, 3, 2)
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED, 0, 0),                             // LED     
