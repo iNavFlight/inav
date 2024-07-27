@@ -184,7 +184,7 @@ static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
 static uint8_t mavSystemId = 1;
-static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
+static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
