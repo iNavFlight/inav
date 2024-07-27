@@ -15,17 +15,20 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include <stdint.h>
+#include "platform.h"
+#include "config/config_master.h"
+#include "config/feature.h"
+#include "io/serial.h"
+#include "fc/config.h"
+#include "sensors/gyro.h"
 
-#define SBUS_DEFAULT_INTERFRAME_DELAY_US    3000    // According to FrSky interframe is 6.67ms, we go smaller just in case
 
-#include "rx/rx.h"
-
-bool sbusInit(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-bool sbusInitFast(const rxConfig_t *initialRxConfig, rxRuntimeConfig_t *rxRuntimeConfig);
-
-#ifdef USE_TELEMETRY_SBUS2
-uint8_t sbusGetCurrentTelemetryPage(void);
-uint8_t sbusGetCurrentTelemetryNextSlot(void);
-timeUs_t sbusGetLastFrameTime(void);
-#endif
+void targetConfiguration(void)
+{
+    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;    
+    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_MSP_OSD;
+    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_ESCSERIAL;
+}

@@ -249,9 +249,9 @@ extern uint64_t logicConditionsGlobalFlags;
 
 void logicConditionProcess(uint8_t i);
 
-int logicConditionGetOperandValue(logicOperandType_e type, int operand);
+int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
-int logicConditionGetValue(int8_t conditionId);
+int32_t logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
 void logicConditionReset(void);
 

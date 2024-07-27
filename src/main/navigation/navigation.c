@@ -1339,6 +1339,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
     }
 
     const bool mcRollStickHeadingAdjustmentActive = STATE(MULTIROTOR) && ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband;
+    static bool adjustmentWasActive = false;
 
     // User demanding yaw -> yaw stick on FW, yaw or roll sticks on MR
     // We record the desired course and change the desired target in the meanwhile
@@ -1353,9 +1354,19 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         if (timeDifference > 100) timeDifference = 0;   // if adjustment was called long time ago, reset the time difference.
         float rateTarget = scaleRangef((float)headingAdjustCommand, -500.0f, 500.0f, -cruiseYawRate, cruiseYawRate);
         float centidegsPerIteration = rateTarget * MS2S(timeDifference);
-        posControl.cruise.course = wrap_36000(posControl.cruise.course - centidegsPerIteration);
-        DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
+
+        if (ABS(wrap_18000(posControl.cruise.course - posControl.actualState.cog)) < fabsf(rateTarget)) {
+            posControl.cruise.course = wrap_36000(posControl.cruise.course - centidegsPerIteration);
+        }
+
         posControl.cruise.lastCourseAdjustmentTime = currentTimeMs;
+        adjustmentWasActive = true;
+
+        DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
+    } else if (STATE(AIRPLANE) && adjustmentWasActive) {
+        posControl.cruise.course = posControl.actualState.cog - DEGREES_TO_CENTIDEGREES(gyroRateDps(YAW));
+        resetPositionController();
+        adjustmentWasActive = false;
     } else if (currentTimeMs - posControl.cruise.lastCourseAdjustmentTime > 4000) {
         posControl.cruise.previousCourse = posControl.cruise.course;
     }
