@@ -350,6 +350,8 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"servo",       13, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
     {"servo",       14, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
     {"servo",       15, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       16, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       17, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
 
     {"navState",  -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navFlags",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
@@ -406,7 +408,7 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
      * but name kept for external compatibility reasons.
      * "activeFlightModeFlags" logs actual active flight modes rather than rc boxmodes.
      * 'active' should at least distinguish it from the existing "flightModeFlags" */
-     
+
     {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
