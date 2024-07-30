@@ -3703,7 +3703,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
         setDesiredPosition(&wpPos.pos, DEGREES_TO_CENTIDEGREES(wpData->p1), waypointUpdateFlags);
     }
     // WP #1 - #NAV_MAX_WAYPOINTS - common waypoints - pre-programmed mission
-    else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !ARMING_FLAG(ARMED)) {
+    else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS)) {  // && !ARMING_FLAG(ARMED)
         if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND || wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD ) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
             static int8_t nonGeoWaypointCount = 0;
