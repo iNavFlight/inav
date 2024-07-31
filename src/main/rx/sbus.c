@@ -88,11 +88,12 @@ static void sbusDataReceive(uint16_t c, void *data)
 
     switch (sbusFrameData->state) {
         case STATE_SBUS_SYNC:
-            if (c == SBUS_FRAME_BEGIN_BYTE) {
+            // Ignore non 26 channel packets
+            if (c == SBUS_FRAME_BEGIN_BYTE && !sbusFrameData->is26channels) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS_PAYLOAD;
-            } else if (c == SBUS26_FRAME0_BEGIN_BYTE) {
+            } else if (c == SBUS26_FRAME0_BEGIN_BYTE && false) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS26_PAYLOAD_LOW;
@@ -141,7 +142,6 @@ static void sbusDataReceive(uint16_t c, void *data)
 
                     memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
                     sbusFrameData->frameDone = true;
-                    sbusFrameData->is26channels = false;
                 }
             }
             break;
@@ -221,7 +221,7 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, uint32_t sbusBaudRate)
 {
     static uint16_t sbusChannelData[SBUS_MAX_CHANNEL];
-    static sbusFrameData_t sbusFrameData;
+    static sbusFrameData_t sbusFrameData = { .is26channels = false};
 
     rxRuntimeConfig->channelData = sbusChannelData;
     rxRuntimeConfig->frameData = &sbusFrameData;
