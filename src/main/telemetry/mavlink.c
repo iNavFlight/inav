@@ -502,7 +502,7 @@ void mavlinkSendSystemStatus(void)
 static inline int16_t getChannelValue(uint8_t x) 
 {
     int16_t channel_value = (rxRuntimeConfig.channelCount > x) ? rxGetChannelValue(x) : 0;
-#ifdef USE_GIMBAL_MAVLINK
+#if defined(USE_GIMBAL) && defined(USE_GIMBAL_MAVLINK)
     // override channel values if gimbal is enabled
     if(gimbalCommonIsEnabled() && gimbalConfig()->gimbalType == GIMBAL_DEV_MAVLINK && IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
         headTrackerDevice_t *dev = headTrackerCommonDevice();
@@ -935,7 +935,7 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 }
 
-#ifdef USE_GIMBAL_MAVLINK
+#if defined(USE_GIMBAL) && defined(USE_GIMBAL_MAVLINK)
 void mavlinkSendGimbalAttitude(void)
 {
     // https://mavlink.io/en/messages/common.html#AUTOPILOT_STATE_FOR_GIMBAL_DEVICE
@@ -965,8 +965,8 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_RC_CHANNELS)) {
         mavlinkSendRCChannelsAndRSSI();
-#ifdef USE_GIMBAL_MAVLINK
-        if(gimbalConfig()->gimbalType == GIMBAL_DEV_MAVLINK) {
+#if defined(USE_GIMBAL) && defined(USE_GIMBAL_MAVLINK)
+        if(gimbalCommonIsEnabled() && gimbalConfig()->gimbalType == GIMBAL_DEV_MAVLINK) {
             mavlinkSendGimbalAttitude();
         }
 #endif
