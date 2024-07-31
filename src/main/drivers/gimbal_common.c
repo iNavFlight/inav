@@ -112,7 +112,7 @@ void taskUpdateGimbal(timeUs_t currentTimeUs)
 // TODO: check if any gimbal types are enabled
 bool gimbalCommonIsEnabled(void)
 {
-    return true;
+    return gimbalCommonDevice() != NULL;;
 }
 
 
