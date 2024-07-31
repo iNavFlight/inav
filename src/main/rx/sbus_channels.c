@@ -36,7 +36,7 @@ STATIC_ASSERT(SBUS_FRAME_SIZE == sizeof(sbusFrame_t), SBUS_FRAME_SIZE_doesnt_mat
 
 uint8_t sbus26ChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels, bool highChannels)
 {
-    uint8_t offset = highChannels ? 16 : 0
+    uint8_t offset = highChannels ? 16 : 0;
     uint16_t *sbusChannelData = rxRuntimeConfig->channelData;
     sbusChannelData[0 + offset] = channels->chan0;
     sbusChannelData[1 + offset] = channels->chan1;

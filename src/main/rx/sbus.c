@@ -64,7 +64,7 @@ typedef struct sbusFrameData_s {
     volatile sbusFrame_t frame;
     volatile bool frameDone;
     volatile bool is26channels;
-    uint8_t buffer[SBUS26_FRAME_SIZE];
+    uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
     timeUs_t lastActivityTimeUs;
 } sbusFrameData_t;
