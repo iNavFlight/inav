@@ -674,7 +674,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_16:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_17:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_18:
-	return ((unsigned int)getServoCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1);
+	return ((FlightLogFieldCondition)getServoCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1);
 
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
