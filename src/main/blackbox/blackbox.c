@@ -99,7 +99,7 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 3);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
@@ -108,7 +108,8 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
-        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND | BLACKBOX_FEATURE_MOTORS,
+        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
+        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -673,7 +674,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return (getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
 
     case FLIGHT_LOG_FIELD_CONDITION_SERVOS:
-        return isMixerUsingServos();
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS) && isMixerUsingServos();
 
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_2:
@@ -713,7 +714,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_35:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_36:
     */
-	return ((FlightLogFieldCondition)MIN(getServoCount(), 26) >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1);
+	return ((FlightLogFieldCondition)MIN(getServoCount(), 26) >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
 
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
