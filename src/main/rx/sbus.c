@@ -85,7 +85,7 @@ static void sbusDataReceive(uint16_t c, void *data)
     if (timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
         sbusFrameData->state = STATE_SBUS_SYNC;
     } else if ((sbusFrameData->state == STATE_SBUS_PAYLOAD || sbusFrameData->state == STATE_SBUS26_PAYLOAD) && timeSinceLastByteUs >= 300) {
-        // payload is pausing too long, possible if some telemetry have been sent between frames
+        // payload is pausing too long, possible if some telemetry have been sent between frames, or false positves mid frame
         sbusFrameData->state = STATE_SBUS_SYNC;
     }
 
