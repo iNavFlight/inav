@@ -54,14 +54,14 @@
 typedef enum {
     STATE_SBUS_SYNC = 0,
     STATE_SBUS_PAYLOAD,
-    STATE_SBUS26_PAYLOAD_LOW,
-    STATE_SBUS26_PAYLOAD_HIGH,
+    STATE_SBUS26_PAYLOAD,
     STATE_SBUS_WAIT_SYNC
 } sbusDecoderState_e;
 
 typedef struct sbusFrameData_s {
     sbusDecoderState_e state;
     volatile sbusFrame_t frame;
+    volatile sbusFrame_t frameHigh;
     volatile bool frameDone;
     volatile bool is26channels;
     uint8_t buffer[SBUS_FRAME_SIZE];
@@ -82,25 +82,23 @@ static void sbusDataReceive(uint16_t c, void *data)
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
 
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
-    if (sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
+    if (timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
+        sbusFrameData->state = STATE_SBUS_SYNC;
+    } else if ((sbusFrameData->state == STATE_SBUS_PAYLOAD || sbusFrameData->state == STATE_SBUS26_PAYLOAD) && timeSinceLastByteUs >= 300) {
+        // payload is pausing too long, possible if some telemetry have been sent between frames
         sbusFrameData->state = STATE_SBUS_SYNC;
     }
 
     switch (sbusFrameData->state) {
         case STATE_SBUS_SYNC:
-            // Ignore non 26 channel packets
-            if (c == SBUS_FRAME_BEGIN_BYTE && !sbusFrameData->is26channels) {
+            if (c == SBUS_FRAME_BEGIN_BYTE) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS_PAYLOAD;
-            } else if (c == SBUS26_FRAME0_BEGIN_BYTE) {
+            } else if ((uint8_t)c == SBUS26_FRAME_BEGIN_BYTE || c == 0xF2 || c == 0x2c) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
-                sbusFrameData->state = STATE_SBUS26_PAYLOAD_LOW;
-            } else if (c == SBUS26_FRAME1_BEGIN_BYTE) {
-                sbusFrameData->position = 0;
-                sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
-                sbusFrameData->state = STATE_SBUS26_PAYLOAD_HIGH;
+                sbusFrameData->state = STATE_SBUS26_PAYLOAD;
             }
             break;
 
@@ -127,7 +125,6 @@ static void sbusDataReceive(uint16_t c, void *data)
                             frameTime = -1;
                         }
 
-
                         frameValid = true;
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
                         break;
@@ -146,8 +143,7 @@ static void sbusDataReceive(uint16_t c, void *data)
             }
             break;
 
-        case STATE_SBUS26_PAYLOAD_LOW:
-        case STATE_SBUS26_PAYLOAD_HIGH:
+        case STATE_SBUS26_PAYLOAD:
             sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
 
             if (sbusFrameData->position == SBUS_FRAME_SIZE) {
@@ -156,38 +152,40 @@ static void sbusDataReceive(uint16_t c, void *data)
 
                 // Do some sanity check
                 switch (frame->endByte) {
-                    case 0x20:  // S.BUS 2 telemetry page 1
-                    case 0x24:  // S.BUS 2 telemetry page 2
-                    case 0x28:  // S.BUS 2 telemetry page 3
-                    case 0x2C:  // S.BUS 2 telemetry page 4
-                        if (frame->syncByte == SBUS26_FRAME1_BEGIN_BYTE) {
-                            sbus2ActiveTelemetryPage = (frame->endByte >> 2) & 0x3;
-                            frameTime = currentTimeUs;
-                        }
-
+                    case 0x00:
+                    case 0x04:  // S.BUS 2 telemetry page 1
+                    case 0x14:  // S.BUS 2 telemetry page 2
+                    case 0x24:  // S.BUS 2 telemetry page 3
+                    case 0x34:  // S.BUS 2 telemetry page 4
+                        frameTime = -1; // ignore this one, as you can't fit telemetry between this and the next frame.
                         frameValid = true;
-                        sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
+                        sbusFrameData->state = STATE_SBUS_SYNC; // Next piece of data should be a sync byte
                         break;
 
                     default:    // Failed end marker
+                        frameValid = false;
                         sbusFrameData->state = STATE_SBUS_WAIT_SYNC;
                         break;
                 }
 
                 // Frame seems sane, pass data to decoder
                 if (!sbusFrameData->frameDone && frameValid) {
-                    memcpy((void *)&sbusFrameData->frame, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
+                    memcpy((void *)&sbusFrameData->frameHigh, (void *)&sbusFrameData->buffer[0], SBUS_FRAME_SIZE);
                     sbusFrameData->frameDone = true;
                     sbusFrameData->is26channels = true;
                 }
             }
             break;
 
-
-
         case STATE_SBUS_WAIT_SYNC:
             // Stay at this state and do nothing. Exit will be handled before byte is processed if the
             // inter-frame gap is long enough
+            if (c == SBUS26_FRAME_BEGIN_BYTE || c == 0xF2 || c == 0x2c) {
+                sbusFrameData->position = 0;
+                sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
+                sbusFrameData->state = STATE_SBUS26_PAYLOAD;
+            }
+
             break;
     }
 }
@@ -200,15 +198,19 @@ static uint8_t sbusFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
         return RX_FRAME_PENDING;
     }
 
+    uint8_t retValue = 0;
     // Decode channel data and store return value
-    const uint8_t retValue = sbusFrameData->is26channels ? 
-        sbus26ChannelsDecode(rxRuntimeConfig, (void *)&sbusFrameData->frame.channels, (sbusFrameData->frame.syncByte == SBUS26_FRAME1_BEGIN_BYTE)) : 
-        sbusChannelsDecode(rxRuntimeConfig, (void *)&sbusFrameData->frame.channels);
+    if (sbusFrameData->is26channels) 
+    {
+        retValue = sbus26ChannelsDecode(rxRuntimeConfig, (void *)&sbusFrameData->frame.channels, false);
+        retValue |= sbus26ChannelsDecode(rxRuntimeConfig, (void *)&sbusFrameData->frameHigh.channels, true);
+
+    } else {
+        retValue = sbusChannelsDecode(rxRuntimeConfig, (void *)&sbusFrameData->frame.channels);
+    }
 
     // Reset the frameDone flag - tell ISR that we're ready to receive next frame
     sbusFrameData->frameDone = false;
-
-    //taskSendSbus2Telemetry(micros());
 
     // Calculate "virtual link quality based on packet loss metric"
     if (retValue & RX_FRAME_COMPLETE) {

@@ -26,6 +26,8 @@
 #include "common/utils.h"
 #include "common/maths.h"
 
+#include "build/debug.h"
+
 #include "rx/sbus_channels.h"
 
 
@@ -55,17 +57,18 @@ uint8_t sbus26ChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChann
     sbusChannelData[14 + offset] = channels->chan14;
     sbusChannelData[15 + offset] = channels->chan15;
 
-    offset = highChannels ? 0 : 2;
-    if (channels->flags & SBUS_FLAG_CHANNEL_DG1) {
-        sbusChannelData[32 + offset] = SBUS_DIGITAL_CHANNEL_MAX;
-    } else {
-        sbusChannelData[32 + offset] = SBUS_DIGITAL_CHANNEL_MIN;
-    }
+    if (!highChannels) {
+        if (channels->flags & SBUS_FLAG_CHANNEL_DG1) {
+            sbusChannelData[32] = SBUS_DIGITAL_CHANNEL_MAX;
+        } else {
+            sbusChannelData[32] = SBUS_DIGITAL_CHANNEL_MIN;
+        }
 
-    if (channels->flags & SBUS_FLAG_CHANNEL_DG2) {
-        sbusChannelData[33 + offset] = SBUS_DIGITAL_CHANNEL_MAX;
-    } else {
-        sbusChannelData[33 + offset] = SBUS_DIGITAL_CHANNEL_MIN;
+        if (channels->flags & SBUS_FLAG_CHANNEL_DG2) {
+            sbusChannelData[33] = SBUS_DIGITAL_CHANNEL_MAX;
+        } else {
+            sbusChannelData[33] = SBUS_DIGITAL_CHANNEL_MIN;
+        }
     }
 
     uint8_t ret = 0;

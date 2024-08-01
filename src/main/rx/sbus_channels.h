@@ -20,7 +20,7 @@
 #include <stdint.h>
 #include "rx/rx.h"
 
-#define SBUS_MAX_CHANNEL 36
+#define SBUS_MAX_CHANNEL 34
 
 #define SBUS_FLAG_CHANNEL_DG1       (1 << 0)
 #define SBUS_FLAG_CHANNEL_DG2       (1 << 1)
@@ -30,9 +30,8 @@
 #define SBUS_CHANNEL_DATA_LENGTH sizeof(sbusChannels_t)
 #define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
 
-#define SBUS_FRAME_BEGIN_BYTE   0x0F
-#define SBUS26_FRAME0_BEGIN_BYTE 0xF4
-#define SBUS26_FRAME1_BEGIN_BYTE 0xF0
+#define SBUS_FRAME_BEGIN_BYTE   ((uint8_t)0x0F)
+#define SBUS26_FRAME_BEGIN_BYTE ((uint8_t)0x2F)
 
 #define SBUS_BAUDRATE       100000
 #define SBUS_BAUDRATE_FAST  200000

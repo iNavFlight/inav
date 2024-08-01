@@ -18,6 +18,7 @@
 #pragma once
 
 #define SBUS_DEFAULT_INTERFRAME_DELAY_US    3000    // According to FrSky interframe is 6.67ms, we go smaller just in case
+#define SBUS_MIN_SYNC_DELAY_US              MS2US(2) // 2ms
 
 #include "rx/rx.h"
 
