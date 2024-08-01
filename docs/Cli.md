@@ -107,7 +107,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `save` | Save and reboot |
 | `sd_info` | Sdcard info |
 | `serial` | Configure serial ports. [Usage](Serial.md) |
-| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode>`, where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
+| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode> <options>`, where `id` is the zero based port index, `baud` is a standard baud rate, mode is `rx`, `tx`, or both (`rxtx`), and options is a short string like `8N1` or `8E2` |
 | `servo` | Configure servos |
 | `set` | Change setting with name=value or blank or * for list |
 | `smix` | Custom servo mixer |
