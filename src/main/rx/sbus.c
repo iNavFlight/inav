@@ -95,7 +95,7 @@ static void sbusDataReceive(uint16_t c, void *data)
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS_PAYLOAD;
-            } else if ((uint8_t)c == SBUS26_FRAME_BEGIN_BYTE || c == 0xF2 || c == 0x2c) {
+            } else if ((uint8_t)c == SBUS26_FRAME_BEGIN_BYTE) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS26_PAYLOAD;
