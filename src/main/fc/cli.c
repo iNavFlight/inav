@@ -183,6 +183,7 @@ static const char * const blackboxIncludeFlagNames[] = {
     "PEAKS_R",
     "PEAKS_P",
     "PEAKS_Y",
+    "SERVOS",
     NULL
 };
 #endif
@@ -1087,7 +1088,7 @@ static void cliAdjustmentRange(char *cmdline)
 }
 
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
-{   
+{
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
     char buf1[FTOA_BUFFER_SIZE];
@@ -1351,7 +1352,7 @@ static void cliTempSensor(char *cmdline)
 #endif
 
 #ifdef USE_FW_AUTOLAND
-static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
+static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach)
 {
     const char *format = "fwapproach %u %d %d %u %d %d %u";
     for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
@@ -1398,7 +1399,7 @@ static void cliFwAutolandApproach(char * cmdline)
 
             if ((ptr = nextArg(ptr))) {
                 landDirection = fastA2I(ptr);
-                
+
                 if (landDirection != 0 && landDirection != 1) {
                     cliShowParseError();
                     return;
@@ -1428,7 +1429,7 @@ static void cliFwAutolandApproach(char * cmdline)
 
                 validArgumentCount++;
             }
-            
+
             if ((ptr = nextArg(ptr))) {
                 isSeaLevelRef = fastA2I(ptr);
                 validArgumentCount++;
@@ -1842,7 +1843,7 @@ static void cliLedPinPWM(char *cmdline)
     if (isEmpty(cmdline)) {
         ledPinStopPWM();
         cliPrintLine("PWM stopped");
-    } else {       
+    } else {
         i = fastA2I(cmdline);
         ledPinStartPWM(i);
         cliPrintLinef("PWM started: %d%%",i);
@@ -3739,8 +3740,8 @@ static void cliStatus(char *cmdline)
 #if defined(AT32F43x)
     cliPrintLine("AT32 system clocks:");
     crm_clocks_freq_type clocks;
-    crm_clocks_freq_get(&clocks); 
-    
+    crm_clocks_freq_get(&clocks);
+
     cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
     cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
     cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
@@ -4382,7 +4383,7 @@ static const char *_ubloxGetQuality(uint8_t quality)
         case UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC: return "Code locked and time sync";
         case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC:
         case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC2:
-        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3: 
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3:
             return "Code and carrier locked and time sync";
         default: return "Unknown";
     }
