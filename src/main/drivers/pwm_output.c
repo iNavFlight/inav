@@ -638,7 +638,7 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
 
 static void pwmServoWriteStandard(uint8_t index, uint16_t value)
 {
-    if (servos[index]) {
+    if (index < MAX_SERVOS && servos[index]) {
         *servos[index]->ccr = value;
     }
 }
