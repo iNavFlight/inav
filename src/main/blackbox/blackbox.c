@@ -353,6 +353,25 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"servo",       15, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_16)},
     {"servo",       16, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_17)},
     {"servo",       17, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_18)},
+    {"servo",       18, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_18)},
+    {"servo",       19, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_19)},
+    {"servo",       20, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_20)},
+    {"servo",       21, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_21)},
+    {"servo",       22, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_22)},
+    {"servo",       23, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_23)},
+    {"servo",       24, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_24)},
+    {"servo",       25, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_25)},
+    /*
+    {"servo",       26, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_26)},
+    {"servo",       27, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_27)},
+    {"servo",       27, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_28)},
+    {"servo",       28, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_29)},
+    {"servo",       29, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_30)},
+    {"servo",       30, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_31)},
+    {"servo",       31, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_32)},
+    {"servo",       32, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_33)},
+    {"servo",       33, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_34)},
+    */
 
     {"navState",  -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navFlags",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
@@ -675,7 +694,25 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_16:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_17:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_18:
-	return ((FlightLogFieldCondition)getServoCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_19:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_20:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_21:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_22:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_23:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_24:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_25:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_26:
+    /*
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_27:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_28:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_29:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_30:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_31:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_32:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_33:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_34:
+    */
+	return ((FlightLogFieldCondition)MIN(getServoCount(), 26) >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
 
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:

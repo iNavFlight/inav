@@ -95,6 +95,8 @@ struct serialPortVTable {
 
     void (*setMode)(serialPort_t *instance, portMode_t mode);
 
+    void (*setOptions)(serialPort_t *instance, portOptions_t options);
+
     void (*writeBuf)(serialPort_t *instance, const void *data, int count);
 
     bool (*isConnected)(const serialPort_t *instance);
@@ -113,6 +115,7 @@ void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count);
 uint8_t serialRead(serialPort_t *instance);
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate);
 void serialSetMode(serialPort_t *instance, portMode_t mode);
+void serialSetOptions(serialPort_t *instance, portOptions_t options);
 bool isSerialTransmitBufferEmpty(const serialPort_t *instance);
 void serialPrint(serialPort_t *instance, const char *str);
 uint32_t serialGetBaudRate(serialPort_t *instance);

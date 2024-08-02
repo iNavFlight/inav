@@ -914,6 +914,42 @@ static void cliSerial(char *cmdline)
 }
 
 #ifdef USE_SERIAL_PASSTHROUGH
+
+portOptions_t constructPortOptions(char *options) {
+    if (strlen(options) != 3 || options[0] != '8') {
+        // Invalid format
+        return -1;
+    }
+
+    portOptions_t result = 0;
+
+    switch (options[1]) {
+        case 'N':
+            result |= SERIAL_PARITY_NO;
+            break;
+        case 'E':
+            result |= SERIAL_PARITY_EVEN;
+            break;
+        default:
+            // Invalid format
+            return -1;
+    }
+
+    switch (options[2]) {
+        case '1':
+            result |= SERIAL_STOPBITS_1;
+            break;
+        case '2':
+            result |= SERIAL_STOPBITS_2;
+            break;
+        default:
+            // Invalid format
+            return -1;
+    }
+
+    return result;
+}
+
 static void cliSerialPassthrough(char *cmdline)
 {
     char * saveptr;
@@ -926,6 +962,7 @@ static void cliSerialPassthrough(char *cmdline)
     int id = -1;
     uint32_t baud = 0;
     unsigned mode = 0;
+    portOptions_t options = SERIAL_NOT_INVERTED;
     char* tok = strtok_r(cmdline, " ", &saveptr);
     int index = 0;
 
@@ -942,6 +979,9 @@ static void cliSerialPassthrough(char *cmdline)
                     mode |= MODE_RX;
                 if (strstr(tok, "tx") || strstr(tok, "TX"))
                     mode |= MODE_TX;
+                break;
+            case 3:
+                options |= constructPortOptions(tok);
                 break;
         }
         index++;
@@ -960,7 +1000,7 @@ static void cliSerialPassthrough(char *cmdline)
 
         passThroughPort = openSerialPort(id, FUNCTION_NONE, NULL, NULL,
                                          baud, mode,
-                                         SERIAL_NOT_INVERTED);
+                                         options);
         if (!passThroughPort) {
             tfp_printf("Port %d could not be opened.\r\n", id);
             return;
@@ -975,6 +1015,11 @@ static void cliSerialPassthrough(char *cmdline)
             tfp_printf("Adjusting mode from %d to %d.\r\n",
                    passThroughPort->mode, mode);
             serialSetMode(passThroughPort, mode);
+        }
+        if (options && passThroughPort->options != options) {
+            tfp_printf("Adjusting options from %d to %d.\r\n",
+                   passThroughPort->options, options);
+            serialSetOptions(passThroughPort, options);
         }
         // If this port has a rx callback associated we need to remove it now.
         // Otherwise no data will be pushed in the serial port buffer!
@@ -4515,7 +4560,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
 #ifdef USE_SERIAL_PASSTHROUGH
-    CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
+    CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] [options]: passthrough to serial", cliSerialPassthrough),
 #endif
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #ifdef USE_PROGRAMMING_FRAMEWORK

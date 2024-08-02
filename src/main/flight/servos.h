@@ -20,7 +20,7 @@
 #include "config/parameter_group.h"
 #include "programming/logic_condition.h"
 
-#define MAX_SUPPORTED_SERVOS 18
+#define MAX_SUPPORTED_SERVOS 34
 
 // These must be consecutive
 typedef enum {
@@ -75,6 +75,16 @@ typedef enum {
     INPUT_RC_CH22                   = 47,
     INPUT_RC_CH23                   = 48,
     INPUT_RC_CH24                   = 49,
+    INPUT_RC_CH25                   = 50,
+    INPUT_RC_CH26                   = 51,
+    INPUT_RC_CH27                   = 52,
+    INPUT_RC_CH28                   = 53,
+    INPUT_RC_CH29                   = 54,
+    INPUT_RC_CH30                   = 55,
+    INPUT_RC_CH31                   = 56,
+    INPUT_RC_CH32                   = 57,
+    INPUT_RC_CH33                   = 58,
+    INPUT_RC_CH34                   = 59,
 #endif
     INPUT_SOURCE_COUNT
 } inputSource_e;
