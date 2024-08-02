@@ -95,7 +95,7 @@ static void sbusDataReceive(uint16_t c, void *data)
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS_PAYLOAD;
-            } else if ((uint8_t)c == SBUS26_FRAME_BEGIN_BYTE) {
+            } else if ((uint8_t)c == SBUS2_HIGHFRAME_BEGIN_BYTE) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS26_PAYLOAD;
@@ -180,12 +180,6 @@ static void sbusDataReceive(uint16_t c, void *data)
         case STATE_SBUS_WAIT_SYNC:
             // Stay at this state and do nothing. Exit will be handled before byte is processed if the
             // inter-frame gap is long enough
-            if (c == SBUS26_FRAME_BEGIN_BYTE || c == 0xF2 || c == 0x2c) {
-                sbusFrameData->position = 0;
-                sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
-                sbusFrameData->state = STATE_SBUS26_PAYLOAD;
-            }
-
             break;
     }
 }
