@@ -523,9 +523,9 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IN_PROGRESS(timeUs_t
 
             navPidInit(
                 &ascentRatePIDController,
-                40 / 10.0f,
+                0.0f,
                 10 / 10.0f,
-                10 / 10.0f,
+                0.0f,
                 0.0f,
                 NAV_DTERM_CUT_HZ,
                 0.0f
