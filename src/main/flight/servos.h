@@ -20,7 +20,7 @@
 #include "config/parameter_group.h"
 #include "programming/logic_condition.h"
 
-#define MAX_SUPPORTED_SERVOS 34
+#define MAX_SUPPORTED_SERVOS 18
 
 // These must be consecutive
 typedef enum {
