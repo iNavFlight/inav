@@ -40,13 +40,23 @@ typedef enum rc_alias {
     AUX12, // 16
     AUX13, // 17
     AUX14, // 18
-#ifdef USE_24CHANNELS
+#ifdef USE_34CHANNELS
     AUX15, // 19
     AUX16, // 20
     AUX17, // 21
     AUX18, // 22
     AUX19, // 23
     AUX20, // 24
+    AUX21, // 25
+    AUX22, // 26
+    AUX23, // 27
+    AUX24, // 28
+    AUX25, // 29
+    AUX26, // 30
+    AUX27, // 31
+    AUX28, // 32
+    AUX29, // 33
+    AUX30, // 34
 #endif
 } rc_alias_e;
 
