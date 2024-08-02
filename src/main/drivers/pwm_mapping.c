@@ -446,7 +446,7 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
 
     // If mixer requests more servos than we have timer outputs - throw an error
     uint16_t maxServos = timOutputs->maxTimServoCount;
-    if(servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
         maxServos = MAX(SERVO_SBUS_MAX_SERVOS, timOutputs->maxTimServoCount);
     }
 
