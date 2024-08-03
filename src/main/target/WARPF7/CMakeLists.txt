@@ -1,1 +1,1 @@
-target_stm32f722xe(WARPF7 SKIP_RELEASES)
+target_stm32f722xe(WARPF7)
