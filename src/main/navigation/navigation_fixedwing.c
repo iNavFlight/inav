@@ -420,7 +420,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             float limit = constrainf(navCrossTrackError / 3.0f, 200.0f, 500.0f);
             float rateFactor = limit;
             if (crossTrackErrorRate > 0.0f) {
-                rateFactor = scaleRangef(navCrossTrackError / crossTrackErrorRate, 0.0f, 30.0f, -limit, limit);
+                rateFactor = constrainf(scaleRangef(navCrossTrackError / crossTrackErrorRate, 0, 30, -limit, limit), -limit, limit);
             }
 
             /* Determine final adjusted virtualTargetBearing */
