@@ -52,7 +52,7 @@ With the board connected and in bootloader mode (reset it by sending the charact
 
 ## Platoform: Mac-OS
 
-The Configuator devices can have a problem accesing USB devices on Mac-OS. This is ussaly solved by a cable change.
+Configuator devices can have a problem accesing USB devices on Mac-OS. This is *ussaly* solved by a cable change.
 
 * The official Apple USB-C to USB-C will not work no matter orentation. 
 * Make sure the cable you are using support data transfer
