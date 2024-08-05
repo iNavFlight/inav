@@ -138,4 +138,3 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
     }
     prevLength[customElementIndex] = buffSeek;
 }
-

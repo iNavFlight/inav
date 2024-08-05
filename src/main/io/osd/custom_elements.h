@@ -21,7 +21,7 @@
 
 #define OSD_CUSTOM_ELEMENT_TEXT_SIZE 16
 #define CUSTOM_ELEMENTS_PARTS 3
-#define MAX_CUSTOM_ELEMENTS 3
+#define MAX_CUSTOM_ELEMENTS 8
 
 typedef enum {
     CUSTOM_ELEMENT_TYPE_NONE            = 0,

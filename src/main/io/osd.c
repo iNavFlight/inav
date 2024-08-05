@@ -225,7 +225,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 12);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 2);
 
 void osdStartedSaveProcess(void) {
     savingSettings = true;
@@ -1610,40 +1610,6 @@ int8_t getGeoWaypointNumber(int8_t waypointIndex)
     return geoWaypointIndex - posControl.startWpIndex + 1;
 }
 
-void osdDisplaySwitchIndicator(const char *swName, int rcValue, char *buff) {
-    int8_t ptr = 0;
-
-    if (osdConfig()->osd_switch_indicators_align_left) {
-        for (ptr = 0; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH); ptr++) {
-            buff[ptr] = swName[ptr];
-        }
-
-        if ( rcValue < 1333) {
-            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
-        } else if ( rcValue > 1666) {
-            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
-        } else {
-            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
-        }
-    } else {
-        if ( rcValue < 1333) {
-            buff[ptr++] = SYM_SWITCH_INDICATOR_LOW;
-        } else if ( rcValue > 1666) {
-            buff[ptr++] = SYM_SWITCH_INDICATOR_HIGH;
-        } else {
-            buff[ptr++] = SYM_SWITCH_INDICATOR_MID;
-        }
-
-        for (ptr = 1; ptr < constrain(strlen(swName), 0, OSD_SWITCH_INDICATOR_NAME_LENGTH) + 1; ptr++) {
-            buff[ptr] = swName[ptr-1];
-        }
-
-        ptr++;
-    }
-
-    buff[ptr] = '\0';
-}
-
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
@@ -1669,6 +1635,31 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_CUSTOM_ELEMENT_3:
     {
         customElementDrawElement(buff, 2);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_4:
+    {
+        customElementDrawElement(buff, 3);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_5:
+    {
+        customElementDrawElement(buff, 4);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_6:
+    {
+        customElementDrawElement(buff, 5);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_7:
+    {
+        customElementDrawElement(buff, 6);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_8:
+    {
+        customElementDrawElement(buff, 7);
         break;
     }
     case OSD_RSSI_VALUE:
@@ -2873,22 +2864,6 @@ static bool osdDrawSingleElement(uint8_t item)
         }
 #endif
 
-    case OSD_SWITCH_INDICATOR_0:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channel - 1), buff);
-        break;
-
-    case OSD_SWITCH_INDICATOR_1:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator1_name, rxGetChannelValue(osdConfig()->osd_switch_indicator1_channel - 1), buff);
-        break;
-
-    case OSD_SWITCH_INDICATOR_2:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator2_name, rxGetChannelValue(osdConfig()->osd_switch_indicator2_channel - 1), buff);
-        break;
-
-    case OSD_SWITCH_INDICATOR_3:
-        osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator3_name, rxGetChannelValue(osdConfig()->osd_switch_indicator3_channel - 1), buff);
-        break;
-
     case OSD_PAN_SERVO_CENTRED:
         {
             int16_t panOffset = osdGetPanServoOffset();
@@ -4008,15 +3983,6 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
     .mAh_precision = SETTING_OSD_MAH_PRECISION_DEFAULT,
-    .osd_switch_indicator0_name = SETTING_OSD_SWITCH_INDICATOR_ZERO_NAME_DEFAULT,
-    .osd_switch_indicator0_channel = SETTING_OSD_SWITCH_INDICATOR_ZERO_CHANNEL_DEFAULT,
-    .osd_switch_indicator1_name = SETTING_OSD_SWITCH_INDICATOR_ONE_NAME_DEFAULT,
-    .osd_switch_indicator1_channel = SETTING_OSD_SWITCH_INDICATOR_ONE_CHANNEL_DEFAULT,
-    .osd_switch_indicator2_name = SETTING_OSD_SWITCH_INDICATOR_TWO_NAME_DEFAULT,
-    .osd_switch_indicator2_channel = SETTING_OSD_SWITCH_INDICATOR_TWO_CHANNEL_DEFAULT,
-    .osd_switch_indicator3_name = SETTING_OSD_SWITCH_INDICATOR_THREE_NAME_DEFAULT,
-    .osd_switch_indicator3_channel = SETTING_OSD_SWITCH_INDICATOR_THREE_CHANNEL_DEFAULT,
-    .osd_switch_indicators_align_left = SETTING_OSD_SWITCH_INDICATORS_ALIGN_LEFT_DEFAULT,
     .system_msg_display_time = SETTING_OSD_SYSTEM_MSG_DISPLAY_TIME_DEFAULT,
     .units = SETTING_OSD_UNITS_DEFAULT,
     .main_voltage_decimals = SETTING_OSD_MAIN_VOLTAGE_DECIMALS_DEFAULT,
@@ -4190,11 +4156,6 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_GVAR_3] = OSD_POS(1, 4);
 
     osdLayoutsConfig->item_pos[0][OSD_MULTI_FUNCTION] = OSD_POS(1, 4);
-
-    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_0] = OSD_POS(2, 7);
-    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_1] = OSD_POS(2, 8);
-    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_2] = OSD_POS(2, 9);
-    osdLayoutsConfig->item_pos[0][OSD_SWITCH_INDICATOR_3] = OSD_POS(2, 10);
 
     osdLayoutsConfig->item_pos[0][OSD_ADSB_WARNING] = OSD_POS(2, 7);
     osdLayoutsConfig->item_pos[0][OSD_ADSB_INFO] = OSD_POS(2, 8);
