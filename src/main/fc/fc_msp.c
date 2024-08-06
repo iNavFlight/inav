@@ -3840,18 +3840,20 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcLogicConditionCommand(dst, src);
         break;
     case MSP2_INAV_CUSTOM_OSD_ELEMENT:
-        const uint8_t idx = sbufReadU8(src);
+        {
+            const uint8_t idx = sbufReadU8(src);
 
-        if (idx < MAX_CUSTOM_ELEMENTS) {
-            const osdCustomElement_t *customElement = osdCustomElements(idx);
-            for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
-                sbufWriteU8(dst, customElement->part[ii].type);
-                sbufWriteU16(dst, customElement->part[ii].value);
-            }
-            sbufWriteU8(dst, customElement->visibility.type);
-            sbufWriteU16(dst, customElement->visibility.value);
-            for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
-                sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
+            if (idx < MAX_CUSTOM_ELEMENTS) {
+                const osdCustomElement_t *customElement = osdCustomElements(idx);
+                for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
+                    sbufWriteU8(dst, customElement->part[ii].type);
+                    sbufWriteU16(dst, customElement->part[ii].value);
+                }
+                sbufWriteU8(dst, customElement->visibility.type);
+                sbufWriteU16(dst, customElement->visibility.value);
+                for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
+                    sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
+                }
             }
         }
         break;
