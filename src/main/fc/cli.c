@@ -3894,6 +3894,24 @@ static void cliStatus(char *cmdline)
             cliPrintErrorLinef("Invalid setting: %s", buf);
         }
     }
+
+#if defined(USE_OSD)
+    if (armingFlags & ARMING_DISABLED_NAVIGATION_UNSAFE) {
+	    navArmingBlocker_e reason = navigationIsBlockingArming(NULL);
+        if (reason & NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR)
+            cliPrintLinef("  %s", OSD_MSG_JUMP_WP_MISCONFIG);
+        if (reason & NAV_ARMING_BLOCKER_MISSING_GPS_FIX) {
+            cliPrintLinef("  %s", OSD_MSG_WAITING_GPS_FIX);
+		} else {
+            if (reason & NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE)
+                cliPrintLinef("  %s", OSD_MSG_DISABLE_NAV_FIRST);
+            if (reason & NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR)
+                cliPrintLinef("  FIRST WP TOO FAR");
+       }
+    }
+#endif
+
+
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
