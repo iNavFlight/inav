@@ -27,6 +27,7 @@
 #include <config/parameter_group_ids.h>
 
 #include "common/time.h"
+#include "common/maths.h"
 
 #include "fc/cli.h"
 
@@ -36,7 +37,7 @@
 #include "settings_generated.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 2);
 
 PG_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, 
     .panChannel = SETTING_GIMBAL_PAN_CHANNEL_DEFAULT,
@@ -134,6 +135,12 @@ int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice)
     }
 
     return gimbalDevice ? gimbalDevice->currentPanPWM : PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
+}
+
+
+bool gimbalCheckDeadband(uint16_t oldValue, uint16_t newValue)
+{
+    return ABS(oldValue - newValue) > gimbalConfig()->inputDeadBand;
 }
 
 #endif
