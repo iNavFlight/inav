@@ -186,6 +186,11 @@ uint8_t customElementDrawPart(char *buff, uint8_t customElementIndex, uint8_t cu
             *buff = (uint8_t)gvGet(customPartValue);
             return 1;
         }
+        case CUSTOM_ELEMENT_TYPE_ICON_LC:
+        {
+            *buff = (uint8_t)constrain(logicConditionGetValue(customPartValue), 1, 255);
+            return 1;
+        }
         case CUSTOM_ELEMENT_TYPE_ICON_STATIC:
         {
             *buff = (uint8_t)customPartValue;
