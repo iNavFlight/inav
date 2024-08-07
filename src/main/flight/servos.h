@@ -68,14 +68,22 @@ typedef enum {
     INPUT_HEADTRACKER_ROLL          = 41,
     INPUT_RC_CH17                   = 42,
     INPUT_RC_CH18                   = 43,
-#ifdef USE_24CHANNELS
     INPUT_RC_CH19                   = 44,
     INPUT_RC_CH20                   = 45,
     INPUT_RC_CH21                   = 46,
     INPUT_RC_CH22                   = 47,
     INPUT_RC_CH23                   = 48,
     INPUT_RC_CH24                   = 49,
-#endif
+    INPUT_RC_CH25                   = 50,
+    INPUT_RC_CH26                   = 51,
+    INPUT_RC_CH27                   = 52,
+    INPUT_RC_CH28                   = 53,
+    INPUT_RC_CH29                   = 54,
+    INPUT_RC_CH30                   = 55,
+    INPUT_RC_CH31                   = 56,
+    INPUT_RC_CH32                   = 57,
+    INPUT_RC_CH33                   = 58,
+    INPUT_RC_CH34                   = 59,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
