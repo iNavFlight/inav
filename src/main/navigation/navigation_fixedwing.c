@@ -401,14 +401,21 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
     if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
-        int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.bearing - virtualTargetBearing);
-        navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
+        fpVector3_t virtualCoursePoint;
+        virtualCoursePoint.x = posControl.activeWaypoint.pos.x -
+                               posControl.wpDistance * cos_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
+        virtualCoursePoint.y = posControl.activeWaypoint.pos.y -
+                               posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
+        navCrossTrackError = calculateDistanceToDestination(&virtualCoursePoint);
 
-        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200.0f) {
+        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200) {
             static float crossTrackErrorRate;
-            if ((currentTimeUs - previousTimeMonitoringUpdate) >= HZ2US(NAV_FW_CONTROL_MONITORING_RATE)) {
+            static timeUs_t previousCrossTrackErrorUpdateTime;
+
+            if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(10)) {
                 static float previousCrossTrackError = 0.0f;
-                crossTrackErrorRate = 0.5f * (crossTrackErrorRate + (previousCrossTrackError - navCrossTrackError) / US2S(currentTimeUs - previousTimeMonitoringUpdate));
+                crossTrackErrorRate = (previousCrossTrackError - navCrossTrackError) / US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
+                previousCrossTrackErrorUpdateTime = currentTimeUs;
                 previousCrossTrackError = navCrossTrackError;
             }
 
@@ -416,11 +423,12 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             float adjustmentFactor = wrap_18000(posControl.activeWaypoint.bearing - virtualTargetBearing);
             adjustmentFactor *= 1.0f + sq(navCrossTrackError / (navConfig()->fw.wp_tracking_accuracy * 500.0f));
 
-            /* Apply additional fine adjustment based on speed of convergence to try and achieve arrival time of around 15s */
-            float limit = constrainf(navCrossTrackError / 3.0f, 200.0f, 500.0f);
+            /* Apply additional fine adjustment based on speed of convergence to achieve a convergence speed of around 2 m/s */
+            float limit = constrainf((crossTrackErrorRate > 0.0f ? crossTrackErrorRate : 0.0f) + navCrossTrackError / 3.0f, 200.0f, posControl.actualState.velXY / 4.0f);
             float rateFactor = limit;
             if (crossTrackErrorRate > 0.0f) {
-                rateFactor = constrainf(scaleRangef(navCrossTrackError / crossTrackErrorRate, 0, 30, -limit, limit), -limit, limit);
+                float timeFactor = constrainf(navCrossTrackError / 100.0f, 10.0f, 30.0f);
+                rateFactor = constrainf(scaleRangef(navCrossTrackError / crossTrackErrorRate, 0.0f, timeFactor, -limit, limit), -limit, limit);
             }
 
             /* Determine final adjusted virtualTargetBearing */
