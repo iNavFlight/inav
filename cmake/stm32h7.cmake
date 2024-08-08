@@ -216,6 +216,7 @@ macro(define_target_stm32h7 subfamily size)
             COMPILE_DEFINITIONS ${definitions}
             LINKER_SCRIPT stm32_flash_h7${subfamily}x${size}
             ${${func_ARGV}}
+            SVD STM32H7${subfamily}
         )
     endfunction()
 endmacro()
