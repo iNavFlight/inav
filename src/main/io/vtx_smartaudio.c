@@ -61,8 +61,8 @@
 static serialPort_t *smartAudioSerialPort = NULL;
 
 uint8_t saPowerCount = VTX_SMARTAUDIO_DEFAULT_POWER_COUNT;
-const char * saPowerNames[VTX_SMARTAUDIO_MAX_POWER_COUNT + 1] = {
-    "----", "25  ", "200 ", "500 ", "800 ", "    "
+const char *saPowerNames[VTX_SMARTAUDIO_MAX_POWER_COUNT + 1] = {
+    "----", "25  ", "200 ", "500 ", "800 ", "    ", "    ", "    ", "    "
 };
 
 // Save powerlevels reported from SA 2.1 devices here
@@ -73,7 +73,7 @@ static vtxDevice_t vtxSmartAudio = {
     .vTable = &saVTable,
     .capability.bandCount = VTX_SMARTAUDIO_BAND_COUNT,
     .capability.channelCount = VTX_SMARTAUDIO_CHANNEL_COUNT,
-    .capability.powerCount = VTX_SMARTAUDIO_MAX_POWER_COUNT,
+    .capability.powerCount = VTX_SMARTAUDIO_MAX_POWER_COUNT, // Should this be VTX_SMARTAUDIO_DEFAULT_POWER_COUNT?
     .capability.bandNames = (char **)vtx58BandNames,
     .capability.channelNames = (char **)vtx58ChannelNames,
     .capability.powerNames = (char**)saPowerNames
@@ -124,7 +124,10 @@ saPowerTable_t saPowerTable[VTX_SMARTAUDIO_MAX_POWER_COUNT] = {
     { 200,  16 },
     { 500,  25 },
     { 800,  40 },
-    {   0,   0 } // Placeholder
+    {   0,   0 }, // Placeholders
+    {   0,   0 },
+    {   0,   0 },
+    {   0,   0 }
 };
 
 // Last received device ('hard') states

@@ -183,6 +183,7 @@ static const char * const blackboxIncludeFlagNames[] = {
     "PEAKS_R",
     "PEAKS_P",
     "PEAKS_Y",
+    "SERVOS",
     NULL
 };
 #endif
@@ -913,6 +914,42 @@ static void cliSerial(char *cmdline)
 }
 
 #ifdef USE_SERIAL_PASSTHROUGH
+
+portOptions_t constructPortOptions(char *options) {
+    if (strlen(options) != 3 || options[0] != '8') {
+        // Invalid format
+        return -1;
+    }
+
+    portOptions_t result = 0;
+
+    switch (options[1]) {
+        case 'N':
+            result |= SERIAL_PARITY_NO;
+            break;
+        case 'E':
+            result |= SERIAL_PARITY_EVEN;
+            break;
+        default:
+            // Invalid format
+            return -1;
+    }
+
+    switch (options[2]) {
+        case '1':
+            result |= SERIAL_STOPBITS_1;
+            break;
+        case '2':
+            result |= SERIAL_STOPBITS_2;
+            break;
+        default:
+            // Invalid format
+            return -1;
+    }
+
+    return result;
+}
+
 static void cliSerialPassthrough(char *cmdline)
 {
     char * saveptr;
@@ -925,6 +962,7 @@ static void cliSerialPassthrough(char *cmdline)
     int id = -1;
     uint32_t baud = 0;
     unsigned mode = 0;
+    portOptions_t options = SERIAL_NOT_INVERTED;
     char* tok = strtok_r(cmdline, " ", &saveptr);
     int index = 0;
 
@@ -941,6 +979,9 @@ static void cliSerialPassthrough(char *cmdline)
                     mode |= MODE_RX;
                 if (strstr(tok, "tx") || strstr(tok, "TX"))
                     mode |= MODE_TX;
+                break;
+            case 3:
+                options |= constructPortOptions(tok);
                 break;
         }
         index++;
@@ -959,7 +1000,7 @@ static void cliSerialPassthrough(char *cmdline)
 
         passThroughPort = openSerialPort(id, FUNCTION_NONE, NULL, NULL,
                                          baud, mode,
-                                         SERIAL_NOT_INVERTED);
+                                         options);
         if (!passThroughPort) {
             tfp_printf("Port %d could not be opened.\r\n", id);
             return;
@@ -974,6 +1015,11 @@ static void cliSerialPassthrough(char *cmdline)
             tfp_printf("Adjusting mode from %d to %d.\r\n",
                    passThroughPort->mode, mode);
             serialSetMode(passThroughPort, mode);
+        }
+        if (options && passThroughPort->options != options) {
+            tfp_printf("Adjusting options from %d to %d.\r\n",
+                   passThroughPort->options, options);
+            serialSetOptions(passThroughPort, options);
         }
         // If this port has a rx callback associated we need to remove it now.
         // Otherwise no data will be pushed in the serial port buffer!
@@ -1087,7 +1133,7 @@ static void cliAdjustmentRange(char *cmdline)
 }
 
 static void printMotorMix(uint8_t dumpMask, const motorMixer_t *primaryMotorMixer, const motorMixer_t *defaultprimaryMotorMixer)
-{   
+{
     const char *format = "mmix %d %s %s %s %s";
     char buf0[FTOA_BUFFER_SIZE];
     char buf1[FTOA_BUFFER_SIZE];
@@ -1351,7 +1397,7 @@ static void cliTempSensor(char *cmdline)
 #endif
 
 #ifdef USE_FW_AUTOLAND
-static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach) 
+static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach)
 {
     const char *format = "fwapproach %u %d %d %u %d %d %u";
     for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
@@ -1398,7 +1444,7 @@ static void cliFwAutolandApproach(char * cmdline)
 
             if ((ptr = nextArg(ptr))) {
                 landDirection = fastA2I(ptr);
-                
+
                 if (landDirection != 0 && landDirection != 1) {
                     cliShowParseError();
                     return;
@@ -1428,7 +1474,7 @@ static void cliFwAutolandApproach(char * cmdline)
 
                 validArgumentCount++;
             }
-            
+
             if ((ptr = nextArg(ptr))) {
                 isSeaLevelRef = fastA2I(ptr);
                 validArgumentCount++;
@@ -1842,7 +1888,7 @@ static void cliLedPinPWM(char *cmdline)
     if (isEmpty(cmdline)) {
         ledPinStopPWM();
         cliPrintLine("PWM stopped");
-    } else {       
+    } else {
         i = fastA2I(cmdline);
         ledPinStartPWM(i);
         cliPrintLinef("PWM started: %d%%",i);
@@ -3739,8 +3785,8 @@ static void cliStatus(char *cmdline)
 #if defined(AT32F43x)
     cliPrintLine("AT32 system clocks:");
     crm_clocks_freq_type clocks;
-    crm_clocks_freq_get(&clocks); 
-    
+    crm_clocks_freq_get(&clocks);
+
     cliPrintLinef("  SYSCLK = %d MHz", clocks.sclk_freq / 1000000);
     cliPrintLinef("  ABH    = %d MHz", clocks.ahb_freq  / 1000000);
     cliPrintLinef("  ABP1   = %d MHz", clocks.apb1_freq / 1000000);
@@ -3848,6 +3894,24 @@ static void cliStatus(char *cmdline)
             cliPrintErrorLinef("Invalid setting: %s", buf);
         }
     }
+
+#if defined(USE_OSD)
+    if (armingFlags & ARMING_DISABLED_NAVIGATION_UNSAFE) {
+	    navArmingBlocker_e reason = navigationIsBlockingArming(NULL);
+        if (reason & NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR)
+            cliPrintLinef("  %s", OSD_MSG_JUMP_WP_MISCONFIG);
+        if (reason & NAV_ARMING_BLOCKER_MISSING_GPS_FIX) {
+            cliPrintLinef("  %s", OSD_MSG_WAITING_GPS_FIX);
+		} else {
+            if (reason & NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE)
+                cliPrintLinef("  %s", OSD_MSG_DISABLE_NAV_FIRST);
+            if (reason & NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR)
+                cliPrintLinef("  FIRST WP TOO FAR");
+       }
+    }
+#endif
+
+
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
 #endif
@@ -4382,7 +4446,7 @@ static const char *_ubloxGetQuality(uint8_t quality)
         case UBLOX_SIG_QUALITY_CODE_LOCK_TIME_SYNC: return "Code locked and time sync";
         case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC:
         case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC2:
-        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3: 
+        case UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3:
             return "Code and carrier locked and time sync";
         default: return "Unknown";
     }
@@ -4514,7 +4578,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
 #ifdef USE_SERIAL_PASSTHROUGH
-    CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] : passthrough to serial", cliSerialPassthrough),
+    CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] [options]: passthrough to serial", cliSerialPassthrough),
 #endif
     CLI_COMMAND_DEF("servo", "configure servos", NULL, cliServo),
 #ifdef USE_PROGRAMMING_FRAMEWORK
