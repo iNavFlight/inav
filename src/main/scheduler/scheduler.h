@@ -125,7 +125,7 @@ typedef enum {
 #ifdef USE_ADAPTIVE_FILTER
     TASK_ADAPTIVE_FILTER,
 #endif
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
     TASK_GIMBAL,
 #endif
 

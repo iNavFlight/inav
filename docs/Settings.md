@@ -1542,6 +1542,16 @@ Trim gimbal tilt center position.
 
 ---
 
+### gimbal_type
+
+Type of gimbval dervice
+
+| Default | Min | Max |
+| --- | --- | --- |
+| SERIAL |  |  |
+
+---
+
 ### gps_auto_baud
 
 Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
