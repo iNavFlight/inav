@@ -2477,14 +2477,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_CRSF_SNR_DB:
         {
-            static pt1Filter_t snrFilterState;
-            static timeMs_t snrUpdated = 0;
-            int8_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 0.5f, MS2S(millis() - snrUpdated));
-            snrUpdated = millis();
+            int8_t snrVal = rxLinkStatistics.uplinkSNR;
 
             const char* showsnr = "-20";
             const char* hidesnr = "   ";
-            if (snrFiltered > osdConfig()->snr_alarm) {
+            if (snrVal > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
                     tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
@@ -2492,12 +2489,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     buff[0] = SYM_BLANK;
                     tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
                 }
-            } else if (snrFiltered <= osdConfig()->snr_alarm) {
+            } else if (snrVal <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
-                if (snrFiltered <= -10) {
-                    tfp_sprintf(buff + 1, "%3d%c", snrFiltered, SYM_DB);
+                if (snrVal <= -10) {
+                    tfp_sprintf(buff + 1, "%3d%c", snrVal, SYM_DB);
                 } else {
-                    tfp_sprintf(buff + 1, "%2d%c%c", snrFiltered, SYM_DB, ' ');
+                    tfp_sprintf(buff + 1, "%2d%c%c", snrVal, SYM_DB, ' ');
                 }
             }
             break;
