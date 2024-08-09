@@ -163,3 +163,7 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+#if defined(AOCODARCF7MINI_V1)
+#define USE_DSHOT_DMAR
+#endif

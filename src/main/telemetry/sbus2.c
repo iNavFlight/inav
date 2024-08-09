@@ -25,6 +25,10 @@
 #include "common/time.h"
 #include "common/axis.h"
 
+#include "config/feature.h"
+
+#include "fc/config.h"
+
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
 #include "telemetry/sbus2_sensors.h"
@@ -164,7 +168,7 @@ void sbus2IncrementTelemetrySlot(timeUs_t currentTimeUs)
 
 FAST_CODE void taskSendSbus2Telemetry(timeUs_t currentTimeUs)
 {
-    if (!telemetrySharedPort || rxConfig()->receiverType != RX_TYPE_SERIAL ||
+    if (!feature(FEATURE_TELEMETRY) || !telemetrySharedPort || rxConfig()->receiverType != RX_TYPE_SERIAL ||
         rxConfig()->serialrx_provider != SERIALRX_SBUS2) {
         return;
     }

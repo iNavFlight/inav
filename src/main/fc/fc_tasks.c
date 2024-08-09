@@ -439,7 +439,7 @@ void fcTasksInit(void)
 #endif
 
 #if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
-    setTaskEnabled(TASK_TELEMETRY_SBUS2,rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_SBUS2);
+    setTaskEnabled(TASK_TELEMETRY_SBUS2,feature(FEATURE_TELEMETRY) && rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_SBUS2);
 #endif
 
 #ifdef USE_ADAPTIVE_FILTER

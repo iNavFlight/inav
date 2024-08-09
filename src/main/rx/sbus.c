@@ -71,6 +71,7 @@ typedef struct sbusFrameData_s {
 
 static uint8_t sbus2ActiveTelemetryPage = 0;
 static uint8_t sbus2ActiveTelemetrySlot = 0;
+static uint8_t sbus2ShortFrameInterval = 0;
 timeUs_t frameTime = 0;
 
 // Receive ISR callback
@@ -81,10 +82,16 @@ static void sbusDataReceive(uint16_t c, void *data)
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
 
+    const int32_t syncInterval = sbus2ShortFrameInterval
+                                     ? ((6300 - SBUS_BYTE_TIME_US(25)) / 2)
+                                     : rxConfig()->sbusSyncInterval;
+
+
     // Handle inter-frame gap. We dwell in STATE_SBUS_WAIT_SYNC state ignoring all incoming bytes until we get long enough quite period on the wire
-    if (timeSinceLastByteUs >= rxConfig()->sbusSyncInterval) {
+    if ((sbusFrameData->state == STATE_SBUS_WAIT_SYNC && timeSinceLastByteUs >= syncInterval) 
+            || (rxConfig()->serialrx_provider == SERIALRX_SBUS2 && timeSinceLastByteUs >= SBUS_BYTE_TIME_US(3))) {
         sbusFrameData->state = STATE_SBUS_SYNC;
-    } else if ((sbusFrameData->state == STATE_SBUS_PAYLOAD || sbusFrameData->state == STATE_SBUS26_PAYLOAD) && timeSinceLastByteUs >= 300) {
+    } else if ((sbusFrameData->state == STATE_SBUS_PAYLOAD || sbusFrameData->state == STATE_SBUS26_PAYLOAD) && timeSinceLastByteUs >= SBUS_BYTE_TIME_US(3)) {
         // payload is pausing too long, possible if some telemetry have been sent between frames, or false positves mid frame
         sbusFrameData->state = STATE_SBUS_SYNC;
     }
@@ -95,7 +102,7 @@ static void sbusDataReceive(uint16_t c, void *data)
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS_PAYLOAD;
-            } else if ((uint8_t)c == SBUS2_HIGHFRAME_BEGIN_BYTE) {
+            } else if (c == SBUS2_HIGHFRAME_BEGIN_BYTE) {
                 sbusFrameData->position = 0;
                 sbusFrameData->buffer[sbusFrameData->position++] = (uint8_t)c;
                 sbusFrameData->state = STATE_SBUS26_PAYLOAD;
@@ -113,12 +120,15 @@ static void sbusDataReceive(uint16_t c, void *data)
                 switch (frame->endByte) {
                     case 0x00:  // This is S.BUS 1
                     case 0x04:  // S.BUS 2 telemetry page 1
+                    case 0x08:  // S.BUS 2 fast frame pace, not telemetry.
                     case 0x14:  // S.BUS 2 telemetry page 2
                     case 0x24:  // S.BUS 2 telemetry page 3
                     case 0x34:  // S.BUS 2 telemetry page 4
                         if(frame->endByte & 0x4) {
                             sbus2ActiveTelemetryPage = (frame->endByte >> 4) & 0xF;
                             frameTime = currentTimeUs;
+                        } else if(frame->endByte == 0x08) {
+                            sbus2ShortFrameInterval = 1;
                         } else {
                             sbus2ActiveTelemetryPage = 0;
                             sbus2ActiveTelemetrySlot = 0;
