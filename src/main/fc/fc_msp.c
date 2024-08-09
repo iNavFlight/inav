@@ -1488,11 +1488,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxSettingsConfig()->channel);
                 sbufWriteU8(dst, vtxSettingsConfig()->power);
                 sbufWriteU8(dst, pitmode);
+                // technically there is bug here, we are missing the 16bit
+                // freqency bf is transmitting
+                // sbufWriteU16(dst, vtxSettingsConfig()->freq);
 
                 // Betaflight < 4 doesn't send these fields
                 sbufWriteU8(dst, vtxCommonDeviceIsReady(vtxDevice) ? 1 : 0);
                 sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
-                // future extensions here...
+
+                sbufWriteU8(dst, 1);  // vtxtable is available
+                sbufWriteU8(dst, vtxDevice->capability.bandCount);
+                sbufWriteU8(dst, vtxDevice->capability.channelCount);
+                sbufWriteU8(dst, vtxDevice->capability.powerCount);
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
@@ -4260,6 +4267,28 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         }
         break;
 #endif
+
+    case MSP_VTXTABLE_POWERLEVEL: {
+        vtxDevice_t *vtxDevice = vtxCommonDevice();
+        if (!vtxDevice) {
+            return MSP_RESULT_ERROR;
+        }
+
+        const uint8_t powerLevel = sbufBytesRemaining(src) ? sbufReadU8(src) : 0;
+        if (powerLevel == 0 || powerLevel > vtxDevice->capability.powerCount) {
+            return MSP_RESULT_ERROR;
+        }
+
+        sbufWriteU8(dst, powerLevel);
+        sbufWriteU16(dst, 0);
+
+        const char *str = vtxDevice->capability.powerNames[powerLevel - 1];
+        const uint32_t str_len = strnlen(str, 5);  // these _should_ all be null-terminated
+        sbufWriteU8(dst, str_len);
+        for (uint32_t i = 0; i < str_len; i++)
+            sbufWriteU8(dst, str[i]);
+
+    } break;
 
     default:
         // Not handled
