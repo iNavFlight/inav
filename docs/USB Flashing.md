@@ -56,15 +56,12 @@ With the board connected and in bootloader mode (reset it by sending the charact
 * Restart the Configurator (make sure it is completely closed, logout and login if unsure)
 * Now the DFU device should be seen by Configurator
 
-## Platoform: Mac-OS
+## While Using USB-C cables
 
-Configuator devices can have a problem accesing USB devices on Mac-OS. This is *ussaly* solved by a cable change.
-
-* The official Apple USB-C to USB-C will not work no matter orentation. 
-* Make sure the cable you are using support data transfer
-  * For best results, use a USB-C to USB-A cable (And a dongle if your computer does not have an USB-A port)
-    * Dongle side pluged into the computer
-
+* If you are using a device with only USB-C ports such as a Mac-OS device, you will need a dongle.
+  * A USB-C to USB-C cable is identical on both ends and thus requires extra hardware to let them be auto detected as devices instead of hosts.
+  * This is __can__ by using a USB-C female to USB-C male dongle; **However** a USB-C to USB-A cable with a dongle works best as USB-A always sends power while USB-C needs the device to request it.
+    
 ## Using `dfu-util`
 
 `dfu-util` is a command line tool to flash ARM devices via DFU. It is available via the package manager on most Linux systems or from [source forge](http://sourceforge.net/p/dfu-util).
