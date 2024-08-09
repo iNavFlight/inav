@@ -399,10 +399,10 @@ void checkSmartPortTelemetryState(void)
 }
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-static void smartPortSendMspResponse(uint8_t *data) {
+static void smartPortSendMspResponse(uint8_t *data, const uint8_t dataSize) {
     smartPortPayload_t payload;
     payload.frameId = FSSP_MSPS_FRAME;
-    memcpy(&payload.valueId, data, SMARTPORT_MSP_PAYLOAD_SIZE);
+    memcpy(&payload.valueId, data, MIN(dataSize,SMARTPORT_MSP_PAYLOAD_SIZE));
 
     smartPortWriteFrame(&payload);
 }
@@ -423,16 +423,29 @@ static bool smartPortShouldSendGPSData(void)
 
 void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clearToSend, const uint32_t *requestTimeout)
 {
+    static uint8_t skipRequests = 0;
     if (payload) {
         // do not check the physical ID here again
         // unless we start receiving other sensors' packets
 
 #if defined(USE_MSP_OVER_TELEMETRY)
-        if (smartPortPayloadContainsMSP(payload)) {
-            // Pass only the payload: skip frameId
-            uint8_t *frameStart = (uint8_t *)&payload->valueId;
-            smartPortMspReplyPending = handleMspFrame(frameStart, SMARTPORT_MSP_PAYLOAD_SIZE);
+    if (skipRequests) {
+        skipRequests--;
+    } else if (payload && smartPortPayloadContainsMSP(payload)) {
+        // Do not check the physical ID here again
+        // unless we start receiving other sensors' packets
+        // Pass only the payload: skip frameId
+        uint8_t *frameStart = (uint8_t *)&payload->valueId;
+        smartPortMspReplyPending = handleMspFrame(frameStart, SMARTPORT_MSP_PAYLOAD_SIZE, &skipRequests);
+
+        // Don't send MSP response after write to eeprom
+        // CPU just got out of suspended state after writeEEPROM()
+        // We don't know if the receiver is listening again
+        // Skip a few telemetry requests before sending response
+        if (skipRequests) {
+            *clearToSend = false;
         }
+    }
 #endif
     }
 
