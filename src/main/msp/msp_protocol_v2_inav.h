@@ -109,7 +109,8 @@
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
 
 #define MSP2_INAV_CUSTOM_OSD_ELEMENTS           0x2100
-#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2101
+#define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
+#define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2102
 
 #define MSP2_INAV_SERVO_CONFIG                  0x2200
 #define MSP2_INAV_SET_SERVO_CONFIG              0x2201
