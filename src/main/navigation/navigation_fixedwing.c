@@ -408,13 +408,14 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                                posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
         navCrossTrackError = calculateDistanceToDestination(&virtualCoursePoint);
 
-        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200) {
+        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200.0f) {
             static float crossTrackErrorRate;
             static timeUs_t previousCrossTrackErrorUpdateTime;
+            static float previousCrossTrackError = 0.0f;
 
-            if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(10)) {
-                static float previousCrossTrackError = 0.0f;
-                crossTrackErrorRate = (previousCrossTrackError - navCrossTrackError) / US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
+            if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(10) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
+                const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
+                crossTrackErrorRate = 0.5 * (crossTrackErrorRate + ((previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec));
                 previousCrossTrackErrorUpdateTime = currentTimeUs;
                 previousCrossTrackError = navCrossTrackError;
             }
@@ -424,7 +425,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
             adjustmentFactor *= 1.0f + sq(navCrossTrackError / (navConfig()->fw.wp_tracking_accuracy * 500.0f));
 
             /* Apply additional fine adjustment based on speed of convergence to achieve a convergence speed of around 2 m/s */
-            float limit = constrainf((crossTrackErrorRate > 0.0f ? crossTrackErrorRate : 0.0f) + navCrossTrackError / 3.0f, 200.0f, posControl.actualState.velXY / 4.0f);
+            float limit = constrainf(fabsf(crossTrackErrorRate) + navCrossTrackError / 3.0f, 200.0f, posControl.actualState.velXY / 4.0f);
             float rateFactor = limit;
             if (crossTrackErrorRate > 0.0f) {
                 float timeFactor = constrainf(navCrossTrackError / 100.0f, 10.0f, 30.0f);
