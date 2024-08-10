@@ -23,10 +23,10 @@
 #include "platform.h"
 
 #include "common/filter.h"
+#include "common/lulu.h"
 #include "common/maths.h"
 #include "common/utils.h"
 #include "common/time.h"
-
 // NULL filter
 float nullFilterApply(void *filter, float input)
 {
@@ -326,6 +326,8 @@ void initFilter(const uint8_t filterType, filter_t *filter, const float cutoffFr
             pt2FilterInit(&filter->pt2, pt2FilterGain(cutoffFrequency, dT));
         } if (filterType == FILTER_PT3) {
             pt3FilterInit(&filter->pt3, pt3FilterGain(cutoffFrequency, dT));
+        } if (filterType == FILTER_LULU) {
+            luluFilterInit(&filter->lulu, cutoffFrequency);
         } else {
             biquadFilterInitLPF(&filter->biquad, cutoffFrequency, refreshRate);
         }
@@ -341,6 +343,8 @@ void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyF
             *applyFn = (filterApplyFnPtr) pt2FilterApply;
         } if (filterType == FILTER_PT3) {
             *applyFn = (filterApplyFnPtr) pt3FilterApply;
+        } if (filterType == FILTER_LULU) {
+            *applyFn = (filterApplyFnPtr) luluFilterApply;
         } else {
             *applyFn = (filterApplyFnPtr) biquadFilterApply;
         }

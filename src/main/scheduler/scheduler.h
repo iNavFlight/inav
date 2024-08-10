@@ -122,6 +122,21 @@ typedef enum {
 #ifdef USE_IRLOCK
     TASK_IRLOCK,
 #endif
+#ifdef USE_ADAPTIVE_FILTER
+    TASK_ADAPTIVE_FILTER,
+#endif
+#ifdef USE_SERIAL_GIMBAL
+    TASK_GIMBAL,
+#endif
+
+#ifdef USE_HEADTRACKER
+    TASK_HEADTRACKER,
+#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    TASK_TELEMETRY_SBUS2,
+#endif
+
     /* Count of real tasks */
     TASK_COUNT,
 

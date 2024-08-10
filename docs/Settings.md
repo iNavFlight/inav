@@ -1302,13 +1302,33 @@ Fixed-wing rate stabilisation I-gain for YAW
 
 ---
 
-### fw_iterm_limit_stick_position
+### fw_iterm_lock_engage_threshold
 
-Iterm is not allowed to grow when stick position is above threshold. This solves the problem of bounceback or followthrough when full stick deflection is applied on poorely tuned fixed wings. In other words, stabilization is partialy disabled when pilot is actively controlling the aircraft and active when sticks are not touched. `0` mean stick is in center position, `1` means it is fully deflected to either side
+Defines error rate (in percents of max rate) when Iterm Lock is engaged when sticks are release. Iterm Lock will stay active until error drops below this number
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.5 | 0 | 1 |
+| 10 | 5 | 25 |
+
+---
+
+### fw_iterm_lock_rate_threshold
+
+Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 40 | 10 | 100 |
+
+---
+
+### fw_iterm_lock_time_max_ms
+
+Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 100 | 1000 |
 
 ---
 
@@ -1442,6 +1462,86 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
+### gimbal_pan_channel
+
+Gimbal pan rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_pan_trim
+
+Trim gimbal pan center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
+### gimbal_roll_channel
+
+Gimbal roll rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_roll_trim
+
+Trim gimbal roll center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
+### gimbal_sensitivity
+
+Gimbal sensitivity is similar to gain and will affect how quickly the gimbal will react.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -16 | 15 |
+
+---
+
+### gimbal_serial_single_uart
+
+Gimbal serial and headtracker device share same UART. FC RX goes to headtracker device, FC TX goes to gimbal.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### gimbal_tilt_channel
+
+Gimbal tilt rc channel index. 0 is no channel.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 32 |
+
+---
+
+### gimbal_tilt_trim
+
+Trim gimbal tilt center position.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -500 | 500 |
+
+---
+
 ### gps_auto_baud
 
 Automatic configuration of GPS baudrate(The specified baudrate in configured in ports will be used) when used with UBLOX GPS
@@ -1494,7 +1594,7 @@ Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS pos
 
 ### gps_provider
 
-Which GPS protocol to be used, note that UBLOX is 5Hz and UBLOX7 is 10Hz (M8N).
+Which GPS protocol to be used.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1514,7 +1614,7 @@ Which SBAS mode to be used
 
 ### gps_ublox_nav_hz
 
-Navigation update rate for UBLOX7 receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
+Navigation update rate for UBLOX receivers. Some receivers may limit the maximum number of satellites tracked when set to a higher rate or even stop sending navigation updates if the value is too high. Some M10 devices can do up to 25Hz. 10 is a safe value for M8 and newer.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1562,6 +1662,76 @@ For developer ground test use. Disables motors, sets heading status = Trusted on
 
 ---
 
+### gyro_adaptive_filter_hpf_hz
+
+High pass filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 1 | 50 |
+
+---
+
+### gyro_adaptive_filter_integrator_threshold_high
+
+High threshold for adaptive filter integrator
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 4 | 1 | 10 |
+
+---
+
+### gyro_adaptive_filter_integrator_threshold_low
+
+Low threshold for adaptive filter integrator
+
+| Default | Min | Max |
+| --- | --- | --- |
+| -2 | -10 | 0 |
+
+---
+
+### gyro_adaptive_filter_max_hz
+
+Maximum frequency for adaptive filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 150 | 0 | 505 |
+
+---
+
+### gyro_adaptive_filter_min_hz
+
+Minimum frequency for adaptive filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 250 |
+
+---
+
+### gyro_adaptive_filter_std_lpf_hz
+
+Standard deviation low pass filter cutoff frequency
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 10 |
+
+---
+
+### gyro_adaptive_filter_target
+
+Target value for adaptive filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3.5 | 1 | 6 |
+
+---
+
 ### gyro_anti_aliasing_lpf_hz
 
 Gyro processing anti-aliasing filter cutoff frequency. In normal operation this filter setting should never be changed. In Hz
@@ -1602,6 +1772,36 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
+### gyro_filter_mode
+
+Specifies the type of the software LPF of the gyro signals.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| STATIC |  |  |
+
+---
+
+### gyro_lulu_enabled
+
+Enable/disable gyro LULU filter
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### gyro_lulu_sample_count
+
+Gyro lulu sample count, in number of samples.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 1 | 15 |
+
+---
+
 ### gyro_main_lpf_hz
 
 Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
@@ -1619,16 +1819,6 @@ On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = s
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 2 |
-
----
-
-### gyro_use_dyn_lpf
-
-Use Dynamic LPF instead of static gyro stage1 LPF. Dynamic Gyro LPF updates gyro LPF based on the throttle position.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
 
 ---
 
@@ -1679,6 +1869,46 @@ This setting limits yaw rotation rate that HEADING_HOLD controller can request f
 | Default | Min | Max |
 | --- | --- | --- |
 | 90 | HEADING_HOLD_RATE_LIMIT_MIN | HEADING_HOLD_RATE_LIMIT_MAX |
+
+---
+
+### headtracker_pan_ratio
+
+Head pan movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_roll_ratio
+
+Head roll movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_tilt_ratio
+
+Head tilt movement vs camera movement ratio
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 0 | 5 |
+
+---
+
+### headtracker_type
+
+Type of headtrackr dervice
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NONE |  |  |
 
 ---
 
@@ -1809,16 +2039,6 @@ Allows to chose when the home position is reset. Can help prevent resetting home
 | Default | Min | Max |
 | --- | --- | --- |
 | FIRST_ARM |  |  |
-
----
-
-### inav_use_gps_no_baro
-
-Defines if INAV should use only use GPS data for altitude estimation when barometer is not available. If set to ON, INAV will allow GPS assisted modes and RTH even when there is no barometer installed.
-
-| Default | Min | Max |
-| --- | --- | --- |
-| ON | OFF | ON |
 
 ---
 
@@ -2118,7 +2338,7 @@ This is the main loop time (in us). Changing this affects PID effect with some P
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1000 |  | 9000 |
+| 500 |  | 9000 |
 
 ---
 
@@ -2298,7 +2518,7 @@ Rate of the extra1 message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 2 | 0 | 255 |
 
 ---
 
@@ -2338,7 +2558,7 @@ Rate of the RC channels message for MAVLink telemetry
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 0 | 255 |
+| 1 | 0 | 255 |
 
 ---
 
@@ -2358,7 +2578,7 @@ Maximum inclination in level (angle) mode (PITCH axis). 100=10°
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 100 | 900 |
+| 450 | 100 | 900 |
 
 ---
 
@@ -2368,7 +2588,7 @@ Maximum inclination in level (angle) mode (ROLL axis). 100=10°
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 100 | 900 |
+| 450 | 100 | 900 |
 
 ---
 
@@ -2718,7 +2938,7 @@ Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no speci
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 300 | 10 | 2000 |
+| 500 | 10 | 2000 |
 
 ---
 
@@ -2948,7 +3168,7 @@ Forward acceleration threshold for bungee launch or throw launch [cm/s/s], 1G = 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 1863 | 1500 | 20000 |
+| 1863 | 1350 | 20000 |
 
 ---
 
@@ -3394,7 +3614,7 @@ Defines at what altitude the descent velocity should start to be `nav_land_minal
 
 ### nav_landing_bump_detection
 
-Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and currently only works for multirotors.
+Allows immediate landing detection based on G bump at touchdown when set to ON. Requires a barometer and GPS and currently only works for multirotors (Note: will work during Failsafe without need for a GPS).
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3408,7 +3628,7 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 500 | 10 | 2000 |
+| 750 | 10 | 2000 |
 
 ---
 
@@ -3468,7 +3688,7 @@ Maximum banking angle (deg) that multicopter navigation is allowed to set. Machi
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 30 | 15 | 45 |
+| 35 | 15 | 45 |
 
 ---
 
@@ -3569,6 +3789,16 @@ Multicopter hover throttle hint for altitude controller. Should be set to approx
 | Default | Min | Max |
 | --- | --- | --- |
 | 1300 | 1000 | 2000 |
+
+---
+
+### nav_mc_inverted_crash_detection
+
+Setting a value > 0 enables inverted crash detection for multirotors. It will auto disarm in situations where the multirotor has crashed inverted on the ground and can't be manually disarmed due to loss of control or for some other reason. When enabled this setting defines the additional number of seconds before disarm beyond a minimum fixed time delay of 3s. Requires a barometer to work.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 15 |
 
 ---
 
@@ -4412,6 +4642,16 @@ Value under which the OSD axis g force indicators will blink (g)
 
 ---
 
+### osd_highlight_djis_missing_font_symbols
+
+Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| ON | OFF | ON |
+
+---
+
 ### osd_home_position_arm_screen
 
 Should home position coordinates be displayed on the arming screen.
@@ -4749,6 +4989,16 @@ Number of leading digits removed from plus code. Removing 2, 4 and 6 digits requ
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 |  |  |
+
+---
+
+### osd_radar_peers_display_time
+
+Time in seconds to display next peer 
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 1 | 10 |
 
 ---
 

@@ -53,6 +53,8 @@
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/osd.h"
@@ -107,6 +109,8 @@
 #include "io/displayport_msp_osd.h"
 #include "io/displayport_srxl.h"
 #include "io/flashfs.h"
+#include "io/gimbal_serial.h"
+#include "io/headtracker_msp.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -685,6 +689,23 @@ void init(void)
 
 #ifdef USE_DSHOT
     initDShotCommands();
+#endif
+
+#ifdef USE_SERIAL_GIMBAL
+    gimbalCommonInit();
+    // Needs to be called before gimbalSerialHeadTrackerInit
+    gimbalSerialInit();
+#endif
+
+#ifdef USE_HEADTRACKER
+    headTrackerCommonInit();
+#ifdef USE_HEADTRACKER_SERIAL
+    // Needs to be called after gimbalSerialInit
+    gimbalSerialHeadTrackerInit();
+#endif
+#ifdef USE_HEADTRACKER_MSP
+    mspHeadTrackerInit();
+#endif
 #endif
 
     // Latch active features AGAIN since some may be modified by init().

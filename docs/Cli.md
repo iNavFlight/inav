@@ -71,7 +71,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `batch` | Start or end a batch of commands |
 | `battery_profile` | Change battery profile |
 | `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
-| `bind_rx` | Initiate binding for RX SPI or SRXL2 |
+| `bind_rx` | Initiate binding for SRXL2 or CRSF receivers |
 | `blackbox` | Configure blackbox fields |
 | `bootlog` | Show boot events |
 | `color` | Configure colors |
@@ -107,7 +107,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `save` | Save and reboot |
 | `sd_info` | Sdcard info |
 | `serial` | Configure serial ports. [Usage](Serial.md) |
-| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode>`, where `id` is the zero based port index, `baud` is a standard baud rate, and mode is `rx`, `tx`, or both (`rxtx`) |
+| `serialpassthrough` | Passthrough serial data to port, with `<id> <baud> <mode> <options>`, where `id` is the zero based port index, `baud` is a standard baud rate, mode is `rx`, `tx`, or both (`rxtx`), and options is a short string like `8N1` or `8E2` |
 | `servo` | Configure servos |
 | `set` | Change setting with name=value or blank or * for list |
 | `smix` | Custom servo mixer |
@@ -157,6 +157,8 @@ A shorter form is also supported to enable and disable a single function using `
 | TELEMETRY_SMARTPORT_MASTER | 23       | 8388608 |
 | UNUSED                | 24            | 16777216 |
 | MSP_DISPLAYPORT       | 25            | 33554432 |
+| GIMBAL_SERIAL         | 26            | 67108864 |
+| HEADTRACKER_SERIAL    | 27            | 134217728 |
 
 Thus, to enable MSP and LTM on a port, one would use the function **value** of 17 (1 << 0)+(1<<4), aka 1+16, aka 17.
 

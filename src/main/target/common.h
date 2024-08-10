@@ -117,8 +117,6 @@
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
 
-#define NAV_AUTO_MAG_DECLINATION_PRECISE
-
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
 
@@ -192,6 +190,15 @@
 #define ADSB_LIMIT_CM                   6400000
 #endif
 
+#define USE_SERIAL_GIMBAL
+#define USE_HEADTRACKER
+#define USE_HEADTRACKER_SERIAL
+#define USE_HEADTRACKER_MSP
+
+#if defined(STM32F7) || defined(STM32H7)
+// needs bi-direction inverter, not available on F4 hardware.
+#define USE_TELEMETRY_SBUS2
+#endif
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
@@ -199,7 +206,7 @@
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
-#define USE_24CHANNELS
+#define USE_34CHANNELS
 #define MAX_MIXER_PROFILE_COUNT 2
 #define USE_SMARTPORT_MASTER
 #elif !defined(STM32F7)
@@ -213,3 +220,4 @@
 #endif
 
 #define USE_EZ_TUNE
+#define USE_ADAPTIVE_FILTER

@@ -704,7 +704,7 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     /* Turn assistant mode */
-    if (IS_RC_MODE_ACTIVE(BOXTURNASSIST)) {
+    if (IS_RC_MODE_ACTIVE(BOXTURNASSIST) || navigationRequiresTurnAssistance()) {
          ENABLE_FLIGHT_MODE(TURN_ASSISTANT);
     } else {
         DISABLE_FLIGHT_MODE(TURN_ASSISTANT);
@@ -880,7 +880,9 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     cycleTime = getTaskDeltaTime(TASK_SELF);
     dT = (float)cycleTime * 0.000001f;
 
-    if (ARMING_FLAG(ARMED) && (!STATE(FIXED_WING_LEGACY) || !isNavLaunchEnabled() || (isNavLaunchEnabled() && fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED))) {
+    bool fwLaunchIsActive = STATE(AIRPLANE) && isNavLaunchEnabled() && armTime == 0;
+
+    if (ARMING_FLAG(ARMED) && (!STATE(AIRPLANE) || !fwLaunchIsActive || fixedWingLaunchStatus() >= FW_LAUNCH_DETECTED)) {
         flightTime += cycleTime;
         armTime += cycleTime;
         updateAccExtremes();
@@ -900,7 +902,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
     }
 
 #if defined(SITL_BUILD)
-    if (lockMainPID()) {
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL) || lockMainPID()) {
 #endif
 
     gyroFilter();
