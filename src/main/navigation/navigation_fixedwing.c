@@ -415,7 +415,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
             if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(10) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
                 const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
-                crossTrackErrorRate = 0.5 * (crossTrackErrorRate + ((previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec));
+                crossTrackErrorRate = 0.5f * (crossTrackErrorRate + ((previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec));
                 previousCrossTrackErrorUpdateTime = currentTimeUs;
                 previousCrossTrackError = navCrossTrackError;
             }
