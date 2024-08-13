@@ -345,11 +345,6 @@ static bool gravityCalibrationComplete(void)
     return zeroCalibrationIsCompleteS(&posEstimator.imu.gravityCalibration);
 }
 
-static bool gravityCalibrationIsValid(void)
-{
-    return gravityCalibrationComplete() || posEstimator.imu.calibratedGravityCMSS;
-}
-
 #define ACC_VIB_FACTOR_S 1.0f
 #define ACC_VIB_FACTOR_E 3.0f
 static void updateIMUEstimationWeight(const float dt)
@@ -417,13 +412,12 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
         if (gyroConfig()->init_gyro_cal_enabled) {
-            if (!ARMING_FLAG(WAS_EVER_ARMED)) {
+            if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
                 zeroCalibrationAddValueS(&posEstimator.imu.gravityCalibration, posEstimator.imu.accelNEU.z);
 
                 if (gravityCalibrationComplete()) {
                     zeroCalibrationGetZeroS(&posEstimator.imu.gravityCalibration, &posEstimator.imu.calibratedGravityCMSS);
                     setGravityCalibration(posEstimator.imu.calibratedGravityCMSS);
-                    restartGravityCalibration();    // Repeat calibration until first arm to continuously update zero datum
                     LOG_DEBUG(POS_ESTIMATOR, "Gravity calibration complete (%d)", (int)lrintf(posEstimator.imu.calibratedGravityCMSS));
                 }
             }
@@ -432,7 +426,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             posEstimator.imu.calibratedGravityCMSS = gyroConfig()->gravity_cmss_cal;
         }
 
-        if (gravityCalibrationIsValid()) {
+        if (gravityCalibrationComplete()) {
 #ifdef USE_SIMULATOR
             if (ARMING_FLAG(SIMULATOR_MODE_HITL) || ARMING_FLAG(SIMULATOR_MODE_SITL)) {
                 posEstimator.imu.calibratedGravityCMSS = GRAVITY_CMSS;
@@ -929,5 +923,5 @@ void updatePositionEstimator(void)
 
 bool navIsCalibrationComplete(void)
 {
-    return gravityCalibrationIsValid();
+    return gravityCalibrationComplete();
 }
