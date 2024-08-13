@@ -5193,26 +5193,35 @@ static void osdShowHDArmScreen(void)
     dateTime_t dt;
     char        buf[MAX(osdDisplayPort->cols, FORMATTED_DATE_TIME_BUFSIZE)];
     char        buf2[MAX(osdDisplayPort->cols, FORMATTED_DATE_TIME_BUFSIZE)];
-    char craftNameBuf[MAX_NAME_LENGTH];
+    char        craftNameBuf[MAX_NAME_LENGTH];
     char        versionBuf[osdDisplayPort->cols];
     uint8_t     safehomeRow     = 0;
     uint8_t     armScreenRow    = 1;
 
+    bool        showPilotOrCraftName = false;
+
     armScreenRow = drawLogos(false, armScreenRow);
     armScreenRow++;
 
-    if (!osdConfig()->use_pilot_logo && osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0)
+    if (!osdConfig()->use_pilot_logo && osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
+        showPilotOrCraftName = true;
+    }
 
     if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
             strcat(buf2, " : ");
         }
+        showPilotOrCraftName = true;
+    }
+
+    if (showPilotOrCraftName) {
         tfp_sprintf(buf, "%s%s: ! ARMED !", buf2, craftNameBuf);
     } else {
         strcpy(buf, " ! ARMED !");
     }
+
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
     memset(buf, '\0', sizeof(buf));
     memset(buf2, '\0', sizeof(buf2));
@@ -5320,6 +5329,7 @@ static void osdShowSDArmScreen(void)
     char        versionBuf[osdDisplayPort->cols];
     uint8_t     armScreenRow = 1;
     uint8_t     safehomeRow = 0;
+    bool        showPilotOrCraftName = false;
 
     strcpy(buf, "! ARMED !");
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
@@ -5333,20 +5343,23 @@ static void osdShowSDArmScreen(void)
 #endif
 #endif
 
-    if (osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0)
+    if (osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
+        showPilotOrCraftName = true;
+    }
 
     if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
-            strcat(buf2, ": ");
-            strcat(buf2, craftNameBuf);
-        } else
-            displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(craftNameBuf)) / 2, armScreenRow++, craftNameBuf );
+            strcat(buf2, " : ");
+        }
+        showPilotOrCraftName = true;
     }
 
-    if (strlen(buf2) > 0) {
-        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf2)) / 2, armScreenRow++, buf2 );
+    if (showPilotOrCraftName) {
+        tfp_sprintf(buf, "%s%s", buf2, craftNameBuf);
+        displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf );
+        memset(buf, '\0', sizeof(buf));
         memset(buf2, '\0', sizeof(buf2));
         armScreenRow++;
     }
@@ -5395,9 +5408,8 @@ static void osdShowSDArmScreen(void)
                     osdFormatDistanceStr(buf2, posControl.safehomeState.distance);
                     tfp_sprintf(buf, "%c SAFEHOME %u @ %s", SYM_HOME, posControl.safehomeState.index, buf2);
                 }
-                textAttributes_t elemAttr = _TEXT_ATTRIBUTES_BLINK_BIT;
                 // write this message below the ARMED message to make it obvious
-                displayWriteWithAttr(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, safehomeRow, buf, elemAttr);
+                displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, safehomeRow, buf);
                 memset(buf, '\0', sizeof(buf));
                 memset(buf2, '\0', sizeof(buf2));
             }
