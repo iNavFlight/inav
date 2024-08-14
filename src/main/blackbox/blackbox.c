@@ -712,7 +712,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_33:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_34:
     */
-	return ((FlightLogFieldCondition)MIN(getServoCount(), 26) >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
+	return ((FlightLogFieldCondition)getServoCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
 
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
