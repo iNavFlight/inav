@@ -48,13 +48,13 @@ typedef enum {
  * We want to limit how bursty our writes to the device are. Note that this will also restrict the maximum size of a
  * header write we can make:
  */
-#define BLACKBOX_MAX_ACCUMULATED_HEADER_BUDGET 256
+#define BLACKBOX_MAX_ACCUMULATED_HEADER_BUDGET 512
 
 /*
  * Ideally, each iteration in which we are logging headers would write a similar amount of data to the device as a
  * regular logging iteration. This way we won't hog the CPU by making a gigantic write:
  */
-#define BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION 64
+#define BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION 128
 
 extern int32_t blackboxHeaderBudget;
 
