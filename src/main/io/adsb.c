@@ -131,6 +131,11 @@ void gpsDistanceCmBearing(int32_t currentLat1, int32_t currentLon1, int32_t dest
     *bearing = wrap_36000(*bearing);
 };
 
+bool adsbHeartbeat(void){
+    adsbVehiclesStatus.heartbeatMessagesTotal++;
+    return true;
+}
+
 void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
 
     // no valid lat lon or altitude
@@ -139,6 +144,7 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
     }
 
     adsbVehiclesStatus.vehiclesMessagesTotal++;
+
     adsbVehicle_t *vehicle = NULL;
 
     vehicle = findVehicleByIcao(vehicleValuesLocal->icao);
