@@ -64,6 +64,9 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .reset_altitude_type = SETTING_INAV_RESET_ALTITUDE_DEFAULT,
         .reset_home_type = SETTING_INAV_RESET_HOME_DEFAULT,
         .gravity_calibration_tolerance = SETTING_INAV_GRAVITY_CAL_TOLERANCE_DEFAULT,  // 5 cm/s/s calibration error accepted (0.5% of gravity)
+        .dynamic_acc_weight = SETTING_DYNAMIC_ACC_WEIGHT_DEFAULT,
+        .temp_correction_a = SETTING_TEMP_CORRECTION_A_DEFAULT,
+        .temp_correction_b = SETTING_TEMP_CORRECTION_B_DEFAULT,
         .allow_dead_reckoning = SETTING_INAV_ALLOW_DEAD_RECKONING_DEFAULT,
 
         .max_surface_altitude = SETTING_INAV_MAX_SURFACE_ALTITUDE_DEFAULT,
@@ -385,7 +388,11 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
     }
     else {
         /* Update acceleration weight based on vibration levels and clipping */
-        updateIMUEstimationWeight(dt);
+        if (positionEstimationConfig()->dynamic_acc_weight) {
+            updateIMUEstimationWeight(dt);
+        } else {
+            posEstimator.imu.accWeightFactor = 0.3f;
+        }
 
         fpVector3_t accelBF;
 
@@ -405,7 +412,19 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         /* Read acceleration data in NEU frame from IMU */
         posEstimator.imu.accelNEU.x = accelBF.x;
         posEstimator.imu.accelNEU.y = accelBF.y;
-        posEstimator.imu.accelNEU.z = accelBF.z;
+        const float baroTemperature = baroGetTemperature();
+        /* Some accelerometers may experience drifting caused by changing temperatures, 
+        you can use these 2 parameters to establish the linear relationship between the accelerometer drifting and the temperature 
+        (the baro needs to be in the FC, where the accelerometer is located)
+        The formula is the following: f(x) = ax + b
+        where f(x) is the calculated offset, a is how the offset varies for each degree, x is the barometer temperature in celsius and b would be the offset for 0ºC scenario 
+         What works well for me is:
+        temp_correction_a = 4.834
+        temp_correction_b = -217.53
+         */
+        const float acc_z_offset = ( positionEstimationConfig()->temp_correction_a * ( baroTemperature / 10.0f ) ) + positionEstimationConfig()->temp_correction_b; // f(x) = ax + b
+        posEstimator.imu.accelNEU.z = accelBF.z + acc_z_offset; 
+
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
         if (gyroConfig()->init_gyro_cal_enabled) {

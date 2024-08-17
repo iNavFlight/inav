@@ -2461,6 +2461,24 @@ groups:
         field: baro_epv
         min: 0
         max: 9999
+      - name: dynamic_acc_weight
+        description: "You can disable or enable the dynamic accelerometer weight ( calculated based on accelerometer vibrations and clipping)"
+        default_value: ON
+        field: dynamic_acc_weight
+        type: bool
+      - name: temp_correction_a
+        description: "Some accelerometers may experience drifting caused by changing temperatures, you can use this parameter and temp_correction_b to establish the linear relationship between the accelerometer drifting and the temperature (the baro needs to be in the FC, where the accelerometer is located) the formula is f(x) = ax + b where f(x) is the calculated offset for x temperature in degrees"
+        default_value: 0
+        field: temp_correction_a
+        min: -900
+        max: 900
+      - name: temp_correction_b
+        description: "See temp_correction_a"
+        default_value: 0
+        field: temp_correction_b
+        min: -900
+        max: 900
+
 
   - name: PG_NAV_CONFIG
     type: navConfig_t
