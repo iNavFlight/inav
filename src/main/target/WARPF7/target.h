@@ -55,6 +55,9 @@
 #define USE_UART5
 #define UART5_RX_PIN                PD2
 #define UART5_TX_PIN                PC12
+#define USE_UART6
+#define UART6_RX_PIN                PC7
+#define UART6_TX_PIN                PC6
 #define SERIAL_PORT_COUNT           6
 #define DEFAULT_RX_TYPE             RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER           SERIALRX_CRSF
