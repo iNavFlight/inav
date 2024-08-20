@@ -2545,10 +2545,11 @@ groups:
         min: 1
         max: 9
       - name: nav_fw_wp_tracking_accuracy
-        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible."
-        default_value: OFF
+        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy."
+        default_value: 0
         field: fw.wp_tracking_accuracy
-        type: bool
+        min: 0
+        max: 10
       - name: nav_fw_wp_tracking_max_angle
         description: "Sets the maximum allowed alignment convergence angle to the waypoint course line when nav_fw_wp_tracking_accuracy is active [degrees]. Lower values result in smoother alignment with the course line but will take more distance until this is achieved."
         default_value: 60

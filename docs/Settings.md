@@ -3524,11 +3524,11 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ### nav_fw_wp_tracking_accuracy
 
-Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible.
+Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| 0 | 0 | 10 |
 
 ---
 
