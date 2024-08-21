@@ -432,7 +432,7 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
             /* Apply heading adjustment to match crossTrackErrorRate with fixed convergence speed profile */
             float maxApproachSpeed = posControl.actualState.velXY * sin_approx(CENTIDEGREES_TO_RADIANS(angleLimit));
-            float desiredApproachSpeed = constrainf(navCrossTrackError, 50.0f, maxApproachSpeed);
+            float desiredApproachSpeed = constrainf(navCrossTrackError / 3.0f, 50.0f, maxApproachSpeed);
             adjustmentFactor = SIGN(adjustmentFactor) * navCrossTrackError * ((desiredApproachSpeed - crossTrackErrorRate) / desiredApproachSpeed);
 
             /* Calculate final adjusted virtualTargetBearing */
