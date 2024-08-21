@@ -162,6 +162,7 @@ int tfp_nformat(void *putp, int size, void (*putf) (void *, char), const char *f
                     written += putchw(putp, end, putf, w, lz, bf);
                     break;
                 }
+            case 'i':
             case 'd':{
 #ifdef REQUIRE_PRINTF_LONG_SUPPORT
                     if (lng)

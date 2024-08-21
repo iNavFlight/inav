@@ -93,6 +93,7 @@
 #include "sensors/opflow.h"
 
 #include "telemetry/telemetry.h"
+#include "telemetry/sbus2.h"
 
 #include "config/feature.h"
 
@@ -437,6 +438,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_HEADTRACKER, true);
 #endif
 
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    setTaskEnabled(TASK_TELEMETRY_SBUS2,feature(FEATURE_TELEMETRY) && rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_SBUS2);
+#endif
+
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (
         gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
@@ -723,6 +728,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskUpdateHeadTracker,
         .desiredPeriod = TASK_PERIOD_HZ(50),
         .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#if defined(USE_TELEMETRY) && defined(USE_TELEMETRY_SBUS2)
+    [TASK_TELEMETRY_SBUS2] = {
+        .taskName = "SBUS2 TLM",
+        .taskFunc = taskSendSbus2Telemetry,
+        .desiredPeriod = TASK_PERIOD_US(125), // 8kHz 2ms dead time + 650us window / sensor.
+        .staticPriority = TASK_PRIORITY_LOW, // timing is critical. Ideally, should be a timer interrupt triggered by sbus packet
     },
 #endif
 

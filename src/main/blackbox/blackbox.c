@@ -99,7 +99,7 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 3);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
@@ -108,7 +108,8 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
-        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND | BLACKBOX_FEATURE_MOTORS,
+        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
+        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -334,22 +335,43 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"motor",       7, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_8)},
 
     /* servos */
-    {"servo",       0, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       1, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       2, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       3, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       4, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       6, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       7, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       8, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       9, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       10, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       11, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       12, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       13, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       14, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
-    {"servo",       15, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       0, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_1)},
+    {"servo",       1, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_2)},
+    {"servo",       2, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_3)},
+    {"servo",       3, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_4)},
+    {"servo",       4, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_5)},
+    {"servo",       5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_6)},
+    {"servo",       6, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_7)},
+    {"servo",       7, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_8)},
+    {"servo",       8, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_9)},
+    {"servo",       9, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_10)},
+    {"servo",       10, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_11)},
+    {"servo",       11, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_12)},
+    {"servo",       12, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_13)},
+    {"servo",       13, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_14)},
+    {"servo",       14, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_15)},
+    {"servo",       15, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_16)},
+    {"servo",       16, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_17)},
+    {"servo",       17, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_18)},
+    {"servo",       18, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_19)},
+    {"servo",       19, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_20)},
+    {"servo",       20, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_21)},
+    {"servo",       21, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_22)},
+    {"servo",       22, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_23)},
+    {"servo",       23, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_24)},
+    {"servo",       24, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_25)},
+    {"servo",       25, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_26)},
+    /*
+    {"servo",       26, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_27)},
+    {"servo",       27, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_28)},
+    {"servo",       27, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_29)},
+    {"servo",       28, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_30)},
+    {"servo",       29, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_31)},
+    {"servo",       30, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_32)},
+    {"servo",       31, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_33)},
+    {"servo",       32, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_34)},
+    {"servo",       33, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_35)},
+    */
 
     {"navState",  -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navFlags",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
@@ -406,7 +428,7 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
      * but name kept for external compatibility reasons.
      * "activeFlightModeFlags" logs actual active flight modes rather than rc boxmodes.
      * 'active' should at least distinguish it from the existing "flightModeFlags" */
-     
+
     {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
@@ -652,7 +674,45 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return (getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
 
     case FLIGHT_LOG_FIELD_CONDITION_SERVOS:
-        return isMixerUsingServos();
+        return blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS) && isMixerUsingServos();
+
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_2:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_3:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_4:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_5:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_6:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_7:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_8:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_9:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_10:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_11:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_12:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_13:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_14:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_15:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_16:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_17:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_18:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_19:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_20:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_21:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_22:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_23:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_24:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_25:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_26:
+    /*
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_27:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_28:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_29:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_30:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_31:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_32:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_33:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_34:
+    */
+	return ((FlightLogFieldCondition)getServoCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
 
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
@@ -953,7 +1013,8 @@ static void writeIntraframe(void)
     }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
-        for (int x = 0; x < MAX_SUPPORTED_SERVOS; x++) {
+        const int servoCount = getServoCount();
+        for (int x = 0; x < servoCount; x++) {
             //Assume that servos spends most of its time around the center
             blackboxWriteSignedVB(blackboxCurrent->servo[x] - 1500);
         }
@@ -1212,7 +1273,7 @@ static void writeInterframe(void)
     }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
-        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     getServoCount());
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navState - blackboxLast->navState);
@@ -1442,6 +1503,9 @@ static void blackboxValidateConfig(void)
 #endif
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
+#endif
+#if defined(SITL_BUILD)
+    case BLACKBOX_DEVICE_FILE:
 #endif
     case BLACKBOX_DEVICE_SERIAL:
         // Device supported, leave the setting alone
@@ -1677,7 +1741,8 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRSSI();
 
-    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+    const int servoCount = getServoCount();
+    for (int i = 0; i < servoCount; i++) {
         blackboxCurrent->servo[i] = servo[i];
     }
 

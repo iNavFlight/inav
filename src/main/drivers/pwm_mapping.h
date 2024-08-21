@@ -21,15 +21,15 @@
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/servos.h"
+#include "common/maths.h"
 
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_MOTORS  TARGET_MOTOR_COUNT
-#define MAX_SERVOS  16
-
 #else
 #define MAX_MOTORS  12
-#define MAX_SERVOS  16
 #endif
+
+#define MAX_SERVOS  18
 
 #define PWM_TIMER_HZ    1000000
 

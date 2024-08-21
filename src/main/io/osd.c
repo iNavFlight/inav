@@ -2136,7 +2136,7 @@ static bool osdDrawSingleElement(uint8_t item)
         case OSD_ADSB_INFO:
         {
             buff[0] = SYM_ADSB;
-            if(getAdsbStatus()->vehiclesMessagesTotal > 0){
+            if(getAdsbStatus()->vehiclesMessagesTotal > 0 || getAdsbStatus()->heartbeatMessagesTotal > 0){
                 tfp_sprintf(buff + 1, "%2d", getActiveVehiclesCount());
             }else{
                 buff[1] = '-';

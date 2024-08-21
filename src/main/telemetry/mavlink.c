@@ -162,14 +162,16 @@ static serialPortConfig_t *portConfig;
 
 static bool mavlinkTelemetryEnabled =  false;
 static portSharing_e mavlinkPortSharing;
+static uint8_t txbuff_free = 100;
+static bool txbuff_valid = false;
 
 /* MAVLink datastream rates in Hz */
 static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_EXTENDED_STATUS] = 2,      // 2Hz
-    [MAV_DATA_STREAM_RC_CHANNELS] = 5,          // 5Hz
+    [MAV_DATA_STREAM_RC_CHANNELS] = 1,          // 1Hz
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
-    [MAV_DATA_STREAM_EXTRA1] = 10,              // 10Hz
-    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz
+    [MAV_DATA_STREAM_EXTRA1] = 3,               // 3Hz
+    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important
     [MAV_DATA_STREAM_EXTRA3] = 1                // 1Hz
 };
 
@@ -182,7 +184,7 @@ static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
 static uint8_t mavSystemId = 1;
-static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
+static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
@@ -1111,6 +1113,43 @@ static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     return true;
 }
 
+static bool handleIncoming_PARAM_REQUEST_LIST(void) {
+    mavlink_param_request_list_t msg;
+    mavlink_msg_param_request_list_decode(&mavRecvMsg, &msg);
+
+    // Respond that we don't have any parameters to force Mission Planner to give up quickly
+    if (msg.target_system == mavSystemId) {
+        // mavlink_msg_param_value_pack(system_id, component_id, msg, param_value->param_id, param_value->param_value, param_value->param_type, param_value->param_count, param_value->param_index);
+        mavlink_msg_param_value_pack(mavSystemId, mavComponentId, &mavSendMsg, 0, 0, 0, 0, 0);
+        mavlinkSendMessage();
+    }
+    return true;
+}
+
+static bool handleIncoming_RADIO_STATUS(void) {
+    mavlink_radio_status_t msg;
+    mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
+    txbuff_valid = true;
+    txbuff_free = msg.txbuf;
+    return true;
+}
+
+static bool handleIncoming_HEARTBEAT(void) {
+    mavlink_heartbeat_t msg;
+    mavlink_msg_heartbeat_decode(&mavRecvMsg, &msg);
+
+    switch (msg.type) {
+#ifdef USE_ADSB
+        case MAV_TYPE_ADSB:
+            return adsbHeartbeat();
+#endif
+        default:
+            break;
+    }
+    
+    return false;
+}
+
 #ifdef USE_ADSB
 static bool handleIncoming_ADSB_VEHICLE(void) {
     mavlink_adsb_vehicle_t msg;
@@ -1155,6 +1194,7 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
 }
 #endif
 
+// Returns whether a message was processed
 static bool processMAVLinkIncomingTelemetry(void)
 {
     while (serialRxBytesWaiting(mavlinkPort) > 0) {
@@ -1164,7 +1204,9 @@ static bool processMAVLinkIncomingTelemetry(void)
         if (result == MAVLINK_FRAMING_OK) {
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
-                    break;
+                   return handleIncoming_HEARTBEAT();
+                case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
+                    return handleIncoming_PARAM_REQUEST_LIST();
                 case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
                     return handleIncoming_MISSION_CLEAR_ALL();
                 case MAVLINK_MSG_ID_MISSION_COUNT:
@@ -1176,11 +1218,17 @@ static bool processMAVLinkIncomingTelemetry(void)
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
-                    return handleIncoming_RC_CHANNELS_OVERRIDE();
+                    handleIncoming_RC_CHANNELS_OVERRIDE();
+                    // Don't set that we handled a message, otherwise RC channel packets will block telemetry messages
+                    return false;
 #ifdef USE_ADSB
                 case MAVLINK_MSG_ID_ADSB_VEHICLE:
                     return handleIncoming_ADSB_VEHICLE();
 #endif
+                case MAVLINK_MSG_ID_RADIO_STATUS:
+                    handleIncoming_RADIO_STATUS();
+                    // Don't set that we handled a message, otherwise radio status packets will block telemetry messages
+                    return false;
                 default:
                     return false;
             }
@@ -1190,10 +1238,13 @@ static bool processMAVLinkIncomingTelemetry(void)
     return false;
 }
 
+static bool isMAVLinkTelemetryHalfDuplex(void) {
+    return telemetryConfig()->halfDuplex ||
+            (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_MAVLINK && tristateWithDefaultOffIsActive(rxConfig()->halfDuplex));
+}
+
 void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
-    static bool incomingRequestServed;
-
     if (!mavlinkTelemetryEnabled) {
         return;
     }
@@ -1202,24 +1253,23 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         return;
     }
 
-    // If we did serve data on incoming request - skip next scheduled messages batch to avoid link clogging
-    if (processMAVLinkIncomingTelemetry()) {
-        incomingRequestServed = true;
+    // Process incoming MAVLink
+    bool receivedMessage = processMAVLinkIncomingTelemetry();
+    bool shouldSendTelemetry = false;
+
+    // Determine whether to send telemetry back based on flow control / pacing
+    if (txbuff_valid) {
+        // Use flow control if available
+        shouldSendTelemetry = txbuff_free >= 33;
+    } else {
+        // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
+        bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);
+        shouldSendTelemetry = ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) && !halfDuplexBackoff;
     }
 
-    if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
-        // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed ||
-            (
-                 (rxConfig()->receiverType == RX_TYPE_SERIAL) &&
-                 (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
-                 !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
-            )
-        ) {
-            processMAVLinkTelemetry(currentTimeUs);
-        }
+    if (shouldSendTelemetry) {
+        processMAVLinkTelemetry(currentTimeUs);
         lastMavlinkMessage = currentTimeUs;
-        incomingRequestServed = false;
     }
 }
 

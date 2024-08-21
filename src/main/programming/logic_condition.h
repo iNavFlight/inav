@@ -143,6 +143,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW, // deg                     // 40
     LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE,                           // 41
     LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE, // int                     // 42
+    LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS,                     // 43
 } logicFlightOperands_e;
 
 typedef enum {
@@ -248,9 +249,9 @@ extern uint64_t logicConditionsGlobalFlags;
 
 void logicConditionProcess(uint8_t i);
 
-int logicConditionGetOperandValue(logicOperandType_e type, int operand);
+int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
-int logicConditionGetValue(int8_t conditionId);
+int32_t logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
 void logicConditionReset(void);
 
