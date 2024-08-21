@@ -56,9 +56,8 @@
 #define ICM42605_SPI_BUS        BUS_SPI1
 
 // *************** I2C/Baro/Mag *********************
-#define USE_I2C
-
 #ifndef GEPRC_F722_AIO_UART3
+#define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
