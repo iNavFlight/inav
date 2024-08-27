@@ -86,6 +86,7 @@
 #define USE_RANGEFINDER_TERARANGER_EVO_I2C
 #define USE_RANGEFINDER_USD1_V0
 #define USE_RANGEFINDER_NANORADAR
+#define USE_RANGEFINDER_A02
 
 // Allow default optic flow boards
 #define USE_OPFLOW

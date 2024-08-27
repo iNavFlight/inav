@@ -158,6 +158,15 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
+            case RANGEFINDER_A02:
+#ifdef USE_RANGEFINDER_A02
+            if (virtualRangefinderDetect(dev, &rangefinderA02Vtable)) {
+                rangefinderHardware = RANGEFINDER_A02;
+                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
+            }
+#endif
+            break;
+
             case RANGEFINDER_TOF10102I2C:
 #ifdef USE_RANGEFINDER_TOF10120_I2C
             if (tof10120Detect(dev)) {

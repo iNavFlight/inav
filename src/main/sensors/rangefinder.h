@@ -34,6 +34,7 @@ typedef enum {
     RANGEFINDER_TERARANGER_EVO      = 9,
     RANGEFINDER_USD1_V0             = 10,
     RANGEFINDER_NANORADAR           = 11,
+    RANGEFINDER_A02                 = 12,
 } rangefinderType_e;
 
 typedef struct rangefinderConfig_s {

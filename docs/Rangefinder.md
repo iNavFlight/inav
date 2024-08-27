@@ -22,6 +22,7 @@ Following rangefinders are supported:
 * TOF10120 - small & lightweight laser range sensor, usable up to 200cm
 * TERARANGER EVO - 30cm to 600cm, depends on version https://www.terabee.com/sensors-modules/lidar-tof-range-finders/#individual-distance-measurement-sensors
 * NRA15/NRA24 - experimental, UART version
+* A02YYUW - experimental, UART version
 
 #### NRA15/NRA24
 NRA15/NRA24 from nanoradar use US-D1_V0 or NRA protocol, it depends which firmware you use. Radar can be set by firmware
@@ -37,6 +38,22 @@ to two different resolutions. See table below.
 | NRA24 | NRA      | 0-50m (+-4cm)   | NRA                  | 
 | NRA24 | NRA      | 0-200m (+-10cm) | NRA                  | 
 
+#### A02YYUW Ultrasonic distance sensor
+A02YYUW is a small ultrasonic distance sensor with UART interface. It is a cheap and lightweight solution for small drones or craft. It is supported in INAV 8.x and newer
+
+Ranging distance: 3cm - 4.5m
+
+| Frame Data | Description | Byte |
+|------------|-------------|------|
+| Header     | 0xFF        | 1    |
+| Header     | Data_H      | 1    |
+| Header     | Data_L      | 1    |
+| Sum        | Checksum    | 1    |
+
+SUM = (Header + Data_H + Data_L) & 0x00FF
+
+Distance= Data_H * 256 + Data_L = 0X07A1;
+Equal to 1953 when converted into decimal or 1953mm
 
 ## Connections
 
