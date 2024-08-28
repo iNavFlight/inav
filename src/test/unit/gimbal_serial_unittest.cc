@@ -26,6 +26,7 @@
 #include "io/gimbal_serial.h"
 #include "drivers/headtracker_common.h"
 
+
 void dumpMemory(uint8_t *mem, int size)
 {
     for(int i =0; i < size; ++i) {
@@ -47,4 +48,17 @@ TEST(GimbalSerialTest, TestGimbalSerialScale)
     res16 = gimbal_scale12(1000, 2000, 1501);
     printf("res16: %i\n", res16);
     EXPECT_TRUE(res16 == 3);
+}
+
+TEST(GimbalSerilaTest, TestCrcCheck)
+{
+    union gimbalHtkAttitudePkt_u
+    {
+        gimbalHtkAttitudePkt_t pkt;
+        uint8_t raw[sizeof(gimbalHtkAttitudePkt_t)];
+    } capturedPacket = {
+        .raw = {0x5A, 0xA5, 0x7B, 0x5E, 0x05, 0x6F, 0x47, 0x60, 0xFA, 0x1D}
+    };
+
+    EXPECT_TRUE(checkCrc(*capturedPacket.pkt));
 }
