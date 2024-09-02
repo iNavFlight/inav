@@ -1,0 +1,84 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "baseName": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "The base resource name."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "westus2"
+        },
+        "skuName": {
+            "type": "string",
+            "defaultValue": "S1"
+        },
+        "skuUnits": {
+            "type": "string",
+            "defaultValue": "1"
+        },
+        "d2cPartitions": {
+            "type": "string",
+            "defaultValue": "4"
+        },
+        "features": {
+            "type": "string",
+            "defaultValue": "none"
+        },
+        "tags": {
+            "type": "object",
+            "defaultValue": {}
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2020-03-01",
+            "type": "Microsoft.Devices/IotHubs",
+            "name": "[parameters('baseName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "eventHubEndpoints": {
+                    "events": {
+                        "retentionTimeInDays": 1,
+                        "partitionCount": "[parameters('d2cPartitions')]"
+                    }
+                },
+                "features": "[parameters('features')]"
+            },
+            "sku": {
+                "name": "[parameters('skuName')]",
+                "capacity": "[parameters('skuUnits')]"
+            },
+            "tags": "[parameters('tags')]"
+        },
+        {
+            "type": "Microsoft.Security/IoTSecuritySolutions",
+            "apiVersion": "2019-08-01",
+            "name": "[parameters('baseName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "status": "Enabled",
+                "unmaskedIpLoggingStatus": "Enabled",
+                "disabledDataSources": [],
+                "displayName": "[parameters('baseName')]",
+                "iotHubs": [
+                    "[resourceId('Microsoft.Devices/IotHubs', parameters('baseName'))]"
+                ],
+                "recommendationsConfiguration": []
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Devices/IotHubs', parameters('baseName'))]"
+            ]
+        }
+    ],
+    "outputs": {
+        "IOT_HUB_NAME": {
+            "type": "string",
+            "value": "[parameters('baseName')]"
+        }
+    }
+}

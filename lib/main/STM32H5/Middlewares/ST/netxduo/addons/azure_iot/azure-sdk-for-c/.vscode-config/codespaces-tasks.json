@@ -1,0 +1,10 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "mkdir -p build && cd build && rm -rf * && cmake -DTRANSPORT_PAHO=ON -DCMAKE_BUILD_TYPE=Debug .. && cmake --build ."
+        }
+    ]
+}

@@ -1,0 +1,41 @@
+;**************************************************
+; Copyright (c) 2011 ARM Ltd.  All rights reserved.
+;**************************************************
+
+; This scatter-file places application code, data, stack and heap at base address 0x80000000.
+; Using a scatter-file with ARM_LIB_STACKHEAP eliminates the need to set stack-limit or heap-base in the debugger.
+
+
+SDRAM 0x80000000 
+{
+    VECTORS +0
+    {
+        * (VECTORS, +FIRST)     ; Vector table and other (assembler) startup code
+        * (InRoot$$Sections)    ; All (library) code that must be in a root region
+    }
+
+    RO_CODE +0
+    { * (+RO-CODE) }            ; Application RO code (.text)
+
+    RO_DATA +0
+    { * (+RO-DATA) }            ; Application RO data (.constdata)
+
+    RW_DATA +0
+    { * (+RW) }                 ; Application RW data (.data)
+
+    ZI_DATA +0
+    { * (+ZI) }                 ; Application ZI data (.bss)
+
+    ARM_LIB_HEAP  0x80040000 EMPTY  0x00040000 ; Application heap
+    { }
+
+    ARM_LIB_STACK 0x80090000 EMPTY -0x00010000 ; Application (SVC mode) stack
+    { }
+
+    IRQ_STACK     0x800A0000 EMPTY -0x00010000 ; IRQ mode stack
+    { }
+
+    TTB     0x80100000 EMPTY 0x4000            ; Level-1 Translation Table for MMU
+    { }
+
+}

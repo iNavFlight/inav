@@ -1,0 +1,91 @@
+@startuml
+
+skinparam state {
+    BackgroundColor<<APP>> APPLICATION
+    BackgroundColor<<STRUCT>> Lavender
+}
+
+state color_coding {
+    state SDK_API
+    state SDK_DATA_OBJECT <<STRUCT>>
+    state APPLICATION_CODE <<APP>>
+}
+
+' Init
+[*] --> az_iot_provisioning_client_init: START
+az_iot_provisioning_client_init --> az_iot_provisioning_client_get_user_name
+az_iot_provisioning_client_get_user_name --> az_iot_provisioning_client_get_client_id : X509 auth
+state application_mqtt_connect <<APP>>
+az_iot_provisioning_client_get_client_id --> application_mqtt_connect
+
+' Optional SAS token generation:
+az_iot_provisioning_client_get_client_id -> az_iot_provisioning_client_sas_get_signature : SAS auth
+az_iot_provisioning_client_sas_get_signature -> application_hmac256
+application_hmac256 -> az_iot_provisioning_client_sas_get_password
+az_iot_provisioning_client_sas_get_password --> application_mqtt_connect : password
+state application_hmac256 <<APP>>
+
+' Subscribe
+application_mqtt_connect --> application_mqtt_subscribe
+state application_mqtt_subscribe <<APP>>
+'application_mqtt_subscribe --> application_mqtt_receive : MQTT lib subscribed
+
+' Register
+application_mqtt_subscribe --> az_iot_provisioning_client_register_get_publish_topic
+az_iot_provisioning_client_register_get_publish_topic --> application_mqtt_publish
+az_iot_provisioning_client_register_get_publish_topic --> application_mqtt_receive
+state application_mqtt_publish <<APP>>
+
+state application_mqtt_receive <<APP>> {
+' MQTT PUB received
+    [*] --> az_iot_provisioning_client_parse_received_topic_and_payload: MQTT PUB received from broker (cloud or Edge)
+    az_iot_provisioning_client_parse_received_topic_and_payload --> az_iot_provisioning_client_register_response
+    az_iot_provisioning_client_parse_received_topic_and_payload --> [*] : not provisioning related
+
+    az_iot_provisioning_client_register_response --> az_iot_provisioning_client_operation_complete
+
+    az_iot_provisioning_client_operation_complete --> [*] : operation complete (success or failure)
+    az_iot_provisioning_client_operation_complete --> application_delay : operation in progress
+    state application_delay <<APP>>
+    application_delay --> az_iot_provisioning_client_query_status_get_publish_topic
+    az_iot_provisioning_client_query_status_get_publish_topic --> application_mqtt_publish
+}
+
+' Provisioning client:
+az_iot_provisioning_client_init : - global_endpoint_hostname
+az_iot_provisioning_client_init : - id_scope
+az_iot_provisioning_client_init : - registration_id
+
+' SAS Tokens
+az_iot_provisioning_client_sas_get_signature : - token_expiration_unix_time
+
+az_iot_provisioning_client_parse_received_topic_and_payload : - topic
+az_iot_provisioning_client_parse_received_topic_and_payload : - payload
+
+state az_iot_provisioning_client_register_response <<STRUCT>>
+az_iot_provisioning_client_register_response : - status
+az_iot_provisioning_client_register_response : - operation_id
+az_iot_provisioning_client_register_response : - operation_status
+az_iot_provisioning_client_register_response : - retry_after_seconds
+az_iot_provisioning_client_register_response : - registration_state:
+az_iot_provisioning_client_register_response : ..- assigned_hub_hostname
+az_iot_provisioning_client_register_response : ..- device_id
+az_iot_provisioning_client_register_response : ..- error_code
+az_iot_provisioning_client_register_response : ..- extended_error_code
+az_iot_provisioning_client_register_response : ..- error_message
+az_iot_provisioning_client_register_response : ..- error_tracking_id
+az_iot_provisioning_client_register_response : ..- error_timestamp
+
+az_iot_provisioning_client_sas_get_password: - Base64(HMAC-SHA256(signature, SharedAccessKey))
+az_iot_provisioning_client_sas_get_password: - key_name
+
+az_iot_provisioning_client_query_status_get_publish_topic : - operation_id
+
+' Application interfaces
+application_mqtt_connect : - server_x509_trusted_root
+application_mqtt_connect : - [client_x509_certificate]
+application_mqtt_subscribe: - AZ_IOT_PROVISIONING_CLIENT_REGISTER_SUBSCRIBE_TOPIC
+application_delay : - retry_after
+application_hmac256 : - key (may be within an HSM)
+
+@enduml

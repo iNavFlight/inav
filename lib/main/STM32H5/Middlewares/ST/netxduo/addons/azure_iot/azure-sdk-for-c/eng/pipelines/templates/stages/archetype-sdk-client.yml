@@ -1,0 +1,29 @@
+stages:
+  - ${{ if not(endsWith(variables['Build.DefinitionName'], ' - tests')) }}:
+    - stage: Build
+      dependsOn: []
+      condition:
+      jobs:
+        - template: ../jobs/archetype-sdk-client.yml
+
+  - ${{ if eq(variables['System.TeamProject'], 'internal') }}:
+    - stage: LiveTest 
+      dependsOn: [] 
+      jobs: 
+        - template: /eng/pipelines/templates/jobs/archetype-sdk-tests.yml
+          parameters:
+            LiveTestSamples:
+              - Name: IoT Telemetry Sample
+                NonWindowsPath: ./build/sdk/samples/iot/paho_iot_hub_telemetry_sample
+                WindowsPath: .\build\sdk\samples\iot\Debug\paho_iot_hub_telemetry_sample.exe
+                RunCondition: contains(variables['build.args'], '-DTRANSPORT_PAHO=ON')
+              - Name: IoT Telemetry SaS Sample
+                NonWindowsPath: ./build/sdk/samples/iot/paho_iot_hub_sas_telemetry_sample
+                WindowsPath: .\build\sdk\samples\iot\Debug\paho_iot_hub_sas_telemetry_sample.exe
+                RunCondition: contains(variables['build.args'], '-DTRANSPORT_PAHO=ON')
+
+  - ${{ if and(eq(variables['Build.Reason'], 'Manual'), eq(variables['System.TeamProject'], 'internal'), not(endsWith(variables['Build.DefinitionName'], ' - tests'))) }}:
+    - template: archetype-c-release.yml
+      parameters:
+        DependsOn:
+        - Build

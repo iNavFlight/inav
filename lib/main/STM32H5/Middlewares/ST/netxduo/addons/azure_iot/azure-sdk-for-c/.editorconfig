@@ -1,0 +1,11 @@
+# editorconfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Default settings:
+# A newline ending every file
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true

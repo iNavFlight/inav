@@ -1,0 +1,37 @@
+
+/************************
+* Platform configuration
+*************************/
+#ifdef FLATCC_ASSERT
+#undef FLATCC_ASSERT
+#endif
+
+#ifndef __ASC_CONFIG_EXCLUDE_PORT__H__
+#include "tx_port.h"
+#include "nx_port.h"
+#include "nx_api.h"
+
+/* Flat buffer serializer platform */
+#cmakedefine FLATCC_ASSERT @FLATCC_ASSERT@
+
+#endif /* __ASC_CONFIG_EXCLUDE_PORT__H__ */
+
+/* Security Module pending time, in seconds */
+#cmakedefine ASC_SECURITY_MODULE_PENDING_TIME @ASC_SECURITY_MODULE_PENDING_TIME@
+#cmakedefine ASC_SECURITY_MODULE_SEND_MESSAGE_RETRY_TIME @ASC_SECURITY_MODULE_SEND_MESSAGE_RETRY_TIME@
+#cmakedefine ASC_SECURITY_MODULE_MAX_HUB_DEVICES @ASC_SECURITY_MODULE_MAX_HUB_DEVICES@
+#ifndef ASC_SECURITY_MODULE_MAX_HUB_DEVICES
+#define ASC_SECURITY_MODULE_MAX_HUB_DEVICES 64
+#endif
+
+/* Collector network activity. */
+#cmakedefine ASC_COLLECTOR_NETWORK_ACTIVITY_TCP_DISABLED
+#cmakedefine ASC_COLLECTOR_NETWORK_ACTIVITY_UDP_DISABLED
+#cmakedefine ASC_COLLECTOR_NETWORK_ACTIVITY_ICMP_DISABLED
+#cmakedefine ASC_COLLECTOR_NETWORK_ACTIVITY_CAPTURE_UNICAST_ONLY
+
+/* The maximum number of IPv4 network events to store in memory. */
+#ifdef NX_DISABLE_IPV6
+#undef ASC_COLLECTOR_NETWORK_ACTIVITY_MAX_IPV6_OBJECTS_IN_CACHE
+#define ASC_COLLECTOR_NETWORK_ACTIVITY_MAX_IPV6_OBJECTS_IN_CACHE 0
+#endif

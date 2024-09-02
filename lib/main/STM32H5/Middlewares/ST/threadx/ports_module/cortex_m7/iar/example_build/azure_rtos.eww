@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspace>
+    <project>
+        <path>$WS_DIR$\sample_threadx_module.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\sample_threadx_module_manager.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\sample_threadx.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\tx.ewp</path>
+    </project>
+    <project>
+        <path>$WS_DIR$\txm.ewp</path>
+    </project>
+    <batchBuild />
+</workspace>

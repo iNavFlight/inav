@@ -1,0 +1,5 @@
+{
+  "image": "aziotbld/embedded-codespace",
+  "postCreateCommand": "chmod +x /workspaces/azure-sdk-for-c/.devcontainer/post_build.sh && /workspaces/azure-sdk-for-c/.devcontainer/post_build.sh",
+  "extensions": ["webfreak.debug", "ms-vscode.cpptools" ]
+}

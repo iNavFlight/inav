@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for STM32H5xx CMSIS</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st_2020.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<center>
+<h1 id="release-notes-for-stm32h5xx-cmsis">Release Notes for <mark> STM32H5xx CMSIS </mark></h1>
+<p>Copyright © 2023 STMicroelectronics<br />
+</p>
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo_2020.png" alt="ST logo" /></a>
+</center>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history"><strong>Update History</strong></h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" Checked aria-hidden="true"> <label for="collapse-section4" checked aria-hidden="true"><strong>V1.3.0 / 05-June-2024</strong></label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<p>CMSIS Device Maintenance Release version of bits and registers definition aligned with <strong>RM0481</strong> (STM32H5 reference manual)</p>
+<ul>
+<li>Add RNG_CR_NIST_VALUE, RNG_NSCR_NIST_VALUE and RNG_HTCR_NIST_VALUE defines</li>
+<li>Add Bits definition for RNG_NSCR register : Add RNG_NSCR_EN_OSC1, RNG_NSCR_EN_OSC2, RNG_NSCR_EN_OSC3, RNG_NSCR_EN_OSC4, RNG_NSCR_EN_OSC5 and RNG_NSCR_EN_OSC6 defines</li>
+<li>Add USART_DMAREQUESTS_SW_WA define</li>
+<li>Rename EXTI_RTSR2_TR to EXTI_RTSR2_RT define</li>
+<li>Rename EXTI_FTSR2_TR to EXTI_FTSR2_FT define</li>
+<li>Remove unused ADC common status and ADC common group regular data registers for STM32H503xx devices</li>
+<li>Fix __SAUREGION_PRESENT value to 0 for STM32H503xx devices</li>
+<li>Fix incorrect character in the definition of OCTOSPI_CR register</li>
+<li>Correct TIM_CCRx_CCRx constants</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true"> <label for="collapse-section3" checked aria-hidden="true"><strong>V1.2.0 / 09-February-2024</strong></label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<ul>
+<li>First official release of STM32H5xx CMSIS drivers to support <strong>STM32H533xx and STM32H523xx</strong> devices</li>
+<li>Add bit definition for I3C_BCR register</li>
+<li>Add IS_DMA_PFREQ_INSTANCE macro</li>
+<li>Fix Ticket 163445: [FLASH][CMSIS] Wrong EDATA_STRT start sectors mask size</li>
+<li>Fix Ticket 163090: [FOSS-Audit] Licensing issues: Missing copyright from Arm Limited and original header not retained</li>
+<li>Update CubeIDE projects to be compliant with GCC12 diagnostics</li>
+<li>Fix Ticket 165407: [H5][GTZC][CMSIS]: wrong Flash illegal access bit definition</li>
+<li>Fix Ticket 147880: [STM32H5]|FLASH_HAL] Some option bytes are missing in stm32h5xx_hal_flash_ex.h</li>
+<li>Set FMC_SDCMR_MODE_2 bit field definition to 0x4</li>
+<li>Fix Ticket 162902: [GitHub] Wrong declaration of g_pfnVectors size in gcc/startup files</li>
+<li>Fix: Ticket 167776: [CMSIS] Missing TIM option register related definitions</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true"> <label for="collapse-section2" checked aria-hidden="true"><strong>V1.1.0 / 07-June-2023</strong></label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<ul>
+<li>Add DUA addresses constants definitions for STM32H573xx devices only</li>
+<li>Fix wrong definition of IS_TIM_CLOCKSOURCE_TIX_INSTANCE &amp; IS_TIM_TISEL_INSTANCE macros</li>
+<li>Update possible values of the ATCKSEL field of TAMP active tamper control register and update the mask accordingly.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true"> <label for="collapse-section1" checked aria-hidden="true"><strong>V1.0.0 / 10-February-2023</strong></label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<ul>
+<li>First official release version of bits and registers definition aligned with RM0481 and RM0492 (STM32H5 reference manuals)</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on STM32 Microcontrollers </mark> , visit: <span style="font-color: blue;"><a href="http://www.st.com/stm32">www.st.com/stm32</a></span>
+</footer>
+</body>
+</html>

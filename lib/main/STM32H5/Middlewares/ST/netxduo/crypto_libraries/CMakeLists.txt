@@ -1,0 +1,67 @@
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    # {{BEGIN_TARGET_SOURCES}}
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_3des.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_aes.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_cbc.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ccm.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ctr.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_des.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_dh.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_drbg.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ec.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ec_secp192r1_fixed_points.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ec_secp224r1_fixed_points.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ec_secp256r1_fixed_points.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ec_secp384r1_fixed_points.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ec_secp521r1_fixed_points.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ecdh.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ecdsa.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_ecjpake.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_gcm.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_generic_ciphersuites.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_hkdf.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_hmac.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_hmac_md5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_hmac_sha1.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_hmac_sha2.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_hmac_sha5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_huge_number.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_huge_number_extended.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_initialize.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_md5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_3des.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_aes.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_des.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_drbg.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_ecdh.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_ecdsa.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_hmac_md5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_hmac_sha.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_md5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_pkcs1.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_prf.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_rsa.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_method_self_test_sha.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_methods.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_null_cipher.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_phash.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_pkcs1_v1.5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_rsa.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_sha1.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_sha2.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_sha5.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_tls_prf_1.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_tls_prf_sha256.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_tls_prf_sha384.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_tls_prf_sha512.c
+	${CMAKE_CURRENT_LIST_DIR}/src/nx_crypto_xcbc_mac.c
+
+    # {{END_TARGET_SOURCES}}
+)
+
+target_include_directories(${PROJECT_NAME} 
+    PUBLIC 
+    ${CMAKE_CURRENT_LIST_DIR}/inc
+)

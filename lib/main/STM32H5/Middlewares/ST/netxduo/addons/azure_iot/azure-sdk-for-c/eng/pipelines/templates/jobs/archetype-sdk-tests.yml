@@ -1,0 +1,92 @@
+parameters:
+  LiveTestSamples: []
+
+
+jobs:
+  - job: LiveTest
+    condition: and(succeededOrFailed(), ne(variables['Skip.Test'], 'true'))
+    strategy:
+      matrix:
+        Linux_x64_with_iot_samples:
+          Pool: azsdk-pool-mms-ubuntu-1804-general
+          OSVmImage: MMSUbuntu18.04
+          VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+          build.args: ' -DTRANSPORT_PAHO=ON'
+          test_type: 'iot'
+          os: 'linux'
+        Win_x64_with_iot_samples:
+          Pool: azsdk-pool-mms-win-2019-general
+          OSVmImage: MMS2019
+          VCPKG_DEFAULT_TRIPLET: 'x64-windows-static'
+          CMAKE_GENERATOR: 'Visual Studio 16 2019'
+          CMAKE_GENERATOR_PLATFORM: x64
+          build.args: ' -DTRANSPORT_PAHO=ON'
+          test_type: 'iot'
+          os: 'win'
+        MacOS_x64_with_iot_samples:
+          Pool: Azure Pipelines
+          OSVmImage: 'macos-11'
+          VCPKG_DEFAULT_TRIPLET: 'x64-osx'
+          build.args: ' -DTRANSPORT_PAHO=ON'
+          test_type: 'iot'
+          os: 'macos'
+        # Disable live testing for these matrix entries until we have something to
+        # test here.
+        # Linux_x64_with_samples:
+        #   Pool: azsdk-pool-mms-ubuntu-1804-general
+        #   OSVmImage: MMSUbuntu18.04
+        #   VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        #   build.args: ' -DTRANSPO.RT_CURL=ON -DAZ_PLATFORM_IMPL=POSIX'
+        # Win_x86_with_sampldes:
+        #   Pool: azsdk-pool-mms-win-2019-general
+        #   OSVmImage: MMS2019
+        #   VCPKG_DEFAULT_TRIPLET: 'x86-windows-static'
+        #   CMAKE_GENERATOR: 'Visual Studio 16 2019'
+        #   CMAKE_GENERATOR_PLATFORM: Win32
+        #   build.args: ' -DTRANSPORT_CURL=ON -DAZ_PLATFORM_IMPL=WIN32'
+        # Win_x64_with_samples:
+        #   Pool: azsdk-pool-mms-win-2019-general
+        #   OSVmImage: MMS2019
+        #   VCPKG_DEFAULT_TRIPLET: 'x64-windows-static'
+        #   CMAKE_GENERATOR: 'Visual Studio 16 2019'
+        #   CMAKE_GENERATOR_PLATFORM: x64
+        #   build.args: ' -DTRANSPORT_CURL=ON -DAZ_PLATFORM_IMPL=WIN32'
+        # MacOS_x64_with_samples:
+        #   Pool: Azure Pipelines
+        #   OSVmImage: 'macos-11'
+        #   VCPKG_DEFAULT_TRIPLET: 'x64-osx'
+        #   build.args: ' -DTRANSPORT_CURL=ON  -DAZ_PLATFORM_IMPL=POSIX'
+    pool:
+      name: $(Pool)
+      vmImage: $(OSVmImage)
+
+    steps:
+      - template: /eng/common/pipelines/templates/steps/verify-agent-os.yml
+        parameters:
+          AgentImage: $(OSVmImage)
+
+      - template: /eng/pipelines/templates/steps/vcpkg.yml
+
+      - template: /eng/pipelines/templates/steps/cmake-build.yml
+        parameters:
+          BuildArgs: $(build.args)
+
+      - template: /eng/common/TestResources/deploy-test-resources.yml
+        parameters:
+          ServiceDirectory: 'samples'
+
+      # Run live tests
+      - ${{ each sample in parameters.LiveTestSamples }}:
+        - script: ${{ sample.NonWindowsPath }}
+          displayName: Live Test ${{ sample.Name }} (Non-Windows)
+          ${{ if ne(sample.RunCondition, '') }}:
+            condition: and(${{ sample.RunCondition }}, or(eq(variables['os'], 'linux'), eq(variables['os'], 'macos')))
+
+        - script: ${{ sample.WindowsPath }}
+          displayName: Live Test ${{ sample.Name }} (Windows)
+          ${{ if ne(sample.RunCondition, '') }}:
+            condition: and(${{ sample.RunCondition }}, eq(variables['os'], 'win'))
+
+      - template: /eng/common/TestResources/remove-test-resources.yml
+        parameters:
+          ServiceDirectory: 'samples'

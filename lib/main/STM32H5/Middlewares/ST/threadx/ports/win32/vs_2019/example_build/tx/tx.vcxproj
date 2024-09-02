@@ -1,0 +1,340 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Template|Win32">
+      <Configuration>Template</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_api.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_block_pool.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_byte_pool.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_event_flags.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_initialize.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_mutex.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_queue.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_semaphore.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_thread.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_timer.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_trace.h" />
+    <ClInclude Include="..\..\..\..\..\common\inc\tx_user.h" />
+    <ClInclude Include="..\..\inc\tx_port.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\common\src\txe_block_allocate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_block_pool_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_block_pool_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_block_pool_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_block_pool_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_block_release.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_byte_allocate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_byte_pool_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_byte_pool_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_byte_pool_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_byte_pool_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_byte_release.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_event_flags_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_event_flags_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_event_flags_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_event_flags_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_event_flags_set.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_event_flags_set_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_mutex_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_mutex_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_mutex_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_mutex_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_mutex_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_mutex_put.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_flush.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_front_send.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_receive.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_send.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_queue_send_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_ceiling_put.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_put.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_semaphore_put_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_entry_exit_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_preemption_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_priority_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_relinquish.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_reset.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_resume.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_suspend.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_terminate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_time_slice_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_thread_wait_abort.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_timer_activate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_timer_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_timer_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_timer_deactivate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_timer_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\txe_timer_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_allocate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_cleanup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_pool_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_block_release.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_allocate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_cleanup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_pool_search.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_byte_release.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_cleanup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_set.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_event_flags_set_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_initialize_high_level.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_initialize_kernel_enter.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_initialize_kernel_setup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_misra.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_cleanup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_priority_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_mutex_put.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_cleanup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_flush.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_front_send.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_receive.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_send.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_queue_send_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_ceiling_put.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_cleanup.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_prioritize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_put.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_semaphore_put_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_entry_exit_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_identify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_preemption_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_priority_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_relinquish.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_reset.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_resume.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_shell_entry.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_sleep.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_stack_analyze.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_stack_error_handler.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_stack_error_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_suspend.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_system_preempt_check.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_system_resume.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_system_suspend.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_terminate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_timeout.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_time_slice.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_time_slice_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_thread_wait_abort.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_activate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_change.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_create.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_deactivate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_delete.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_expiration_process.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_performance_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_performance_system_info_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_system_activate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_system_deactivate.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_timer_thread_entry.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_time_get.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_time_set.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_buffer_full_notify.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_disable.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_enable.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_event_filter.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_event_unfilter.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_initialize.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_interrupt_control.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_isr_enter_insert.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_isr_exit_insert.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_object_register.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_object_unregister.c" />
+    <ClCompile Include="..\..\..\..\..\common\src\tx_trace_user_event_insert.c" />
+    <ClCompile Include="..\..\src\tx_initialize_low_level.c" />
+    <ClCompile Include="..\..\src\tx_thread_context_restore.c" />
+    <ClCompile Include="..\..\src\tx_thread_context_save.c" />
+    <ClCompile Include="..\..\src\tx_thread_interrupt_control.c" />
+    <ClCompile Include="..\..\src\tx_thread_schedule.c" />
+    <ClCompile Include="..\..\src\tx_thread_stack_build.c" />
+    <ClCompile Include="..\..\src\tx_thread_system_return.c" />
+    <ClCompile Include="..\..\src\tx_timer_interrupt.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <SccProjectName />
+    <SccLocalPath />
+    <ProjectGuid>{51907112-62DA-98D6-7897-5A2FD48B99C3}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Template|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.Cpp.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\Release\</OutDir>
+    <IntDir>.\Release\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\Debug\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <StringPooling>true</StringPooling>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>MaxSpeed</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\Release\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\Release\tx.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\Release\</ObjectFileName>
+      <ProgramDataBaseFileName>.\Release\</ProgramDataBaseFileName>
+      <AdditionalIncludeDirectories>..\..\inc;..\..\..\..\..\common\inc</AdditionalIncludeDirectories>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <ExceptionHandling>false</ExceptionHandling>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release\tx.bsc</OutputFile>
+    </Bscmake>
+    <Lib>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release\tx.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <Optimization>Disabled</Optimization>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AssemblerListingLocation>.\Debug\</AssemblerListingLocation>
+      <PrecompiledHeaderOutputFile>.\Debug\tx.pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>.\Debug\</ObjectFileName>
+      <ProgramDataBaseFileName>.\Debug\</ProgramDataBaseFileName>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <AdditionalIncludeDirectories>..\..\inc;..\..\..\..\..\common\inc</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <Culture>0x0409</Culture>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug\tx.bsc</OutputFile>
+    </Bscmake>
+    <Lib>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug\tx.lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

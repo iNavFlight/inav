@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for the MX_WIFI Component Driver</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st_2020.css" />
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<center>
+<h1 id="release-notes-for-mx_wifi-component-driver">Release Notes for
+<mark>MX_WIFI Component Driver</mark></h1>
+<p>Copyright © 2020 STMicroelectronics<br />
+Microcontrollers Division - Application Team</p>
+<a href="https://www.st.com" class="logo"><img
+src="_htmresc/st_logo_2020.png" alt="ST logo" /></a>
+</center>
+<h1 id="purpose">Purpose</h1>
+<p>This directory contains the Wi-Fi component driver running on the
+STM32 host for the MXCHIP’s EMW3080B Wi-Fi module.</p>
+</div>
+<section id="update-history" class="col-sm-12 col-lg-8">
+<h1>Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section13" checked aria-hidden="false">
+<label for="collapse-section13" aria-hidden="false">V2.3.4 /
+12-December-2022</label>
+<div>
+<h2 id="main-changes">Main changes</h2>
+<ul>
+<li>Fix TCP server in softAP and STA mode.</li>
+<li>Add Core/mx_address.[ch] files.</li>
+<li>Add new WiFi connect API MX_WIFI_Connect_Adv.</li>
+<li>Add new API for EAP, WPS, configuration server.</li>
+<li>Support get MAC for softAP.</li>
+<li>Fix some MISRA errors.</li>
+<li>Update WiFi API documents for parameters and return value.</li>
+</ul>
+<h2 id="emw3080b-mxchip-wi-fi-module-firmware">EMW3080B MXCHIP Wi-Fi
+module firmware</h2>
+<ul>
+<li>The EMW3080B MXCHIP Wi-Fi module firmware version has to be
+<mark>V2.3.4 rc 13</mark> and the way to update your board with it is
+available at <a
+href="https://www.st.com/en/development-tools/x-wifi-emw3080b.html">X-WIFI-EMW3080B</a>.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section12" aria-hidden="true">
+<label for="collapse-section12" aria-hidden="true">V2.1.13 /
+20-June-2022</label>
+<div>
+<h2 id="main-changes-1">Main changes</h2>
+<ul>
+<li>FIX spelling Errors</li>
+</ul>
+<h2 id="section"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section11" aria-hidden="true">
+<label for="collapse-section11" aria-hidden="true">V2.1.12 /
+16-February-2022</label>
+<div>
+<h2 id="main-changes-2">Main changes</h2>
+<ul>
+<li>FIX a C++ Compilation Error</li>
+</ul>
+<h2 id="limitation">Limitation</h2>
+<ul>
+<li>Access point mode with the TCP/IP mode on STM32 host is not
+functional. It works when TCP/IP runs on the EMW3080B module.</li>
+</ul>
+<h2 id="emw3080b-mxchip-wi-fi-module-firmware-1">EMW3080B MXCHIP Wi-Fi
+module firmware</h2>
+<ul>
+<li>The EMW3080B MXCHIP Wi-Fi module firmware version has to be V2.1.11
+and the way to update your board with it is available at <a
+href="https://www.st.com/en/development-tools/x-wifi-emw3080b.html">X-WIFI-EMW3080B</a>.</li>
+<li>For the B-U585I-IOT02A rev C. board, this EMW3080B MXCHIP Wi-Fi
+module firmware version V2.1.11 is installed by default and you do not
+need to update it.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section10" aria-hidden="true">
+<label for="collapse-section10" aria-hidden="true">V2.1.11 /
+17-June-2021</label>
+<div>
+<h2 id="main-changes-3">Main changes</h2>
+<ul>
+<li>Update the way to declare licenses</li>
+<li>Fix MISRA and Codesonar errors</li>
+<li>Create IO pattern files for UART and SPI interface</li>
+<li>Address some code alignment and cosmetics</li>
+</ul>
+<h2 id="limitation-1">Limitation</h2>
+<ul>
+<li>Access point mode with the TCP/IP mode on STM32 host is not
+functional. It works when TCP/IP runs on the EMW3080B module.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section9" aria-hidden="true">
+<label for="collapse-section9" aria-hidden="true">V2.1.10 /
+8-April-2021</label>
+<div>
+<h2 id="main-changes-4">Main changes</h2>
+<ul>
+<li>Clean configuration for FreeRTOS and Bare metal support</li>
+<li>Add Support for MXCHIP Firmware 2.1.10 (adding updater)</li>
+<li>Driver is backward compatible to 2.1.9 firmware</li>
+<li>Tested on U5 Discovery board Rev C</li>
+</ul>
+<h2 id="section-1"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" aria-hidden="true">
+<label for="collapse-section8" aria-hidden="true">V2.1.9 /
+30-March-2021</label>
+<div>
+<h2 id="main-changes-5">Main changes</h2>
+<ul>
+<li>Strongly improve performances and stability</li>
+<li>Add SPI DMA support</li>
+<li>Fix Access Point mode support</li>
+<li>Tested on U5 Discovery board Rev C</li>
+</ul>
+<h2 id="section-2"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" aria-hidden="true">
+<label for="collapse-section7" aria-hidden="true">V2.1.6 /
+09-February-2021</label>
+<div>
+<h2 id="main-changes-6">Main changes</h2>
+<ul>
+<li>Add Error mngt</li>
+<li>Remove Circular buffer, use directly Pbuf</li>
+<li>Improve debug msg and echo server</li>
+<li>Fix memory overrun</li>
+<li>Adding debug support</li>
+<li>SPI protocol fix</li>
+<li>SPI checksum fix</li>
+<li>Improve OS porting, change LOCK</li>
+<li>Improve Malloc and Messages Macros</li>
+</ul>
+<h2 id="section-3"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" aria-hidden="true">
+<label for="collapse-section6" aria-hidden="true">V2.1.4 /
+08-February-2021</label>
+<div>
+<h2 id="main-changes-7">Main changes</h2>
+<ul>
+<li>Overall driver rework</li>
+<li>SPI fix</li>
+<li>Race condition fixes</li>
+<li>Optimized memory usage</li>
+</ul>
+<h2 id="section-4"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true">
+<label for="collapse-section5" aria-hidden="true">V1.4.0 /
+18-November-2020</label>
+<div>
+<h2 id="main-changes-8">Main changes</h2>
+<ul>
+<li>Add new API getsockname, getpeername</li>
+</ul>
+<h2 id="section-5"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true">
+<label for="collapse-section4" aria-hidden="true">V1.3.0 /
+05-November-2020</label>
+<div>
+<h2 id="main-changes-9">Main changes</h2>
+<ul>
+<li>Hardware flow control: removed the flow pin usage</li>
+<li>MISRA-C_2012 compliant</li>
+<li>AStyle run</li>
+<li>Fixed CodeSonar warnings</li>
+<li>Licensed under ST license SLA0044 (the “License”)</li>
+</ul>
+<h2 id="section-6"></h2>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true">
+<label for="collapse-section3" aria-hidden="true">V1.0.4 / 15-May-2020
+</label>
+<div>
+<h2 id="main-changes-10">Main changes</h2>
+<ul>
+<li>First official release of MX_WIFI WiFi component.</li>
+</ul>
+<h2 id="section-7"></h2>
+</div>
+</div>
+</section>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32</mark> microcontrollers please
+visit <a href="http://www.st.com/stm32"
+class="uri">http://www.st.com/stm32</a>
+</footer>
+</body>
+</html>

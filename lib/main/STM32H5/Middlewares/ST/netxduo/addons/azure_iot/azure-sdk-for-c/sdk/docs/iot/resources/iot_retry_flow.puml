@@ -1,0 +1,57 @@
+@startuml
+skinparam state {
+    BackgroundColor<<APP>> APPLICATION
+    BackgroundColor<<STRUCT>> Lavender
+    BackgroundColor<<FAIL>> Orange
+}
+
+[*] --> Provisioning
+state Provisioning <<APP>> {
+
+    state Register_Device <<APP>>
+    ' Provisioning Retriable errors
+    [*] --> Register_Device
+
+    state Provisioning_retriable_failure<<FAIL>>
+    Register_Device --> Provisioning_retriable_failure
+    Provisioning_retriable_failure --> Provisioning_calculate_delay
+    Provisioning_calculate_delay --> Provisioning_app_delay
+    state Provisioning_app_delay<<APP>>
+    Provisioning_app_delay --> Register_Device : retry
+    Provisioning_calculate_delay: - response.retry-after
+    Provisioning_calculate_delay: - az_iot_calculate_retry_delay
+
+    ' Provisioning Non-retriable
+    Register_Device --> Provisioning_not_retriable_failure
+    state Provisioning_not_retriable_failure<<FAIL>>
+    Provisioning_not_retriable_failure --> Provisioning_Rotate_Credentials
+    state Provisioning_Rotate_Credentials <<APP>>
+    Provisioning_Rotate_Credentials --> Register_Device : retry
+    Provisioning_Rotate_Credentials --> [*] : no other credential
+}
+
+Provisioning --> IoT_Hub : Success
+
+state IoT_Hub <<APP>> {
+    state Hub_Operation <<APP>>
+    [*] --> Hub_Operation
+
+    ' Hub Retriable errors
+    Hub_Operation --> Hub_retriable_failure
+    state Hub_retriable_failure<<FAIL>>
+    Hub_retriable_failure --> Hub_calculate_delay
+    Hub_calculate_delay --> Hub_app_delay : retry < MAX_HUB_RETRY
+    Hub_calculate_delay --> [*] : retry >= MAX_HUB_RETRY
+    state Hub_app_delay<<APP>>
+    Hub_app_delay --> Hub_Operation : retry
+    Hub_calculate_delay: - az_iot_calculate_retry_delay
+
+    ' Hub Non-retriable
+    Hub_Operation --> Hub_not_retriable_failure
+    state Hub_not_retriable_failure<<FAIL>>
+    Hub_not_retriable_failure --> [*] : Re-provision
+}
+
+IoT_Hub --> Provisioning : Obtain new credentials
+
+@enduml
