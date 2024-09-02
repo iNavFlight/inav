@@ -401,6 +401,8 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
 
     if (isWaypointNavTrackingActive()) {
         /* Calculate cross track error */
+        posControl.wpDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+
         fpVector3_t virtualCoursePoint;
         virtualCoursePoint.x = posControl.activeWaypoint.pos.x -
                                posControl.wpDistance * cos_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
