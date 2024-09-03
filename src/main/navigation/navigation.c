@@ -1859,6 +1859,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_PRE_ACTION(nav
         case NAV_WP_ACTION_LAND:
             calculateAndSetActiveWaypoint(&posControl.waypointList[posControl.activeWaypointIndex]);
             posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+            posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
             posControl.wpAltitudeReached = false;
             return NAV_FSM_EVENT_SUCCESS;       // will switch to NAV_STATE_WAYPOINT_IN_PROGRESS
 
@@ -1922,16 +1923,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_WAYPOINT_IN_PROGRESS(na
                     fpVector3_t tmpWaypoint;
                     tmpWaypoint.x = posControl.activeWaypoint.pos.x;
                     tmpWaypoint.y = posControl.activeWaypoint.pos.y;
-                    setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_BEARING);
+                    /* Use linear climb/descent between WPs arriving at WP altitude when within 10% of total distance to WP */
+                    tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, 0.1f * posControl.wpInitialDistance, posControl.wpInitialDistance),
+                                                posControl.wpInitialDistance, 0.1f * posControl.wpInitialDistance,
+                                                posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
 
-                    // Use linear climb between WPs arriving at WP altitude when within 10% of total distance to WP
-                    // Update climb rate until within 100cm of total climb xy distance to WP
-                    float climbRate = 0.0f;
-                    if (posControl.wpDistance - 0.1f * posControl.wpInitialDistance > 100.0f) {
-                        climbRate = posControl.actualState.velXY * (posControl.activeWaypoint.pos.z - posControl.actualState.abs.pos.z) /
-                                    (posControl.wpDistance - 0.1f * posControl.wpInitialDistance);
-                    }
-                    updateClimbRateToAltitudeController(climbRate, posControl.activeWaypoint.pos.z, ROC_TO_ALT_TARGET);
+                    setDesiredPosition(&tmpWaypoint, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
 
                     if(STATE(MULTIROTOR)) {
                         switch (wpHeadingControl.mode) {
@@ -3703,7 +3700,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
         setDesiredPosition(&wpPos.pos, DEGREES_TO_CENTIDEGREES(wpData->p1), waypointUpdateFlags);
     }
     // WP #1 - #NAV_MAX_WAYPOINTS - common waypoints - pre-programmed mission
-    else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !FLIGHT_MODE(NAV_WP_MODE)) { 
+    else if ((wpNumber >= 1) && (wpNumber <= NAV_MAX_WAYPOINTS) && !FLIGHT_MODE(NAV_WP_MODE)) {
         // WP upload is not allowed why WP mode is active
         if (wpData->action == NAV_WP_ACTION_WAYPOINT || wpData->action == NAV_WP_ACTION_JUMP || wpData->action == NAV_WP_ACTION_RTH || wpData->action == NAV_WP_ACTION_HOLD_TIME || wpData->action == NAV_WP_ACTION_LAND || wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD ) {
             // Only allow upload next waypoint (continue upload mission) or first waypoint (new mission)
