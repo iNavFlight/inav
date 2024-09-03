@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for STM32746G-Discovery BSP Driver</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st_2020.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<center>
+<h1 id="release-notes-for">Release Notes for</h1>
+<h1 id="stm32746g-discovery-bsp-drivers"><mark>STM32746G-Discovery BSP Drivers</mark></h1>
+Copyright © 2019 STMicroelectronics<br />
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo_2020.png" alt="ST logo" /></a>
+</center>
+<h1 id="purpose">Purpose</h1>
+<p>The BSP (Board Specific Package) drivers are parts of the STM32Cube package based on the HAL drivers and provide a set of high level APIs relative to the hardware components and features in the evaluation boards, discovery kits and nucleo boards coming with the STM32Cube package for a given STM32 serie.</p>
+<p>The BSP drivers allow a quick access to the boards’ services using high level APIs and without any specific configuration as the link with the HAL and the external components is done in intrinsic within the drivers.</p>
+<p>From project settings points of view, user has only to add the necessary driver’s files in the workspace and call the needed functions from examples. However some low level configuration functions are weak and can be overridden by the applications if user wants to change some BSP drivers default behavior.</p>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history"><strong>Update History</strong></h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section9" checked aria-hidden="true"> <label for="collapse-section9" aria-hidden="true"><strong>V2.1.0 / 25-March-2024</strong></label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<ul>
+<li>Update the BSP drivers running on 32F746GDISCOVERY revision C-03 boards supporting W25Q128J QSPI component.</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>One of the following flags must be defined in the preprocessor :
+<ul>
+<li>USE_STM32746G_DISCO : Applicable for all boards except STM32746G DISCO REVC03 and higher revision.</li>
+<li>USE_STM32746G_DISCO_REVC03 : Applicable only for STM32746G DISCO REVC03 and higher revision.</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" aria-hidden="true"> <label for="collapse-section8" aria-hidden="true"><strong>V2.0.4 / 10-June-2022</strong></label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<ul>
+<li>All source files: update disclaimer to add reference to the new license agreement.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" aria-hidden="true"> <label for="collapse-section7" aria-hidden="true"><strong>V2.0.3 / 12-February-2021</strong></label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<ul>
+<li>stm32746g_discovery_lcd.c:
+<ul>
+<li>Remove GPIO PIN 13 (LCD VSYNC) configuration from BSP_LCD_MspInit() API to avoid conflict with stm32746g_discovery_ts.c driver.</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" aria-hidden="true"> <label for="collapse-section6" aria-hidden="true"><strong>V2.0.2 / 24-August-2017</strong></label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<ul>
+<li>stm32746g_discovery_lcd.c:
+<ul>
+<li>Fix compilation errors with SW4STM32 toolchain.</li>
+</ul></li>
+<li>stm32746g_discovery.c:
+<ul>
+<li>Upgrade version to v2.0.2</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true"> <label for="collapse-section5" aria-hidden="true"><strong>V2.0.1 / 26-May-2017</strong></label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
+<ul>
+<li>Add general description of BSP drivers</li>
+<li>Add Dependencies section</li>
+<li>Support of PDSC</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true"> <label for="collapse-section4" aria-hidden="true"><strong>V2.0.0 / 30-December-2016</strong></label>
+<div>
+<h2 id="main-changes-5">Main Changes</h2>
+<ul>
+<li>stm32f746g_discovery_sd.c/.h:
+<ul>
+<li>Update BSP SD APIs following new HAL SD drivers implementation</li>
+<li>Fix BlockSize to 512 bytes</li>
+</ul></li>
+<li>stm32f746g_discovery_audio.c/.h:
+<ul>
+<li>Update BSP_AUDIO_IN_Init parameters</li>
+</ul></li>
+<li>stm32f746g_discovery_lcd.c/.h:
+<ul>
+<li>Update BSP_LCD_ReadPixel to read correctely ARGB8888 and RGB888 pixels</li>
+</ul></li>
+<li>stm32f746g_discovery_qspi.c/.h:
+<ul>
+<li>QSPI write operation improvement</li>
+<li>Update CS High Time</li>
+</ul></li>
+<li>Notes:
+<ul>
+<li>These BSP drivers break the compatibility with previous versions.</li>
+<li>If FatFs is required, “FatFS R0.11 ST modified 20161223” must be used with this version of BSP drivers.</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true"> <label for="collapse-section3" aria-hidden="true"><strong>V1.1.1 / 02-June-2016</strong></label>
+<div>
+<h2 id="main-changes-6">Main Changes</h2>
+<ul>
+<li>Update typos in drivers comments.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true"> <label for="collapse-section2" aria-hidden="true"><strong>V1.1.0 / 22-April-2016</strong></label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<ul>
+<li>Update overall drivers by removing BSP_PPP_IRQHandler, BSP_PPP_DMA_TX_IRQHandler and BSP_PPP_DMA_RX_IRQHandler to avoid possible conflict when the same Handler is used by different IPs.</li>
+<li>These Handlers should be defined by user at application level, inducing a break of compatibility versus V1.0.0 of the STM32F46G-Discovery BSP drivers</li>
+<li>Update NVIC priority configuration to the lowest priority 0x0F in overall drivers</li>
+<li>stm32f746g_discovery_camera.c:
+<ul>
+<li>Update BSP_CAMERA_Suspend() and BSP_CAMERA_Resume() APIs to use HAL API HAL_DCMI_Suspend() and HAL_DCMI_Resume()</li>
+</ul></li>
+<li>stm32746g_discovery_lcd.c: Add the following APIs:
+<ul>
+<li>BSP_LCD_SetTransparency_NoReload()</li>
+<li>BSP_LCD_SetLayerAddress_NoReload()</li>
+<li>BSP_LCD_SetColorKeying_NoReload()</li>
+<li>BSP_LCD_ResetColorKeying_NoReload()</li>
+<li>BSP_LCD_SetLayerWindow_NoReload()</li>
+<li>BSP_LCD_SetLayerVisible_NoReload()</li>
+<li>BSP_LCD_Relaod()</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true"> <label for="collapse-section1" aria-hidden="true"><strong>V1.0.0 / 19-Octobre-2018</strong></label>
+<div>
+<h2 id="main-changes-8">Main Changes</h2>
+<ul>
+<li>First official release of the STM32746G-DISCO board BSP drivers.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>STM32F7xx_HAL_Driver V1.2.0</li>
+<li>BSP Common V4.0.1</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32 Microcontrollers</mark> , visit: <span style="font-color: blue;"><a href="http://www.st.com/stm32">www.st.com/stm32</a></span>
+</footer>
+</body>
+</html>

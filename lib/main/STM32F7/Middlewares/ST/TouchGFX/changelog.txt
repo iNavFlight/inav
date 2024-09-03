@@ -1,0 +1,1106 @@
+4.10.0
+======
+
+* Release date: November 5th, 2018
+
+* Requirements:
+  * TouchGFX is now only available for STM32 microcontrollers.
+
+* New TouchGFX Designer Features:
+  * Added support for the following widgets: ImageProgress,
+    BoxProgress, TextProgress, LineProgress, CircleProgress, Line,
+    Circle, BoxWithBorder, FlexButton, ScrollList, ScrollWheel and
+    SwipeContainer.
+  * Canvas Buffer setting can be adjusted on screens.
+  * Support for screen transition: CoverTransition.
+  * Now logs the following system information for use in support
+    scenarios: Username, Designer version, Designer installation path,
+    Windows version, Current culture, Installed .NET versions.
+  * It is now possible to import a UI with any resolution to an
+    application (resolution check has been removed).
+  * Added button to show/hide clipped widgets.
+  * Improved performance when dragging and resizing widgets on the
+    canvas.
+
+* New TouchGFX Core Features:
+  * Circle and AbstractShape now supports higher precision on arc
+    start and arc end for smoother arcs.
+  * The internal Q5 structure now uses 32 bit instead of 16 bits for
+    increased value range.
+  * Added Circle::getPrecision().
+  * Added functons FadeAnimator::isFadeAnimationRunning(),
+    MoveAnimator::isMoveAnimationRunning(),
+    AnimatedImage::isAnimatedImageRunning() and
+    ZoomAnimationImage::isZoomAnimationImageRunning(). The old
+    isRunning() functions have been deprecated.
+  * ListLayout::setDirection() and getDirection() added.
+  * Updated roo gem from 1.13.1 to 2.7.1.
+  * Pressing SHIFT-F3 will copy the screen to the clipboard (Windows
+    only).
+  * Pressing CTRL-F3 will save the next 50 screens to the screenshots
+    folder.
+  * Generated assets are now indented properly.
+  * ScrollableContainer::setScrollbarsPermanentlyVisible() added.
+
+* Bugfixes in TouchGFX Designer
+  * Fixed ModalWindow widget not resizing when Screen or Custom
+    Container size changes.
+  * Fixed generating code failing if a files hidden attribute was set
+    to hidden.
+  * Fixed changing the casing of a screen or custom container name
+    resulting in a recompilation error.
+  * Fixed bug where internet loss would crash the Designer if no
+    Online Applications are available.
+  * Fixed ModalWindow widget position being generated incorrectly
+    after loading a project.
+  * Removed unnecessary recompilation when loading Designer project.
+  * Fixed visual bug in ImagePicker where the "empty placeholder"
+    would show up even though you have subfolders in current folder.
+  * Fixed bug where the Designer was not using default credentials
+    through proxy server.
+  * Fixed bug where the Designer would not correctly report an error
+    when trying to flash to a wrong target.
+  * Fixed bug where having insufficient permissions to write to the
+    chosen touchgfx path would crash the Designer.
+  * Fixed bug where the Designer was incorrectly interpreting screen
+    changes as an unsaved change.
+  * Fixed a visual bug, where widgets inside a Container would not
+    display properly when resizing the Container.
+  * The Designer now closes a running Simulator process, when you load
+    another application.
+  * Fixed a bug where it was possible to drag widgets inside an
+    instance of a Custom Container.
+  * Circle did sometimes not render correctly, and invalidated
+    rectangle was not calculated properly.
+  * Fixed Circle when half line width was greater than radius.
+
+* Bugfixes in TouchGFX Core:
+  * Fixed erroneous calculation of x & y values in setValue in
+    LineProgress.cpp.
+  * Circle did sometimes not render correctly, and invalidated
+    rectangle was not calculated properly.
+  * Fixed Circle when half line width was greater than radius.
+  * Fixed drawing lines longer than 2047 pixels, e.g. 1449 pixels wide
+    and 1449 pixels high.
+  * Fixed bug preventing some Arabic ligatures from being rendered
+    correctly.
+
+
+4.9.4
+=====
+
+* Release date: January 25th, 2018
+
+* Bugfixes:
+  * Reduced the time it takes to load an application in the Designer.
+
+
+4.9.3
+=====
+
+* Release date: December 15th, 2017
+
+* Bugfixes:
+  * Designer now uses default Windows proxy settings.
+  * Package manager updates available packages when online.
+  * Improved error description when offline.
+  * Set text interaction works with resource texts.
+  * Project updater updates MSVS projects with correct image formats.
+  * Text size calculated wrongly in Designer in rare occasions.
+  * Recent files ordered by date.
+  * Corrected initialization of counter in Wait For interaction.
+  * Fixed drawing of child elements in list layout, when resized.
+  * Fixed loading of application with list layout widgets.
+  * .otf font files now correctly rendered.
+  * Dragging containers could in rare cases introduce wrong coordinates.
+  * Fixed zero termination of wildcard text buffers.
+  * Button With Label text rendering correction.
+  * tgfx.exe packager works for more complex file layouts.
+  * Source code included for containers.
+  * Additional minor Designer UI fixes and improvements.
+
+
+4.9.2
+=====
+
+* Release date: November 20th, 2017
+
+* Bugfixes:
+  * Fixed Designer issue where dragging elements on the canvas would
+    in some cases cause an exception.
+
+
+4.9.1
+=====
+
+* Release date: November 16th, 2017
+
+* Bugfixes:
+  * Fixed several Designer issues with TextArea widgets when placed
+    inside containers.
+  * Fixed an issue with interactions triggered by "Another interaction
+    is done" dissappearing when loading a project.
+  * On PCs with certain security policy configurations, the Designer
+    was not able to create new projects correctly.
+  * Improved error handling in Designer if the asset generation, code
+    compilation or post generation commands fail.
+  * Fixed an issue where the TouchgfxPath in Designer project files
+    was not interpreted correctly.
+  * Some typography changes in Designer did not cause new code to be
+    generated.
+  * Fixed issue with ImageConverter when assets folder was under svn
+    control.
+  * ImageConverter could in certain cases fail to detect changes in
+    assets.
+
+    
+4.9.0
+=====
+
+* Release date: November 8th, 2017
+
+* New Features:
+  * Added a package manager for handling board support packages, demos
+    and examples. The Designer will now fetch these from an online
+    repository.  Read more about this feature here:
+    https://touchgfx.zendesk.com/hc/en-us/articles/115002589211
+  * All the old examples, demos and ports for various boards have been
+    removed from the framework, and are now available as packages
+    instead.
+  * Substantially improved text handling in the Designer. It is now
+    possible to work with translations and wildcards in the Designer,
+    so it should no longer be necessary to edit the texts.xlsx file
+    manually.
+  * Designer is now much more flexible regarding application file
+    structure, and is now able to auto-update IAR and Keil IDE
+    projects regardless of file location.
+  * Added Designer support for the ScrollableContainer and ListLayout
+    widgets.
+  * Added support for the SW4STM32 IDE.
+  * Added support for version 8.10 of IAR Embedded Workbench.
+  * Image converter now has an option to operate on folders, instead
+    of being invoked once per .png file. This substantially speeds up
+    the process of converting images. This mode is the default
+    behavior for new projects.
+  * The GNU Arm Embedded toolchain (GCC cross-compiler) has been
+    updated to version 6-2017-q2-update (gcc version 6.3.1).
+  * The GNU compiler for the PC simulator has been updated to version
+    6.3.0.
+  * Added gcc core libs compiled with -mfloat-abi=hard for Cortex-M4f
+    and Cortex-M7.
+  * Increased number of widgets that can be registered as timer
+    widgets from 24 to 32. Also added functions for obtaining
+    information about which widgets are currently registered.
+
+* Bugfixes:
+  * AnimationTextureMapper::cancelMoveAnimation() is renamed to
+    cancelAnimationTextureMapperAnimation() to avoid problems with
+    MoveAnimator::cancelMoveAnimation().
+  * Fixed bug in PainterRGB565Bitmap when rendering solid pixels from
+    an ARGB8888 Bitmap.
+  * Fixed rare bug in FontConvert if all used characters are missing
+    from the font.
+  * Fixed unitialized variables in the DMA class.
+
+* Update procedure:
+  * For this release additional steps might be needed. Please refer to
+    the Known Issues article for details:
+    https://touchgfx.zendesk.com/hc/en-us/articles/207507415
+
+
+4.8.0
+=====
+
+* Release date: March 10th, 2017
+
+* Performance
+  * LCD4bpp now draws characters up to 15% faster.
+  * Canvas widgets now render slightly faster in certain situations.
+
+* New Features:
+  * TouchGFX Designer released. The core framework, Designer and
+    environment shell are now bundled in a single installation.
+    To get started with the Designer, please see
+    https://touchgfx.zendesk.com/hc/en-us/articles/115001801745
+  * Support for Farsi and Arabic ligatures where squences of up to
+    three character are recognized.
+  * Added support for Microsoft Visual Studio 2017.
+  * TextArea and TextAreaWithWildcard(s) now support
+    setWideTextAction() to automatically break lines and insert
+    ellipsis at end of line, when the line is too long.
+  * Added getter functions to Slider.
+  * MoveAnimator and FadeAnimator can now clear the callback
+    set for animation ended.
+  * Errors from ImageConvert, TextConvert and FontConvert are now
+    shown in the Error List window of Visual Studio.
+  * Simulator applications are now Windows programs instead of Console
+    programs. To use printf() or std::out, please see
+    https://touchgfx.zendesk.com/hc/en-us/articles/205074511-Tips-tricks
+
+* Bugfixes
+  * AbstractShape::updateAbstractShapeCache() is now a public function
+    and should be called after one or more calls to
+    AbstractShape::setCorner(), to ensure shape is correct.
+  * Simulator window can no longer be unintentionally resized.
+  * F2 to highlight invalidated areas now works with old HALSDL.
+  * PainterGRAY2Bitmap, PainterGRAY4Bitmap, PainterRGB565Bitmap and
+    PainterRGB888Bitmap all failed to validate that painting was
+    inside the size of the bitmap in some situations.
+  * HALSDL2 (simulator) now uses 24bpp on screen to make colors in
+    screenshots correct.
+  * TiledImage::setOffset() now handles an empty bitmap correctly.
+  * TiledImage::getSolidRect() would sometimes report wrong rect.
+  * If text in a TextArea was rotated, resizeToCurrentText() and
+    resizeHeightToCurrentText() would swap the width/height.
+  * Function getTextHeight() would not take line spacing into
+    account. Functions like resizeToCurrentText() and others that use
+    the getTextHeight() function would not resize correctly.
+  * SlideMenu::setState() did not handle EXPANDED state correctly.
+
+* Update Procedure
+  * Due to the addition of TouchGFX Designer, installation is now
+    done via an .msi installer. For details and manual installation
+    refer to https://touchgfx.zendesk.com/hc/en-us/articles/206819819
+  * Compatible with existing 4.x applications and HAL ports.
+
+
+4.7.0
+=====
+
+* Release date: December 14th, 2016
+
+* New Features:
+  * Source code for all the standard widgets and containers is now
+    included. See the touchgfx/framework/source/touchgfx directory.
+    Note that these classes are still present in the core library, and
+    the source code files are not added to the IAR/Keil/gcc projects
+    per default. For details, see the following article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/115000035825
+  * Optimized the handling of single frame buffer configuration on TFT
+    controller based platforms, which in many cases eliminate the need
+    for external RAM. For details on this feature, and how to enable
+    it please see the following article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/203649441
+  * Substantial performance optimizations of the canvas widget system
+    and all the standard painters. Expect a very significant increase
+    in performance if many pixels are being drawn, and a smaller
+    increase in performance for minor shapes (e.g. graph lines). The
+    "PainterVerticalAlpha" used in our demos have also been
+    updated. If you are using custom painters please refer to the
+    Known Issues article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/207507415
+  * The text converter tool will now combine identical translations
+    across all languages, resulting in reduced footprint. The result
+    of this process will be printed during asset generation.
+    NOTE: This behavior is enabled by default. If you have an existing
+    project where you manipulate the text data structures (e.g. load a
+    single language into RAM), this optimization might break your
+    code. The optimization can be disabled by adding the following
+      remap_identical_texts := no (for "make"-based generation)
+      <RemapIdenticalTexts>no</RemapIdenticalTexts> (for MSVS)
+  * Updated SDL version used by simulator from 1.2 to 2.0.4. SDL1.2 is
+    still present in the distribution, but all examples and projects
+    now use SDL2. For more details, please see:
+    https://touchgfx.zendesk.com/hc/en-us/articles/115000011245
+  * Support for skinning the simulator with .png files. If the .png
+    files contain non-opaque areas, the simulator window will be
+    shaped accordingly. See display_orientation_example for a code
+    example or read the following article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/115000014669
+  * On ST targets with Chrom-ART, the Box widget will now be drawn by
+    DMA even when alpha < 255 (BLIT_OP_FILL_WITH_ALPHA support).
+  * TextArea and TextArea with wildcard(s) now support
+    setWideTextAction() to automatically wrap long lines.
+  * Added the ability to display a "fallback" character in case a
+    non-existing glyph is encountered at runtime. This is configured
+    in the typography sheet of the text database.
+  * Added options for forcing the inclusion of additional glyphs in a
+    font. This makes it much easier to handle dynamic texts where the
+    glyphs are not known at compile time. This is configured in the
+    typography sheet of the text database.
+  * Output from the TextConvert utility is now post-processed to give
+    significant saving by mapping identical strings to the same memory
+    areas.
+  * Added built-in BitmapId called BITMAP_ANIMATION_STORAGE which can
+    be used to refer to the animation storage when assigning a Bitmap
+    to a widget.
+  * Added dither algorithm selection from config/gcc/app.mk and
+    config/msvs/Application.props.
+  * It is possible to save a simulator screenshot programatically, by using:
+      #ifdef SIMULATOR
+          (static_cast<HALSDL2*>(HAL::getInstance()))->saveScreenshot();
+      #endif
+  * ScrollableContainer now properly ignores invisible elements.
+  * DigitalClock now supports a zero to be displayed in front of the
+    hour indicator (if hour < 10).
+  * The simulator can now highlight the areas being invalidated. Press
+    F2 to toggle this feature.
+  * Added Unicode::vsnprintf functions that take va_list arguments
+    instead of ellipsis.
+
+* Bugfixes
+  * Unicode::sprintfFloat did not print <space> instead of '+' if the
+    format string was "% f". Also, the sign of floating point numbers
+    in range ]-1..0[ would not be printed with sign so for example
+    -0.5 would print as 0.5.
+  * Fixed a bug that could cause TextureMapper to read outside source
+    bitmap memory area.
+  * GPIO.cpp for STM32F769-Discovery and Eval boards had some
+    incorrect GPIO pin manipulations (used for performance
+    measurement).
+  * Some methods in Slider.hpp were missing a virtual declaration.
+  * Fixed a bug in BoardConfiguration for STM32F769-Discovery board
+    causing 24bpp color mode to be displayed incorrectly.
+  * AnimatedImage - setBitmap(..) should not be used and is now
+    private For AnimatedImage use setBitmaps(..) instead.
+  * Project files and Makefile have been updated to allow the TouchGFX
+    framework to be placed on another disk drive than the project
+    being developed.
+
+* TouchGFX Environment (version 2.8)
+  * "make.exe" is now version 4.1 which allows for parallel
+    compilation, by adding e.g. "-j8" to your make command. This
+    substantially speeds up compilation. If your makefile is from
+    TouchGFX 4.2.0 or earlier, you will need to either update it, or
+    to use make-3.81.exe
+  * g++ could in some cases report "There is no disk in the drive.
+    Please insert a disk into drive E:.". This has been fixed by
+    upgrading gcc from version 4.8.1 to version 4.9.3.
+
+
+4.6.1
+=====
+
+* Release date: September 12th, 2016
+
+* Performance
+  * Optimization improvements of core library for GCC on Cortex-M4 and
+    Cortex-M7, providing significant speeedup of especially TextureMapper
+    and Canvas widgets compared to TouchGFX 4.6.0.
+
+* New Features
+  * New function in HALSDL to set title of simulator window see
+    HALSDL::setWindowTitle().
+  * BW_RLE format (1bpp displays) now compresses better. Remember to
+    remove old generated files and re-generate assets.
+  * STM32F756G-EVAL using IAR now supports flashing of external
+    memory.
+
+* Bugfixes
+  * Added IAR linker redirect commands to fix linker errors when
+    compiling a Cortex-M4 based target with IAR 7.x.
+  * Assigning different memory buffers to CanvasWidgetRenderer using
+    setupBuffer() could in rare cases result in memory corruption.
+  * TextureMapper could in rare cases draw outside the frame buffer.
+  * Setting the offset of a TiledImage did not work properly.
+  * Fixed two issues that would in some cases cause memory corruption
+    when deleting dynamic bitmaps.
+  * Missing virtual method declarations in AnalogClock added.
+  * Fixed a problem in GCC linker script for LPC4088DisplayModule
+    which caused texts and fonts to be placed in external flash.
+  * For those using fontconvert.out on its own, the output directory
+    is now automatically created if it does not exist.
+  * ScrollableContainers could in rare cases send a wrong drag event
+    to a child.
+  * Monochrome (1bpp) displays with width not divisible by 8 would not
+    display text correctly.
+  * Slightly increased default touch sample rate on STM32F746G
+    Discovery board.
+
+
+4.6.0
+=====
+
+* Release date: June 14th, 2016
+
+* New features
+  * Added support for 2bpp grayscale displays. See
+    https://touchgfx.zendesk.com/hc/en-us/articles/208237889 for details.
+  * Added support for 4bpp grayscale displays. See
+    https://touchgfx.zendesk.com/hc/en-us/articles/209003105 for details.
+  * New widget TiledImage. Will display one or more repetions of an
+    image. The number of repetitions depends on the size of the widget
+    and the size of the image.
+  * New widget RepeatButton. A button that will repeatedly fire click
+    events when pressed.
+  * New widget AnimationTextureMapper. TextureMapper with build in
+    animation features. See animation_texture_mapper_example.
+  * New containers AnalogClock and DigitalClock, see clock_example.
+  * New containers ProgressIndicators, see progress_indicator_example.
+  * New container ModalWindow. Creates a window on top of the main
+    screen and a shade on the rest of the main screen. No clicks are
+    passed on to the main screen as long as the modal window is
+    visible. See example modal_window_example.
+  * New container SlideMenu. Animating side/top/bottom-menu that has
+    an activate button for sliding it in/out of the screen. A timeout
+    can be set for automitical hiding when idle for a period of time.
+  * Canvas Widget Line supports ROUND_CAP_ENDING and setCapPrecision()
+    to control the round cap.
+  * Simulator can now generate ticks very close to the frequency of
+    the hardware. See
+    https://touchgfx.zendesk.com/hc/en-us/articles/205074511 for details.
+  * Mouse X and Y coordinates are put in the title of the window in
+    the simulator. (press F1 to (de)active this when running the
+    simulator). See
+    https://touchgfx.zendesk.com/hc/en-us/articles/205074511 for details.
+  * ST Cube drivers updated to version 1.4.0 for STM32F7 MCU and
+    STM32F7 based boards.
+  * Added support for the STM32769I-EVAL board.
+  * Added support for the STM32F769I-Discovery board.
+  * Screenshots made from the simulator (F3) are now saved under a
+    name with timestamp to prevent old screenshots to be overwritten
+    by accident.
+  * Simulator now outputs canvas widget memory usage to easily find
+    optimal canvas memory buffer size. See
+    https://touchgfx.zendesk.com/hc/en-us/articles/205074511 for details.
+
+* Bugfixes
+  * DMA drivers for ST boards: express DMA2D instance initialization
+    for STM32F7. Fixed incorrect used of CLUT_CM for F4-Discovery.
+  * DMA drivers for LPC17xx, LPC18xx, LPC43xx did not behave correctly
+    if other DMA channels are in use simulatenously. They now properly
+    look at flags for channel 0 only.
+  * Touch controller drivers for ST boards now properly checks that
+    initialization was OK before querying.
+  * Mouse clicks in the simulator would not always be detected.
+  * ImageConvert.exe has RGB565 as default (and sensible defaults for
+    other opque formats)
+  * ImageConvert would not work for a BW image scheduled for
+    compression (BW_RLE) and rotation (.90. in filename) if the image
+    would become too large if compressed (falling back to BW format).
+  * All Makefiles now use abspath instead of realpath.
+  * AnimatedImage now allows the animation to be restarted from the
+    AnimationEnded callback function.
+  * QSPI flash size corrected to 64MBytes for STM32756G-EVAL board.
+  * Added D-cache invalidation to STM32F7HAL::flushFrameBuffer. This
+    fixes occasional graphics errors on STM32F7 when in single frame
+    buffer mode and fb was located in SRAM.
+  * The otm8009a displays (STM32769-DISCO, STM32769-EVAL,
+    STM32469-DISCO, STM32469-EVAL) are now using maximum display
+    brightness.
+  * Added a workaround for a bug in IAR 7.50.x regarding va_list
+    name mangling.
+* Update Procedure
+  * Compatible with existing 4.x applications and HAL ports. Please
+    refer to this article for details:
+    https://touchgfx.zendesk.com/hc/en-us/articles/206819819
+
+4.5.1
+=====
+
+* Release date: March 14th, 2016
+
+* Bugfixes
+  * Fixed two IAR linker issues related to resolving the va_list
+    symbol, which would cause some versions of IAR being unable to
+    link the example projects.
+  * STM32F4-Discovery board would draw solid rectangles with the wrong
+    color in 16bpp mode.
+  * The Canvas Widget Renderer no longer performs unaligned memory
+    accesses.
+  * vApplicationIdleHook (FreeRTOS specific) no longer blocks, which
+    previously prevented FreeRTOS from freeing memory if tasks were
+    deleted.
+  * Arabic words with accent in the middle would not render properly.
+  * Added PixelDataWidget::getAlpha().
+  * Unicode::strncpy() with a char* as source would not copy
+    characters with ascii codes above 127 properly.
+
+
+4.5.0
+=====
+
+* Release date: February 2nd, 2016
+
+* New features
+  * Support for two new languages, Arabic and Hebrew, with
+    right-to-left text rendering. RTL strings can be mixed with LTR
+    texts and numbers.
+  * Support for 24 bits per pixel frame buffers. Images look more
+    detailed, but also consume more memory. See this article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/206725849
+  * Bitmaps can now be created at runtime using method
+    Bitmap::dynamicBitmapCreate. Useful for e.g. displaying .bmp files
+    loaded from an SD card. See dynamic_bitmap_example and this
+    article: https://touchgfx.zendesk.com/hc/en-us/articles/207460605
+  * Frame rate compensation feature which provides smoother animations
+    if frame rate occasionally drops. Not enabled by default. See
+    article: https://touchgfx.zendesk.com/hc/en-us/articles/206430529
+  * Bitmap caching is enhanced to allow removal of bitmaps from the
+    cache to make room for caching of other bitmaps. See this article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/205953932
+  * A new widget, PixelDataWidget, is introduced. This widget makes it
+    possible to display raw pixel data obtained at runtime (e.g. video
+    samples).
+  * The simulator executable on windows now features an icon for
+    easier identification in the task bar.
+  * ST boards supported by TouchGFX can now have just their internal
+    flash programmed from the command using 'make intflash' provided
+    that ST-Link Utility Release 3.7+ is installed. For usage and
+    troubleshooting, please refer to this article:
+    https://touchgfx.zendesk.com/hc/en-us/articles/205264831
+  * Unicode::snprintf() has been improved and updated substantially to
+    support more of the standard format specifiers like %02d.
+  * Unicode::snprintfFloat() added to support floats (in separate
+    function because the "%f" va_args approach would force inclusion
+    of doubles).
+  * Quality of image converter dithering has been improved (floating
+    point arithmetics). Also added support for new types of dither
+    algorithms, and can take into account hardware with various wiring
+    of the low (unused) bits in 16/18 bit displays.
+  * touchgfx::ButtonWithLabel now contains a method,
+    updateTextPosition(), that can be used to ensure horizontal text
+    centering when changing label content (e.g. when changing
+    language).
+  * touchgfx::TextArea has a new method, setBaselineY(), that allows
+    placing texts according to a text baseline instead of upper left
+    corner.
+  * The internal format of glyph encoding now stores the first pixel
+    in the least significant bit instead of the most significant bit.
+  * Specification of color values has been switched from uint16_t to
+    colortype to support seamless switching between 16 and 24 bit
+    colors.
+  * The touchgfx::TextArea class now has a method, setIndentation(),
+    that can prevent the glyph of characters from being cut off in the
+    rare case where it extends under the previous character (similarly
+    for touchgfx::Keyboard class which has a new setTextIndentation()
+    method).
+  * STM32F7xx and STM32F4x9 ports now support DMA transfers of
+    touchgfx::Box.
+  * The GPIO::VSYNC_FREQ signal was previously "toggled" exclusively
+    on "VSYNC" interrupt (NXP LPC18xx, NXP LPC43xx, Freescale MK70F12,
+    ST stm32f4x9). The signal is now high on "VSYNC" interrupt and low
+    on "Front-Porch-Entered" interrupt.
+  * GCC support for Cortex-M3.
+
+* Bugfixes
+  * Fixed rare crash on STM32F7 caused by speculative caching of
+    invalid QSPI memory region. Update your BoardConfiguration if
+    yours is based on 4.4.x.
+  * Fixed occasional display flickering on STM32F746G-DISCO board
+    caused by cache access on FMC bank 1.
+  * Handling of the character "%"" in touchgfx::TextAreaWithWildcards
+    has been improved to prevent inserting %% in some special cases.
+  * touchgfx::DragEvent and touchgfx::GestureEvent now use and report
+    signed coordinates instead of unsigned. This makes more sense as
+    drags/gestures are expressed in coordinates relative to the
+    drawable receiving them.
+  * snprintf("%x") would generate uppper case hex. Now "%X" generates
+    uppercase hex and "%x" generates lower case hex, just like the
+    standard snprintf().
+  * Fixed randomness for demos when running on Linux.
+  * Fixed redrawing when using heavily italicized fonts.
+  * Pointer to ModelListener in Model class for all TouchGFX
+    applications was not properly initialized (NULL).
+  * Fixed support for heavily italicized fonts in touchgfx::TextArea.
+  * Subtle error in the Image Converter where column 0 could get
+    slightly incorrect pixel colors. As a result the entire image
+    could be slightly wrong, probably not noticeable.
+  * Minor error in Slider where values were not distributed evenly.
+
+* Deprecated
+  * LCD::drawGlyph() has been deprecated. Use LCD::drawString instead.
+
+* Update Procedure
+  * Compatible with existing 4.x applications and HAL ports. Please
+    refer to this article for details:
+    https://touchgfx.zendesk.com/hc/en-us/articles/206819819
+
+
+4.4.2
+=====
+
+* Release date: November 26th, 2015
+
+* Bugfixes:
+  * Corrected rare GUI task hangup on STM32F7 targets when compiling
+    with IAR 7.x
+
+
+4.4.1
+=====
+
+* Release date: October 27th, 2015
+
+* Bugfixes:
+  * Corrected occasional GUI task hangup on STM32F7 targets when
+    compiling with Keil 5.x
+  * Fixed occasional tearing on STM32 F469 EVAL/Discovery boards when
+    using DSI in landscape orientation and single frame buffer mode.
+  * Modified IAR flash loader settings for STM32 F469 boards to enable
+    programming of internal flash (Note: QuadSPI flash must still be
+    programmed from ST-Link Utility as there are no IAR loaders for
+    this)
+  * GPIO class for perf. measurement for STM32F746G-EVAL boards now
+    properly uses the BSP_LED functions. Note that only two signals
+    are active on this board per default because LED2 and LED4 use IO
+    Expander, making them unsuited for measuring performance.
+  * Removed annoying "Get Alternative File" dialog popups in IAR
+    Workbench when debugging Cortex-M7 applications.
+
+
+4.4.0
+=====
+
+* Release date: October 6th, 2015
+
+* New features
+  * Added support for the Cortex-M7 core.
+  * Introduced concept of "finger size" for touch input. When used,
+    TouchGFX will attempt to find touchable widgets in the area
+    surrounding the reported x,y coordinates, so users no longer have
+    to click precisely on a widget. This feature makes it substantially
+    easier to hit small buttons.
+    See HAL::setFingerSize().
+  * Supports Visual Studio 2015
+  * Visual Studio projects for Demos and Examples now include
+    Application.props under Resources for quick access. As always a
+    rebuild might be required when altering the contents of
+    Application.props.
+  * Support for Bitmap Fonts in BDF format. If the requested font size
+    is not available in the font file, the font converter will write
+    the supported font size(s) in the error message. See the example
+    monochrome_example for usage.
+  * Generating assets now issues better error messages when spaces are
+    detected in paths and file names.
+  * All ST boards can now be flashed from the command line provided
+    that ST-Link Utility Release 3.7 has been installed. Simply use
+    'make -f target/ST/<board>/Makefile flash' to build and flash
+    your application to the connected board. If timeouts occur during
+    flashing, go to Device Manager in Windows and disable "MBED
+    microcontroller USB Device" under "Disk drives".
+  * New touchgfx-env version 2.5 available with new gcc cross compiler
+    version 4.9.3. The older version 4.8.4 could generate invalid code
+    for Cortex-M7 cores in rare cases.
+
+* Board support
+  * Added support for the STM32F7xx processors
+  * Added support for the STM32F746G-DISCO and STM32756G-EVAL boards
+  * Added support for the STM32F469 processor with DSI displays
+  * Added support for the STM32469I-EVAL and STM32469I-Discovery boards
+
+* Bugfixes
+  * TextureMapper and ScaleableImage now draws images correctly when
+    using "rotate90".
+  * Fixed potential initialization order bug in STM32F4DMA.cpp
+  * Fixed bug that limited number of glyphs in a single font to 32768.
+    Now supports 65536 glyphs per font as intended.
+  * Fixed bug that caused hal.lockDMAToFrontPorch(false) to not have
+    any effect in single frame buffer mode.
+  * ButtonWithLabel correctly center texts vertically if text contains
+    newlines
+
+
+4.3.0
+=====
+
+* Release date: June 8th, 2015
+
+* New features
+  * TextureMapper widget added.
+    The TextureMapper is a highly optimized image renderer that can be
+    used for displaying an image that is scaled and/or rotated in two
+    or three dimensions during run time. This can be used for doing
+    advanced rotation animations of images. See manual or
+    texture_mapper_example for more information. LCD has new methods
+    for drawing triangles and corresponding scan lines,
+    drawTextureMapTriangle and drawTextureMapScanLine
+  * Alpha Channel Dithering
+    Images with alpha channel can now get the alpha channel dithered
+    for smoother alpha gradients, see examples or Application Development
+    section in manual for details
+  * Compression of 1BPP (monochrome) bitmaps
+    Added image format option of BW_RLE, which will cause bitmaps to
+    be automatically run-length encoded if that takes up less space than
+    the regular per-pixel format. Yields substantially smaller bitmap
+    footprint in many cases. See advanced chapter in manual for details.
+  * Slider widget added.
+    See manual or slider_example for more information.
+  * Makefiles has been updated to work with make-4.1.
+  * Added support for the LPC4088 processor and the Embedded Artists
+    LPC4088 Display Module board.
+  * Individual bitmaps can now be placed in internal flash instead
+    of external by having the bitmap file name include the string ".int."
+  * MoveAnimator, FadeAnimator and ZoomAnimationImage now have a
+    cancelMoveAnimation/cancelFadeAnimation/cancelZoomAnimation
+    method.
+
+* Update procedure
+  * Compatible with existing 4.X applications. Just replace the
+    touchgfx folder.
+  * Check Known Issues in the documentation.
+
+* Info
+  * The evaluation version of TouchGFX is now distributed with source
+    code for the hardware abstraction layer instead of a precompiled
+    library. This makes it possible to port the evaluation version
+    to custom hardware instead of it being limited to the supported
+    eval boards only. Instead, the evaluation version now has a
+    TouchGFX watermark which will appear occasionally.
+  * Memory consumption reduced due to improved rendering algorithm.
+    Will typically allow GUI task stack to be reduced by around 1400
+    bytes compared to version 4.2.0 (depending on actual application).
+    Additionally the statically allocated memory is also reduced by
+    around 1KB.
+  * Maximum number of visible widgets limit of 150 removed.
+  * Added two new demos for 640x480 and 480x272 resolutions showcasing
+    new features, graphs, internationalization and custom widgets.
+  * Drawable.setPosition() now calls setXY(), setWidth() and
+    setHeight() for easier subclassing.
+  * AbstractPainterRGB565 and AbstractPainterBW are recommended as
+    base classes when implementing your own painters.
+  * CanvasWidgets now have setAlpha() and getAlpha() methods. Your
+    custom Painter classes must implement this, or inherit from the
+    AbstractPainterRGB565 class
+  * Maximum number of registered timer widgets increased from 16 to
+    24.
+  * touchgfx-env updated to 2.4. The environment does not beep anymore.
+  * Board Support Package for STM324x9I-EVAL is now based on the
+    STMCubeF4 drivers.
+
+* Bugfixes
+  * Screen::handleGestureEvent now converts x/y to relative coordinates
+  * Fixed bug when drawing several objects on the same canvas using
+    moveTo() more than once.
+  * ZoomAnimationImage movement relative to scaling did not use
+    correct easing equation.
+  * PainterRGB565 did not blend green alpha correctly.
+  * RadioButtonGroup now initializes callbacks to zero.
+  * ScalableImage now works with bitmaps with transparancy.
+  * AnimatedImage would display the start and end of an animation twice.
+  * Default implementation of CanvasWidget::getMinimalRect() returned
+    coordinates relative to its parent, not itself.
+  * ScrollableContainer erroneously unregistered itself as a timer widget
+    at every tick, which made it difficult to use with other timer-based
+    operations.
+
+* Performance
+  * ScalableImage and ZoomAnimationImage has been optimized for better
+    performance.
+
+
+4.2.0
+=====
+
+* Release date: January 14th, 2015
+
+* Performance
+  * Substantially improved rendering performance, which in most cases
+    will result in a 25% reduction of time it takes to render a frame.
+
+    NOTE: This optimization does not necessarily work on all targets
+    so it must be manually enabled. See the "Optimization" chapter in
+    the porting guide for how to enable this optimization for existing
+    portings. It is STRONGLY recommended that the optimization is
+    enabled. This optimization is enabled for all appropriate
+    evaluation boards in the 4.2.0 board packages.
+
+* Major new features
+  * Added CanvasWidgets for smooth, anti-aliased drawing of geometric
+    shapes. Currently Line, Circle and a more generic Shape have been
+    implemented. CanvasWidgets can be painted with a solid color (+
+    alpha), a bitmap (including alpha) or a custom painter. Read more
+    on Canvas Widgets and Painters in the documentation.
+  * Added support for the Keil compiler and uVision4 IDE. Please refer
+    to the "Supported Hardware" section of the TouchGFX Distribution
+    chapter in the documentation for a list of Keil-supported targets.
+
+* New features
+  * It is now possible to specify an animation start delay on
+    ZoomAnimationImage, MoveAnimator and FadeAnimator.
+  * Added Board support for 4.3" TouchGFX Demo board w. LPC4350 (No
+    internal flash)
+  * RadioButton and RadioButtonGroup widgets added. See
+    app/examples/radio_button_example and documentation.
+  * LPC43XX and LPC1788 can now fill rectangles using DMA.
+  * Visual Studio 2013 is now supported.
+  * Preliminary support for Visual Studio 2015 Preview version.
+  * Improved performance when generating assets.
+  * New canvas_widget_example added to the example directory.
+  * The "using namespace touchgfx" present in various header files can
+    now be avoided by defining the symbol NO_USING_NAMESPACE_TOUCHGFX
+    in your project.
+
+* TouchGFX env
+  * The message displayed when starting a shell has been fixed with
+    correct path to examples.
+
+* Bugfixes
+  * Fixed bug in simulator for 1bpp displays when width and/or height
+    was not not a multiple of 8.
+  * Fixed bug in ScrollableContainer where CANCEL events where not
+    always delegated to correct child, causing e.g. buttons to remain
+    pressed when dragging outside SC area.
+  * Fixed bug when rendering chromArt fonts with a rotated display.
+  * Fixed bug - Keyboard widget setTouchable(false) had no effect.
+  * Freescale K70 DMA now checks the appropriate DONE bit in TCD0_CSR.
+  * On ST processors fixed bug with rotated texts rendered by ChromArt
+    when in non-native display orientation.
+
+* Board support
+  * Embedded Artists LPC4357DevKit board package: CPU clocked to
+    204Mhz (previously 96Mhz). Now uses SPIFI flash instead of NOR.
+
+* Update procedure
+  * Compatible with existing 4.X applications. Just replace the
+    touchgfx folder.
+
+* Info
+  * Documentation has been updated.
+
+
+4.1.1
+=====
+
+* Release date: October 29th, 2014
+
+* New features
+  * Mixin: MoveAnimator added. The MoveAnimator mixin makes the
+    template class T able to animate a movement from its current
+    position to a specified end position. See
+    app/example/move_fade_example.
+  * Mixin: FadeAnimator added. The FadeAnimator mixin makes the
+    template class T able to animate an alpha fade from its current
+    alpha value to a specified end alpha value. See
+    app/example/move_fade_example.
+  * ScalableImage and ZoomAnimationImage now support alpha per pixel
+    bitmaps and alpha per bitmap
+  * ScalableImage and ZoomAnimationImage now support ARGB8888 format
+    bitmaps
+
+* Bugfixes
+  * Fixed a bug causing the Keyboard widget to render incorrectly in
+    rare cases.
+  * Fixed a bug causing drag event coordinates to be incorrect for
+    widgets when placed in a Container with coords != {0,0} which
+    itself was placed in a ScrollableContainer.
+  * The Application class now properly keeps track of number of times
+    registerTimerWidget vs. unregisterTimerWidget is called for a
+    given widget, meaning that if registered several times it now
+    requires same number of unregisters before widget no longer
+    receives tick events.
+  * Some ZoomAnimationImage functions were not virtual as they should
+    be.
+  * Some widgets were missing certain getter functions.
+
+* Update procedure
+  * Compatible with existing 4.X applications. Just replace the
+    touchgfx folder.
+
+
+4.1.0
+=====
+
+* Release date: October 17th, 2014
+
+* New features
+  * Now supports monochrome 1BPP displays. See manual for details.
+  * Support for dynamic screen orientation change (landscape/portrait)
+  * Support for scaling images (See ScalableImage and
+    ZoomAnimationImage drawables)
+* Demo
+  * Home Control Demo now support 640x480 mode.
+  * Home Control Demo now supports STM324xI-EVAL 5.7" board.
+
+* Board support changes
+  * Added support for STM324xI-EVAL 5.7" board (IAR+gcc).
+  * Added gcc support for the EmbeddedArtists LPC4357DevKit board.
+  * Optimized SPIFI initialization for TouchGFX eval board.
+
+* Bugfixes
+  * Adding a persistent Drawable to a ScrollableContainer could cause
+    assertion
+  * Support for much larger fonts
+
+* Update procedure
+  * Compatible with existing 4.X applications. Just replace the
+    touchgfx folder.
+
+
+4.0.0
+=====
+
+* Release date: September 26th, 2014
+
+* New features
+  * TouchEvent refactoring (API breaking):
+    * Drawable::setActive is renamed to Drawable::setTouchable
+    * Drawable::isActive is renamed to Drawable::isTouchable
+    * Drawable::hijackTouchEvent is deprecated
+    * Drawables are now per default not touchables
+    * TouchEvents are now always propagated to all containers children
+  * Language specific typography and alignment columns support added
+    to text converter. Read more about this feature in the
+    documentation.
+  * Font rendering has been vastly improved with regards to font
+    shapes and kerning.
+  * Simulator - assert check on new view/presenter/transition size
+    when doing screen transition. Failed assert checks probably due
+    to missing definition of view/presenter/transition in
+    FrontEndHeap.
+  * TextArea and ButtonWithLabel now support text rotated 0, 90, 180
+    or 270 degrees.
+  * Text centering on ButtonWithLabel has been improved in special
+    cases.
+  * Hardware Accelerated text rendering (4 and 8bpp) on supported ST
+    platforms.
+  * Ability to cache all items in the bitmap database in external RAM.
+  * Support for Freescales K70 MCU.
+  * Translation Sheet: Instances of "\<" and "\>" are converted into
+    "<" and ">" respectively. This enables literal translated strings
+    such as "<Not a wildcard>" using "\<Not a wildcard\>".
+  * Support for NXP LPC18XX series of MCU's.
+
+* Bugfixes
+  * Rendering error of images with odd width and alpha value less than
+    255
+  * Correct handling of TextArea::getTextHeight in case of non
+    initialized textArea
+  * TextAreaWithWildcard::getTextWidth now includes the width of the
+    wildcard text
+  * gcc Makefiles now includes *.BMP and *.PNG from image assets.
+  * Do not trim leading and trailing white space from any translations
+    in the texts sheet.
+  * Font converter did not generate font data properly for 8bpp.
+  * ButtonWithIcon::setBitmaps - Suppress IAR warning for intentional
+    virtual function override.
+  * ButtonWithIcon optimized draw functionality
+  * In extremely rare cases text could be written slightly outside the
+    text area
+
+* Update procedure
+  * Due to the TouchEvent refactoring you have to rename functions
+    accordingly. You also need to state in any custom widget or
+    containers if they need to receive touch events. If you were using
+    hijackTouchEvent to prevent children of getting touch events, you
+    now need to make sure that all children is not touchable instead.
+  * Main.cpp for simulators need to be updated by replacing the line:
+        TypedText::registerTypedTextDatabase(TypedTextDatabase::getInstance(), TypedTextDatabase::getInstanceSize())
+    with:
+        Texts::setLanguage(0)
+    You can also specify a specific language from your text database
+    e.g.
+        Texts::setLanguage(GB)
+    In that case you also need to:
+        #include <texts/TextKeysAndLanguages.hpp>
+  * Rebuild entire project.
+
+* Info
+  * The TouchGFX Manual has been updated considerably.
+
+
+3.1.0
+=====
+
+* New features
+  * Added support for FDI uEZGUI-1788-70WVT eval board (NXP LPC-1788
+    Cortex M3).
+  * Added support for Mjolner TouchGFX Demo Board Rev. 1.1 eval board
+    (NXP LPC-4353 Cortex M4/M0 4.3").
+
+* Bugfixes
+  * Visual Studio build now rebuild BitmapDatabase.h when new images
+    are added to the assets/images folder.
+
+* Update procedure
+  * Only if using Visual Studio: Update TouchGFXReleasePath in your
+    Visual Studio .props file. Simply edit the file in a text editor.
+    The path should be extended with "touchgfx\". See the
+    template_application for inspiration.
+  * Only if using Visual Studio: Update your Visual Studio project
+    file (.vcxproj file). Simply edit the file in a text editor.
+    Replace all paths on the form
+    "$(TouchGFXReleasePath)\framework\config\msvs\touchgfx_prebuild.targets"
+    with
+    "$(TouchGFXReleasePath)\config\msvs\touchgfx_prebuild.targets".
+
+* Info
+ * Hardware Abstraction Layer architecture has been reworked so that
+   all common code for various hardware components (MCUs and drivers)
+   is now shared across different target boards. This greatly
+   simplifies the porting effort for new/custom boards as long as they
+   contain one or more hardware components already supported by
+   TouchGFX.
+
+
+3.0.0
+=====
+
+* New features
+  * Visual Studio 2010/2012 support.
+  * Added support for png images with alpha channel.
+  * Added support for subfolders in assets/bitmaps folder
+  * Added support for ST STM32F4X9I-EVAL eval board.
+  * Added support for Robert Penners Easing Equations (see
+    touchgfx/EasingEquations.hpp).
+  * Image converter: Added sanity check of input image file names,
+    must not start with digit and must be alphanumeric.
+  * Image converter: Added checking against case insensitively file
+    name duplicates in input list.
+  * Text converter: Added build stopping sanity checks for bpp and
+    font_size values.
+  * ScrollableContainer: Now supports setScrollbarPadding,
+    setScrollbarWidth, setScrollbarColor, and setScrollbarAlpha.
+  * ScrollableContainer: Set default value of ScrollThreshold to 5
+    pixels, instead of 1.
+  * Added support for alpha blending of fonts
+    (TextArea::setAlpha(uint8_t alpha))
+  * ImageConvert support two different output formats: RGB565 and ARGB8888
+  * ImageConvert - two options added to control output format for
+    images with/without an alpha channel
+  * Touchgfx environment under MinGW is updated due to linker errors
+    for large projects. g++ version is updated from 4.6.2 -> 4.8.1
+  * Internal RAM footprint improvements
+  * Structural changes of target library and hardware abstraction layers
+
+* Bugfixes
+  * Fill operation (Box widget) resulted in a crash on the
+    lpc4357_emb_artist board
+  * Textconvert & fontconvert: Different typographies may now have
+    identical properties.
+  * Imageconvert & fontconvert: Better error handling for POSIX
+    compliant platforms
+  * HALSDL: Do not overflow key data type.
+  * LanguageXX.cpp files now end with a newline (removing warnings).
+  * TextArea::draw now handles non initialized TypedText correctly.
+
+* Update procedure
+  * The folders assets/bitmaps and generated/bitmaps must be renamed
+    to assets/images and generated/images.
+  * Upgrade TouchGFX environment to version 2.0
+  * Update any application Makefile to adhere with the Makefile
+    specified in the updated template_application
+  * Rebuild entire project
+  * Convert bmp images that contains the former transparent color to
+    png images that uses alpha channels. This can be done
+    automatically using a free tool called imagemagick. More info and
+    hints can be acquired by writing touchgfx-support@mjolner.com
+  * Custom HAL implementations must be updated to conform with the new
+    structure
+
+* Info
+  * The "magic" transparent color that was previously used for
+    transparent color in the bmp format is no longer supported.
+    Instead use png images with alpha channel.
+
+
+2.2.0
+=====
+
+* New features
+  * Added support for portrait mode with landscape displays at zero
+    performance/resource cost.
+  * Added kerning support.
+  * Added Keyboard example (with IAR project for the Energy Micro
+    DK3750 eval board)
+  * Changed interface for blitCopy method in LCD.
+  * Removed SyncBackBuffer method from HAL.
+  * Removed clearLCD method from LCD.
+  * Removed fillGradientRect method from LCD.
+  * ScrollableContainer supports setScrollbarsVisible(bool visible).
+
+2.1.0
+=====
+
+* First release of TouchGFX as a commercially available framework
+

@@ -2,35 +2,16 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_sai.h
   * @author  MCD Application Team
-  * @version V1.2.2
-  * @date    14-April-2017
   * @brief   Header file of SAI HAL module.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -40,7 +21,7 @@
 #define __STM32F7xx_HAL_SAI_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 
@@ -70,7 +51,7 @@ typedef enum
   HAL_SAI_STATE_BUSY     = 0x02U,  /*!< SAI internal process is ongoing                    */
   HAL_SAI_STATE_BUSY_TX  = 0x12U,  /*!< Data transmission process is ongoing               */
   HAL_SAI_STATE_BUSY_RX  = 0x22U,  /*!< Data reception process is ongoing                  */
-}HAL_SAI_StateTypeDef;
+} HAL_SAI_StateTypeDef;
 
 /**
   * @brief  SAI Callback prototype
@@ -115,9 +96,10 @@ typedef struct
   uint32_t AudioFrequency;      /*!< Specifies the audio frequency sampling.
                                      This parameter can be a value of @ref SAI_Audio_Frequency */
 
-  uint32_t Mckdiv;              /*!< Specifies the master clock divider, the parameter will be used if for
-                                     AudioFrequency the user choice
-                                     This parameter must be a number between Min_Data = 0 and Max_Data = 15 */
+  uint32_t Mckdiv;              /*!< Specifies the master clock divider.
+                                     This parameter must be a number between Min_Data = 0 and Max_Data = 15.
+                                     @note This parameter is used only if AudioFrequency is set to
+                                           SAI_AUDIO_FREQUENCY_MCKDIV otherwise it is internally computed. */
 
   uint32_t MonoStereoMode;      /*!< Specifies if the mono or stereo mode is selected.
                                      This parameter can be a value of @ref SAI_Mono_Stereo_Mode */
@@ -142,13 +124,14 @@ typedef struct
 
   uint32_t ClockStrobing;   /*!< Specifies the SAI Block clock strobing edge sensitivity.
                                  This parameter can be a value of @ref SAI_Block_Clock_Strobing */
-}SAI_InitTypeDef;
+} SAI_InitTypeDef;
 /**
   * @}
   */
 
 /** @defgroup SAI_Frame_Structure_definition SAI Frame Structure definition
   * @brief  SAI Frame Init structure definition
+  * @note   For SPDIF and AC97 protocol, these parameters are not used (set by hardware).
   * @{
   */
 typedef struct
@@ -174,13 +157,15 @@ typedef struct
   uint32_t FSOffset;           /*!< Specifies the Frame synchronization Offset.
                                     This parameter can be a value of @ref SAI_Block_FS_Offset */
 
-}SAI_FrameInitTypeDef;
+} SAI_FrameInitTypeDef;
 /**
   * @}
   */
 
 /** @defgroup SAI_Slot_Structure_definition SAI Slot Structure definition
   * @brief   SAI Block Slot Init Structure definition
+  * @note    For SPDIF protocol, these parameters are not used (set by hardware).
+  * @note    For AC97 protocol, only SlotActive parameter is used (the others are set by hardware).
   * @{
   */
 typedef struct
@@ -196,7 +181,7 @@ typedef struct
 
   uint32_t SlotActive;      /*!< Specifies the slots in audio frame that will be activated.
                                  This parameter can be a value of @ref SAI_Block_Slot_Active */
-}SAI_SlotInitTypeDef;
+} SAI_SlotInitTypeDef;
 /**
   * @}
   */
@@ -234,10 +219,41 @@ typedef struct __SAI_HandleTypeDef
   __IO HAL_SAI_StateTypeDef State;        /*!< SAI communication state */
 
   __IO uint32_t             ErrorCode;    /*!< SAI Error code */
-}SAI_HandleTypeDef;
+
+#if (USE_HAL_SAI_REGISTER_CALLBACKS == 1)
+  void (*RxCpltCallback)(struct __SAI_HandleTypeDef *hsai);      /*!< SAI receive complete callback */
+  void (*RxHalfCpltCallback)(struct __SAI_HandleTypeDef *hsai);  /*!< SAI receive half complete callback */
+  void (*TxCpltCallback)(struct __SAI_HandleTypeDef *hsai);      /*!< SAI transmit complete callback */
+  void (*TxHalfCpltCallback)(struct __SAI_HandleTypeDef *hsai);  /*!< SAI transmit half complete callback */
+  void (*ErrorCallback)(struct __SAI_HandleTypeDef *hsai);       /*!< SAI error callback */
+  void (*MspInitCallback)(struct __SAI_HandleTypeDef *hsai);     /*!< SAI MSP init callback */
+  void (*MspDeInitCallback)(struct __SAI_HandleTypeDef *hsai);   /*!< SAI MSP de-init callback */
+#endif
+} SAI_HandleTypeDef;
 /**
   * @}
   */
+
+#if (USE_HAL_SAI_REGISTER_CALLBACKS == 1)
+/**
+  * @brief  SAI callback ID enumeration definition
+  */
+typedef enum
+{
+  HAL_SAI_RX_COMPLETE_CB_ID       = 0x00U, /*!< SAI receive complete callback ID */
+  HAL_SAI_RX_HALFCOMPLETE_CB_ID   = 0x01U, /*!< SAI receive half complete callback ID */
+  HAL_SAI_TX_COMPLETE_CB_ID       = 0x02U, /*!< SAI transmit complete callback ID */
+  HAL_SAI_TX_HALFCOMPLETE_CB_ID   = 0x03U, /*!< SAI transmit half complete callback ID */
+  HAL_SAI_ERROR_CB_ID             = 0x04U, /*!< SAI error callback ID */
+  HAL_SAI_MSPINIT_CB_ID           = 0x05U, /*!< SAI MSP init callback ID */
+  HAL_SAI_MSPDEINIT_CB_ID         = 0x06U  /*!< SAI MSP de-init callback ID */
+} HAL_SAI_CallbackIDTypeDef;
+
+/**
+  * @brief  SAI callback pointer definition
+  */
+typedef void (*pSAI_CallbackTypeDef)(SAI_HandleTypeDef *hsai);
+#endif
 
 /**
   * @}
@@ -261,6 +277,9 @@ typedef struct __SAI_HandleTypeDef
 #define HAL_SAI_ERROR_WCKCFG  ((uint32_t)0x00000020U)  /*!< Wrong clock configuration                   */
 #define HAL_SAI_ERROR_TIMEOUT ((uint32_t)0x00000040U)  /*!< Timeout error                               */
 #define HAL_SAI_ERROR_DMA     ((uint32_t)0x00000080U)  /*!< DMA error                                   */
+#if (USE_HAL_SAI_REGISTER_CALLBACKS == 1)
+#define HAL_SAI_ERROR_INVALID_CALLBACK   0x00000100U  /*!< Invalid callback error */
+#endif
 /**
   * @}
   */
@@ -396,7 +415,6 @@ typedef struct __SAI_HandleTypeDef
 /**
   * @}
   */
-  
 
 /** @defgroup SAI_Block_FS_Definition SAI Block FS Definition
   * @{
@@ -424,9 +442,8 @@ typedef struct __SAI_HandleTypeDef
 /**
   * @}
   */
-  
 
-  /** @defgroup SAI_Block_Slot_Size SAI Block Slot Size
+/** @defgroup SAI_Block_Slot_Size SAI Block Slot Size
   * @{
   */
 #define SAI_SLOTSIZE_DATASIZE             ((uint32_t)0x00000000U)
@@ -558,21 +575,28 @@ typedef struct __SAI_HandleTypeDef
   */
 
 /* Exported macro ------------------------------------------------------------*/
-
 /** @defgroup SAI_Exported_Macros SAI Exported Macros
- *  @brief macros to handle interrupts and specific configurations
- * @{
- */
+  * @brief macros to handle interrupts and specific configurations
+  * @{
+  */
 
 /** @brief Reset SAI handle state.
-  * @param  __HANDLE__: specifies the SAI Handle.
+  * @param  __HANDLE__ specifies the SAI Handle.
   * @retval None
   */
+#if (USE_HAL_SAI_REGISTER_CALLBACKS == 1)
+#define __HAL_SAI_RESET_HANDLE_STATE(__HANDLE__) do{                                            \
+                                                     (__HANDLE__)->State = HAL_SAI_STATE_RESET; \
+                                                     (__HANDLE__)->MspInitCallback = NULL;      \
+                                                     (__HANDLE__)->MspDeInitCallback = NULL;    \
+                                                   } while(0U)
+#else
 #define __HAL_SAI_RESET_HANDLE_STATE(__HANDLE__) ((__HANDLE__)->State = HAL_SAI_STATE_RESET)
+#endif /* USE_HAL_SAI_REGISTER_CALLBACKS */
 
 /** @brief  Enable or disable the specified SAI interrupts.
-  * @param  __HANDLE__: specifies the SAI Handle.
-  * @param  __INTERRUPT__: specifies the interrupt source to enable or disable.
+  * @param  __HANDLE__ specifies the SAI Handle.
+  * @param  __INTERRUPT__ specifies the interrupt source to enable or disable.
   *         This parameter can be one of the following values:
   *            @arg SAI_IT_OVRUDR: Overrun underrun interrupt enable
   *            @arg SAI_IT_MUTEDET: Mute detection interrupt enable
@@ -587,8 +611,8 @@ typedef struct __SAI_HandleTypeDef
 #define __HAL_SAI_DISABLE_IT(__HANDLE__, __INTERRUPT__)  ((__HANDLE__)->Instance->IMR &= (~(__INTERRUPT__)))
 
 /** @brief  Check whether the specified SAI interrupt source is enabled or not.
-  * @param  __HANDLE__: specifies the SAI Handle.
-  * @param  __INTERRUPT__: specifies the SAI interrupt source to check.
+  * @param  __HANDLE__ specifies the SAI Handle.
+  * @param  __INTERRUPT__ specifies the SAI interrupt source to check.
   *         This parameter can be one of the following values:
   *            @arg SAI_IT_OVRUDR: Overrun underrun interrupt enable
   *            @arg SAI_IT_MUTEDET: Mute detection interrupt enable
@@ -602,8 +626,8 @@ typedef struct __SAI_HandleTypeDef
 #define __HAL_SAI_GET_IT_SOURCE(__HANDLE__, __INTERRUPT__) ((((__HANDLE__)->Instance->IMR & (__INTERRUPT__)) == (__INTERRUPT__)) ? SET : RESET)
 
 /** @brief  Check whether the specified SAI flag is set or not.
-  * @param  __HANDLE__: specifies the SAI Handle.
-  * @param  __FLAG__: specifies the flag to check.
+  * @param  __HANDLE__ specifies the SAI Handle.
+  * @param  __FLAG__ specifies the flag to check.
   *         This parameter can be one of the following values:
   *            @arg SAI_FLAG_OVRUDR: Overrun underrun flag.
   *            @arg SAI_FLAG_MUTEDET: Mute detection flag.
@@ -617,8 +641,8 @@ typedef struct __SAI_HandleTypeDef
 #define __HAL_SAI_GET_FLAG(__HANDLE__, __FLAG__) ((((__HANDLE__)->Instance->SR) & (__FLAG__)) == (__FLAG__))
 
 /** @brief  Clear the specified SAI pending flag.
-  * @param  __HANDLE__: specifies the SAI Handle.
-  * @param  __FLAG__: specifies the flag to check.
+  * @param  __HANDLE__ specifies the SAI Handle.
+  * @param  __FLAG__ specifies the flag to check.
   *          This parameter can be any combination of the following values:
   *            @arg SAI_FLAG_OVRUDR: Clear Overrun underrun
   *            @arg SAI_FLAG_MUTEDET: Clear Mute detection
@@ -635,27 +659,33 @@ typedef struct __SAI_HandleTypeDef
 #define __HAL_SAI_ENABLE(__HANDLE__) ((__HANDLE__)->Instance->CR1 |=  SAI_xCR1_SAIEN)
 #define __HAL_SAI_DISABLE(__HANDLE__) ((__HANDLE__)->Instance->CR1 &=  ~SAI_xCR1_SAIEN)
 
- /**
-  * @}
-  */
+/**
+ * @}
+ */
 
 /* Exported functions --------------------------------------------------------*/
-
 /** @addtogroup SAI_Exported_Functions
   * @{
   */
 
 /* Initialization/de-initialization functions  ********************************/
-
 /** @addtogroup SAI_Exported_Functions_Group1
   * @{
   */
 HAL_StatusTypeDef HAL_SAI_InitProtocol(SAI_HandleTypeDef *hsai, uint32_t protocol, uint32_t datasize, uint32_t nbslot);
 HAL_StatusTypeDef HAL_SAI_Init(SAI_HandleTypeDef *hsai);
-HAL_StatusTypeDef HAL_SAI_DeInit (SAI_HandleTypeDef *hsai);
+HAL_StatusTypeDef HAL_SAI_DeInit(SAI_HandleTypeDef *hsai);
 void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai);
 void HAL_SAI_MspDeInit(SAI_HandleTypeDef *hsai);
 
+#if (USE_HAL_SAI_REGISTER_CALLBACKS == 1)
+/* SAI callbacks register/unregister functions ********************************/
+HAL_StatusTypeDef HAL_SAI_RegisterCallback(SAI_HandleTypeDef        *hsai,
+                                           HAL_SAI_CallbackIDTypeDef CallbackID,
+                                           pSAI_CallbackTypeDef      pCallback);
+HAL_StatusTypeDef HAL_SAI_UnRegisterCallback(SAI_HandleTypeDef        *hsai,
+                                             HAL_SAI_CallbackIDTypeDef CallbackID);
+#endif
 /**
   * @}
   */
@@ -704,8 +734,8 @@ void HAL_SAI_ErrorCallback(SAI_HandleTypeDef *hsai);
   * @{
   */
 /* Peripheral State functions  ************************************************/
-HAL_SAI_StateTypeDef HAL_SAI_GetState(SAI_HandleTypeDef *hsai);
-uint32_t HAL_SAI_GetError(SAI_HandleTypeDef *hsai);
+HAL_SAI_StateTypeDef HAL_SAI_GetState(const SAI_HandleTypeDef *hsai);
+uint32_t HAL_SAI_GetError(const SAI_HandleTypeDef *hsai);
 /**
   * @}
   */
@@ -814,7 +844,7 @@ uint32_t HAL_SAI_GetError(SAI_HandleTypeDef *hsai);
 #define IS_SAI_BLOCK_FS_DEFINITION(DEFINITION) (((DEFINITION) == SAI_FS_STARTFRAME) || \
                                                 ((DEFINITION) == SAI_FS_CHANNEL_IDENTIFICATION))
 
-#define IS_SAI_BLOCK_MASTER_DIVIDER(DIVIDER) ((DIVIDER) <= 15)
+#define IS_SAI_BLOCK_MASTER_DIVIDER(DIVIDER) ((DIVIDER) <= 15U)
 
 #define IS_SAI_BLOCK_FRAME_LENGTH(LENGTH) ((8 <= (LENGTH)) && ((LENGTH) <= 256))
 
@@ -847,4 +877,3 @@ uint32_t HAL_SAI_GetError(SAI_HandleTypeDef *hsai);
 
 #endif /* __STM32F7xx_HAL_SAI_H */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

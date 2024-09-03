@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for STM32F769I-EVAL BSP Drivers</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<div class="card fluid">
+<div class="sectione dark">
+<center>
+<h1 id="release-notes-for-stm32f769i-eval-bsp-drivers"><strong>Release Notes for STM32F769I-EVAL BSP Drivers</strong></h1>
+<p>Copyright © 2016 STMicroelectronics<br />
+</p>
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo.png" alt="ST logo" /></a>
+</center>
+</div>
+</div>
+<h1 id="purpose">Purpose</h1>
+<p>The BSP (Board Specific Package) drivers are parts of the STM32Cube package based on the HAL drivers and provide a set of high level APIs relative to the hardware components and features in the evaluation boards, discovery kits and nucleo boards coming with the STM32Cube package for a given STM32 serie.</p>
+<p>The BSP drivers allow a quick access to the boards’ services using high level APIs and without any specific configuration as the link with the HAL and the external components is done in intrinsic within the drivers.</p>
+<p>From project settings points of view, user has only to add the necessary driver’s files in the workspace and call the needed functions from examples. However some low level configuration functions are weak and can be overridden by the applications if user wants to change some BSP drivers default behavior.</p>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history">Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" checked aria-hidden="true"> <label for="collapse-section8" aria-hidden="true"><strong>V2.1.1 / 10-June-2022</strong></label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<ul>
+<li>All source files: update disclaimer to add reference to the new license agreement</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" aria-hidden="true"> <label for="collapse-section7" aria-hidden="true"><strong>V2.1.0 / 21-March-2019</strong></label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<ul>
+<li>stm32f769i_eval_camera.c/.h:
+<ul>
+<li>Support ov5640 camera sensor</li>
+</ul></li>
+<li>stm32f769i_eval.c/.h:
+<ul>
+<li>Add OV5640 I2C address</li>
+<li>Update CAMERA IO Read/Write to support ov5640 camera sensor</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6"  aria-hidden="true"> <label for="collapse-section6" aria-hidden="true"><strong>V2.0.2 / 24-August-2017</strong></label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<ul>
+<li>stm32f769i_eval_lcd.c:
+<ul>
+<li>Fix compilation errors with SW4STM32 toolchain.</li>
+</ul></li>
+<li>stm32f769i_eval.c:
+<ul>
+<li>Upgrade version to v2.0.2</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5"  aria-hidden="true"> <label for="collapse-section5" aria-hidden="true"><strong>V2.0.1 / 06-April-2017</strong></label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<ul>
+<li>Add general description of BSP drivers</li>
+<li>Add Dependencies section</li>
+<li>Support of PDSC</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4"  aria-hidden="true"> <label for="collapse-section4" aria-hidden="true"><strong>V2.0.0 / 30-December-2016</strong></label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
+<ul>
+<li>stm32f769i_eval_sd.c/.h:
+<ul>
+<li>Update BSP SD APIs following new HAL SD drivers implementation</li>
+<li>Fix BlockSize to 512 bytes</li>
+</ul></li>
+<li>stm32f769i_eval_ts.c/.h:
+<ul>
+<li>Support of FT6336G Touch Screen</li>
+</ul></li>
+<li>stm32f769i_eval_lcd.c/.h:
+<ul>
+<li>Update BSP_LCD_ReadPixel to read correctely ARGB8888 and RGB888 pixels</li>
+</ul></li>
+<li>stm32f769i_eval_qspi.c/.h:
+<ul>
+<li>QSPI write operation improvement</li>
+<li>Update CS High Time</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility">Backward compatibility</h2>
+<ul>
+<li>These BSP drivers break the compatibility with previous versions.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>If FatFs is required, “FatFS R0.11 ST modified 20161223” must be used with this version of BSP drivers.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3"  aria-hidden="true"> <label for="collapse-section3" aria-hidden="true"><strong>V1.1.0 / 29-August-2016</strong></label>
+<div>
+<h2 id="main-changes-5">Main Changes</h2>
+<ul>
+<li>stm32f769i_eval_lcd.c/.h:
+<ul>
+<li>Support of HDMI video features</li>
+<li>Update DSI initialization</li>
+<li>Update LTDC clock value</li>
+<li>Update LCD_DSI_PIXEL_DATA_FMT_RBG888 and LCD_DSI_PIXEL_DATA_FMT_RBG565 values</li>
+</ul></li>
+<li>stm32f769i_eval_audio.c/.h:
+<ul>
+<li>Support of HDMI audio features</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2"  aria-hidden="true"> <label for="collapse-section2" aria-hidden="true"><strong>V1.0.1 / 02-June-2016</strong></label>
+<div>
+<h2 id="main-changes-6">Main Changes</h2>
+<ul>
+<li>Update typos in drivers comments.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1"  aria-hidden="true"> <label for="collapse-section1" aria-hidden="true"><strong>V1.0.0 / 22-April-2016</strong></label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<ul>
+<li>First official release of the STM32F769I-EVAL and STM32F779I-EVAL BSP drivers</li>
+</ul>
+<h2 id="dependencies-1">Dependencies</h2>
+<ul>
+<li>STM32F7xx_HAL_Driver V1.2.0</li>
+<li>BSP Common V4.0.1</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32F769I-EVAL</mark> , visit: <span style="font-color: blue;"><a href="http://www.st.com/STM32">www.st.com</a></span>
+</footer>
+</body>
+</html>

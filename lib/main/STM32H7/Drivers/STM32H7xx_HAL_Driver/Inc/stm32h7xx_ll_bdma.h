@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -62,10 +61,15 @@ static const uint8_t LL_BDMA_CH_OFFSET_TAB[] =
 
 /* Private constants ---------------------------------------------------------*/
 /* Private macros ------------------------------------------------------------*/
+/** @defgroup BDMA_LL_Private_Macros BDMA Private Macros
+  * @{
+  */
 #if !defined(UNUSED)
 #define UNUSED(x) ((void)(x))
 #endif
-
+/**
+  * @}
+  */
 /* Exported types ------------------------------------------------------------*/
 #if defined(USE_FULL_LL_DRIVER)
 /** @defgroup BDMA_LL_ES_INIT BDMA Exported Init structure
@@ -73,70 +77,79 @@ static const uint8_t LL_BDMA_CH_OFFSET_TAB[] =
   */
 typedef struct
 {
-  uint32_t PeriphOrM2MSrcAddress;  /*!< Specifies the peripheral base address for BDMA transfer
-                                        or as Source base address in case of memory to memory transfer direction.
+  uint32_t PeriphOrM2MSrcAddress;       /*!< Specifies the peripheral base address for BDMA transfer
+                                             or as Source base address in case of memory to memory transfer direction.
 
-                                        This parameter must be a value between Min_Data = 0 and Max_Data = 0xFFFFFFFF. */
+                                             This parameter must be a value between Min_Data = 0 and Max_Data = 0xFFFFFFFF. */
 
-  uint32_t MemoryOrM2MDstAddress;  /*!< Specifies the memory base address for DMA transfer
-                                        or as Destination base address in case of memory to memory transfer direction.
+  uint32_t MemoryOrM2MDstAddress;       /*!< Specifies the memory base address for DMA transfer
+                                             or as Destination base address in case of memory to memory transfer direction.
 
-                                        This parameter must be a value between Min_Data = 0 and Max_Data = 0xFFFFFFFF. */
+                                             This parameter must be a value between Min_Data = 0 and Max_Data = 0xFFFFFFFF. */
 
-  uint32_t Direction;              /*!< Specifies if the data will be transferred from memory to peripheral,
-                                        from memory to memory or from peripheral to memory.
-                                        This parameter can be a value of @ref BDMA_LL_EC_DIRECTION
+  uint32_t Direction;                   /*!< Specifies if the data will be transferred from memory to peripheral,
+                                             from memory to memory or from peripheral to memory.
+                                             This parameter can be a value of @ref BDMA_LL_EC_DIRECTION
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetDataTransferDirection(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetDataTransferDirection(). */
 
-  uint32_t Mode;                   /*!< Specifies the normal or circular operation mode.
-                                        This parameter can be a value of @ref BDMA_LL_EC_MODE
-                                        @note: The circular buffer mode cannot be used if the memory to memory
-                                               data transfer direction is configured on the selected Channel
+  uint32_t Mode;                        /*!< Specifies the normal or circular operation mode.
+                                             This parameter can be a value of @ref BDMA_LL_EC_MODE
+                                             @note: The circular buffer mode cannot be used if the memory to memory
+                                                    data transfer direction is configured on the selected Channel
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetMode(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetMode(). */
 
-  uint32_t PeriphOrM2MSrcIncMode;  /*!< Specifies whether the Peripheral address or Source address in case of memory to memory transfer direction
-                                        is incremented or not.
-                                        This parameter can be a value of @ref BDMA_LL_EC_PERIPH
+  uint32_t PeriphOrM2MSrcIncMode;       /*!< Specifies whether the Peripheral address or Source address in case of memory to memory transfer direction
+                                             is incremented or not.
+                                             This parameter can be a value of @ref BDMA_LL_EC_PERIPH
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetPeriphIncMode(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetPeriphIncMode(). */
 
-  uint32_t MemoryOrM2MDstIncMode;  /*!< Specifies whether the Memory address or Destination address in case of memory to memory transfer direction
-                                        is incremented or not.
-                                        This parameter can be a value of @ref BDMA_LL_EC_MEMORY
+  uint32_t MemoryOrM2MDstIncMode;       /*!< Specifies whether the Memory address or Destination address in case of memory to memory transfer direction
+                                             is incremented or not.
+                                             This parameter can be a value of @ref BDMA_LL_EC_MEMORY
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetMemoryIncMode(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetMemoryIncMode(). */
 
-  uint32_t PeriphOrM2MSrcDataSize; /*!< Specifies the Peripheral data size alignment or Source data size alignment (byte, half word, word)
-                                        in case of memory to memory transfer direction.
-                                        This parameter can be a value of @ref BDMA_LL_EC_PDATAALIGN
+  uint32_t PeriphOrM2MSrcDataSize;      /*!< Specifies the Peripheral data size alignment or Source data size alignment (byte, half word, word)
+                                             in case of memory to memory transfer direction.
+                                             This parameter can be a value of @ref BDMA_LL_EC_PDATAALIGN
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetPeriphSize(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetPeriphSize(). */
 
-  uint32_t MemoryOrM2MDstDataSize; /*!< Specifies the Memory data size alignment or Destination data size alignment (byte, half word, word)
-                                        in case of memory to memory transfer direction.
-                                        This parameter can be a value of @ref BDMA_LL_EC_MDATAALIGN
+  uint32_t MemoryOrM2MDstDataSize;      /*!< Specifies the Memory data size alignment or Destination data size alignment (byte, half word, word)
+                                             in case of memory to memory transfer direction.
+                                             This parameter can be a value of @ref BDMA_LL_EC_MDATAALIGN
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetMemorySize(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetMemorySize(). */
 
-  uint32_t NbData;                 /*!< Specifies the number of data to transfer, in data unit.
-                                        The data unit is equal to the source buffer configuration set in PeripheralSize
-                                        or MemorySize parameters depending in the transfer direction.
-                                        This parameter must be a value between Min_Data = 0 and Max_Data = 0x0000FFFF
+  uint32_t NbData;                      /*!< Specifies the number of data to transfer, in data unit.
+                                             The data unit is equal to the source buffer configuration set in PeripheralSize
+                                             or MemorySize parameters depending in the transfer direction.
+                                             This parameter must be a value between Min_Data = 0 and Max_Data = 0x0000FFFF
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetDataLength(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetDataLength(). */
 
-  uint32_t PeriphRequest;          /*!< Specifies the peripheral request.
-                                        This parameter can be a value of @ref DMAMUX_LL_EC_REQUEST
+  uint32_t PeriphRequest;               /*!< Specifies the peripheral request.
+                                             This parameter can be a value of @ref DMAMUX2_Request_selection
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetPeriphRequest(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetPeriphRequest(). */
 
-  uint32_t Priority;               /*!< Specifies the channel priority level.
-                                        This parameter can be a value of @ref BDMA_LL_EC_PRIORITY
+  uint32_t Priority;                    /*!< Specifies the channel priority level.
+                                             This parameter can be a value of @ref BDMA_LL_EC_PRIORITY
 
-                                        This feature can be modified afterwards using unitary function @ref LL_BDMA_SetChannelPriorityLevel(). */
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetChannelPriorityLevel(). */
 
+  uint32_t DoubleBufferMode;            /*!< Specifies the double buffer mode.
+                                             This parameter can be a value of @ref BDMA_LL_EC_DOUBLEBUFFER_MODE
+
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_EnableDoubleBufferMode() & LL_BDMA_DisableDoubleBufferMode(). */
+
+  uint32_t TargetMemInDoubleBufferMode; /*!< Specifies the target memory in double buffer mode.
+                                             This parameter can be a value of @ref BDMA_LL_EC_CURRENTTARGETMEM
+
+                                             This feature can be modified afterwards using unitary function @ref LL_BDMA_SetCurrentTargetMem(). */
 } LL_BDMA_InitTypeDef;
 /**
   * @}
@@ -271,11 +284,20 @@ typedef struct
   * @}
   */
 
-/** @defgroup DMA_LL_EC_DOUBLEBUFFER_MODE DOUBLE BUFFER MODE
+/** @defgroup BDMA_LL_EC_DOUBLEBUFFER_MODE DOUBLE BUFFER MODE
   * @{
   */
 #define LL_BDMA_DOUBLEBUFFER_MODE_DISABLE  0x00000000U              /*!< Disable double buffering mode        */
 #define LL_BDMA_DOUBLEBUFFER_MODE_ENABLE   BDMA_CCR_DBM             /*!< Enable double buffering mode         */
+/**
+  * @}
+  */
+
+/** @defgroup BDMA_LL_EC_CURRENTTARGETMEM CURRENTTARGETMEM
+  * @{
+  */
+#define LL_BDMA_CURRENTTARGETMEM0          0x00000000U              /*!< Set CurrentTarget Memory to Memory 0 */
+#define LL_BDMA_CURRENTTARGETMEM1          BDMA_CCR_CT              /*!< Set CurrentTarget Memory to Memory 1 */
 /**
   * @}
   */
@@ -329,15 +351,10 @@ typedef struct
   * @}
   */
 
-/** @defgroup DMA_LL_EC_CURRENTTARGETMEM CURRENTTARGETMEM
-  * @{
-  */
-#define LL_BDMA_CURRENTTARGETMEM0          0x00000000U              /*!< Set CurrentTarget Memory to Memory 0 */
-#define LL_BDMA_CURRENTTARGETMEM1          BDMA_CCR_CT              /*!< Set CurrentTarget Memory to Memory 1 */
+
 /**
   * @}
   */
-
 /* Exported macro ------------------------------------------------------------*/
 /** @defgroup BDMA_LL_Exported_Macros BDMA Exported Macros
   * @{
@@ -484,7 +501,7 @@ LL_BDMA_CHANNEL_7)
   */
 __STATIC_INLINE void LL_BDMA_EnableChannel(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   SET_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_EN);
 }
@@ -506,7 +523,7 @@ __STATIC_INLINE void LL_BDMA_EnableChannel(BDMA_TypeDef *BDMAx, uint32_t Channel
   */
 __STATIC_INLINE void LL_BDMA_DisableChannel(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   CLEAR_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_EN);
 }
@@ -528,7 +545,7 @@ __STATIC_INLINE void LL_BDMA_DisableChannel(BDMA_TypeDef *BDMAx, uint32_t Channe
   */
 __STATIC_INLINE uint32_t LL_BDMA_IsEnabledChannel(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return ((READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_EN) == (BDMA_CCR_EN)) ? 1UL : 0UL);
 }
@@ -542,7 +559,9 @@ __STATIC_INLINE uint32_t LL_BDMA_IsEnabledChannel(BDMA_TypeDef *BDMAx, uint32_t 
   *         CCR          MINC          LL_BDMA_ConfigTransfer\n
   *         CCR          PSIZE         LL_BDMA_ConfigTransfer\n
   *         CCR          MSIZE         LL_BDMA_ConfigTransfer\n
-  *         CCR          PL            LL_BDMA_ConfigTransfer
+  *         CCR          PL            LL_BDMA_ConfigTransfer\n
+  *         CCR          DBM           LL_BDMA_ConfigTransfer\n
+  *         CCR          CT            LL_BDMA_ConfigTransfer
   * @param  BDMAx BDMA Instance
   * @param  Channel This parameter can be one of the following values:
   *         @arg @ref LL_BDMA_CHANNEL_0
@@ -561,15 +580,17 @@ __STATIC_INLINE uint32_t LL_BDMA_IsEnabledChannel(BDMA_TypeDef *BDMAx, uint32_t 
   *         @arg @ref LL_BDMA_PDATAALIGN_BYTE or @ref LL_BDMA_PDATAALIGN_HALFWORD or @ref LL_BDMA_PDATAALIGN_WORD
   *         @arg @ref LL_BDMA_MDATAALIGN_BYTE or @ref LL_BDMA_MDATAALIGN_HALFWORD or @ref LL_BDMA_MDATAALIGN_WORD
   *         @arg @ref LL_BDMA_PRIORITY_LOW or @ref LL_BDMA_PRIORITY_MEDIUM or @ref LL_BDMA_PRIORITY_HIGH or @ref LL_BDMA_PRIORITY_VERYHIGH
+  *         @arg @ref LL_BDMA_DOUBLEBUFFER_MODE_DISABLE or @ref LL_BDMA_DOUBLEBUFFER_MODE_ENABLE
+  *         @arg @ref LL_BDMA_CURRENTTARGETMEM0 or @ref LL_BDMA_CURRENTTARGETMEM1
   * @retval None
   */
 __STATIC_INLINE void LL_BDMA_ConfigTransfer(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t Configuration)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
-             BDMA_CCR_DIR | BDMA_CCR_MEM2MEM | BDMA_CCR_CIRC | BDMA_CCR_PINC | BDMA_CCR_MINC | BDMA_CCR_PSIZE | BDMA_CCR_MSIZE | BDMA_CCR_PL,
-             Configuration);
+             BDMA_CCR_DIR | BDMA_CCR_MEM2MEM | BDMA_CCR_CIRC | BDMA_CCR_PINC | BDMA_CCR_MINC | BDMA_CCR_PSIZE | BDMA_CCR_MSIZE | BDMA_CCR_PL | \
+             BDMA_CCR_DBM | BDMA_CCR_CT, Configuration);
 }
 
 /**
@@ -594,7 +615,7 @@ __STATIC_INLINE void LL_BDMA_ConfigTransfer(BDMA_TypeDef *BDMAx, uint32_t Channe
   */
 __STATIC_INLINE void LL_BDMA_SetDataTransferDirection(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t Direction)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
              BDMA_CCR_DIR | BDMA_CCR_MEM2MEM, Direction);
@@ -621,7 +642,7 @@ __STATIC_INLINE void LL_BDMA_SetDataTransferDirection(BDMA_TypeDef *BDMAx, uint3
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetDataTransferDirection(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_DIR | BDMA_CCR_MEM2MEM));
@@ -649,7 +670,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetDataTransferDirection(BDMA_TypeDef *BDMAx, u
   */
 __STATIC_INLINE void LL_BDMA_SetMode(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t Mode)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_CIRC,
              Mode);
@@ -674,7 +695,7 @@ __STATIC_INLINE void LL_BDMA_SetMode(BDMA_TypeDef *BDMAx, uint32_t Channel, uint
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_CIRC));
@@ -700,7 +721,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE void LL_BDMA_SetPeriphIncMode(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t PeriphOrM2MSrcIncMode)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_PINC,
              PeriphOrM2MSrcIncMode);
@@ -725,7 +746,7 @@ __STATIC_INLINE void LL_BDMA_SetPeriphIncMode(BDMA_TypeDef *BDMAx, uint32_t Chan
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetPeriphIncMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_PINC));
@@ -751,7 +772,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetPeriphIncMode(BDMA_TypeDef *BDMAx, uint32_t 
   */
 __STATIC_INLINE void LL_BDMA_SetMemoryIncMode(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t MemoryOrM2MDstIncMode)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_MINC,
              MemoryOrM2MDstIncMode);
@@ -776,7 +797,7 @@ __STATIC_INLINE void LL_BDMA_SetMemoryIncMode(BDMA_TypeDef *BDMAx, uint32_t Chan
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetMemoryIncMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_MINC));
@@ -803,7 +824,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetMemoryIncMode(BDMA_TypeDef *BDMAx, uint32_t 
   */
 __STATIC_INLINE void LL_BDMA_SetPeriphSize(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t PeriphOrM2MSrcDataSize)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_PSIZE,
              PeriphOrM2MSrcDataSize);
@@ -829,7 +850,7 @@ __STATIC_INLINE void LL_BDMA_SetPeriphSize(BDMA_TypeDef *BDMAx, uint32_t Channel
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetPeriphSize(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_PSIZE));
@@ -856,7 +877,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetPeriphSize(BDMA_TypeDef *BDMAx, uint32_t Cha
   */
 __STATIC_INLINE void LL_BDMA_SetMemorySize(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t MemoryOrM2MDstDataSize)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_MSIZE,
              MemoryOrM2MDstDataSize);
@@ -882,7 +903,7 @@ __STATIC_INLINE void LL_BDMA_SetMemorySize(BDMA_TypeDef *BDMAx, uint32_t Channel
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetMemorySize(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_MSIZE));
@@ -910,7 +931,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetMemorySize(BDMA_TypeDef *BDMAx, uint32_t Cha
   */
 __STATIC_INLINE void LL_BDMA_SetChannelPriorityLevel(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t Priority)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_PL,
              Priority);
@@ -937,7 +958,7 @@ __STATIC_INLINE void LL_BDMA_SetChannelPriorityLevel(BDMA_TypeDef *BDMAx, uint32
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetChannelPriorityLevel(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR,
                    BDMA_CCR_PL));
@@ -963,7 +984,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetChannelPriorityLevel(BDMA_TypeDef *BDMAx, ui
   */
 __STATIC_INLINE void LL_BDMA_SetDataLength(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t NbData)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CNDTR,
              BDMA_CNDTR_NDT, NbData);
@@ -988,7 +1009,7 @@ __STATIC_INLINE void LL_BDMA_SetDataLength(BDMA_TypeDef *BDMAx, uint32_t Channel
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetDataLength(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CNDTR,
                    BDMA_CNDTR_NDT));
@@ -1014,7 +1035,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetDataLength(BDMA_TypeDef *BDMAx, uint32_t Cha
   */
 __STATIC_INLINE void LL_BDMA_SetCurrentTargetMem(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t CurrentMemory)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_CT, CurrentMemory);
 }
@@ -1038,7 +1059,7 @@ __STATIC_INLINE void LL_BDMA_SetCurrentTargetMem(BDMA_TypeDef *BDMAx, uint32_t C
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetCurrentTargetMem(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_CT));
 }
@@ -1060,7 +1081,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetCurrentTargetMem(BDMA_TypeDef *BDMAx, uint32
   */
 __STATIC_INLINE void LL_BDMA_EnableDoubleBufferMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   SET_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_DBM);
 }
@@ -1082,15 +1103,37 @@ __STATIC_INLINE void LL_BDMA_EnableDoubleBufferMode(BDMA_TypeDef *BDMAx, uint32_
   */
 __STATIC_INLINE void LL_BDMA_DisableDoubleBufferMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   CLEAR_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_DBM);
 }
 
 /**
+  * @brief  Check if double buffer mode is enabled or not.
+  * @rmtoll CCR          DBM           LL_BDMA_IsEnabledDoubleBufferMode
+  * @param  BDMAx BDMAx Instance
+  * @param  Channel This parameter can be one of the following values:
+  *         @arg @ref LL_BDMA_CHANNEL_0
+  *         @arg @ref LL_BDMA_CHANNEL_1
+  *         @arg @ref LL_BDMA_CHANNEL_2
+  *         @arg @ref LL_BDMA_CHANNEL_3
+  *         @arg @ref LL_BDMA_CHANNEL_4
+  *         @arg @ref LL_BDMA_CHANNEL_5
+  *         @arg @ref LL_BDMA_CHANNEL_6
+  *         @arg @ref LL_BDMA_CHANNEL_7
+  * @retval State of bit (1 or 0).
+  */
+__STATIC_INLINE uint32_t LL_BDMA_IsEnabledDoubleBufferMode(BDMA_TypeDef *BDMAx, uint32_t Channel)
+{
+  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+
+  return ((READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_DBM) == (BDMA_CCR_DBM)) ? 1UL : 0UL);
+}
+
+/**
   * @brief  Configure the Source and Destination addresses.
   * @note   This API must not be called when the BDMA channel is enabled.
-  * @note   Each IP using BDMA provides an API to get directly the register adress (LL_PPP_BDMA_GetRegAddr).
+  * @note   Each IP using BDMA provides an API to get directly the register address (LL_PPP_BDMA_GetRegAddr).
   * @rmtoll CPAR         PA            LL_BDMA_ConfigAddresses\n
   *         CMAR         MA            LL_BDMA_ConfigAddresses
   * @param  BDMAx BDMA Instance
@@ -1114,7 +1157,7 @@ __STATIC_INLINE void LL_BDMA_DisableDoubleBufferMode(BDMA_TypeDef *BDMAx, uint32
 __STATIC_INLINE void LL_BDMA_ConfigAddresses(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t SrcAddress,
                                              uint32_t DstAddress, uint32_t Direction)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   /* Direction Memory to Periph */
   if (Direction == LL_BDMA_DIRECTION_MEMORY_TO_PERIPH)
@@ -1150,7 +1193,7 @@ __STATIC_INLINE void LL_BDMA_ConfigAddresses(BDMA_TypeDef *BDMAx, uint32_t Chann
   */
 __STATIC_INLINE void LL_BDMA_SetMemoryAddress(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t MemoryAddress)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   WRITE_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CM0AR, MemoryAddress);
 }
@@ -1175,7 +1218,7 @@ __STATIC_INLINE void LL_BDMA_SetMemoryAddress(BDMA_TypeDef *BDMAx, uint32_t Chan
   */
 __STATIC_INLINE void LL_BDMA_SetPeriphAddress(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t PeriphAddress)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   WRITE_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CPAR, PeriphAddress);
 }
@@ -1198,7 +1241,7 @@ __STATIC_INLINE void LL_BDMA_SetPeriphAddress(BDMA_TypeDef *BDMAx, uint32_t Chan
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetMemoryAddress(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CM0AR));
 }
@@ -1221,7 +1264,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetMemoryAddress(BDMA_TypeDef *BDMAx, uint32_t 
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetPeriphAddress(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CPAR));
 }
@@ -1246,7 +1289,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetPeriphAddress(BDMA_TypeDef *BDMAx, uint32_t 
   */
 __STATIC_INLINE void LL_BDMA_SetM2MSrcAddress(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t MemoryAddress)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   WRITE_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CPAR, MemoryAddress);
 }
@@ -1271,7 +1314,7 @@ __STATIC_INLINE void LL_BDMA_SetM2MSrcAddress(BDMA_TypeDef *BDMAx, uint32_t Chan
   */
 __STATIC_INLINE void LL_BDMA_SetM2MDstAddress(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t MemoryAddress)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   WRITE_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CM0AR, MemoryAddress);
 }
@@ -1294,7 +1337,7 @@ __STATIC_INLINE void LL_BDMA_SetM2MDstAddress(BDMA_TypeDef *BDMAx, uint32_t Chan
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetM2MSrcAddress(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CPAR));
 }
@@ -1317,7 +1360,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetM2MSrcAddress(BDMA_TypeDef *BDMAx, uint32_t 
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetM2MDstAddress(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (READ_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CM0AR));
 }
@@ -1340,7 +1383,7 @@ __STATIC_INLINE uint32_t LL_BDMA_GetM2MDstAddress(BDMA_TypeDef *BDMAx, uint32_t 
   */
 __STATIC_INLINE void LL_BDMA_SetMemory1Address(BDMA_TypeDef *BDMAx, uint32_t Channel, uint32_t Address)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   MODIFY_REG(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CM1AR, BDMA_CM1AR_MA, Address);
 }
@@ -1362,7 +1405,7 @@ __STATIC_INLINE void LL_BDMA_SetMemory1Address(BDMA_TypeDef *BDMAx, uint32_t Cha
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetMemory1Address(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return (((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CM1AR);
 }
@@ -1400,8 +1443,9 @@ __STATIC_INLINE uint32_t LL_BDMA_GetMemory1Address(BDMA_TypeDef *BDMAx, uint32_t
   *         @arg @ref LL_DMAMUX2_REQ_SAI4_A (*)
   *         @arg @ref LL_DMAMUX2_REQ_SAI4_B (*)
   *         @arg @ref LL_DMAMUX2_REQ_ADC3 (*)
-  *         @arg @ref LL_DMAMUX2_REQ_DAC3 (*)
+  *         @arg @ref LL_DMAMUX2_REQ_DAC2_CH1 (*)
   *         @arg @ref LL_DMAMUX2_REQ_DFSDM2_FLT0 (*)
+  *
   * @note   (*) Availability depends on devices.
   * @retval None
   */
@@ -1444,8 +1488,9 @@ __STATIC_INLINE void LL_BDMA_SetPeriphRequest(BDMA_TypeDef *BDMAx, uint32_t Chan
   *         @arg @ref LL_DMAMUX2_REQ_SAI4_A (*)
   *         @arg @ref LL_DMAMUX2_REQ_SAI4_B (*)
   *         @arg @ref LL_DMAMUX2_REQ_ADC3 (*)
-  *         @arg @ref LL_DMAMUX2_REQ_DAC3 (*)
+  *         @arg @ref LL_DMAMUX2_REQ_DAC2_CH1 (*)
   *         @arg @ref LL_DMAMUX2_REQ_DFSDM2_FLT0 (*)
+  *
   * @note   (*) Availability depends on devices.
   */
 __STATIC_INLINE uint32_t LL_BDMA_GetPeriphRequest(BDMA_TypeDef *BDMAx, uint32_t Channel)
@@ -1815,6 +1860,10 @@ __STATIC_INLINE uint32_t LL_BDMA_IsActiveFlag_TE7(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 0 global interrupt flag.
+  * @note Do not Clear Channel 0 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC0, LL_DMA_ClearFlag_HT0,
+    LL_DMA_ClearFlag_TE0. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF0         LL_BDMA_ClearFlag_GI0
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1826,6 +1875,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI0(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 1 global interrupt flag.
+  * @note Do not Clear Channel 1 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC1, LL_DMA_ClearFlag_HT1,
+    LL_DMA_ClearFlag_TE1. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF1         LL_BDMA_ClearFlag_GI1
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1837,6 +1890,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI1(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 2 global interrupt flag.
+  * @note Do not Clear Channel 2 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC2, LL_DMA_ClearFlag_HT2,
+    LL_DMA_ClearFlag_TE2. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF2         LL_BDMA_ClearFlag_GI2
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1848,6 +1905,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI2(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 3 global interrupt flag.
+  * @note Do not Clear Channel 3 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC3, LL_DMA_ClearFlag_HT3,
+    LL_DMA_ClearFlag_TE3. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF3         LL_BDMA_ClearFlag_GI3
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1859,6 +1920,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI3(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 4 global interrupt flag.
+  * @note Do not Clear Channel 4 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC4, LL_DMA_ClearFlag_HT4,
+    LL_DMA_ClearFlag_TE4. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF4         LL_BDMA_ClearFlag_GI4
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1870,6 +1935,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI4(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 5 global interrupt flag.
+  * @note Do not Clear Channel 5 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC5, LL_DMA_ClearFlag_HT5,
+    LL_DMA_ClearFlag_TE5. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF5         LL_BDMA_ClearFlag_GI5
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1881,6 +1950,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI5(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 6 global interrupt flag.
+  * @note Do not Clear Channel 6 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC6, LL_DMA_ClearFlag_HT6,
+    LL_DMA_ClearFlag_TE6. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF6         LL_BDMA_ClearFlag_GI6
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -1892,6 +1965,10 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_GI6(BDMA_TypeDef *BDMAx)
 
 /**
   * @brief  Clear Channel 7 global interrupt flag.
+  * @note Do not Clear Channel 7 global interrupt flag when the channel in ON.
+    Instead clear specific flags transfer complete, half transfer & transfer
+    error flag with LL_DMA_ClearFlag_TC7, LL_DMA_ClearFlag_HT7,
+    LL_DMA_ClearFlag_TE7. bug id 2.3.1 in Product Errata Sheet.
   * @rmtoll IFCR         CGIF7         LL_BDMA_ClearFlag_GI7
   * @param  BDMAx BDMA Instance
   * @retval None
@@ -2189,7 +2266,7 @@ __STATIC_INLINE void LL_BDMA_ClearFlag_TE7(BDMA_TypeDef *BDMAx)
   */
 __STATIC_INLINE void LL_BDMA_EnableIT_TC(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   SET_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_TCIE);
 }
@@ -2211,7 +2288,7 @@ __STATIC_INLINE void LL_BDMA_EnableIT_TC(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE void LL_BDMA_EnableIT_HT(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   SET_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_HTIE);
 }
@@ -2233,7 +2310,7 @@ __STATIC_INLINE void LL_BDMA_EnableIT_HT(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE void LL_BDMA_EnableIT_TE(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   SET_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_TEIE);
 }
@@ -2255,7 +2332,7 @@ __STATIC_INLINE void LL_BDMA_EnableIT_TE(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE void LL_BDMA_DisableIT_TC(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   CLEAR_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_TCIE);
 }
@@ -2277,7 +2354,7 @@ __STATIC_INLINE void LL_BDMA_DisableIT_TC(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE void LL_BDMA_DisableIT_HT(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   CLEAR_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_HTIE);
 }
@@ -2299,7 +2376,7 @@ __STATIC_INLINE void LL_BDMA_DisableIT_HT(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE void LL_BDMA_DisableIT_TE(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   CLEAR_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_TEIE);
 }
@@ -2321,7 +2398,7 @@ __STATIC_INLINE void LL_BDMA_DisableIT_TE(BDMA_TypeDef *BDMAx, uint32_t Channel)
   */
 __STATIC_INLINE uint32_t LL_BDMA_IsEnabledIT_TC(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return ((READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_TCIE) == (BDMA_CCR_TCIE)) ? 1UL : 0UL);
 }
@@ -2343,7 +2420,7 @@ __STATIC_INLINE uint32_t LL_BDMA_IsEnabledIT_TC(BDMA_TypeDef *BDMAx, uint32_t Ch
   */
 __STATIC_INLINE uint32_t LL_BDMA_IsEnabledIT_HT(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return ((READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_HTIE) == (BDMA_CCR_HTIE)) ? 1UL : 0UL);
 }
@@ -2365,7 +2442,7 @@ __STATIC_INLINE uint32_t LL_BDMA_IsEnabledIT_HT(BDMA_TypeDef *BDMAx, uint32_t Ch
   */
 __STATIC_INLINE uint32_t LL_BDMA_IsEnabledIT_TE(BDMA_TypeDef *BDMAx, uint32_t Channel)
 {
-  register uint32_t bdma_base_addr = (uint32_t)BDMAx;
+  uint32_t bdma_base_addr = (uint32_t)BDMAx;
 
   return ((READ_BIT(((BDMA_Channel_TypeDef *)(bdma_base_addr + LL_BDMA_CH_OFFSET_TAB[Channel]))->CCR, BDMA_CCR_TEIE) == (BDMA_CCR_TEIE)) ? 1UL : 0UL);
 }
@@ -2397,11 +2474,6 @@ void LL_BDMA_StructInit(LL_BDMA_InitTypeDef *BDMA_InitStruct);
   */
 
 #endif /* BDMA || BDMA1 || BDMA2 */
-
-/**
-  * @}
-  */
-
 /**
   * @}
   */
@@ -2412,4 +2484,3 @@ void LL_BDMA_StructInit(LL_BDMA_InitTypeDef *BDMA_InitStruct);
 
 #endif /* STM32H7xx_LL_BDMA_H */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
