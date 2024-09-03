@@ -1201,6 +1201,7 @@ uint32_t LL_RCC_GetSPDIFRXClockFreq(uint32_t SPDIFRXxSource)
 
   /* Check parameter */
   assert_param(IS_LL_RCC_SPDIFRX_CLKSOURCE(SPDIFRXxSource));
+  UNUSED(SPDIFRXxSource);
 
   if (LL_RCC_PLLI2S_IsReady())
   {
