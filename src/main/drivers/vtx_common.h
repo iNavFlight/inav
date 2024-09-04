@@ -34,7 +34,7 @@
 
 #if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
 
-#define VTX_SETTINGS_POWER_COUNT        5
+#define VTX_SETTINGS_POWER_COUNT        8
 #define VTX_SETTINGS_DEFAULT_POWER      1
 #define VTX_SETTINGS_MIN_POWER          1
 #define VTX_SETTINGS_MIN_USER_FREQ      5000

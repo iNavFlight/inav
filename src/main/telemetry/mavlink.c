@@ -184,7 +184,7 @@ static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
 static uint8_t mavSystemId = 1;
-static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
+static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
@@ -1134,6 +1134,22 @@ static bool handleIncoming_RADIO_STATUS(void) {
     return true;
 }
 
+static bool handleIncoming_HEARTBEAT(void) {
+    mavlink_heartbeat_t msg;
+    mavlink_msg_heartbeat_decode(&mavRecvMsg, &msg);
+
+    switch (msg.type) {
+#ifdef USE_ADSB
+        case MAV_TYPE_ADSB:
+            return adsbHeartbeat();
+#endif
+        default:
+            break;
+    }
+    
+    return false;
+}
+
 #ifdef USE_ADSB
 static bool handleIncoming_ADSB_VEHICLE(void) {
     mavlink_adsb_vehicle_t msg;
@@ -1188,7 +1204,7 @@ static bool processMAVLinkIncomingTelemetry(void)
         if (result == MAVLINK_FRAMING_OK) {
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
-                    break;
+                   return handleIncoming_HEARTBEAT();
                 case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
                     return handleIncoming_PARAM_REQUEST_LIST();
                 case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:

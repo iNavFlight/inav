@@ -513,7 +513,7 @@ static int logicConditionCompute(
 
 void logicConditionProcess(uint8_t i) {
 
-    const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+    const int32_t activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
 
     if (logicConditions(i)->enabled && activatorValue && !cliMode) {
 
@@ -522,9 +522,9 @@ void logicConditionProcess(uint8_t i) {
          * Latched LCs can only go from OFF to ON, not the other way
          */
         if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
-            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-            const int newValue = logicConditionCompute(
+            const int32_t operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int32_t operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int32_t newValue = logicConditionCompute(
                 logicConditionStates[i].value,
                 logicConditions(i)->operation,
                 operandAValue,
@@ -650,15 +650,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
     switch (operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ARM_TIMER: // in s
-            return constrain((uint32_t)getFlightTime(), 0, INT16_MAX);
+            return constrain((uint32_t)getFlightTime(), 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_HOME_DISTANCE: //in m
-            return constrain(GPS_distanceToHome, 0, INT16_MAX);
+            return constrain(GPS_distanceToHome, 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TRIP_DISTANCE: //in m
-            return constrain(getTotalTravelDistance() / 100, 0, INT16_MAX);
+            return constrain(getTotalTravelDistance() / 100, 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_RSSI:
@@ -713,18 +713,18 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT32_MAX);
         #else
             return false;
         #endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
-            return constrain(getEstimatedActualPosition(Z), INT16_MIN, INT16_MAX);
+            return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
-            return constrain(getEstimatedActualVelocity(Z), INT16_MIN, INT16_MAX);
+            return constrain(getEstimatedActualVelocity(Z), INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %
@@ -793,7 +793,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
-            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT16_MAX);
+            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
@@ -938,8 +938,8 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
     }
 }
 
-int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
-    int retVal = 0;
+int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand) {
+    int32_t retVal = 0;
 
     switch (type) {
 
@@ -994,7 +994,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 /*
  * conditionId == -1 is always evaluated as true
  */
-int logicConditionGetValue(int8_t conditionId) {
+int32_t logicConditionGetValue(int8_t conditionId) {
     if (conditionId >= 0) {
         return logicConditionStates[conditionId].value;
     } else {
