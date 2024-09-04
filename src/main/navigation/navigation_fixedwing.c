@@ -399,38 +399,52 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         virtualTargetBearing = calculateBearingToDestination(&virtualDesiredPosition);
     }
 
-    /* If waypoint tracking enabled quickly force craft toward waypoint course line and closely track along it */
-    if (navConfig()->fw.wp_tracking_accuracy && isWaypointNavTrackingActive() && !needToCalculateCircularLoiter) {
-        // courseVirtualCorrection initially used to determine current position relative to course line for later use
-        int32_t courseVirtualCorrection = wrap_18000(posControl.activeWaypoint.bearing - virtualTargetBearing);
-        navCrossTrackError = ABS(posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(courseVirtualCorrection)));
+    if (isWaypointNavTrackingActive()) {
+        /* Calculate cross track error */
+        posControl.wpDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
 
-        // tracking only active when certain distance and heading conditions are met
-        if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > 200) {
-            int32_t courseHeadingError = wrap_18000(posControl.activeWaypoint.bearing - posControl.actualState.cog);
+        fpVector3_t virtualCoursePoint;
+        virtualCoursePoint.x = posControl.activeWaypoint.pos.x -
+                               posControl.wpDistance * cos_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
+        virtualCoursePoint.y = posControl.activeWaypoint.pos.y -
+                               posControl.wpDistance * sin_approx(CENTIDEGREES_TO_RADIANS(posControl.activeWaypoint.bearing));
+        navCrossTrackError = calculateDistanceToDestination(&virtualCoursePoint);
 
-            // captureFactor adjusts distance/heading sensitivity balance when closing in on course line.
-            // Closing distance threashold based on speed and an assumed 1 second response time.
-            float captureFactor = navCrossTrackError < posControl.actualState.velXY ? constrainf(2.0f - ABS(courseHeadingError) / 500.0f, 0.0f, 2.0f) : 1.0f;
+        /* If waypoint tracking enabled force craft toward and closely track along waypoint course line */
+        if (navConfig()->fw.wp_tracking_accuracy && !needToCalculateCircularLoiter) {
+            static float crossTrackErrorRate;
+            static timeUs_t previousCrossTrackErrorUpdateTime;
+            static float previousCrossTrackError = 0.0f;
+            static pt1Filter_t fwCrossTrackErrorRateFilterState;
 
-            // bias between reducing distance to course line and aligning with course heading adjusted by waypoint_tracking_accuracy
-            // initial courseCorrectionFactor based on distance to course line
-            float courseCorrectionFactor = constrainf(captureFactor * navCrossTrackError / (1000.0f * navConfig()->fw.wp_tracking_accuracy), 0.0f, 1.0f);
-            courseCorrectionFactor = courseVirtualCorrection < 0 ? -courseCorrectionFactor : courseCorrectionFactor;
+            if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(20) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
+                const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
+                if (fabsf(previousCrossTrackError - navCrossTrackError) < 500.0f) {
+                    crossTrackErrorRate = (previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec;
+                }
+                crossTrackErrorRate = pt1FilterApply4(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate, 3.0f, crossTrackErrorDtSec);
+                previousCrossTrackErrorUpdateTime = currentTimeUs;
+                previousCrossTrackError = navCrossTrackError;
+            }
 
-            // course heading alignment factor
-            float courseHeadingFactor = constrainf(courseHeadingError / 18000.0f, 0.0f, 1.0f);
-            courseHeadingFactor = courseHeadingError < 0 ? -courseHeadingFactor : courseHeadingFactor;
+            uint16_t trackingDeadband = METERS_TO_CENTIMETERS(navConfig()->fw.wp_tracking_accuracy);
 
-            // final courseCorrectionFactor combining distance and heading factors
-            courseCorrectionFactor = constrainf(courseCorrectionFactor - courseHeadingFactor, -1.0f, 1.0f);
+            if ((ABS(wrap_18000(virtualTargetBearing - posControl.actualState.cog)) < 9000 || posControl.wpDistance < 1000.0f) && navCrossTrackError > trackingDeadband) {
+                float adjustmentFactor = wrap_18000(posControl.activeWaypoint.bearing - virtualTargetBearing);
+                uint16_t angleLimit = DEGREES_TO_CENTIDEGREES(navConfig()->fw.wp_tracking_max_angle);
 
-            // final courseVirtualCorrection value
-            courseVirtualCorrection = DEGREES_TO_CENTIDEGREES(navConfig()->fw.wp_tracking_max_angle) * courseCorrectionFactor;
-            virtualTargetBearing = wrap_36000(posControl.activeWaypoint.bearing - courseVirtualCorrection);
+                /* Apply heading adjustment to match crossTrackErrorRate with fixed convergence speed profile */
+                float maxApproachSpeed = posControl.actualState.velXY * sin_approx(CENTIDEGREES_TO_RADIANS(angleLimit));
+                float desiredApproachSpeed = constrainf(navCrossTrackError / 3.0f, 50.0f, maxApproachSpeed);
+                adjustmentFactor = SIGN(adjustmentFactor) * navCrossTrackError * ((desiredApproachSpeed - crossTrackErrorRate) / desiredApproachSpeed);
+
+                /* Calculate final adjusted virtualTargetBearing */
+                uint16_t limit = constrainf(navCrossTrackError, 1000.0f, angleLimit);
+                adjustmentFactor = constrainf(adjustmentFactor, -limit, limit);
+                virtualTargetBearing = wrap_36000(posControl.activeWaypoint.bearing - adjustmentFactor);
+            }
         }
     }
-
     /*
      * Calculate NAV heading error
      * Units are centidegrees
