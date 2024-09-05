@@ -4127,7 +4127,7 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #if (defined(USE_HEADTRACKER) && defined(USE_HEADTRACKER_MSP))
         case MSP2_SENSOR_HEADTRACKER:
-            mspHeadTrackerReceiverNewData(sbufPtr(src), dataSize);
+            mspHeadTrackerReceiverNewData(sbufPtr(src), sbufBytesRemaining(src));
             break;
 #endif
     }
