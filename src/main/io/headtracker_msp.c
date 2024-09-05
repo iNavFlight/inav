@@ -56,6 +56,7 @@ void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
 {
     if(dataSize != sizeof(headtrackerMspMessage_t)) {
         SD(fprintf(stderr, "[headTracker]: invalid data size %d\n", dataSize));
+        DEBUG_SET(DEBUG_HEADTRACKING, 7, 1);
         return;
     }
 
@@ -66,7 +67,10 @@ void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
     headTrackerMspDevice.roll = constrain(status->roll, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
     headTrackerMspDevice.expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
 
-    UNUSED(status);
+    DEBUG_SET(DEBUG_HEADTRACKING, 0, headTrackerMspDevice.pan);
+    DEBUG_SET(DEBUG_HEADTRACKING, 1, headTrackerMspDevice.tilt);
+    DEBUG_SET(DEBUG_HEADTRACKING, 2, headTrackerMspDevice.roll);
+    DEBUG_SET(DEBUG_HEADTRACKING, 3, headTrackerMspDevice.expires);
 }
 
 headTrackerDevType_e heatTrackerMspGetDeviceType(const headTrackerDevice_t *headTrackerDevice) {
