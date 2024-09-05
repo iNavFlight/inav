@@ -37,7 +37,7 @@ typedef struct headtrackerMspMessage_s {
 
 void mspHeadTrackerInit(void);
 
-void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize);
+void mspHeadTrackerReceiverNewData(uint8_t *data, unsigned int dataSize);
 
 headTrackerDevType_e heatTrackerMspGetDeviceType(const headTrackerDevice_t *headTrackerDevice);
 
