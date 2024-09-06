@@ -23,7 +23,6 @@
 #define HEADTRACKER_RANGE_MIN   -2048
 #define HEADTRACKER_RANGE_MAX   2047
 
-#ifdef USE_HEADTRACKER
 
 #include <stdint.h>
 
@@ -80,6 +79,8 @@ typedef struct headTrackerConfig_s {
     float tilt_ratio;
     float roll_ratio;
 } headTrackerConfig_t;
+
+#ifdef USE_HEADTRACKER
 
 PG_DECLARE(headTrackerConfig_t, headTrackerConfig);
 

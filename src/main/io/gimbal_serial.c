@@ -63,11 +63,11 @@ static gimbalSerialHtrkState_t headTrackerState = {
     .attitude = {},
     .state = WAITING_HDR1,
 };
-#endif
-
-#endif
-
 static serialPort_t *headTrackerPort = NULL;
+#endif
+
+#endif
+
 static serialPort_t *gimbalPort = NULL;
 
 gimbalVTable_t gimbalSerialVTable = {
