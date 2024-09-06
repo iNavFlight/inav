@@ -48,9 +48,6 @@ static headTrackerDevice_t headTrackerMspDevice = {
 
 void mspHeadTrackerInit(void)
 {
-    for(int i = 0; i < 8;++i) {
-        DEBUG_SET(DEBUG_HEADTRACKING, i, 0);
-    }
     if(headTrackerConfig()->devType == HEADTRACKER_MSP) {
         headTrackerCommonSetDevice(&headTrackerMspDevice);
     }
