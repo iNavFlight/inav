@@ -239,6 +239,7 @@ typedef struct positionEstimationConfig_s {
     uint16_t max_surface_altitude;
 
     float w_z_baro_p;           // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_v;           // Weight (cutoff frequency) for barometer climb rate measurements
 
     float w_z_surface_p;        // Weight (cutoff frequency) for surface altitude measurements
     float w_z_surface_v;        // Weight (cutoff frequency) for surface velocity measurements

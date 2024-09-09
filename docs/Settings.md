@@ -2122,6 +2122,16 @@ Weight of barometer measurements in estimated altitude and climb rate. Setting i
 
 ---
 
+### inav_w_z_baro_v
+
+Weight of barometer climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.1 | 0 | 10 |
+
+---
+
 ### inav_w_z_gps_p
 
 Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors.
