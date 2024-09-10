@@ -15,27 +15,17 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "common/time.h"
+#include "platform.h"
 
-extern uint32_t usTicks;
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
 
-void delayMicroseconds(timeUs_t us);
-void delayNanos(timeDelta_t ns);
-void delay(timeMs_t ms);
+#include "io/piniobox.h"
 
-timeUs_t micros(void);
-timeUs_t microsISR(void);
-timeMs_t millis(void);
-
-uint32_t ticks(void);
-
-#ifdef __cplusplus
+void targetConfiguration(void)
+{
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
 }
-#endif

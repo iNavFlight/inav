@@ -956,6 +956,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #ifdef USE_ADSB
         sbufWriteU8(dst, MAX_ADSB_VEHICLES);
         sbufWriteU8(dst, ADSB_CALL_SIGN_MAX_LENGTH);
+        sbufWriteU32(dst, getAdsbStatus()->vehiclesMessagesTotal);
+        sbufWriteU32(dst, getAdsbStatus()->heartbeatMessagesTotal);
 
         for(uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++){
 
@@ -977,6 +979,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
         sbufWriteU8(dst, 0);
+        sbufWriteU32(dst, 0);
+        sbufWriteU32(dst, 0);
 #endif
             break;
     case MSP_DEBUG:
@@ -1034,7 +1038,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_MIXER:
         sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
         break;
-    
+
 
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
@@ -1274,7 +1278,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
 
         sbufWriteU16(dst, 0);    //Was gyroConfig()->gyro_stage2_lowpass_hz
-        break; 
+        break;
 
     case MSP_PID_ADVANCED:
         sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
@@ -1618,7 +1622,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
-    
+
 
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
@@ -2892,7 +2896,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-    
+
     case MSP_SET_FAILSAFE_CONFIG:
         if (dataSize == 20) {
             failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
@@ -3291,11 +3295,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
     case MSP2_INAV_GPS_UBLOX_COMMAND:
         if(dataSize < 8 || !isGpsUblox()) {
-            SD(fprintf(stderr, "[GPS] Not ublox!\n"));
             return MSP_RESULT_ERROR;
         }
 
-        SD(fprintf(stderr, "[GPS] Sending ubx command: %i!\n", dataSize));
         gpsUbloxSendCommand(src->ptr, dataSize, 0);
         break;
 
@@ -4145,7 +4147,6 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
-    SD(fprintf(stderr, "[MSP] CommandId: 0x%04x bytes: %i!\n", cmdMSP, sbufBytesRemaining(src)));
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
