@@ -296,14 +296,13 @@ static int logicConditionCompute(
 #endif
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
 #if defined(USE_VTX_CONTROL)
-#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
+            uint8_t newpower = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+            if ( newpower != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newpower = constrain(operandA, VTX_SETTINGS_MIN_POWER, VTX_SETTINGS_MAX_POWER);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = newpower;
+                vtxSettingsConfigMutable()->power = newpower;
+                return newpower;
             } else {
                 return false;
             }

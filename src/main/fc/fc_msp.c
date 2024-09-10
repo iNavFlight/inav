@@ -2686,10 +2686,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
                     if (sbufBytesRemaining(src) > 1) {
                         uint8_t newPower = sbufReadU8(src);
-                        uint8_t currentPower = 0;
-                        vtxCommonGetPowerIndex(vtxDevice, &currentPower);
-                        if (newPower != currentPower) {
-                            vtxCommonSetPowerByIndex(vtxDevice, newPower);
+                        if (vtxSettingsConfig()->power != newPower) {
                             vtxSettingsConfigMutable()->power = newPower;
                         }
 
@@ -2715,9 +2712,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         // API version 1.42 - extensions for non-encoded versions of the band, channel or frequency
                         if (sbufBytesRemaining(src) >= 4) {
                             uint8_t newBand = sbufReadU8(src);
+                            if (vtxSettingsConfig()->band != newBand) {
+                                vtxSettingsConfigMutable()->band = newBand;
+                            }
+
                             const uint8_t newChannel = sbufReadU8(src);
-                            vtxSettingsConfigMutable()->band = newBand;
-                            vtxSettingsConfigMutable()->channel = newChannel;
+                            if (vtxSettingsConfig()->channel != newChannel) {
+                                vtxSettingsConfigMutable()->channel = newChannel;
+                            }
                         }
 
                        /* if (sbufBytesRemaining(src) >= 4) {
@@ -3684,7 +3686,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
 		{
 			bool blink1;
-			uint16_t lastChar;
+			uint16_t lastChar = 0;
 
 			count = 0;
 			while ( true )
