@@ -18,13 +18,8 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "IB7P"
-
-#ifdef IFLIGHT_BLITZ_H7_PRO
-#define USBD_PRODUCT_STRING     "IFLIGHT_BLITZ_H7_PRO"
-#else
-#define USBD_PRODUCT_STRING     "IFLIGHT_BLITZ_H7_WING"
-#endif
+#define TARGET_BOARD_IDENTIFIER "FWH7"
+#define USBD_PRODUCT_STRING     "FLYWOOH743PRO"
 
 #define USE_TARGET_CONFIG
 
@@ -34,43 +29,53 @@
 #define BEEPER                  PA15
 #define BEEPER_INVERTED
 
-// SPI1
+// *************** IMU generic ***********************
+#define USE_DUAL_GYRO
+#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
+
+#define USE_IMU_ICM42605
+// *************** SPI1 IMU0 ICM42605_1 ****************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 #define SPI1_SCK_PIN            PA5
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PD7
 
-// SPI2
-#define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN           PB14
-#define SPI2_MOSI_PIN           PB15
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_1_SPI_BUS      BUS_SPI1
+#define ICM42605_1_CS_PIN       PC15
 
-// SPI3 - not connected
-#define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PB3
-#define SPI3_MISO_PIN           PB4
-#define SPI3_MOSI_PIN           PB5
-
-// SPI4 - GYRO2 not used in INAV
+// *************** SPI4 IMU1 ICM42605_2 **************
 #define USE_SPI_DEVICE_4
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE14
 
-// ICM42605
-#define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW0_DEG
-#define ICM42605_SPI_BUS        BUS_SPI1
-#define ICM42605_CS_PIN         PC15
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_2_SPI_BUS      BUS_SPI4
+#define ICM42605_2_CS_PIN       PE11
 
-// OSD
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI2
-#define MAX7456_CS_PIN          PB12
+// *************** SPI2 OSD ***********************
+  #define USE_SPI_DEVICE_2
+  #define SPI2_SCK_PIN            PB13
+  #define SPI2_MISO_PIN           PB14
+  #define SPI2_MOSI_PIN           PB15
 
-// I2C
+  #define USE_MAX7456
+  #define MAX7456_SPI_BUS         BUS_SPI2
+  #define MAX7456_CS_PIN          PB12
+
+// *************** SPI3 SPARE for external RM3100 ***********
+#define USE_SPI_DEVICE_3
+#define SPI3_SCK_PIN            PB3
+#define SPI3_MISO_PIN           PB4
+#define SPI3_MOSI_PIN           PB5
+
+#define USE_MAG_RM3100
+#define RM3100_CS_PIN           PE2   //CS2 pad
+#define RM3100_SPI_BUS          BUS_SPI3
+
+// *************** I2C /Baro/Mag *********************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB6
@@ -82,7 +87,10 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C2
-#define USE_BARO_ALL
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
@@ -147,6 +155,7 @@
 #define ADC_CHANNEL_2_PIN           PC1  //ADC123 CURR1
 #define ADC_CHANNEL_3_PIN           PC5  //ADC12  RSSI
 #define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
+#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
@@ -164,13 +173,7 @@
 #define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE         212
-
-#ifdef IFLIGHT_BLITZ_H7_PRO
-#define VBAT_SCALE_DEFAULT          2100
-#else
-#define VBAT_SCALE_DEFAULT          1100
-#endif
+#define CURRENT_METER_SCALE         250
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -183,3 +186,4 @@
 #define MAX_PWM_OUTPUT_PORTS        12
 #define USE_DSHOT
 #define USE_ESC_SENSOR
+

@@ -4,7 +4,7 @@
 
 INAV supports advanced automatic landings for fixed wing aircraft from version 7.1.
 The procedure is based on landings for man-carrying aircraft, so that safe landings at a specific location are possible.
-Supported are landings at safehome after "Return to Home" or at a defined LAND waypoint for missions. 
+Supported are landings at Safehome after "Return to Home" or at a defined LAND waypoint for missions. 
 Every landing locations can be defined with a target point and 2 different approach headings (colinear to the landing strips) with exclusive direction or opposite directions allowed. 
 This enables up to 4 different approach directions, based on the landing site and surrounding area. 
 
@@ -15,7 +15,7 @@ This enables up to 4 different approach directions, based on the landing site an
 3. The landing direction and the approach waypoints are calculated on the basis of the measured wind parameters. If no headwind landing is possible or the wind strength is greater than "Max. tailwind" (see Global Parameters), return to point 2.
 4. The landing is initiated. The aircraft flies the downwind course, "Approach Altitude" is held.
 5. Base Leg: the altitude is reduced from 2/3 of "Approach Altitude".
-6. Final Appraoch: The engine power is reduced using "Pitch2throttle modifier" to reduce speed and the altitude is reduced to "Land Altitude".
+6. Final Appraoch: The engine power is reduced using "Pitch2throttle modifier" to reduce speed and the altitude is gradually reduced towards "Land Altitude" while approaching the Safehome coordinates.
 7. Glide: When "Glide Altitude" is reached, the motor is switched off and the pitch angle of "Glide Pitch" is held.
 7. Flare: Only if a LIDAR/Rangefinder sensor is present: the motor remains switched off and the pitch angle of "Flare Pitch" is held
 8. Landing: As soon as INAV has detected the landing, it is automatically disarmed, see setting `nav_disarm_on_landing`.
