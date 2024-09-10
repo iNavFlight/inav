@@ -41,7 +41,7 @@ set_property(SOURCE gps_ublox_unittest.cc PROPERTY depends "io/gps_ublox_utils.c
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TEST)
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
-set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_GIMBAL_SERIAL USE_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER GIMBAL_UNIT_TEST)
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
