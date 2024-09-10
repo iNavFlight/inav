@@ -559,11 +559,11 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     DEBUG_SET(DEBUG_ALTITUDE, 7, accGetClipCount());            // Clip count
 
     bool correctOK = false;
-    float wBaro = 1.0f;
-    float wGps = 1.0f;
+    const uint8_t defaultAltitudeSource = positionEstimationConfig()->default_alt_sensor;
+    float wGps = defaultAltitudeSource == ALTITUDE_SOURCE_BARO_ONLY && ctx->newFlags & EST_BARO_VALID ? 0.0f : 1.0f;
+    float wBaro = defaultAltitudeSource == ALTITUDE_SOURCE_GPS_ONLY && ctx->newFlags & EST_GPS_Z_VALID ? 0.0f : 1.0f;
 
-    if (ctx->newFlags & EST_BARO_VALID && ctx->newFlags & EST_GPS_Z_VALID) {
-        const uint8_t defaultAltitudeSource = positionEstimationConfig()->default_alt_sensor;
+    if (wBaro && ctx->newFlags & EST_BARO_VALID && wGps && ctx->newFlags & EST_GPS_Z_VALID) {
         const float gpsBaroResidual = fabsf(posEstimator.gps.pos.z - posEstimator.baro.alt);
 
         // Fade out the non default sensor to prevent sudden jump

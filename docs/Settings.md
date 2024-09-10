@@ -1994,7 +1994,7 @@ Uncertainty value for barometric sensor [cm]
 
 ### inav_default_alt_sensor
 
-Sets the default altitude sensor to use, GPS or BARO, when the altitude error between the sensors exceeds a set limit. Only the default sensor will be used in this case. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv.
+Sets the default altitude sensor to use. Settings GPS and BARO always use both sensors unless there is an altitude error between the sensors that exceeds a set limit. In this case only the selected sensor will be used while the altitude error limit is exceeded. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv. Settings GPS_ONLY and BARO_ONLY will use only the selected sensor even if the other sensor is working. The other sensor will only be used as a backup if the selected sensor is no longer available to use.
 
 | Default | Min | Max |
 | --- | --- | --- |
