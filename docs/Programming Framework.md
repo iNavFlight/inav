@@ -24,7 +24,7 @@ INAV Programming Framework consists of:
 IPF can be edited using INAV Configurator user interface, or via CLI. To use COnfigurator, click the tab labeled
 "Programming". The various options shown in Configurator are described below.
 
-**Note:** IPF uses non-floating-point math, so it only can return integers.  If your programming line returns a decimal, it will be reduced an integer.  So if your math is `1` / `3` = , IPF will truncate the decimal and return `0`.
+**Note:** IPF uses integer math. If your programming line returns a decimal, it will be truncated to an integer.  So if your math is `1` / `3` = , IPF will truncate the decimal and return `0`.
 
 ## Logic Conditions
 
