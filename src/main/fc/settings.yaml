@@ -2692,7 +2692,7 @@ groups:
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
         default_value: "100"
-        description: "Max allowed above the ground altitude for terrain following mode"
+        description: "Max allowed above the ground altitude for terrain following mode [cm]"
         max: 1000
         default_value: 100
       - name: nav_max_altitude
