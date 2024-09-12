@@ -294,12 +294,13 @@ static int logicConditionCompute(
             return true;
             break;
 #endif
-        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+
 #if defined(USE_VTX_CONTROL)
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
+        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
             uint8_t newpower = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-            if ( newpower != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                newpower = constrain(operandA, VTX_SETTINGS_MIN_POWER, VTX_SETTINGS_MAX_POWER);
+            if (newpower != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                // HDZERO VTX max power+1 is 0mW.
+                newpower = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount+1);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = newpower;
                 vtxSettingsConfigMutable()->power = newpower;
                 return newpower;
@@ -307,30 +308,25 @@ static int logicConditionCompute(
                 return false;
             }
             break;
-#else
-            return false;
-#endif
 
         case LOGIC_CONDITION_SET_VTX_BAND:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
-                vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            uint8_t newband = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            if (newband != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newband = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = newband;
+                vtxSettingsConfigMutable()->band = newband;
+                return newband;
             } else {
                 return false;
             }
             break;
         case LOGIC_CONDITION_SET_VTX_CHANNEL:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
-                vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            uint8_t newchannel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            if (newchannel != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newchannel = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.channelCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newchannel;
+                vtxSettingsConfigMutable()->band = newchannel;
+                return newchannel;
             } else {
                 return false;
             }
