@@ -3654,7 +3654,7 @@ Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor onl
 
 ### nav_max_terrain_follow_alt
 
-Max allowed above the ground altitude for terrain following mode
+Max allowed above the ground altitude for terrain following mode [cm]
 
 | Default | Min | Max |
 | --- | --- | --- |
