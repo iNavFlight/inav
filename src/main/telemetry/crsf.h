@@ -24,7 +24,6 @@
 #define CRSF_MSP_TX_BUF_SIZE 128
 
 void initCrsfTelemetry(void);
-bool checkCrsfTelemetryState(void);
 void handleCrsfTelemetry(timeUs_t currentTimeUs);
 void crsfScheduleDeviceInfoResponse(void);
 void crsfScheduleMspResponse(void);
