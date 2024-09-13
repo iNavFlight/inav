@@ -22,7 +22,6 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include <stdint.h>
 #include <stdbool.h>
 
 #include "config/config_reset.h"
@@ -298,6 +297,7 @@ static int logicConditionCompute(
 
 #if defined(USE_VTX_CONTROL)
         case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+        {
             uint8_t newpower = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
             if (newpower != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
                 // HDZERO VTX max power+1 is 0mW.
@@ -309,8 +309,9 @@ static int logicConditionCompute(
                 return false;
             }
             break;
-
+        }
         case LOGIC_CONDITION_SET_VTX_BAND:
+        {
             uint8_t newband = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
             if (newband != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
                 newband = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
@@ -321,17 +322,20 @@ static int logicConditionCompute(
                 return false;
             }
             break;
+        }
         case LOGIC_CONDITION_SET_VTX_CHANNEL:
+        {
             uint8_t newchannel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
             if (newchannel != operandA && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
-                newchannel = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.channelCount);
+                newchannel = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, vtxDeviceCapability.channelCount);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newchannel;
-                vtxSettingsConfigMutable()->band = newchannel;
+                vtxSettingsConfigMutable()->channel = newchannel;
                 return newchannel;
             } else {
                 return false;
             }
             break;
+        }
 #endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);

@@ -133,6 +133,5 @@ struct rxConfig_s;
 struct rxRuntimeConfig_s;
 bool crsfRxInit(const struct rxConfig_s *initialRxConfig, struct rxRuntimeConfig_s *rxRuntimeConfig);
 bool crsfRxIsActive(void);
-bool checkCrsfTelemetryState(void);
 
 void crsfBind(void);

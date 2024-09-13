@@ -355,7 +355,7 @@ bool vtxMspInit(void)
     vtxState.ready = false;
     vtxState.timeouts = 0;
     vtxState.updateReqMask = VTX_UPDATE_REQ_NONE;
-    vtxState.crsfTelemetryEnabled = crsfRxIsActive() && checkCrsfTelemetryState();
+    vtxState.crsfTelemetryEnabled = crsfRxIsActive();
     vtxState.request.band =  vtxSettingsConfig()->band;
     vtxState.request.channel = vtxSettingsConfig()->channel;
     vtxState.request.freq = vtx58_Bandchan2Freq(vtxState.request.band, vtxState.request.channel);
