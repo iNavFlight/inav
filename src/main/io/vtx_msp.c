@@ -92,9 +92,6 @@ static bool vtxMspIsReady(const vtxDevice_t *);
 
 static void prepareMspFrame(vtxDevice_t *vtxDevice, uint8_t *mspFrame)
 {
-    LOG_DEBUG(VTX, "msp prepareMspFrame\r\n");
-    //UNUSED(vtxDevice);
-
     // Send an MSP_VTX_V2 frame to the VTX
 
     mspFrame[0]  = vtxMspGetDeviceType(vtxDevice);
@@ -125,7 +122,6 @@ static void prepareMspFrame(vtxDevice_t *vtxDevice, uint8_t *mspFrame)
 
 static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const uint8_t mspFrameSize)
 {
-    LOG_DEBUG(VTX, "msp mspCrsfPush\r\n");
 #ifndef USE_TELEMETRY_CRSF
     UNUSED(mspCommand);
     UNUSED(mspFrame);
@@ -167,7 +163,6 @@ static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const
 
 static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 {
-    LOG_DEBUG(VTX, "msp vtxMspProcess\r\n");
     UNUSED(vtxDevice);
 
     uint8_t mspFrame[15];
@@ -203,21 +198,17 @@ static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 
 static vtxDevType_e vtxMspGetDeviceType(const vtxDevice_t *vtxDevice)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetDeviceType\r\n");
     UNUSED(vtxDevice);
-
     return VTXDEV_MSP;
 }
 
 static bool vtxMspIsReady(const vtxDevice_t *vtxDevice)
 {
-    LOG_DEBUG(VTX, "msp vtxMspIsReady\r\n");
     return vtxDevice != NULL && mspVtxPortIdentifier >=0 && vtxState.ready;
 }
 
 static void vtxMspSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel)
 {
-    LOG_DEBUG(VTX, "msp vtxMspSetBandAndChannel\r\n");
     UNUSED(vtxDevice);
 
     if (band < VTX_MSP_MIN_BAND || band > VTX_MSP_MAX_BAND || channel < VTX_MSP_MIN_CHANNEL || channel > VTX_MSP_MAX_CHANNEL) {
@@ -232,7 +223,6 @@ static void vtxMspSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_
 
 static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 {
-    LOG_DEBUG(VTX, "msp vtxMspSetPowerByIndex\r\n");
     UNUSED(vtxDevice);
 
     vtxState.request.power = vtxMspPowerTable[index - 1];
@@ -242,7 +232,6 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 
 static void vtxMspSetPitMode(vtxDevice_t *vtxDevice, uint8_t onOff)
 {
-    LOG_DEBUG(VTX, "msp vtxMspSetPitMode\r\n");
     UNUSED(vtxDevice);
 
     vtxState.request.pitMode = onOff;
@@ -251,7 +240,6 @@ static void vtxMspSetPitMode(vtxDevice_t *vtxDevice, uint8_t onOff)
 
 static bool vtxMspGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetBandAndChannel\r\n");
     UNUSED(vtxDevice);
 
     *pBand = vtxState.request.band; 
@@ -261,7 +249,6 @@ static bool vtxMspGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand
 
 static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetPowerIndex\r\n");
     UNUSED(vtxDevice);
 
     *pIndex = vtxState.request.powerIndex;
@@ -270,7 +257,6 @@ static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 
 static bool vtxMspGetPitMode(const vtxDevice_t *vtxDevice, uint8_t *pOnOff)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetPitMode\r\n");
     UNUSED(vtxDevice);
 
     *pOnOff = vtxState.request.pitMode;
@@ -279,7 +265,6 @@ static bool vtxMspGetPitMode(const vtxDevice_t *vtxDevice, uint8_t *pOnOff)
 
 static bool vtxMspGetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetFreq\r\n");
     UNUSED(vtxDevice);
 
     *pFreq = vtxState.request.freq;
@@ -288,7 +273,6 @@ static bool vtxMspGetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
 
 static bool vtxMspGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetPower\r\n");
     UNUSED(vtxDevice);
 
     *pIndex = vtxState.request.powerIndex;
@@ -298,7 +282,6 @@ static bool vtxMspGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16
 
 static bool vtxMspGetOsdInfo(const vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t *pOsdInfo)
 {
-    LOG_DEBUG(VTX, "msp vtxMspGetOsdInfo\r\n");
     UNUSED(vtxDevice);
 
     pOsdInfo->band = vtxState.request.band;
@@ -341,7 +324,6 @@ static vtxDevice_t vtxMsp = {
 
 bool vtxMspInit(void)
 {
-    LOG_DEBUG(VTX, "msp %s\r\n", __FUNCTION__);
     const serialPortConfig_t *portConfig;
     
     // Shares MSP_OSD port
@@ -360,9 +342,7 @@ bool vtxMspInit(void)
     vtxState.request.channel = vtxSettingsConfig()->channel;
     vtxState.request.freq = vtx58_Bandchan2Freq(vtxState.request.band, vtxState.request.channel);
     vtxState.request.power = vtxSettingsConfig()->power;
-    uint8_t pitmode = 0;
-    vtxCommonGetPitMode(&vtxMsp,  &pitmode);
-    vtxState.request.pitMode = pitmode;
+    vtxState.request.pitMode = 0;
     vtxCommonSetDevice(&vtxMsp);
 
     return true;
