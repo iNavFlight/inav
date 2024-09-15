@@ -4998,7 +4998,7 @@ uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX)
 uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX)
 {
     char buff[12];
-    char outBuff[12];
+    char outBuff[20];
 
     const float max_gforce = accGetMeasuredMaxG();
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();
