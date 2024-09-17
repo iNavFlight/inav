@@ -1710,28 +1710,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_CUSTOM_OSD_ELEMENTS:
-        sbufWriteU8(dst, MAX_CUSTOM_ELEMENTS);
-        sbufWriteU8(dst, OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1);
-
-        for (int i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
-            const osdCustomElement_t *customElement = osdCustomElements(i);
-            for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
-                sbufWriteU8(dst, customElement->part[ii].type);
-                sbufWriteU16(dst, customElement->part[ii].value);
-            }
-            sbufWriteU8(dst, customElement->visibility.type);
-            sbufWriteU16(dst, customElement->visibility.value);
-            for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
-                sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
-            }
+        {
+            sbufWriteU8(dst, MAX_CUSTOM_ELEMENTS);
+            sbufWriteU8(dst, OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1);
+            sbufWriteU8(dst, CUSTOM_ELEMENTS_PARTS);
         }
         break;
+#endif
     default:
         return false;
     }
     return true;
 }
-#endif
+
 
 #ifdef USE_SAFE_HOME
 static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
@@ -3351,7 +3342,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (MAX_CUSTOM_ELEMENTS * 3) + 4) && (tmp_u8 < MAX_CUSTOM_ELEMENTS)) {
+        if ((dataSize == (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4) && (tmp_u8 < MAX_CUSTOM_ELEMENTS)) {
             for (int i = 0; i < CUSTOM_ELEMENTS_PARTS; i++) {
                 osdCustomElementsMutable(tmp_u8)->part[i].type = sbufReadU8(src);
                 osdCustomElementsMutable(tmp_u8)->part[i].value = sbufReadU16(src);
@@ -3367,7 +3358,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
 
         break;
-
+#endif
     case MSP2_BETAFLIGHT_BIND:
         if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
             switch (rxConfig()->serialrx_provider) {
@@ -3394,7 +3385,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     }
     return MSP_RESULT_ACK;
 }
-#endif
 
 static const setting_t *mspReadSetting(sbuf_t *src)
 {
@@ -3850,6 +3840,24 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_LOGIC_CONDITIONS_SINGLE:
         *ret = mspFcLogicConditionCommand(dst, src);
+        break;
+    case MSP2_INAV_CUSTOM_OSD_ELEMENT:
+        {
+            const uint8_t idx = sbufReadU8(src);
+
+            if (idx < MAX_CUSTOM_ELEMENTS) {
+                const osdCustomElement_t *customElement = osdCustomElements(idx);
+                for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
+                    sbufWriteU8(dst, customElement->part[ii].type);
+                    sbufWriteU16(dst, customElement->part[ii].value);
+                }
+                sbufWriteU8(dst, customElement->visibility.type);
+                sbufWriteU16(dst, customElement->visibility.value);
+                for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
+                    sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
+                }
+            }
+        }
         break;
 #endif
 #ifdef USE_SAFE_HOME

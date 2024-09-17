@@ -3710,6 +3710,17 @@ groups:
         min: 1000
         max: 5000
         default_value: 1500
+      - name: osd_system_msg_display_time
+        description: System message display cycle time for multiple messages (milliseconds).
+        field: system_msg_display_time
+        default_value: 1000
+        min: 500
+        max: 5000
+      - name: osd_highlight_djis_missing_font_symbols
+        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
+        field: highlight_djis_missing_characters
+        default_value: ON
+        type: bool
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
@@ -3763,17 +3774,6 @@ groups:
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
-      - name: osd_system_msg_display_time
-        description: System message display cycle time for multiple messages (milliseconds).
-        field: system_msg_display_time
-        default_value: 1000
-        min: 500
-        max: 5000
-      - name: osd_highlight_djis_missing_font_symbols
-        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
-        field: highlight_djis_missing_characters
-        default_value: ON
-        type: bool
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]
