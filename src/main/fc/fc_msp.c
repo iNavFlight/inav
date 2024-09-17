@@ -2675,13 +2675,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     if (newFrequency <= VTXCOMMON_MSP_BANDCHAN_CHKVAL) {  //value is band and channel
                         const uint8_t newBand = (newFrequency / 8) + 1;
                         const uint8_t newChannel = (newFrequency % 8) + 1;
-
-                        if(vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
-                            vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
+                        if (vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
+                            vtxSettingsConfigMutable()->band = newBand;
+                            vtxSettingsConfigMutable()->channel = newChannel;
                         }
-
-                        vtxSettingsConfigMutable()->band = newBand;
-                        vtxSettingsConfigMutable()->channel = newChannel;
                     }
 
                     if (sbufBytesRemaining(src) > 1) {
