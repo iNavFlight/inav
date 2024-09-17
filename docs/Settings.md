@@ -1162,6 +1162,16 @@ S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer da
 
 ---
 
+### frsky_use_legacy_gps_mode_sensor_ids
+
+S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.
