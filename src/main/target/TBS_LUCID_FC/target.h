@@ -130,7 +130,7 @@
 #define VBAT_ADC_CHANNEL          ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL ADC_CHN_2
 
-#define TARGET_IO_PORTA           0xffff
+#define TARGET_IO_PORTA           (0xffff & ~(BIT(14)|BIT(13)))
 #define TARGET_IO_PORTB           0xffff
 #define TARGET_IO_PORTC           0xffff
 #define TARGET_IO_PORTD           (BIT(2) | BIT(12) | BIT(13))
