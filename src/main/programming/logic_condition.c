@@ -301,8 +301,7 @@ static int logicConditionCompute(
             if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
                 uint8_t power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
                 if (power != operandA || power != vtxSettingsConfig()->power) {
-                    // HDZERO VTX max power+1 is 0mW.
-                    power = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount+1);
+                    power = constrain(operandA, 0, vtxDeviceCapability.powerCount); // Allow a power level of 0
                     logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = power;
                     vtxSettingsConfigMutable()->power = power;
                     return power;
