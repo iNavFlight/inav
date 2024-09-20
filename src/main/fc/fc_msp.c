@@ -2699,9 +2699,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                             vtxSettingsConfigMutable()->lowPowerDisarm = sbufReadU8(src);
                         }
 
-                        // //////////////////////////////////////////////////////////
-                        // this code is taken from BF, it's hack for HDZERO VTX MSP frame
-                        // API version 1.42 - this parameter kept separate since clients may already be supplying
+                        // API version 1.42 - extension for pitmode frequency 
                         if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); //skip pitModeFreq
                         }
@@ -2719,13 +2717,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                             }
                         }
 
-                       /* if (sbufBytesRemaining(src) >= 4) {
-                            sbufRead8(src); // freq_l
-                            sbufRead8(src); // freq_h
-                            sbufRead8(src); // band count
-                            sbufRead8(src); // channel count
-                        }*/
-                        // //////////////////////////////////////////////////////////
+                        if (sbufBytesRemaining(src) >= 5) {
+                            sbufReadU16(src); // freq
+                            sbufReadU8(src); // band count
+                            sbufReadU8(src); // channel count
+                            
+                            uint8_t newPowerCount = sbufReadU8(src);
+                            if (newPowerCount > 0 && newPowerCount < (vtxDevice->capability.powerCount)) {
+                                vtxDevice->capability.powerCount = newPowerCount;
+                            }                        
+                        }
                     }
                 }
             }
