@@ -325,8 +325,6 @@ float processBaroTempCorrection(void)
     static int16_t baroTemp1 = 0.0f;
     static timeMs_t startTimeMs = 0;
 
-    DEBUG_SET(DEBUG_ALWAYS, 0, correctionFactor * 100);
-    DEBUG_SET(DEBUG_ALWAYS, 1, baro.baroTemperature);
     if (!ARMING_FLAG(WAS_EVER_ARMED)) {
         static float baroAlt1 = 0.0f;
         static int16_t baroTemp2 = 0.0f;
