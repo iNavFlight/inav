@@ -362,6 +362,8 @@ main_sources(COMMON_SRC
     io/servo_sbus.h
     io/frsky_osd.c
     io/frsky_osd.h
+    io/gimbal_mavlink.c
+    io/gimbal_mavlink.h
     io/gimbal_serial.c
     io/gimbal_serial.h
     io/headtracker_msp.c

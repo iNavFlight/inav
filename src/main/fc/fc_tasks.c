@@ -430,7 +430,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
 #endif
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
     setTaskEnabled(TASK_GIMBAL, true);
 #endif
 
@@ -713,7 +713,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     },
 #endif
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
     [TASK_GIMBAL] = {
         .taskName = "GIMBAL",
         .taskFunc = taskUpdateGimbal,
