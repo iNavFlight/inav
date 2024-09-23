@@ -50,6 +50,8 @@
 #include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
+#include "io/beeper.h"
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -62,7 +64,8 @@ PG_REGISTER_WITH_RESET_TEMPLATE(barometerConfig_t, barometerConfig, PG_BAROMETER
 
 PG_RESET_TEMPLATE(barometerConfig_t, barometerConfig,
     .baro_hardware = SETTING_BARO_HARDWARE_DEFAULT,
-    .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT
+    .baro_calibration_tolerance = SETTING_BARO_CAL_TOLERANCE_DEFAULT,
+    .baro_temp_correction = SETTING_BARO_TEMP_CORRECTION_DEFAULT,
 );
 
 static zeroCalibrationScalar_t zeroCalibration;
@@ -309,6 +312,64 @@ void baroStartCalibration(void)
     zeroCalibrationStartS(&zeroCalibration, CALIBRATING_BARO_TIME_MS, acceptedPressureVariance, false);
 }
 
+float processBaroTempCorrection(void)
+{
+    float setting = barometerConfig()->baro_temp_correction;
+
+    if (setting == 0.0f) {
+        return 0.0f;
+    }
+
+    static float correctionFactor = 0.0f;
+    static baroTempCalState_e calibrationState = BARO_TEMP_CAL_INITIALISE;
+    static int16_t baroTemp1 = 0.0f;
+    static timeMs_t startTimeMs = 0;
+
+    DEBUG_SET(DEBUG_ALWAYS, 0, correctionFactor * 100);
+    DEBUG_SET(DEBUG_ALWAYS, 1, baro.baroTemperature);
+    if (!ARMING_FLAG(WAS_EVER_ARMED)) {
+        static float baroAlt1 = 0.0f;
+        static int16_t baroTemp2 = 0.0f;
+        float newBaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+
+        if (calibrationState == BARO_TEMP_CAL_INITIALISE) {  // set initial correction reference temps/pressures
+            baroTemp1 = baroTemp2 = baro.baroTemperature;
+            baroAlt1 = newBaroAlt;
+            calibrationState = BARO_TEMP_CAL_IN_PROGRESS;
+            startTimeMs = millis();
+        }
+
+        if (setting == 51.0f) {  // Auto calibration triggered with setting = 51
+            /* Min 1 deg temp difference required.
+             * Correction adjusted only if temperature difference to reference temperature increasing */
+            float referenceDeltaTemp = ABS(baro.baroTemperature - baroTemp1);
+            if (referenceDeltaTemp > 100 && referenceDeltaTemp > ABS(baroTemp2 - baroTemp1)) {
+                baroTemp2 = baro.baroTemperature;
+                correctionFactor = 0.8f * correctionFactor + 0.2f * (newBaroAlt - baroAlt1) / CENTIDEGREES_TO_DEGREES(baroTemp2 - baroTemp1);
+                correctionFactor = constrainf(correctionFactor, -50.0f, 50.0f);
+            }
+        } else {
+            correctionFactor = setting;
+            calibrationState = BARO_TEMP_CAL_COMPLETE;
+        }
+    }
+
+    // Calibration ends on first Arm or after 5 min timeout
+    if (calibrationState == BARO_TEMP_CAL_IN_PROGRESS && (ARMING_FLAG(WAS_EVER_ARMED) || millis() > startTimeMs + 300000)) {
+        barometerConfigMutable()->baro_temp_correction = correctionFactor;
+        calibrationState = BARO_TEMP_CAL_COMPLETE;
+        if (!ARMING_FLAG(WAS_EVER_ARMED)) {
+            beeper(correctionFactor != 51.0f ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
+        }
+    }
+
+    if (calibrationState == BARO_TEMP_CAL_COMPLETE) {
+        return correctionFactor * CENTIDEGREES_TO_DEGREES(baroTemp1 - baro.baroTemperature);
+    }
+
+    return 0.0f;
+}
+
 int32_t baroCalculateAltitude(void)
 {
     if (!baroIsCalibrationComplete()) {
@@ -324,7 +385,7 @@ int32_t baroCalculateAltitude(void)
     }
     else {
         // calculates height from ground via baro readings
-        baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude;
+        baro.BaroAlt = pressureToAltitude(baro.baroPressure) - baroGroundAltitude + processBaroTempCorrection();
    }
 
     return baro.BaroAlt;
@@ -336,7 +397,7 @@ int32_t baroGetLatestAltitude(void)
 }
 
 int16_t baroGetTemperature(void)
-{   
+{
     return CENTIDEGREES_TO_DECIDEGREES(baro.baroTemperature);
 }
 
