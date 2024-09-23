@@ -120,17 +120,19 @@
 
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                PC5  // Camera Control
+#define PINIO1_PIN                PA13
+#define PINIO2_PIN                PA14
 
 #define USE_ADC
 #define ADC_INSTANCE              ADC1
 #define ADC1_DMA_STREAM           DMA2_CHANNEL7
 #define ADC_CHANNEL_1_PIN         PC0
 #define ADC_CHANNEL_2_PIN         PC1
+#define ADC_CHANNEL_3_PIN         PC5
 #define VBAT_ADC_CHANNEL          ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL ADC_CHN_2
 
-#define TARGET_IO_PORTA           (0xffff & ~(BIT(14)|BIT(13)))
+#define TARGET_IO_PORTA           0xffff
 #define TARGET_IO_PORTB           0xffff
 #define TARGET_IO_PORTC           0xffff
 #define TARGET_IO_PORTD           (BIT(2) | BIT(12) | BIT(13))
