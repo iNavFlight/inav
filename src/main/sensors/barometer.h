@@ -38,6 +38,12 @@ typedef enum {
     BARO_MAX    = BARO_FAKE
 } baroSensor_e;
 
+typedef enum {
+    BARO_TEMP_CAL_INITIALISE,
+    BARO_TEMP_CAL_IN_PROGRESS,
+    BARO_TEMP_CAL_COMPLETE,
+} baroTempCalState_e;
+
 typedef struct baro_s {
     baroDev_t dev;
     int32_t BaroAlt;
