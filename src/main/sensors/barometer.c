@@ -325,6 +325,10 @@ float processBaroTempCorrection(void)
     static int16_t baroTemp1 = 0.0f;
     static timeMs_t startTimeMs = 0;
 
+    if (calibrationState == BARO_TEMP_CAL_COMPLETE) {
+        return correctionFactor * CENTIDEGREES_TO_DEGREES(baroTemp1 - baro.baroTemperature);
+    }
+
     if (!ARMING_FLAG(WAS_EVER_ARMED)) {
         static float baroAlt1 = 0.0f;
         static int16_t baroTemp2 = 0.0f;
@@ -338,10 +342,10 @@ float processBaroTempCorrection(void)
         }
 
         if (setting == 51.0f) {  // Auto calibration triggered with setting = 51
-            /* Min 1 deg temp difference required.
+            /* Min 3 deg reference temperature difference required for valid calibration.
              * Correction adjusted only if temperature difference to reference temperature increasing */
             float referenceDeltaTemp = ABS(baro.baroTemperature - baroTemp1);
-            if (referenceDeltaTemp > 100 && referenceDeltaTemp > ABS(baroTemp2 - baroTemp1)) {
+            if (referenceDeltaTemp > 300 && referenceDeltaTemp > ABS(baroTemp2 - baroTemp1)) {
                 baroTemp2 = baro.baroTemperature;
                 correctionFactor = 0.8f * correctionFactor + 0.2f * (newBaroAlt - baroAlt1) / CENTIDEGREES_TO_DEGREES(baroTemp2 - baroTemp1);
                 correctionFactor = constrainf(correctionFactor, -50.0f, 50.0f);
@@ -357,12 +361,8 @@ float processBaroTempCorrection(void)
         barometerConfigMutable()->baro_temp_correction = correctionFactor;
         calibrationState = BARO_TEMP_CAL_COMPLETE;
         if (!ARMING_FLAG(WAS_EVER_ARMED)) {
-            beeper(correctionFactor != 51.0f ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
+            beeper(correctionFactor ? BEEPER_ACTION_SUCCESS : BEEPER_ACTION_FAIL);
         }
-    }
-
-    if (calibrationState == BARO_TEMP_CAL_COMPLETE) {
-        return correctionFactor * CENTIDEGREES_TO_DEGREES(baroTemp1 - baro.baroTemperature);
     }
 
     return 0.0f;
