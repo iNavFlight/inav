@@ -2708,8 +2708,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                             }
                         }
 
-                        if (sbufBytesRemaining(src) >= 5) {
+                        if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); // freq
+                        }
+                        
+                        if (sbufBytesRemaining(src) >= 3) {
                             sbufReadU8(src); // band count
                             sbufReadU8(src); // channel count
                             

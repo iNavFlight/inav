@@ -77,11 +77,11 @@ const char * const vtxMspChannelNames[VTX_MSP_CHANNEL_COUNT + 1] = {
 };
 
 const char * const vtxMspPowerNames[VTX_MSP_POWER_COUNT + 1] = {
-    "---", "25", "200", "500", "MAX"
+    "0", "25", "200", "500", "MAX"
 };
 
-const unsigned vtxMspPowerTable[VTX_MSP_POWER_COUNT] = {
-    25, 200, 500, 1000
+const unsigned vtxMspPowerTable[VTX_MSP_POWER_COUNT + 1] = {
+    0, 25, 200, 500, 1000
 };
 
 static serialPortIdentifier_e mspVtxPortIdentifier;
@@ -89,11 +89,11 @@ static vtxProtoState_t vtxState;
 
 static vtxDevType_e vtxMspGetDeviceType(const vtxDevice_t *);
 static bool vtxMspIsReady(const vtxDevice_t *);
+static vtxDevice_t vtxMsp;
 
 static void prepareMspFrame(vtxDevice_t *vtxDevice, uint8_t *mspFrame)
 {
     // Send an MSP_VTX_V2 frame to the VTX
-
     mspFrame[0]  = vtxMspGetDeviceType(vtxDevice);
     mspFrame[1]  = vtxState.request.band;
     mspFrame[2]  = vtxState.request.channel;
@@ -106,18 +106,9 @@ static void prepareMspFrame(vtxDevice_t *vtxDevice, uint8_t *mspFrame)
     mspFrame[9]  = 0; // pitmode freq Low
     mspFrame[10] = 0; // pitmode freq High
     mspFrame[11] = 0; // 1 if using vtx table
-    mspFrame[12] = 6; // bands or 0
-    mspFrame[13] = 8; // channels or 0
-    mspFrame[14] = 5; // power levels or 0
-
-    LOG_DEBUG(VTX, "msp device   [%d]\r\n", mspFrame[0]);
-    LOG_DEBUG(VTX, "msp band     [%d]\r\n", mspFrame[1]);
-    LOG_DEBUG(VTX, "msp channel  [%d]\r\n", mspFrame[2]);
-    LOG_DEBUG(VTX, "msp power    [%d]\r\n", mspFrame[3]);
-    LOG_DEBUG(VTX, "msp freq     [%d]\r\n",  ((uint16_t)mspFrame[6] << 8) + mspFrame[5]);
-    LOG_DEBUG(VTX, "msp pitmode  [%d]\r\n", mspFrame[4]);
-    LOG_DEBUG(VTX, "msp isready  [%d]\r\n", mspFrame[7]);
-    LOG_DEBUG(VTX, "msp lowPower [%d]\r\n", mspFrame[8]);
+    mspFrame[12] = vtxMsp.capability.bandCount; // bands or 0
+    mspFrame[13] = vtxMsp.capability.channelCount; // channels or 0
+    mspFrame[14] = vtxMsp.capability.powerCount; // power levels or 0
 } 
 
 static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const uint8_t mspFrameSize)
@@ -225,7 +216,7 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 {
     UNUSED(vtxDevice);
 
-    vtxState.request.power = vtxMspPowerTable[index - 1];
+    vtxState.request.power = vtxMspPowerTable[index];
     vtxState.request.powerIndex = index;
     vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
 }
