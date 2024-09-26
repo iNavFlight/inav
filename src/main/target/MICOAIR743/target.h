@@ -103,7 +103,7 @@
 
 #ifdef MICOAIR743_EXTMAG
 // External compass
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C1
 #else
 // Onboard compass
 #define MAG_I2C_BUS             BUS_I2C2
