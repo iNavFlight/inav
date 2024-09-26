@@ -956,6 +956,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #ifdef USE_ADSB
         sbufWriteU8(dst, MAX_ADSB_VEHICLES);
         sbufWriteU8(dst, ADSB_CALL_SIGN_MAX_LENGTH);
+        sbufWriteU32(dst, getAdsbStatus()->vehiclesMessagesTotal);
+        sbufWriteU32(dst, getAdsbStatus()->heartbeatMessagesTotal);
 
         for(uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++){
 
@@ -977,6 +979,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
         sbufWriteU8(dst, 0);
+        sbufWriteU32(dst, 0);
+        sbufWriteU32(dst, 0);
 #endif
             break;
     case MSP_DEBUG:
@@ -1034,7 +1038,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_MIXER:
         sbufWriteU8(dst, 3); // mixerMode no longer supported, send 3 (QuadX) as fallback
         break;
-    
+
 
     case MSP_RX_CONFIG:
         sbufWriteU8(dst, rxConfig()->serialrx_provider);
@@ -1274,7 +1278,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, accelerometerConfig()->acc_notch_cutoff);
 
         sbufWriteU16(dst, 0);    //Was gyroConfig()->gyro_stage2_lowpass_hz
-        break; 
+        break;
 
     case MSP_PID_ADVANCED:
         sbufWriteU16(dst, 0); // pidProfile()->rollPitchItermIgnoreRate
@@ -1618,7 +1622,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
-    
+
 
     case MSP2_INAV_MC_BRAKING:
 #ifdef USE_MR_BRAKING_MODE
@@ -1706,28 +1710,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_CUSTOM_OSD_ELEMENTS:
-        sbufWriteU8(dst, MAX_CUSTOM_ELEMENTS);
-        sbufWriteU8(dst, OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1);
-
-        for (int i = 0; i < MAX_CUSTOM_ELEMENTS; i++) {
-            const osdCustomElement_t *customElement = osdCustomElements(i);
-            for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
-                sbufWriteU8(dst, customElement->part[ii].type);
-                sbufWriteU16(dst, customElement->part[ii].value);
-            }
-            sbufWriteU8(dst, customElement->visibility.type);
-            sbufWriteU16(dst, customElement->visibility.value);
-            for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
-                sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
-            }
+        {
+            sbufWriteU8(dst, MAX_CUSTOM_ELEMENTS);
+            sbufWriteU8(dst, OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1);
+            sbufWriteU8(dst, CUSTOM_ELEMENTS_PARTS);
         }
         break;
+#endif
     default:
         return false;
     }
     return true;
 }
-#endif
+
 
 #ifdef USE_SAFE_HOME
 static mspResult_e mspFcSafeHomeOutCommand(sbuf_t *dst, sbuf_t *src)
@@ -2892,7 +2887,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
-    
+
     case MSP_SET_FAILSAFE_CONFIG:
         if (dataSize == 20) {
             failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);
@@ -3291,11 +3286,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #endif
     case MSP2_INAV_GPS_UBLOX_COMMAND:
         if(dataSize < 8 || !isGpsUblox()) {
-            SD(fprintf(stderr, "[GPS] Not ublox!\n"));
             return MSP_RESULT_ERROR;
         }
 
-        SD(fprintf(stderr, "[GPS] Sending ubx command: %i!\n", dataSize));
         gpsUbloxSendCommand(src->ptr, dataSize, 0);
         break;
 
@@ -3349,7 +3342,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS:
         sbufReadU8Safe(&tmp_u8, src);
-        if ((dataSize == (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (MAX_CUSTOM_ELEMENTS * 3) + 4) && (tmp_u8 < MAX_CUSTOM_ELEMENTS)) {
+        if ((dataSize == (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4) && (tmp_u8 < MAX_CUSTOM_ELEMENTS)) {
             for (int i = 0; i < CUSTOM_ELEMENTS_PARTS; i++) {
                 osdCustomElementsMutable(tmp_u8)->part[i].type = sbufReadU8(src);
                 osdCustomElementsMutable(tmp_u8)->part[i].value = sbufReadU16(src);
@@ -3365,7 +3358,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
 
         break;
-
+#endif
     case MSP2_BETAFLIGHT_BIND:
         if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
             switch (rxConfig()->serialrx_provider) {
@@ -3392,7 +3385,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     }
     return MSP_RESULT_ACK;
 }
-#endif
 
 static const setting_t *mspReadSetting(sbuf_t *src)
 {
@@ -3849,6 +3841,24 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
     case MSP2_INAV_LOGIC_CONDITIONS_SINGLE:
         *ret = mspFcLogicConditionCommand(dst, src);
         break;
+    case MSP2_INAV_CUSTOM_OSD_ELEMENT:
+        {
+            const uint8_t idx = sbufReadU8(src);
+
+            if (idx < MAX_CUSTOM_ELEMENTS) {
+                const osdCustomElement_t *customElement = osdCustomElements(idx);
+                for (int ii = 0; ii < CUSTOM_ELEMENTS_PARTS; ii++) {
+                    sbufWriteU8(dst, customElement->part[ii].type);
+                    sbufWriteU16(dst, customElement->part[ii].value);
+                }
+                sbufWriteU8(dst, customElement->visibility.type);
+                sbufWriteU16(dst, customElement->visibility.value);
+                for (int ii = 0; ii < OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1; ii++) {
+                    sbufWriteU8(dst, customElement->osdCustomElementText[ii]);
+                }
+            }
+        }
+        break;
 #endif
 #ifdef USE_SAFE_HOME
     case MSP2_INAV_SAFEHOME:
@@ -4145,7 +4155,6 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
-    SD(fprintf(stderr, "[MSP] CommandId: 0x%04x bytes: %i!\n", cmdMSP, sbufBytesRemaining(src)));
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {

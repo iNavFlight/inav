@@ -42,6 +42,7 @@
 #include "sensors/rangefinder.h"
 
 #include "io/serial.h"
+#include "io/servo_sbus.h"
 
 enum {
     MAP_TO_NONE,
@@ -442,15 +443,21 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
         return;
     }
 
+
     // If mixer requests more servos than we have timer outputs - throw an error
-    if (servoCount > timOutputs->maxTimServoCount) {
+    uint16_t maxServos = timOutputs->maxTimServoCount;
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
+        maxServos = MAX(SERVO_SBUS_MAX_SERVOS, timOutputs->maxTimServoCount);
+    }
+
+    if (servoCount > maxServos) {
         pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS;
         LOG_ERROR(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs->maxTimServoCount);
         return;
     }
 
     // Configure individual servo outputs
-    for (int idx = 0; idx < servoCount; idx++) {
+    for (int idx = 0; idx < MIN(servoCount, timOutputs->maxTimServoCount); idx++) {
         const timerHardware_t *timHw = timOutputs->timServos[idx];
 
         if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {

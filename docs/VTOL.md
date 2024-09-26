@@ -186,7 +186,8 @@ Add new servo mixer rules, and select 'Mixer Transition' in input. Set the weigh
 ## Motor 'Transition Mixing': Dedicated forward motor configuration
 In motor mixer set:
 - -2.0 < throttle < -1.0: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` multiplied by throttle range only when Mixer Transition is activated.
-
+- Airmode type should be set to "STICK_CENTER". Airmode type must NOT be set to "THROTTLE_THRESHOLD". If set to throttle threshold the (-) motor will spin till throttle threshold is passed.
+  
 ![Alt text](Screenshots/mixerprofile_4puls1_mix.png)
 
 ## TailSitter 'Transition Mixing': 

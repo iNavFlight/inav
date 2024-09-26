@@ -54,9 +54,11 @@ typedef struct {
 
 typedef struct {
    uint32_t vehiclesMessagesTotal;
+   uint32_t heartbeatMessagesTotal;
 } adsbVehicleStatus_t;
 
 void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal);
+bool adsbHeartbeat(void);
 adsbVehicle_t * findVehicleClosest(void);
 adsbVehicle_t * findVehicle(uint8_t index);
 uint8_t getActiveVehiclesCount(void);

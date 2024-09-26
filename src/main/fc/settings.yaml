@@ -2559,7 +2559,7 @@ groups:
         min: 1
         max: 9
       - name: nav_fw_wp_tracking_accuracy
-        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable."
+        description: "Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy."
         default_value: 0
         field: fw.wp_tracking_accuracy
         min: 0
@@ -2706,7 +2706,7 @@ groups:
       - name: nav_max_terrain_follow_alt
         field: general.max_terrain_follow_altitude
         default_value: "100"
-        description: "Max allowed above the ground altitude for terrain following mode"
+        description: "Max allowed above the ground altitude for terrain following mode [cm]"
         max: 1000
         default_value: 100
       - name: nav_max_altitude
@@ -3064,6 +3064,10 @@ groups:
         type: bool
       - name: frsky_pitch_roll
         description: "S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
+        default_value: OFF
+        type: bool
+      - name: frsky_use_legacy_gps_mode_sensor_ids
+        description: "S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'"
         default_value: OFF
         type: bool
       - name: report_cell_voltage
@@ -3720,6 +3724,17 @@ groups:
         min: 1000
         max: 5000
         default_value: 1500
+      - name: osd_system_msg_display_time
+        description: System message display cycle time for multiple messages (milliseconds).
+        field: system_msg_display_time
+        default_value: 1000
+        min: 500
+        max: 5000
+      - name: osd_highlight_djis_missing_font_symbols
+        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
+        field: highlight_djis_missing_characters
+        default_value: ON
+        type: bool
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
@@ -3773,17 +3788,6 @@ groups:
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
-      - name: osd_system_msg_display_time
-        description: System message display cycle time for multiple messages (milliseconds).
-        field: system_msg_display_time
-        default_value: 1000
-        min: 500
-        max: 5000
-      - name: osd_highlight_djis_missing_font_symbols
-        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
-        field: highlight_djis_missing_characters
-        default_value: ON
-        type: bool
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]
