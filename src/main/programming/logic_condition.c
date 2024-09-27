@@ -302,6 +302,9 @@ static int logicConditionCompute(
             if ((newPower != operandA || newPower != vtxSettingsConfig()->power) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
                 newPower = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = newPower;
+                if (newPower != vtxSettingsConfig()->power) {
+                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newPower); // Force setting if modified elsewhere
+                }
                 vtxSettingsConfigMutable()->power = newPower;
                 return newPower;
             }
@@ -314,6 +317,9 @@ static int logicConditionCompute(
             if ((newBand != operandA  || newBand != vtxSettingsConfig()->band) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
                 newBand = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = newBand;
+                if (newBand != vtxSettingsConfig()->band) {
+                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newBand);
+                }
                 vtxSettingsConfigMutable()->band = newBand;
                 return newBand;
             }
@@ -326,6 +332,9 @@ static int logicConditionCompute(
             if ((newChannel != operandA  || newChannel != vtxSettingsConfig()->channel) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
                 newChannel = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, vtxDeviceCapability.channelCount);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newChannel;
+                if (newChannel != vtxSettingsConfig()->channel) {
+                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newChannel);
+                }
                 vtxSettingsConfigMutable()->channel = newChannel;
                 return newChannel;
             }
