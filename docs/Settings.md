@@ -2552,6 +2552,16 @@ Rate of the extra3 message for MAVLink telemetry
 
 ---
 
+### mavlink_min_txbuffer
+
+Minimum percent of TX buffer space free, before attempting to transmit telemetry. Requuires RADIO_STATUS messages to be processed. 0 = always transmits.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 100 |
+
+---
+
 ### mavlink_pos_rate
 
 Rate of the position message for MAVLink telemetry
@@ -2559,6 +2569,16 @@ Rate of the position message for MAVLink telemetry
 | Default | Min | Max |
 | --- | --- | --- |
 | 2 | 0 | 255 |
+
+---
+
+### mavlink_radio_type
+
+Mavlink radio type. Affects how RSSI and LQ are reported on OSD.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
 
 ---
 
