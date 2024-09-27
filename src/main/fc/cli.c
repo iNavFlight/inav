@@ -3716,7 +3716,7 @@ static void cliSet(char *cmdline)
                 if (changeValue) {
                     // If changing the battery capacity unit, update the osd stats energy unit to match
                     if (strcmp(name, "battery_capacity_unit") == 0) {
-                        if (batteryMetersConfig()->capacity_unit != tmp.int_value) {
+                        if (batteryMetersConfig()->capacity_unit != (uint8_t)tmp.int_value) {
                             if (tmp.int_value == BAT_CAPACITY_UNIT_MAH) {
                                 osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
                             } else {
