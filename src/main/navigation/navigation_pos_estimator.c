@@ -65,6 +65,7 @@ PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
         .reset_home_type = SETTING_INAV_RESET_HOME_DEFAULT,
         .gravity_calibration_tolerance = SETTING_INAV_GRAVITY_CAL_TOLERANCE_DEFAULT,  // 5 cm/s/s calibration error accepted (0.5% of gravity)
         .allow_dead_reckoning = SETTING_INAV_ALLOW_DEAD_RECKONING_DEFAULT,
+        .acc_weight = SETTING_ACC_WEIGHT_DEFAULT,
 
         .max_surface_altitude = SETTING_INAV_MAX_SURFACE_ALTITUDE_DEFAULT,
 
@@ -385,7 +386,11 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
     }
     else {
         /* Update acceleration weight based on vibration levels and clipping */
-        updateIMUEstimationWeight(dt);
+        if (positionEstimationConfig()->acc_weight == 0.0f) {
+            updateIMUEstimationWeight(dt);
+        } else {
+            posEstimator.imu.accWeightFactor = positionEstimationConfig()->acc_weight;
+        }
 
         fpVector3_t accelBF;
 

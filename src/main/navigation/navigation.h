@@ -260,6 +260,7 @@ typedef struct positionEstimationConfig_s {
     float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
     float baro_epv;     // Baro position error
 
+    float acc_weight;   // Sets the fixed accelerometer weight. If set to 0, it's value will be determined automatically according to vibrations and clipping
 #ifdef USE_GPS_FIX_ESTIMATION
     uint8_t allow_gps_fix_estimation;
 #endif
