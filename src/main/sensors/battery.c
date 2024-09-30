@@ -130,7 +130,8 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 #endif
             },
 
-            .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                                 // default throttle off.
+            .failsafe_throttle = SETTING_FAILSAFE_THROTTLE_DEFAULT,                               // default throttle off.
+            .all_up_weight = SETTING_ALL_UP_WEIGHT_DEFAULT,
 
             .nav = {
                 .mc = {

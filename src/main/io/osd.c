@@ -2753,7 +2753,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-    case OSD_VARIO_NUM:
+    case OSD_VERTICAL_SPEED_INDICATOR:
         {
             int16_t value = getEstimatedActualVelocity(Z);
             char sym;
@@ -2782,6 +2782,33 @@ static bool osdDrawSingleElement(uint8_t item)
             osdFormatCentiNumber(buff, value, 0, 1, 0, 3, false);
             buff[3] = sym;
             buff[4] = '\0';
+            break;
+        }
+    case OSD_TOTAL_ENERGY_VARIO:
+        {
+            static pt1Filter_t  totEgyFilterState;
+            static timeUs_t     totEgyUpdated = 0;
+            // E Potential = mass * gravity acceleration * height
+            // E Kinetic = 0.5 * mass * velocity squared
+            int16_t velocity = osdGet3DSpeed();
+#ifdef USE_PITOT
+            if (pitotIsHealthy()) {
+                velocity = getAirspeedEstimate();
+            }
+#endif
+            // Total Energy = E Potential + E Kinetic
+            int64_t totalEnergy = (currentBatteryProfile->all_up_weight * GForce * osdGetAltitude()) + (0.5 * currentBatteryProfile->all_up_weight * (int32_t)pow((double)velocity,2));
+            
+            // Filter delta for total energy
+            int32_t     totEgyDelta     = 0;
+            timeUs_t    currentTimeUs   = micros();
+            timeDelta_t totEgyTimeDelta = cmpTimeUs(currentTimeUs, totEgyUpdated);
+
+            totEgyDelta = pt1FilterApply4(&totEgyFilterState, (float) totalEnergy, 1, US2S(totEgyTimeDelta));
+
+            // Output is delta for total energy
+            osdFormatCentiNumber(buff, totEgyDelta, 0, 1, 0, 3, false);
+            buff[3] = '\0';
             break;
         }
     case OSD_CLIMB_EFFICIENCY:
@@ -4090,8 +4117,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdLayoutsConfig->item_pos[0][OSD_VARIO] = OSD_POS(23, 5);
-    // OSD_VARIO_NUM at the right of OSD_VARIO
-    osdLayoutsConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
+    // OSD_VERTICAL_SPEED_INDICATOR at the right of OSD_VARIO
+    osdLayoutsConfig->item_pos[0][OSD_VERTICAL_SPEED_INDICATOR] = OSD_POS(24, 7);
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
     osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6);
     osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6);

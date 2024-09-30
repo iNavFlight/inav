@@ -108,6 +108,7 @@ typedef struct batteryProfile_s {
     } motor;
 
     uint16_t failsafe_throttle;             // Throttle level used for landing - specify value between 1000..2000 (pwm pulse width for slightly below hover). center throttle = 1500.
+    uint16_t all_up_weight;                 // All up weight of aircraft in grams.
 
     struct {
 

@@ -1075,7 +1075,6 @@ groups:
         field: controlRateProfile
         min: 0
         max: MAX_CONTROL_RATE_PROFILE_COUNT
-
       - name: throttle_scale
         description: "Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50%"
         default_value: 1.0
@@ -1190,7 +1189,13 @@ groups:
         default_value: 0
         field: powerLimits.burstPowerFalldownTime
         max: 3000
-
+      - name: all_up_weight
+        description: All up weight of the aircraft, including fuel/batteries [g].
+        default_value: 0
+        min: 0
+        max: 65000
+        type: uint16_t
+        field: all_up_weight
   - name: PG_MIXER_PROFILE
     type: mixerProfile_t
     headers: ["flight/mixer_profile.h"]
