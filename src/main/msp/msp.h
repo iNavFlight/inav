@@ -38,10 +38,11 @@ typedef enum {
 } mspResult_e;
 
 typedef struct mspPacket_s {
-    sbuf_t buf;
+    sbuf_t buf; // payload only w/o header or crc
     int16_t cmd;
-    uint8_t flags;
     int16_t result;
+    uint8_t flags;      // MSPv2 flags byte. It looks like unused (yet?).
+    uint8_t direction;  // It also looks like unused and might be deleted.
 } mspPacket_t;
 
 typedef enum {
