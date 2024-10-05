@@ -198,6 +198,12 @@ tables:
   - name: headtracker_dev_type
     values: ["NONE", "SERIAL", "MSP"]
     enum: headTrackerDevType_e
+  - name: mavlink_radio_type
+    values: ["GENERIC", "ELRS", "SIK"]
+    enum: mavlinkRadio_e
+  - name: default_altitude_source
+    values: ["GPS", "BARO", "GPS ONLY", "BARO ONLY"]
+    enum: navDefaultAltitudeSensor_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -2412,6 +2418,12 @@ groups:
         min: 0
         max: 10
         default_value: 0.35
+      - name: inav_w_z_baro_v
+        description: "Weight of barometer climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors."
+        field: w_z_baro_v
+        min: 0
+        max: 10
+        default_value: 0.1
       - name: inav_w_z_gps_p
         description: "Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors."
         field: w_z_gps_p
@@ -2466,6 +2478,11 @@ groups:
         field: baro_epv
         min: 0
         max: 9999
+      - name: inav_default_alt_sensor
+        description: "Sets the default altitude sensor to use. Settings GPS and BARO always use both sensors unless there is an altitude error between the sensors that exceeds a set limit. In this case only the selected sensor will be used while the altitude error limit is exceeded. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv. Settings GPS_ONLY and BARO_ONLY will use only the selected sensor even if the other sensor is working. The other sensor will only be used as a backup if the selected sensor is no longer available to use."
+        default_value: "GPS"
+        field: default_alt_sensor
+        table: default_altitude_source
 
   - name: PG_NAV_CONFIG
     type: navConfig_t
@@ -3057,6 +3074,10 @@ groups:
         description: "S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
         default_value: OFF
         type: bool
+      - name: frsky_use_legacy_gps_mode_sensor_ids
+        description: "S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'"
+        default_value: OFF
+        type: bool
       - name: report_cell_voltage
         description: "S.Port and IBUS telemetry: Send the average cell voltage if set to ON"
         default_value: OFF
@@ -3196,6 +3217,18 @@ groups:
         min: 1
         max: 2
         default_value: 2
+      - name: mavlink_min_txbuffer
+        field: mavlink.min_txbuff
+        description: "Minimum percent of TX buffer space free, before attempting to transmit telemetry. Requuires RADIO_STATUS messages to be processed. 0 = always transmits."
+        default_value: 33
+        min: 0
+        max: 100
+      - name: mavlink_radio_type
+        description: "Mavlink radio type. Affects how RSSI and LQ are reported on OSD."
+        field: mavlink.radio_type
+        table: mavlink_radio_type
+        default_value: "GENERIC"
+        type: uint8_t
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
@@ -3711,6 +3744,17 @@ groups:
         min: 1000
         max: 5000
         default_value: 1500
+      - name: osd_system_msg_display_time
+        description: System message display cycle time for multiple messages (milliseconds).
+        field: system_msg_display_time
+        default_value: 1000
+        min: 500
+        max: 5000
+      - name: osd_highlight_djis_missing_font_symbols
+        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
+        field: highlight_djis_missing_characters
+        default_value: ON
+        type: bool
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
@@ -3764,17 +3808,6 @@ groups:
         field: osd_switch_indicators_align_left
         type: bool
         default_value: ON
-      - name: osd_system_msg_display_time
-        description: System message display cycle time for multiple messages (milliseconds).
-        field: system_msg_display_time
-        default_value: 1000
-        min: 500
-        max: 5000
-      - name: osd_highlight_djis_missing_font_symbols
-        description: Show question marks where there is no symbol in the DJI font to represent the INAV OSD element's symbol. When off, blank spaces will be used. Only relevent for DJICOMPAT modes.
-        field: highlight_djis_missing_characters
-        default_value: ON
-        type: bool
   - name: PG_OSD_COMMON_CONFIG
     type: osdCommonConfig_t
     headers: ["io/osd_common.h"]

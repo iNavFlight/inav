@@ -231,35 +231,37 @@ typedef enum {
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t reset_altitude_type; // from nav_reset_type_e
-    uint8_t reset_home_type; // nav_reset_type_e
-    uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
+    uint8_t reset_altitude_type;            // from nav_reset_type_e
+    uint8_t reset_home_type;                // nav_reset_type_e
+    uint8_t gravity_calibration_tolerance;  // Tolerance of gravity calibration (cm/s/s)
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
 
-    float w_z_baro_p;   // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_p;           // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_v;           // Weight (cutoff frequency) for barometer climb rate measurements
 
-    float w_z_surface_p;  // Weight (cutoff frequency) for surface altitude measurements
-    float w_z_surface_v;  // Weight (cutoff frequency) for surface velocity measurements
+    float w_z_surface_p;        // Weight (cutoff frequency) for surface altitude measurements
+    float w_z_surface_v;        // Weight (cutoff frequency) for surface velocity measurements
 
-    float w_z_gps_p;    // GPS altitude data is very noisy and should be used only on airplanes
-    float w_z_gps_v;    // Weight (cutoff frequency) for GPS climb rate measurements
+    float w_z_gps_p;            // GPS altitude data is very noisy and should be used only on airplanes
+    float w_z_gps_v;            // Weight (cutoff frequency) for GPS climb rate measurements
 
-    float w_xy_gps_p;   // Weight (cutoff frequency) for GPS position measurements
-    float w_xy_gps_v;   // Weight (cutoff frequency) for GPS velocity measurements
+    float w_xy_gps_p;           // Weight (cutoff frequency) for GPS position measurements
+    float w_xy_gps_v;           // Weight (cutoff frequency) for GPS velocity measurements
 
     float w_xy_flow_p;
     float w_xy_flow_v;
 
-    float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
+    float w_z_res_v;            // When velocity sources lost slowly decrease estimated velocity with this weight
     float w_xy_res_v;
 
-    float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
+    float w_acc_bias;           // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
 
-    float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
-    float baro_epv;     // Baro position error
+    float max_eph_epv;          // Max estimated position error acceptable for estimation (cm)
+    float baro_epv;             // Baro position error
 
+    uint8_t default_alt_sensor; // default altitude sensor source
 #ifdef USE_GPS_FIX_ESTIMATION
     uint8_t allow_gps_fix_estimation;
 #endif

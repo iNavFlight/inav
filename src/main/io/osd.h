@@ -159,7 +159,7 @@ typedef enum {
     OSD_HOME_DIST,
     OSD_HEADING,
     OSD_VARIO,
-    OSD_VERTICAL_SPEED_INDICATOR,
+    OSD_VARIO_NUM,
     OSD_AIR_SPEED,
     OSD_ONTIME_FLYTIME,
     OSD_RTC_TIME,
@@ -287,7 +287,11 @@ typedef enum {
     OSD_ADSB_INFO,
     OSD_BLACKBOX,
     OSD_FORMATION_FLIGHT,
-    OSD_TOTAL_ENERGY_VARIO, // 154
+    OSD_CUSTOM_ELEMENT_4,
+    OSD_CUSTOM_ELEMENT_5,
+    OSD_CUSTOM_ELEMENT_6,
+    OSD_CUSTOM_ELEMENT_7,
+    OSD_CUSTOM_ELEMENT_8, // 158
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -445,7 +449,7 @@ typedef struct osdConfig_s {
     uint8_t         telemetry;                          // use telemetry on displayed pixel line 0
     uint8_t         esc_rpm_precision;                  // Number of characters used for the RPM numbers.
     uint16_t        system_msg_display_time;            // system message display time for multiple messages (ms)
-    uint8_t         mAh_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
+    uint8_t         mAh_precision;                      // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
     uint8_t         ahi_pitch_interval;                 // redraws AHI at set pitch interval (Not pixel OSD)
     char            osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1]; // Name to use for switch indicator 0.
     uint8_t         osd_switch_indicator0_channel;      // RC Channel to use for switch indicator 0.
