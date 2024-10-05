@@ -2813,16 +2813,19 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             static pt1Filter_t  totEgyFilterState;
             static timeUs_t     totEgyUpdated = 0;
-            // E Potential = mass * gravity acceleration * height
+            const  float        gConst = 9.81;
+            const  float        massKg = currentBatteryProfile->all_up_weight / 1000.0f;
+            // E Potential = mass * gConst * height
             // E Kinetic = 0.5 * mass * velocity squared
-            int16_t velocity = osdGet3DSpeed();
+            float velocityMS = CENTIMETERS_TO_METERS(osdGet3DSpeed());
 #ifdef USE_PITOT
             if (pitotIsHealthy()) {
-                velocity = getAirspeedEstimate();
+                velocityMS = CENTIMETERS_TO_METERS(getAirspeedEstimate());
             }
 #endif
             // Total Energy = E Potential + E Kinetic
-            int64_t totalEnergy = (currentBatteryProfile->all_up_weight * GForce * osdGetAltitude()) + (0.5 * currentBatteryProfile->all_up_weight * (int32_t)pow((double)velocity,2));
+            int64_t totalEnergy = (massKg * gConst * CENTIMETERS_TO_METERS(getEstimatedActualPosition(Z))) +
+                                     ((massKg * (velocityMS * velocityMS)) * 0.5);
             
             // Filter delta for total energy
             int32_t     totEgyDelta     = 0;
@@ -2833,7 +2836,8 @@ static bool osdDrawSingleElement(uint8_t item)
 
             // Output is delta for total energy
             osdFormatCentiNumber(buff, totEgyDelta, 0, 1, 0, 3, false);
-            buff[3] = '\0';
+            buff[3] = SYM_MS;
+            buff[4] = '\0';
             break;
         }
     case OSD_CLIMB_EFFICIENCY:
