@@ -41,10 +41,12 @@ float applySensorTempCompensation(int16_t sensorTemp, float sensorMeasurement, s
     float setting = 0.0f;
     if (sensorType == SENSOR_INDEX_ACC) {
         setting = accelerometerConfig()->acc_temp_correction;
-    } else if (sensorType == SENSOR_INDEX_BARO) {
+    }
+#ifdef USE_BARO
+    else if (sensorType == SENSOR_INDEX_BARO) {
         setting = barometerConfig()->baro_temp_correction;
     }
-
+#endif
     if (!setting) {
         return 0.0f;
     }
@@ -94,9 +96,12 @@ float applySensorTempCompensation(int16_t sensorTemp, float sensorMeasurement, s
 
         if (sensorType == SENSOR_INDEX_ACC) {
             accelerometerConfigMutable()->acc_temp_correction = sensor_comp_data[sensorType].correctionFactor;
-        } else if (sensorType == SENSOR_INDEX_BARO) {
+        }
+#ifdef USE_BARO
+        else if (sensorType == SENSOR_INDEX_BARO) {
             barometerConfigMutable()->baro_temp_correction = sensor_comp_data[sensorType].correctionFactor;
         }
+#endif
         sensor_comp_data[sensorType].calibrationState = SENSOR_TEMP_CAL_COMPLETE;
         startTimeMs = 0;
     }
