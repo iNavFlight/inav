@@ -467,6 +467,12 @@ groups:
         default_value: "BIQUAD"
         field: acc_soft_lpf_type
         table: filter_type
+      - name: acc_temp_correction
+        description: "Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm."
+        field: acc_temp_correction
+        min: -50
+        max: 51
+        default_value: 0
       - name: acczero_x
         description: "Calculated value after '6 position avanced calibration'. See Wiki page."
         default_value: 0
