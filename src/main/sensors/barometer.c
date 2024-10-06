@@ -50,8 +50,6 @@
 #include "sensors/barometer.h"
 #include "sensors/sensors.h"
 
-#include "io/beeper.h"
-
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
