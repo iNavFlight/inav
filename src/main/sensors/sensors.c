@@ -64,22 +64,19 @@ float applySensorTempCompensation(int16_t sensorTemp, float sensorMeasurement, s
         }
 
         if (setting == 51.0f) {   // initiate auto calibration
-            static float referenceMeasurement = 0.0f;
-            static int16_t lastTemp = 0.0f;
-
             if (sensor_comp_data[sensorType].referenceTemp == sensorTemp) {
-                referenceMeasurement = sensorMeasurement;
-                lastTemp = sensorTemp;
+                sensor_comp_data[sensorType].referenceMeasurement = sensorMeasurement;
+                sensor_comp_data[sensorType].lastTemp = sensorTemp;
                 startTimeMs = millis();
             }
 
             float referenceDeltaTemp = ABS(sensorTemp - sensor_comp_data[sensorType].referenceTemp);    // centidegrees
-            if (referenceDeltaTemp > 300 && referenceDeltaTemp > ABS(lastTemp - sensor_comp_data[sensorType].referenceTemp)) {
+            if (referenceDeltaTemp > 300 && referenceDeltaTemp > ABS(sensor_comp_data[sensorType].lastTemp - sensor_comp_data[sensorType].referenceTemp)) {
                 /* Min 3 deg reference temperature difference required for valid calibration.
                  * Correction adjusted only if temperature difference to reference temperature increasing
                  * Calibration assumes a simple linear relationship */
-                lastTemp = sensorTemp;
-                sensor_comp_data[sensorType].correctionFactor = 0.9f * sensor_comp_data[sensorType].correctionFactor + 0.1f * (sensorMeasurement - referenceMeasurement) / CENTIDEGREES_TO_DEGREES(lastTemp - sensor_comp_data[sensorType].referenceTemp);
+                sensor_comp_data[sensorType].lastTemp = sensorTemp;
+                sensor_comp_data[sensorType].correctionFactor = 0.9f * sensor_comp_data[sensorType].correctionFactor + 0.1f * (sensorMeasurement - sensor_comp_data[sensorType].referenceMeasurement) / CENTIDEGREES_TO_DEGREES(sensor_comp_data[sensorType].lastTemp - sensor_comp_data[sensorType].referenceTemp);
                 sensor_comp_data[sensorType].correctionFactor = constrainf(sensor_comp_data[sensorType].correctionFactor, -50.0f, 50.0f);
             }
         } else {

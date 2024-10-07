@@ -67,7 +67,9 @@ typedef enum {
 
 typedef struct sensor_compensation_s {
     float correctionFactor;
+    float referenceMeasurement;
     int16_t referenceTemp;
+    int16_t lastTemp;
     sensorTempCalState_e calibrationState;
 } sensor_compensation_t;
 
