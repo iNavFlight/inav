@@ -4331,18 +4331,21 @@ groups:
         field: sensitivity
         min: -16
         max: 15
+        type: int8_t
       - name: gimbal_pan_trim
         field: panTrim
         description: "Trim gimbal pan center position."
         default_value: 0
         min: -500
         max: 500
+        type: int16_t
       - name: gimbal_tilt_trim
         field: tiltTrim
         description: "Trim gimbal tilt center position."
         default_value: 0
         min: -500
         max: 500
+        type: int16_t
       - name: gimbal_roll_trim
         field: rollTrim
         description: "Trim gimbal roll center position."
