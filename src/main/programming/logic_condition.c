@@ -318,7 +318,7 @@ static int logicConditionCompute(
                 newBand = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = newBand;
                 if (newBand != vtxSettingsConfig()->band) {
-                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newBand);
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), newBand, vtxSettingsConfig()->channel);
                 }
                 vtxSettingsConfigMutable()->band = newBand;
                 return newBand;
@@ -333,7 +333,7 @@ static int logicConditionCompute(
                 newChannel = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, vtxDeviceCapability.channelCount);
                 logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newChannel;
                 if (newChannel != vtxSettingsConfig()->channel) {
-                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newChannel);
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), vtxSettingsConfig()->band, newChannel);
                 }
                 vtxSettingsConfigMutable()->channel = newChannel;
                 return newChannel;
