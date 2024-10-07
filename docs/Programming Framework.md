@@ -101,6 +101,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
+| 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]
 
 ### Operands
 
