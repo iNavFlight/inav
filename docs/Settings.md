@@ -2002,6 +2002,16 @@ Uncertainty value for barometric sensor [cm]
 
 ---
 
+### inav_default_alt_sensor
+
+Sets the default altitude sensor to use. Settings GPS and BARO always use both sensors unless there is an altitude error between the sensors that exceeds a set limit. In this case only the selected sensor will be used while the altitude error limit is exceeded. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv. Settings GPS_ONLY and BARO_ONLY will use only the selected sensor even if the other sensor is working. The other sensor will only be used as a backup if the selected sensor is no longer available to use.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GPS |  |  |
+
+---
+
 ### inav_gravity_cal_tolerance
 
 Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value.
@@ -2119,6 +2129,16 @@ Weight of barometer measurements in estimated altitude and climb rate. Setting i
 | Default | Min | Max |
 | --- | --- | --- |
 | 0.35 | 0 | 10 |
+
+---
+
+### inav_w_z_baro_v
+
+Weight of barometer climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.1 | 0 | 10 |
 
 ---
 
