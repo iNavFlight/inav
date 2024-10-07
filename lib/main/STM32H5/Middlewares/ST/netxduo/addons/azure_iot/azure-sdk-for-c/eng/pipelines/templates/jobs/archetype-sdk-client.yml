@@ -1,0 +1,571 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# SPDX-License-Identifier: MIT
+
+# +----+------------------+---------+---------------+-----------+---------+------------+-------+---------+---------------+--------+
+# | ## | OS/arch/compiler | Release | Preconditions | Map files | Logging | Unit tests | Mocks | Samples | Code coverage | Linter |
+# +----+------------------+---------+---------------+-----------+---------+------------+-------+---------+---------------+--------+
+# |  1 | Linux ARM        |    +    |               |           |    +    |     N/A    |       |   N/A   |               |        |
+# |  2 | Linux ARM        |         |               |           |         |     N/A    |       |   N/A   |               |        |
+# |  3 | Linux (x64)      |    +    |               |     +     |    +    |      +     |   +   |    +    |               |        |
+# |  4 | Linux (x64)      |         |               |           |    +    |      +     |   +   |    +    |               |        |
+# |  5 | Windows x86      |    +    |               |     +     |         |      +     |       |         |               |        |
+# |  6 | MacOS (x64)      |    +    |               |     +     |    +    |      +     |       |    +    |               |        |
+# |  7 | MacOS (x64)      |         |               |           |    +    |      +     |       |    +    |               |        |
+# |  8 | Linux (x64) GCC5 |    +    |               |     +     |         |      +     |       |         |               |        |
+# |  9 | Linux (x64) GCC5 |         |               |           |         |      +     |       |    +    |               |        |
+# | 10 | Linux ARM        |    +    |       +       |           |         |     N/A    |       |   N/A   |               |        |
+# | 11 | Linux ARM        |         |       +       |           |    +    |     N/A    |       |   N/A   |               |        |
+# | 12 | Linux (x64)      |    +    |       +       |           |    +    |      +     |   +   |    +    |               |        |
+# | 13 | Linux (x64)      |         |       +       |           |    +    |      +     |   +   |         |       +       |   +    |
+# | 14 | Windows x64      |         |       +       |           |         |      +     |       |    +    |               |        |
+# | 15 | MacOS (x64)      |    +    |       +       |           |    +    |      +     |       |    +    |               |        |
+# | 16 | MacOS (x64)      |         |       +       |           |    +    |      +     |       |         |               |        |
+# | 17 | Linux (x64) GCC5 |    +    |       +       |           |         |      +     |       |    +    |               |        |
+# | 18 | Linux (x64) GCC5 |         |       +       |           |         |      +     |       |         |               |        |
+# | 19 | Windows x64      |    +    |               |     +     |         |            |       |    +    |               |        |
+# | 20 |         G     E     N     E     R     A     T     E           A     R     T     I     F     A     C     T     S          |
+# +----+------------------+---------+---------------+-----------+---------+------------+-------+---------+---------------+--------+
+#
+# ATTENTION: We should not enable code coverage for Release configurations.
+#      They produce low numbers, and are basically unactionable, plus the error message they produce in this case is confusing.
+#
+# N/A - There's no libcurl, cmocka, or paho-mqtt on Linux ARM, so no unit tests or samples can be built.
+#
+
+parameters:
+  BuildReleaseArtifacts: true
+
+jobs:
+- job: Validate
+  condition: and(succeededOrFailed(), ne(variables['Skip.Test'], 'true'))
+  strategy:
+    matrix:
+      LinuxARM_Release_Logging:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: ''
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        AptDependencies: 'gcc-arm-none-eabi'
+        build.args: '-DCMAKE_TOOLCHAIN_FILE=cmake-modules/gcc-arm-toolchain.cmake -DPRECONDITIONS=OFF'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        BuildType: Release
+
+      LinuxARM:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: ''
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        AptDependencies: 'gcc-arm-none-eabi'
+        build.args: '-DCMAKE_TOOLCHAIN_FILE=cmake-modules/gcc-arm-toolchain.cmake -DPRECONDITIONS=OFF -DLOGGING=OFF'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      Linux_Release_MapFiles_Logging_UnitTests_Mocks_Samples:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: 'cmocka paho-mqtt'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DPRECONDITIONS=OFF -DUNIT_TESTING=ON -DUNIT_TESTING_MOCKS=ON -DTRANSPORT_PAHO=ON -DADDRESS_SANITIZER=ON'
+        PublishMapFiles: 'true'
+        MapFileArtifactSuffix: 'lnx-x64-rel-noprc-log-samples'
+        BuildType: Release
+
+      Linux_Logging_UnitTests_Mocks_Samples:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DPRECONDITIONS=OFF -DUNIT_TESTING=ON -DADDRESS_SANITIZER=ON -DUNIT_TESTING_MOCKS=ON'
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      WindowsX86_Release_MapFiles_UnitTests:
+        Pool: azsdk-pool-mms-win-2019-general
+        OSVmImage: MMS2019
+        vcpkg.deps: 'cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x86-windows-static'
+        build.args: '-DPRECONDITIONS=OFF -DUNIT_TESTING=ON -DLOGGING=OFF -DADDRESS_SANITIZER=ON'
+        CMAKE_GENERATOR: 'Visual Studio 16 2019'
+        CMAKE_GENERATOR_PLATFORM: Win32
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'true'
+        MapFileArtifactSuffix: 'win-x86-rel-noprc-nolog'
+        BuildType: Release
+
+      MacOS_Release_MapFiles_Logging_UnitTests_Samples:
+        Pool: Azure Pipelines
+        OSVmImage: 'macos-11'
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-osx'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DPRECONDITIONS=OFF -DUNIT_TESTING=ON'
+        MapFileArtifactSuffix: 'mac-rel-noprc-log-samples'
+        BuildType: Release
+
+      MacOS_Logging_UnitTests_Samples:
+        Pool: Azure Pipelines
+        OSVmImage: 'macos-11'
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-osx'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DPRECONDITIONS=OFF -DUNIT_TESTING=ON'
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      LinuxGCC5_Release_MapFiles_UnitTests:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        AptDependencies: 'gcc-5'
+        vcpkg.deps: 'cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DPRECONDITIONS=OFF -DUNIT_TESTING=ON -DLOGGING=OFF'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'true'
+        MapFileArtifactSuffix: 'lnx-gcc5-rel-noprc-nolog'
+        CC: '/usr/bin/gcc-5'
+        BuildType: Release
+
+      LinuxGCC5_UnitTests_Samples:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        AptDependencies: 'gcc-5'
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DPRECONDITIONS=OFF -DUNIT_TESTING=ON -DLOGGING=OFF'
+        PublishMapFiles: 'false'
+        CC: '/usr/bin/gcc-5'
+        BuildType: Debug
+
+      LinuxARM_Release_Preconditions:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: ''
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        AptDependencies: 'gcc-arm-none-eabi'
+        build.args: '-DCMAKE_TOOLCHAIN_FILE=cmake-modules/gcc-arm-toolchain.cmake -DLOGGING=OFF'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        BuildType: Release
+
+      LinuxARM_Preconditions_Logging:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: ''
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        AptDependencies: 'gcc-arm-none-eabi'
+        build.args: '-DCMAKE_TOOLCHAIN_FILE=cmake-modules/gcc-arm-toolchain.cmake'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      Linux_Release_Preconditions_Logging_UnitTests_Mocks_Samples:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DUNIT_TESTING=ON -DUNIT_TESTING_MOCKS=ON'
+        PublishMapFiles: 'false'
+        BuildType: Release
+
+      Linux_Preconditions_Logging_UnitTests_Mocks_CodeCov_Linter:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        vcpkg.deps: 'cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        AptDependencies: 'gcovr lcov'
+        build.args: '-DUNIT_TESTING=ON -DUNIT_TESTING_MOCKS=ON'
+        AZ_SDK_CODE_COV: 1
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      Windows_Preconditions_UnitTests_Samples:
+        Pool: azsdk-pool-mms-win-2019-general
+        OSVmImage: MMS2019
+        vcpkg.deps: 'curl[winssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-windows-static'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=WIN32 -DUNIT_TESTING=ON -DLOGGING=OFF -DADDRESS_SANITIZER=ON'
+        CMAKE_GENERATOR: 'Visual Studio 16 2019'
+        CMAKE_GENERATOR_PLATFORM: x64
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      MacOS_Release_Preconditions_Logging_UnitTests_Samples:
+        Pool: Azure Pipelines
+        OSVmImage: 'macos-11'
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-osx'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DUNIT_TESTING=ON'
+        PublishMapFiles: 'false'
+        BuildType: Release
+
+      MacOS_Preconditions_Logging_UnitTests:
+        Pool: Azure Pipelines
+        OSVmImage: 'macos-11'
+        vcpkg.deps: 'cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-osx'
+        build.args: '-DUNIT_TESTING=ON'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        BuildType: Debug
+
+      LinuxGCC5_Release_Preconditions_UnitTests_Samples:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        AptDependencies: 'gcc-5'
+        vcpkg.deps: 'curl[ssl] paho-mqtt cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DTRANSPORT_CURL=ON -DTRANSPORT_PAHO=ON -DAZ_PLATFORM_IMPL=POSIX -DUNIT_TESTING=ON -DLOGGING=OFF'
+        PublishMapFiles: 'false'
+        CC: '/usr/bin/gcc-5'
+        BuildType: Release
+
+      LinuxGCC5_Preconditions_UnitTests:
+        Pool: azsdk-pool-mms-ubuntu-1804-general
+        OSVmImage: MMSUbuntu18.04
+        AptDependencies: 'gcc-5'
+        vcpkg.deps: 'cmocka'
+        VCPKG_DEFAULT_TRIPLET: 'x64-linux'
+        build.args: '-DUNIT_TESTING=ON -DLOGGING=OFF'
+        AZ_SDK_C_NO_SAMPLES: 'true'
+        PublishMapFiles: 'false'
+        CC: '/usr/bin/gcc-5'
+        BuildType: Debug
+
+      Windows_Release_Samples_MapFiles:
+        Pool: azsdk-pool-mms-win-2019-general
+        OSVmImage: MMS2019
+        vcpkg.deps: 'paho-mqtt'
+        VCPKG_DEFAULT_TRIPLET: 'x64-windows-static'
+        build.args: '-DPRECONDITIONS=OFF -DLOGGING=OFF -DTRANSPORT_PAHO=ON'
+        CMAKE_GENERATOR: 'Visual Studio 16 2019'
+        CMAKE_GENERATOR_PLATFORM: x64
+        PublishMapFiles: 'true'
+        MapFileArtifactSuffix: 'win-x64-rel-noprc-nolog-samples'
+        BuildType: Release
+  pool:
+    name: $(Pool)
+    vmImage: $(OSVmImage)
+  variables:
+    CMOCKA_XML_FILE: "%g-test-results.xml"
+    CMOCKA_MESSAGE_OUTPUT: "xml"
+
+  steps:
+  - checkout: self
+    submodules: recursive
+
+  # Temporarily disable this step as it breaks DNS resolution in Ubuntu 16.04
+  # for cache task
+  # - template: /eng/common/pipelines/templates/steps/verify-agent-os.yml
+  #   parameters:
+  #     AgentImage: $(OSVmImage)
+
+  # Expand the OS verification and DNS bypass steps
+  - task: PowerShell@2
+    displayName: Verify agent OS
+    inputs:
+      pwsh: true
+      workingDirectory: $(System.DefaultWorkingDirectory)
+      filePath: eng/common/scripts/Verify-AgentOS.ps1
+      arguments: >
+        -AgentImage "$(OSVmImage)"
+
+  # https://github.com/actions/virtual-environments/issues/798
+  - script: sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+    displayName: Bypass local DNS server to workaround issue resolving cognitiveservices names
+    # Condition altered to skip bypassing local DNS for Ubuntu 16.04 where
+    # bypassing causes failures in DevOps.
+    condition: |
+      and(
+        succeededOrFailed(),
+        contains(variables['OSVmImage'], 'ubuntu'),
+        not(contains(variables['OSVmImage'], '16.04')),
+        eq(variables['Container'], '')
+        )
+
+  # Install apt dependencies (if appropriate)
+  - bash: sudo apt install -y $(AptDependencies)
+    condition: ne(variables['AptDependencies'], '')
+    displayName: Install dependencies from apt
+
+  - template: /eng/pipelines/templates/steps/vcpkg.yml
+
+  - script: |
+      dotnet tool install -g dotnet-reportgenerator-globaltool
+      dotnet tool install dotnet-reportgenerator-globaltool --tool-path tools
+    displayName: Install coverage tools
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+  - template: /eng/pipelines/templates/steps/cmake-build.yml
+    parameters:
+      BuildArgs: $(build.args)
+      BuildType: $(BuildType)
+
+  # Run unit tests
+  - script: |
+      ctest -V
+    workingDirectory: build
+    displayName: ctest
+
+  # Publish test results to Azure Pipelines
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/*-test-results.xml'
+      mergeTestResults: true
+      testRunTitle: 'C99 - $(Agent.JobName)'
+    condition: contains(variables['vcpkg.deps'], 'cmocka')
+
+  # Make coverage targets (specified in coverage_targets.txt) and assemble
+  # coverage report
+  - bash: |
+      make `cat coverage_targets.txt`
+      ../tools/reportgenerator "-reports:sdk/*/*/*/*cov_xml.xml" "-targetdir:." "-reporttypes:Cobertura"
+    workingDirectory: build
+    displayName: Generate Code Coverage Data
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+  - task: PublishCodeCoverageResults@1
+    inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(Build.SourcesDirectory)/**/Cobertura.xml'
+    displayName: Publish Code Coverage to DevOps
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+
+  - task: CopyFiles@2
+    inputs:
+      contents: "**/*.map"
+      targetFolder: $(Build.ArtifactStagingDirectory)
+      flattenFolders: true
+    condition: eq(variables['PublishMapFiles'], 'true')
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: map-files-$(MapFileArtifactSuffix)
+      path: $(Build.ArtifactStagingDirectory)
+    condition: eq(variables['PublishMapFiles'], 'true')
+
+  - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@6
+    displayName: Check line coverage
+    inputs:
+      checkCoverage: true
+      coverageFailOption: fixed
+      coverageType: line
+      # 90% minimum line coverage
+      coverageThreshold: 90
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+  - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@6
+    displayName: Check branch coverage
+    inputs:
+      checkCoverage: true
+      coverageFailOption: fixed
+      coverageType: branch
+      # 70% minimum branch coverage
+      coverageThreshold: 70
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+  # Validate all the files are saved as ASCII only without a UTF-8 BOM.
+  - bash: |
+      # Run grep recursive excluding git folder and known expected files and save a file with results.
+      grep -I -P -n "[^\x00-\x7F]" -r --exclude-dir ".git" --exclude-dir "vcpkg_installed" --exclude-dir "_deps" --exclude-dir "docs" --exclude-dir "tools" --exclude "*CodeCoverage.cmake*" --exclude "grepResults" . > grepResults
+
+      # Display results to console.
+      cat grepResults
+
+      # Each result will produce one line, count how many lines were found.
+      files_with_non_ascii=($(wc -l < grepResults))
+
+      # Show info about the total files that needs attention.
+      echo Files found with non-ASCII characters: $files_with_non_ascii
+
+      # Remove the grepResults file.
+      rm grepResults
+
+      # Return the count. When greater than 0, the step will fail.
+      exit $files_with_non_ascii
+
+    displayName: Validate Characters are ASCII
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+  # Validate all the files are formatted correctly according to the .clang-format file.
+  - bash: |
+      # Run clang-format recursively on each source and header file within the repo.
+      clang-format --version
+      find . \( -iname '*.h' -o -iname '*.c' \) -exec clang-format -i {} \;
+
+      git status --untracked-files=no --porcelain
+
+      if [[ `git status --untracked-files=no --porcelain` ]]; then
+        echo Some files were not formatted correctly according to the .clang-format file.
+        echo Please run clang-format to fix the issue by using this bash command at the root of the repo:
+        echo "find . \( -iname '*.h' -o -iname '*.c' \) -exec clang-format -i {} \;"
+        exit 1
+      fi
+
+      echo Success, all files are formatted correctly according to the .clang-format file.
+      exit 0
+
+    displayName: Validate Clang Format
+    condition: eq(variables['AZ_SDK_CODE_COV'], 1)
+
+  - pwsh: |
+      $artifactName = "$(Agent.JobName)"
+      $parts = $artifactName -split ' '
+      if ($parts[1]) {
+        $artifactName = $parts[1]
+      }
+      Write-Host "##vso[task.setvariable variable=BomArtifactName;]$artifactName"
+    displayName: Set bom file artifact name
+
+  - ${{if eq(variables['System.TeamProject'], 'internal') }}:
+    - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+      displayName: 'Generate BOM'
+      condition: succeededOrFailed()
+      inputs:
+        BuildDropPath: $(Build.ArtifactStagingDirectory)
+
+    - template: /eng/common/pipelines/templates/steps/publish-artifact.yml
+      parameters:
+        ArtifactPath: '$(Build.ArtifactStagingDirectory)/_manifest'
+        ArtifactName: 'bom_manifest_$(BomArtifactName)'
+
+- job: GenerateReleaseArtifacts
+  pool:
+    name: azsdk-pool-mms-win-2019-general
+    vmImage: MMS2019
+  variables:
+    Package.EnableSBOMSigning: true
+  steps:
+    - template: /eng/common/pipelines/templates/steps/check-spelling.yml
+
+    - template: /eng/common/pipelines/templates/steps/verify-links.yml
+      parameters:
+        Directory: ''
+        CheckLinkGuidance: $true
+
+    # Generate release-info
+    - pwsh: >-
+        New-Item
+        -ItemType directory
+        -Path $(Build.ArtifactStagingDirectory)
+        -Name release-info
+      displayName: Create package info artifact location
+
+    - pwsh: |
+        $outputPath = Join-Path -Path $(Build.ArtifactStagingDirectory) release-info/package-info.json
+        $version = eng/scripts/Get-SdkVersion.ps1
+        $outputObject = @{ version = $version.ToString(); name = 'Azure SDK for Embedded C' } | ConvertTo-Json
+
+        Set-Content -Path $outputPath -Value $outputObject
+
+        # Set AZURE_SDK_VERSION for use in Doxygen generation
+        Write-Host "##vso[task.setvariable variable=AZURE_SDK_VERSION]$version"
+      displayName: Create package info JSON file
+
+    - pwsh: >-
+        Copy-Item
+        CHANGELOG.md
+        (Join-Path $(Build.ArtifactStagingDirectory) release-info/CHANGELOG.md)
+      displayName: Copy CHANGELOG.md to package artifact output
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        artifactName: release-info
+        path: $(Build.ArtifactStagingDirectory)/release-info
+
+    # Generate Documentation
+    - pwsh: |
+        $setupFile="doxygen-1.8.20-setup.exe";
+
+        Invoke-WebRequest `
+          -MaximumRetryCount 10 `
+          -Uri "https://azuresdktooling.blob.core.windows.net/dependencies/$setupFile" `
+          -OutFile $setupFile `
+        | Wait-Process;
+
+        Start-Process -Filepath .\$setupFile -ArgumentList @("/VERYSILENT") -Wait
+      workingDirectory: $(Agent.TempDirectory)
+      displayName: Download and Install Doxygen
+
+      # Assumes AZURE_SDK_VERSION is set in the environment
+      # If doxygen produces any warnings, fail the step.
+    - pwsh: |
+        Invoke-Expression "& `"C:\Program Files\doxygen\bin\doxygen.exe`" doc\Doxyfile"
+        if (Test-Path "DoxygenWarningLog.txt" -PathType leaf)
+        {
+          $LogContent = Get-Content "DoxygenWarningLog.txt"
+
+          Remove-Item "DoxygenWarningLog.txt"
+
+          If ($LogContent -ne $Null)
+          {
+            Write-Output $LogContent
+            Write-Error "Warnings from the doxygen docs generation step are treated as error."
+            exit 1
+          }
+        }
+      displayName: Generate docs
+
+    - task: PowerShell@2
+      inputs:
+        targetType: filePath
+        filePath: eng/scripts/New-DocsMsArtifact.ps1
+        ignoreLASTEXITCODE: flattenFolders
+        pwsh: true
+        errorActionPreference: stop
+
+      displayName: Generate artifacts for docs.ms
+
+    - pwsh: |
+        New-Item -ItemType directory -Path $(Build.ArtifactStagingDirectory) -Name docs
+        New-Item -ItemType directory -Path $(Build.ArtifactStagingDirectory) -Name docs.ms
+      displayName: Create doc artifact location
+
+    - task: CopyFiles@2
+      inputs:
+        sourceFolder: doc/generated_doxygen_docs/html
+        targetFolder: $(Build.ArtifactStagingDirectory)/docs
+      displayName: Copy documentation for publishing on GitHub.io
+
+    - task: CopyFiles@2
+      inputs:
+        sourceFolder: doc/generated_doxygen_docs/docs.ms
+        targetFolder: $(Build.ArtifactStagingDirectory)/docs.ms
+      displayName: Copy documentation for publishing on docs.ms
+
+    - pwsh: |
+        $packageInfoPath = Join-Path -Path $(Build.ArtifactStagingDirectory) release-info/package-info.json
+        Copy-Item -Path $packageInfoPath -Destination $(Join-Path -Path $(Build.ArtifactStagingDirectory) /docs/package-info.json)
+      displayName: Copy package-info.json to documentation path
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        artifactName: docs
+        path: $(Build.ArtifactStagingDirectory)/docs
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        artifactName: docs.ms
+        path: $(Build.ArtifactStagingDirectory)/docs.ms
+
+    - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
+      # ComponentGovernance is currently unable to run on pull requests of public projects. Running on non-PR
+      # builds should be sufficient.
+      condition: and(succeededOrFailed(), ne(variables['Build.Reason'], 'PullRequest'))
+      displayName: 'Component Detection'
+
+    - template: /eng/common/pipelines/templates/steps/eng-common-workflow-enforcer.yml
+
+    - ${{if eq(variables['System.TeamProject'], 'internal') }}:
+      - task: AzureArtifacts.manifest-generator-task.manifest-generator-task.ManifestGeneratorTask@0
+        displayName: 'Generate BOM'
+        condition: succeededOrFailed()
+        inputs:
+          BuildDropPath: $(Build.ArtifactStagingDirectory)
+
+      - template: /eng/common/pipelines/templates/steps/publish-artifact.yml
+        parameters:
+          ArtifactPath: '$(Build.ArtifactStagingDirectory)/_manifest'
+          ArtifactName: 'release_artifact_manifest'

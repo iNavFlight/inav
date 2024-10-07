@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30204.135
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample_threadx", "sample_threadx\sample_threadx.vcxproj", "{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tx", "tx\tx.vcxproj", "{51907112-62DA-98D6-7897-5A2FD48B99C3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+		Template|Win32 = Template|Win32
+		Template|x64 = Template|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Debug|Win32.Build.0 = Debug|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Debug|x64.ActiveCfg = Debug|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Release|Win32.ActiveCfg = Release|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Release|Win32.Build.0 = Release|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Release|x64.ActiveCfg = Release|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Template|Win32.ActiveCfg = Release|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Template|Win32.Build.0 = Release|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Template|x64.ActiveCfg = Release|Win32
+		{7342DEEF-AB3F-00D5-9EDB-2829CD277B76}.Template|x64.Build.0 = Release|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Debug|Win32.ActiveCfg = Debug|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Debug|Win32.Build.0 = Debug|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Debug|x64.ActiveCfg = Debug|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Release|Win32.ActiveCfg = Release|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Release|Win32.Build.0 = Release|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Release|x64.ActiveCfg = Release|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Template|Win32.ActiveCfg = Template|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Template|Win32.Build.0 = Template|Win32
+		{51907112-62DA-98D6-7897-5A2FD48B99C3}.Template|x64.ActiveCfg = Template|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FAE0BBF6-14F8-4320-AAB9-65E1361EB38A}
+	EndGlobalSection
+EndGlobal

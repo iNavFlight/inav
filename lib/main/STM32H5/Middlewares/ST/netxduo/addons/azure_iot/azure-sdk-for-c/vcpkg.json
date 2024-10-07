@@ -1,0 +1,16 @@
+{
+  "name": "azure-sdk-for-c",
+  "version": "1.0.0",
+  "builtin-baseline": "94ce0dab56f4d8ba6bd631ba59ed682b02d45c46",
+  "dependencies": [
+    {
+      "name": "curl"
+    },
+    {
+      "name": "paho-mqtt"
+    },
+    {
+      "name": "cmocka"
+    }
+  ]
+}
