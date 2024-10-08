@@ -4287,7 +4287,7 @@ groups:
         field: sensitivity
         min: -16
         max: 15
-        type: int16_t
+        type: int8_t
       - name: gimbal_pan_trim
         field: panTrim
         description: "Trim gimbal pan center position."
