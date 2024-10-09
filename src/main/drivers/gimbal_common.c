@@ -89,6 +89,11 @@ bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice)
     return false;
 }
 
+void setGimbalSensitivity(int16_t sensitivity)
+{
+    gimbalConfigMutable()->sensitivity = sensitivity;
+}
+
 #ifdef GIMBAL_UNIT_TEST
 void taskUpdateGimbal(timeUs_t currentTimeUs)
 {
