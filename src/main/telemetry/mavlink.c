@@ -196,7 +196,15 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
         case FLM_ANGLEHOLD:     return COPTER_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
-        case FLM_POSITION_HOLD: return COPTER_MODE_POSHOLD;
+        case FLM_POSITION_HOLD: 
+            {
+                if (IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
+                    return COPTER_MODE_GUIDED;
+                }
+                else {
+                    return COPTER_MODE_POSHOLD;
+                }
+            }
         case FLM_RTH:           return COPTER_MODE_RTL;
         case FLM_MISSION:       return COPTER_MODE_AUTO;
         case FLM_LAUNCH:        return COPTER_MODE_THROW;
@@ -226,7 +234,15 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
         case FLM_ANGLEHOLD:     return PLANE_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
-        case FLM_POSITION_HOLD: return PLANE_MODE_LOITER;
+        case FLM_POSITION_HOLD: 
+            {
+                if (IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
+                    return PLANE_MODE_GUIDED;
+                }
+                else {
+                    return PLANE_MODE_LOITER;
+                }
+            }
         case FLM_RTH:           return PLANE_MODE_RTL;
         case FLM_MISSION:       return PLANE_MODE_AUTO;
         case FLM_CRUISE:        return PLANE_MODE_CRUISE;
@@ -799,7 +815,7 @@ void mavlinkSendHUDAndHeartbeat(void)
         // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
         mavSystemType,
         // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
-        MAV_AUTOPILOT_GENERIC,
+        MAV_AUTOPILOT_ARDUPILOTMEGA, //MAV_AUTOPILOT_GENERIC,
         // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
         mavModes,
         // custom_mode A bitfield for use for autopilot-specific flags.
@@ -1215,6 +1231,9 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_ITEM();
                 case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                     return handleIncoming_MISSION_REQUEST_LIST();
+
+                //case MAVLINK_MSG_ID_COMMAND_LONG;
+
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
