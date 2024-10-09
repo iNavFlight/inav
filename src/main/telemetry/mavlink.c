@@ -1121,6 +1121,49 @@ static bool handleIncoming_MISSION_REQUEST(void)
     return false;
 }
 
+
+static bool handleIncoming_COMMAND_INT(void)
+{
+    mavlink_command_int_t msg;
+    mavlink_msg_command_int_decode(&mavRecvMsg, &msg);
+
+    // Check if this message is for us
+    if (msg.target_system == mavSystemId) {
+
+        if (msg.command == MAV_CMD_DO_REPOSITION) {
+            if (IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
+                navWaypoint_t wp;
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                wp.lat = (int32_t)(msg.x * 1e7f);
+                wp.lon = (int32_t)(msg.y * 1e7f);
+                wp.alt = msg.z * 100.0f;
+                wp.p1 = 0;
+                wp.p2 = 0;
+                wp.p3 = 0;
+                wp.flag = 0;
+                setWaypoint(255, &wp);
+                //static inline uint16_t mavlink_msg_command_ack_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
+                               //uint16_t command, uint8_t result, uint8_t progress, int32_t result_param2, uint8_t target_system, uint8_t target_component)
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, 
+                mavlinkSendMessage();
+            }
+            else {
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID, MAV_MISSION_TYPE_MISSION);
+                mavlinkSendMessage();
+            }
+        }
+        else {
+            //mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+            //mavlinkSendMessage();
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
@@ -1233,6 +1276,9 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_REQUEST_LIST();
 
                 //case MAVLINK_MSG_ID_COMMAND_LONG;
+
+                //case MAVLINK_MSG_ID_COMMAND_INT;
+
 
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
