@@ -145,18 +145,6 @@ static const char * const boardIdentifier = TARGET_BOARD_IDENTIFIER;
 // from mixer.c
 extern int16_t motor_disarmed[MAX_SUPPORTED_MOTORS];
 
-static const char pidnames[] =
-    "ROLL;"
-    "PITCH;"
-    "YAW;"
-    "ALT;"
-    "Pos;"
-    "PosR;"
-    "NavR;"
-    "LEVEL;"
-    "MAG;"
-    "VEL;";
-
 typedef enum {
     MSP_SDCARD_STATE_NOT_PRESENT = 0,
     MSP_SDCARD_STATE_FATAL       = 1,
@@ -732,12 +720,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         #ifdef USE_EZ_TUNE
             ezTuneUpdate();
         #endif
-        break;
-
-    case MSP_PIDNAMES:
-        for (const char *c = pidnames; *c; c++) {
-            sbufWriteU8(dst, *c);
-        }
         break;
 
     case MSP_MODE_RANGES:
