@@ -17,157 +17,102 @@
  *
  * If not, see <http://www.gnu.org/licenses/>.
  */
+/* Created by geoffsim */
 
-/* Created by phobos- */
-
-#include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <math.h>
-#include <ctype.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "platform.h"
 
 #if defined(USE_VTX_MSP) && defined(USE_VTX_CONTROL) && defined(USE_VTX_COMMON)
 
-#include "build/debug.h"
-
-//#include "cms/cms_menu_vtx_msp.h"
-#include "common/crc.h"
 #include "common/log.h"
-#include "config/feature.h"
-
+#include "common/crc.h"
 #include "drivers/vtx_common.h"
-//#include "drivers/vtx_table.h"
-
-#include "fc/runtime_config.h"
-#include "flight/failsafe.h"
-
-#include "io/serial.h"
-#include "io/vtx_msp.h"
-#include "io/vtx_control.h"
-#include "io/vtx_string.h"
-#include "io/vtx_smartaudio.h"
-#include "io/vtx.h"
-#include "io/displayport_msp_osd.h"
-
 #include "msp/msp_protocol.h"
-#include "msp/msp_serial.h"
-#include "msp/msp.h"
-
-//#include "pg/vtx_table.h"
-#include "fc/settings.h"
-
-#include "rx/crsf.h"
-//#include "rx/crsf_protocol.h"
 #include "rx/rx.h"
+#include "rx/crsf.h"
+#include "telemetry/crsf.h"
+#include "vtx.h"
+#include "displayport_msp_osd.h"
+#include "vtx_string.h"
+#include "vtx_msp.h"
 
-#include "telemetry/msp_shared.h"
+#define VTX_MSP_MIN_BAND           (1)
+#define VTX_MSP_MAX_BAND           (VTX_MSP_MIN_BAND + VTX_MSP_BAND_COUNT - 1)
+#define VTX_MSP_MIN_CHANNEL        (1)
+#define VTX_MSP_MAX_CHANNEL        (VTX_MSP_MIN_CHANNEL + VTX_MSP_CHANNEL_COUNT -1)
 
-//static uint16_t mspConfFreq = 0;
-static uint8_t mspConfBand = SETTING_VTX_BAND_DEFAULT;
-static uint8_t mspConfChannel = SETTING_VTX_CHANNEL_DEFAULT;
-//static uint16_t mspConfPower = 0;
-static uint16_t mspConfPowerIndex = SETTING_VTX_POWER_DEFAULT;
-static uint8_t mspConfPitMode = 0;
-static bool mspVtxConfigChanged = false;
-static timeUs_t mspVtxLastTimeUs = 0;
-static bool prevLowPowerDisarmedState = false;
+#define VTX_UPDATE_REQ_NONE         0x00
+#define VTX_UPDATE_REQ_FREQUENCY    0x01
+#define VTX_UPDATE_REQ_POWER        0x02
+#define VTX_UPDATE_REQ_PIT_MODE     0x04
 
-static const vtxVTable_t mspVTable; // forward
-static vtxDevice_t vtxMsp = {
-    .vTable = &mspVTable,
-    .capability.bandCount = VTX_MSP_TABLE_MAX_BANDS,
-    .capability.channelCount = VTX_MSP_TABLE_MAX_CHANNELS,
-    .capability.powerCount = VTX_MSP_TABLE_MAX_POWER_LEVELS,
-    .capability.bandNames = (char **)vtx58BandNames,
-    .capability.channelNames = (char **)vtx58ChannelNames,
-    .capability.powerNames = (char**)saPowerNames
+typedef struct {
+    bool ready;
+    uint8_t timeouts;
+    uint8_t updateReqMask;
+    bool crsfTelemetryEnabled;
 
+    struct {
+        uint8_t     band;
+        uint8_t     channel;
+        uint16_t    freq;
+        uint8_t     power;
+        uint8_t     powerIndex;
+        uint8_t     pitMode;
+    } request;
+;
+} vtxProtoState_t;
+
+const char * const vtxMspBandNames[VTX_MSP_BAND_COUNT + 1] = {
+    "-----", "A 2.4", "B 2.4", "E 2.4", "F 2.4", "R 2.4"
 };
 
-STATIC_UNIT_TESTED mspVtxStatus_e mspVtxStatus = MSP_VTX_STATUS_OFFLINE;
-static uint8_t mspVtxPortIdentifier = 255;
+const char * vtxMspBandLetters = "-ABEFR";
 
-#define MSP_VTX_REQUEST_PERIOD_US (200 * 1000) // 200ms
+const char * const vtxMspChannelNames[VTX_MSP_CHANNEL_COUNT + 1] = {
+    "-", "1", "2", "3", "4", "5", "6", "7", "8"
+};
 
-static bool isCrsfPortConfig(const serialPortConfig_t *portConfig)
+const char * const vtxMspPowerNames[VTX_MSP_POWER_COUNT + 1] = {
+    "0", "25", "200", "500", "MAX"
+};
+
+const unsigned vtxMspPowerTable[VTX_MSP_POWER_COUNT + 1] = {
+    0, 25, 200, 500, 1000
+};
+
+static serialPortIdentifier_e mspVtxPortIdentifier;
+static vtxProtoState_t vtxState;
+
+static vtxDevType_e vtxMspGetDeviceType(const vtxDevice_t *);
+static bool vtxMspIsReady(const vtxDevice_t *);
+static vtxDevice_t vtxMsp;
+
+static void prepareMspFrame(vtxDevice_t *vtxDevice, uint8_t *mspFrame)
 {
-    return portConfig->functionMask & FUNCTION_RX_SERIAL && portConfig->functionMask & FUNCTION_VTX_MSP && rxConfig()->serialrx_provider == SERIALRX_CRSF;
-}
-
-static bool isLowPowerDisarmed(void)
-{
-    return (!ARMING_FLAG(ARMED) && !failsafeIsActive() &&
-        (vtxSettingsConfig()->lowPowerDisarm == VTX_LOW_POWER_DISARM_ALWAYS ||
-        (vtxSettingsConfig()->lowPowerDisarm == VTX_LOW_POWER_DISARM_UNTIL_FIRST_ARM && !ARMING_FLAG(WAS_EVER_ARMED))));
-}
-
-bool isVtxConfigValid(const vtxConfig_t *cfg)
-{
-    LOG_DEBUG(VTX, "msp isVtxConfigValid\r\n");
-    for (int i = 0; i < MAX_CHANNEL_ACTIVATION_CONDITION_COUNT; ++i) {
-
-        if (cfg->vtxChannelActivationConditions[i].band || 
-            (cfg->vtxChannelActivationConditions[i].range.startStep && cfg->vtxChannelActivationConditions[i].range.endStep) ||
-            cfg->vtxChannelActivationConditions[i].auxChannelIndex ||
-            cfg->vtxChannelActivationConditions[i].channel) {
-                return true;
-        }
-    }
-
-    LOG_DEBUG(VTX, "msp Invalid Config!\r\n");
-    return false;
-}
-
-
-void setMspVtxDeviceStatusReady(const int descriptor)
-{
-    LOG_DEBUG(VTX, "msp setMspVtxDeviceStatusReady\r\n");
-    UNUSED(descriptor);
-
-    mspVtxStatus = MSP_VTX_STATUS_READY;
-    mspVtxConfigChanged = true;
-}
-
-
-void prepareMspFrame(uint8_t *mspFrame)
-{
-    LOG_DEBUG(VTX, "msp PrepareMspFrame\r\n");
-/*
-HDZERO parsing
-    fc_band_rx = msp_rx_buf[1];
-    fc_channel_rx = msp_rx_buf[2];
-    fc_pwr_rx = msp_rx_buf[3];
-    fc_pit_rx = msp_rx_buf[4];
-    fc_lp_rx = msp_rx_buf[8];
-*/
-
-    uint8_t pitmode = 0;
-    vtxCommonGetPitMode(&vtxMsp, &pitmode);
-
-    mspFrame[0] = VTXDEV_MSP,
-    mspFrame[1] = vtxSettingsConfig()->band;
-    mspFrame[2] = vtxSettingsConfig()->channel;
-    mspFrame[3] = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power; // index based
-    mspFrame[4] = pitmode;
-    mspFrame[5] = 0; // Freq_L 
-    mspFrame[6] = 0; // Freq_H
-    mspFrame[7] = (mspVtxStatus == MSP_VTX_STATUS_READY) ? 1 : 0;
-    mspFrame[8] = isLowPowerDisarmed();
-    mspFrame[9] = 0; // Pitmode freq Low
-    mspFrame[10] = 0; // pitmod freq High
+    // Send an MSP_VTX_V2 frame to the VTX
+    mspFrame[0]  = vtxMspGetDeviceType(vtxDevice);
+    mspFrame[1]  = vtxState.request.band;
+    mspFrame[2]  = vtxState.request.channel;
+    mspFrame[3]  = vtxState.request.powerIndex;
+    mspFrame[4]  = vtxState.request.pitMode;
+    mspFrame[5]  = 0; // Freq_L 
+    mspFrame[6]  = 0; // Freq_H
+    mspFrame[7]  = vtxMspIsReady(vtxDevice);
+    mspFrame[8]  = vtxSettingsConfig()->lowPowerDisarm;
+    mspFrame[9]  = 0; // pitmode freq Low
+    mspFrame[10] = 0; // pitmode freq High
     mspFrame[11] = 0; // 1 if using vtx table
-    mspFrame[12] = 0; // vtx table bands or 0
-    mspFrame[13] = 0; // vtx table channels or 0
-    mspFrame[14] = 0; // vtx table power levels or 0
-}
+    mspFrame[12] = vtxMsp.capability.bandCount; // bands or 0
+    mspFrame[13] = vtxMsp.capability.channelCount; // channels or 0
+    mspFrame[14] = vtxMsp.capability.powerCount; // power levels or 0
+} 
 
 static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const uint8_t mspFrameSize)
 {
-
-    LOG_DEBUG(VTX, "msp CrsfPush\r\n");
 #ifndef USE_TELEMETRY_CRSF
     UNUSED(mspCommand);
     UNUSED(mspFrame);
@@ -201,285 +146,144 @@ static void mspCrsfPush(const uint8_t mspCommand, const uint8_t *mspFrame, const
     crc8_dvb_s2_sbuf_append(dst, &crsfFrame[2]); // start at byte 2, since CRC does not include device address and frame length
     sbufSwitchToReader(dst, crsfFrame);
 
-    crsfRxSendTelemetryData(); //give the FC a chance to send outstanding telemetry
+    crsfRxSendTelemetryData(); // give the FC a chance to send outstanding telemetry
     crsfRxWriteTelemetryData(sbufPtr(dst), sbufBytesRemaining(dst));
     crsfRxSendTelemetryData();
 #endif
-}
-
-static uint16_t packetCounter = 0;
-
-static bool isVtxConfigChanged(void)
-{
-    if(mspVtxStatus == MSP_VTX_STATUS_READY) {
-        if (mspVtxConfigChanged == true)
-                return true;
-
-        if (isLowPowerDisarmed() != prevLowPowerDisarmedState) {
-                LOG_DEBUG(VTX, "msp vtx config changed (lower power disarm 2)\r\n");
-                mspVtxConfigChanged = true;
-                prevLowPowerDisarmedState = isLowPowerDisarmed();
-        }
-
-        if (mspConfPowerIndex != vtxSettingsConfig()->power) {
-                LOG_DEBUG(VTX, "msp vtx config changed (power 2)\r\n");
-                mspVtxConfigChanged = true;
-        }
-
-        if (mspConfBand != vtxSettingsConfig()->band || mspConfChannel != vtxSettingsConfig()->channel) {
-                LOG_DEBUG(VTX, "msp vtx config changed (band and channel 2)\r\n");
-                mspVtxConfigChanged = true;
-        }
-
-        return mspVtxConfigChanged;
-    }
-
-    return false;
 }
 
 static void vtxMspProcess(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 {
     UNUSED(vtxDevice);
 
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_OSD);
-    uint8_t frame[15];
+    uint8_t mspFrame[15];
 
-    switch (mspVtxStatus) {
-    case MSP_VTX_STATUS_OFFLINE:
-        LOG_DEBUG(VTX, "msp MspProcess: OFFLINE\r\n");
-        // wait for MSP communication from the VTX
-#ifdef USE_CMS
-        //mspCmsUpdateStatusString();
-#endif
-        break;
-    case MSP_VTX_STATUS_READY:
-        LOG_DEBUG(VTX, "msp MspProcess: READY\r\n");
-        // send an update if stuff has changed with 200ms period
-        if ((isVtxConfigChanged()) && cmp32(currentTimeUs, mspVtxLastTimeUs) >= MSP_VTX_REQUEST_PERIOD_US) {
-
-            LOG_DEBUG(VTX, "msp-vtx: vtxInfo Changed\r\n");
-            prepareMspFrame(frame);
-
-            if (isCrsfPortConfig(portConfig)) {
-                mspCrsfPush(MSP_VTX_CONFIG, frame, sizeof(frame));
-            } else {
-                mspPort_t *port = getMspOsdPort();
-                if(port != NULL && port->port) {
-                    LOG_DEBUG(VTX, "msp-vtx: mspSerialPushPort\r\n");
-                    int sent = mspSerialPushPort(MSP_VTX_CONFIG, frame, sizeof(frame), port, MSP_V2_NATIVE);
-                    if (sent <= 0) {
-                        break;
-                    }
-                }
+    mspPort_t *mspPort = getMspOsdPort();
+    unsigned lastActivity = (currentTimeUs/1000) - mspPort->lastActivityMs;    
+    if (lastActivity > VTX_MSP_TIMEOUT) {
+        if (vtxState.timeouts++ > 3) {
+            if (vtxState.ready) {
+                vtxState.ready = false;
             }
-            packetCounter++;
-            mspVtxLastTimeUs = currentTimeUs;
-            mspVtxConfigChanged = false;
-
-#ifdef USE_CMS
-            //mspCmsUpdateStatusString();
-#endif
         }
-        break;
-    default:
-        mspVtxStatus = MSP_VTX_STATUS_OFFLINE;
-        break;
+    } else { // active
+        if (!vtxState.ready) {
+            vtxState.ready = true;
+        }
     }
 
-#if 0
-    DEBUG_SET(DEBUG_VTX_MSP, 0, packetCounter);
-    DEBUG_SET(DEBUG_VTX_MSP, 1, isCrsfPortConfig(portConfig));
-    DEBUG_SET(DEBUG_VTX_MSP, 2, isLowPowerDisarmed());
-#if defined(USE_MSP_OVER_TELEMETRY)
-    DEBUG_SET(DEBUG_VTX_MSP, 3, isCrsfPortConfig(portConfig) ? getMspTelemetryDescriptor() : getMspSerialPortDescriptor(mspVtxPortIdentifier));
-#else
-    DEBUG_SET(DEBUG_VTX_MSP, 3, getMspSerialPortDescriptor(mspVtxPortIdentifier));
-#endif
-#endif
+    if (vtxState.ready) {
+        if (vtxState.updateReqMask != VTX_UPDATE_REQ_NONE) {
+            prepareMspFrame(vtxDevice, mspFrame);
+            if (vtxState.crsfTelemetryEnabled) { // keep ELRS LUA up to date ?
+                mspCrsfPush(MSP_VTX_CONFIG, mspFrame, sizeof(mspFrame));
+            }
+
+            int sent = mspSerialPushPort(MSP_VTX_CONFIG, mspFrame, sizeof(mspFrame), mspPort, MSP_V2_NATIVE);
+            if (sent > 0) {
+                vtxState.updateReqMask = VTX_UPDATE_REQ_NONE;
+            }
+        }   
+    }
 }
 
 static vtxDevType_e vtxMspGetDeviceType(const vtxDevice_t *vtxDevice)
 {
-    //LOG_DEBUG(VTX, "msp GetDeviceType\r\n");
     UNUSED(vtxDevice);
     return VTXDEV_MSP;
 }
 
 static bool vtxMspIsReady(const vtxDevice_t *vtxDevice)
 {
-    //LOG_DEBUG(VTX, "msp vtxIsReady: %s\r\n", (vtxDevice != NULL && mspVtxStatus == MSP_VTX_STATUS_READY) ? "Y": "N");
-    return vtxDevice != NULL && mspVtxStatus == MSP_VTX_STATUS_READY;
+    return vtxDevice != NULL && mspVtxPortIdentifier >=0 && vtxState.ready;
 }
 
 static void vtxMspSetBandAndChannel(vtxDevice_t *vtxDevice, uint8_t band, uint8_t channel)
 {
-    LOG_DEBUG(VTX, "msp SetBandAndChannel\r\n");
     UNUSED(vtxDevice);
-    if (band != mspConfBand || channel != mspConfChannel) {
-        LOG_DEBUG(VTX, "msp vtx config changed (band and channel)\r\n");
-        mspVtxConfigChanged = true;
+
+    if (band < VTX_MSP_MIN_BAND || band > VTX_MSP_MAX_BAND || channel < VTX_MSP_MIN_CHANNEL || channel > VTX_MSP_MAX_CHANNEL) {
+        return;
     }
-    mspConfBand = band;
-    mspConfChannel = channel;
+
+    vtxState.request.band = band;
+    vtxState.request.channel = channel;
+    vtxState.request.freq = vtx58_Bandchan2Freq(band, channel);
+    vtxState.updateReqMask |= VTX_UPDATE_REQ_FREQUENCY;
 }
 
 static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
 {
-    LOG_DEBUG(VTX, "msp SetPowerByIndex\r\n");
     UNUSED(vtxDevice);
 
-    if (index > 0 && (index < VTX_MSP_TABLE_MAX_POWER_LEVELS))
-    {
-        if (index != mspConfPowerIndex)
-        {
-            LOG_DEBUG(VTX, "msp vtx config changed (power by index)\r\n");
-            mspVtxConfigChanged = true;
-        }
-        mspConfPowerIndex = index;
-    }
+    vtxState.request.power = vtxMspPowerTable[index];
+    vtxState.request.powerIndex = index;
+    vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
 }
 
-static void vtxMspSetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
-{
-    LOG_DEBUG(VTX, "msp SetPitMode\r\n");
-    UNUSED(vtxDevice);
-    if (onoff != mspConfPitMode) {
-        LOG_DEBUG(VTX, "msp vtx config changed (pitmode)\r\n");
-        mspVtxConfigChanged = true;
-    }
-    mspConfPitMode = onoff;
-}
-
-#if 0
-static void vtxMspSetFreq(vtxDevice_t *vtxDevice, uint16_t freq)
+static void vtxMspSetPitMode(vtxDevice_t *vtxDevice, uint8_t onOff)
 {
     UNUSED(vtxDevice);
-    if (freq != mspConfFreq) {
-        mspVtxConfigChanged = true;
-    }
-    mspConfFreq = freq;
+
+    vtxState.request.pitMode = onOff;
+    vtxState.updateReqMask |= VTX_UPDATE_REQ_PIT_MODE;
 }
-#endif
-
-
-
 
 static bool vtxMspGetBandAndChannel(const vtxDevice_t *vtxDevice, uint8_t *pBand, uint8_t *pChannel)
 {
-    if (!vtxMspIsReady(vtxDevice)) {
-        return false;
-    }
+    UNUSED(vtxDevice);
 
-    *pBand = vtxSettingsConfig()->band;
-    *pChannel = vtxSettingsConfig()->channel;
-
-    //LOG_DEBUG(VTX, "msp GetBandAndChannel: %02x:%02x\r\n", vtxSettingsConfig()->band, vtxSettingsConfig()->channel);
-
+    *pBand = vtxState.request.band; 
+    *pChannel = vtxState.request.channel;
     return true;
 }
 
 static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 {
-    if (!vtxMspIsReady(vtxDevice)) {
-        return false;
-    }
+    UNUSED(vtxDevice);
 
-    uint8_t power = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power;
-    // Special case, power not set
-    if (power > VTX_MSP_TABLE_MAX_POWER_LEVELS) {
-        *pIndex = 0;
-        //LOG_DEBUG(VTX, "msp GetPowerIndex: %u\r\n", *pIndex);
-        return true;
-    }
+    *pIndex = vtxState.request.powerIndex;
+    return true;
+}
 
-    *pIndex = power;
+static bool vtxMspGetPitMode(const vtxDevice_t *vtxDevice, uint8_t *pOnOff)
+{
+    UNUSED(vtxDevice);
 
-    //LOG_DEBUG(VTX, "msp GetPowerIndex: %u\r\n", *pIndex);
+    *pOnOff = vtxState.request.pitMode;
     return true;
 }
 
 static bool vtxMspGetFreq(const vtxDevice_t *vtxDevice, uint16_t *pFreq)
 {
-    LOG_DEBUG(VTX, "msp GetFreq\r\n");
-    if (!vtxMspIsReady(vtxDevice)) {
-        return false;
-    }
+    UNUSED(vtxDevice);
 
-    *pFreq = 5800;
+    *pFreq = vtxState.request.freq;
     return true;
 }
 
 static bool vtxMspGetPower(const vtxDevice_t *vtxDevice, uint8_t *pIndex, uint16_t *pPowerMw)
 {
-    LOG_DEBUG(VTX, "msp GetPower\r\n");
-    uint8_t powerIndex;
+    UNUSED(vtxDevice);
 
-    if (!vtxMspGetPowerIndex(vtxDevice, &powerIndex)) {
-        return false;
-    }
-
-
-    *pIndex = powerIndex;
-    *pPowerMw = *pIndex;
+    *pIndex = vtxState.request.powerIndex;
+    *pPowerMw = vtxState.request.power;
     return true;
 }
 
-static bool vtxMspGetOsdInfo(const  vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t * pOsdInfo)
+static bool vtxMspGetOsdInfo(const vtxDevice_t *vtxDevice, vtxDeviceOsdInfo_t *pOsdInfo)
 {
-    LOG_DEBUG(VTX, "msp GetOsdInfo\r\n");
-    uint8_t powerIndex;
-    uint16_t powerMw;
-    uint16_t freq;
-    uint8_t band, channel;
+    UNUSED(vtxDevice);
 
-    if (!vtxMspGetBandAndChannel(vtxDevice, &band, &channel)) {
-        return false;
-    }
-
-    if (!vtxMspGetFreq(vtxDevice, &freq)) {
-        return false;
-    }
-
-    if (!vtxMspGetPower(vtxDevice, &powerIndex, &powerMw)) {
-        return false;
-    }
-
-    pOsdInfo->band = band;
-    pOsdInfo->channel = channel;
-    pOsdInfo->frequency = freq;
-    pOsdInfo->powerIndex = powerIndex;
-    pOsdInfo->powerMilliwatt = powerMw;
-    pOsdInfo->bandLetter = vtx58BandNames[band][0];
-    pOsdInfo->bandName = vtx58BandNames[band];
-    pOsdInfo->channelName = vtx58ChannelNames[channel];
-    pOsdInfo->powerIndexLetter = '0' + powerIndex;
-    return true;
-}
-
-
-bool vtxMspInit(void)
-{
-    LOG_DEBUG(VTX, "msp %s\r\n", __FUNCTION__);
-    // don't bother setting up this device if we don't have MSP vtx enabled
-    // Port is shared with MSP_OSD
-    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MSP_OSD);
-    if (!portConfig) {
-        return false;
-    }
-
-    mspVtxPortIdentifier = portConfig->identifier;
-  
-    // XXX Effect of USE_VTX_COMMON should be reviewed, as following call to vtxInit will do nothing if vtxCommonSetDevice is not called.
-#if defined(USE_VTX_COMMON)
-    vtxCommonSetDevice(&vtxMsp);
-#endif
-
-    mspConfBand = vtxSettingsConfig()->band;
-    mspConfChannel = vtxSettingsConfig()->channel;
-    mspConfPowerIndex = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power; // index based
-    vtxCommonGetPitMode(&vtxMsp, &mspConfPitMode);
-
-    vtxInit();
+    pOsdInfo->band = vtxState.request.band;
+    pOsdInfo->channel = vtxState.request.channel;
+    pOsdInfo->frequency = vtxState.request.freq;
+    pOsdInfo->powerIndex = vtxState.request.powerIndex;
+    pOsdInfo->powerMilliwatt = vtxState.request.power;
+    pOsdInfo->bandName = vtxMspBandNames[vtxState.request.band];
+    pOsdInfo->bandLetter = vtxMspBandLetters[vtxState.request.band];
+    pOsdInfo->channelName = vtxMspChannelNames[vtxState.request.channel];
+    pOsdInfo->powerIndexLetter = '0' + vtxState.request.powerIndex;
 
     return true;
 }
@@ -491,211 +295,48 @@ static const vtxVTable_t mspVTable = {
     .setBandAndChannel = vtxMspSetBandAndChannel,
     .setPowerByIndex = vtxMspSetPowerByIndex,
     .setPitMode = vtxMspSetPitMode,
-    //.setFrequency = vtxMspSetFreq,
     .getBandAndChannel = vtxMspGetBandAndChannel,
     .getPowerIndex = vtxMspGetPowerIndex,
+    .getPitMode = vtxMspGetPitMode,
     .getFrequency = vtxMspGetFreq,
-    //.getStatus = vtxMspGetStatus,
     .getPower = vtxMspGetPower,
-    //.serializeCustomDeviceStatus = NULL,
-    .getOsdInfo = vtxMspGetOsdInfo,
+    .getOsdInfo = vtxMspGetOsdInfo
 };
 
-static mspResult_e mspVtxProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+static vtxDevice_t vtxMsp = {
+    .vTable = &mspVTable,
+    .capability.bandCount = VTX_MSP_MAX_BAND,
+    .capability.channelCount = VTX_MSP_MAX_CHANNEL,
+    .capability.powerCount = VTX_MSP_POWER_COUNT,
+    .capability.bandNames = (char **)vtxMspBandNames,
+    .capability.channelNames = (char **)vtxMspChannelNames,
+    .capability.powerNames = (char **)vtxMspPowerNames
+};
+
+bool vtxMspInit(void)
 {
-    //LOG_DEBUG(VTX, "msp VTX_MSP_PROCESS\r\n");
-    UNUSED(mspPostProcessFn);
-
-    sbuf_t *dst = &reply->buf;
-    sbuf_t *src = &cmd->buf;
-
-    const unsigned int dataSize = sbufBytesRemaining(src);
-    UNUSED(dst);
-    UNUSED(src);
-
-    // Start initializing the reply message
-    reply->cmd = cmd->cmd;
-    reply->result = MSP_RESULT_ACK;
-
-    vtxDevice_t *vtxDevice = vtxCommonDevice();
-    if (!vtxDevice || vtxCommonGetDeviceType(vtxDevice) != VTXDEV_MSP) {
-        LOG_DEBUG(VTX, "msp wrong vtx\r\n");
-        return MSP_RESULT_ERROR;
+    const serialPortConfig_t *portConfig;
+    
+    // Shares MSP_OSD port
+    portConfig = findSerialPortConfig(FUNCTION_VTX_MSP);
+    if (!portConfig) {
+        return false;
     }
 
-    switch (cmd->cmd)
-    {
-        case MSP_VTXTABLE_BAND:
-        {
-            LOG_DEBUG(VTX, "msp MSP_VTXTABLE_BAND\r\n");
-            uint8_t deviceType = vtxCommonGetDeviceType(vtxDevice);
-            if (deviceType == VTXDEV_MSP)
-            {
-                /*
-                char bandName[MSP_VTX_TABLE_BAND_NAME_LENGTH + 1];
-                memset(bandName, 0, MSP_VTX_TABLE_BAND_NAME_LENGTH + 1);
-                uint16_t frequencies[MSP_VTX_TABLE_MAX_CHANNELS];
-                const uint8_t band = sbufReadU8(src);
-                const uint8_t bandNameLength = sbufReadU8(src);
-                for (int i = 0; i < bandNameLength; i++) {
-                    const char nameChar = sbufReadU8(src);
-                    if (i < MSP_VTX_TABLE_BAND_NAME_LENGTH) {
-                        bandName[i] = toupper(nameChar);
-                    }
-                }
-                const char bandLetter = toupper(sbufReadU8(src));
-                const bool isFactoryBand = (bool)sbufReadU8(src);
-                const uint8_t channelCount = sbufReadU8(src);
-                for (int i = 0; i < channelCount; i++)
-                {
-                    const uint16_t frequency = sbufReadU16(src);
-                    if (i < vtxTableConfig()->channels)
-                    {
-                        frequencies[i] = frequency;
-                    }
-                }
-                */
+    portConfig = findSerialPortConfig(FUNCTION_RX_SERIAL);
 
-                setMspVtxDeviceStatusReady(1);
-            }
-            break;
-        }
-        case MSP_VTXTABLE_POWERLEVEL:
-        {
-            LOG_DEBUG(VTX, "msp MSP_VTXTABLE_POWERLEVEL\r\n");
-            
-                /*
-                char powerLevelLabel[VTX_TABLE_POWER_LABEL_LENGTH + 1];
-                memset(powerLevelLabel, 0, VTX_TABLE_POWER_LABEL_LENGTH + 1);
-                const uint8_t powerLevel = sbufReadU8(src);
-                const uint16_t powerValue = sbufReadU16(src);
-                const uint8_t powerLevelLabelLength = sbufReadU8(src);
-                for (int i = 0; i < powerLevelLabelLength; i++)
-                {
-                    const char labelChar = sbufReadU8(src);
-                    if (i < VTX_TABLE_POWER_LABEL_LENGTH)
-                    {
-                        powerLevelLabel[i] = toupper(labelChar);
-                    }
-                }
-                */
-                setMspVtxDeviceStatusReady(1);
-        }
-        break;
-        case MSP_VTX_CONFIG:
-        {
-            LOG_DEBUG(VTX, "msp MSP_VTX_CONFIG received\r\n");
-            LOG_DEBUG(VTX, "msp MSP_VTX_CONFIG VTXDEV_MSP\r\n");
-            uint8_t pitmode = 0;
-            vtxCommonGetPitMode(vtxDevice, &pitmode);
+    vtxState.ready = false;
+    vtxState.timeouts = 0;
+    vtxState.updateReqMask = VTX_UPDATE_REQ_NONE;
+    vtxState.crsfTelemetryEnabled = crsfRxIsActive();
+    vtxState.request.band =  vtxSettingsConfig()->band;
+    vtxState.request.channel = vtxSettingsConfig()->channel;
+    vtxState.request.freq = vtx58_Bandchan2Freq(vtxState.request.band, vtxState.request.channel);
+    vtxState.request.power = vtxSettingsConfig()->power;
+    vtxState.request.pitMode = 0;
+    vtxCommonSetDevice(&vtxMsp);
 
-            // VTXDEV_MSP,
-            sbufWriteU8(dst, VTXDEV_MSP);
-            // band;
-            sbufWriteU8(dst, vtxSettingsConfig()->band);
-            // channel;
-            sbufWriteU8(dst, vtxSettingsConfig()->channel);
-            // power; // index based
-            sbufWriteU8(dst, vtxSettingsConfig()->power);
-            // pit mode;
-            // Freq_L
-            sbufWriteU8(dst, 0);
-            // Freq_H
-            sbufWriteU8(dst, 0);
-            // vtx status
-            sbufWriteU8(dst, 1);
-            // lowPowerDisarm
-
-            sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
-            // Pitmode freq Low
-            sbufWriteU8(dst, 0);
-            // pitmod freq High
-            sbufWriteU8(dst, 0);
-            // 1 if using vtx table
-            sbufWriteU8(dst, 0);
-            // vtx table bands or 0
-            sbufWriteU8(dst, 0);
-            // vtx table channels or 0
-            sbufWriteU8(dst, 0);
-
-            setMspVtxDeviceStatusReady(1);
-            break;
-        }
-        case MSP_SET_VTX_CONFIG:
-            LOG_DEBUG(VTX, "msp MSP_SET_VTX_CONFIG\r\n");
-            if (dataSize == 15)
-            {
-                if (vtxCommonGetDeviceType(vtxDevice) != VTXDEV_UNKNOWN)
-                {
-                    for (int i = 0; i < 15; ++i)
-                    {
-                        uint8_t data = sbufReadU8(src);
-                        switch (i)
-                        {
-                        case 1:
-                            vtxSettingsConfigMutable()->band = data;
-                            break;
-                        case 2:
-                            vtxSettingsConfigMutable()->channel = data;
-                            break;
-                        case 3:
-                            vtxSettingsConfigMutable()->power = data;
-                            break;
-                        case 4:
-                            vtxCommonSetPitMode(vtxDevice, data);
-                            break;
-                        case 7:
-                            // vtx ready
-                            break;
-                        case 8:
-                            vtxSettingsConfigMutable()->lowPowerDisarm = data;
-                            break;
-                        }
-                    }
-                }
-
-                setMspVtxDeviceStatusReady(1);
-                break;
-            }
-            LOG_DEBUG(VTX, "msp MSP_RESULT_ERROR\r\n");
-            return MSP_RESULT_ERROR;
-        default:
-            // debug[1]++;
-            // debug[2] = cmd->cmd;
-            if(cmd->cmd != MSP_STATUS && cmd->cmd != MSP_STATUS_EX && cmd->cmd != MSP_RC) {
-                LOG_DEBUG(VTX, "msp default: %02x\r\n", cmd->cmd);
-            }
-            reply->result = MSP_RESULT_ERROR;
-            break;
-    }
-
-    // Process DONT_REPLY flag
-    if (cmd->flags & MSP_FLAG_DONT_REPLY)
-    {
-        reply->result = MSP_RESULT_NO_REPLY;
-    }
-
-    return reply->result;
+    return true;
 }
-
-void mspVtxSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
-{
-    UNUSED(mspProcessCommandFn);
-    // Check if VTX is ready
-    /*
-    if (mspVtxStatus != MSP_VTX_STATUS_READY) {
-        LOG_DEBUG(VTX, "msp VTX NOT READY, skipping\r\n");
-        return;
-    }
-    */
-
-    mspPort_t *port = getMspOsdPort();
-
-    if(port) {
-        mspSerialProcessOnePort(port, MSP_SKIP_NON_MSP_DATA, mspVtxProcessMspCommand);
-    }
-
-}
-
 
 #endif
