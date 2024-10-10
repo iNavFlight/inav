@@ -36,28 +36,37 @@ typedef struct uartDevice_s {
     usart_type* dev;
     uartPort_t port;
     ioTag_t rx;
+    uint8_t rx_af;
     ioTag_t tx;
+    uint8_t tx_af;
     volatile uint8_t rxBuffer[UART_RX_BUFFER_SIZE];
     volatile uint8_t txBuffer[UART_TX_BUFFER_SIZE];
     uint32_t rcc_ahb1;
     rccPeriphTag_t rcc_apb2;
     rccPeriphTag_t rcc_apb1;
-    uint8_t af;
     uint8_t irq;
     uint32_t irqPriority;
     bool pinSwap;
 } uartDevice_t;
 
 #ifdef USE_UART1
-static uartDevice_t uart1 =
-{
+static uartDevice_t uart1 = {
     .dev = USART1,
     .rx = IO_TAG(UART1_RX_PIN),
     .tx = IO_TAG(UART1_TX_PIN),
-#ifdef UART1_AF
-    .af = CONCAT(GPIO_MUX_, UART1_AF),
+#if defined(UART1_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART1_RX_AF),
+#elif defined(UART1_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART1_AF),
 #else
-    .af = GPIO_MUX_7,
+    .rx_af = GPIO_MUX_7,
+#endif
+#if defined(UART1_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART1_TX_AF),
+#elif defined(UART1_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART1_AF),
+#else
+    .tx_af = GPIO_MUX_7,
 #endif
 #ifdef UART1_AHB1_PERIPHERALS
     .rcc_ahb1 = UART1_AHB1_PERIPHERALS,
@@ -79,10 +88,19 @@ static uartDevice_t uart2 =
     .dev = USART2,
     .rx = IO_TAG(UART2_RX_PIN),
     .tx = IO_TAG(UART2_TX_PIN),
-#ifdef UART2_AF
-    .af = CONCAT(GPIO_MUX_, UART2_AF),
+#if defined(UART2_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART2_RX_AF),
+#elif defined(UART2_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART2_AF),
 #else
-    .af = GPIO_MUX_7,
+    .rx_af = GPIO_MUX_7,
+#endif
+#if defined(UART2_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART2_TX_AF),
+#elif defined(UART2_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART2_AF),
+#else
+    .tx_af = GPIO_MUX_7,
 #endif
 #ifdef UART2_AHB1_PERIPHERALS
     .rcc_ahb1 = UART2_AHB1_PERIPHERALS,
@@ -104,10 +122,19 @@ static uartDevice_t uart3 =
     .dev = USART3,
     .rx = IO_TAG(UART3_RX_PIN),
     .tx = IO_TAG(UART3_TX_PIN),
-#ifdef UART3_AF
-    .af = CONCAT(GPIO_MUX_, UART3_AF),
+#if defined(UART3_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART3_RX_AF),
+#elif defined(UART3_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART3_AF),
 #else
-    .af = GPIO_MUX_7,
+    .rx_af = GPIO_MUX_7,
+#endif
+#if defined(UART3_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART3_TX_AF),
+#elif defined(UART3_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART3_AF),
+#else
+    .tx_af = GPIO_MUX_7,
 #endif
 #ifdef UART3_AHB1_PERIPHERALS
     .rcc_ahb1 = UART3_AHB1_PERIPHERALS,
@@ -129,10 +156,19 @@ static uartDevice_t uart4 =
     .dev = UART4,
     .rx = IO_TAG(UART4_RX_PIN),
     .tx = IO_TAG(UART4_TX_PIN),
-#ifdef UART4_AF
-    .af = CONCAT(GPIO_MUX_, UART4_AF),
+#if defined(UART4_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART4_RX_AF),
+#elif defined(UART4_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART4_AF),
 #else
-    .af = GPIO_MUX_8,
+    .rx_af = GPIO_MUX_8,
+#endif
+#if defined(UART4_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART4_TX_AF),
+#elif defined(UART4_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART4_AF),
+#else
+    .tx_af = GPIO_MUX_8,
 #endif
 #ifdef UART4_AHB1_PERIPHERALS
     .rcc_ahb1 = UART4_AHB1_PERIPHERALS,
@@ -154,10 +190,19 @@ static uartDevice_t uart5 =
     .dev = UART5,
     .rx = IO_TAG(UART5_RX_PIN),
     .tx = IO_TAG(UART5_TX_PIN),
-#ifdef UART5_AF
-    .af = CONCAT(GPIO_MUX_, UART5_AF),
+#if defined(UART5_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART5_RX_AF),
+#elif defined(UART5_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART5_AF),
 #else
-    .af = GPIO_MUX_8,
+    .rx_af = GPIO_MUX_8,
+#endif
+#if defined(UART5_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART5_TX_AF),
+#elif defined(UART5_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART5_AF),
+#else
+    .tx_af = GPIO_MUX_8,
 #endif
 #ifdef UART5_AHB1_PERIPHERALS
     .rcc_ahb1 = UART5_AHB1_PERIPHERALS,
@@ -179,10 +224,19 @@ static uartDevice_t uart6 =
     .dev = USART6,
     .rx = IO_TAG(UART6_RX_PIN),
     .tx = IO_TAG(UART6_TX_PIN),
-#ifdef UART6_AF
-    .af = CONCAT(GPIO_MUX_, UART6_AF),
+#if defined(UART6_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART6_RX_AF),
+#elif defined(UART6_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART6_AF),
 #else
-    .af = GPIO_MUX_8,
+    .rx_af = GPIO_MUX_8,
+#endif
+#if defined(UART6_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART6_TX_AF),
+#elif defined(UART6_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART6_AF),
+#else
+    .tx_af = GPIO_MUX_8,
 #endif
 #ifdef UART6_AHB1_PERIPHERALS
     .rcc_ahb1 = UART6_AHB1_PERIPHERALS,
@@ -204,10 +258,19 @@ static uartDevice_t uart7 =
     .dev = UART7,
     .rx = IO_TAG(UART7_RX_PIN),
     .tx = IO_TAG(UART7_TX_PIN),
-#ifdef UART7_AF
-    .af = CONCAT(GPIO_MUX_, UART7_AF),
+#if defined(UART7_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART7_RX_AF),
+#elif defined(UART7_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART7_AF),
 #else
-    .af = GPIO_MUX_8,
+    .rx_af = GPIO_MUX_8,
+#endif
+#if defined(UART7_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART7_TX_AF),
+#elif defined(UART7_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART7_AF),
+#else
+    .tx_af = GPIO_MUX_8,
 #endif
     .rcc_apb1 = RCC_APB1(UART7),
     .irq = UART7_IRQn,
@@ -226,10 +289,19 @@ static uartDevice_t uart8 =
     .dev = UART8,
     .rx = IO_TAG(UART8_RX_PIN),
     .tx = IO_TAG(UART8_TX_PIN),
-#ifdef UART8_AF
-    .af = CONCAT(GPIO_MUX_, UART8_AF),
+#if defined(UART8_RX_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART8_RX_AF),
+#elif defined(UART8_AF)
+    .rx_af = CONCAT(GPIO_MUX_, UART8_AF),
 #else
-    .af = GPIO_MUX_8,
+    .rx_af = GPIO_MUX_8,
+#endif
+#if defined(UART8_TX_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART8_TX_AF),
+#elif defined(UART8_AF)
+    .tx_af = CONCAT(GPIO_MUX_, UART8_AF),
+#else
+    .tx_af = GPIO_MUX_8,
 #endif
     .rcc_apb1 = RCC_APB1(UART8),
     .irq = UART8_IRQn,
@@ -389,22 +461,22 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     if (options & SERIAL_BIDIR) {
         IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TXRX, RESOURCE_INDEX(device));
         if (options & SERIAL_BIDIR_PP) {
-            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
+            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->tx_af);
         } else {
             IOConfigGPIOAF(tx,
                     (options & SERIAL_BIDIR_NOPULL) ? IOCFG_AF_OD : IOCFG_AF_OD_UP,
-                    uart->af);
+                    uart->tx_af);
         }
     }
     else {
         if (mode & MODE_TX) {
             IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->af);
+            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->rx_af);
         }
 
         if (mode & MODE_RX) {
             IOInit(rx, OWNER_SERIAL, RESOURCE_UART_RX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(rx, IOCFG_AF_PP, uart->af);
+            IOConfigGPIOAF(rx, IOCFG_AF_PP, uart->rx_af);
         }
     } 
 
