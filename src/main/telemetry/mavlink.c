@@ -1126,12 +1126,56 @@ static bool handleIncoming_PARAM_REQUEST_LIST(void) {
     return true;
 }
 
+static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
+    switch(telemetryConfig()->mavlink.radio_type) {
+        case MAVLINK_RADIO_SIK:
+            // rssi scaling info from: https://ardupilot.org/rover/docs/common-3dr-radio-advanced-configuration-and-technical-information.html
+            rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
+            rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
+            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            break;
+        case MAVLINK_RADIO_ELRS:
+            rxLinkStatistics.uplinkRSSI = -msg->remrssi;
+            rxLinkStatistics.uplinkSNR = msg->noise;
+            rxLinkStatistics.uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
+            break;
+        case MAVLINK_RADIO_GENERIC:
+        default:
+            rxLinkStatistics.uplinkRSSI = msg->rssi;
+            rxLinkStatistics.uplinkSNR = msg->noise;
+            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            break;
+    }
+}
+
 static bool handleIncoming_RADIO_STATUS(void) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
     txbuff_valid = true;
     txbuff_free = msg.txbuf;
+       
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
+        mavlinkParseRxStats(&msg);
+    }
+
     return true;
+}
+
+static bool handleIncoming_HEARTBEAT(void) {
+    mavlink_heartbeat_t msg;
+    mavlink_msg_heartbeat_decode(&mavRecvMsg, &msg);
+
+    switch (msg.type) {
+#ifdef USE_ADSB
+        case MAV_TYPE_ADSB:
+            return adsbHeartbeat();
+#endif
+        default:
+            break;
+    }
+    
+    return false;
 }
 
 #ifdef USE_ADSB
@@ -1188,7 +1232,7 @@ static bool processMAVLinkIncomingTelemetry(void)
         if (result == MAVLINK_FRAMING_OK) {
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
-                    break;
+                   return handleIncoming_HEARTBEAT();
                 case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
                     return handleIncoming_PARAM_REQUEST_LIST();
                 case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
@@ -1211,7 +1255,7 @@ static bool processMAVLinkIncomingTelemetry(void)
 #endif
                 case MAVLINK_MSG_ID_RADIO_STATUS:
                     handleIncoming_RADIO_STATUS();
-                    // Don't set that we handled a message, otherwise radio status packets will block telemetry messages
+                    // Don't set that we handled a message, otherwise radio status packets will block telemetry messages.
                     return false;
                 default:
                     return false;
@@ -1244,7 +1288,7 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
     // Determine whether to send telemetry back based on flow control / pacing
     if (txbuff_valid) {
         // Use flow control if available
-        shouldSendTelemetry = txbuff_free >= 33;
+        shouldSendTelemetry = txbuff_free >= telemetryConfig()->mavlink.min_txbuff;
     } else {
         // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
         bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);

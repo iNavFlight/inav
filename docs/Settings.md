@@ -1162,6 +1162,16 @@ S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer da
 
 ---
 
+### frsky_use_legacy_gps_mode_sensor_ids
+
+S.Port telemetry: If `ON`, send the legacy telemetry IDs for modes (Tmp1) and GNSS (Tmp2). These are old IDs, deprecated, and will be removed in INAV 10.0. Tools and scripts using these IDs should be updated to use the new IDs of **470** for Modes and **480** for GNSS. Default: 'OFF'
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### fw_autotune_max_rate_deflection
 
 The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`.
@@ -1992,6 +2002,16 @@ Uncertainty value for barometric sensor [cm]
 
 ---
 
+### inav_default_alt_sensor
+
+Sets the default altitude sensor to use. Settings GPS and BARO always use both sensors unless there is an altitude error between the sensors that exceeds a set limit. In this case only the selected sensor will be used while the altitude error limit is exceeded. GPS error limit = 2 * inav_max_eph_epv. BARO error limit = 4 * inav_baro_epv. Settings GPS_ONLY and BARO_ONLY will use only the selected sensor even if the other sensor is working. The other sensor will only be used as a backup if the selected sensor is no longer available to use.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GPS |  |  |
+
+---
+
 ### inav_gravity_cal_tolerance
 
 Unarmed gravity calibration tolerance level. Won't finish the calibration until estimated gravity error falls below this value.
@@ -2109,6 +2129,16 @@ Weight of barometer measurements in estimated altitude and climb rate. Setting i
 | Default | Min | Max |
 | --- | --- | --- |
 | 0.35 | 0 | 10 |
+
+---
+
+### inav_w_z_baro_v
+
+Weight of barometer climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0.1 | 0 | 10 |
 
 ---
 
@@ -2542,6 +2572,16 @@ Rate of the extra3 message for MAVLink telemetry
 
 ---
 
+### mavlink_min_txbuffer
+
+Minimum percent of TX buffer space free, before attempting to transmit telemetry. Requuires RADIO_STATUS messages to be processed. 0 = always transmits.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 33 | 0 | 100 |
+
+---
+
 ### mavlink_pos_rate
 
 Rate of the position message for MAVLink telemetry
@@ -2549,6 +2589,16 @@ Rate of the position message for MAVLink telemetry
 | Default | Min | Max |
 | --- | --- | --- |
 | 2 | 0 | 255 |
+
+---
+
+### mavlink_radio_type
+
+Mavlink radio type. Affects how RSSI and LQ are reported on OSD.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
 
 ---
 
@@ -3524,7 +3574,7 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ### nav_fw_wp_tracking_accuracy
 
-Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Settings 1 to 10 adjust the course tracking response. Higher values dampen the response reducing possible overshoot. A value of 5 is a good starting point. Set to 0 to disable.
+Waypoint tracking accuracy forces the craft to quickly head toward and track along the waypoint course line as closely as possible. Setting adjusts tracking deadband distance fom waypoint courseline [m]. Tracking isn't actively controlled within the deadband providing smoother flight adjustments but less accurate tracking. A 2m deadband should work OK in most cases. Setting to 0 disables waypoint tracking accuracy.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3654,7 +3704,7 @@ Maximum speed allowed in fully autonomous modes (RTH, WP) [cm/s] [Multirotor onl
 
 ### nav_max_terrain_follow_alt
 
-Max allowed above the ground altitude for terrain following mode
+Max allowed above the ground altitude for terrain following mode [cm]
 
 | Default | Min | Max |
 | --- | --- | --- |
