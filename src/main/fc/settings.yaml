@@ -1290,7 +1290,7 @@ groups:
         max: 498
       - name: servo_lpf_hz
         description: "Selects the servo PWM output cutoff frequency. Value is in [Hz]"
-        default_value: 20
+        default_value: 150
         field: servo_lowpass_freq
         min: 0
         max: 400
