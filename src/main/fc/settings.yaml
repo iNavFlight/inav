@@ -202,7 +202,7 @@ tables:
     values: ["GENERIC", "ELRS", "SIK"]
     enum: mavlinkRadio_e
   - name: default_altitude_source
-    values: ["GPS", "BARO", "GPS ONLY", "BARO ONLY"]
+    values: ["GPS", "BARO", "GPS_ONLY", "BARO_ONLY"]
     enum: navDefaultAltitudeSensor_e
 
 constants:
