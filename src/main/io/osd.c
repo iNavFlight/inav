@@ -225,7 +225,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 12);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 1);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 2);
 
 void osdStartedSaveProcess(void) {
     savingSettings = true;
@@ -1671,6 +1671,31 @@ static bool osdDrawSingleElement(uint8_t item)
         customElementDrawElement(buff, 2);
         break;
     }
+    case OSD_CUSTOM_ELEMENT_4:
+    {
+        customElementDrawElement(buff, 3);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_5:
+    {
+        customElementDrawElement(buff, 4);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_6:
+    {
+        customElementDrawElement(buff, 5);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_7:
+    {
+        customElementDrawElement(buff, 6);
+        break;
+    }
+    case OSD_CUSTOM_ELEMENT_8:
+    {
+        customElementDrawElement(buff, 7);
+        break;
+    }
     case OSD_RSSI_VALUE:
         {
             uint16_t osdRssi = osdConvertRSSI();
@@ -2872,7 +2897,6 @@ static bool osdDrawSingleElement(uint8_t item)
             break;
         }
 #endif
-
     case OSD_SWITCH_INDICATOR_0:
         osdDisplaySwitchIndicator(osdConfig()->osd_switch_indicator0_name, rxGetChannelValue(osdConfig()->osd_switch_indicator0_channel - 1), buff);
         break;
@@ -4998,7 +5022,7 @@ uint8_t drawStat_ESCTemperature(uint8_t col, uint8_t row, uint8_t statValX)
 uint8_t drawStat_GForce(uint8_t col, uint8_t row, uint8_t statValX)
 {
     char buff[12];
-    char outBuff[12];
+    char outBuff[20];
 
     const float max_gforce = accGetMeasuredMaxG();
     const acc_extremes_t *acc_extremes = accGetMeasuredExtremes();

@@ -24,6 +24,8 @@ INAV Programming Framework consists of:
 IPF can be edited using INAV Configurator user interface, or via CLI. To use COnfigurator, click the tab labeled
 "Programming". The various options shown in Configurator are described below.
 
+**Note:** IPF uses integer math. If your programming line returns a decimal, it will be truncated to an integer.  So if your math is `1` / `3` = , IPF will truncate the decimal and return `0`.
+
 ## Logic Conditions
 
 ### CLI
@@ -61,9 +63,8 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 14            | Basic: Add                    | Add `Operand A` to `Operand B` and returns the result |
 | 15            | Basic: Subtract               | Substract `Operand B` from `Operand A` and returns the result |
 | 16            | Basic: Multiply               | Multiply `Operand A` by `Operand B` and returns the result |
-| 17            | Basic: Divide                 | Divide `Operand A` by `Operand B` and returns the result |
-| 18            | Set GVAR                      | Store value from `Operand B` into the Global Variable addressed by
-`Operand A`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
+| 17            | Basic: Divide                 | Divide `Operand A` by `Operand B` and returns the result. NOTE: If `Operand B` = `0`, the `Divide` operation will simply return `Operand A`|
+| 18            | Set GVAR                      | Store value from `Operand B` into the Global Variable addressed by `Operand A`. Bear in mind, that operand `Global Variable` means: Value stored in Global Variable of an index! To store in GVAR 1 use `Value 1` not `Global Variable 1` |
 | 19            | Increase GVAR                 | Increase the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
 | 20            | Decrease GVAR                 | Decrease the GVAR indexed by `Operand A` (use `Value 1` for Global Variable 1) with value from `Operand B`  |
 | 21            | Set IO Port                   | Set I2C IO Expander pin `Operand A` to value of `Operand B`. `Operand A` accepts values `0-7` and `Operand B` accepts `0` and `1` |
@@ -233,7 +234,14 @@ All flags are reseted on ARM and DISARM event.
 
 `gvar <index> <default value> <min> <max>`
 
+**Note:**  Global Variables (GVARs) are limited to integers between negative `-32768` and positive `32767`.
+
 ## Programming PID
+
+IPF makes a set of general user PIDFF controllers avaliable for use in your program.  These PIDFF controllers are not tied to any roll/pitch/yaw profiles or other controls.
+The output of these controllers can be used in an IPF program by using the `Programming PID` operand.
+The `<setpoint value>` of the controller is the target value for the controller to hit.  The `<measurement value>` is the measurement of the current value.  For instance, `<setpoint value>` could be the speed you want to go, and `<measurement value>` is the current speed.
+P, I, D, and FF values will need to be manually adjusted to determine the appropriate value for the program and controller.
 
 `pid <index> <enabled> <setpoint type> <setpoint value> <measurement type> <measurement value> <P gain> <I gain> <D gain> <FF gain>`
 
