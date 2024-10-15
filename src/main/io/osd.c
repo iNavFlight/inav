@@ -4789,7 +4789,7 @@ uint8_t drawStat_UsedEnergy(uint8_t col, uint8_t row, uint8_t statValX)
         strcat(buff, "/");
         osdFormatCentiNumber(preBuff, getMWhDrawn() / 10, 0, 2, 0, 3, false);
         strcat(buff, osdFormatTrimWhiteSpace(preBuff));
-        tfp_sprintf(buff + strlen(buff), "%s%c", buff, SYM_WH);
+        tfp_sprintf(buff + strlen(buff), "%c", SYM_WH);
     }
     displayWrite(osdDisplayPort, statValX, row++, buff);
 
@@ -4851,7 +4851,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         osdFormatCentiNumber(buff, (int32_t)((getMWhDrawn() - stats.flightStartMWh) * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
                         strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                         strcat(outBuff, "/");
-                        osdFormatCentiNumber(buff + strlen(buff), (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
+                        osdFormatCentiNumber(buff, (int32_t)(getMWhDrawn() * 10.0f * METERS_PER_MILE / totalDistance), 0, 2, 0, digits, false);
                         strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                     } else {
                         strcat(outBuff, "---/---");
