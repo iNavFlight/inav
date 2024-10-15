@@ -5854,11 +5854,11 @@ Servo midpoint
 
 ### servo_lpf_hz
 
-Selects the servo PWM output cutoff frequency. Value is in [Hz]
+Selects the servo PWM output cutoff frequency.  This default setting may be too high for 50hz analog servos and create jitter, if that is identified, try turning the setting down to as low as 20hz at the cost of some additional control latency.  Value is in [Hz]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 400 |
+| 150 | 0 | 400 |
 
 ---
 
