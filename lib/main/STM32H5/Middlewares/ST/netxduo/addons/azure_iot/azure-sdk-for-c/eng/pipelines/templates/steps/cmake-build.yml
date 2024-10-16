@@ -1,0 +1,21 @@
+parameters:
+  BuildArgs: ''
+  BuildType: Debug
+
+steps:
+  - script: mkdir -p build
+    displayName: create working directory
+
+  - script: cmake --version
+    workingDirectory: build
+    displayName: cmake --version
+
+  - script: cmake ${{ parameters.BuildArgs }} .. -DCMAKE_BUILD_TYPE=${{ parameters.BuildType }}
+    workingDirectory: build
+    displayName: cmake generate
+    env:
+      VCPKG_BINARY_SOURCES: $(VCPKG_BINARY_SOURCES_SECRET)
+
+  - script: cmake --build . --config ${{ parameters.BuildType }}
+    workingDirectory: build
+    displayName: cmake build

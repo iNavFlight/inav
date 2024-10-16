@@ -1,0 +1,350 @@
+# Azure IoT Hub Client Properties
+
+**nx_azure_iot_hub_client_reported_properties_component_begin**
+***
+<div style="text-align: right">Append the necessary characters to a reported property JSON payload belonging to a subcomponent.</div>
+
+**Prototype**
+```c
+UINT nx_azure_iot_hub_client_reported_properties_component_begin(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
+                                                                 NX_AZURE_IOT_JSON_WRITER *writer_ptr,
+                                                                 const UCHAR *component_name_ptr,
+                                                                 USHORT component_name_length);
+```
+**Description**
+
+<p>This routine appends the necessary characters to a reported properties JSON payload belonging to a subcomponent. The payload will be of the form: </p>
+
+```c   
+"reported": {
+    "<component_name>": {
+        "__t": "c",
+        "temperature": 23
+    }
+}
+```
+
+**Note** This API should be used in conjunction with
+```c
+nx_azure_iot_hub_client_reported_properties_component_end()
+```
+
+**Parameters**
+
+| Name | Description |
+| - |:-|
+| hub_client_ptr [in]    | A pointer to a `NX_AZURE_IOT_HUB_CLIENT`. |
+| writer_ptr [in]    | A pointer to a #NX_AZURE_IOT_JSON_WRITER. |
+| component_name_ptr [in]    | A pointer to a component name. |
+| component_name_length [in]    | Length of `component_name_ptr`. |
+
+
+**Return Values**
+* NX_AZURE_IOT_SUCCESS Successful if JSON payload was prefixed successfully.
+
+**Allowed From**
+
+Threads
+
+**Example**
+
+**See Also**
+
+
+<div style="page-break-after: always;"></div>
+
+**nx_azure_iot_hub_client_reported_properties_component_end**
+***
+<div style="text-align: right">Append the necessary characters to end a reported property JSON payload belonging to a subcomponent.</div>
+
+**Prototype**
+```c
+UINT nx_azure_iot_hub_client_reported_properties_component_end(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
+                                                               NX_AZURE_IOT_JSON_WRITER *writer_ptr);
+```
+**Description**
+
+<p>This routine appends the necessary characters to end a reported properties JSON payload</p>
+
+**Note** This API should be used in conjunction with
+
+```c
+nx_azure_iot_hub_client_reported_properties_component_begin()
+```
+
+
+**Parameters**
+
+| Name | Description |
+| - |:-|
+| hub_client_ptr [in]    | A pointer to a `NX_AZURE_IOT_HUB_CLIENT`. |
+| writer_ptr [in]    | A pointer to a #NX_AZURE_IOT_JSON_WRITER. |
+
+
+**Return Values**
+* NX_AZURE_IOT_SUCCESS The JSON payload was suffixed successfully.
+
+**Allowed From**
+
+Threads
+
+**Example**
+
+**See Also**
+
+
+<div style="page-break-after: always;"></div>
+
+**nx_azure_iot_hub_client_reported_properties_status_begin**
+***
+<div style="text-align: right"> Begin a property response payload with confirmation status.</div>
+
+**Prototype**
+```c
+UINT nx_azure_iot_hub_client_reported_properties_status_begin(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
+                                                              NX_AZURE_IOT_JSON_WRITER *writer_ptr,
+                                                              const UCHAR *property_name_ptr,  
+                                                              UINT property_name_length,
+                                                              UINT status_code, 
+                                                              ULONG version,
+                                                              const UCHAR *description_ptr, 
+                                                              UINT description_length);
+```
+**Description**
+
+<p>This API should be used in response to an incoming writable property. More details can be found
+here:
+
+https://docs.microsoft.com/en-us/azure/iot-pnp/concepts-convention#writable-properties
+
+The payload will be of the form:
+<p>
+**Without component**
+
+```c
+//{
+//  "<property_name>":{
+//    "ac": <status_code>,
+//    "av": <version>,
+//    "ad": "<description>",
+//    "value": <user_value>
+//  }
+//}
+```
+
+<p>To send a status for a property belonging to a component, first call the
+nx_azure_iot_hub_client_reported_property_status_begin() API to prefix the payload with the
+necessary identification. The API call flow would look like the following with the listed JSON
+payload being generated.<p>
+
+**With component**
+
+```c
+nx_azure_iot_hub_client_reported_properties_component_begin()
+nx_azure_iot_hub_client_reported_properties_status_begin()
+// Append user value here (<user_value>)
+nx_azure_iot_hub_client_reported_properties_status_end()
+nx_azure_iot_hub_client_reported_properties_component_end()
+
+//{
+//  "<component_name>": {
+//    "__t": "c",
+//    "<property_name>": {
+//      "ac": <status_code>,
+//      "av": <version>,
+//      "ad": "<description>",
+//      "value": <user_value>
+//    }
+//  }
+//}
+```
+
+**Note** This API should be used in conjunction with
+```c
+nx_azure_iot_hub_client_reported_properties_status_end()
+```
+
+**Parameters**
+
+| Name | Description |
+| - |:-|
+| hub_client_ptr [in]    | A pointer to a `NX_AZURE_IOT_HUB_CLIENT`. |
+| writer_ptr [in]    | A pointer to a #NX_AZURE_IOT_JSON_WRITER. |
+| property_name_ptr [in]    | A pointer to property name. |
+| property_name_length [in]    |  Length of `property_name_ptr`. |
+| status_code [in]    | The HTTP-like status code to respond with. |
+| version [in]    | The version of the property the application is acknowledging. |
+| description_ptr [in]    | An optional pointer to description detailing the context or any details about the acknowledgement. This can be empty string. |
+| description_length [in]    | Length of description_ptr. |
+
+
+**Return Values**
+* NX_AZURE_IOT_SUCCESS Successful appended JSON prefix.
+
+**Allowed From**
+
+Threads
+
+**Example**
+
+**See Also**
+
+
+<div style="page-break-after: always;"></div>
+
+**nx_azure_iot_hub_client_reported_properties_status_end**
+***
+<div style="text-align: right">End a property response payload with confirmation status.</div>
+
+**Prototype**
+```c
+UINT nx_azure_iot_hub_client_reported_properties_status_end(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
+                                                          NX_AZURE_IOT_JSON_WRITER *writer_ptr);
+```
+**Description**
+
+<p>This routine ends the property response payload.</p>
+
+**Note** This API should be used in conjunction with
+```c
+nx_azure_iot_hub_client_reported_properties_status_begin()
+```
+
+**Parameters**
+
+| Name | Description |
+| - |:-|
+| hub_client_ptr [in]    | A pointer to a `NX_AZURE_IOT_HUB_CLIENT`. |
+| writer_ptr [in]    | A pointer to a #NX_AZURE_IOT_JSON_WRITER. |
+
+
+**Return Values**
+* NX_AZURE_IOT_SUCCESS Successful appended JSON suffix.
+
+**Allowed From**
+
+Threads
+
+**Example**
+
+**See Also**
+
+
+<div style="page-break-after: always;"></div>
+
+**nx_azure_iot_hub_client_properties_version_get**
+***
+<div style="text-align: right">Get the property version</div>
+
+**Prototype**
+```c
+UINT nx_azure_iot_hub_client_properties_version_get(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
+                                                    NX_AZURE_IOT_JSON_READER *reader_ptr,
+                                                    UINT message_type, ULONG *version_ptr);
+```
+**Description**
+
+<p>This routine gets the property version.</p>
+
+**Parameters**
+
+| Name | Description |
+| - |:-|
+| hub_client_ptr [in]    | A pointer to a `NX_AZURE_IOT_HUB_CLIENT`. |
+| reader_ptr [in]    | A pointer to a #NX_AZURE_IOT_JSON_READER containing properties document. |
+| message_type [in]    | Type of message repsonse, only valid value are NX_AZURE_IOT_HUB_PROPERTIES or NX_AZURE_IOT_HUB_WRITABLE_PROPERTIES. |
+| version_ptr [out]    | The numeric version of the properties in JSON payload. |
+
+
+**Return Values**
+* NX_AZURE_IOT_SUCCESS Successful if got the property version.
+
+**Allowed From**
+
+Threads
+
+**Example**
+
+**See Also**
+
+<div style="page-break-after: always;"></div>
+
+**nx_azure_iot_hub_client_properties_component_property_next_get**
+***
+<div style="text-align: right">Return the next desired or reported property in the property document passed.</div>
+
+**Prototype**
+```c
+UINT nx_azure_iot_hub_client_properties_component_property_next_get(NX_AZURE_IOT_HUB_CLIENT *hub_client_ptr,
+                                                                    NX_AZURE_IOT_JSON_READER *reader_ptr,
+                                                                    UINT message_type, UINT property_type,
+                                                                    const UCHAR **component_name_pptr,
+                                                                    USHORT *component_name_length_ptr);
+```
+**Description**
+
+<p>This routine gets the next writable or reported property in the properties document passed.</p>
+
+**Note**  that between calls, the UCHAR* pointed to by \p component_name_pptr shall not be modified, only checked and compared. Internally, the pointer is only changed if the component name changes in the JSON document and is not necessarily set every invocation of the function.
+
+On success, the `reader_ptr` will be set on a valid property name. After checking the property name, the reader can be advanced to the property value by calling nx_azure_iot_json_reader_next_token(). Note that on the subsequent call to this API, it is expected that the json reader will be placed AFTER the read property name and value. That means that after reading the property value (including single values or complex objects), the user must call nx_azure_iot_json_reader_next_token().
+
+Below is a code snippet which you can use as a starting point:
+```c
+ while ((status = nx_azure_iot_hub_client_properties_component_property_next_get(&iothub_client,
+                                                                                 &json_reader,
+                                                                                 message_type,             
+                                                                                 NX_AZURE_IOT_HUB_CLIENT_PROPERTY_WRITABLE,
+                                                                                 &component_name_ptr, &component_length)) == NX_AZURE_IOT_SUCCESS)
+ {
+ 
+     /* Check if property is of interest (substitute user_property for your own property name)  */
+     if (nx_azure_iot_json_reader_token_is_text_equal(&json_reader, user_property, user_property_length))
+     {
+         nx_azure_iot_json_reader_next_token(&json_reader);
+
+         /* Get the property value here
+            Example: nx_azure_iot_json_reader_token_int32_get(&json_reader, &user_int);  */
+ 
+         /* Skip to next property value  */
+         nx_azure_iot_json_reader_next_token(&json_reader);
+    }
+    else
+    {
+
+        /* The JSON reader must be advanced regardless of whether the property
+           is of interest or not.  */
+        nx_azure_iot_json_reader_next_token(&json_reader);
+ 
+        /* Skip children in case the property value is an object.  */
+        nx_azure_iot_json_reader_skip_children(&json_reader);
+        nx_azure_iot_json_reader_next_token(&json_reader);
+    }
+}
+```
+
+**Parameters**
+
+| Name | Description |
+| - |:-|
+| hub_client_ptr [in]    | A pointer to a `NX_AZURE_IOT_HUB_CLIENT`. |
+| reader_ptr [in]    | A pointer to a #NX_AZURE_IOT_JSON_READER containing properties document. |
+| message_type [in]    | Type of message repsonse, only valid value are NX_AZURE_IOT_HUB_PROPERTIES or NX_AZURE_IOT_HUB_WRITABLE_PROPERTIES. |
+| property_type [in]    | Type of property, only valid value are NX_AZURE_IOT_HUB_CLIENT_PROPERTY_REPORTED_FROM_DEVICE or NX_AZURE_IOT_HUB_CLIENT_PROPERTY_WRITABLE. |
+| component_name_pptr [out]    | A pointer to component name for the property returned using reader_ptr. |
+| component_name_length_ptr [out]    | Length of the component name. |
+
+
+**Return Values**
+* NX_AZURE_IOT_SUCCESS Successful if next property is found.
+
+**Allowed From**
+
+Threads
+
+**Example**
+
+**See Also**
+
+<div style="page-break-after: always;"></div>
+

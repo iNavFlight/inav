@@ -1,6 +1,7 @@
 include(cortex-m7)
 include(stm32f7-usb)
 
+set(STM32F7_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/CMSIS/Device/ST/STM32F7xx")
 set(STM32F7_HAL_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/STM32F7xx_HAL_Driver")
 
 set(STM32F7_HAL_SRC
@@ -41,7 +42,6 @@ set(STM32F7_HAL_SRC
 )
 list(TRANSFORM STM32F7_HAL_SRC PREPEND "${STM32F7_HAL_DIR}/Src/")
 
-set(STM32F7_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/CMSIS/Device/ST/STM32F7xx")
 
 set(STM32F7_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
