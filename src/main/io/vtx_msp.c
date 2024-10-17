@@ -78,14 +78,14 @@ static bool prevLowPowerDisarmedState = false;
 static const vtxVTable_t mspVTable; // forward
 static vtxDevice_t vtxMsp = {
     .vTable = &mspVTable,
-    .capability.bandCount = VTX_MSP_TABLE_MAX_BANDS,
-    .capability.channelCount = VTX_MSP_TABLE_MAX_CHANNELS,
-    .capability.powerCount = VTX_MSP_TABLE_MAX_POWER_LEVELS,
+    .capability.bandCount = VTX_TABLE_MAX_BANDS,
+    .capability.channelCount = VTX_TABLE_MAX_CHANNELS,
+    .capability.powerCount = VTX_TABLE_MAX_POWER_LEVELS,
     .capability.bandNames = (char **)vtx58BandNames,
     .capability.channelNames = (char **)vtx58ChannelNames,
     .capability.powerNames = (char**)saPowerNames
-
 };
+
 
 STATIC_UNIT_TESTED mspVtxStatus_e mspVtxStatus = MSP_VTX_STATUS_OFFLINE;
 static uint8_t mspVtxPortIdentifier = 255;
@@ -328,7 +328,7 @@ static void vtxMspSetPowerByIndex(vtxDevice_t *vtxDevice, uint8_t index)
     LOG_DEBUG(VTX, "msp SetPowerByIndex\r\n");
     UNUSED(vtxDevice);
 
-    if (index > 0 && (index < VTX_MSP_TABLE_MAX_POWER_LEVELS))
+    if (index > 0 && (index < VTX_TABLE_MAX_POWER_LEVELS))
     {
         if (index != mspConfPowerIndex)
         {
@@ -386,7 +386,7 @@ static bool vtxMspGetPowerIndex(const vtxDevice_t *vtxDevice, uint8_t *pIndex)
 
     uint8_t power = isLowPowerDisarmed() ? 1 : vtxSettingsConfig()->power;
     // Special case, power not set
-    if (power > VTX_MSP_TABLE_MAX_POWER_LEVELS) {
+    if (power > VTX_TABLE_MAX_POWER_LEVELS) {
         *pIndex = 0;
         //LOG_DEBUG(VTX, "msp GetPowerIndex: %u\r\n", *pIndex);
         return true;
