@@ -369,6 +369,10 @@ static int logicConditionCompute(
             ioPortExpanderSet((uint8_t)operandA, (uint8_t)operandB);
             return operandB;
             break;
+
+        case LOGIC_CONDITION_PORT_READ:
+            return ioPortExpanderRead((uint8_t)operandA);
+            break;
 #endif
 
         case LOGIC_CONDITION_SIN:
