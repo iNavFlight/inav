@@ -24,7 +24,6 @@
 
 /*** Indicators ***/
 #define LED0                    PC13
-// #define LED1                    PC14
 #define BEEPER                  PB8
 #define BEEPER_INVERTED
 
