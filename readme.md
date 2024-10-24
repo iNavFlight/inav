@@ -1,6 +1,6 @@
 # INAV 8.0 feature freeze
 
-It is that time of the year again, and the time for a new inav realease is near!
+It is that time of the year again, and the time for a new INAV release is near!
 
 The current plan is to have a feature freeze on **15th of November 2024**.
 
