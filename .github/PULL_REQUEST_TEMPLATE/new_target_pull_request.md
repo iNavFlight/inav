@@ -2,7 +2,7 @@ This pull requests adds support for ``$TARGET_NAME``
 
  * [ ] Target complies with ``docs/policies/NEW_HARDWARE_POLICY.md``
 
-The following items have been checked and confimed working by an INAV developer on actual hardware: (feel free to remove non-relevant items)
+The following items have been checked and confirmed working by an INAV developer on actual hardware: (feel free to remove non-relevant items)
 
  * [ ] Samples received
  * [ ] Flash firmware
