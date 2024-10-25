@@ -277,6 +277,9 @@
 #define MSP_SET_SENSOR_ALIGNMENT 220    //in message          set the orientation of the acc,gyro,mag
 #define MSP_SET_LED_STRIP_MODECOLOR 221 //in  message         Set LED strip mode_color settings
 
+#define MSP_SET_VTXTABLE_BAND    227    //in message          set vtxTable band/channel data (one band at a time)
+#define MSP_SET_VTXTABLE_POWERLEVEL 228 //in message          set vtxTable powerLevel data (one powerLevel at a time)
+
 // #define MSP_BIND                 240    //in message          no param
 // #define MSP_ALARMS               242
 
