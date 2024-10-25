@@ -4582,6 +4582,26 @@ Value above which the OSD current consumption element will start blinking. Measu
 
 ---
 
+### osd_decimals_altitude
+
+Number of decimals for the altitude displayed in the OSD [3-5].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 3 | 5 |
+
+---
+
+### osd_decimals_distance
+
+Number of decimals for distance displayed in the OSD [3-5]. This includes distance from home, total distance, and distance remaining.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 3 | 3 | 5 |
+
+---
+
 ### osd_dist_alarm
 
 Value above which to make the OSD distance from home indicator blink (meters)
@@ -4948,7 +4968,7 @@ Number of digits used for mAh precision. Currently used by mAh Used and Battery 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | 4 | 6 |
+| 4 | 3 | 6 |
 
 ---
 
