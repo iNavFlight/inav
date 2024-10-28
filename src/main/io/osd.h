@@ -394,6 +394,8 @@ typedef struct osdConfig_s {
 
     // Preferences
     uint8_t         main_voltage_decimals;
+    uint8_t         decimals_altitude;
+    uint8_t         decimals_distance;
     uint8_t         ahi_reverse_roll;
     uint8_t         ahi_max_pitch;
     uint8_t         crosshairs_style;                   // from osd_crosshairs_style_e
@@ -466,11 +468,11 @@ typedef struct osdConfig_s {
 #ifndef DISABLE_MSP_DJI_COMPAT
     bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
 #endif
- #ifdef USE_ADSB
+#ifdef USE_ADSB
     uint16_t adsb_distance_warning;                     // in metres
     uint16_t adsb_distance_alert;                       // in metres
     uint16_t adsb_ignore_plane_above_me_limit;          // in metres
- #endif
+#endif
     uint8_t  radar_peers_display_time;                  // in seconds
 } osdConfig_t;
 

@@ -3566,6 +3566,20 @@ groups:
         field: main_voltage_decimals
         min: 1
         max: 2
+      - name: osd_decimals_altitude
+        description: "Number of decimals for the altitude displayed in the OSD [3-5]."
+        default_value: 3
+        field: decimals_altitude
+        type: uint8_t
+        min: 3
+        max: 5
+      - name: osd_decimals_distance
+        description: "Number of decimals for distance displayed in the OSD [3-5]. This includes distance from home, total distance, and distance remaining."
+        default_value: 3
+        field: decimals_distance
+        type: uint8_t
+        min: 3
+        max: 5
       - name: osd_coordinate_digits
         description: "Number of digits for the coordinates displayed in the OSD [8-11]."
         field: coordinate_digits
@@ -3719,7 +3733,8 @@ groups:
       - name: osd_mah_precision
         description: Number of digits used for mAh precision. Currently used by mAh Used and Battery Remaining Capacity
         field: mAh_precision
-        min: 4
+        default: 4
+        min: 3
         max: 6
         default_value: 4
       - name: osd_use_pilot_logo
