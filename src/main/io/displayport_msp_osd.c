@@ -488,6 +488,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             break;
         case VIDEO_SYSTEM_DJICOMPAT_HD:
         case VIDEO_SYSTEM_AVATAR:
+        case VIDEO_SYSTEM_DJINEW:
             currentOsdMode = HD_5320;
             screenRows = AVATAR_ROWS;
             screenCols = AVATAR_COLS;
