@@ -1702,6 +1702,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
+
+    case MSP2_INAV_ESC_TELEM:
+        {
+            uint8_t motorCount = getMotorCount();
+            sbufWriteU8(dst, motorCount);
+
+            for (uint8_t i = 0; i < motorCount; i++){
+                const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
+                sbufWriteDataSafe(dst, escState, sizeof(escSensorData_t));
+            }
+        }
+        break;
 #endif
 
 #ifdef USE_EZ_TUNE
