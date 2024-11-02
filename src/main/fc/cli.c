@@ -152,7 +152,7 @@ static uint8_t  commandBatchErrorCount = 0;
 // sync this with features_e
 static const char * const featureNames[] = {
     "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
-    "", "SOFTSERIAL", "GPS", "RPM_FILTERS",
+    "GEOZONE", "SOFTSERIAL", "GPS", "RPM_FILTERS",
     "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
@@ -1561,6 +1561,251 @@ static void cliSafeHomes(char *cmdline)
 }
 
 #endif
+
+#if defined(USE_GEOZONE)
+static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, const geoZoneConfig_t *defaultGeoZone)
+{
+    const char *format = "geozone %u %u %u %d %d %u";
+    for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++) {
+        bool equalsDefault = false;
+        if (defaultGeoZone) {
+            equalsDefault = geoZone[i].fenceAction == defaultGeoZone->fenceAction
+            && geoZone[i].shape == defaultGeoZone->shape
+            && geoZone[i].type == defaultGeoZone->type
+            && geoZone[i].maxAltitude == defaultGeoZone->maxAltitude
+            && geoZone[i].minAltitude == defaultGeoZone->minAltitude;
+
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].fenceAction);  
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].fenceAction);    
+    }
+} 
+
+static void printGeozoneVertices(uint8_t dumpMask, const vertexConfig_t *vertices, const vertexConfig_t *defaultVertices)
+{
+    const char *format = "geozone vertex %d %u %d %d";
+    for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
+        bool equalsDefault = false;
+        if (defaultVertices) {
+            equalsDefault = vertices[i].idx == defaultVertices->idx
+            && vertices[i].lat == defaultVertices->lat
+            && vertices[i].lon == defaultVertices->lon
+            && vertices[i].zoneId == defaultVertices->zoneId;
+            
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultVertices[i].zoneId, defaultVertices[i].idx, defaultVertices[i].lat, defaultVertices[i].lon);
+        }
+        
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, vertices[i].zoneId, vertices[i].idx, vertices[i].lat, vertices[i].lon);    
+    }
+
+    if (!defaultVertices) {
+        uint8_t totalVertices = geozoneGetUsedVerticesCount();
+        cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
+    }
+}
+
+static void cliGeozone(char* cmdLine)
+{  
+    if (isEmpty(cmdLine)) {
+        printGeozones(DUMP_MASTER, geoZonesConfig(0), NULL);
+    } else if (sl_strcasecmp(cmdLine, "vertex") == 0) {    
+        printGeozoneVertices(DUMP_MASTER, geoZoneVertices(0), NULL);
+    } else if (sl_strncasecmp(cmdLine, "vertex reset", 12) == 0) {
+         const char* ptr = &cmdLine[12];
+         uint8_t zoneId = 0, idx = 0;
+         uint8_t argumentCount = 1;
+
+         if ((ptr = nextArg(ptr))) {
+            zoneId = fastA2I(ptr);
+         } else {
+           geozoneResetVertices(-1, -1);
+           return;
+        }
+
+         if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            idx = fastA2I(ptr);
+        } else {
+            geozoneResetVertices(zoneId, -1);
+            return;
+        }
+
+         if (argumentCount != 2) {
+            cliShowParseError();
+            return;
+        }
+
+        geozoneResetVertices(zoneId, idx);
+
+    } else if (sl_strncasecmp(cmdLine, "vertex", 6) == 0) {
+        int32_t lat = 0, lon = 0;
+        int8_t zoneId = 0;
+        int16_t vertexIdx = -1;
+        uint8_t vertexZoneIdx = 0;
+        const char* ptr = cmdLine;
+        uint8_t argumentCount = 1;
+
+        if ((ptr = nextArg(ptr))) {         
+            zoneId = fastA2I(ptr);
+            if (zoneId < 0) {
+                return;
+            }
+
+            if (zoneId >= MAX_GEOZONES_IN_CONFIG) {
+                cliShowArgumentRangeError("geozone index", 0, MAX_GEOZONES_IN_CONFIG - 1);
+                return;
+            }
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+         if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            vertexZoneIdx = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            lat = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+        
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            lon = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+        }
+
+        if (argumentCount != 4) {
+            cliShowParseError();
+            return;
+        }
+        
+        for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
+            if (geoZoneVertices(i)->zoneId == zoneId && geoZoneVertices(i)->idx == vertexZoneIdx)  {
+                geoZoneVerticesMutable(i)->lat = lat;
+                geoZoneVerticesMutable(i)->lon = lon;
+                return;
+            }
+        }
+
+        for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
+            if (geoZoneVertices(i)->zoneId == -1) {
+                vertexIdx = i;
+                break;
+            }
+        }
+
+        if (vertexIdx < 0 || vertexIdx >= MAX_VERTICES_IN_CONFIG || vertexZoneIdx > MAX_VERTICES_IN_CONFIG) {
+            cliPrintError("Maximum number of vertices reached.");
+            return;
+        }
+
+        geoZoneVerticesMutable(vertexIdx)->lat = lat;
+        geoZoneVerticesMutable(vertexIdx)->lon = lon;
+        geoZoneVerticesMutable(vertexIdx)->zoneId = zoneId;
+        geoZoneVerticesMutable(vertexIdx)->idx = vertexZoneIdx;  
+        geoZonesConfigMutable(zoneId)->vertexCount++;
+        
+        uint8_t totalVertices = geozoneGetUsedVerticesCount();
+        cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
+
+    } else {
+        int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0;
+        int32_t minAltitude = 0, maxAltitude = 0;
+        const char* ptr = cmdLine;
+        uint8_t argumentCount = 1;
+
+        idx = fastA2I(ptr);
+        if (idx < 0 || idx > MAX_GEOZONES_IN_CONFIG) {
+            cliShowArgumentRangeError("geozone index", 0, MAX_GEOZONES_IN_CONFIG - 1);
+            return;
+        }
+        
+        if ((ptr = nextArg(ptr))) {
+            argumentCount++;
+            isPolygon = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            isInclusive = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            minAltitude = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            maxAltitude = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;        
+            fenceAction = fastA2I(ptr);
+            if (fenceAction < 0 || fenceAction > GEOFENCE_ACTION_RTH) {
+                cliShowArgumentRangeError("fence action", 0, GEOFENCE_ACTION_RTH);
+                return;
+            }
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
+        } 
+
+        if (argumentCount != 6) {
+            cliShowParseError();
+            return;
+        }
+
+        if (isPolygon) {
+            geoZonesConfigMutable(idx)->shape = GEOZONE_SHAPE_POLYGON;
+        } else {
+            geoZonesConfigMutable(idx)->shape = GEOZONE_SHAPE_CIRCULAR;
+        }
+
+        if (isInclusive) {
+            geoZonesConfigMutable(idx)->type = GEOZONE_TYPE_INCLUSIVE;
+        } else {
+            geoZonesConfigMutable(idx)->type = GEOZONE_TYPE_EXCLUSIVE;
+        }
+
+        geoZonesConfigMutable(idx)->maxAltitude = maxAltitude;
+        geoZonesConfigMutable(idx)->minAltitude = minAltitude;
+        geoZonesConfigMutable(idx)->fenceAction = fenceAction;
+    }
+}
+#endif
+
 #if defined(NAV_NON_VOLATILE_WAYPOINT_STORAGE) && defined(NAV_NON_VOLATILE_WAYPOINT_CLI)
 static void printWaypoints(uint8_t dumpMask, const navWaypoint_t *navWaypoint, const navWaypoint_t *defaultNavWaypoint)
 {
@@ -4178,6 +4423,14 @@ static void printConfig(const char *cmdline, bool doDiff)
         printFwAutolandApproach(dumpMask, fwAutolandApproachConfig_CopyArray, fwAutolandApproachConfig(0));
 #endif
 
+#if defined(USE_GEOZONE)
+        cliPrintHashLine("geozone");
+        printGeozones(dumpMask, geoZonesConfig_CopyArray, geoZonesConfig(0));
+
+        cliPrintHashLine("geozone vertices");
+        printGeozoneVertices(dumpMask, geoZoneVertices_CopyArray, geoZoneVertices(0));
+#endif
+
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
@@ -4561,6 +4814,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("fwapproach", "Fixed Wing Approach Settings", NULL, cliFwAutolandApproach),
 #endif
     CLI_COMMAND_DEF("get", "get variable value", "[name]", cliGet),
+#ifdef USE_GEOZONE
+    CLI_COMMAND_DEF("geozone", "get or set geo zones", NULL, cliGeozone),
+#endif
 #ifdef USE_GPS
     CLI_COMMAND_DEF("gpspassthrough", "passthrough gps to serial", NULL, cliGpsPassthrough),
     CLI_COMMAND_DEF("gpssats", "show GPS satellites", NULL, cliUbloxPrintSatelites),

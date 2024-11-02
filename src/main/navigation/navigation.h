@@ -116,6 +116,119 @@ void resetFwAutolandApproach(int8_t idx);
 
 #endif
 
+#if defined(USE_GEOZONE)
+
+#define MAX_GEOZONES_IN_CONFIG 63
+#define MAX_VERTICES_IN_CONFIG 126
+
+typedef enum {
+    GEOZONE_MESSAGE_STATE_NONE,
+    GEOZONE_MESSAGE_STATE_NFZ,
+    GEOZONE_MESSAGE_STATE_LEAVING_FZ,
+    GEOZONE_MESSAGE_STATE_OUTSIDE_FZ,
+    GEOZONE_MESSAGE_STATE_ENTERING_NFZ,
+    GEOZONE_MESSAGE_STATE_AVOIDING_FB,
+    GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE,
+    GEOZONE_MESSAGE_STATE_FLYOUT_NFZ,
+    GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH,
+    GEOZONE_MESSAGE_STATE_LOITER
+} geozoneMessageState_e;
+
+enum fenceAction_e {
+    GEOFENCE_ACTION_NONE,
+    GEOFENCE_ACTION_AVOID,
+    GEOFENCE_ACTION_POS_HOLD,
+    GEOFENCE_ACTION_RTH,
+};
+
+enum noWayHomeAction {
+    NO_WAY_HOME_ACTION_RTH,
+    NO_WAY_HOME_ACTION_EMRG_LAND,
+};
+
+#define GEOZONE_SHAPE_CIRCULAR 0
+#define GEOZONE_SHAPE_POLYGON  1
+
+#define GEOZONE_TYPE_EXCLUSIVE 0
+#define GEOZONE_TYPE_INCLUSIVE 1
+
+typedef struct geoZoneConfig_s
+{
+    uint8_t shape;
+    uint8_t type;
+    int32_t minAltitude;
+    int32_t maxAltitude;
+    uint8_t fenceAction;
+    uint8_t vertexCount;
+} geoZoneConfig_t;
+
+typedef struct geozone_config_s
+{
+    uint32_t fenceDetectionDistance;
+    uint16_t avoidAltitudeRange;
+    uint16_t safeAltitudeDistance;
+    bool nearestSafeHomeAsInclusivZone;
+    uint8_t safeHomeFenceAction;
+    uint32_t copterFenceStopDistance;
+    uint8_t noWayHomeAction;
+} geozone_config_t;
+
+typedef struct vertexConfig_s
+{
+    int8_t zoneId;
+    uint8_t idx;
+    int32_t lat;
+    int32_t lon;
+} vertexConfig_t;
+
+PG_DECLARE(geozone_config_t, geoZoneConfig);
+PG_DECLARE_ARRAY(geoZoneConfig_t, MAX_GEOZONES_IN_CONFIG, geoZonesConfig);
+PG_DECLARE_ARRAY(vertexConfig_t, MAX_VERTICES_IN_CONFIG, geoZoneVertices);
+
+typedef struct geozone_s {
+    bool insideFz;
+    bool insideNfz;
+    uint32_t distanceToZoneBorder3d;
+    int32_t vertDistanceToZoneBorder;
+    geozoneMessageState_e messageState;
+    int32_t directionToNearestZone;
+    int32_t distanceHorToNearestZone;
+    int32_t distanceVertToNearestZone;
+    int32_t zoneInfo;
+    int32_t currentzoneMaxAltitude; 
+    int32_t currentzoneMinAltitude;
+    bool sticksLocked;
+    int8_t loiterDir;
+    bool avoidInRTHInProgress;
+    int32_t maxHomeAltitude;
+    bool homeHasMaxAltitue;
+} geozone_t;
+
+extern geozone_t geozone;
+
+bool geozoneSetVertex(uint8_t zoneId, uint8_t vertexId, int32_t lat, int32_t lon);
+int8_t geozoneGetVertexIdx(uint8_t zoneId, uint8_t vertexId);
+bool isGeozoneActive(void);
+uint8_t geozoneGetUsedVerticesCount(void);
+void geozoneResetVertices(int8_t zoneId, int16_t idx);
+void geozoneUpdate(timeUs_t curentTimeUs);
+bool geozoneIsInsideNFZ(void);
+void geozoneAdvanceRthAvoidWaypoint(void);
+int8_t geozoneCheckForNFZAtCourse(bool isRTH);
+bool geoZoneIsLastRthWaypoint(void);
+fpVector3_t *geozoneGetCurrentRthAvoidWaypoint(void);
+void geozoneSetupRTH(void);
+void geozoneResetRTH(void);
+void geozoneUpdateMaxHomeAltitude(void);
+uint32_t geozoneGetDetectionDistance(void);
+
+void activateSendTo(void);
+void abortSendTo(void);
+void activateForcedPosHold(void);
+void abortForcedPosHold(void);
+
+#endif
+
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif

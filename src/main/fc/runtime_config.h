@@ -24,6 +24,7 @@ typedef enum {
     SIMULATOR_MODE_HITL                             = (1 << 4),
     SIMULATOR_MODE_SITL                             = (1 << 5),
 
+    ARMING_DISABLED_GEOZONE                         = (1 << 6),
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),
     ARMING_DISABLED_SENSORS_CALIBRATING             = (1 << 9),
@@ -49,8 +50,8 @@ typedef enum {
     ARMING_DISABLED_DSHOT_BEEPER                    = (1 << 29),
     ARMING_DISABLED_LANDING_DETECTED                = (1 << 30),
 
-    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | ARMING_DISABLED_SENSORS_CALIBRATING |
-                                                       ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
+    ARMING_DISABLED_ALL_FLAGS                       = (ARMING_DISABLED_GEOZONE | ARMING_DISABLED_FAILSAFE_SYSTEM | ARMING_DISABLED_NOT_LEVEL | 
+                                                       ARMING_DISABLED_SENSORS_CALIBRATING | ARMING_DISABLED_SYSTEM_OVERLOADED | ARMING_DISABLED_NAVIGATION_UNSAFE |
                                                        ARMING_DISABLED_COMPASS_NOT_CALIBRATED | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED |
                                                        ARMING_DISABLED_ARM_SWITCH | ARMING_DISABLED_HARDWARE_FAILURE | ARMING_DISABLED_BOXFAILSAFE |
                                                        ARMING_DISABLED_RC_LINK | ARMING_DISABLED_THROTTLE | ARMING_DISABLED_CLI |
@@ -65,7 +66,8 @@ typedef enum {
 // situations where we might just need the motors to spin so the
 // aircraft can move (even unpredictably) and get unstuck (e.g.
 // crashed into a high tree).
-#define ARMING_DISABLED_EMERGENCY_OVERRIDE  (ARMING_DISABLED_NOT_LEVEL \
+#define ARMING_DISABLED_EMERGENCY_OVERRIDE  (ARMING_DISABLED_GEOZONE \
+                                            | ARMING_DISABLED_NOT_LEVEL \
                                             | ARMING_DISABLED_NAVIGATION_UNSAFE \
                                             | ARMING_DISABLED_COMPASS_NOT_CALIBRATED \
                                             | ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED \
@@ -106,6 +108,7 @@ typedef enum {
     SOARING_MODE          = (1 << 16),
     ANGLEHOLD_MODE        = (1 << 17),
     NAV_FW_AUTOLAND       = (1 << 18),
+    NAV_SEND_TO           = (1 << 19),
 } flightModeFlags_e;
 
 extern uint32_t flightModeFlags;
