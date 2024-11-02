@@ -339,6 +339,15 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 #endif
 }
 
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+void geozoneUpdateTask(timeUs_t currentTimeUs)
+{
+    if (feature(FEATURE_GEOZONE)) {
+        geozoneUpdate(currentTimeUs);
+    }
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -453,6 +462,11 @@ void fcTasksInit(void)
 #if defined(SITL_BUILD)
     serialProxyStart();
 #endif
+
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+    setTaskEnabled(TASK_GEOZONE, feature(FEATURE_GEOZONE));
+#endif
+
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -737,6 +751,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskSendSbus2Telemetry,
         .desiredPeriod = TASK_PERIOD_US(125), // 8kHz 2ms dead time + 650us window / sensor.
         .staticPriority = TASK_PRIORITY_LOW, // timing is critical. Ideally, should be a timer interrupt triggered by sbus packet
+    },
+#endif
+
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+    [TASK_GEOZONE] = {
+        .taskName = "GEOZONE",
+        .taskFunc = geozoneUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(5),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
 

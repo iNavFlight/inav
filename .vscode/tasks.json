@@ -4,9 +4,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build AOCODARCH7DUAL",
+            "label": "Build Matek F722-SE",
             "type": "shell",
-            "command": "make AOCODARCH7DUAL",
+            "command": "make MATEKF722SE",
             "group": "build",
             "problemMatcher": [],
             "options": {
@@ -14,12 +14,11 @@
             }
         },
         {
-            "label": "Build AOCODARCH7DUAL",
+            "label": "Build Matek F722",
             "type": "shell",
-            "command": "make AOCODARCH7DUAL",
+            "command": "make MATEKF722",
             "group": {
-                "kind": "build",
-                "isDefault": true
+                "kind": "build"
             },
             "problemMatcher": [],
             "options": {
@@ -35,6 +34,56 @@
             "problemMatcher": [],
             "options": {
                 "cwd": "${workspaceFolder}/build"
+            }
+        },
+        {
+            "label": "CMAKE Build SITL",
+            "type": "shell",
+            "command": "mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON ..",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "CMAKE Debug SITL",
+            "type": "shell",
+            "command": "mkdir -p debug_SITL && cd debug_SITL && cmake -DCMAKE_BUILD_TYPE=Debug -DSITL=ON ..",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "CMAKE Release SITL",
+            "type": "shell",
+            "command": "mkdir -p release_SITL && cd release_SITL && cmake -DCMAKE_BUILD_TYPE=Release -DSITL=ON ..",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "Debug SITL",
+            "type": "shell",
+            "command": "make",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/debug_SITL"
+            }
+        },
+        {
+            "label": "Release SITL",
+            "type": "shell",
+            "command": "make",
+            "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/release_SITL"
             }
         }
     ]

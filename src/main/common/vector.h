@@ -29,6 +29,13 @@ typedef union {
     };
 } fpVector3_t;
 
+typedef union {
+    float v[2];
+    struct {
+       float x,y;
+    };
+} fpVector2_t;
+
 typedef struct {
     float m[3][3];
 } fpMat3_t;
@@ -112,6 +119,82 @@ static inline fpVector3_t * vectorScale(fpVector3_t * result, const fpVector3_t 
     ab.x = a->x * b;
     ab.y = a->y * b;
     ab.z = a->z * b;
+
+    *result = ab;
+    return result;
+}
+
+static inline fpVector3_t* vectorSub(fpVector3_t* result, const fpVector3_t* a, const fpVector3_t* b)
+{
+    fpVector3_t ab;
+
+    ab.x = a->x - b->x;
+    ab.y = a->y - b->y;
+    ab.z = a->z - b->z;
+
+    *result = ab;
+    return result;
+}
+
+static inline float vectorDotProduct(const fpVector3_t* a, const fpVector3_t* b)
+{
+    return  a->x * b->x + a->y * b->y + a->z * b->z;
+}
+
+static inline float vector2NormSquared(const fpVector2_t * v)
+{
+    return sq(v->x) + sq(v->y);
+}
+
+static inline fpVector2_t* vector2Normalize(fpVector2_t* result, const fpVector2_t* v)
+{
+    float sqa = vector2NormSquared(v);
+    float length = sqrtf(sqa);
+    if (length != 0) {
+        result->x = v->x / length;
+        result->y = v->y / length;
+    } else {
+        result->x = 0;
+        result->y = 0;
+    }
+    return result;
+}
+
+
+static inline fpVector2_t* vector2Sub(fpVector2_t* result, const fpVector2_t* a, const fpVector2_t* b)
+{
+    fpVector2_t ab;
+
+    ab.x = a->x - b->x;
+    ab.y = a->y - b->y;
+
+    *result = ab;
+    return result;
+}
+
+static inline fpVector2_t * vector2Add(fpVector2_t * result, const fpVector2_t * a, const fpVector2_t * b)
+{
+    fpVector2_t ab;
+
+    ab.x = a->x + b->x;
+    ab.y = a->y + b->y;
+
+    *result = ab;
+    return result;
+}
+
+
+static inline float vector2DotProduct(const fpVector2_t* a, const fpVector2_t* b)
+{
+    return  a->x * b->x + a->y * b->y;
+}
+
+static inline fpVector2_t * vector2Scale(fpVector2_t * result, const fpVector2_t * a, const float b)
+{
+    fpVector2_t ab;
+
+    ab.x = a->x * b;
+    ab.y = a->y * b;
 
     *result = ab;
     return result;

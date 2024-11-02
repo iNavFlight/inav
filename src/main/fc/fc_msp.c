@@ -1768,6 +1768,53 @@ static mspResult_e mspFwApproachOutCommand(sbuf_t *dst, sbuf_t *src)
 }
 #endif
 
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+static mspResult_e mspFcGeozoneOutCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const uint8_t idx = sbufReadU8(src);
+    if (idx < MAX_GEOZONES_IN_CONFIG) {
+        sbufWriteU8(dst, geoZonesConfig(idx)->type);
+        sbufWriteU8(dst, geoZonesConfig(idx)->shape);
+        sbufWriteU32(dst, geoZonesConfig(idx)->minAltitude);
+        sbufWriteU32(dst, geoZonesConfig(idx)->maxAltitude);
+        sbufWriteU8(dst, geoZonesConfig(idx)->fenceAction);
+        sbufWriteU8(dst, geoZonesConfig(idx)->vertexCount);
+        sbufWriteU8(dst, idx);
+        return MSP_RESULT_ACK;
+    } else {
+        return MSP_RESULT_ERROR;
+    }
+}
+
+static mspResult_e mspFcGeozoneVerteciesOutCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const uint8_t zoneId = sbufReadU8(src);
+    const uint8_t vertexId = sbufReadU8(src);
+    if (zoneId < MAX_GEOZONES_IN_CONFIG) {
+        int8_t  vertexIdx = geozoneGetVertexIdx(zoneId, vertexId);
+        if (vertexIdx >= 0) {
+            sbufWriteU8(dst, geoZoneVertices(vertexIdx)->zoneId);
+            sbufWriteU8(dst, geoZoneVertices(vertexIdx)->idx);
+            sbufWriteU32(dst, geoZoneVertices(vertexIdx)->lat);
+            sbufWriteU32(dst, geoZoneVertices(vertexIdx)->lon);
+            if (geoZonesConfig(zoneId)->shape == GEOZONE_SHAPE_CIRCULAR) {
+                int8_t vertexRadiusIdx = geozoneGetVertexIdx(zoneId, vertexId + 1);
+                if (vertexRadiusIdx >= 0) {
+                    sbufWriteU32(dst, geoZoneVertices(vertexRadiusIdx)->lat);
+                } else {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+            return MSP_RESULT_ACK;
+        } else {
+            return MSP_RESULT_ERROR;
+        } 
+    } else {
+        return MSP_RESULT_ERROR;
+    }
+}
+#endif
+
 static mspResult_e mspFcLogicConditionCommand(sbuf_t *dst, sbuf_t *src) {
     const uint8_t idx = sbufReadU8(src);
     if (idx < MAX_LOGIC_CONDITIONS) {
@@ -3301,6 +3348,49 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         gpsUbloxSendCommand(src->ptr, dataSize, 0);
         break;
 
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+    case MSP2_INAV_SET_GEOZONE:
+        if (dataSize == 13) {
+            uint8_t geozoneId;
+            if (!sbufReadU8Safe(&geozoneId, src) || geozoneId >= MAX_GEOZONES_IN_CONFIG) {
+                return MSP_RESULT_ERROR;
+            }
+            
+            geozoneResetVertices(geozoneId, -1);
+            geoZonesConfigMutable(geozoneId)->type = sbufReadU8(src); 
+            geoZonesConfigMutable(geozoneId)->shape = sbufReadU8(src);
+            geoZonesConfigMutable(geozoneId)->minAltitude = sbufReadU32(src);
+            geoZonesConfigMutable(geozoneId)->maxAltitude = sbufReadU32(src);   
+            geoZonesConfigMutable(geozoneId)->fenceAction = sbufReadU8(src);
+            geoZonesConfigMutable(geozoneId)->vertexCount = sbufReadU8(src);
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_SET_GEOZONE_VERTEX:
+        if (dataSize == 10 || dataSize == 14) {
+            uint8_t geozoneId = 0;
+            if (!sbufReadU8Safe(&geozoneId, src) || geozoneId >= MAX_GEOZONES_IN_CONFIG) {
+                return MSP_RESULT_ERROR;
+            }
+            uint8_t vertexId = sbufReadU8(src);
+            int32_t lat = sbufReadU32(src);
+            int32_t lon = sbufReadU32(src);
+            if (!geozoneSetVertex(geozoneId, vertexId, lat, lon)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            if (geoZonesConfig(geozoneId)->shape == GEOZONE_SHAPE_CIRCULAR) {
+                if (!geozoneSetVertex(geozoneId, vertexId + 1, sbufReadU32(src), 0)) {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
 #ifdef USE_EZ_TUNE
 
     case MSP2_INAV_EZ_TUNE_SET:
@@ -3860,6 +3950,14 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #ifdef USE_FW_AUTOLAND
     case MSP2_INAV_FW_APPROACH:
         *ret = mspFwApproachOutCommand(dst, src);
+        break;
+#endif
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+    case MSP2_INAV_GEOZONE:
+        *ret = mspFcGeozoneOutCommand(dst, src);
+        break;
+    case MSP2_INAV_GEOZONE_VERTEX:
+        *ret = mspFcGeozoneVerteciesOutCommand(dst, src);
         break;
 #endif
 #ifdef USE_SIMULATOR

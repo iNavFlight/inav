@@ -4,10 +4,14 @@
         "cmath": "c",
         "ranges": "c",
         "navigation.h": "c",
-        "rth_trackback.h": "c"
+        "rth_trackback.h": "c",
         "platform.h": "c",
         "timer.h": "c",
-        "bus.h": "c"
+        "bus.h": "c",
+        "controlrate_profile.h": "c",
+        "settings.h": "c",
+        "settings_generated.h": "c",
+        "parameter_group.h": "c"
     },
     "editor.tabSize": 4,
     "editor.insertSpaces": true,

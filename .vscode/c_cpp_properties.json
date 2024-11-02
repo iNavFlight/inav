@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceRoot}",
-                "${workspaceRoot}/src/main/**"
+                "${workspaceRoot}/src/main/**",
+                "${workspaceRoot}/debug_SITL/src/main/target/SITL/SITL/*"
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": false,
@@ -12,10 +13,14 @@
                     "${workspaceRoot}/**"
                 ]
             },
-            "intelliSenseMode": "msvc-x64",
+            "intelliSenseMode": "gcc-arm",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "defines": [
+                "uint16_t=unsigned short",
+                "int16_t=short",
+                "uint32_t=unsigned int",
+                "MCU_FLASH_SIZE=1024",
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",
                 "USE_GYRO_NOTCH_2",
@@ -35,9 +40,10 @@
                 "USE_PCF8574",
                 "USE_ESC_SENSOR",
                 "USE_ADAPTIVE_FILTER",
-                "MCU_FLASH_SIZE 1024",
-            ],
-            "configurationProvider": "ms-vscode.cmake-tools"
+                "SITL_BUILD",
+                "USE_GEOZONE"
+            ]
+            //"configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4

@@ -278,6 +278,14 @@ static void updateArmingStatus(void)
         }
 #endif
 
+#if defined(USE_GEOZONE) && defined (USE_GPS)
+        if (geozoneIsInsideNFZ()) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+        }
+#endif
+
         /* CHECK: */
         if (
             sensors(SENSOR_ACC) &&
