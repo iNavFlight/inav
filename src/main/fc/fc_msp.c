@@ -2914,6 +2914,42 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#ifdef USE_RX_MSP
+    case MSP2_COMMON_SET_MSP_RC_LINK_STATS:
+        if (dataSize == 48) {
+            uint8_t sublinkID = sbufReadU8(src); // Sublink ID
+            sbufReadU8(src); // Valid link (Failsafe backup)
+            if (sublinkID == 1) {
+                rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
+                rxLinkStatistics.downlinkLQ = sbufReadU8(src);
+                rxLinkStatistics.uplinkLQ = sbufReadU8(src);
+                rxLinkStatistics.uplinkSNR = sbufReadU8(src);
+            }
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_COMMON_SET_MSP_RC_INFO:
+        if (dataSize == 104) {
+            uint8_t sublinkID = sbufReadU8(src);
+
+            if (sublinkID == 1) {
+                rxLinkStatistics.uplinkTXPower = sbufReadU8(src);
+                rxLinkStatistics.downlinkTXPower = sbufReadU8(src);
+                
+                for (int i = 0; i < 4 - 1; i++) {
+                    rxLinkStatistics.band[i] = sbufReadU8(src);
+                }
+
+                for (int i = 0; i < 6 - 1; i++) {
+                    rxLinkStatistics.mode[i] = sbufReadU8(src);
+                }
+            }
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+#endif
+
     case MSP_SET_FAILSAFE_CONFIG:
         if (dataSize == 20) {
             failsafeConfigMutable()->failsafe_delay = sbufReadU8(src);

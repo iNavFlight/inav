@@ -181,12 +181,16 @@ typedef enum {
 } rssiSource_e;
 
 typedef struct rxLinkStatistics_s {
-    int16_t uplinkRSSI;     // RSSI value in dBm
-    uint8_t uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
-    int8_t uplinkSNR;       // The SNR of the uplink in dB
-    uint8_t rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
-    uint16_t uplinkTXPower; // power in mW
-    uint8_t activeAntenna;
+    int16_t     uplinkRSSI;         // RSSI value in dBm
+    uint8_t     uplinkLQ;           // A protocol specific measure of the link quality in [0..100]
+    uint8_t     downlinkLQ;         // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;          // The SNR of the uplink in dB
+    uint8_t     rfMode;             // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;      // power in mW
+    uint16_t    downlinkTXPower;    // power in mW
+    uint8_t     activeAntenna;
+    char        band[4];
+    char        mode[6];
 } rxLinkStatistics_t;
 
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
