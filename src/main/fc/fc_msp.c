@@ -2920,6 +2920,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             uint8_t sublinkID = sbufReadU8(src); // Sublink ID
             sbufReadU8(src); // Valid link (Failsafe backup)
             if (sublinkID == 1) {
+                // RSSI %
                 rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
                 rxLinkStatistics.downlinkLQ = sbufReadU8(src);
                 rxLinkStatistics.uplinkLQ = sbufReadU8(src);
