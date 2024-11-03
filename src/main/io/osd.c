@@ -181,7 +181,7 @@ typedef struct statistic_s {
     uint16_t min_voltage; // /100
     int16_t max_current;
     int32_t max_power;
-    int8_t min_rssi;
+    uint8_t min_rssi;
     int16_t min_lq; // for CRSF
     int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
