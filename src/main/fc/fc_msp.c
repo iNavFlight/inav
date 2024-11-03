@@ -2916,11 +2916,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_RX_MSP
     case MSP2_COMMON_SET_MSP_RC_LINK_STATS:
-        if (dataSize == 7) {
+        if (dataSize >= 7) {
             uint8_t sublinkID = sbufReadU8(src); // Sublink ID
             sbufReadU8(src); // Valid link (Failsafe backup)
             if (sublinkID == 1) {
-                sbufReadU8(src); // RSSI %
+                setRSSIFromMSP(sbufReadU8(src)); // RSSI %
                 rxLinkStatistics.uplinkRSSI = -sbufReadU16(src);
                 rxLinkStatistics.downlinkLQ = sbufReadU8(src);
                 rxLinkStatistics.uplinkLQ = sbufReadU8(src);
@@ -2931,7 +2931,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_COMMON_SET_MSP_RC_INFO:
-        if (dataSize == 15) {
+        if (dataSize >= 15) {
             uint8_t sublinkID = sbufReadU8(src);
 
             if (sublinkID == 1) {
