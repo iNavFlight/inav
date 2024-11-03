@@ -616,11 +616,11 @@ char *osdFormatTrimWhiteSpace(char *buff)
 
 /**
  * Converts RSSI into a % value used by the OSD.
+ * Range is [0, 100]
  */
-static uint16_t osdConvertRSSI(void)
+static uint8_t osdConvertRSSI(void)
 {
-    // change range to [0, 99]
-    return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 99);
+    return constrain(getRSSI() * 100 / RSSI_MAX_VALUE, 0, 100);
 }
 
 static uint16_t osdGetCrsfLQ(void)
@@ -1712,9 +1712,13 @@ static bool osdDrawSingleElement(uint8_t item)
     }
     case OSD_RSSI_VALUE:
         {
-            uint16_t osdRssi = osdConvertRSSI();
+            uint8_t osdRssi = osdConvertRSSI();
             buff[0] = SYM_RSSI;
-            tfp_sprintf(buff + 1, "%2d", osdRssi);
+            if (osdRssi < 100)
+                tfp_sprintf(buff + 1, "%2d", osdRssi);
+            else
+                tfp_sprintf(buff + 1, " %c", SYM_MAX);
+            
             if (osdRssi < osdConfig()->rssi_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
