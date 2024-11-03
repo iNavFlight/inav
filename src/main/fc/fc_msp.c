@@ -215,7 +215,7 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
 
 static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    const unsigned int dataSize = sbufBytesRemaining(src);
+    const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
     if (dataSize == 0) {
         // Legacy format
@@ -1831,7 +1831,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     uint8_t tmp_u8;
     uint16_t tmp_u16;
 
-    const unsigned int dataSize = sbufBytesRemaining(src);
+    const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
     switch (cmdMSP) {
     case MSP_SELECT_SETTING:
