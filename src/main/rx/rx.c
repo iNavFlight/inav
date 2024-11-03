@@ -572,6 +572,18 @@ static void setRSSIValue(uint16_t rssiValue, rssiSource_e source, bool filtered)
     rssi = constrain(scaleRange(rssi, rssiMin, rssiMax, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
 }
 
+void setRSSIFromMSP_RC(uint8_t newMspRssi)
+{
+    if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
+        activeRssiSource = RSSI_SOURCE_MSP;
+    }
+
+    if (activeRssiSource == RSSI_SOURCE_MSP) {
+        rssi = constrain(scaleRange(newMspRssi, 0, 100, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
+        lastMspRssiUpdateUs = micros();
+    }
+}
+
 void setRSSIFromMSP(uint8_t newMspRssi)
 {
     if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
