@@ -2917,43 +2917,45 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
 #ifdef USE_RX_MSP
-    case MSP2_COMMON_SET_MSP_RC_LINK_STATS:
-        if (dataSize >= 7) {
-            uint8_t sublinkID = sbufReadU8(src); // Sublink ID
-            sbufReadU8(src); // Valid link (Failsafe backup)
-            if (sublinkID == 0) {
-                setRSSIFromMSP_RC(sbufReadU8(src)); // RSSI %
-                rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
-                rxLinkStatistics.downlinkLQ = sbufReadU8(src);
-                rxLinkStatistics.uplinkLQ = sbufReadU8(src);
-                rxLinkStatistics.uplinkSNR = sbufReadI8(src);
-            }
+    case MSP2_COMMON_SET_MSP_RC_LINK_STATS: {
+            if (dataSize >= 7) {
+                uint8_t sublinkID = sbufReadU8(src); // Sublink ID
+                sbufReadU8(src); // Valid link (Failsafe backup)
+                if (sublinkID == 0) {
+                    setRSSIFromMSP_RC(sbufReadU8(src)); // RSSI %
+                    rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
+                    rxLinkStatistics.downlinkLQ = sbufReadU8(src);
+                    rxLinkStatistics.uplinkLQ = sbufReadU8(src);
+                    rxLinkStatistics.uplinkSNR = sbufReadI8(src);
+                }
 
-            return MSP_RESULT_NO_REPLY;
-        } else
-            return MSP_RESULT_ERROR;
+                return MSP_RESULT_NO_REPLY;
+            } else
+                return MSP_RESULT_ERROR;
+        }
         break;
 
-    case MSP2_COMMON_SET_MSP_RC_INFO:
-        if (dataSize >= 15) {
-            uint8_t sublinkID = sbufReadU8(src);
+    case MSP2_COMMON_SET_MSP_RC_INFO: {
+            if (dataSize >= 15) {
+                uint8_t sublinkID = sbufReadU8(src);
 
-            if (sublinkID == 0) {
-                rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
-                rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
-                
-                for (int i = 0; i < 4; i++) {
-                    rxLinkStatistics.band[i] = sbufReadU8(src);
+                if (sublinkID == 0) {
+                    rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
+                    rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
+                    
+                    for (int i = 0; i < 4; i++) {
+                        rxLinkStatistics.band[i] = sbufReadU8(src);
+                    }
+
+                    for (int i = 0; i < 6; i++) {
+                        rxLinkStatistics.mode[i] = sbufReadU8(src);
+                    }
                 }
 
-                for (int i = 0; i < 6; i++) {
-                    rxLinkStatistics.mode[i] = sbufReadU8(src);
-                }
-            }
-
-            return MSP_RESULT_NO_REPLY;
-        } else
-            return MSP_RESULT_ERROR;
+                return MSP_RESULT_NO_REPLY;
+            } else
+                return MSP_RESULT_ERROR;
+        }
         break;
 #endif
 
