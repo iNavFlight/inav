@@ -2916,12 +2916,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_RX_MSP
     case MSP2_COMMON_SET_MSP_RC_LINK_STATS:
-        if (dataSize == 48) {
+        if (dataSize == 56) {
             uint8_t sublinkID = sbufReadU8(src); // Sublink ID
             sbufReadU8(src); // Valid link (Failsafe backup)
             if (sublinkID == 1) {
-                // RSSI %
-                rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
+                sbufReadU8(src); // RSSI %
+                rxLinkStatistics.uplinkRSSI = -sbufReadU16(src);
                 rxLinkStatistics.downlinkLQ = sbufReadU8(src);
                 rxLinkStatistics.uplinkLQ = sbufReadU8(src);
                 rxLinkStatistics.uplinkSNR = sbufReadU8(src);
@@ -2931,12 +2931,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_COMMON_SET_MSP_RC_INFO:
-        if (dataSize == 104) {
+        if (dataSize == 120) {
             uint8_t sublinkID = sbufReadU8(src);
 
             if (sublinkID == 1) {
-                rxLinkStatistics.uplinkTXPower = sbufReadU8(src);
-                rxLinkStatistics.downlinkTXPower = sbufReadU8(src);
+                rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
+                rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
                 
                 for (int i = 0; i < 4 - 1; i++) {
                     rxLinkStatistics.band[i] = sbufReadU8(src);
