@@ -2924,7 +2924,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 rxLinkStatistics.uplinkRSSI = -sbufReadU16(src);
                 rxLinkStatistics.downlinkLQ = sbufReadU8(src);
                 rxLinkStatistics.uplinkLQ = sbufReadU8(src);
-                rxLinkStatistics.uplinkSNR = sbufReadU8(src);
+                rxLinkStatistics.uplinkSNR = sbufReadI8(src);
             }
         } else
             return MSP_RESULT_ERROR;
