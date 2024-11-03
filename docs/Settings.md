@@ -5178,7 +5178,7 @@ Value below which Crossfire SNR Alarm pops-up. (dB)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | -20 | 10 |
+| 4 | -20 | 99 |
 
 ---
 

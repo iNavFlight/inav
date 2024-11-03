@@ -3376,7 +3376,7 @@ groups:
         default_value: 4
         field: snr_alarm
         min: -20
-        max: 10
+        max: 99
       - name: osd_link_quality_alarm
         condition: USE_SERIALRX_CRSF
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
