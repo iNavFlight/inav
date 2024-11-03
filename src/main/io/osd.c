@@ -2535,7 +2535,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
             } else if (snrFiltered <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
-                if (snrFiltered <= -10 || >= 10) {
+                if (snrFiltered <= -10 || snrFiltered >= 10) {
                     tfp_sprintf(buff + 1, "%3d%c", snrFiltered, SYM_DB);
                 } else {
                     tfp_sprintf(buff + 1, "%2d%c%c", snrFiltered, SYM_DB, ' ');
