@@ -181,7 +181,7 @@ typedef struct statistic_s {
     uint16_t min_voltage; // /100
     int16_t max_current;
     int32_t max_power;
-    int16_t min_rssi;
+    int8_t min_rssi;
     int16_t min_lq; // for CRSF
     int16_t min_rssi_dbm; // for CRSF
     int32_t max_altitude;
@@ -4586,7 +4586,7 @@ static void osdResetStats(void)
     stats.max_3D_speed = 0;
     stats.max_air_speed = 0;
     stats.min_voltage = 12000;
-    stats.min_rssi = 99;
+    stats.min_rssi = 100;
     stats.min_lq = 300;
     stats.min_rssi_dbm = 0;
     stats.max_altitude = 0;
