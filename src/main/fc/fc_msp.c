@@ -1861,6 +1861,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 }
                 rxMspFrameReceive(frame, channelCount);
             }
+
+            return MSP_RESULT_NO_REPLY;
         }
         break;
 #endif
@@ -2926,6 +2928,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 rxLinkStatistics.uplinkLQ = sbufReadU8(src);
                 rxLinkStatistics.uplinkSNR = sbufReadI8(src);
             }
+
+            return MSP_RESULT_NO_REPLY;
         } else
             return MSP_RESULT_ERROR;
         break;
@@ -2946,6 +2950,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     rxLinkStatistics.mode[i] = sbufReadU8(src);
                 }
             }
+
+            return MSP_RESULT_NO_REPLY;
         } else
             return MSP_RESULT_ERROR;
         break;
