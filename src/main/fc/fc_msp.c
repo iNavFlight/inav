@@ -2938,11 +2938,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
                 rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
                 
-                for (int i = 0; i < 4 - 1; i++) {
+                for (int i = 0; i < 4; i++) {
                     rxLinkStatistics.band[i] = sbufReadU8(src);
                 }
 
-                for (int i = 0; i < 6 - 1; i++) {
+                for (int i = 0; i < 6; i++) {
                     rxLinkStatistics.mode[i] = sbufReadU8(src);
                 }
             }
