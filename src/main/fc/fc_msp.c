@@ -2916,7 +2916,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_RX_MSP
     case MSP2_COMMON_SET_MSP_RC_LINK_STATS:
-        if (dataSize == 56) {
+        if (dataSize == 7) {
             uint8_t sublinkID = sbufReadU8(src); // Sublink ID
             sbufReadU8(src); // Valid link (Failsafe backup)
             if (sublinkID == 1) {
@@ -2931,7 +2931,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP2_COMMON_SET_MSP_RC_INFO:
-        if (dataSize == 120) {
+        if (dataSize == 15) {
             uint8_t sublinkID = sbufReadU8(src);
 
             if (sublinkID == 1) {
