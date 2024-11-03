@@ -579,7 +579,7 @@ void setRSSIFromMSP_RC(uint8_t newMspRssi)
     }
 
     if (activeRssiSource == RSSI_SOURCE_MSP) {
-        rssi = constrain(scaleRange(newMspRssi, 0, 100, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
+        rssi = constrain(scaleRange(constrain(newMspRssi, 0, 100), 0, 100, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
         lastMspRssiUpdateUs = micros();
     }
 }
