@@ -1807,7 +1807,7 @@ static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
 #ifdef USE_FLASHFS
 static void mspFcDataFlashReadCommand(sbuf_t *dst, sbuf_t *src)
 {
-    const unsigned int dataSize = sbufBytesRemaining(src);
+    const unsigned int dataSize = sbufBytesRemaining(src); /* Payload size in Bytes */
     uint16_t readLength;
 
     const uint32_t readAddress = sbufReadU32(src);
