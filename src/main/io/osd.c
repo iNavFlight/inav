@@ -2583,6 +2583,15 @@ static bool osdDrawSingleElement(uint8_t item)
                 tfp_sprintf(buff, "%4d%c%c", rxLinkStatistics.downlinkTXPower, SYM_MW, SYM_AH_DECORATION_DOWN);
             break;
         }
+    case OSD_RX_BAND:
+        displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_BAND);
+        strcat(buff, rxLinkStatistics.band);
+        break;
+    
+    case OSD_RX_MODE:
+        displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_MODE);
+        strcat(buff, rxLinkStatistics.mode);
+        break;
 #endif
 
     case OSD_FORMATION_FLIGHT:
@@ -4181,6 +4190,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_SNR_DB] = OSD_POS(24, 9);
     osdLayoutsConfig->item_pos[0][OSD_TX_POWER_UPLINK] = OSD_POS(24, 10);
     osdLayoutsConfig->item_pos[0][OSD_RX_POWER_DOWNLINK] = OSD_POS(24, 11);
+    osdLayoutsConfig->item_pos[0][OSD_RX_BAND] = OSD_POS(24, 12);
+    osdLayoutsConfig->item_pos[0][OSD_RX_MODE] = OSD_POS(24, 13);
 #endif
 
     osdLayoutsConfig->item_pos[0][OSD_ONTIME] = OSD_POS(23, 8);

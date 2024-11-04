@@ -294,6 +294,8 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_8,
     OSD_LQ_DOWNLINK,
     OSD_RX_POWER_DOWNLINK, // 160
+    OSD_RX_BAND,
+    OSD_RX_MODE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
