@@ -129,8 +129,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 26
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 27
     LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 28
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 29
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_LQ_UPLINK,                               // 29
+    LOGIC_CONDITION_OPERAND_FLIGHT_SNR,                                     // 39
     LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 31
     LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 33
@@ -144,6 +144,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE,                           // 41
     LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE, // int                     // 42
     LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS,                     // 43
+    LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK,                             // 44
 } logicFlightOperands_e;
 
 typedef enum {

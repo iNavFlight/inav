@@ -242,10 +242,10 @@ typedef enum {
     OSD_ESC_RPM,
     OSD_ESC_TEMPERATURE,
     OSD_AZIMUTH,
-    OSD_CRSF_RSSI_DBM,
-    OSD_CRSF_LQ,
-    OSD_CRSF_SNR_DB,
-    OSD_CRSF_TX_POWER,
+    OSD_RSSI_DBM,
+    OSD_LQ_UPLINK,
+    OSD_SNR_DB,
+    OSD_TX_POWER_UPLINK,
     OSD_GVAR_0,
     OSD_GVAR_1,
     OSD_GVAR_2,
@@ -291,7 +291,9 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_5,
     OSD_CUSTOM_ELEMENT_6,
     OSD_CUSTOM_ELEMENT_7,
-    OSD_CUSTOM_ELEMENT_8, // 158
+    OSD_CUSTOM_ELEMENT_8,
+    OSD_LQ_DOWNLINK,
+    OSD_RX_POWER_DOWNLINK, // 160
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -369,7 +371,7 @@ typedef struct osdConfig_s {
     float           gforce_alarm;
     float           gforce_axis_alarm_min;
     float           gforce_axis_alarm_max;
-#ifdef USE_SERIALRX_CRSF
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
     int8_t          snr_alarm;                          //CRSF SNR alarm in dB
     int8_t          link_quality_alarm;
     int16_t         rssi_dbm_alarm;                     // in dBm
