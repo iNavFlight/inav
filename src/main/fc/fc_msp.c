@@ -2692,21 +2692,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                     if (newFrequency <= VTXCOMMON_MSP_BANDCHAN_CHKVAL) {  //value is band and channel
                         const uint8_t newBand = (newFrequency / 8) + 1;
                         const uint8_t newChannel = (newFrequency % 8) + 1;
-
-                        if(vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
-                            vtxCommonSetBandAndChannel(vtxDevice, newBand, newChannel);
+                        if (vtxSettingsConfig()->band != newBand || vtxSettingsConfig()->channel != newChannel) {
+                            vtxSettingsConfigMutable()->band = newBand;
+                            vtxSettingsConfigMutable()->channel = newChannel;
                         }
-
-                        vtxSettingsConfigMutable()->band = newBand;
-                        vtxSettingsConfigMutable()->channel = newChannel;
                     }
 
                     if (sbufBytesRemaining(src) > 1) {
                         uint8_t newPower = sbufReadU8(src);
-                        uint8_t currentPower = 0;
-                        vtxCommonGetPowerIndex(vtxDevice, &currentPower);
-                        if (newPower != currentPower) {
-                            vtxCommonSetPowerByIndex(vtxDevice, newPower);
+                        if (vtxSettingsConfig()->power != newPower) {
                             vtxSettingsConfigMutable()->power = newPower;
                         }
 
@@ -2722,9 +2716,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                             vtxSettingsConfigMutable()->lowPowerDisarm = sbufReadU8(src);
                         }
 
-                        // //////////////////////////////////////////////////////////
-                        // this code is taken from BF, it's hack for HDZERO VTX MSP frame
-                        // API version 1.42 - this parameter kept separate since clients may already be supplying
+                        // API version 1.42 - extension for pitmode frequency 
                         if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); //skip pitModeFreq
                         }
@@ -2732,18 +2724,29 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         // API version 1.42 - extensions for non-encoded versions of the band, channel or frequency
                         if (sbufBytesRemaining(src) >= 4) {
                             uint8_t newBand = sbufReadU8(src);
+                            if (vtxSettingsConfig()->band != newBand) {
+                                vtxSettingsConfigMutable()->band = newBand;
+                            }
+
                             const uint8_t newChannel = sbufReadU8(src);
-                            vtxSettingsConfigMutable()->band = newBand;
-                            vtxSettingsConfigMutable()->channel = newChannel;
+                            if (vtxSettingsConfig()->channel != newChannel) {
+                                vtxSettingsConfigMutable()->channel = newChannel;
+                            }
                         }
 
-                       /* if (sbufBytesRemaining(src) >= 4) {
-                            sbufRead8(src); // freq_l
-                            sbufRead8(src); // freq_h
-                            sbufRead8(src); // band count
-                            sbufRead8(src); // channel count
-                        }*/
-                        // //////////////////////////////////////////////////////////
+                        if (sbufBytesRemaining(src) >= 2) {
+                            sbufReadU16(src); // freq
+                        }
+                        
+                        if (sbufBytesRemaining(src) >= 3) {
+                            sbufReadU8(src); // band count
+                            sbufReadU8(src); // channel count
+                            
+                            uint8_t newPowerCount = sbufReadU8(src);
+                            if (newPowerCount > 0 && newPowerCount < (vtxDevice->capability.powerCount)) {
+                                vtxDevice->capability.powerCount = newPowerCount;
+                            }                        
+                        }
                     }
                 }
             }
@@ -3700,7 +3703,7 @@ void mspWriteSimulatorOSD(sbuf_t *dst)
 		while (bytesCount < 80) //whole response should be less 155 bytes at worst.
 		{
 			bool blink1;
-			uint16_t lastChar;
+			uint16_t lastChar = 0;
 
 			count = 0;
 			while ( true )

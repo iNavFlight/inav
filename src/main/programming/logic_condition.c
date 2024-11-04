@@ -294,48 +294,53 @@ static int logicConditionCompute(
             return true;
             break;
 #endif
-        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
-#if defined(USE_VTX_CONTROL)
-#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-            } else {
-                return false;
-            }
-            break;
-#else
-            return false;
-#endif
 
+#if defined(USE_VTX_CONTROL)
+        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+        {
+            uint8_t newPower = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+            if ((newPower != operandA || newPower != vtxSettingsConfig()->power) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newPower = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = newPower;
+                if (newPower != vtxSettingsConfig()->power) {
+                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newPower); // Force setting if modified elsewhere
+                }
+                vtxSettingsConfigMutable()->power = newPower;
+                return newPower;
+            }
+            return false;
+            break;
+        }
         case LOGIC_CONDITION_SET_VTX_BAND:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
-                vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-            } else {
-                return false;
+        {
+            uint8_t newBand = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            if ((newBand != operandA  || newBand != vtxSettingsConfig()->band) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newBand = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = newBand;
+                if (newBand != vtxSettingsConfig()->band) {
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), newBand, vtxSettingsConfig()->channel);
+                }
+                vtxSettingsConfigMutable()->band = newBand;
+                return newBand;
             }
+            return false;
             break;
+        }
         case LOGIC_CONDITION_SET_VTX_CHANNEL:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
-                vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-            } else {
-                return false;
+        {
+            uint8_t newChannel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            if ((newChannel != operandA  || newChannel != vtxSettingsConfig()->channel) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newChannel = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, vtxDeviceCapability.channelCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newChannel;
+                if (newChannel != vtxSettingsConfig()->channel) {
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), vtxSettingsConfig()->band, newChannel);
+                }
+                vtxSettingsConfigMutable()->channel = newChannel;
+                return newChannel;
             }
+            return false;
             break;
+        }
 #endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
