@@ -804,6 +804,14 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #endif
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkRSSI;
+#else
+            return 0;
+#endif        
+            break;
+
 case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:
 #if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
             return rxLinkStatistics.downlinkLQ;

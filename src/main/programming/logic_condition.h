@@ -145,6 +145,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE, // int                     // 42
     LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS,                     // 43
     LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK,                             // 44
+    LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM,                         // 45
 } logicFlightOperands_e;
 
 typedef enum {
