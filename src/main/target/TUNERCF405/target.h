@@ -105,7 +105,6 @@
 #define UART4_TX_PIN            PA0
 #define USE_UART_INVERTER
 #define INVERTER_PIN_UART4_RX   PC14
-#define INVERTER_PIN_USART4_RX  PC14
 
 #define USE_UART5
 #define UART5_RX_PIN            PD2
