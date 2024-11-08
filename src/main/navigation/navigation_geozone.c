@@ -58,7 +58,7 @@
 #define MAX_DISTANCE_FLY_OVER_POINTS 50000
 #define MAX_PATH_PONITS (2 + 2 * MAX_VERTICES)
 #define POS_DETECTION_DISTANCE 7500 
-#define STICK_LOCK_MIN_TIME 1500
+#define STICK_LOCK_MIN_TIME 2500
 #define AVOID_TIMEOUT 30000
 #define MAX_LOCAL_VERTICES 128
 #define GEOZONE_INCLUSE_IGNORE_DISTANCE 2000 * 100 // m
@@ -109,6 +109,7 @@ static geoZoneConfig_t safeHomeGeozoneConfig;
 static geozoneActionState_e actionState = GEOZONE_ACTION_STATE_NONE;
 static timeMs_t actionStartTime = 0;
 static int32_t avoidCourse;
+static geoZoneRuntimeConfig_t *nearestHorZone = NULL;
 static geoZoneRuntimeConfig_t *nearestInclusiveZone = NULL;
 static fpVector3_t avoidingPoint;
 static bool geozoneIsEnabled = false;
@@ -650,6 +651,7 @@ static int8_t calcRthCourse(fpVector3_t* waypoints, const fpVector3_t* point, fp
         return 0;
     } 
     
+    // Set starting point slightly away from our current position 
     float offset = geozoneGetDetectionDistance();
     if (geozone.distanceVertToNearestZone <= offset) {
         int bearing = wrap_36000(geozone.directionToNearestZone + 18000);
@@ -660,7 +662,11 @@ static int8_t calcRthCourse(fpVector3_t* waypoints, const fpVector3_t* point, fp
     pathPoints[pathPointCount].visited = true;
     pathPoints[pathPointCount].distance = 0;
     pathPoints[pathPointCount++].point = start;
-    
+
+    // Calculate possible waypoints
+    // Vertices of the zones are possible waypoints, 
+    // inclusive zones are “reduced”, exclusive zones are “enlarged” to keep distance,
+    // round zones are converted into hexagons and long sides get additional points to be able to fly over zones.
     for (uint8_t i = 0 ; i < activeGeoZonesCount; i++) {        
         fpVector2_t *verticesZone;
         fpVector2_t verticesCirclePoly[CIRCLE_POLY_SIDES];
@@ -748,7 +754,7 @@ static int8_t calcRthCourse(fpVector3_t* waypoints, const fpVector3_t* point, fp
     while (!pathPoints[pathPointCount - 1].visited) {
         pathPoint_t *next = current;
         float min = FLT_MAX;
-        for (uint16_t i = 1; i < pathPointCount; i++) {
+        for (uint8_t i = 1; i < pathPointCount; i++) {
             
             float currentDist = FLT_MAX;
             if (isPointDirectReachable(&current->point, &pathPoints[i].point)) {
@@ -813,7 +819,7 @@ static void updateZoneInfos(void)
     fpVector3_t nearestBorderPoint;
     aboveOrUnderZone = false;
    
-    geoZoneRuntimeConfig_t *nearestHorInclZone = NULL;
+    nearestHorZone = NULL;
     geoZoneRuntimeConfig_t *currentZones[MAX_GEOZONES];
     uint8_t currentZoneCount = getCurrentZones(currentZones, true);
     int32_t currentMaxAltitude = INT32_MIN, currentMinAltitude = INT32_MAX;
@@ -821,11 +827,8 @@ static void updateZoneInfos(void)
     if (currentZoneCount == 1) {
         currentMaxAltitude = currentZones[0]->config.maxAltitude;
         currentMinAltitude = currentZones[0]->config.minAltitude;
-
-        if (!isInZoneAltitudeRange(currentZones[0], getEstimatedActualPosition(Z))) {
-            nearestHorInclZone = currentZones[0];
-        }
-
+        nearestHorZone = currentZones[0];
+    
     } else if (currentZoneCount >= 2) {
         
         geoZoneRuntimeConfig_t *aboveZone = NULL, *belowZone = NULL;
@@ -837,6 +840,7 @@ static void updateZoneInfos(void)
             if (isInZoneAltitudeRange(current, getEstimatedActualPosition(Z))) {
                 currentMaxAltitude = MAX(current->config.maxAltitude, currentMaxAltitude);
                 currentMinAltitude = MIN(current->config.minAltitude, currentMinAltitude);
+                nearestHorZone = current;
             }
 
             if (current->config.minAltitude > getEstimatedActualPosition(Z)) {
@@ -859,16 +863,16 @@ static void updateZoneInfos(void)
         if (aboveZone) {
             if (aboveZone->config.type == GEOZONE_TYPE_INCLUSIVE) {
                 currentMaxAltitude = MAX(aboveZone->config.maxAltitude, currentMaxAltitude);
-                nearestHorInclZone = aboveZone;
+                nearestHorZone = aboveZone;
             } else {
                 currentMaxAltitude = MIN(aboveZone->config.minAltitude, currentMaxAltitude);
             }
         } 
 
         if (belowZone) {
-             if (belowZone->config.type == GEOZONE_TYPE_INCLUSIVE) {
+            if (belowZone->config.type == GEOZONE_TYPE_INCLUSIVE) {
                 currentMinAltitude = MIN(belowZone->config.minAltitude, currentMinAltitude);
-                nearestHorInclZone = belowZone;
+                nearestHorZone = belowZone;
             } else {
                 currentMinAltitude = MAX(belowZone->config.maxAltitude, currentMinAltitude);
             }
@@ -959,18 +963,19 @@ static void updateZoneInfos(void)
                 if (isPointInCircle((fpVector2_t*)&navGetCurrentActualPositionAndVelocity()->pos, &activeGeoZones[i].verticesLocal[0], activeGeoZones[i].radius)) {
                     directionToBorder = wrap_36000(directionToBorder + 18000);
                 }
-
                 geozone.directionToNearestZone = directionToBorder;
                 geozone.distanceHorToNearestZone = roundf(dist);
                 nearestInclusiveZone = &activeGeoZones[i];
             }
         }
 
-        if (aboveOrUnderZone && nearestHorInclZone != NULL && ABS(geozone.distanceVertToNearestZone) < geozone.distanceHorToNearestZone) {
-            nearestInclusiveZone = nearestHorInclZone;
+        if (aboveOrUnderZone && nearestHorZone != NULL && ABS(geozone.distanceVertToNearestZone) < geozone.distanceHorToNearestZone) {
+            nearestInclusiveZone = nearestHorZone;
             geozone.distanceHorToNearestZone = 0;
         }
     } 
+
+    geozone.nearestHorZoneHasAction = nearestHorZone && nearestHorZone->config.fenceAction != GEOFENCE_ACTION_NONE;
 }
 
 void performeFenceAction(geoZoneRuntimeConfig_t *zone, fpVector3_t *intersection)
@@ -1248,7 +1253,7 @@ void geozoneUpdate(timeUs_t curentTimeUs)
         isInitalised = true;
     }
           
-    if (!ARMING_FLAG(ARMED) || !isGPSHeadingValid() || !isInitalised || activeGeoZonesCount == 0 || ((STATE(AIRPLANE) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH))) ) {
+    if (!ARMING_FLAG(ARMED) || !isInitalised || activeGeoZonesCount == 0) {
         noZoneRTH = false;
         return;
     } 
@@ -1267,6 +1272,10 @@ void geozoneUpdate(timeUs_t curentTimeUs)
 
     updateCurrentZones();
     updateZoneInfos();
+
+    if (STATE(AIRPLANE) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
+        return;
+    }
     
     // User has switched to non geofence mode, end all actions and switch to mode from box input
     if (isNonGeozoneModeFromBoxInput()) {
@@ -1315,7 +1324,7 @@ void geozoneUpdate(timeUs_t curentTimeUs)
             return;
         case GEOZONE_ACTION_STATE_RTH:
         case GEOZONE_ACTION_STATE_POSHOLD:
-            geozone.messageState = GEOZONE_MESSAGE_STATE_LOITER;
+            geozone.messageState = GEOZONE_MESSAGE_STATE_POS_HOLD;
             if (geozone.sticksLocked && millis() - actionStartTime > STICK_LOCK_MIN_TIME) {
                 geozone.sticksLocked = false;
             }
@@ -1327,25 +1336,26 @@ void geozoneUpdate(timeUs_t curentTimeUs)
             break;
     }
     
-    bool currentZoneHasAction = false;
-    for (uint8_t i = 0; i < currentZoneCount; i++) {
-        if (currentZones[i]->config.fenceAction != GEOFENCE_ACTION_NONE) {
-            currentZoneHasAction = true;
-            break;
-        }
-    }
-
-    if ((IS_RC_MODE_ACTIVE(BOXHORIZON) || IS_RC_MODE_ACTIVE(BOXANGLE)) && currentZoneHasAction && (geozone.currentzoneMaxAltitude > 0 || geozone.currentzoneMinAltitude != 0) && ABS(geozone.distanceVertToNearestZone) < geoZoneConfig()->safeAltitudeDistance) {
+    if ((IS_RC_MODE_ACTIVE(BOXHORIZON) || IS_RC_MODE_ACTIVE(BOXANGLE)) && 
+        actionState == GEOZONE_ACTION_STATE_NONE &&
+        geozone.nearestHorZoneHasAction && 
+        ABS(geozone.distanceVertToNearestZone) > 0 && 
+        ABS(geozone.distanceVertToNearestZone) < geoZoneConfig()->safeAltitudeDistance) {
         
         float targetAltitide = 0;
-        if (!geozone.insideFz) {
-            if (geozone.distanceVertToNearestZone < 0) {
-                targetAltitide = nearestInclusiveZone->config.maxAltitude - geoZoneConfig()->safeAltitudeDistance * 1.25;
+        uint32_t extraSafteyAlt = geoZoneConfig()->safeAltitudeDistance * 0.25;
+        if (nearestHorZone->config.type == GEOZONE_TYPE_INCLUSIVE && geozone.insideFz) {
+            if (geozone.distanceVertToNearestZone > 0) {
+                targetAltitide = geozone.currentzoneMaxAltitude - extraSafteyAlt;
             } else {
-                targetAltitide = nearestInclusiveZone->config.minAltitude + geoZoneConfig()->safeAltitudeDistance * 1.25;
+                targetAltitide = geozone.currentzoneMinAltitude + extraSafteyAlt;
             }
-        } else {
-            targetAltitide = geozone.distanceVertToNearestZone > 0 ? geozone.currentzoneMaxAltitude - geoZoneConfig()->safeAltitudeDistance * 1.25 : geozone.currentzoneMinAltitude + geoZoneConfig()->safeAltitudeDistance * 1.25;
+        } else if (nearestHorZone->config.type == GEOZONE_TYPE_EXCLUSIVE && !geozone.insideNfz) {
+           if (geozone.distanceVertToNearestZone > 0) {
+                targetAltitide = geozone.currentzoneMinAltitude - extraSafteyAlt;
+            } else {
+                targetAltitide = geozone.currentzoneMaxAltitude + extraSafteyAlt;
+            }
         }
         
         fpVector3_t targetPos;
@@ -1374,6 +1384,7 @@ void geozoneUpdate(timeUs_t curentTimeUs)
         lockRTZ = false;
     }
 
+    // RTZ: Return to zone: 
     if (geozone.insideNfz || (!geozone.insideFz && isAtLeastOneInclusiveZoneActive)) {
 
         if (isAtLeastOneInclusiveZoneActive && !geozone.insideFz) {
@@ -1457,9 +1468,7 @@ void geozoneUpdate(timeUs_t curentTimeUs)
         } 
         
         if (!geozone.insideNfz && intersectZone->config.type == GEOZONE_TYPE_EXCLUSIVE && (intersectZone->config.minAltitude != 0 || intersection.z > 0)) {
-            
-            geozone.distanceToZoneBorder3d = (uint32_t)roundf(distanceToZone);
-            
+            geozone.distanceToZoneBorder3d = (uint32_t)roundf(distanceToZone);            
             int32_t minAltitude = intersectZone->config.minAltitude;
             int32_t maxAltitude = intersectZone->config.maxAltitude;
             if (intersectZone->isInfZone || (minAltitude == 0 && maxAltitude == INT32_MAX)) {
@@ -1474,7 +1483,7 @@ void geozoneUpdate(timeUs_t curentTimeUs)
                 if (ABS(distToMin) < ABS(distToMax)) {
                     geozone.zoneInfo = distToMin;
                 } else {
-                    geozone.zoneInfo = (distToMax);
+                    geozone.zoneInfo = distToMax;
                 }
             }
         

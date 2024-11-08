@@ -5973,6 +5973,64 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             } else if (STATE(LANDING_DETECTED)) {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
             } else {
+#ifdef USE_GEOZONE
+            char buf[12], buf1[12];
+            switch (geozone.messageState) {
+                case GEOZONE_MESSAGE_STATE_NFZ:
+                    messages[messageCount++] = OSD_MSG_NFZ;
+                    break;
+                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:      
+                    osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                    tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
+                    messages[messageCount++] = messageBuf;
+                    break;
+                case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
+                    messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
+                    break;
+                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:    
+                osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                    if (geozone.zoneInfo == INT32_MAX) {
+                        tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
+                    } else {
+                        osdFormatAltitudeSymbol(buf1, geozone.zoneInfo);
+                    }
+                    tfp_sprintf(messageBuf, OSD_MSG_ENTERING_NFZ, buf, buf1);
+                    messages[messageCount++] = messageBuf;
+                    break;
+                case GEOZONE_MESSAGE_STATE_AVOIDING_FB:
+                    messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE:
+                    messages[messageCount++] = OSD_MSG_RETURN_TO_ZONE;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH:
+                    messages[messageCount++] = OSD_MSG_AVOIDING_ALT_BREACH;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_FLYOUT_NFZ:
+                    messages[messageCount++] = OSD_MSG_FLYOUT_NFZ;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_POS_HOLD:
+                    messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                    if (!geozone.sticksLocked) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;         
+                case GEOZONE_MESSAGE_STATE_NONE:
+                    break;
+            }
+#endif
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
                 /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
@@ -6011,64 +6069,6 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
                         }
                     }
-#ifdef USE_GEOZONE
-                    char buf[12], buf1[12];
-                    switch (geozone.messageState) {
-                        case GEOZONE_MESSAGE_STATE_NFZ:
-                            messages[messageCount++] = OSD_MSG_NFZ;
-                            break;
-                        case GEOZONE_MESSAGE_STATE_LEAVING_FZ:      
-                            osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
-                            tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
-                            messages[messageCount++] = messageBuf;
-                            break;
-                        case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
-                            messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
-                            break;
-                        case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:    
-                        osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
-                            if (geozone.zoneInfo == INT32_MAX) {
-                                tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
-                            } else {
-                                osdFormatAltitudeSymbol(buf1, geozone.zoneInfo);
-                            }
-                            tfp_sprintf(messageBuf, OSD_MSG_ENTERING_NFZ, buf, buf1);
-                            messages[messageCount++] = messageBuf;
-                            break;
-                        case GEOZONE_MESSAGE_STATE_AVOIDING_FB:
-                            messages[messageCount++] = OSD_MSG_AVOIDING_FB;
-                            if (!posControl.sendTo.lockSticks) {
-                                messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                            }
-                            break;
-                        case GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE:
-                            messages[messageCount++] = OSD_MSG_RETURN_TO_ZONE;
-                            if (!posControl.sendTo.lockSticks) {
-                                messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                            }
-                            break;
-                        case GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH:
-                            messages[messageCount++] = OSD_MSG_AVOIDING_ALT_BREACH;
-                            if (!posControl.sendTo.lockSticks) {
-                                messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                            }
-                            break;
-                        case GEOZONE_MESSAGE_STATE_FLYOUT_NFZ:
-                            messages[messageCount++] = OSD_MSG_FLYOUT_NFZ;
-                            if (!posControl.sendTo.lockSticks) {
-                                messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                            }
-                            break;
-                        case GEOZONE_MESSAGE_STATE_LOITER:
-                            messages[messageCount++] = OSD_MSG_AVOIDING_FB;
-                            if (!geozone.sticksLocked) {
-                                messages[messageCount++] = OSD_MSG_MOVE_STICKS;
-                            }
-                            break;         
-                        case GEOZONE_MESSAGE_STATE_NONE:
-                            break;
-                    }
-#endif
                 } else if (STATE(MULTIROTOR)) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
                     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                         if (posControl.cruise.multicopterSpeed >= 50.0f) {
