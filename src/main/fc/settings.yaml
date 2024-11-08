@@ -3829,7 +3829,6 @@ groups:
     condition: USE_OSD || USE_DJI_HD_OSD
     members:
       - name: osd_speed_source
-        condition: USE_GEOZONE
         description: "Sets the speed type displayed by the DJI OSD and OSD canvas (FrSky Pixel): GROUND, 3D, AIR"
         default_value: "GROUND"
         field: speedSource

@@ -866,8 +866,14 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_NO_PREARM);
         case ARMING_DISABLED_DSHOT_BEEPER:
             return OSD_MESSAGE_STR(OSD_MSG_DSHOT_BEEPER);
+
         case ARMING_DISABLED_GEOZONE:
+#ifdef USE_GEOZONE
             return OSD_MESSAGE_STR(OSD_MSG_NFZ);
+#else
+            FALLTHROUGH;
+#endif
+
             // Cases without message
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;

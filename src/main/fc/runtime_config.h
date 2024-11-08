@@ -23,7 +23,6 @@ typedef enum {
     WAS_EVER_ARMED                                  = (1 << 3),
     SIMULATOR_MODE_HITL                             = (1 << 4),
     SIMULATOR_MODE_SITL                             = (1 << 5),
-
     ARMING_DISABLED_GEOZONE                         = (1 << 6),
     ARMING_DISABLED_FAILSAFE_SYSTEM                 = (1 << 7),
     ARMING_DISABLED_NOT_LEVEL                       = (1 << 8),

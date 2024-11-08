@@ -4515,13 +4515,16 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             return NAV_FSM_EVENT_SWITCH_TO_RTH;
         }
 
+#ifdef USE_GEOZONE
         if (posControl.flags.sendToActive) {
             return NAV_FSM_EVENT_SWITCH_TO_SEND_TO;
         }
 
+
         if (posControl.flags.forcedPosholdActive) {
             return NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D;
         }
+#endif
 
         /* WP mission activation control:
          * canActivateWaypoint & waypointWasActivated are used to prevent WP mission
