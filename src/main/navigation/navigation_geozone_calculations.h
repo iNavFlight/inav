@@ -348,8 +348,7 @@ static bool calcLineCylinderIntersection(fpVector3_t* intersection, float* dista
 	if (calculateDistance2((fpVector2_t*)startPos, &i1) < calculateDistance2((fpVector2_t*)startPos, &i2)) {
 		intersect.x = i1.x;
 		intersect.y = i1.y;
-	}
-	else {
+	} else {
 		intersect.x = i2.x;
 		intersect.y = i2.y;
 	}

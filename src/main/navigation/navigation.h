@@ -131,7 +131,7 @@ typedef enum {
     GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE,
     GEOZONE_MESSAGE_STATE_FLYOUT_NFZ,
     GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH,
-    GEOZONE_MESSAGE_STATE_LOITER
+    GEOZONE_MESSAGE_STATE_POS_HOLD
 } geozoneMessageState_e;
 
 enum fenceAction_e {
@@ -197,6 +197,7 @@ typedef struct geozone_s {
     int32_t zoneInfo;
     int32_t currentzoneMaxAltitude; 
     int32_t currentzoneMinAltitude;
+    bool nearestHorZoneHasAction;
     bool sticksLocked;
     int8_t loiterDir;
     bool avoidInRTHInProgress;
