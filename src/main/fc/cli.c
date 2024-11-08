@@ -151,8 +151,8 @@ static uint8_t  commandBatchErrorCount = 0;
 
 // sync this with features_e
 static const char * const featureNames[] = {
-    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "MOTOR_STOP",
-    "GEOZONE", "SOFTSERIAL", "GPS", "RPM_FILTERS",
+    "THR_VBAT_COMP", "VBAT", "TX_PROF_SEL", "BAT_PROF_AUTOSWITCH", "GEOZONE",
+    "", "SOFTSERIAL", "GPS", "RPM_FILTERS",
     "", "TELEMETRY", "CURRENT_METER", "REVERSIBLE_MOTORS", "",
     "", "RSSI_ADC", "LED_STRIP", "DASHBOARD", "",
     "BLACKBOX", "", "TRANSPONDER", "AIRMODE",
