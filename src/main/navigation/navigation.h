@@ -118,8 +118,6 @@ void resetFwAutolandApproach(int8_t idx);
 
 #if defined(USE_GEOZONE)
 
-#define MAX_GEOZONES_IN_CONFIG 63
-#define MAX_VERTICES_IN_CONFIG 126
 
 typedef enum {
     GEOZONE_MESSAGE_STATE_NONE,

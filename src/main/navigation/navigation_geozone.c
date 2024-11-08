@@ -551,7 +551,7 @@ uint32_t geozoneGetDetectionDistance(void)
 
 static int32_t calcBounceCourseForZone(geoZoneRuntimeConfig_t *zone, fpVector3_t *prevPoint, fpVector3_t *intersection)
 {
-    int32_t course;
+    int32_t course = 0;
     if (zone->config.shape == GEOZONE_SHAPE_POLYGON)     {
         fpVector2_t intersect;
         bool found = false;
@@ -1517,7 +1517,7 @@ void geozoneResetRTH(void)
     rthWaypointCount = 0;
 }
 
-void geozoneSetupRTH() {
+void geozoneSetupRTH(void) {
     if (!geozone.insideFz && isAtLeastOneInclusiveZoneActive) {
         noZoneRTH = true;
     } else {
