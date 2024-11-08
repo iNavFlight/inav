@@ -62,7 +62,6 @@ if(NOT MACOSX)
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
         -Wno-return-local-addr
         -Wno-error=maybe-uninitialized
-        -Wno-double-promotion
         -fsingle-precision-constant
     )
     if (CMAKE_COMPILER_IS_GNUCC AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 12.0)
@@ -70,6 +69,7 @@ if(NOT MACOSX)
     endif()
 else()
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
+        -Wno-double-promotion
     )
 endif()
 
