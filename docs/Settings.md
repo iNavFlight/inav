@@ -1472,6 +1472,76 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 
 ---
 
+### geozone_avoid_altitude_range
+
+Altitude range in which an attempt is made to avoid a geozone upwards
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5000 | 0 | 1000000 |
+
+---
+
+### geozone_detection_distance
+
+Distance from which a geozone is detected
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50000 | 0 | 1000000 |
+
+---
+
+### geozone_mr_stop_distance
+
+Distance in which multirotors stops before the border
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15000 | 0 | 100000 |
+
+---
+
+### geozone_no_way_home_action
+
+Action if RTH with active geozones is unable to calculate a course to home
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RTH |  |  |
+
+---
+
+### geozone_safe_altitude_distance
+
+Vertical distance that must be maintained to the upper and lower limits of the zone.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 10000 |
+
+---
+
+### geozone_safehome_as_inclusive
+
+Treat nearest safehome as inclusive geozone
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### geozone_safehome_zone_action
+
+Fence action for safehome zone
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NONE |  |  |
+
+---
+
 ### gimbal_pan_channel
 
 Gimbal pan rc channel index. 0 is no channel.

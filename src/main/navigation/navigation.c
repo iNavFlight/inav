@@ -3611,8 +3611,8 @@ float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros)
     const bool emergLandingIsActive = navigationIsExecutingAnEmergencyLanding();
     
 #ifdef USE_GEOZONE
-    if (!emergLandingIsActive && geozone.nearestHorZoneHasAction && ((geozone.currentzoneMaxAltitude > 0 && navGetCurrentActualPositionAndVelocity()->pos.z >= geozone.currentzoneMaxAltitude && posControl.desiredState.climbRateDemand > 0) || 
-        (geozone.currentzoneMinAltitude > 0 && navGetCurrentActualPositionAndVelocity()->pos.z <= geozone.currentzoneMinAltitude && posControl.desiredState.climbRateDemand < 0 ))) {
+    if (!emergLandingIsActive && geozone.nearestHorZoneHasAction && ((geozone.currentzoneMaxAltitude != 0 && navGetCurrentActualPositionAndVelocity()->pos.z >= geozone.currentzoneMaxAltitude && posControl.desiredState.climbRateDemand > 0) || 
+        (geozone.currentzoneMinAltitude != 0 && navGetCurrentActualPositionAndVelocity()->pos.z <= geozone.currentzoneMinAltitude && posControl.desiredState.climbRateDemand < 0 ))) {
         return 0.0f;
     }
 #endif
@@ -4255,6 +4255,7 @@ static void processNavigationRCAdjustments(void)
     /* Process pilot's RC input. Disable all pilot's input when in FAILSAFE_MODE */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
 
+#ifdef USE_GEOZONE
     if (geozone.sticksLocked) {
         posControl.flags.isAdjustingAltitude = false;
         posControl.flags.isAdjustingPosition = false;
@@ -4262,6 +4263,7 @@ static void processNavigationRCAdjustments(void)
 
         return;
     }
+#endif
 
     if (FLIGHT_MODE(FAILSAFE_MODE)) {
         if (STATE(MULTIROTOR) && navStateFlags & NAV_RC_POS) {
