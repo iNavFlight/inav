@@ -2585,13 +2585,13 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_RX_BAND:
         displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_BAND);
-        strcat(buff, rxLinkStatistics.band);
+        tfp_sprintf(buff, "%4s", rxLinkStatistics.band);
         buff[4] = '\0';
         break;
     
     case OSD_RX_MODE:
         displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_MODE);
-        strcat(buff, rxLinkStatistics.mode);
+        tfp_sprintf(buff, "%6s", rxLinkStatistics.mode);
         buff[6] = '\0';
         break;
 #endif
