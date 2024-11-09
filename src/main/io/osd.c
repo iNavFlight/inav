@@ -2471,7 +2471,7 @@ static bool osdDrawSingleElement(uint8_t item)
             if (rssi <= -100) {
                 tfp_sprintf(buff + 1, "%4d%c", rssi, SYM_DBM);
             } else {
-                tfp_sprintf(buff + 1, "%3d%c%c", rssi, SYM_DBM, ' ');
+                tfp_sprintf(buff + 1, " %3d%c", rssi, SYM_DBM);
             }
             if (!failsafeIsReceivingRxData()){
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -2560,7 +2560,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 if (snrFiltered <= -10 || snrFiltered >= 10) {
                     tfp_sprintf(buff + 1, "%3d%c", snrFiltered, SYM_DB);
                 } else {
-                    tfp_sprintf(buff + 1, "%2d%c%c", snrFiltered, SYM_DB, ' ');
+                    tfp_sprintf(buff + 1, " %2d%c", snrFiltered, SYM_DB);
                 }
             }
             break;
@@ -2569,7 +2569,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_TX_POWER_UPLINK:
         {
             if (!failsafeIsReceivingRxData())
-                tfp_sprintf(buff, "%s%c", "    ", SYM_BLANK);
+                tfp_sprintf(buff, "%s%c", "    ", SYM_MW);
             else
                 tfp_sprintf(buff, "%4d%c", rxLinkStatistics.uplinkTXPower, SYM_MW);
             break;
@@ -2578,7 +2578,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_RX_POWER_DOWNLINK:
         {
             if (!failsafeIsReceivingRxData())
-                tfp_sprintf(buff, "%s%c%c", "    ", SYM_BLANK, SYM_BLANK);
+                tfp_sprintf(buff, "%s%c%c", "    ", SYM_MW, SYM_AH_DECORATION_DOWN);
             else
                 tfp_sprintf(buff, "%4d%c%c", rxLinkStatistics.downlinkTXPower, SYM_MW, SYM_AH_DECORATION_DOWN);
             break;
@@ -2586,11 +2586,13 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_RX_BAND:
         displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_BAND);
         strcat(buff, rxLinkStatistics.band);
+        buff[4] = '\0';
         break;
     
     case OSD_RX_MODE:
         displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_MODE);
         strcat(buff, rxLinkStatistics.mode);
+        buff[6] = '\0';
         break;
 #endif
 

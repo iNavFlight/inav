@@ -34,6 +34,7 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/streambuf.h"
+#include "common/string_light.h"
 #include "common/bitarray.h"
 #include "common/time.h"
 #include "common/utils.h"
@@ -2947,9 +2948,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         rxLinkStatistics.band[i] = sbufReadU8(src);
                     }
 
+                    sl_toupperptr(rxLinkStatistics.band);
+
                     for (int i = 0; i < 6; i++) {
                         rxLinkStatistics.mode[i] = sbufReadU8(src);
                     }
+
+                    sl_toupperptr(rxLinkStatistics.mode);
                 }
 
                 return MSP_RESULT_NO_REPLY;
