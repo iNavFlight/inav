@@ -136,7 +136,7 @@
 #define OSD_MSG_NFZ                 "NO FLY ZONE"
 #define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
 #define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
-#define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s  %s"
+#define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"
 #define OSD_MSG_AVOIDING_FB         "AVOIDING FENCE BREACH"
 #define OSD_MSG_RETURN_TO_ZONE      "RETURN TO FZ"
 #define OSD_MSG_FLYOUT_NFZ          "FLY OUT NFZ"

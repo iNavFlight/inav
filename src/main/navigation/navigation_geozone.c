@@ -48,7 +48,7 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
-#if defined(USE_GEOZONE) && defined (USE_GPS)
+#ifdef USE_GEOZONE
 
 #include "navigation_geozone_calculations.h"
 
@@ -145,6 +145,7 @@ void pgResetFn_geoZonesConfig(geoZoneConfig_t *instance)
             .type = GEOZONE_SHAPE_CIRCULAR,
             .minAltitude = 0,
             .maxAltitude = 0,
+            .isSealevelRef = false,
             .fenceAction = GEOFENCE_ACTION_NONE,
             .vertexCount = 0
         );
@@ -172,6 +173,29 @@ uint8_t geozoneGetUsedVerticesCount(void)
         count += geoZonesConfig(i)->vertexCount;
     }
     return count;
+}
+
+void geozoneReset(const int8_t idx) 
+{   
+    if (idx < 0) {
+        for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++) {
+            geoZonesConfigMutable(i)->shape = GEOZONE_SHAPE_CIRCULAR;
+            geoZonesConfigMutable(i)->type = GEOZONE_TYPE_EXCLUSIVE;
+            geoZonesConfigMutable(i)->maxAltitude = 0;
+            geoZonesConfigMutable(i)->minAltitude = 0;
+            geoZonesConfigMutable(i)->isSealevelRef = false;
+            geoZonesConfigMutable(i)->fenceAction = GEOFENCE_ACTION_NONE;
+            geoZonesConfigMutable(i)->vertexCount = 0;
+        }
+    } else if (idx < MAX_GEOZONES_IN_CONFIG) {
+        geoZonesConfigMutable(idx)->shape = GEOZONE_SHAPE_CIRCULAR;
+        geoZonesConfigMutable(idx)->type = GEOZONE_TYPE_EXCLUSIVE;
+        geoZonesConfigMutable(idx)->maxAltitude = 0;
+        geoZonesConfigMutable(idx)->minAltitude = 0;
+        geoZonesConfigMutable(idx)->isSealevelRef = false;
+        geoZonesConfigMutable(idx)->fenceAction = GEOFENCE_ACTION_NONE;
+        geoZonesConfigMutable(idx)->vertexCount = 0;
+    }
 }
 
 void geozoneResetVertices(const int8_t zoneId, const int16_t idx)
@@ -1129,12 +1153,24 @@ static void endFenceAction(void)
 static void geoZoneInit(void)
 {
     activeGeoZonesCount = 0;
+    uint8_t expectedVertices = 0, configuredVertices = 0;
     for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++)
     {
         if (geoZonesConfig(i)->vertexCount > 0) {
             memcpy(&activeGeoZones[activeGeoZonesCount].config, geoZonesConfig(i), sizeof(geoZoneRuntimeConfig_t));
             if (activeGeoZones[i].config.maxAltitude == 0) {
                 activeGeoZones[i].config.maxAltitude = INT32_MAX;
+            }
+
+            if (activeGeoZones[i].config.isSealevelRef) {
+                
+                if (activeGeoZones[i].config.maxAltitude != 0) {
+                    activeGeoZones[i].config.maxAltitude -= GPS_home.alt;
+                }
+                
+                if (activeGeoZones[i].config.minAltitude != 0) {
+                    activeGeoZones[i].config.minAltitude -= GPS_home.alt;
+                }
             }
             
             activeGeoZones[i].isInfZone = activeGeoZones[i].config.maxAltitude == INT32_MAX && activeGeoZones[i].config.minAltitude == 0;
@@ -1146,6 +1182,7 @@ static void geoZoneInit(void)
             activeGeoZones[activeGeoZonesCount].enable = true;
             activeGeoZonesCount++;
         }
+        expectedVertices += geoZonesConfig(i)->vertexCount;
     }
     
     if (activeGeoZonesCount > 0) {
@@ -1155,6 +1192,7 @@ static void geoZoneInit(void)
             fpVector3_t posLocal3;
 
             if (geoZoneVertices(i)->zoneId >= 0 && geoZoneVertices(i)->zoneId < MAX_GEOZONES_IN_CONFIG && geoZoneVertices(i)->idx <= MAX_VERTICES_IN_CONFIG) {         
+                configuredVertices++;
                 if (geoZonesConfig(geoZoneVertices(i)->zoneId)->shape == GEOZONE_SHAPE_CIRCULAR && geoZoneVertices(i)->idx == 1) {
                     activeGeoZones[geoZoneVertices(i)->zoneId].radius = geoZoneVertices(i)->lat;
                     activeGeoZones[geoZoneVertices(i)->zoneId].config.vertexCount = 1;
@@ -1180,7 +1218,7 @@ static void geoZoneInit(void)
             }
         }
     }
-    
+
     if (geoZoneConfig()->nearestSafeHomeAsInclusivZone && posControl.safehomeState.index >= 0)
     {       
         safeHomeGeozoneConfig.shape = GEOZONE_SHAPE_CIRCULAR;
@@ -1194,6 +1232,8 @@ static void geoZoneInit(void)
         activeGeoZones[activeGeoZonesCount].verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
         activeGeoZones[activeGeoZonesCount].radius = navConfig()->general.safehome_max_distance;
         activeGeoZonesCount++;
+        expectedVertices++;
+        configuredVertices++;
     }
 
     updateCurrentZones();
@@ -1225,7 +1265,7 @@ static void geoZoneInit(void)
     }
 
     activeGeoZonesCount = newActiveZoneCount;
-    if (activeGeoZonesCount == 0) {
+    if (activeGeoZonesCount == 0 || expectedVertices != configuredVertices) {
         setTaskEnabled(TASK_GEOZONE, false);
         geozoneIsEnabled = false;
         return;
@@ -1525,6 +1565,10 @@ void geozoneSetupRTH(void) {
     }
 }
 
+// Return value
+// -1: Unable to calculate a course home
+//  0: No NFZ in the way
+// >0: Number of waypoints 
 int8_t geozoneCheckForNFZAtCourse(bool isRTH)
 {    
     UNUSED(isRTH);
@@ -1575,10 +1619,10 @@ void geozoneUpdateMaxHomeAltitude(void) {
 }
 
 // Avoid arming in NFZ 
-bool geozoneIsInsideNFZ(void)
+bool geozoneIsBlockingArming(void)
 {
     // Do not generate arming flags unless we are sure about them
-    if (!isInitalised || activeGeoZonesCount == 0)  {
+    if (!isInitalised || !geozoneIsEnabled || activeGeoZonesCount == 0)  {
         return false;
     }
     

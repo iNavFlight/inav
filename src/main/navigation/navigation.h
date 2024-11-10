@@ -118,6 +118,9 @@ void resetFwAutolandApproach(int8_t idx);
 
 #if defined(USE_GEOZONE)
 
+#ifndef USE_GPS
+    #error "Geozone needs GPS support"
+#endif
 
 typedef enum {
     GEOZONE_MESSAGE_STATE_NONE,
@@ -156,6 +159,7 @@ typedef struct geoZoneConfig_s
     uint8_t type;
     int32_t minAltitude;
     int32_t maxAltitude;
+    bool isSealevelRef;
     uint8_t fenceAction;
     uint8_t vertexCount;
 } geoZoneConfig_t;
@@ -209,9 +213,10 @@ bool geozoneSetVertex(uint8_t zoneId, uint8_t vertexId, int32_t lat, int32_t lon
 int8_t geozoneGetVertexIdx(uint8_t zoneId, uint8_t vertexId);
 bool isGeozoneActive(void);
 uint8_t geozoneGetUsedVerticesCount(void);
+void geozoneReset(int8_t idx);
 void geozoneResetVertices(int8_t zoneId, int16_t idx);
 void geozoneUpdate(timeUs_t curentTimeUs);
-bool geozoneIsInsideNFZ(void);
+bool geozoneIsBlockingArming(void);
 void geozoneAdvanceRthAvoidWaypoint(void);
 int8_t geozoneCheckForNFZAtCourse(bool isRTH);
 bool geoZoneIsLastRthWaypoint(void);

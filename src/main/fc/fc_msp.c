@@ -1771,7 +1771,7 @@ static mspResult_e mspFwApproachOutCommand(sbuf_t *dst, sbuf_t *src)
 }
 #endif
 
-#if defined(USE_GEOZONE) && defined (USE_GPS)
+#ifdef USE_GEOZONE
 static mspResult_e mspFcGeozoneOutCommand(sbuf_t *dst, sbuf_t *src)
 {
     const uint8_t idx = sbufReadU8(src);
@@ -1780,6 +1780,7 @@ static mspResult_e mspFcGeozoneOutCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, geoZonesConfig(idx)->shape);
         sbufWriteU32(dst, geoZonesConfig(idx)->minAltitude);
         sbufWriteU32(dst, geoZonesConfig(idx)->maxAltitude);
+        sbufWriteU8(dst, geoZonesConfig(idx)->isSealevelRef);
         sbufWriteU8(dst, geoZonesConfig(idx)->fenceAction);
         sbufWriteU8(dst, geoZonesConfig(idx)->vertexCount);
         sbufWriteU8(dst, idx);
@@ -3365,9 +3366,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         gpsUbloxSendCommand(src->ptr, dataSize, 0);
         break;
 
-#if defined(USE_GEOZONE) && defined (USE_GPS)
+#ifdef USE_GEOZONE
     case MSP2_INAV_SET_GEOZONE:
-        if (dataSize == 13) {
+        if (dataSize == 14) {
             uint8_t geozoneId;
             if (!sbufReadU8Safe(&geozoneId, src) || geozoneId >= MAX_GEOZONES_IN_CONFIG) {
                 return MSP_RESULT_ERROR;
@@ -3377,7 +3378,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             geoZonesConfigMutable(geozoneId)->type = sbufReadU8(src); 
             geoZonesConfigMutable(geozoneId)->shape = sbufReadU8(src);
             geoZonesConfigMutable(geozoneId)->minAltitude = sbufReadU32(src);
-            geoZonesConfigMutable(geozoneId)->maxAltitude = sbufReadU32(src);   
+            geoZonesConfigMutable(geozoneId)->maxAltitude = sbufReadU32(src);  
+            geoZonesConfigMutable(geozoneId)->isSealevelRef = sbufReadU8(src);   
             geoZonesConfigMutable(geozoneId)->fenceAction = sbufReadU8(src);
             geoZonesConfigMutable(geozoneId)->vertexCount = sbufReadU8(src);
         } else {
@@ -3986,7 +3988,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFwApproachOutCommand(dst, src);
         break;
 #endif
-#if defined(USE_GEOZONE) && defined (USE_GPS)
+#ifdef USE_GEOZONE
     case MSP2_INAV_GEOZONE:
         *ret = mspFcGeozoneOutCommand(dst, src);
         break;

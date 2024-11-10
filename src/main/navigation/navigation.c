@@ -1713,22 +1713,22 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
             return NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING;
         } else {
 #endif
-        fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL);
+            fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL);
 
-        if (isWaypointReached(tmpHomePos, &posControl.activeWaypoint.bearing)) {
-            // Successfully reached position target - update XYZ-position
-            setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+            if (isWaypointReached(tmpHomePos, &posControl.activeWaypoint.bearing)) {
+                // Successfully reached position target - update XYZ-position
+                setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 
-            posControl.landingDelay = 0;
+                posControl.landingDelay = 0;
 
-            if (navConfig()->general.flags.rth_use_linear_descent && posControl.rthState.rthLinearDescentActive)
-                posControl.rthState.rthLinearDescentActive = false;
+                if (navConfig()->general.flags.rth_use_linear_descent && posControl.rthState.rthLinearDescentActive)
+                    posControl.rthState.rthLinearDescentActive = false;
 
-            return NAV_FSM_EVENT_SUCCESS;       // NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING
-        } else {
-            setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_XY);
-            return NAV_FSM_EVENT_NONE;
-        }
+                return NAV_FSM_EVENT_SUCCESS;       // NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING
+            } else {
+                setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_Z | NAV_POS_UPDATE_XY);
+                return NAV_FSM_EVENT_NONE;
+            }
 #ifdef USE_GEOZONE
         }
 #endif
@@ -3348,7 +3348,7 @@ void updateHomePosition(void)
                     setHome = true;
                     break;
             }
-#if defined(USE_GEOZONE) && defined (USE_GPS)
+#ifdef USE_GEOZONE
             geozoneUpdateMaxHomeAltitude();
 #endif
         }

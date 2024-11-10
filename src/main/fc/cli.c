@@ -1565,7 +1565,7 @@ static void cliSafeHomes(char *cmdline)
 #if defined(USE_GEOZONE)
 static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, const geoZoneConfig_t *defaultGeoZone)
 {
-    const char *format = "geozone %u %u %u %d %d %u";
+    const char *format = "geozone %u %u %u %d %d %d %u";
     for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++) {
         bool equalsDefault = false;
         if (defaultGeoZone) {
@@ -1573,11 +1573,12 @@ static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, cons
             && geoZone[i].shape == defaultGeoZone->shape
             && geoZone[i].type == defaultGeoZone->type
             && geoZone[i].maxAltitude == defaultGeoZone->maxAltitude
-            && geoZone[i].minAltitude == defaultGeoZone->minAltitude;
+            && geoZone[i].minAltitude == defaultGeoZone->minAltitude
+            && geoZone[i].isSealevelRef == defaultGeoZone->isSealevelRef;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].fenceAction);  
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].isSealevelRef, defaultGeoZone[i].fenceAction);  
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].fenceAction);    
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].isSealevelRef, geoZone[i].fenceAction);    
     }
 } 
 
@@ -1722,8 +1723,16 @@ static void cliGeozone(char* cmdLine)
         uint8_t totalVertices = geozoneGetUsedVerticesCount();
         cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
 
+    } else if (sl_strncasecmp(cmdLine, "reset", 5) == 0) {
+        const char* ptr = &cmdLine[5];
+        if ((ptr = nextArg(ptr))) {
+            int idx = fastA2I(ptr);
+            geozoneReset(idx);
+        } else {
+            geozoneReset(-1);
+        } 
     } else {
-        int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0;
+        int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0, seaLevelRef = 0;
         int32_t minAltitude = 0, maxAltitude = 0;
         const char* ptr = cmdLine;
         uint8_t argumentCount = 1;
@@ -1767,6 +1776,14 @@ static void cliGeozone(char* cmdLine)
         }
 
         if ((ptr = nextArg(ptr))){
+            argumentCount++;
+            seaLevelRef = fastA2I(ptr);
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
             argumentCount++;        
             fenceAction = fastA2I(ptr);
             if (fenceAction < 0 || fenceAction > GEOFENCE_ACTION_RTH) {
@@ -1782,7 +1799,7 @@ static void cliGeozone(char* cmdLine)
             argumentCount++;
         } 
 
-        if (argumentCount != 6) {
+        if (argumentCount != 7) {
             cliShowParseError();
             return;
         }
@@ -1801,6 +1818,7 @@ static void cliGeozone(char* cmdLine)
 
         geoZonesConfigMutable(idx)->maxAltitude = maxAltitude;
         geoZonesConfigMutable(idx)->minAltitude = minAltitude;
+        geoZonesConfigMutable(idx)->isSealevelRef = (bool)seaLevelRef;
         geoZonesConfigMutable(idx)->fenceAction = fenceAction;
     }
 }

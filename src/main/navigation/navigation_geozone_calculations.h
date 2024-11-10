@@ -93,13 +93,13 @@ bool calcLineLineIntersection(fpVector2_t* intersection, const fpVector2_t* line
 	intersection->x = intersection->y = 0;
 
     // Double precision is needed here
-	double s1 = line1End->x - line1Start->x;
-	double t1 = -(line2End->x - line2Start->x);
-	double r1 = line2Start->x - line1Start->x;
+	double s1 = (double)(line1End->x - line1Start->x);
+	double t1 = (double)(-(line2End->x - line2Start->x));
+	double r1 = (double)(line2Start->x - line1Start->x);
 
-	double s2 = line1End->y - line1Start->y;
-	double t2 = -(line2End->y - line2Start->y);
-	double r2 = line2Start->y - line1Start->y;
+	double s2 = (double)(line1End->y - line1Start->y);
+	double t2 = (double)(-(line2End->y - line2Start->y));
+	double r2 = (double)(line2Start->y - line1Start->y);
 
 	// Use Cramer's rule for the solution of the system of linear equations
 	double determ = s1 * t2 - t1 * s2;
