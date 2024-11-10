@@ -801,20 +801,36 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT32_MAX);
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
-        #ifdef USE_SERIALRX_CRSF
+        case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_UPLINK:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
             return rxLinkStatistics.uplinkLQ;
-        #else
+#else
             return 0;
-        #endif
+#endif
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR:
-        #ifdef USE_SERIALRX_CRSF
-            return rxLinkStatistics.uplinkSNR;
-        #else
+        case LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkRSSI;
+#else
             return 0;
-        #endif
+#endif        
+            break;
+
+case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.downlinkLQ;
+#else
+            return 0;
+#endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_SNR:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkSNR;
+#else
+            return 0;
+#endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int

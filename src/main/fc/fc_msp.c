@@ -34,6 +34,7 @@
 #include "common/color.h"
 #include "common/maths.h"
 #include "common/streambuf.h"
+#include "common/string_light.h"
 #include "common/bitarray.h"
 #include "common/time.h"
 #include "common/utils.h"
@@ -215,7 +216,7 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
 
 static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
-    const unsigned int dataSize = sbufBytesRemaining(src);
+    const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
     if (dataSize == 0) {
         // Legacy format
@@ -1807,7 +1808,7 @@ static void mspFcWaypointOutCommand(sbuf_t *dst, sbuf_t *src)
 #ifdef USE_FLASHFS
 static void mspFcDataFlashReadCommand(sbuf_t *dst, sbuf_t *src)
 {
-    const unsigned int dataSize = sbufBytesRemaining(src);
+    const unsigned int dataSize = sbufBytesRemaining(src); /* Payload size in Bytes */
     uint16_t readLength;
 
     const uint32_t readAddress = sbufReadU32(src);
@@ -1831,7 +1832,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     uint8_t tmp_u8;
     uint16_t tmp_u16;
 
-    const unsigned int dataSize = sbufBytesRemaining(src);
+    const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
     switch (cmdMSP) {
     case MSP_SELECT_SETTING:
@@ -1861,6 +1862,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 }
                 rxMspFrameReceive(frame, channelCount);
             }
+
+            return MSP_RESULT_NO_REPLY;
         }
         break;
 #endif
@@ -2916,6 +2919,53 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+
+#ifdef USE_RX_MSP
+    case MSP2_COMMON_SET_MSP_RC_LINK_STATS: {
+            if (dataSize >= 7) {
+                uint8_t sublinkID = sbufReadU8(src); // Sublink ID
+                sbufReadU8(src); // Valid link (Failsafe backup)
+                if (sublinkID == 0) {
+                    setRSSIFromMSP_RC(sbufReadU8(src)); // RSSI %
+                    rxLinkStatistics.uplinkRSSI = -sbufReadU8(src);
+                    rxLinkStatistics.downlinkLQ = sbufReadU8(src);
+                    rxLinkStatistics.uplinkLQ = sbufReadU8(src);
+                    rxLinkStatistics.uplinkSNR = sbufReadI8(src);
+                }
+
+                return MSP_RESULT_NO_REPLY;
+            } else
+                return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_COMMON_SET_MSP_RC_INFO: {
+            if (dataSize >= 15) {
+                uint8_t sublinkID = sbufReadU8(src);
+
+                if (sublinkID == 0) {
+                    rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
+                    rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
+                    
+                    for (int i = 0; i < 4; i++) {
+                        rxLinkStatistics.band[i] = sbufReadU8(src);
+                    }
+
+                    sl_toupperptr(rxLinkStatistics.band);
+
+                    for (int i = 0; i < 6; i++) {
+                        rxLinkStatistics.mode[i] = sbufReadU8(src);
+                    }
+
+                    sl_toupperptr(rxLinkStatistics.mode);
+                }
+
+                return MSP_RESULT_NO_REPLY;
+            } else
+                return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
 
     case MSP_SET_FAILSAFE_CONFIG:
         if (dataSize == 20) {

@@ -234,6 +234,8 @@
 #define SYM_AH_CH_CENTER            0x166 // 358 Crossair center
 #define SYM_FLIGHT_DIST_REMAINING   0x167 // 359 Flight distance reminaing
 #define SYM_ODOMETER                0x168 // 360 Odometer
+#define SYM_RX_BAND                 0x169 // 361 RX Band
+#define SYM_RX_MODE                 0x16A // 362 RX Mode
 
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4
