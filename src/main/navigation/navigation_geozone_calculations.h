@@ -24,7 +24,7 @@
 #include "common/vector.h" 
 #include "navigation/navigation_private.h"
 
-#define K_EPSILON 1e-8
+#define K_EPSILON 1e-8f
 
 static bool isPointInCircle(const fpVector2_t *point, const fpVector2_t *center, const float radius)
 {

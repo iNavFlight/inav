@@ -566,7 +566,7 @@ uint32_t geozoneGetDetectionDistance(void)
 {
     uint32_t detctionDistance = 0;
     if (STATE(AIRPLANE)) {
-        detctionDistance = navConfig()->fw.loiter_radius * 1.5;
+        detctionDistance = navConfig()->fw.loiter_radius * 1.5f;
     } else {
         detctionDistance = geoZoneConfig()->copterFenceStopDistance;
     }
@@ -1450,9 +1450,9 @@ void geozoneUpdate(timeUs_t curentTimeUs)
             if (targetZone != NULL && !lockRTZ && (flyOutNfz || (!geozone.insideFz && targetZone->config.fenceAction != GEOFENCE_ACTION_NONE))) {
                 int32_t targetAltitude = 0;                
                 if (getEstimatedActualPosition(Z) >= targetZone->config.maxAltitude - geoZoneConfig()->safeAltitudeDistance) {
-                    targetAltitude = targetZone->config.maxAltitude - geoZoneConfig()->safeAltitudeDistance * 1.5;
+                    targetAltitude = targetZone->config.maxAltitude - geoZoneConfig()->safeAltitudeDistance * 1.5f;
                 } else if (getEstimatedActualPosition(Z) <= targetZone->config.minAltitude + geoZoneConfig()->safeAltitudeDistance) {
-                    targetAltitude = targetZone->config.minAltitude + geoZoneConfig()->safeAltitudeDistance * 1.5;
+                    targetAltitude = targetZone->config.minAltitude + geoZoneConfig()->safeAltitudeDistance * 1.5f;
                 } else {
                     targetAltitude = getEstimatedActualPosition(Z);
                 }
@@ -1462,9 +1462,9 @@ void geozoneUpdate(timeUs_t curentTimeUs)
                     if (ABS(geozone.distanceVertToNearestZone) < 2000) {
                         calculateFarAwayTarget(&targetPos, posControl.actualState.cog, 100000);
                         if(geozone.distanceVertToNearestZone > 0) {
-                            targetAltitude = getEstimatedActualPosition(Z) + ABS(geozone.distanceVertToNearestZone) + geoZoneConfig()->safeAltitudeDistance * 1.5;
+                            targetAltitude = getEstimatedActualPosition(Z) + ABS(geozone.distanceVertToNearestZone) + geoZoneConfig()->safeAltitudeDistance * 1.5f;
                         } else {
-                            targetAltitude = getEstimatedActualPosition(Z) - ABS(geozone.distanceVertToNearestZone) - geoZoneConfig()->safeAltitudeDistance * 1.5;
+                            targetAltitude = getEstimatedActualPosition(Z) - ABS(geozone.distanceVertToNearestZone) - geoZoneConfig()->safeAltitudeDistance * 1.5f;
                         }
 
                     } else {

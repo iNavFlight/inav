@@ -69,7 +69,6 @@ if(NOT MACOSX)
     endif()
 else()
     set(SITL_COMPILE_OPTIONS ${SITL_COMPILE_OPTIONS}
-        -Wno-error=double-promotion
     )
 endif()
 
