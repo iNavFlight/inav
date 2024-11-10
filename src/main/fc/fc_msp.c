@@ -1777,6 +1777,7 @@ static mspResult_e mspFcGeozoneOutCommand(sbuf_t *dst, sbuf_t *src)
 {
     const uint8_t idx = sbufReadU8(src);
     if (idx < MAX_GEOZONES_IN_CONFIG) {
+        sbufWriteU8(dst, idx);
         sbufWriteU8(dst, geoZonesConfig(idx)->type);
         sbufWriteU8(dst, geoZonesConfig(idx)->shape);
         sbufWriteU32(dst, geoZonesConfig(idx)->minAltitude);
@@ -1784,7 +1785,6 @@ static mspResult_e mspFcGeozoneOutCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU8(dst, geoZonesConfig(idx)->isSealevelRef);
         sbufWriteU8(dst, geoZonesConfig(idx)->fenceAction);
         sbufWriteU8(dst, geoZonesConfig(idx)->vertexCount);
-        sbufWriteU8(dst, idx);
         return MSP_RESULT_ACK;
     } else {
         return MSP_RESULT_ERROR;
