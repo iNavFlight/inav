@@ -1862,8 +1862,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 }
                 rxMspFrameReceive(frame, channelCount);
             }
-
-            return MSP_RESULT_NO_REPLY;
         }
         break;
 #endif
