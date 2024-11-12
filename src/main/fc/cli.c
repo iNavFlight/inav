@@ -1565,7 +1565,7 @@ static void cliSafeHomes(char *cmdline)
 #if defined(USE_GEOZONE)
 static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, const geoZoneConfig_t *defaultGeoZone)
 {
-    const char *format = "geozone %u %u %u %d %d %d %u";
+    const char *format = "geozone %u %u %u %d %d %u %u %u";
     for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++) {
         bool equalsDefault = false;
         if (defaultGeoZone) {
@@ -1574,11 +1574,13 @@ static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, cons
             && geoZone[i].type == defaultGeoZone->type
             && geoZone[i].maxAltitude == defaultGeoZone->maxAltitude
             && geoZone[i].minAltitude == defaultGeoZone->minAltitude
-            && geoZone[i].isSealevelRef == defaultGeoZone->isSealevelRef;
+            && geoZone[i].isSealevelRef == defaultGeoZone->isSealevelRef
+            && geoZone[i].fenceAction == defaultGeoZone->fenceAction
+            && geoZone[i].vertexCount == defaultGeoZone->vertexCount;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].isSealevelRef, defaultGeoZone[i].fenceAction);  
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].isSealevelRef, defaultGeoZone[i].fenceAction, defaultGeoZone[i].vertexCount);  
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].isSealevelRef, geoZone[i].fenceAction);    
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].isSealevelRef, geoZone[i].fenceAction, geoZone[i].vertexCount);    
     }
 } 
 
@@ -1718,7 +1720,6 @@ static void cliGeozone(char* cmdLine)
         geoZoneVerticesMutable(vertexIdx)->lon = lon;
         geoZoneVerticesMutable(vertexIdx)->zoneId = zoneId;
         geoZoneVerticesMutable(vertexIdx)->idx = vertexZoneIdx;  
-        geoZonesConfigMutable(zoneId)->vertexCount++;
         
         uint8_t totalVertices = geozoneGetUsedVerticesCount();
         cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
@@ -1728,11 +1729,13 @@ static void cliGeozone(char* cmdLine)
         if ((ptr = nextArg(ptr))) {
             int idx = fastA2I(ptr);
             geozoneReset(idx);
+            geozoneResetVertices(idx, -1);
         } else {
             geozoneReset(-1);
+            geozoneResetVertices(-1, -1);
         } 
     } else {
-        int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0, seaLevelRef = 0;
+        int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0, seaLevelRef = 0, vertexCount = 0;
         int32_t minAltitude = 0, maxAltitude = 0;
         const char* ptr = cmdLine;
         uint8_t argumentCount = 1;
@@ -1797,9 +1800,21 @@ static void cliGeozone(char* cmdLine)
 
         if ((ptr = nextArg(ptr))){
             argumentCount++;
+            vertexCount = fastA2I(ptr);
+            if (vertexCount < 1 || vertexCount > MAX_VERTICES_IN_CONFIG) {
+                cliShowArgumentRangeError("vertex count", 1, MAX_VERTICES_IN_CONFIG);
+                return;
+            }
+        } else {
+            cliShowParseError();
+            return;
+        }
+
+        if ((ptr = nextArg(ptr))){
+            argumentCount++;
         } 
 
-        if (argumentCount != 7) {
+        if (argumentCount != 8) {
             cliShowParseError();
             return;
         }
@@ -1820,6 +1835,7 @@ static void cliGeozone(char* cmdLine)
         geoZonesConfigMutable(idx)->minAltitude = minAltitude;
         geoZonesConfigMutable(idx)->isSealevelRef = (bool)seaLevelRef;
         geoZonesConfigMutable(idx)->fenceAction = fenceAction;
+        geoZonesConfigMutable(idx)->vertexCount = vertexCount;
     }
 }
 #endif
