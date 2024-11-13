@@ -2062,7 +2062,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 		{
 			displayPort_t *dp = osdGetDisplayPort();
 			if(dp != NULL && dataSize == 2) {
-				dp->cols = constrain(sbfuReadU8(src), 30, MSP_DISPLAYPORT_MAX_COLS);
+				dp->cols = constrain(sbufReadU8(src), 30, MSP_DISPLAYPORT_MAX_COLS);
 				dp->rows = constrain(sbufReadU8(src), 16, MSP_DISPLAYPORT_MAX_ROWS);
 			} else {
 				return MSP_RESULT_ERROR;
