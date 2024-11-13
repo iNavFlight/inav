@@ -29,7 +29,11 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Action: Ection to execute if an aircraft approaches the border of that Zone
   - Radius: Circular Zone only, Radius of the Circle
 - Move the Zone-Markers to the desired locations, to create a bordered area with the needed shape and size (Or change the radius in case of a Circular Zone)
+- To add additional vertices, click on the border-line of the zone you are editing. This will add a new vertex on that line to move around.
 - Add additional Zones as you like, Zones can be separated but also overlapping (See [Limitations]( ) for details
+
+## Additional Settings
+- 
 
 ## Functions and Behaviors
 - Zone Type: Inclusive
@@ -42,4 +46,17 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Arming inside an Exclusive NFZ is prohibited. Arming override can be used but not recommended. If armed inside a NFZ the Pilot keeps control until the NFZ is left, then any configured Action will be executed on re-enter.
   - Exclusive Zones can be combined and overlapped as needed
   - Exclusive NFZ with an upper or lower limit other than 0 can be overflown and underflown. The Automatic avoidance will only fly above NFZ if possible and never below.
+- Actions:
+  - Avoid: Also called “Bounce” (only airplanes): The aircraft flies away from the boundary “billiard ball effect”
+  - Hold: Position in front of the boundary is held. Airplances will adjust their loiter center according to the loider radius, to stay away from the border while circling.
+  - RTH: Triggers return to home. The Failsafe RTH Procedure is executed, so RTH Trackback is also used if enabled for Failsafe situations.
+  - None: No action (only info in OSD)
+- RTH:
+  - If RTH is enabled by Failsafe, User Command or Zone Action, INAV will calculate a path to the Home Location that automatically avoids NFZ and tries to stay inside the current FZ.
+  - If no Path can be calculated (Not able to climb over a blocking NFZ, No Intersection between FZ, too tight gaps between blocking NFZ) a configurable alternative action will be executed
+    - Direct RTH: Ignores Flight zones and comes back in a direct path
+    - Emergency Land: Executes a GPS enabled Emergency Landing (Circle down with horizontal position hold active on Planes)
+  - When direct "Line of sight" with the Home location is reached (No zones blocking path), regular RTH settings are executed
+
+## Limitations
 - 
