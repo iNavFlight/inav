@@ -32,4 +32,14 @@ The most important feature for safety, is the automatic path planning for RTH (R
 - Add additional Zones as you like, Zones can be separated but also overlapping (See [Limitations]( ) for details
 
 ## Functions and Behaviors
+- Zone Type: Inclusive
+  - If craft is armed inside the Inclusive FZ, everything outside that zone is considered a NFZ.
+  - Inclusive FZ can be combined if they overlap and will be handled as one zone.
+  - Overlapping multiple FZ allows different upper and lower altitude limits for each zone, as long as they still overlap in 3D Space (Both overlapping zones have to have a overlapping altitude range as well).
+  - Arming the aircraft outside of an Inclusive Zone is prohibited within a 2km distance to the next vertex (Distance to a border between two vertex is not checked). Arming override can be used. Arming at a distance bigger than 2km is possible. 
+  - Arming a craft outside of an Inclusive FZ will disable all Inclusive zones. 
+- Zone Type: Exclusive
+  - Arming inside an Exclusive NFZ is prohibited. Arming override can be used but not recommended. If armed inside a NFZ the Pilot keeps control until the NFZ is left, then any configured Action will be executed on re-enter.
+  - Exclusive Zones can be combined and overlapped as needed
+  - Exclusive NFZ with an upper or lower limit other than 0 can be overflown and underflown. The Automatic avoidance will only fly above NFZ if possible and never below.
 - 
