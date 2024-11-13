@@ -30,7 +30,7 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Radius: Circular Zone only, Radius of the Circle
 - Move the Zone-Markers to the desired locations, to create a bordered area with the needed shape and size (Or change the radius in case of a Circular Zone)
 - To add additional vertices, click on the border-line of the zone you are editing. This will add a new vertex on that line to move around.
-- Add additional Zones as you like, Zones can be separated but also overlapping (See [Limitations]( ) for details
+- Add additional Zones as you like, Zones can be separated but also overlapping (See [Limitations]( ) for details)
 
 ## Additional Settings
 - 
@@ -59,4 +59,11 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - When direct "Line of sight" with the Home location is reached (No zones blocking path), regular RTH settings are executed
 
 ## Limitations
-- 
+- The maximum amount of dedicated zones of any type is 63.
+- The maximum amount of vertices of all zones combined is 127. Every circular zone uses 2 vertices while every polygon has to consist of at least 3 vertices.
+- INAV can only execute one border-breach action at a time. This is especially important to consider for Airplanes that can not hover. 
+  - Complicated Zone setups with overlaps and tight areas can cause a Loiter or "bounce" into another NFZ that was not considered before.
+  - This can lead to a "Return to FZ" action that tries to find the shortest path into a legal area.
+- All Geozone Actions are disabled when in Waypoint Mode. The Pilot is responsible to plan his mission accordingly, to not create a path that crosses NFZ areas. If a mission leads to such area and the pilot disables WP mode, a "Return to FZ" action will be executed.
+- All Geozone Actions are disabled in ACRO and MANUAL Mode. INAV will not take over control in these modes and only OSD Warnings are shown.
+- Planning the Geozone as a polygon, needs to have the vertex numbering to be counter clock wise in ascending order. One vertex must not be dragged over another border to create crossing borders within one zone. INAV Configurator and MWP will check for that before upload. 
