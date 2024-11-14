@@ -115,13 +115,14 @@ The following commands are available for users:
 
 The following information are for app-developers. _DO NOT EDIT GEOZONES MANUALLY CLI_!
 
-`geozone <id> <shape> <type> <minimum altitude> <maximum altitude> <fence action> <vertices count>`
+`geozone <id> <shape> <type> <minimum altitude> <maximum altitude> <is_amsl> <fence action> <vertices count>`
 
 - id: 0 - 63
 - shape: 0 = Circular, 1 = Polygonal
 - type: 0 = Exclusive, 1 = Inclusive
 - minimum altitude: In centimetres, 0 = ground
 - maximum altitude: In centimetres, 0 = infinity
+- is_amsl: 0 = relative, 1 = AMSL
 - fence action: 0 = None, 1 = Avoid, 2 = Position hold, 3 = Return To Home
 - vertices count: 0-126 - Sanity check if number of vertices matches with configured zones
 
