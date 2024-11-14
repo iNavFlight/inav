@@ -106,6 +106,7 @@ The Geozone Information are stored in two separate data arrays. The first array 
 The following commands are available for users: 
 
 - `geozone` without argument lists the current settings
+- `geozone reset <id>` resets a specific geozone and all related vertices. If no ID proveded, all geozones and vertices will be deleted.
 - `geozone vertex` - lists all vertices.
 - `geozone vertex reset` - deletes all vertices.
 - `geozone vertex reset <zone id>` - Deletes all vertices of the zone.
@@ -113,7 +114,7 @@ The following commands are available for users:
 
 The following information are for app-developers. _DO NOT EDIT GEOZONES MANUALLY CLI_!
 
-`geozone <id> <shape> <type> <minimum altitude> <maximum altitude> <fence action>`
+`geozone <id> <shape> <type> <minimum altitude> <maximum altitude> <fence action> <vertices count>`
 
 - id: 0 - 63
 - shape: 0 = Circular, 1 = Polygonal
@@ -121,6 +122,7 @@ The following information are for app-developers. _DO NOT EDIT GEOZONES MANUALLY
 - minimum altitude: In centimetres, 0 = ground
 - maximum altitude: In centimetres, 0 = infinity
 - fence action: 0 = None, 1 = Avoid, 2 = Position hold, 3 = Return To Home
+- vertices count: 0-126 - Sanity check if number of vertices matches with configured zones
 
 `geozone vertex <zone id> <vertex idx> <latitude> <logitude>`
 
