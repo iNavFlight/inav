@@ -27,7 +27,7 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Type: Inclusive (FZ, green) or Exclusive (NFZ, red)
   - Min. Alt (cm): lower ceiling of the Zone (0 represents the ground relative from the launch location or AMSL. No action will be taken for a minimum altitude of 0, so the aircraft can "dive out" of an Inclusive FZ on a hill. To have a Minimum Altitude action, set a negative altitude of -1 or lower)
   - Max. Alt (cm): upper ceiling of the Zone (A value if 0 means no upper altitude limit)
-  - Action: Ection to execute if an aircraft approaches the border of that Zone
+  - Action: Action to execute if an aircraft approaches the border of that Zone
   - Radius: Circular Zone only, Radius of the Circle
 - Move the Zone-Markers to the desired locations, to create a bordered area with the needed shape and size (Or change the radius in case of a Circular Zone)
 - To add additional vertices, click on the border-line of the zone you are editing. This will add a new vertex on that line to move around.
@@ -94,7 +94,7 @@ The most important feature for safety, is the automatic path planning for RTH (R
 - All Geozone Actions are disabled in ACRO and MANUAL Mode. INAV will not take over control in these modes and only OSD Warnings are shown.
 - Planning the Geozone as a polygon, needs to have the vertex numbering to be counter clock wise in ascending order. One vertex must not be dragged over another border to create crossing borders within one zone. INAV Configurator and MWP will check for that before upload.
   - Examples of Zones that are not allowed:
-    ![image](https://github.com/user-attachments/assets/63d287fe-e2eb-44d4-a8ba-2b862d69eb71)
+    ![image](https://github.com/user-attachments/assets/50f1a441-39da-4f1c-9128-7375bc593fa5)
 - To properly combine multiple Inclusion FZ into one area, the Zones need to overlap at 2 borders and the points where the borders touch, have to be at least 2.5x Loiter-Radius apart for Airplanes at at least 2.5x Multirotor Stop Distance apart for Multirotors.
   - Example:
     ![image](https://github.com/user-attachments/assets/cc50e24b-dc83-4408-bcba-90d6da33eb63)
