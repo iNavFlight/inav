@@ -36,16 +36,16 @@ The most important feature for safety, is the automatic path planning for RTH (R
 - After finishing the zone setup, click the "Store in EEPROM" Button to save the zones on the Flight Controller. It is important that the FC reboots after storing, as the Zones can only be used after a fresh boot process.
   ![image](https://github.com/user-attachments/assets/4b278dd0-aa65-45f6-b914-22bdd753feaf)
 
-## Additional Settings
+## Global Settings
 - In the Advanced Tuning Panel you will find additional global settings for Geozones
   ![image](https://github.com/user-attachments/assets/db567521-e256-4fb6-8ca6-6e6b8b57d7a9)
-  - Detection Distance: Defines at what distance a Geozone will be shown as a System Message if a breach is imminent.
-  - Avoid Altitude Range: When the Aircraft approaches a NFZ that has a upper limit (can be overflown at higher altitude), INAV will climb above the Zone automatically if the altitude difference between Zone ceiling and current Aircraft altitude is less, than this value. For fixed wing, you need to consider how steep the possible climb angle is.
-  - Safe Altitude Distance: Vertical safety margin to avoid a ceiling or floor altitude breach at high vertical speed. If your FZ Ceiling is at 100m and this value set to 10m, the aircraft will not allow you to fly above 90m and descents if the Aircraft overshoots.
-  - Safehome as Inclusive: Defines every Safehome location as a circular Inclusive zone with the radius of `safehome_max_distance` to allow a FZ at ground altitude (For Landings) if the general FZ around it might have a minimum altitude.
-  - Safehome Zone Action: Defines the action on zone breach if Safehome is enabled as inclusive. This is helpful for flying fields with distance or altitude restrictions for LOS Pilots.
-  - Multirotor Stop Distance: Distance from the Border a Multirotor will stop, if the Fence Action is Avoid or Loiter (For fixed wings, this will be calculated from the Loiter-Radius of the Plane).
-  - No Way Home Action: If RTH can not find a possible route in FS or RTH modes, the Aircraft will either emergency land or fly straight back home and ignores NFZ. 
+  - Detection Distance `geozone_detection_distance`: Defines at what distance a Geozone will be shown as a System Message if a breach is imminent.
+  - Avoid Altitude Range `geozone_avoid_altitude_range`: When the Aircraft approaches a NFZ that has a upper limit (can be overflown at higher altitude), INAV will climb above the Zone automatically if the altitude difference between Zone ceiling and current Aircraft altitude is less, than this value. For fixed wing, you need to consider how steep the possible climb angle is.
+  - Safe Altitude Distance `geozone_safe_altitude_distance`: Vertical safety margin to avoid a ceiling or floor altitude breach at high vertical speed. If your FZ Ceiling is at 100m and this value set to 10m, the aircraft will not allow you to fly above 90m and descents if the Aircraft overshoots.
+  - Safehome as Inclusive `geozone_safehome_as_inclusive`: Defines every Safehome location as a circular Inclusive zone with the radius of `safehome_max_distance` to allow a FZ at ground altitude (For Landings) if the general FZ around it might have a minimum altitude.
+  - Safehome Zone Action `geozone_safehome_zone_action`: Defines the action on zone breach if Safehome is enabled as inclusive. This is helpful for flying fields with distance or altitude restrictions for LOS Pilots.
+  - Multirotor Stop Distance `geozone_mr_stop_distance:`: Distance from the Border a Multirotor will stop, if the Fence Action is Avoid or Loiter (For fixed wings, this will be calculated from the Loiter-Radius of the Plane).
+  - No Way Home Action `geozone_no_way_home_action`: If RTH can not find a possible route in FS or RTH modes, the Aircraft will either emergency land or fly straight back home and ignores NFZ. 
 
 ## Functions and Behaviors
 - Zone Type: Inclusive
@@ -75,9 +75,9 @@ The most important feature for safety, is the automatic path planning for RTH (R
 
 ## OSD Elements
 - Three dedicated OSD Elements have been added:
-  - Fence-Distance Horizontal shows the distance to the nearest Fence Border and the heading to that border.
-  - Fence-Distance Vertical shows the distance to the nearest ceiling or floor of a zone.
-  - Fence-Direction Vertical is an optional element to show if the nearest vertical border is above or below the aircraft.
+  - Fence-Distance Horizontal shows the distance to the nearest Fence Border and the heading to that border. (ID 145)
+  - Fence-Distance Vertical shows the distance to the nearest ceiling or floor of a zone. (ID 146)
+  - Fence-Direction Vertical is an optional element to show if the nearest vertical border is above or below the aircraft. (ID 144)
   ![image](https://github.com/user-attachments/assets/87dd3c5a-1046-4bd4-93af-5f8c9078b868)
 - The Flight-Mode will show AUTO if the Aircraft executes any kind of Fence-Action.
 - The System-Message shows the distance to a potential fence breach point, based on the current aircraft Attitude and Heading.
@@ -99,4 +99,33 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Example:
     ![image](https://github.com/user-attachments/assets/cc50e24b-dc83-4408-bcba-90d6da33eb63)
 - If multiple zones with different minimum and maximum altitudes are combined, they need to vertically overlap at least 50m.
-- It is not recommended, to edit geozones in CLI by hand as this bypasses a lot of sanity checks. Potential errors in zones will disable them or can leat to unexpected behaviors. Transferring Geozones with a DIFF between aircraft is fine. 
+- It is not recommended, to edit geozones in CLI by hand as this bypasses a lot of sanity checks. Potential errors in zones will disable them or can leat to unexpected behaviors. Transferring Geozones with a DIFF between aircraft is fine.
+
+## CLI
+The Geozone Information are stored in two separate data arrays. The first array holds the main Geozone Information and settings. The second array holds the Geozone vertices. 
+The following commands are available for users: 
+
+- `geozone` without argument lists the current settings
+- `geozone vertex` - lists all vertices.
+- `geozone vertex reset` - deletes all vertices.
+- `geozone` vertex reset <zone id>` - Deletes all vertices of the zone.
+- `geozone` vertex reset <zone id> <vertex id>` - Deletes the vertex with the corresponding id from a zone.
+
+The following information are for app-developers. _DO NOT EDIT GEOZONES MANUALLY CLI_!
+
+`geozone <id> <shape> <type> <minimum altitude> <maximum altitude> <fence action>`
+
+- id: 0 - 63
+- shape: 0 = Circular, 1 = Polygonal
+- type: 0 = Exclusive, 1 = Inclusive
+- minimum altitude: In centimetres, 0 = ground
+- maximum altitude: In centimetres, 0 = infinity
+- fence action: 0 = None, 1 = Avoid, 2 = Position hold, 3 = Return to home
+
+`geozone vertex <zone id> <vertex idx> <latitude> <logitude>`
+
+- zone id: (0-63) The zone id to which this vertex belongs
+- vertex idx: Index of the vertex (0-126)
+- latitude/ logitude: Longitude and latitude of the vertex. Values in decimal degrees * 1e7. Example:the value 47.562004o becomes 475620040
+
+
