@@ -444,7 +444,6 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
 {
     if (mspOsdSerialInit()) {
         switch(videoSystem) {
-        case VIDEO_SYSTEM_AUTO:
         case VIDEO_SYSTEM_DJICOMPAT:
         case VIDEO_SYSTEM_PAL:
             currentOsdMode = SD_3016;
@@ -461,6 +460,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             screenRows = HDZERO_ROWS;
             screenCols = HDZERO_COLS;
             break;
+        case VIDEO_SYSTEM_AUTO:
         case VIDEO_SYSTEM_DJIWTF:
             currentOsdMode = HD_6022;
             screenRows = DJI_ROWS;
