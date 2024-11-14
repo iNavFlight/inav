@@ -19,7 +19,8 @@ The most important feature for safety, is the automatic path planning for RTH (R
 
 ## Setup Procedure
 - In the INAV Configurator, switch to the Configuration Panel and enable "Geozone" in the features. 
-- Switch to the Mission Control Panel and you will see a new Icon to call up the Geozone Editor. If Zones are already set up, they will be loaded automatically, as soon as the you enter Mission Control. 
+- Switch to the Mission Control Panel and you will see a new Icon to call up the Geozone Editor. If Zones are already set up, they will be loaded automatically, as soon as the you enter Mission Control.
+  ![image](https://github.com/user-attachments/assets/23cd2149-b6a2-4945-b349-ee99863e74f0)
 - Click on the "+" Symbol to add a new zone and define its parameters to your desire.
 - The following Options are available:
   - Shape: Configures a Zone as a Circle or a Polygon
@@ -30,10 +31,21 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Radius: Circular Zone only, Radius of the Circle
 - Move the Zone-Markers to the desired locations, to create a bordered area with the needed shape and size (Or change the radius in case of a Circular Zone)
 - To add additional vertices, click on the border-line of the zone you are editing. This will add a new vertex on that line to move around.
+  ![image](https://github.com/user-attachments/assets/eacb6d3c-62d3-4bab-8874-1543c0a6b06d)
 - Add additional Zones as you like, Zones can be separated but also overlapping (See [Limitations]( ) for details)
+- After finishing the zone setup, click the "Store in EEPROM" Button to save the zones on the Flight Controller. It is important that the FC reboots after storing, as the Zones can only be used after a fresh boot process.
+  ![image](https://github.com/user-attachments/assets/4b278dd0-aa65-45f6-b914-22bdd753feaf)
 
 ## Additional Settings
-- 
+- In the Advanced Tuning Panel you will find additional global settings for Geozones
+  ![image](https://github.com/user-attachments/assets/db567521-e256-4fb6-8ca6-6e6b8b57d7a9)
+  - Detection Distance: Defines at what distance a Geozone will be shown as a System Message if a breach is imminent
+  - Avoid Altitude Range: When the Aircraft approaches a NFZ that has a upper limit (can be overflown at higher altitude), INAV will climb above the Zone automatically if the altitude difference between Zone ceiling and current Aircraft altitude is less, than this value. For fixed wing, you need to consider how steep the possible climb angle is.
+  - Safe Altitude Distance: Vertical safety margin to avoid a ceiling or floor altitude breach at high vertical speed. If your FZ Ceiling is at 100m and this value set to 10m, the aircraft will not allow you to fly above 90m and descents if the Aircraft overshoots.
+  - Safehome as Inclusive: Defines every Safehome location as a circular Inclusive zone with the radius of `safehome_max_distance` to allow a FZ at ground altitude (For Landings) if the general FZ around it might have a minimum altitude
+  - Safehome Zone Action: Defines the action on zone breach if Safehome is enabled as inclusive. This is helpful for flying fields with distance or altitude restrictions for LOS Pilots.
+  - Multirotor Stop Distance: Distance from the Border a Multirotor will stop, if the Fence Action is Avoid or Loiter (For fixed wings, this will be calculated from the Loiter-Radius of the Plane)
+  - No Way Home Action: If RTH can not find a possible route in FS or RTH modes, the Aircraft will either emergency land or fly straight back home and ignores NFZ. 
 
 ## Functions and Behaviors
 - Zone Type: Inclusive
@@ -62,8 +74,15 @@ The most important feature for safety, is the automatic path planning for RTH (R
 - The maximum amount of dedicated zones of any type is 63.
 - The maximum amount of vertices of all zones combined is 127. Every circular zone uses 2 vertices while every polygon has to consist of at least 3 vertices.
 - INAV can only execute one border-breach action at a time. This is especially important to consider for Airplanes that can not hover. 
-  - Complicated Zone setups with overlaps and tight areas can cause a Loiter or "bounce" into another NFZ that was not considered before.
-  - This can lead to a "Return to FZ" action that tries to find the shortest path into a legal area.
+  - Complicated Zone setups with overlaps and tight areas can cause a loiter or "bounce" into another NFZ that was not considered before.
+  - This can lead to a "Return to FZ" action that tries to find the shortest path into an allowed area.
 - All Geozone Actions are disabled when in Waypoint Mode. The Pilot is responsible to plan his mission accordingly, to not create a path that crosses NFZ areas. If a mission leads to such area and the pilot disables WP mode, a "Return to FZ" action will be executed.
 - All Geozone Actions are disabled in ACRO and MANUAL Mode. INAV will not take over control in these modes and only OSD Warnings are shown.
-- Planning the Geozone as a polygon, needs to have the vertex numbering to be counter clock wise in ascending order. One vertex must not be dragged over another border to create crossing borders within one zone. INAV Configurator and MWP will check for that before upload. 
+- Planning the Geozone as a polygon, needs to have the vertex numbering to be counter clock wise in ascending order. One vertex must not be dragged over another border to create crossing borders within one zone. INAV Configurator and MWP will check for that before upload.
+  - Examples of Zones that are not allowed:
+    ![image](https://github.com/user-attachments/assets/63d287fe-e2eb-44d4-a8ba-2b862d69eb71)
+- To properly combine multiple Inclusion FZ into one area, the Zones need to overlap at 2 borders and the points where the borders touch, have to be at least 2.5x Loiter-Radius apart for Airplanes at at least 2.5x Multirotor Stop Distance apart for Multirotors.
+  - Example:
+    ![image](https://github.com/user-attachments/assets/cc50e24b-dc83-4408-bcba-90d6da33eb63)
+- If multiple zones with different minimum and maximum altitudes are combined, they need to vertically overlap at least 3x Avoid Altitude Range
+- It is not recommended, to edit geozones in CLI by hand as this bypasses a lot of sanity checks. Potential errors in zones will disable them or can leat to unexpected behaviors. Transferring Geozones with a DIFF between aircraft is fine. 
