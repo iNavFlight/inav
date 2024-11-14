@@ -99,6 +99,7 @@ The most important feature for safety is the automatic path planning for RTH (St
   - Example:
     ![image](https://github.com/user-attachments/assets/cc50e24b-dc83-4408-bcba-90d6da33eb63)
 - If multiple zones with different minimum and maximum altitudes are combined, they need to vertically overlap at least 50m.
+- There is a chance that Smart RTH cannot find a path around NFZ areas, if there are multiple very big zones blocking the path. Due to hardware limitations, the amount of waypoints that Smart RTH can create are limited. Many Zones with very long border lines (>500m) cause additional waypoints.
 - It is not recommended to edit geozones in CLI by hand as this bypasses a lot of sanity checks. Potential errors in zones will disable them or can lead to unexpected behaviors. Transferring Geozones with a DIFF between aircraft is fine.
 
 ## CLI
