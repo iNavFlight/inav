@@ -2717,7 +2717,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                             vtxSettingsConfigMutable()->lowPowerDisarm = sbufReadU8(src);
                         }
 
-                        // API version 1.42 - extension for pitmode frequency 
+                        // API version 1.42 - extension for pitmode frequency
                         if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); //skip pitModeFreq
                         }
@@ -2738,15 +2738,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); // freq
                         }
-                        
+
                         if (sbufBytesRemaining(src) >= 3) {
                             sbufReadU8(src); // band count
                             sbufReadU8(src); // channel count
-                            
+
                             uint8_t newPowerCount = sbufReadU8(src);
                             if (newPowerCount > 0 && newPowerCount < (vtxDevice->capability.powerCount)) {
                                 vtxDevice->capability.powerCount = newPowerCount;
-                            }                        
+                            }
                         }
                     }
                 }
@@ -2944,7 +2944,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 if (sublinkID == 0) {
                     rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
                     rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
-                    
+
                     for (int i = 0; i < 4; i++) {
                         rxLinkStatistics.band[i] = sbufReadU8(src);
                     }
@@ -4249,7 +4249,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     if (cmd->flags & MSP_FLAG_DONT_REPLY) {
         ret = MSP_RESULT_NO_REPLY;
     }
-
+    reply->flags = cmd->flags;
     reply->result = ret;
     return ret;
 }
