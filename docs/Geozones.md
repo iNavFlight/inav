@@ -25,8 +25,8 @@ The most important feature for safety, is the automatic path planning for RTH (R
 - The following Options are available:
   - Shape: Configures a Zone as a Circle or a Polygon
   - Type: Inclusive (FZ, green) or Exclusive (NFZ, red)
-  - Min. Alt (cm): lower ceiling of the Zone
-  - Max. Alt (cm): upper ceiling of the Zone
+  - Min. Alt (cm): lower ceiling of the Zone (0 represents the ground relative from the launch location or AMSL. No action will be taken for a minimum altitude of 0, so the aircraft can "dive out" of an Inclusive FZ on a hill. To have a Minimum Altitude action, set a negative altitude of -1 or lower)
+  - Max. Alt (cm): upper ceiling of the Zone (A value if 0 means no upper altitude limit)
   - Action: Ection to execute if an aircraft approaches the border of that Zone
   - Radius: Circular Zone only, Radius of the Circle
 - Move the Zone-Markers to the desired locations, to create a bordered area with the needed shape and size (Or change the radius in case of a Circular Zone)
@@ -59,7 +59,7 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Exclusive Zones can be combined and overlapped as needed
   - Exclusive NFZ with an upper or lower limit other than 0 can be overflown and underflown. The Automatic avoidance will only fly above NFZ if possible and never below.
 - Actions:
-  - Avoid: Also called “Bounce” (only airplanes): The aircraft flies away from the boundary “billiard ball effect”
+  - Avoid: Also called “Bounce” (only airplanes): The aircraft flies away from the boundary at the same angle it approached it, similar to a pool ball bouncing off the table border. Multirotor will switch into "Position Hold".
   - Hold: Position in front of the boundary is held. Airplances will adjust their loiter center according to the loider radius, to stay away from the border while circling.
   - RTH: Triggers return to home. The Failsafe RTH Procedure is executed, so RTH Trackback is also used if enabled for Failsafe situations.
   - None: No action (only info in OSD)
@@ -69,6 +69,11 @@ The most important feature for safety, is the automatic path planning for RTH (R
     - Direct RTH: Ignores Flight zones and comes back in a direct path
     - Emergency Land: Executes a GPS enabled Emergency Landing (Circle down with horizontal position hold active on Planes)
   - When direct "Line of sight" with the Home location is reached (No zones blocking path), regular RTH settings are executed
+- Return to Zone:
+  - If the Aircraft breaches into a NFZ or out of a FZ (by avoiding in tight angled Zones or flown in Acro mode and then the mode switches to any Self-Level mode), RTZ is initiated and the aircraft flies back into the last permitted zone on the shortest possible course.
+
+## OSD Elements
+- 
 
 ## Limitations
 - The maximum amount of dedicated zones of any type is 63.
