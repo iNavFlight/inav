@@ -39,12 +39,12 @@ The most important feature for safety, is the automatic path planning for RTH (R
 ## Additional Settings
 - In the Advanced Tuning Panel you will find additional global settings for Geozones
   ![image](https://github.com/user-attachments/assets/db567521-e256-4fb6-8ca6-6e6b8b57d7a9)
-  - Detection Distance: Defines at what distance a Geozone will be shown as a System Message if a breach is imminent
+  - Detection Distance: Defines at what distance a Geozone will be shown as a System Message if a breach is imminent.
   - Avoid Altitude Range: When the Aircraft approaches a NFZ that has a upper limit (can be overflown at higher altitude), INAV will climb above the Zone automatically if the altitude difference between Zone ceiling and current Aircraft altitude is less, than this value. For fixed wing, you need to consider how steep the possible climb angle is.
   - Safe Altitude Distance: Vertical safety margin to avoid a ceiling or floor altitude breach at high vertical speed. If your FZ Ceiling is at 100m and this value set to 10m, the aircraft will not allow you to fly above 90m and descents if the Aircraft overshoots.
-  - Safehome as Inclusive: Defines every Safehome location as a circular Inclusive zone with the radius of `safehome_max_distance` to allow a FZ at ground altitude (For Landings) if the general FZ around it might have a minimum altitude
+  - Safehome as Inclusive: Defines every Safehome location as a circular Inclusive zone with the radius of `safehome_max_distance` to allow a FZ at ground altitude (For Landings) if the general FZ around it might have a minimum altitude.
   - Safehome Zone Action: Defines the action on zone breach if Safehome is enabled as inclusive. This is helpful for flying fields with distance or altitude restrictions for LOS Pilots.
-  - Multirotor Stop Distance: Distance from the Border a Multirotor will stop, if the Fence Action is Avoid or Loiter (For fixed wings, this will be calculated from the Loiter-Radius of the Plane)
+  - Multirotor Stop Distance: Distance from the Border a Multirotor will stop, if the Fence Action is Avoid or Loiter (For fixed wings, this will be calculated from the Loiter-Radius of the Plane).
   - No Way Home Action: If RTH can not find a possible route in FS or RTH modes, the Aircraft will either emergency land or fly straight back home and ignores NFZ. 
 
 ## Functions and Behaviors
@@ -56,26 +56,34 @@ The most important feature for safety, is the automatic path planning for RTH (R
   - Arming a craft outside of an Inclusive FZ will disable all Inclusive zones. 
 - Zone Type: Exclusive
   - Arming inside an Exclusive NFZ is prohibited. Arming override can be used but not recommended. If armed inside a NFZ the Pilot keeps control until the NFZ is left, then any configured Action will be executed on re-enter.
-  - Exclusive Zones can be combined and overlapped as needed
+  - Exclusive Zones can be combined and overlapped as needed.
   - Exclusive NFZ with an upper or lower limit other than 0 can be overflown and underflown. The Automatic avoidance will only fly above NFZ if possible and never below.
 - Actions:
   - Avoid: Also called “Bounce” (only airplanes): The aircraft flies away from the boundary at the same angle it approached it, similar to a pool ball bouncing off the table border. Multirotor will switch into "Position Hold".
   - Hold: Position in front of the boundary is held. Airplances will adjust their loiter center according to the loider radius, to stay away from the border while circling.
   - RTH: Triggers return to home. The Failsafe RTH Procedure is executed, so RTH Trackback is also used if enabled for Failsafe situations.
-  - None: No action (only info in OSD)
+  - None: No action (only info in OSD).
 - RTH:
   - If RTH is enabled by Failsafe, User Command or Zone Action, INAV will calculate a path to the Home Location that automatically avoids NFZ and tries to stay inside the current FZ.
-  - If no Path can be calculated (Not able to climb over a blocking NFZ, No Intersection between FZ, too tight gaps between blocking NFZ) a configurable alternative action will be executed
-    - Direct RTH: Ignores Flight zones and comes back in a direct path
-    - Emergency Land: Executes a GPS enabled Emergency Landing (Circle down with horizontal position hold active on Planes)
-  - When direct "Line of sight" with the Home location is reached (No zones blocking path), regular RTH settings are executed
+  - If no Path can be calculated (Not able to climb over a blocking NFZ, No Intersection between FZ, too tight gaps between blocking NFZ) a configurable alternative action will be executed.
+    - Direct RTH: Ignores Flight zones and comes back in a direct path.
+    - Emergency Land: Executes a GPS enabled Emergency Landing (Circle down with horizontal position hold active on Planes).
+  - When direct "Line of sight" with the Home location is reached (No zones blocking path), regular RTH settings are executed.
   - To abort the Smart-RTH feature and come back on a direct way, disable and Re-Enable RTH within 1 Second. This temporarily ignores all FZ and NFZ borders.
 - Return to Zone:
   - If the Aircraft breaches into a NFZ or out of a FZ (by avoiding in tight angled Zones or flown in Acro mode and then the mode switches to any Self-Level mode), RTZ is initiated and the aircraft flies back into the last permitted zone on the shortest possible course.
 
 ## OSD Elements
-- 
+- Three dedicated OSD Elements have been added:
+  - Fence-Distance Horizontal shows the distance to the nearest Fence Border and the heading to that border.
+  - Fence-Distance Vertical shows the distance to the nearest ceiling or floor of a zone.
+  - Fence-Direction Vertical is an optional element to show if the nearest vertical border is above or below the aircraft.
+  ![image](https://github.com/user-attachments/assets/87dd3c5a-1046-4bd4-93af-5f8c9078b868)
+- The Flight-Mode will show AUTO if the Aircraft executes any kind of Fence-Action.
+- The System-Message shows the distance to a potential fence breach point, based on the current aircraft Attitude and Heading.
+- Additionally the System Message shows the current Fence Action that is Executed.
 
+  
 ## Limitations
 - The maximum amount of dedicated zones of any type is 63.
 - The maximum amount of vertices of all zones combined is 127. Every circular zone uses 2 vertices while every polygon has to consist of at least 3 vertices.
