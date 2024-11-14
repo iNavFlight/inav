@@ -2060,7 +2060,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 #ifdef USE_MSP_DISPLAYPORT
 	case MSP_SET_OSD_CANVAS:
 		{
-            if (osdConfig()->video_system == VIDEO_SYSTEM_AUTO) {
+            if (osdConfig()->video_system == VIDEO_SYSTEM_AUTOHD) {
                 displayPort_t *dp = osdGetDisplayPort();
                 if (dp != NULL && dataSize == 2) {
                     dp->cols = constrain(sbufReadU8(src), 30, MSP_DISPLAYPORT_MAX_COLS);
@@ -2072,8 +2072,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
 		break;
 #endif
-
-
 
     case MSP2_INAV_SET_MISC:
         if (dataSize == 41) {
