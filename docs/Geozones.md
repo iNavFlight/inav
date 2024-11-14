@@ -69,6 +69,7 @@ The most important feature for safety, is the automatic path planning for RTH (R
     - Direct RTH: Ignores Flight zones and comes back in a direct path
     - Emergency Land: Executes a GPS enabled Emergency Landing (Circle down with horizontal position hold active on Planes)
   - When direct "Line of sight" with the Home location is reached (No zones blocking path), regular RTH settings are executed
+  - To abort the Smart-RTH feature and come back on a direct way, disable and Re-Enable RTH within 1 Second. This temporarily ignores all FZ and NFZ borders.
 - Return to Zone:
   - If the Aircraft breaches into a NFZ or out of a FZ (by avoiding in tight angled Zones or flown in Acro mode and then the mode switches to any Self-Level mode), RTZ is initiated and the aircraft flies back into the last permitted zone on the shortest possible course.
 
@@ -89,5 +90,5 @@ The most important feature for safety, is the automatic path planning for RTH (R
 - To properly combine multiple Inclusion FZ into one area, the Zones need to overlap at 2 borders and the points where the borders touch, have to be at least 2.5x Loiter-Radius apart for Airplanes at at least 2.5x Multirotor Stop Distance apart for Multirotors.
   - Example:
     ![image](https://github.com/user-attachments/assets/cc50e24b-dc83-4408-bcba-90d6da33eb63)
-- If multiple zones with different minimum and maximum altitudes are combined, they need to vertically overlap at least 3x Avoid Altitude Range
+- If multiple zones with different minimum and maximum altitudes are combined, they need to vertically overlap at least 50m.
 - It is not recommended, to edit geozones in CLI by hand as this bypasses a lot of sanity checks. Potential errors in zones will disable them or can leat to unexpected behaviors. Transferring Geozones with a DIFF between aircraft is fine. 
