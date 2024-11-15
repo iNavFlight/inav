@@ -13,7 +13,7 @@ The most important feature for safety is the automatic path planning for RTH (St
 ## Compatibility
 - INAV Version: 8.0 or later
 - INAV Configurator: 8.0 or Later
-- [MWPTools:](https://github.com/stronnag/mwptools) Snapshot 2024-11-xx or later
+- [MWPTools:](https://github.com/stronnag/mwptools) Snapshot 2024-11-15 or later
 - Only flight controller with more than 512k of Flash (STM32F405, STM32F765, STM32H743, etc.)
 - Plane, Multirotor (Rover and Boat are untested at time of writing)
 
