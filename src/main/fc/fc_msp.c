@@ -2062,7 +2062,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 		{
             if (osdConfig()->video_system == VIDEO_SYSTEM_AUTOHD) {
                 displayPort_t *dp = osdGetDisplayPort();
-                if (dp != NULL && dataSize == 2) {
+                if (dp != NULL) {
                     dp->cols = constrain(sbufReadU8(src), 30, MSP_DISPLAYPORT_MAX_COLS);
                     dp->rows = constrain(sbufReadU8(src), 16, MSP_DISPLAYPORT_MAX_ROWS);
                 } else {

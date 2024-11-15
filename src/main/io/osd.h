@@ -478,6 +478,10 @@ typedef struct osdConfig_s {
     uint16_t adsb_ignore_plane_above_me_limit;          // in metres
 #endif
     uint8_t  radar_peers_display_time;                  // in seconds
+#ifdef USE_MSP_DISPLAYPORT
+    uint8_t osd_autohd_cols;
+    uint8_t osd_autohd_rows;
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
