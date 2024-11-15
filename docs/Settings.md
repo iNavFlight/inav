@@ -908,7 +908,7 @@ EzTune filter cutoff frequency
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 110 | 10 | 300 |
+| 110 | 20 | 300 |
 
 ---
 
