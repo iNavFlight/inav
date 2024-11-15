@@ -866,6 +866,14 @@ static const char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR(OSD_MSG_NO_PREARM);
         case ARMING_DISABLED_DSHOT_BEEPER:
             return OSD_MESSAGE_STR(OSD_MSG_DSHOT_BEEPER);
+
+        case ARMING_DISABLED_GEOZONE:
+#ifdef USE_GEOZONE
+            return OSD_MESSAGE_STR(OSD_MSG_NFZ);
+#else
+            FALLTHROUGH;
+#endif
+
             // Cases without message
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;
@@ -2382,6 +2390,11 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "LAND";
             else
 #endif
+#ifdef USE_GEOZONE
+            if (FLIGHT_MODE(NAV_SEND_TO))
+                p = "AUTO";
+            else 
+#endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
@@ -3889,6 +3902,52 @@ static bool osdDrawSingleElement(uint8_t item)
             clearMultiFunction = true;
             break;
         }
+#if defined(USE_GEOZONE)
+        case OSD_COURSE_TO_FENCE:
+        {
+            if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
+                int16_t panHomeDirOffset = 0;
+                if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                    panHomeDirOffset = osdGetPanServoOffset();
+                }
+                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - flightDirection + panHomeDirOffset;
+                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);            
+            } else {
+                if (isGeozoneActive()) {
+                    TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+                }
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, '-', elemAttr);
+            }
+        break;
+        }  
+        
+        case OSD_H_DIST_TO_FENCE:
+        {
+            if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
+                char buff2[12];
+                osdFormatDistanceSymbol(buff2, geozone.distanceHorToNearestZone, 0, 3);
+                tfp_sprintf(buff, "FD %s", buff2 );
+            } else {
+                strcpy(buff, "FD ---");
+            }
+        }
+        break;
+
+        case OSD_V_DIST_TO_FENCE:
+        {
+            if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
+                char buff2[12];
+                osdFormatAltitudeSymbol(buff2, abs(geozone.distanceVertToNearestZone));
+                tfp_sprintf(buff, "FD%s", buff2);
+                displayWriteCharWithAttr(osdDisplayPort, elemPosX + 8, elemPosY, geozone.distanceVertToNearestZone < 0 ? SYM_DECORATION + 4 : SYM_DECORATION, elemAttr);
+            } else {
+                strcpy(buff, "FD ---");
+            }
+
+            break;
+        }
+#endif
 
     default:
         return false;
@@ -5946,6 +6005,12 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     messages[messageCount++] = safehomeMessage;
                 }
 #endif
+
+#ifdef USE_GEOZONE
+                if (geozone.avoidInRTHInProgress) {
+                    messages[messageCount++] = OSD_MSG_AVOID_ZONES_RTH;
+                }
+#endif
                 if (FLIGHT_MODE(FAILSAFE_MODE)) {   // In FS mode while armed
                     if (NAV_Status.state == MW_NAV_STATE_LAND_SETTLE && posControl.landingDelay > 0) {
                         uint16_t remainingHoldSec = MS2S(posControl.landingDelay - millis());
@@ -5970,6 +6035,64 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             } else if (STATE(LANDING_DETECTED)) {
                 messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_LANDED);
             } else {
+#ifdef USE_GEOZONE
+            char buf[12], buf1[12];
+            switch (geozone.messageState) {
+                case GEOZONE_MESSAGE_STATE_NFZ:
+                    messages[messageCount++] = OSD_MSG_NFZ;
+                    break;
+                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:      
+                    osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                    tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
+                    messages[messageCount++] = messageBuf;
+                    break;
+                case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
+                    messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
+                    break;
+                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:    
+                osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                    if (geozone.zoneInfo == INT32_MAX) {
+                        tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
+                    } else {
+                        osdFormatAltitudeSymbol(buf1, geozone.zoneInfo);
+                    }
+                    tfp_sprintf(messageBuf, OSD_MSG_ENTERING_NFZ, buf, buf1);
+                    messages[messageCount++] = messageBuf;
+                    break;
+                case GEOZONE_MESSAGE_STATE_AVOIDING_FB:
+                    messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE:
+                    messages[messageCount++] = OSD_MSG_RETURN_TO_ZONE;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH:
+                    messages[messageCount++] = OSD_MSG_AVOIDING_ALT_BREACH;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_FLYOUT_NFZ:
+                    messages[messageCount++] = OSD_MSG_FLYOUT_NFZ;
+                    if (!posControl.sendTo.lockSticks) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;
+                case GEOZONE_MESSAGE_STATE_POS_HOLD:
+                    messages[messageCount++] = OSD_MSG_AVOIDING_FB;
+                    if (!geozone.sticksLocked) {
+                        messages[messageCount++] = OSD_MSG_MOVE_STICKS;
+                    }
+                    break;         
+                case GEOZONE_MESSAGE_STATE_NONE:
+                    break;
+            }
+#endif
                 /* Messages shown only when Failsafe, WP, RTH or Emergency Landing not active and landed state inactive */
                 /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
                 if (STATE(AIRPLANE)) {      /* ADDS MAXIMUM OF 3 MESSAGES TO TOTAL */
@@ -6008,6 +6131,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                             messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_ANGLEHOLD_PITCH);
                         }
                     }
+
                 } else if (STATE(MULTIROTOR)) {     /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
                     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
                         if (posControl.cruise.multicopterSpeed >= 50.0f) {
