@@ -524,6 +524,10 @@ void init(void)
     ezTuneUpdate();
 #endif
 
+#ifndef USE_GEOZONE
+    featureClear(FEATURE_GEOZONE);
+#endif
+
     if (!sensorsAutodetect()) {
         // if gyro was not detected due to whatever reason, we give up now.
         failureMode(FAILURE_MISSING_ACC);
