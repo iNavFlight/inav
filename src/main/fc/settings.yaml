@@ -1589,7 +1589,7 @@ groups:
         description: "EzTune filter cutoff frequency"
         default_value: 110
         field: filterHz
-        min: 10
+        min: 20
         max: 300
       - name: ez_axis_ratio
         description: "EzTune axis ratio"
