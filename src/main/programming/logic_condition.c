@@ -287,48 +287,60 @@ static int logicConditionCompute(
             return true;
             break;
 
-        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
-#if defined(USE_VTX_CONTROL)
-#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-            } else {
-                return false;
-            }
+#ifdef USE_MAG
+        case LOGIC_CONDITION_RESET_MAG_CALIBRATION:
+
+            ENABLE_STATE(CALIBRATE_MAG);
+            return true;
             break;
-#else
-            return false;
 #endif
 
+#if defined(USE_VTX_CONTROL)
+        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+        {
+            uint8_t newPower = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+            if ((newPower != operandA || newPower != vtxSettingsConfig()->power) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newPower = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = newPower;
+                if (newPower != vtxSettingsConfig()->power) {
+                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newPower); // Force setting if modified elsewhere
+                }
+                vtxSettingsConfigMutable()->power = newPower;
+                return newPower;
+            }
+            return false;
+            break;
+        }
         case LOGIC_CONDITION_SET_VTX_BAND:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
-                vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-            } else {
-                return false;
+        {
+            uint8_t newBand = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            if ((newBand != operandA  || newBand != vtxSettingsConfig()->band) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newBand = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = newBand;
+                if (newBand != vtxSettingsConfig()->band) {
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), newBand, vtxSettingsConfig()->channel);
+                }
+                vtxSettingsConfigMutable()->band = newBand;
+                return newBand;
             }
+            return false;
             break;
+        }
         case LOGIC_CONDITION_SET_VTX_CHANNEL:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
-                vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-            } else {
-                return false;
+        {
+            uint8_t newChannel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            if ((newChannel != operandA  || newChannel != vtxSettingsConfig()->channel) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newChannel = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, vtxDeviceCapability.channelCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newChannel;
+                if (newChannel != vtxSettingsConfig()->channel) {
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), vtxSettingsConfig()->band, newChannel);
+                }
+                vtxSettingsConfigMutable()->channel = newChannel;
+                return newChannel;
             }
+            return false;
             break;
+        }
 #endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
@@ -487,6 +499,17 @@ static int logicConditionCompute(
             return operandA;
             break;
 #endif
+#ifdef USE_GPS_FIX_ESTIMATION
+        case LOGIC_CONDITION_DISABLE_GPS_FIX:
+            if (operandA > 0) {
+                LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
+            } else {
+                LOGIC_CONDITION_GLOBAL_FLAG_DISABLE(LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX);
+            }
+                return true;
+            break;
+#endif
+
         default:
             return false;
             break;
@@ -495,7 +518,7 @@ static int logicConditionCompute(
 
 void logicConditionProcess(uint8_t i) {
 
-    const int activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
+    const int32_t activatorValue = logicConditionGetValue(logicConditions(i)->activatorId);
 
     if (logicConditions(i)->enabled && activatorValue && !cliMode) {
 
@@ -504,9 +527,9 @@ void logicConditionProcess(uint8_t i) {
          * Latched LCs can only go from OFF to ON, not the other way
          */
         if (!(logicConditionStates[i].flags & LOGIC_CONDITION_FLAG_LATCH)) {
-            const int operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
-            const int operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
-            const int newValue = logicConditionCompute(
+            const int32_t operandAValue = logicConditionGetOperandValue(logicConditions(i)->operandA.type, logicConditions(i)->operandA.value);
+            const int32_t operandBValue = logicConditionGetOperandValue(logicConditions(i)->operandB.type, logicConditions(i)->operandB.value);
+            const int32_t newValue = logicConditionCompute(
                 logicConditionStates[i].value,
                 logicConditions(i)->operation,
                 operandAValue,
@@ -632,15 +655,15 @@ static int logicConditionGetFlightOperandValue(int operand) {
     switch (operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ARM_TIMER: // in s
-            return constrain((uint32_t)getFlightTime(), 0, INT16_MAX);
+            return constrain((uint32_t)getFlightTime(), 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_HOME_DISTANCE: //in m
-            return constrain(GPS_distanceToHome, 0, INT16_MAX);
+            return constrain(GPS_distanceToHome, 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TRIP_DISTANCE: //in m
-            return constrain(getTotalTravelDistance() / 100, 0, INT16_MAX);
+            return constrain(getTotalTravelDistance() / 100, 0, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_RSSI:
@@ -668,6 +691,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GPS_SATS:
+#ifdef USE_GPS_FIX_ESTIMATION
+            if ( STATE(GPS_ESTIMATED_FIX) ){
+                return gpsSol.numSat; //99
+            } else
+#endif
             if (getHwGPSStatus() == HW_SENSOR_UNAVAILABLE || getHwGPSStatus() == HW_SENSOR_UNHEALTHY) {
                 return 0;
             } else {
@@ -690,18 +718,18 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AIR_SPEED: // cm/s
         #ifdef USE_PITOT
-            return constrain(getAirspeedEstimate(), 0, INT16_MAX);
+            return constrain(getAirspeedEstimate(), 0, INT32_MAX);
         #else
             return false;
         #endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
-            return constrain(getEstimatedActualPosition(Z), INT16_MIN, INT16_MAX);
+            return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_VERTICAL_SPEED: // cm/s
-            return constrain(getEstimatedActualVelocity(Z), INT16_MIN, INT16_MAX);
+            return constrain(getEstimatedActualVelocity(Z), INT32_MIN, INT32_MAX);
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_TROTTLE_POS: // %
@@ -750,7 +778,7 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #else
             return ((navGetCurrentStateFlags() & NAV_CTL_LAND)) ? 1 : 0;
 #endif
-            
+
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_IS_FAILSAFE: // 0/1
@@ -770,27 +798,47 @@ static int logicConditionGetFlightOperandValue(int operand) {
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE: //in m
-            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT16_MAX);
+            return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT32_MAX);
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
-        #ifdef USE_SERIALRX_CRSF
+        case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_UPLINK:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
             return rxLinkStatistics.uplinkLQ;
-        #else
+#else
             return 0;
-        #endif
+#endif
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR:
-        #ifdef USE_SERIALRX_CRSF
-            return rxLinkStatistics.uplinkSNR;
-        #else
+        case LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkRSSI;
+#else
             return 0;
-        #endif
+#endif        
+            break;
+
+case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.downlinkLQ;
+#else
+            return 0;
+#endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_SNR:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkSNR;
+#else
+            return 0;
+#endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
             return getConfigProfile() + 1;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE: //int
+            return getConfigBatteryProfile() + 1;
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE: // int
@@ -803,6 +851,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS:
             return getLoiterRadius(navConfig()->fw.loiter_radius);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS:
+            return getFlownLoiterRadius();
+            break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_AGL_STATUS:
             return isEstimatedAglTrusted();
@@ -906,8 +959,8 @@ static int logicConditionGetFlightModeOperandValue(int operand) {
     }
 }
 
-int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
-    int retVal = 0;
+int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand) {
+    int32_t retVal = 0;
 
     switch (type) {
 
@@ -962,7 +1015,7 @@ int logicConditionGetOperandValue(logicOperandType_e type, int operand) {
 /*
  * conditionId == -1 is always evaluated as true
  */
-int logicConditionGetValue(int8_t conditionId) {
+int32_t logicConditionGetValue(int8_t conditionId) {
     if (conditionId >= 0) {
         return logicConditionStates[conditionId].value;
     } else {

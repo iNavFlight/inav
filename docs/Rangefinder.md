@@ -20,6 +20,23 @@ Following rangefinders are supported:
 * UIB - experimental
 * MSP - experimental
 * TOF10120 - small & lightweight laser range sensor, usable up to 200cm
+* TERARANGER EVO - 30cm to 600cm, depends on version https://www.terabee.com/sensors-modules/lidar-tof-range-finders/#individual-distance-measurement-sensors
+* NRA15/NRA24 - experimental, UART version
+
+#### NRA15/NRA24
+NRA15/NRA24 from nanoradar use US-D1_V0 or NRA protocol, it depends which firmware you use. Radar can be set by firmware
+to two different resolutions. See table below.
+
+| Radar | Protocol | Resolution      | Name in configurator |
+|-------|----------|-----------------|----------------------|
+| NRA15 | US-D1_V0 | 0-30m (+-4cm)   | USD1_V0              |
+| NRA15 | NRA      | 0-30m (+-4cm)   | NRA                  | 
+| NRA15 | NRA      | 0-100m (+-10cm) | NRA                  | 
+| NRA24 | US-D1_V0 | 0-50m (+-4cm)   | USD1_V0              |
+| NRA24 | US-D1_V0 | 0-200m (+-10cm) | USD1_V0              |
+| NRA24 | NRA      | 0-50m (+-4cm)   | NRA                  | 
+| NRA24 | NRA      | 0-200m (+-10cm) | NRA                  | 
+
 
 ## Connections
 

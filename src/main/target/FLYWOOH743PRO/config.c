@@ -1,8 +1,7 @@
-
 /*
- * This file is part of INAV Project.
+ * This file is part of Cleanflight.
  *
- * INAV is free software: you can redistribute it and/or modify
+ * Cleanflight is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -16,21 +15,17 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include <stdint.h>
 
 #include "platform.h"
 
-#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_BF_COMPAT)
-#include "osd.h"
-uint8_t getBfCharacter(uint8_t ch, uint8_t page);
-#define isBfCompatibleVideoSystem(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT || osdConfigPtr->video_system == VIDEO_SYSTEM_BFCOMPAT_HD)
-#else
-#define getBfCharacter(x, page) (x)
-#ifdef OSD_UNIT_TEST
-#define isBfCompatibleVideoSystem(osdConfigPtr) (true)
-#else
-#define isBfCompatibleVideoSystem(osdConfigPtr) (false)
-#endif
-#endif
+#include "fc/fc_msp_box.h"
+#include "fc/config.h"
+
+#include "io/piniobox.h"
+
+void targetConfiguration(void)
+{
+    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+}

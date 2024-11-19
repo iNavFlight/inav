@@ -116,9 +116,6 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
 #ifdef USE_I2C
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
-#ifdef USE_UNDERCLOCK
-    .cpuUnderclock = SETTING_CPU_UNDERCLOCK_DEFAULT,
-#endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
@@ -193,6 +190,18 @@ uint32_t getGyroLooptime(void)
 
 void validateAndFixConfig(void)
 {
+
+#ifdef USE_ADAPTIVE_FILTER
+//     gyroConfig()->adaptiveFilterMinHz has to be at least 5 units lower than gyroConfig()->gyro_main_lpf_hz
+     if (gyroConfig()->adaptiveFilterMinHz + 5 > gyroConfig()->gyro_main_lpf_hz) {
+        gyroConfigMutable()->adaptiveFilterMinHz = gyroConfig()->gyro_main_lpf_hz - 5;
+    }
+    //gyroConfig()->adaptiveFilterMaxHz has to be at least 5 units higher than gyroConfig()->gyro_main_lpf_hz
+    if (gyroConfig()->adaptiveFilterMaxHz - 5 < gyroConfig()->gyro_main_lpf_hz) {
+        gyroConfigMutable()->adaptiveFilterMaxHz = gyroConfig()->gyro_main_lpf_hz + 5;
+    }
+#endif
+
     if (accelerometerConfig()->acc_notch_cutoff >= accelerometerConfig()->acc_notch_hz) {
         accelerometerConfigMutable()->acc_notch_hz = 0;
     }
@@ -287,6 +296,14 @@ void createDefaultConfig(void)
     featureSet(FEATURE_AIRMODE);
 
     targetConfiguration();
+
+#ifdef MSP_UART
+    int port = findSerialPortIndexByIdentifier(MSP_UART);
+    if (port) {
+        serialConfigMutable()->portConfigs[port].functionMask = FUNCTION_MSP;
+        serialConfigMutable()->portConfigs[port].msp_baudrateIndex = BAUD_115200;
+    }
+#endif
 }
 
 void resetConfigs(void)

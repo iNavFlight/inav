@@ -75,7 +75,6 @@
 #define OSD_MSG_PITOT_FAIL          "PITOT METER FAILURE"
 #define OSD_MSG_HW_FAIL             "HARDWARE FAILURE"
 #define OSD_MSG_FS_EN               "FAILSAFE MODE ENABLED"
-#define OSD_MSG_KILL_SW_EN          "KILLSWITCH MODE ENABLED"
 #define OSD_MSG_NO_RC_LINK          "NO RC LINK"
 #define OSD_MSG_THROTTLE_NOT_LOW    "THROTTLE IS NOT LOW"
 #define OSD_MSG_ROLLPITCH_OFFCENTER "ROLLPITCH NOT CENTERED"
@@ -131,6 +130,19 @@
 #if defined(USE_SAFE_HOME)
 #define OSD_MSG_DIVERT_SAFEHOME     "DIVERTING TO SAFEHOME"
 #define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
+#endif
+
+#if defined(USE_GEOZONE)
+#define OSD_MSG_NFZ                 "NO FLY ZONE"
+#define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
+#define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
+#define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"
+#define OSD_MSG_AVOIDING_FB         "AVOIDING FENCE BREACH"
+#define OSD_MSG_RETURN_TO_ZONE      "RETURN TO FZ"
+#define OSD_MSG_FLYOUT_NFZ          "FLY OUT NFZ"
+#define OSD_MSG_AVOIDING_ALT_BREACH "REACHED ZONE ALTITUDE LIMIT"
+#define OSD_MSG_AVOID_ZONES_RTH     "AVOIDING NO FLY ZONES"
+#define OSD_MSG_GEOZONE_ACTION      "PERFORM ACTION IN %s %s"
 #endif
 
 typedef enum {
@@ -243,10 +255,10 @@ typedef enum {
     OSD_ESC_RPM,
     OSD_ESC_TEMPERATURE,
     OSD_AZIMUTH,
-    OSD_CRSF_RSSI_DBM,
-    OSD_CRSF_LQ,
-    OSD_CRSF_SNR_DB,
-    OSD_CRSF_TX_POWER,
+    OSD_RSSI_DBM,
+    OSD_LQ_UPLINK,
+    OSD_SNR_DB,
+    OSD_TX_POWER_UPLINK,
     OSD_GVAR_0,
     OSD_GVAR_1,
     OSD_GVAR_2,
@@ -284,6 +296,22 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_1,
     OSD_CUSTOM_ELEMENT_2,
     OSD_CUSTOM_ELEMENT_3,
+    OSD_ADSB_WARNING, //150
+    OSD_ADSB_INFO,
+    OSD_BLACKBOX,
+    OSD_FORMATION_FLIGHT,
+    OSD_CUSTOM_ELEMENT_4,
+    OSD_CUSTOM_ELEMENT_5,
+    OSD_CUSTOM_ELEMENT_6,
+    OSD_CUSTOM_ELEMENT_7,
+    OSD_CUSTOM_ELEMENT_8,
+    OSD_LQ_DOWNLINK,
+    OSD_RX_POWER_DOWNLINK, // 160
+    OSD_RX_BAND,
+    OSD_RX_MODE,
+    OSD_COURSE_TO_FENCE,
+    OSD_H_DIST_TO_FENCE,
+    OSD_V_DIST_TO_FENCE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -301,11 +329,6 @@ typedef enum {
     OSD_STATS_ENERGY_UNIT_MAH,
     OSD_STATS_ENERGY_UNIT_WH,
 } osd_stats_energy_unit_e;
-
-typedef enum {
-    OSD_STATS_MIN_VOLTAGE_UNIT_BATTERY,
-    OSD_STATS_MIN_VOLTAGE_UNIT_CELL,
-} osd_stats_min_voltage_unit_e;
 
 typedef enum {
     OSD_CROSSHAIRS_STYLE_DEFAULT,
@@ -366,7 +389,7 @@ typedef struct osdConfig_s {
     float           gforce_alarm;
     float           gforce_axis_alarm_min;
     float           gforce_axis_alarm_max;
-#ifdef USE_SERIALRX_CRSF
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
     int8_t          snr_alarm;                          //CRSF SNR alarm in dB
     int8_t          link_quality_alarm;
     int16_t         rssi_dbm_alarm;                     // in dBm
@@ -391,6 +414,8 @@ typedef struct osdConfig_s {
 
     // Preferences
     uint8_t         main_voltage_decimals;
+    uint8_t         decimals_altitude;
+    uint8_t         decimals_distance;
     uint8_t         ahi_reverse_roll;
     uint8_t         ahi_max_pitch;
     uint8_t         crosshairs_style;                   // from osd_crosshairs_style_e
@@ -416,11 +441,12 @@ typedef struct osdConfig_s {
 
     uint8_t         units;                              // from osd_unit_e
     uint8_t         stats_energy_unit;                  // from osd_stats_energy_unit_e
-    uint8_t         stats_min_voltage_unit;             // from osd_stats_min_voltage_unit_e
     uint8_t         stats_page_auto_swap_time;          // stats page auto swap interval time (seconds)
+    bool            stats_show_metric_efficiency;       // If true, show metric efficiency as well as for the selected units
 
 #ifdef USE_WIND_ESTIMATOR
     bool            estimations_wind_compensation;      // use wind compensation for estimated remaining flight/distance
+    bool            estimations_wind_mps;               // wind speed estimation in m/s
 #endif
     uint8_t         coordinate_digits;
     bool            osd_failsafe_switch_layout;
@@ -445,7 +471,7 @@ typedef struct osdConfig_s {
     uint8_t         telemetry;                          // use telemetry on displayed pixel line 0
     uint8_t         esc_rpm_precision;                  // Number of characters used for the RPM numbers.
     uint16_t        system_msg_display_time;            // system message display time for multiple messages (ms)
-    uint8_t         mAh_precision;                 // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
+    uint8_t         mAh_precision;                      // Number of numbers used for mAh drawn. Plently of packs now are > 9999 mAh
     uint8_t         ahi_pitch_interval;                 // redraws AHI at set pitch interval (Not pixel OSD)
     char            osd_switch_indicator0_name[OSD_SWITCH_INDICATOR_NAME_LENGTH + 1]; // Name to use for switch indicator 0.
     uint8_t         osd_switch_indicator0_channel;      // RC Channel to use for switch indicator 0.
@@ -459,6 +485,19 @@ typedef struct osdConfig_s {
     bool            use_pilot_logo;                     // If enabled, the pilot logo (last 40 characters of page 2 font) will be used with the INAV logo.
     uint8_t         inav_to_pilot_logo_spacing;         // The space between the INAV and pilot logos, if pilot logo is used. This number may be adjusted so that it fits the odd/even col width.
     uint16_t        arm_screen_display_time;            // Length of time the arm screen is displayed
+#ifndef DISABLE_MSP_DJI_COMPAT
+    bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
+#endif
+#ifdef USE_ADSB
+    uint16_t adsb_distance_warning;                     // in metres
+    uint16_t adsb_distance_alert;                       // in metres
+    uint16_t adsb_ignore_plane_above_me_limit;          // in metres
+#endif
+    uint8_t  radar_peers_display_time;                  // in seconds
+#ifdef USE_GEOZONE
+    uint8_t geozoneDistanceWarning;                     // Distance to fence or action
+    bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

@@ -17,7 +17,11 @@
 
 #pragma once
 
+#ifdef GEPRC_F722_AIO_UART3
+#define TARGET_BOARD_IDENTIFIER "GEP3"
+#else
 #define TARGET_BOARD_IDENTIFIER "GEPR"
+#endif
 
 #define USBD_PRODUCT_STRING     "GEPRC_F722_AIO"
 
@@ -52,6 +56,7 @@
 #define ICM42605_SPI_BUS        BUS_SPI1
 
 // *************** I2C/Baro/Mag *********************
+#ifndef GEPRC_F722_AIO_UART3
 #define USE_I2C
 #define USE_I2C_DEVICE_2
 #define I2C2_SCL                PB10
@@ -74,6 +79,7 @@
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C2
 #define BNO055_I2C_BUS          BUS_I2C2
+#endif
 
 // *************** FLASH **************************
 #define M25P16_CS_PIN           PB9
@@ -108,6 +114,12 @@
 #define UART2_RX_PIN            PA3
 #define UART2_TX_PIN            PA2
 
+#ifdef GEPRC_F722_AIO_UART3
+#define USE_UART3
+#define UART3_RX_PIN            PB11
+#define UART3_TX_PIN            PB10
+#endif
+
 #define USE_UART4
 #define UART4_RX_PIN            PC11
 #define UART4_TX_PIN            PC10
@@ -116,7 +128,11 @@
 #define UART5_RX_PIN            PD2
 #define UART5_TX_PIN            PC12
 
+#ifdef GEPRC_F722_AIO_UART3
+#define SERIAL_PORT_COUNT       6
+#else
 #define SERIAL_PORT_COUNT       5
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS

@@ -29,6 +29,41 @@ extern uint8_t __config_end;
 # undef USE_OLED_UG2864
 #endif
 
+
+// Make sure DEFAULT_I2C_BUS is valid
+#ifndef DEFAULT_I2C_BUS
+
+#if defined(USE_I2C_DEVICE_1)
+#define DEFAULT_I2C_BUS BUS_I2C1
+#elif defined(USE_I2C_DEVICE_2)
+#define DEFAULT_I2C_BUS BUS_I2C2
+#elif defined(USE_I2C_DEVICE_3)
+#define DEFAULT_I2C_BUS BUS_I2C3
+#elif defined(USE_I2C_DEVICE_4)
+#define DEFAULT_I2C_BUS BUS_I2C4
+#endif
+
+#endif
+
+// Airspeed sensors
+#if defined(USE_PITOT) && defined(DEFAULT_I2C_BUS)
+
+#ifndef PITOT_I2C_BUS
+#define PITOT_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+#endif
+
+// Temperature sensors
+#if !defined(TEMPERATURE_I2C_BUS) && defined(DEFAULT_I2C_BUS)
+#define TEMPERATURE_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
+// Rangefinder sensors
+#if !defined(RANGEFINDER_I2C_BUS) && defined(DEFAULT_I2C_BUS)
+#define RANGEFINDER_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
 // Enable MSP_DISPLAYPORT for F3 targets without builtin OSD,
 // since it's used to display CMS on MWOSD
 #if !defined(USE_MSP_DISPLAYPORT) && !defined(USE_OSD)
@@ -67,6 +102,10 @@ extern uint8_t __config_end;
 
 #endif // USE_MAG_ALL
 
+#if defined(DEFAULT_I2C_BUS) && !defined(MAG_I2C_BUS)
+#define MAG_I2C_BUS DEFAULT_I2C_BUS
+#endif
+
 #endif // USE_MAG
 
 #if defined(USE_BARO)
@@ -82,6 +121,10 @@ extern uint8_t __config_end;
 #define USE_BARO_MS5611
 //#define USE_BARO_SPI_BMP280
 #define USE_BARO_SPL06
+#endif
+
+#if defined(DEFAULT_I2C_BUS) && !defined(BARO_I2C_BUS)
+#define BARO_I2C_BUS DEFAULT_I2C_BUS
 #endif
 
 #endif

@@ -196,6 +196,7 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         break;
 #endif
 #ifdef USE_SERIALRX_SBUS
+    case SERIALRX_SBUS2:
     case SERIALRX_SBUS:
         enabled = sbusInit(rxConfig, rxRuntimeConfig);
         break;
@@ -569,6 +570,18 @@ static void setRSSIValue(uint16_t rssiValue, rssiSource_e source, bool filtered)
         rssi = rssiMax >= delta ? rssiMax - delta : 0;
     }
     rssi = constrain(scaleRange(rssi, rssiMin, rssiMax, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
+}
+
+void setRSSIFromMSP_RC(uint8_t newMspRssi)
+{
+    if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
+        activeRssiSource = RSSI_SOURCE_MSP;
+    }
+
+    if (activeRssiSource == RSSI_SOURCE_MSP) {
+        rssi = constrain(scaleRange(constrain(newMspRssi, 0, 100), 0, 100, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
+        lastMspRssiUpdateUs = micros();
+    }
 }
 
 void setRSSIFromMSP(uint8_t newMspRssi)

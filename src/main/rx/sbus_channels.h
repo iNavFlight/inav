@@ -20,15 +20,18 @@
 #include <stdint.h>
 #include "rx/rx.h"
 
-#define SBUS_MAX_CHANNEL 18
+#define SBUS_MAX_CHANNEL 34
 
+#define SBUS_FLAG_CHANNEL_DG1       (1 << 0)
+#define SBUS_FLAG_CHANNEL_DG2       (1 << 1)
 #define SBUS_FLAG_SIGNAL_LOSS       (1 << 2)
 #define SBUS_FLAG_FAILSAFE_ACTIVE   (1 << 3)
 
 #define SBUS_CHANNEL_DATA_LENGTH sizeof(sbusChannels_t)
 #define SBUS_FRAME_SIZE (SBUS_CHANNEL_DATA_LENGTH + 2)
 
-#define SBUS_FRAME_BEGIN_BYTE 0x0F
+#define SBUS_FRAME_BEGIN_BYTE   ((uint8_t)0x0F)
+#define SBUS2_HIGHFRAME_BEGIN_BYTE ((uint8_t)0x2F)
 
 #define SBUS_BAUDRATE       100000
 #define SBUS_BAUDRATE_FAST  200000
@@ -76,5 +79,6 @@ uint16_t sbusDecodeChannelValue(uint16_t sbusValue, bool safeValuesOnly);
 uint16_t sbusEncodeChannelValue(uint16_t rcValue);
 
 uint8_t sbusChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels);
+uint8_t sbus26ChannelsDecode(rxRuntimeConfig_t *rxRuntimeConfig, const sbusChannels_t *channels, bool highChannels);
 
 void sbusChannelsInit(rxRuntimeConfig_t *rxRuntimeConfig);

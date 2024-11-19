@@ -81,13 +81,10 @@ typedef enum {
     SERIALRX_GHST,
     SERIALRX_MAVLINK,
     SERIALRX_FBUS,
+    SERIALRX_SBUS2,
 } rxSerialReceiverType_e;
 
-#ifdef USE_24CHANNELS
-#define MAX_SUPPORTED_RC_CHANNEL_COUNT 26
-#else
-#define MAX_SUPPORTED_RC_CHANNEL_COUNT 18
-#endif
+#define MAX_SUPPORTED_RC_CHANNEL_COUNT 34
 
 #define NON_AUX_CHANNEL_COUNT 4
 #define MAX_AUX_CHANNEL_COUNT (MAX_SUPPORTED_RC_CHANNEL_COUNT - NON_AUX_CHANNEL_COUNT)
@@ -184,12 +181,16 @@ typedef enum {
 } rssiSource_e;
 
 typedef struct rxLinkStatistics_s {
-    int16_t uplinkRSSI;     // RSSI value in dBm
-    uint8_t uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
-    int8_t uplinkSNR;       // The SNR of the uplink in dB
-    uint8_t rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
-    uint16_t uplinkTXPower; // power in mW
-    uint8_t activeAntenna;
+    int16_t     uplinkRSSI;         // RSSI value in dBm
+    uint8_t     uplinkLQ;           // A protocol specific measure of the link quality in [0..100]
+    uint8_t     downlinkLQ;         // A protocol specific measure of the link quality in [0..100]
+    int8_t      uplinkSNR;          // The SNR of the uplink in dB
+    uint8_t     rfMode;             // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t    uplinkTXPower;      // power in mW
+    uint16_t    downlinkTXPower;    // power in mW
+    uint8_t     activeAntenna;
+    char        band[4];
+    char        mode[6];
 } rxLinkStatistics_t;
 
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
@@ -215,6 +216,7 @@ bool isRxPulseValid(uint16_t pulseDuration);
 uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap);
 void parseRcChannels(const char *input);
 
+void setRSSIFromMSP_RC(uint8_t newMspRssi);
 void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
 // Returns RSSI in [0, RSSI_MAX_VALUE] range.
