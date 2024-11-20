@@ -373,7 +373,8 @@ typedef enum {
     OSD_STATS_ITEM_MAX_ALTITUDE,
     OSD_STATS_ITEM_BATTERY_VOLTAGE,
     OSD_STATS_ITEM_MAX_POWER_CURRENT,
-    OSD_STATS_ITEM_USED_ENERGY,
+    OSD_STATS_ITEM_USED_ENERGY_WH,
+    OSD_STATS_ITEM_USED_ENERGY_MAH,
     OSD_STATS_ITEM_AVERAGE_EFFICIENCY_WH,
     OSD_STATS_ITEM_AVERAGE_EFFICIENCY_MAH,
     OSD_STATS_ITEM_GPS, // 10
@@ -390,6 +391,7 @@ typedef struct osdStatsConfig_s
 {
     uint8_t statOrder[OSD_STATS_ITEM_COUNT];
     uint8_t statEnabled[OSD_STATS_ITEM_COUNT];
+    uint8_t statsSDRows[OSD_STATS_ITEM_COUNT];
 } osdStatsConfig_t;
 
 PG_DECLARE(osdStatsConfig_t, osdStatsConfig);
@@ -470,7 +472,6 @@ typedef struct osdConfig_s {
     uint8_t         sidebar_scroll_arrows;
 
     uint8_t         units;                              // from osd_unit_e
-    uint8_t         stats_energy_unit;                  // from osd_stats_energy_unit_e
     uint8_t         stats_page_auto_swap_time;          // stats page auto swap interval time (seconds)
     bool            stats_show_metric_efficiency;       // If true, show metric efficiency as well as for the selected units
 

@@ -98,6 +98,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `motor` | Get/set motor |
 | `msc` | Enter USB Mass storage mode. See [USB MSC documentation](USB_Mass_Storage_(MSC)_mode.md) for usage information. |
 | `osd_layout` | Get or set the layout of OSD items |
+| `osd_stats` | Get or set the layout of OSD post flight statistics |
 | `pid` | Configurable PID controllers |
 | `play_sound` | `<index>`, or none for next item |
 | `profile` | Change profile |
@@ -114,7 +115,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `status` | Show status. Error codes can be looked up [here](https://github.com/iNavFlight/inav/wiki/%22Something%22-is-disabled----Reasons) |
 | `tasks` | Show task stats |
 | `temp_sensor` | List or configure temperature sensor(s). See [temperature sensors documentation](Temperature-sensors.md) for more information. |
-|  `timer_output_mode`  | Override automatic timer /  pwm function allocation. [Additional Information](#timer_outout_mode)|
+| `timer_output_mode`  | Override automatic timer /  pwm function allocation. [Additional Information](#timer_outout_mode)|
 | `version` | Show version |
 | `wp` | List or configure waypoints. See the [navigation documentation](Navigation.md#cli-command-wp-to-manage-waypoints). |
 

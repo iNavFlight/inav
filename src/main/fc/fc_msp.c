@@ -1574,7 +1574,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->right_sidebar_scroll);
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
-        sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+        sbufWriteU8(dst, 0); // Unused - was osdConfig()->stats_energy_unit
         break;
 
 #endif
@@ -2152,12 +2152,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if ((batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MAH) && (batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MWH)) {
                 batteryMetersConfigMutable()->capacity_unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
-            } else if (currentCapacityUnit != batteryMetersConfig()->capacity_unit) {
-                if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH) {
-                    osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
-                } else {
-                    osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_WH;
-                }
             }
         } else
             return MSP_RESULT_ERROR;
@@ -2198,12 +2192,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if ((batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MAH) && (batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MWH)) {
                 batteryMetersConfigMutable()->capacity_unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
-            } else if (currentCapacityUnit != batteryMetersConfig()->capacity_unit) {
-                if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH) {
-                    osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
-                } else {
-                    osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_WH;
-                }
             }
         } else
             return MSP_RESULT_ERROR;
@@ -3280,7 +3268,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->right_sidebar_scroll = sbufReadU8(src);
                 osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
                 osdConfigMutable()->units = sbufReadU8(src);
-                osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+                sbufReadU8(src); // Unused - was osdConfigMutable()->stats_energy_unit
                 osdStartFullRedraw();
             } else
                 return MSP_RESULT_ERROR;

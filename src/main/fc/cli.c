@@ -3139,26 +3139,88 @@ static void printOsdStats(uint8_t dumpMask, const osdStatsConfig_t *config, cons
 {
     // "<item> <position> <visible>"
     const char *format = "osd_stats %d %d %c";
-    for (int i = 0; i < OSD_STATS_ITEM_COUNT; i++) {
-        const uint8_t *itemOrder = config->statOrder[i];
-        const uint8_t *defaultItemOrder = configDefault->statOrder[i];
-        for (int j = 0; j < OSD_STATS_ITEM_COUNT; j++) {
-            if (item >= 0 && item != j) {
-                continue;
-            }
-            bool equalsDefault = layoutItems[j] == defaultLayoutItems[j];
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
-                i, j,
-                OSD_X(defaultLayoutItems[j]),
-                OSD_Y(defaultLayoutItems[j]),
-                OSD_VISIBLE(defaultLayoutItems[j]) ? 'V' : 'H');
-
-            cliDumpPrintLinef(dumpMask, equalsDefault, format,
-                i, j,
-                OSD_X(layoutItems[j]),
-                OSD_Y(layoutItems[j]),
-                OSD_VISIBLE(layoutItems[j]) ? 'V' : 'H');
+    for (uint8_t i = 0; i < OSD_STATS_ITEM_COUNT; i++) {
+        if (item >= 0 && item != i) {
+            continue;
         }
+        bool equalsDefault = (config->statOrder[i] == configDefault->statOrder[i] && config->statEnabled[i] == configDefault->statEnabled[i]);
+        cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            configDefault->statOrder[i],
+            configDefault->statEnabled[i] ? 'V' : 'H');
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+            i,
+            config->statOrder[i],
+            config->statEnabled[i] ? 'V' : 'H');
+    }
+}
+
+static void cliOsdStats(char *cmdline)
+{
+    char * saveptr;
+
+    int16_t item = -1;
+    uint8_t statOrder = 0;
+    bool statEnabled = false;
+    char *tok = strtok_r(cmdline, " ", &saveptr);
+
+    uint8_t i;
+
+    for (i = 0; tok != NULL; i++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (i) {
+            case 0:
+                item = fastA2I(tok);
+                if (item < 0 || item >= OSD_STATS_ITEM_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                item = (uint8_t)item;
+                break;
+            case 1:
+                statOrder = fastA2I(tok);
+                if (statOrder > OSD_STATS_ITEM_COUNT) {
+                    cliShowParseError();
+                    return;
+                }
+                break;
+            case 2:
+                switch (*tok) {
+                    case 'H':
+                        statEnabled = false;
+                        break;
+                    case 'V':
+                        statEnabled = true;
+                        break;
+                    default:
+                        cliShowParseError();
+                        return;
+                }
+                break;
+            default:
+                cliShowParseError();
+                return;
+        }
+    }
+
+    switch (i) {
+        case 0:
+            FALLTHROUGH;
+        case 1:
+            // No args, or just item. If any of them not provided,
+            // it will be the -1 that we used during initialization, so printOsdLayout()
+            // won't use them for filtering.
+            printOsdStats(DUMP_MASTER, osdStatsConfig(), osdStatsConfig(), item);
+            break;
+        case 2:
+            // Layout, item, pos and visibility. Set the item.
+            osdStatsConfigMutable()->statOrder[item] = statOrder;
+            osdStatsConfigMutable()->statEnabled[item] = statEnabled;
+            break;
+        default:
+            // Unhandled
+            cliShowParseError();
+            return;
     }
 }
 
@@ -4020,17 +4082,6 @@ static void cliSet(char *cmdline)
                 }
 
                 if (changeValue) {
-                    // If changing the battery capacity unit, update the osd stats energy unit to match
-                    if (strcmp(name, "battery_capacity_unit") == 0) {
-                        if (batteryMetersConfig()->capacity_unit != (uint8_t)tmp.int_value) {
-                            if (tmp.int_value == BAT_CAPACITY_UNIT_MAH) {
-                                osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
-                            } else {
-                                osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_WH;
-                            }
-                        }
-                    }
-
                     cliSetIntFloatVar(val, tmp);
 
                     cliPrintf("%s set to ", name);
@@ -4545,7 +4596,7 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("OSD [osd_layout]");
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 
-        cliPrintHashLine("OSD Stats [osd_stats_layout]");
+        cliPrintHashLine("OSD Stats [osd_stats]");
         printOsdStats(dumpMask, &osdStatsConfig_Copy, osdStatsConfig(), -1);
 #endif
 
@@ -4948,6 +4999,7 @@ const clicmd_t cmdTable[] = {
 #endif
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
+    CLI_COMMAND_DEF("osd_stats", "get or set the layout of OSD stats", "[<item> [<order> [<visible>]]]", cliOsdStats),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
 };

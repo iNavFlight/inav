@@ -63,9 +63,6 @@ tables:
   - name: osd_unit
     values: ["IMPERIAL", "METRIC", "METRIC_MPH", "UK", "GA"]
     enum: osd_unit_e
-  - name: osd_stats_energy_unit
-    values: ["MAH", "WH"]
-    enum: osd_stats_energy_unit_e
   - name: osd_video_system
     values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
     enum: videoSystem_e
@@ -3265,12 +3262,6 @@ groups:
         default_value: "METRIC"
         field: units
         table: osd_unit
-        type: uint8_t
-      - name: osd_stats_energy_unit
-        description: "Unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour)"
-        default_value: "MAH"
-        field: stats_energy_unit
-        table: osd_stats_energy_unit
         type: uint8_t
       - name: osd_stats_page_auto_swap_time
         description: "Auto swap display time interval between disarm stats pages (seconds). Reverts to manual control when Roll stick used to change pages. Disabled when set to 0."
