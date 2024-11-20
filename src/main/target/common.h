@@ -211,6 +211,11 @@
 #define USE_34CHANNELS
 #define MAX_MIXER_PROFILE_COUNT 2
 #define USE_SMARTPORT_MASTER
+#ifdef USE_GPS
+#define USE_GEOZONE
+#define MAX_GEOZONES_IN_CONFIG 63
+#define MAX_VERTICES_IN_CONFIG 126
+#endif
 #elif !defined(STM32F7)
 #define MAX_MIXER_PROFILE_COUNT 1
 #endif
@@ -223,3 +228,4 @@
 
 #define USE_EZ_TUNE
 #define USE_ADAPTIVE_FILTER
+
