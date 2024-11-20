@@ -365,7 +365,37 @@ typedef enum {
     OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
 
-typedef struct osdLayoutsConfig_s {
+typedef enum {
+    OSD_STATS_ITEM_FLIGHT_TIME,
+    OSD_STATS_ITEM_FLIGHT_DISTANCE,
+    OSD_STATS_ITEM_MAX_DISTANCE,
+    OSD_STATS_ITEM_SPEED,
+    OSD_STATS_ITEM_MAX_ALTITUDE,
+    OSD_STATS_ITEM_BATTERY_VOLTAGE,
+    OSD_STATS_ITEM_MAX_POWER_CURRENT,
+    OSD_STATS_ITEM_USED_ENERGY,
+    OSD_STATS_ITEM_AVERAGE_EFFICIENCY_WH,
+    OSD_STATS_ITEM_AVERAGE_EFFICIENCY_MAH,
+    OSD_STATS_ITEM_GPS, // 10
+    OSD_STATS_ITEM_RECEIVER,
+    OSD_STATS_ITEM_ESC_TEMPERATURE,
+    OSD_STATS_ITEM_GFORCE,
+    OSD_STATS_ITEM_BLACKBOX,
+    OSD_STATS_ITEM_STATS, //15
+
+    OSD_STATS_ITEM_COUNT // Must be last
+} osd_stats_items_e;
+
+typedef struct osdStatsConfig_s
+{
+    uint8_t statOrder[OSD_STATS_ITEM_COUNT];
+    uint8_t statEnabled[OSD_STATS_ITEM_COUNT];
+} osdStatsConfig_t;
+
+PG_DECLARE(osdStatsConfig_t, osdStatsConfig);
+
+typedef struct osdLayoutsConfig_s
+{
     // Layouts
     uint16_t item_pos[OSD_LAYOUT_COUNT][OSD_ITEM_COUNT];
 } osdLayoutsConfig_t;

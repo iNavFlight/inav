@@ -226,6 +226,7 @@ static bool osdDisplayHasCanvas;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
+PG_REGISTER_WITH_RESET_FN(osdStatsConfig_t, osdStatsConfig, PG_OSD_STATS_CONFIG, 0);
 
 void osdStartedSaveProcess(void) {
     savingSettings = true;

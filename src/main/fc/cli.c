@@ -3135,6 +3135,33 @@ static void cliOsdLayout(char *cmdline)
     }
 }
 
+static void printOsdStats(uint8_t dumpMask, const osdStatsConfig_t *config, const osdStatsConfig_t *configDefault, int item)
+{
+    // "<item> <position> <visible>"
+    const char *format = "osd_stats %d %d %c";
+    for (int i = 0; i < OSD_STATS_ITEM_COUNT; i++) {
+        const uint8_t *itemOrder = config->statOrder[i];
+        const uint8_t *defaultItemOrder = configDefault->statOrder[i];
+        for (int j = 0; j < OSD_STATS_ITEM_COUNT; j++) {
+            if (item >= 0 && item != j) {
+                continue;
+            }
+            bool equalsDefault = layoutItems[j] == defaultLayoutItems[j];
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                i, j,
+                OSD_X(defaultLayoutItems[j]),
+                OSD_Y(defaultLayoutItems[j]),
+                OSD_VISIBLE(defaultLayoutItems[j]) ? 'V' : 'H');
+
+            cliDumpPrintLinef(dumpMask, equalsDefault, format,
+                i, j,
+                OSD_X(layoutItems[j]),
+                OSD_Y(layoutItems[j]),
+                OSD_VISIBLE(layoutItems[j]) ? 'V' : 'H');
+        }
+    }
+}
+
 #endif
 
 static void printTimerOutputModes(dumpFlags_e dumpFlags, const timerOverride_t* to, const timerOverride_t* defaultTimerOverride, int timer)
@@ -4517,6 +4544,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 #ifdef USE_OSD
         cliPrintHashLine("OSD [osd_layout]");
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
+
+        cliPrintHashLine("OSD Stats [osd_stats_layout]");
+        printOsdStats(dumpMask, &osdStatsConfig_Copy, osdStatsConfig(), -1);
 #endif
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
