@@ -113,10 +113,13 @@
 #define MSP2_INAV_CUSTOM_OSD_ELEMENT            0x2101
 #define MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS       0x2102
 
+#define MSP2_INAV_OSD_DISARM_STATS              0x2105
+#define MSP2_INAV_SET_OSD_DISARM_STAT           0x2106
+
 #define MSP2_INAV_SERVO_CONFIG                  0x2200
 #define MSP2_INAV_SET_SERVO_CONFIG              0x2201
 
-#define MSP2_INAV_GEOZONE                      0x2210
-#define MSP2_INAV_SET_GEOZONE                  0x2211
-#define MSP2_INAV_GEOZONE_VERTEX               0x2212
-#define MSP2_INAV_SET_GEOZONE_VERTEX           0x2213
+#define MSP2_INAV_GEOZONE                       0x2210
+#define MSP2_INAV_SET_GEOZONE                   0x2211
+#define MSP2_INAV_GEOZONE_VERTEX                0x2212
+#define MSP2_INAV_SET_GEOZONE_VERTEX            0x2213

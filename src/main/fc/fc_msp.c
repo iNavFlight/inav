@@ -2143,7 +2143,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
-            uint8_t currentCapacityUnit = batteryMetersConfigMutable()->capacity_unit;
             batteryMetersConfigMutable()->capacity_unit = sbufReadU8(src);
             if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
                 batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
@@ -2183,7 +2182,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentBatteryProfileMutable->capacity.value = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.warning = sbufReadU32(src);
             currentBatteryProfileMutable->capacity.critical = sbufReadU32(src);
-            uint8_t currentCapacityUnit = batteryMetersConfigMutable()->capacity_unit;
             batteryMetersConfigMutable()->capacity_unit = sbufReadU8(src);
             if ((batteryMetersConfig()->voltageSource != BAT_VOLTAGE_RAW) && (batteryMetersConfig()->voltageSource != BAT_VOLTAGE_SAG_COMP)) {
                 batteryMetersConfigMutable()->voltageSource = BAT_VOLTAGE_RAW;
@@ -3230,6 +3228,21 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         break;
 
+    case MSP2_INAV_SET_OSD_DISARM_STAT:
+        {
+            uint8_t statID;
+            if (!sbufReadU8Safe(&statID, src)) {
+                return MSP_RESULT_ERROR;
+            }
+            if (!sbufReadU8Safe(&osdStatsConfigMutable()->statOrder[statID], src)) {
+                return MSP_RESULT_ERROR;
+            }
+            if (!sbufReadU8Safe(&osdStatsConfigMutable()->statEnabled[statID], src)) {
+                return MSP_RESULT_ERROR;
+            }
+        }
+        break;
+
     case MSP2_INAV_OSD_SET_ALARMS:
         {
             if (dataSize == 24) {
@@ -3991,6 +4004,23 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
             sbufWriteU8(dst, OSD_ITEM_COUNT);
         }
         *ret = MSP_RESULT_ACK;
+        break;
+
+    case MSP2_INAV_OSD_DISARM_STATS:
+        if (sbufBytesRemaining(src) >= 1) {
+            // Asking for a specifi disarm stat
+            uint8_t statID = sbufReadU8(src);
+            if (statID >= OSD_STATS_ITEM_COUNT) {
+                *ret = MSP_RESULT_ERROR;
+                break;
+            } else {
+                sbufWriteU8(dst, osdStatsConfig()->statOrder[statID]);
+                sbufWriteU8(dst, osdStatsConfig()->statEnabled[statID]);
+            }
+        } else {
+            // Return the number of disarm stats
+            sbufWriteU8(dst, OSD_STATS_ITEM_COUNT);
+        }
         break;
 #endif
 
