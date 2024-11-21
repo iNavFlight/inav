@@ -36,7 +36,7 @@
 #include "settings_generated.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, PG_GIMBAL_CONFIG, 2);
 
 PG_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig, 
     .panChannel = SETTING_GIMBAL_PAN_CHANNEL_DEFAULT,
