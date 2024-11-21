@@ -183,7 +183,7 @@
 
 #define USE_CMS_FONT_PREVIEW
 
-#ifdef USE_GPS
+// ADSB RECEIVER
 #define USE_ADSB
 #define MAX_ADSB_VEHICLES               5
 #define ADSB_LIMIT_CM                   6400000
