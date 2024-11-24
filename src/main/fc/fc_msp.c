@@ -4014,6 +4014,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
                 *ret = MSP_RESULT_ERROR;
                 break;
             } else {
+                sbufWriteU8(dst, statID);
                 sbufWriteU8(dst, osdStatsConfig()->statOrder[statID]);
                 sbufWriteU8(dst, osdStatsConfig()->statEnabled[statID]);
             }

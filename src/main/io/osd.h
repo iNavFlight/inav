@@ -382,7 +382,7 @@ typedef enum {
     OSD_STATS_ITEM_ESC_TEMPERATURE,
     OSD_STATS_ITEM_GFORCE,
     OSD_STATS_ITEM_BLACKBOX,
-    OSD_STATS_ITEM_STATS, //15
+    OSD_STATS_ITEM_STATS, // 16
 
     OSD_STATS_ITEM_COUNT // Must be last
 } osd_stats_items_e;

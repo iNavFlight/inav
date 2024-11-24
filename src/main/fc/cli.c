@@ -3160,22 +3160,22 @@ static void cliOsdStats(char *cmdline)
 {
     char * saveptr;
 
-    int16_t item = -1;
+    int16_t statID = -1;
     uint8_t statOrder = 0;
     bool statEnabled = false;
     char *tok = strtok_r(cmdline, " ", &saveptr);
 
-    uint8_t i;
+    uint8_t ij;
 
-    for (i = 0; tok != NULL; i++, tok = strtok_r(NULL, " ", &saveptr)) {
-        switch (i) {
+    for (ij = 0; tok != NULL; ij++, tok = strtok_r(NULL, " ", &saveptr)) {
+        switch (ij) {
             case 0:
-                item = fastA2I(tok);
-                if (item < 0 || item >= OSD_STATS_ITEM_COUNT) {
+                statID = fastA2I(tok);
+                if (statID < 0 || statID >= OSD_STATS_ITEM_COUNT) {
                     cliShowParseError();
                     return;
                 }
-                item = (uint8_t)item;
+                statID = (uint8_t)statID;
                 break;
             case 1:
                 statOrder = fastA2I(tok);
@@ -3203,19 +3203,19 @@ static void cliOsdStats(char *cmdline)
         }
     }
 
-    switch (i) {
+    switch (ij) {
         case 0:
             FALLTHROUGH;
         case 1:
             // No args, or just item. If any of them not provided,
             // it will be the -1 that we used during initialization, so printOsdLayout()
             // won't use them for filtering.
-            printOsdStats(DUMP_MASTER, osdStatsConfig(), osdStatsConfig(), item);
+            printOsdStats(DUMP_MASTER, osdStatsConfig(), osdStatsConfig(), statID);
             break;
-        case 2:
+        case 3:
             // Layout, item, pos and visibility. Set the item.
-            osdStatsConfigMutable()->statOrder[item] = statOrder;
-            osdStatsConfigMutable()->statEnabled[item] = statEnabled;
+            osdStatsConfigMutable()->statOrder[statID] = statOrder;
+            osdStatsConfigMutable()->statEnabled[statID] = statEnabled;
             break;
         default:
             // Unhandled
