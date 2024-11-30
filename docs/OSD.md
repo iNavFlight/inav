@@ -189,6 +189,13 @@ Here are the OSD Elements provided by INAV.
 | 156 | OSD_CUSTOM_ELEMENT_6                             | 8.0.0  |       |
 | 157 | OSD_CUSTOM_ELEMENT_7                             | 8.0.0  |       |
 | 158 | OSD_CUSTOM_ELEMENT_8                             | 8.0.0  |       |
+| 159 | OSD_LQ_DOWNLINK                                  | 8.0.0  |       |
+| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  |       |
+| 161 | OSD_RX_BAND                                      | 8.0.0  |       |
+| 162 | OSD_RX_MODE                                      | 8.0.0  |       |
+| 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
+| 164 | OSD_H_DIST_TO_FENCE                              | 8.0.0  |       |
+| 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
 
 # Pilot Logos
 
@@ -253,3 +260,18 @@ There are a couple of settings that allow you to adjust parts of the post flight
 - `osd_stats_page_auto_swap_time` allows you to specify how long each stats page is displayed [seconds]. Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
 - `osd_stats_energy_unit` allows you to choose the unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour). Default is MAH.
 - `osd_stats_show_metric_efficiency` if you use non-metric units on your OSD. Enabling this option will also show the efficiency in metric.
+
+# Custom OSD Elements
+Custom OSD Elements were added in INAV 7.0.0 and expanded in 8.0.0. They are a very useful addition to the INAV OSD. Allowing you to create your own OSD elements, showing data useful to you. You can have a total of 3 (INAV 7.0.0 to 7.1.2) or 8 (INAV 8.0.0 onwards) custom elements.
+
+The custom OSD elements work along side the programming framework, to provide you with the information you want. The data is calculated in the programming framework. Then stored and accessed from a global variable (INAV 7.0.0 to 7.1.2) or directly accessed from the logic condition (INAV 8.0.0 onwards). This allows you to show things like the state of your VTOL or the altitude in a different measurement unit, as examples. 
+
+Each custom OSD element has three configurable spaces, plus an activation condition. You don't need to use all three configuration spaces, and the element can always be active. The three configurable spaces can either be a symbol from the OSD font, data from the programming framework, or text.
+
+## Creating a custom OSD element
+In this section, we will create some custom OSD elements, using the examples described above. Each example will show something new. So it's worth checking both out.
+
+### Example 1: Showing the transition state of a VTOL
+In this example, we will use the custom OSD element to show a basic VTOL position indicator. This could be done using the switch indicators. But this will give more control over what is displayed. For the example, I am using a switch on Ch7 to change the VTOL state. `HIGH` is forward flight mode, `LOW` is hover mode, and `MID` is the transition.
+
+Firstly we need to set up the programming framework to detect the switch position.
