@@ -4,7 +4,7 @@ The On Screen Display, or OSD, is a feature that overlays flight data over the v
 
 
 General OSD information is in this document. Other documents cover specific OSD-related topics:
-* [Custom OSD Elements](https://github.com/iNavFlight/inav/wiki/OSD-custom-elements)
+* [Custom OSD Elements](https://github.com/iNavFlight/inav/wiki/Custom-OSD-Elements)
 * [OSD Hud and ESP32 radars](https://github.com/iNavFlight/inav/wiki/OSD-Hud-and-ESP32-radars)
 * [OSD Joystick](https://github.com/iNavFlight/inav/blob/master/docs/OSD%20Joystick.md)
 * [DJI compatible OSD.md](https://github.com/iNavFlight/inav/blob/master/docs/DJI%20compatible%20OSD.md)
