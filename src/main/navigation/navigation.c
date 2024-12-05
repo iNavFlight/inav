@@ -359,7 +359,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_ABORT(naviga
 #ifdef USE_GEOZONE
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_SEND_TO_INITALIZE(navigationFSMState_t previousState);
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_SEND_TO_IN_PROGRESS(navigationFSMState_t previousState);
-static navigationFSMEvent_t navOnEnteringState_NAV_STATE_SEND_TO_FINISHED(navigationFSMState_t previousState); 
+static navigationFSMEvent_t navOnEnteringState_NAV_STATE_SEND_TO_FINISHED(navigationFSMState_t previousState);
 #endif
 
 static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
@@ -1007,6 +1007,8 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_ERROR]                          = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
+            [NAV_FSM_EVENT_SWITCH_TO_RTH]                  = NAV_STATE_RTH_INITIALIZE,
+            [NAV_FSM_EVENT_SWITCH_TO_EMERGENCY_LANDING]    = NAV_STATE_EMERGENCY_LANDING_INITIALIZE,
         }
     },
 
@@ -1204,8 +1206,8 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
             [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_SEND_TO_IN_PROGESS,
             [NAV_FSM_EVENT_ERROR]                          = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
-        } 
-    }, 
+        }
+    },
 
     [NAV_STATE_SEND_TO_IN_PROGESS] = {
         .persistentId = NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES,
@@ -1217,7 +1219,7 @@ static const navigationFSMStateDescriptor_t navFSM[NAV_STATE_COUNT] = {
         .mwError = MW_NAV_ERROR_NONE,
         .onEvent = {
             [NAV_FSM_EVENT_TIMEOUT]                        = NAV_STATE_SEND_TO_IN_PROGESS,   // re-process the state
-            [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_SEND_TO_FINISHED, 
+            [NAV_FSM_EVENT_SUCCESS]                        = NAV_STATE_SEND_TO_FINISHED,
             [NAV_FSM_EVENT_SWITCH_TO_IDLE]                 = NAV_STATE_IDLE,
             [NAV_FSM_EVENT_SWITCH_TO_ALTHOLD]              = NAV_STATE_ALTHOLD_INITIALIZE,
             [NAV_FSM_EVENT_SWITCH_TO_POSHOLD_3D]           = NAV_STATE_POSHOLD_3D_INITIALIZE,
@@ -1690,7 +1692,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
             calculateAndSetActiveWaypointToLocalPosition(geozoneGetCurrentRthAvoidWaypoint());
             return NAV_FSM_EVENT_NONE;
         } else if (geozone.avoidInRTHInProgress) {
-            if (isWaypointReached(geozoneGetCurrentRthAvoidWaypoint(), &posControl.activeWaypoint.bearing)) {                
+            if (isWaypointReached(geozoneGetCurrentRthAvoidWaypoint(), &posControl.activeWaypoint.bearing)) {
                 if (geoZoneIsLastRthWaypoint()) {
                     // Already at Home?
                     fpVector3_t *tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL);
@@ -1698,7 +1700,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
                         setDesiredPosition(tmpHomePos, posControl.rthState.homePosition.heading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
                         return NAV_FSM_EVENT_SUCCESS;
                     }
-                    
+
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
                     return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_INITIALIZE;
                 } else {
@@ -1706,7 +1708,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
                     calculateAndSetActiveWaypointToLocalPosition(geozoneGetCurrentRthAvoidWaypoint());
                     return NAV_FSM_EVENT_NONE;
                 }
-            } 
+            }
             setDesiredPosition(geozoneGetCurrentRthAvoidWaypoint(), 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING);
             return NAV_FSM_EVENT_NONE;
         } else if (wpCount < 0 && geoZoneConfig()->noWayHomeAction == NO_WAY_HOME_ACTION_EMRG_LAND) {
@@ -2566,7 +2568,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_ABORT(naviga
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_SEND_TO_INITALIZE(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
-    
+
     if (checkForPositionSensorTimeout()) {
         return NAV_FSM_EVENT_SWITCH_TO_IDLE;
     }
@@ -3606,12 +3608,12 @@ bool isProbablyStillFlying(void)
  * Z-position controller
  *-----------------------------------------------------------*/
 float getDesiredClimbRate(float targetAltitude, timeDelta_t deltaMicros)
-{    
-    
+{
+
     const bool emergLandingIsActive = navigationIsExecutingAnEmergencyLanding();
-    
+
 #ifdef USE_GEOZONE
-    if (!emergLandingIsActive && geozone.nearestHorZoneHasAction && ((geozone.currentzoneMaxAltitude != 0 && navGetCurrentActualPositionAndVelocity()->pos.z >= geozone.currentzoneMaxAltitude && posControl.desiredState.climbRateDemand > 0) || 
+    if (!emergLandingIsActive && geozone.nearestHorZoneHasAction && ((geozone.currentzoneMaxAltitude != 0 && navGetCurrentActualPositionAndVelocity()->pos.z >= geozone.currentzoneMaxAltitude && posControl.desiredState.climbRateDemand > 0) ||
         (geozone.currentzoneMinAltitude != 0 && navGetCurrentActualPositionAndVelocity()->pos.z <= geozone.currentzoneMinAltitude && posControl.desiredState.climbRateDemand < 0 ))) {
         return 0.0f;
     }
@@ -4310,7 +4312,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
         posControl.activeWaypointIndex = posControl.startWpIndex;
         // Reset RTH trackback
         resetRthTrackBack();
-    
+
 #ifdef USE_GEOZONE
         posControl.flags.sendToActive = false;
 #endif
@@ -5109,7 +5111,7 @@ void abortSendTo(void)
 
 void activateForcedPosHold(void)
 {
-    if (!geozone.avoidInRTHInProgress) { 
+    if (!geozone.avoidInRTHInProgress) {
         abortFixedWingLaunch();
         posControl.flags.forcedPosholdActive = true;
         navProcessFSMEvents(selectNavEventFromBoxModeInput());
