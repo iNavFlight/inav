@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-# Betaflight unified config to INAV target converter
 #
 # This script can be used to Generate a basic working target from a Betaflight Configuration.
 # The idea is that this target can be used as a starting point for full INAV target.
@@ -29,7 +27,7 @@ def translateFunctionName(bffunction, index):
     return bffunction + '_' + index
 
 def translatePin(bfpin):
-    pin = re.sub("^([A-Z])0*(\d+)$", r'P\1\2', bfpin)
+    pin = re.sub(r'^([A-Z])0*(\d+)$', r'P\1\2', bfpin)
     return pin
 
 def mcu2target(mcu):
@@ -157,7 +155,7 @@ def writeCmakeLists(outputFolder, map):
 def findPinsByFunction(function, map):
     result = []
     for func in map['funcs']:
-        pattern = "^%s" % (function)
+        pattern = r"^%s" % (function)
         if re.search(pattern, func):
             #print ("%s: %s" % (function, func))
             result.append(map['funcs'][func])
@@ -180,7 +178,7 @@ def getPwmOutputCount(map):
 def getGyroAlign(map):
     bfalign = map['defines'].get('GYRO_1_ALIGN', 'CW0_DEG')
     return bfalign
-    #m = re.search("^CW(\d+)(FLIP)?$", bfalign)
+    #m = re.search(r"^CW(\d+)(FLIP)?$", bfalign)
     #if m:
     #    deg = m.group(1)
     #    flip = m.group(2)
@@ -436,7 +434,7 @@ def writeTargetH(folder, map):
         file.write("#define USE_BARO\n")
         if 'BARO_I2C_INSTANCE' in map['defines']:
             file.write("#define USE_BARO_ALL\n")
-            m = re.search('I2CDEV_(\d+)', map['defines']['BARO_I2C_INSTANCE'])
+            m = re.search(r'I2CDEV_(\d+)', map['defines']['BARO_I2C_INSTANCE'])
             if m:
                 file.write("#define BARO_I2C_BUS BUS_I2C%s\n" % (m.group(1)))
         if 'BARO_SPI_INSTANCE' in map['defines']:
@@ -767,9 +765,9 @@ def buildMap(inputFile):
 
         m = re.search(r'^#define\s+(\w+)\s*$', l)
         if m:
-            map['empty_defines'].append(m.group(1))
+            map['empty_defines'].append(re.sub('ICM42688P', 'ICM42605', m.group(1)))
         
-        m = re.search('^\s*#define\s+DEFAULT_FEATURES\s+\((.+?)\)\s*$', l)
+        m = re.search(r'^\s*#define\s+DEFAULT_FEATURES\s+\((.+?)\)\s*$', l)
         if m:
             features = m.group(1).split('|')
             for feat in features:
@@ -799,7 +797,7 @@ def buildMap(inputFile):
             }
 
         
-        m = re.search('^\s*#define\s+(\w+)_PIN\s+([A-Z0-9]+)\s*$', l)
+        m = re.search(r'^\s*#define\s+(\w+)_PIN\s+([A-Z0-9]+)\s*$', l)
         if m:
             pin = m.group(2)
             func = m.group(1)
