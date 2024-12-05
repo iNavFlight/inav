@@ -332,8 +332,8 @@ def writeTargetH(folder, map):
     use_spi_defined = False
     for i in range(1, 9):
         sckpin = findPinByFunction("SPI%i_SCK" % (i), map)
-        misopin = findPinByFunction("SPI%i_SDO" % (i), map)
-        mosipin = findPinByFunction("SPI%i_SDI" % (i), map)
+        misopin = findPinByFunction("SPI%i_SDI" % (i), map)
+        mosipin = findPinByFunction("SPI%i_SDO" % (i), map)
         if (sckpin or misopin or mosipin):
             if (not use_spi_defined):
                 use_spi_defined = True
@@ -343,9 +343,9 @@ def writeTargetH(folder, map):
         if sckpin:
             file.write("#define SPI%i_SCK_PIN %s\n" % (i, sckpin))
         if misopin:
-            file.write("#define SPI%i_MOSI_PIN %s\n" % (i, misopin))
+            file.write("#define SPI%i_MISO_PIN %s\n" % (i, misopin))
         if mosipin:
-            file.write("#define SPI%i_MISO_PIN %s\n" % (i, mosipin))
+            file.write("#define SPI%i_MOSI_PIN %s\n" % (i, mosipin))
 
     use_i2c_defined = False
     for i in range(1, 9):
