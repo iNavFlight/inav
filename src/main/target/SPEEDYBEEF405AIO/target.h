@@ -18,12 +18,12 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "SF4M"
-#define USBD_PRODUCT_STRING     "SPEEDYBEEF405MINI"
+#define TARGET_BOARD_IDENTIFIER "SF4A"
+#define USBD_PRODUCT_STRING     "SPEEDYBEEF405AIO"
 
-#define LED0                    PC13
+#define LED0                    PD7
 
-#define BEEPER                  PC15
+#define BEEPER                  PD11
 #define BEEPER_INVERTED
 
 /*
@@ -37,8 +37,8 @@
 
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
-#define SPI2_MISO_PIN   	    PC2
-#define SPI2_MOSI_PIN   	    PC3
+#define SPI2_MISO_PIN   	    PB14
+#define SPI2_MOSI_PIN   	    PB15
 
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
@@ -52,6 +52,8 @@
 #define USE_I2C_DEVICE_1
 #define I2C1_SCL                PB8
 #define I2C1_SDA                PB9
+#define DEFAULT_I2C_BUS         BUS_I2C1
+#define USE_I2C_PULLUP
 
 /*
  * Serial
@@ -63,16 +65,16 @@
 #define UART1_RX_PIN            PA10
 
 #define USE_UART2
-#define UART2_TX_PIN            PA2
-#define UART2_RX_PIN            PA3
+#define UART2_TX_PIN            NONE
+#define UART2_RX_PIN            PD6
 
 #define USE_UART3
-#define UART3_TX_PIN            PC10
-#define UART3_RX_PIN            PC11
+#define UART3_TX_PIN            PD8
+#define UART3_RX_PIN            PD9
 
-#define USE_UART4 //Internally routed to BLE
-#define UART4_TX_PIN            PA0
-#define UART4_RX_PIN            PA1 
+#define USE_UART4
+#define UART4_TX_PIN            PC10
+#define UART4_RX_PIN            PC11 
 
 #define USE_UART5
 #define UART5_TX_PIN            PC12
@@ -82,17 +84,13 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
 
-#define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_TX_PIN      PA2
-#define SOFTSERIAL_1_RX_PIN      PA2
-
-#define SERIAL_PORT_COUNT       8
+#define SERIAL_PORT_COUNT       7
 
 /*
  * Gyro
  */
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW270_DEG
+#define IMU_ICM42605_ALIGN      CW180_DEG
 #define ICM42605_CS_PIN         PA4
 #define ICM42605_SPI_BUS        BUS_SPI1
 
@@ -100,36 +98,36 @@
  * Other
  */
 #define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
-#define USE_BARO_DPS310
+#define BARO_I2C_BUS            DEFAULT_I2C_BUS
+#define USE_BARO_ALL
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             DEFAULT_I2C_BUS
 #define USE_MAG_ALL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define PITOT_I2C_BUS           BUS_I2C1
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define TEMPERATURE_I2C_BUS     DEFAULT_I2C_BUS
+#define PITOT_I2C_BUS           DEFAULT_I2C_BUS
+#define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
 /*
  * OSD
  */
 #define USE_MAX7456
-#define MAX7456_CS_PIN          PB12
-#define MAX7456_SPI_BUS         BUS_SPI2
+#define MAX7456_CS_PIN          PD5
+#define MAX7456_SPI_BUS         BUS_SPI3
 
 /*
  * Blackbox
  */
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
-#define M25P16_SPI_BUS          BUS_SPI3
-#define M25P16_CS_PIN           PC14
+#define M25P16_SPI_BUS          BUS_SPI2
+#define M25P16_CS_PIN           PB12
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define SERIALRX_UART           SERIAL_PORT_USART2
+#define SERIALRX_PROVIDER       SERIALRX_CRSF
+#define SERIALRX_UART           SERIAL_PORT_USART6
 
 // *************** ADC *****************************
 #define USE_ADC
@@ -137,23 +135,17 @@
 #define ADC1_DMA_STREAM             DMA2_Stream0
 
 #define ADC_CHANNEL_1_PIN           PC0
-#define ADC_CHANNEL_2_PIN           PC1
+#define ADC_CHANNEL_2_PIN           PC2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-
-// *************** PINIO ***************************
-#define USE_PINIO
-#define USE_PINIOBOX
-#define PINIO1_PIN                  PB11 // RF Switch
-#define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA8
 
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE     250
+#define CURRENT_METER_SCALE     254
 #define CURRENT_METER_OFFSET    0
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
@@ -163,15 +155,7 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 
-#ifdef SPEEDYBEEF405MINI_6OUTPUTS
-
-#define MAX_PWM_OUTPUT_PORTS        6
-
-#else
-
 #define MAX_PWM_OUTPUT_PORTS        4
-
-#endif
 
 #define USE_DSHOT
 #define USE_SERIALSHOT

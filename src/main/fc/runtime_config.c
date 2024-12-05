@@ -34,7 +34,7 @@ static EXTENDED_FASTRAM uint32_t enabledSensors = 0;
 #if !defined(CLI_MINIMAL_VERBOSITY)
 const char *armingDisableFlagNames[]= {
     "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
-    "ACC", "ARMSW", "HWFAIL", "BOXFS", "RX",
+    "ACC", "ARMSW", "HWFAIL", "BOXFS", "PLACEHOLDER", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
     "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER", "LANDED"
 };
