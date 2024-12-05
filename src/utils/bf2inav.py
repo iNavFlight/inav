@@ -343,9 +343,9 @@ def writeTargetH(folder, map):
         if sckpin:
             file.write("#define SPI%i_SCK_PIN %s\n" % (i, sckpin))
         if misopin:
-            file.write("#define SPI%i_MISO_PIN %s\n" % (i, misopin))
+            file.write("#define SPI%i_MOSI_PIN %s\n" % (i, misopin))
         if mosipin:
-            file.write("#define SPI%i_MOSI_PIN %s\n" % (i, mosipin))
+            file.write("#define SPI%i_MISO_PIN %s\n" % (i, mosipin))
 
     use_i2c_defined = False
     for i in range(1, 9):
