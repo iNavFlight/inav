@@ -5486,12 +5486,12 @@ static void osdShowSDArmScreen(void)
 #endif
 #endif
 
-    if (osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
+    if (strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
-    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
+    if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
             strcat(buf2, " : ");
