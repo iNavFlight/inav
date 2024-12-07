@@ -5346,11 +5346,13 @@ static void osdShowHDArmScreen(void)
     armScreenRow = drawLogos(false, armScreenRow);
     armScreenRow++;
 
+    memset(buf2, '\0', sizeof(buf2));
     if (!osdConfig()->use_pilot_logo && strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
+    memset(craftNameBuf, '\0', sizeof(craftNameBuf));
     if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
@@ -5486,11 +5488,13 @@ static void osdShowSDArmScreen(void)
 #endif
 #endif
 
+    memset(buf2, '\0', sizeof(buf2));
     if (strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
+    memset(craftNameBuf, '\0', sizeof(craftNameBuf));
     if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
