@@ -171,8 +171,8 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PC13  // VTX power switcher
-#define PINIO2_PIN                  PE3   // 2xCamera switcher
+#define PINIO1_PIN                  PC13  // 2xCamera switcher
+#define PINIO2_PIN                  PE3   // VTX power switcher
 #define PINIO2_FLAGS                PINIO_FLAGS_INVERTED
 #define PINIO3_PIN                  PD4   // User1
 #define PINIO4_PIN                  PE4   // User2
