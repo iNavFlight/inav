@@ -158,14 +158,16 @@ void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
 
     if (sdioHardware->instance == SDMMC1) {
         __HAL_RCC_SDMMC1_CLK_DISABLE();
+        __HAL_RCC_SDMMC1_CLK_ENABLE();
+
         __HAL_RCC_SDMMC1_FORCE_RESET();
         __HAL_RCC_SDMMC1_RELEASE_RESET();
-        __HAL_RCC_SDMMC1_CLK_ENABLE();
     } else if (sdioHardware->instance == SDMMC2) {
         __HAL_RCC_SDMMC2_CLK_DISABLE();
+        __HAL_RCC_SDMMC2_CLK_ENABLE();
+
         __HAL_RCC_SDMMC2_FORCE_RESET();
         __HAL_RCC_SDMMC2_RELEASE_RESET();
-        __HAL_RCC_SDMMC2_CLK_ENABLE();
     }
 
     const IO_t clk = IOGetByTag(sdioPin[SDIO_PIN_CK].pin);
@@ -248,28 +250,30 @@ bool SD_GetState(void)
 
 bool SD_Init(void)
 {
-    HAL_StatusTypeDef status;
-
     memset(&hsd1, 0, sizeof(hsd1));
 
     hsd1.Instance = sdioHardware->instance;
 
-    hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-    hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_ENABLE;
+    // falling seems to work better ?? no idea whats "right" here
+    hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_FALLING;
+
+    // drastically increases the time to respond from the sdcard
+    // lets leave it off
+    hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
 #ifdef SDCARD_SDIO_4BIT
     hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
 #else
-    hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B; // FIXME untested
+    hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
 #endif
     hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
 #ifdef SDCARD_SDIO_NORMAL_SPEED
-        hsd1.Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
+    hsd1.Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
 #else
-        hsd1.Init.ClockDiv = 1; // 200Mhz / (2 * 1 ) = 100Mhz, used for "UltraHigh speed SD card" only, see   HAL_SD_ConfigWideBusOperation, SDMMC_HSpeed_CLK_DIV, SDMMC_NSpeed_CLK_DIV
+    hsd1.Init.ClockDiv = SDMMC_HSpeed_CLK_DIV;  // lets not go too crazy :)
 #endif
 
-    status = HAL_SD_Init(&hsd1); // Will call HAL_SD_MspInit
-
+    // Will call HAL_SD_MspInit
+    const HAL_StatusTypeDef status = HAL_SD_Init(&hsd1);
     if (status != HAL_OK) {
         return SD_ERROR;
     }
