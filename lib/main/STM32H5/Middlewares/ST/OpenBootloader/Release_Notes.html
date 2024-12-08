@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for Open Bootloader Middleware</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st_2020.css" />
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<center>
+<h1 id="release-notes-for-open-bootloader-middleware">Release Notes for
+Open Bootloader Middleware</h1>
+<p>Copyright © 2020 STMicroelectronics<br />
+</p>
+<a href="https://www.st.com" class="logo"><img
+src="_htmresc/st_logo_2020.png" alt="ST logo" /></a>
+</center>
+<h1 id="purpose">Purpose</h1>
+<p>The <strong>Open Bootloader</strong> package provides an example of
+an IAP Bootloader that supports all ST Standard Bootloader commands.</p>
+<p>The Open Bootloader protocols commands were developed in a manner to
+be compatible with the Standard Bootloader protocols commands that is
+programmed by default in the system memory of STM32 devices.</p>
+<p>The Open Bootloader is also compatible with STM32CubeProgrammer
+tool.</p>
+<p>In the current release, the Open Bootloader supports USART, FDCAN,
+I2C, I3C, USB and SPI protocols.</p>
+<p>Here is the list of references to the user documents:</p>
+<ul>
+<li><a
+href="https://www.st.com/resource/en/application_note/CD00264342.pdf">AN3155</a>
+: USART protocol used in the STM32 bootloader</li>
+<li><a
+href="https://www.st.com/resource/en/application_note/dm00660346.pdf">AN5405</a>
+: FDCAN protocol used in the STM32 bootloader</li>
+<li><a
+href="https://www.st.com/resource/en/application_note/DM00072315.pdf">AN4221</a>
+: I2C protocol used in the STM32 bootloader</li>
+<li><a
+href="https://www.st.com/resource/en/application_note/cd00264379.pdf">AN3156</a>
+: USB DFU protocol used in the STM32 bootloader</li>
+<li><a
+href="https://www.st.com/resource/en/application_note/DM00081379.pdf">AN4286</a>
+: SPI protocol used in the STM32 bootloader</li>
+</ul>
+</div>
+<section id="update-history" class="col-sm-12 col-lg-8">
+<h1>Update history</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section9" checked aria-hidden="true">
+<label for="collapse-section9" aria-hidden="true"><strong>V6.1.1 /
+26-January-2023</strong></label>
+<div>
+<h2 id="main-changes">Main changes</h2>
+<p>This is a patch release that aims to improve FDCAN memory
+management.</p>
+<h2 id="known-limitations">Known limitations</h2>
+<ul>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility">Backward compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" aria-hidden="true">
+<label for="collapse-section8" aria-hidden="true"><strong>V6.1.0 /
+14-October-2022</strong></label>
+<div>
+<h2 id="main-changes-1">Main changes</h2>
+<p>This new release of Open Bootloader Middleware adds support for the
+I3C protocol.</p>
+<h2 id="known-limitations-1">Known limitations</h2>
+<ul>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-1">Backward compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-1">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" aria-hidden="true">
+<label for="collapse-section7" aria-hidden="true"><strong>V6.0.1 /
+26-January-2022</strong></label>
+<div>
+<h2 id="main-changes-2">Main changes</h2>
+<p>This is a patch release of Open Bootloader Middleware that fixes a
+regression in USB protocol introduced with the official release
+v6.0.0.</p>
+<p>Nothing new in this release, only fixes to USB regression were
+made:</p>
+<ul>
+<li>Fix compilation issue due to use of wrong include file</li>
+<li>Restore removed functions:
+<ul>
+<li>Jump function</li>
+<li>Write Unprotect function</li>
+<li>Write Protect function</li>
+<li>Read Protect function</li>
+<li>Read Unprotect function</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-2">Known limitations</h2>
+<ul>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-2">Backward compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-2">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" aria-hidden="true">
+<label for="collapse-section6" aria-hidden="true"><strong>V6.0.0 /
+11-October-2021</strong></label>
+<div>
+<h2 id="main-changes-3">Main changes</h2>
+<h3 id="sixth-release">Sixth release</h3>
+<p>This is the sixth official release of Open Bootloader Middleware that
+adds some improvements to the code and adds support for special commands
+and CAN interface.</p>
+<p>New in this release:</p>
+<ul>
+<li>Add support for Special Commands</li>
+<li>Add support for CAN interface</li>
+</ul>
+<p><strong>There is a compatibility break with previous release due to
+the below changes:</strong></p>
+<ul>
+<li>Removed dependencies with FLASH interface
+<ul>
+<li>No more direct include of “flash_interface.h”</li>
+<li>Read out get/set protection functions are now generic</li>
+<li>Option bytes management is now generic and managed in application
+side</li>
+</ul></li>
+<li>The user can now redefine the list of supported commands by
+interface in application side</li>
+<li>Changed the I2C busy state management API by removing dependencies
+with FLASH interface</li>
+</ul>
+<h2 id="known-limitations-3">Known limitations</h2>
+<ul>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-3">Backward compatibility</h2>
+<ul>
+<li>Not Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-3">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true">
+<label for="collapse-section5" aria-hidden="true"><strong>V5.0.0 /
+03-June-2021</strong></label>
+<div>
+<h2 id="main-changes-4">Main changes</h2>
+<h3 id="fifth-release">Fifth release</h3>
+<p>This is the fifth official release of Open Bootloader Middleware that
+adds support for USBX stack</p>
+<ul>
+<li>List of implemented commands on USB protocol:
+<ul>
+<li>Get version</li>
+<li>Get ID</li>
+<li>Read memory</li>
+<li>Write memory</li>
+<li>Go command</li>
+<li>Erase FLASH</li>
+<li>Read protect</li>
+<li>Read unprotect</li>
+<li>Write protect</li>
+<li>Write unprotect</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-4">Known limitations</h2>
+<ul>
+<li>List of missing commands on USART, FDCAN, I2C and SPI protocols:
+<ul>
+<li>Special read command</li>
+<li>Special write command</li>
+</ul></li>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-4">Backward compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-4">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true">
+<label for="collapse-section4" aria-hidden="true"><strong>V4.0.0 /
+20-April-2021</strong></label>
+<div>
+<h2 id="main-changes-5">Main changes</h2>
+<h3 id="forth-release">Forth release</h3>
+<p>This is the forth official release of Open Bootloader Middleware that
+adds support for SPI protocol</p>
+<p>The Open Bootloader SPI commands are compatible with the Standard
+Bootloader SPI commands.</p>
+<ul>
+<li>List of implemented commands on SPI protocol:
+<ul>
+<li>Get commands</li>
+<li>Get version</li>
+<li>Get ID</li>
+<li>Read memory</li>
+<li>Write memory</li>
+<li>Go command</li>
+<li>Erase FLASH</li>
+<li>Read protect</li>
+<li>Read unprotect</li>
+<li>Write protect</li>
+<li>Write unprotect</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-5">Known limitations</h2>
+<ul>
+<li>List of missing commands on USART, FDCAN, I2C and SPI protocols:
+<ul>
+<li>Special read command</li>
+<li>Special write command</li>
+</ul></li>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Read unprotect</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-5">Backward compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-5">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true">
+<label for="collapse-section3" aria-hidden="true"><strong>V3.0.0 /
+23-October-2020</strong></label>
+<div>
+<h2 id="main-changes-6">Main changes</h2>
+<h3 id="third-release">Third release</h3>
+<p>This is the third official release of Open Bootloader Middleware that
+adds support for USB DFU protocol</p>
+<p>The Open Bootloader USB commands are compatible with the Standard
+Bootloader USB commands except get command, read unprotect, mass erase,
+go commands</p>
+<ul>
+<li>List of implemented commands on USB protocol:
+<ul>
+<li>Read memory</li>
+<li>Write memory</li>
+<li>Set Address Pointer</li>
+<li>Erase FLASH</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-6">Known limitations</h2>
+<ul>
+<li>List of missing commands on USART, FDCAN and I2C protocols:
+<ul>
+<li>Special read command</li>
+<li>Special write command</li>
+</ul></li>
+<li>List of missing commands on USB protocol:
+<ul>
+<li>Get command</li>
+<li>Read unprotect</li>
+<li>Mass erase</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-6">Backward compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-6">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true">
+<label for="collapse-section2" aria-hidden="true"><strong>V2.0.0 /
+12-May-2020</strong></label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<h3 id="second-release">Second release</h3>
+<p>This is the second official release of Open Bootloader Middleware
+that adds support for I2C protocol.</p>
+<p>The Open Bootloader I2C commands are compatible with the Standard
+Bootloader I2C commands</p>
+<ul>
+<li>List of implemented commands on I2C protocol:
+<ul>
+<li>Get commands</li>
+<li>Get version</li>
+<li>Get ID</li>
+<li>Read memory</li>
+<li>Write memory</li>
+<li>Non stretch write memory</li>
+<li>Go command</li>
+<li>Erase FLASH</li>
+<li>Non stretch erase FLASH</li>
+<li>Read protect</li>
+<li>Non stretch read protect</li>
+<li>Read unprotect</li>
+<li>Non stretch read unprotect</li>
+<li>Write protect</li>
+<li>Non stretch write protect</li>
+<li>Write unprotect</li>
+<li>Non stretch write unprotect</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-7">Known Limitations</h2>
+<ul>
+<li>List of missing commands on USART, FDCAN and I2C protocols:
+<ul>
+<li>Special read command</li>
+<li>Special write command</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-7">Backward Compatibility</h2>
+<ul>
+<li>Compatible with previous release.</li>
+</ul>
+<h2 id="dependencies-7">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true">
+<label for="collapse-section1" aria-hidden="true"><strong>V1.0.0 /
+01-August-2019</strong></label>
+<div>
+<h2 id="main-changes-8">Main Changes</h2>
+<h3 id="first-release">First release</h3>
+<p>This is the first official release of Open Bootloader Middleware that
+supports USART and FDCAN protocols.</p>
+<p>The Open Bootloader USART and FDCAN commands are compatible with the
+Standard Bootloader commands.</p>
+<ul>
+<li>List of implemented commands on USART and FDCAN protocols:
+<ul>
+<li>Get commands</li>
+<li>Get version</li>
+<li>Get ID</li>
+<li>Read memory</li>
+<li>Write memory</li>
+<li>Go command</li>
+<li>Erase FLASH</li>
+<li>Read protect</li>
+<li>Read unprotect</li>
+<li>Write protect</li>
+<li>Write unprotect</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-8">Known Limitations</h2>
+<ul>
+<li>List of missing commands on USART and FDCAN protocols:
+<ul>
+<li>Special read command</li>
+<li>Special write command</li>
+</ul></li>
+</ul>
+<h2 id="backward-compatibility-8">Backward Compatibility</h2>
+<ul>
+<li>None.</li>
+</ul>
+<h2 id="dependencies-8">Dependencies</h2>
+<ul>
+<li>None.</li>
+</ul>
+</div>
+</div>
+</section>
+</div>
+<footer class="sticky">
+<div class="columns">
+<div class="column" style="width:95%;">
+<p>For complete documentation on <strong>STM32 Microcontrollers</strong>
+, visit: <a href="http://www.st.com/STM32">www.st.com/STM32</a></p>
+</div><div class="column" style="width:5%;">
+<p><abbr title="Based on template cx566953 version 3.0">Info</abbr></p>
+</div>
+</div>
+</footer>
+</body>
+</html>

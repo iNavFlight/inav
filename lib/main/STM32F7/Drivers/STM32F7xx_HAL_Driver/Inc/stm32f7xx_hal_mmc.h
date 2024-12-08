@@ -2,42 +2,25 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_mmc.h
   * @author  MCD Application Team
-  * @version V1.2.2
-  * @date    14-April-2017
   * @brief   Header file of MMC HAL module.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */ 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32F7xx_HAL_MMC_H
-#define __STM32F7xx_HAL_MMC_H
+#ifndef STM32F7xx_HAL_MMC_H
+#define STM32F7xx_HAL_MMC_H
+
+#if defined(SDMMC1)
 
 #ifdef __cplusplus
  extern "C" {
@@ -64,14 +47,14 @@
   */   
 typedef enum
 {
-  HAL_MMC_STATE_RESET                  = ((uint32_t)0x00000000U),  /*!< MMC not yet initialized or disabled  */
-  HAL_MMC_STATE_READY                  = ((uint32_t)0x00000001U),  /*!< MMC initialized and ready for use    */
-  HAL_MMC_STATE_TIMEOUT                = ((uint32_t)0x00000002U),  /*!< MMC Timeout state                    */
-  HAL_MMC_STATE_BUSY                   = ((uint32_t)0x00000003U),  /*!< MMC process ongoing                  */
-  HAL_MMC_STATE_PROGRAMMING            = ((uint32_t)0x00000004U),  /*!< MMC Programming State                */
-  HAL_MMC_STATE_RECEIVING              = ((uint32_t)0x00000005U),  /*!< MMC Receinving State                 */
-  HAL_MMC_STATE_TRANSFER               = ((uint32_t)0x00000006U),  /*!< MMC Transfert State                  */
-  HAL_MMC_STATE_ERROR                  = ((uint32_t)0x0000000FU)   /*!< MMC is in error state                */
+  HAL_MMC_STATE_RESET                  = 0x00000000U,  /*!< MMC not yet initialized or disabled  */
+  HAL_MMC_STATE_READY                  = 0x00000001U,  /*!< MMC initialized and ready for use    */
+  HAL_MMC_STATE_TIMEOUT                = 0x00000002U,  /*!< MMC Timeout state                    */
+  HAL_MMC_STATE_BUSY                   = 0x00000003U,  /*!< MMC process ongoing                  */
+  HAL_MMC_STATE_PROGRAMMING            = 0x00000004U,  /*!< MMC Programming State                */
+  HAL_MMC_STATE_RECEIVING              = 0x00000005U,  /*!< MMC Receinving State                 */
+  HAL_MMC_STATE_TRANSFER               = 0x00000006U,  /*!< MMC Transfer State                  */
+  HAL_MMC_STATE_ERROR                  = 0x0000000FU   /*!< MMC is in error state                */
 }HAL_MMC_StateTypeDef;
 /** 
   * @}
@@ -80,18 +63,17 @@ typedef enum
 /** @defgroup MMC_Exported_Types_Group2 MMC Card State enumeration structure
   * @{
   */   
-typedef enum
-{
-  HAL_MMC_CARD_READY                  = ((uint32_t)0x00000001U),  /*!< Card state is ready                     */
-  HAL_MMC_CARD_IDENTIFICATION         = ((uint32_t)0x00000002U),  /*!< Card is in identification state         */
-  HAL_MMC_CARD_STANDBY                = ((uint32_t)0x00000003U),  /*!< Card is in standby state                */
-  HAL_MMC_CARD_TRANSFER               = ((uint32_t)0x00000004U),  /*!< Card is in transfer state               */  
-  HAL_MMC_CARD_SENDING                = ((uint32_t)0x00000005U),  /*!< Card is sending an operation            */
-  HAL_MMC_CARD_RECEIVING              = ((uint32_t)0x00000006U),  /*!< Card is receiving operation information */
-  HAL_MMC_CARD_PROGRAMMING            = ((uint32_t)0x00000007U),  /*!< Card is in programming state            */
-  HAL_MMC_CARD_DISCONNECTED           = ((uint32_t)0x00000008U),  /*!< Card is disconnected                    */
-  HAL_MMC_CARD_ERROR                  = ((uint32_t)0x000000FFU)   /*!< Card response Error                     */
-}HAL_MMC_CardStateTypeDef;
+typedef uint32_t HAL_MMC_CardStateTypeDef;
+
+#define HAL_MMC_CARD_READY          0x00000001U  /*!< Card state is ready                     */
+#define HAL_MMC_CARD_IDENTIFICATION 0x00000002U  /*!< Card is in identification state         */
+#define HAL_MMC_CARD_STANDBY        0x00000003U  /*!< Card is in standby state                */
+#define HAL_MMC_CARD_TRANSFER       0x00000004U  /*!< Card is in transfer state               */
+#define HAL_MMC_CARD_SENDING        0x00000005U  /*!< Card is sending an operation            */
+#define HAL_MMC_CARD_RECEIVING      0x00000006U  /*!< Card is receiving operation information */
+#define HAL_MMC_CARD_PROGRAMMING    0x00000007U  /*!< Card is in programming state            */
+#define HAL_MMC_CARD_DISCONNECTED   0x00000008U  /*!< Card is disconnected                    */
+#define HAL_MMC_CARD_ERROR          0x000000FFU  /*!< Card response Error                     */
 /** 
   * @}
   */
@@ -126,25 +108,29 @@ typedef struct
 /** 
   * @brief  MMC handle Structure definition
   */ 
+#if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
+typedef struct __MMC_HandleTypeDef
+#else
 typedef struct
+#endif /* USE_HAL_MMC_REGISTER_CALLBACKS */
 {
-  MMC_TypeDef                   *Instance;        /*!< MMC registers base address           */
+  MMC_TypeDef                  *Instance;        /*!< MMC registers base address           */
   
-  MMC_InitTypeDef               Init;             /*!< MMC required parameters              */
+  MMC_InitTypeDef              Init;             /*!< MMC required parameters              */
   
   HAL_LockTypeDef              Lock;             /*!< MMC locking object                   */
   
-  uint32_t                     *pTxBuffPtr;      /*!< Pointer to MMC Tx transfer Buffer    */
+  uint8_t                      *pTxBuffPtr;      /*!< Pointer to MMC Tx transfer Buffer    */
 
   uint32_t                     TxXferSize;       /*!< MMC Tx Transfer size                 */
 
-  uint32_t                     *pRxBuffPtr;      /*!< Pointer to MMC Rx transfer Buffer    */
+  uint8_t                      *pRxBuffPtr;      /*!< Pointer to MMC Rx transfer Buffer    */
 
   uint32_t                     RxXferSize;       /*!< MMC Rx Transfer size                 */
   
   __IO uint32_t                Context;          /*!< MMC transfer context                 */
  
-  __IO HAL_MMC_StateTypeDef     State;            /*!< MMC card State                       */
+  __IO HAL_MMC_StateTypeDef    State;            /*!< MMC card State                       */
   
   __IO uint32_t                ErrorCode;        /*!< MMC Card Error codes                 */  
  
@@ -152,12 +138,23 @@ typedef struct
   
   DMA_HandleTypeDef            *hdmatx;          /*!< MMC Tx DMA handle parameters         */
   
-  HAL_MMC_CardInfoTypeDef       MmcCard;           /*!< MMC Card information                 */
+  HAL_MMC_CardInfoTypeDef      MmcCard;          /*!< MMC Card information                 */
 
-  uint32_t                     CSD[4];           /*!< MMC card specific data table         */
+  uint32_t                     CSD[4U];          /*!< MMC card specific data table         */
   
-  uint32_t                     CID[4];           /*!< MMC card identification number table */
+  uint32_t                     CID[4U];          /*!< MMC card identification number table */
   
+  uint32_t                     Ext_CSD[128];
+
+#if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
+  void (* TxCpltCallback)                 (struct __MMC_HandleTypeDef *hmmc);
+  void (* RxCpltCallback)                 (struct __MMC_HandleTypeDef *hmmc);
+  void (* ErrorCallback)                  (struct __MMC_HandleTypeDef *hmmc);
+  void (* AbortCpltCallback)              (struct __MMC_HandleTypeDef *hmmc);
+
+  void (* MspInitCallback)                (struct __MMC_HandleTypeDef *hmmc);
+  void (* MspDeInitCallback)              (struct __MMC_HandleTypeDef *hmmc);
+#endif  
 }MMC_HandleTypeDef;
 
 /** 
@@ -198,7 +195,7 @@ typedef struct
   __IO uint8_t  WriteBlockPaPartial;  /*!< Partial blocks for write allowed      */
   __IO uint8_t  Reserved3;            /*!< Reserved                              */
   __IO uint8_t  ContentProtectAppli;  /*!< Content protection application        */
-  __IO uint8_t  FileFormatGrouop;     /*!< File format group                     */
+  __IO uint8_t  FileFormatGroup;      /*!< File format group                     */
   __IO uint8_t  CopyFlag;             /*!< Copy flag (OTP)                       */
   __IO uint8_t  PermWrProtect;        /*!< Permanent write protection            */
   __IO uint8_t  TempWrProtect;        /*!< Temporary write protection            */
@@ -233,6 +230,32 @@ typedef struct
   * @}
   */
 
+#if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
+/** @defgroup MMC_Exported_Types_Group6 MMC Callback ID enumeration definition 
+  * @{
+  */
+typedef enum
+{
+  HAL_MMC_TX_CPLT_CB_ID                 = 0x00U,  /*!< MMC Tx Complete Callback ID                     */
+  HAL_MMC_RX_CPLT_CB_ID                 = 0x01U,  /*!< MMC Rx Complete Callback ID                     */
+  HAL_MMC_ERROR_CB_ID                   = 0x02U,  /*!< MMC Error Callback ID                           */
+  HAL_MMC_ABORT_CB_ID                   = 0x03U,  /*!< MMC Abort Callback ID                           */
+
+  HAL_MMC_MSP_INIT_CB_ID                = 0x10U,  /*!< MMC MspInit Callback ID                         */
+  HAL_MMC_MSP_DEINIT_CB_ID              = 0x11U   /*!< MMC MspDeInit Callback ID                       */
+}HAL_MMC_CallbackIDTypeDef;
+/** 
+  * @}
+  */
+
+/** @defgroup MMC_Exported_Types_Group7 MMC Callback pointer definition 
+  * @{
+  */
+typedef void (*pMMC_CallbackTypeDef)           (MMC_HandleTypeDef *hmmc);
+/** 
+  * @}
+  */
+#endif
 /** 
   * @}
   */
@@ -242,8 +265,7 @@ typedef struct
   * @{
   */
 
-#define BLOCKSIZE   ((uint32_t)512U)         /*!< Block size is 512 bytes */
-#define CAPACITY    ((uint32_t)0x80000000U)  /*!< 2 G bytes constant      */
+#define MMC_BLOCKSIZE              512U  /*!< Block size is 512 bytes */
 
 /** @defgroup MMC_Exported_Constansts_Group1 MMC Error status enumeration Structure definition 
   * @{
@@ -285,6 +307,9 @@ typedef struct
 #define HAL_MMC_ERROR_DMA                      SDMMC_ERROR_DMA                     /*!< Error while DMA transfer                                      */
 #define HAL_MMC_ERROR_TIMEOUT                  SDMMC_ERROR_TIMEOUT                 /*!< Timeout error                                                 */
                                                 
+#if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
+#define HAL_MMC_ERROR_INVALID_CALLBACK         SDMMC_ERROR_INVALID_PARAMETER       /*!< Invalid callback error                                        */
+#endif
 /** 
   * @}
   */
@@ -292,13 +317,13 @@ typedef struct
 /** @defgroup MMC_Exported_Constansts_Group2 MMC context enumeration
   * @{
   */ 
-#define   MMC_CONTEXT_NONE                 ((uint32_t)0x00000000U)  /*!< None                             */
-#define   MMC_CONTEXT_READ_SINGLE_BLOCK    ((uint32_t)0x00000001U)  /*!< Read single block operation      */
-#define   MMC_CONTEXT_READ_MULTIPLE_BLOCK  ((uint32_t)0x00000002U)  /*!< Read multiple blocks operation   */
-#define   MMC_CONTEXT_WRITE_SINGLE_BLOCK   ((uint32_t)0x00000010U)  /*!< Write single block operation     */
-#define   MMC_CONTEXT_WRITE_MULTIPLE_BLOCK ((uint32_t)0x00000020U)  /*!< Write multiple blocks operation  */
-#define   MMC_CONTEXT_IT                   ((uint32_t)0x00000008U)  /*!< Process in Interrupt mode        */
-#define   MMC_CONTEXT_DMA                  ((uint32_t)0x00000080U)  /*!< Process in DMA mode              */  
+#define   MMC_CONTEXT_NONE                            0x00000000U   /*!< None                             */
+#define   MMC_CONTEXT_READ_SINGLE_BLOCK               0x00000001U   /*!< Read single block operation      */
+#define   MMC_CONTEXT_READ_MULTIPLE_BLOCK             0x00000002U   /*!< Read multiple blocks operation   */
+#define   MMC_CONTEXT_WRITE_SINGLE_BLOCK              0x00000010U   /*!< Write single block operation     */
+#define   MMC_CONTEXT_WRITE_MULTIPLE_BLOCK            0x00000020U   /*!< Write multiple blocks operation  */
+#define   MMC_CONTEXT_IT                              0x00000008U   /*!< Process in Interrupt mode        */
+#define   MMC_CONTEXT_DMA                             0x00000080U   /*!< Process in DMA mode              */
 
 /**
   * @}
@@ -310,10 +335,12 @@ typedef struct
 /** 
   * @brief 
   */
-#define MMC_HIGH_VOLTAGE_RANGE         0x80FF8000U  /*!< VALUE OF ARGUMENT            */
-#define MMC_DUAL_VOLTAGE_RANGE         0x80FF8080U  /*!< VALUE OF ARGUMENT            */
-#define eMMC_HIGH_VOLTAGE_RANGE        0xC0FF8000U  /*!< for eMMC > 2Gb sector mode   */
-#define eMMC_DUAL_VOLTAGE_RANGE        0xC0FF8080U  /*!< for eMMC > 2Gb sector mode   */
+#define MMC_HIGH_VOLTAGE_RANGE         0x80FF8000U  /*!< High voltage in byte mode    */
+#define MMC_DUAL_VOLTAGE_RANGE         0x80FF8080U  /*!< Dual voltage in byte mode    */
+#define MMC_LOW_VOLTAGE_RANGE          0x80000080U  /*!< Low voltage in byte mode     */
+#define EMMC_HIGH_VOLTAGE_RANGE        0xC0FF8000U  /*!< High voltage in sector mode  */
+#define EMMC_DUAL_VOLTAGE_RANGE        0xC0FF8080U  /*!< Dual voltage in sector mode  */
+#define EMMC_LOW_VOLTAGE_RANGE         0xC0000080U  /*!< Low voltage in sector mode   */
 #define MMC_INVALID_VOLTAGE_RANGE      0x0001FF01U 
 /**
   * @}
@@ -322,8 +349,9 @@ typedef struct
 /** @defgroup MMC_Exported_Constansts_Group4 MMC Memory Cards
   * @{
   */
-#define  MMC_HIGH_VOLTAGE_CARD     ((uint32_t)0x00000000U)
-#define  MMC_DUAL_VOLTAGE_CARD     ((uint32_t)0x00000001U)
+#define  MMC_LOW_CAPACITY_CARD                0x00000000U    /*!< MMC Card Capacity <=2Gbytes   */
+#define  MMC_HIGH_CAPACITY_CARD               0x00000001U    /*!< MMC Card Capacity >2Gbytes and <2Tbytes   */
+
 /**
   * @}
   */
@@ -337,6 +365,19 @@ typedef struct
  *  @brief macros to handle interrupts and specific clock configurations
  * @{
  */
+/** @brief Reset MMC handle state.
+  * @param  __HANDLE__ : MMC handle.
+  * @retval None
+  */
+#if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
+#define __HAL_MMC_RESET_HANDLE_STATE(__HANDLE__)           do {                                              \
+                                                               (__HANDLE__)->State = HAL_MMC_STATE_RESET; \
+                                                               (__HANDLE__)->MspInitCallback = NULL;       \
+                                                               (__HANDLE__)->MspDeInitCallback = NULL;     \
+                                                             } while(0)
+#else
+#define __HAL_MMC_RESET_HANDLE_STATE(__HANDLE__)           ((__HANDLE__)->State = HAL_MMC_STATE_RESET)
+#endif
  
 /**
   * @brief  Enable the MMC device.
@@ -375,7 +416,7 @@ typedef struct
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDIDCOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
   *            @arg SDMMC_IT_DBCKEND:  Data block sent/received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDACT:   Command transfer in progress interrupt
   *            @arg SDMMC_IT_TXACT:    Data transmit in progress interrupt
@@ -406,7 +447,7 @@ typedef struct
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDIDCOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
   *            @arg SDMMC_IT_DBCKEND:  Data block sent/received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDACT:   Command transfer in progress interrupt
   *            @arg SDMMC_IT_TXACT:    Data transmit in progress interrupt
@@ -437,7 +478,7 @@ typedef struct
   *            @arg SDMMC_FLAG_RXOVERR:  Received FIFO overrun error
   *            @arg SDMMC_FLAG_CMDREND:  Command response received (CRC check passed)
   *            @arg SDMMC_FLAG_CMDSENT:  Command sent (no response required)
-  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, SDIDCOUNT, is zero)
+  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, DATACOUNT, is zero)
   *            @arg SDMMC_FLAG_DBCKEND:  Data block sent/received (CRC check passed)
   *            @arg SDMMC_FLAG_CMDACT:   Command transfer in progress
   *            @arg SDMMC_FLAG_TXACT:    Data transmit in progress
@@ -468,7 +509,7 @@ typedef struct
   *            @arg SDMMC_FLAG_RXOVERR:  Received FIFO overrun error
   *            @arg SDMMC_FLAG_CMDREND:  Command response received (CRC check passed)
   *            @arg SDMMC_FLAG_CMDSENT:  Command sent (no response required)
-  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, SDIDCOUNT, is zero)
+  *            @arg SDMMC_FLAG_DATAEND:  Data end (data counter, DATACOUNT, is zero)
   *            @arg SDMMC_FLAG_DBCKEND:  Data block sent/received (CRC check passed)
   *            @arg SDMMC_FLAG_SDIOIT:   SD I/O interrupt received
   * @retval None
@@ -488,7 +529,7 @@ typedef struct
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDIDCOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
   *            @arg SDMMC_IT_DBCKEND:  Data block sent/received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDACT:   Command transfer in progress interrupt
   *            @arg SDMMC_IT_TXACT:    Data transmit in progress interrupt
@@ -502,7 +543,7 @@ typedef struct
   *            @arg SDMMC_IT_TXDAVL:   Data available in transmit FIFO interrupt
   *            @arg SDMMC_IT_RXDAVL:   Data available in receive FIFO interrupt
   *            @arg SDMMC_IT_SDIOIT:   SD I/O interrupt received interrupt
-  * @retval The new state of SD IT (SET or RESET).
+  * @retval The new state of MMC IT (SET or RESET).
   */
 #define __HAL_MMC_GET_IT(__HANDLE__, __INTERRUPT__) __SDMMC_GET_IT((__HANDLE__)->Instance, (__INTERRUPT__))
 
@@ -519,7 +560,12 @@ typedef struct
   *            @arg SDMMC_IT_RXOVERR:  Received FIFO overrun error interrupt
   *            @arg SDMMC_IT_CMDREND:  Command response received (CRC check passed) interrupt
   *            @arg SDMMC_IT_CMDSENT:  Command sent (no response required) interrupt
-  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, SDMMC_DCOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DATAEND:  Data end (data counter, DATACOUNT, is zero) interrupt
+  *            @arg SDMMC_IT_DBCKEND:    Data block sent/received (CRC check passed) interrupt
+  *            @arg SDMMC_IT_TXFIFOHE:   Transmit FIFO Half Empty interrupt
+  *            @arg SDMMC_IT_RXFIFOHF:   Receive FIFO Half Full interrupt
+  *            @arg SDMMC_IT_RXFIFOF:    Receive FIFO full interrupt
+  *            @arg SDMMC_IT_TXFIFOE:    Transmit FIFO empty interrupt
   *            @arg SDMMC_IT_SDIOIT:   SD I/O interrupt received interrupt
   * @retval None
   */
@@ -542,6 +588,7 @@ HAL_StatusTypeDef HAL_MMC_InitCard(MMC_HandleTypeDef *hmmc);
 HAL_StatusTypeDef HAL_MMC_DeInit (MMC_HandleTypeDef *hmmc);
 void HAL_MMC_MspInit(MMC_HandleTypeDef *hmmc);
 void HAL_MMC_MspDeInit(MMC_HandleTypeDef *hmmc);
+
 /**
   * @}
   */
@@ -567,6 +614,12 @@ void HAL_MMC_TxCpltCallback(MMC_HandleTypeDef *hmmc);
 void HAL_MMC_RxCpltCallback(MMC_HandleTypeDef *hmmc);
 void HAL_MMC_ErrorCallback(MMC_HandleTypeDef *hmmc);
 void HAL_MMC_AbortCallback(MMC_HandleTypeDef *hmmc);
+
+#if defined (USE_HAL_MMC_REGISTER_CALLBACKS) && (USE_HAL_MMC_REGISTER_CALLBACKS == 1U)
+/* MMC callback registering/unregistering */
+HAL_StatusTypeDef HAL_MMC_RegisterCallback  (MMC_HandleTypeDef *hmmc, HAL_MMC_CallbackIDTypeDef CallbackId, pMMC_CallbackTypeDef pCallback);
+HAL_StatusTypeDef HAL_MMC_UnRegisterCallback(MMC_HandleTypeDef *hmmc, HAL_MMC_CallbackIDTypeDef CallbackId);
+#endif
 /**
   * @}
   */
@@ -583,9 +636,10 @@ HAL_StatusTypeDef HAL_MMC_ConfigWideBusOperation(MMC_HandleTypeDef *hmmc, uint32
   * @{
   */
 HAL_MMC_CardStateTypeDef HAL_MMC_GetCardState(MMC_HandleTypeDef *hmmc);
-HAL_StatusTypeDef        HAL_MMC_GetCardCID(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCIDTypeDef *pCID);
-HAL_StatusTypeDef        HAL_MMC_GetCardCSD(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCSDTypeDef *pCSD);
-HAL_StatusTypeDef        HAL_MMC_GetCardInfo(MMC_HandleTypeDef *hmmc, HAL_MMC_CardInfoTypeDef *pCardInfo);
+HAL_StatusTypeDef HAL_MMC_GetCardCID(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCIDTypeDef *pCID);
+HAL_StatusTypeDef HAL_MMC_GetCardCSD(MMC_HandleTypeDef *hmmc, HAL_MMC_CardCSDTypeDef *pCSD);
+HAL_StatusTypeDef HAL_MMC_GetCardInfo(MMC_HandleTypeDef *hmmc, HAL_MMC_CardInfoTypeDef *pCardInfo);
+HAL_StatusTypeDef HAL_MMC_GetCardExtCSD(MMC_HandleTypeDef *hmmc, uint32_t *pExtCSD, uint32_t Timeout);
 /**
   * @}
   */
@@ -599,7 +653,7 @@ uint32_t HAL_MMC_GetError(MMC_HandleTypeDef *hmmc);
   * @}
   */
 
-/** @defgroup MMC_Exported_Functions_Group6 Perioheral Abort management
+/** @defgroup MMC_Exported_Functions_Group6 Peripheral Abort management
   * @{
   */
 HAL_StatusTypeDef HAL_MMC_Abort(MMC_HandleTypeDef *hmmc);
@@ -684,12 +738,10 @@ HAL_StatusTypeDef HAL_MMC_Abort_IT(MMC_HandleTypeDef *hmmc);
   * @}
   */
 
-
 #ifdef __cplusplus
 }
 #endif
 
+#endif /* SDMMC1 */
 
-#endif /* __STM32F7xx_HAL_MMC_H */ 
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+#endif /* STM32F7xx_HAL_MMC_H */ 

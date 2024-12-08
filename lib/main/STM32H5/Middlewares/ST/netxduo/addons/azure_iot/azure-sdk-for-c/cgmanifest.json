@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json.schemastore.org/component-detection-manifest.json",
+  "Registrations": [
+    {
+      "Component": {
+        "Type": "git",
+        "git": {
+          "RepositoryUrl": "https://github.com/bilke/cmake-modules",
+          "CommitHash": "66fa2579d36f30cdab93d1dbd4c3d682a25ae5f3"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "git",
+        "git": {
+          "RepositoryUrl": "https://github.com/xbmc/libssh",
+          "CommitHash": "3cb0a1bf023cce7209290f998b8dc3029ed3df77"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "git",
+        "git": {
+          "RepositoryUrl": "https://gitlab.com/cmocka/cmocka",
+          "CommitHash": "f5e2cd77c88d9f792562888d2b70c5a396bfbf7a"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "git",
+        "git": {
+          "RepositoryUrl": "https://github.com/eclipse/paho.mqtt.c",
+          "CommitHash": "d34c51214f4172f2e12bb17532c9f44f72a57dd4"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "git",
+        "git": {
+          "RepositoryUrl": "https://github.com/curl/curl",
+          "CommitHash": "2cfac302fbeec68f1727cba3d1705e16f02220ad"
+        }
+      },
+      "DevelopmentDependency": false
+    },
+    {
+      "Component": {
+        "Type": "linux",
+        "linux": {
+          "Name": "gcc-arm-none-eabi",
+          "Version": "6.3.1+svn253039-1build1",
+          "Distribution": "Ubuntu",
+          "Release": "18.04",
+          "Pool-URL": "http://archive.ubuntu.com/ubuntu",
+          "Key-URL": "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "linux",
+        "linux": {
+          "Name": "gcovr",
+          "Version": "3.4-1",
+          "Distribution": "Ubuntu",
+          "Release": "18.04",
+          "Pool-URL": "http://archive.ubuntu.com/ubuntu",
+          "Key-URL": "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "linux",
+        "linux": {
+          "Name": "lcov",
+          "Version": "1.13-3",
+          "Distribution": "Ubuntu",
+          "Release": "18.04",
+          "Pool-URL": "http://archive.ubuntu.com/ubuntu",
+          "Key-URL": "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "linux",
+        "linux": {
+          "Name": "clang-format",
+          "Version": "9.0.0-2",
+          "Distribution": "Ubuntu",
+          "Release": "18.04",
+          "Pool-URL": "http://archive.ubuntu.com/ubuntu",
+          "Key-URL": "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
+        }
+      },
+      "DevelopmentDependency": true
+    },
+    {
+      "Component": {
+        "Type": "other",
+        "Other": {
+          "Name": "doxygen",
+          "Version": "1.8.20",
+          "DownloadUrl": "http://doxygen.nl/files/doxygen-1.8.20-setup.exe"
+        }
+      },
+      "DevelopmentDependency": true
+    }
+  ]
+}

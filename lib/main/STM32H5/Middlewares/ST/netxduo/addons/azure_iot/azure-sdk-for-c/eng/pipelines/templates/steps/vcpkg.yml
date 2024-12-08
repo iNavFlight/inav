@@ -1,0 +1,13 @@
+steps:
+  - pwsh: |
+      Write-Host "##vso[task.setvariable variable=VCPKG_BINARY_SOURCES_SECRET;issecret=true;]clear;x-azblob,https://cppvcpkgcache.blob.core.windows.net/public-vcpkg-container,,read"
+    displayName: Set Vcpkg Variables
+
+  - task: PowerShell@2
+    inputs:
+      pwsh: true
+      targetType: filePath
+      filePath: eng/scripts/Set-VcpkgWriteModeCache.ps1
+      arguments: -StorageAccountKey '$(cpp-vcpkg-cache-storage-key)'
+    displayName: Set Vcpkg Write-mode Cache
+    condition: and(succeeded(), eq(variables['System.TeamProject'], 'internal'))
