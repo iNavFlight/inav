@@ -5346,12 +5346,14 @@ static void osdShowHDArmScreen(void)
     armScreenRow = drawLogos(false, armScreenRow);
     armScreenRow++;
 
-    if (!osdConfig()->use_pilot_logo && osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
+    memset(buf2, '\0', sizeof(buf2));
+    if (!osdConfig()->use_pilot_logo && strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
-    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
+    memset(craftNameBuf, '\0', sizeof(craftNameBuf));
+    if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
             strcat(buf2, " : ");
@@ -5486,12 +5488,14 @@ static void osdShowSDArmScreen(void)
 #endif
 #endif
 
-    if (osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
+    memset(buf2, '\0', sizeof(buf2));
+    if (strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
-    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
+    memset(craftNameBuf, '\0', sizeof(craftNameBuf));
+    if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
             strcat(buf2, " : ");
