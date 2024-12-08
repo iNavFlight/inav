@@ -347,8 +347,20 @@ static bool sdcardSdio_poll(void)
                         break; // Timeout not reached yet so keep waiting
                     }
                     // Timeout has expired, so fall through to convert to a fatal error
+                    FALLTHROUGH;
 
                 case SDCARD_RECEIVE_ERROR:
+                    sdcardSdio_reset();
+
+                    if (sdcard.pendingOperation.callback) {
+                        sdcard.pendingOperation.callback(
+                            SDCARD_BLOCK_OPERATION_READ,
+                            sdcard.pendingOperation.blockIndex,
+                            NULL,
+                            sdcard.pendingOperation.callbackData
+                        );
+                    }
+
                     goto doMore;
                 break;
             }
