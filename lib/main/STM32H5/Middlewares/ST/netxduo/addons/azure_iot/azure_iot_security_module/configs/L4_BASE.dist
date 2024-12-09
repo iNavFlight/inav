@@ -1,0 +1,7 @@
+# set default configuration from specific parent dist
+CONF_DEFINE_BASE(${g_plat_config_path} RTOS_BASE.dist)
+
+# DIST: overwrite configuration for specific distribution
+
+set(ASC_COLLECTOR_NETWORK_ACTIVITY_ICMP_DISABLED ON)
+set(ASC_COLLECTOR_NETWORK_ACTIVITY_CAPTURE_UNICAST_ONLY OFF)
