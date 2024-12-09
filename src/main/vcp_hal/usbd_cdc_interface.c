@@ -101,7 +101,7 @@ static int8_t CDC_Itf_Init(void);
 static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
-#ifdef STM32F // Only newer versions of hal driver need this
+#ifdef STM32F7 // Only newer versions of hal driver need this
 static int8_t CDC_Itf_TransmitCplt(uint8_t* pbuf, uint32_t *Len, uint8_t pEnum);
 #endif
 
