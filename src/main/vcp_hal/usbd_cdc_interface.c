@@ -101,7 +101,9 @@ static int8_t CDC_Itf_Init(void);
 static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
+#ifdef STM32F // Only newer versions of hal driver need this
 static int8_t CDC_Itf_TransmitCplt(uint8_t* pbuf, uint32_t *Len, uint8_t pEnum);
+#endif
 
 static void TIM_Config(void);
 static void Error_Handler(void);
@@ -405,7 +407,11 @@ uint32_t CDC_Send_FreeBytes(void)
  */
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
+#ifdef STM32F7
     USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pClassData;
+#else
+    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pCDC_ClassData;
+#endif
     while (hcdc->TxState != 0);
 
     for (uint32_t i = 0; i < sendLength; i++)
