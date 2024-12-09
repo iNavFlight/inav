@@ -165,6 +165,9 @@ typedef enum
 #define __MPU_PRESENT             1U       /*!< CM7 provides an MPU                           */
 #define __NVIC_PRIO_BITS          4U       /*!< CM7 uses 4 Bits for the Priority Levels       */
 #define __Vendor_SysTickConfig    0U       /*!< Set to 1 if different SysTick Config is used  */
+#ifdef __FPU_PRESENT
+#undef __FPU_PRESENT
+#endif
 #define __FPU_PRESENT             1U       /*!< FPU present                                   */
 #define __ICACHE_PRESENT          1U       /*!< CM7 instruction cache present                 */
 #define __DCACHE_PRESENT          1U       /*!< CM7 data cache present                        */
