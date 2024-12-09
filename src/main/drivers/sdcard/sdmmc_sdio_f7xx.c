@@ -49,11 +49,19 @@
 /* Define(s) --------------------------------------------------------------------------------------------------------*/
 
 //#define DMA_CHANNEL_4                   ((uint32_t)0x08000000)
+/*
+#ifndef DMA_MEMORY_TO_PERIPH
 #define DMA_MEMORY_TO_PERIPH            ((uint32_t)DMA_SxCR_DIR_0)
+#endif
 
 //#define DMA_PERIPH_TO_MEMORY            ((uint32_t)0x00)
+#ifndef DMA_MINC_ENABLE
 #define DMA_MINC_ENABLE                 ((uint32_t)DMA_SxCR_MINC)
+#endif
+#ifndef DMA_MDATAALIGN_WORD
 #define DMA_MDATAALIGN_WORD             ((uint32_t)DMA_SxCR_MSIZE_1)
+#endif
+
 #define DMA_PDATAALIGN_WORD             ((uint32_t)DMA_SxCR_PSIZE_1)
 #define DMA_PRIORITY_LOW                ((uint32_t)0x00000000U)
 #define DMA_PRIORITY_MEDIUM             ((uint32_t)DMA_SxCR_PL_0)
@@ -61,6 +69,7 @@
 #define DMA_PRIORITY_VERY_HIGH          ((uint32_t)DMA_SxCR_PL)
 #define DMA_MBURST_INC4                 ((uint32_t)DMA_SxCR_MBURST_0)
 #define DMA_PBURST_INC4                 ((uint32_t)DMA_SxCR_PBURST_0)
+*/
 
 #define BLOCK_SIZE                      ((uint32_t)(512))
 

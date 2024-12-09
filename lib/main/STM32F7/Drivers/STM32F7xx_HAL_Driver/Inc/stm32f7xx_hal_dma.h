@@ -199,6 +199,9 @@ typedef struct __DMA_HandleTypeDef
   * @{
   */ 
 #define DMA_PERIPH_TO_MEMORY                     0x00000000U      /*!< Peripheral to memory direction */
+#ifdef DMA_MEMORY_TO_PERIPH
+#undef DMA_MEMORY_TO_PERIPH
+#endif
 #define DMA_MEMORY_TO_PERIPH                     DMA_SxCR_DIR_0   /*!< Memory to peripheral direction */
 #define DMA_MEMORY_TO_MEMORY                     DMA_SxCR_DIR_1   /*!< Memory to memory direction     */
 /**
