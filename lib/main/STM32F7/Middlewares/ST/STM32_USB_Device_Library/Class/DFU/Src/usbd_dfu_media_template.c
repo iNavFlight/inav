@@ -2,29 +2,24 @@
   ******************************************************************************
   * @file    usbd_dfu_media_template.c
   * @author  MCD Application Team
-  * @version V2.4.2
-  * @date    11-December-2015
   * @brief   Memory management layer
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT 2015 STMicroelectronics</center></h2>
+  * Copyright (c) 2015 STMicroelectronics.
+  * All rights reserved.
   *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
-  */ 
+  */
 
+/* BSPDependencies
+- "stm32xxxxx_{eval}{discovery}{nucleo_144}.c"
+- "stm32xxxxx_{eval}{discovery}_io.c"
+EndBSPDependencies */
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_dfu_media_template.h"
@@ -38,23 +33,45 @@
 /* Extern function prototypes ------------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 uint16_t MEM_If_Init(void);
-uint16_t MEM_If_Erase (uint32_t Add);
-uint16_t MEM_If_Write (uint8_t *src, uint8_t *dest, uint32_t Len);
-uint8_t *MEM_If_Read  (uint8_t *src, uint8_t *dest, uint32_t Len);
+uint16_t MEM_If_Erase(uint32_t Add);
+uint16_t MEM_If_Write(uint8_t *src, uint8_t *dest, uint32_t Len);
+uint8_t *MEM_If_Read(uint8_t *src, uint8_t *dest, uint32_t Len);
 uint16_t MEM_If_DeInit(void);
-uint16_t MEM_If_GetStatus (uint32_t Add, uint8_t Cmd, uint8_t *buffer);
+uint16_t MEM_If_GetStatus(uint32_t Add, uint8_t Cmd, uint8_t *buffer);
+#if (USBD_DFU_VENDOR_CMD_ENABLED == 1U)
+uint16_t MEM_If_GetVendorCMD(uint8_t *cmd, uint8_t *cmdlength);
+uint16_t MEM_If_VendorDownloadCMD(uint8_t *pbuf, uint32_t BlockNumber, uint32_t wlength, uint32_t *status);
+uint16_t MEM_If_VendorUploadCMD(uint32_t Add, uint32_t BlockNumber, uint32_t *status);
+#endif /* USBD_DFU_VENDOR_CMD_ENABLED */
+#if (USBD_DFU_VENDOR_CHECK_ENABLED == 1U)
+uint16_t MEM_If_VendorCheck(uint8_t *pbuf, uint32_t ReqType, uint32_t *status);
+#endif /* USBD_DFU_VENDOR_CHECK_ENABLED */
+#if (USBD_DFU_VENDOR_EXIT_ENABLED == 1U)
+uint16_t MEM_If_LeaveDFU(uint32_t Add);
+#endif /* USBD_DFU_VENDOR_EXIT_ENABLED */
 
 USBD_DFU_MediaTypeDef USBD_DFU_MEDIA_Template_fops =
 {
-    (uint8_t *)"DFU MEDIA",
-    MEM_If_Init,
-    MEM_If_DeInit,
-    MEM_If_Erase,
-    MEM_If_Write,
-    MEM_If_Read,
-    MEM_If_GetStatus,
-  
+  (uint8_t *)"DFU MEDIA",
+  MEM_If_Init,
+  MEM_If_DeInit,
+  MEM_If_Erase,
+  MEM_If_Write,
+  MEM_If_Read,
+  MEM_If_GetStatus,
+#if (USBD_DFU_VENDOR_CMD_ENABLED == 1U)
+  MEM_If_GetVendorCMD,
+  MEM_If_VendorDownloadCMD,
+  MEM_If_VendorUploadCMD,
+#endif /* USBD_DFU_VENDOR_CMD_ENABLED */
+#if (USBD_DFU_VENDOR_CHECK_ENABLED == 1U)
+  MEM_If_VendorCheck,
+#endif /* USBD_DFU_VENDOR_CHECK_ENABLED */
+#if (USBD_DFU_VENDOR_EXIT_ENABLED == 1U)
+  MEM_If_LeaveDFU
+#endif /* USBD_DFU_VENDOR_EXIT_ENABLED */
 };
+
 /**
   * @brief  MEM_If_Init
   *         Memory initialization routine.
@@ -62,7 +79,7 @@ USBD_DFU_MediaTypeDef USBD_DFU_MEDIA_Template_fops =
   * @retval 0 if operation is successful, MAL_FAIL else.
   */
 uint16_t MEM_If_Init(void)
-{ 
+{
   return 0;
 }
 
@@ -73,7 +90,7 @@ uint16_t MEM_If_Init(void)
   * @retval 0 if operation is successful, MAL_FAIL else.
   */
 uint16_t MEM_If_DeInit(void)
-{ 
+{
   return 0;
 }
 
@@ -85,6 +102,8 @@ uint16_t MEM_If_DeInit(void)
   */
 uint16_t MEM_If_Erase(uint32_t Add)
 {
+  UNUSED(Add);
+
   return 0;
 }
 
@@ -97,6 +116,10 @@ uint16_t MEM_If_Erase(uint32_t Add)
   */
 uint16_t MEM_If_Write(uint8_t *src, uint8_t *dest, uint32_t Len)
 {
+  UNUSED(src);
+  UNUSED(dest);
+  UNUSED(Len);
+
   return 0;
 }
 
@@ -107,10 +130,14 @@ uint16_t MEM_If_Write(uint8_t *src, uint8_t *dest, uint32_t Len)
   * @param  Len: Number of data to be read (in bytes).
   * @retval Pointer to the physical address where data should be read.
   */
-uint8_t *MEM_If_Read (uint8_t *src, uint8_t *dest, uint32_t Len)
+uint8_t *MEM_If_Read(uint8_t *src, uint8_t *dest, uint32_t Len)
 {
+  UNUSED(src);
+  UNUSED(dest);
+  UNUSED(Len);
+
   /* Return a valid address to avoid HardFault */
-  return  (uint8_t*)(0); 
+  return NULL;
 }
 
 /**
@@ -120,20 +147,104 @@ uint8_t *MEM_If_Read (uint8_t *src, uint8_t *dest, uint32_t Len)
   * @param  cmd: Number of data to be read (in bytes).
   * @retval Pointer to the physical address where data should be read.
   */
-uint16_t MEM_If_GetStatus (uint32_t Add, uint8_t Cmd, uint8_t *buffer)
+uint16_t MEM_If_GetStatus(uint32_t Add, uint8_t Cmd, uint8_t *buffer)
 {
+  UNUSED(Add);
+  UNUSED(buffer);
+
   switch (Cmd)
   {
-  case DFU_MEDIA_PROGRAM:
+    case DFU_MEDIA_PROGRAM:
 
-    break;
-    
-  case DFU_MEDIA_ERASE:
-  default:
+      break;
 
-    break;
-  }                             
-  return  (0); 
+    case DFU_MEDIA_ERASE:
+    default:
+
+      break;
+  }
+  return (0);
 }
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 
+#if (USBD_DFU_VENDOR_CMD_ENABLED == 1U)
+/**
+  * @brief  Get supported vendor specific commands
+  * @param  pointer to supported vendor commands
+  * @param  pointer to length of supported vendor commands
+  * @retval 0 if operation is successful
+  */
+uint16_t MEM_If_GetVendorCMD(uint8_t *cmd, uint8_t *cmdlength)
+{
+  UNUSED(cmd);
+  UNUSED(cmdlength);
+
+  return 0U;
+}
+
+/**
+  * @brief  Vendor specific download commands
+  * @param  pbuf DFU data buffer
+  * @param  BlockNumber DFU memory block number
+  * @param  wLength DFU request length
+  * @param  pointer to DFU status
+  * @retval 0 if operation is successful
+  */
+uint16_t MEM_If_VendorDownloadCMD(uint8_t *pbuf, uint32_t BlockNumber, uint32_t wlength, uint32_t *status)
+{
+  UNUSED(pbuf);
+  UNUSED(BlockNumber);
+  UNUSED(wlength);
+  UNUSED(status);
+
+  return 0U;
+}
+
+
+/**
+  * @brief  Vendor specific upload commands
+  * @param  Add memory Address
+  * @param  BlockNumber DFU memory block number
+  * @param  pointer to DFU status
+  * @retval 0 if operation is successful
+  */
+uint16_t MEM_If_VendorUploadCMD(uint32_t Add, uint32_t BlockNumber, uint32_t *status)
+{
+  UNUSED(Add);
+  UNUSED(BlockNumber);
+  UNUSED(status);
+
+  return 0U;
+}
+#endif /* USBD_DFU_VENDOR_CMD_ENABLED */
+
+#if (USBD_DFU_VENDOR_CHECK_ENABLED == 1U)
+/**
+  * @brief  Vendor memory check
+  * @param  pbuf DFU data buffer
+  * @param  ReqType IS_DFU_SETADDRESSPOINTER/DOWNLOAD/UPLOAD
+  * @param  pointer to DFU status
+  * @retval 0 if operation is successful
+  */
+uint16_t MEM_If_VendorCheck(uint8_t *pbuf, uint32_t ReqType, uint32_t *status)
+{
+  UNUSED(pbuf);
+  UNUSED(ReqType);
+  UNUSED(status);
+
+  return 0U;
+}
+#endif /* USBD_DFU_VENDOR_CHECK_ENABLED */
+
+#if (USBD_DFU_VENDOR_EXIT_ENABLED == 1U)
+/**
+  * @brief  Vendor Leave DFU
+  * @param  Application address
+  * @retval 0 if operation is successful
+  */
+uint16_t MEM_If_LeaveDFU(uint32_t Add)
+{
+  UNUSED(Add);
+
+  return 0U;
+}
+#endif /* USBD_DFU_VENDOR_EXIT_ENABLED */
