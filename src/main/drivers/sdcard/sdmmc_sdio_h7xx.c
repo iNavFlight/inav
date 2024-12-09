@@ -33,7 +33,13 @@
 #ifdef USE_SDCARD_SDIO
 
 #include "sdmmc_sdio.h"
-#include "stm32h7xx.h"
+//#ifdef STM32H7
+//#include "stm32h7xx.h"
+//#endif
+
+//#ifdef STM32F7
+//#include "stm32f7xx.h"
+//#endif
 
 #include "drivers/sdio.h"
 #include "drivers/io.h"
@@ -90,6 +96,7 @@ typedef struct sdioHardware_s {
 
 #define PINDEF(device, pin, afnum) { DEFIO_TAG_E(pin), GPIO_AF ## afnum ## _SDMMC ## device }
 
+#ifdef STM32H7
 static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
     {
         .instance = SDMMC1,
@@ -112,6 +119,38 @@ static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
         .sdioPinD3  = { PINDEF(2, PB4,   9) },
     }
 };
+#endif
+
+#ifdef STM32F7
+static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
+    {
+        .instance = SDMMC1,
+        .irqn = SDMMC1_IRQn,
+        .sdioPinCK  = { PINDEF(1, PC12, 12) },
+        .sdioPinCMD = { PINDEF(1, PD2,  12) },
+        .sdioPinD0  = { PINDEF(1, PC8,  12) },
+        .sdioPinD1  = { PINDEF(1, PC9,  12) },
+        .sdioPinD2  = { PINDEF(1, PC10, 12) },
+        .sdioPinD3  = { PINDEF(1, PC11, 12) },
+        //.sdioPinD4  = { PINDEF(1, PB8, 12) },
+        //.sdioPinD5  = { PINDEF(1, PB9, 12) },
+        //.sdioPinD6  = { PINDEF(1, PC7, 12) },
+        //.sdioPinD7  = { PINDEF(1, PC11, 12) },
+    },
+    {
+        .instance = SDMMC2,
+        .irqn = SDMMC2_IRQn,
+        .sdioPinCK  = { PINDEF(2, PD6,  11) },
+        .sdioPinCMD = { PINDEF(2, PD7,  11) },
+        .sdioPinD0  = { PINDEF(2, PB14, 10), PINDEF(2, PG0,  11) },
+        .sdioPinD1  = { PINDEF(2, PB15, 10), PINDEF(2, PG10, 11) },
+        .sdioPinD2  = { PINDEF(2, PB3, 10), PINDEF(2, PG11, 10) },
+        .sdioPinD3  = { PINDEF(2, PB4, 10), PINDEF(2, PG12, 11) },
+    }
+};
+#endif
+
+
 
 #undef PINDEF
 
@@ -266,7 +305,10 @@ bool SD_Init(void)
     hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
 #endif
     hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-#ifdef SDCARD_SDIO_NORMAL_SPEED
+
+#ifdef STM32F7
+    hsd1.Init.ClockDiv = SDMMC_CLKCR_CLKDIV;
+#elif defined(SDCARD_SDIO_NORMAL_SPEED)
     hsd1.Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
 #else
     hsd1.Init.ClockDiv = SDMMC_HSpeed_CLK_DIV;  // lets not go too crazy :)
