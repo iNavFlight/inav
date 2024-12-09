@@ -95,14 +95,21 @@ static bool sdcardSdio_isFunctional(void)
  */
 static void sdcardSdio_reset(void)
 {
-    if (SD_Init() != 0) {
-        sdcard.failureCount++;
-        if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES || !sdcard_isInserted()) {
-            sdcard.state = SDCARD_STATE_NOT_PRESENT;
-        } else {
-            sdcard.operationStartTime = millis();
-            sdcard.state = SDCARD_STATE_RESET;
-        }
+    if (!sdcard_isInserted()) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+        return;
+    }
+    if (SD_Init() != SD_OK) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+        return;
+    }
+
+    sdcard.failureCount++;
+    if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
+        sdcard.state = SDCARD_STATE_NOT_PRESENT;
+    } else {
+        sdcard.operationStartTime = millis();
+        sdcard.state = SDCARD_STATE_RESET;
     }
 }
 
@@ -573,17 +580,13 @@ void sdcardSdio_init(void)
         return;
     }
 
-    if (!SD_Initialize_LL(sdcard.dma->ref)) {
+    if (!SD_Initialize_LL(sdcard.dma)) {
         sdcard.dma = NULL;
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
         return;
     }
-#else
-    if (!SD_Initialize_LL(0)) {
-        sdcard.state = SDCARD_STATE_NOT_PRESENT;
-        return;
-    }
 #endif
+
     // We don't support hot insertion
     if (!sdcard_isInserted()) {
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
