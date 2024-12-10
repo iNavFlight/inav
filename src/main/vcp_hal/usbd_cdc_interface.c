@@ -101,7 +101,7 @@ static int8_t CDC_Itf_Init(void);
 static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
-#ifdef STM32F7 // Only newer versions of hal driver need this
+#if defined(STM32F7) || defined(STM32H7) // Only newer versions of hal driver need this
 static int8_t CDC_Itf_TransmitCplt(uint8_t* pbuf, uint32_t *Len, uint8_t pEnum);
 #endif
 
@@ -114,7 +114,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops =
   CDC_Itf_DeInit,
   CDC_Itf_Control,
   CDC_Itf_Receive,
-#ifdef STM32F7
+#if defined(STM32F7) || defined(STM32H7)
   CDC_Itf_TransmitCplt,
 #endif
 };
@@ -305,7 +305,7 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len)
     return (USBD_OK);
 }
 
-#ifdef STM32F7
+#if defined(STM32F7) || defined(STM32H7)
 static int8_t CDC_Itf_TransmitCplt(uint8_t *Buf, uint32_t *Len, uint8_t pEnum)
 {
     UNUSED(Buf);
@@ -407,7 +407,7 @@ uint32_t CDC_Send_FreeBytes(void)
  */
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
-#ifdef STM32F7
+#if defined(STM32F7) || defined(STM32H7)
     USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pClassData;
 #else
     USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pCDC_ClassData;
