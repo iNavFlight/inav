@@ -1,0 +1,110 @@
+@startuml
+
+skinparam state {
+    BackgroundColor<<APP>> APPLICATION
+    BackgroundColor<<STRUCT>> Lavender
+}
+
+state color_coding {
+    state SDK_API
+    state SDK_DATA_OBJECT <<STRUCT>>
+    state APPLICATION_CODE <<APP>>
+}
+
+' Init
+[*] --> az_iot_hub_client_init: START
+az_iot_hub_client_init -> az_iot_hub_client_get_user_name
+az_iot_hub_client_get_user_name -> az_iot_hub_client_get_client_id
+az_iot_hub_client_get_client_id -> application_mqtt_connect: X509 Client Auth: password is empty
+state application_mqtt_connect <<APP>>
+
+' Optional SAS token generation:
+az_iot_hub_client_get_client_id -> az_iot_hub_client_sas_get_signature : SAS auth
+az_iot_hub_client_sas_get_signature -> application_hmac256
+application_hmac256 -> az_iot_hub_client_sas_get_password
+az_iot_hub_client_sas_get_password --> application_mqtt_connect : password is a SAS token
+state application_hmac256 <<APP>>
+
+' Telemetry
+application_mqtt_connect -l-> az_iot_hub_client_telemetry_get_publish_topic : Telemetry can be used w/o subscribing to any topic.
+az_iot_hub_client_telemetry_get_publish_topic --> application_mqtt_publish
+
+application_mqtt_connect --> application_mqtt_subscribe
+
+az_iot_hub_client_methods_response_get_publish_topic --> application_mqtt_publish
+
+application_mqtt_subscribe --> az_iot_hub_client_twin_document_get_publish_topic
+az_iot_hub_client_twin_document_get_publish_topic --> application_mqtt_publish
+
+application_mqtt_subscribe --> az_iot_hub_client_twin_patch_get_publish_topic
+az_iot_hub_client_twin_patch_get_publish_topic --> application_mqtt_publish
+
+' Common subscribe
+state application_mqtt_subscribe <<APP>>
+application_mqtt_subscribe -> application_mqtt_receive : MQTT lib subscribed
+
+state application_mqtt_publish <<APP>>
+
+state application_mqtt_receive <<APP>> {
+' Callback delegating handler:
+    [*] --> az_iot_hub_client_c2d_parse_received_topic : Received PUBLISH message
+    az_iot_hub_client_c2d_parse_received_topic --> az_iot_hub_client_methods_parse_received_topic : not c2d related
+    az_iot_hub_client_methods_parse_received_topic --> az_iot_hub_client_twin_parse_received_topic : not methods related
+    az_iot_hub_client_twin_parse_received_topic --> [*] : not twin related
+
+' C2D
+    az_iot_hub_client_c2d_parse_received_topic -> az_iot_hub_client_c2d_request : c2d call received
+
+' Methods:
+    az_iot_hub_client_methods_parse_received_topic -> az_iot_hub_client_method_request : method call received
+    az_iot_hub_client_method_request -> application_method_handle
+    state application_method_handle <<APP>>
+    application_method_handle -> az_iot_hub_client_methods_response_get_publish_topic
+
+' Twin
+    az_iot_hub_client_twin_parse_received_topic -> az_iot_hub_client_twin_response : twin GET or PATCH received
+}
+
+' IoT Hub client:
+az_iot_hub_client_init : - iot_hub_hostname
+az_iot_hub_client_init : - device_id
+
+' SAS Tokens
+az_iot_hub_client_sas_get_signature : - token_expiration_epoch_time
+az_iot_hub_client_sas_get_password: - Base64(HMAC-SHA256(signature, SharedAccessKey))
+az_iot_hub_client_sas_get_password: - key_name
+
+az_iot_hub_client_telemetry_get_publish_topic : - az_iot_message_properties
+
+state az_iot_hub_client_method_request <<STRUCT>>
+az_iot_hub_client_method_request: - request_id
+az_iot_hub_client_method_request: - name
+
+az_iot_hub_client_methods_response_get_publish_topic: - request_id
+az_iot_hub_client_methods_response_get_publish_topic: - status
+
+state az_iot_hub_client_c2d_request <<STRUCT>>
+az_iot_hub_client_c2d_request : - az_iot_message_properties
+
+az_iot_hub_client_twin_document_get_publish_topic : - request_id
+
+az_iot_hub_client_twin_patch_get_publish_topic : - request_id
+
+state az_iot_hub_client_twin_response <<STRUCT>>
+az_iot_hub_client_twin_response : - response_type
+az_iot_hub_client_twin_response : - request_id
+az_iot_hub_client_twin_response : - status
+az_iot_hub_client_twin_response : - version
+
+' Application interfaces
+application_mqtt_connect : - server_x509_trusted_root
+application_mqtt_connect : - [client_x509_certificate]
+
+application_mqtt_subscribe: - (optional) AZ_IOT_HUB_CLIENT_C2D_SUBSCRIBE_TOPIC
+application_mqtt_subscribe: - (optional) AZ_IOT_HUB_CLIENT_METHODS_SUBSCRIBE_TOPIC
+application_mqtt_subscribe: - (optional) AZ_IOT_HUB_CLIENT_TWIN_RESPONSE_SUBSCRIBE_TOPIC
+application_mqtt_subscribe: - (optional) AZ_IOT_HUB_CLIENT_TWIN_PATCH_SUBSCRIBE_TOPIC
+
+application_hmac256 : - key (may be within an HSM)
+
+@enduml

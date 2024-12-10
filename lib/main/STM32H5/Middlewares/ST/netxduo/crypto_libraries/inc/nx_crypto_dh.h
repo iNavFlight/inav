@@ -1,0 +1,118 @@
+/**************************************************************************/
+/*                                                                        */
+/*       Copyright (c) Microsoft Corporation. All rights reserved.        */
+/*                                                                        */
+/*       This software is licensed under the Microsoft Software License   */
+/*       Terms for Microsoft Azure RTOS. Full text of the license can be  */
+/*       found in the LICENSE file at https://aka.ms/AzureRTOS_EULA       */
+/*       and in the root directory of this software.                      */
+/*                                                                        */
+/**************************************************************************/
+
+
+/**************************************************************************/
+/**************************************************************************/
+/**                                                                       */
+/** NetX Crypto Component                                                 */
+/**                                                                       */
+/**   Diffie-Hellman (DH)                                                 */
+/**                                                                       */
+/**************************************************************************/
+/**************************************************************************/
+
+
+/**************************************************************************/
+/*                                                                        */
+/*  APPLICATION INTERFACE DEFINITION                       RELEASE        */
+/*                                                                        */
+/*    nx_crypto_dh.h                                      PORTABLE C      */
+/*                                                           6.1          */
+/*  AUTHOR                                                                */
+/*                                                                        */
+/*    Timothy Stapko, Microsoft Corporation                               */
+/*                                                                        */
+/*  DESCRIPTION                                                           */
+/*                                                                        */
+/*    This file defines the basic Application Interface (API) to the      */
+/*    NetX Crypto DH module.                                              */
+/*                                                                        */
+/*  RELEASE HISTORY                                                       */
+/*                                                                        */
+/*    DATE              NAME                      DESCRIPTION             */
+/*                                                                        */
+/*  05-19-2020     Timothy Stapko           Initial Version 6.0           */
+/*  09-30-2020     Timothy Stapko           Modified comment(s),          */
+/*                                            resulting in version 6.1    */
+/*                                                                        */
+/**************************************************************************/
+
+#ifndef NX_CRYPTO_DH_H
+#define NX_CRYPTO_DH_H
+
+/* Determine if a C++ compiler is being used.  If so, ensure that standard
+   C is used to process the API information.  */
+#ifdef __cplusplus
+
+/* Yes, C++ compiler is present.  Use standard C.  */
+extern   "C" {
+
+#endif
+
+#include "nx_crypto_huge_number.h"
+
+
+/* Diffie-Hellman key size. Buffer size for calculations is twice the key size */
+#define NX_CRYPTO_DIFFIE_HELLMAN_GROUP_2_KEY_SIZE (128)         /* 1024 bits/8. */
+#define NX_CRYPTO_DIFFIE_HELLMAN_MAX_KEY_SIZE     (NX_CRYPTO_DIFFIE_HELLMAN_GROUP_2_KEY_SIZE)
+
+/* Buffer and scratch buffer sizes are calculated from the maximum key size. */
+#define NX_CRYPTO_DIFFIE_HELLMAN_BUFFER_SIZE      (NX_CRYPTO_DIFFIE_HELLMAN_MAX_KEY_SIZE * 4)
+#define NX_CRYPTO_DIFFIE_HELLMAN_SCRATCH_SIZE     (NX_CRYPTO_DIFFIE_HELLMAN_BUFFER_SIZE * 8)
+
+/* Diffie-Hellman groups and key constants. */
+#define NX_CRYPTO_DH_GROUP_2_GENERATOR            (0x2)  /* Generator constant for Diffie-Hellman group 2. */
+
+#define NX_CRYPTO_DH_GROUP_2                      (0x2)  /* Standard DH group 2 for IPSEC. */
+#define NX_CRYPTO_DH_GROUP_TEST                   (0xFF) /* DH group used for testing. Note that this will only be valid in test builds. */
+
+/* Diffie-Hellman Key-exchange control structure. */
+typedef struct NX_CRYPTO_DH_STRUCT
+{
+    /* The size of the key being used. This is primarily for testing, but also allows for future expansion.
+       The value is assigned in _nx_crypto_dh_setup depending on the chosen group. */
+    UINT nx_crypto_dh_key_size;
+
+    /* The private key is generated by nx_crypto_dh_setup and is a random number.
+       During the computation, the private key is used as exponent.  Therefore the buffer size is
+       the same as the key size.  This number does not expand during the power-modulus computation.
+       Make the array in units of UINT to make sure the starting address is 4-byte aligned. */
+    HN_UBASE nx_crypto_dh_private_key_buffer[NX_CRYPTO_DIFFIE_HELLMAN_MAX_KEY_SIZE >> HN_SIZE_SHIFT];
+
+    /* The modulus, determined by the Diffie-Hellman group selected in the call to nx_crypto_dh_setup.
+       This number does not expand during the power-modulus computation.
+       Make the array in units of UINT to make sure the starting address is 4-byte aligned. */
+    HN_UBASE *nx_crypto_dh_modulus;
+} NX_CRYPTO_DH;
+
+/* Function prototypes */
+
+
+UINT _nx_crypto_dh_setup(NX_CRYPTO_DH  *dh_ptr,
+                         UCHAR  *local_public_key_ptr,
+                         UINT   *local_public_key_len_ptr,
+                         ULONG   dh_group_num,
+                         HN_UBASE *scratch_buf_ptr);
+
+UINT _nx_crypto_dh_compute_secret(NX_CRYPTO_DH  *dh_ptr,
+                                  UCHAR  *share_secret_key_ptr,
+                                  ULONG  *share_secret_key_len_ptr,
+                                  UCHAR  *remote_public_key,
+                                  ULONG   remote_public_key_len,
+                                  HN_UBASE *scratch_buf_ptr);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* NX_CRYPTO_DH_H */
+

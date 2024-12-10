@@ -1,0 +1,16 @@
+# set default configuration from specific parent dist
+CONF_DEFINE_BASE(${g_plat_config_path} RTOS_BASE.dist)
+
+# DIST: overwrite configuration for specific distribution
+set(ASC_FIRST_FORCE_COLLECTION_INTERVAL 2)
+set(ASC_EXTRA_NOTIFIERS_OBJECT_POOL_ENTRIES 1)
+set(ASC_SECURITY_MODULE_MAX_HUB_DEVICES 128)
+set(ASC_FLATCC_JSON_PRINTER_OVERWRITE ON)
+if (NOT DEFINED log_level_cmdline)
+    set(ASC_LOG_LEVEL 0)
+endif()
+set(ASC_COLLECTOR_NETWORK_ACTIVITY_MAX_IPV4_OBJECTS_IN_CACHE 4)
+set(ASC_COLLECTOR_NETWORK_ACTIVITY_MAX_IPV6_OBJECTS_IN_CACHE 4)
+set(run_unittests ON CACHE BOOL "set run_unittests to ON to run unittests (default is OFF)")
+set(run_coverage ON CACHE BOOL "set run_unittests to ON to run unittests (default is OFF)")
+set(FLATCC_ASSERT 0)
