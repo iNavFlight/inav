@@ -2,42 +2,23 @@
   ******************************************************************************
   * @file    stm32f7xx_ll_iwdg.h
   * @author  MCD Application Team
-  * @version V1.2.2
-  * @date    14-April-2017
   * @brief   Header file of IWDG LL module.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32F7xx_LL_IWDG_H
-#define __STM32F7xx_LL_IWDG_H
+#ifndef STM32F7xx_LL_IWDG_H
+#define STM32F7xx_LL_IWDG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,12 +44,10 @@ extern "C" {
 /** @defgroup IWDG_LL_Private_Constants IWDG Private Constants
   * @{
   */
-
 #define LL_IWDG_KEY_RELOAD                 0x0000AAAAU               /*!< IWDG Reload Counter Enable   */
 #define LL_IWDG_KEY_ENABLE                 0x0000CCCCU               /*!< IWDG Peripheral Enable       */
 #define LL_IWDG_KEY_WR_ACCESS_ENABLE       0x00005555U               /*!< IWDG KR Write Access Enable  */
 #define LL_IWDG_KEY_WR_ACCESS_DISABLE      0x00000000U               /*!< IWDG KR Write Access Disable */
-
 /**
   * @}
   */
@@ -88,7 +67,6 @@ extern "C" {
 #define LL_IWDG_SR_PVU                     IWDG_SR_PVU                           /*!< Watchdog prescaler value update */
 #define LL_IWDG_SR_RVU                     IWDG_SR_RVU                           /*!< Watchdog counter reload value update */
 #define LL_IWDG_SR_WVU                     IWDG_SR_WVU                           /*!< Watchdog counter window value update */
-
 /**
   * @}
   */
@@ -162,7 +140,7 @@ extern "C" {
   */
 __STATIC_INLINE void LL_IWDG_Enable(IWDG_TypeDef *IWDGx)
 {
-  WRITE_REG(IWDG->KR, LL_IWDG_KEY_ENABLE);
+  WRITE_REG(IWDGx->KR, LL_IWDG_KEY_ENABLE);
 }
 
 /**
@@ -173,7 +151,7 @@ __STATIC_INLINE void LL_IWDG_Enable(IWDG_TypeDef *IWDGx)
   */
 __STATIC_INLINE void LL_IWDG_ReloadCounter(IWDG_TypeDef *IWDGx)
 {
-  WRITE_REG(IWDG->KR, LL_IWDG_KEY_RELOAD);
+  WRITE_REG(IWDGx->KR, LL_IWDG_KEY_RELOAD);
 }
 
 /**
@@ -184,7 +162,7 @@ __STATIC_INLINE void LL_IWDG_ReloadCounter(IWDG_TypeDef *IWDGx)
   */
 __STATIC_INLINE void LL_IWDG_EnableWriteAccess(IWDG_TypeDef *IWDGx)
 {
-  WRITE_REG(IWDG->KR, LL_IWDG_KEY_WR_ACCESS_ENABLE);
+  WRITE_REG(IWDGx->KR, LL_IWDG_KEY_WR_ACCESS_ENABLE);
 }
 
 /**
@@ -195,7 +173,7 @@ __STATIC_INLINE void LL_IWDG_EnableWriteAccess(IWDG_TypeDef *IWDGx)
   */
 __STATIC_INLINE void LL_IWDG_DisableWriteAccess(IWDG_TypeDef *IWDGx)
 {
-  WRITE_REG(IWDG->KR, LL_IWDG_KEY_WR_ACCESS_DISABLE);
+  WRITE_REG(IWDGx->KR, LL_IWDG_KEY_WR_ACCESS_DISABLE);
 }
 
 /**
@@ -232,7 +210,7 @@ __STATIC_INLINE void LL_IWDG_SetPrescaler(IWDG_TypeDef *IWDGx, uint32_t Prescale
   */
 __STATIC_INLINE uint32_t LL_IWDG_GetPrescaler(IWDG_TypeDef *IWDGx)
 {
-  return (uint32_t)(READ_REG(IWDGx->PR));
+  return (READ_REG(IWDGx->PR));
 }
 
 /**
@@ -255,7 +233,7 @@ __STATIC_INLINE void LL_IWDG_SetReloadCounter(IWDG_TypeDef *IWDGx, uint32_t Coun
   */
 __STATIC_INLINE uint32_t LL_IWDG_GetReloadCounter(IWDG_TypeDef *IWDGx)
 {
-  return (uint32_t)(READ_REG(IWDGx->RLR));
+  return (READ_REG(IWDGx->RLR));
 }
 
 /**
@@ -278,7 +256,7 @@ __STATIC_INLINE void LL_IWDG_SetWindow(IWDG_TypeDef *IWDGx, uint32_t Window)
   */
 __STATIC_INLINE uint32_t LL_IWDG_GetWindow(IWDG_TypeDef *IWDGx)
 {
-  return (uint32_t)(READ_REG(IWDGx->WINR));
+  return (READ_REG(IWDGx->WINR));
 }
 
 /**
@@ -297,7 +275,7 @@ __STATIC_INLINE uint32_t LL_IWDG_GetWindow(IWDG_TypeDef *IWDGx)
   */
 __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_PVU(IWDG_TypeDef *IWDGx)
 {
-  return (READ_BIT(IWDGx->SR, IWDG_SR_PVU) == (IWDG_SR_PVU));
+  return ((READ_BIT(IWDGx->SR, IWDG_SR_PVU) == (IWDG_SR_PVU)) ? 1UL : 0UL);
 }
 
 /**
@@ -308,7 +286,7 @@ __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_PVU(IWDG_TypeDef *IWDGx)
   */
 __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_RVU(IWDG_TypeDef *IWDGx)
 {
-  return (READ_BIT(IWDGx->SR, IWDG_SR_RVU) == (IWDG_SR_RVU));
+  return ((READ_BIT(IWDGx->SR, IWDG_SR_RVU) == (IWDG_SR_RVU)) ? 1UL : 0UL);
 }
 
 /**
@@ -319,27 +297,26 @@ __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_RVU(IWDG_TypeDef *IWDGx)
   */
 __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_WVU(IWDG_TypeDef *IWDGx)
 {
-  return (READ_BIT(IWDGx->SR, IWDG_SR_WVU) == (IWDG_SR_WVU));
+  return ((READ_BIT(IWDGx->SR, IWDG_SR_WVU) == (IWDG_SR_WVU)) ? 1UL : 0UL);
 }
 
 /**
   * @brief  Check if all flags Prescaler, Reload & Window Value Update are reset or not
   * @rmtoll SR           PVU           LL_IWDG_IsReady\n
-  *         SR           WVU           LL_IWDG_IsReady\n
-  *         SR           RVU           LL_IWDG_IsReady
+  *         SR           RVU           LL_IWDG_IsReady\n
+  *         SR           WVU           LL_IWDG_IsReady
   * @param  IWDGx IWDG Instance
   * @retval State of bits (1 or 0).
   */
 __STATIC_INLINE uint32_t LL_IWDG_IsReady(IWDG_TypeDef *IWDGx)
 {
-  return (READ_BIT(IWDGx->SR, IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU) == 0U);
+  return ((READ_BIT(IWDGx->SR, IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU) == 0U) ? 1UL : 0UL);
 }
 
 /**
   * @}
   */
 
-
 /**
   * @}
   */
@@ -348,7 +325,7 @@ __STATIC_INLINE uint32_t LL_IWDG_IsReady(IWDG_TypeDef *IWDGx)
   * @}
   */
 
-#endif /* IWDG) */
+#endif /* IWDG */
 
 /**
   * @}
@@ -358,6 +335,4 @@ __STATIC_INLINE uint32_t LL_IWDG_IsReady(IWDG_TypeDef *IWDGx)
 }
 #endif
 
-#endif /* __STM32F7xx_LL_IWDG_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+#endif /* STM32F7xx_LL_IWDG_H */
