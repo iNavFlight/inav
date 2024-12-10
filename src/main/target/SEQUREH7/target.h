@@ -63,7 +63,7 @@
 #define UART7_RX_PIN PE7
 #define UART7_TX_PIN PE8
 
-#define USE_UART8
+#define USE_UART8           // ESC telemetry
 #define UART8_RX_PIN PE0
 #define UART8_TX_PIN PE0
 
@@ -109,7 +109,6 @@
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 
-#define VOLTAGE_METER_SCALE 1100
 #define CURRENT_METER_SCALE 1052
 
 // Gyro & ACC
