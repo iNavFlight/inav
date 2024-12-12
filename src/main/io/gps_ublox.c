@@ -1240,6 +1240,13 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
                     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
                 }
 
+                if (gpsState.hwVersion == UBX_HW_VERSION_UBLOX10) {
+                    // TODO: add pool performance mode
+                    // poolPerformaceMode();
+                    // ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+                    // set gpsState.performanceMode == UBLOX_PERFORMANCE_MODE_NA / UBLOX_PERFORMANCE_MODE_OFF / UBLOX_PERFORMANCE_MODE_ON
+                }
+
                 pollGnssCapabilities();
                 ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
             }
