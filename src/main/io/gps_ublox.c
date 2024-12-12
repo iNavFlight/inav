@@ -1073,6 +1073,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
     }
     ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
+    if (gpsState.hwVersion == UBX_HW_VERSION_UBLOX10) {
+        // check performance mode
+        // Send: B5 62 06 8B 14 00 00 04 00 00 01 00 A4 40 03 00 A4 40 05 00 A4 40 0A 00 A4 40 4C 15
+        // Expect: B5 62 06 8B 24 00 01 04 00 00 01 00 A4 40 00 B0 71 0B 03 00 A4 40 00 B0 71 0B 05 00 A4 40 00 B0 71 0B 0A 00 A4 40 00 D8 B8 05 76 81
+    }
+
     if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
         configureRATE(hz2rate(5)); // 5Hz
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
