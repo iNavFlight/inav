@@ -33,7 +33,6 @@
 #ifdef USE_SDCARD_SDIO
 
 #include "sdmmc_sdio.h"
-#include "stm32h7xx.h"
 
 #include "drivers/sdio.h"
 #include "drivers/io.h"
@@ -53,12 +52,12 @@ typedef struct SD_Handle_s
     volatile uint32_t TXCplt;          // SD TX Complete is equal 0 when no transfer
 } SD_Handle_t;
 
-SD_HandleTypeDef hsd1;
-
 SD_CardInfo_t                      SD_CardInfo;
 SD_CardType_t                      SD_CardType;
 
-static SD_Handle_t                 SD_Handle;
+static SD_Handle_t SD_Handle;
+static DMA_HandleTypeDef sd_dma;
+static SD_HandleTypeDef hsd;
 
 typedef struct sdioPin_s {
     ioTag_t pin;
@@ -75,6 +74,18 @@ typedef struct sdioPin_s {
 
 #define SDIO_MAX_PINDEFS 2
 
+#define IOCFG_SDMMC       IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+
+#ifdef STM32F7
+#define SDMMC_CLK_DIV SDMMC_TRANSFER_CLK_DIV
+#else
+#if defined(SDCARD_SDIO_NORMAL_SPEED)
+#define SDMMC_CLK_DIV SDMMC_NSpeed_CLK_DIV
+#else
+#define SDMMC_CLK_DIV SDMMC_HSpeed_CLK_DIV
+#endif
+#endif
+
 typedef struct sdioHardware_s {
     SDMMC_TypeDef *instance;
     IRQn_Type irqn;
@@ -90,6 +101,7 @@ typedef struct sdioHardware_s {
 
 #define PINDEF(device, pin, afnum) { DEFIO_TAG_E(pin), GPIO_AF ## afnum ## _SDMMC ## device }
 
+#ifdef STM32H7
 static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
     {
         .instance = SDMMC1,
@@ -112,6 +124,36 @@ static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
         .sdioPinD3  = { PINDEF(2, PB4,   9) },
     }
 };
+#endif
+
+#ifdef STM32F7
+static const sdioHardware_t sdioPinHardware[SDIODEV_COUNT] = {
+    {
+        .instance = SDMMC1,
+        .irqn = SDMMC1_IRQn,
+        .sdioPinCK  = { PINDEF(1, PC12, 12) },
+        .sdioPinCMD = { PINDEF(1, PD2,  12) },
+        .sdioPinD0  = { PINDEF(1, PC8,  12) },
+        .sdioPinD1  = { PINDEF(1, PC9,  12) },
+        .sdioPinD2  = { PINDEF(1, PC10, 12) },
+        .sdioPinD3  = { PINDEF(1, PC11, 12) },
+        //.sdioPinD4  = { PINDEF(1, PB8, 12) },
+        //.sdioPinD5  = { PINDEF(1, PB9, 12) },
+        //.sdioPinD6  = { PINDEF(1, PC7, 12) },
+        //.sdioPinD7  = { PINDEF(1, PC11, 12) },
+    },
+    {
+        .instance = SDMMC2,
+        .irqn = SDMMC2_IRQn,
+        .sdioPinCK  = { PINDEF(2, PD6,  11) },
+        .sdioPinCMD = { PINDEF(2, PD7,  11) },
+        .sdioPinD0  = { PINDEF(2, PB14, 10), PINDEF(2, PG0,  11) },
+        .sdioPinD1  = { PINDEF(2, PB15, 10), PINDEF(2, PG10, 11) },
+        .sdioPinD2  = { PINDEF(2, PB3, 10), PINDEF(2, PG11, 10) },
+        .sdioPinD3  = { PINDEF(2, PB4, 10), PINDEF(2, PG12, 11) },
+    }
+};
+#endif
 
 #undef PINDEF
 
@@ -137,21 +179,61 @@ void sdioPinConfigure(void)
 #else
     sdioPin[SDIO_PIN_CMD] = sdioHardware->sdioPinCMD[0];
 #endif
-    sdioPin[SDIO_PIN_D0] = sdioHardware->sdioPinD0[0];  
+    sdioPin[SDIO_PIN_D0] = sdioHardware->sdioPinD0[0];
+
+    const IO_t clk = IOGetByTag(sdioPin[SDIO_PIN_CK].pin);
+    const IO_t cmd = IOGetByTag(sdioPin[SDIO_PIN_CMD].pin);
+    const IO_t d0 = IOGetByTag(sdioPin[SDIO_PIN_D0].pin);
+
+    IOInit(clk, OWNER_SDCARD, RESOURCE_NONE, 0);
+    IOInit(cmd, OWNER_SDCARD, RESOURCE_NONE, 0);
+    IOInit(d0, OWNER_SDCARD, RESOURCE_NONE, 0);
 
 #ifdef SDCARD_SDIO_4BIT
     sdioPin[SDIO_PIN_D1] = sdioHardware->sdioPinD1[0];
     sdioPin[SDIO_PIN_D2] = sdioHardware->sdioPinD2[0];
     sdioPin[SDIO_PIN_D3] = sdioHardware->sdioPinD3[0];
+
+    const IO_t d1 = IOGetByTag(sdioPin[SDIO_PIN_D1].pin);
+    const IO_t d2 = IOGetByTag(sdioPin[SDIO_PIN_D2].pin);
+    const IO_t d3 = IOGetByTag(sdioPin[SDIO_PIN_D3].pin);
+
+    IOInit(d1, OWNER_SDCARD, RESOURCE_NONE, 0);
+    IOInit(d2, OWNER_SDCARD, RESOURCE_NONE, 0);
+    IOInit(d3, OWNER_SDCARD, RESOURCE_NONE, 0);
 #endif
+
+    //
+    // Setting all the SDIO pins to high for a short time results in more robust
+    // initialisation.
+    //
+    IOHi(d0);
+    IOConfigGPIO(d0, IOCFG_OUT_PP);
+
+#ifdef SDCARD_SDIO_4BIT
+    IOHi(d1);
+    IOHi(d2);
+    IOHi(d3);
+    IOConfigGPIO(d1, IOCFG_OUT_PP);
+    IOConfigGPIO(d2, IOCFG_OUT_PP);
+    IOConfigGPIO(d3, IOCFG_OUT_PP);
+#endif
+
+    IOHi(clk);
+    IOHi(cmd);
+    IOConfigGPIO(clk, IOCFG_OUT_PP);
+    IOConfigGPIO(cmd, IOCFG_OUT_PP);
 }
 
-#define IOCFG_SDMMC       IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+void SDMMC_DMA_IRQHandler(DMA_t channel) 
+{
+    UNUSED(channel);
+
+    HAL_DMA_IRQHandler(&sd_dma);
+}
 
 void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
 {
-    UNUSED(hsd);
-
     if (!sdioHardware) {
         return;
     }
@@ -187,100 +269,89 @@ void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
     IOConfigGPIOAF(d3, IOCFG_SDMMC, sdioPin[SDIO_PIN_D3].af);
 #endif
 
-    HAL_NVIC_SetPriority(sdioHardware->irqn, 0, 0);
+#ifdef STM32F7
+    sd_dma.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    sd_dma.Init.PeriphInc = DMA_PINC_DISABLE;
+    sd_dma.Init.MemInc = DMA_MINC_ENABLE;
+    sd_dma.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
+    sd_dma.Init.MemDataAlignment = DMA_MDATAALIGN_WORD;
+    sd_dma.Init.Mode = DMA_PFCTRL;
+    sd_dma.Init.Priority = DMA_PRIORITY_LOW;
+    sd_dma.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+    sd_dma.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+    sd_dma.Init.MemBurst = DMA_MBURST_INC4;
+    sd_dma.Init.PeriphBurst = DMA_PBURST_INC4;
+
+    dmaInit(dmaGetByRef(sd_dma.Instance), OWNER_SDCARD, 0);
+    if (HAL_DMA_Init(&sd_dma) != HAL_OK) {
+        return;
+    }
+    dmaSetHandler(dmaGetByRef(sd_dma.Instance), SDMMC_DMA_IRQHandler, 1, 0);
+
+    __HAL_LINKDMA(hsd, hdmarx, sd_dma);
+    __HAL_LINKDMA(hsd, hdmatx, sd_dma);
+#else
+    UNUSED(hsd);
+#endif
+
+    HAL_NVIC_SetPriority(sdioHardware->irqn, 2, 0);
     HAL_NVIC_EnableIRQ(sdioHardware->irqn);
 }
 
-void SDIO_GPIO_Init(void)
+bool SD_Initialize_LL(DMA_t dma)
 {
-    if (!sdioHardware) {
-        return;
-    }
-
-    const IO_t clk = IOGetByTag(sdioPin[SDIO_PIN_CK].pin);
-    const IO_t cmd = IOGetByTag(sdioPin[SDIO_PIN_CMD].pin);
-    const IO_t d0 = IOGetByTag(sdioPin[SDIO_PIN_D0].pin);
-    const IO_t d1 = IOGetByTag(sdioPin[SDIO_PIN_D1].pin);
-    const IO_t d2 = IOGetByTag(sdioPin[SDIO_PIN_D2].pin);
-    const IO_t d3 = IOGetByTag(sdioPin[SDIO_PIN_D3].pin);
-
-    IOInit(clk, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOInit(cmd, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOInit(d0, OWNER_SDCARD, RESOURCE_NONE, 0);
-
-#ifdef SDCARD_SDIO_4BIT
-    IOInit(d1, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOInit(d2, OWNER_SDCARD, RESOURCE_NONE, 0);
-    IOInit(d3, OWNER_SDCARD, RESOURCE_NONE, 0);
-#endif
-
-    //
-    // Setting all the SDIO pins to high for a short time results in more robust initialisation.
-    //
-    IOHi(d0);
-    IOConfigGPIO(d0, IOCFG_OUT_PP);
-
-#ifdef SDCARD_SDIO_4BIT
-    IOHi(d1);
-    IOHi(d2);
-    IOHi(d3);
-    IOConfigGPIO(d1, IOCFG_OUT_PP);
-    IOConfigGPIO(d2, IOCFG_OUT_PP);
-    IOConfigGPIO(d3, IOCFG_OUT_PP);
-#endif
-
-    IOHi(clk);
-    IOHi(cmd);
-    IOConfigGPIO(clk, IOCFG_OUT_PP);
-    IOConfigGPIO(cmd, IOCFG_OUT_PP);
-}
-
-bool SD_Initialize_LL(DMA_Stream_TypeDef *dma)
-{
+#ifdef STM32F7
+    sd_dma.Instance = dma->ref;
+    sd_dma.Init.Channel = dmaGetChannelByTag(SDCARD_SDIO_DMA);
+#else
     UNUSED(dma);
+#endif
     return true;
 }
 
 bool SD_GetState(void)
 {
-    HAL_SD_CardStateTypedef cardState = HAL_SD_GetCardState(&hsd1);
+    HAL_SD_CardStateTypedef cardState = HAL_SD_GetCardState(&hsd);
 
     return (cardState == HAL_SD_CARD_TRANSFER);
 }
 
 bool SD_Init(void)
 {
-    memset(&hsd1, 0, sizeof(hsd1));
+    memset(&hsd, 0, sizeof(hsd));
 
-    hsd1.Instance = sdioHardware->instance;
+    hsd.Instance = sdioHardware->instance;
 
     // falling seems to work better ?? no idea whats "right" here
-    hsd1.Init.ClockEdge = SDMMC_CLOCK_EDGE_FALLING;
+    hsd.Init.ClockEdge = SDMMC_CLOCK_EDGE_FALLING;
 
     // drastically increases the time to respond from the sdcard
     // lets leave it off
-    hsd1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-#ifdef SDCARD_SDIO_4BIT
-    hsd1.Init.BusWide = SDMMC_BUS_WIDE_4B;
-#else
-    hsd1.Init.BusWide = SDMMC_BUS_WIDE_1B;
+    hsd.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+#ifdef STM32F7
+    hsd.Init.ClockBypass = SDMMC_CLOCK_BYPASS_DISABLE;
 #endif
-    hsd1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-#ifdef SDCARD_SDIO_NORMAL_SPEED
-    hsd1.Init.ClockDiv = SDMMC_NSpeed_CLK_DIV;
-#else
-    hsd1.Init.ClockDiv = SDMMC_HSpeed_CLK_DIV;  // lets not go too crazy :)
-#endif
+    hsd.Init.BusWide = SDMMC_BUS_WIDE_1B;
+    hsd.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
+    hsd.Init.ClockDiv = SDMMC_CLK_DIV;
 
     // Will call HAL_SD_MspInit
-    const HAL_StatusTypeDef status = HAL_SD_Init(&hsd1);
-    if (status != HAL_OK) {
+    if (HAL_SD_Init(&hsd) != HAL_OK) {
+        return SD_ERROR;
+    }
+    if (hsd.SdCard.BlockNbr == 0) {
         return SD_ERROR;
     }
 
-    switch(hsd1.SdCard.CardType) {
+#ifdef SDCARD_SDIO_4BIT
+    if (HAL_SD_ConfigWideBusOperation(&hsd, SDMMC_BUS_WIDE_4B) != HAL_OK) {
+        return SD_ERROR;
+    }
+#endif
+
+    switch(hsd.SdCard.CardType) {
     case CARD_SDSC:
-        switch (hsd1.SdCard.CardVersion) {
+        switch (hsd.SdCard.CardVersion) {
         case CARD_V1_X:
             SD_CardType = SD_STD_CAPACITY_V1_1;
             break;
@@ -300,11 +371,11 @@ bool SD_Init(void)
         return SD_ERROR;
     }
 
-    // STATIC_ASSERT(sizeof(SD_Handle.CSD) == sizeof(hsd1.CSD), hal-csd-size-error);
-    memcpy(&SD_Handle.CSD, &hsd1.CSD, sizeof(SD_Handle.CSD));
+    // STATIC_ASSERT(sizeof(SD_Handle.CSD) == sizeof(hsd.CSD), hal-csd-size-error);
+    memcpy(&SD_Handle.CSD, &hsd.CSD, sizeof(SD_Handle.CSD));
 
-    // STATIC_ASSERT(sizeof(SD_Handle.CID) == sizeof(hsd1.CID), hal-cid-size-error);
-    memcpy(&SD_Handle.CID, &hsd1.CID, sizeof(SD_Handle.CID));
+    // STATIC_ASSERT(sizeof(SD_Handle.CID) == sizeof(hsd.CID), hal-cid-size-error);
+    memcpy(&SD_Handle.CID, &hsd.CID, sizeof(SD_Handle.CID));
 
     return SD_OK;
 }
@@ -529,15 +600,24 @@ SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t 
         return SD_ERROR; // unsupported.
     }
 
+#ifndef STM32F7
     if ((uint32_t)buffer & 0x1f) {
         return SD_ADDR_MISALIGNED;
     }
+#endif
 
     // Ensure the data is flushed to main memory
     SCB_CleanDCache_by_Addr(buffer, NumberOfBlocks * BlockSize);
 
-    HAL_StatusTypeDef status;
-    if ((status = HAL_SD_WriteBlocks_DMA(&hsd1, (uint8_t *)buffer, WriteAddress, NumberOfBlocks)) != HAL_OK) {
+#ifdef STM32F7
+    if (sd_dma.Init.Direction != DMA_MEMORY_TO_PERIPH) {
+        sd_dma.Init.Direction = DMA_MEMORY_TO_PERIPH;
+        if (HAL_DMA_Init(&sd_dma) != HAL_OK) {
+            return SD_ERROR;
+        }
+    }
+#endif
+    if (HAL_SD_WriteBlocks_DMA(&hsd, (uint8_t *)buffer, WriteAddress, NumberOfBlocks) != HAL_OK) {
         return SD_ERROR;
     }
 
@@ -560,9 +640,11 @@ SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t Bl
         return SD_ERROR; // unsupported.
     }
 
+#ifndef STM32F7
     if ((uint32_t)buffer & 0x1f) {
         return SD_ADDR_MISALIGNED;
     }
+#endif
 
     SD_Handle.RXCplt = 1;
 
@@ -570,8 +652,15 @@ SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t Bl
     sdReadParameters.BlockSize = BlockSize;
     sdReadParameters.NumberOfBlocks = NumberOfBlocks;
 
-    HAL_StatusTypeDef status;
-    if ((status = HAL_SD_ReadBlocks_DMA(&hsd1, (uint8_t *)buffer, ReadAddress, NumberOfBlocks)) != HAL_OK) {
+#ifdef STM32F7
+    if (sd_dma.Init.Direction != DMA_PERIPH_TO_MEMORY) {
+        sd_dma.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        if (HAL_DMA_Init(&sd_dma) != HAL_OK) {
+            return SD_ERROR;
+        }
+    }
+#endif
+    if (HAL_SD_ReadBlocks_DMA(&hsd, (uint8_t *)buffer, ReadAddress, NumberOfBlocks) != HAL_OK) {
         return SD_ERROR;
     }
 
@@ -619,12 +708,12 @@ void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd)
 
 void SDMMC1_IRQHandler(void)
 {
-    HAL_SD_IRQHandler(&hsd1);
+    HAL_SD_IRQHandler(&hsd);
 }
 
 void SDMMC2_IRQHandler(void)
 {
-    HAL_SD_IRQHandler(&hsd1);
+    HAL_SD_IRQHandler(&hsd);
 }
 
 #endif
