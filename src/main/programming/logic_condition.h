@@ -84,7 +84,8 @@ typedef enum {
     LOGIC_CONDITION_LED_PIN_PWM                 = 52,
     LOGIC_CONDITION_DISABLE_GPS_FIX             = 53,
     LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 54,
-    LOGIC_CONDITION_LAST                        = 55,
+    LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY      = 55,
+    LOGIC_CONDITION_LAST                        = 56,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
