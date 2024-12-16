@@ -36,10 +36,10 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO, 0, 3),     // S4
     // DEF_TIM(TIM8, CH3N, PB1, TIM_USE_OUTPUT_AUTO, 0, 3), // S4
 
-    DEF_TIM(TIM16, CH1N, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),// S5 // No DMA
-    ///DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),     // S5 - Timer used by beeper // No DMA 
-    DEF_TIM(TIM17, CH1N, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),// S6 // No DMA
-    ///DEF_TIM(TIM4, CH2, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),     // S6 - Timer used by beeper // No DMA
+    DEF_TIM(TIM16, CH1N, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),   // S5 // No DMA
+    ///DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0),  // S5 - Timer used by beeper - BF Timer // No DMA 
+    DEF_TIM(TIM17, CH1N, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),   // S6 // No DMA
+    ///DEF_TIM(TIM4, CH2, PB7, TIM_USE_OUTPUT_AUTO, 0, 0),  // S6 - Timer used by beeper - BF Timer // No DMA
     DEF_TIM(TIM2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 0),    // S7 // No DMA
     DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 0),    // S8 // No DMA
 

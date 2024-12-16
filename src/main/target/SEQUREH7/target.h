@@ -113,10 +113,10 @@
 
 // Gyro & ACC
 #if defined(SEQUREH7V2)
-#define USE_IMU_MPU6000
-#define MPU6000_CS_PIN      PB12
-#define MPU6000_SPI_BUS     BUS_SPI2
-#define IMU_MPU6000_ALIGN   CW90_DEG
+#define USE_IMU_ICM42605 // ICM42688P
+#define ICM42605_CS_PIN      PB12
+#define ICM42605_SPI_BUS     BUS_SPI2
+#define IMU_ICM42605_ALIGN   CW90_DEG
 #else
 #define USE_IMU_MPU6000
 #define MPU6000_CS_PIN      PB12
