@@ -2998,7 +2998,7 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 5 | 100 |
+| 40 | 5 | 100 |
 
 ---
 
@@ -3498,7 +3498,7 @@ P gain of altitude PID controller (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 
