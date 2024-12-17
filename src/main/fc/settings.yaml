@@ -2131,7 +2131,7 @@ groups:
         max: 100
       - name: nav_fw_pos_z_p
         description: "P gain of altitude PID controller (Fixedwing)"
-        default_value: 40
+        default_value: 30
         field: bank_fw.pid[PID_POS_Z].P
         min: 0
         max: 255
@@ -2149,7 +2149,7 @@ groups:
         max: 255
       - name: nav_fw_alt_control_response
         description: "Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude."
-        default_value: 20
+        default_value: 40
         field: fwAltControlResponseFactor
         min: 5
         max: 100
