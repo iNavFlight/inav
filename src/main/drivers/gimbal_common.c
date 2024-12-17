@@ -17,7 +17,7 @@
 
 #include "platform.h"
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
 
 #include <stdio.h>
 #include <stdint.h>
@@ -45,7 +45,8 @@ PG_RESET_TEMPLATE(gimbalConfig_t, gimbalConfig,
     .sensitivity = SETTING_GIMBAL_SENSITIVITY_DEFAULT,
     .panTrim = SETTING_GIMBAL_PAN_TRIM_DEFAULT,
     .tiltTrim = SETTING_GIMBAL_TILT_TRIM_DEFAULT,
-    .rollTrim = SETTING_GIMBAL_ROLL_TRIM_DEFAULT
+    .rollTrim = SETTING_GIMBAL_ROLL_TRIM_DEFAULT,
+    .gimbalType = SETTING_GIMBAL_TYPE_DEFAULT,
 );
 
 static gimbalDevice_t *commonGimbalDevice = NULL;
@@ -65,14 +66,14 @@ gimbalDevice_t *gimbalCommonDevice(void)
     return commonGimbalDevice;
 }
 
-void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs)
+void gimbalCommonProcess(const gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs)
 {
     if (gimbalDevice && gimbalDevice->vTable->process && gimbalCommonIsReady(gimbalDevice)) {
         gimbalDevice->vTable->process(gimbalDevice, currentTimeUs);
     }
 }
 
-gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice)
+gimbalDevType_e gimbalCommonGetDeviceType(const gimbalDevice_t *gimbalDevice)
 {
     if (!gimbalDevice || !gimbalDevice->vTable->getDeviceType) {
         return GIMBAL_DEV_UNKNOWN;
@@ -81,7 +82,7 @@ gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice)
     return gimbalDevice->vTable->getDeviceType(gimbalDevice);
 }
 
-bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice)
+bool gimbalCommonIsReady(const gimbalDevice_t *gimbalDevice)
 {
     if (gimbalDevice && gimbalDevice->vTable->isReady) {
         return gimbalDevice->vTable->isReady(gimbalDevice);
@@ -111,7 +112,7 @@ void taskUpdateGimbal(timeUs_t currentTimeUs)
 // TODO: check if any gimbal types are enabled
 bool gimbalCommonIsEnabled(void)
 {
-    return true;
+    return gimbalCommonDevice() != NULL;;
 }
 
 
