@@ -59,9 +59,14 @@
 rangefinder_t rangefinder;
 
 #define RANGEFINDER_HARDWARE_TIMEOUT_MS         500     // Accept 500ms of non-responsive sensor, report HW failure otherwise
-
 #define RANGEFINDER_DYNAMIC_THRESHOLD           600     //Used to determine max. usable rangefinder disatance
 #define RANGEFINDER_DYNAMIC_FACTOR              75
+#define RANGEFINDER_FILTER_AVERAGE_SIZE         5
+
+// average filter
+static uint8_t sampleIndex;                                    // pointer to the next empty slot in the buffer
+static uint8_t numSamples;       	                           // the number of samples in the filter, maxes out at size of the filter
+static int32_t bufferSamples[RANGEFINDER_FILTER_AVERAGE_SIZE]; // buffer of samples
 
 #ifdef USE_RANGEFINDER
 PG_REGISTER_WITH_RESET_TEMPLATE(rangefinderConfig_t, rangefinderConfig, PG_RANGEFINDER_CONFIG, 3);
@@ -204,22 +209,32 @@ bool rangefinderInit(void)
     return true;
 }
 
-static int32_t applyMedianFilter(int32_t newReading)
+static int32_t applyRangeFinderMedianFilter(int32_t sample)
 {
-    #define DISTANCE_SAMPLES_MEDIAN 5
-    static int32_t filterSamples[DISTANCE_SAMPLES_MEDIAN];
-    static int filterSampleIndex = 0;
-    static bool medianFilterReady = false;
+	float result = 0.0f;
 
-    if (newReading > RANGEFINDER_OUT_OF_RANGE) {// only accept samples that are in range
-        filterSamples[filterSampleIndex] = newReading;
-        ++filterSampleIndex;
-        if (filterSampleIndex == DISTANCE_SAMPLES_MEDIAN) {
-            filterSampleIndex = 0;
-            medianFilterReady = true;
-        }
+    if (sample <= RANGEFINDER_OUT_OF_RANGE) { // only accept samples that are in range
+        return RANGEFINDER_OUT_OF_RANGE;
     }
-    return medianFilterReady ? quickMedianFilter5(filterSamples) : newReading;
+
+	// add sample to array
+	bufferSamples[sampleIndex++] = sample;
+
+	// wrap index if necessary
+	if (sampleIndex >= RANGEFINDER_FILTER_AVERAGE_SIZE)
+		sampleIndex = 0;
+
+	// increment the number of samples so far
+	numSamples++;
+	if (numSamples > RANGEFINDER_FILTER_AVERAGE_SIZE || numSamples == 0)
+		numSamples = RANGEFINDER_FILTER_AVERAGE_SIZE;
+
+	// get sum of all values
+	for (uint8_t i = 0; i < RANGEFINDER_FILTER_AVERAGE_SIZE; i++) {
+		result += bufferSamples[i];
+	}
+
+	return (int32_t)(result / numSamples);
 }
 
 /*
@@ -252,7 +267,7 @@ bool rangefinderProcess(float cosTiltAngle)
             rangefinder.rawAltitude = distance;
 
             if (rangefinderConfig()->use_median_filtering) {
-                rangefinder.rawAltitude = applyMedianFilter(rangefinder.rawAltitude);
+                rangefinder.rawAltitude = applyRangeFinderMedianFilter(rangefinder.rawAltitude);
             }
         }
         else if (distance == RANGEFINDER_OUT_OF_RANGE) {
