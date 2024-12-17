@@ -250,6 +250,12 @@ static int8_t loiterDirection(void) {
         dir *= -1;
     }
 
+#ifdef USE_GEOZONE
+    if (geozone.loiterDir != 0) {
+        dir = geozone.loiterDir;
+    }
+#endif
+
     return dir;
 }
 
