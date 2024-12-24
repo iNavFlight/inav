@@ -162,9 +162,9 @@
 
 #define SYM_MAX                     0xCE  // 206 MAX symbol
 #define SYM_PROFILE                 0xCF  // 207 Profile symbol
-#define SYM_SWITCH_INDICATOR_LOW    0xD0  // 208 Switch High
-#define SYM_SWITCH_INDICATOR_MID    0xD1  // 209 Switch Mid
-#define SYM_SWITCH_INDICATOR_HIGH   0xD2  // 210 Switch Low
+#define SYM_SWITCH_INDICATOR_LOW    0xD0  // 208 Switch Indicator Down/Low
+#define SYM_SWITCH_INDICATOR_MID    0xD1  // 209 Switch Indicator Mid
+#define SYM_SWITCH_INDICATOR_HIGH   0xD2  // 210 Switch Indicator Up/High
 #define SYM_AH                      0xD3  // 211 Amphours symbol
 #define SYM_GLIDE_DIST              0xD4  // 212 Glide Distance
 #define SYM_GLIDE_MINS              0xD5  // 213 Glide Minutes
