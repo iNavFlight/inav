@@ -1723,9 +1723,9 @@ static bool osdDrawSingleElement(uint8_t item)
             uint8_t osdRssi = osdConvertRSSI();
             buff[0] = SYM_RSSI;
             if (osdRssi < 100)
-                tfp_sprintf(buff + 1, "%2d", osdRssi);
+                tfp_sprintf(buff + 1, " %2d", osdRssi);
             else
-                tfp_sprintf(buff + 1, "%c ", SYM_MAX);
+                tfp_sprintf(buff + 1, "100");
             
             if (osdRssi < osdConfig()->rssi_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
