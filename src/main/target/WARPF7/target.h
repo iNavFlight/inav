@@ -58,7 +58,9 @@
 #define USE_UART6
 #define UART6_RX_PIN                PC7
 #define UART6_TX_PIN                PC6
+
 #define SERIAL_PORT_COUNT           6
+
 #define DEFAULT_RX_TYPE             RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER           SERIALRX_CRSF
 
@@ -96,7 +98,7 @@
 #define ADC_CHANNEL_3_PIN           PC0
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define USE_ADC
-#define ADC_INSTANCE ADC1
+#define ADC_INSTANCE                ADC1
 
 
 // Gyro & ACC
