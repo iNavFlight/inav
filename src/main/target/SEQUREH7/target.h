@@ -101,7 +101,7 @@
 
 // ADC
 #define USE_ADC
-#define ADC_INSTANCE                ADC1
+#define ADC_INSTANCE                ADC3
 
 #define ADC_CHANNEL_1_PIN           PC3
 #define ADC_CHANNEL_2_PIN           PC2
