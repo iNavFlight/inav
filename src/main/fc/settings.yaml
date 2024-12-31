@@ -1231,7 +1231,7 @@ groups:
         max: INT16_MAX
       - name: motorstop_on_low
         description: "If enabled, motor will stop when throttle is low on this mixer_profile"
-        default_value: OFF
+        default_value: ON
         field: mixer_config.motorstopOnLow
         type: bool
       - name: mixer_pid_profile_linking
