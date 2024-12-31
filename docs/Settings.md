@@ -3018,7 +3018,7 @@ If enabled, motor will stop when throttle is low on this mixer_profile
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
