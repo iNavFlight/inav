@@ -146,6 +146,13 @@ typedef enum {
     EST_Z_VALID                 = (1 << 6),
 } navPositionEstimationFlags_e;
 
+typedef enum {
+    ALTITUDE_SOURCE_GPS,
+    ALTITUDE_SOURCE_BARO,
+    ALTITUDE_SOURCE_GPS_ONLY,
+    ALTITUDE_SOURCE_BARO_ONLY,
+} navDefaultAltitudeSensor_e;
+
 typedef struct {
     timeUs_t    baroGroundTimeout;
     float       baroGroundAlt;

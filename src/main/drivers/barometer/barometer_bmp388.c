@@ -37,10 +37,11 @@
 #include "drivers/barometer/barometer.h"
 #include "drivers/barometer/barometer_bmp388.h"
 
-#if defined(USE_BARO) && (defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388))
+#if defined(USE_BARO) && (defined(USE_BARO_BMP388) || defined(USE_BARO_SPI_BMP388) || defined(USE_BARO_BMP390) || defined(USE_BARO_SPI_BMP390))
 
 #define BMP388_I2C_ADDR                                 (0x76) // same as BMP280/BMP180
 #define BMP388_DEFAULT_CHIP_ID                          (0x50) // from https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h#L130
+#define BMP390_DEFAULT_CHIP_ID                          (0x60) // from https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h#L133
 
 #define BMP388_CMD_REG                                  (0x7E)
 #define BMP388_RESERVED_UPPER_REG                       (0x7D)
@@ -314,7 +315,7 @@ static bool deviceDetect(busDevice_t * busDev)
 
         bool ack = busReadBuf(busDev, BMP388_CHIP_ID_REG, chipId, nRead);
 
-        if (ack && *pId == BMP388_DEFAULT_CHIP_ID) {
+        if (ack && (*pId == BMP388_DEFAULT_CHIP_ID || *pId == BMP390_DEFAULT_CHIP_ID)) {
             return true;
         }
     };
