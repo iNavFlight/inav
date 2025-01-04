@@ -33,9 +33,6 @@
 #include "config/feature.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef enum {
     HEADTRACKER_NONE   = 0,
@@ -83,6 +80,10 @@ typedef struct headTrackerConfig_s {
 #ifdef USE_HEADTRACKER
 
 PG_DECLARE(headTrackerConfig_t, headTrackerConfig);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void headTrackerCommonInit(void);
 void headTrackerCommonSetDevice(headTrackerDevice_t *headTrackerDevice);

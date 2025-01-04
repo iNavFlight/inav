@@ -19,7 +19,7 @@
 
 #include "platform.h"
 
-#ifdef USE_SERIAL_GIMBAL
+#ifdef USE_GIMBAL
 
 #include <stdint.h>
 
@@ -33,6 +33,7 @@ extern "C" {
 typedef enum {
     GIMBAL_DEV_UNSUPPORTED = 0,
     GIMBAL_DEV_SERIAL,
+    GIMBAL_DEV_MAVLINK,
     GIMBAL_DEV_UNKNOWN=0xFF
 } gimbalDevType_e;
 
@@ -41,6 +42,7 @@ struct gimbalVTable_s;
 
 typedef struct gimbalDevice_s {
     const struct gimbalVTable_s *vTable;
+    // for OSD display
     int16_t currentPanPWM;
 } gimbalDevice_t;
 
@@ -49,10 +51,11 @@ typedef struct gimbalDevice_s {
 // {set,get}PitMode: 0 = OFF, 1 = ON
 
 typedef struct gimbalVTable_s {
-    void (*process)(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+    void (*process)(const gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
     gimbalDevType_e (*getDeviceType)(const gimbalDevice_t *gimbalDevice);
     bool (*isReady)(const gimbalDevice_t *gimbalDevice);
     bool (*hasHeadTracker)(const gimbalDevice_t *gimbalDevice);
+    // Used by OSD pan compensation
     int16_t (*getGimbalPanPWM)(const gimbalDevice_t *gimbalDevice);
 } gimbalVTable_t;
 
@@ -65,6 +68,7 @@ typedef struct gimbalConfig_s {
     uint16_t panTrim;
     uint16_t tiltTrim;
     uint16_t rollTrim;
+    gimbalDevType_e gimbalType;
 } gimbalConfig_t;
 
 PG_DECLARE(gimbalConfig_t, gimbalConfig);
@@ -85,9 +89,9 @@ void gimbalCommonSetDevice(gimbalDevice_t *gimbalDevice);
 gimbalDevice_t *gimbalCommonDevice(void);
 
 // VTable functions
-void gimbalCommonProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
-gimbalDevType_e gimbalCommonGetDeviceType(gimbalDevice_t *gimbalDevice);
-bool gimbalCommonIsReady(gimbalDevice_t *gimbalDevice);
+void gimbalCommonProcess(const gimbalDevice_t *gimbalDevice, timeUs_t currentTimeUs);
+gimbalDevType_e gimbalCommonGetDeviceType(const gimbalDevice_t *gimbalDevice);
+bool gimbalCommonIsReady(const gimbalDevice_t *gimbalDevice);
 
 
 void taskUpdateGimbal(timeUs_t currentTimeUs);
@@ -95,6 +99,7 @@ void taskUpdateGimbal(timeUs_t currentTimeUs);
 bool gimbalCommonIsEnabled(void);
 bool gimbalCommonHtrkIsEnabled(void);
 
+// For OSD pan compensation
 int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice);
 
 #ifdef __cplusplus

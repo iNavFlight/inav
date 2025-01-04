@@ -44,6 +44,8 @@
 #include "drivers/time.h"
 #include "drivers/display.h"
 #include "drivers/osd_symbols.h"
+#include "drivers/gimbal_common.h"
+#include "drivers/headtracker_common.h"
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -283,6 +285,12 @@ void initMAVLinkTelemetry(void)
     mavlinkPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_MAVLINK);
 }
 
+
+bool isMAVLinkTelemetryEnabled(void)
+{
+    return portConfig && mavlinkPort;
+}
+
 void configureMAVLinkTelemetryPort(void)
 {
     if (!portConfig) {
@@ -491,9 +499,31 @@ void mavlinkSendSystemStatus(void)
     mavlinkSendMessage();
 }
 
+static inline int16_t getChannelValue(uint8_t x) 
+{
+    int16_t channel_value = (rxRuntimeConfig.channelCount > x) ? rxGetChannelValue(x) : 0;
+#if defined(USE_GIMBAL) && defined(USE_GIMBAL_MAVLINK)
+    // override channel values if gimbal is enabled
+    if(gimbalCommonIsEnabled() && gimbalConfig()->gimbalType == GIMBAL_DEV_MAVLINK && IS_RC_MODE_ACTIVE(BOXGIMBALHTRK)) {
+        headTrackerDevice_t *dev = headTrackerCommonDevice();
+        if (dev != NULL) {
+            x = x + 1;  // channels are 1-indexed
+            if (x == gimbalConfig()->panChannel) {
+                channel_value = headTrackerCommonGetPanPWM(dev);
+            } else if (x == gimbalConfig()->tiltChannel) {
+                channel_value = headTrackerCommonGetTiltPWM(dev);
+            } else if (x == gimbalConfig()->rollChannel) {
+                channel_value = headTrackerCommonGetRollPWM(dev);
+            }
+        }
+    }
+#endif
+
+    return channel_value;
+}
+
 void mavlinkSendRCChannelsAndRSSI(void)
 {
-#define GET_CHANNEL_VALUE(x) ((rxRuntimeConfig.channelCount >= (x + 1)) ? rxGetChannelValue(x) : 0)
     if (telemetryConfig()->mavlink.version == 1) {
         mavlink_msg_rc_channels_raw_pack(mavSystemId, mavComponentId, &mavSendMsg,
             // time_boot_ms Timestamp (milliseconds since system boot)
@@ -501,21 +531,21 @@ void mavlinkSendRCChannelsAndRSSI(void)
             // port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows to encode more than 8 servos.
             0,
             // chan1_raw RC channel 1 value, in microseconds
-            GET_CHANNEL_VALUE(0),
+            getChannelValue(0),
             // chan2_raw RC channel 2 value, in microseconds
-            GET_CHANNEL_VALUE(1),
+            getChannelValue(1),
             // chan3_raw RC channel 3 value, in microseconds
-            GET_CHANNEL_VALUE(2),
+            getChannelValue(2),
             // chan4_raw RC channel 4 value, in microseconds
-            GET_CHANNEL_VALUE(3),
+            getChannelValue(3),
             // chan5_raw RC channel 5 value, in microseconds
-            GET_CHANNEL_VALUE(4),
+            getChannelValue(4),
             // chan6_raw RC channel 6 value, in microseconds
-            GET_CHANNEL_VALUE(5),
+            getChannelValue(5),
             // chan7_raw RC channel 7 value, in microseconds
-            GET_CHANNEL_VALUE(6),
+            getChannelValue(6),
             // chan8_raw RC channel 8 value, in microseconds
-            GET_CHANNEL_VALUE(7),
+            getChannelValue(7),
             // rssi Receive signal strength indicator, 0: 0%, 254: 100%
     		//https://github.com/mavlink/mavlink/issues/1027
             scaleRange(getRSSI(), 0, 1023, 0, 254));
@@ -527,41 +557,41 @@ void mavlinkSendRCChannelsAndRSSI(void)
             // Total number of RC channels being received. 
             rxRuntimeConfig.channelCount,
             // chan1_raw RC channel 1 value, in microseconds
-            GET_CHANNEL_VALUE(0),
+            getChannelValue(0),
             // chan2_raw RC channel 2 value, in microseconds
-            GET_CHANNEL_VALUE(1),
+            getChannelValue(1),
             // chan3_raw RC channel 3 value, in microseconds
-            GET_CHANNEL_VALUE(2),
+            getChannelValue(2),
             // chan4_raw RC channel 4 value, in microseconds
-            GET_CHANNEL_VALUE(3),
+            getChannelValue(3),
             // chan5_raw RC channel 5 value, in microseconds
-            GET_CHANNEL_VALUE(4),
+            getChannelValue(4),
             // chan6_raw RC channel 6 value, in microseconds
-            GET_CHANNEL_VALUE(5),
+            getChannelValue(5),
             // chan7_raw RC channel 7 value, in microseconds
-            GET_CHANNEL_VALUE(6),
+            getChannelValue(6),
             // chan8_raw RC channel 8 value, in microseconds
-            GET_CHANNEL_VALUE(7),
+            getChannelValue(7),
             // chan9_raw RC channel 9 value, in microseconds
-            GET_CHANNEL_VALUE(8),
+            getChannelValue(8),
             // chan10_raw RC channel 10 value, in microseconds
-            GET_CHANNEL_VALUE(9),
+            getChannelValue(9),
             // chan11_raw RC channel 11 value, in microseconds
-            GET_CHANNEL_VALUE(10),
+            getChannelValue(10),
             // chan12_raw RC channel 12 value, in microseconds
-            GET_CHANNEL_VALUE(11),
+            getChannelValue(11),
             // chan13_raw RC channel 13 value, in microseconds
-            GET_CHANNEL_VALUE(12),
+            getChannelValue(12),
             // chan14_raw RC channel 14 value, in microseconds
-            GET_CHANNEL_VALUE(13),
+            getChannelValue(13),
             // chan15_raw RC channel 15 value, in microseconds
-            GET_CHANNEL_VALUE(14),
+            getChannelValue(14),
             // chan16_raw RC channel 16 value, in microseconds
-            GET_CHANNEL_VALUE(15),
+            getChannelValue(15),
             // chan17_raw RC channel 17 value, in microseconds
-            GET_CHANNEL_VALUE(16),
+            getChannelValue(16),
             // chan18_raw RC channel 18 value, in microseconds
-            GET_CHANNEL_VALUE(17),
+            getChannelValue(17),
             // rssi Receive signal strength indicator, 0: 0%, 254: 100%
     		//https://github.com/mavlink/mavlink/issues/1027
             scaleRange(getRSSI(), 0, 1023, 0, 254));
@@ -905,6 +935,27 @@ void mavlinkSendBatteryTemperatureStatusText(void)
 
 }
 
+#if defined(USE_GIMBAL) && defined(USE_GIMBAL_MAVLINK)
+void mavlinkSendGimbalAttitude(void)
+{
+    // https://mavlink.io/en/messages/common.html#AUTOPILOT_STATE_FOR_GIMBAL_DEVICE
+    uint8_t targetSystem = MAV_TYPE_GIMBAL;
+    uint8_t targetComponent = MAV_COMP_ID_GIMBAL;
+    uint8_t time_boot_us = micros();
+    float q[4] = {NAN, NAN, NAN, NAN};
+    uint16_t estimator_status = (ESTIMATOR_ATTITUDE | ESTIMATOR_VELOCITY_HORIZ | ESTIMATOR_VELOCITY_VERT | ESTIMATOR_POS_HORIZ_REL | ESTIMATOR_POS_HORIZ_ABS | ESTIMATOR_POS_VERT_ABS | ESTIMATOR_POS_VERT_AGL | ESTIMATOR_CONST_POS_MODE | ESTIMATOR_PRED_POS_HORIZ_REL | ESTIMATOR_POS_HORIZ_ABS);
+
+    mavlink_euler_to_quaternion(attitude.values.roll, attitude.values.pitch, attitude.values.yaw, q);
+
+    // https://mavlink.io/en/messages/common.html#AUTOPILOT_STATE_FOR_GIMBAL_DEVICE
+    mavlink_msg_autopilot_state_for_gimbal_device_pack(mavSystemId, mavComponentId, &mavSendMsg,
+        targetSystem, targetComponent, time_boot_us, q, 0, getEstimatedActualVelocity(X), getEstimatedActualVelocity(Y), getEstimatedActualVelocity(Z), 0,
+        NAN, estimator_status, MAV_LANDED_STATE_UNDEFINED);
+
+    mavlinkSendMessage();
+}
+#endif
+
 void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
     // is executed @ TELEMETRY_MAVLINK_MAXRATE rate
@@ -914,6 +965,11 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_RC_CHANNELS)) {
         mavlinkSendRCChannelsAndRSSI();
+#if defined(USE_GIMBAL) && defined(USE_GIMBAL_MAVLINK)
+        if(gimbalCommonIsEnabled() && gimbalConfig()->gimbalType == GIMBAL_DEV_MAVLINK) {
+            mavlinkSendGimbalAttitude();
+        }
+#endif
     }
 
 #ifdef USE_GPS
@@ -933,7 +989,6 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3)) {
         mavlinkSendBatteryTemperatureStatusText();
     }
-
 }
 
 static bool handleIncoming_MISSION_CLEAR_ALL(void)

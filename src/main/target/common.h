@@ -190,7 +190,9 @@
 #define ADSB_LIMIT_CM                   6400000
 #endif
 
-#define USE_SERIAL_GIMBAL
+#define USE_GIMBAL
+#define USE_GIMBAL_SERIAL
+#define USE_GIMBAL_MAVLINK
 #define USE_HEADTRACKER
 #define USE_HEADTRACKER_SERIAL
 #define USE_HEADTRACKER_MSP
