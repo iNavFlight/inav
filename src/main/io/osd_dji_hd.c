@@ -958,6 +958,9 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
         case ADJUSTMENT_VEL_Z_D:
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
+        case ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE:
+            tfp_sprintf(buff, "ACR %3d", pidProfileMutable()->fwAltControlResponseFactor);
+            break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
