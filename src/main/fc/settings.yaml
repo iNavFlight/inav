@@ -2147,6 +2147,12 @@ groups:
         field: bank_fw.pid[PID_POS_Z].D
         min: 0
         max: 255
+      - name: nav_fw_pos_z_ff
+        description: "FF gain of altitude PID controller (Fixedwing)"
+        default_value: 10
+        field: bank_fw.pid[PID_POS_Z].FF
+        min: 0
+        max: 255
       - name: nav_fw_alt_control_response
         description: "Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude."
         default_value: 40
@@ -4390,7 +4396,7 @@ groups:
         field: safeAltitudeDistance
         min: 0
         max: 10000
-      - name: geozone_safehome_as_inclusive 
+      - name: geozone_safehome_as_inclusive
         description: "Treat nearest safehome as inclusive geozone"
         type: bool
         field: nearestSafeHomeAsInclusivZone
@@ -4398,7 +4404,7 @@ groups:
       - name: geozone_safehome_zone_action
         description:  "Fence action for safehome zone"
         default_value: "NONE"
-        field: safeHomeFenceAction    
+        field: safeHomeFenceAction
         table: fence_action
         type: uint8_t
       - name: geozone_mr_stop_distance
@@ -4412,4 +4418,4 @@ groups:
         default_value: RTH
         field: noWayHomeAction
         table: geozone_rth_no_way_home
-        type: uint8_t    
+        type: uint8_t

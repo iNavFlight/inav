@@ -3602,6 +3602,16 @@ D gain of altitude PID controller (Fixedwing)
 
 ---
 
+### nav_fw_pos_z_ff
+
+FF gain of altitude PID controller (Fixedwing)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 255 |
+
+---
+
 ### nav_fw_pos_z_i
 
 I gain of altitude PID controller (Fixedwing)
