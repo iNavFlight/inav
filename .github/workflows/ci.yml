@@ -13,12 +13,21 @@ on:
       - 'CMakeLists.txt'
       - '*.sh'
 
+  workflow_call:
+    #inputs:
+    #  release_build:
+    #   description: 'Specifies if it is a build that should include commit hash in hex file names or not'
+    #   default: false
+    #   required: false
+    #   type: boolean
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+          id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
     steps:
       - uses: actions/checkout@v4
