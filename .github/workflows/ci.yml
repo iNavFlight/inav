@@ -13,6 +13,15 @@ on:
       - 'CMakeLists.txt'
       - '*.sh'
 
+  workflow_call:
+    #inputs:
+    #  release_build:
+    #   description: 'Specifies if it is a build that should include commit hash in hex file names or not'
+    #   default: false
+    #   required: false
+    #   type: boolean
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
