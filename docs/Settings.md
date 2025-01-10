@@ -3598,7 +3598,7 @@ D gain of altitude PID controller (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 6 | 0 | 255 |
+| 10 | 0 | 255 |
 
 ---
 

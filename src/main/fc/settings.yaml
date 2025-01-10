@@ -2143,7 +2143,7 @@ groups:
         max: 255
       - name: nav_fw_pos_z_d
         description: "D gain of altitude PID controller (Fixedwing)"
-        default_value: 6
+        default_value: 10
         field: bank_fw.pid[PID_POS_Z].D
         min: 0
         max: 255
