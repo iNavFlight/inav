@@ -18,7 +18,7 @@ on:
 jobs:
   build:
     name: build
-    uses: ./.github/workflows/ci.yaml
+    uses: ./.github/workflows/ci.yml
 
   release:
     name: Release
