@@ -29,7 +29,7 @@ jobs:
       - name: Get version
         id: version
         run: |
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t\)]+/, "", $2); print $2 }')
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t\)]/, "", $2); print $2 }')
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
       - name: Get current date
         id: date
@@ -38,25 +38,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: hexes
-          pattern: inav-*
+          pattern: matrix-inav-*
           merge-multiple: true
       - name: download sitl linux
         uses: actions/download-artifact@v4
         with:
           path: resources/sitl/linux
-          pattern: sitl-*-Linux
+          pattern: inav-*SITIL-Linux
           merge-multiple: true
       - name: download sitl windows
         uses: actions/download-artifact@v4
         with:
           path: resources/sitl/windows
-          pattern: sitl-*-WIN
+          pattern: inav-*SITL-WIN
           merge-multiple: true
       - name: download sitl mac
         uses: actions/download-artifact@v4
         with:
           path: resources/sitl/macos
-          pattern: sitl-*-MacOS
+          pattern: inav-*SITL-MacOS
           merge-multiple: true
       - name: Consolidate sitl files
         run: |
