@@ -13,6 +13,15 @@ on:
       - 'CMakeLists.txt'
       - '*.sh'
 
+  workflow_call:
+    #inputs:
+    #  release_build:
+    #   description: 'Specifies if it is a build that should include commit hash in hex file names or not'
+    #   default: false
+    #   required: false
+    #   type: boolean
+
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -37,7 +46,7 @@ jobs:
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
@@ -72,7 +81,7 @@ jobs:
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
@@ -115,7 +124,7 @@ jobs:
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
@@ -148,7 +157,7 @@ jobs:
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }')
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
@@ -188,7 +197,7 @@ jobs:
           # why we try github.event.pull_request.head.sha first
           COMMIT_ID=${COMMIT_ID:-${{ github.sha }}}
           BUILD_SUFFIX=ci-$(date '+%Y%m%d')-$(git rev-parse --short ${COMMIT_ID})
-          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/^[ \t]+|[ \t\)]+$/, "", $2); print $2 }')
+          VERSION=$( grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }' )
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
           

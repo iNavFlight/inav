@@ -62,9 +62,9 @@ typedef struct gimbalConfig_s {
     uint8_t tiltChannel;
     uint8_t rollChannel;
     int8_t sensitivity;
-    uint16_t panTrim;
-    uint16_t tiltTrim;
-    uint16_t rollTrim;
+    int16_t panTrim;
+    int16_t tiltTrim;
+    int16_t rollTrim;
 } gimbalConfig_t;
 
 PG_DECLARE(gimbalConfig_t, gimbalConfig);
