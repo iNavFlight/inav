@@ -43,8 +43,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 0),    // S7 // No DMA
     DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 0),    // S8 // No DMA
 
-    DEF_TIM(TIM4, CH4, PD15, TIM_USE_BEEPER, 0, 0),         // BEEPER PWM
     DEF_TIM(TIM1, CH1, PA8, TIM_USE_LED, 0, 0),             // LED_2812
+    DEF_TIM(TIM4, CH4, PD15, TIM_USE_BEEPER, 0, 0),         // BEEPER PWM
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
