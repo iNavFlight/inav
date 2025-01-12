@@ -312,6 +312,7 @@ typedef enum {
     OSD_COURSE_TO_FENCE,
     OSD_H_DIST_TO_FENCE,
     OSD_V_DIST_TO_FENCE,
+    OSD_NAV_FW_ALT_CONTROL_RESPONSE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
