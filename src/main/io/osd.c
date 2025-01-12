@@ -1726,7 +1726,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 tfp_sprintf(buff + 1, "%2d", osdRssi);
             else
                 tfp_sprintf(buff + 1, "%c ", SYM_MAX);
-            
+
             if (osdRssi < osdConfig()->rssi_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
@@ -2393,7 +2393,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #ifdef USE_GEOZONE
             if (FLIGHT_MODE(NAV_SEND_TO))
                 p = "AUTO";
-            else 
+            else
 #endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
@@ -2546,7 +2546,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 tfp_sprintf(buff+1, "%3d%c", rxLinkStatistics.downlinkLQ, SYM_AH_DECORATION_DOWN);
             }
-                
+
             if (!failsafeIsReceivingRxData()) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else if (rxLinkStatistics.downlinkLQ < osdConfig()->link_quality_alarm) {
@@ -2608,7 +2608,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[i] = ' ';
         buff[4] = '\0';
         break;
-    
+
     case OSD_RX_MODE:
         displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_MODE);
         strcat(buff, rxLinkStatistics.mode);
@@ -3081,6 +3081,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_VEL_Z_PIDS:
         osdDisplayNavPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
+        return true;
+
+    case OSD_NAV_FW_ALT_CONTROL_RESPONSE:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "ACR", 0, pidProfile()->fwAltControlResponseFactor, 3, 0, ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE);
         return true;
 
     case OSD_HEADING_P:
@@ -3912,7 +3916,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
                 int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
                 int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - flightDirection + panHomeDirOffset;
-                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);            
+                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);
             } else {
                 if (isGeozoneActive()) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -3920,8 +3924,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, '-', elemAttr);
             }
         break;
-        }  
-        
+        }
+
         case OSD_H_DIST_TO_FENCE:
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
@@ -5346,12 +5350,14 @@ static void osdShowHDArmScreen(void)
     armScreenRow = drawLogos(false, armScreenRow);
     armScreenRow++;
 
-    if (!osdConfig()->use_pilot_logo && osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
+    memset(buf2, '\0', sizeof(buf2));
+    if (!osdConfig()->use_pilot_logo && strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
-    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
+    memset(craftNameBuf, '\0', sizeof(craftNameBuf));
+    if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
             strcat(buf2, " : ");
@@ -5478,7 +5484,7 @@ static void osdShowSDArmScreen(void)
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
     memset(buf, '\0', sizeof(buf));
 #if defined(USE_GPS)
-#if defined (USE_SAFE_HOME) 
+#if defined (USE_SAFE_HOME)
     if (posControl.safehomeState.distance) {
         safehomeRow = armScreenRow;
         armScreenRow += 2;
@@ -5486,12 +5492,14 @@ static void osdShowSDArmScreen(void)
 #endif
 #endif
 
-    if (osdElementEnabled(OSD_PILOT_NAME, false) && strlen(systemConfig()->pilotName) > 0) {
+    memset(buf2, '\0', sizeof(buf2));
+    if (strlen(systemConfig()->pilotName) > 0) {
         osdFormatPilotName(buf2);
         showPilotOrCraftName = true;
     }
 
-    if (osdElementEnabled(OSD_CRAFT_NAME, false) && strlen(systemConfig()->craftName) > 0) {
+    memset(craftNameBuf, '\0', sizeof(craftNameBuf));
+    if (strlen(systemConfig()->craftName) > 0) {
         osdFormatCraftName(craftNameBuf);
         if (strlen(buf2) > 0) {
             strcat(buf2, " : ");
@@ -6041,7 +6049,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 case GEOZONE_MESSAGE_STATE_NFZ:
                     messages[messageCount++] = OSD_MSG_NFZ;
                     break;
-                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:      
+                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:
                     osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
                     tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
                     messages[messageCount++] = messageBuf;
@@ -6049,7 +6057,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
                     messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
                     break;
-                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:    
+                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:
                 osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
                     if (geozone.zoneInfo == INT32_MAX) {
                         tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
@@ -6088,7 +6096,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (!geozone.sticksLocked) {
                         messages[messageCount++] = OSD_MSG_MOVE_STICKS;
                     }
-                    break;         
+                    break;
                 case GEOZONE_MESSAGE_STATE_NONE:
                     break;
             }
