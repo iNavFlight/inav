@@ -41,11 +41,11 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
     }
 
     if (ech >= SYM_LOGO_START && ech <= 297) {
-        return dji_logo[(ech - SYM_LOGO_START) % 0xC];
+        return dji_logo[(ech - SYM_LOGO_START) % 0xD];
     }
 
     if (ech >= SYM_PILOT_LOGO_LRG_START && ech <= 511) {
-        return dji_logo[(ech - SYM_PILOT_LOGO_LRG_START) % 0xC];
+        return dji_logo[(ech - SYM_PILOT_LOGO_LRG_START) % 0xD];
     }
 
     switch (ech) {
