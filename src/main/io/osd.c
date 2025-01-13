@@ -4401,13 +4401,6 @@ uint8_t drawLogos(bool singular, uint8_t row) {
     bool usePilotLogo = (osdConfig()->use_pilot_logo && osdDisplayIsHD());
     bool useINAVLogo = (singular && !usePilotLogo) || !singular;
 
-#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is in use, the pilot logo cannot be used, due to font issues.
-    if (isDJICompatibleVideoSystem(osdConfig())) {
-        usePilotLogo = false;
-        useINAVLogo = false;
-    }
-#endif
-
     uint8_t logoSpacing = osdConfig()->inav_to_pilot_logo_spacing;
 
     if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
