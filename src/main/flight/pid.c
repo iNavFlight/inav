@@ -115,6 +115,7 @@ typedef struct {
     pt3Filter_t rateTargetFilter;
 
     smithPredictor_t measurementSmithPredictor;
+    smithPredictor_t dtermSmithPredictor;
 
     fwPidAttenuation_t attenuation;
 } pidState_t;
@@ -374,6 +375,22 @@ bool pidInitFilters(void)
         pidProfile()->measurementSmithPredictorDelay,
         pidProfile()->measurementSmithPredictor,
         pidProfile()->measurementSmithPredictorFilterHz,
+        getLooptime()
+    );
+
+    // Dterm Smith predictor on ROLL and PITCH only
+    smithPredictorInit(
+        &pidState[FD_ROLL].dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorDelay,
+        pidProfile()->dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorFilterHz,
+        getLooptime()
+    );
+    smithPredictorInit(
+        &pidState[FD_PITCH].dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorDelay,
+        pidProfile()->dtermSmithPredictor,
+        pidProfile()->dtermSmithPredictorFilterHz,
         getLooptime()
     );
 #endif
@@ -735,8 +752,13 @@ static float dTermProcess(pidState_t *pidState, float currentRateTarget, float d
 
         // Calculate derivative
         newDTerm =  delta * (pidState->kD * dT_inv) * applyDBoost(pidState, currentRateTarget, dT, dT_inv);
+
+        //Apply D-term smith predictor
+#ifdef USE_SMITH_PREDICTOR
+        newDTerm = smithPredictorApply(&pidState->dtermSmithPredictor, newDTerm);
+#endif
     }
-    return(newDTerm);
+    return newDTerm;
 }
 
 static void applyItermLimiting(pidState_t *pidState) {
