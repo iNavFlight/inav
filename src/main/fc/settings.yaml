@@ -1547,7 +1547,7 @@ groups:
         default_value: OFF
         type: bool
       - name: disarm_always
-        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low."
+        description: "When you switch to Disarm, do so regardless of throttle position. If this Setting is `OFF`. It will only disarm only when the throttle is low. This is similar to the previous `disarm_kill_switch` option. Default setting is the same as the old default behaviour."
         default_value: ON
         type: bool
       - name: switch_disarm_delay
