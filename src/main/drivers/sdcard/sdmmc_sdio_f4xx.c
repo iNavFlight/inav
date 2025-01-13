@@ -1356,8 +1356,10 @@ static SD_Error_t SD_FindSCR(uint32_t *pSCR)
 /**
   * @brief  Initialize the SDIO module, DMA, and IO
   */
-bool SD_Initialize_LL(DMA_Stream_TypeDef *dmaRef)
+bool SD_Initialize_LL(DMA_t dma)
 {
+    DMA_Stream_TypeDef *dmaRef = dma->ref;
+
     // Sanity check DMA stread - we only support two possible
     if (((uint32_t)dmaRef != (uint32_t)DMA2_Stream3) && ((uint32_t)dmaRef != (uint32_t)DMA2_Stream6)) {
         return false;

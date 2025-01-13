@@ -161,7 +161,7 @@ main_sources(STM32H7_SRC
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_uart_hal.c
     drivers/sdio.h
-    drivers/sdcard/sdmmc_sdio_h7xx.c
+    drivers/sdcard/sdmmc_sdio_hal.c
 )
 
 main_sources(STM32H7_MSC_SRC
@@ -216,6 +216,7 @@ macro(define_target_stm32h7 subfamily size)
             COMPILE_DEFINITIONS ${definitions}
             LINKER_SCRIPT stm32_flash_h7${subfamily}x${size}
             ${${func_ARGV}}
+            SVD STM32H7${subfamily}
         )
     endfunction()
 endmacro()

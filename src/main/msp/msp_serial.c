@@ -173,10 +173,8 @@ static bool mspSerialProcessReceivedData(mspPort_t *mspPort, uint8_t c)
         case MSP_CHECKSUM_V1:
             if (mspPort->checksum1 == c) {
                 mspPort->c_state = MSP_COMMAND_RECEIVED;
-                SD(fprintf(stderr, "[MSPV1] Command received\n"));
             } else {
                 mspPort->c_state = MSP_IDLE;
-                SD(fprintf(stderr, "[MSPV1] Checksum error!\n"));
             }
             break;
 
@@ -229,7 +227,6 @@ static bool mspSerialProcessReceivedData(mspPort_t *mspPort, uint8_t c)
                 // Check for potential buffer overflow
                 if (hdrv2->size > MSP_PORT_INBUF_SIZE) {
                     mspPort->c_state = MSP_IDLE;
-                    SD(fprintf(stderr, "[MSPV2] Potential buffer overflow!\n"));
                 }
                 else {
                     mspPort->dataSize = hdrv2->size;
@@ -253,9 +250,7 @@ static bool mspSerialProcessReceivedData(mspPort_t *mspPort, uint8_t c)
         case MSP_CHECKSUM_V2_NATIVE:
             if (mspPort->checksum2 == c) {
                 mspPort->c_state = MSP_COMMAND_RECEIVED;
-                SD(fprintf(stderr, "[MSPV2] command received!\n"));
             } else {
-                SD(fprintf(stderr, "[MSPV2] Checksum error!\n"));
                 mspPort->c_state = MSP_IDLE;
             }
             break;

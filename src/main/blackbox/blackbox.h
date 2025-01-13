@@ -35,6 +35,7 @@ typedef enum {
     BLACKBOX_FEATURE_GYRO_PEAKS_ROLL    = 1 << 10,
     BLACKBOX_FEATURE_GYRO_PEAKS_PITCH   = 1 << 11,
     BLACKBOX_FEATURE_GYRO_PEAKS_YAW     = 1 << 12,
+    BLACKBOX_FEATURE_SERVOS             = 1 << 13,
 } blackboxFeatureMask_e;
 typedef struct blackboxConfig_s {
     uint16_t rate_num;

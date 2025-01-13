@@ -49,14 +49,19 @@ With the board connected and in bootloader mode (reset it by sending the charact
 * Choose Options > List All Devices
 * Select `STM32 BOOTLOADER` in the device list
 * Choose `WinUSB (v6.x.x.x)` in the right hand box
-
+   
 ![Zadig Driver Procedure](assets/images/zadig-dfu.png)
 
 * Click Replace Driver
 * Restart the Configurator (make sure it is completely closed, logout and login if unsure)
 * Now the DFU device should be seen by Configurator
 
+## While Using USB-C cables
 
+* If you are using a device with only USB-C ports such as a Mac-OS device, you will need a dongle.
+  * A USB-C to USB-C cable is identical on both ends and thus requires extra hardware to let them be auto detected as devices instead of hosts.
+  * Using either a hub with USB-A ports, or a USB-A to C cable or dongle is usually the easiest way to get a working connection but an USB-OTG adapter also works.
+    
 ## Using `dfu-util`
 
 `dfu-util` is a command line tool to flash ARM devices via DFU. It is available via the package manager on most Linux systems or from [source forge](http://sourceforge.net/p/dfu-util).

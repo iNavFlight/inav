@@ -102,17 +102,21 @@ The following sensors are transmitted
 * **VSpd** : vertical speed, unit is cm/s.
 * **Hdg** : heading, North is 0°, South is 180°.
 * **AccX,Y,Z** : accelerometer values (not sent if `frsky_pitch_roll = ON`).
-* **Tmp1** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
+* **470** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
   * **A** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
   * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
   * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
   * **D** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
   * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
-* **Tmp2** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
+  
+  _NOTE_ This sensor used to be **Tmp1**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp1** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
+* **480** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
   * **A** : 1 = GPS fix, 2 = GPS home fix, 4 = home reset (numbers are additive)
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
+  
+  _NOTE_ This sensor used to be **Tmp2**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp2** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
 * **GAlt** : GPS altitude, sea level is zero.
 * **ASpd** : true air speed, from pitot sensor. This is _Knots * 10_
 * **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
@@ -390,3 +394,21 @@ In configurator set IBUS telemetry and RX on this same port, enable telemetry fe
 
 Warning:
 Schematic above work also for connect telemetry only, but not work for connect rx only - will stop FC.
+
+
+## Futaba SBUS2 telemetry
+
+SBUS2 telemetry requires a single connection from the TX pin of a bidirectional serial port to the SBUS2 pin on a Futaba T-FHSS or FASSTest telemetry receiver. (tested T16IZ radio and R7108SB and R3204SB receivers)
+
+It shares 1 line for both TX and RX, the rx pin cannot be used for other serial port stuff.
+It runs at a fixed baud rate of 100000, so it needs a hardware uart capable of inverted signals. It is not available on F4 mcus.
+
+```
+     _______
+    /       \                                              /-------------\
+    | STM32 |-->UART TX-->[Bi-directional @ 100000 baud]-->| Futaba RX   |
+    |  uC   |-  UART RX--x[not connected]                  | SBUS2 port  |
+    \_______/                                              \-------------/
+```
+
+For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_telemetry.md)
