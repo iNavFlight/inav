@@ -26,10 +26,10 @@
 #include "drivers/osd_symbols.h"
 
 //                       0123456789ABC
-static char *dji_logo = "DJI FIX   "
-                        "THE OSD   "
+static char *dji_logo = "  DJI FIX "
+                        "  THE OSD "
                         "FOR O3 AND"
-                        "O4        ";
+                        "    O4    ";
 
 uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 {
