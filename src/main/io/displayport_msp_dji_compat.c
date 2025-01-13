@@ -27,7 +27,7 @@
 #include <string.h>
 
 //                       0123456789
-static char *dji_logo = "  DJI FIX "
+static char *dji_logo = " DJI, FIX "
                         "  THE OSD "
                         "FOR O3 AND"
                         "    O4    ";
