@@ -26,7 +26,10 @@
 #include "drivers/osd_symbols.h"
 
 //                       0123456789ABC
-static char *dji_logo = "DJI FIX THIS ";
+static char *dji_logo = "DJI FIX   "
+                        "THE OSD   "
+                        "FOR O3 AND"
+                        "O4        ";
 
 uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 {
@@ -41,11 +44,11 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
     }
 
     if (ech >= SYM_LOGO_START && ech <= 297) {
-        return dji_logo[(ech - SYM_LOGO_START) % 0xD];
+        return dji_logo[(ech - SYM_LOGO_START) % (strlen(dji_logo) + 1)];
     }
 
     if (ech >= SYM_PILOT_LOGO_LRG_START && ech <= 511) {
-        return dji_logo[(ech - SYM_PILOT_LOGO_LRG_START) % 0xD];
+        return dji_logo[(ech - SYM_LOGO_START) % (strlen(dji_logo) + 1)];
     }
 
     switch (ech) {

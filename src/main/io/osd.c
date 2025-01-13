@@ -4405,7 +4405,7 @@ uint8_t drawLogos(bool singular, uint8_t row) {
 
     if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
         logoSpacing++; // Add extra 1 character space between logos, if the odd/even of the OSD cols doesn't match the odd/even of the logo spacing
-}
+    }
 
     // Draw Logo(s)
     if (usePilotLogo && !singular) {
