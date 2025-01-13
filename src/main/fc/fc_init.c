@@ -372,9 +372,8 @@ void init(void)
     updateHardwareRevision();
 #endif
 
-#if defined(USE_SDCARD_SDIO) && defined(STM32H7)
+#if defined(USE_SDCARD_SDIO) && (defined(STM32H7) || defined(STM32F7))
     sdioPinConfigure();
-    SDIO_GPIO_Init();
 #endif
 
 #ifdef USE_USB_MSC
@@ -522,6 +521,10 @@ void init(void)
 
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
+#endif
+
+#ifndef USE_GEOZONE
+    featureClear(FEATURE_GEOZONE);
 #endif
 
     if (!sensorsAutodetect()) {

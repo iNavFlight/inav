@@ -38,6 +38,8 @@ set(STM32F7_HAL_SRC
     stm32f7xx_ll_tim.c
     stm32f7xx_ll_usb.c
     stm32f7xx_ll_utils.c
+    stm32f7xx_hal_sd.c
+    stm32f7xx_ll_sdmmc.c
 )
 list(TRANSFORM STM32F7_HAL_SRC PREPEND "${STM32F7_HAL_DIR}/Src/")
 
@@ -74,7 +76,7 @@ main_sources(STM32F7_SRC
     drivers/system_stm32f7xx.c
     drivers/serial_uart_stm32f7xx.c
     drivers/serial_uart_hal.c
-    drivers/sdcard/sdmmc_sdio_f7xx.c
+    drivers/sdcard/sdmmc_sdio_hal.c
 )
 
 main_sources(STM32F7_MSC_SRC

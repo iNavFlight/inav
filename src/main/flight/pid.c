@@ -242,8 +242,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                 [PID_POS_Z] = {
                     .P = SETTING_NAV_FW_POS_Z_P_DEFAULT,      // FW_POS_Z_P * 100
                     .I = SETTING_NAV_FW_POS_Z_I_DEFAULT,      // FW_POS_Z_I * 100
-                    .D = SETTING_NAV_FW_POS_Z_D_DEFAULT,      // FW_POS_Z_D * 100
-                    .FF = 0,
+                    .D = SETTING_NAV_FW_POS_Z_D_DEFAULT,      // FW_POS_Z_D * 200
+                    .FF = SETTING_NAV_FW_POS_Z_FF_DEFAULT,    // FW_POS_Z_FF * 100
                 },
                 [PID_POS_XY] = {
                     .P = SETTING_NAV_FW_POS_XY_P_DEFAULT,     // FW_POS_XY_P * 100
@@ -1210,7 +1210,7 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
-    
+
 #ifdef USE_ADAPTIVE_FILTER
         adaptiveFilterPushRate(axis, pidState[axis].rateTarget, currentControlRateProfile->stabilized.rates[axis]);
 #endif

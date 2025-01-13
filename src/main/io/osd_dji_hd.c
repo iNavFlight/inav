@@ -525,6 +525,8 @@ static char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_DSHOT_BEEPER:
             return OSD_MESSAGE_STR("MOTOR BEEPER ACTIVE");
             // Cases without message
+        case ARMING_DISABLED_GEOZONE:
+            return OSD_MESSAGE_STR("NO FLY ZONE");
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;
         case ARMING_DISABLED_CMS_MENU:
@@ -955,6 +957,9 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             break;
         case ADJUSTMENT_VEL_Z_D:
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
+            break;
+        case ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE:
+            tfp_sprintf(buff, "ACR %3d", pidProfileMutable()->fwAltControlResponseFactor);
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);

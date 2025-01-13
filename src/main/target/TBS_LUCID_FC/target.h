@@ -41,10 +41,12 @@
 #define UART1_RX_PIN              PA10
 
 #define USE_UART2
-#define UART2_TX_PIN              NONE
+#define UART2_AF                  6
+#define UART2_TX_PIN              PB0
 #define UART2_RX_PIN              PB0
 
 #define USE_UART3
+#define USE_UART3_PIN_SWAP
 #define UART3_TX_PIN              PB11
 #define UART3_RX_PIN              PB10
 
@@ -120,13 +122,15 @@
 
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                PC5  // Camera Control
+#define PINIO1_PIN                PA13
+#define PINIO2_PIN                PA14
 
 #define USE_ADC
 #define ADC_INSTANCE              ADC1
 #define ADC1_DMA_STREAM           DMA2_CHANNEL7
 #define ADC_CHANNEL_1_PIN         PC0
 #define ADC_CHANNEL_2_PIN         PC1
+#define ADC_CHANNEL_3_PIN         PC5
 #define VBAT_ADC_CHANNEL          ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL ADC_CHN_2
 
