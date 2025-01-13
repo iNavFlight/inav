@@ -24,8 +24,9 @@
 #include "io/displayport_msp_dji_compat.h"
 #include "io/dji_osd_symbols.h"
 #include "drivers/osd_symbols.h"
+#include <string.h>
 
-//                       0123456789ABC
+//                       0123456789
 static char *dji_logo = "  DJI FIX "
                         "  THE OSD "
                         "FOR O3 AND"
