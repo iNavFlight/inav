@@ -40,6 +40,14 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         return DJI_SYM_AH_DECORATION;
     }
 
+    if (ech >= SYM_LOGO_START && ech <= 297) {
+        return dji_logo[ech - SYM_LOGO_START % 0xC];
+    }
+
+    if (ech >= SYM_PILOT_LOGO_LRG_START && ech <= 511) {
+        return dji_logo[ech - SYM_PILOT_LOGO_LRG_START % 0xC];
+    }
+
     switch (ech) {
         case SYM_RSSI:
             return DJI_SYM_RSSI;
@@ -456,48 +464,6 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_CROSS_TRACK_ERROR:
             return DJI_SYM_CROSS_TRACK_ERROR;
 */
-
-        case SYM_LOGO_START:
-        case SYM_LOGO_START+1:
-        case SYM_LOGO_START+2:
-        case SYM_LOGO_START+3:
-        case SYM_LOGO_START+4:
-        case SYM_LOGO_START+5:
-        case SYM_LOGO_START+6:
-        case SYM_LOGO_START+7:
-        case SYM_LOGO_START+8:
-        case SYM_LOGO_START+9:
-        case SYM_LOGO_START+10:
-        case SYM_LOGO_START+11:
-        case SYM_LOGO_START+12:
-        case SYM_LOGO_START+13:
-        case SYM_LOGO_START+14:
-        case SYM_LOGO_START+15:
-        case SYM_LOGO_START+16:
-        case SYM_LOGO_START+17:
-        case SYM_LOGO_START+18:
-        case SYM_LOGO_START+19:
-        case SYM_LOGO_START+20:
-        case SYM_LOGO_START+21:
-        case SYM_LOGO_START+22:
-        case SYM_LOGO_START+23:
-        case SYM_LOGO_START+24:
-        case SYM_LOGO_START+25:
-        case SYM_LOGO_START+26:
-        case SYM_LOGO_START+27:
-        case SYM_LOGO_START+28:
-        case SYM_LOGO_START+29:
-        case SYM_LOGO_START+30:
-        case SYM_LOGO_START+31:
-        case SYM_LOGO_START+32:
-        case SYM_LOGO_START+33:
-        case SYM_LOGO_START+34:
-        case SYM_LOGO_START+35:
-        case SYM_LOGO_START+36:
-        case SYM_LOGO_START+37:
-        case SYM_LOGO_START+38:
-        case SYM_LOGO_START+39:
-            return dji_logo[ech - SYM_LOGO_START % 0xC];
 
         case SYM_AH_LEFT:
             return DJI_SYM_AH_LEFT;
