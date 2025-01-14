@@ -222,3 +222,4 @@ macro(define_target_stm32h7 subfamily size)
 endmacro()
 
 define_target_stm32h7(43 i)
+define_target_stm32h7(a3 i)
