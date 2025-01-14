@@ -10,6 +10,17 @@
   *           + Peripheral Control functions
   *           + Peripheral State and Errors functions
   *
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
   ==============================================================================
                         ##### How to use this driver #####
@@ -146,17 +157,6 @@
 
   @endverbatim
   ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
@@ -178,6 +178,13 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+/** @defgroup LTDC_Private_Define LTDC Private Define
+  * @{
+  */
+#define LTDC_TIMEOUT_VALUE ((uint32_t)100U)  /* 100ms */
+/**
+  * @}
+  */
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -211,7 +218,8 @@ static void LTDC_SetConfig(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLay
   */
 HAL_StatusTypeDef HAL_LTDC_Init(LTDC_HandleTypeDef *hltdc)
 {
-  uint32_t tmp, tmp1;
+  uint32_t tmp;
+  uint32_t tmp1;
 
   /* Check the LTDC peripheral state */
   if (hltdc == NULL)
@@ -271,24 +279,20 @@ HAL_StatusTypeDef HAL_LTDC_Init(LTDC_HandleTypeDef *hltdc)
                                      hltdc->Init.DEPolarity | hltdc->Init.PCPolarity);
 
   /* Set Synchronization size */
-  hltdc->Instance->SSCR &= ~(LTDC_SSCR_VSH | LTDC_SSCR_HSW);
   tmp = (hltdc->Init.HorizontalSync << 16U);
-  hltdc->Instance->SSCR |= (tmp | hltdc->Init.VerticalSync);
+  WRITE_REG(hltdc->Instance->SSCR, (tmp | hltdc->Init.VerticalSync));
 
   /* Set Accumulated Back porch */
-  hltdc->Instance->BPCR &= ~(LTDC_BPCR_AVBP | LTDC_BPCR_AHBP);
   tmp = (hltdc->Init.AccumulatedHBP << 16U);
-  hltdc->Instance->BPCR |= (tmp | hltdc->Init.AccumulatedVBP);
+  WRITE_REG(hltdc->Instance->BPCR, (tmp | hltdc->Init.AccumulatedVBP));
 
   /* Set Accumulated Active Width */
-  hltdc->Instance->AWCR &= ~(LTDC_AWCR_AAH | LTDC_AWCR_AAW);
   tmp = (hltdc->Init.AccumulatedActiveW << 16U);
-  hltdc->Instance->AWCR |= (tmp | hltdc->Init.AccumulatedActiveH);
+  WRITE_REG(hltdc->Instance->AWCR, (tmp | hltdc->Init.AccumulatedActiveH));
 
   /* Set Total Width */
-  hltdc->Instance->TWCR &= ~(LTDC_TWCR_TOTALH | LTDC_TWCR_TOTALW);
   tmp = (hltdc->Init.TotalWidth << 16U);
-  hltdc->Instance->TWCR |= (tmp | hltdc->Init.TotalHeigh);
+  WRITE_REG(hltdc->Instance->TWCR, (tmp | hltdc->Init.TotalHeigh));
 
   /* Set the background color value */
   tmp = ((uint32_t)(hltdc->Init.Backcolor.Green) << 8U);
@@ -320,6 +324,44 @@ HAL_StatusTypeDef HAL_LTDC_Init(LTDC_HandleTypeDef *hltdc)
 
 HAL_StatusTypeDef HAL_LTDC_DeInit(LTDC_HandleTypeDef *hltdc)
 {
+  uint32_t tickstart;
+
+  /* Check the LTDC peripheral state */
+  if (hltdc == NULL)
+  {
+    return HAL_ERROR;
+  }
+
+  /* Check function parameters */
+  assert_param(IS_LTDC_ALL_INSTANCE(hltdc->Instance));
+
+  /* Disable LTDC Layer 1 */
+  __HAL_LTDC_LAYER_DISABLE(hltdc, LTDC_LAYER_1);
+
+#if defined(LTDC_Layer2_BASE)
+  /* Disable LTDC Layer 2 */
+  __HAL_LTDC_LAYER_DISABLE(hltdc, LTDC_LAYER_2);
+#endif /* LTDC_Layer2_BASE */
+
+  /* Reload during vertical blanking period */
+  __HAL_LTDC_VERTICAL_BLANKING_RELOAD_CONFIG(hltdc);
+
+  /* Get tick */
+  tickstart = HAL_GetTick();
+
+  /* Wait for VSYNC Interrupt */
+  while (READ_BIT(hltdc->Instance->CDSR, LTDC_CDSR_VSYNCS) == 0U)
+  {
+    /* Check for the Timeout */
+    if ((HAL_GetTick() - tickstart) > LTDC_TIMEOUT_VALUE)
+    {
+      break;
+    }
+  }
+
+  /* Disable LTDC  */
+  __HAL_LTDC_DISABLE(hltdc);
+
 #if (USE_HAL_LTDC_REGISTER_CALLBACKS == 1)
   if (hltdc->MspDeInitCallback == NULL)
   {
@@ -391,7 +433,8 @@ __weak void HAL_LTDC_MspDeInit(LTDC_HandleTypeDef *hltdc)
   * @param pCallback pointer to the Callback function
   * @retval status
   */
-HAL_StatusTypeDef HAL_LTDC_RegisterCallback(LTDC_HandleTypeDef *hltdc, HAL_LTDC_CallbackIDTypeDef CallbackID, pLTDC_CallbackTypeDef pCallback)
+HAL_StatusTypeDef HAL_LTDC_RegisterCallback(LTDC_HandleTypeDef *hltdc, HAL_LTDC_CallbackIDTypeDef CallbackID,
+                                            pLTDC_CallbackTypeDef pCallback)
 {
   HAL_StatusTypeDef status = HAL_OK;
 
@@ -473,7 +516,7 @@ HAL_StatusTypeDef HAL_LTDC_RegisterCallback(LTDC_HandleTypeDef *hltdc, HAL_LTDC_
 
 /**
   * @brief  Unregister an LTDC Callback
-  *         LTDC callabck is redirected to the weak predefined callback
+  *         LTDC callback is redirected to the weak predefined callback
   * @param hltdc ltdc handle
   * @param CallbackID ID of the callback to be unregistered
   *        This parameter can be one of the following values:
@@ -508,7 +551,7 @@ HAL_StatusTypeDef HAL_LTDC_UnRegisterCallback(LTDC_HandleTypeDef *hltdc, HAL_LTD
         break;
 
       case HAL_LTDC_MSPINIT_CB_ID :
-        hltdc->MspInitCallback = HAL_LTDC_MspInit;                  /* Legcay weak MspInit Callback     */
+        hltdc->MspInitCallback = HAL_LTDC_MspInit;                  /* Legcay weak MspInit Callback  */
         break;
 
       case HAL_LTDC_MSPDEINIT_CB_ID :
@@ -869,11 +912,12 @@ HAL_StatusTypeDef HAL_LTDC_ConfigColorKeying(LTDC_HandleTypeDef *hltdc, uint32_t
   *                   LTDC_LAYER_1 (0) or LTDC_LAYER_2 (1)
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_LTDC_ConfigCLUT(LTDC_HandleTypeDef *hltdc, uint32_t *pCLUT, uint32_t CLUTSize, uint32_t LayerIdx)
+HAL_StatusTypeDef HAL_LTDC_ConfigCLUT(LTDC_HandleTypeDef *hltdc, const uint32_t *pCLUT, uint32_t CLUTSize,
+                                      uint32_t LayerIdx)
 {
   uint32_t tmp;
   uint32_t counter;
-  uint32_t *pcolorlut = pCLUT;
+  const uint32_t *pcolorlut = pCLUT;
   /* Check the parameters */
   assert_param(IS_LTDC_LAYER(LayerIdx));
 
@@ -887,11 +931,13 @@ HAL_StatusTypeDef HAL_LTDC_ConfigCLUT(LTDC_HandleTypeDef *hltdc, uint32_t *pCLUT
   {
     if (hltdc->LayerCfg[LayerIdx].PixelFormat == LTDC_PIXEL_FORMAT_AL44)
     {
-      tmp  = (((counter + (16U*counter)) << 24U) | ((uint32_t)(*pcolorlut) & 0xFFU) | ((uint32_t)(*pcolorlut) & 0xFF00U) | ((uint32_t)(*pcolorlut) & 0xFF0000U));
+      tmp  = (((counter + (16U * counter)) << 24U) | ((uint32_t)(*pcolorlut) & 0xFFU) | \
+              ((uint32_t)(*pcolorlut) & 0xFF00U) | ((uint32_t)(*pcolorlut) & 0xFF0000U));
     }
     else
     {
-      tmp  = ((counter << 24U) | ((uint32_t)(*pcolorlut) & 0xFFU) | ((uint32_t)(*pcolorlut) & 0xFF00U) | ((uint32_t)(*pcolorlut) & 0xFF0000U));
+      tmp  = ((counter << 24U) | ((uint32_t)(*pcolorlut) & 0xFFU) | \
+              ((uint32_t)(*pcolorlut) & 0xFF00U) | ((uint32_t)(*pcolorlut) & 0xFF0000U));
     }
 
     pcolorlut++;
@@ -1345,12 +1391,14 @@ HAL_StatusTypeDef HAL_LTDC_SetAddress(LTDC_HandleTypeDef *hltdc, uint32_t Addres
 }
 
 /**
-  * @brief  Function used to reconfigure the pitch for specific cases where the attached LayerIdx buffer have a width that is
-  *         larger than the one intended to be displayed on screen. Example of a buffer 800x480 attached to layer for which we
-  *         want to read and display on screen only a portion 320x240 taken in the center of the buffer. The pitch in pixels
-  *         will be in that case 800 pixels and not 320 pixels as initially configured by previous call to HAL_LTDC_ConfigLayer().
-  * @note   This function should be called only after a previous call to HAL_LTDC_ConfigLayer() to modify the default pitch
-  *         configured by HAL_LTDC_ConfigLayer() when required (refer to example described just above).
+  * @brief  Function used to reconfigure the pitch for specific cases where the attached LayerIdx buffer have a width
+  *         that is larger than the one intended to be displayed on screen. Example of a buffer 800x480 attached to
+  *         layer for which we want to read and display on screen only a portion 320x240 taken in the center
+  *         of the buffer.
+  *         The pitch in pixels will be in that case 800 pixels and not 320 pixels as initially configured by previous
+  *         call to HAL_LTDC_ConfigLayer().
+  * @note   This function should be called only after a previous call to HAL_LTDC_ConfigLayer() to modify the default
+  *         pitch configured by HAL_LTDC_ConfigLayer() when required (refer to example described just above).
   * @param  hltdc              pointer to a LTDC_HandleTypeDef structure that contains
   *                            the configuration information for the LTDC.
   * @param  LinePitchInPixels  New line pitch in pixels to configure for LTDC layer 'LayerIdx'.
@@ -1504,7 +1552,8 @@ HAL_StatusTypeDef  HAL_LTDC_Reload(LTDC_HandleTypeDef *hltdc, uint32_t ReloadTyp
   *                    LTDC_LAYER_1 (0) or LTDC_LAYER_2 (1)
   * @retval HAL status
   */
-HAL_StatusTypeDef HAL_LTDC_ConfigLayer_NoReload(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLayerCfg, uint32_t LayerIdx)
+HAL_StatusTypeDef HAL_LTDC_ConfigLayer_NoReload(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLayerCfg,
+                                                uint32_t LayerIdx)
 {
   /* Check the parameters */
   assert_param(IS_LTDC_LAYER(LayerIdx));
@@ -1553,7 +1602,8 @@ HAL_StatusTypeDef HAL_LTDC_ConfigLayer_NoReload(LTDC_HandleTypeDef *hltdc, LTDC_
   *                   LTDC_LAYER_1 (0) or LTDC_LAYER_2 (1)
   * @retval  HAL status
   */
-HAL_StatusTypeDef HAL_LTDC_SetWindowSize_NoReload(LTDC_HandleTypeDef *hltdc, uint32_t XSize, uint32_t YSize, uint32_t LayerIdx)
+HAL_StatusTypeDef HAL_LTDC_SetWindowSize_NoReload(LTDC_HandleTypeDef *hltdc, uint32_t XSize, uint32_t YSize,
+                                                  uint32_t LayerIdx)
 {
   LTDC_LayerCfgTypeDef *pLayerCfg;
 
@@ -1607,7 +1657,8 @@ HAL_StatusTypeDef HAL_LTDC_SetWindowSize_NoReload(LTDC_HandleTypeDef *hltdc, uin
   *                         LTDC_LAYER_1 (0) or LTDC_LAYER_2 (1)
   * @retval  HAL status
   */
-HAL_StatusTypeDef HAL_LTDC_SetWindowPosition_NoReload(LTDC_HandleTypeDef *hltdc, uint32_t X0, uint32_t Y0, uint32_t LayerIdx)
+HAL_StatusTypeDef HAL_LTDC_SetWindowPosition_NoReload(LTDC_HandleTypeDef *hltdc, uint32_t X0, uint32_t Y0,
+                                                      uint32_t LayerIdx)
 {
   LTDC_LayerCfgTypeDef *pLayerCfg;
 
@@ -1774,12 +1825,14 @@ HAL_StatusTypeDef HAL_LTDC_SetAddress_NoReload(LTDC_HandleTypeDef *hltdc, uint32
 }
 
 /**
-  * @brief  Function used to reconfigure the pitch for specific cases where the attached LayerIdx buffer have a width that is
-  *         larger than the one intended to be displayed on screen. Example of a buffer 800x480 attached to layer for which we
-  *         want to read and display on screen only a portion 320x240 taken in the center of the buffer. The pitch in pixels
-  *         will be in that case 800 pixels and not 320 pixels as initially configured by previous call to HAL_LTDC_ConfigLayer().
-  * @note   This function should be called only after a previous call to HAL_LTDC_ConfigLayer() to modify the default pitch
-  *         configured by HAL_LTDC_ConfigLayer() when required (refer to example described just above).
+  * @brief  Function used to reconfigure the pitch for specific cases where the attached LayerIdx buffer have a width
+  *         that is larger than the one intended to be displayed on screen. Example of a buffer 800x480 attached to
+  *         layer for which we want to read and display on screen only a portion 320x240 taken in the center
+  *         of the buffer.
+  *         The pitch in pixels will be in that case 800 pixels and not 320 pixels as initially configured by
+  *         previous call to HAL_LTDC_ConfigLayer().
+  * @note   This function should be called only after a previous call to HAL_LTDC_ConfigLayer() to modify the default
+  *         pitch configured by HAL_LTDC_ConfigLayer() when required (refer to example described just above).
   *         Variant of the function HAL_LTDC_SetPitch without immediate reload.
   * @param  hltdc              pointer to a LTDC_HandleTypeDef structure that contains
   *                            the configuration information for the LTDC.
@@ -2036,7 +2089,7 @@ HAL_StatusTypeDef HAL_LTDC_DisableCLUT_NoReload(LTDC_HandleTypeDef *hltdc, uint3
   *                the configuration information for the LTDC.
   * @retval HAL state
   */
-HAL_LTDC_StateTypeDef HAL_LTDC_GetState(LTDC_HandleTypeDef *hltdc)
+HAL_LTDC_StateTypeDef HAL_LTDC_GetState(const LTDC_HandleTypeDef *hltdc)
 {
   return hltdc->State;
 }
@@ -2047,7 +2100,7 @@ HAL_LTDC_StateTypeDef HAL_LTDC_GetState(LTDC_HandleTypeDef *hltdc)
   *               the configuration information for the LTDC.
   * @retval LTDC Error Code
   */
-uint32_t HAL_LTDC_GetError(LTDC_HandleTypeDef *hltdc)
+uint32_t HAL_LTDC_GetError(const LTDC_HandleTypeDef *hltdc)
 {
   return hltdc->ErrorCode;
 }
@@ -2082,7 +2135,8 @@ static void LTDC_SetConfig(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLay
   /* Configure the horizontal start and stop position */
   tmp = ((pLayerCfg->WindowX1 + ((hltdc->Instance->BPCR & LTDC_BPCR_AHBP) >> 16U)) << 16U);
   LTDC_LAYER(hltdc, LayerIdx)->WHPCR &= ~(LTDC_LxWHPCR_WHSTPOS | LTDC_LxWHPCR_WHSPPOS);
-  LTDC_LAYER(hltdc, LayerIdx)->WHPCR = ((pLayerCfg->WindowX0 + ((hltdc->Instance->BPCR & LTDC_BPCR_AHBP) >> 16U) + 1U) | tmp);
+  LTDC_LAYER(hltdc, LayerIdx)->WHPCR = ((pLayerCfg->WindowX0 + \
+                                         ((hltdc->Instance->BPCR & LTDC_BPCR_AHBP) >> 16U) + 1U) | tmp);
 
   /* Configure the vertical start and stop position */
   tmp = ((pLayerCfg->WindowY1 + (hltdc->Instance->BPCR & LTDC_BPCR_AVBP)) << 16U);
@@ -2097,8 +2151,7 @@ static void LTDC_SetConfig(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLay
   tmp = ((uint32_t)(pLayerCfg->Backcolor.Green) << 8U);
   tmp1 = ((uint32_t)(pLayerCfg->Backcolor.Red) << 16U);
   tmp2 = (pLayerCfg->Alpha0 << 24U);
-  LTDC_LAYER(hltdc, LayerIdx)->DCCR &= ~(LTDC_LxDCCR_DCBLUE | LTDC_LxDCCR_DCGREEN | LTDC_LxDCCR_DCRED | LTDC_LxDCCR_DCALPHA);
-  LTDC_LAYER(hltdc, LayerIdx)->DCCR = (pLayerCfg->Backcolor.Blue | tmp | tmp1 | tmp2);
+  WRITE_REG(LTDC_LAYER(hltdc, LayerIdx)->DCCR, (pLayerCfg->Backcolor.Blue | tmp | tmp1 | tmp2));
 
   /* Specifies the constant alpha value */
   LTDC_LAYER(hltdc, LayerIdx)->CACR &= ~(LTDC_LxCACR_CONSTA);
@@ -2109,8 +2162,7 @@ static void LTDC_SetConfig(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLay
   LTDC_LAYER(hltdc, LayerIdx)->BFCR = (pLayerCfg->BlendingFactor1 | pLayerCfg->BlendingFactor2);
 
   /* Configure the color frame buffer start address */
-  LTDC_LAYER(hltdc, LayerIdx)->CFBAR &= ~(LTDC_LxCFBAR_CFBADD);
-  LTDC_LAYER(hltdc, LayerIdx)->CFBAR = (pLayerCfg->FBStartAdress);
+  WRITE_REG(LTDC_LAYER(hltdc, LayerIdx)->CFBAR, pLayerCfg->FBStartAdress);
 
   if (pLayerCfg->PixelFormat == LTDC_PIXEL_FORMAT_ARGB8888)
   {
@@ -2134,7 +2186,8 @@ static void LTDC_SetConfig(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLay
 
   /* Configure the color frame buffer pitch in byte */
   LTDC_LAYER(hltdc, LayerIdx)->CFBLR  &= ~(LTDC_LxCFBLR_CFBLL | LTDC_LxCFBLR_CFBP);
-  LTDC_LAYER(hltdc, LayerIdx)->CFBLR  = (((pLayerCfg->ImageWidth * tmp) << 16U) | (((pLayerCfg->WindowX1 - pLayerCfg->WindowX0) * tmp)  + 7U));
+  LTDC_LAYER(hltdc, LayerIdx)->CFBLR  = (((pLayerCfg->ImageWidth * tmp) << 16U) |
+                                         (((pLayerCfg->WindowX1 - pLayerCfg->WindowX0) * tmp)  + 7U));
   /* Configure the frame buffer line number */
   LTDC_LAYER(hltdc, LayerIdx)->CFBLNR  &= ~(LTDC_LxCFBLNR_CFBLNBR);
   LTDC_LAYER(hltdc, LayerIdx)->CFBLNR  = (pLayerCfg->ImageHeight);
@@ -2160,4 +2213,3 @@ static void LTDC_SetConfig(LTDC_HandleTypeDef *hltdc, LTDC_LayerCfgTypeDef *pLay
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
