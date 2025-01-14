@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -254,7 +253,7 @@
                                                            ((__VALUE__) == LL_MDMA_REQ_SDMMC1_DMA_ENDBUFFER) || \
                                                            ((__VALUE__) == LL_MDMA_REQ_SDMMC1_COMMAND_END))
 
-#else /* STM32H7A3/B3 devices */
+#elif defined (OCTOSPI1) && defined (JPEG) /* STM32H7A3/B3 devices */
 #define IS_LL_MDMA_HWTRIGGER(__VALUE__)                   (((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM0_TC)      || \
                                                            ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM1_TC)      || \
                                                            ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM2_TC)      || \
@@ -287,7 +286,34 @@
                                                            ((__VALUE__) == LL_MDMA_REQ_SDMMC1_COMMAND_END)   || \
                                                            ((__VALUE__) == LL_MDMA_REQ_OCTOSPI2_FIFO_TH)     || \
                                                            ((__VALUE__) == LL_MDMA_REQ_OCTOSPI2_TC))
-
+#else /* STM32H723/25/33/35 devices */
+#define IS_LL_MDMA_HWTRIGGER(__VALUE__)                   (((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM0_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM1_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM2_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM3_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM4_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM5_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM6_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA1_STREAM7_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM0_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM1_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM2_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM3_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM4_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM5_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM6_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2_STREAM7_TC)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_LTDC_LINE_IT)         || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_OCTOSPI1_FIFO_TH)     || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_OCTOSPI1_TC)          || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2D_CLUT_TC)        || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2D_TC)             || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_DMA2D_TW)             || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_SDMMC1_END_DATA)      || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_SDMMC1_DMA_ENDBUFFER) || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_SDMMC1_COMMAND_END)   || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_OCTOSPI2_FIFO_TH)     || \
+                                                           ((__VALUE__) == LL_MDMA_REQ_OCTOSPI2_TC))
 #endif /* QUADSPI && JPEG && DSI */
 /**
   * @}
@@ -779,4 +805,3 @@ void LL_MDMA_DisconnectNextLinkNode(LL_MDMA_LinkNodeTypeDef *pLinkNode)
 
 #endif /* USE_FULL_LL_DRIVER */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
