@@ -96,7 +96,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 47            | Edge                          | Momentarily true when triggered by `Operand A`. `Operand A` is the activation operator [`boolean`], `Operand B` _(Optional)_ is the time for the edge to stay active [ms]. After activation, operator will return `true` until the time in Operand B is reached. If a pure momentary edge is wanted. Just leave `Operand B` as the default `Value: 0` setting. |
 | 48            | Delay                         | Delays activation after being triggered. This will return `true` when `Operand A` _is_ true, and the delay time in `Operand B` [ms] has been exceeded. |
 | 49            | Timer                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
-| 50            | Delta (|A| >= B)              | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. |
+| 50            | Delta             | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. ( \|ΔA\| >= B )  |
 | 51            | Approx Equals (A ~ B)         | `true` if `Operand B` is within 1% of `Operand A`. |
 | 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |

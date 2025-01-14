@@ -674,7 +674,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 
 ### disarm_always
 
-Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low.
+When you switch to Disarm, do so regardless of throttle position. If this Setting is `OFF`. It will only disarm only when the throttle is low. This is similar to the previous `disarm_kill_switch` option. Default setting is the same as the old default behaviour.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3018,7 +3018,7 @@ If enabled, motor will stop when throttle is low on this mixer_profile
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -3118,7 +3118,7 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 5 | 100 |
+| 40 | 5 | 100 |
 
 ---
 
@@ -3602,6 +3602,16 @@ D gain of altitude PID controller (Fixedwing)
 
 ---
 
+### nav_fw_pos_z_ff
+
+FF gain of altitude PID controller (Fixedwing)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 255 |
+
+---
+
 ### nav_fw_pos_z_i
 
 I gain of altitude PID controller (Fixedwing)
@@ -3618,7 +3628,7 @@ P gain of altitude PID controller (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 
