@@ -2803,11 +2803,11 @@ static void osdCustom(char *cmdline){
         int32_t i = args[INDEX];
         if (
                 i >= 0 && i < MAX_CUSTOM_ELEMENTS &&
-                args[PART0_TYPE] >= 0 && args[PART0_TYPE] <= 26 &&
+                args[PART0_TYPE] >= 0 && args[PART0_TYPE] < CUSTOM_ELEMENT_TYPE_END &&
                 args[PART0_VALUE] >= 0 && args[PART0_VALUE] <= UINT8_MAX &&
-                args[PART1_TYPE] >= 0 && args[PART1_TYPE] <= 26 &&
+                args[PART1_TYPE] >= 0 && args[PART1_TYPE] < CUSTOM_ELEMENT_TYPE_END &&
                 args[PART1_VALUE] >= 0 && args[PART1_VALUE] <= UINT8_MAX &&
-                args[PART2_TYPE] >= 0 && args[PART2_TYPE] <= 26 &&
+                args[PART2_TYPE] >= 0 && args[PART2_TYPE] < CUSTOM_ELEMENT_TYPE_END &&
                 args[PART2_VALUE] >= 0 && args[PART2_VALUE] <= UINT8_MAX &&
                 args[VISIBILITY_TYPE] >= 0 && args[VISIBILITY_TYPE] <= 2 &&
                 args[VISIBILITY_VALUE] >= 0 && args[VISIBILITY_VALUE] <= UINT8_MAX
