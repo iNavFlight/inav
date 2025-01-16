@@ -3776,6 +3776,12 @@ groups:
         field: highlight_djis_missing_characters
         default_value: ON
         type: bool
+      - name: enable_broken_o4_workaround
+        field: enable_broken_o4_workaround
+        description: DJI O4 release firmware has a broken MSP DisplayPort implementation. This enables a workaround to restore ARM detection.
+        condition: USE_DJI_HD_OSD
+        default_value: OFF
+        type: bool
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
