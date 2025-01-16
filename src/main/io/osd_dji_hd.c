@@ -89,13 +89,6 @@
 
 #if defined(USE_DJI_HD_OSD)
 
-#define DJI_MSP_BAUDRATE                    115200
-
-#define DJI_ARMING_DISABLE_FLAGS_COUNT      25
-#define DJI_OSD_WARNING_COUNT               16
-#define DJI_OSD_TIMER_COUNT                 2
-#define DJI_OSD_FLAGS_OSD_FEATURE           (1 << 0)
-#define EFFICIENCY_UPDATE_INTERVAL          (5 * 1000)
 
 #define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
 
@@ -269,7 +262,7 @@ void djiOsdSerialInit(void)
     }
 }
 
-static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
+void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
 {
     memset(flightModeBitmask, 0, sizeof(boxBitmask_t));
 
@@ -311,7 +304,7 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
     }
 }
 
-static uint32_t djiPackArmingDisabledFlags(void)
+uint32_t djiPackArmingDisabledFlags(void)
 {
     // TODO: Map INAV arming disabled flags to DJI/BF ones
     // https://github.com/betaflight/betaflight/blob/c6e5882dd91fa20d246b8f8af10cf6c92876bc3d/src/main/fc/runtime_config.h#L42

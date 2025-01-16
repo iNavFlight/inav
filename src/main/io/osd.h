@@ -489,6 +489,7 @@ typedef struct osdConfig_s {
 #ifndef DISABLE_MSP_DJI_COMPAT
     bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
 #endif
+    bool            enable_broken_o4_workaround;        // If enabled, override STATUS/STATUS_EX messages to work around DJI's broken O4 air unit MSP DisplayPort implementation
 #ifdef USE_ADSB
     uint16_t adsb_distance_warning;                     // in metres
     uint16_t adsb_distance_alert;                       // in metres
