@@ -24,6 +24,13 @@
 #include "io/displayport_msp_dji_compat.h"
 #include "io/dji_osd_symbols.h"
 #include "drivers/osd_symbols.h"
+#include <string.h>
+
+//                       0123456789
+static char *dji_logo = " DJI, FIX "
+                        " THE OSD  "
+                        "  FOR O3  "
+                        "  AND O4  ";
 
 uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 {
@@ -35,6 +42,14 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
     if (ech >= SYM_AH_DECORATION_MIN && ech <= SYM_AH_DECORATION_MAX) {
         return DJI_SYM_AH_DECORATION;
+    }
+
+    if (ech >= SYM_LOGO_START && ech <= 297) {
+        return dji_logo[(ech - SYM_LOGO_START) % (strlen(dji_logo) + 1)];
+    }
+
+    if (ech >= SYM_PILOT_LOGO_LRG_START && ech <= 511) {
+        return dji_logo[(ech - SYM_LOGO_START) % (strlen(dji_logo) + 1)];
     }
 
     switch (ech) {
@@ -452,16 +467,8 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_CROSS_TRACK_ERROR:
             return DJI_SYM_CROSS_TRACK_ERROR;
-
-        case SYM_LOGO_START:
-            return DJI_SYM_LOGO_START;
-
-        case SYM_LOGO_WIDTH:
-            return DJI_SYM_LOGO_WIDTH;
-
-        case SYM_LOGO_HEIGHT:
-            return DJI_SYM_LOGO_HEIGHT;
 */
+
         case SYM_AH_LEFT:
             return DJI_SYM_AH_LEFT;
 
