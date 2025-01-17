@@ -130,6 +130,11 @@ jobs:
           echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
       - name: Build SITL
         run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j${{ env.NUM_CORES }}
+      - name: Strip version number
+        run: |
+          for f in build_SITL/*_SITL; do
+            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
+          done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -161,6 +166,11 @@ jobs:
           echo "NUM_CORES=$(grep processor /proc/cpuinfo  | wc -l)" >> $GITHUB_ENV
       - name: Build SITL
         run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j${{ env.NUM_CORES }}
+      - name: Strip version number
+        run: |
+          for f in build_SITL/*_SITL; do
+            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
+          done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -197,7 +207,11 @@ jobs:
           mkdir -p build_SITL && cd build_SITL
           cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -G Ninja ..
           ninja -j4
-
+      - name: Strip version number
+        run: |
+          for f in build_SITL/*_SITL; do
+            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
+          done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -234,6 +248,8 @@ jobs:
           
       - name: Build SITL
         run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
+      - name: Strip version number
+        run: ren build_SITL\inav_${{VERSION}}_SITL.exe inav_SITL.exe
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
