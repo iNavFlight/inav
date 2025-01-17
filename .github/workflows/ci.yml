@@ -249,13 +249,15 @@ jobs:
       - name: Build SITL
         run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
       - name: Strip version number
-        run: ren build_SITL\inav_${{VERSION}}_SITL.exe inav_SITL.exe
+        run: |
+          for f in build_SITL/*_SITL; do
+            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
+          done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD_NAME }}_SITL-WIN
           path: ./build_SITL/*.exe
-
 
   test:
     #needs: [build]
