@@ -351,16 +351,24 @@ static void checkBatteryCapacityState(void)
 
 void batteryUpdate(timeUs_t timeDelta)
 {
+    static timeUs_t batteryConnectedTime = 0;
     /* battery has just been connected*/
     if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD) {
+        if(batteryConnectedTime == 0) {
+            batteryConnectedTime = micros();
+            return;
+        }
 
-        /* Actual battery state is calculated below, this is really BATTERY_PRESENT */
-        batteryState = BATTERY_OK;
         /* wait for VBatt to stabilise then we can calc number of cells
         (using the filtered value takes a long time to ramp up)
         We only do this on the ground so don't care if we do block, not
         worse than original code anyway*/
-        delay(VBATT_STABLE_DELAY);
+        if((micros() - batteryConnectedTime) < VBATT_STABLE_DELAY) {
+            return;
+        }
+
+        /* Actual battery state is calculated below, this is really BATTERY_PRESENT */
+        batteryState = BATTERY_OK;
         updateBatteryVoltage(timeDelta, true);
 
         int8_t detectedProfileIndex = -1;
