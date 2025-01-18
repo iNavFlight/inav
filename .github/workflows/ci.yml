@@ -210,7 +210,7 @@ jobs:
       - name: Strip version number
         run: |
           for f in build_SITL/*_SITL; do
-            mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
+            mv -v $f $(echo $f | sed -Ee 's/_[0-9]+\.[0-9]+\.[0-9]+//')
           done
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
