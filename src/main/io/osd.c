@@ -2134,53 +2134,67 @@ static bool osdDrawSingleElement(uint8_t item)
 #ifdef USE_ADSB
         case OSD_ADSB_WARNING:
         {
-            static uint8_t adsblen = 1;
-            uint8_t arrowPositionX = 0;
-
-            for (int i = 0; i <= adsblen; i++) {
-                buff[i] = SYM_BLANK;
-            }
-
-            buff[adsblen]='\0';
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
-            adsblen=1;
-            adsbVehicle_t *vehicle = findVehicleClosest();
-
-            if(vehicle != NULL){
+            uint8_t buffIndex = 0;
+            uint8_t arrowIndexIndex = 0;
+            adsbVehicle_t *vehicle = findVehicleClosestLimit(METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
+            if(vehicle != NULL)
+            {
                 recalculateVehicle(vehicle);
             }
 
             if (
                     vehicle != NULL &&
-                    (vehicle->calculatedVehicleValues.dist > 0) &&
-                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning) &&
-                    (osdConfig()->adsb_ignore_plane_above_me_limit == 0 || METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit) > vehicle->calculatedVehicleValues.verticalDistance)
+                    (vehicle->calculatedVehicleValues.dist > 0 &&
+                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
             ){
-                buff[0] = SYM_ADSB;
-                osdFormatDistanceStr(&buff[1], (int32_t)vehicle->calculatedVehicleValues.dist);
-                adsblen = strlen(buff);
+                buff[buffIndex++] = SYM_ADSB;
 
-                buff[adsblen-1] = SYM_BLANK;
+                //////////////////////////////////////////////////////
+                // distance to ADSB vehicle
+                osdFormatDistanceSymbol(&buff[buffIndex], (int32_t)vehicle->calculatedVehicleValues.dist, 0, 3);
+                buffIndex += 4;
+                //////////////////////////////////////////////////////
 
-                arrowPositionX = adsblen-1;
-                osdFormatDistanceStr(&buff[adsblen], vehicle->calculatedVehicleValues.verticalDistance);
-                adsblen = strlen(buff)-1;
+                //////////////////////////////////////////////////////
+                // direction to ADSB vehicle
+                arrowIndexIndex = buffIndex;
+                buff[arrowIndexIndex] = SYM_BLANK; // space for direction arrow
+                buffIndex++;
+                //////////////////////////////////////////////////////
+
+                //////////////////////////////////////////////////////
+                // ALT diff to ADSB vehicle just space
+                osdFormatAltitudeSymbol(&buff[buffIndex], ((int32_t)vehicle->calculatedVehicleValues.verticalDistance));
+                buffIndex += osdConfig()->decimals_altitude + 2;
+                //////////////////////////////////////////////////////
 
                 if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
-            }
 
-            buff[adsblen]='\0';
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+                buff[buffIndex]='\0';
+                displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
 
-            if (arrowPositionX > 0){
-                int16_t panHomeDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
-                    panHomeDirOffset = osdGetPanServoOffset();
+                //////////////////////////////////////////////////////
+                // ALT diff to ADSB vehicle draw
+                if(arrowIndexIndex > 0)
+                {
+                    int16_t panHomeDirOffset = 0;
+                    if (osdConfig()->pan_servo_pwm2centideg != 0){
+                        panHomeDirOffset = osdGetPanServoOffset();
+                    }
+                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowIndexIndex, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
                 }
-                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowPositionX, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
+                //////////////////////////////////////////////////////
+            }
+            else
+            {
+                for (int i = 0; i < 11; i++) {
+                    buff[i] = SYM_BLANK;
+                }
+
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             }
 
             return true;
@@ -2189,7 +2203,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_ADSB;
             if(getAdsbStatus()->vehiclesMessagesTotal > 0 || getAdsbStatus()->heartbeatMessagesTotal > 0){
-                tfp_sprintf(buff + 1, "%2d", getActiveVehiclesCount());
+                tfp_sprintf(buff + 1, "%1d", getActiveVehiclesCount());
             }else{
                 buff[1] = '-';
             }
