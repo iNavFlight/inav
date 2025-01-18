@@ -110,6 +110,49 @@ struct crsfPayloadRcChannelsPacked_s {
 
 typedef struct crsfPayloadRcChannelsPacked_s crsfPayloadRcChannelsPacked_t;
 
+enum crsfSubsetRcResolution_e {
+    CRSF_11_BIT = 0,
+    CRSF_12_BIT = 1,
+    CRSF_13_BIT = 3
+};
+
+typedef struct crsfPayloadSubsetRcChannelsHeaderPacked_s { // minimum 8 channels
+    // 176 bits of data (11 bits per channel * 16 channels) + header = 23 bytes.
+    uint8_t firstChannel:5;
+    uint8_t resolution:2;
+    uint8_t reserved:1;
+} __attribute__ ((__packed__)) crsfPayloadSubsetRcChannelsHeaderPacked_t;
+
+typedef struct crsfPayloadSubsetRcChannels11Packed_s {
+    // 176 bits of data (12 bits per channel * 8 channels) = 11 bytes.
+    unsigned int chan0 : 11;
+    unsigned int chan1 : 11;
+    unsigned int chan2 : 11;
+    unsigned int chan3 : 11;
+    unsigned int chan4 : 11;
+    unsigned int chan5 : 11;
+    unsigned int chan6 : 11;
+    unsigned int chan7 : 11;
+} crsfPayloadSubsetRcChannels11Packed_t;
+
+typedef struct crsfPayloadSubsetRcChannels12Packed_s { // minimum 2 channels
+    // 176 bits of data (12 bits per channel * 8 channels) = 3 bytes.
+    unsigned int chan0 : 12;
+    unsigned int chan1 : 12;
+} __attribute__ ((__packed__)) crsfPayloadSubsetRcChannels12Packed_t;
+
+typedef struct crsfPayloadSubsetRcChannels13Packed_s { // minimum 8 channels
+    // 176 bits of data (13 bits per channel * 8 channels) = 13 bytes.
+    unsigned int chan0 : 13;
+    unsigned int chan1 : 13;
+    unsigned int chan2 : 13;
+    unsigned int chan3 : 13;
+    unsigned int chan4 : 13;
+    unsigned int chan5 : 13;
+    unsigned int chan6 : 13;
+    unsigned int chan7 : 13;
+} __attribute__ ((__packed__)) crsfPayloadSubsetRcChannels13Packed_t;
+
 typedef struct crsfPayloadLinkStatistics_s {
     uint8_t     uplinkRSSIAnt1;
     uint8_t     uplinkRSSIAnt2;
@@ -223,6 +266,105 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
             crsfChannelData[15] = rcChannels->chan15;
             return RX_FRAME_COMPLETE;
         }
+        else if(crsfFrame.frame.type == CRSF_FRAMETYPE_SUBSET_RC_CHANNELS_PACKED) {
+            const uint8_t crc = crsfFrameCRC();
+            const crsfPayloadSubsetRcChannelsHeaderPacked_t* rcChannelsHeader = (crsfPayloadSubsetRcChannelsHeaderPacked_t*)(&crsfFrame.frame.payload);
+            const crsfPayloadSubsetRcChannels11Packed_t* rcChannels11 = (crsfPayloadSubsetRcChannels11Packed_t*)(&crsfFrame.frame.payload + sizeof(crsfPayloadSubsetRcChannelsHeaderPacked_t));
+            const crsfPayloadSubsetRcChannels12Packed_t* rcChannels12 = (crsfPayloadSubsetRcChannels12Packed_t*)(&crsfFrame.frame.payload + sizeof(crsfPayloadSubsetRcChannelsHeaderPacked_t));
+            const crsfPayloadSubsetRcChannels13Packed_t* rcChannels13 = (crsfPayloadSubsetRcChannels13Packed_t*)(&crsfFrame.frame.payload + sizeof(crsfPayloadSubsetRcChannelsHeaderPacked_t));
+
+            int payloadSize = crsfFrame.frame.frameLength - CRSF_FRAME_LENGTH_TYPE_CRC; // TYPE_CRC or _CRC?
+            if (crc != crsfFrame.frame.payload[payloadSize]) {
+                return RX_FRAME_PENDING;
+            }
+
+            int channelCount = 0;
+
+            switch(rcChannelsHeader->resolution) {
+                case CRSF_11_BIT:
+                    if((payloadSize * 8) % 11 != 0) {
+                        return RX_FRAME_PENDING;
+                    }
+
+                    channelCount = payloadSize * 8 / 11;
+                    break;
+                case CRSF_12_BIT:
+                    if((payloadSize * 8) % 12 != 0) {
+                        return RX_FRAME_PENDING;
+                    }
+
+                    channelCount = payloadSize * 8 / 12;
+                    break;
+                case CRSF_13_BIT:
+                    if((payloadSize * 8) % 13 != 0) {
+                        return RX_FRAME_PENDING;
+                    }
+
+                    channelCount = payloadSize * 8 / 13;
+                    break;
+                default:
+                    return RX_FRAME_PENDING;
+            }
+
+            if(crsfFrame.frame.frameLength != payloadSize + CRSF_FRAME_LENGTH_TYPE_CRC || channelCount == 0) { // TYPE_CRC or _CRC?
+                return RX_FRAME_PENDING;
+            }
+
+            int firstChannel = rcChannelsHeader->firstChannel;
+            switch(rcChannelsHeader->resolution) {
+                case CRSF_11_BIT:
+                    for (int i = 0; i < channelCount; rcChannels11++) {
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan0;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan1;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan3;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan4;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan5;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan6;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels11->chan7;
+                    }
+                    return RX_FRAME_COMPLETE;
+                case CRSF_12_BIT:
+                    for (int i = 0; i < channelCount; rcChannels12++) {
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels12->chan0 >> 1; // Drop 1 bit to match 11 bit range
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels12->chan1 >> 1;
+                    }
+
+                    return RX_FRAME_COMPLETE;
+                case CRSF_13_BIT:
+                    for (int i = 0; i < channelCount; rcChannels13++) {
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan0 >> 2; // Drop 2 bits to match 11 bit range
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan1 >> 2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan2 >> 2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan3 >> 2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan4 >> 2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan5 >> 2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan6 >> 2;
+                        if(firstChannel + i < CRSF_MAX_CHANNEL)
+                            crsfChannelData[firstChannel + i++] = rcChannels13->chan7 >> 2;
+                    }
+                    return RX_FRAME_COMPLETE;
+                default:
+                    return RX_FRAME_PENDING;
+            }
+        }
         else if (crsfFrame.frame.type == CRSF_FRAMETYPE_LINK_STATISTICS) {
             // CRC includes type and payload of each frame
             const uint8_t crc = crsfFrameCRC();
@@ -272,6 +414,8 @@ STATIC_UNIT_TESTED uint16_t crsfReadRawRC(const rxRuntimeConfig_t *rxRuntimeConf
      * scale factor = (2012-988) / (1811-172) = 0.62477120195241
      * offset = 988 - 172 * 0.62477120195241 = 880.53935326418548
      */
+
+    // TODO: different scaling for different resolutions. Currently dropping everything down to 11bits
     return (crsfChannelData[chan] * 1024 / 1639) + 881;
 }
 
