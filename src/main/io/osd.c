@@ -486,12 +486,13 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
-    uint8_t digits = osdConfig()->decimals_altitude;
-    uint8_t totalDigits = digits + 1;
-    uint8_t symbolIndex = digits + 1;
+    uint8_t digits = osdConfig()->decimals_altitude + 1;
+    uint8_t totalDigits = digits;
+    uint8_t symbolIndex = digits;
     uint8_t symbolKFt = SYM_ALT_KFT;
 
     if (alt >= 0) {
+        digits--;
         buff[0] = ' ';
     }
 
