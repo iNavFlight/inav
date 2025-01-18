@@ -259,16 +259,26 @@ bool osdIsNotMetric(void) {
  * prefixed by a a symbol to indicate the unit used.
  * @param dist Distance in centimeters
  */
-static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals, uint8_t digits)
+static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals, uint8_t digits, bool useRichSymbols)
 {
     if (digits == 0)    // Total number of digits (including decimal point)
         digits = 3U;
+
     uint8_t sym_index = digits; // Position (index) at buffer of units symbol
-    uint8_t symbol_m = SYM_DIST_M;
-    uint8_t symbol_km = SYM_DIST_KM;
-    uint8_t symbol_ft = SYM_DIST_FT;
-    uint8_t symbol_mi = SYM_DIST_MI;
-    uint8_t symbol_nm = SYM_DIST_NM;
+    uint8_t symbol_m = SYM_M;
+    uint8_t symbol_km = SYM_KM;
+    uint8_t symbol_ft = SYM_FT;
+    uint8_t symbol_mi = SYM_MI;
+    uint8_t symbol_nm = SYM_NM;
+
+    if(useRichSymbols)
+    {
+        symbol_m = SYM_DIST_M;
+        symbol_km = SYM_DIST_KM;
+        symbol_ft = SYM_DIST_FT;
+        symbol_mi = SYM_DIST_MI;
+        symbol_nm = SYM_DIST_NM;
+    }
 
 #ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is not supported, there's no need to check for it and change the values
     if (isDJICompatibleVideoSystem(osdConfig())) {
@@ -807,7 +817,7 @@ static const char * osdArmingDisabledReasonMessage(void)
                 case NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE:
                     return OSD_MESSAGE_STR(OSD_MSG_DISABLE_NAV_FIRST);
                 case NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR:
-                    osdFormatDistanceSymbol(buf, distanceToFirstWP(), 0, 3);
+                    osdFormatDistanceSymbol(buf, distanceToFirstWP(), 0, 3, true);
                     tfp_sprintf(messageBuf, "FIRST WP TOO FAR (%s)", buf);
                     return message = messageBuf;
                 case NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR:
@@ -1979,7 +1989,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_HOME;
             uint32_t distance_to_home_cm = GPS_distanceToHome * 100;
-            osdFormatDistanceSymbol(&buff[1], distance_to_home_cm, 0, osdConfig()->decimals_distance);
+            osdFormatDistanceSymbol(&buff[1], distance_to_home_cm, 0, osdConfig()->decimals_distance, true);
 
             uint16_t dist_alarm = osdConfig()->dist_alarm;
             if (dist_alarm > 0 && GPS_distanceToHome > dist_alarm) {
@@ -1990,7 +2000,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_TRIP_DIST:
         buff[0] = SYM_TOTAL;
-        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0, osdConfig()->decimals_distance);
+        osdFormatDistanceSymbol(buff + 1, getTotalTravelDistance(), 0, osdConfig()->decimals_distance, true);
         break;
 
     case OSD_BLACKBOX:
@@ -2109,7 +2119,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (isWaypointNavTrackingActive()) {
                 buff[0] = SYM_CROSS_TRACK_ERROR;
-                osdFormatDistanceSymbol(buff + 1, navigationGetCrossTrackError(), 0, 3);
+                osdFormatDistanceSymbol(buff + 1, navigationGetCrossTrackError(), 0, 3, true);
             } else {
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, "     ");
                 return true;
@@ -2134,16 +2144,8 @@ static bool osdDrawSingleElement(uint8_t item)
 #ifdef USE_ADSB
         case OSD_ADSB_WARNING:
         {
-            static uint8_t adsblen = 1;
-            uint8_t arrowPositionX = 0;
-
-            for (int i = 0; i <= adsblen; i++) {
-                buff[i] = SYM_BLANK;
-            }
-
-            buff[adsblen]='\0';
-            displayWrite(osdDisplayPort, elemPosX, elemPosY, buff); // clear any previous chars because variable element size
-            adsblen=1;
+            uint8_t buffIndex = 0;
+            uint8_t arrowIndexIndex = 0;
             adsbVehicle_t *vehicle = findVehicleClosest();
 
             if(vehicle != NULL){
@@ -2153,34 +2155,57 @@ static bool osdDrawSingleElement(uint8_t item)
             if (
                     vehicle != NULL &&
                     (vehicle->calculatedVehicleValues.dist > 0) &&
-                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning) &&
+                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(3500) &&
                     (osdConfig()->adsb_ignore_plane_above_me_limit == 0 || METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit) > vehicle->calculatedVehicleValues.verticalDistance)
             ){
-                buff[0] = SYM_ADSB;
-                osdFormatDistanceStr(&buff[1], (int32_t)vehicle->calculatedVehicleValues.dist);
-                adsblen = strlen(buff);
+                buff[buffIndex++] = SYM_ADSB;
 
-                buff[adsblen-1] = SYM_BLANK;
+                //////////////////////////////////////////////////////
+                // distance to ADSB vehicle
+                osdFormatDistanceSymbol(&buff[buffIndex], (int32_t)vehicle->calculatedVehicleValues.dist, 0, 3, true);
+                buffIndex += 4;
+                //////////////////////////////////////////////////////
 
-                arrowPositionX = adsblen-1;
-                osdFormatDistanceStr(&buff[adsblen], vehicle->calculatedVehicleValues.verticalDistance);
-                adsblen = strlen(buff)-1;
+                //////////////////////////////////////////////////////
+                // direction to ADSB vehicle
+                arrowIndexIndex = buffIndex;
+                buff[buffIndex] = SYM_BLANK; // space for direction arrow
+                buffIndex += 1;
+                //////////////////////////////////////////////////////
+
+                //////////////////////////////////////////////////////
+                // ALT diff to ADSB vehicle just space
+                osdFormatDistanceSymbol(&buff[buffIndex], (int32_t)vehicle->calculatedVehicleValues.verticalDistance, 0, 4, false);
+                buffIndex += 5;
+                //////////////////////////////////////////////////////
 
                 if (vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_alert)) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
                 }
-            }
 
-            buff[adsblen]='\0';
-            displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
+                buff[buffIndex]='\0';
+                displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, buff, elemAttr);
 
-            if (arrowPositionX > 0){
-                int16_t panHomeDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
-                    panHomeDirOffset = osdGetPanServoOffset();
+                //////////////////////////////////////////////////////
+                // ALT diff to ADSB vehicle draw
+                if(arrowIndexIndex > 0)
+                {
+                    int16_t panHomeDirOffset = 0;
+                    if (osdConfig()->pan_servo_pwm2centideg != 0){
+                        panHomeDirOffset = osdGetPanServoOffset();
+                    }
+                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowIndexIndex, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
                 }
-                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + arrowPositionX, elemPosY), CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir) - flightDirection + panHomeDirOffset);
+                //////////////////////////////////////////////////////
+            }
+            else
+            {
+                for (int i = 0; i < 11; i++) {
+                    buff[i] = SYM_BLANK;
+                }
+
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
             }
 
             return true;
@@ -2189,7 +2214,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             buff[0] = SYM_ADSB;
             if(getAdsbStatus()->vehiclesMessagesTotal > 0 || getAdsbStatus()->heartbeatMessagesTotal > 0){
-                tfp_sprintf(buff + 1, "%2d", getActiveVehiclesCount());
+                tfp_sprintf(buff + 1, "%1d", getActiveVehiclesCount());
             }else{
                 buff[1] = '-';
             }
@@ -2268,7 +2293,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[1] = '-';
                 buff[2] = '-';
             } else {
-                osdFormatDistanceSymbol(buff, range, 1, 3);
+                osdFormatDistanceSymbol(buff, range, 1, 3, true);
             }
         }
         break;
@@ -2376,7 +2401,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[osdConfig()->decimals_distance+1] = '\0';
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         } else {
-            osdFormatDistanceSymbol(buff, distanceMeters * 100, 0, osdConfig()->decimals_distance);
+            osdFormatDistanceSymbol(buff, distanceMeters * 100, 0, osdConfig()->decimals_distance, true);
             if (distanceMeters == 0)
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         }
@@ -2971,7 +2996,7 @@ static bool osdDrawSingleElement(uint8_t item)
             buff[0] = SYM_GLIDE_DIST;
             if (glideSeconds > 0) {
                 uint32_t glideRangeCM = glideSeconds * gpsSol.groundSpeed;
-                osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0, 3);
+                osdFormatDistanceSymbol(buff + 1, glideRangeCM, 0, 3, true);
             } else {
                 tfp_sprintf(buff + 1, "%s%c", "---", SYM_BLANK);
                 buff[5] = '\0';
@@ -3931,7 +3956,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
                 char buff2[12];
-                osdFormatDistanceSymbol(buff2, geozone.distanceHorToNearestZone, 0, 3);
+                osdFormatDistanceSymbol(buff2, geozone.distanceHorToNearestZone, 0, 3, true);
                 tfp_sprintf(buff, "FD %s", buff2 );
             } else {
                 strcpy(buff, "FD ---");
@@ -5978,7 +6003,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 } else if (NAV_Status.state == MW_NAV_STATE_WP_ENROUTE) {
                     // Countdown display for remaining Waypoints
                     char buf[6];
-                    osdFormatDistanceSymbol(buf, posControl.wpDistance, 0, 3);
+                    osdFormatDistanceSymbol(buf, posControl.wpDistance, 0, 3, true);
                     tfp_sprintf(messageBuf, "TO WP %u/%u (%s)", getGeoWaypointNumber(posControl.activeWaypointIndex), posControl.geoWaypointCount, buf);
                     messages[messageCount++] = messageBuf;
                 } else if (NAV_Status.state == MW_NAV_STATE_HOLD_TIMED) {
@@ -6044,7 +6069,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     messages[messageCount++] = OSD_MSG_NFZ;
                     break;
                 case GEOZONE_MESSAGE_STATE_LEAVING_FZ:
-                    osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                    osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3, true);
                     tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
                     messages[messageCount++] = messageBuf;
                     break;
@@ -6052,7 +6077,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
                     break;
                 case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:
-                osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
+                osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3, true);
                     if (geozone.zoneInfo == INT32_MAX) {
                         tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
                     } else {
