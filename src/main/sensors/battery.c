@@ -361,8 +361,7 @@ void batteryUpdate(timeUs_t timeDelta)
 
         /* wait for VBatt to stabilise then we can calc number of cells
         (using the filtered value takes a long time to ramp up)
-        We only do this on the ground so don't care if we do block, not
-        worse than original code anyway*/
+        Blocking can cause issues with som ESCs */
         if((micros() - batteryConnectedTime) < VBATT_STABLE_DELAY) {
             return;
         }
