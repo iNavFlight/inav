@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for STM32H747I-DISCO BSP Driver</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st_2020.css" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<center>
+<h1 id="release-notes-for">Release Notes for</h1>
+<h1 id="stm32h747i-disco-bsp-drivers"><mark>STM32H747I-DISCO BSP Drivers</mark></h1>
+<p>Copyright © 2019 STMicroelectronics<br />
+</p>
+<a href="https://www.st.com" class="logo"><img src="_htmresc/st_logo_2020.png" alt="ST logo" /></a>
+</center>
+<h1 id="purpose">Purpose</h1>
+<p>The BSP (Board Specific Package) drivers are parts of the STM32Cube package based on the HAL drivers and provide a set of high level APIs relative to the hardware components and features in the evaluation boards, discovery kits and nucleo boards coming with the STM32Cube package for a given STM32 series.</p>
+<p>The BSP drivers allow a quick access to the boards’ services using high level APIs and without any specific configuration as the link with the HAL and the external components is done in intrinsic within the drivers.</p>
+<p>From project settings points of view, user has only to add the necessary driver’s files in the workspace and call the needed functions from examples. However some low level configuration functions are weak and can be overridden by the applications if user wants to change some BSP drivers default behavior.</p>
+</div>
+<div class="col-sm-12 col-lg-8">
+<h1 id="update-history"><strong>Update History</strong></h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section13" checked aria-hidden="true"> <label for="collapse-section13" aria-hidden="true"><strong>V3.6.3 / 07-October-2024</strong></label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<ul>
+<li>Fix wrong LCD layer address definitions in stm32h747i_discovery_conf_template.h.</li>
+<li>Fix audio mode of SAI play handle in BSP_AUDIO_IN_Init() API.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section12" aria-hidden="true"> <label for="collapse-section12" aria-hidden="true"><strong>V3.6.2 / 12-March-2024</strong></label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<ul>
+<li>Remove misleading comments.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section11" aria-hidden="true"> <label for="collapse-section11" aria-hidden="true"><strong>V3.6.1 / 09-November-2023</strong></label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<ul>
+<li>Increase timeout compliantly to the SD Cards specification.</li>
+<li>Update LCD BSP Driver to support Dynamic ID.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section10" aria-hidden="true"> <label for="collapse-section10" aria-hidden="true"><strong>V3.6.0 / 26-May-2023</strong></label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<ul>
+<li>Update STM32H747I-DISC BSP drivers to support LCD based on nt35510 component.</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>One of the following flags must be enabled in stm32h747i_discovery_conf.h file options in order to select the target daughter board revision connected on STM32H747I DISCOVERY :
+<ul>
+<li>USE_LCD_CTRL_OTM8009A : Applicable for all LCD daughter boards (MB1166) except for Rev -A09.</li>
+<li>USE_LCD_CTRL_NT35510  : Applicable only for LCD daughter boards (MB1166) Rev -A09.</li>
+</ul></li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section9" aria-hidden="true"> <label for="collapse-section9" aria-hidden="true"><strong>V3.5.1 / 11-February-2022</strong></label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
+<ul>
+<li>All source files: update disclaimer to add reference to the new license agreement.</li>
+<li>Modified the address calculation in the BSP_LCD_FillRGBRect() function when USE_DMA2D_TO_FILL_RGB_RECT is enabled to suppress the display of a distorted shape instead of a rectangle when trying to draw a rectangle with a bigger height.</li>
+<li>Cache maintained operation is included in the BSP_LCD_FillRGBRect() function to solve the display issue when USE_DMA2D_TO_FILL_RGB_RECT is enabled.</li>
+<li>Updated the BSP_SD_Init() API to fix the detection pin check.</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" aria-hidden="true"> <label for="collapse-section8" aria-hidden="true"><strong>V3.5.0 / 04-February-2021</strong></label>
+<div>
+<h2 id="main-changes-5">Main Changes</h2>
+<ul>
+<li>BSP camera:
+<ul>
+<li>Update “BSP_CAMERA_DeInit” implementation to power down the camera instead of a full reset (allowing to save 120ms needed by the reset operation)</li>
+</ul></li>
+<li>BSP SD:
+<ul>
+<li>Update to add “USE_SD_BUS_WIDE_4B” configuration define allowing to specify if the SD card is intended to be interfaced with 4 data lanes
+<ul>
+<li>Notes:
+<ul>
+<li>when the “USE_SD_BUS_WIDE_4B” define is set to zero the SD is configured with 1 data lane allowing to overcome an issue with HW shared pins between the SD interface and the camera interface (if both camera and SD are needed)</li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li>By default the “USE_SD_BUS_WIDE_4B” define is set to “1” to have the best SD performance</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<ul>
+<li>Components/common v7.0.0</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" aria-hidden="true"> <label for="collapse-section7" aria-hidden="true"><strong>V3.4.0 / 29-January-2021</strong></label>
+<div>
+<h2 id="main-changes-6">Main Changes</h2>
+<ul>
+<li>BSP QSPI: Add explicit definition of “BSP_QSPI_Erase_t” type with 8KB, 64KB and 128KB erase size
+<ul>
+<li>Notes:
+<ul>
+<li>The STM32H747I-DISCO comes with a dual flash QSPI, the erase size for each flash is 4KB, 32KB and 64KB</li>
+<li>From BSP top view these two flash are seen as a single one with twice the size</li>
+</ul></li>
+</ul></li>
+<li>BSP camera:
+<ul>
+<li>Apply HW reset after the initialization sequence for both OV9655 and OV5640 camera to fix potential noise issue</li>
+</ul></li>
+<li>BSP Joystick:
+<ul>
+<li>Fix “BSP_JOY_GetState” behavior by comparing the right joystick pin state (joystick pins are active high)</li>
+<li>Add missing joystick interrupt priority defines to the “stm32h747i_discovery_conf_template.h” file
+<ul>
+<li>BSP_JOY1_SEL_IT_PRIORITY to BSP_JOY1_UP_IT_PRIORITY defines</li>
+</ul></li>
+</ul></li>
+<li>BSP button:
+<ul>
+<li>Update the “stm32h747i_discovery_conf_template.h” file to rename the BSP_BUTTON_USER_IT_PRIORITY define to “BSP_BUTTON_WAKEUP_IT_PRIORITY” that is the right naming used withinb the driver</li>
+</ul></li>
+<li>Minor typo fixes in comments</li>
+</ul>
+<h2 id="dependencies-1">Dependencies</h2>
+<ul>
+<li>Components/common v7.0.0</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" aria-hidden="true"> <label for="collapse-section6" aria-hidden="true"><strong>V3.3.0 / 12-December-2020</strong></label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<ul>
+<li>Update stm32h747i_discovery_camera.c:
+<ul>
+<li>Update “BSP_CAMERA_DeInit” implementation to check “Camera_CompObj” and “Camera_Drv” pointers against NULL</li>
+</ul></li>
+<li>Add support of “OV5640” camera
+<ul>
+<li>stm32h747i_discovery_conf_template.h:
+<ul>
+<li>Add “USE_CAMERA_SENSOR_OV5640” define set to “1” by default</li>
+</ul></li>
+<li>stm32h747i_discovery_camera.h:
+<ul>
+<li>Add check on “USE_CAMERA_SENSOR_OV5640” define and enable it by default if not defined</li>
+<li>Add inclusion of “Components/ov5640/ov5640.h”</li>
+<li>Update “CAMERA_Ctx_t” structure with “CameraId” field</li>
+<li>Add “CAMERA_OV5640_ADDRESS” define</li>
+</ul></li>
+<li>stm32h747i_discovery_camera.c:
+<ul>
+<li>Add “OV5640_Probe” static function implementation</li>
+<li>Update “BSP_CAMERA_Init” function implementation to support “OV5640” camera
+<ul>
+<li>Probing both camera “OV5640” and “OV9655” to check which camera is connected to the STM32H747I-DISCO</li>
+<li>Update the “CameraId” field of CAMERA_Ctx_t" structure</li>
+<li>Proceed with the DCMI and the camera initialization according to the idenfied “CameraId”</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="dependencies-2">Dependencies</h2>
+<ul>
+<li>Components/common v7.0.0</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true"> <label for="collapse-section5" aria-hidden="true"><strong>V3.2.0 / 02-October-2020</strong></label>
+<div>
+<h2 id="main-changes-8">Main Changes</h2>
+<ul>
+<li>Update stm32h747i_discovery_lcd.c:
+<ul>
+<li>Fix MX_DSIHOST_DSI_Init API implementation : add missed “FrameBTAAcknowledgeEnable” parameter setting</li>
+<li>Fix LCD_InitSequence API implementation: add missed “gpio_init_structure.Pull” parameter setting</li>
+<li>Fix MX_LTDC_ClockConfig API implementation: Add “PLL3.PLL3RGE”, “PLL3.PLL3VCOSEL” and “PLL3.PLL3FRACN” parameters settings</li>
+<li>Add support of DSI to HDMI bridge (daughter board MB1232.A):
+<ul>
+<li>Update and rework BSP_LCD_InitHDMI API implementation</li>
+<li>Update MX_LTDC_ClockConfig2 API implementation to set the correct PLL3 settings in case of DSI-HDMI bridge</li>
+<li>Upodate BSP_LCD_GetXSize and BSP_LCD_GetYSize APIs implementation to get the XSize and YSize information from the LCD context variable instead of the LCD panel object</li>
+</ul></li>
+</ul></li>
+<li>Update stm32h747i_discovery_camera.c:
+<ul>
+<li>“Camera_Cap” declared as variable instead of pointer to avoid memory allocation issue</li>
+<li>Add BSP_CAMERA_PwrUp API</li>
+<li>Fix BSP_CAMERA_HwReset and BSP_CAMERA_PwrDown APIs implementation with the right pin PJ14</li>
+</ul></li>
+<li>Add License.md file</li>
+</ul>
+<h2 id="dependencies-3">Dependencies</h2>
+<ul>
+<li>Components/common v7.0.0</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true"> <label for="collapse-section4" aria-hidden="true"><strong>V3.1.0 / 30-April-2020</strong></label>
+<div>
+<h2 id="main-changes-9">Main Changes</h2>
+<ul>
+<li>Update BSP_BUS APIs with protection against RTOS multithread usage (under BSP_USE_CMSIS_OS pre-processor conditional define)</li>
+</ul>
+<h2 id="dependencies-4">Dependencies</h2>
+<ul>
+<li>Components/common v7.0.0</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true"> <label for="collapse-section3" aria-hidden="true"><strong>V3.0.0 / 25-February-2020</strong></label>
+<div>
+<h2 id="main-changes-10">Main Changes</h2>
+<ul>
+<li>Rename GUI_Drv_t into UTILS_LCD_Drv_t</li>
+</ul>
+<h2 id="backward-compatibility">Backward Compatibility</h2>
+<ul>
+<li>This version breaks the compatibility with previous versions</li>
+</ul>
+<h2 id="dependencies-5">Dependencies</h2>
+<ul>
+<li>Components/common v7.0.0</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true"> <label for="collapse-section2" aria-hidden="true"><strong>V2.0.0 / 25-November-2019</strong></label>
+<div>
+<h2 id="main-changes-11">Main Changes</h2>
+<ul>
+<li>First official release of STM32H747I-DISCO BSP drivers in line with STM32Cube BSP drivers development guidelines (UM2298)</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true"> <label for="collapse-section1" aria-hidden="true"><strong>V1.0.0 / 05-April-2019</strong></label>
+<div>
+<h2 id="main-changes-12">Main Changes</h2>
+<ul>
+<li>First official release</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<footer class="sticky">
+For complete documentation on <mark>STM32 Microcontrollers</mark> , visit: <span style="font-color: blue;"><a href="http://www.st.com/stm32">www.st.com/stm32</a></span>
+</footer>
+</body>
+</html>

@@ -22,7 +22,7 @@
        (+) Global readout protection (RDP)
        (+) Write protection
        (+) Secure access only protection
-       (+) Bank / register swapping
+       (+) Bank / register swapping (when Dual-Bank)
        (+) Cyclic Redundancy Check (CRC)
 
                         ##### How to use this driver #####
@@ -45,6 +45,8 @@
         (++) PCROP protection configuration and control per bank
         (++) Secure area configuration and control per bank
         (++) Core Boot address configuration
+        (++) TCM / AXI shared RAM configuration
+        (++) CPU Frequency Boost configuration
 
       (#) FLASH Memory Lock and unlock per Bank: HAL_FLASHEx_Lock_Bank1(), HAL_FLASHEx_Unlock_Bank1(),
           HAL_FLASHEx_Lock_Bank2() and HAL_FLASHEx_Unlock_Bank2() functions
@@ -56,18 +58,26 @@
           (++) Perform the CRC computation
           (++) Disable CRC feature
 
+      (#) Error correction code error functions:
+          (++) Use the HAL_FLASHEx_EnableEccCorrectionInterrupt() and HAL_FLASHEx_DisableEccCorrectionInterrupt()
+               functions to enable and disable the FLASH ECC correction interruption.
+          (++) Use the HAL_FLASHEx_EnableEccDetectionInterrupt() and HAL_FLASHEx_DisableEccDetectionInterrupt()
+               functions to enable and disable the FLASH ECC Detection interruption.
+          (++) Handle ECCD interrupt by calling HAL_FLASHEx_BusFault_IRQHandler()
+          (++) Use HAL_FLASHEx_BusFault_IRQHandler() function called under BusFault_IRQHandler() interrupt subroutine
+               to handle the ECCD interrupt.
+          (++) Use HAL_FLASHEx_GetEccInfo() function to get the flash ECC fail information.
+
  @endverbatim
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                       opensource.org/licenses/BSD-3-Clause
-  *
+  * This software is licensed under terms that can be found in the LICENSE file in
+  * the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   ******************************************************************************
   */
 
@@ -123,12 +133,22 @@ static void FLASH_CRC_SelectAddress(uint32_t CRCStartAddr, uint32_t CRCEndAddr, 
 #if defined (DUAL_CORE)
 static void FLASH_OB_CM4BootAddConfig(uint32_t BootOption, uint32_t BootAddress0, uint32_t BootAddress1);
 static void FLASH_OB_GetCM4BootAdd(uint32_t *BootAddress0, uint32_t *BootAddress1);
-#endif /* DUAL_CORE */
+#endif /*DUAL_CORE*/
 
 #if defined (FLASH_OTPBL_LOCKBL)
 static void FLASH_OB_OTP_LockConfig(uint32_t OTP_Block);
 static uint32_t FLASH_OB_OTP_GetLock(void);
 #endif /* FLASH_OTPBL_LOCKBL */
+
+#if defined (FLASH_OPTSR2_TCM_AXI_SHARED)
+static void FLASH_OB_SharedRAM_Config(uint32_t SharedRamConfig);
+static uint32_t FLASH_OB_SharedRAM_GetConfig(void);
+#endif /* FLASH_OPTSR2_TCM_AXI_SHARED */
+
+#if defined (FLASH_OPTSR2_CPUFREQ_BOOST)
+static void FLASH_OB_CPUFreq_BoostConfig(uint32_t FreqBoost);
+static uint32_t FLASH_OB_CPUFreq_GetBoost(void);
+#endif /* FLASH_OPTSR2_CPUFREQ_BOOST */
 /**
   * @}
   */
@@ -187,6 +207,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
     }
   }
 
+#if defined (DUAL_BANK)
   /* Wait for last operation to be completed on Bank2 */
   if((pEraseInit->Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
@@ -195,6 +216,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
       status = HAL_ERROR;
     }
   }
+#endif /* DUAL_BANK */
 
   if(status == HAL_OK)
   {
@@ -203,7 +225,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
       /* Mass erase to be done */
       FLASH_MassErase(pEraseInit->VoltageRange, pEraseInit->Banks);
 
-      /* Wait for last operation to be completed */
+      /* Wait for last operation to be completed on Bank 1 */
       if((pEraseInit->Banks & FLASH_BANK_1) == FLASH_BANK_1)
       {
         if(FLASH_WaitForLastOperation((uint32_t)FLASH_TIMEOUT_VALUE, FLASH_BANK_1) != HAL_OK)
@@ -213,6 +235,8 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
         /* if the erase operation is completed, disable the Bank1 BER Bit */
         FLASH->CR1 &= (~FLASH_CR_BER);
       }
+#if defined (DUAL_BANK)
+      /* Wait for last operation to be completed on Bank 2 */
       if((pEraseInit->Banks & FLASH_BANK_2) == FLASH_BANK_2)
       {
         if(FLASH_WaitForLastOperation((uint32_t)FLASH_TIMEOUT_VALUE, FLASH_BANK_2) != HAL_OK)
@@ -222,6 +246,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
         /* if the erase operation is completed, disable the Bank2 BER Bit */
         FLASH->CR2 &= (~FLASH_CR_BER);
       }
+#endif /* DUAL_BANK */
     }
     else
     {
@@ -241,6 +266,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
           /* If the erase operation is completed, disable the SER Bit */
           FLASH->CR1 &= (~(FLASH_CR_SER | FLASH_CR_SNB));
         }
+#if defined (DUAL_BANK)
         if((pEraseInit->Banks & FLASH_BANK_2) == FLASH_BANK_2)
         {
           /* Wait for last operation to be completed */
@@ -249,6 +275,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
           /* If the erase operation is completed, disable the SER Bit */
           FLASH->CR2 &= (~(FLASH_CR_SER | FLASH_CR_SNB));
         }
+#endif /* DUAL_BANK */
 
         if(status != HAL_OK)
         {
@@ -287,7 +314,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
   /* Reset error code */
   pFlash.ErrorCode = HAL_FLASH_ERROR_NONE;
 
-  /* Wait for last operation to be completed */
+  /* Wait for last operation to be completed on Bank 1 */
   if((pEraseInit->Banks & FLASH_BANK_1) == FLASH_BANK_1)
   {
     if(FLASH_WaitForLastOperation((uint32_t)FLASH_TIMEOUT_VALUE, FLASH_BANK_1) != HAL_OK)
@@ -296,6 +323,8 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
     }
   }
 
+#if defined (DUAL_BANK)
+  /* Wait for last operation to be completed on Bank 2 */
   if((pEraseInit->Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
     if(FLASH_WaitForLastOperation((uint32_t)FLASH_TIMEOUT_VALUE, FLASH_BANK_2) != HAL_OK)
@@ -303,6 +332,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
       status = HAL_ERROR;
     }
   }
+#endif /* DUAL_BANK */
 
   if (status != HAL_OK)
   {
@@ -322,6 +352,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
                                   FLASH_IT_STRBERR_BANK1 | FLASH_IT_INCERR_BANK1);
 #endif /* FLASH_CR_OPERRIE */
     }
+#if defined (DUAL_BANK)
     if((pEraseInit->Banks & FLASH_BANK_2) == FLASH_BANK_2)
     {
       /* Enable End of Operation and Error interrupts for Bank 2 */
@@ -333,6 +364,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
                                   FLASH_IT_STRBERR_BANK2 | FLASH_IT_INCERR_BANK2);
 #endif /* FLASH_CR_OPERRIE */
     }
+#endif /* DUAL_BANK */
 
     if(pEraseInit->TypeErase == FLASH_TYPEERASE_MASSERASE)
     {
@@ -341,10 +373,12 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
       {
         pFlash.ProcedureOnGoing = FLASH_PROC_MASSERASE_BANK1;
       }
+#if defined (DUAL_BANK)
       else if(pEraseInit->Banks == FLASH_BANK_2)
       {
         pFlash.ProcedureOnGoing = FLASH_PROC_MASSERASE_BANK2;
       }
+#endif /* DUAL_BANK */
       else
       {
         pFlash.ProcedureOnGoing = FLASH_PROC_ALLBANK_MASSERASE;
@@ -355,6 +389,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
     else
     {
       /* Erase by sector to be done */
+#if defined (DUAL_BANK)
       if(pEraseInit->Banks == FLASH_BANK_1)
       {
         pFlash.ProcedureOnGoing = FLASH_PROC_SECTERASE_BANK1;
@@ -363,6 +398,9 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
       {
         pFlash.ProcedureOnGoing = FLASH_PROC_SECTERASE_BANK2;
       }
+#else
+      pFlash.ProcedureOnGoing = FLASH_PROC_SECTERASE_BANK1;
+#endif /* DUAL_BANK */
 
       pFlash.NbSectorsToErase = pEraseInit->NbSectors;
       pFlash.Sector = pEraseInit->Sector;
@@ -378,7 +416,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase_IT(FLASH_EraseInitTypeDef *pEraseInit)
 
 /**
   * @brief  Program option bytes
-  * @param  pOBInit pointer to an FLASH_OBInitStruct structure that
+  * @param  pOBInit pointer to an FLASH_OBProgramInitTypeDef structure that
   *         contains the configuration information for the programming.
   *
   * @retval HAL Status
@@ -401,10 +439,12 @@ HAL_StatusTypeDef HAL_FLASHEx_OBProgram(FLASH_OBProgramInitTypeDef *pOBInit)
   {
     status = HAL_ERROR;
   }
+#if defined (DUAL_BANK)
   else if(FLASH_WaitForLastOperation((uint32_t)FLASH_TIMEOUT_VALUE, FLASH_BANK_2) != HAL_OK)
   {
     status = HAL_ERROR;
   }
+#endif /* DUAL_BANK */
   else
   {
     status = HAL_OK;
@@ -491,6 +531,22 @@ HAL_StatusTypeDef HAL_FLASHEx_OBProgram(FLASH_OBProgramInitTypeDef *pOBInit)
       FLASH_OB_OTP_LockConfig(pOBInit->OTPBlockLock);
     }
 #endif /* FLASH_OTPBL_LOCKBL */
+
+#if defined(FLASH_OPTSR2_TCM_AXI_SHARED)
+    /* TCM / AXI Shared RAM configuration */
+    if((pOBInit->OptionType & OPTIONBYTE_SHARED_RAM) == OPTIONBYTE_SHARED_RAM)
+    {
+      FLASH_OB_SharedRAM_Config(pOBInit->SharedRamConfig);
+    }
+#endif /* FLASH_OPTSR2_TCM_AXI_SHARED */
+
+#if defined(FLASH_OPTSR2_CPUFREQ_BOOST)
+    /* CPU Frequency Boost configuration */
+    if((pOBInit->OptionType & OPTIONBYTE_FREQ_BOOST) == OPTIONBYTE_FREQ_BOOST)
+    {
+      FLASH_OB_CPUFreq_BoostConfig(pOBInit->FreqBoostState);
+    }
+#endif /* FLASH_OPTSR2_CPUFREQ_BOOST */
   }
 
   /* Process Unlocked */
@@ -501,7 +557,7 @@ HAL_StatusTypeDef HAL_FLASHEx_OBProgram(FLASH_OBProgramInitTypeDef *pOBInit)
 
 /**
   * @brief Get the Option byte configuration
-  * @param  pOBInit pointer to an FLASH_OBInitStruct structure that
+  * @param  pOBInit pointer to an FLASH_OBProgramInitTypeDef structure that
   *         contains the configuration information for the programming.
   * @note   The parameter Banks of the pOBInit structure must be set exclusively to FLASH_BANK_1 or FLASH_BANK_2,
   *         as this parameter is use to get the given Bank WRP, PCROP and secured area configuration.
@@ -521,7 +577,11 @@ void HAL_FLASHEx_OBGetConfig(FLASH_OBProgramInitTypeDef *pOBInit)
   /*Get BOR Level*/
   pOBInit->BORLevel = FLASH_OB_GetBOR();
 
+#if defined (DUAL_BANK)
   if ((pOBInit->Banks == FLASH_BANK_1) || (pOBInit->Banks == FLASH_BANK_2))
+#else
+  if (pOBInit->Banks == FLASH_BANK_1)
+#endif /* DUAL_BANK */
   {
     pOBInit->OptionType |= (OPTIONBYTE_WRP | OPTIONBYTE_PCROP | OPTIONBYTE_SECURE_AREA);
 
@@ -552,6 +612,20 @@ void HAL_FLASHEx_OBGetConfig(FLASH_OBProgramInitTypeDef *pOBInit)
   /* Get OTP Block Lock */
   pOBInit->OTPBlockLock = FLASH_OB_OTP_GetLock();
 #endif /* FLASH_OTPBL_LOCKBL */
+
+#if defined (FLASH_OPTSR2_TCM_AXI_SHARED)
+  pOBInit->OptionType |= OPTIONBYTE_SHARED_RAM;
+
+  /* Get TCM / AXI Shared RAM */
+  pOBInit->SharedRamConfig = FLASH_OB_SharedRAM_GetConfig();
+#endif /* FLASH_OPTSR2_TCM_AXI_SHARED */
+
+#if defined (FLASH_OPTSR2_CPUFREQ_BOOST)
+  pOBInit->OptionType |= OPTIONBYTE_FREQ_BOOST;
+
+  /* Get CPU Frequency Boost */
+  pOBInit->FreqBoostState = FLASH_OB_CPUFreq_GetBoost();
+#endif /* FLASH_OPTSR2_CPUFREQ_BOOST */
 }
 
 /**
@@ -587,6 +661,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Lock_Bank1(void)
   return HAL_OK;
 }
 
+#if defined (DUAL_BANK)
 /**
   * @brief  Unlock the FLASH Bank2 control registers access
   * @retval HAL Status
@@ -619,6 +694,7 @@ HAL_StatusTypeDef HAL_FLASHEx_Lock_Bank2(void)
   SET_BIT(FLASH->CR2, FLASH_CR_LOCK);
   return HAL_OK;
 }
+#endif /* DUAL_BANK */
 
 /*
   * @brief  Perform a CRC computation on the specified FLASH memory area
@@ -693,6 +769,7 @@ HAL_StatusTypeDef HAL_FLASHEx_ComputeCRC(FLASH_CRCInitTypeDef *pCRCInit, uint32_
       /* Clear CRC flags */
       __HAL_FLASH_CLEAR_FLAG_BANK1(FLASH_FLAG_CRCEND_BANK1 | FLASH_FLAG_CRCRDERR_BANK1);
     }
+#if defined (DUAL_BANK)
     else
     {
       /* Enable CRC feature */
@@ -741,6 +818,7 @@ HAL_StatusTypeDef HAL_FLASHEx_ComputeCRC(FLASH_CRCInitTypeDef *pCRCInit, uint32_
       /* Clear CRC flags */
       __HAL_FLASH_CLEAR_FLAG_BANK2(FLASH_FLAG_CRCEND_BANK2 | FLASH_FLAG_CRCRDERR_BANK2);
     }
+#endif /* DUAL_BANK */
   }
 
   return status;
@@ -749,6 +827,251 @@ HAL_StatusTypeDef HAL_FLASHEx_ComputeCRC(FLASH_CRCInitTypeDef *pCRCInit, uint32_
 /**
   * @}
   */
+
+#if (USE_FLASH_ECC == 1U)
+/** @defgroup FLASHEx_Exported_Functions_Group2 Extended ECC operation functions
+  *  @brief   Extended ECC operation functions
+  *
+@verbatim
+ ===============================================================================
+                  ##### Extended ECC operation functions #####
+ ===============================================================================
+    [..]
+    This subsection provides a set of functions allowing to manage the Extended FLASH
+    ECC Operations.
+
+@endverbatim
+  * @{
+  */
+
+/**
+  * @brief  Enable ECC correction interrupts on FLASH BANK1 and BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_EnableEccCorrectionInterrupt(void)
+{
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_SNECCERR_BANK1);
+
+#if defined (DUAL_BANK)
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_SNECCERR_BANK2);
+#endif /* DUAL_BANK */
+}
+
+/**
+  * @brief  Disable ECC correction interrupts on FLASH BANK1 and BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_DisableEccCorrectionInterrupt(void)
+{
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_SNECCERR_BANK1);
+
+#if defined (DUAL_BANK)
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_SNECCERR_BANK2);
+#endif /* DUAL_BANK */
+}
+
+/**
+  * @brief  Enable ECC correction interrupt on FLASH BANK1.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_EnableEccCorrectionInterrupt_Bank1(void)
+{
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_SNECCERR_BANK1);
+}
+
+/**
+  * @brief  Disable ECC correction interrupt on FLASH BANK1.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_DisableEccCorrectionInterrupt_Bank1(void)
+{
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_SNECCERR_BANK1);
+}
+
+#if defined (DUAL_BANK)
+/**
+  * @brief  Enable ECC correction interrupt on FLASH BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_EnableEccCorrectionInterrupt_Bank2(void)
+{
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_SNECCERR_BANK2);
+}
+
+/**
+  * @brief  Disable ECC correction interrupt on FLASH BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_DisableEccCorrectionInterrupt_Bank2(void)
+{
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_SNECCERR_BANK2);
+}
+#endif /* DUAL_BANK */
+
+/**
+  * @brief  Enable ECC Detection interrupts on FLASH BANK1 and BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_EnableEccDetectionInterrupt(void)
+{
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_DBECCERR_BANK1);
+
+#if defined (DUAL_BANK)
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_DBECCERR_BANK2);
+#endif /* DUAL_BANK */
+}
+
+/**
+  * @brief  Disable ECC Detection interrupts on FLASH BANK1 and BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_DisableEccDetectionInterrupt(void)
+{
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_DBECCERR_BANK1);
+
+#if defined (DUAL_BANK)
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_DBECCERR_BANK2);
+#endif /* DUAL_BANK */
+}
+
+/**
+  * @brief  Enable ECC Detection interrupt on FLASH BANK1.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_EnableEccDetectionInterrupt_Bank1(void)
+{
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_DBECCERR_BANK1);
+}
+
+/**
+  * @brief  Disable ECC correction interrupt on FLASH BANK1.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_DisableEccDetectionInterrupt_Bank1(void)
+{
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_DBECCERR_BANK1);
+}
+
+#if defined (DUAL_BANK)
+/**
+  * @brief  Enable ECC Detection interrupt on FLASH BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_EnableEccDetectionInterrupt_Bank2(void)
+{
+  __HAL_FLASH_ENABLE_IT(FLASH_IT_DBECCERR_BANK2);
+}
+
+/**
+  * @brief  Disable ECC Detection interrupt on FLASH BANK2.
+  * @param  None
+  * @retval None
+  */
+void HAL_FLASHEx_DisableEccDetectionInterrupt_Bank2(void)
+{
+  __HAL_FLASH_DISABLE_IT(FLASH_IT_DBECCERR_BANK2);
+}
+#endif /* DUAL_BANK */
+
+/**
+  * @brief  Get the ECC error information.
+  * @param  pData Pointer to an FLASH_EccInfoTypeDef structure that contains the
+  *         ECC error information.
+  * @note   This function should be called before ECC bit is cleared
+  *         (in callback function)
+  * @retval None
+  */
+void HAL_FLASHEx_GetEccInfo(FLASH_EccInfoTypeDef *pData)
+{
+  uint32_t errorflag;
+
+  /* Check FLASH Bank1 ECC single correction and double detection error flags */
+  errorflag = FLASH->SR1 & (FLASH_FLAG_SNECCERR_BANK1 | FLASH_FLAG_DBECCERR_BANK1);
+  if(errorflag != 0U)
+  {
+    pData->Area = FLASH_ECC_AREA_USER_BANK1;
+    pData->Address = ((((FLASH->ECC_FA1 & FLASH_ECC_FA_FAIL_ECC_ADDR))* FLASH_NB_32BITWORD_IN_FLASHWORD * 4) + FLASH_BANK1_BASE);
+  }
+#if defined (DUAL_BANK)
+  /* Check FLASH Bank2 ECC single correction and double detection error flags */
+  errorflag = FLASH->SR2 & (FLASH_FLAG_SNECCERR_BANK2 | FLASH_FLAG_DBECCERR_BANK2);
+  if(errorflag != 0U)
+  {
+    pData->Area = FLASH_ECC_AREA_USER_BANK2;
+    pData->Address = ((((FLASH->ECC_FA2 & FLASH_ECC_FA_FAIL_ECC_ADDR))* FLASH_NB_32BITWORD_IN_FLASHWORD * 4) + FLASH_BANK2_BASE);
+  }
+#endif /* DUAL_BANK */
+}
+
+/**
+  * @brief Handle Flash ECC Detection interrupt request.
+  * @retval None
+  */
+void HAL_FLASHEx_BusFault_IRQHandler(void)
+{
+  /* Check if the ECC double error occurred*/
+  if ((FLASH->SR1 & FLASH_FLAG_DBECCERR_BANK1)  != 0)
+  {
+    /* FLASH ECC detection user callback */
+    HAL_FLASHEx_EccDetectionCallback();
+
+    /* Clear Bank 1 ECC double detection error flag
+    note : this step will clear all the information related to the flash ECC detection
+    */
+    __HAL_FLASH_CLEAR_FLAG_BANK1(FLASH_FLAG_DBECCERR_BANK1);
+  }
+#if defined (DUAL_BANK)
+  /* Check if the ECC double error occurred*/
+  if ((FLASH->SR2 & FLASH_FLAG_DBECCERR_BANK2)  != 0)
+  {
+    /* FLASH ECC detection user callback */
+    HAL_FLASHEx_EccDetectionCallback();
+
+    /* Clear Bank 2 ECC double detection error flag
+    note : this step will clear all the information related to the flash ECC detection
+    */
+    __HAL_FLASH_CLEAR_FLAG_BANK2(FLASH_FLAG_DBECCERR_BANK2);
+  }
+#endif /* DUAL_BANK */
+}
+
+/**
+  * @brief  FLASH ECC Correction interrupt callback.
+  * @retval None
+  */
+__weak void HAL_FLASHEx_EccCorrectionCallback(void)
+{
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_FLASHEx_EccCorrectionCallback could be implemented in the user file
+   */
+}
+
+/**
+  * @brief  FLASH ECC Detection interrupt callback.
+  * @retval None
+  */
+__weak void HAL_FLASHEx_EccDetectionCallback(void)
+{
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_FLASHEx_EccDetectionCallback could be implemented in the user file
+   */
+}
+
+/**
+  * @}
+  */
+#endif /* USE_FLASH_ECC */
 
 /**
   * @}
@@ -787,6 +1110,7 @@ static void FLASH_MassErase(uint32_t VoltageRange, uint32_t Banks)
 #endif /* FLASH_CR_PSIZE */
   assert_param(IS_FLASH_BANK(Banks));
 
+#if defined (DUAL_BANK)
   /* Flash Mass Erase */
   if((Banks & FLASH_BANK_BOTH) == FLASH_BANK_BOTH)
   {
@@ -804,6 +1128,7 @@ static void FLASH_MassErase(uint32_t VoltageRange, uint32_t Banks)
     FLASH->OPTCR |= FLASH_OPTCR_MER;
   }
   else
+#endif /* DUAL_BANK */
   {
     /* Proceed to erase Flash Bank  */
     if((Banks & FLASH_BANK_1) == FLASH_BANK_1)
@@ -817,6 +1142,8 @@ static void FLASH_MassErase(uint32_t VoltageRange, uint32_t Banks)
       /* Erase Bank1 */
       FLASH->CR1 |= (FLASH_CR_BER | FLASH_CR_START);
     }
+
+#if defined (DUAL_BANK)
     if((Banks & FLASH_BANK_2) == FLASH_BANK_2)
     {
 #if defined (FLASH_CR_PSIZE)
@@ -828,6 +1155,7 @@ static void FLASH_MassErase(uint32_t VoltageRange, uint32_t Banks)
       /* Erase Bank2 */
       FLASH->CR2 |= (FLASH_CR_BER | FLASH_CR_START);
     }
+#endif /* DUAL_BANK */
   }
 }
 
@@ -874,6 +1202,7 @@ void FLASH_Erase_Sector(uint32_t Sector, uint32_t Banks, uint32_t VoltageRange)
 #endif /* FLASH_CR_PSIZE */
   }
 
+#if defined (DUAL_BANK)
   if((Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
 #if defined (FLASH_CR_PSIZE)
@@ -888,13 +1217,14 @@ void FLASH_Erase_Sector(uint32_t Sector, uint32_t Banks, uint32_t VoltageRange)
     FLASH->CR2 |= (FLASH_CR_SER | (Sector << FLASH_CR_SNB_Pos) | FLASH_CR_START);
 #endif /* FLASH_CR_PSIZE */
   }
+#endif /* DUAL_BANK */
 }
 
 /**
   * @brief  Enable the write protection of the desired bank1 or bank 2 sectors
   * @param  WRPSector specifies the sector(s) to be write protected.
   *          This parameter can be one of the following values:
-  *            @arg WRPSector:  A combination of OB_WRP_SECTOR_0 to OB_WRP_SECTOR_7 or OB_WRP_SECTOR_All
+  *            @arg WRPSector:  A combination of OB_WRP_SECTOR_0 to OB_WRP_SECTOR_7 or OB_WRP_SECTOR_ALL
   *
   * @param  Banks the specific bank to apply WRP sectors
   *          This parameter can be one of the following values:
@@ -916,18 +1246,20 @@ static void FLASH_OB_EnableWRP(uint32_t WRPSector, uint32_t Banks)
     FLASH->WPSN_PRG1 &= (~(WRPSector & FLASH_WPSN_WRPSN));
   }
 
+#if defined (DUAL_BANK)
   if((Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
     /* Enable Write Protection for bank 2 */
     FLASH->WPSN_PRG2 &= (~(WRPSector & FLASH_WPSN_WRPSN));
   }
+#endif /* DUAL_BANK */
 }
 
 /**
   * @brief  Disable the write protection of the desired bank1 or bank 2 sectors
   * @param  WRPSector specifies the sector(s) to disable write protection.
   *          This parameter can be one of the following values:
-  *            @arg WRPSector:  A combination of FLASH_OB_WRP_SECTOR_0 to FLASH_OB_WRP_SECTOR_7 or FLASH_OB_WRP_SECTOR_All
+  *            @arg WRPSector:  A combination of FLASH_OB_WRP_SECTOR_0 to FLASH_OB_WRP_SECTOR_7 or FLASH_OB_WRP_SECTOR_ALL
   *
   * @param  Banks the specific bank to apply WRP sectors
   *          This parameter can be one of the following values:
@@ -949,11 +1281,13 @@ static void FLASH_OB_DisableWRP(uint32_t WRPSector, uint32_t Banks)
     FLASH->WPSN_PRG1 |= (WRPSector & FLASH_WPSN_WRPSN);
   }
 
+#if defined (DUAL_BANK)
   if((Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
     /* Disable Write Protection for bank 2 */
     FLASH->WPSN_PRG2 |= (WRPSector & FLASH_WPSN_WRPSN);
   }
+#endif /* DUAL_BANK */
 }
 
 /**
@@ -964,7 +1298,7 @@ static void FLASH_OB_DisableWRP(uint32_t WRPSector, uint32_t Banks)
 
   * @param  WRPSector gives the write protected sector(s) on the given bank .
   *          This parameter can be one of the following values:
-  *          @arg WRPSector: A combination of FLASH_OB_WRP_SECTOR_0 to FLASH_OB_WRP_SECTOR_7 or FLASH_OB_WRP_SECTOR_All
+  *          @arg WRPSector: A combination of FLASH_OB_WRP_SECTOR_0 to FLASH_OB_WRP_SECTOR_7 or FLASH_OB_WRP_SECTOR_ALL
   *
   * @param  Bank the specific bank to apply WRP sectors
   *          This parameter can be exclusively one of the following values:
@@ -978,15 +1312,17 @@ static void FLASH_OB_GetWRP(uint32_t *WRPState, uint32_t *WRPSector, uint32_t Ba
 {
   uint32_t regvalue = 0U;
 
-  if((Bank & FLASH_BANK_BOTH) == FLASH_BANK_1)
+  if(Bank == FLASH_BANK_1)
   {
     regvalue = FLASH->WPSN_CUR1;
   }
 
-  if((Bank & FLASH_BANK_BOTH) == FLASH_BANK_2)
+#if defined (DUAL_BANK)
+  if(Bank == FLASH_BANK_2)
   {
     regvalue = FLASH->WPSN_CUR2;
   }
+#endif /* DUAL_BANK */
 
   (*WRPSector) = (~regvalue) & FLASH_WPSN_WRPSN;
 
@@ -1199,7 +1535,9 @@ static void FLASH_OB_UserConfig(uint32_t UserType, uint32_t UserConfig)
     optr_reg_val |= (UserConfig & FLASH_OPTSR_BCM7);
     optr_reg_mask |= FLASH_OPTSR_BCM7;
   }
+#endif /* DUAL_CORE */
 
+#if defined (FLASH_OPTSR_NRST_STOP_D2)
   if((UserType & OB_USER_NRST_STOP_D2) != 0U)
   {
     /* NRST_STOP option byte should be modified */
@@ -1219,7 +1557,9 @@ static void FLASH_OB_UserConfig(uint32_t UserType, uint32_t UserConfig)
     optr_reg_val |= (UserConfig & FLASH_OPTSR_NRST_STBY_D2);
     optr_reg_mask |= FLASH_OPTSR_NRST_STBY_D2;
   }
-#endif /* DUAL_CORE */
+#endif /* FLASH_OPTSR_NRST_STOP_D2 */
+
+#if defined (DUAL_BANK)
   if((UserType & OB_USER_SWAP_BANK) != 0U)
   {
     /* SWAP_BANK_OPT option byte should be modified */
@@ -1229,6 +1569,7 @@ static void FLASH_OB_UserConfig(uint32_t UserType, uint32_t UserConfig)
     optr_reg_val |= (UserConfig & FLASH_OPTSR_SWAP_BANK_OPT);
     optr_reg_mask |= FLASH_OPTSR_SWAP_BANK_OPT;
   }
+#endif /* DUAL_BANK */
 
   if((UserType & OB_USER_IOHSLV) != 0U)
   {
@@ -1325,6 +1666,7 @@ static void FLASH_OB_PCROPConfig(uint32_t PCROPConfig, uint32_t PCROPStartAddr, 
                        PCROPConfig;
   }
 
+#if defined (DUAL_BANK)
   if((Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
     assert_param(IS_FLASH_PROGRAM_ADDRESS_BANK2(PCROPStartAddr));
@@ -1335,6 +1677,7 @@ static void FLASH_OB_PCROPConfig(uint32_t PCROPConfig, uint32_t PCROPStartAddr, 
                        (((PCROPEndAddr - FLASH_BANK2_BASE) >> 8) << FLASH_PRAR_PROT_AREA_END_Pos) | \
                        PCROPConfig;
   }
+#endif /* DUAL_BANK */
 }
 
 /**
@@ -1360,17 +1703,19 @@ static void FLASH_OB_GetPCROP(uint32_t *PCROPConfig, uint32_t *PCROPStartAddr, u
   uint32_t regvalue = 0;
   uint32_t bankBase = 0;
 
-  if((Bank & FLASH_BANK_BOTH) == FLASH_BANK_1)
+  if(Bank == FLASH_BANK_1)
   {
     regvalue = FLASH->PRAR_CUR1;
     bankBase = FLASH_BANK1_BASE;
   }
 
-  if((Bank & FLASH_BANK_BOTH) == FLASH_BANK_2)
+#if defined (DUAL_BANK)
+  if(Bank == FLASH_BANK_2)
   {
     regvalue = FLASH->PRAR_CUR2;
     bankBase = FLASH_BANK2_BASE;
   }
+#endif /* DUAL_BANK */
 
   (*PCROPConfig) =  (regvalue & FLASH_PRAR_DMEP);
 
@@ -1561,6 +1906,7 @@ static void FLASH_OB_SecureAreaConfig(uint32_t SecureAreaConfig, uint32_t Secure
                        (SecureAreaConfig & FLASH_SCAR_DMES);
   }
 
+#if defined (DUAL_BANK)
   if((Banks & FLASH_BANK_2) == FLASH_BANK_2)
   {
     /* Check the parameters */
@@ -1572,6 +1918,7 @@ static void FLASH_OB_SecureAreaConfig(uint32_t SecureAreaConfig, uint32_t Secure
                        (((SecureAreaEndAddr - FLASH_BANK2_BASE) >> 8) << FLASH_SCAR_SEC_AREA_END_Pos) | \
                        (SecureAreaConfig & FLASH_SCAR_DMES);
   }
+#endif /* DUAL_BANK */
 }
 
 /**
@@ -1589,17 +1936,19 @@ static void FLASH_OB_GetSecureArea(uint32_t *SecureAreaConfig, uint32_t *SecureA
   uint32_t bankBase = 0;
 
   /* Check Bank parameter value */
-  if((Bank & FLASH_BANK_BOTH) == FLASH_BANK_1)
+  if(Bank == FLASH_BANK_1)
   {
     regvalue = FLASH->SCAR_CUR1;
     bankBase = FLASH_BANK1_BASE;
   }
 
-  if((Bank & FLASH_BANK_BOTH) == FLASH_BANK_2)
+#if defined (DUAL_BANK)
+  if(Bank == FLASH_BANK_2)
   {
     regvalue = FLASH->SCAR_CUR2;
     bankBase = FLASH_BANK2_BASE;
   }
+#endif /* DUAL_BANK */
 
   /* Get the secure area settings */
   (*SecureAreaConfig) = (regvalue & FLASH_SCAR_DMES);
@@ -1627,6 +1976,7 @@ static void FLASH_CRC_AddSector(uint32_t Sector, uint32_t Bank)
     /* Select CRC Sector and activate ADD_SECT bit */
     FLASH->CRCCR1 |= Sector | FLASH_CRCCR_ADD_SECT;
   }
+#if defined (DUAL_BANK)
   else
   {
     /* Clear CRC sector */
@@ -1635,6 +1985,7 @@ static void FLASH_CRC_AddSector(uint32_t Sector, uint32_t Bank)
     /* Select CRC Sector and activate ADD_SECT bit */
     FLASH->CRCCR2 |= Sector | FLASH_CRCCR_ADD_SECT;
   }
+#endif /* DUAL_BANK */
 }
 
 /**
@@ -1655,6 +2006,7 @@ static void FLASH_CRC_SelectAddress(uint32_t CRCStartAddr, uint32_t CRCEndAddr, 
     FLASH->CRCSADD1 = CRCStartAddr;
     FLASH->CRCEADD1 = CRCEndAddr;
   }
+#if defined (DUAL_BANK)
   else
   {
     assert_param(IS_FLASH_PROGRAM_ADDRESS_BANK2(CRCStartAddr));
@@ -1664,6 +2016,7 @@ static void FLASH_CRC_SelectAddress(uint32_t CRCStartAddr, uint32_t CRCEndAddr, 
     FLASH->CRCSADD2 = CRCStartAddr;
     FLASH->CRCEADD2 = CRCEndAddr;
   }
+#endif /* DUAL_BANK */
 }
 /**
   * @}
@@ -1696,6 +2049,60 @@ static uint32_t FLASH_OB_OTP_GetLock(void)
 }
 #endif /* FLASH_OTPBL_LOCKBL */
 
+#if defined (FLASH_OPTSR2_TCM_AXI_SHARED)
+/**
+  * @brief  Configure the TCM / AXI Shared RAM.
+  * @param  SharedRamConfig specifies the Shared RAM configuration.
+  *         This parameter can be a value of @ref FLASHEx_OB_TCM_AXI_SHARED
+  * @retval None
+  */
+static void FLASH_OB_SharedRAM_Config(uint32_t SharedRamConfig)
+{
+  /* Check the parameters */
+  assert_param(IS_OB_USER_TCM_AXI_SHARED(SharedRamConfig));
+
+  /* Configure the TCM / AXI Shared RAM in the option bytes register */
+  MODIFY_REG(FLASH->OPTSR2_PRG, FLASH_OPTSR2_TCM_AXI_SHARED, SharedRamConfig);
+}
+
+/**
+  * @brief  Get the TCM / AXI Shared RAM configuration.
+  * @retval SharedRamConfig returns the TCM / AXI Shared RAM configuration.
+  *         This return value can be a value of @ref FLASHEx_OB_TCM_AXI_SHARED
+  */
+static uint32_t FLASH_OB_SharedRAM_GetConfig(void)
+{
+  return (FLASH->OPTSR2_CUR & FLASH_OPTSR2_TCM_AXI_SHARED);
+}
+#endif /* FLASH_OPTSR2_TCM_AXI_SHARED */
+
+#if defined (FLASH_OPTSR2_CPUFREQ_BOOST)
+/**
+  * @brief  Configure the CPU Frequency Boost.
+  * @param  FreqBoost specifies the CPU Frequency Boost state.
+  *         This parameter can be a value of @ref FLASHEx_OB_CPUFREQ_BOOST
+  * @retval None
+  */
+static void FLASH_OB_CPUFreq_BoostConfig(uint32_t FreqBoost)
+{
+  /* Check the parameters */
+  assert_param(IS_OB_USER_CPUFREQ_BOOST(FreqBoost));
+
+  /* Configure the CPU Frequency Boost in the option bytes register */
+  MODIFY_REG(FLASH->OPTSR2_PRG, FLASH_OPTSR2_CPUFREQ_BOOST, FreqBoost);
+}
+
+/**
+  * @brief  Get the CPU Frequency Boost state.
+  * @retval FreqBoost returns the CPU Frequency Boost state.
+  *         This return value can be a value of @ref FLASHEx_OB_CPUFREQ_BOOST
+  */
+static uint32_t FLASH_OB_CPUFreq_GetBoost(void)
+{
+  return (FLASH->OPTSR2_CUR & FLASH_OPTSR2_CPUFREQ_BOOST);
+}
+#endif /* FLASH_OPTSR2_CPUFREQ_BOOST */
+
 #endif /* HAL_FLASH_MODULE_ENABLED */
 
 /**
@@ -1706,4 +2113,3 @@ static uint32_t FLASH_OB_OTP_GetLock(void)
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
