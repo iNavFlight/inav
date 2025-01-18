@@ -404,6 +404,7 @@ void batteryUpdate(timeUs_t timeDelta)
         /* battery has been disconnected - can take a while for filter cap to disharge so we use a threshold of VBATT_PRESENT_THRESHOLD */
         if (batteryState != BATTERY_NOT_PRESENT && vbat <= VBATT_PRESENT_THRESHOLD) {
             batteryState = BATTERY_NOT_PRESENT;
+            batteryConnectedTime = 0;
             batteryCellCount = 0;
             batteryWarningVoltage = 0;
             batteryCriticalVoltage = 0;
