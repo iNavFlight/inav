@@ -3543,6 +3543,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             landingDetectorIsActive = false;
         }
         resetLandingDetector();
+        getTakeoffAltitude();
 
         return;
     }
@@ -5276,6 +5277,16 @@ int8_t navCheckActiveAngleHoldAxis(void)
 uint8_t getActiveWpNumber(void)
 {
     return NAV_Status.activeWpNumber;
+}
+
+float getTakeoffAltitude(void)
+{
+    static float refTakeoffAltitude = 0.0f;
+    if (!ARMING_FLAG(ARMED) && !landingDetectorIsActive) {
+        refTakeoffAltitude = posControl.actualState.abs.pos.z;
+    }
+
+    return refTakeoffAltitude;
 }
 
 #ifdef USE_FW_AUTOLAND
