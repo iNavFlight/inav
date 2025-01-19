@@ -32,27 +32,30 @@
 #define DJI_SYM_ROLL                    0x14
 #define DJI_SYM_PITCH                   0x15
 #define DJI_SYM_TEMPERATURE             0x7A
-#define DJI_SYM_MAX                     0x24
 
 // GPS and navigation
 #define DJI_SYM_LAT                     0x89
 #define DJI_SYM_LON                     0x98
 #define DJI_SYM_ALTITUDE                0x7F
+#define DJI_SYM_TOTAL_DISTANCE          0x71
 #define DJI_SYM_OVER_HOME               0x05
 
 // RSSI
 #define DJI_SYM_RSSI                    0x01
+#define DJI_SYM_LINK_QUALITY            0x7B
 
 // Throttle Position (%)
 #define DJI_SYM_THR                     0x04
 
 // Unit Icons (Metric)
 #define DJI_SYM_M                       0x0C
+#define DJI_SYM_KM                      0x7D
 #define DJI_SYM_C                       0x0E
 
 // Unit Icons (Imperial)
-#define DJI_SYM_F                       0x0D
 #define DJI_SYM_FT                      0x0F
+#define DJI_SYM_MILES                   0x7E
+#define DJI_SYM_F                       0x0D
 
 // Heading Graphics
 #define DJI_SYM_HEADING_N               0x18
@@ -63,13 +66,12 @@
 #define DJI_SYM_HEADING_LINE            0x1D
 
 // AH Center screen Graphics
-#define DJI_SYM_CROSSHAIR_LEFT          0x72
-#define DJI_SYM_CROSSHAIR_CENTRE        0x73
-#define DJI_SYM_CROSSHAIR_RIGHT         0x74
+#define DJI_SYM_AH_CENTER_LINE          0x72
+#define DJI_SYM_AH_CENTER               0x73
+#define DJI_SYM_AH_CENTER_LINE_RIGHT    0x74
 #define DJI_SYM_AH_RIGHT                0x02
 #define DJI_SYM_AH_LEFT                 0x03
 #define DJI_SYM_AH_DECORATION           0x13
-#define DJI_SYM_SMALL_CROSSHAIR         0x7E
 
 // Satellite Graphics
 #define DJI_SYM_SAT_L                   0x1E
@@ -95,8 +97,6 @@
 
 #define DJI_SYM_ARROW_SMALL_UP          0x75
 #define DJI_SYM_ARROW_SMALL_DOWN        0x76
-#define DJI_SYM_ARROW_SMALL_RIGHT       0x77
-#define DJI_SYM_ARROW_SMALL_LEFT        0x78
 
 // AH Bars
 #define DJI_SYM_AH_BAR9_0               0x80
@@ -136,16 +136,18 @@
 #define DJI_SYM_WATT                    0x57  // 0x57 is 'W'
 
 // Time
-#define DJI_SYM_ON_H                    0x70
-#define DJI_SYM_FLY_H                   0x71
 #define DJI_SYM_ON_M                    0x9B
 #define DJI_SYM_FLY_M                   0x9C
 
 // Speed
+#define DJI_SYM_SPEED                   0x70
 #define DJI_SYM_KPH                     0x9E
 #define DJI_SYM_MPH                     0x9D
 #define DJI_SYM_MPS                     0x9F
 #define DJI_SYM_FTPS                    0x99
+
+// Menu cursor
+#define DJI_SYM_CURSOR                  DJI_SYM_AH_LEFT
 
 // Stick overlays
 #define DJI_SYM_STICK_OVERLAY_SPRITE_HIGH 0x08
