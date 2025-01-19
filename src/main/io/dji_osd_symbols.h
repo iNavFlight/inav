@@ -32,6 +32,7 @@
 #define DJI_SYM_ROLL                    0x14
 #define DJI_SYM_PITCH                   0x15
 #define DJI_SYM_TEMPERATURE             0x7A
+#define DJI_SYM_MAX                     0x24
 
 // GPS and navigation
 #define DJI_SYM_LAT                     0x89
@@ -97,6 +98,8 @@
 
 #define DJI_SYM_ARROW_SMALL_UP          0x75
 #define DJI_SYM_ARROW_SMALL_DOWN        0x76
+#define DJI_SYM_ARROW_SMALL_RIGHT       0x77
+#define DJI_SYM_ARROW_SMALL_LEFT        0x78
 
 // AH Bars
 #define DJI_SYM_AH_BAR9_0               0x80
