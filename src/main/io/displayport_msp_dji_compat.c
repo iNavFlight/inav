@@ -57,7 +57,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
             return DJI_SYM_RSSI;
 
         case SYM_LQ:
-            return 'Q';
+            return SJI_SYM_LINK_QUALITY;
 
         case SYM_LAT:
             return DJI_SYM_LAT;
@@ -142,12 +142,13 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_MAH:
             return DJI_SYM_MAH;
-
+/*
         case SYM_AH_KM:
             return 'K';
 
         case SYM_AH_MI:
             return 'M';
+ */
 /*
         case SYM_VTX_POWER:
             return DJI_SYM_VTX_POWER;
@@ -262,9 +263,9 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 /*
         case SYM_NM:
             return DJI_SYM_NM;
-*/
         case SYM_WIND_HORIZONTAL:
             return 'W';     // W for wind
+*/
 
 /*
         case SYM_WIND_VERTICAL:
@@ -273,8 +274,10 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_3D_KT:
             return DJI_SYM_3D_KT;
 */
+/*
         case SYM_AIR:
             return 'A';     // A for airspeed
+ */
 
         case SYM_3D_KMH:
             return DJI_SYM_KPH;
