@@ -256,10 +256,11 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
             return DJI_SYM_M;
 
         case SYM_KM:
-            return 'K';
+            return DJI_SYM_KM;
 
         case SYM_MI:
-            return 'M';
+            return DJI_SYM_MILES;
+
 /*
         case SYM_NM:
             return DJI_SYM_NM;
@@ -277,14 +278,13 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 /*
         case SYM_AIR:
             return 'A';     // A for airspeed
- */
 
         case SYM_3D_KMH:
             return DJI_SYM_KPH;
 
         case SYM_3D_MPH:
             return DJI_SYM_MPH;
-
+ */
         case SYM_RPM:
             return DJI_SYM_RPM;
 
@@ -352,10 +352,10 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_ZERO_HALF_LEADING_DOT:
             return DJI_SYM_ZERO_HALF_LEADING_DOT;
-*/
 
         case SYM_AUTO_THR0:
             return 'A';
+*/
 
         case SYM_AUTO_THR1:
             return DJI_SYM_THR;
