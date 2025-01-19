@@ -22,37 +22,49 @@
 #pragma once
 
 //Misc
-#define DJI_SYM_NONE                    0x00
-#define DJI_SYM_END_OF_FONT             0xFF
-#define DJI_SYM_BLANK                   0x20
-#define DJI_SYM_HYPHEN                  0x2D
-#define DJI_SYM_BBLOG                   0x10
-#define DJI_SYM_HOMEFLAG                0x11
-#define DJI_SYM_RPM                     0x12
-#define DJI_SYM_ROLL                    0x14
-#define DJI_SYM_PITCH                   0x15
-#define DJI_SYM_TEMPERATURE             0x7A
-#define DJI_SYM_MAX                     0x24
+#define DJI_SYM_NONE                    0x00 // NONE
+#define DJI_SYM_END_OF_FONT             0xFF // End of font
+#define DJI_SYM_BLANK                   0x20 // Blank space
+#define DJI_SYM_HYPHEN                  0x2D // Hyphen symbol
+#define DJI_SYM_BBLOG                   0x10 // Black Box Log symbol
+#define DJI_SYM_RPM                     0x12 // RPM symbol
+#define DJI_SYM_ROLL                    0x14 // ROLL symbol
+#define DJI_SYM_PITCH                   0x15 // PITCH symbol
+#define DJI_SYM_TEMP                    0x7A // TEMP symbol
+#define DJI_SYM_MAX                     0x24 // MAX symbol
+
+// Glide calculations
+#define DJI_SYM_GLIDESLOPE              0x2F // Forward slash symbol looks like slope
+#define DJI_SYM_GLIDE_DIST              0x24 // MAX Symbol for max glide distance
+#define DJI_SYM_GLIDE_MINS              0x9C // Fly Time Symbol
 
 // GPS and navigation
-#define DJI_SYM_LAT                     0x89
-#define DJI_SYM_LON                     0x98
-#define DJI_SYM_ALTITUDE                0x7F
-#define DJI_SYM_OVER_HOME               0x05
+#define DJI_SYM_HOME                    0x05 // Home house symbol
+#define DJI_SYM_HOMEFLAG                0x11 // Home pin symbol
+#define DJI_SYM_LAT                     0x89 // LAT symbol
+#define DJI_SYM_LON                     0x98 // LON symbol
+#define DJI_SYM_ALT                     0x7F // ALT symbol
+#define DJI_SYM_TOTAL                   0x71 // Circle with arrow
+#define DJI_SYM_WAYPOINT                0x40 // @ Symbol
+#define DJI_SYM_HEADING                 0x70 // Betaflight speed symbol (looks like compass symbol)
+#define DJI_SYM_HEADING_DEGREE          0x08 // High circle looks like degrees icon
 
 // RSSI
-#define DJI_SYM_RSSI                    0x01
+#define DJI_SYM_RSSI                    0x01 // RSSI bars
+#define DJI_SYM_LQ                      0x7B // RSSI bars with LQ on top
 
 // Throttle Position (%)
-#define DJI_SYM_THR                     0x04
+#define DJI_SYM_THR                     0x04 // Throttle symbol
 
 // Unit Icons (Metric)
-#define DJI_SYM_M                       0x0C
-#define DJI_SYM_C                       0x0E
+#define DJI_SYM_M                       0x0C // Meters
+#define DJI_SYM_KM                      0x7D // Kilometers
+#define DJI_SYM_C                       0x0E // Celsius
 
 // Unit Icons (Imperial)
-#define DJI_SYM_F                       0x0D
-#define DJI_SYM_FT                      0x0F
+#define DJI_SYM_FT                      0x0F // Feet
+#define DJI_SYM_MI                      0x7E // Miles
+#define DJI_SYM_F                       0x0D // Farenheit
 
 // Heading Graphics
 #define DJI_SYM_HEADING_N               0x18
@@ -69,7 +81,38 @@
 #define DJI_SYM_AH_RIGHT                0x02
 #define DJI_SYM_AH_LEFT                 0x03
 #define DJI_SYM_AH_DECORATION           0x13
-#define DJI_SYM_SMALL_CROSSHAIR         0x7E
+#define DJI_SYM_AH_DECORATION_UP        0x75
+#define DJI_SYM_AH_DECORATION_DOWN      0x76
+#define DJI_SYM_SMALL_CROSSHAIR         0x73
+
+// Crosshair Styles
+#define DJI_SYM_AH_CENTER_LINE_LEFT     0x72
+#define DJI_SYM_AH_CENTER               0x73
+#define DJI_SYM_AH_CENTER_LINE_RIGHT    0x74
+
+#define DJI_SYM_AH_CH_TYPE3	            0x00
+#define DJI_SYM_AH_CH_TYPE3_1	        0x73
+#define DJI_SYM_AH_CH_TYPE3_2	        0x00
+
+#define DJI_SYM_AH_CH_TYPE4	            0x2D
+#define DJI_SYM_AH_CH_TYPE4_1	        0x73
+#define DJI_SYM_AH_CH_TYPE4_2	        0x2D
+
+#define DJI_SYM_AH_CH_TYPE5	            0x17
+#define DJI_SYM_AH_CH_TYPE5_1	        0x73
+#define DJI_SYM_AH_CH_TYPE5_2	        0x17
+
+#define DJI_SYM_AH_CH_TYPE6	            0x00
+#define DJI_SYM_AH_CH_TYPE6_1	        0x09
+#define DJI_SYM_AH_CH_TYPE6_2	        0x00
+
+#define DJI_SYM_AH_CH_TYPE7	            0x78
+#define DJI_SYM_AH_CH_TYPE7_1	        0x73
+#define DJI_SYM_AH_CH_TYPE7_2	        0x77
+
+#define DJI_SYM_AH_CH_TYPE8	            0x02
+#define DJI_SYM_AH_CH_TYPE8_1	        0x73
+#define DJI_SYM_AH_CH_TYPE8_2	        0x03
 
 // Satellite Graphics
 #define DJI_SYM_SAT_L                   0x1E
@@ -97,6 +140,11 @@
 #define DJI_SYM_ARROW_SMALL_DOWN        0x76
 #define DJI_SYM_ARROW_SMALL_RIGHT       0x77
 #define DJI_SYM_ARROW_SMALL_LEFT        0x78
+
+//Switch indicators
+#define DJI_SYM_SWITCH_INDICATOR_HIGH   0x75 // DJI_SYM_ARROW_SMALL_UP
+#define DJI_SYM_SWITCH_INDICATOR_MID    0x2D // Hyphon
+#define DJI_SYM_SWITCH_INDICATOR_LOW    0x76 // DJI_SYM_ARROW_SMALL_DOWN
 
 // AH Bars
 #define DJI_SYM_AH_BAR9_0               0x80
@@ -133,19 +181,22 @@
 #define DJI_SYM_VOLT                    0x06
 #define DJI_SYM_AMP                     0x9A
 #define DJI_SYM_MAH                     0x07
-#define DJI_SYM_WATT                    0x57  // 0x57 is 'W'
+#define DJI_SYM_WATT                    0x57  // 'W'
 
 // Time
-#define DJI_SYM_ON_H                    0x70
-#define DJI_SYM_FLY_H                   0x71
+#define DJI_SYM_ON_H                    0x9B
+#define DJI_SYM_FLY_H                   0x9C
 #define DJI_SYM_ON_M                    0x9B
 #define DJI_SYM_FLY_M                   0x9C
 
 // Speed
-#define DJI_SYM_KPH                     0x9E
-#define DJI_SYM_MPH                     0x9D
-#define DJI_SYM_MPS                     0x9F
-#define DJI_SYM_FTPS                    0x99
+#define DJI_SYM_MS                      0x9F // m/s
+#define DJI_SYM_KMH                     0x9E // km/h
+#define DJI_SYM_MPH                     0x9D // mi/h
+#define DJI_SYM_FTPS                    0x99 // ft/s
+
+// Menu cursor
+#define DJI_SYM_CURSOR                  0x3E
 
 // Stick overlays
 #define DJI_SYM_STICK_OVERLAY_SPRITE_HIGH 0x08
@@ -156,6 +207,6 @@
 #define DJI_SYM_STICK_OVERLAY_HORIZONTAL  0x17
 
 // GPS degree/minute/second symbols
-#define DJI_SYM_GPS_DEGREE              DJI_SYM_STICK_OVERLAY_SPRITE_HIGH  // kind of looks like the degree symbol
+#define DJI_SYM_GPS_DEGREE              0x08 // kind of looks like the degree symbol (DJI_SYM_STICK_OVERLAY_SPRITE_HIGH)
 #define DJI_SYM_GPS_MINUTE              0x27 // '
 #define DJI_SYM_GPS_SECOND              0x22 // "
