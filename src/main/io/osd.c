@@ -3401,29 +3401,31 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_IMPERIAL:
                     moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_MILE / 10, 1000, 0, 2, digits, false);
                     if (!moreThanAh) {
-                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        tfp_sprintf(buff + strlen(buff), "%c/%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                     } else {
                         tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_MI);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_MI_0;        // This will overwrite the "-" at buff[3] if not in DJICOMPAT mode
-                        buff[digits + 1] = SYM_MAH_MI_1;
-                        buff[digits + 2] = '\0';
+                        buff[digits + 1] = '/'
+                        buff[digits + 2] = SYM_MAH_MI_1;
+                        buff[digits + 3] = '\0';
                     }
                     break;
                 case OSD_UNIT_GA:
                      moreThanAh = osdFormatCentiNumber(buff, value * METERS_PER_NAUTICALMILE / 10, 1000, 0, 2, digits, false);
                     if (!moreThanAh) {
-                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                        tfp_sprintf(buff + strlen(buff), "%c/%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                     } else {
                         tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_NM);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_NM_0;
-                        buff[digits + 1] = SYM_MAH_NM_1;
-                        buff[digits + 2] = '\0';
+                        buff[digits + 1] = '/';
+                        buff[digits + 2] = SYM_MAH_NM_1;
+                        buff[digits + 3] = '\0';
                     }
                     break;
                 case OSD_UNIT_METRIC_MPH:
@@ -3431,15 +3433,16 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_METRIC:
                     moreThanAh = osdFormatCentiNumber(buff, value * 100, 1000, 0, 2, digits, false);
                     if (!moreThanAh) {
-                        tfp_sprintf(buff + strlen(buff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                        tfp_sprintf(buff + strlen(buff), "%c/%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                     } else {
                         tfp_sprintf(buff + strlen(buff), "%c", SYM_AH_KM);
                     }
                     if (!efficiencyValid) {
                         buff[0] = buff[1] = buff[2] = buff[3] = '-';
                         buff[digits] = SYM_MAH_KM_0;
-                        buff[digits + 1] = SYM_MAH_KM_1;
-                        buff[digits + 2] = '\0';
+                        buff[digits + 1] = '/';
+                        buff[digits + 2] = SYM_MAH_KM_1;
+                        buff[digits + 3] = '\0';
                     }
                     break;
             }
@@ -4960,7 +4963,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                         if (osdDisplayIsHD()) {
                             if (!moreThanAh)
-                                tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                                tfp_sprintf(outBuff + strlen(outBuff), "%c/%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                             else
                                 tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_MI);
 
@@ -4972,11 +4975,11 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         strcat(outBuff, osdFormatTrimWhiteSpace(buff));
 
                         if (!moreThanAh)
-                            tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                            tfp_sprintf(outBuff + strlen(outBuff), "%c/%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                         else
                             tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_MI);
                     } else {
-                        tfp_sprintf(outBuff + strlen(outBuff), "---/---%c%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
+                        tfp_sprintf(outBuff + strlen(outBuff), "---/---%c/%c", SYM_MAH_MI_0, SYM_MAH_MI_1);
                     }
                 } else {
                     if (efficiencyValid) {
@@ -4998,7 +5001,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                          if (osdDisplayIsHD()) {
                             if (!moreThanAh)
-                                tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                                tfp_sprintf(outBuff + strlen(outBuff), "%c/%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                             else
                                 tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_NM);
 
@@ -5009,12 +5012,12 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                         moreThanAh = moreThanAh || osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000.0f * METERS_PER_NAUTICALMILE / totalDistance), 1000, 0, 2, digits, false);
                         strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                         if (!moreThanAh) {
-                            tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                            tfp_sprintf(outBuff + strlen(outBuff), "%c/%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                         } else {
                             tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_NM);
                         }
                     } else {
-                        tfp_sprintf(outBuff + strlen(outBuff), "---/---%c%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
+                        tfp_sprintf(outBuff + strlen(outBuff), "---/---%c/%c", SYM_MAH_NM_0, SYM_MAH_NM_1);
                     }
                 } else {
                     if (efficiencyValid) {
@@ -5043,7 +5046,7 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                 strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                 if (osdDisplayIsHD()) {
                     if (!moreThanAh)
-                        tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                        tfp_sprintf(outBuff + strlen(outBuff), "%c/%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                     else
                         tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_KM);
 
@@ -5054,12 +5057,12 @@ uint8_t drawStat_AverageEfficiency(uint8_t col, uint8_t row, uint8_t statValX, b
                 moreThanAh = moreThanAh || osdFormatCentiNumber(buff, (int32_t)(getMAhDrawn() * 10000000.0f / totalDistance), 1000, 0, 2, digits, false);
                 strcat(outBuff, osdFormatTrimWhiteSpace(buff));
                 if (!moreThanAh) {
-                    tfp_sprintf(outBuff + strlen(outBuff), "%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                    tfp_sprintf(outBuff + strlen(outBuff), "%c/%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
                 } else {
                     tfp_sprintf(outBuff + strlen(outBuff), "%c", SYM_AH_KM);
                 }
             } else {
-                tfp_sprintf(outBuff + strlen(outBuff), "---/---%c%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
+                tfp_sprintf(outBuff + strlen(outBuff), "---/---%c/%c", SYM_MAH_KM_0, SYM_MAH_KM_1);
             }
         } else {
             if (efficiencyValid) {
