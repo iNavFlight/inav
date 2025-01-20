@@ -29,7 +29,7 @@
 //                       0123456789
 static char *dji_logo = " DJI,     "
                         " PLEASE   "
-						" FIX YOUR "
+                        " FIX YOUR "
                         " OSD FONT ";
 
 uint8_t getDJICharacter(uint8_t ch, uint8_t page)
