@@ -136,31 +136,37 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_DECORATION + 7: // NW pointing arrow
             return DJI_SYM_ARROW_11;
-
+/*
+        case SYM_VTX_POWER:
+            return DJI_SYM_VTX_POWER;
+*/
         case SYM_VOLT:
             return DJI_SYM_VOLT;
 
         case SYM_MAH:
             return DJI_SYM_MAH;
 
+        case SYM_AH_MI:
+            return DJI_SYM_MI;
+
+        case SYM_AH_NM:
+            return DJI_SYM_MI;
+
         case SYM_AH_KM:
             return DJI_SYM_KM;
 
-        case SYM_AH_MI:
-            return DJI_SYM_MI;
-/*
-        case SYM_VTX_POWER:
-            return DJI_SYM_VTX_POWER;
+        case SYM_MAH_MI_0:
+            return DJI_SYM_MAH;
 
-        case SYM_AH_NM:
-            return DJI_SYM_AH_NM;
+        case SYM_MAH_MI_1:
+            return DJI_SYM_MI;
 
         case SYM_MAH_NM_0:
-            return DJI_SYM_MAH_NM_0;
+            return DJI_SYM_MAH;
 
         case SYM_MAH_NM_1:
-            return DJI_SYM_MAH_NM_1;
-*/
+            return DJI_SYM_MI;
+
         case SYM_MAH_KM_0:
             return DJI_SYM_MAH;
 
@@ -193,7 +199,16 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_AMP:
             return DJI_SYM_AMP;
+
+        case SYM_WATT:
+            return DJI_SYM_WATT;
 /*
+        case SYM_MW:
+            return DJI_SYM_MW;
+
+        case SYM_KILOWATT:
+            return DJI_SYM_KILOWATT;
+
         case SYM_WH:
             return DJI_SYM_WH;
 
@@ -205,15 +220,6 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_WH_NM:
             return DJI_SYM_WH_NM;
-*/
-        case SYM_WATT:
-            return DJI_SYM_WATT;
-/*
-        case SYM_MW:
-            return DJI_SYM_MW;
-
-        case SYM_KILOWATT:
-            return DJI_SYM_KILOWATT;
 */
         case SYM_FT:
             return DJI_SYM_FT;
@@ -298,12 +304,6 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 /*
         case SYM_KT:
             return DJI_SYM_KT
-
-        case SYM_MAH_MI_0:
-            return DJI_SYM_MAH_MI_0;
-
-        case SYM_MAH_MI_1:
-            return DJI_SYM_MAH_MI_1;
 */
         case SYM_THR:
             return DJI_SYM_THR;
