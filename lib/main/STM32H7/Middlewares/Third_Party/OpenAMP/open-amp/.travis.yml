@@ -1,0 +1,66 @@
+language: minimal # setting language to C will override cross-compiler and fail
+
+compiler:
+  - gcc
+
+sudo: required
+dist: trusty
+
+env:
+  global:
+    - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+    - ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk
+    - ZEPHYR_BASE=$TRAVIS_BUILD_DIR/deps/zephyr
+    - ZEPHYR_SDK_VERSION=0.9.3
+    - ZEPHYR_SDK_DOWNLOAD_FOLDER=https://github.com/zephyrproject-rtos/meta-zephyr-sdk/releases/download/$ZEPHYR_SDK_VERSION
+    - ZEPHYR_SDK_SETUP_BINARY=zephyr-sdk-$ZEPHYR_SDK_VERSION-setup.run
+    - ZEPHYR_SDK_DOWNLOAD_URL=$ZEPHYR_SDK_DOWNLOAD_FOLDER/$ZEPHYR_SDK_SETUP_BINARY
+
+matrix:
+  fast_finish: true
+  include:
+    - os: linux
+      env: TARGET="zephyr"
+
+cache:
+  directories:
+    - $ZEPHYR_SDK_INSTALL_DIR
+    - /usr/local/bin
+
+before_install:
+  - if [[ "$TARGET" == "zephyr" ]]; then
+      sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test &&
+      sudo apt-get update -qq &&
+      sudo apt-get install libc6-dev-i386 make gperf gcc g++ python3-ply python3-yaml python3-pip device-tree-compiler ncurses-dev uglifyjs -qq &&
+      sudo pip3 install pyelftools;
+    fi
+
+install: >
+  if [[ "$TARGET" == "zephyr" && "$(cat $ZEPHYR_SDK_INSTALL_DIR/sdk_version)" != "$ZEPHYR_SDK_VERSION" ]]; then
+    wget $ZEPHYR_SDK_DOWNLOAD_URL &&
+    chmod +x $ZEPHYR_SDK_SETUP_BINARY &&
+    rm -rf $ZEPHYR_SDK_INSTALL_DIR &&
+    ./$ZEPHYR_SDK_SETUP_BINARY --quiet -- -y -d $ZEPHYR_SDK_INSTALL_DIR > /dev/null;
+  fi
+
+before_script: >
+  if [[ "$TARGET" == "zephyr" ]]; then
+    cd .. &&
+    git clone --depth=1 git://github.com/OpenAMP/libmetal.git &&
+    git clone --depth=1 git://github.com/zephyrproject-rtos/zephyr.git &&
+    cd zephyr &&
+    source zephyr-env.sh;
+  fi
+
+script:
+  - if [[ "$TARGET" == "zephyr" ]]; then
+       mkdir -p ../open-amp/build-zephyr &&
+       mkdir -p ../libmetal/build-zephyr &&
+       cd ../libmetal/build-zephyr &&
+       cmake .. -DWITH_ZEPHYR=on -DBOARD=qemu_cortex_m3 &&
+       make &&
+       cd ../../open-amp/build-zephyr &&
+       cmake .. -DWITH_ZEPHYR=ON -DWITH_PROXY=OFF -DBOARD=qemu_cortex_m3 -DLIBMETAL_INCLUDE_DIR=../../libmetal/build-zephyr/lib/include -DLIBMETAL_LIB=../../libmetal/build-zephyr/lib/libmetal.a &&
+       make VERBOSE=1;
+    fi
+

@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -209,7 +208,7 @@ __STATIC_INLINE void LL_IWDG_SetPrescaler(IWDG_TypeDef *IWDGx, uint32_t Prescale
   *         @arg @ref LL_IWDG_PRESCALER_128
   *         @arg @ref LL_IWDG_PRESCALER_256
   */
-__STATIC_INLINE uint32_t LL_IWDG_GetPrescaler(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_GetPrescaler(const IWDG_TypeDef *IWDGx)
 {
   return (READ_REG(IWDGx->PR));
 }
@@ -232,7 +231,7 @@ __STATIC_INLINE void LL_IWDG_SetReloadCounter(IWDG_TypeDef *IWDGx, uint32_t Coun
   * @param  IWDGx IWDG Instance
   * @retval Value between Min_Data=0 and Max_Data=0x0FFF
   */
-__STATIC_INLINE uint32_t LL_IWDG_GetReloadCounter(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_GetReloadCounter(const IWDG_TypeDef *IWDGx)
 {
   return (READ_REG(IWDGx->RLR));
 }
@@ -255,7 +254,7 @@ __STATIC_INLINE void LL_IWDG_SetWindow(IWDG_TypeDef *IWDGx, uint32_t Window)
   * @param  IWDGx IWDG Instance
   * @retval Value between Min_Data=0 and Max_Data=0x0FFF
   */
-__STATIC_INLINE uint32_t LL_IWDG_GetWindow(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_GetWindow(const IWDG_TypeDef *IWDGx)
 {
   return (READ_REG(IWDGx->WINR));
 }
@@ -274,7 +273,7 @@ __STATIC_INLINE uint32_t LL_IWDG_GetWindow(IWDG_TypeDef *IWDGx)
   * @param  IWDGx IWDG Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_PVU(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_PVU(const IWDG_TypeDef *IWDGx)
 {
   return ((READ_BIT(IWDGx->SR, IWDG_SR_PVU) == (IWDG_SR_PVU)) ? 1UL : 0UL);
 }
@@ -285,7 +284,7 @@ __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_PVU(IWDG_TypeDef *IWDGx)
   * @param  IWDGx IWDG Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_RVU(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_RVU(const IWDG_TypeDef *IWDGx)
 {
   return ((READ_BIT(IWDGx->SR, IWDG_SR_RVU) == (IWDG_SR_RVU)) ? 1UL : 0UL);
 }
@@ -296,7 +295,7 @@ __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_RVU(IWDG_TypeDef *IWDGx)
   * @param  IWDGx IWDG Instance
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_WVU(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_WVU(const IWDG_TypeDef *IWDGx)
 {
   return ((READ_BIT(IWDGx->SR, IWDG_SR_WVU) == (IWDG_SR_WVU)) ? 1UL : 0UL);
 }
@@ -304,12 +303,12 @@ __STATIC_INLINE uint32_t LL_IWDG_IsActiveFlag_WVU(IWDG_TypeDef *IWDGx)
 /**
   * @brief  Check if all flags Prescaler, Reload & Window Value Update are reset or not
   * @rmtoll SR           PVU           LL_IWDG_IsReady\n
-  *         SR           WVU           LL_IWDG_IsReady\n
-  *         SR           RVU           LL_IWDG_IsReady
+  *         SR           RVU           LL_IWDG_IsReady\n
+  *         SR           WVU           LL_IWDG_IsReady
   * @param  IWDGx IWDG Instance
   * @retval State of bits (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_IWDG_IsReady(IWDG_TypeDef *IWDGx)
+__STATIC_INLINE uint32_t LL_IWDG_IsReady(const IWDG_TypeDef *IWDGx)
 {
   return ((READ_BIT(IWDGx->SR, IWDG_SR_PVU | IWDG_SR_RVU | IWDG_SR_WVU) == 0U) ? 1UL : 0UL);
 }
@@ -317,7 +316,6 @@ __STATIC_INLINE uint32_t LL_IWDG_IsReady(IWDG_TypeDef *IWDGx)
 /**
   * @}
   */
-
 
 /**
   * @}
@@ -338,5 +336,3 @@ __STATIC_INLINE uint32_t LL_IWDG_IsReady(IWDG_TypeDef *IWDGx)
 #endif
 
 #endif /* STM32H7xx_LL_IWDG_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
