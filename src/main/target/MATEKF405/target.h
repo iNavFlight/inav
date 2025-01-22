@@ -47,12 +47,7 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 
-// *************** SD Card **************************
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI3
-#define SDCARD_CS_PIN           PC1
-
+// *************** SPI3 ********************
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN   	    PB4
@@ -65,6 +60,12 @@
 #define M25P16_CS_PIN           PC0
 
 #ifdef MATEKF405OSD
+// *************** SD Card **************************
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC1
+
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #else
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
