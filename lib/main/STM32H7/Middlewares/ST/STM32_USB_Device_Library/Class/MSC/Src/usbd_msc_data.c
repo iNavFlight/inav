@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2015 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2015 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under Ultimate Liberty license
-  * SLA0044, the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                      www.st.com/SLA0044
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -65,41 +64,59 @@ EndBSPDependencies */
   * @{
   */
 
-
 /* USB Mass storage Page 0 Inquiry Data */
-const uint8_t  MSC_Page00_Inquiry_Data[] =
+uint8_t MSC_Page00_Inquiry_Data[LENGTH_INQUIRY_PAGE00] =
 {
   0x00,
   0x00,
   0x00,
   (LENGTH_INQUIRY_PAGE00 - 4U),
   0x00,
+  0x80
+};
+
+/* USB Mass storage VPD Page 0x80 Inquiry Data for Unit Serial Number */
+uint8_t MSC_Page80_Inquiry_Data[LENGTH_INQUIRY_PAGE80] =
+{
+  0x00,
   0x80,
-  0x83
+  0x00,
+  LENGTH_INQUIRY_PAGE80,
+  0x20,     /* Put Product Serial number */
+  0x20,
+  0x20,
+  0x20
 };
-/* USB Mass storage sense 6  Data */
-const uint8_t  MSC_Mode_Sense6_data[] =
+
+/* USB Mass storage sense 6 Data */
+uint8_t MSC_Mode_Sense6_data[MODE_SENSE6_LEN] =
 {
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00
+  0x03,     /* MODE DATA LENGTH. The number of bytes that follow. */
+  0x00,     /* MEDIUM TYPE. 00h for SBC devices. */
+  0x00,     /* DEVICE-SPECIFIC PARAMETER. For SBC devices:
+             *   bit 7: WP. Set to 1 if the media is write-protected.
+             *   bits 6..5: reserved
+             *   bit 4: DPOFUA. Set to 1 if the device supports the DPO and FUA bits
+             *   bits 3..0: reserved */
+  0x00      /* BLOCK DESCRIPTOR LENGTH */
 };
-/* USB Mass storage sense 10  Data */
-const uint8_t  MSC_Mode_Sense10_data[] =
+
+
+/* USB Mass storage sense 10 Data */
+uint8_t MSC_Mode_Sense10_data[MODE_SENSE10_LEN] =
 {
-  0x00,
-  0x06,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00
+  0x00,     /* MODE DATA LENGTH MSB. */
+  0x06,     /* MODE DATA LENGTH LSB. The number of bytes that follow. */
+  0x00,     /* MEDIUM TYPE. 00h for SBC devices. */
+  0x00,     /* DEVICE-SPECIFIC PARAMETER. For SBC devices:
+             *   bit 7: WP. Set to 1 if the media is write-protected.
+             *   bits 6..5: reserved
+             *   bit 4: DPOFUA. Set to 1 if the device supports the DPO and FUA bits
+             *   bits 3..0: reserved */
+  0x00,     /* LONGLBA Set to zero */
+  0x00,     /* Reserved */
+  0x00,     /* BLOCK DESCRIPTOR LENGTH MSB. */
+  0x00      /* BLOCK DESCRIPTOR LENGTH LSB. */
 };
 /**
   * @}
@@ -132,4 +149,3 @@ const uint8_t  MSC_Mode_Sense10_data[] =
   * @}
   */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
