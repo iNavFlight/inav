@@ -18,7 +18,7 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "H743"
+#define TARGET_BOARD_IDENTIFIER "AE7B"
 
 #define USBD_PRODUCT_STRING     "AETH743Basic"
 
