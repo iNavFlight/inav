@@ -30,10 +30,11 @@
 
 #include "io/headtracker_msp.h"
 
+static bool isReady = false;
 static headTrackerVTable_t headTrackerMspVTable = {
     .process = NULL,
     .getDeviceType = heatTrackerMspGetDeviceType,
-    .isReady = NULL,
+    .isReady = heatTrackerMspIsReady,
     .isValid = NULL,
 };
 
@@ -52,12 +53,18 @@ void mspHeadTrackerInit(void)
     }
 }
 
-void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
+void mspHeadTrackerReceiverNewData(uint8_t *data, unsigned int dataSize)
 {
     if(dataSize != sizeof(headtrackerMspMessage_t)) {
         SD(fprintf(stderr, "[headTracker]: invalid data size %d\n", dataSize));
+        static int errorCount = 0;
+        DEBUG_SET(DEBUG_HEADTRACKING, 7, errorCount++);
+        DEBUG_SET(DEBUG_HEADTRACKING, 5, (sizeof(headtrackerMspMessage_t)));
+        DEBUG_SET(DEBUG_HEADTRACKING, 6, dataSize);
         return;
     }
+    isReady = true;
+    DEBUG_SET(DEBUG_HEADTRACKING, 6, dataSize);
 
     headtrackerMspMessage_t *status = (headtrackerMspMessage_t *)data;
 
@@ -66,12 +73,22 @@ void mspHeadTrackerReceiverNewData(uint8_t *data, int dataSize)
     headTrackerMspDevice.roll = constrain(status->roll, HEADTRACKER_RANGE_MIN, HEADTRACKER_RANGE_MAX);
     headTrackerMspDevice.expires = micros() + MAX_HEADTRACKER_DATA_AGE_US;
 
-    UNUSED(status);
+    DEBUG_SET(DEBUG_HEADTRACKING, 0, headTrackerMspDevice.pan);
+    DEBUG_SET(DEBUG_HEADTRACKING, 1, headTrackerMspDevice.tilt);
+    DEBUG_SET(DEBUG_HEADTRACKING, 2, headTrackerMspDevice.roll);
+    DEBUG_SET(DEBUG_HEADTRACKING, 3, headTrackerMspDevice.expires);
 }
 
 headTrackerDevType_e heatTrackerMspGetDeviceType(const headTrackerDevice_t *headTrackerDevice) {
     UNUSED(headTrackerDevice);
     return HEADTRACKER_MSP;
+}
+
+
+bool heatTrackerMspIsReady(const headTrackerDevice_t *headTrackerDevice)
+{
+    UNUSED(headTrackerDevice);
+    return headTrackerConfig()->devType == HEADTRACKER_MSP && isReady; 
 }
 
 #endif

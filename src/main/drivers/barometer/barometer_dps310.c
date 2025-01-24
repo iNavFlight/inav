@@ -61,6 +61,7 @@
 
 
 #define DPS310_ID_REV_AND_PROD_ID       (0x10)
+#define SPL07_003_CHIP_ID               (0x11)
 
 #define DPS310_RESET_BIT_SOFT_RST       (0x09)    // 0b1001
 
@@ -96,6 +97,8 @@ typedef struct {
     int16_t c20;    // 16bit
     int16_t c21;    // 16bit
     int16_t c30;    // 16bit
+    int16_t c31;    // 12bit
+    int16_t c40;    // 12bit
 } calibrationCoefficients_t;
 
 typedef struct {
@@ -105,6 +108,7 @@ typedef struct {
 } baroState_t;
 
 static baroState_t  baroState;
+static uint8_t chipId[1];
 
 
 // Helper functions
@@ -167,7 +171,10 @@ static bool deviceConfigure(busDevice_t * busDev)
 
     // 1. Read the pressure calibration coefficients (c00, c10, c20, c30, c01, c11, and c21) from the Calibration Coefficient register.
     //   Note: The coefficients read from the coefficient register are 2's complement numbers.
-    uint8_t coef[18];
+
+    unsigned coefficientLength = chipId[0] == SPL07_003_CHIP_ID ? 21 : 18;
+    uint8_t coef[coefficientLength];
+
     if (!busReadBuf(busDev, DPS310_REG_COEF, coef, sizeof(coef))) {
         return false;
     }
@@ -199,6 +206,17 @@ static bool deviceConfigure(busDevice_t * busDev)
     // 0x20 c30 [15:8] + 0x21 c30 [7:0]
     baroState.calib.c30 = getTwosComplement(((uint32_t)coef[16] << 8) | (uint32_t)coef[17], 16);
 
+    if (chipId[0] == SPL07_003_CHIP_ID) {
+        // 0x23 c31 [3:0] + 0x22 c31 [11:4]
+        baroState.calib.c31 = getTwosComplement(((uint32_t)coef[18] << 4) | (((uint32_t)coef[19] >> 4) & 0x0F), 12);
+
+        // 0x23 c40 [11:8] + 0x24 c40 [7:0]
+        baroState.calib.c40 = getTwosComplement((((uint32_t)coef[19] & 0x0F) << 8) | (uint32_t)coef[20], 12);
+    } else {
+        baroState.calib.c31 = 0;
+        baroState.calib.c40 = 0; 
+    }
+
     // MEAS_CFG: Make sure the device is in IDLE mode
     registerWriteBits(busDev, DPS310_REG_MEAS_CFG, DPS310_MEAS_CFG_MEAS_CTRL_MASK, DPS310_MEAS_CFG_MEAS_IDLE);
 
@@ -218,8 +236,12 @@ static bool deviceConfigure(busDevice_t * busDev)
     registerSetBits(busDev, DPS310_REG_PRS_CFG, DPS310_PRS_CFG_BIT_PM_RATE_32HZ | DPS310_PRS_CFG_BIT_PM_PRC_16);
 
     // TMP_CFG: temperature measurement rate (32 Hz) and oversampling (16 times)
-    const uint8_t TMP_COEF_SRCE = registerRead(busDev, DPS310_REG_COEF_SRCE) & DPS310_COEF_SRCE_BIT_TMP_COEF_SRCE;
-    registerSetBits(busDev, DPS310_REG_TMP_CFG, DPS310_TMP_CFG_BIT_TMP_RATE_32HZ | DPS310_TMP_CFG_BIT_TMP_PRC_16 | TMP_COEF_SRCE);
+    if (chipId[0] == SPL07_003_CHIP_ID) {
+        registerSetBits(busDev, DPS310_REG_TMP_CFG, DPS310_TMP_CFG_BIT_TMP_RATE_32HZ | DPS310_TMP_CFG_BIT_TMP_PRC_16);
+    } else {
+        const uint8_t TMP_COEF_SRCE = registerRead(busDev, DPS310_REG_COEF_SRCE) & DPS310_COEF_SRCE_BIT_TMP_COEF_SRCE;
+        registerSetBits(busDev, DPS310_REG_TMP_CFG, DPS310_TMP_CFG_BIT_TMP_RATE_32HZ | DPS310_TMP_CFG_BIT_TMP_PRC_16 | TMP_COEF_SRCE);
+    }
 
     // CFG_REG: set pressure and temperature result bit-shift (required when the oversampling rate is >8 times)
     registerSetBits(busDev, DPS310_REG_CFG_REG, DPS310_CFG_REG_BIT_T_SHIFT | DPS310_CFG_REG_BIT_P_SHIFT);
@@ -265,9 +287,17 @@ static bool deviceReadMeasurement(baroDev_t *baro)
     const float c20 = baroState.calib.c20;
     const float c21 = baroState.calib.c21;
     const float c30 = baroState.calib.c30;
+    const float c31 = baroState.calib.c31;
+    const float c40 = baroState.calib.c40;
 
     // See section 4.9.1, How to Calculate Compensated Pressure Values, of datasheet
-    baroState.pressure = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 + Traw_sc * Praw_sc * (c11 + Praw_sc * c21);
+    // baroState.pressure = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 + Traw_sc * Praw_sc * (c11 + Praw_sc * c21);
+    if (chipId[0] == SPL07_003_CHIP_ID) {
+        baroState.pressure = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * (c30 + Praw_sc * c40))) + Traw_sc * c01 + Traw_sc * Praw_sc * (c11 + Praw_sc * (c21 + Praw_sc * c31));
+    } else {
+        baroState.pressure = c00 + Praw_sc * (c10 + Praw_sc * (c20 + Praw_sc * c30)) + Traw_sc * c01 + Traw_sc * Praw_sc * (c11 + Praw_sc * c21);
+    }
+
 
     const float c0 = baroState.calib.c0;
     const float c1 = baroState.calib.c1;
@@ -299,13 +329,11 @@ static bool deviceCalculate(baroDev_t *baro, int32_t *pressure, int32_t *tempera
 static bool deviceDetect(busDevice_t * busDev)
 {
     for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
-        uint8_t chipId[1];
-
         delay(100);
 
         bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
 
-        if (ack && chipId[0] == DPS310_ID_REV_AND_PROD_ID) {
+        if (ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID)) {
             return true;
         }
     };
