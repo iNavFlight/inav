@@ -162,9 +162,9 @@
 
 #define SYM_MAX                     0xCE  // 206 MAX symbol
 #define SYM_PROFILE                 0xCF  // 207 Profile symbol
-#define SYM_SWITCH_INDICATOR_LOW    0xD0  // 208 Switch High
-#define SYM_SWITCH_INDICATOR_MID    0xD1  // 209 Switch Mid
-#define SYM_SWITCH_INDICATOR_HIGH   0xD2  // 210 Switch Low
+#define SYM_SWITCH_INDICATOR_LOW    0xD0  // 208 Switch Indicator Down/Low - Note: Some systems have HIGH us values for a switch in the down position
+#define SYM_SWITCH_INDICATOR_MID    0xD1  // 209 Switch Indicator Mid
+#define SYM_SWITCH_INDICATOR_HIGH   0xD2  // 210 Switch Indicator Up/High - Note: Some systems have LOW us values for a switch in the up position
 #define SYM_AH                      0xD3  // 211 Amphours symbol
 #define SYM_GLIDE_DIST              0xD4  // 212 Glide Distance
 #define SYM_GLIDE_MINS              0xD5  // 213 Glide Minutes
@@ -234,6 +234,8 @@
 #define SYM_AH_CH_CENTER            0x166 // 358 Crossair center
 #define SYM_FLIGHT_DIST_REMAINING   0x167 // 359 Flight distance reminaing
 #define SYM_ODOMETER                0x168 // 360 Odometer
+#define SYM_RX_BAND                 0x169 // 361 RX Band
+#define SYM_RX_MODE                 0x16A // 362 RX Mode
 
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4

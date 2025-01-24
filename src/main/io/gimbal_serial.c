@@ -63,11 +63,11 @@ static gimbalSerialHtrkState_t headTrackerState = {
     .attitude = {},
     .state = WAITING_HDR1,
 };
-#endif
-
-#endif
-
 static serialPort_t *headTrackerPort = NULL;
+#endif
+
+#endif
+
 static serialPort_t *gimbalPort = NULL;
 
 gimbalVTable_t gimbalSerialVTable = {
@@ -116,7 +116,9 @@ bool gimbalSerialIsReady(const gimbalDevice_t *gimbalDevice)
 bool gimbalSerialHasHeadTracker(const gimbalDevice_t *gimbalDevice)
 {
     UNUSED(gimbalDevice);
-    return headTrackerPort || (gimbalSerialConfig()->singleUart && gimbalPort);
+
+    headTrackerDevice_t *htrk = headTrackerCommonDevice();
+    return htrk != NULL && headTrackerCommonIsReady(htrk);
 }
 
 bool gimbalSerialInit(void)
@@ -251,7 +253,7 @@ void gimbalSerialProcess(gimbalDevice_t *gimbalDevice, timeUs_t currentTime)
 #else
     {
 #endif
-        DEBUG_SET(DEBUG_HEADTRACKING, 4, 0);
+        DEBUG_SET(DEBUG_HEADTRACKING, 4, 2);
         // Radio endpoints may need to be adjusted, as it seems ot go a bit
         // bananas at the extremes
         attitude.pan = gimbal_scale12(PWM_RANGE_MIN, PWM_RANGE_MAX, panPWM);

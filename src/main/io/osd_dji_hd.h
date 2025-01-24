@@ -30,6 +30,7 @@
 #include "msp/msp_serial.h"
 
 #include "config/parameter_group.h"
+#include "fc/rc_modes.h"
 
 #if defined(USE_DJI_HD_OSD)
 
@@ -66,6 +67,14 @@
 #define DJI_ALTERNATING_DURATION_LONG   (djiOsdConfig()->craftNameAlternatingDuration * 100)
 #define DJI_ALTERNATING_DURATION_SHORT  1000
 
+#define DJI_MSP_BAUDRATE                    115200
+
+#define DJI_ARMING_DISABLE_FLAGS_COUNT      25
+#define DJI_OSD_WARNING_COUNT               16
+#define DJI_OSD_TIMER_COUNT                 2
+#define DJI_OSD_FLAGS_OSD_FEATURE           (1 << 0)
+#define EFFICIENCY_UPDATE_INTERVAL          (5 * 1000)
+
 enum djiOsdTempSource_e {
     DJI_OSD_TEMP_ESC    = 0,
     DJI_OSD_TEMP_CORE   = 1,
@@ -94,5 +103,8 @@ PG_DECLARE(djiOsdConfig_t, djiOsdConfig);
 
 void djiOsdSerialInit(void);
 void djiOsdSerialProcess(void);
+
+uint32_t djiPackArmingDisabledFlags(void);
+void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask);
 
 #endif

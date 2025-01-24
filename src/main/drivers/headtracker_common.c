@@ -157,10 +157,6 @@ void taskUpdateHeadTracker(timeUs_t currentTimeUs)
 #else
 void taskUpdateHeadTracker(timeUs_t currentTimeUs)
 {
-    if (cliMode) {
-        return;
-    }
-
     headTrackerDevice_t *headTrackerDevice = headTrackerCommonDevice();
 
     if(headTrackerDevice) {

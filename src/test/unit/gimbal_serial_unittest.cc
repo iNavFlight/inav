@@ -34,6 +34,12 @@ void dumpMemory(uint8_t *mem, int size)
     printf("\n");
 }
 
+extern "C" {
+timeUs_t micros(void) {
+    return 10;
+}
+}
+
 TEST(GimbalSerialTest, TestGimbalSerialScale)
 {
     int16_t res16 = gimbal_scale12(1000, 2000, 2000);

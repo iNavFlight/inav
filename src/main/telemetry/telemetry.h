@@ -37,6 +37,12 @@ typedef enum {
 } ltmUpdateRate_e;
 
 typedef enum {
+    MAVLINK_RADIO_GENERIC,
+    MAVLINK_RADIO_ELRS,
+    MAVLINK_RADIO_SIK,
+} mavlinkRadio_e;
+
+typedef enum {
     SMARTPORT_FUEL_UNIT_PERCENT,
     SMARTPORT_FUEL_UNIT_MAH,
     SMARTPORT_FUEL_UNIT_MWH
@@ -46,6 +52,7 @@ typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
     uint8_t telemetry_inverted;             // Flip the default inversion of the protocol - Same as serialrx_inverted in rx.c, but for telemetry.
     uint8_t frsky_pitch_roll;
+    bool    frsky_use_legacy_gps_mode_sensor_ids;
     uint8_t report_cell_voltage;
     uint8_t hottAlarmSoundInterval;
     uint8_t halfDuplex;
@@ -72,6 +79,8 @@ typedef struct telemetryConfig_s {
         uint8_t extra2_rate;
         uint8_t extra3_rate;
         uint8_t version;
+        uint8_t min_txbuff;
+        uint8_t radio_type;
     } mavlink;
 } telemetryConfig_t;
 

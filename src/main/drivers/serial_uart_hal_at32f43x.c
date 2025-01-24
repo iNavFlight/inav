@@ -85,6 +85,7 @@ static void uartReconfigure(uartPort_t *uartPort)
           usart_transmitter_enable(uartPort->USARTx, TRUE);
 
     usartConfigurePinInversion(uartPort);
+    uartConfigurePinSwap(uartPort);
 
     if (uartPort->port.options & SERIAL_BIDIR)
         usart_single_line_halfduplex_select(uartPort->USARTx, TRUE);

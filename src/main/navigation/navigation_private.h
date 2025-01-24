@@ -113,6 +113,11 @@ typedef struct navigationFlags_s {
     bool rthTrackbackActive;                // Activation status of RTH trackback
     bool wpTurnSmoothingActive;             // Activation status WP turn smoothing
     bool manualEmergLandActive;             // Activation status of manual emergency landing
+
+#ifdef USE_GEOZONE
+    bool sendToActive;
+    bool forcedPosholdActive;
+#endif
 } navigationFlags_t;
 
 typedef struct {
@@ -160,6 +165,7 @@ typedef enum {
     NAV_FSM_EVENT_SWITCH_TO_COURSE_ADJ,
     NAV_FSM_EVENT_SWITCH_TO_MIXERAT,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING,
+    NAV_FSM_EVENT_SWITCH_TO_SEND_TO,
 
     NAV_FSM_EVENT_STATE_SPECIFIC_1,             // State-specific event
     NAV_FSM_EVENT_STATE_SPECIFIC_2,             // State-specific event
@@ -245,6 +251,10 @@ typedef enum {
     NAV_PERSISTENT_ID_FW_LANDING_FLARE                          = 46,
     NAV_PERSISTENT_ID_FW_LANDING_ABORT                          = 47,
     NAV_PERSISTENT_ID_FW_LANDING_FINISHED                       = 48,
+
+    NAV_PERSISTENT_ID_SEND_TO_INITALIZE                         = 49,
+    NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES                        = 50,
+    NAV_PERSISTENT_ID_SEND_TO_FINISHED                          = 51
 } navigationPersistentId_e;
 
 typedef enum {
@@ -303,6 +313,10 @@ typedef enum {
     NAV_STATE_MIXERAT_INITIALIZE,
     NAV_STATE_MIXERAT_IN_PROGRESS,
     NAV_STATE_MIXERAT_ABORT,
+
+    NAV_STATE_SEND_TO_INITALIZE,
+    NAV_STATE_SEND_TO_IN_PROGESS,
+    NAV_STATE_SEND_TO_FINISHED,
 
     NAV_STATE_COUNT,
 } navigationFSMState_t;
@@ -406,6 +420,17 @@ typedef enum {
     RTH_HOME_FINAL_LAND,            // Home position and altitude
 } rthTargetMode_e;
 
+#ifdef USE_GEOZONE
+typedef struct navSendTo_s {
+    fpVector3_t targetPos;
+    uint16_t altitudeTargetRange;   // 0 for only "2D" 
+    uint32_t targetRange;
+    bool lockSticks;
+    uint32_t lockStickTime;
+    timeMs_t startTime;
+} navSendTo_t;
+#endif
+
 typedef struct {
     fpVector3_t nearestSafeHome;    // The nearestSafeHome found during arming
     uint32_t    distance;           // distance to the nearest safehome
@@ -478,6 +503,10 @@ typedef struct {
     fwLandState_t fwLandState;
 #endif
 
+#ifdef USE_GEOZONE
+    navSendTo_t                  sendTo; // Used for Geozones
+#endif
+
     /* Internals & statistics */
     int16_t                     rcAdjustment[4];
     float                       totalTripDistance;
@@ -502,7 +531,9 @@ const navEstimatedPosVel_t * navGetCurrentActualPositionAndVelocity(void);
 
 bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
+void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t distance);
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
+float calculateDistance2(const fpVector2_t* startPos, const fpVector2_t* destinationPos);
 
 bool isLandingDetected(void);
 void resetLandingDetector(void);
