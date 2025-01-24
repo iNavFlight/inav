@@ -278,6 +278,14 @@ static void updateArmingStatus(void)
         }
 #endif
 
+#ifdef USE_GEOZONE
+    if (feature(FEATURE_GEOZONE) && geozoneIsBlockingArming()) {
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+    } else {
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+    }
+#endif
+
         /* CHECK: */
         if (
             sensors(SENSOR_ACC) &&

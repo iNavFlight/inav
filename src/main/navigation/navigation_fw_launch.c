@@ -260,7 +260,7 @@ static bool hasIdleWakeWiggleSucceeded(timeUs_t currentTimeUs) {
     static timeMs_t wiggleTime = 0;
     static timeMs_t wigglesTime = 0;
     static int8_t   wiggleStageOne = 0;
-    static uint8_t  wiggleCount = 0;  
+    static uint8_t  wiggleCount = 0;
     const bool      isAircraftWithinLaunchAngle = (calculateCosTiltAngle() >= cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
     const uint8_t   wiggleStrength = (navConfig()->fw.launch_wiggle_wake_idle == 1) ? 50 : 40;
     int8_t wiggleDirection = 0;
@@ -276,12 +276,12 @@ static bool hasIdleWakeWiggleSucceeded(timeUs_t currentTimeUs) {
         } else if (wiggleStageOne != wiggleDirection) {
             wiggleStageOne = 0;
             wiggleCount++;
-            
+
             if (wiggleCount == navConfig()->fw.launch_wiggle_wake_idle) {
                 return true;
             }
         }
- 
+
         wiggleTime = US2MS(currentTimeUs);
     }
 
@@ -360,7 +360,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_IDLE_WIGGLE_WAIT(tim
     }
 
     if (navConfig()->fw.launch_wiggle_wake_idle == 0 || navConfig()->fw.launch_idle_motor_timer > 0 ) {
-        return FW_LAUNCH_EVENT_GOTO_DETECTION;  
+        return FW_LAUNCH_EVENT_GOTO_DETECTION;
     }
 
     applyThrottleIdleLogic(true);
@@ -613,6 +613,7 @@ uint8_t fixedWingLaunchStatus(void)
 void abortFixedWingLaunch(void)
 {
     setCurrentState(FW_LAUNCH_STATE_ABORTED, 0);
+    DISABLE_FLIGHT_MODE(NAV_LAUNCH_MODE);
 }
 
 const char * fixedWingLaunchStateMessage(void)

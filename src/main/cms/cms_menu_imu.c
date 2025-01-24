@@ -227,6 +227,7 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
     OTHER_PIDFF_ENTRY("ALT P", &cmsx_pidPosZ.P),
     OTHER_PIDFF_ENTRY("ALT I", &cmsx_pidPosZ.I),
     OTHER_PIDFF_ENTRY("ALT D", &cmsx_pidPosZ.D),
+    OTHER_PIDFF_ENTRY("ALT FF", &cmsx_pidPosZ.FF),
 
     OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelZ.P),
     OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelZ.I),

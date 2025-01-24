@@ -24,6 +24,13 @@
 #include "io/displayport_msp_dji_compat.h"
 #include "io/dji_osd_symbols.h"
 #include "drivers/osd_symbols.h"
+#include <string.h>
+
+//                       0123456789
+static char *dji_logo = " DJI,     "
+                        " PLEASE   "
+                        " FIX YOUR "
+                        " OSD FONT ";
 
 uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 {
@@ -37,12 +44,20 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         return DJI_SYM_AH_DECORATION;
     }
 
+    if (ech >= SYM_LOGO_START && ech <= 297) {
+        return dji_logo[(ech - SYM_LOGO_START) % (strlen(dji_logo) + 1)];
+    }
+
+    if (ech >= SYM_PILOT_LOGO_LRG_START && ech <= 511) {
+        return dji_logo[(ech - SYM_LOGO_START) % (strlen(dji_logo) + 1)];
+    }
+
     switch (ech) {
         case SYM_RSSI:
             return DJI_SYM_RSSI;
 
         case SYM_LQ:
-            return 'Q';
+            return DJI_SYM_LINK_QUALITY;
 
         case SYM_LAT:
             return DJI_SYM_LAT;
@@ -127,13 +142,13 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_MAH:
             return DJI_SYM_MAH;
-
-        case SYM_AH_KM:
-            return 'K';
-
-        case SYM_AH_MI:
-            return 'M';
 /*
+        case SYM_AH_KM: // AH / KM
+            return '?';
+
+        case SYM_AH_MI: // AH / MI
+            return '?';
+
         case SYM_VTX_POWER:
             return DJI_SYM_VTX_POWER;
 
@@ -210,8 +225,9 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
             return DJI_SYM_M;
 
         case SYM_TOTAL:
-            return DJI_SYM_FLY_H;
-/*
+            return DJI_SYM_TOTAL_DISTANCE;
+
+    /*
 
         case SYM_ALT_KM:
             return DJI_SYM_ALT_KM;
@@ -234,20 +250,22 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_DIST_NM:
             return DJI_SYM_DIST_NM;
 */
+
         case SYM_M:
             return DJI_SYM_M;
 
         case SYM_KM:
-            return 'K';
+            return DJI_SYM_KM;
 
         case SYM_MI:
-            return 'M';
+            return DJI_SYM_MILES;
+
 /*
         case SYM_NM:
             return DJI_SYM_NM;
-*/
         case SYM_WIND_HORIZONTAL:
             return 'W';     // W for wind
+ */
 
 /*
         case SYM_WIND_VERTICAL:
@@ -255,7 +273,8 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_3D_KT:
             return DJI_SYM_3D_KT;
-*/
+ */
+/*
         case SYM_AIR:
             return 'A';     // A for airspeed
 
@@ -264,7 +283,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_3D_MPH:
             return DJI_SYM_MPH;
-
+ */
         case SYM_RPM:
             return DJI_SYM_RPM;
 
@@ -273,7 +292,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 /*
         case SYM_100FTM:
             return DJI_SYM_100FTM;
-*/
+ */
         case SYM_MS:
             return DJI_SYM_MPS;
 
@@ -291,7 +310,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_MAH_MI_1:
             return DJI_SYM_MAH_MI_1;
-*/
+ */
         case SYM_THR:
             return DJI_SYM_THR;
 
@@ -304,11 +323,13 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_BLANK:
             return DJI_SYM_BLANK;
 
+/*
         case SYM_ON_H:
             return DJI_SYM_ON_H;
 
         case SYM_FLY_H:
             return DJI_SYM_FLY_H;
+ */
 
         case SYM_ON_M:
             return DJI_SYM_ON_M;
@@ -330,7 +351,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_ZERO_HALF_LEADING_DOT:
             return DJI_SYM_ZERO_HALF_LEADING_DOT;
-*/
+ */
 
         case SYM_AUTO_THR0:
             return 'A';
@@ -365,7 +386,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_GFORCE_Z:
             return DJI_SYM_GFORCE_Z;
-*/
+ */
         case SYM_BARO_TEMP:
             return DJI_SYM_TEMPERATURE;
 
@@ -386,7 +407,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case TEMP_SENSOR_SYM_COUNT:
             return DJI_TEMP_SENSOR_SYM_COUNT;
-*/
+ */
         case SYM_HEADING_N:
             return DJI_SYM_HEADING_N;
 
@@ -410,7 +431,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 /*
         case SYM_PROFILE:
             return DJI_SYM_PROFILE;
-*/
+ */
         case SYM_SWITCH_INDICATOR_LOW:
             return DJI_SYM_STICK_OVERLAY_SPRITE_LOW;
 
@@ -452,16 +473,8 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_CROSS_TRACK_ERROR:
             return DJI_SYM_CROSS_TRACK_ERROR;
+ */
 
-        case SYM_LOGO_START:
-            return DJI_SYM_LOGO_START;
-
-        case SYM_LOGO_WIDTH:
-            return DJI_SYM_LOGO_WIDTH;
-
-        case SYM_LOGO_HEIGHT:
-            return DJI_SYM_LOGO_HEIGHT;
-*/
         case SYM_AH_LEFT:
             return DJI_SYM_AH_LEFT;
 
@@ -470,16 +483,17 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 /*
         case SYM_AH_DECORATION_COUNT:
             return DJI_SYM_AH_DECORATION_COUNT;
-*/
+ */
+
         case SYM_AH_CH_LEFT:
         case SYM_AH_CH_AIRCRAFT1:
-            return DJI_SYM_CROSSHAIR_LEFT;
+            return DJI_SYM_AH_CENTER_LINE;
         case SYM_AH_CH_CENTER:
         case SYM_AH_CH_AIRCRAFT2:
-            return DJI_SYM_CROSSHAIR_CENTRE;
+            return DJI_SYM_AH_CENTER;
         case SYM_AH_CH_RIGHT:
         case SYM_AH_CH_AIRCRAFT3:
-            return DJI_SYM_CROSSHAIR_RIGHT;
+            return DJI_SYM_AH_CENTER_LINE_RIGHT;
         
         case SYM_AH_CH_AIRCRAFT0:
         case SYM_AH_CH_AIRCRAFT4:
@@ -488,21 +502,21 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_AH_CH_TYPE3:
             return DJI_SYM_NONE;
         case (SYM_AH_CH_TYPE3+1):
-            return DJI_SYM_SMALL_CROSSHAIR;
+            return DJI_SYM_AH_CENTER;
         case (SYM_AH_CH_TYPE3+2):
             return DJI_SYM_NONE;
         
         case SYM_AH_CH_TYPE4:
             return DJI_SYM_HYPHEN;
         case (SYM_AH_CH_TYPE4+1):
-            return DJI_SYM_SMALL_CROSSHAIR;
+            return DJI_SYM_AH_CENTER;
         case (SYM_AH_CH_TYPE4+2):
             return DJI_SYM_HYPHEN;
         
         case SYM_AH_CH_TYPE5:
             return DJI_SYM_STICK_OVERLAY_HORIZONTAL;
         case (SYM_AH_CH_TYPE5+1):
-            return DJI_SYM_SMALL_CROSSHAIR;
+            return DJI_SYM_AH_CENTER;
         case (SYM_AH_CH_TYPE5+2):
             return DJI_SYM_STICK_OVERLAY_HORIZONTAL;
         
@@ -516,14 +530,14 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
         case SYM_AH_CH_TYPE7:
             return DJI_SYM_ARROW_SMALL_LEFT;
         case (SYM_AH_CH_TYPE7+1):
-            return DJI_SYM_SMALL_CROSSHAIR;
+            return DJI_SYM_AH_CENTER;
         case (SYM_AH_CH_TYPE7+2):
             return DJI_SYM_ARROW_SMALL_RIGHT;
         
         case SYM_AH_CH_TYPE8:
             return DJI_SYM_AH_LEFT;
         case (SYM_AH_CH_TYPE8+1):
-            return DJI_SYM_SMALL_CROSSHAIR;
+            return DJI_SYM_AH_CENTER;
         case (SYM_AH_CH_TYPE8+2):
             return DJI_SYM_AH_RIGHT;
 
@@ -683,7 +697,7 @@ uint8_t getDJICharacter(uint8_t ch, uint8_t page)
 
         case SYM_FLIGHT_DIST_REMAINING:
             return DJI_SYM_FLIGHT_DIST_REMAINING;
-*/
+ */
         case SYM_HUD_ARROWS_L1:
             return DJI_SYM_ARROW_SMALL_LEFT;
 

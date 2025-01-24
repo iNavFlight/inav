@@ -1,0 +1,760 @@
+AT32F435:
+  PA0:
+    - TMR2: 'CH1'
+    - TMR5: 'CH1'
+  PA1:
+    - TMR2: 'CH2'
+    - TMR5: 'CH2'
+  PA2:
+    - TMR2: 'CH3'
+    - TMR5: 'CH3'
+    - TMR9: 'CH1'
+  PA3:
+    - TMR2: 'CH4'
+    - TMR5: 'CH4'
+    - TMR9: 'CH2'
+  PA5:
+    - TMR2: 'CH1'
+    - TMR8: 'CH1C'
+  PA6:
+    - TMR3: 'CH1'
+  PA7:
+    - TMR1: 'CH1C'
+    - TMR3: 'CH2'
+    - TMR8: 'CH1C'
+  PA8:
+    - TMR1: 'CH1'
+  PA9:
+    - TMR1: 'CH2'
+  PA10:
+    - TMR1: 'CH3'
+  PA11:
+    - TMR1: 'CH4'
+  PA15:
+    - TMR2: 'CH1'
+  PB0:
+    - TMR1: 'CH2C'
+    - TMR3: 'CH3'
+    - TMR8: 'CH2C'
+  PB1:
+    - TMR1: 'CH3C'
+    - TMR3: 'CH4'
+    - TMR8: 'CH3C'
+  PB2:
+    - TMR2: 'CH4'
+    - TMR20: 'CH1'
+  PB3:
+    - TMR2: 'CH2'
+  PB4:
+    - TMR3: 'CH1'
+  PB5:
+    - TMR3: 'CH2'
+  PB6:
+    - TMR4: 'CH1'
+  PB7:
+    - TMR4: 'CH2'
+  PB8:
+    - TMR2: 'CH1'
+    - TMR4: 'CH3'
+    - TMR10: 'CH1'
+  PB9:
+    - TMR2: 'CH2'
+    - TMR4: 'CH4'
+    - TMR11: 'CH1'
+  PB10:
+    - TMR2: 'CH3'
+  PB11:
+    - TMR2: 'CH4'
+    - TMR5: 'CH4'
+  PB12:
+    - TMR5: 'CH1'
+  PB13:
+    - TMR1: 'CH1C'
+  PB14:
+    - TMR1: 'CH2C'
+    - TMR8: 'CH2C'
+  PB15:
+    - TMR1: 'CH3C'
+    - TMR8: 'CH3C'
+  PC2:
+    - TMR20: 'CH2'
+  PC4:
+    - TMR9: 'CH1'
+  PC5:
+    - TMR9: 'CH2'
+  PC6:
+    - TMR3: 'CH1'
+    - TMR8: 'CH1'
+  PC7:
+    - TMR3: 'CH2'
+    - TMR8: 'CH2'
+  PC8:
+    - TMR3: 'CH3'
+    - TMR8: 'CH3'
+  PC9:
+    - TMR3: 'CH4'
+    - TMR8: 'CH4'
+  PC10:
+    - TMR5: 'CH2'
+  PC11:
+    - TMR5: 'CH3'
+  PC12:
+    - TMR11: 'CH1C'
+  PD12:
+    - TMR4: 'CH1'
+  PD13:
+    - TMR4: 'CH2'
+  PD14:
+    - TMR4: 'CH3'
+  PD15:
+    - TMR4: 'CH4'
+  PE3:
+    - TMR3: 'CH1'
+  PE4:
+    - TMR3: 'CH2'
+  PE5:
+    - TMR3: 'CH3'
+    - TMR9: 'CH1'
+  PE6:
+    - TMR3: 'CH4'
+    - TMR9: 'CH2'
+  PE8:
+    - TMR1: CH1C
+  PE9:
+    - TMR1: CH1
+  PE10:
+    - TMR1: CH2C
+  PE11:
+    - TMR1: CH2
+  PE12:
+    - TMR1: CH3C
+  PE13:
+    - TMR1: CH3
+  PE14:
+    - TMR1: CH4
+  PF2:
+    - TMR20: CH3
+  PF3:
+    - TMR20: CH4
+  PF4:
+    - TMR20: CH1C
+  PF5:
+    - TMR20: CH2C
+  PF6:
+    - TMR20: CH4
+    - TMR10: CH1
+  PF7:
+    - TMR11: CH1
+  PF10:
+    - TMR5: CH4
+  PF12:
+    - TMR20: CH1
+  PF13:
+    - TMR20: CH2
+  PF14:
+    - TMR20: CH3
+  PF15:
+    - TMR20: CH4
+  PG0:
+    - TMR20: CH1C
+  PG1:
+    - TMR20: CH2C
+  PG2:
+    - TMR20: CH3C
+  PH2:
+    - TMR5: CH1
+  PH3:
+    - TMR5: CH2
+STM32F405:
+  PE5:
+    - TIM9: CH1
+  PE6:
+    - TIM9: CH2
+  PF6:
+    - TIM10: CH1
+  PF7:
+    - TIM11: CH1
+  PF8:
+    - TIM13: CH1
+  PF9:
+    - TIM14: CH1
+  PA0:
+    - TIM5: CH1
+  PA1:
+    - TIM5: CH2
+    - TIM2: CH2
+  PA2:
+    - TIM5: CH3
+    - TIM9: CH1
+    - TIM2: CH3
+  PA3:
+    - TIM5: CH4
+    - TIM9: CH2
+    - TIM2: CH4
+  PA5:
+    - TIM8: CH1N
+  PA6:
+    - TIM13: CH1
+    - TIM3: CH1
+  PA7:
+    - TIM8: CH1N
+    - TIM14: CH1
+    - TIM3: CH2
+    - TIM1: CH1N
+  PB0:
+    - TIM3: CH3
+    - TIM8: CH2N
+    - TIM1: CH2N
+  PB1:
+    - TIM3: CH4
+    - TIM8: CH3N
+    - TIM1: CH3N
+  PE8:
+    - TIM1: CH1N
+  PE9:
+    - TIM1: CH1
+  PE10:
+    - TIM1: CH2N
+  PE11:
+    - TIM1: CH2
+  PE12:
+    - TIM1: CH3N
+  PE13:
+    - TIM1: CH3
+  PE14:
+    - TIM1: CH4
+  PB10:
+    - TIM2: CH3
+  PB11:
+    - TIM2: CH3
+  PH6:
+    - TIM13: CH1
+  PH9:
+    - TIM12: CH2
+  PH10:
+    - TIM5: CH1
+  PH11:
+    - TIM5: CH2
+  PH12:
+    - TIM5: CH3
+  PB13:
+    - TIM1: CH1N
+  PB14:
+    - TIM1: CH2N
+    - TIM12: CH1
+    - TIM8: CH2N
+  PB15:
+    - TIM1: CH3N
+    - TIM8: CH3N
+    - TIM12: CH2
+  PD12:
+    - TIM14: CH1
+  PD13:
+    - TIM14: CH2
+  PD14:
+    - TIM4: CH3
+  PD5:
+    - TIM4: CH3
+  PC6:
+    - TIM8: CH1
+    - TIM3: CH1
+  PC7:
+    - TIM8: CH2
+    - TIM3: CH2
+  PC8:
+    - TIM8: CH3
+    - TIM3: CH3
+  PC9:
+    - TIM8: CH4
+    - TIM3: CH4
+  PA8:
+    - TIM1: CH1
+  PA9:
+    - TIM1: CH2
+  PA10:
+    - TIM1: CH3
+  PA11:
+    - TIM1: CH4
+  PH13:
+    - TIM8: CH1N
+  PH14:
+    - TIM8: CH2N
+  PH14:
+    - TIM8: CH3N
+  PI0:
+    - TIM5: CH4
+  PI2:
+    - TIM8: CH4
+  PB3:
+    - TIM2: CH2
+  PB4:
+    - TIM3: CH1
+  PB5:
+    - TIM3: CH2
+  PB6:
+    - TIM4: CH1
+  PB7:
+    - TIM4: CH2
+  PB8:
+    - TIM4: CH3
+    - TIM10: CH1
+  PB9:
+    - TIM4: CH4
+    - TIM11: CH1
+  PI5:
+    - TIM8: CH1
+  PI6:
+    - TIM8: CH2
+  PI7:
+    - TIM8: CH3
+STM32H743:
+  PA0:
+    - TIM2: CH1
+    - TIM5: CH1
+  PA1:
+    - TIM2: CH2
+    - TIM5: CH2
+    - TIM15: CH1N
+  PA2:
+    - TIM2: CH3
+    - TIM5: CH3
+    - TIM15: CH1
+  PA5:
+    - TIM2: CH1
+    - TIM8: CH1N
+  PA6:
+    - TIM3: CH1
+  PA7:
+    - TIM1: CH1N
+    - TIM3: CH2
+    - TIM8: CH1N
+  PA8:
+    - TIM1: CH1
+  PA9:
+    - TIM1: CH2
+  PA10:
+    - TIM1: CH3
+  PA11:
+    - TIM1: CH4
+  PA15:
+    - TIM2: CH1
+  PB0:
+    - TIM1: CH2N
+    - TIM3: CH3
+    - TIM8: CH2N
+  PB1:
+    - TIM1: CH3N
+    - TIM3: CH4
+    - TIM8: CH3N
+  PB3:
+    - TIM2: CH2
+  PB4:
+    - TIM3: CH1
+  PB5:
+    - TIM3: CH2
+  PB6:
+    - TIM16: CH1N
+    - TIM4: CH1
+  PB7:
+    - TIM17: CH1N
+    - TIM4: CH2
+  PB8:
+    - TIM16: CH1
+    - TIM4: CH3
+  PB9:
+    - TIM17: CH1
+    - TIM4: CH4
+  PB10:
+    - TIM2: CH3
+  PB11:
+    - TIM2: CH4
+  PB13:
+    - TIM1: CH1N
+  PB14:
+    - TIM1: CH2N
+    - TIM12: CH1
+    - TIM8: CH2N
+  PB15:
+    - TIM1: CH3N
+    - TIM12: CH2
+    - TIM8: CH3N
+  PC6:
+    - TIM3: CH1
+    - TIM8: CH1
+  PC7:
+    - TIM3: CH2
+    - TIM8: CH2
+  PC8:
+    - TIM3: CH3
+    - TIM8: CH3
+  PC9:
+    - TIM3: CH4
+    - TIM8: CH4
+  PD12:
+    - TIM4: CH1
+  PD13:
+    - TIM4: CH2
+  PD14:
+    - TIM4: CH3
+  PD15:
+    - TIM4: CH4
+  PE4:
+    - TIM15: CH1N
+  PE5:
+    - TIM15: CH1
+  PE6:
+    - TIM15: CH2
+  PE8:
+    - TIM1: CH1N
+  PE9:
+    - TIM1: CH1
+  PE10:
+    - TIM1: CH2N
+  PE11:
+    - TIM1: CH2
+  PE12:
+    - TIM1: CH3N
+  PE13:
+    - TIM1: CH3
+  PE14:
+    - TIM1: CH4
+  PF6:
+    - TIM16: CH1
+  PF7:
+    - TIM17: CH1
+  PF8:
+    - TIM16: CH1N
+  PF9:
+    - TIM17: CH1N
+  PH6:
+    - TIM12: CH1
+  PH9:
+    - TIM12: CH2
+  PH10:
+    - TIM5: CH1 
+  PH11:
+    - TIM5: CH2 
+  PH12:
+    - TIM5: CH3 
+  PH13:
+    - TIM8: CH1N
+  PH14:
+    - TIM8: CH2N
+  PH15:
+    - TIM8: CH3N
+  PI0:
+    - TIM5: CH4
+  PI2:
+    - TIM8: CH4
+  PI5:
+    - TIM8: CH1
+  PI6:
+    - TIM8: CH2
+  PI7:
+    - TIM8: CH3
+  PJ6:
+    - TIM8: CH2
+  PJ7:
+    - TIM8: CH2N
+  PJ8:
+    - TIM1: CH3N
+    - TIM8: CH1
+  PJ9:
+    - TIM1: CH3
+    - TIM8: CH1N
+  PJ10:
+    - TIM1: CH2N
+    - TIM8: CH2
+  PJ11:
+    - TIM1: CH2
+    - TIM8: CH2N
+  PK0:
+    - TIM1: CH1N
+    - TIM8: CH3
+  PK1:
+    - TIM1: CH1
+    - TIM8: CH3N
+STM32F722:
+  PA0:
+    - TIM2: CH1
+    - TIM5: CH1
+  PA1:
+    - TIM2: CH2
+    - TIM5: CH2
+  PA2:
+    - TIM2: CH3
+    - TIM5: CH3
+    - TIM9: CH1
+  PA3:
+    - TIM2: CH4
+    - TIM5: CH4
+    - TIM9: CH2
+  PA5:
+    - TIM2: CH1
+    - TIM8: CH1N
+  PA6:
+    - TIM3: CH1
+    - TIM13: CH1
+  PA7:
+    - TIM1: CH1N
+    - TIM3: CH2
+    - TIM8: CH1N
+    - TIM14: CH1
+  PA8:
+    - TIM1: CH1
+  PA9:
+    - TIM1: CH2
+  PA10:
+    - TIM1: CH3
+  PA11:
+    - TIM1: CH4
+  PA15:
+    - TIM2: CH1
+  PB0:
+    - TIM1: CH2N
+    - TIM3: CH3
+    - TIM8: CH2N
+  PB1:
+    - TIM1: CH3N
+    - TIM3: CH4
+    - TIM8: CH3N
+  PB3:
+    - TIM2: CH2
+  PB4:
+    - TIM3: CH1
+  PB5:
+    - TIM3: CH2
+  PB6: 
+    - TIM4: CH1
+  PB7:
+    - TIM4: CH2
+  PB8:
+    - TIM4: CH3
+    - TIM10: CH1
+  PB9:
+    - TIM4: CH4
+    - TIM11: CH1
+  PB10:
+    - TIM2: CH3
+  PB11:
+    - TIM2: CH4
+  PB13:
+    - TIM1: CH1N
+  PB14:
+    - TIM1: CH2N
+    - TIM8: CH2N
+    - TIM12: CH1
+  PB15:
+    - TIM1: CH3N
+    - TIM8: CH3N
+    - TIM12: CH2
+  PC6:
+    - TIM3: CH1
+    - TIM8: CH1
+  PC7:
+    - TIM3: CH2
+    - TIM8: CH2
+  PC8:
+    - TIM3: CH3
+    - TIM8: CH3
+  PC9:
+    - TIM3: CH4
+    - TIM8: CH4
+  PD12:
+    - TIM4: CH1
+  PD13:
+    - TIM4: CH2
+  PD14:
+    - TIM4: CH3
+  PD15:
+    - TIM4: CH4
+  PE5:
+    - TIM9: CH1
+  PE6:
+    - TIM9: CH2
+  PE8:
+    - TIM1: CH1N
+  PE9:
+    - TIM1: CH1
+  PE10:
+    - TIM1: CH2N
+  PE11:
+    - TIM1: CH2
+  PE12:
+    - TIM1: CH3N
+  PE13:
+    - TIM1: CH3
+  PE14:
+    - TIM1: CH4
+  PF6:
+    - TIM10: CH1
+  PF7:
+    - TIM10: CH1
+  PH6:
+    - TIM12: CH1
+  PH9:
+    - TIM12: CH2
+  PH10:
+    - TIM5: CH1
+  PH11:
+    - TIM5: CH2
+  PH12:
+    - TIM5: CH3
+  PH13:
+    - TIM8: CH1N
+  PH14:
+    - TIM8: CH2N
+  PH15:
+    - TIM8: CH3N
+  PI0:
+    - TIM5: CH4
+  PI2:
+    - TIM8: CH4
+  PI5:
+    - TIM8: CH1
+  PI6:
+    - TIM8: CH2
+  PI7:
+    - TIM8: CH3
+STM32F745:
+  PA0:
+    - TIM2: CH1
+    - TIM5: CH1
+  PA1:
+    - TIM2: CH2
+    - TIM5: CH2
+  PA2:
+    - TIM2: CH3
+    - TIM5: CH3
+    - TIM9: CH1
+  PA3:
+    - TIM2: CH4
+    - TIM5: CH4
+    - TIM9: CH2
+  PA5:
+    - TIM2: CH1
+    - TIM8: CH1N
+  PA6:
+    - TIM3: CH1
+  PA7:
+    - TIM1: CH1N
+    - TIM3: CH2
+    - TIM8: CH1N
+  PA8:
+    - TIM1: CH1
+  PA9:
+    - TIM1: CH2
+  PA10:
+    - TIM1: CH3
+  PA11:
+    - TIM1: CH4
+  PA15:
+    - TIM2: CH1
+  PB0:
+    - TIM1: CH2N
+    - TIM3: CH3
+    - TIM8: CH2N
+  PB1:
+    - TIM1: CH3N
+    - TIM3: CH4
+    - TIM8: CH3N
+  PB3:
+    - TIM2: CH2
+  PB4:
+    - TIM3: CH1
+  PB5:
+    - TIM3: CH2
+  PB6:
+    - TIM4: CH1
+  PB7:
+    - TIM4: CH2
+  PB8:
+    - TIM4: CH3
+    - TIM10: CH1
+  PB9:
+    - TIM4: CH4
+    - TIM11: CH1
+  PB10:
+    - TIM2: CH3
+  PB11:
+    - TIM2: CH4
+  PB13:
+    - TIM1: CH1N
+  PB14:
+    - TIM1: CH2N
+    - TIM8: CH2N
+  PB15:
+    - TIM1: CH3N
+    - TIM8: CH3N
+  PC6:
+    - TIM3: CH1
+    - TIM8: CH1
+  PC7:
+    - TIM3: CH2
+    - TIM8: CH2
+  PC8:
+    - TIM3: CH3
+    - TIM8: CH3
+  PC9:
+    - TIM3: CH4
+    - TIM8: CH4
+  PD12:
+    - TIM4: CH1
+  PD13:
+    - TIM4: CH2
+  PD14:
+    - TIM4: CH3
+  PD15:
+    - TIM4: CH4
+  PE5:
+    - TIM9: CH1
+  PE6:
+    - TIM9: CH2
+  PE8:
+    - TIM1: CH1N
+  PE9:
+    - TIM1: CH1
+  PE10:
+    - TIM1: CH2N
+  PE11:
+    - TIM1: CH2
+  PE12:
+    - TIM1: CH3N
+  PE13:
+    - TIM1: CH3
+  PE14:
+    - TIM1: CH4
+  PF6:
+    - TIM10: CH1
+  PF7:
+    - TIM11: CH1
+  PF8:
+    - TIM13: CH1
+  PF9:
+    - TIM14: CH1
+  PH6:
+    - TIM12: CH1
+  PH9:
+    - TIM12: CH2
+  PH10:
+    - TIM5: CH1
+  PH11:
+    - TIM5: CH2
+  PH12:
+    - TIM5: CH3
+  PH13:
+    - TIM8: CH1N
+  PH14:
+    - TIM8: CH2N
+  PH15:
+    - TIM8: CH3N
+  PI0:
+    - TIM5: CH4
+  PI2:
+    - TIM8: CH4
+  PI5:
+    - TIM8: CH1
+  PI6:
+    - TIM8: CH2
+  PI7:
+    - TIM8: CH3

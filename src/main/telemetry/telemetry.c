@@ -56,7 +56,7 @@
 #include "telemetry/ghst.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 8);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .telemetry_switch = SETTING_TELEMETRY_SWITCH_DEFAULT,
@@ -93,7 +93,9 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
         .extra1_rate = SETTING_MAVLINK_EXTRA1_RATE_DEFAULT,
         .extra2_rate = SETTING_MAVLINK_EXTRA2_RATE_DEFAULT,
         .extra3_rate = SETTING_MAVLINK_EXTRA3_RATE_DEFAULT,
-        .version = SETTING_MAVLINK_VERSION_DEFAULT
+        .version = SETTING_MAVLINK_VERSION_DEFAULT,
+        .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
+        .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT
     }
 );
 

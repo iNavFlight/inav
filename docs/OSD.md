@@ -4,7 +4,7 @@ The On Screen Display, or OSD, is a feature that overlays flight data over the v
 
 
 General OSD information is in this document. Other documents cover specific OSD-related topics:
-* [Custom OSD Messages](https://github.com/iNavFlight/inav/wiki/OSD-custom-messages)
+* [Custom OSD Elements](https://github.com/iNavFlight/inav/wiki/Custom-OSD-Elements)
 * [OSD Hud and ESP32 radars](https://github.com/iNavFlight/inav/wiki/OSD-Hud-and-ESP32-radars)
 * [OSD Joystick](https://github.com/iNavFlight/inav/blob/master/docs/OSD%20Joystick.md)
 * [DJI compatible OSD.md](https://github.com/iNavFlight/inav/blob/master/docs/DJI%20compatible%20OSD.md)
@@ -189,6 +189,13 @@ Here are the OSD Elements provided by INAV.
 | 156 | OSD_CUSTOM_ELEMENT_6                             | 8.0.0  |       |
 | 157 | OSD_CUSTOM_ELEMENT_7                             | 8.0.0  |       |
 | 158 | OSD_CUSTOM_ELEMENT_8                             | 8.0.0  |       |
+| 159 | OSD_LQ_DOWNLINK                                  | 8.0.0  |       |
+| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  |       |
+| 161 | OSD_RX_BAND                                      | 8.0.0  |       |
+| 162 | OSD_RX_MODE                                      | 8.0.0  |       |
+| 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
+| 164 | OSD_H_DIST_TO_FENCE                              | 8.0.0  |       |
+| 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
 
 # Pilot Logos
 

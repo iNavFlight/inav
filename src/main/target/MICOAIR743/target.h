@@ -100,7 +100,14 @@
 #define BARO_I2C_BUS            BUS_I2C2
 
 #define USE_MAG
+
+#ifdef MICOAIR743_EXTMAG
+// External compass
 #define MAG_I2C_BUS             BUS_I2C1
+#else
+// Onboard compass
+#define MAG_I2C_BUS             BUS_I2C2
+#endif
 #define USE_MAG_ALL
 
 // *************** ENABLE OPTICAL FLOW & RANGEFINDER *****************************

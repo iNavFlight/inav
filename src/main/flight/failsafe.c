@@ -535,6 +535,7 @@ void failsafeUpdateState(void)
                             abortForcedRTH();
                             failsafeSetActiveProcedure(FAILSAFE_PROCEDURE_AUTO_LANDING);
                             failsafeActivate(FAILSAFE_LANDING);
+                            activateForcedEmergLanding();
                             reprocessState = true;
                             break;
                     }

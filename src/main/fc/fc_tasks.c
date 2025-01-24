@@ -120,9 +120,6 @@ void taskHandleSerial(timeUs_t currentTimeUs)
 #ifdef USE_MSP_OSD
 	// Capture MSP Displayport messages to determine if VTX is connected
     mspOsdSerialProcess(mspFcProcessCommand);
-#ifdef USE_VTX_MSP
-    mspVtxSerialProcess(mspFcProcessCommand);
-#endif
 #endif
 
 }
@@ -339,6 +336,15 @@ void taskUpdateAux(timeUs_t currentTimeUs)
 #endif
 }
 
+#ifdef USE_GEOZONE
+void geozoneUpdateTask(timeUs_t currentTimeUs)
+{
+    if (feature(FEATURE_GEOZONE)) {
+        geozoneUpdate(currentTimeUs);
+    }
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -409,7 +415,7 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_OPFLOW, sensors(SENSOR_OPFLOW));
 #endif
 #ifdef USE_VTX_CONTROL
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
     setTaskEnabled(TASK_VTXCTRL, true);
 #endif
 #endif
@@ -453,6 +459,11 @@ void fcTasksInit(void)
 #if defined(SITL_BUILD)
     serialProxyStart();
 #endif
+
+#ifdef USE_GEOZONE
+    setTaskEnabled(TASK_GEOZONE, feature(FEATURE_GEOZONE));
+#endif
+
 }
 
 cfTask_t cfTasks[TASK_COUNT] = {
@@ -737,6 +748,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskFunc = taskSendSbus2Telemetry,
         .desiredPeriod = TASK_PERIOD_US(125), // 8kHz 2ms dead time + 650us window / sensor.
         .staticPriority = TASK_PRIORITY_LOW, // timing is critical. Ideally, should be a timer interrupt triggered by sbus packet
+    },
+#endif
+
+#ifdef USE_GEOZONE
+    [TASK_GEOZONE] = {
+        .taskName = "GEOZONE",
+        .taskFunc = geozoneUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(5),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
 

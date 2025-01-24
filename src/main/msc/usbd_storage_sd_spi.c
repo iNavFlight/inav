@@ -213,8 +213,9 @@ static int8_t STORAGE_Read (uint8_t lun,
 	UNUSED(lun);
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
-    while (sdcard_readBlock(blk_addr + i, buf + (512 * i), NULL, 0) == 0);
-    while (sdcard_poll() == 0);
+		while (sdcard_readBlock(blk_addr + i, buf + (512 * i), NULL, 0) == 0)
+			sdcard_poll();
+		while (sdcard_poll() == 0);
 	}
 	LED1_OFF;
 	return 0;

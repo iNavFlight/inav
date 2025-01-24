@@ -145,7 +145,12 @@ void uartInverterSet(USART_TypeDef *USARTx, uartInverterLine_e line, bool enable
 
 // UART4
 #if defined(INVERTER_PIN_UART4_RX) || defined(INVERTER_PIN_UART4_TX)
-    if (USARTx == USART4) {
+#if defined(STM32F4)
+    if (USARTx == UART4)
+#else
+    if (USARTx == USART4)
+#endif
+    {
 #if defined(INVERTER_PIN_UART4_RX)
         rx_pin = IOGetByTag(IO_TAG(INVERTER_PIN_UART4_RX));
 #endif

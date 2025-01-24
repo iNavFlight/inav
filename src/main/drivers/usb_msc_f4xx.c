@@ -42,7 +42,7 @@
 #include "drivers/light_led.h"
 #include "drivers/nvic.h"
 #include "drivers/persistent.h"
-#include "drivers/sdmmc_sdio.h"
+#include "drivers/sdcard/sdmmc_sdio.h"
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 
