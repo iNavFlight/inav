@@ -37,6 +37,7 @@
 #include "common/maths.h"
 #include "common/utils.h"
 #include "common/string_light.h"
+#include "common/log.h"
 
 #include "config/feature.h"
 
@@ -606,6 +607,7 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
     else if (gpsSol.fixType == GPS_FIX_3D)
             gpsFixType = 3;
 
+    LOG_DEBUG(SYSTEM, "MAVLINK SEND POSITION");
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
         currentTimeUs,
@@ -1016,12 +1018,15 @@ static bool handleIncoming_MISSION_ITEM(void)
         }
 
         if ((msg.autocontinue == 0) || (msg.command != MAV_CMD_NAV_WAYPOINT && msg.command != MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
+            LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED");
+
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
             return true;
         }
 
         if ((msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) && !(msg.frame == MAV_FRAME_MISSION && msg.command == MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
+            LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED FRAME");
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
             return true;
@@ -1128,19 +1133,24 @@ static bool handleIncoming_COMMAND_INT(void)
     mavlink_msg_command_int_decode(&mavRecvMsg, &msg);
 
     if (msg.target_system == mavSystemId) {
+        LOG_DEBUG(SYSTEM, "COMMAND_INT", msg.command);
+
         if (msg.command == MAV_CMD_DO_REPOSITION) {
-            // Validate coordinate frame
-            if (msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) {
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
-                                            msg.command,
-                                            MAV_RESULT_UNSUPPORTED,
-                                            0,  // progress
-                                            0,  // result_param2
-                                            mavRecvMsg.sysid,
-                                            mavRecvMsg.compid);
-                mavlinkSendMessage();
-                return true;
-            }
+            LOG_DEBUG(SYSTEM, "1 MAV_CMD_DO_REPOSITION");
+            // apparently it sends a MISSION_ITEM seq 0 command after?
+            if (msg.frame != MAV_FRAME_GLOBAL) {
+                    LOG_DEBUG(SYSTEM, "2 FRAME %d UNSUPPORTED", msg.frame);
+
+                    mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                                msg.command,
+                                                MAV_RESULT_UNSUPPORTED,
+                                                0,  // progress
+                                                0,  // result_param2
+                                                mavRecvMsg.sysid,
+                                                mavRecvMsg.compid);
+                    mavlinkSendMessage();
+                    return true;
+                }
 
             if (IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
                 navWaypoint_t wp;
@@ -1152,6 +1162,7 @@ static bool handleIncoming_COMMAND_INT(void)
                 wp.flag = 0;
 
                 setWaypoint(255, &wp);
+                LOG_DEBUG(SYSTEM, "2 WP SET");
 
                 mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                             msg.command,
@@ -1162,6 +1173,7 @@ static bool handleIncoming_COMMAND_INT(void)
                                             mavRecvMsg.compid);
                 mavlinkSendMessage();
             } else {
+                LOG_DEBUG(SYSTEM, "2 DENIED");
                 mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                             msg.command,
                                             MAV_RESULT_DENIED,
@@ -1172,6 +1184,7 @@ static bool handleIncoming_COMMAND_INT(void)
                 mavlinkSendMessage();
             }
         } else {
+                LOG_DEBUG(SYSTEM, "1 CMD UNSUPPORTED");
             mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                         msg.command,
                                         MAV_RESULT_UNSUPPORTED,
