@@ -607,7 +607,6 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
     else if (gpsSol.fixType == GPS_FIX_3D)
             gpsFixType = 3;
 
-    LOG_DEBUG(SYSTEM, "MAVLINK SEND POSITION");
     mavlink_msg_gps_raw_int_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // time_usec Timestamp (microseconds since UNIX epoch or microseconds since system boot)
         currentTimeUs,
@@ -1137,7 +1136,6 @@ static bool handleIncoming_COMMAND_INT(void)
 
         if (msg.command == MAV_CMD_DO_REPOSITION) {
             LOG_DEBUG(SYSTEM, "1 MAV_CMD_DO_REPOSITION");
-            // apparently it sends a MISSION_ITEM seq 0 command after?
             if (msg.frame != MAV_FRAME_GLOBAL) {
                     LOG_DEBUG(SYSTEM, "2 FRAME %d UNSUPPORTED", msg.frame);
 
