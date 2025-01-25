@@ -1131,30 +1131,40 @@ static bool handleIncoming_COMMAND_INT(void)
     if (msg.target_system == mavSystemId) {
 
         if (msg.command == MAV_CMD_DO_REPOSITION) {
+            // Validate coordinate frame (only MAV_FRAME_GLOBAL_RELATIVE_ALT is supported)
+            if (msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) {
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_UNSUPPORTED);
+                mavlinkSendMessage();
+                return true;
+            }
+
+            // Ensure both GCS_NAV and POSHOLD modes are active
             if (IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
                 navWaypoint_t wp;
                 wp.action = NAV_WP_ACTION_WAYPOINT;
-                wp.lat = (int32_t)(msg.x * 1e7f);
-                wp.lon = (int32_t)(msg.y * 1e7f);
-                wp.alt = msg.z * 100.0f;
+                wp.lat = msg.x;        
+                wp.lon = msg.y;         
+                wp.alt = msg.z * 100.0f; // Convert meters to centimeters
                 wp.p1 = 0;
                 wp.p2 = 0;
                 wp.p3 = 0;
                 wp.flag = 0;
+
+                // Set special waypoint 255 for GCS navigation
                 setWaypoint(255, &wp);
-                //static inline uint16_t mavlink_msg_command_ack_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-                               //uint16_t command, uint8_t result, uint8_t progress, int32_t result_param2, uint8_t target_system, uint8_t target_component)
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, 
+
+                // Acknowledge successful command
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_ACCEPTED);
+                mavlinkSendMessage();
+            } else {
+                // Modes not active; deny command
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_DENIED);
                 mavlinkSendMessage();
             }
-            else {
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID, MAV_MISSION_TYPE_MISSION);
-                mavlinkSendMessage();
-            }
-        }
-        else {
-            //mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
-            //mavlinkSendMessage();
+        } else {
+            // Unsupported command
+            mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_UNSUPPORTED);
+            mavlinkSendMessage();
         }
 
         return true;
@@ -1303,11 +1313,11 @@ static bool processMAVLinkIncomingTelemetry(void)
                 case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                     return handleIncoming_MISSION_REQUEST_LIST();
 
-                //case MAVLINK_MSG_ID_COMMAND_LONG;
-
-                //case MAVLINK_MSG_ID_COMMAND_INT;
-
-
+                //case MAVLINK_MSG_ID_COMMAND_LONG; //up to 7 float parameters
+                
+                
+                case MAVLINK_MSG_ID_COMMAND_INT: //7 parameters: parameters 1-4, 7 are floats, and parameters 5,6 are scaled integers
+                    return handleIncoming_COMMAND_INT();
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
