@@ -1127,49 +1127,62 @@ static bool handleIncoming_COMMAND_INT(void)
     mavlink_command_int_t msg;
     mavlink_msg_command_int_decode(&mavRecvMsg, &msg);
 
-    // Check if this message is for us
     if (msg.target_system == mavSystemId) {
-
         if (msg.command == MAV_CMD_DO_REPOSITION) {
-            // Validate coordinate frame (only MAV_FRAME_GLOBAL_RELATIVE_ALT is supported)
+            // Validate coordinate frame
             if (msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) {
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_UNSUPPORTED);
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_UNSUPPORTED,
+                                            0,  // progress
+                                            0,  // result_param2
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
                 mavlinkSendMessage();
                 return true;
             }
 
-            // Ensure both GCS_NAV and POSHOLD modes are active
             if (IS_RC_MODE_ACTIVE(BOXGCSNAV)) {
                 navWaypoint_t wp;
                 wp.action = NAV_WP_ACTION_WAYPOINT;
-                wp.lat = msg.x;        
-                wp.lon = msg.y;         
-                wp.alt = msg.z * 100.0f; // Convert meters to centimeters
-                wp.p1 = 0;
-                wp.p2 = 0;
-                wp.p3 = 0;
+                wp.lat = msg.x;
+                wp.lon = msg.y;
+                wp.alt = msg.z * 100.0f;
+                wp.p1 = wp.p2 = wp.p3 = 0;
                 wp.flag = 0;
 
-                // Set special waypoint 255 for GCS navigation
                 setWaypoint(255, &wp);
 
-                // Acknowledge successful command
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_ACCEPTED);
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_ACCEPTED,
+                                            0,  // progress
+                                            0,  // result_param2
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
                 mavlinkSendMessage();
             } else {
-                // Modes not active; deny command
-                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_DENIED);
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_DENIED,
+                                            0,
+                                            0,
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
                 mavlinkSendMessage();
             }
         } else {
-            // Unsupported command
-            mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, msg.command, MAV_RESULT_UNSUPPORTED);
+            mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                        msg.command,
+                                        MAV_RESULT_UNSUPPORTED,
+                                        0,
+                                        0,
+                                        mavRecvMsg.sysid,
+                                        mavRecvMsg.compid);
             mavlinkSendMessage();
         }
-
         return true;
     }
-
     return false;
 }
 
