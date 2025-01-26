@@ -98,6 +98,7 @@
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_UART           SERIAL_PORT_USART6
 
 // *************** I2C: BARO & MAG ****************************
 #define USE_I2C
