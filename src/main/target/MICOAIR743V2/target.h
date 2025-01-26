@@ -40,11 +40,11 @@
 #define USE_SPI_DEVICE_2
 
 
-#define SPI1_SCK_PIN      PA5
+#define SPI1_SCK_PIN        PA5
 #define SPI1_MISO_PIN   	PA6
 #define SPI1_MOSI_PIN   	PA7
 
-#define SPI2_SCK_PIN      PD3
+#define SPI2_SCK_PIN        PD3
 #define SPI2_MISO_PIN   	PC2
 #define SPI2_MOSI_PIN   	PC3
 
@@ -57,6 +57,7 @@
 #define USE_SPI_DEVICE_3
 #define SPI3_MISO_PIN   	      PB4
 #define SPI3_MOSI_PIN   	      PD6
+#define SPI3_SCK_PIN   	          PA7
 
 #define IMU_BMI270_ALIGN        CW270_DEG
 #define BMI270_SPI_BUS          BUS_SPI3
