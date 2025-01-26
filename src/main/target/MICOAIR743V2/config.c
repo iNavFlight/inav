@@ -27,11 +27,8 @@
 void targetConfiguration(void)
 {
     compassConfigMutable()->mag_align = CW180_DEG;
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_115200;
+    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_MSP_OSD;
     serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_GPS;
-    serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_RX_SERIAL;
     serialConfigMutable()->portConfigs[7].functionMask = FUNCTION_ESCSERIAL;
-    serialConfigMutable()->portConfigs[8].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[8].msp_baudrateIndex = BAUD_115200;
+    serialConfigMutable()->portConfigs[8].functionMask = FUNCTION_MSP; // BT
 }
