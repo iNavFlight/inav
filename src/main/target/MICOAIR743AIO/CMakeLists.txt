@@ -1,1 +1,2 @@
 target_stm32h743xi(MICOAIR743AIO)
+target_stm32h743xi(MICOAIR743AIO_GYRO2)

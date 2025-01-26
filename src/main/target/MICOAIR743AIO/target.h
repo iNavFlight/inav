@@ -42,6 +42,7 @@
 #define SPI2_MISO_PIN   	PC2
 #define SPI2_MOSI_PIN   	PC3
 
+#ifndef MICOAIR743AIO_GYRO2
 #define USE_IMU_BMI088
 #define IMU_BMI088_ALIGN        CW270_DEG
 #define BMI088_SPI_BUS          BUS_SPI2
@@ -49,6 +50,12 @@
 #define BMI088_GYRO_EXTI_PIN    PD7
 #define BMI088_ACC_CS_PIN       PD4
 #define BMI088_ACC_EXTI_PIN     PB14
+#else
+#define USE_IMU_BMI270
+#define IMU_BMI270              CW270_DEG
+#define BMI270_SPI_BUS          BUS_SPI2
+#define BMI270_CS_PIN           PA15
+#endif
 
 // *************** UART *****************************
 #define USE_VCP
