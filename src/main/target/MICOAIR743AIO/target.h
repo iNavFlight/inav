@@ -52,7 +52,7 @@
 #define BMI088_ACC_EXTI_PIN     PB14
 #else
 #define USE_IMU_BMI270
-#define IMU_BMI270              CW270_DEG
+#define IMU_BMI270_ALIGN        CW270_DEG
 #define BMI270_SPI_BUS          BUS_SPI2
 #define BMI270_CS_PIN           PA15
 #endif
