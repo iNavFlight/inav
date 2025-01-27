@@ -51,6 +51,7 @@ else()
     endif()
 endif()
 
+
 project(INAV VERSION 8.1.0)
 
 enable_language(ASM)
