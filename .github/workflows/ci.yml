@@ -3,6 +3,8 @@ name: Build firmware
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
 on: 
+  branches:
+    - '!maintenance-8.x.x'
   pull_request:
     paths:
       - 'src/**'
