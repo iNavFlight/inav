@@ -4174,7 +4174,9 @@ static void cliStatus(char *cmdline)
     while (flags) {
         int bitpos = ffs(flags) - 1;
         flags &= ~(1 << bitpos);
-	if (bitpos > 6) cliPrintf(" %s", armingDisableFlagNames[bitpos - 7]);
+        if (bitpos > 5) {
+            cliPrintf(" %s", armingDisableFlagNames[bitpos - 6]);
+        }
     }
     cliPrintLinefeed();
     if (armingFlags & ARMING_DISABLED_INVALID_SETTING) {
