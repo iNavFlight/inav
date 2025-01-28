@@ -1,0 +1,29 @@
+/ {
+        reserved-memory {
+                #address-cells = <2>;
+                #size-cells = <2>;
+                ranges;
+                rproc_0_reserved: rproc@3ed000000 {
+                        no-map;
+                        reg = <0x0 0x3ed00000 0x0 0x1000000>;
+                };
+        };
+
+        amba {
+		vring: vring@0 {
+			compatible = "vring_uio";
+			reg = <0x0 0x3ed40000 0x0 0x40000>;
+		};
+		shm0: shm@0 {
+			compatible = "shm_uio";
+			reg = <0x0 0x3ed80000 0x0 0x80000>;
+		};
+		ipi0: ipi@0 {
+			compatible = "ipi_uio";
+			reg = <0x0 0xff340000 0x0 0x1000>;
+			interrupt-parent = <&gic>;
+			interrupts = <0 29 4>;
+		};
+	};
+};
+
