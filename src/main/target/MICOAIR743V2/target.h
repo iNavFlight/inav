@@ -57,12 +57,12 @@
 #define USE_SPI_DEVICE_3
 #define SPI3_MISO_PIN   	      PB4
 #define SPI3_MOSI_PIN   	      PD6
-#define SPI3_SCK_PIN   	          PA7
+#define SPI3_SCK_PIN   	        PA7
 
-#define IMU_BMI270_ALIGN        CW270_DEG
+#define IMU_BMI270_ALIGN        CW0_DEG
 #define BMI270_SPI_BUS          BUS_SPI3
 #define BMI270_CS_PIN           PA15
-#define BMI270_EXTI_PIN         PB7
+//#define BMI270_EXTI_PIN         PB7
 #else
 #define USE_IMU_BMI088
 #define IMU_BMI088_ALIGN        CW270_DEG
