@@ -41,12 +41,12 @@
 
 
 #define SPI1_SCK_PIN      PA5
-#define SPI1_MISO_PIN   	PA6
-#define SPI1_MOSI_PIN   	PA7
+#define SPI1_MISO_PIN     PA6
+#define SPI1_MOSI_PIN     PA7
 
 #define SPI2_SCK_PIN      PD3
-#define SPI2_MISO_PIN   	PC2
-#define SPI2_MOSI_PIN   	PC3
+#define SPI2_MISO_PIN     PC2
+#define SPI2_MOSI_PIN     PC3
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
