@@ -23,7 +23,8 @@ Not all OSDs are created equally. This table shows the differences between the d
 | DJI WTFOS     | 60 x 22        | X         |        | X               | YES                     |
 | HDZero        | 50 x 18        | X         |        | X               | YES                     |
 | Avatar        | 53 x 20        | X         |        | X               | YES                     |
-| DJI O3        | 53 x 20 (HD)   | X         |        | X	(partial)     | NO - BF Characters only |
+| DJI O3        | 53 x 20 (HD)   | X         |        | X	(partial)   | NO - BF Characters only |
+| DJI NATIVE    | 53 x 20 (HD)   | X         |        | X               | YES (as of INAV 8.1)    |
 
 ## OSD Elements
 Here are the OSD Elements provided by INAV.
