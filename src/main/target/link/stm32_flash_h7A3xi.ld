@@ -43,13 +43,12 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 /* Specify the memory areas */
 MEMORY
 {
-  ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
   FLASH (rx)     : ORIGIN = 0x08000000, LENGTH = 128K
-  FLASH_CONFIG (r)  : ORIGIN = 0x08020000, LENGTH = 128K
+  FLASH_CONFIG (r)  : ORIGIN = 0x08020000, LENGTH = 127K
   FLASH1 (rx)       : ORIGIN = 0x08040000, LENGTH = 1792K
 
-  DTCMRAM1 (xrw) : ORIGIN = 0x20000000, LENGTH = 64K
-  DTCMRAM2 (xrw) : ORIGIN = 0x20010000, LENGTH = 64K
+  ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
+  DTCMRAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 128K
   RAM (xrw)      : ORIGIN = 0x24000000, LENGTH = 1024K
   RAM_CD (xrw)   : ORIGIN = 0x30000000, LENGTH = 128K
   RAM_SRD (xrw)  : ORIGIN = 0x38000000, LENGTH = 32K
@@ -81,7 +80,7 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >FLASH
+  } >FLASH1
 
   /* Constant data goes into FLASH */
   .rodata :
@@ -180,5 +179,8 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
+
+REGION_ALIAS("STACKRAM", DTCMRAM)
+REGION_ALIAS("FASTRAM", DTCMRAM)
 
 INCLUDE "stm32_flash_h7a_split.ld"
