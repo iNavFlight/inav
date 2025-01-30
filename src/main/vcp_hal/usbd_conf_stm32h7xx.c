@@ -92,6 +92,7 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
 
+#ifdef USB_OTG_FS
     if (hpcd->Instance == USB_OTG_FS)
     {
         __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -133,7 +134,9 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
         HAL_NVIC_EnableIRQ(OTG_FS_IRQn);
 
     }
-    else if (hpcd->Instance == USB1_OTG_HS)
+    else 
+#endif
+    if (hpcd->Instance == USB1_OTG_HS)
     {
         /* Configure USB FS GPIOs */
         __GPIOA_CLK_ENABLE();
@@ -147,7 +150,9 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+#ifndef STM32H7A3xx
         GPIO_InitStruct.Alternate = GPIO_AF10_OTG2_HS;
+#endif
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
         /* D0 */
@@ -155,7 +160,9 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+#ifndef STM32H7A3xx
         GPIO_InitStruct.Alternate = GPIO_AF10_OTG2_HS;
+#endif
         HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
         /* D1 D2 D3 D4 D5 D6 D7 */
@@ -163,28 +170,36 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
                 GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
+#ifndef STM32H7A3xx
         GPIO_InitStruct.Alternate = GPIO_AF10_OTG2_HS;
+#endif
         HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
         /* STP */
         GPIO_InitStruct.Pin = GPIO_PIN_0;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
+#ifndef STM32H7A3xx
         GPIO_InitStruct.Alternate = GPIO_AF10_OTG2_HS;
+#endif
         HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
         /* NXT */
         GPIO_InitStruct.Pin = GPIO_PIN_4;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
+#ifndef STM32H7A3xx
         GPIO_InitStruct.Alternate = GPIO_AF10_OTG2_HS;
+#endif
         HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
         /* DIR */
         GPIO_InitStruct.Pin = GPIO_PIN_11;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
+#ifndef STM32H7A3xx
         GPIO_InitStruct.Alternate = GPIO_AF10_OTG2_HS;
+#endif
         HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
         __HAL_RCC_USB1_OTG_HS_ULPI_CLK_ENABLE();
 
@@ -206,12 +221,15 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef * hpcd)
  */
 void HAL_PCD_MspDeInit(PCD_HandleTypeDef * hpcd)
 {
+#ifdef USB2_OTG_FS
     if (hpcd->Instance == USB2_OTG_FS)
     {
         /* Disable USB FS Clocks */
         __HAL_RCC_USB2_OTG_FS_CLK_DISABLE();
     }
-    else if (hpcd->Instance == USB1_OTG_HS)
+    else
+#endif
+    if (hpcd->Instance == USB1_OTG_HS)
     {
         /* Disable USB HS Clocks */
         __HAL_RCC_USB1_OTG_HS_CLK_DISABLE();
@@ -372,7 +390,11 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef * pdev)
 {
 #ifdef USE_USB_FS
     /* Set LL Driver parameters */
+#ifdef STM32H7A3xx
+    hpcd.Instance = USB_OTG_HS;
+#else
     hpcd.Instance = USB2_OTG_FS;
+#endif
     hpcd.Init.dev_endpoints = 9;
     hpcd.Init.use_dedicated_ep1 = DISABLE;
     hpcd.Init.ep0_mps = EP_MPS_64;

@@ -22,7 +22,7 @@
 
 #if defined(STM32H7) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
-#if defined(STM32H743xx)
+#if defined(STM32H743xx) || defined(STM32H7A3xx)
 /* Sectors 0-7 of 128K each */
 #define FLASH_PAGE_SIZE     ((uint32_t)0x20000) // 128K sectors
 static uint32_t getFLASHSectorForEEPROM(uint32_t address)
@@ -73,7 +73,9 @@ int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer
     if (c->address % FLASH_PAGE_SIZE == 0) {
         FLASH_EraseInitTypeDef EraseInitStruct = {
             .TypeErase     = FLASH_TYPEERASE_SECTORS,
+#ifndef STM32H7A3xx
             .VoltageRange  = FLASH_VOLTAGE_RANGE_3, // 2.7-3.6V
+#endif
             .NbSectors     = 1,
             .Banks         = FLASH_BANK_1
         };

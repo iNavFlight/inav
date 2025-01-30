@@ -157,7 +157,7 @@ main_sources(STM32H7_SRC
     drivers/timer.c
     drivers/timer_impl_hal.c
     drivers/timer_stm32h7xx.c
-    drivers/system_stm32h7xx.c
+    drivers/system_stm32h7ax.c
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_uart_hal.c
     drivers/sdio.h
@@ -221,4 +221,4 @@ macro(define_target_stm32h7 subfamily size)
     endfunction()
 endmacro()
 
-define_target_stm32h7(43 i)
+define_target_stm32h7(A3 i)
