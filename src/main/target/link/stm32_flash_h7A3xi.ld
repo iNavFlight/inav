@@ -44,7 +44,10 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
   ITCMRAM (xrw)  : ORIGIN = 0x00000000, LENGTH = 64K
-  FLASH (rx)     : ORIGIN = 0x08000000, LENGTH = 2048K
+  FLASH (rx)     : ORIGIN = 0x08000000, LENGTH = 128K
+  FLASH_CONFIG (r)  : ORIGIN = 0x08020000, LENGTH = 128K
+  FLASH1 (rx)       : ORIGIN = 0x08040000, LENGTH = 1792K
+
   DTCMRAM1 (xrw) : ORIGIN = 0x20000000, LENGTH = 64K
   DTCMRAM2 (xrw) : ORIGIN = 0x20010000, LENGTH = 64K
   RAM (xrw)      : ORIGIN = 0x24000000, LENGTH = 1024K
@@ -177,3 +180,5 @@ SECTIONS
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
+
+INCLUDE "stm32_flash_h7a_split.ld"

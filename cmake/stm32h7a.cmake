@@ -1,10 +1,10 @@
 include(cortex-m7)
-include(stm32h7-usb)
+include(stm32h7a-usb)
 
-set(STM32H7_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS/Device/ST/STM32H7xx")
-set(STM32H7_HAL_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/STM32H7xx_HAL_Driver")
+set(STM32H7A_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS/Device/ST/STM32H7xx")
+set(STM32H7A_HAL_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/STM32H7xx_HAL_Driver")
 
-set(STM32H7_HAL_SRC
+set(STM32H7A_HAL_SRC
     stm32h7xx_hal.c
     stm32h7xx_hal_adc.c
     stm32h7xx_hal_adc_ex.c
@@ -122,23 +122,23 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_ll_utils.c
 )
 
-list(TRANSFORM STM32H7_HAL_SRC PREPEND "${STM32H7_HAL_DIR}/Src/")
+list(TRANSFORM STM32H7A_HAL_SRC PREPEND "${STM32H7A_HAL_DIR}/Src/")
 
-set(STM32H7_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
+set(STM32H7A_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
-set(STM32H7_VCP_SRC
+set(STM32H7A_VCP_SRC
     usbd_desc.c
     usbd_conf_stm32h7xx.c
     usbd_cdc_interface.c
 )
-list(TRANSFORM STM32H7_VCP_SRC PREPEND "${STM32H7_VCP_DIR}/")
+list(TRANSFORM STM32H7A_VCP_SRC PREPEND "${STM32H7A_VCP_DIR}/")
 
-set(STM32H7_INCLUDE_DIRS
-    ${STM32H7_HAL_DIR}/Inc
-    ${STM32H7_CMSIS_DEVICE_DIR}/Include
+set(STM32H7A_INCLUDE_DIRS
+    ${STM32H7A_HAL_DIR}/Inc
+    ${STM32H7A_CMSIS_DEVICE_DIR}/Include
 )
 
-main_sources(STM32H7_SRC
+main_sources(STM32H7A_SRC
     target/system_stm32h7xx.c
 
     config/config_streamer_stm32h7.c
@@ -157,35 +157,36 @@ main_sources(STM32H7_SRC
     drivers/timer.c
     drivers/timer_impl_hal.c
     drivers/timer_stm32h7xx.c
-    drivers/system_stm32h7ax.c
+    drivers/system_stm32h7xx.c
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_uart_hal.c
     drivers/sdio.h
     drivers/sdcard/sdmmc_sdio_hal.c
 )
 
-main_sources(STM32H7_MSC_SRC
+main_sources(STM32H7A_MSC_SRC
     drivers/usb_msc_h7xx.c
 )
 
-set(STM32H7_DEFINITIONS
+set(STM32H7A_DEFINITIONS
     ${CORTEX_M7_DEFINITIONS}
     USE_HAL_DRIVER
     USE_FULL_LL_DRIVER
     MAX_MPU_REGIONS=16
 )
 
-function(target_stm32h7xx)
+function(target_stm32h7ax)
+    list(REMOVE_ITEM STM32H7A_SRC drivers/system_stm32h7xx.c)
     target_stm32(
-        SOURCES ${STM32H7_HAL_SRC} ${STM32H7_SRC}
-        COMPILE_DEFINITIONS ${STM32H7_DEFINITIONS}
+        SOURCES ${STM32H7A_HAL_SRC} ${STM32H7A_SRC}
+        COMPILE_DEFINITIONS ${STM32H7A_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
-        INCLUDE_DIRECTORIES ${STM32H7_INCLUDE_DIRS}
+        INCLUDE_DIRECTORIES ${STM32H7A_INCLUDE_DIRS}
         LINK_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS}
 
-        MSC_SOURCES ${STM32H7_USBMSC_SRC} ${STM32H7_MSC_SRC}
-        VCP_SOURCES ${STM32H7_USB_SRC} ${STM32H7_VCP_SRC}
-        VCP_INCLUDE_DIRECTORIES ${STM32H7_USB_INCLUDE_DIRS} ${STM32H7_VCP_DIR}
+        MSC_SOURCES ${STM32H7A_USBMSC_SRC} ${STM32H7A_MSC_SRC}
+        VCP_SOURCES ${STM32H7A_USB_SRC} ${STM32H7A_VCP_SRC}
+        VCP_INCLUDE_DIRECTORIES ${STM32H7A_USB_INCLUDE_DIRS} ${STM32H7A_VCP_DIR}
 
         OPTIMIZATION -O2
 
@@ -197,28 +198,28 @@ function(target_stm32h7xx)
     )
 endfunction()
 
-macro(define_target_stm32h7 subfamily size)
-    function(target_stm32h7${subfamily}x${size} name)
+macro(define_target_stm32h7a subfamily size)
+    function(target_stm32h7a${subfamily}x${size} name)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
         get_stm32_flash_size(flash_size ${size})
         set(definitions
             STM32H7
-            STM32H7${subfamily}xx
-            STM32H7${subfamily}x${upper_size}
-            # stm32h743xx.h defined FLASH_SIZE, used by HAL, but in bytes
+            STM32H7A${subfamily}xx
+            STM32H7A${subfamily}x${upper_size}
+            # stm32h7A3xx.h defined FLASH_SIZE, used by HAL, but in bytes
             # use MCU_FLASH_SIZE since we use KiB in our code
             MCU_FLASH_SIZE=${flash_size}
         )
-        target_stm32h7xx(
+        target_stm32h7ax(
             NAME ${name}
-            STARTUP startup_stm32h7${subfamily}xx.s
+            STARTUP startup_stm32h7A${subfamily}xx.s
             COMPILE_DEFINITIONS ${definitions}
-            LINKER_SCRIPT stm32_flash_h7${subfamily}x${size}
+            LINKER_SCRIPT stm32_flash_h7A${subfamily}x${size}
             ${${func_ARGV}}
-            SVD STM32H7${subfamily}
+            SVD STM32H7A${subfamily}
         )
     endfunction()
 endmacro()
 
-define_target_stm32h7(A3 i)
+define_target_stm32h7a(3 i)
