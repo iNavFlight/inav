@@ -128,7 +128,7 @@ set(STM32H7A_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
 set(STM32H7A_VCP_SRC
     usbd_desc.c
-    usbd_conf_stm32h7xx.c
+    usbd_conf_stm32h7ax.c
     usbd_cdc_interface.c
 )
 list(TRANSFORM STM32H7A_VCP_SRC PREPEND "${STM32H7A_VCP_DIR}/")
