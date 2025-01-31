@@ -67,7 +67,7 @@ static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 static uint32_t getFLASHBankForEEPROM(uint32_t address)
 { 
     UNUSED(address);
-    return FLASH_BANK_1 
+    return FLASH_BANK_1;
 }
 
 static uint32_t getFLASHSectorForEEPROM(uint32_t address)
