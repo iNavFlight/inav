@@ -1,1 +1,1 @@
-target_stm32h7a3xi(TESTH7A3 SKIP_RELEASES)
+target_stm32h7a3xi(TESTH7A3)
