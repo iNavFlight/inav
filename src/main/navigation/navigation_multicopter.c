@@ -143,7 +143,7 @@ bool adjustMulticopterAltitudeFromRCInput(void)
             /* Set velocity proportional to stick movement
              * Scale from altHoldThrottleRCZero to maxthrottle or minthrottle to altHoldThrottleRCZero */
 
-            // Calculate max up and min down limit values scaled for deadband
+            // Calculate max up or min down limit value scaled for deadband
             int16_t limitValue = rcThrottleAdjustment > 0 ? getMaxThrottle() : getThrottleIdleValue();
             limitValue = applyDeadbandRescaled(limitValue - altHoldThrottleRCZero, rcControlsConfig()->alt_hold_deadband, -500, 500);
 
