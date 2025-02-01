@@ -574,6 +574,8 @@ void FAST_CODE mixTable(void)
             reversibleMotorsThrottleState = MOTOR_DIRECTION_BACKWARD;
             throttleRangeMax = throttleDeadbandLow;
             throttleRangeMin = motorConfig()->mincommand;
+        } else if (isMotorProtocolDigital()) {
+            reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD; // prevent dshot 0048 on forward after reverse
         }
 
 
