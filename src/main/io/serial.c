@@ -410,6 +410,16 @@ serialPort_t *openSerialPort(
             serialPort = uartOpen(UART8, rxCallback, rxCallbackData, baudRate, mode, options);
             break;
 #endif
+#ifdef USE_UART9
+        case SERIAL_PORT_USART9:
+            serialPort = uartOpen(UART9, rxCallback, rxCallbackData, baudRate, mode, options);
+            break;
+#endif
+#ifdef USE_UART10
+        case SERIAL_PORT_USART10:
+            serialPort = uartOpen(USART10, rxCallback, rxCallbackData, baudRate, mode, options);
+            break;
+#endif
 #ifdef USE_SOFTSERIAL1
         case SERIAL_PORT_SOFTSERIAL1:
             serialPort = openSoftSerial(SOFTSERIAL1, rxCallback, rxCallbackData, baudRate, mode, options);
