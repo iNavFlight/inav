@@ -114,6 +114,7 @@
 #define UART1_TX_PIN            PB14
 #define UART1_RX_PIN            PB15
 
+/*
 #define USE_UART2
 #define UART2_TX_PIN            PD5
 #define UART2_RX_PIN            PD6
@@ -146,9 +147,13 @@
 #define USE_UART10
 #define UART10_TX_PIN            PE3
 #define UART10_RX_PIN            PE2
+*/
 
-
-#define SERIAL_PORT_COUNT       10
+#ifdef USE_VCP
+#define SERIAL_PORT_COUNT       2 // 10
+#else
+#define SERIAL_PORT_COUNT       1
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
