@@ -77,12 +77,12 @@
 #define USBD_DEBUG_LEVEL                      0
 #define MSC_MEDIA_PACKET                      512U
 
-#if defined(STM32H7A3xx)
+/****************************************/
 /* #define for FS and HS identification */
-#define DEVICE_HS     0
+#define DEVICE_FS 		0
+#define DEVICE_HS 		1
+#ifdef STM32H7A3xx
 #define USE_USB_HS
-//#define USE_USB_HS_AS_FS
-//#define USE_USB_FS
 #else
 #define USE_USB_FS
 #endif
