@@ -56,10 +56,14 @@ typedef struct
                                              This parameter can be a value of @ref RTCEx_Tamper_Trigger_Definitions */
 
   uint32_t NoErase;                     /*!< Specifies the Tamper no erase mode.
-                                             This parameter can be a value of @ref RTCEx_Tamper_EraseBackUp_Definitions */
+                                             This parameter can be a value of @ref RTCEx_Tamper_EraseBackUp_Definitions
+                                             This parameter is not applicable to the STM32H723/33, STM32H725/35 and STM32H730
+                                             devices, and has been kept for backward compatibility */
 
-  uint32_t MaskFlag;                     /*!< Specifies the Tamper Flag masking.
-                                             This parameter can be a value of @ref RTCEx_Tamper_MaskFlag_Definitions   */
+  uint32_t MaskFlag;                    /*!< Specifies the Tamper Flag masking.
+                                             This parameter can be a value of @ref RTCEx_Tamper_MaskFlag_Definitions
+                                             This parameter is not applicable to the STM32H723/33, STM32H725/35 and STM32H730
+                                             devices, and has been kept for backward compatibility */
 
   uint32_t Filter;                      /*!< Specifies the TAMP Filter Tamper.
                                              This parameter can be a value of @ref RTCEx_Tamper_Filter_Definitions */
@@ -265,11 +269,17 @@ typedef struct
 #define RTC_TAMPER_3                       TAMP_CR1_TAMP3E
 #else
 #define RTC_TAMPER_1                       RTC_TAMPCR_TAMP1E
+#if defined(RTC_TAMPER2_SUPPORT)
 #define RTC_TAMPER_2                       RTC_TAMPCR_TAMP2E
+#endif /* RTC_TAMPER2_SUPPORT */
 #define RTC_TAMPER_3                       RTC_TAMPCR_TAMP3E
 #endif /* TAMP */
 
+#if defined(RTC_TAMPER2_SUPPORT)
 #define RTC_TAMPER_ALL                     (RTC_TAMPER_1 | RTC_TAMPER_2 | RTC_TAMPER_3)
+#else
+#define RTC_TAMPER_ALL                     (RTC_TAMPER_1 | RTC_TAMPER_3)
+#endif /* RTC_TAMPER2_SUPPORT */
 /**
   * @}
   */
@@ -282,9 +292,13 @@ typedef struct
 #define RTC_IT_TAMP2                      TAMP_IER_TAMP2IE    /*!< Enable Tamper 2 Interrupt                */
 #define RTC_IT_TAMP3                      TAMP_IER_TAMP3IE    /*!< Enable Tamper 3 Interrupt                */
 #else
+#if defined(RTC_TAMPxIE_SUPPORT)
 #define RTC_IT_TAMP1                      RTC_TAMPCR_TAMP1IE  /*!< Enable Tamper 1 Interrupt                */
 #define RTC_IT_TAMP2                      RTC_TAMPCR_TAMP2IE  /*!< Enable Tamper 2 Interrupt                */
 #define RTC_IT_TAMP3                      RTC_TAMPCR_TAMP3IE  /*!< Enable Tamper 3 Interrupt                */
+#else
+#define RTC_IT_TAMP1                      RTC_TAFCR_TAMPIE    /*!< Enable Tamper Interrupt                  */
+#endif /* RTC_TAMPxIE_SUPPORT */
 #endif /* TAMP */
 
 #if defined(TAMP)
@@ -349,13 +363,20 @@ typedef struct
 #define RTC_TAMPER_3_TRIGGER                TAMP_CR2_TAMP3TRG
 #else
 #define RTC_TAMPER_1_TRIGGER                RTC_TAMPCR_TAMP1TRG
+#if defined(RTC_TAMPER2_SUPPORT)
 #define RTC_TAMPER_2_TRIGGER                RTC_TAMPCR_TAMP2TRG
+#endif /* RTC_TAMPER2_SUPPORT */
 #define RTC_TAMPER_3_TRIGGER                RTC_TAMPCR_TAMP3TRG
 #endif /* TAMP */
 
+#if defined(RTC_TAMPER2_SUPPORT)
 #define RTC_TAMPER_X_TRIGGER                (RTC_TAMPER_1_TRIGGER |\
                                              RTC_TAMPER_2_TRIGGER |\
                                              RTC_TAMPER_3_TRIGGER)
+#else
+#define RTC_TAMPER_X_TRIGGER                (RTC_TAMPER_1_TRIGGER |\
+                                             RTC_TAMPER_3_TRIGGER)
+#endif /* RTC_TAMPER2_SUPPORT */
 /**
   * @}
   */
@@ -367,8 +388,15 @@ typedef struct
 #define RTC_TAMPER_ERASE_BACKUP_ENABLE     0x00u
 #define RTC_TAMPER_ERASE_BACKUP_DISABLE    0x01u
 #else
-#define RTC_TAMPER_ERASE_BACKUP_ENABLE     0x00000000u
+#if defined(RTC_TAMPNOERASE_SUPPORT)
+#define RTC_TAMPER_ERASE_BACKUP_ENABLE     0x00u
 #define RTC_TAMPER_ERASE_BACKUP_DISABLE    RTC_TAMPCR_TAMP1NOERASE
+#else
+/*!< These values are not applicable to the STM32H723/33, STM32H725/35 and STM32H730
+     devices, and have been kept for backward compatibility */
+#define RTC_TAMPER_ERASE_BACKUP_ENABLE     0x00u
+#define RTC_TAMPER_ERASE_BACKUP_DISABLE    0x01u
+#endif /* RTC_TAMPNOERASE_SUPPORT */
 #endif /* TAMP */
 
 #if defined(TAMP)
@@ -376,14 +404,18 @@ typedef struct
 #define RTC_DISABLE_BKP_ERASE_ON_TAMPER_2  TAMP_CR2_TAMP2NOERASE
 #define RTC_DISABLE_BKP_ERASE_ON_TAMPER_3  TAMP_CR2_TAMP3NOERASE
 #else
+#if defined(RTC_TAMPNOERASE_SUPPORT)
 #define RTC_DISABLE_BKP_ERASE_ON_TAMPER_1  RTC_TAMPCR_TAMP1NOERASE
 #define RTC_DISABLE_BKP_ERASE_ON_TAMPER_2  RTC_TAMPCR_TAMP2NOERASE
 #define RTC_DISABLE_BKP_ERASE_ON_TAMPER_3  RTC_TAMPCR_TAMP3NOERASE
+#endif /* RTC_TAMPNOERASE_SUPPORT */
 #endif /* TAMP */
 
+#if defined(RTC_TAMPNOERASE_SUPPORT)
 #define RTC_DISABLE_BKP_ERASE_ON_TAMPER_MASK (RTC_DISABLE_BKP_ERASE_ON_TAMPER_1 |\
                                               RTC_DISABLE_BKP_ERASE_ON_TAMPER_2 |\
                                               RTC_DISABLE_BKP_ERASE_ON_TAMPER_3)
+#endif /* RTC_TAMPNOERASE_SUPPORT */
 /**
   * @}
   */
@@ -395,8 +427,15 @@ typedef struct
 #define RTC_TAMPERMASK_FLAG_DISABLE        0x00u
 #define RTC_TAMPERMASK_FLAG_ENABLE         0x01u
 #else
-#define RTC_TAMPERMASK_FLAG_DISABLE        0x00000000u
+#if defined(RTC_TAMPMASKFLAG_SUPPORT)
+#define RTC_TAMPERMASK_FLAG_DISABLE        0x00u
 #define RTC_TAMPERMASK_FLAG_ENABLE         RTC_TAMPCR_TAMP1MF
+#else
+/*!< These values are not applicable to the STM32H723/33, STM32H725/35 and STM32H730
+     devices, and have been kept for backward compatibility */
+#define RTC_TAMPERMASK_FLAG_DISABLE        0x00u
+#define RTC_TAMPERMASK_FLAG_ENABLE         0x01u
+#endif /* RTC_TAMPMASKFLAG_SUPPORT */
 #endif /* TAMP */
 
 #if defined(TAMP)
@@ -404,14 +443,18 @@ typedef struct
 #define RTC_TAMPER_2_MASK_FLAG             TAMP_CR2_TAMP2MSK
 #define RTC_TAMPER_3_MASK_FLAG             TAMP_CR2_TAMP3MSK
 #else
+#if defined(RTC_TAMPMASKFLAG_SUPPORT)
 #define RTC_TAMPER_1_MASK_FLAG             RTC_TAMPCR_TAMP1MF
 #define RTC_TAMPER_2_MASK_FLAG             RTC_TAMPCR_TAMP2MF
 #define RTC_TAMPER_3_MASK_FLAG             RTC_TAMPCR_TAMP3MF
+#endif /* RTC_TAMPMASKFLAG_SUPPORT */
 #endif /* TAMP */
 
+#if defined(RTC_TAMPMASKFLAG_SUPPORT)
 #define RTC_TAMPER_X_MASK_FLAG             (RTC_TAMPER_1_MASK_FLAG |\
                                             RTC_TAMPER_2_MASK_FLAG |\
                                             RTC_TAMPER_3_MASK_FLAG)
+#endif /* RTC_TAMPMASKFLAG_SUPPORT */
 /**
   * @}
   */
@@ -575,7 +618,9 @@ typedef struct
 #define RTC_FLAG_TAMP3F                   TAMP_SR_TAMP3F
 #else
 #define RTC_FLAG_TAMP1F                   RTC_ISR_TAMP1F
+#if defined(RTC_TAMPER2_SUPPORT)
 #define RTC_FLAG_TAMP2F                   RTC_ISR_TAMP2F
+#endif /* RTC_TAMPER2_SUPPORT */
 #define RTC_FLAG_TAMP3F                   RTC_ISR_TAMP3F
 #endif /* TAMP */
 /**
@@ -865,7 +910,9 @@ typedef struct
 #if defined(TAMP)
 #define __HAL_RTC_TAMPER2_ENABLE(__HANDLE__)           (((TAMP_TypeDef *)((uint32_t)((__HANDLE__)->Instance) + TAMP_OFFSET))->CR1 |= (TAMP_CR1_TAMP2E))
 #else
+#if defined(RTC_TAMPER2_SUPPORT)
 #define __HAL_RTC_TAMPER2_ENABLE(__HANDLE__)           ((__HANDLE__)->Instance->TAMPCR |= (RTC_TAMPCR_TAMP2E))
+#endif /* RTC_TAMPER2_SUPPORT */
 #endif /* TAMP */
 
 /**
@@ -876,7 +923,9 @@ typedef struct
 #if defined(TAMP)
 #define __HAL_RTC_TAMPER2_DISABLE(__HANDLE__)          (((TAMP_TypeDef *)((uint32_t)((__HANDLE__)->Instance) + (TAMP_OFFSET))->CR1 &= ~(RTC_TAMPCR_TAMP2E))
 #else
+#if defined(RTC_TAMPER2_SUPPORT)
 #define __HAL_RTC_TAMPER2_DISABLE(__HANDLE__)          ((__HANDLE__)->Instance->TAMPCR &= ~(RTC_TAMPCR_TAMP2E))
+#endif /* RTC_TAMPER2_SUPPORT */
 #endif /* TAMP */
 
 /**
@@ -908,8 +957,9 @@ typedef struct
   *          This parameter can be any combination of the following values:
   *             @arg  RTC_IT_TAMPALL: All tampers interrupts
   *             @arg  RTC_IT_TAMP1: Tamper1 interrupt
-  *             @arg  RTC_IT_TAMP2: Tamper2 interrupt
+  *             @arg  RTC_IT_TAMP2: Tamper2 interrupt (*)
   *             @arg  RTC_IT_TAMP3: Tamper3 interrupt
+  *        (*) Not applicable to all devices.
   * @retval None
   */
 #if defined(TAMP)
@@ -925,8 +975,9 @@ typedef struct
   *         This parameter can be any combination of the following values:
   *            @arg  RTC_IT_TAMP: All tampers interrupts
   *            @arg  RTC_IT_TAMP1: Tamper1 interrupt
-  *            @arg  RTC_IT_TAMP2: Tamper2 interrupt
+  *            @arg  RTC_IT_TAMP2: Tamper2 interrupt (*)
   *            @arg  RTC_IT_TAMP3: Tamper3 interrupt
+  *        (*) Not applicable to all devices.
   * @retval None
   */
 #if defined(TAMP)
@@ -942,8 +993,9 @@ typedef struct
   *         This parameter can be:
   *            @arg  RTC_IT_TAMPALL: All tampers interrupts
   *            @arg  RTC_IT_TAMP1: Tamper1 interrupt
-  *            @arg  RTC_IT_TAMP2: Tamper2 interrupt
+  *            @arg  RTC_IT_TAMP2: Tamper2 interrupt (*)
   *            @arg  RTC_IT_TAMP3: Tamper3 interrupt
+  *        (*) Not applicable to all devices.
   * @retval Flag status
   */
 #if defined(TAMP)
@@ -958,8 +1010,9 @@ typedef struct
   * @param  __FLAG__ specifies the RTC Tamper Flag is pending or not.
   *          This parameter can be:
   *             @arg RTC_FLAG_TAMP1F: Tamper1 flag
-  *             @arg RTC_FLAG_TAMP2F: Tamper2 flag
+  *             @arg RTC_FLAG_TAMP2F: Tamper2 flag (*)
   *             @arg RTC_FLAG_TAMP3F: Tamper3 flag
+  *        (*) Not applicable to all devices.
   * @retval Flag status
   */
 #if defined(TAMP)
@@ -974,8 +1027,9 @@ typedef struct
   * @param  __FLAG__ specifies the RTC Tamper Flag to clear.
   *          This parameter can be:
   *             @arg RTC_FLAG_TAMP1F: Tamper1 flag
-  *             @arg RTC_FLAG_TAMP2F: Tamper2 flag
+  *             @arg RTC_FLAG_TAMP2F: Tamper2 flag (*)
   *             @arg RTC_FLAG_TAMP3F: Tamper3 flag
+  *        (*) Not applicable to all devices.
   * @retval None
   */
 #if defined(TAMP)
@@ -1662,10 +1716,14 @@ HAL_StatusTypeDef HAL_RTCEx_SetTamper(RTC_HandleTypeDef *hrtc, const RTC_TamperT
 HAL_StatusTypeDef HAL_RTCEx_SetTamper_IT(RTC_HandleTypeDef *hrtc, const RTC_TamperTypeDef *sTamper);
 HAL_StatusTypeDef HAL_RTCEx_DeactivateTamper(RTC_HandleTypeDef *hrtc, uint32_t Tamper);
 HAL_StatusTypeDef HAL_RTCEx_PollForTamper1Event(RTC_HandleTypeDef *hrtc, uint32_t Timeout);
+#if defined(RTC_TAMPER2_SUPPORT)
 HAL_StatusTypeDef HAL_RTCEx_PollForTamper2Event(RTC_HandleTypeDef *hrtc, uint32_t Timeout);
+#endif /* RTC_TAMPER2_SUPPORT */
 HAL_StatusTypeDef HAL_RTCEx_PollForTamper3Event(RTC_HandleTypeDef *hrtc, uint32_t Timeout);
 void              HAL_RTCEx_Tamper1EventCallback(RTC_HandleTypeDef *hrtc);
+#if defined(RTC_TAMPER2_SUPPORT)
 void              HAL_RTCEx_Tamper2EventCallback(RTC_HandleTypeDef *hrtc);
+#endif /* RTC_TAMPER2_SUPPORT */
 void              HAL_RTCEx_Tamper3EventCallback(RTC_HandleTypeDef *hrtc);
 #if defined(TAMP)
 HAL_StatusTypeDef HAL_RTCEx_SetInternalTamper(RTC_HandleTypeDef *hrtc, const RTC_InternalTamperTypeDef *sIntTamper);
@@ -1774,8 +1832,17 @@ HAL_StatusTypeDef HAL_RTCEx_PollForAlarmBEvent(RTC_HandleTypeDef *hrtc, uint32_t
 #define RTC_EXTI_LINE_WAKEUPTIMER_EVENT       EXTI_IMR1_IM19  /*!< External interrupt line 19 Connected to the RTC Wakeup event */
 
 /* Masks Definition */
+#if defined(RTC_TAMPER2_SUPPORT)
 #define RTC_TAMPER_X             ((uint32_t) (RTC_TAMPER_1 | RTC_TAMPER_2 | RTC_TAMPER_3))
+#else
+#define RTC_TAMPER_X             ((uint32_t) (RTC_TAMPER_1 | RTC_TAMPER_3))
+#endif /* RTC_TAMPER2_SUPPORT */
+
+#if defined(RTC_TAMPxIE_SUPPORT)
 #define RTC_TAMPER_X_INTERRUPT   ((uint32_t) (RTC_IT_TAMP1 | RTC_IT_TAMP2 | RTC_IT_TAMP3))
+#else
+#define RTC_TAMPER_X_INTERRUPT   RTC_IT_TAMPALL
+#endif /* RTC_TAMPxIE_SUPPORT */
 
 /**
   * @}
@@ -1850,7 +1917,7 @@ HAL_StatusTypeDef HAL_RTCEx_PollForAlarmBEvent(RTC_HandleTypeDef *hrtc, uint32_t
 #define IS_RTC_TAMPER(__TAMPER__)  ((((__TAMPER__) &  RTC_TAMPER_X) != 0x00U) &&  \
                                     (((__TAMPER__) & ~RTC_TAMPER_X) == 0x00U))
 
-#define IS_RTC_TAMPER_INTERRUPT(__INTERRUPT__)                                                           \
+#define IS_RTC_TAMPER_INTERRUPT(__INTERRUPT__)                                                 \
               ((((__INTERRUPT__) & (  RTC_TAMPER_X_INTERRUPT | RTC_IT_TAMPALL )) != 0x00U) &&  \
                (((__INTERRUPT__) & (~(RTC_TAMPER_X_INTERRUPT | RTC_IT_TAMPALL))) == 0x00U))
 
