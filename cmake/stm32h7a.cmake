@@ -139,7 +139,7 @@ set(STM32H7A_INCLUDE_DIRS
 )
 
 main_sources(STM32H7A_SRC
-    target/system_stm32h7xx.c
+    target/system_stm32h7a3.c
 
     config/config_streamer_stm32h7.c
     config/config_streamer_ram.c
@@ -157,7 +157,8 @@ main_sources(STM32H7A_SRC
     drivers/timer.c
     drivers/timer_impl_hal.c
     drivers/timer_stm32h7xx.c
-    drivers/system_stm32h7xx.c
+    #drivers/system_stm32h7xx.c
+    drivers/system_stm32h7ax.c
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_usb_vcp_stm32h7a3.c
     drivers/serial_uart_hal.c
