@@ -424,10 +424,13 @@ static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 #if defined(USE_MSP_OVER_TELEMETRY)
 
 static bool mspReplyPending;
+//Id of the last receiver MSP frame over CRSF. Needed to send response with correct frame ID
+static uint8_t mspRequestOriginID = 0;
 
-void crsfScheduleMspResponse(void)
+void crsfScheduleMspResponse(uint8_t requestOriginID)
 {
     mspReplyPending = true;
+    mspRequestOriginID = requestOriginID;
 }
 
 void crsfSendMspResponse(uint8_t *payload)
@@ -438,7 +441,7 @@ void crsfSendMspResponse(uint8_t *payload)
     crsfInitializeFrame(dst);
     sbufWriteU8(dst, CRSF_FRAME_TX_MSP_FRAME_SIZE + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_MSP_RESP);
-    crsfSerialize8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
+    crsfSerialize8(dst, mspRequestOriginID);
     crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
     crsfSerializeData(dst, (const uint8_t*)payload, CRSF_FRAME_TX_MSP_FRAME_SIZE);
     crsfFinalize(dst);
