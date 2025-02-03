@@ -25,11 +25,13 @@
 #define USE_TARGET_CONFIG
 
 #define LED0                    PC13
-#define LED1                    PC14
+// Clash with swdi
+//#define LED0                    PA13
+//#define LED1                    PA14
 
-//#define BEEPER                  PA15
-//#define BEEPER_INVERTED
-//#define BEEPER_PWM_FREQUENCY    2500
+#define BEEPER                  PC15
+#define BEEPER_INVERTED
+#define BEEPER_PWM_FREQUENCY    2500
 
 // *************** IMU generic ***********************
 #define USE_DUAL_GYRO
@@ -42,11 +44,12 @@
 #define SPI1_MISO_PIN           PA6
 #define SPI1_MOSI_PIN           PA7
 
-//#define USE_SPI_DEVICE_2
-//#define SPI2_SCK_PIN            PB10
-//#define SPI2_MISO_PIN           PC2_C
-//#define SPI2_MOSI_PIN           PC1
+#define USE_SPI_DEVICE_2
+#define SPI2_SCK_PIN            PB10
+#define SPI2_MISO_PIN           PC2
+#define SPI2_MOSI_PIN           PC3
 
+/*
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PB4
@@ -56,29 +59,14 @@
 #define SPI4_SCK_PIN            PE12
 #define SPI4_MISO_PIN           PE13
 #define SPI4_MOSI_PIN           PE6
+*/
 
-
-// *************** SPI1 IMU0 MPU6000 ****************
-#define USE_IMU_MPU6000
-
-#define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
-#define MPU6000_SPI_BUS          BUS_SPI1
-#define MPU6000_CS_PIN          PC15
-
-// *************** SPI4 IMU1  ICM20602 **************
-
-#define USE_IMU_MPU6500
-
-#define IMU_MPU6500_ALIGN       CW0_DEG_FLIP
-#define MPU6500_SPI_BUS         BUS_SPI4
-#define MPU6500_CS_PIN          PE11
-
-// *************** SPI4 IMU2 ICM42605 **************
+// *************** SPI1 IMU2 ICM42605 **************
 #define USE_IMU_ICM42605
 
 #define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
-#define ICM42605_SPI_BUS        BUS_SPI4
-#define ICM42605_CS_PIN         PC13
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PC4
 
 // *************** SPI2 OSD ***********************
 
@@ -93,19 +81,23 @@
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
+#define USE_I2C_DEVICE_3
+#define I2C3_SCL                PA8
+#define I2C3_SDA                PC9
+
 #define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C1
+#define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_ALL
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             BUS_I2C3
 #define USE_MAG_ALL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define PITOT_I2C_BUS           BUS_I2C1
+#define TEMPERATURE_I2C_BUS     BUS_I2C3
+#define PITOT_I2C_BUS           BUS_I2C3
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define RANGEFINDER_I2C_BUS     BUS_I2C3
 
 // *************** UART *****************************
 #define USE_VCP
@@ -114,58 +106,55 @@
 #define UART1_TX_PIN            PB14
 #define UART1_RX_PIN            PB15
 
-/*
 #define USE_UART2
-#define UART2_TX_PIN            PD5
-#define UART2_RX_PIN            PD6
+#define UART2_TX_PIN            PA2
+#define UART2_RX_PIN            PA3
 
 #define USE_UART3
-#define UART3_TX_PIN            PD8
-#define UART3_RX_PIN            PD9
+#define UART3_TX_PIN            PC10
+#define UART3_RX_PIN            PC11
 
 #define USE_UART4
 #define UART4_TX_PIN            PA0
-#define UART4_RX_PIN            PD0
+#define UART4_RX_PIN            PA1
+
+#define USE_UART5
+#define UART5_TX_PIN            PC12
+#define UART5_RX_PIN            PD2
 
 #define USE_UART6
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
 
-#define USE_UART7
-#define UART7_TX_PIN            PE8
-#define UART7_RX_PIN            PE7
-
-#define USE_UART8
-#define UART8_TX_PIN            PE1
-#define UART8_RX_PIN            PE0
-
-
-#define USE_UART9
-#define UART9_TX_PIN            PD15
-#define UART9_RX_PIN            PD14
-
-#define USE_UART10
-#define UART10_TX_PIN            PE3
-#define UART10_RX_PIN            PE2
-*/
-
 #ifdef USE_VCP
-#define SERIAL_PORT_COUNT       2 // 10
+#define SERIAL_PORT_COUNT       7
 #else
-#define SERIAL_PORT_COUNT       1
+#define SERIAL_PORT_COUNT       6
 #endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
-#define SERIALRX_UART           SERIAL_PORT_USART6
+#define SERIALRX_UART           SERIAL_PORT_USART1
 
 // *************** SDIO SD BLACKBOX*******************
+#ifdef TESTH7A3
 #define USE_SDCARD
-#define USE_SDCARD_SDIO
-#define SDCARD_SDIO_DEVICE      SDIODEV_1
-#define SDCARD_SDIO_4BIT
-
+//#define USE_SDCARD_SDIO
+//#define SDCARD_SDIO_DEVICE      SDIODEV_1
+//#define SDCARD_SDIO_4BIT
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI2
+#define SDCARD_CS_PIN           PC14
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#else
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_CS_PIN           PC14
+#define M25P16_SPI_BUS          BUS_SPI2
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#endif
+
 
 // *************** ADC *****************************
 /*
@@ -184,17 +173,16 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
-// *************** PINIO ***************************
-#define USE_PINIO
-#define USE_PINIOBOX
-#define PINIO1_PIN                  PD10  // VTX power switcher
-#define PINIO2_PIN                  PD11  // 2xCamera switcher
-
 */
+// *************** PINIO ***************************
+//#define USE_PINIO
+//#define USE_PINIOBOX
+//#define PINIO1_PIN                  PC13  // Core Led
+
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
-#define WS2811_PIN                  PA8
+#define WS2811_PIN                  PB9
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 #define CURRENT_METER_SCALE         250
@@ -206,8 +194,17 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
+#define TARGET_IO_PORTF 0xffff
+#define TARGET_IO_PORTG 0xffff
+#define TARGET_IO_PORTH 0xffff
+#define TARGET_IO_PORTI 0xffff
+#define TARGET_IO_PORTJ 0xffff
+#define TARGET_IO_PORTK 0xffff
 
 #define MAX_PWM_OUTPUT_PORTS        15
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 
+#ifdef USE_USB_MSC
+#undef USE_USB_MSC
+#endif

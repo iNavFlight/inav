@@ -35,7 +35,7 @@ void targetConfiguration(void)
 {
     //pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     //pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
-    //beeperConfigMutable()->pwmMode = true;
+    beeperConfigMutable()->pwmMode = true;
     serialPortConfig_t *uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
     if (uart1Config && uart1Config->functionMask == 0) {
         uart1Config->functionMask = FUNCTION_MSP;

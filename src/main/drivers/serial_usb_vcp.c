@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#ifdef USE_VCP
+#if defined(USE_VCP)
 
 #include "build/build_config.h"
 
@@ -31,6 +31,8 @@
 #include "usb_core.h"
 #include "usbd_cdc_vcp.h"
 #include "usb_io.h"
+#elif defined(STM32H7A3xx)
+#include "vcp_hal/usbd_cdc_interface_stm32h7a3.h"
 #elif defined(STM32F7) || defined(STM32H7)
 #include "vcp_hal/usbd_cdc_interface.h"
 #include "usb_io.h"
@@ -201,6 +203,8 @@ static const struct serialPortVTable usbVTable[] = {
     }
 };
 
+
+#ifndef STM32H7A3xx
 void usbVcpInitHardware(void)
 {
 #if defined(STM32F4)
@@ -216,7 +220,7 @@ void usbVcpInitHardware(void)
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
     /* Init Device Library */
 #if defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
-    USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_HS);
+    USBD_Init(&hUsbDeviceHS, &VCP_Desc, DEVICE_HS);
 #else
     USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_FS);
 #endif
@@ -242,6 +246,7 @@ void usbVcpInitHardware(void)
     USB_Init();
 #endif
 }
+#endif
 
 serialPort_t *usbVcpOpen(void)
 {

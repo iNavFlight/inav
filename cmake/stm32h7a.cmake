@@ -127,9 +127,9 @@ list(TRANSFORM STM32H7A_HAL_SRC PREPEND "${STM32H7A_HAL_DIR}/Src/")
 set(STM32H7A_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
 set(STM32H7A_VCP_SRC
-    usbd_desc.c
-    usbd_conf_stm32h7ax.c
-    usbd_cdc_interface.c
+    usbd_desc_stm32h7a3.c
+    usbd_conf_stm32h7a3.c
+    usbd_cdc_interface_stm32h7a3.c
 )
 list(TRANSFORM STM32H7A_VCP_SRC PREPEND "${STM32H7A_VCP_DIR}/")
 
@@ -159,6 +159,7 @@ main_sources(STM32H7A_SRC
     drivers/timer_stm32h7xx.c
     drivers/system_stm32h7xx.c
     drivers/serial_uart_stm32h7xx.c
+    drivers/serial_usb_vcp_stm32h7a3.c
     drivers/serial_uart_hal.c
     drivers/sdio.h
     drivers/sdcard/sdmmc_sdio_hal.c
@@ -188,9 +189,9 @@ function(target_stm32h7ax)
         VCP_SOURCES ${STM32H7A_USB_SRC} ${STM32H7A_VCP_SRC}
         VCP_INCLUDE_DIRECTORIES ${STM32H7A_USB_INCLUDE_DIRS} ${STM32H7A_VCP_DIR}
 
-        OPTIMIZATION -O2
+        OPTIMIZATION -O2 -g -fno-inline -fkeep-static-consts -fno-funroll-loops
 
-        OPENOCD_TARGET stm32h7x
+        OPENOCD_TARGET stm32h7ax
 
 #        BOOTLOADER
 

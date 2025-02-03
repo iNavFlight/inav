@@ -88,8 +88,8 @@ set(STM32H7_HAL_SRC
     stm32h7xx_hal_tim_ex.c
     stm32h7xx_hal_uart.c
     stm32h7xx_hal_uart_ex.c
-#    stm32h7xx_hal_usart.c
-#    stm32h7xx_hal_usart_ex.c
+    stm32h7xx_hal_usart.c
+    stm32h7xx_hal_usart_ex.c
 #    stm32h7xx_hal_wwdg.c
 #    stm32h7xx_ll_adc.c
 #    stm32h7xx_ll_bdma.c
@@ -106,7 +106,7 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_ll_hrtim.c
     stm32h7xx_ll_i2c.c
 #    stm32h7xx_ll_lptim.c
-#    stm32h7xx_ll_lpuart.c
+    stm32h7xx_ll_lpuart.c
 #    stm32h7xx_ll_mdma.c
 #    stm32h7xx_ll_opamp.c
 #    stm32h7xx_ll_pwr.c
@@ -117,7 +117,7 @@ set(STM32H7_HAL_SRC
     stm32h7xx_ll_spi.c
 #    stm32h7xx_ll_swpmi.c
     stm32h7xx_ll_tim.c
-#    stm32h7xx_ll_usart.c
+    stm32h7xx_ll_usart.c
     stm32h7xx_ll_usb.c
 #    stm32h7xx_ll_utils.c
 )
