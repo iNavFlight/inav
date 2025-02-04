@@ -39,5 +39,12 @@ void targetConfiguration(void)
     serialPortConfig_t *uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
     if (uart1Config && uart1Config->functionMask == 0) {
         uart1Config->functionMask = FUNCTION_MSP;
+        uart1Config->msp_baudrateIndex = BAUD_115200;
+    }
+
+    serialPortConfig_t *uart6Config = serialFindPortConfiguration(SERIAL_PORT_USART6);
+    if (uart6Config && uart6Config->functionMask == 0) {
+        uart6Config->functionMask = FUNCTION_MSP;
+        uart6Config->msp_baudrateIndex = BAUD_115200;
     }
 }
