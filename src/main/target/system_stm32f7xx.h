@@ -32,6 +32,10 @@
  extern "C" {
 #endif
 
+#ifndef STM32H7A3xx
+#error "nope"
+#endif
+
 extern uint32_t SystemCoreClock;          /*!< System Clock Frequency (Core Clock) */
 extern void SystemInit(void);
 extern void SystemClock_Config(void);
