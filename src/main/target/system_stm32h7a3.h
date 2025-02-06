@@ -32,13 +32,27 @@
  extern "C" {
 #endif
 
-#ifndef STM32H7A3xx
-#error "nope"
-#endif
-
 extern uint32_t SystemCoreClock;          /*!< System Clock Frequency (Core Clock) */
 extern void SystemInit(void);
 extern void SystemClock_Config(void);
+
+void PeriphCommonClock_Config(void);
+extern void MPU_Config(void);
+extern void MX_GPIO_Init(void);
+extern void MX_DMA_Init(void);
+extern void MX_BDMA1_Init(void);
+extern void MX_BDMA2_Init(void);
+extern void MX_SPI1_Init(void);
+extern void MX_SPI2_Init(void);
+extern void MX_UART4_Init(void);
+extern void MX_USART2_UART_Init(void);
+extern void MX_USART3_UART_Init(void);
+extern void MX_USART6_UART_Init(void);
+extern void MX_TIM1_Init(void);
+extern void MX_TIM2_Init(void);
+extern void MX_UART5_Init(void);
+extern void MX_TIM4_Init(void);
+extern void MX_TIM3_Init(void);
 
 #ifdef __cplusplus
 }
