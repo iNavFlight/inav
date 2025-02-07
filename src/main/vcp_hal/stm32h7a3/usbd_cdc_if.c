@@ -19,14 +19,9 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_cdc_interface.h"
+#include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
-#include "stdbool.h"
-#include "drivers/time.h"
-#include "drivers/nvic.h"
-#include "build/atomic.h"
 
 /* USER CODE END INCLUDE */
 
@@ -36,13 +31,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-USBD_CDC_LineCodingTypeDef LineCoding =
-{
-  115200, /* baud rate*/
-  0x00,   /* stop bits-1*/
-  0x00,   /* parity - none*/
-  0x08    /* nb. of bits 8*/
-};
+
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -114,7 +103,15 @@ uint8_t UserRxBufferHS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferHS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-uint32_t rxAvailable = 0;
+
+USBD_CDC_LineCodingTypeDef LineCoding =
+{
+  115200, /* baud rate*/
+  0x00,   /* stop bits-1*/
+  0x00,   /* parity - none*/
+  0x08    /* nb. of bits 8*/
+};
+
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -149,11 +146,6 @@ static int8_t CDC_TransmitCplt_HS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
 
-static void (*ctrlLineStateCb)(void *context, uint16_t ctrlLineState);
-static void *ctrlLineStateCbContext;
-static void (*baudRateCb)(void *context, uint32_t baud);
-static void *baudRateCbContext;
-
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
 /**
@@ -181,9 +173,6 @@ static int8_t CDC_Init_HS(void)
   /* Set Application Buffers */
   USBD_CDC_SetTxBuffer(&hUsbDeviceHS, UserTxBufferHS, 0);
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, UserRxBufferHS);
-
-  ctrlLineStateCb = NULL;
-  baudRateCb = NULL;
   return (USBD_OK);
   /* USER CODE END 8 */
 }
@@ -209,8 +198,9 @@ static int8_t CDC_DeInit_HS(void)
   */
 static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
-  LINE_CODING* plc = (LINE_CODING*)pbuf;
   /* USER CODE BEGIN 10 */
+  LINE_CODING* plc = (LINE_CODING*)pbuf;
+
   switch(cmd)
   {
   case CDC_SEND_ENCAPSULATED_COMMAND:
@@ -253,38 +243,28 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 
 
   case CDC_SET_LINE_CODING:
-      if (pbuf && (length == sizeof(*plc))) {
-          LineCoding.bitrate = plc->bitrate;
-          LineCoding.format = plc->format;
-          LineCoding.paritytype = plc->paritytype;
-          LineCoding.datatype = plc->datatype;
-      }
+     if (pbuf && (length == sizeof (*plc))) {
+         LineCoding.bitrate    = plc->bitrate;
+         LineCoding.format     = plc->format;
+         LineCoding.paritytype = plc->paritytype;
+         LineCoding.datatype   = plc->datatype;
+     }
 
-      // If a callback is provided, tell the upper driver of changes in baud
-      // rate
-      if (baudRateCb) {
-          baudRateCb(baudRateCbContext, LineCoding.bitrate);
-      }
-
-      break;
+     break;
 
    case CDC_GET_LINE_CODING:
-       if (pbuf && (length == sizeof(*plc))) {
-           plc->bitrate = LineCoding.bitrate;
-           plc->format = LineCoding.format;
-           plc->paritytype = LineCoding.paritytype;
-           plc->datatype = LineCoding.datatype;
-       }
-       break;
+     if (pbuf && (length == sizeof (*plc))) {
+         plc->bitrate = LineCoding.bitrate;
+         plc->format = LineCoding.format;
+         plc->paritytype = LineCoding.paritytype;
+         plc->datatype = LineCoding.datatype;
+     }
+     break;
 
    case CDC_SET_CONTROL_LINE_STATE:
-       // If a callback is provided, tell the upper driver of changes in DTR/RTS state
-       if (pbuf && (length == sizeof(uint16_t))) {
-           if (ctrlLineStateCb) {
-               ctrlLineStateCb(ctrlLineStateCbContext, *((uint16_t *)pbuf));
-           }
-       }
-       break;
+     // If a callback is provided, tell the upper driver of changes in DTR/RTS state
+
+     break;
 
   case CDC_SEND_BREAK:
 
@@ -319,8 +299,13 @@ static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceHS);
 
-  rxAvailable = *Len;
-
+  // Echo back:
+  uint8_t txresult = CDC_Transmit_HS(UserRxBufferHS, *Len);
+  //memset(UserRxBufferHS, '\0', *Len)
+  if(txresult != USBD_OK)
+  {
+	// ???
+  }
   return (USBD_OK);
   /* USER CODE END 11 */
 }
@@ -337,7 +322,8 @@ uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len)
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 12 */
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceHS.pClassData;
-  while (hcdc->TxState != 0){
+  if (hcdc->TxState != 0){
+    return USBD_BUSY;
   }
   USBD_CDC_SetTxBuffer(&hUsbDeviceHS, Buf, Len);
   result = USBD_CDC_TransmitPacket(&hUsbDeviceHS);
@@ -379,96 +365,3 @@ static int8_t CDC_TransmitCplt_HS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 /**
   * @}
   */
-
-
-/*******************************************************************************
- * Function Name  : CDC_SetBaudRateCb
- * Description    : Set a callback to call when baud rate changes
- * Input          : callback function and context.
- * Output         : None.
- * Return         : None.
- *******************************************************************************/
-void CDC_SetBaudRateCb(void (*cb)(void *context, uint32_t baud), void *context)
-{
-    baudRateCbContext = context;
-    baudRateCb = cb;
-}
-
-/*******************************************************************************
- * Function Name  : CDC_SetCtrlLineStateCb
- * Description    : Set a callback to call when control line state changes
- * Input          : callback function and context.
- * Output         : None.
- * Return         : None.
- *******************************************************************************/
-void CDC_SetCtrlLineStateCb(void (*cb)(void *context, uint16_t ctrlLineState), void *context)
-{
-    ctrlLineStateCbContext = context;
-    ctrlLineStateCb = cb;
-}
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
-/**
- * @brief  CDC_Send_DATA
- *         CDC received data to be send over USB IN endpoint are managed in
- *         this function.
- * @param  ptrBuffer: Buffer of data to be sent
- * @param  sendLength: Number of data to be sent (in bytes)
- * @retval Bytes sent
- */
-uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
-{
-    CDC_Transmit_HS((uint8_t *)ptrBuffer, sendLength);
-
-    return sendLength;
-}
-
-uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len)
-{
-    return CDC_Receive_HS(recvBuf, &len);
-}
-
-uint8_t usbIsConfigured(void)
-{
-    return (hUsbDeviceHS.dev_state == USBD_STATE_CONFIGURED);
-}
-
-uint8_t usbIsConnected(void)
-{
-    return (hUsbDeviceHS.dev_state != USBD_STATE_DEFAULT);
-}
-
-
-uint32_t CDC_Receive_BytesAvailable(void)
-{
-    return rxAvailable;
-}
-
-uint32_t CDC_Send_FreeBytes(void)
-{
-#if 0
-    uint32_t freeBytes;
-
-    ATOMIC_BLOCK(NVIC_PRIO_VCP) {
-        freeBytes = ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
-    }
-
-    return freeBytes;
-#else
-    return APP_TX_DATA_SIZE;
-#endif
-}
-
-/*******************************************************************************
- * Function Name  : CDC_BaudRate.
- * Description    : Get the current baud rate
- * Input          : None.
- * Output         : None.
- * Return         : Baud rate in bps
- *******************************************************************************/
-uint32_t CDC_BaudRate(void)
-{
-    return LineCoding.bitrate;
-}
-

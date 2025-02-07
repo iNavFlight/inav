@@ -30,7 +30,6 @@
 #include "usbd_cdc.h"
 
 /* USER CODE BEGIN INCLUDE */
-#include "usbd_core.h"
 
 /* USER CODE END INCLUDE */
 
@@ -109,15 +108,7 @@ extern USBD_CDC_ItfTypeDef USBD_Interface_fops_HS;
 uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len);
 
 /* USER CODE BEGIN EXPORTED_FUNCTIONS */
-void CDC_SetCtrlLineStateCb(void (*cb)(void *context, uint16_t ctrlLineState), void *context);
-void CDC_SetBaudRateCb(void (*cb)(void *context, uint32_t baud), void *context);
-uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength);
-uint32_t CDC_Send_FreeBytes(void);
-uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len);
-uint32_t CDC_Receive_BytesAvailable(void);
-uint32_t CDC_BaudRate(void);
-uint8_t usbIsConfigured(void);
-uint8_t usbIsConnected(void);
+
 /* USER CODE END EXPORTED_FUNCTIONS */
 
 /**

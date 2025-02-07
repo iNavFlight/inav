@@ -19,8 +19,8 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USBD_STM32H7A3_CONF__H__
-#define __USBD_STM32H7A3_CONF__H__
+#ifndef __USBD_CONF__H__
+#define __USBD_CONF__H__
 
 #ifdef __cplusplus
  extern "C" {
@@ -30,12 +30,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "main.h"
 #include "stm32h7xx.h"
 #include "stm32h7xx_hal.h"
 
 /* USER CODE BEGIN INCLUDE */
-#include "platform.h"      // Required for inclusion of stm32Yxx_hal.h below within USB device library code
-#include "common/maths.h"  // Required for MIN & MAX within USB device library code
+
 /* USER CODE END INCLUDE */
 
 /** @addtogroup USBD_OTG_DRIVER
@@ -67,11 +67,11 @@
 /*---------- -----------*/
 #define USBD_MAX_NUM_CONFIGURATION     1U
 /*---------- -----------*/
-#define USBD_MAX_STR_DESC_SIZ     ((uint16_t)512U)
+#define USBD_MAX_STR_DESC_SIZ     512U
 /*---------- -----------*/
 #define USBD_DEBUG_LEVEL     0U
 /*---------- -----------*/
-#define USBD_LPM_ENABLED     0U
+#define USBD_LPM_ENABLED     1U
 /*---------- -----------*/
 #define USBD_SELF_POWERED     1U
 

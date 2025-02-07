@@ -1,7 +1,3 @@
-/**
- * usbd_conf.c adopted from  STM32CubeH7 1.21.1 project
- **/
-
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
@@ -30,11 +26,7 @@
 #include "usbd_cdc.h"
 
 /* USER CODE BEGIN Includes */
-#include "platform.h"
- 
-#ifdef USE_USB_MSC
-#include "drivers/usb_msc.h"
-#endif
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +39,7 @@
 /* USER CODE END PV */
 
 PCD_HandleTypeDef hpcd_USB_OTG_HS;
-static inline void Error_Handler(void);
+void Error_Handler(void);
 
 /* External functions --------------------------------------------------------*/
 
@@ -109,6 +101,10 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
 
     /* Peripheral interrupt init */
+    HAL_NVIC_SetPriority(OTG_HS_EP1_OUT_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+    HAL_NVIC_SetPriority(OTG_HS_EP1_IN_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
     HAL_NVIC_SetPriority(OTG_HS_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
   /* USER CODE BEGIN USB_OTG_HS_MspInit 1 */
@@ -134,6 +130,10 @@ void HAL_PCD_MspDeInit(PCD_HandleTypeDef* pcdHandle)
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
 
     /* Peripheral interrupt Deinit*/
+    HAL_NVIC_DisableIRQ(OTG_HS_EP1_OUT_IRQn);
+
+    HAL_NVIC_DisableIRQ(OTG_HS_EP1_IN_IRQn);
+
     HAL_NVIC_DisableIRQ(OTG_HS_IRQn);
 
   /* USER CODE BEGIN USB_OTG_HS_MspDeInit 1 */
@@ -697,13 +697,4 @@ USBD_StatusTypeDef USBD_Get_USB_Status(HAL_StatusTypeDef hal_status)
     break;
   }
   return usb_status;
-}
-
-void Error_Handler(void)
-{
-#ifdef DEBUG
-    while(1) {
-        asm volatile("nop");
-    }
-#endif
 }
