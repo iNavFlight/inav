@@ -3,6 +3,30 @@ include(stm32h7a-usb)
 
 set(STM32H7A_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS/Device/ST/STM32H7xx")
 set(STM32H7A_HAL_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/STM32H7xx_HAL_Driver")
+set(STM32H7A_CMSIS_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS")
+set(STM32H7A_CMSIS_INCLUDE_DIR "${STM32H7A_CMSIS_DIR}/Core/Include")
+set(STM32H7A_CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS/DSP")
+set(STM32H7A_CMSIS_DSP_INCLUDE_DIR "${STM32H7A_CMSIS_DSP_DIR}/Include")
+
+set(STM32H7A_CMSIS_DSP_SRC
+    BasicMathFunctions/arm_scale_f32.c
+    BasicMathFunctions/arm_sub_f32.c
+    BasicMathFunctions/arm_mult_f32.c
+    BasicMathFunctions/arm_offset_f32.c
+    TransformFunctions/arm_rfft_fast_f32.c
+    TransformFunctions/arm_cfft_f32.c
+    TransformFunctions/arm_rfft_fast_init_f32.c
+    TransformFunctions/arm_cfft_radix8_f32.c
+    TransformFunctions/arm_bitreversal2.S
+    CommonTables/arm_common_tables.c
+    ComplexMathFunctions/arm_cmplx_mag_f32.c
+    StatisticsFunctions/arm_max_f32.c
+    StatisticsFunctions/arm_rms_f32.c
+    StatisticsFunctions/arm_std_f32.c
+    StatisticsFunctions/arm_mean_f32.c
+)
+
+list(TRANSFORM STM32H7A_CMSIS_DSP_SRC PREPEND "${STM32H7A_CMSIS_DSP_DIR}/Source/")
 
 set(STM32H7A_HAL_SRC
     stm32h7xx_hal.c
@@ -110,7 +134,7 @@ set(STM32H7A_HAL_SRC
 #    stm32h7xx_ll_mdma.c
 #    stm32h7xx_ll_opamp.c
 #    stm32h7xx_ll_pwr.c
-#    stm32h7xx_ll_rcc.c
+    stm32h7xx_ll_rcc.c
 #    stm32h7xx_ll_rng.c
 #    stm32h7xx_ll_rtc.c
     stm32h7xx_ll_sdmmc.c
@@ -134,8 +158,10 @@ set(STM32H7A_VCP_SRC
 list(TRANSFORM STM32H7A_VCP_SRC PREPEND "${STM32H7A_VCP_DIR}/")
 
 set(STM32H7A_INCLUDE_DIRS
-    ${STM32H7A_HAL_DIR}/Inc
+    "${STM32H7A_HAL_DIR}/Inc/"
     ${STM32H7A_CMSIS_DEVICE_DIR}/Include
+    ${STM32H7A_CMSIS_INCLUDE_DIR}
+    ${STM32H7A_CMSIS_DSP_INCLUDE_DIR}
 )
 
 main_sources(STM32H7A_SRC
@@ -180,7 +206,7 @@ set(STM32H7A_DEFINITIONS
 function(target_stm32h7ax)
     list(REMOVE_ITEM STM32H7A_SRC drivers/system_stm32h7xx.c)
     target_stm32(
-        SOURCES ${STM32H7A_HAL_SRC} ${STM32H7A_SRC}
+        SOURCES ${STM32H7A_HAL_SRC} ${STM32H7A_SRC} ${STM32H7A_CMSIS_DSP_SRC}
         COMPILE_DEFINITIONS ${STM32H7A_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
         INCLUDE_DIRECTORIES ${STM32H7A_INCLUDE_DIRS}
@@ -190,7 +216,7 @@ function(target_stm32h7ax)
         VCP_SOURCES ${STM32H7A_USB_SRC} ${STM32H7A_VCP_SRC}
         VCP_INCLUDE_DIRECTORIES ${STM32H7A_USB_INCLUDE_DIRS} ${STM32H7A_VCP_DIR}
 
-        OPTIMIZATION -O2 -g -fno-inline -fkeep-static-consts -fno-funroll-loops
+        OPTIMIZATION -O1 -g
 
         OPENOCD_TARGET stm32h7ax
 

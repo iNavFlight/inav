@@ -11,30 +11,6 @@ option(SEMIHOSTING "Enable semihosting")
 
 message("-- DEBUG_HARDFAULTS: ${DEBUG_HARDFAULTS}, SEMIHOSTING: ${SEMIHOSTING}")
 
-set(CMSIS_DIR "${MAIN_LIB_DIR}/main/CMSIS")
-set(CMSIS_INCLUDE_DIR "${CMSIS_DIR}/Core/Include")
-set(CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")
-set(CMSIS_DSP_INCLUDE_DIR "${CMSIS_DSP_DIR}/Include")
-
-set(CMSIS_DSP_SRC
-    BasicMathFunctions/arm_scale_f32.c
-    BasicMathFunctions/arm_sub_f32.c
-    BasicMathFunctions/arm_mult_f32.c
-    BasicMathFunctions/arm_offset_f32.c
-    TransformFunctions/arm_rfft_fast_f32.c
-    TransformFunctions/arm_cfft_f32.c
-    TransformFunctions/arm_rfft_fast_init_f32.c
-    TransformFunctions/arm_cfft_radix8_f32.c
-    TransformFunctions/arm_bitreversal2.S
-    CommonTables/arm_common_tables.c
-    ComplexMathFunctions/arm_cmplx_mag_f32.c
-    StatisticsFunctions/arm_max_f32.c
-    StatisticsFunctions/arm_rms_f32.c
-    StatisticsFunctions/arm_std_f32.c
-    StatisticsFunctions/arm_mean_f32.c
-)
-list(TRANSFORM CMSIS_DSP_SRC PREPEND "${CMSIS_DSP_DIR}/Source/")
-
 set(STM32_STARTUP_DIR "${MAIN_SRC_DIR}/startup")
 
 main_sources(STM32_VCP_SRC
@@ -70,8 +46,8 @@ main_sources(STM32_MSC_SDCARD_SRC
 )
 
 set(STM32_INCLUDE_DIRS
-    "${CMSIS_INCLUDE_DIR}"
-    "${CMSIS_DSP_INCLUDE_DIR}"
+    #"${CMSIS_INCLUDE_DIR}"
+    #"${CMSIS_DSP_INCLUDE_DIR}"
     "${MAIN_SRC_DIR}/target"
 )
 
@@ -360,7 +336,7 @@ function(target_stm32)
     add_stm32_executable(
         NAME ${name}
         FILENAME ${binary_name}
-        SOURCES ${target_sources} ${msc_sources} ${CMSIS_DSP_SRC} ${COMMON_SRC}
+        SOURCES ${target_sources} ${msc_sources} ${COMMON_SRC}
         COMPILE_DEFINITIONS ${target_definitions}
         COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
         INCLUDE_DIRECTORIES ${target_include_directories}
