@@ -148,12 +148,13 @@ set(STM32H7A_HAL_SRC
 
 list(TRANSFORM STM32H7A_HAL_SRC PREPEND "${STM32H7A_HAL_DIR}/Src/")
 
-set(STM32H7A_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
+#set(HAL_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal/stm32h7a3")
+set(STM32H7A_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal/stm32h7a3")
 
 set(STM32H7A_VCP_SRC
-    usbd_desc_stm32h7a3.c
-    usbd_conf_stm32h7a3.c
-    usbd_cdc_interface_stm32h7a3.c
+    usbd_desc.c
+    usbd_conf.c
+    usbd_cdc_interface.c
 )
 list(TRANSFORM STM32H7A_VCP_SRC PREPEND "${STM32H7A_VCP_DIR}/")
 
