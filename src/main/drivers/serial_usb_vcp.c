@@ -32,10 +32,10 @@
 #include "usbd_cdc_vcp.h"
 #include "usb_io.h"
 #elif defined(STM32H7A3xx)
-#include "vcp_hal/usbd_cdc_interface_stm32h7a3.h"
+#include "vcp_hal/stm32h7a3/usbd_cdc_interface.h"
 #elif defined(STM32F7) || defined(STM32H7)
 #include "vcp_hal/usbd_cdc_interface.h"
-#include "usb_io.h"
+#include "drivers/usb_io.h"
 USBD_HandleTypeDef USBD_Device;
 #else
 #include "usb_core.h"
@@ -219,7 +219,7 @@ void usbVcpInitHardware(void)
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
     /* Init Device Library */
-    USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_FS);
+    USBD_Init(&USBD_Device, &VCP_Desc, 0);
 
     /* Add Supported Class */
     USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS);

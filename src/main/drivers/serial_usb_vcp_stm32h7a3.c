@@ -39,8 +39,12 @@
 #include "usbd_core.h"
 #include "usbd_cdc.h"
 
-#include "vcp_hal/usbd_cdc_interface_stm32h7a3.h"
-#include "vcp_hal/usbd_desc_stm32h7a3.h"
+#ifdef STM32H7A3xx
+#include "vcp_hal/stm32h7a3/usbd_cdc_interface.h"
+#include "vcp_hal/stm32h7a3/usbd_desc.h"
+#else
+#error "Unknown MCU"
+#endif
 
 USBD_HandleTypeDef hUsbDeviceHS;
 
@@ -55,14 +59,49 @@ static inline void Error_Handler(void)
 #define Error_Handler()
 #endif
 
+void MX_USB_DEVICE_Init(void)
+{
+  /* USER CODE BEGIN USB_DEVICE_Init_PreTreatment */
+
+  /* USER CODE END USB_DEVICE_Init_PreTreatment */
+
+  /* Init Device Library, add supported class and start the library. */
+  if (USBD_Init(&hUsbDeviceHS, &HS_Desc, DEVICE_HS) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  if (USBD_RegisterClass(&hUsbDeviceHS, &USBD_CDC) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  if (USBD_CDC_RegisterInterface(&hUsbDeviceHS, &USBD_Interface_fops_HS) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  if (USBD_Start(&hUsbDeviceHS) != USBD_OK)
+  {
+    Error_Handler();
+  }
+
+  /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
+  HAL_PWREx_EnableUSBVoltageDetector();
+
+  /* USER CODE END USB_DEVICE_Init_PostTreatment */
+}
+
 void usbVcpInitHardware(void)
  {
-    usbGenerateDisconnectPulse();
+    MX_USB_DEVICE_Init();
+
+/*
+    //usbGenerateDisconnectPulse();
 
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
 
     // MX_USB_DEVICE_Init code bellow
+
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
 
     //if (USBD_Init(&hUsbDeviceHS, &HS_Desc, DEVICE_HS) != USBD_OK) {
     if (USBD_Init(&hUsbDeviceHS, &HS_Desc, DEVICE_HS) != USBD_OK) {
@@ -82,6 +121,7 @@ void usbVcpInitHardware(void)
 
     // END OF MX_USB_Device_Init
     //delay(100); // Cold boot failures observed without this, even when USB cable is not connected
+    */
 }
 
 #endif

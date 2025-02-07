@@ -20,7 +20,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_core.h"
-#include "usbd_desc_stm32h7a3.h"
+#include "usbd_desc.h"
 #include "usbd_conf.h"
 
 /* USER CODE BEGIN INCLUDE */

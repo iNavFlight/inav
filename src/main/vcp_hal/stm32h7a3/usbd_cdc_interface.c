@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "usbd_cdc_interface_stm32h7a3.h"
+#include "usbd_cdc_interface.h"
 
 /* USER CODE BEGIN INCLUDE */
 

@@ -54,10 +54,8 @@
 #include "common/maths.h"  // Required for MIN & MAX within USB device library code
 
 #if defined(STM32F7)
-#include "stm32f7xx.h"
 #include "stm32f7xx_hal.h"
 #elif defined(STM32H7)
-#include "stm32h7xx.h"
 #include "stm32h7xx_hal.h"
 #else
 #error Unknown MCU
@@ -71,9 +69,6 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Common Config */
-#ifdef STM32H7A3xx
-#include "usbd_conf_stm32h7a3.h"
-#else
 #define USBD_MAX_NUM_INTERFACES               3
 #define USBD_MAX_NUM_CONFIGURATION            1
 #define USBD_MAX_STR_DESC_SIZ                 0x100
@@ -81,19 +76,7 @@
 #define USBD_SELF_POWERED                     1
 #define USBD_DEBUG_LEVEL                      0
 #define MSC_MEDIA_PACKET                      512U
-
-
-
-/****************************************/
-/* #define for FS and HS identification */
-#define DEVICE_FS 		0
-#define DEVICE_HS 		1
-#ifdef STM32H7A3xx
-#define USE_USB_HS
-#else
 #define USE_USB_FS
-#endif
-
 
 /* Exported macro ------------------------------------------------------------*/
 /* Memory management macros */
@@ -129,7 +112,6 @@
 
 /* Exported functions ------------------------------------------------------- */
 
-#endif /* STM32H7A3xx */
 #endif /* __USBD_CONF_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
