@@ -87,7 +87,7 @@ uint8_t mscStart(void)
 #if defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
     USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_HS);
 #else
-    USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_FS);
+    USBD_Init(&USBD_Device, &VCP_Desc, 0);
 #endif
 
     /** Regsiter class */
