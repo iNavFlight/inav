@@ -135,4 +135,9 @@ uint32_t CDC_Send_FreeBytes(void) {
     return 0;
 }
 
+uint32_t CDC_BaudRate(void)
+{
+    return 115200;
+}
+
 #endif

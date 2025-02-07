@@ -33,10 +33,20 @@
 #include "usb_io.h"
 #elif defined(STM32H7A3xx)
 #include "vcp_hal/stm32h7a3/usbd_cdc_if.h"
+int usbIsConnected(void);
+int usbIsConfigured(void);
+uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len);
+uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength);
+uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len);
+uint32_t CDC_Receive_BytesAvailable(void);
+uint32_t CDC_Send_FreeBytes(void);
+uint32_t CDC_BaudRate(void);
+
 #elif defined(STM32F7) || defined(STM32H7)
 #include "vcp_hal/usbd_cdc_interface.h"
 #include "drivers/usb_io.h"
 USBD_HandleTypeDef USBD_Device;
+
 #else
 #include "usb_core.h"
 #include "usb_init.h"
