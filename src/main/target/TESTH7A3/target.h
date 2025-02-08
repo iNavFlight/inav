@@ -25,6 +25,7 @@
 #define USE_TARGET_CONFIG
 
 #define LED0                    PC13
+//#define LED1                    PE2
 // Clash with swdi
 //#define LED0                    PA13
 //#define LED1                    PA14
@@ -81,23 +82,24 @@
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
 
-#define USE_I2C_DEVICE_3
-#define I2C3_SCL                PA8
-#define I2C3_SDA                PC9
+//#define USE_I2C_DEVICE_3
+//#define I2C3_SCL                PA8
+//#define I2C3_SDA                PC9
 
 #define USE_BARO
-#define BARO_I2C_BUS            BUS_I2C3
+//#define BARO_I2C_BUS            BUS_I2C3
+#define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_ALL
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C3
+#define MAG_I2C_BUS             BUS_I2C1
 #define USE_MAG_ALL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C3
-#define PITOT_I2C_BUS           BUS_I2C3
+#define TEMPERATURE_I2C_BUS     BUS_I2C1
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C3
+#define RANGEFINDER_I2C_BUS     BUS_I2C1
 
 // *************** UART *****************************
 #define USE_VCP
@@ -157,23 +159,21 @@
 
 
 // *************** ADC *****************************
-/*
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
 #define ADC_CHANNEL_1_PIN           PC0  //ADC123 VBAT1
 #define ADC_CHANNEL_2_PIN           PC1  //ADC123 CURR1
-#define ADC_CHANNEL_3_PIN           PC5  //ADC12  RSSI
-#define ADC_CHANNEL_4_PIN           PC4  //ADC12  AirS
-#define ADC_CHANNEL_5_PIN           PA4  //ADC12  VB2
-#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
+#define ADC_CHANNEL_3_PIN           PA4  //ADC12  RSSI
+#define ADC_CHANNEL_4_PIN           PC5  //ADC12  AirS
+//#define ADC_CHANNEL_5_PIN           PA4  //ADC12  VB2
+//#define ADC_CHANNEL_6_PIN           PA7  //ADC12  CU2
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 #define AIRSPEED_ADC_CHANNEL        ADC_CHN_4
 
-*/
 // *************** PINIO ***************************
 //#define USE_PINIO
 //#define USE_PINIOBOX
