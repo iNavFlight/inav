@@ -515,7 +515,7 @@ void handleJetiExBusTelemetry(void)
         // to prevent timing issues from request to answer - max. 4ms
         timeDiff = micros() - jetiTimeStampRequest;
 
-        if (timeDiff > 3000) {   // include reserved time
+        if (timeDiff > 1000) {   // include reserved time
             jetiExBusRequestState = EXBUS_STATE_ZERO;
             framesLost++;
             return;
