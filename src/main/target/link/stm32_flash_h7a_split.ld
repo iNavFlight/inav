@@ -47,6 +47,17 @@ SECTIONS
     _etext = .;        /* define a global symbols at end of code */
   } >FLASH
 
+  tcm_code = LOADADDR(.tcm_code); 
+  .tcm_code (NOLOAD) :
+  {
+    . = ALIGN(4);
+    tcm_code_start = .; 
+    *(.tcm_code)
+    *(.tcm_code*)
+    . = ALIGN(4);
+    tcm_code_end = .; 
+  } >ITCMRAM AT >FLASH
+
   /* Constant data goes into FLASH */
   .rodata :
   {
@@ -61,6 +72,14 @@ SECTIONS
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
+  } >FLASH
+
+  .busdev_registry :
+  {
+    PROVIDE_HIDDEN (__busdev_registry_start = .);
+    KEEP (*(.busdev_registry))
+    KEEP (*(SORT(.busdev_registry.*)))
+    PROVIDE_HIDDEN (__busdev_registry_end = .);
   } >FLASH
 
   .preinit_array     :
@@ -90,7 +109,12 @@ SECTIONS
     KEEP (*(SORT(.pg_registry.*)))
     PROVIDE_HIDDEN (__pg_registry_end = .);
   } >FLASH
- 
+  .pg_resetdata :
+  {
+    PROVIDE_HIDDEN (__pg_resetdata_start = .);
+    KEEP (*(.pg_resetdata))
+    PROVIDE_HIDDEN (__pg_resetdata_end = .);
+  } >FLASH
 
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
@@ -123,6 +147,44 @@ SECTIONS
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
   } >RAM
+
+  .DMA_RAM (NOLOAD) :
+  {
+    . = ALIGN(32);
+    PROVIDE(dmaram_start = .);
+    _sdmaram = .;
+    _dmaram_start__ = _sdmaram;
+    KEEP(*(.DMA_RAM))
+    PROVIDE(dmaram_end = .);
+    _edmaram = .;
+    _dmaram_end__ = _edmaram;
+  } >D2_RAM
+
+  .DMA_RW_D2 (NOLOAD) :
+  {
+    . = ALIGN(32);
+    PROVIDE(dmarw_start = .);
+    _sdmarw = .;
+    _dmarw_start__ = _sdmarw;
+    KEEP(*(.DMA_RW))
+    PROVIDE(dmarw_end = .);
+    _edmarw = .;
+    _dmarw_end__ = _edmarw;
+  } >D2_RAM
+
+  .DMA_RW_AXI (NOLOAD) :
+  {
+    . = ALIGN(32);
+    PROVIDE(dmarwaxi_start = .);
+    _sdmarwaxi = .;
+    _dmarwaxi_start__ = _sdmarwaxi;
+    KEEP(*(.DMA_RW_AXI))
+    PROVIDE(dmarwaxi_end = .);
+    _edmarwaxi = .;
+    _dmarwaxi_end__ = _edmarwaxi;
+  } >RAM
+
+
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
