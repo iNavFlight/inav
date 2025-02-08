@@ -228,11 +228,13 @@ KEEP (*(.FLASH_CONFIG_Section ))
 KEEP (*(.AHB_SRAM1_Section ))
 . = ALIGN(4);
 } >AHB_SRAM1
+/*
 .AHB_SRAM2_Section :
 {. = ALIGN(4);
 KEEP (*(.AHB_SRAM2_Section ))
 . = ALIGN(4);
 } >AHB_SRAM2
+*/
 .AHB_SRAM3_Section :
 {. = ALIGN(4);
 KEEP (*(.AHB_SRAM3_Section ))
