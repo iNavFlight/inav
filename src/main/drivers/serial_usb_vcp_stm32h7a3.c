@@ -40,6 +40,7 @@
 #include "usbd_cdc.h"
 
 #ifdef STM32H7A3xx
+#include "vcp_hal/stm32h7a3/inav_cdc.h"
 #include "vcp_hal/stm32h7a3/usbd_cdc_if.h"
 #include "vcp_hal/stm32h7a3/usbd_desc.h"
 #else
@@ -95,49 +96,178 @@ void usbVcpInitHardware(void)
     //delay(100); // Cold boot failures observed without this, even when USB cable is not connected
     */
 }
+#define USB_TIMEOUT  50
 
-// interface code
-uint32_t CDC_Receive_BytesAvailable(void) {
-    // TODO: implement / remove
-    return 0;
-}
+static vcpPort_t vcpPort;
 
-uint32_t CDC_Receive_DATA(uint8_t* recvBuf, uint32_t len)
+static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
-    UNUSED(recvBuf);
-    UNUSED(len);
-    return 0;
+    UNUSED(instance);
+    UNUSED(baudRate);
+
+    // TODO implement
 }
 
-uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength) {
-    UNUSED(ptrBuffer);
-    UNUSED(sendLength);
-    // TODO: check
-    //return CDC_Transmit_HS(&hUsbDeviceHS, ptrBuffer, sendLength);
-    return 0;
-}
-
-int usbIsConnected(void)
+static void usbVcpSetMode(serialPort_t *instance, portMode_t mode)
 {
-    // TODO: verify
-    return (hUsbDeviceHS.dev_state == USBD_STATE_CONFIGURED);
+    UNUSED(instance);
+    UNUSED(mode);
+
+    // TODO implement
 }
 
-int usbIsConfigured(void)
+static void usbVcpSetOptions(serialPort_t *instance, portOptions_t options)
 {
-    // TODO: verify
-    return (hUsbDeviceHS.dev_state == USBD_STATE_CONFIGURED);
+    UNUSED(instance);
+    UNUSED(options);
+
+    // TODO implement
 }
 
-
-uint32_t CDC_Send_FreeBytes(void) {
-    // TODO: implement
-    return 0;
-}
-
-uint32_t CDC_BaudRate(void)
+static bool isUsbVcpTransmitBufferEmpty(const serialPort_t *instance)
 {
-    return 115200;
+    UNUSED(instance);
+    return true;
 }
+
+static uint32_t usbVcpAvailable(const serialPort_t *instance)
+{
+    UNUSED(instance);
+
+    return CDC_Receive_BytesAvailable();
+}
+
+static uint8_t usbVcpRead(serialPort_t *instance)
+{
+    UNUSED(instance);
+
+    uint8_t buf[1];
+
+    while (true) {
+        if (CDC_Receive_DATA(buf, 1))
+            return buf[0];
+    }
+}
+
+static bool usbVcpIsConnected(const serialPort_t *instance)
+{
+    (void)instance;
+    return usbIsConnected() && usbIsConfigured();
+}
+
+static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
+{
+    UNUSED(instance);
+
+    if (!usbVcpIsConnected(instance)) {
+        return;
+    }
+
+    uint32_t start = millis();
+    const uint8_t *p = data;
+    while (count > 0) {
+        uint32_t txed = CDC_Send_DATA(p, count);
+        count -= txed;
+        p += txed;
+
+        if (millis() - start > USB_TIMEOUT) {
+            break;
+        }
+    }
+}
+
+static bool usbVcpFlush(vcpPort_t *port)
+{
+    uint32_t count = port->txAt;
+    port->txAt = 0;
+
+    if (count == 0) {
+        return true;
+    }
+
+    if (!usbIsConnected() || !usbIsConfigured()) {
+        return false;
+    }
+
+    uint32_t start = millis();
+    uint8_t *p = port->txBuf;
+    while (count > 0) {
+        uint32_t txed = CDC_Send_DATA(p, count);
+        count -= txed;
+        p += txed;
+
+        if (millis() - start > USB_TIMEOUT) {
+            break;
+        }
+    }
+    return count == 0;
+}
+
+static void usbVcpWrite(serialPort_t *instance, uint8_t c)
+{
+    vcpPort_t *port = container_of(instance, vcpPort_t, port);
+
+    port->txBuf[port->txAt++] = c;
+    if (!port->buffering || port->txAt >= ARRAYLEN(port->txBuf)) {
+        usbVcpFlush(port);
+    }
+}
+
+static void usbVcpBeginWrite(serialPort_t *instance)
+{
+    vcpPort_t *port = container_of(instance, vcpPort_t, port);
+    port->buffering = true;
+}
+
+static uint32_t usbTxBytesFree(const serialPort_t *instance)
+{
+    UNUSED(instance);
+    return CDC_Send_FreeBytes();
+}
+
+static void usbVcpEndWrite(serialPort_t *instance)
+{
+    vcpPort_t *port = container_of(instance, vcpPort_t, port);
+    port->buffering = false;
+    usbVcpFlush(port);
+}
+
+
+
+uint32_t usbVcpGetBaudRate(serialPort_t *instance)
+{
+    UNUSED(instance);
+
+    return CDC_BaudRate();
+}
+
+static const struct serialPortVTable usbVTable[] = {
+    {
+        .serialWrite = usbVcpWrite,
+        .serialTotalRxWaiting = usbVcpAvailable,
+        .serialTotalTxFree = usbTxBytesFree,
+        .serialRead = usbVcpRead,
+        .serialSetBaudRate = usbVcpSetBaudRate,
+        .isSerialTransmitBufferEmpty = isUsbVcpTransmitBufferEmpty,
+        .setMode = usbVcpSetMode,
+        .setOptions = usbVcpSetOptions,
+        .isConnected = usbVcpIsConnected,
+        .writeBuf = usbVcpWriteBuf,
+        .beginWrite = usbVcpBeginWrite,
+        .endWrite = usbVcpEndWrite,
+        .isIdle = NULL,
+    }
+};
+
+serialPort_t *usbVcpOpen(void)
+{
+    vcpPort_t *s;
+
+    s = &vcpPort;
+    s->port.vTable = usbVTable;
+
+    return (serialPort_t *)s;
+}
+
 
 #endif
