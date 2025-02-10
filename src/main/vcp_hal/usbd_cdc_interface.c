@@ -57,6 +57,10 @@
 #include "drivers/nvic.h"
 #include "build/atomic.h"
 
+#ifdef STM32H7A3xx
+#error "not supposed to be here"
+#endif
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define APP_RX_DATA_SIZE  4096
@@ -99,7 +103,7 @@ static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
 #if defined(STM32H7)
-static int8_t CDC_Itf_Transmit(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
+static int8_t CDC_Itf_TransmitCpl(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 #endif
 
 static void TIM_Config(void);
@@ -112,7 +116,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops =
   CDC_Itf_Control,
   CDC_Itf_Receive,
 #ifdef STM32H7
-  CDC_Itf_Transmit,
+  CDC_Itf_TransmitCpl,
 #endif
 };
 
@@ -385,13 +389,13 @@ uint32_t CDC_Receive_BytesAvailable(void)
   * @param  Len: Number of data received (in bytes)
   * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
   */
-static int8_t CDC_Itf_Transmit(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
+static int8_t CDC_Itf_TransmitCplt(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 {
   UNUSED(Buf);
   UNUSED(Len);
   UNUSED(epnum);
 
-  return (0);
+  return USBD_OK;
 }
 #endif
 
