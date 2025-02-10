@@ -156,6 +156,8 @@ set(STM32H7A_VCP_SRC
     usbd_conf.c
     usbd_cdc_if.c
     usb_device.c
+    stm32h7a3_hal_msp.c
+    inav_cdc.c
 )
 list(TRANSFORM STM32H7A_VCP_SRC PREPEND "${STM32H7A_VCP_DIR}/")
 
@@ -189,6 +191,7 @@ main_sources(STM32H7A_SRC
     drivers/system_stm32h7ax.c
     drivers/serial_uart_stm32h7xx.c
     drivers/serial_usb_vcp_stm32h7a3.c
+    #drivers/serial_usb_vcp.c
     drivers/serial_uart_hal.c
     drivers/sdio.h
     drivers/sdcard/sdmmc_sdio_hal.c

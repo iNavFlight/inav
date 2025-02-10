@@ -21,9 +21,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usbd_core.h"
 #include "usbd_desc.h"
-#include "usbd_conf.h"
+//#include "usbd_conf.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "platform.h"
+#include "build/version.h"
+#include "drivers/usb_msc.h"
+
 
 /* USER CODE END INCLUDE */
 
@@ -64,11 +68,15 @@
 
 #define USBD_VID     1155
 #define USBD_LANGID_STRING     1033
-#define USBD_MANUFACTURER_STRING     "STMicroelectronics"
 #define USBD_PID_HS     22336
-#define USBD_PRODUCT_STRING_HS     "STM32 Virtual ComPort"
-#define USBD_CONFIGURATION_STRING_HS     "CDC Config"
-#define USBD_INTERFACE_STRING_HS     "CDC Interface"
+
+#define USBD_MANUFACTURER_STRING      FC_FIRMWARE_NAME
+#define USBD_PRODUCT_STRING_HS        FC_FIRMWARE_NAME " " FC_VERSION_STRING " in HS Mode"
+#define USBD_PRODUCT_STRING_FS        FC_FIRMWARE_NAME " " FC_VERSION_STRING " in FS Mode"
+#define USBD_CONFIGURATION_STRING_HS  "VCP Config (HS)"
+#define USBD_INTERFACE_STRING_HS      "VCP Interface (HS)"
+#define USBD_CONFIGURATION_STRING_FS  "VCP Config (FS)"
+#define USBD_INTERFACE_STRING_FS      "VCP Interface (FS)"
 
 #define USB_SIZ_BOS_DESC            0x0C
 

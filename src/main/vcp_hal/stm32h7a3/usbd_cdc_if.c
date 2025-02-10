@@ -22,6 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "inav_cdc.h"
 
 /* USER CODE END INCLUDE */
 
@@ -101,6 +102,12 @@ uint8_t UserRxBufferHS[APP_RX_DATA_SIZE];
 
 /** Data to send over USB CDC are stored in this buffer   */
 uint8_t UserTxBufferHS[APP_TX_DATA_SIZE];
+
+
+uint32_t UserTxBufPtrIn = 0;/* Increment this pointer or roll it back to
+                               start address when data are received over USART */
+uint32_t UserTxBufPtrOut = 0; /* Increment this pointer or roll it back to
+                                 start address when data are sent over USB */
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 
@@ -295,19 +302,22 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   */
 static int8_t CDC_Receive_HS(uint8_t* Buf, uint32_t *Len)
 {
-  /* USER CODE BEGIN 11 */
-  USBD_CDC_SetRxBuffer(&hUsbDeviceHS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceHS);
-
-  // Echo back:
-  uint8_t txresult = CDC_Transmit_HS(UserRxBufferHS, *Len);
-  //memset(UserRxBufferHS, '\0', *Len)
-  if(txresult != USBD_OK)
-  {
-	// ???
-  }
-  return (USBD_OK);
-  /* USER CODE END 11 */
+    /* USER CODE BEGIN 11 */
+    UNUSED(Buf);
+    UNUSED(Len);
+    /*
+    rxAvailable = *Len;
+    rxBuffPtr = Buf;
+    if (!rxAvailable) {
+        // Received an empty packet, trigger receiving the next packet.
+        // This will happen after a packet that's exactly 64 bytes is received.
+        // The USB protocol requires that an empty (0 byte) packet immediately
+        // follow.
+        USBD_CDC_ReceivePacket(&hUsbDeviceHS);
+    }
+        */
+    return (USBD_OK);
+    /* USER CODE END 11 */
 }
 
 /**
@@ -345,13 +355,29 @@ uint8_t CDC_Transmit_HS(uint8_t* Buf, uint16_t Len)
   */
 static int8_t CDC_TransmitCplt_HS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 {
-  uint8_t result = USBD_OK;
-  /* USER CODE BEGIN 14 */
-  UNUSED(Buf);
-  UNUSED(Len);
-  UNUSED(epnum);
-  /* USER CODE END 14 */
-  return result;
+    uint8_t result = USBD_OK;
+    /* USER CODE BEGIN 14 */
+    UNUSED(Buf);
+    UNUSED(Len);
+    UNUSED(epnum);
+
+#if 0
+
+    // uint32_t buffptr;
+    // uint32_t buffsize;
+
+    if (UserTxBufPtrOut != UserTxBufPtrIn) {
+
+        UserTxBufPtrOut += *Len;
+        if (UserTxBufPtrOut >= APP_TX_DATA_SIZE) {
+            UserTxBufPtrOut = 0;
+        }
+    }
+
+#endif
+
+    /* USER CODE END 14 */
+    return result;
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */

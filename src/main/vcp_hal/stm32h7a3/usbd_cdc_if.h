@@ -48,8 +48,8 @@
   * @{
   */
 /* Define size for the receive and transmit buffer over CDC */
-#define APP_RX_DATA_SIZE  2048
-#define APP_TX_DATA_SIZE  2048
+#define APP_RX_DATA_SIZE  4096
+#define APP_TX_DATA_SIZE  4096
 /* USER CODE BEGIN EXPORTED_DEFINES */
 
 /* USER CODE END EXPORTED_DEFINES */
@@ -93,6 +93,14 @@
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_HS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
+extern uint32_t rxAvailable;
+extern uint8_t* rxBuffPtr;
+extern uint32_t UserTxBufPtrIn;/* Increment this pointer or roll it back to
+                               start address when data are received over USART */
+extern uint32_t UserTxBufPtrOut; /* Increment this pointer or roll it back to
+                                 start address when data are sent over USB */
+
+
 
 /* USER CODE END EXPORTED_VARIABLES */
 

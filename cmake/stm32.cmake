@@ -14,7 +14,7 @@ message("-- DEBUG_HARDFAULTS: ${DEBUG_HARDFAULTS}, SEMIHOSTING: ${SEMIHOSTING}")
 set(STM32_STARTUP_DIR "${MAIN_SRC_DIR}/startup")
 
 main_sources(STM32_VCP_SRC
-    drivers/serial_usb_vcp.c
+    #drivers/serial_usb_vcp.c
     drivers/usb_io.c
 )
 
