@@ -28,6 +28,13 @@
 #include "drivers/nvic.h"
 #include "drivers/system.h"
 
+#ifdef STM32H7A3xx
+extern void SystemClock_Config(void);
+extern void  PeriphCommonClock_Config(void);
+extern void  MPU_Config(void);
+#endif
+
+
 void forcedSystemResetWithoutDisablingCaches(void)
 {
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
@@ -38,9 +45,25 @@ void forcedSystemResetWithoutDisablingCaches(void)
 void enableGPIOPowerUsageAndNoiseReductions(void)
 {
 	__HAL_RCC_SYSCFG_CLK_ENABLE();
+
+#ifdef __HAL_RCC_D2SRAM1_CLK_ENABLE
     __HAL_RCC_D2SRAM1_CLK_ENABLE();
+#endif
+#ifdef __HAL_RCC_D2SRAM2_CLK_ENABLE
     __HAL_RCC_D2SRAM2_CLK_ENABLE();
+#endif
+#ifdef __HAL_RCC_D2SRAM3_CLK_ENABLE
     __HAL_RCC_D2SRAM3_CLK_ENABLE();
+#endif
+
+/*
+#ifdef __HAL_RCC_AHBSRAM2_CLK_ENABLE
+    __HAL_RCC_AHBSRAM2_CLK_ENABLE();
+#endif
+#ifdef __HAL_RCC_AHBSRAM1_CLK_ENABLE
+    __HAL_RCC_AHBSRAM1_CLK_ENABLE();
+#endif
+ */
 }
 
 bool isMPUSoftReset(void)
@@ -53,7 +76,7 @@ bool isMPUSoftReset(void)
 
 uint32_t systemBootloaderAddress(void)
 {
-#if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H723xx) || defined(STM32H725xx)
+#if defined(STM32H743xx) || defined(STM32H750xx) || defined(STM32H723xx) || defined(STM32H725xx) || defined(STM32H7A3xx)
     return 0x1ff09800;
 #else
 #error Unknown MCU
@@ -63,6 +86,29 @@ uint32_t systemBootloaderAddress(void)
 void systemInit(void)
 {
     checkForBootLoaderRequest();
+
+#ifdef STM32H7A3xx
+ /* MPU Configuration--------------------------------------------------------*/
+ MPU_Config();
+
+ /* MCU Configuration--------------------------------------------------------*/
+
+ /* Configure The Vector Table address */
+ SCB->VTOR = 0x08000000;
+
+ /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+// HAL_Init();
+
+ /* USER CODE BEGIN Init */
+
+ /* USER CODE END Init */
+
+ /* Configure the system clock */
+ SystemClock_Config();
+
+ /* Configure the peripherals common clocks */
+ PeriphCommonClock_Config();
+ #endif
 
     // Configure NVIC preempt/priority groups
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITY_GROUPING);
