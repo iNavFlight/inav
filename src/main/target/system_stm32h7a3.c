@@ -53,6 +53,8 @@
 #include <math.h>
 #include "drivers/memprot.h"
 
+extern void Error_Handler(void);
+
 #if !defined  (HSE_VALUE)
 #define HSE_VALUE    ((uint32_t)25000000) /*!< Value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
