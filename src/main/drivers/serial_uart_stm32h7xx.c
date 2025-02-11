@@ -475,3 +475,31 @@ void UART8_IRQHandler(void)
     uartIrqHandler(s);
 }
 #endif
+
+#ifdef USE_UART9
+uartPort_t *serialUART9(uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return serialUART(UARTDEV_9, baudRate, mode, options);
+}
+
+// UART9 Rx/Tx IRQ Handler
+void UART9_IRQHandler(void)
+{
+    uartPort_t *s = &(uartHardwareMap[UARTDEV_9]->port);
+    uartIrqHandler(s);
+}
+#endif
+
+#ifdef USE_UART10
+uartPort_t *serialUART10(uint32_t baudRate, portMode_t mode, portOptions_t options)
+{
+    return serialUART(UARTDEV_10, baudRate, mode, options);
+}
+
+// USART10 Rx/Tx IRQ Handler
+void USART10_IRQHandler(void)
+{
+    uartPort_t *s = &(uartHardwareMap[UARTDEV_10]->port);
+    uartIrqHandler(s);
+}
+#endif

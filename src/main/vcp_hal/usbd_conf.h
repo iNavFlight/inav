@@ -76,7 +76,11 @@
 #define USBD_SELF_POWERED                     1
 #define USBD_DEBUG_LEVEL                      0
 #define MSC_MEDIA_PACKET                      512U
+#ifdef STM32H7A3xx
+#define USE_USB_HS
+#else
 #define USE_USB_FS
+#endif
 
 /* Exported macro ------------------------------------------------------------*/
 /* Memory management macros */
