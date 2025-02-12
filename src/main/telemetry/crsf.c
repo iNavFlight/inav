@@ -258,6 +258,33 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
+const int32_t ALT_MIN_DM = 10000;
+const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
+const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
+
+/*
+0x09 Barometer altitude and vertical speed
+Payload:
+uint16_t    altitude_packed ( dm - 10000 )
+*/
+static void crsfBarometerAltitude(sbuf_t *dst)
+{
+    int32_t altitude_dm = lrintf(getEstimatedActualPosition(Z) / 10);
+    uint16_t altitude_packed;
+    if (altitude_dm < -ALT_MIN_DM) {
+        altitude_packed = 0;
+    } else if (altitude_dm > ALT_MAX_DM) {
+        altitude_packed = 0xfffe;
+    } else if (altitude_dm < ALT_THRESHOLD_DM) {
+        altitude_packed = altitude_dm + ALT_MIN_DM;
+    } else {
+        altitude_packed = ((altitude_dm + 5) / 10) | 0x8000;
+    }
+    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE);
+    crsfSerialize16(dst, altitude_packed);
+}
+
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -415,6 +442,7 @@ typedef enum {
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
+    CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -481,6 +509,11 @@ static void processCrsf(void)
         crsfFrameVarioSensor(dst);
         crsfFinalize(dst);
     }
+    if (currentSchedule & BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfBarometerAltitude(dst);
+        crsfFinalize(dst);
+    }
 #endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
@@ -513,6 +546,11 @@ void initCrsfTelemetry(void)
 #if defined(USE_BARO) || defined(USE_GPS)
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+    }
+#endif
+#ifdef USE_BARO
+    if (sensors(SENSOR_BARO)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
