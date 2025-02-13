@@ -132,6 +132,19 @@
 #define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
 #endif
 
+#if defined(USE_GEOZONE)
+#define OSD_MSG_NFZ                 "NO FLY ZONE"
+#define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
+#define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
+#define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"
+#define OSD_MSG_AVOIDING_FB         "AVOIDING FENCE BREACH"
+#define OSD_MSG_RETURN_TO_ZONE      "RETURN TO FZ"
+#define OSD_MSG_FLYOUT_NFZ          "FLY OUT NFZ"
+#define OSD_MSG_AVOIDING_ALT_BREACH "REACHED ZONE ALTITUDE LIMIT"
+#define OSD_MSG_AVOID_ZONES_RTH     "AVOIDING NO FLY ZONES"
+#define OSD_MSG_GEOZONE_ACTION      "PERFORM ACTION IN %s %s"
+#endif
+
 typedef enum {
     OSD_RSSI_VALUE,
     OSD_MAIN_BATT_VOLTAGE,
@@ -296,6 +309,10 @@ typedef enum {
     OSD_RX_POWER_DOWNLINK, // 160
     OSD_RX_BAND,
     OSD_RX_MODE,
+    OSD_COURSE_TO_FENCE,
+    OSD_H_DIST_TO_FENCE,
+    OSD_V_DIST_TO_FENCE,
+    OSD_NAV_FW_ALT_CONTROL_RESPONSE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -472,12 +489,17 @@ typedef struct osdConfig_s {
 #ifndef DISABLE_MSP_DJI_COMPAT
     bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
 #endif
+    bool            enable_broken_o4_workaround;        // If enabled, override STATUS/STATUS_EX messages to work around DJI's broken O4 air unit MSP DisplayPort implementation
 #ifdef USE_ADSB
     uint16_t adsb_distance_warning;                     // in metres
     uint16_t adsb_distance_alert;                       // in metres
     uint16_t adsb_ignore_plane_above_me_limit;          // in metres
 #endif
     uint8_t  radar_peers_display_time;                  // in seconds
+#ifdef USE_GEOZONE
+    uint8_t geozoneDistanceWarning;                     // Distance to fence or action
+    bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

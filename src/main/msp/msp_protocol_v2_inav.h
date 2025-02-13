@@ -115,3 +115,8 @@
 
 #define MSP2_INAV_SERVO_CONFIG                  0x2200
 #define MSP2_INAV_SET_SERVO_CONFIG              0x2201
+
+#define MSP2_INAV_GEOZONE                      0x2210
+#define MSP2_INAV_SET_GEOZONE                  0x2211
+#define MSP2_INAV_GEOZONE_VERTEX               0x2212
+#define MSP2_INAV_SET_GEOZONE_VERTEX           0x2213

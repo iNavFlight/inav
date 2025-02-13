@@ -1,7 +1,7 @@
-;/****************************************************************************** 
-; * @file    startup_stm32h7b0xxq.s
-; * @author  MCD Application Team
-; * @brief   STM32H7B0xx devices vector table for EWARM toolchain.
+;/******************************************************************************
+;* @file    startup_stm32h7b0xxq.s
+;* @author  MCD Application Team
+;* @brief   STM32H7B0xx devices vector table for EWARM toolchain.
 ;*           This module performs:
 ;*           - Set the initial SP
 ;*           - Set the initial PC == _iar_program_start,
@@ -14,13 +14,12 @@
 ;*******************************************************************************
 ;* @attention
 ;*
-;* <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
-;* All rights reserved.</center></h2>
+;* Copyright (c) 2019 STMicroelectronics.
+;* All rights reserved.
 ;*
-;* This software component is licensed by ST under BSD 3-Clause license,
-;* the "License"; You may not use this file except in compliance with the
-;* License. You may obtain a copy of the License at:
-;*                        opensource.org/licenses/BSD-3-Clause
+;* This software is licensed under terms that can be found in the LICENSE file
+;* in the root directory of this software component.
+;* If no LICENSE file comes with this software, it is provided AS-IS.
 ;*
 ;*******************************************************************************
 ;
@@ -49,6 +48,7 @@
 
         EXTERN  __iar_program_start
         EXTERN  SystemInit
+        EXTERN  ExitRun0Mode
         PUBLIC  __vector_table
 
         DATA
@@ -236,6 +236,8 @@ __vector_table
         SECTION .text:CODE:NOROOT:REORDER(2)
 Reset_Handler
 
+        LDR     R0, =ExitRun0Mode
+        BLX     R0
         LDR     R0, =SystemInit
         BLX     R0
         LDR     R0, =__iar_program_start
@@ -968,4 +970,3 @@ GFXMMU_IRQHandler
 BDMA1_IRQHandler
         B BDMA1_IRQHandler
         END
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

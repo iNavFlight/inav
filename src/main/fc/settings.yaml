@@ -204,6 +204,11 @@ tables:
   - name: default_altitude_source
     values: ["GPS", "BARO", "GPS_ONLY", "BARO_ONLY"]
     enum: navDefaultAltitudeSensor_e
+  - name: fence_action
+    values: ["NONE", "AVOID", "POS_HOLD", "RTH"]
+    enum: fenceAction_e
+  - name: geozone_rth_no_way_home
+    values: [RTH, EMRG_LAND]
 
 constants:
   RPYL_PID_MIN: 0
@@ -1226,7 +1231,7 @@ groups:
         max: INT16_MAX
       - name: motorstop_on_low
         description: "If enabled, motor will stop when throttle is low on this mixer_profile"
-        default_value: OFF
+        default_value: ON
         field: mixer_config.motorstopOnLow
         type: bool
       - name: mixer_pid_profile_linking
@@ -1542,7 +1547,7 @@ groups:
         default_value: OFF
         type: bool
       - name: disarm_always
-        description: "Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low."
+        description: "When you switch to Disarm, do so regardless of throttle position. If this Setting is `OFF`. It will only disarm only when the throttle is low. This is similar to the previous `disarm_kill_switch` option. Default setting is the same as the old default behaviour."
         default_value: ON
         type: bool
       - name: switch_disarm_delay
@@ -1584,7 +1589,7 @@ groups:
         description: "EzTune filter cutoff frequency"
         default_value: 110
         field: filterHz
-        min: 10
+        min: 20
         max: 300
       - name: ez_axis_ratio
         description: "EzTune axis ratio"
@@ -2126,7 +2131,7 @@ groups:
         max: 100
       - name: nav_fw_pos_z_p
         description: "P gain of altitude PID controller (Fixedwing)"
-        default_value: 40
+        default_value: 30
         field: bank_fw.pid[PID_POS_Z].P
         min: 0
         max: 255
@@ -2142,9 +2147,15 @@ groups:
         field: bank_fw.pid[PID_POS_Z].D
         min: 0
         max: 255
+      - name: nav_fw_pos_z_ff
+        description: "FF gain of altitude PID controller (Fixedwing)"
+        default_value: 10
+        field: bank_fw.pid[PID_POS_Z].FF
+        min: 0
+        max: 255
       - name: nav_fw_alt_control_response
         description: "Adjusts the deceleration response of fixed wing altitude control as the target altitude is approached. Decrease value to help avoid overshooting the target altitude."
-        default_value: 20
+        default_value: 40
         field: fwAltControlResponseFactor
         min: 5
         max: 100
@@ -2337,7 +2348,7 @@ groups:
         type: uint8_t
       - name: fw_autotune_max_rate_deflection
         description: "The target percentage of maximum mixer output used for determining the rates in `AUTO` and `LIMIT`."
-        default_value: 80
+        default_value: 90
         field: fw_max_rate_deflection
         min: 50
         max: 100
@@ -3008,7 +3019,7 @@ groups:
         min: 0
         max: 60000
       - name: nav_fw_launch_timeout
-        description: "Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms)"
+        description: "Maximum time for launch sequence to continue after throwing. After this time LAUNCH mode will end and regular flight mode will take over (ms)"
         default_value: 5000
         field: fw.launch_timeout
         max: 60000
@@ -3765,6 +3776,12 @@ groups:
         field: highlight_djis_missing_characters
         default_value: ON
         type: bool
+      - name: enable_broken_o4_workaround
+        field: enable_broken_o4_workaround
+        description: DJI O4 release firmware has a broken MSP DisplayPort implementation. This enables a workaround to restore ARM detection.
+        condition: USE_DJI_HD_OSD
+        default_value: OFF
+        type: bool
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
@@ -4362,3 +4379,49 @@ groups:
       field: roll_ratio
       min: 0
       max: 5
+  - name: PG_GEOZONE_CONFIG
+    type: geozone_config_t
+    headers: ["navigation/navigation.h"]
+    condition: USE_GEOZONE && USE_GPS
+    members:
+      - name: geozone_detection_distance
+        description: "Distance from which a geozone is detected"
+        default_value: 50000
+        field: fenceDetectionDistance
+        min: 0
+        max: 1000000
+      - name: geozone_avoid_altitude_range
+        description: "Altitude range in which an attempt is made to avoid a geozone upwards"
+        default_value: 5000
+        field: avoidAltitudeRange
+        min: 0
+        max: 1000000
+      - name: geozone_safe_altitude_distance
+        description: "Vertical distance that must be maintained to the upper and lower limits of the zone."
+        default_value: 1000
+        field: safeAltitudeDistance
+        min: 0
+        max: 10000
+      - name: geozone_safehome_as_inclusive
+        description: "Treat nearest safehome as inclusive geozone"
+        type: bool
+        field: nearestSafeHomeAsInclusivZone
+        default_value: OFF
+      - name: geozone_safehome_zone_action
+        description:  "Fence action for safehome zone"
+        default_value: "NONE"
+        field: safeHomeFenceAction
+        table: fence_action
+        type: uint8_t
+      - name: geozone_mr_stop_distance
+        description: "Distance in which multirotors stops before the border"
+        default_value: 15000
+        min: 0
+        max: 100000
+        field: copterFenceStopDistance
+      - name: geozone_no_way_home_action
+        description: "Action if RTH with active geozones is unable to calculate a course to home"
+        default_value: RTH
+        field: noWayHomeAction
+        table: geozone_rth_no_way_home
+        type: uint8_t

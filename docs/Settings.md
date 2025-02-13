@@ -674,7 +674,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 
 ### disarm_always
 
-Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low.
+When you switch to Disarm, do so regardless of throttle position. If this Setting is `OFF`. It will only disarm only when the throttle is low. This is similar to the previous `disarm_kill_switch` option. Default setting is the same as the old default behaviour.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -842,6 +842,16 @@ Q factor for dynamic notches
 
 ---
 
+### enable_broken_o4_workaround
+
+DJI O4 release firmware has a broken MSP DisplayPort implementation. This enables a workaround to restore ARM detection.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### esc_sensor_listen_only
 
 Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case
@@ -908,7 +918,7 @@ EzTune filter cutoff frequency
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 110 | 10 | 300 |
+| 110 | 20 | 300 |
 
 ---
 
@@ -1178,7 +1188,7 @@ The target percentage of maximum mixer output used for determining the rates in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 80 | 50 | 100 |
+| 90 | 50 | 100 |
 
 ---
 
@@ -1469,6 +1479,76 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 90 |
+
+---
+
+### geozone_avoid_altitude_range
+
+Altitude range in which an attempt is made to avoid a geozone upwards
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5000 | 0 | 1000000 |
+
+---
+
+### geozone_detection_distance
+
+Distance from which a geozone is detected
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50000 | 0 | 1000000 |
+
+---
+
+### geozone_mr_stop_distance
+
+Distance in which multirotors stops before the border
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15000 | 0 | 100000 |
+
+---
+
+### geozone_no_way_home_action
+
+Action if RTH with active geozones is unable to calculate a course to home
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RTH |  |  |
+
+---
+
+### geozone_safe_altitude_distance
+
+Vertical distance that must be maintained to the upper and lower limits of the zone.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 10000 |
+
+---
+
+### geozone_safehome_as_inclusive
+
+Treat nearest safehome as inclusive geozone
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### geozone_safehome_zone_action
+
+Fence action for safehome zone
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NONE |  |  |
 
 ---
 
@@ -2948,7 +3028,7 @@ If enabled, motor will stop when throttle is low on this mixer_profile
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
@@ -3048,7 +3128,7 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 5 | 100 |
+| 40 | 5 | 100 |
 
 ---
 
@@ -3354,7 +3434,7 @@ Launch throttle - throttle to be set during launch sequence (pwm units)
 
 ### nav_fw_launch_timeout
 
-Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms)
+Maximum time for launch sequence to continue after throwing. After this time LAUNCH mode will end and regular flight mode will take over (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3532,6 +3612,16 @@ D gain of altitude PID controller (Fixedwing)
 
 ---
 
+### nav_fw_pos_z_ff
+
+FF gain of altitude PID controller (Fixedwing)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 0 | 255 |
+
+---
+
 ### nav_fw_pos_z_i
 
 I gain of altitude PID controller (Fixedwing)
@@ -3548,7 +3638,7 @@ P gain of altitude PID controller (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 

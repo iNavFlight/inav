@@ -1,18 +1,10 @@
-# INAV 8.0 feature freeze
-
-It is that time of the year again, and the time for a new INAV release is near!
-
-The current plan is to have a feature freeze on **15th of November 2024**.
-
-For a preview of what is comming, have a look at ![milestone 8.0](https://github.com/iNavFlight/inav/milestone/43).
-
 # INAV - navigation capable flight controller
 
 # F411 PSA
 
 > INAV no longer accepts targets based on STM32 F411 MCU.
 
-> INAV 7 is the last INAV official release available for F411 based flight controllers. The next milestone, INAV 8 will not be available for F411 boards.
+> INAV 7 was the last INAV official release available for F411 based flight controllers. INAV 8 is not officially available for F411 boards.
 
 # ICM426xx IMUs PSA
 
