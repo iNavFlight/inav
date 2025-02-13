@@ -98,13 +98,15 @@
 #define GYRO1_SPI_BUS           BUS_SPI1
 #define GYRO1_CS_PIN            PC15
 #define GYRO2_SPI_BUS           BUS_SPI4
-#define GYRO2_CS_PIN            PC13
+#define GYRO2_CS_PIN            PE11
 
 #define USE_IMU_MPU6000
-#define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
+#define IMU_1_MPU6000_ALIGN       CW0_DEG_FLIP
+#define IMU_2_MPU6000_ALIGN       CW90_DEG_FLIP
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
+#define IMU_1_ICM42605_ALIGN      CW90_DEG_FLIP
+#define IMU_2_ICM42605_ALIGN      CW0_DEG_FLIP
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI2
