@@ -22,9 +22,45 @@
 
 #if defined(STM32H7) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
 
-#if defined(STM32H743xx)
-/* Sectors 0-7 of 128K each */
-#define FLASH_PAGE_SIZE     ((uint32_t)0x20000) // 128K sectors
+static uint32_t getFLASHBankForEEPROM(uint32_t address)
+{
+  if (address < (FLASH_BASE + FLASH_BANK_SIZE))
+  {
+    return FLASH_BANK_1;
+  }
+
+  return FLASH_BANK_2;
+}
+
+#if defined(STM32H7A3xx)
+#if defined STM32H7A3xxQ
+#define MAX_FLASH_SECTORS 64
+#else
+#define MAX_FLASH_SECTORS 128
+#endif
+
+static uint32_t getFLASHSectorForEEPROM(uint32_t address)
+{
+  uint32_t sector = 0;
+
+  if (address < (FLASH_BASE + FLASH_BANK_SIZE))
+  {
+    sector = (address - FLASH_BASE) / FLASH_SECTOR_SIZE;
+  }
+  else
+  {
+    sector = (address - (FLASH_BASE + FLASH_BANK_SIZE)) / FLASH_SECTOR_SIZE;
+  }
+
+  if(sector > MAX_FLASH_SECTORS)  {
+    failureMode(FAILURE_FLASH_WRITE_FAILED);
+  }
+
+  return sector;
+}
+
+#elif defined(STM32H743xx)
+
 static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 {
     if (address <= 0x0801FFFF)
@@ -70,24 +106,25 @@ int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer
         return c->err;
     }
 
-    if (c->address % FLASH_PAGE_SIZE == 0) {
-        FLASH_EraseInitTypeDef EraseInitStruct = {
-            .TypeErase     = FLASH_TYPEERASE_SECTORS,
-            .VoltageRange  = FLASH_VOLTAGE_RANGE_3, // 2.7-3.6V
-            .NbSectors     = 1,
-            .Banks         = FLASH_BANK_1
-        };
-        EraseInitStruct.Sector = getFLASHSectorForEEPROM(c->address);
+    FLASH_EraseInitTypeDef EraseInitStruct = {
+        .TypeErase = FLASH_TYPEERASE_SECTORS,
+#ifndef STM32H7A3xx
+        .VoltageRange = FLASH_VOLTAGE_RANGE_3,  // 2.7-3.6V
+#endif
+        .NbSectors = 1,
+    };
+    EraseInitStruct.Sector = getFLASHSectorForEEPROM(c->address);
+    EraseInitStruct.Banks = getFLASHBankForEEPROM(c->address);
 
-        uint32_t SECTORError;
-        const HAL_StatusTypeDef status = HAL_FLASHEx_Erase(&EraseInitStruct, &SECTORError);
-        if (status != HAL_OK) {
-            return -1;
-        }
+    uint32_t SECTORError;
+    HAL_StatusTypeDef status =
+        HAL_FLASHEx_Erase(&EraseInitStruct, &SECTORError);
+    if (status != HAL_OK) {
+        return -1;
     }
 
     // On H7 HAL_FLASH_Program takes data address, not the raw word value
-    const HAL_StatusTypeDef status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, c->address, (uint32_t)buffer);
+    status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, c->address, (uint32_t)buffer);
     if (status != HAL_OK) {
         return -2;
     }
