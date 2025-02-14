@@ -750,22 +750,23 @@ static void nullRateController(pidState_t *pidState, float dT, float dT_inv) {
     UNUSED(dT_inv);
 }
 
-static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, const float rateError) {
+
+/**
+ * ITerm Lock is a mechanism that minimizes the effect of bounceback after a rapid stick input has ended
+ * It is based on the idea, that during a high stick input stabilization (P, I and D) can be damped as craft's
+ * behavior is driven by FF term.
+ * On top of that, after stick is relased, it also locks Iterm to prevent it from accumulating error and unloading it after
+ */
+static void iTermLockApply(pidState_t *pidState, const float rateTarget, const float rateError) {
     const float maxRate = currentControlRateProfile->stabilized.rates[pidState->axis] * 10.0f;
 
+    //Compute damping factor based on rate target and max rate scaled by fw_iterm_lock_rate_threshold
     const float dampingFactor = attenuation(rateTarget, maxRate * pidProfile()->fwItermLockRateLimit / 100.0f);
 
-    /*
-     * Iterm damping is applied (down to 0) when:
-     * abs(error) > 10% rate and sticks were moved in the last 500ms (hard stop at this mark)
-
-     * itermAttenuation  = MIN(curve(setpoint), (abs(error) > 10%) && (sticks were deflected in 500ms) ? 0 : 1)
-     */
-
-    //If error is greater than 10% or max rate
+    //Check if error rate is above threshold. With default values, this is above 10% of max rate
     const bool errorThresholdReached = fabsf(rateError) > maxRate * pidProfile()->fwItermLockEngageThreshold / 100.0f;
 
-    //If stick (setpoint) was moved above threshold in the last 500ms
+    //When abs of rate target is above 20% of max rate, we start tracking time
     if (fabsf(rateTarget) > maxRate * 0.2f) {
         pidState->attenuation.targetOverThresholdTimeMs = millis();
     }
@@ -775,17 +776,16 @@ static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, cons
         pidState->attenuation.targetOverThresholdTimeMs = 0;
     }
 
+    /**
+     * Iterm attenuation is a lower value of:
+     * - dampingFactor
+     * - for 500ms (fw_iterm_lock_time_max_ms) force 0 if error is above threshold
+     */
     pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
     pidState->attenuation.aP = dampingFactor;
     pidState->attenuation.aD = dampingFactor;
-
-    if (pidState->axis == FD_ROLL) {
-        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->attenuation.aP * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 1, pidState->attenuation.aI * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 2, pidState->attenuation.aD * 1000);
-    }
 }
 
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float dT, float dT_inv)
@@ -794,7 +794,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
 
     const float rateError = rateTarget - pidState->gyroRate;
 
-    fwRateAttenuation(pidState, rateTarget, rateError);
+    iTermLockApply(pidState, rateTarget, rateError);
 
     const float newPTerm = pTermProcess(pidState, rateError, dT) * pidState->attenuation.aP;
     const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * pidState->attenuation.aD;
