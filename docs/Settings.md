@@ -1354,7 +1354,7 @@ Defines error rate (in percents of max rate) when Iterm Lock is engaged when sti
 
 ### fw_iterm_lock_rate_threshold
 
-Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+Defines the steepness of the attenuation curve. Higher values result in flatter attenuation. Lower values force full attenuation with lower stick deflection
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1364,7 +1364,7 @@ Defines rate percentage when full P I and D attenuation should happen. 100 disab
 
 ### fw_iterm_lock_time_max_ms
 
-Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+Defines max time in milliseconds for how long ITerm Lock will depress Iterm after sticks are release
 
 | Default | Min | Max |
 | --- | --- | --- |
