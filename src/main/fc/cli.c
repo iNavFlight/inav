@@ -1578,11 +1578,11 @@ static void printGeozones(uint8_t dumpMask, const geoZoneConfig_t *geoZone, cons
             && geoZone[i].fenceAction == defaultGeoZone->fenceAction
             && geoZone[i].vertexCount == defaultGeoZone->vertexCount;
 
-            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].isSealevelRef, defaultGeoZone[i].fenceAction, defaultGeoZone[i].vertexCount);  
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultGeoZone[i].shape, defaultGeoZone[i].type, defaultGeoZone[i].minAltitude, defaultGeoZone[i].maxAltitude, defaultGeoZone[i].isSealevelRef, defaultGeoZone[i].fenceAction, defaultGeoZone[i].vertexCount);
         }
-        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].isSealevelRef, geoZone[i].fenceAction, geoZone[i].vertexCount);    
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, geoZone[i].shape, geoZone[i].type, geoZone[i].minAltitude, geoZone[i].maxAltitude, geoZone[i].isSealevelRef, geoZone[i].fenceAction, geoZone[i].vertexCount);
     }
-} 
+}
 
 static void printGeozoneVertices(uint8_t dumpMask, const vertexConfig_t *vertices, const vertexConfig_t *defaultVertices)
 {
@@ -1594,11 +1594,11 @@ static void printGeozoneVertices(uint8_t dumpMask, const vertexConfig_t *vertice
             && vertices[i].lat == defaultVertices->lat
             && vertices[i].lon == defaultVertices->lon
             && vertices[i].zoneId == defaultVertices->zoneId;
-            
+
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, defaultVertices[i].zoneId, defaultVertices[i].idx, defaultVertices[i].lat, defaultVertices[i].lon);
         }
-        
-        cliDumpPrintLinef(dumpMask, equalsDefault, format, vertices[i].zoneId, vertices[i].idx, vertices[i].lat, vertices[i].lon);    
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, vertices[i].zoneId, vertices[i].idx, vertices[i].lat, vertices[i].lon);
     }
 
     if (!defaultVertices) {
@@ -1608,10 +1608,10 @@ static void printGeozoneVertices(uint8_t dumpMask, const vertexConfig_t *vertice
 }
 
 static void cliGeozone(char* cmdLine)
-{  
+{
     if (isEmpty(cmdLine)) {
         printGeozones(DUMP_MASTER, geoZonesConfig(0), NULL);
-    } else if (sl_strcasecmp(cmdLine, "vertex") == 0) {    
+    } else if (sl_strcasecmp(cmdLine, "vertex") == 0) {
         printGeozoneVertices(DUMP_MASTER, geoZoneVertices(0), NULL);
     } else if (sl_strncasecmp(cmdLine, "vertex reset", 12) == 0) {
          const char* ptr = &cmdLine[12];
@@ -1648,7 +1648,7 @@ static void cliGeozone(char* cmdLine)
         const char* ptr = cmdLine;
         uint8_t argumentCount = 1;
 
-        if ((ptr = nextArg(ptr))) {         
+        if ((ptr = nextArg(ptr))) {
             zoneId = fastA2I(ptr);
             if (zoneId < 0) {
                 return;
@@ -1678,7 +1678,7 @@ static void cliGeozone(char* cmdLine)
             cliShowParseError();
             return;
         }
-        
+
         if ((ptr = nextArg(ptr))) {
             argumentCount++;
             lon = fastA2I(ptr);
@@ -1695,7 +1695,7 @@ static void cliGeozone(char* cmdLine)
             cliShowParseError();
             return;
         }
-        
+
         for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++) {
             if (geoZoneVertices(i)->zoneId == zoneId && geoZoneVertices(i)->idx == vertexZoneIdx)  {
                 geoZoneVerticesMutable(i)->lat = lat;
@@ -1719,8 +1719,8 @@ static void cliGeozone(char* cmdLine)
         geoZoneVerticesMutable(vertexIdx)->lat = lat;
         geoZoneVerticesMutable(vertexIdx)->lon = lon;
         geoZoneVerticesMutable(vertexIdx)->zoneId = zoneId;
-        geoZoneVerticesMutable(vertexIdx)->idx = vertexZoneIdx;  
-        
+        geoZoneVerticesMutable(vertexIdx)->idx = vertexZoneIdx;
+
         uint8_t totalVertices = geozoneGetUsedVerticesCount();
         cliPrintLinef("# %u vertices free (Used %u of %u)", MAX_VERTICES_IN_CONFIG - totalVertices, totalVertices, MAX_VERTICES_IN_CONFIG);
 
@@ -1733,7 +1733,7 @@ static void cliGeozone(char* cmdLine)
         } else {
             geozoneReset(-1);
             geozoneResetVertices(-1, -1);
-        } 
+        }
     } else {
         int8_t idx = 0, isPolygon = 0, isInclusive = 0, fenceAction = 0, seaLevelRef = 0, vertexCount = 0;
         int32_t minAltitude = 0, maxAltitude = 0;
@@ -1745,7 +1745,7 @@ static void cliGeozone(char* cmdLine)
             cliShowArgumentRangeError("geozone index", 0, MAX_GEOZONES_IN_CONFIG - 1);
             return;
         }
-        
+
         if ((ptr = nextArg(ptr))) {
             argumentCount++;
             isPolygon = fastA2I(ptr);
@@ -1787,7 +1787,7 @@ static void cliGeozone(char* cmdLine)
         }
 
         if ((ptr = nextArg(ptr))){
-            argumentCount++;        
+            argumentCount++;
             fenceAction = fastA2I(ptr);
             if (fenceAction < 0 || fenceAction > GEOFENCE_ACTION_RTH) {
                 cliShowArgumentRangeError("fence action", 0, GEOFENCE_ACTION_RTH);
@@ -1812,7 +1812,7 @@ static void cliGeozone(char* cmdLine)
 
         if ((ptr = nextArg(ptr))){
             argumentCount++;
-        } 
+        }
 
         if (argumentCount != 8) {
             cliShowParseError();
@@ -4190,14 +4190,19 @@ static void cliStatus(char *cmdline)
 #if defined(USE_OSD)
     if (armingFlags & ARMING_DISABLED_NAVIGATION_UNSAFE) {
 	    navArmingBlocker_e reason = navigationIsBlockingArming(NULL);
-        if (reason & NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR)
+        if (reason == NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR)
             cliPrintLinef("  %s", OSD_MSG_JUMP_WP_MISCONFIG);
-        if (reason & NAV_ARMING_BLOCKER_MISSING_GPS_FIX) {
+        if (reason == NAV_ARMING_BLOCKER_MISSING_GPS_FIX) {
             cliPrintLinef("  %s", OSD_MSG_WAITING_GPS_FIX);
 		} else {
-            if (reason & NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE)
-                cliPrintLinef("  %s", OSD_MSG_DISABLE_NAV_FIRST);
-            if (reason & NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR)
+            if (reason == NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE) {
+		if(armingFlags & ARMING_DISABLED_RC_LINK) {
+		    cliPrintLinef("  ENABLE RX TO CLEAR NAV");
+		} else {
+		    cliPrintLinef("  %s", OSD_MSG_DISABLE_NAV_FIRST);
+		}
+	    }
+            if (reason == NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR)
                 cliPrintLinef("  FIRST WP TOO FAR");
        }
     }
