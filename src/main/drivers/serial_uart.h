@@ -41,6 +41,10 @@
 #define UART7_TX_BUFFER_SIZE    256
 #define UART8_RX_BUFFER_SIZE    256
 #define UART8_TX_BUFFER_SIZE    256
+#define UART9_RX_BUFFER_SIZE    256
+#define UART9_TX_BUFFER_SIZE    256
+#define UART10_RX_BUFFER_SIZE   256
+#define UART10_TX_BUFFER_SIZE   256
 
 typedef enum {
     UARTDEV_1 = 0,
@@ -51,6 +55,8 @@ typedef enum {
     UARTDEV_6 = 5,
     UARTDEV_7 = 6,
     UARTDEV_8 = 7,
+    UARTDEV_9 = 8,
+    UARTDEV_10 = 9,
     UARTDEV_MAX
 } UARTDevice_e;
 

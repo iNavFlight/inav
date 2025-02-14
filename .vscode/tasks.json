@@ -18,20 +18,31 @@
             "type": "shell",
             "command": "make AOCODARCH7DUAL",
             "group": {
-                "kind": "build",
-                "isDefault": true
+                "kind": "build"
             },
             "problemMatcher": [],
             "options": {
                 "cwd": "${workspaceFolder}/build"
             }
-        }
-        ,
+        },
         {
             "label": "CMAKE Update",
             "type": "shell",
-            "command": "cmake ..",
+            "command": "cmake -DWARNINGS_AS_ERRORS=ON ..",
             "group": "build",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${workspaceFolder}/build"
+            }
+        },
+        {
+            "label": "Build TESTH7A3",
+            "type": "shell",
+            "command": "make TESTH7A3",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "problemMatcher": [],
             "options": {
                 "cwd": "${workspaceFolder}/build"

@@ -2849,11 +2849,15 @@ HAL_StatusTypeDef HAL_ADC_ConfigChannel(ADC_HandleTypeDef *hadc, ADC_ChannelConf
       assert_param(IS_ADC_RANGE(ADC_GET_RESOLUTION(hadc), sConfig->Offset));
     }
   }
-
+#if defined(ADC3)
+  /* ADC3 is not available on some STM32H7 products */
+  if (hadc->Instance == ADC3)
+  {
   /* if ROVSE is set, the value of the OFFSETy_EN bit in ADCx_OFRy register is
      ignored (considered as reset) */
   assert_param(!((sConfig->OffsetNumber != ADC_OFFSET_NONE) && (hadc->Init.OversamplingMode == ENABLE)));
-
+  }
+#endif
   /* Verification of channel number */
   if (sConfig->SingleDiff != ADC_DIFFERENTIAL_ENDED)
   {

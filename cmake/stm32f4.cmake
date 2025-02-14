@@ -7,6 +7,9 @@ set(STM32F4_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F4/Drivers/CMSIS/Device/
 set(STM32F4_CMSIS_DRIVERS_DIR "${MAIN_LIB_DIR}/main/STM32F4/Drivers/CMSIS")
 set(STM32F4_VCP_DIR "${MAIN_SRC_DIR}/vcpf4")
 
+set(STM32F4_CMSIS_DIR "${MAIN_LIB_DIR}/main/CMSIS")
+set(STM32F4_CMSIS_INCLUDE_DIR "${STM32F4_CMSIS_DIR}/Core/Include")
+
 set(STM32F4_STDPERIPH_SRC_EXCLUDES
     stm32f4xx_can.c
     stm32f4xx_cec.c
@@ -28,6 +31,29 @@ set(STM32F4_STDPERIPH_SRC_EXCLUDES
     stm32f4xx_sai.c
     stm32f4xx_spdifrx.c
 )
+
+set(CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")
+set(CMSIS_DSP_INCLUDE_DIR "${CMSIS_DSP_DIR}/Include")
+
+set(CMSIS_DSP_SRC
+    BasicMathFunctions/arm_scale_f32.c
+    BasicMathFunctions/arm_sub_f32.c
+    BasicMathFunctions/arm_mult_f32.c
+    BasicMathFunctions/arm_offset_f32.c
+    TransformFunctions/arm_rfft_fast_f32.c
+    TransformFunctions/arm_cfft_f32.c
+    TransformFunctions/arm_rfft_fast_init_f32.c
+    TransformFunctions/arm_cfft_radix8_f32.c
+    TransformFunctions/arm_bitreversal2.S
+    CommonTables/arm_common_tables.c
+    ComplexMathFunctions/arm_cmplx_mag_f32.c
+    StatisticsFunctions/arm_max_f32.c
+    StatisticsFunctions/arm_rms_f32.c
+    StatisticsFunctions/arm_std_f32.c
+    StatisticsFunctions/arm_mean_f32.c
+)
+
+list(TRANSFORM CMSIS_DSP_SRC PREPEND "${CMSIS_DSP_DIR}/Source/")
 
 set(STM32F4_STDPERIPH_SRC_DIR "${STM32F4_STDPERIPH_DIR}/src")
 glob_except(STM32F4_STDPERIPH_SRC "${STM32F4_STDPERIPH_SRC_DIR}/*.c" "${STM32F4_STDPERIPH_SRC_EXCLUDES}")
@@ -82,10 +108,10 @@ set(STM32F4_DEFINITIONS
 
 function(target_stm32f4xx)
     target_stm32(
-        SOURCES ${STM32_STDPERIPH_SRC} ${STM32F4_SRC}
+        SOURCES ${STM32_STDPERIPH_SRC} ${STM32F4_SRC} ${CMSIS_DSP_SRC}
         COMPILE_DEFINITIONS ${STM32F4_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_COMPILE_OPTIONS}
-        INCLUDE_DIRECTORIES ${STM32F4_INCLUDE_DIRS}
+        INCLUDE_DIRECTORIES ${STM32F4_INCLUDE_DIRS} ${CMSIS_DSP_INCLUDE_DIR} ${STM32F4_CMSIS_INCLUDE_DIR}
         LINK_OPTIONS ${CORTEX_M4F_COMMON_OPTIONS} ${CORTEX_M4F_LINK_OPTIONS}
 
         MSC_SOURCES ${STM32F4_USBMSC_SRC} ${STM32F4_MSC_SRC}

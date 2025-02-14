@@ -1325,7 +1325,7 @@ typedef struct
   __IO uint32_t TSDR;       /*!< RTC time stamp date register,                              Address offset: 0x34 */
   __IO uint32_t TSSSR;      /*!< RTC time-stamp sub second register,                        Address offset: 0x38 */
   __IO uint32_t CALR;       /*!< RTC calibration register,                                  Address offset: 0x3C */
-  __IO uint32_t TAMPCR;     /*!< RTC tamper configuration register,                         Address offset: 0x40 */
+  __IO uint32_t TAFCR;      /*!< RTC tamper and alternate function configuration register,  Address offset: 0x40 */
   __IO uint32_t ALRMASSR;   /*!< RTC alarm A sub second register,                           Address offset: 0x44 */
   __IO uint32_t ALRMBSSR;   /*!< RTC alarm B sub second register,                           Address offset: 0x48 */
   __IO uint32_t OR;         /*!< RTC option register,                                       Address offset: 0x4C */
@@ -17472,7 +17472,104 @@ typedef struct
 #define RTC_CALR_CALM_7                (0x080UL << RTC_CALR_CALM_Pos)           /*!< 0x00000080 */
 #define RTC_CALR_CALM_8                (0x100UL << RTC_CALR_CALM_Pos)           /*!< 0x00000100 */
 
-/********************  Bits definition for RTC_TAMPCR register  ***************/
+/********************  Bits definition for RTC_TAFCR register  ***************/
+#define RTC_TAFCR_PC15MODE_Pos         (23U)
+#define RTC_TAFCR_PC15MODE_Msk         (0x1UL << RTC_TAFCR_PC15MODE_Pos)      /*!< 0x00800000 */
+#define RTC_TAFCR_PC15MODE             RTC_TAFCR_PC15MODE_Msk
+#define RTC_TAFCR_PC15VALUE_Pos        (22U)
+#define RTC_TAFCR_PC15VALUE_Msk        (0x1UL << RTC_TAFCR_PC15VALUE_Pos)     /*!< 0x00400000 */
+#define RTC_TAFCR_PC15VALUE            RTC_TAFCR_PC15VALUE_Msk
+#define RTC_TAFCR_PC14MODE_Pos         (21U)
+#define RTC_TAFCR_PC14MODE_Msk         (0x1UL << RTC_TAFCR_PC14MODE_Pos)      /*!< 0x00200000 */
+#define RTC_TAFCR_PC14MODE             RTC_TAFCR_PC14MODE_Msk
+#define RTC_TAFCR_PC14VALUE_Pos        (20U)
+#define RTC_TAFCR_PC14VALUE_Msk        (0x1UL << RTC_TAFCR_PC14VALUE_Pos)     /*!< 0x00100000 */
+#define RTC_TAFCR_PC14VALUE            RTC_TAFCR_PC14VALUE_Msk
+#define RTC_TAFCR_PC13MODE_Pos         (19U)
+#define RTC_TAFCR_PC13MODE_Msk         (0x1UL << RTC_TAFCR_PC13MODE_Pos)      /*!< 0x00080000 */
+#define RTC_TAFCR_PC13MODE             RTC_TAFCR_PC13MODE_Msk
+#define RTC_TAFCR_PC13VALUE_Pos        (18U)
+#define RTC_TAFCR_PC13VALUE_Msk        (0x1UL << RTC_TAFCR_PC13VALUE_Pos)     /*!< 0x00040000 */
+#define RTC_TAFCR_PC13VALUE            RTC_TAFCR_PC13VALUE_Msk
+#define RTC_TAFCR_TAMPPUDIS_Pos        (15U)
+#define RTC_TAFCR_TAMPPUDIS_Msk        (0x1UL << RTC_TAFCR_TAMPPUDIS_Pos)     /*!< 0x00008000 */
+#define RTC_TAFCR_TAMPPUDIS            RTC_TAFCR_TAMPPUDIS_Msk
+#define RTC_TAFCR_TAMPPRCH_Pos         (13U)
+#define RTC_TAFCR_TAMPPRCH_Msk         (0x3UL << RTC_TAFCR_TAMPPRCH_Pos)      /*!< 0x00006000 */
+#define RTC_TAFCR_TAMPPRCH             RTC_TAFCR_TAMPPRCH_Msk
+#define RTC_TAFCR_TAMPPRCH_0           (0x1UL << RTC_TAFCR_TAMPPRCH_Pos)       /*!< 0x00002000 */
+#define RTC_TAFCR_TAMPPRCH_1           (0x2UL << RTC_TAFCR_TAMPPRCH_Pos)       /*!< 0x00004000 */
+#define RTC_TAFCR_TAMPFLT_Pos          (11U)
+#define RTC_TAFCR_TAMPFLT_Msk          (0x3UL << RTC_TAFCR_TAMPFLT_Pos)       /*!< 0x00001800 */
+#define RTC_TAFCR_TAMPFLT              RTC_TAFCR_TAMPFLT_Msk
+#define RTC_TAFCR_TAMPFLT_0            (0x1UL << RTC_TAFCR_TAMPFLT_Pos)        /*!< 0x00000800 */
+#define RTC_TAFCR_TAMPFLT_1            (0x2UL << RTC_TAFCR_TAMPFLT_Pos)        /*!< 0x00001000 */
+#define RTC_TAFCR_TAMPFREQ_Pos         (8U)
+#define RTC_TAFCR_TAMPFREQ_Msk         (0x7UL << RTC_TAFCR_TAMPFREQ_Pos)      /*!< 0x00000700 */
+#define RTC_TAFCR_TAMPFREQ             RTC_TAFCR_TAMPFREQ_Msk
+#define RTC_TAFCR_TAMPFREQ_0           (0x1UL << RTC_TAFCR_TAMPFREQ_Pos)       /*!< 0x00000100 */
+#define RTC_TAFCR_TAMPFREQ_1           (0x2UL << RTC_TAFCR_TAMPFREQ_Pos)       /*!< 0x00000200 */
+#define RTC_TAFCR_TAMPFREQ_2           (0x4UL << RTC_TAFCR_TAMPFREQ_Pos)       /*!< 0x00000400 */
+#define RTC_TAFCR_TAMPTS_Pos           (7U)
+#define RTC_TAFCR_TAMPTS_Msk           (0x1UL << RTC_TAFCR_TAMPTS_Pos)        /*!< 0x00000080 */
+#define RTC_TAFCR_TAMPTS               RTC_TAFCR_TAMPTS_Msk
+#define RTC_TAFCR_TAMP3TRG_Pos         (6U)
+#define RTC_TAFCR_TAMP3TRG_Msk         (0x1UL << RTC_TAFCR_TAMP3TRG_Pos)      /*!< 0x00000040 */
+#define RTC_TAFCR_TAMP3TRG             RTC_TAFCR_TAMP3TRG_Msk
+#define RTC_TAFCR_TAMP3E_Pos           (5U)
+#define RTC_TAFCR_TAMP3E_Msk           (0x1UL << RTC_TAFCR_TAMP3E_Pos)        /*!< 0x00000020 */
+#define RTC_TAFCR_TAMP3E               RTC_TAFCR_TAMP3E_Msk
+#define RTC_TAFCR_TAMPIE_Pos           (2U)
+#define RTC_TAFCR_TAMPIE_Msk           (0x1UL << RTC_TAFCR_TAMPIE_Pos)        /*!< 0x00000004 */
+#define RTC_TAFCR_TAMPIE               RTC_TAFCR_TAMPIE_Msk
+#define RTC_TAFCR_TAMP1TRG_Pos         (1U)
+#define RTC_TAFCR_TAMP1TRG_Msk         (0x1UL << RTC_TAFCR_TAMP1TRG_Pos)      /*!< 0x00000002 */
+#define RTC_TAFCR_TAMP1TRG             RTC_TAFCR_TAMP1TRG_Msk
+#define RTC_TAFCR_TAMP1E_Pos           (0U)
+#define RTC_TAFCR_TAMP1E_Msk           (0x1UL << RTC_TAFCR_TAMP1E_Pos)        /*!< 0x00000001 */
+#define RTC_TAFCR_TAMP1E               RTC_TAFCR_TAMP1E_Msk
+
+/* Aliases for RTC TAFCR */
+#define TAMPCR                         TAFCR
+#define RTC_TAMPCR_TAMPPUDIS_Pos       RTC_TAFCR_TAMPPUDIS_Pos
+#define RTC_TAMPCR_TAMPPUDIS_Msk       RTC_TAFCR_TAMPPUDIS_Msk
+#define RTC_TAMPCR_TAMPPUDIS           RTC_TAFCR_TAMPPUDIS
+#define RTC_TAMPCR_TAMPPRCH_Pos        RTC_TAFCR_TAMPPRCH_Pos
+#define RTC_TAMPCR_TAMPPRCH_Msk        RTC_TAFCR_TAMPPRCH_Msk
+#define RTC_TAMPCR_TAMPPRCH            RTC_TAFCR_TAMPPRCH
+#define RTC_TAMPCR_TAMPPRCH_0          RTC_TAFCR_TAMPPRCH_0
+#define RTC_TAMPCR_TAMPPRCH_1          RTC_TAFCR_TAMPPRCH_1
+#define RTC_TAMPCR_TAMPFLT_Pos         RTC_TAFCR_TAMPFLT_Pos
+#define RTC_TAMPCR_TAMPFLT_Msk         RTC_TAFCR_TAMPFLT_Msk
+#define RTC_TAMPCR_TAMPFLT             RTC_TAFCR_TAMPFLT
+#define RTC_TAMPCR_TAMPFLT_0           RTC_TAFCR_TAMPFLT_0
+#define RTC_TAMPCR_TAMPFLT_1           RTC_TAFCR_TAMPFLT_1
+#define RTC_TAMPCR_TAMPFREQ_Pos        RTC_TAFCR_TAMPFREQ_Pos
+#define RTC_TAMPCR_TAMPFREQ_Msk        RTC_TAFCR_TAMPFREQ_Msk
+#define RTC_TAMPCR_TAMPFREQ            RTC_TAFCR_TAMPFREQ
+#define RTC_TAMPCR_TAMPFREQ_0          RTC_TAFCR_TAMPFREQ_0
+#define RTC_TAMPCR_TAMPFREQ_1          RTC_TAFCR_TAMPFREQ_1
+#define RTC_TAMPCR_TAMPFREQ_2          RTC_TAFCR_TAMPFREQ_2
+#define RTC_TAMPCR_TAMPTS_Pos          RTC_TAFCR_TAMPTS_Pos
+#define RTC_TAMPCR_TAMPTS_Msk          RTC_TAFCR_TAMPTS_Msk
+#define RTC_TAMPCR_TAMPTS              RTC_TAFCR_TAMPTS
+#define RTC_TAMPCR_TAMP3TRG_Pos        RTC_TAFCR_TAMP3TRG_Pos
+#define RTC_TAMPCR_TAMP3TRG_Msk        RTC_TAFCR_TAMP3TRG_Msk
+#define RTC_TAMPCR_TAMP3TRG            RTC_TAFCR_TAMP3TRG
+#define RTC_TAMPCR_TAMP3E_Pos          RTC_TAFCR_TAMP3E_Pos
+#define RTC_TAMPCR_TAMP3E_Msk          RTC_TAFCR_TAMP3E_Msk
+#define RTC_TAMPCR_TAMP3E              RTC_TAFCR_TAMP3E
+#define RTC_TAMPCR_TAMPIE_Pos          RTC_TAFCR_TAMPIE_Pos
+#define RTC_TAMPCR_TAMPIE_Msk          RTC_TAFCR_TAMPIE_Msk
+#define RTC_TAMPCR_TAMPIE              RTC_TAFCR_TAMPIE
+#define RTC_TAMPCR_TAMP1TRG_Pos        RTC_TAFCR_TAMP1TRG_Pos
+#define RTC_TAMPCR_TAMP1TRG_Msk        RTC_TAFCR_TAMP1TRG_Msk
+#define RTC_TAMPCR_TAMP1TRG            RTC_TAFCR_TAMP1TRG
+#define RTC_TAMPCR_TAMP1E_Pos          RTC_TAFCR_TAMP1E_Pos
+#define RTC_TAMPCR_TAMP1E_Msk          RTC_TAFCR_TAMP1E_Msk
+#define RTC_TAMPCR_TAMP1E              RTC_TAFCR_TAMP1E
+
+/* Legacy defines for backward compatibility */
 #define RTC_TAMPCR_TAMP3MF_Pos         (24U)
 #define RTC_TAMPCR_TAMP3MF_Msk         (0x1UL << RTC_TAMPCR_TAMP3MF_Pos)       /*!< 0x01000000 */
 #define RTC_TAMPCR_TAMP3MF             RTC_TAMPCR_TAMP3MF_Msk
@@ -17500,49 +17597,12 @@ typedef struct
 #define RTC_TAMPCR_TAMP1IE_Pos         (16U)
 #define RTC_TAMPCR_TAMP1IE_Msk         (0x1UL << RTC_TAMPCR_TAMP1IE_Pos)       /*!< 0x00010000 */
 #define RTC_TAMPCR_TAMP1IE             RTC_TAMPCR_TAMP1IE_Msk
-#define RTC_TAMPCR_TAMPPUDIS_Pos       (15U)
-#define RTC_TAMPCR_TAMPPUDIS_Msk       (0x1UL << RTC_TAMPCR_TAMPPUDIS_Pos)     /*!< 0x00008000 */
-#define RTC_TAMPCR_TAMPPUDIS           RTC_TAMPCR_TAMPPUDIS_Msk
-#define RTC_TAMPCR_TAMPPRCH_Pos        (13U)
-#define RTC_TAMPCR_TAMPPRCH_Msk        (0x3UL << RTC_TAMPCR_TAMPPRCH_Pos)      /*!< 0x00006000 */
-#define RTC_TAMPCR_TAMPPRCH            RTC_TAMPCR_TAMPPRCH_Msk
-#define RTC_TAMPCR_TAMPPRCH_0          (0x1UL << RTC_TAMPCR_TAMPPRCH_Pos)       /*!< 0x00002000 */
-#define RTC_TAMPCR_TAMPPRCH_1          (0x2UL << RTC_TAMPCR_TAMPPRCH_Pos)       /*!< 0x00004000 */
-#define RTC_TAMPCR_TAMPFLT_Pos         (11U)
-#define RTC_TAMPCR_TAMPFLT_Msk         (0x3UL << RTC_TAMPCR_TAMPFLT_Pos)       /*!< 0x00001800 */
-#define RTC_TAMPCR_TAMPFLT             RTC_TAMPCR_TAMPFLT_Msk
-#define RTC_TAMPCR_TAMPFLT_0           (0x1UL << RTC_TAMPCR_TAMPFLT_Pos)        /*!< 0x00000800 */
-#define RTC_TAMPCR_TAMPFLT_1           (0x2UL << RTC_TAMPCR_TAMPFLT_Pos)        /*!< 0x00001000 */
-#define RTC_TAMPCR_TAMPFREQ_Pos        (8U)
-#define RTC_TAMPCR_TAMPFREQ_Msk        (0x7UL << RTC_TAMPCR_TAMPFREQ_Pos)      /*!< 0x00000700 */
-#define RTC_TAMPCR_TAMPFREQ            RTC_TAMPCR_TAMPFREQ_Msk
-#define RTC_TAMPCR_TAMPFREQ_0          (0x1UL << RTC_TAMPCR_TAMPFREQ_Pos)       /*!< 0x00000100 */
-#define RTC_TAMPCR_TAMPFREQ_1          (0x2UL << RTC_TAMPCR_TAMPFREQ_Pos)       /*!< 0x00000200 */
-#define RTC_TAMPCR_TAMPFREQ_2          (0x4UL << RTC_TAMPCR_TAMPFREQ_Pos)       /*!< 0x00000400 */
-#define RTC_TAMPCR_TAMPTS_Pos          (7U)
-#define RTC_TAMPCR_TAMPTS_Msk          (0x1UL << RTC_TAMPCR_TAMPTS_Pos)        /*!< 0x00000080 */
-#define RTC_TAMPCR_TAMPTS              RTC_TAMPCR_TAMPTS_Msk
-#define RTC_TAMPCR_TAMP3TRG_Pos        (6U)
-#define RTC_TAMPCR_TAMP3TRG_Msk        (0x1UL << RTC_TAMPCR_TAMP3TRG_Pos)      /*!< 0x00000040 */
-#define RTC_TAMPCR_TAMP3TRG            RTC_TAMPCR_TAMP3TRG_Msk
-#define RTC_TAMPCR_TAMP3E_Pos          (5U)
-#define RTC_TAMPCR_TAMP3E_Msk          (0x1UL << RTC_TAMPCR_TAMP3E_Pos)        /*!< 0x00000020 */
-#define RTC_TAMPCR_TAMP3E              RTC_TAMPCR_TAMP3E_Msk
 #define RTC_TAMPCR_TAMP2TRG_Pos        (4U)
 #define RTC_TAMPCR_TAMP2TRG_Msk        (0x1UL << RTC_TAMPCR_TAMP2TRG_Pos)      /*!< 0x00000010 */
 #define RTC_TAMPCR_TAMP2TRG            RTC_TAMPCR_TAMP2TRG_Msk
 #define RTC_TAMPCR_TAMP2E_Pos          (3U)
 #define RTC_TAMPCR_TAMP2E_Msk          (0x1UL << RTC_TAMPCR_TAMP2E_Pos)        /*!< 0x00000008 */
 #define RTC_TAMPCR_TAMP2E              RTC_TAMPCR_TAMP2E_Msk
-#define RTC_TAMPCR_TAMPIE_Pos          (2U)
-#define RTC_TAMPCR_TAMPIE_Msk          (0x1UL << RTC_TAMPCR_TAMPIE_Pos)        /*!< 0x00000004 */
-#define RTC_TAMPCR_TAMPIE              RTC_TAMPCR_TAMPIE_Msk
-#define RTC_TAMPCR_TAMP1TRG_Pos        (1U)
-#define RTC_TAMPCR_TAMP1TRG_Msk        (0x1UL << RTC_TAMPCR_TAMP1TRG_Pos)      /*!< 0x00000002 */
-#define RTC_TAMPCR_TAMP1TRG            RTC_TAMPCR_TAMP1TRG_Msk
-#define RTC_TAMPCR_TAMP1E_Pos          (0U)
-#define RTC_TAMPCR_TAMP1E_Msk          (0x1UL << RTC_TAMPCR_TAMP1E_Pos)        /*!< 0x00000001 */
-#define RTC_TAMPCR_TAMP1E              RTC_TAMPCR_TAMP1E_Msk
 
 /********************  Bits definition for RTC_ALRMASSR register  *************/
 #define RTC_ALRMASSR_MASKSS_Pos        (24U)

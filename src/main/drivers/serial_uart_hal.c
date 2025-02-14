@@ -151,6 +151,14 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     } else if (USARTx == UART8) {
         s = serialUART8(baudRate, mode, options);
 #endif
+#ifdef USE_UART9
+    } else if (USARTx == UART9) {
+        s = serialUART9(baudRate, mode, options);
+#endif
+#ifdef USE_UART10
+    } else if (USARTx == USART10) {
+        s = serialUART10(baudRate, mode, options);
+#endif
     } else {
         return (serialPort_t *)s;
     }

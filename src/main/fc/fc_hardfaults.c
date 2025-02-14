@@ -100,13 +100,18 @@ void HardFault_Handler(void)
         stopMotors();
     }
 
+#ifdef LED_2
     LED1_OFF;
+#endif
     LED0_OFF;
 
     while (1) {
-#ifdef LED2
         delay(50);
+#ifdef LED2
         LED2_TOGGLE;
+#else
+        LED0_TOGGLE;
+        LED1_TOGGLE;
 #endif
     }
 }

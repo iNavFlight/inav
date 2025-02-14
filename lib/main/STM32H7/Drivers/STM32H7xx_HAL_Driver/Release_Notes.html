@@ -40,9 +40,42 @@
 <div class="col-sm-12 col-lg-8">
 <h1 id="update-history"><strong>Update History</strong></h1>
 <div class="collapse">
-<input type="checkbox" id="collapse-section19" checked aria-hidden="true"> <label for="collapse-section19" aria-hidden="true"><strong>V1.11.4 / 30-October-2024</strong></label>
+<input type="checkbox" id="collapse-section20" checked aria-hidden="true"> <label for="collapse-section20" aria-hidden="true"><strong>V1.11.5 / 06-December-2024</strong></label>
 <div>
 <h2 id="main-changes">Main Changes</h2>
+<ul>
+<li><strong>HAL PWR</strong>
+<ul>
+<li>Add a note to the HAL_PWREx_ConfigSupply() API documentation to clarify that this API comes obsolete after deploying "how to exit from Run* recommended sequence.</li>
+</ul></li>
+<li><strong>HAL QSPI</strong>
+<ul>
+<li>Fix possible race condition with QSPI data transfer when using DMA.</li>
+</ul></li>
+<li><strong>HAL/LL RTC</strong>
+<ul>
+<li>Alignment with new RTC TAMPER register and bitfields naming in the CMSIS.</li>
+<li>Add new restrictions to manage specific Tamper features.</li>
+</ul></li>
+<li><strong>HAL HSEM</strong>
+<ul>
+<li>Update __HAL_HSEM_ENABLE_IT(), __HAL_HSEM_DISABLE_IT(), __HAL_HSEM_GET_IT(), __HAL_HSEM_GET_FLAG() and __HAL_HSEM_CLEAR_FLAG() macros to be aligned with registers’ names in the CMSIS.</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations">Known Limitations</h2>
+<ul>
+<li>None</li>
+</ul>
+<h2 id="backward-compatibility">Backward compatibility</h2>
+<ul>
+<li>None</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section19" aria-hidden="true"> <label for="collapse-section19" aria-hidden="true"><strong>V1.11.4 / 30-October-2024</strong></label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
 <ul>
 <li>Enhance HAL code quality for MISRA-C Rule-8.13 by adding const qualifiers.</li>
 <li>General updates to fix known defects and enhancements implementation.</li>
@@ -57,10 +90,6 @@
 <li><strong>HAL DAC</strong>
 <ul>
 <li>Fix HAL DAC calibration procedure (HAL_DACEx_SelfCalibrate() API) to manage case of calibration factor equal to range maximum value (previously, in this case calibration factor was reset, leading to voltage accuracy not optimal).</li>
-</ul></li>
-<li><strong>HAL PWR</strong>
-<ul>
-<li>Add a note to the HAL_PWREx_ConfigSupply() API documentation to clarify that this API comes obsolete after deploying "how to exit from Run* recommended sequence.</li>
 </ul></li>
 <li><strong>LL DMA</strong>
 <ul>
@@ -142,7 +171,6 @@
 <li><strong>HAL QSPI</strong>
 <ul>
 <li>Clear AR register after CCR to avoid new transfer when address is not needed.</li>
-<li>Fix possible race condition with QSPI data transfer (DMA).</li>
 </ul></li>
 <li><strong>HAL USB</strong>
 <ul>
@@ -150,11 +178,11 @@
 <li>hal_hcd.c: ensure to reactivate the usb channel in case of transfer error.</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations">Known Limitations</h2>
+<h2 id="known-limitations-1">Known Limitations</h2>
 <ul>
 <li>None</li>
 </ul>
-<h2 id="backward-compatibility">Backward compatibility</h2>
+<h2 id="backward-compatibility-1">Backward compatibility</h2>
 <ul>
 <li>None</li>
 </ul>
@@ -163,7 +191,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section18" aria-hidden="true"> <label for="collapse-section18" aria-hidden="true"><strong>V1.11.3 / 15-March-2024</strong></label>
 <div>
-<h2 id="main-changes-1">Main Changes</h2>
+<h2 id="main-changes-2">Main Changes</h2>
 <ul>
 <li>HAL code quality enhancement for MISRA-C Rule-8.13 by adding const qualifiers.</li>
 <li><strong>HAL Generic</strong>
@@ -352,26 +380,6 @@
 <li>Fix a note about Ticks parameter.</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-1">Known Limitations</h2>
-<ul>
-<li>None</li>
-</ul>
-<h2 id="backward-compatibility-1">Backward compatibility</h2>
-<ul>
-<li>None</li>
-</ul>
-</div>
-</div>
-<div class="collapse">
-<input type="checkbox" id="collapse-section17" aria-hidden="true"> <label for="collapse-section17" aria-hidden="true"><strong>V1.11.2 / 23-January-2024</strong></label>
-<div>
-<h2 id="main-changes-2">Main Changes</h2>
-<ul>
-<li><strong>HAL ETH</strong>
-<ul>
-<li>Update on Rx descriptor Tail pointer management to avoid race condition.</li>
-</ul></li>
-</ul>
 <h2 id="known-limitations-2">Known Limitations</h2>
 <ul>
 <li>None</li>
@@ -383,9 +391,29 @@
 </div>
 </div>
 <div class="collapse">
-<input type="checkbox" id="collapse-section16" aria-hidden="true"> <label for="collapse-section16" aria-hidden="true"><strong>V1.11.1 / 04-November-2022</strong></label>
+<input type="checkbox" id="collapse-section17" aria-hidden="true"> <label for="collapse-section17" aria-hidden="true"><strong>V1.11.2 / 23-January-2024</strong></label>
 <div>
 <h2 id="main-changes-3">Main Changes</h2>
+<ul>
+<li><strong>HAL ETH</strong>
+<ul>
+<li>Update on Rx descriptor Tail pointer management to avoid race condition.</li>
+</ul></li>
+</ul>
+<h2 id="known-limitations-3">Known Limitations</h2>
+<ul>
+<li>None</li>
+</ul>
+<h2 id="backward-compatibility-3">Backward compatibility</h2>
+<ul>
+<li>None</li>
+</ul>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section16" aria-hidden="true"> <label for="collapse-section16" aria-hidden="true"><strong>V1.11.1 / 04-November-2022</strong></label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements.</li>
 <li>HAL code quality enhancement for MISRA-C Rule-8.13 by adding const qualifiers.</li>
@@ -512,11 +540,11 @@
 <li>Remove redundant word from <span class="citation" data-cites="note">@note</span> of HAL_InitTick() header description, which may cause confusion when reading the note.</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-3">Known Limitations</h2>
+<h2 id="known-limitations-4">Known Limitations</h2>
 <ul>
 <li>None</li>
 </ul>
-<h2 id="backward-compatibility-3">Backward compatibility</h2>
+<h2 id="backward-compatibility-4">Backward compatibility</h2>
 <ul>
 <li>None</li>
 </ul>
@@ -525,7 +553,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section15" aria-hidden="true"> <label for="collapse-section15" aria-hidden="true"><strong>V1.11.0 / 11-February-2022</strong></label>
 <div>
-<h2 id="main-changes-4">Main Changes</h2>
+<h2 id="main-changes-5">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements.</li>
 <li><strong>The following changes done on the HAL drivers require an update of the application code based on older HAL versions</strong>
@@ -608,11 +636,11 @@
 <li>Fix USB BCD data contact timeout</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-4">Known Limitations</h2>
+<h2 id="known-limitations-5">Known Limitations</h2>
 <ul>
 <li>None</li>
 </ul>
-<h2 id="backward-compatibility-4">Backward compatibility</h2>
+<h2 id="backward-compatibility-5">Backward compatibility</h2>
 <ul>
 <li>Compatibility break with HAL ETH driver V1.10.0 available within STM32CubeFW_H7 V1.9.0</li>
 </ul>
@@ -621,7 +649,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section14" aria-hidden="true"> <label for="collapse-section14" aria-hidden="true"><strong>V1.10.1 / 06-December-2021</strong></label>
 <div>
-<h2 id="main-changes-5">Main Changes</h2>
+<h2 id="main-changes-6">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements.</li>
 <li>All source files: update disclaimer to add reference to the new license agreement.</li>
@@ -780,14 +808,14 @@
 <li>Add LSI startup time in default IWDG timeout calculation (HAL_IWDG_DEFAULT_TIMEOUT).</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-5">Known Limitations</h2>
+<h2 id="known-limitations-6">Known Limitations</h2>
 <ul>
 <li><strong>HAL/ETH</strong>
 <ul>
 <li>A full rework of the ETH HAL driver is planned in order to fix several issues including better synchronization with TCPIP stack for instance LwIP</li>
 </ul></li>
 </ul>
-<h2 id="backward-compatibility-5">Backward compatibility</h2>
+<h2 id="backward-compatibility-6">Backward compatibility</h2>
 <ul>
 <li>None</li>
 </ul>
@@ -796,7 +824,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section13" aria-hidden="true"> <label for="collapse-section13" aria-hidden="true"><strong>V1.10.0 / 12-February-2021</strong></label>
 <div>
-<h2 id="main-changes-6">Main Changes</h2>
+<h2 id="main-changes-7">Main Changes</h2>
 <ul>
 <li><p>General updates to fix known defects and implementation enhancements</p></li>
 <li><p>Fix minor issues related to English typo in comments</p></li>
@@ -1082,14 +1110,14 @@
 </ul></li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-6">Known Limitations</h2>
+<h2 id="known-limitations-7">Known Limitations</h2>
 <ul>
 <li><strong>HAL/ETH</strong>
 <ul>
 <li>A full rework of the ETH HAL driver is planned in order to fix several issues including better synchronization with TCPIP stack for instance LwIP</li>
 </ul></li>
 </ul>
-<h2 id="backward-compatibility-6">Backward compatibility</h2>
+<h2 id="backward-compatibility-7">Backward compatibility</h2>
 <ul>
 <li>None</li>
 </ul>
@@ -1098,7 +1126,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section12" aria-hidden="true"> <label for="collapse-section12" aria-hidden="true"><strong>V1.9.0 / 29-May-2020</strong></label>
 <div>
-<h2 id="main-changes-7">Main Changes</h2>
+<h2 id="main-changes-8">Main Changes</h2>
 <ul>
 <li>First official release of the STM32CubeH7 Firmware Package supporting <strong>STM32H72x/3x</strong> new devices</li>
 <li>General updates to fix known defects and implementation enhancements</li>
@@ -1692,11 +1720,11 @@
 </ul></li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-7">Known Limitations</h2>
+<h2 id="known-limitations-8">Known Limitations</h2>
 <ul>
 <li>None</li>
 </ul>
-<h2 id="backward-compatibility-7">Backward compatibility</h2>
+<h2 id="backward-compatibility-8">Backward compatibility</h2>
 <ul>
 <li>Extension RTC APIs HAL_RTCEx_MonotonicCounterIncrement and HAL_RTCEx_MonotonicCounterGet APIs prototypes updated with new parameters Instance (alignment with other STM32 families)</li>
 </ul>
@@ -1705,7 +1733,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section10" aria-hidden="true"> <label for="collapse-section10" aria-hidden="true"><strong>V1.8.0 / 14-February-2020</strong></label>
 <div>
-<h2 id="main-changes-8">Main Changes</h2>
+<h2 id="main-changes-9">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements</li>
 <li><strong>HAL</strong>: generic
@@ -1939,7 +1967,7 @@
 </ul></li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-8">Known Limitations</h2>
+<h2 id="known-limitations-9">Known Limitations</h2>
 <ul>
 <li><strong>HAL I2S</strong>:
 <ul>
@@ -1949,7 +1977,7 @@
 </ul></li>
 </ul></li>
 </ul>
-<h2 id="backward-compatibility-8">Backward compatibility</h2>
+<h2 id="backward-compatibility-9">Backward compatibility</h2>
 <ul>
 <li>None</li>
 </ul>
@@ -1958,7 +1986,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section9" aria-hidden="true"> <label for="collapse-section9" aria-hidden="true"><strong>V1.7.0 / 06-December-2019</strong></label>
 <div>
-<h2 id="main-changes-9">Main Changes</h2>
+<h2 id="main-changes-10">Main Changes</h2>
 <ul>
 <li>Official release with support of STM32H7A3/B3xx/B0xx new devices<br />
 </li>
@@ -2513,7 +2541,7 @@
 </ul></li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-9">Known Limitations</h2>
+<h2 id="known-limitations-10">Known Limitations</h2>
 <ul>
 <li><strong>HAL I2S</strong>:
 <ul>
@@ -2527,7 +2555,7 @@
 <li>New PSSI driver provided supporting both modes : DMA mode recommended/ polling mode has hardware limitation confirmed and mentioned in the STM32H7A3/B3xx/B0xx erratasheet.</li>
 </ul></li>
 </ul>
-<h2 id="backward-compatibility-9">Backward compatibility</h2>
+<h2 id="backward-compatibility-10">Backward compatibility</h2>
 <ul>
 <li><strong>HAL I2S</strong>:
 <ul>
@@ -2551,7 +2579,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section7" aria-hidden="true"> <label for="collapse-section7" aria-hidden="true"><strong>V1.6.0 / 28-June-2019</strong></label>
 <div>
-<h2 id="main-changes-10">Main Changes</h2>
+<h2 id="main-changes-11">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements</li>
 <li><strong>HAL</strong>: generic
@@ -2826,11 +2854,11 @@
 </ul></li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-10">Known Limitations</h2>
+<h2 id="known-limitations-11">Known Limitations</h2>
 <ul>
 <li>None</li>
 </ul>
-<h2 id="backward-compatibility-10">Backward compatibility</h2>
+<h2 id="backward-compatibility-11">Backward compatibility</h2>
 <ul>
 <li><strong>HAL TIM</strong>:
 <ul>
@@ -2848,7 +2876,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section6" aria-hidden="true"> <label for="collapse-section6" aria-hidden="true"><strong>V1.5.0 / 05-April-2019</strong></label>
 <div>
-<h2 id="main-changes-11">Main Changes</h2>
+<h2 id="main-changes-12">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements</li>
 <li>Add support for VOS0 power regulator voltage scaling with 480MHz over clock</li>
@@ -3318,7 +3346,7 @@
 <li>Update LL_Init1msTick and LL_SetSystemCoreClock description for <strong>DUAL CORE</strong> lines</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-11">Known Limitations</h2>
+<h2 id="known-limitations-12">Known Limitations</h2>
 <ul>
 <li><strong>HAL SD</strong>:
 <ul>
@@ -3332,7 +3360,7 @@
 <li>Full duplex Transmit/receive feature not available</li>
 </ul></li>
 </ul>
-<h2 id="backward-compatibility-11">Backward compatibility</h2>
+<h2 id="backward-compatibility-12">Backward compatibility</h2>
 <ul>
 <li><strong>HAL ADC</strong>:
 <ul>
@@ -3384,7 +3412,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section5" aria-hidden="true"> <label for="collapse-section5" aria-hidden="true"><strong>V1.4.0 / 30-November-2018</strong></label>
 <div>
-<h2 id="main-changes-12">Main Changes</h2>
+<h2 id="main-changes-13">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and implementation enhancements</li>
 <li>Add LL drivers : LL_ADC, LL_BDMA, LL_BUS, LL_COMP, LL_CORTEX, LL_CRC, LL_DAC, LL_DMA, LL_DMA2D, LL_DMAMUX, LL_EXTI, LL_GPIO, LL_HRTIM, LL_HSEM, LL_I2C, LL_IWDG, LL_LPTIM, LL_LPUART, LL_MDMA, LL_OPAMP,LL_PWR, LL_RCC, LL_RNG, LL_RTC, LL_SPI, LL_SWPMI, LL_SYSTEM, LL_TIM, LL_USART, LL_UTILS, LL_WWDG</li>
@@ -3653,7 +3681,7 @@
 <li>Protect the hcd driver to be used only if the USB_OTG_FS, USB_OTG_HS are enabled</li>
 </ul></li>
 </ul>
-<h2 id="known-limitations-12">Known Limitations</h2>
+<h2 id="known-limitations-13">Known Limitations</h2>
 <ul>
 <li><strong>HAL I2S</strong>:
 <ul>
@@ -3661,7 +3689,7 @@
 <li>A new version of this driver will be available in next release with full features tested</li>
 </ul></li>
 </ul>
-<h2 id="backward-compatibility-12">Backward compatibility</h2>
+<h2 id="backward-compatibility-13">Backward compatibility</h2>
 <ul>
 <li><strong>HAL ADC</strong>:
 <ul>
@@ -3701,7 +3729,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section4" aria-hidden="true"> <label for="collapse-section4" aria-hidden="true"><strong>V1.3.0 / 29-June-2018</strong></label>
 <div>
-<h2 id="main-changes-13">Main Changes</h2>
+<h2 id="main-changes-14">Main Changes</h2>
 <ul>
 <li>Updates to fix known defects on HAL Cortex, HAL RCC and HAL SDMMC drivers</li>
 <li><strong>HAL Cortex</strong>: Driver update to support 16 MPU regions instead of 8. User can now select an MPU regions from MPU_REGION_NUMBER0 to MPU_REGION_NUMBER15</li>
@@ -3713,7 +3741,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section3" aria-hidden="true"> <label for="collapse-section3" aria-hidden="true"><strong>V1.2.0 / 29-December-2017</strong></label>
 <div>
-<h2 id="main-changes-14">Main Changes</h2>
+<h2 id="main-changes-15">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and enhancements implementation</li>
 <li><strong>HAL SPI</strong>: Driver reworked to fix critical issues</li>
@@ -3724,7 +3752,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section2" aria-hidden="true"> <label for="collapse-section2" aria-hidden="true"><strong>V1.1.0 / 31-August-2017</strong></label>
 <div>
-<h2 id="main-changes-15">Main Changes</h2>
+<h2 id="main-changes-16">Main Changes</h2>
 <ul>
 <li>General updates to fix known defects and enhancements implementation</li>
 <li><strong>HAL FLASH</strong>: Add Mass Erase for both banks</li>
@@ -3739,7 +3767,7 @@
 <div class="collapse">
 <input type="checkbox" id="collapse-section1" aria-hidden="true"> <label for="collapse-section1" aria-hidden="true"><strong>V1.0.0 / 21-April-2017</strong></label>
 <div>
-<h2 id="main-changes-16">Main Changes</h2>
+<h2 id="main-changes-17">Main Changes</h2>
 <ul>
 <li>First official release for STM32H743xx/753xx devices</li>
 </ul>

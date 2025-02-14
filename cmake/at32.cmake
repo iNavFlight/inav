@@ -8,7 +8,7 @@ option(SEMIHOSTING "Enable semihosting")
 
 message("-- DEBUG_HARDFAULTS: ${DEBUG_HARDFAULTS}, SEMIHOSTING: ${SEMIHOSTING}")
 
-set(CMSIS_DIR "${MAIN_LIB_DIR}/lib/main/AT32F43x/Drivers/CMSIS")
+set(CMSIS_DIR "${MAIN_LIB_DIR}/main/AT32F43x/Drivers/CMSIS")
 set(CMSIS_INCLUDE_DIR "${CMSIS_DIR}/cm4/core_support")
 # DSP use common
 set(CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")

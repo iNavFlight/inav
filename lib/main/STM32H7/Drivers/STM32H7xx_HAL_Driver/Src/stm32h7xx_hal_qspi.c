@@ -1325,21 +1325,24 @@ HAL_StatusTypeDef HAL_QSPI_Transmit_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pDat
           status = HAL_ERROR;
         }
 
+        /* Enable the QSPI transfer error Interrupt */
+        __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
+
+        /* Use DMAEN bit with no impact on H7 HW to record MDMA transfer request */
+        SET_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
+
+
         /* Enable the QSPI transmit MDMA */
         if (HAL_MDMA_Start_IT(hqspi->hmdma, (uint32_t)pData, (uint32_t)&hqspi->Instance->DR, hqspi->TxXferSize, 1) == HAL_OK)
         {
           /* Process unlocked */
           __HAL_UNLOCK(hqspi);
-
-          /* Enable the QSPI transfer error Interrupt */
-          __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
-
-          /* Enable using MDMA by setting DMAEN, note that DMAEN bit is "reserved"
-             but no impact on H7 HW and it minimize the cost in the footprint */
-          SET_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
         }
         else
         {
+          /* Clear DMAEN bit with no impact on H7 HW to cancel MDMA transfer request */
+          CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
+
           status = HAL_ERROR;
           hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
           hqspi->State = HAL_QSPI_STATE_READY;
@@ -1440,21 +1443,23 @@ HAL_StatusTypeDef HAL_QSPI_Receive_DMA(QSPI_HandleTypeDef *hqspi, uint8_t *pData
           /* Start the transfer by re-writing the address in AR register */
           WRITE_REG(hqspi->Instance->AR, addr_reg);
 
+        /* Enable the QSPI transfer error Interrupt */
+        __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
+
+        /* Use DMAEN bit with no impact on H7 HW to record MDMA transfer request */
+        SET_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
+
         /* Enable the MDMA */
         if (HAL_MDMA_Start_IT(hqspi->hmdma, (uint32_t)&hqspi->Instance->DR, (uint32_t)pData, hqspi->RxXferSize, 1) == HAL_OK)
         {
           /* Process unlocked */
           __HAL_UNLOCK(hqspi);
-
-          /* Enable the QSPI transfer error Interrupt */
-          __HAL_QSPI_ENABLE_IT(hqspi, QSPI_IT_TE);
-
-          /* Enable using MDMA by setting DMAEN, note that DMAEN bit is "reserved"
-             but no impact on H7 HW and it minimize the cost in the footprint */
-          SET_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
         }
         else
         {
+          /* Clear DMAEN bit with no impact on H7 HW to cancel MDMA transfer request */
+          CLEAR_BIT(hqspi->Instance->CR, QUADSPI_CR_DMAEN);
+
           status = HAL_ERROR;
           hqspi->ErrorCode |= HAL_QSPI_ERROR_DMA;
           hqspi->State = HAL_QSPI_STATE_READY;

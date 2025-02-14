@@ -1,0 +1,2 @@
+target_stm32h7a3xi(TESTH7A3)
+target_stm32h7a3xi(TESTH7A3_FLASH)
