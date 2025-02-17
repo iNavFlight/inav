@@ -122,9 +122,10 @@ ADCDevice adcDeviceByInstance(ADC_TypeDef *instance)
 
     if (instance == ADC2)
         return ADCDEV_2;
-
+#ifdef ADCDEV_3
     if (instance == ADC3)
         return ADCDEV_3;
+#endif
 
     return ADCINVALID;
 }
