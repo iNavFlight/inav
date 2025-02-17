@@ -467,7 +467,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
 #endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));
-    for (uint32_t i = 0; i < activeBoxIdCount; i++) {
+    for (uint32_t i = 0; i < CHECKBOX_ITEM_COUNT; i++) {
         if (activeBoxes[activeBoxIds[i]]) {
             bitArraySet(mspBoxModeFlags->bits, i);
         }
