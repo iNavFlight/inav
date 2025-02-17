@@ -86,8 +86,7 @@ static uint32_t getFLASHSectorForEEPROM(uint32_t address)
     }
 }
 #elif defined(STM32H750xx)
-#error \
-    "STM32750xx only has one flash page which contains the bootloader, no spare flash pages available, use external storage for persistent config or ram for target testing"
+#error "STM32750xx only has one flash page which contains the bootloader, no spare flash pages available, use external storage for persistent config or ram for target testing"
 #else
 #error "Unsupported CPU!"
 #endif
