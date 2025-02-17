@@ -31,8 +31,8 @@ extern void config_streamer_impl_lock(void);
 extern int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer_align_type_t *buffer);
 
 void config_streamer_init(config_streamer_t *c)
-{ 
-    memset(c, 0, sizeof(*c)); 
+{
+    memset(c, 0, sizeof(*c));
 }
 
 void config_streamer_start(config_streamer_t *c, uintptr_t base, int size)

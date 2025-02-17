@@ -54,7 +54,6 @@ static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 }
 #elif defined(STM32H743xx)
 /* Sectors 0-7 of 128K each */
-// #define FLASH_PAGE_SIZE     ((uint32_t)0x20000) // 128K sectors
 static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 {
     if (address <= 0x0801FFFF) {
