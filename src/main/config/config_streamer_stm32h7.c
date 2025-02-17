@@ -56,30 +56,22 @@ static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 /* Sectors 0-7 of 128K each */
 static uint32_t getFLASHSectorForEEPROM(uint32_t address)
 {
-    if (address <= 0x0801FFFF) {
+    if (address <= 0x0801FFFF)
         return FLASH_SECTOR_0;
-    }
-    if (address <= 0x0803FFFF) {
+    if (address <= 0x0803FFFF)
         return FLASH_SECTOR_1;
-    }
-    if (address <= 0x0805FFFF) {
+    if (address <= 0x0805FFFF)
         return FLASH_SECTOR_2;
-    }
-    if (address <= 0x0807FFFF) {
+    if (address <= 0x0807FFFF)
         return FLASH_SECTOR_3;
-    }
-    if (address <= 0x0809FFFF) {
+    if (address <= 0x0809FFFF)
         return FLASH_SECTOR_4;
-    }
-    if (address <= 0x080BFFFF) {
+    if (address <= 0x080BFFFF)
         return FLASH_SECTOR_5;
-    }
-    if (address <= 0x080DFFFF) {
+    if (address <= 0x080DFFFF)
         return FLASH_SECTOR_6;
-    }
-    if (address <= 0x080FFFFF) {
+    if (address <= 0x080FFFFF)
         return FLASH_SECTOR_7;
-    }
 
     while (1) {
         failureMode(FAILURE_FLASH_WRITE_FAILED);
