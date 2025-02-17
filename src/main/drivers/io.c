@@ -59,6 +59,8 @@ const struct ioPortDef_s ioPortDefs[] = {
     { RCC_AHB4(GPIOG) },
     { RCC_AHB4(GPIOH) },
     { RCC_AHB4(GPIOI) },
+    { RCC_AHB4(GPIOJ) },
+    { RCC_AHB4(GPIOK) },
 };
 #elif defined(AT32F43x)   
 const struct ioPortDef_s ioPortDefs[] = {

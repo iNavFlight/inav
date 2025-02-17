@@ -84,7 +84,11 @@ uint8_t mscStart(void)
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, 0, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, 0, 0);
 
+#if defined(STM32H7A3xx) || defined(STM32H7A3xxQ)
+    USBD_Init(&USBD_Device, &VCP_Desc, DEVICE_HS);
+#else
     USBD_Init(&USBD_Device, &VCP_Desc, 0);
+#endif
 
     /** Regsiter class */
     USBD_RegisterClass(&USBD_Device, USBD_MSC_CLASS);

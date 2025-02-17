@@ -31,3 +31,6 @@ void usbVcpInitHardware(void);
 serialPort_t *usbVcpOpen(void);
 struct serialPort_s;
 uint32_t usbVcpGetBaudRate(struct serialPort_s *instance);
+
+uint8_t usbIsConnected(void);
+uint8_t usbIsConfigured(void);

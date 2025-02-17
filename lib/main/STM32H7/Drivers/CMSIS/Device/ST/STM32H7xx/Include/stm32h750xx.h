@@ -16698,6 +16698,11 @@ typedef struct
 /*                           Real-Time Clock (RTC)                            */
 /*                                                                            */
 /******************************************************************************/
+#define RTC_TAMPER2_SUPPORT           /*!<RTC TAMPER 2 support feature                   */
+#define RTC_TAMPNOERASE_SUPPORT       /*!<RTC BKP REG NO ERASE ON TAMPER support feature */
+#define RTC_TAMPMASKFLAG_SUPPORT      /*!<RTC TAMPER MASK FLAG support feature           */
+#define RTC_TAMPxIE_SUPPORT           /*!<RTC TAMPERx INTERRUPT ENABLE support feature   */
+
 /********************  Bits definition for RTC_TR register  *******************/
 #define RTC_TR_PM_Pos                  (22U)
 #define RTC_TR_PM_Msk                  (0x1UL << RTC_TR_PM_Pos)                /*!< 0x00400000 */

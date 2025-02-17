@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 void mscInit(void);
 bool mscCheckBoot(void);
 uint8_t mscStart(void);

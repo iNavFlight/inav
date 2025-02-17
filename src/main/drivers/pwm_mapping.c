@@ -97,6 +97,7 @@ const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTyp
 static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 {
     serialPortPins_t uartPins;
+    UNUSED(uartPins);
 
 #if defined(USE_UART2)
     uartGetPortPins(UARTDEV_2, &uartPins);
@@ -143,6 +144,20 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 #if defined(USE_UART8)
     uartGetPortPins(UARTDEV_8, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART8) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
+        return true;
+    }
+#endif
+
+#if defined(USE_UART9)
+    uartGetPortPins(UARTDEV_9, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART9) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
+        return true;
+    }
+#endif
+
+#if defined(USE_UART10)
+    uartGetPortPins(UARTDEV_10, &uartPins);
+    if (doesConfigurationUsePort(SERIAL_PORT_USART10) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif

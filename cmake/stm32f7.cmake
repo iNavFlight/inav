@@ -2,6 +2,8 @@ include(cortex-m7)
 include(stm32f7-usb)
 
 set(STM32F7_HAL_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/STM32F7xx_HAL_Driver")
+set(STM32F7_CMSIS_DIR "${MAIN_LIB_DIR}/main/CMSIS")
+set(STM32F7_CMSIS_INCLUDE_DIR "${STM32F7_CMSIS_DIR}/Core/Include")
 
 set(STM32F7_HAL_SRC
     stm32f7xx_hal.c
@@ -42,6 +44,30 @@ set(STM32F7_HAL_SRC
     stm32f7xx_ll_sdmmc.c
 )
 list(TRANSFORM STM32F7_HAL_SRC PREPEND "${STM32F7_HAL_DIR}/Src/")
+
+
+set(STM32F7_CMSIS_DSP_DIR "${MAIN_LIB_DIR}/main/CMSIS/DSP")
+set(STM32F7_CMSIS_DSP_INCLUDE_DIR "${STM32F7_CMSIS_DSP_DIR}/Include")
+
+set(STM32F7_CMSIS_DSP_SRC
+    BasicMathFunctions/arm_scale_f32.c
+    BasicMathFunctions/arm_sub_f32.c
+    BasicMathFunctions/arm_mult_f32.c
+    BasicMathFunctions/arm_offset_f32.c
+    TransformFunctions/arm_rfft_fast_f32.c
+    TransformFunctions/arm_cfft_f32.c
+    TransformFunctions/arm_rfft_fast_init_f32.c
+    TransformFunctions/arm_cfft_radix8_f32.c
+    TransformFunctions/arm_bitreversal2.S
+    CommonTables/arm_common_tables.c
+    ComplexMathFunctions/arm_cmplx_mag_f32.c
+    StatisticsFunctions/arm_max_f32.c
+    StatisticsFunctions/arm_rms_f32.c
+    StatisticsFunctions/arm_std_f32.c
+    StatisticsFunctions/arm_mean_f32.c
+)
+
+list(TRANSFORM STM32F7_CMSIS_DSP_SRC PREPEND "${STM32F7_CMSIS_DSP_DIR}/Source/")
 
 set(STM32F7_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32F7/Drivers/CMSIS/Device/ST/STM32F7xx")
 
@@ -91,10 +117,10 @@ set(STM32F7_DEFINITIONS
 
 function(target_stm32f7xx)
     target_stm32(
-        SOURCES ${STM32F7_HAL_SRC} ${STM32F7_SRC}
+        SOURCES ${STM32F7_HAL_SRC} ${STM32F7_SRC} ${STM32F7_CMSIS_DSP_SRC}
         COMPILE_DEFINITIONS ${STM32F7_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
-        INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS}
+        INCLUDE_DIRECTORIES ${STM32F7_INCLUDE_DIRS} ${STM32F7_CMSIS_DSP_INCLUDE_DIR} ${STM32F7_CMSIS_INCLUDE_DIR}
         LINK_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS}
 
         MSC_SOURCES ${STM32F7_USBMSC_SRC} ${STM32F7_MSC_SRC}
