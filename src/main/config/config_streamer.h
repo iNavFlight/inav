@@ -29,8 +29,8 @@
 #define CONFIG_STREAMER_BUFFER_SIZE M25P16_PAGESIZE // Must match flash device page size
 typedef uint32_t config_streamer_buffer_align_type_t;
 #elif defined(STM32H7)
-#define CONFIG_STREAMER_BUFFER_SIZE 32  // Flash word = 256-bits
-typedef uint64_t config_streamer_buffer_align_type_t;
+#define CONFIG_STREAMER_BUFFER_SIZE (FLASH_NB_32BITWORD_IN_FLASHWORD * 4) // Flash word = 256-bits
+typedef uint32_t config_streamer_buffer_align_type_t;
 #else
 #define CONFIG_STREAMER_BUFFER_SIZE 4
 typedef uint32_t config_streamer_buffer_align_type_t;
