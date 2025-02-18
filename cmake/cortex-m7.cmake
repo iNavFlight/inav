@@ -3,8 +3,10 @@ set(CORTEX_M7_COMMON_OPTIONS
     -mcpu=cortex-m7
     -mfloat-abi=hard
     -mfpu=fpv5-sp-d16
+    #-mfpu=fpv5-d16
     -fsingle-precision-constant
     -Wdouble-promotion
+    -fdata-sections -ffunction-sections
 )
 
 set(CORTEX_M7_COMPILE_OPTIONS

@@ -62,10 +62,10 @@ _Min_Stack_Size = 0x1800; /* required amount of stack */
 MEMORY
 {
     RAM (rwx)      : ORIGIN = 0x24000000, LENGTH = 1024K
-    FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1920K
+    FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1792K
     DTCMRAM (rwx)      : ORIGIN = 0x20000000, LENGTH = 128K
     ITCMRAM (rwx)      : ORIGIN = 0x00000000, LENGTH = 64K
-    FLASH_CONFIG (rw)      : ORIGIN = 0x081e0000, LENGTH = 128K
+    FLASH_CONFIG (rwx)      : ORIGIN = 0x081c0000, LENGTH = 256K
     AHB_SRAM1 (rwx)      : ORIGIN = 0x30000000, LENGTH = 128K
     /*AHB_SRAM2 (rwx)      : ORIGIN = 0x30010000, LENGTH = 64K*/
     AHB_SRAM3 (rwx)      : ORIGIN = 0x38000000, LENGTH = 64K

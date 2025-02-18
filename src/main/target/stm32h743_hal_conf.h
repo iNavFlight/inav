@@ -36,8 +36,7 @@
   */ 
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32H7xx_HAL_CONF_H
-#define __STM32H7xx_HAL_CONF_H
+#pragma once
 
 #ifdef __cplusplus
  extern "C" {
@@ -426,7 +425,5 @@
 }
 #endif
 
-#endif /* __STM32H7xx_HAL_CONF_H */
- 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

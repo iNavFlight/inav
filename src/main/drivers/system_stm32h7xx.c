@@ -29,9 +29,7 @@
 #include "drivers/system.h"
 
 #ifdef STM32H7A3xx
-extern void SystemClock_Config(void);
-extern void  PeriphCommonClock_Config(void);
-extern void  MPU_Config(void);
+#include "target/stm32h7a3_impl.h"
 #endif
 
 
@@ -88,27 +86,8 @@ void systemInit(void)
     checkForBootLoaderRequest();
 
 #ifdef STM32H7A3xx
- /* MPU Configuration--------------------------------------------------------*/
- MPU_Config();
-
- /* MCU Configuration--------------------------------------------------------*/
-
- /* Configure The Vector Table address */
- SCB->VTOR = 0x08000000;
-
- /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-// HAL_Init();
-
- /* USER CODE BEGIN Init */
-
- /* USER CODE END Init */
-
- /* Configure the system clock */
- SystemClock_Config();
-
- /* Configure the peripherals common clocks */
- PeriphCommonClock_Config();
- #endif
+    stm32h7a3_init();
+#endif
 
     // Configure NVIC preempt/priority groups
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITY_GROUPING);
@@ -121,7 +100,9 @@ void systemInit(void)
     // Init cycle counter
     cycleCounterInit();
 
+#ifndef STM32H7A3xx
     // SysTick
     HAL_SYSTICK_Config(SystemCoreClock / 1000);
     HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+#endif
 }

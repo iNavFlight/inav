@@ -77,29 +77,25 @@
 
 
 // *************** I2C /Baro/Mag *********************
-//#define USE_I2C
-#define USE_I2C_DEVICE_1
-#define I2C1_SCL                PB6
-#define I2C1_SDA                PB7
+#define USE_I2C
 
-//#define USE_I2C_DEVICE_3
-//#define I2C3_SCL                PA8
-//#define I2C3_SDA                PC9
+#define USE_I2C_DEVICE_3
+#define I2C3_SCL                PA8
+#define I2C3_SDA                PC9
 
 #define USE_BARO
-//#define BARO_I2C_BUS            BUS_I2C3
-#define BARO_I2C_BUS            BUS_I2C1
+#define BARO_I2C_BUS            BUS_I2C3
 #define USE_BARO_ALL
 
 #define USE_MAG
-#define MAG_I2C_BUS             BUS_I2C1
+#define MAG_I2C_BUS             BUS_I2C3
 #define USE_MAG_ALL
 
-#define TEMPERATURE_I2C_BUS     BUS_I2C1
-#define PITOT_I2C_BUS           BUS_I2C1
+#define TEMPERATURE_I2C_BUS     BUS_I2C3
+#define PITOT_I2C_BUS           BUS_I2C3
 
 #define USE_RANGEFINDER
-#define RANGEFINDER_I2C_BUS     BUS_I2C1
+#define RANGEFINDER_I2C_BUS     BUS_I2C3
 
 // *************** UART *****************************
 #define USE_VCP
@@ -136,7 +132,7 @@
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
-#define SERIALRX_UART           SERIAL_PORT_USART1
+#define SERIALRX_UART           SERIAL_PORT_USART5
 
 // *************** SDIO SD BLACKBOX*******************
 #ifdef TESTH7A3

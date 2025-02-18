@@ -107,9 +107,9 @@ mpuRegion_t mpuRegions[] = {
 
     },
     {
-        .start      = 0x081E0000, // Flash config, 2mb
+        .start      = 0x081C0000, // Flash config, 128kb 0x81E0000 - 0x8200000
         .end        = 0, // Size defined by "size"
-        .size       = MPU_REGION_SIZE_128KB,
+        .size       = MPU_REGION_SIZE_256KB,
         .perm       = MPU_REGION_FULL_ACCESS,
         .exec       = MPU_INSTRUCTION_ACCESS_ENABLE,
         .shareable  = MPU_ACCESS_NOT_SHAREABLE,

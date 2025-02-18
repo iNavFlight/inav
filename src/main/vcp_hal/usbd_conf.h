@@ -46,8 +46,11 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USBD_CONF_H
-#define __USBD_CONF_H
+#pragma once
+
+#ifdef STM32H7A3xx
+#include "stm32h7a3_impl_usbd_conf.h"
+#else
 
 /* Includes ------------------------------------------------------------------*/
 #include "platform.h"      // Required for inclusion of stm32Yxx_hal.h below within USB device library code
@@ -78,6 +81,13 @@
 #define MSC_MEDIA_PACKET                      512U
 #ifdef STM32H7A3xx
 #define USE_USB_HS
+
+
+#define USBD_LPM_ENABLED     0U
+
+/* #define for FS and HS identification */
+#define DEVICE_FS 		0
+#define DEVICE_HS 		1
 #else
 #define USE_USB_FS
 #endif
@@ -116,6 +126,6 @@
 
 /* Exported functions ------------------------------------------------------- */
 
-#endif /* __USBD_CONF_H */
+#endif 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

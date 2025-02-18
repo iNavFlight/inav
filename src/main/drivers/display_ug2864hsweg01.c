@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef USE_OLED_UG2864
+#if defined(USE_OLED_UG2864) && defined(USE_I2C)
 
 #include "drivers/bus.h"
 #include "drivers/bus_i2c.h"
