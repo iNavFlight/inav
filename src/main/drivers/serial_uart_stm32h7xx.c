@@ -104,6 +104,10 @@ static uartDevice_t uart3 =
 #define UART_PIN_AF_UART4_PC11      GPIO_AF8_UART4
 #define UART_PIN_AF_UART4_PD0       GPIO_AF8_UART4
 #define UART_PIN_AF_UART4_PD1       GPIO_AF8_UART4
+// New for h7a3, need to check if applies to h743
+#define UART_PIN_AF_UART4_PH13      GPIO_AF8_UART4
+#define UART_PIN_AF_UART4_PH14      GPIO_AF8_UART4
+#define UART_PIN_AF_UART4_PI9       GPIO_AF8_UART4
 
 static uartDevice_t uart4 =
 {
@@ -122,8 +126,8 @@ static uartDevice_t uart4 =
 #define UART_PIN_AF_UART5_PB6       GPIO_AF14_UART5
 #define UART_PIN_AF_UART5_PB12      GPIO_AF14_UART5
 #define UART_PIN_AF_UART5_PB13      GPIO_AF14_UART5
-#define UART_PIN_AF_UART5_PD2       GPIO_AF8_UART5
 #define UART_PIN_AF_UART5_PC12      GPIO_AF8_UART5
+#define UART_PIN_AF_UART5_PD2       GPIO_AF8_UART5
 
 static uartDevice_t uart5 =
 {
@@ -157,8 +161,10 @@ static uartDevice_t uart6 =
 #define UART_PIN_AF_UART7_PB4       GPIO_AF11_UART7
 #define UART_PIN_AF_UART7_PE7       GPIO_AF7_UART7
 #define UART_PIN_AF_UART7_PE8       GPIO_AF7_UART7
+#ifndef STM32H7A3xx
 #define UART_PIN_AF_UART7_PF6       GPIO_AF7_UART7
 #define UART_PIN_AF_UART7_PF7       GPIO_AF7_UART7
+#endif
 
 static uartDevice_t uart7 =
 {
@@ -189,7 +195,31 @@ static uartDevice_t uart8 =
 };
 #endif
 
+#ifdef USE_UART9
+static uartDevice_t uart9 =
+{
+    .dev = UART9,
+    .rx = IO_TAG(UART9_RX_PIN),
+    .tx = IO_TAG(UART9_TX_PIN),
+    .af_rx = GPIO_AF11_UART9,
+    .af_tx = GPIO_AF11_UART9,
+    .rcc = RCC_APB1L(UART9),
+    .irq = UART9_IRQn,
+};
+#endif
 
+#ifdef USE_UART10
+static uartDevice_t uart10 =
+{
+    .dev = UART10,
+    .rx = IO_TAG(UART10_RX_PIN),
+    .tx = IO_TAG(UART10_TX_PIN),
+    .af_rx = GPIO_AF11_UART10,
+    .af_tx = GPIO_AF11_UART10,
+    .rcc = RCC_APB1L(UART10),
+    .irq = UART10_IRQn,
+};
+#endif
 
 static uartDevice_t* uartHardwareMap[] = {
 #ifdef USE_UART1
@@ -229,6 +259,16 @@ static uartDevice_t* uartHardwareMap[] = {
 #endif
 #ifdef USE_UART8
     &uart8,
+#else
+    NULL,
+#endif
+#ifdef USE_UART9
+    &uart9,
+#else
+    NULL,
+#endif
+#ifdef USE_UART10
+    &uart10,
 #else
     NULL,
 #endif
