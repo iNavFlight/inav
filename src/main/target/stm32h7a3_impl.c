@@ -48,6 +48,7 @@ int stm32h7a3_main(void)
   PeriphCommonClock_Config();
 
   //MX_USB_DEVICE_Init();
+  MX_USART1_UART_Init();
   /* Initialize all configured peripherals */
   /*
   MX_GPIO_Init();
@@ -110,25 +111,16 @@ void stm32h7a3_init(void)
   //MX_DMA_Init();
   //MX_BDMA1_Init();
   //MX_BDMA2_Init();
-  //MX_SPI1_Init();
-  //MX_SPI2_Init();
-  //MX_UART4_Init();
-  //MX_USART2_UART_Init();
-  //MX_USART3_UART_Init();
-  //MX_USART6_UART_Init();
   //MX_TIM1_Init();
   //MX_TIM2_Init();
-  //MX_UART5_Init();
   //MX_TIM4_Init();
   //MX_TIM3_Init();
-  //MX_USART1_UART_Init();
-  //MX_ADC1_Init();
   //MX_RTC_Init();
-  //MX_USB_DEVICE_Init();
-  //MX_I2C3_Init(void);
   /* USER CODE BEGIN 2 */
-}
 
+  // rcc clocks are setup in individual devices Init and MSP_Init functions
+  stm32h7a3_rcc_clock_config();
+}
 
 /**
   * @brief System Clock Configuration
@@ -188,8 +180,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  HAL_RCC_MCOConfig(RCC_MCO1, RCC_MCO1SOURCE_HSE, RCC_MCODIV_1);
-  HAL_RCC_MCOConfig(RCC_MCO2, RCC_MCO2SOURCE_HSE, RCC_MCODIV_1);
 }
 
 /**
@@ -1438,4 +1428,237 @@ uint8_t readAllFlash(void)
 	}
 
 	return check;
+}
+
+// clock bits removed fomr hal_msp file
+void stm32h7a3_rcc_clock_config(void)
+{
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+
+    // SYSTEM
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+    // CRC
+#ifdef HAL_CRC_MODULE_ENABLED
+    __HAL_RCC_CRC_CLK_ENABLE();
+#endif
+
+
+
+    // I2C
+#ifdef USE_I2C
+#ifdef USE_I2C_DEVICE_1
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C1;
+#endif
+#ifdef USE_I2C_DEVICE_2
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C2;
+#endif
+#ifdef USE_I2C_DEVICE_3
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C3;
+#endif
+#ifdef USE_I2C_DEVICE_4
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C4;
+#endif
+#ifdef USE_I2C_DEVICE_5
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_I2C5;
+#endif
+
+    PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C1235CLKSOURCE_D2PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+#ifdef USE_I2C_DEVICE_1
+    __HAL_RCC_I2C1_CLK_ENABLE();
+#endif
+#ifdef USE_I2C_DEVICE_2
+    __HAL_RCC_I2C2_CLK_ENABLE();
+#endif
+#ifdef USE_I2C_DEVICE_3
+    __HAL_RCC_I2C3_CLK_ENABLE();
+#endif
+#ifdef USE_I2C_DEVICE_4
+    __HAL_RCC_I2C4_CLK_ENABLE();
+#endif
+#ifdef USE_I2C_DEVICE_5
+    __HAL_RCC_I2C5_CLK_ENABLE();
+#endif
+
+#endif
+
+    // UARTS
+
+    memset(&PeriphClkInitStruct, 0, sizeof(PeriphClkInitStruct));
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART16910; // 1 6 9 10
+    PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16910CLKSOURCE_D2PCLK2;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    // clock setup from hal_msp
+    memset(&PeriphClkInitStruct, 0, sizeof(PeriphClkInitStruct));
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART234578; // 2 3 4 5 7 8
+    PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+
+    /* Peripheral clock enable */
+    #ifdef USE_USART1
+    __HAL_RCC_USART1_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART1_IRQn);
+    #endif
+    #ifdef USE_USART2
+    __HAL_RCC_USART2_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART2_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART2_IRQn);
+    #endif
+    #ifdef USE_USART3
+    __HAL_RCC_USART3_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART3_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART3_IRQn);
+    #endif
+    #ifdef USE_USART4
+    __HAL_RCC_USART4_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART4_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART4_IRQn);
+    #endif
+    #ifdef USE_USART5
+    __HAL_RCC_USART5_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART5_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART5_IRQn);
+    #endif
+    #ifdef USE_USART6
+    __HAL_RCC_USART6_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART6_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART6_IRQn);
+    #endif
+    #ifdef USE_USART7
+    __HAL_RCC_USART7_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART7_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART7_IRQn);
+    #endif
+    #ifdef USE_USART8
+    __HAL_RCC_USART8_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART8_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART8_IRQn);
+    #endif
+    #ifdef USE_USART9
+    __HAL_RCC_USART9_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART9_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART9_IRQn);
+    #endif
+    #ifdef USE_USART10
+    __HAL_RCC_USART10_CLK_ENABLE();
+    HAL_NVIC_SetPriority(UART9_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(UART9_IRQn);
+    #endif
+
+    // ADC 
+    memset(&PeriphClkInitStruct, 0, sizeof(PeriphClkInitStruct));
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+    PeriphClkInitStruct.PLL2.PLL2M = 4;
+    PeriphClkInitStruct.PLL2.PLL2N = 32;
+    PeriphClkInitStruct.PLL2.PLL2P = 3;
+    PeriphClkInitStruct.PLL2.PLL2Q = 2;
+    PeriphClkInitStruct.PLL2.PLL2R = 2;
+    PeriphClkInitStruct.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_2;
+    PeriphClkInitStruct.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
+    PeriphClkInitStruct.PLL2.PLL2FRACN = 0;
+    PeriphClkInitStruct.AdcClockSelection = RCC_ADCCLKSOURCE_PLL2;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* Peripheral clock enable */
+    __HAL_RCC_ADC12_CLK_ENABLE();
+
+    // SPI
+    memset(&PeriphClkInitStruct, 0, sizeof(PeriphClkInitStruct));
+#ifdef USE_SPI_DEVICE_1
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_SPI1;
+#endif
+#ifdef USE_SPI_DEVICE_2
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_SPI2;
+#endif
+#ifdef USE_SPI_DEVICE_3
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_SPI3;
+#endif
+
+    PeriphClkInitStruct.Spi123ClockSelection = RCC_SPI123CLKSOURCE_CLKP;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+#if defined(USE_SPI_DEVICE_4) || defined(USE_SPI_DEVICE_5)
+    memset(&PeriphClkInitStruct, 0, sizeof(PeriphClkInitStruct));
+
+#ifdef USE_SPI_DEVICE_4
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_SPI4;
+#endif
+#ifdef USE_SPI_DEVICE_5
+    PeriphClkInitStruct.PeriphClockSelection |= RCC_PERIPHCLK_SPI5;
+#endif
+    PeriphClkInitStruct.Spi45ClockSelection = RCC_SPI45CLKSOURCE_D2PCLK1;
+#endif
+
+    /* Peripheral clock enable */
+#ifdef USE_SPI_DEVICE_1
+    __HAL_RCC_SPI1_CLK_ENABLE();
+#endif
+#ifdef USE_SPI_DEVICE_2
+    __HAL_RCC_SPI2_CLK_ENABLE();
+#endif
+#ifdef USE_SPI_DEVICE_3
+    __HAL_RCC_SPI3_CLK_ENABLE();
+#endif
+#ifdef USE_SPI_DEVICE_4
+    __HAL_RCC_SPI4_CLK_ENABLE();
+#endif
+#ifdef USE_SPI_DEVICE_5
+    __HAL_RCC_SPI5_CLK_ENABLE();
+#endif
+
+#ifdef USE_VCP
+    // USB
+    memset(&PeriphClkInitStruct, 0, sizeof(PeriphClkInitStruct));
+    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USB;
+    PeriphClkInitStruct.UsbClockSelection = RCC_USBCLKSOURCE_HSI48;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+    {
+      Error_Handler();
+    }
+
+    /* Peripheral clock enable */
+    __HAL_RCC_USB_OTG_HS_CLK_ENABLE();
+
+    /* Peripheral interrupt init */
+    HAL_NVIC_SetPriority(OTG_HS_EP1_OUT_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+    HAL_NVIC_SetPriority(OTG_HS_EP1_IN_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+    HAL_NVIC_SetPriority(OTG_HS_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(OTG_HS_IRQn);
+#endif
+
+
+
+    // GPIO clocks
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOF_CLK_ENABLE();
+    __HAL_RCC_GPIOG_CLK_ENABLE();
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    __HAL_RCC_GPIOI_CLK_ENABLE();
+
 }

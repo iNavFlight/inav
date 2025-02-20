@@ -43,6 +43,9 @@ void Error_Handler(void);
 void SystemClock_Config(void);
 
 void PeriphCommonClock_Config(void);
+
+void stm32h7a3_rcc_clock_config(void);
+
 void MPU_Config(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
