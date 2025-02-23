@@ -453,6 +453,12 @@ static int logicConditionCompute(
             return true;
             break;
 
+        case LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED:
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED] = constrain(operandA, 25, 150);
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED);
+            return true;
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
@@ -709,6 +715,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_GROUD_SPEED: // cm/s
             return gpsSol.groundSpeed;
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED: // m/s
+            return getMinGroundSpeed(navConfig()->general.min_ground_speed);
             break;
 
         //FIXME align with osdGet3DSpeed
@@ -1104,6 +1114,18 @@ uint32_t getLoiterRadius(uint32_t loiterRadius) {
     }
 #else
     return loiterRadius;
+#endif
+}
+
+uint32_t getMinGroundSpeed(uint32_t minGroundSpeed) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED)) {
+        return constrain(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED], minGroundSpeed, 150);
+    } else {
+        return minGroundSpeed;
+    }
+#else
+    return minGroundSpeed;
 #endif
 }
 

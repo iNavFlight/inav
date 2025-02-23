@@ -84,7 +84,8 @@ typedef enum {
     LOGIC_CONDITION_LED_PIN_PWM                 = 52,
     LOGIC_CONDITION_DISABLE_GPS_FIX             = 53,
     LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 54,
-    LOGIC_CONDITION_LAST                        = 55,
+    LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED   = 55,
+    LOGIC_CONDITION_LAST
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -146,6 +147,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS,                     // 43
     LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK,                             // 44
     LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM,                         // 45
+    LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED, // m/s                 // 46
 } logicFlightOperands_e;
 
 typedef enum {
@@ -200,6 +202,7 @@ typedef enum {
 #ifdef USE_GPS_FIX_ESTIMATION
     LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX = (1 << 11),
 #endif
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED = (1 << 12),
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
@@ -261,6 +264,7 @@ float getThrottleScale(float globalThrottleScale);
 int16_t getRcCommandOverride(int16_t command[], uint8_t axis);
 int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue);
 uint32_t getLoiterRadius(uint32_t loiterRadius);
+uint32_t getMinGroundSpeed(uint32_t minGroundSpeed);
 float getFlightAxisAngleOverride(uint8_t axis, float angle);
 float getFlightAxisRateOverride(uint8_t axis, float rate);
 bool isFlightAxisAngleOverrideActive(uint8_t axis);
