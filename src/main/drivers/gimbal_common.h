@@ -96,6 +96,7 @@ bool gimbalCommonIsEnabled(void);
 bool gimbalCommonHtrkIsEnabled(void);
 
 int16_t gimbalCommonGetPanPwm(const gimbalDevice_t *gimbalDevice);
+void setGimbalSensitivity(int16_t sensitivity);
 
 #ifdef __cplusplus
 }
