@@ -148,6 +148,7 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK,                             // 44
     LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM,                         // 45
     LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED, // m/s                 // 46
+    LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED, // cm/s           // 47
 } logicFlightOperands_e;
 
 typedef enum {

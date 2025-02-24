@@ -47,6 +47,7 @@
 #include "flight/imu.h"
 #include "flight/pid.h"
 #include "flight/mixer_profile.h"
+#include "flight/wind_estimator.h"
 #include "drivers/io_port_expander.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
@@ -732,6 +733,20 @@ static int logicConditionGetFlightOperandValue(int operand) {
         #else
             return false;
         #endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED: // cm/s
+#ifdef USE_WIND_ESTIMATOR
+        {
+            if (isEstimatedWindSpeedValid()) {
+                uint16_t angle;
+                return getEstimatedHorizontalWindSpeed(&angle);
+            } else
+                return -1;
+        }
+#else
+            return -1;
+#endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
