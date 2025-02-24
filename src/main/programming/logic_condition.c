@@ -455,7 +455,7 @@ static int logicConditionCompute(
             break;
 
         case LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED:
-            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED] = constrain(operandA, 25, 150);
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED] = constrain(operandA, navConfig()->general.min_ground_speed, 150);
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED);
             return true;
             break;
