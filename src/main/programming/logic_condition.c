@@ -749,6 +749,28 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #endif
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION: // deg
+#ifdef USE_WIND_ESTIMATOR
+        {
+            if (isEstimatedWindSpeedValid()) {
+                uint16_t angle;
+                getEstimatedHorizontalWindSpeed(&angle);
+                int32_t windAngle = (CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
+                while (windAngle < 0) {
+                    windAngle += 360;
+                }
+                while (windAngle >= 360) {
+                    windAngle -= 360;
+                }
+                return windAngle;
+            } else
+                return -1;
+        }
+#else
+            return -1;
+#endif
+            break;
+
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
             return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);
             break;

@@ -167,7 +167,8 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 44            | Downlink Link Quality                 | |
 | 45            | Uplink RSSI [dBm]                     | |
 | 46            | Minimum Ground Speed [m/s]            | The current minimum ground speed allowed in navigation flight modes |
-| 47            | Horizontal Wind Speed [cm/s]          | Estimated wind speed. If the wind estimator is unavailble or the wind speed is invalid, -1 is returned |
+| 47            | Horizontal Wind Speed [cm/s]          | Estimated wind speed. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 48            | Wind Direction [deg]                  | Estimated wind direction. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
 
 #### FLIGHT_MODE
 
