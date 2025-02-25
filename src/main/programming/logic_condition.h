@@ -84,6 +84,7 @@ typedef enum {
     LOGIC_CONDITION_LED_PIN_PWM                 = 52,
     LOGIC_CONDITION_DISABLE_GPS_FIX             = 53,
     LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 54,
+    LOGIC_CONDITION_PORT_READ                   = 55,
     LOGIC_CONDITION_LAST                        = 55,
 } logicOperation_e;
 
