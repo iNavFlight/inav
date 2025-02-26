@@ -130,6 +130,7 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PA4
 #define PINIO2_PIN                  PB5
+#define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
