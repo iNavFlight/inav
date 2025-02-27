@@ -56,6 +56,38 @@ typedef struct osd_sidebar_s {
     uint8_t idle;
 } osd_sidebar_t;
 
+void osdGridDrawThrottleGauge(displayPort_t *display, unsigned gx, unsigned gy, uint8_t thrPos)
+{
+    uint16_t thrChars[] = {SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK};
+
+    if (thrPos >= 100)
+        thrChars[4] = SYM_VARIO_UP_2A;
+    else if (thrPos >= 90)
+        thrChars[4] = SYM_VARIO_UP_1A;
+    if (thrPos >= 80)
+        thrChars[3] = SYM_VARIO_UP_2A;
+    else if (thrPos >= 70)
+        thrChars[3] = SYM_VARIO_UP_1A;
+    if (thrPos >= 60)
+        thrChars[2] = SYM_VARIO_UP_2A;
+    else if (thrPos >= 50)
+        thrChars[2] = SYM_VARIO_UP_1A;
+    if (thrPos >= 40)
+        thrChars[1] = SYM_VARIO_UP_2A;
+    else if (thrPos >= 30)
+        thrChars[1] = SYM_VARIO_UP_1A;
+    if (thrPos >= 20)
+        thrChars[0] = SYM_VARIO_UP_2A;
+    else if (thrPos >= 10)
+        thrChars[0] = SYM_VARIO_UP_1A;
+
+    displayWriteChar(display, gx, gy, thrChars[0]);
+    displayWriteChar(display, gx, gy + 1, thrChars[1]);
+    displayWriteChar(display, gx, gy + 2, thrChars[2]);
+    displayWriteChar(display, gx, gy + 3, thrChars[3]);
+    displayWriteChar(display, gx, gy + 4, thrChars[4]);
+}
+
 void osdGridDrawVario(displayPort_t *display, unsigned gx, unsigned gy, float zvel)
 {
     int v = zvel / OSD_VARIO_CM_S_PER_ARROW;
