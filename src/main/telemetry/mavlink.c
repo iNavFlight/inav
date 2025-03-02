@@ -183,7 +183,8 @@ static mavlink_message_t mavSendMsg;
 static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
-static uint8_t mavSystemId = 1;
+// Set mavSystemId from telemetryConfig()->mavlink.sysid
+static uint8_t mavSystemId; 
 static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
@@ -296,6 +297,7 @@ void configureMAVLinkTelemetryPort(void)
     }
 
     mavlinkPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_MAVLINK, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_MAVLINK_PORT_MODE, SERIAL_NOT_INVERTED);
+    mavSystemId = telemetryConfig()->mavlink.sysid;
 
     if (!mavlinkPort) {
         return;

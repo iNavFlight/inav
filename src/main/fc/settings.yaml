@@ -3235,6 +3235,13 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
+      - name: mavlink_sysid
+        field: mavlink.sysid
+        description: "MAVLink System ID"
+        type: uint8_t
+        min: 1
+        max: 255
+        default_value: 1
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
