@@ -1,18 +1,18 @@
 include(cortex-m7)
-include(stm32h7-usb)
+include(stm32h7a3-usb)
 
-set(STM32H7_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS/Device/ST/STM32H7xx")
-set(STM32H7_HAL_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/STM32H7xx_HAL_Driver")
+set(STM32H7A3_CMSIS_DEVICE_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/CMSIS/Device/ST/STM32H7xx")
+set(STM32H7A3_HAL_DIR "${MAIN_LIB_DIR}/main/STM32H7/Drivers/STM32H7xx_HAL_Driver")
 
-set(STM32H7_HAL_SRC
+set(STM32H7A3_HAL_SRC
     stm32h7xx_hal.c
     stm32h7xx_hal_adc.c
     stm32h7xx_hal_adc_ex.c
-#    stm32h7xx_hal_cec.c
-#    stm32h7xx_hal_comp.c
+    stm32h7xx_hal_cec.c
+    stm32h7xx_hal_comp.c
     stm32h7xx_hal_cortex.c
-#    stm32h7xx_hal_crc.c
-#    stm32h7xx_hal_crc_ex.c
+    stm32h7xx_hal_crc.c
+    stm32h7xx_hal_crc_ex.c
 #    stm32h7xx_hal_cryp.c
 #    stm32h7xx_hal_cryp_ex.c
     stm32h7xx_hal_dac.c
@@ -21,7 +21,7 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_hal_dfsdm.c
 #    stm32h7xx_hal_dfsdm_ex.c
     stm32h7xx_hal_dma.c
-#    stm32h7xx_hal_dma2d.c
+    stm32h7xx_hal_dma2d.c
     stm32h7xx_hal_dma_ex.c
 #    stm32h7xx_hal_dsi.c
     stm32h7xx_hal_dts.c
@@ -37,7 +37,7 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_hal_hash_ex.c
 #    stm32h7xx_hal_hcd.c
 #    stm32h7xx_hal_hrtim.c
-#    stm32h7xx_hal_hsem.c
+    stm32h7xx_hal_hsem.c
     stm32h7xx_hal_i2c.c
     stm32h7xx_hal_i2c_ex.c
 #    stm32h7xx_hal_i2s.c
@@ -49,9 +49,9 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_hal_ltdc.c
 #    stm32h7xx_hal_ltdc_ex.c
 #    stm32h7xx_hal_mdios.c
-#    stm32h7xx_hal_mdma.c
-#    stm32h7xx_hal_mmc.c
-#    stm32h7xx_hal_mmc_ex.c
+    stm32h7xx_hal_mdma.c
+    stm32h7xx_hal_mmc.c
+    stm32h7xx_hal_mmc_ex.c
 #    stm32h7xx_hal_nand.c
 #    stm32h7xx_hal_nor.c
 #    stm32h7xx_hal_opamp.c
@@ -67,8 +67,8 @@ set(STM32H7_HAL_SRC
 #    stm32h7xx_hal_ramecc.c
     stm32h7xx_hal_rcc.c
     stm32h7xx_hal_rcc_ex.c
-#    stm32h7xx_hal_rng.c
-#    stm32h7xx_hal_rng_ex.c
+    stm32h7xx_hal_rng.c
+    stm32h7xx_hal_rng_ex.c
     stm32h7xx_hal_rtc.c
     stm32h7xx_hal_rtc_ex.c
 #    stm32h7xx_hal_sai.c
@@ -88,58 +88,66 @@ set(STM32H7_HAL_SRC
     stm32h7xx_hal_tim_ex.c
     stm32h7xx_hal_uart.c
     stm32h7xx_hal_uart_ex.c
-#    stm32h7xx_hal_usart.c
-#    stm32h7xx_hal_usart_ex.c
-#    stm32h7xx_hal_wwdg.c
-#    stm32h7xx_ll_adc.c
-#    stm32h7xx_ll_bdma.c
-#    stm32h7xx_ll_comp.c
-#    stm32h7xx_ll_crc.c
+    stm32h7xx_hal_usart.c
+    stm32h7xx_hal_usart_ex.c
+    stm32h7xx_hal_wwdg.c
+    stm32h7xx_ll_adc.c
+    stm32h7xx_ll_bdma.c
+    stm32h7xx_ll_comp.c
+    stm32h7xx_ll_crc.c
     stm32h7xx_ll_crs.c
-#    stm32h7xx_ll_dac.c
-#    stm32h7xx_ll_delayblock.c
+    stm32h7xx_ll_dac.c
+    stm32h7xx_ll_delayblock.c
     stm32h7xx_ll_dma.c
-#    stm32h7xx_ll_dma2d.c
+    stm32h7xx_ll_dma2d.c
     stm32h7xx_ll_exti.c
 #    stm32h7xx_ll_fmc.c
-#    stm32h7xx_ll_gpio.c
+    stm32h7xx_ll_gpio.c
 #    stm32h7xx_ll_hrtim.c
     stm32h7xx_ll_i2c.c
 #    stm32h7xx_ll_lptim.c
 #    stm32h7xx_ll_lpuart.c
-#    stm32h7xx_ll_mdma.c
+    stm32h7xx_ll_mdma.c
 #    stm32h7xx_ll_opamp.c
-#    stm32h7xx_ll_pwr.c
-#    stm32h7xx_ll_rcc.c
-#    stm32h7xx_ll_rng.c
-#    stm32h7xx_ll_rtc.c
+    stm32h7xx_ll_pwr.c
+    stm32h7xx_ll_rcc.c
+    stm32h7xx_ll_rng.c
+    stm32h7xx_ll_rtc.c
     stm32h7xx_ll_sdmmc.c
     stm32h7xx_ll_spi.c
 #    stm32h7xx_ll_swpmi.c
     stm32h7xx_ll_tim.c
-#    stm32h7xx_ll_usart.c
+    stm32h7xx_ll_usart.c
     stm32h7xx_ll_usb.c
-#    stm32h7xx_ll_utils.c
+    stm32h7xx_ll_utils.c
 )
 
-list(TRANSFORM STM32H7_HAL_SRC PREPEND "${STM32H7_HAL_DIR}/Src/")
+list(TRANSFORM STM32H7A3_HAL_SRC PREPEND "${STM32H7A3_HAL_DIR}/Src/")
 
-set(STM32H7_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
+set(STM32H7A3_VCP_DIR "${MAIN_SRC_DIR}/vcp_hal")
 
-set(STM32H7_VCP_SRC
-    usbd_desc.c
-    usbd_conf_stm32h7xx.c
-    usbd_cdc_interface.c
+set(STM32H7A3_VCP_SRC
+    #usbd_desc.c
+    #usbd_conf_stm32h7xx.c
+    #usbd_cdc_interface.c
 )
-list(TRANSFORM STM32H7_VCP_SRC PREPEND "${STM32H7_VCP_DIR}/")
+list(TRANSFORM STM32H7A3_VCP_SRC PREPEND "${STM32H7A3_VCP_DIR}/")
 
-set(STM32H7_INCLUDE_DIRS
-    ${STM32H7_HAL_DIR}/Inc
-    ${STM32H7_CMSIS_DEVICE_DIR}/Include
+set(STM32H7A3_INCLUDE_DIRS
+    ${STM32H7A3_HAL_DIR}/Inc
+    ${STM32H7A3_CMSIS_DEVICE_DIR}/Include
 )
 
-main_sources(STM32H7_SRC
-    target/system_stm32h7xx.c
+main_sources(STM32H7A3_SRC
+    target/system_stm32h7a3.c
+    target/stm32h7a3_impl.c
+    target/stm32h7a3_impl_usbd_cdc_if.c
+    target/stm32h7a3_impl_usb_device.c
+    target/stm32h7a3_impl_usbd_conf.c
+    target/stm32h7a3_impl_usbd_desc.c
+    target/stm32h7a3_impl_inav_cdc.c
+    target/stm32h7a3_impl_it.c
+    target/stm32h7a3_hal_msp.c
 
     config/config_streamer_stm32h7.c
     config/config_streamer_ram.c
@@ -153,7 +161,7 @@ main_sources(STM32H7_SRC
     drivers/bus_quadspi_hal.c
     drivers/memprot.h
     drivers/memprot_hal.c
-    drivers/memprot_stm32h7xx.c
+    drivers/memprot_stm32h7a3.c
     drivers/timer.c
     drivers/timer_impl_hal.c
     drivers/timer_stm32h7xx.c
@@ -164,30 +172,31 @@ main_sources(STM32H7_SRC
     drivers/sdcard/sdmmc_sdio_hal.c
 )
 
-main_sources(STM32H7_MSC_SRC
-    drivers/usb_msc_h7xx.c
+main_sources(STM32H7A3_MSC_SRC
+    # TODO
+    #drivers/usb_msc_h7xx.c
 )
 
-set(STM32H7_DEFINITIONS
+set(STM32H7A3_DEFINITIONS
     ${CORTEX_M7_DEFINITIONS}
     USE_HAL_DRIVER
     USE_FULL_LL_DRIVER
     MAX_MPU_REGIONS=16
 )
 
-function(target_stm32h7xx)
+function(target_stm32h7ax)
     target_stm32(
-        SOURCES ${STM32H7_HAL_SRC} ${STM32H7_SRC}
-        COMPILE_DEFINITIONS ${STM32H7_DEFINITIONS}
+        SOURCES ${STM32H7A3_HAL_SRC} ${STM32H7A3_SRC}
+        COMPILE_DEFINITIONS ${STM32H7A3_DEFINITIONS}
         COMPILE_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_COMPILE_OPTIONS}
-        INCLUDE_DIRECTORIES ${STM32H7_INCLUDE_DIRS}
+        INCLUDE_DIRECTORIES ${STM32H7A3_INCLUDE_DIRS}
         LINK_OPTIONS ${CORTEX_M7_COMMON_OPTIONS} ${CORTEX_M7_LINK_OPTIONS}
 
-        MSC_SOURCES ${STM32H7_USBMSC_SRC} ${STM32H7_MSC_SRC}
-        VCP_SOURCES ${STM32H7_USB_SRC} ${STM32H7_VCP_SRC}
-        VCP_INCLUDE_DIRECTORIES ${STM32H7_USB_INCLUDE_DIRS} ${STM32H7_VCP_DIR}
+        MSC_SOURCES ${STM32H7A3_USBMSC_SRC} ${STM32H7A3_MSC_SRC}
+        VCP_SOURCES ${STM32H7A3_USB_SRC} ${STM32H7A3_VCP_SRC}
+        VCP_INCLUDE_DIRECTORIES ${STM32H7A3_USB_INCLUDE_DIRS} ${STM32H7A3_VCP_DIR}
 
-        OPTIMIZATION -O2
+        OPTIMIZATION -O0 -g
 
         OPENOCD_TARGET stm32h7x
 
@@ -197,7 +206,8 @@ function(target_stm32h7xx)
     )
 endfunction()
 
-macro(define_target_stm32h7 subfamily size)
+macro(define_target_stm32h7a subfamily size)
+    message(STATUS "Adding target for STM32H7${subfamily}x${size}")
     function(target_stm32h7${subfamily}x${size} name)
         set(func_ARGV ARGV)
         string(TOUPPER ${size} upper_size)
@@ -210,7 +220,7 @@ macro(define_target_stm32h7 subfamily size)
             # use MCU_FLASH_SIZE since we use KiB in our code
             MCU_FLASH_SIZE=${flash_size}
         )
-        target_stm32h7xx(
+        target_stm32h7ax(
             NAME ${name}
             STARTUP startup_stm32h7${subfamily}xx.s
             COMPILE_DEFINITIONS ${definitions}
@@ -221,4 +231,5 @@ macro(define_target_stm32h7 subfamily size)
     endfunction()
 endmacro()
 
-define_target_stm32h7(43 i)
+define_target_stm32h7a(A3 i)
+define_target_stm32h7a(A3 g)
