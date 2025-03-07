@@ -58,28 +58,28 @@ typedef struct osd_sidebar_s {
 
 void osdGridDrawThrottleGauge(displayPort_t *display, unsigned gx, unsigned gy, uint8_t thrPos)
 {
-    uint16_t thrChars[] = {SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK, SYM_BLANK};
+    uint16_t thrChars[] = {SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY};
 
     if (thrPos >= 100)
-        thrChars[4] = SYM_VARIO_UP_2A;
+        thrChars[0] = SYM_THR_GAUGE_FULL;
     else if (thrPos >= 90)
-        thrChars[4] = SYM_VARIO_UP_1A;
+        thrChars[0] = SYM_THR_GAUGE_HALF;
     if (thrPos >= 80)
-        thrChars[3] = SYM_VARIO_UP_2A;
+        thrChars[1] = SYM_THR_GAUGE_FULL;
     else if (thrPos >= 70)
-        thrChars[3] = SYM_VARIO_UP_1A;
+        thrChars[1] = SYM_THR_GAUGE_HALF;
     if (thrPos >= 60)
-        thrChars[2] = SYM_VARIO_UP_2A;
+        thrChars[2] = SYM_THR_GAUGE_FULL;
     else if (thrPos >= 50)
-        thrChars[2] = SYM_VARIO_UP_1A;
+        thrChars[2] = SYM_THR_GAUGE_HALF;
     if (thrPos >= 40)
-        thrChars[1] = SYM_VARIO_UP_2A;
+        thrChars[3] = SYM_THR_GAUGE_FULL;
     else if (thrPos >= 30)
-        thrChars[1] = SYM_VARIO_UP_1A;
+        thrChars[3] = SYM_THR_GAUGE_HALF;
     if (thrPos >= 20)
-        thrChars[0] = SYM_VARIO_UP_2A;
+        thrChars[4] = SYM_THR_GAUGE_FULL;
     else if (thrPos >= 10)
-        thrChars[0] = SYM_VARIO_UP_1A;
+        thrChars[4] = SYM_THR_GAUGE_HALF;
 
     displayWriteChar(display, gx, gy, thrChars[0]);
     displayWriteChar(display, gx, gy + 1, thrChars[1]);
