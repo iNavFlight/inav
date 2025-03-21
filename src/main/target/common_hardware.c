@@ -147,7 +147,7 @@
 
 #if defined(USE_BARO_MS5607)
     #if defined(MS5607_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_MS5607,      DEVHW_MS5607,       MS5607_SPI_BUS,     MS5607_CS_PIN,      NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0);
+    BUSDEV_REGISTER_SPI(busdev_ms5607,      DEVHW_MS5607,       MS5607_SPI_BUS,     MS5607_CS_PIN,      NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0);
     #elif defined(MS5607_I2C_BUS) || defined(BARO_I2C_BUS)
     #if !defined(MS5607_I2C_BUS)
         #define MS5607_I2C_BUS BARO_I2C_BUS
