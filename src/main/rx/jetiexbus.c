@@ -143,7 +143,6 @@ void jetiExBusFrameReset(void)
 {
     jetiExBusFramePosition = 0;
     jetiExBusFrameLength = EXBUS_MAX_CHANNEL_FRAME_SIZE;
-
 }
 
 /*
@@ -215,14 +214,18 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
 
     // Check the header for the message length
     if (jetiExBusFramePosition == EXBUS_HEADER_LEN) {
+        DEBUG_SET(DEBUG_EXBUS, 4, 0);
+        DEBUG_SET(DEBUG_EXBUS, 5, 0);
 
         if ((jetiExBusFrameState == EXBUS_STATE_IN_PROGRESS) && (jetiExBusFrame[EXBUS_HEADER_MSG_LEN] <= EXBUS_MAX_CHANNEL_FRAME_SIZE)) {
             jetiExBusFrameLength = jetiExBusFrame[EXBUS_HEADER_MSG_LEN];
+            DEBUG_SET(DEBUG_EXBUS, 4, 1);
             return;
         }
 
         if ((jetiExBusRequestState == EXBUS_STATE_IN_PROGRESS) && (jetiExBusFrame[EXBUS_HEADER_MSG_LEN] <= EXBUS_MAX_REQUEST_FRAME_SIZE)) {
             jetiExBusFrameLength = jetiExBusFrame[EXBUS_HEADER_MSG_LEN];
+            DEBUG_SET(DEBUG_EXBUS, 5, 1);
             return;
         }
 
@@ -235,9 +238,12 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
 
     // Done?
     if (jetiExBusFrameLength == jetiExBusFramePosition) {
-        if (jetiExBusFrameState == EXBUS_STATE_IN_PROGRESS)
+        if (jetiExBusFrameState == EXBUS_STATE_IN_PROGRESS) {
             jetiExBusFrameState = EXBUS_STATE_RECEIVED;
+            jetiExBusRequestState = EXBUS_STATE_ZERO;
+        }
         if (jetiExBusRequestState == EXBUS_STATE_IN_PROGRESS) {
+            jetiExBusFrameState = EXBUS_STATE_ZERO;
             jetiExBusRequestState = EXBUS_STATE_RECEIVED;
             jetiTimeStampRequest = now;
             DEBUG_SET(DEBUG_EXBUS, 7, now);
