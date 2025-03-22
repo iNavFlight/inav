@@ -39,6 +39,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -48,6 +49,7 @@
 #include "build/debug.h"
 
 #include "common/utils.h"
+#include "common/maths.h"
 
 #include "drivers/time.h"
 
@@ -117,16 +119,19 @@ void jetiExBusDecodeChannelFrame(uint8_t *exBusFrame)
 {
     uint16_t value;
     uint8_t frameAddr;
+    uint8_t channelDataLen = exBusFrame[EXBUS_HEADER_LEN - 1];
+    uint8_t receivedChannelCount = MIN((channelDataLen) / 2, JETIEXBUS_CHANNEL_COUNT);
 
     // Decode header
     switch (((uint16_t)exBusFrame[EXBUS_HEADER_SYNC] << 8) | ((uint16_t)exBusFrame[EXBUS_HEADER_REQ])) {
 
     case EXBUS_CHANNELDATA_DATA_REQUEST:                   // not yet specified
     case EXBUS_CHANNELDATA:
-        for (uint8_t i = 0; i < JETIEXBUS_CHANNEL_COUNT; i++) {
-            frameAddr = EXBUS_HEADER_LEN + i * 2;
+        DEBUG_SET(DEBUG_EXBUS, 0, receivedChannelCount);
+        for (uint8_t i = 0; i < receivedChannelCount; i++) {
+            frameAddr = EXBUS_HEADER_LEN + (i * 2);
             value = ((uint16_t)exBusFrame[frameAddr + 1]) << 8;
-            value += (uint16_t)exBusFrame[frameAddr];
+            value |= (uint16_t)exBusFrame[frameAddr];
             // Convert to internal format
             jetiExBusChannelData[i] = value >> 3;
         }
@@ -138,6 +143,7 @@ void jetiExBusFrameReset(void)
 {
     jetiExBusFramePosition = 0;
     jetiExBusFrameLength = EXBUS_MAX_CHANNEL_FRAME_SIZE;
+
 }
 
 /*
@@ -154,6 +160,9 @@ void jetiExBusFrameReset(void)
 // Receive ISR callback
 static void jetiExBusDataReceive(uint16_t c, void *data)
 {
+    static uint32_t resetTimeCount = 0;
+    static uint32_t resetOverrunCount = 0;
+    static uint32_t resetInvalidCount = 0;
     UNUSED(data);
 
     static timeUs_t jetiExBusTimeLast = 0;
@@ -164,6 +173,7 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
     // Check if we shall reset frame position due to time
     if (cmpTimeUs(now, jetiExBusTimeLast) > JETIEXBUS_MIN_FRAME_GAP) {
         jetiExBusFrameReset();
+        DEBUG_SET(DEBUG_EXBUS, 1, resetTimeCount++);
         jetiExBusFrameState = EXBUS_STATE_ZERO;
         jetiExBusRequestState = EXBUS_STATE_ZERO;
     }
@@ -192,6 +202,7 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
     if (jetiExBusFramePosition == jetiExBusFrameMaxSize) {
         // frame overrun
         jetiExBusFrameReset();
+        DEBUG_SET(DEBUG_EXBUS, 2, resetOverrunCount++);
         jetiExBusFrameState = EXBUS_STATE_ZERO;
         jetiExBusRequestState = EXBUS_STATE_ZERO;
 
@@ -216,6 +227,7 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
         }
 
         jetiExBusFrameReset();                  // not a valid frame
+        DEBUG_SET(DEBUG_EXBUS, 3, resetInvalidCount++);
         jetiExBusFrameState = EXBUS_STATE_ZERO;
         jetiExBusRequestState = EXBUS_STATE_ZERO;
         return;
@@ -228,6 +240,7 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
         if (jetiExBusRequestState == EXBUS_STATE_IN_PROGRESS) {
             jetiExBusRequestState = EXBUS_STATE_RECEIVED;
             jetiTimeStampRequest = now;
+            DEBUG_SET(DEBUG_EXBUS, 7, now);
         }
 
         jetiExBusFrameReset();
@@ -267,6 +280,8 @@ bool jetiExBusInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfi
     rxRuntimeConfig->channelCount = JETIEXBUS_CHANNEL_COUNT;
     rxRuntimeConfig->rcReadRawFn = jetiExBusReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = jetiExBusFrameStatus;
+
+    memset(jetiExBusChannelData, 0, sizeof(uint16_t) * JETIEXBUS_CHANNEL_COUNT);
 
     jetiExBusFrameReset();
 
