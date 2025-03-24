@@ -2,18 +2,18 @@ include(gcc)
 set(arm_none_eabi_triplet "arm-none-eabi")
 
 # Keep version in sync with the distribution files below
-set(arm_none_eabi_gcc_version "13.2.1")
+set(arm_none_eabi_gcc_version "13.3.1")
 # This is the output directory "pretty" name and URI name prefix
-set(base_dir_name "arm-gnu-toolchain-13.2.rel1")
+set(base_dir_name "arm-gnu-toolchain-13.3.rel1")
 # This is the name inside the archive, which is no longer evincible from URI, alas
-set(archive_base_dir_name "arm-gnu-toolchain-13.2.Rel1")
-set(arm_none_eabi_base_url "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/${base_dir_name}")
+set(archive_base_dir_name "arm-gnu-toolchain-13.3.rel1")
+set(arm_none_eabi_base_url "https://developer.arm.com/-/media/Files/downloads/gnu/13.3.rel1/binrel/${base_dir_name}")
 # suffix and checksum
-set(arm_none_eabi_win32 "mingw-w64-i686-arm-none-eabi.zip" 7fd677088038cdf82f33f149e2e943ee)
-set(arm_none_eabi_linux_amd64 "x86_64-arm-none-eabi.tar.xz" 791754852f8c18ea04da7139f153a5b7)
-set(arm_none_eabi_linux_aarch64 "aarch64-arm-none-eabi.tar.xz" 5a08122e6d4caf97c6ccd1d29e62599c)
-set(arm_none_eabi_darwin_amd64 "darwin-x86_64-arm-none-eabi.tar.xz" 41d49840b0fc676d2ae35aab21a58693)
-set(arm_none_eabi_darwin_aarch64 "darwin-arm64-arm-none-eabi.tar.xz" 2c43e9d72206c1f81227b0a685df5ea6)
+set(arm_none_eabi_win32 "mingw-w64-i686-arm-none-eabi.zip" 39d9882ca0eb475e81170ae826c1435d)
+set(arm_none_eabi_linux_amd64 "x86_64-arm-none-eabi.tar.xz" 0601a9588bc5b9c99ad2b56133b7f118)
+set(arm_none_eabi_linux_aarch64 "aarch64-arm-none-eabi.tar.xz" 303102d97b877ebbeb36b3158994b218)
+set(arm_none_eabi_darwin_amd64 "darwin-x86_64-arm-none-eabi.tar.xz" 4bb141e44b831635fde4e8139d470f1f)
+set(arm_none_eabi_darwin_aarch64 "darwin-arm64-arm-none-eabi.tar.xz" f1c18320bb3121fa89dca11399273f4e)
 
 function(host_uname_machine var)
     # We need to call uname -m manually, since at the point
