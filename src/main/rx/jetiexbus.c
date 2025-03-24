@@ -87,6 +87,8 @@ serialPort_t *jetiExBusPort;
 
 uint32_t jetiTimeStampRequest = 0;
 
+bool jetiExBusCanTx = false;
+
 static uint8_t jetiExBusFramePosition;
 static uint8_t jetiExBusFrameLength;
 
@@ -195,6 +197,14 @@ static void jetiExBusDataReceive(uint16_t c, void *data)
 
         default:
             return;
+        }
+    }
+
+    if(jetiExBusFramePosition == 1) {
+        if(c == 0x01) {
+            jetiExBusCanTx = true;
+        } else {
+            jetiExBusCanTx = false;
         }
     }
 
