@@ -85,15 +85,15 @@
 
 serialPort_t *jetiExBusPort;
 
-uint32_t jetiTimeStampRequest = 0;
+volatile uint32_t jetiTimeStampRequest = 0;
 
-bool jetiExBusCanTx = false;
+volatile bool jetiExBusCanTx = false;
 
 static uint8_t jetiExBusFramePosition;
 static uint8_t jetiExBusFrameLength;
 
-static uint8_t jetiExBusFrameState = EXBUS_STATE_ZERO;
-uint8_t jetiExBusRequestState = EXBUS_STATE_ZERO;
+static volatile uint8_t jetiExBusFrameState = EXBUS_STATE_ZERO;
+volatile uint8_t jetiExBusRequestState = EXBUS_STATE_ZERO;
 
 // Use max values for ram areas
 static uint8_t jetiExBusChannelFrame[EXBUS_MAX_CHANNEL_FRAME_SIZE];
@@ -158,7 +158,7 @@ void jetiExBusFrameReset(void)
 */
 
 // Receive ISR callback
-static void jetiExBusDataReceive(uint16_t c, void *data)
+FAST_CODE NOINLINE static void jetiExBusDataReceive(uint16_t c, void *data)
 {
     UNUSED(data);
 
