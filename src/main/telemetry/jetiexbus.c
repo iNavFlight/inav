@@ -546,7 +546,7 @@ void checkJetiExBusTelemetryState(void)
     return;
 }
 
-FAST_CODE NOINLINE void handleJetiExBusTelemetry(void)
+void NOINLINE handleJetiExBusTelemetry(void)
 {
     static uint16_t framesLost = 0; // only for debug
     static uint8_t item = 0;
