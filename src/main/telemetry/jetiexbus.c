@@ -309,10 +309,6 @@ void initJetiExBusTelemetry(void)
         bitArraySet(&exSensorEnabled, EX_DEBUG7);
     }
 
-    //for(int i = 16; i < 32; ++i) {
-    //    bitArrayClr(&exSensorEnabled, i);
-    //}
-
     firstActiveSensor = getNextActiveSensor(0);     // find the first active sensor
 }
 
