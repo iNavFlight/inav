@@ -146,14 +146,14 @@ const exBusSensor_t jetiExSensors[] = {
     {"G-Force Z",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"RPM",             "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
     {"Trip Distance",   "m",        EX_TYPE_22b,   DECIMAL_MASK(1)},
-    {"Channel Count",   "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Timeouts",        "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Overruns",        "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Invalid frames",  "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Frame done",      "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Request done",    "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Tel frame lost",  "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Request Timeout", "",         EX_TYPE_22b,   DECIMAL_MASK(0)}
+    {"DEBUG0",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG1",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG2",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG3",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG4",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG5",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG6",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG7",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)}
 };
 
 // after every 15 sensors increment the step by 2 (e.g. ...EX_VAL15, EX_VAL16 = 17) to skip the device description
@@ -298,14 +298,16 @@ void initJetiExBusTelemetry(void)
     }
 #endif
 
-    bitArraySet(&exSensorEnabled, EX_DEBUG0);
-    bitArraySet(&exSensorEnabled, EX_DEBUG1);
-    bitArraySet(&exSensorEnabled, EX_DEBUG2);
-    bitArraySet(&exSensorEnabled, EX_DEBUG3);
-    bitArraySet(&exSensorEnabled, EX_DEBUG4);
-    bitArraySet(&exSensorEnabled, EX_DEBUG5);
-    bitArraySet(&exSensorEnabled, EX_DEBUG6);
-    bitArraySet(&exSensorEnabled, EX_DEBUG7);
+    if (debugMode != DEBUG_NONE) {
+        bitArraySet(&exSensorEnabled, EX_DEBUG0);
+        bitArraySet(&exSensorEnabled, EX_DEBUG1);
+        bitArraySet(&exSensorEnabled, EX_DEBUG2);
+        bitArraySet(&exSensorEnabled, EX_DEBUG3);
+        bitArraySet(&exSensorEnabled, EX_DEBUG4);
+        bitArraySet(&exSensorEnabled, EX_DEBUG5);
+        bitArraySet(&exSensorEnabled, EX_DEBUG6);
+        bitArraySet(&exSensorEnabled, EX_DEBUG7);
+    }
 
     //for(int i = 16; i < 32; ++i) {
     //    bitArrayClr(&exSensorEnabled, i);
@@ -567,7 +569,6 @@ void handleJetiExBusTelemetry(void)
         if (timeDiff > 3000) {   // include reserved time
             jetiExBusRequestState = EXBUS_STATE_ZERO;
             framesLost++;
-            //DEBUG_SET(DEBUG_EXBUS, 6, framesLost);
             return;
         }
 
