@@ -160,9 +160,6 @@ void jetiExBusFrameReset(void)
 // Receive ISR callback
 static void jetiExBusDataReceive(uint16_t c, void *data)
 {
-    static uint32_t resetTimeCount = 0;
-    static uint32_t resetOverrunCount = 0;
-    static uint32_t resetInvalidCount = 0;
     UNUSED(data);
 
     static timeUs_t jetiExBusTimeLast = 0;
