@@ -200,7 +200,6 @@ union{
 #define JETI_EX_SENSOR_COUNT (ARRAYLEN(jetiExSensors))
 
 static uint8_t jetiExBusTelemetryFrame[JETI_EXBUS_TELEMETRY_FRAME_LEN];
-static uint8_t jetiExBusTransceiveState = EXBUS_TRANS_RX;
 static uint8_t firstActiveSensor = 0;
 static uint32_t exSensorEnabled = 0;
 
@@ -574,7 +573,6 @@ void handleJetiExBusTelemetry(void)
 
         if ((jetiExBusRequestFrame[EXBUS_HEADER_DATA_ID] == EXBUS_EX_REQUEST) && (jetiExBusCalcCRC16(jetiExBusRequestFrame, jetiExBusRequestFrame[EXBUS_HEADER_MSG_LEN]) == 0)) {
             if (serialRxBytesWaiting(jetiExBusPort) == 0) {
-                jetiExBusTransceiveState = EXBUS_TRANS_TX;
                 item = sendJetiExBusTelemetry(jetiExBusRequestFrame[EXBUS_HEADER_PACKET_ID], item);
                 jetiExBusRequestState = EXBUS_STATE_PROCESSED;
                 return;
@@ -585,13 +583,7 @@ void handleJetiExBusTelemetry(void)
         }
     }
 
-    // check the state if transmit is ready
-    if (jetiExBusTransceiveState == EXBUS_TRANS_IS_TX_COMPLETED) {
-        if (isSerialTransmitBufferEmpty(jetiExBusPort)) {
-            jetiExBusTransceiveState = EXBUS_TRANS_RX;
-            jetiExBusRequestState = EXBUS_STATE_ZERO;
-        }
-    }
+    jetiExBusRequestState = EXBUS_STATE_ZERO;
 }
 
 uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
@@ -638,7 +630,7 @@ uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
     }
 
     serialWriteBuf(jetiExBusPort, jetiExBusTelemetryFrame, jetiExBusTelemetryFrame[EXBUS_HEADER_MSG_LEN]);
-    jetiExBusTransceiveState = EXBUS_TRANS_IS_TX_COMPLETED;
+    jetiExBusCanTx = false;
 
     return item;
 }
