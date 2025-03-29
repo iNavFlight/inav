@@ -87,6 +87,7 @@
 
 #include "io/adsb.h"
 #include "io/asyncfatfs/asyncfatfs.h"
+#include "io/displayport_msp_osd.h"
 #include "io/flashfs.h"
 #include "io/gps.h"
 #include "io/gps_ublox.h"
@@ -1186,6 +1187,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         serializeSDCardSummaryReply(dst);
         break;
 
+#ifdef USE_MSP_DISPLAYPORT
+	case MSP_OSD_CANVAS:
+		{
+			displayPort_t *dp = osdGetDisplayPort();
+			if(dp != NULL) {
+				sbufWriteU8(dst, dp->cols);
+				sbufWriteU8(dst, dp->rows);
+			}
+		}
+		break;
+#endif
+
 #if defined (USE_DJI_HD_OSD) || defined (USE_MSP_DISPLAYPORT)
     case MSP_BATTERY_STATE:
         // Battery characteristics
@@ -2098,6 +2111,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+
+#ifdef USE_MSP_DISPLAYPORT
+	case MSP_SET_OSD_CANVAS:
+		{
+            if (osdConfig()->video_system == VIDEO_SYSTEM_AUTOHD) {
+                displayPort_t *dp = osdGetDisplayPort();
+                if (dp != NULL) {
+                    dp->cols = constrain(sbufReadU8(src), 30, MSP_DISPLAYPORT_MAX_COLS);
+                    dp->rows = constrain(sbufReadU8(src), 16, MSP_DISPLAYPORT_MAX_ROWS);
+                } else {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+        }
+		break;
+#endif
 
     case MSP2_INAV_SET_MISC:
         if (dataSize == 41) {

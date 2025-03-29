@@ -80,28 +80,8 @@ static bool vtxSeen, vtxActive, vtxReset;
 static timeMs_t vtxHeartbeat;
 static timeMs_t sendSubFrameMs = 0;
 
-// PAL screen size
-#define PAL_COLS 30
-#define PAL_ROWS 16
-// NTSC screen size
-#define NTSC_COLS 30
-#define NTSC_ROWS 13
-// HDZERO screen size
-#define HDZERO_COLS 50
-#define HDZERO_ROWS 18
-// Avatar screen size
-#define AVATAR_COLS 53
-#define AVATAR_ROWS 20
-// DJIWTF screen size
-#define DJI_COLS 60
-#define DJI_ROWS 22
-
-// set COLS and ROWS to largest size available
-#define COLS DJI_COLS
-#define ROWS DJI_ROWS
-
 // set screen size
-#define SCREENSIZE (ROWS*COLS)
+#define SCREENSIZE (MSP_DISPLAYPORT_MAX_ROWS * MSP_DISPLAYPORT_MAX_COLS)
 
 static uint8_t currentOsdMode;               // HDZero screen mode can change across layouts
 
@@ -218,7 +198,7 @@ static bool readChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
 {
     UNUSED(displayPort);
 
-    uint16_t pos = (row * COLS) + col;
+    uint16_t pos = (row * MSP_DISPLAYPORT_MAX_COLS) + col;
     if (pos >= SCREENSIZE) {
         return false;
     }
@@ -254,14 +234,14 @@ static int writeChar(displayPort_t *displayPort, uint8_t col, uint8_t row, uint1
 {
     UNUSED(displayPort);
 
-    return setChar((row * COLS) + col, c, attr);
+    return setChar((row * MSP_DISPLAYPORT_MAX_COLS) + col, c, attr);
 }
 
 static int writeString(displayPort_t *displayPort, uint8_t col, uint8_t row, const char *string, textAttributes_t attr)
 {
     UNUSED(displayPort);
 
-    uint16_t pos = (row * COLS) + col;
+    uint16_t pos = (row * MSP_DISPLAYPORT_MAX_COLS) + col;
     while (*string) {
         setChar(pos++, *string++, attr);
     }
@@ -295,7 +275,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         sendSubFrameMs = (osdConfig()->msp_displayport_fullframe_interval > 0) ? (millis() + DS2MS(osdConfig()->msp_displayport_fullframe_interval)) : 0;
     }
 
-    uint8_t subcmd[COLS + 4];
+    uint8_t subcmd[MSP_DISPLAYPORT_MAX_COLS + 4];
     uint8_t updateCount = 0;
     subcmd[0] = MSP_DP_WRITE_STRING;
 
@@ -303,10 +283,10 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
     while (next >= 0) {
         // Look for sequential dirty characters on the same line for the same font page
         int pos = next;
-        uint8_t row = pos / COLS;
-        uint8_t col = pos % COLS;
+        uint8_t row = pos / MSP_DISPLAYPORT_MAX_COLS;
+        uint8_t col = pos % MSP_DISPLAYPORT_MAX_COLS;
         uint8_t attributes = 0;
-        int endOfLine = row * COLS + screenCols;
+        int endOfLine = row * MSP_DISPLAYPORT_MAX_COLS + screenCols;
         uint8_t page = getAttrPage(attrs[pos]);
         uint8_t blink = getAttrBlink(attrs[pos]);
 
@@ -487,6 +467,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             screenRows = HDZERO_ROWS;
             screenCols = HDZERO_COLS;
             break;
+        case VIDEO_SYSTEM_AUTOHD:
         case VIDEO_SYSTEM_DJIWTF:
             currentOsdMode = HD_6022;
             screenRows = DJI_ROWS;

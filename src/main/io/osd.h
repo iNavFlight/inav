@@ -498,7 +498,11 @@ typedef struct osdConfig_s {
     uint8_t  radar_peers_display_time;                  // in seconds
 #ifdef USE_GEOZONE
     uint8_t geozoneDistanceWarning;                     // Distance to fence or action
-    bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
+    bool geozoneDistanceType;                           // Shows a countdown timer or distance to fence/action
+#endif
+#ifdef USE_MSP_DISPLAYPORT
+    uint8_t osd_autohd_cols;
+    uint8_t osd_autohd_rows;
 #endif
 } osdConfig_t;
 
