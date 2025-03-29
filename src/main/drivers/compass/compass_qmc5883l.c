@@ -53,6 +53,7 @@
 // Registers
 #define QMC5883L_REG_CONF1 0x09
 #define QMC5883L_REG_CONF2 0x0A
+#define QMC5883L_REG_SET_RESET 0x0B
 
 // data output rates for 5883L
 #define QMC5883L_ODR_10HZ (0x00 << 2)
@@ -76,47 +77,42 @@
 
 #define QMC5883L_REG_DATA_OUTPUT_X 0x00
 #define QMC5883L_REG_STATUS 0x06
+#define QMC5883L_REG_STATUS_DATA_READY 0x01
 
 #define QMC5883L_REG_ID 0x0D
 #define QMC5883_ID_VAL 0xFF
+
+#define BUFFER_LENGTH 6
 
 static bool qmc5883Init(magDev_t * mag)
 {
     bool ack = true;
 
     ack = ack && busWrite(mag->busDev, 0x0B, 0x01);
-    // ack = ack && i2cWrite(busWrite(mag->busDev, 0x20, 0x40);
-    // ack = ack && i2cWrite(busWrite(mag->busDev, 0x21, 0x01);
-    ack = ack && busWrite(mag->busDev, QMC5883L_REG_CONF1, QMC5883L_MODE_CONTINUOUS | QMC5883L_ODR_200HZ | QMC5883L_OSR_512 | QMC5883L_RNG_8G);
 
-    return ack;
+    return ack && busWrite(mag->busDev, QMC5883L_REG_CONF1,
+                           QMC5883L_MODE_CONTINUOUS | QMC5883L_ODR_200HZ | QMC5883L_OSR_512 | QMC5883L_RNG_8G);
 }
 
 static bool qmc5883Read(magDev_t * mag)
 {
-    uint8_t status;
-    uint8_t buf[6];
+    uint8_t status_flags;
+    uint8_t buf[BUFFER_LENGTH];
 
-    // set magData to zero for case of failed read
-    mag->magADCRaw[X] = 0;
-    mag->magADCRaw[Y] = 0;
-    mag->magADCRaw[Z] = 0;
+    bool ack = busRead(mag->busDev, QMC5883L_REG_STATUS, &status_flags);
+    if (ack && (status_flags & QMC5883L_REG_STATUS_DATA_READY)) {
 
-    bool ack = busRead(mag->busDev, QMC5883L_REG_STATUS, &status);
-    if (!ack || (status & 0x04) == 0) {
-        return false;
+    ack = busReadBuf(mag->busDev, QMC5883L_REG_DATA_OUTPUT_X, buf, BUFFER_LENGTH);
+
+    if (ack) {
+            mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]);
+            mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]);
+            mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]);
+            return true;
+        }
     }
 
-    ack = busReadBuf(mag->busDev, QMC5883L_REG_DATA_OUTPUT_X, buf, 6);
-    if (!ack) {
-        return false;
-    }
-
-    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]);
-    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]);
-    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]);
-
-    return true;
+    return false;
 }
 
 #define DETECTION_MAX_RETRY_COUNT   5
