@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#ifdef USE_DASHBOARD
+#if defined(USE_DASHBOARD) && defined(USE_I2C)
 
 #include "build/version.h"
 #include "build/build_config.h"
