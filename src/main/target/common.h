@@ -21,7 +21,8 @@
 #define USE_ITCM_RAM
 #endif
 
-#ifdef USE_ITCM_RAM
+// TODO: revist for H7A3 once peripherals are working
+#if defined(USE_ITCM_RAM) && !defined(STM32H7A3xx)
 #define FAST_CODE                   __attribute__((section(".tcm_code")))
 #define NOINLINE                    __attribute__((noinline))
 #else
