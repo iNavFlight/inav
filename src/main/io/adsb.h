@@ -27,8 +27,8 @@
 typedef struct {
     bool valid;
     int32_t dir;   // centidegrees direction to plane, pivot is inav FC
-    uint32_t dist;  // CM distance to plane, pivot is inav FC
-    int32_t verticalDistance; // CM, vertical distance to plane, pivot is inav FC
+    uint32_t dist;              // horisontal distance to plane, cm, pivot is inav FC
+    int32_t verticalDistance;   // vertical distance to plane, cm, pivot is inav FC
 } adsbVehicleCalculatedValues_t;
 
 typedef struct {
@@ -50,8 +50,6 @@ typedef struct {
     uint8_t ttl;
 } adsbVehicle_t;
 
-
-
 typedef struct {
    uint32_t vehiclesMessagesTotal;
    uint32_t heartbeatMessagesTotal;
@@ -60,6 +58,7 @@ typedef struct {
 void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal);
 bool adsbHeartbeat(void);
 adsbVehicle_t * findVehicleClosest(void);
+adsbVehicle_t *findVehicleClosestLimit(int32_t maxVerticalDistance);
 adsbVehicle_t * findVehicle(uint8_t index);
 uint8_t getActiveVehiclesCount(void);
 void adsbTtlClean(timeUs_t currentTimeUs);
