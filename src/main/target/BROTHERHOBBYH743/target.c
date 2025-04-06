@@ -15,21 +15,21 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- #include <stdint.h>
+#include <stdint.h>
 
- #include "platform.h"
+#include "platform.h"
 
- #include "drivers/bus.h"
- #include "drivers/io.h"
- #include "drivers/pwm_mapping.h"
- #include "drivers/timer.h"
- #include "drivers/pinio.h"
- #include "drivers/sensor.h"
+#include "drivers/bus.h"
+#include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
+#include "drivers/timer.h"
+#include "drivers/pinio.h"
+#include "drivers/sensor.h"
 
- BUSDEV_REGISTER_SPI_TAG(busdev_icm42605,   DEVHW_ICM42605,  ICM42605_SPI_BUS,   ICM42605_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
- BUSDEV_REGISTER_SPI_TAG(busdev_icm42605_2,   DEVHW_ICM42605,  ICM42605_SPI_BUS_2,   ICM42605_CS_PIN_2,   NONE,   0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN_2);
+BUSDEV_REGISTER_SPI_TAG(busdev_icm42605,   DEVHW_ICM42605,  ICM42605_SPI_BUS,   ICM42605_CS_PIN,   NONE,   0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_icm42605_2,   DEVHW_ICM42605,  ICM42605_SPI_BUS_2,   ICM42605_CS_PIN_2,   NONE,   0,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN_2);
 
- timerHardware_t timerHardware[] = {
+timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_OUTPUT_AUTO, 0, 0),   // S1
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO, 0, 1),   // S2
 
@@ -48,6 +48,6 @@
 
     DEF_TIM(TIM1, CH1, PA8, TIM_USE_LED, 0, 9),    // LED_2812
     DEF_TIM(TIM2, CH1, PA15, TIM_USE_BEEPER, 0, 0),  // BEEPER PWM
- };
+};
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

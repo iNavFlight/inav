@@ -22,10 +22,10 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
- #pragma once
+#pragma once
 
- #define TARGET_BOARD_IDENTIFIER "BROT"		
- #define USBD_PRODUCT_STRING"BROTHERHOBBYH743"
+#define TARGET_BOARD_IDENTIFIER "BROT"
+#define USBD_PRODUCT_STRING  "BROTHERHOBBYH743"
 
 #define USE_TARGET_CONFIG
 
@@ -65,7 +65,7 @@
 #define ICM42605_SPI_BUS_2      BUS_SPI4
 #define ICM42605_CS_PIN_2       PE11
 
- // *************** SPI2 OSD ***********************
+// *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PB14
@@ -75,7 +75,7 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
 
-   // *************** SPI3 ************************
+// *************** SPI3 ************************
 #define USE_SPI_DEVICE_3
 #define SPI3_SCK_PIN            PB3
 #define SPI3_MISO_PIN           PB4
