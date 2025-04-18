@@ -383,25 +383,20 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         /* Update acceleration weight based on vibration levels and clipping */
         updateIMUEstimationWeight(dt);
 
-        fpVector3_t accelBF;
+        fpVector3_t accelReading;
 
         /* Read acceleration data in body frame */
-        accelBF.x = imuMeasuredAccelBF.x;
-        accelBF.y = imuMeasuredAccelBF.y;
-        accelBF.z = imuMeasuredAccelBF.z;
+        accelReading.x = imuMeasuredAccelBF.x;
+        accelReading.y = imuMeasuredAccelBF.y;
+        accelReading.z = imuMeasuredAccelBF.z;
 
-        /* Correct accelerometer bias */
-        accelBF.x -= posEstimator.imu.accelBias.x;
-        accelBF.y -= posEstimator.imu.accelBias.y;
-        accelBF.z -= posEstimator.imu.accelBias.z;
+        /* Adjust reading from Body to Earth frame - from Forward-Right-Down to North-East-Up*/
+        imuTransformVectorBodyToEarth(&accelReading);
 
-        /* Rotate vector to Earth frame - from Forward-Right-Down to North-East-Up*/
-        imuTransformVectorBodyToEarth(&accelBF);
-
-        /* Read acceleration data in NEU frame from IMU */
-        posEstimator.imu.accelNEU.x = accelBF.x;
-        posEstimator.imu.accelNEU.y = accelBF.y;
-        posEstimator.imu.accelNEU.z = accelBF.z;
+        /* Apply reading to NEU frame including correction for accelerometer bias */
+        posEstimator.imu.accelNEU.x = accelReading.x + posEstimator.imu.accelBias.x;
+        posEstimator.imu.accelNEU.y = accelReading.y + posEstimator.imu.accelBias.y;
+        posEstimator.imu.accelNEU.z = accelReading.z + posEstimator.imu.accelBias.z;
 
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
         if (gyroConfig()->init_gyro_cal_enabled) {
@@ -607,7 +602,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         // Accelerometer bias
         if (!isAirCushionEffectDetected) {
-            ctx->accBiasCorr.z -= (baroAltResidual * sq(w_z_baro_p) + baroVelZResidual * sq(w_z_baro_v));
+            ctx->accBiasCorr.z += (baroAltResidual * sq(w_z_baro_p) + baroVelZResidual * sq(w_z_baro_v));
         }
 
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
@@ -632,10 +627,17 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, MAX(posEstimator.gps.epv, fabsf(gpsAltResidual)), w_z_gps_p);
 
             // Accelerometer bias
-            ctx->accBiasCorr.z -= (gpsAltResidual * sq(w_z_gps_p) + gpsVelZResidual * sq(w_z_gps_v));
+            ctx->accBiasCorr.z += (gpsAltResidual * sq(w_z_gps_p) + gpsVelZResidual * sq(w_z_gps_v));
         }
 
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
+    }
+
+    // Double corrections if only single sensor used
+    if (wGps == 0 || wBaro == 0) {
+        ctx->estPosCorr.z *= 2;
+        ctx->estVelCorr.z *= 2;
+        ctx->accBiasCorr.z *= 2;
     }
 
     return correctOK;
@@ -674,8 +676,8 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             ctx->estVelCorr.y += gpsVelYResidual * w_xy_gps_v * ctx->dt;
 
             // Accelerometer bias
-            ctx->accBiasCorr.x -= (gpsPosXResidual * sq(w_xy_gps_p) + gpsVelXResidual * sq(w_xy_gps_v));
-            ctx->accBiasCorr.y -= (gpsPosYResidual * sq(w_xy_gps_p) + gpsVelYResidual * sq(w_xy_gps_v));
+            ctx->accBiasCorr.x += (gpsPosXResidual * sq(w_xy_gps_p) + gpsVelXResidual * sq(w_xy_gps_v));
+            ctx->accBiasCorr.y += (gpsPosYResidual * sq(w_xy_gps_p) + gpsVelYResidual * sq(w_xy_gps_v));
 
             /* Adjust EPH */
             ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, MAX(posEstimator.gps.eph, gpsPosResidualMag), w_xy_gps_p);
@@ -722,7 +724,7 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         return;
     }
 
-    /* Calculate new EPH and EPV for the case we didn't update postion */
+    /* Calculate new EPH and EPV for the case we didn't update position */
     ctx.newEPH = posEstimator.est.eph * ((posEstimator.est.eph <= max_eph_epv) ? 1.0f + ctx.dt : 1.0f);
     ctx.newEPV = posEstimator.est.epv * ((posEstimator.est.epv <= max_eph_epv) ? 1.0f + ctx.dt : 1.0f);
     ctx.newFlags = calculateCurrentValidityFlags(currentTimeUs);
@@ -770,9 +772,6 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         ctx.accBiasCorr.x = constrainf(ctx.accBiasCorr.x, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
         ctx.accBiasCorr.y = constrainf(ctx.accBiasCorr.y, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
         ctx.accBiasCorr.z = constrainf(ctx.accBiasCorr.z, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
-
-        /* transform error vector from NEU frame to body frame */
-        imuTransformVectorEarthToBody(&ctx.accBiasCorr);
 
         /* Correct accel bias */
         posEstimator.imu.accelBias.x += ctx.accBiasCorr.x * w_acc_bias * ctx.dt;
