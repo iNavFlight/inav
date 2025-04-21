@@ -23,7 +23,6 @@
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
-#include "drivers/pinio.h"
 #include "drivers/sensor.h"
 
 timerHardware_t timerHardware[] = {
@@ -38,4 +37,4 @@ timerHardware_t timerHardware[] = {
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
-  
+
