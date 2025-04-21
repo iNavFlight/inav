@@ -635,9 +635,9 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
     // Double corrections if only single sensor used
     if (wGps == 0 || wBaro == 0) {
-        ctx->estPosCorr.z *= 2;
-        ctx->estVelCorr.z *= 2;
-        ctx->accBiasCorr.z *= 2;
+        ctx->estPosCorr.z *= 2.0f;
+        ctx->estVelCorr.z *= 2.0f;
+        ctx->accBiasCorr.z *= 2.0f;
     }
 
     return correctOK;
@@ -758,9 +758,8 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         ctx.estVelCorr.z = (0.0f - posEstimator.est.vel.z) * positionEstimationConfig()->w_z_res_v * ctx.dt;
     }
     // Boost the corrections based on accWeight
-    const float accWeight = posEstimator.imu.accWeightFactor;
-    vectorScale(&ctx.estPosCorr, &ctx.estPosCorr, 1.0f / accWeight);
-    vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / accWeight);
+    vectorScale(&ctx.estPosCorr, &ctx.estPosCorr, 1.0f / posEstimator.imu.accWeightFactor);
+    vectorScale(&ctx.estVelCorr, &ctx.estVelCorr, 1.0f / posEstimator.imu.accWeightFactor);
 
     // Apply corrections
     vectorAdd(&posEstimator.est.pos, &posEstimator.est.pos, &ctx.estPosCorr);
