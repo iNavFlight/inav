@@ -17,9 +17,9 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "JHEM"
+#define TARGET_BOARD_IDENTIFIER "J435AIO"
 
-#define USBD_PRODUCT_STRING  "JHEMCUF435"
+#define USBD_PRODUCT_STRING  "JHEMCUF435AIO"
 
   
 #define LED0                    PC13
