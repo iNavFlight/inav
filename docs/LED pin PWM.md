@@ -7,11 +7,14 @@ Normally LED pin is used to drive WS2812 led strip. LED pin is held low, and eve
 
 As alternative function, it is possible to generate PWM signal with specified duty ratio on the LED pin.
 
-Feature can be used to drive external devices. It is also used to simulate [OSD joystick](OSD%20Joystick.md) to control cameras.
+Feature can be used to drive external devices such as a VTX power switch. Setting the PWM duty cycle to 100% or 0% can
+provide an extra PINIO pin. It is also used to simulate [OSD joystick](OSD%20Joystick.md) to control cameras.
 
 PWM frequency is fixed to 24kHz with duty ratio between 0 and 100%:
 
 ![alt text](/docs/assets/images/led_pin_pwm.png  "led pin pwm")
+
+Note that the LED feature needs to be enabled when using the PIN in this mode (feature LED_STRIP).
 
 There are four modes of operation:
 - low
@@ -87,4 +90,7 @@ It is possible to drive single color LED with brightness control. Current consum
 To drive power LED with brightness control, Mosfet should be used:
 
 ![alt text](/docs/assets/images/ledpinpwmpowerled.png  "led pin pwm power_led")
+
+# Programming tab example for using the LED pin as a PINIO, such as for turning a VTX or camera on and off
+!(/docs/assets/images/led-as-pinio.png  "led pin as pinio")
 
