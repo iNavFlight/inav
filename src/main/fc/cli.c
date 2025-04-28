@@ -130,6 +130,11 @@ bool cliMode = false;
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
+#ifdef DMESG_SIZE
+extern char dmesg_buffer[DMESG_SIZE];
+extern char *dmesg_head;
+#endif
+
 static serialPort_t *cliPort;
 
 static bufWriter_t *cliWriter;
@@ -4798,6 +4803,16 @@ static void cliUbloxPrintSatelites(char *arg)
 }
 #endif
 
+#ifdef DMESG_SIZE
+static void printDmesg(char *cmdline __attribute__((unused))) {
+    int size = dmesg_head - dmesg_buffer;
+	cliPrintLinef("log size written: %i", size);
+    for (int ii = 0; ii < size; ii++) {
+        cliWrite(dmesg_buffer[ii]);
+    }
+}
+#endif
+
 static void cliHelp(char *cmdline);
 
 // should be sorted a..z for bsearch()
@@ -4829,6 +4844,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
+#ifdef DMESG_SIZE
+    CLI_COMMAND_DEF("dmesg", "init log (DMESG_SIZE)", NULL, printDmesg),
+#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
