@@ -61,6 +61,11 @@ PG_RESET_TEMPLATE(logConfig_t, logConfig,
     .topics = SETTING_LOG_TOPICS_DEFAULT
 );
 
+#if defined(DMESG_SIZE)
+char dmesg_buffer[DMESG_SIZE];
+char *dmesg_head = dmesg_buffer;
+#endif
+
 void logInit(void)
 {
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_LOG);
@@ -135,6 +140,18 @@ static void logPrint(const char *buf, size_t size)
     } else if (mspLogPort) {
         mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspLogPort, MSP_V2_NATIVE);
     }
+
+#ifdef DMESG_SIZE
+    if ( (dmesg_head + size + 2) < (dmesg_buffer + DMESG_SIZE) ) {
+        for (unsigned int ii = 0; ii < size; ii++) {
+		    *dmesg_head = buf[ii];
+			dmesg_head++;
+        }
+		dmesg_head[0] = '\r';
+		dmesg_head[1] = '\n';
+		dmesg_head =  dmesg_head + 2;
+	}
+#endif
 }
 
 static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)
