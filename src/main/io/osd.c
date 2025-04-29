@@ -224,7 +224,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 14);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 15);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 3);
 
 void osdStartedSaveProcess(void) {
@@ -486,12 +486,13 @@ static void osdFormatWindSpeedStr(char *buff, int32_t ws, bool isValid)
 */
 void osdFormatAltitudeSymbol(char *buff, int32_t alt)
 {
-    uint8_t digits = osdConfig()->decimals_altitude;
-    uint8_t totalDigits = digits + 1;
-    uint8_t symbolIndex = digits + 1;
+    uint8_t digits = osdConfig()->decimals_altitude + 1;
+    uint8_t totalDigits = digits;
+    uint8_t symbolIndex = digits;
     uint8_t symbolKFt = SYM_ALT_KFT;
 
     if (alt >= 0) {
+        digits--;
         buff[0] = ' ';
     }
 
@@ -1726,7 +1727,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 tfp_sprintf(buff + 1, "%2d", osdRssi);
             else
                 tfp_sprintf(buff + 1, "%c ", SYM_MAX);
-            
+
             if (osdRssi < osdConfig()->rssi_alarm) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             }
@@ -2393,7 +2394,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #ifdef USE_GEOZONE
             if (FLIGHT_MODE(NAV_SEND_TO))
                 p = "AUTO";
-            else 
+            else
 #endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
@@ -2546,7 +2547,7 @@ static bool osdDrawSingleElement(uint8_t item)
             } else {
                 tfp_sprintf(buff+1, "%3d%c", rxLinkStatistics.downlinkLQ, SYM_AH_DECORATION_DOWN);
             }
-                
+
             if (!failsafeIsReceivingRxData()) {
                 TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
             } else if (rxLinkStatistics.downlinkLQ < osdConfig()->link_quality_alarm) {
@@ -2608,7 +2609,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 buff[i] = ' ';
         buff[4] = '\0';
         break;
-    
+
     case OSD_RX_MODE:
         displayWriteChar(osdDisplayPort, elemPosX++, elemPosY, SYM_RX_MODE);
         strcat(buff, rxLinkStatistics.mode);
@@ -3081,6 +3082,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_VEL_Z_PIDS:
         osdDisplayNavPIDValues(elemPosX, elemPosY, "VZ", PID_VEL_Z, ADJUSTMENT_VEL_Z_P, ADJUSTMENT_VEL_Z_I, ADJUSTMENT_VEL_Z_D);
+        return true;
+
+    case OSD_NAV_FW_ALT_CONTROL_RESPONSE:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "ACR", 0, pidProfile()->fwAltControlResponseFactor, 3, 0, ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE);
         return true;
 
     case OSD_HEADING_P:
@@ -3912,7 +3917,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
                 int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
                 int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - flightDirection + panHomeDirOffset;
-                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);            
+                osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);
             } else {
                 if (isGeozoneActive()) {
                     TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
@@ -3920,8 +3925,8 @@ static bool osdDrawSingleElement(uint8_t item)
                 displayWriteCharWithAttr(osdDisplayPort, elemPosX, elemPosY, '-', elemAttr);
             }
         break;
-        }  
-        
+        }
+
         case OSD_H_DIST_TO_FENCE:
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
@@ -4397,18 +4402,11 @@ uint8_t drawLogos(bool singular, uint8_t row) {
     bool usePilotLogo = (osdConfig()->use_pilot_logo && osdDisplayIsHD());
     bool useINAVLogo = (singular && !usePilotLogo) || !singular;
 
-#ifndef DISABLE_MSP_DJI_COMPAT   // IF DJICOMPAT is in use, the pilot logo cannot be used, due to font issues.
-    if (isDJICompatibleVideoSystem(osdConfig())) {
-        usePilotLogo = false;
-        useINAVLogo = false;
-    }
-#endif
-
     uint8_t logoSpacing = osdConfig()->inav_to_pilot_logo_spacing;
 
     if (logoSpacing > 0 && ((osdDisplayPort->cols % 2) != (logoSpacing % 2))) {
         logoSpacing++; // Add extra 1 character space between logos, if the odd/even of the OSD cols doesn't match the odd/even of the logo spacing
-}
+    }
 
     // Draw Logo(s)
     if (usePilotLogo && !singular) {
@@ -5480,7 +5478,7 @@ static void osdShowSDArmScreen(void)
     displayWrite(osdDisplayPort, (osdDisplayPort->cols - strlen(buf)) / 2, armScreenRow++, buf);
     memset(buf, '\0', sizeof(buf));
 #if defined(USE_GPS)
-#if defined (USE_SAFE_HOME) 
+#if defined (USE_SAFE_HOME)
     if (posControl.safehomeState.distance) {
         safehomeRow = armScreenRow;
         armScreenRow += 2;
@@ -6045,7 +6043,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 case GEOZONE_MESSAGE_STATE_NFZ:
                     messages[messageCount++] = OSD_MSG_NFZ;
                     break;
-                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:      
+                case GEOZONE_MESSAGE_STATE_LEAVING_FZ:
                     osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
                     tfp_sprintf(messageBuf, OSD_MSG_LEAVING_FZ, buf);
                     messages[messageCount++] = messageBuf;
@@ -6053,7 +6051,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                 case GEOZONE_MESSAGE_STATE_OUTSIDE_FZ:
                     messages[messageCount++] = OSD_MSG_OUTSIDE_FZ;
                     break;
-                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:    
+                case GEOZONE_MESSAGE_STATE_ENTERING_NFZ:
                 osdFormatDistanceSymbol(buf, geozone.distanceToZoneBorder3d, 0, 3);
                     if (geozone.zoneInfo == INT32_MAX) {
                         tfp_sprintf(buf1, "%s%c", "INF", SYM_ALT_M);
@@ -6092,7 +6090,7 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     if (!geozone.sticksLocked) {
                         messages[messageCount++] = OSD_MSG_MOVE_STICKS;
                     }
-                    break;         
+                    break;
                 case GEOZONE_MESSAGE_STATE_NONE:
                     break;
             }

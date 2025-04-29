@@ -48,6 +48,7 @@
 #include "flight/pid.h"
 #include "flight/mixer_profile.h"
 #include "drivers/io_port_expander.h"
+#include "drivers/gimbal_common.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
@@ -342,6 +343,16 @@ static int logicConditionCompute(
             break;
         }
 #endif
+
+        case LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY:
+#ifdef USE_SERIAL_GIMBAL
+            setGimbalSensitivity(constrain(operandA, SETTING_GIMBAL_SENSITIVITY_MIN, SETTING_GIMBAL_SENSITIVITY_MAX));
+            return true;
+            break;
+#else
+            return false;
+#endif
+
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
             return true;

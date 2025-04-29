@@ -1,0 +1,104 @@
+name: Build pre-release
+# Don't enable CI on push, just on PR. If you
+# are working on the main repo and want to trigger
+# a CI build submit a draft PR.
+on: 
+  push:
+    branches:
+      - master
+      - maintenance-8.x.x
+    paths:
+      - 'src/**'
+      - '.github/**'
+      - 'cmake/**'
+      - 'lib/**'
+      - 'docs/Settings.md'
+      - 'CMakeLists.txt'
+      - '*.sh'
+
+jobs:
+  build:
+    name: build
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Release
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t\)]/, "", $2); print $2 }')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      - name: Get current date
+        id: date
+        run: echo "today=$(date '+%Y%m%d')" >> $GITHUB_OUTPUT
+      - name: download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: hexes
+          pattern: matrix-inav-*
+          merge-multiple: true
+      - name: download sitl linux
+        uses: actions/download-artifact@v4
+        with:
+          path: resources/sitl/linux
+          pattern: inav-*SITL-Linux
+          merge-multiple: true
+      - name: download sitl linux aarch64
+        uses: actions/download-artifact@v4
+        with:
+          path: resources/sitl/linux/arm64
+          pattern: inav-*SITL-Linux-aarch64
+          merge-multiple: true
+      - name: download sitl windows
+        uses: actions/download-artifact@v4
+        with:
+          path: resources/sitl/windows
+          pattern: inav-*SITL-WIN
+          merge-multiple: true
+      - name: download sitl mac
+        uses: actions/download-artifact@v4
+        with:
+          path: resources/sitl/macos
+          pattern: inav-*SITL-MacOS
+          merge-multiple: true
+      - name: Consolidate sitl files
+        run: |
+          zip -r -9 sitl-resources.zip resources/
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          name: inav-${{ steps.version.outputs.version }}-dev-${{ steps.date.outputs.today }}-${{ github.run_number }}-${{ github.sha }}
+          tag_name: v${{ steps.version.outputs.version }}-${{ steps.date.outputs.today }}.${{ github.run_number }}
+          # To create release on a different repo, we need a token setup
+          token: ${{ secrets.NIGHTLY_TOKEN }}
+          repository: iNavFlight/inav-nightly
+          prerelease: true
+          draft: false
+          #generate_release_notes: true
+          make_latest: false
+          files: |
+            hexes/*.hex
+            sitl-resources.zip
+          body: |
+            ${{ steps.notes.outputs.notes }}
+
+            ### Flashing
+            These are nightly builds and configuration settings can be added and removed often. Flashing with Full chip erase is strongly recommended to avoid issues.
+            Firmware related issues should be opened in the iNavflight/inav repository, not in inav-nightly.
+
+            ### Repository:
+            ${{ github.repository }} ([link](${{ github.event.repository.html_url }}))
+
+            ### Branch:
+            ${{ github.ref_name }} ([link](${{ github.event.repository.html_url }}/tree/${{ github.ref_name }}))
+
+            ### Latest changeset:
+            ${{ github.event.head_commit.id }} ([link](${{ github.event.head_commit.url }}))
+
+            ### Changes:
+            ${{ github.event.head_commit.message }}
+

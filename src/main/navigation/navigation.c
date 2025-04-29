@@ -3543,6 +3543,7 @@ void updateLandingStatus(timeMs_t currentTimeMs)
             landingDetectorIsActive = false;
         }
         resetLandingDetector();
+        getTakeoffAltitude();
 
         return;
     }
@@ -4960,8 +4961,8 @@ void navigationUsePIDs(void)
 
     navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 100.0f,
-                                        0.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 300.0f,
+                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 100.0f,
                                         NAV_DTERM_CUT_HZ,
                                         0.0f
     );
@@ -5276,6 +5277,16 @@ int8_t navCheckActiveAngleHoldAxis(void)
 uint8_t getActiveWpNumber(void)
 {
     return NAV_Status.activeWpNumber;
+}
+
+float getTakeoffAltitude(void)
+{
+    static float refTakeoffAltitude = 0.0f;
+    if (!ARMING_FLAG(ARMED) && !landingDetectorIsActive) {
+        refTakeoffAltitude = posControl.actualState.abs.pos.z;
+    }
+
+    return refTakeoffAltitude;
 }
 
 #ifdef USE_FW_AUTOLAND
