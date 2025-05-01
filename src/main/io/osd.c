@@ -1958,6 +1958,18 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+    case OSD_FLIGHT_DIR:
+        {
+            int16_t vx = getEstimatedActualVelocity(X);  // in cm/s
+            int16_t vy = getEstimatedActualVelocity(Y);  // in cm/s
+            int16_t vz = getEstimatedActualVelocity(Z);  // in cm/s
+            float direction_deg = RADIANS_TO_DEGREES(atan2f((float)vy, (float)vx));
+            int16_t altitude_relative = (vz / 100);  // in m
+            //osdHudDrawPoi(0, (int16_t)direction_deg, altitude_relative, 0, SYM_ALERT, 0, 0);
+            osdHudDrawDirection((int16_t)direction_deg, altitude_relative, SYM_ALERT);
+            return true;
+        }
+        
     case OSD_HOME_HEADING_ERROR:
         {
             buff[0] = SYM_HOME;
@@ -2754,7 +2766,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
             ) && isImuHeadingValid()) {
 
-            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0 || osdConfig()->hud_flight_direction) {
                     osdHudClear();
             }
 
@@ -2762,6 +2774,23 @@ static bool osdDrawSingleElement(uint8_t item)
 
             if (osdConfig()->hud_homepoint) { // Display the home point (H)
                 osdHudDrawPoi(GPS_distanceToHome, GPS_directionToHome, -osdGetAltitude() / 100, 0, SYM_HOME, 0 , 0);
+            }
+
+            // -------- POI : Flight direction
+
+            if (osdConfig()->hud_flight_direction) {
+                int vx = getEstimatedActualVelocity(X);  // in cm/s
+                int vy = getEstimatedActualVelocity(Y);  // in cm/s
+                int vz = getEstimatedActualVelocity(Z);  // in cm/s
+            
+                // Nur Richtung anzeigen, keine Vorausschau mehr
+                float direction_deg = RADIANS_TO_DEGREES(atan2f((float)vy, (float)vx));
+                int altitude_relative = (vz / 100);
+            
+                // Flugrichtung nur darstellen, wenn relevante Bewegung vorhanden ist
+                //osdHudDrawPoi(0, (int16_t)direction_deg, altitude_relative, 0, SYM_ALERT, 0, 0);
+                osdHudDrawDirection((int16_t)direction_deg, altitude_relative, SYM_ALERT);
+
             }
 
             // -------- POI : Nearby aircrafts from ESP32 radar
@@ -4143,6 +4172,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .hud_margin_v = SETTING_OSD_HUD_MARGIN_V_DEFAULT,
     .hud_homing = SETTING_OSD_HUD_HOMING_DEFAULT,
     .hud_homepoint = SETTING_OSD_HUD_HOMEPOINT_DEFAULT,
+    .hud_flight_direction = SETTING_OSD_HUD_FLIGHT_DIRECTION_DEFAULT,
     .hud_radar_disp = SETTING_OSD_HUD_RADAR_DISP_DEFAULT,
     .hud_radar_range_min = SETTING_OSD_HUD_RADAR_RANGE_MIN_DEFAULT,
     .hud_radar_range_max = SETTING_OSD_HUD_RADAR_RANGE_MAX_DEFAULT,
@@ -4251,6 +4281,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     // OSD_VARIO_NUM at the right of OSD_VARIO
     osdLayoutsConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
+    osdLayoutsConfig->item_pos[0][OSD_FLIGHT_DIR] = OSD_POS(14, 12);
     osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6);
     osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6);
 
