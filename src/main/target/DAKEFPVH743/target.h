@@ -66,24 +66,6 @@
 #define USE_IMU_ICM42605
 #define USE_IMU_BMI270
 
-// #if defined(OMNIBUSF4V6)
-// #   define IMU_1_CS_PIN            PA4
-// #   define IMU_1_SPI_BUS           BUS_SPI1
-// #   define IMU_1_ALIGN             CW0_DEG
-// #   define IMU_2_CS_PIN            PB1
-// #   define IMU_2_SPI_BUS           BUS_SPI1
-// #   define IMU_2_ALIGN             CW180_DEG
-// #else
-    // IMU_1 is verified to work on OBF4V6 and Omnibus Fireworks board
-#   define IMU_1_CS_PIN            PA4
-#   define IMU_1_SPI_BUS           BUS_SPI1
-#   define IMU_1_ALIGN             CW0_DEG
-    // IMU_2 is sketchy and was not verified on actual hardware
-#   define IMU_2_CS_PIN            PB1
-#   define IMU_2_SPI_BUS           BUS_SPI3
-#   define IMU_2_ALIGN             CW180_DEG
-// #endif
-
 // M25P256 flash
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -166,6 +148,7 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_3
 // #define ADC1_DMA_STREAM             DMA2_Stream3
+#define VBAT_SCALE_DEFAULT          1600
 
 #define USE_LED_STRIP
 #define WS2811_PIN                  PE9
