@@ -157,14 +157,13 @@
 #define RSSI_ADC_CHANNEL            ADC_CHN_2
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_3
 #define ADC1_DMA_STREAM             DMA2_Stream3
+#define VBAT_SCALE_DEFAULT          1600
 
-// unkonw
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_LED_STRIP | FEATURE_GPS)
 
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA0
 
-// unkonw
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #define TARGET_IO_PORTA         0xffff
