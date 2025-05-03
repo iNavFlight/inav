@@ -76,6 +76,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `bootlog` | Show boot events |
 | `color` | Configure colors |
 | `defaults` | Reset to defaults and reboot |
+| `dmesg` | Show init logs from [serial_printf_debugging](./development/serial_printf_debugging.md) |
 | `dfu` | DFU mode on reboot |
 | `diff` | List configuration changes from default |
 | `dump` | Dump configuration |
