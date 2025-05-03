@@ -83,8 +83,6 @@ enum
     FSSP_DATAID_ACCX            = 0x0700,
     FSSP_DATAID_ACCY            = 0x0710,
     FSSP_DATAID_ACCZ            = 0x0720,
-    FSSP_DATAID_LEGACY_MODES    = 0x0400, // Deprecated. Should be removed in INAV 10.0
-    FSSP_DATAID_LEGACY_GNSS     = 0x0410, // Deprecated. Should be removed in INAV 10.0
     FSSP_DATAID_HOME_DIST       = 0x0420,
     FSSP_DATAID_GPS_ALT         = 0x0820,
     FSSP_DATAID_ASPD            = 0x0A00,
@@ -543,9 +541,6 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 break;
             case FSSP_DATAID_MODES:
                 {
-                    if (telemetryConfig()->frsky_use_legacy_gps_mode_sensor_ids)
-                        id = FSSP_DATAID_LEGACY_MODES;
-
                     smartPortSendPackage(id, frskyGetFlightMode());
                     *clearToSend = false;
                     break;
@@ -553,9 +548,6 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
 #ifdef USE_GPS
             case FSSP_DATAID_GNSS:
                 {
-                    if (telemetryConfig()->frsky_use_legacy_gps_mode_sensor_ids)
-                        id = FSSP_DATAID_LEGACY_GNSS;
-
                     if (smartPortShouldSendGPSData()) {
                         smartPortSendPackage(id, frskyGetGPSState());
                         *clearToSend = false;
