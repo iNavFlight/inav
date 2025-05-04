@@ -483,6 +483,33 @@ static float getVelocityExpoAttenuationFactor(float velTotal, float velMax)
     return 1.0f - posControl.posResponseExpo * (1.0f - (velScale * velScale));  // x^3 expo factor
 }
 
+static void isToiletBowlingDetected(void)
+{
+    static timeMs_t startTime = 0;
+
+    uint16_t courseToHoldPoint = calculateBearingToDestination(&posControl.desiredState.pos);
+    int16_t courseError = wrap_18000(courseToHoldPoint - 10 * gpsSol.groundCourse);
+    bool courseErrorCheck = ABS(courseError) > 3000 && ABS(courseError) < 15500;
+
+    uint16_t distanceToHoldPoint = calculateDistanceToDestination(&posControl.desiredState.pos);
+    bool distanceSpeedCheck = posControl.actualState.velXY * distanceToHoldPoint > (navConfig()->mc.toiletbowl_detection * 10000);
+
+    if (toiletBowlingHeadingCorrection) {
+        uint16_t correctedHeading = wrap_36000(posControl.actualState.yaw - 0.67 * toiletBowlingHeadingCorrection);
+        posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+        posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+    } else if (posControl.actualState.velXY > 100 && distanceToHoldPoint > 100 && courseErrorCheck  && distanceSpeedCheck) {
+        if (startTime == 0) {
+            startTime = millis();
+        } else if (millis() - startTime > 1000) {
+            // Try to correct heading error
+            toiletBowlingHeadingCorrection = courseError;
+        }
+    } else {
+        startTime = 0;
+    }
+}
+
 static void updatePositionVelocityController_MC(const float maxSpeed)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -496,6 +523,12 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
         } else if (posControl.flags.isAdjustingPosition) {
             setMulticopterStopPosition();
         }
+    }
+
+    if (navConfig()->mc.toiletbowl_detection && isNavHoldPositionActive()) {
+        isToiletBowlingDetected();
+    } else {
+        toiletBowlingHeadingCorrection = 0;
     }
 
     const float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;

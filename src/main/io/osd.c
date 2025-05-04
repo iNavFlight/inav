@@ -6156,6 +6156,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
                     }
                 }
             }
+            if (STATE(MULTIROTOR) && isNavHoldPositionActive() && toiletBowlingHeadingCorrection) {
+                messages[messageCount++] = OSD_MESSAGE_STR(OSD_MSG_TOILET_BOWL);
+            }
         } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {    /* ADDS MAXIMUM OF 2 MESSAGES TO TOTAL */
             unsigned invalidIndex;
 

@@ -201,6 +201,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .slowDownForTurning = SETTING_NAV_MC_WP_SLOWDOWN_DEFAULT,
         .althold_throttle_type = SETTING_NAV_MC_ALTHOLD_THROTTLE_DEFAULT,                        // STICK
         .inverted_crash_detection = SETTING_NAV_MC_INVERTED_CRASH_DETECTION_DEFAULT,             // 0 - disarm time delay for inverted crash detection
+        .toiletbowl_detection = SETTING_NAV_MC_TOILETBOWL_DETECTION_DEFAULT,                     // 0 - sensitivity factor for toilet bowling detection
     },
 
     // Fixed wing
@@ -252,6 +253,7 @@ static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
 static bool landingDetectorIsActive;
+int16_t toiletBowlingHeadingCorrection;    // Indicates toilet bowling detected multirotor
 
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
