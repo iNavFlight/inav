@@ -197,7 +197,7 @@ typedef struct geozone_s {
     int32_t distanceHorToNearestZone;
     int32_t distanceVertToNearestZone;
     int32_t zoneInfo;
-    int32_t currentzoneMaxAltitude; 
+    int32_t currentzoneMaxAltitude;
     int32_t currentzoneMinAltitude;
     bool nearestHorZoneHasAction;
     bool sticksLocked;
@@ -464,6 +464,7 @@ typedef struct navConfig_s {
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
         uint8_t althold_throttle_type;          // throttle zero datum type for alt hold
         uint8_t inverted_crash_detection;       // Enables inverted crash detection, setting defines disarm time delay (0 = disabled)
+        uint8_t toiletbowl_detection;           // Enables toilet bowling detection and heading correction (0 = disabled)
     } mc;
 
     struct {
