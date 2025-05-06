@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Release Notes for STM32Cube USB Host Library</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="_htmresc/mini-st.css" />
+  <link rel="icon" type="image/x-icon" href="_htmresc/favicon.png" />
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<div class="row">
+<div class="col-sm-12 col-lg-4">
+<center>
+<h1 id="release-notes-for-stm32cube-usb-host-library">Release Notes for
+<mark>STM32Cube USB Host Library</mark></h1>
+<p>Copyright © 2015 STMicroelectronics<br />
+</p>
+<a href="https://www.st.com" class="logo"><img
+src="_htmresc/st_logo_2020.png" alt="ST logo" /></a>
+</center>
+<h1 id="purpose">Purpose</h1>
+<p>The USB host library comes on top of the STM32Cube™ USB host HAL
+driver and offers all the APIs required to develop an USB host
+application.</p>
+<p>The main USB host library features are:</p>
+<ul>
+<li>Support of multi packet transfer features allowing the reception of
+big amount of data without splitting it into max packet size
+transfers.</li>
+<li>Support of most common USB Class drivers (HID, CDC, MSC, MTP,
+AUDIO1.0)</li>
+<li>Configuration files to interface with Cube HAL and change the
+library configuration without changing the library code (Read
+Only).</li>
+<li>32-bits aligned data structures to handle DMA based transfer in High
+speed modes.</li>
+</ul>
+<p>Here is the list of references to user documents:</p>
+<ul>
+<li><a
+href="https://www.st.com/resource/en/user_manual/dm00105256-stm32cube-usb-host-library-stmicroelectronics.pdf">UM1720</a>
+: STM32Cube USB host library User Manual</li>
+<li><a href="https://wiki.st.com/stm32mcu/wiki/USB_overview">Wiki
+Page</a> : STM32Cube USB Wiki Page</li>
+</ul>
+</div>
+<section id="update-history" class="col-sm-12 col-lg-8">
+<h1>Update History</h1>
+<div class="collapse">
+<input type="checkbox" id="collapse-section20" checked aria-hidden="true"><label for="collapse-section20" aria-hidden="true">V3.5.3 / 26-September-2024</label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Improve usage of CMSIS RTOS message queue</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Add new API to allow activating USB host pipe from STM32 HAL</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>HID Class</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"> Fix keyboard layout mapping for AZERTY keyboards</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"> Add escape to Keyboard layouts mapping</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC/CDC/MTP Classes</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Allow re-activating host IN channel based on SOF timer to reduce NAK IT with some USB peripherals</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section19" aria-hidden="true"><label for="collapse-section19" aria-hidden="true">V3.5.2 / 11-December-2023</label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Avoid infinite loop in case device descriptor length was wrongly set to zero</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC Class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add support of multi-LUN storage devices</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Report error for non-ready media</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Audio Class</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Report error for unsupported audio sample rate</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section18" aria-hidden="true"><label for="collapse-section18" aria-hidden="true">V3.5.1 / 10-January-2023</label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Ensure the number of endpoints parsed does not exceed defined USBH_MAX_NUM_ENDPOINTS</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Use correct endpoint length for audio midi subclass devices</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>HID Class</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Prevent buffer overflow during HID get descriptors</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section17" aria-hidden="true"><label for="collapse-section17" aria-hidden="true">V3.5.0 / 05-August-2022</label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fix potential corruption of Endpoints MaxPacketSize</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>HID Class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fix potential buffer overflow</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section16" aria-hidden="true"><label for="collapse-section16" aria-hidden="true">V3.4.1 / 04-April-2022</label>
+<div>
+<h2 id="main-changes">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Update the way to declare licenses</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fix code spelling and improve code
+style</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>HID Class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Modify some variables names to avoid
+duplication versus device for HID class</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section15" aria-hidden="true"><label for="collapse-section15" aria-hidden="true">V3.4.0 / 23-April-2021</label>
+<div>
+<h2 id="main-changes-1">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fixes added to free RTOS resource during
+USB host DeInit</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">CodeSpell and mcuAstlye fixes</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Multiple MisraC 2012 fixes</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>All Classes:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CodeSpell and mcuAstlye fixes</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Multiple MisraC 2012 fixes</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section14" aria-hidden="true"><label for="collapse-section14" aria-hidden="true">V3.3.5 / 26-January-2021</label>
+<div>
+<h2 id="main-changes-2">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Improve enumeration phase by adding some
+specifications requirements checks.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Add error signaling for some out of
+specification device’s descriptors fields.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>MSC Class:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">usbh_msc.c: add checking on both IN and
+OUT pipes construction.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>HID Class:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Fix wrong keyboard key defines.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section13" aria-hidden="true"><label for="collapse-section13" aria-hidden="true">V3.3.4 / 08-January-2020</label>
+<div>
+<h2 id="main-changes-3">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Improve enumeration phase and avoid silent
+responses.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Add device reset trial mechanism during
+enumeration phase.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>MSC Class:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">usbh_msc.c: update max_lun field to be
+uint8_t instead of uint32_t.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>HID Class:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Get HID descriptor by parsing the device
+descriptor in order to improve interoperability with buggy devices that
+Stall host Get HID descriptor request.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section12" aria-hidden="true"><label for="collapse-section12" aria-hidden="true">V3.3.3 / 29-April-2019</label>
+<div>
+<h2 id="main-changes-4">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Fix misra-C 2012 high severity
+violations</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Core driver:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">usbh_core.c: Rework USB host Core process
+in order to improve Device connection / disconnection robustness</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>MSC Class:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">usbh_msc.c: Update USBH_MSC_GetMaxLUN() to
+prevent corruption of supported LUNs</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>HID Class:</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Prevent race between USB buffer and
+Application fifo buffer, this was ensured by allocating a dedicated
+buffer for received report</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Prevent overflow on USB buffer for devices
+that could have report size greater than 4bytes</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section11" aria-hidden="true"><label for="collapse-section11" aria-hidden="true">V3.3.2 / 24-January-2019</label>
+<div>
+<h2 id="main-changes-5">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_core.c: fix on USBH_Deinit() API,
+prevent freeing pActiveClass-&gt;pData pointer during host Deinit, this
+is manged by the Class drivers.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section10" aria-hidden="true"><label for="collapse-section10" aria-hidden="true">V3.3.1 / 09-July-2018</label>
+<div>
+<h2 id="main-changes-6">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Fix interoperability issue with HP
+mouse</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add compatibility with FreeRTOS CMSIS V2
+API changes</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Update License section and add link to get
+copy of ST Ultimate Liberty license SLA0044</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section9" aria-hidden="true"><label for="collapse-section9" aria-hidden="true">V3.3.0 / 23-January-2018</label>
+<div>
+<h2 id="main-changes-7">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Update license section to Ultimate
+Liberty</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Update some functions to be MISRA-C 2004
+compliant</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Improve USB Core enumeration state
+machine</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fix Device fast plug/unplug issue</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Improve interoperability with non
+compliant USB devices</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add support of Host set remote wakeup
+enable feature</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Fix USB Host MSC set correct sector
+size</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MSC: Set correct LUN number if returned
+LUN number exceeds max supported value</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section8" aria-hidden="true"><label for="collapse-section8" aria-hidden="true">V3.2.2 / 07-July-2015</label>
+<div>
+<h2 id="main-changes-8">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC Class:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_msc.c: Fix MSC Get Ready Delay
+issue</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section7" aria-hidden="true"><label for="collapse-section7" aria-hidden="true">V3.2.1 / 26-June-2015</label>
+<div>
+<h2 id="main-changes-9">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_def.h: update USBH_MAX_PIPES_NBR
+literal definition to be conditioned by #ifndef directive, to allow
+application code to change its value (i.e. in the compiler
+preprocessor)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC Class:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_msc.c:</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Update USBH_MSC_GetMaxLUN() to return the
+correct number of supported LUNs (was returning 0xFF)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Fix timeout calculation issue</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">usbh_msc.h:</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">update MAX_SUPPORTED_LUN literal
+definition to be conditioned by #ifndef directive, to allow application
+code to change its value (i.e.in the compiler preprocessor)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>HID Class:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_hid.h: fix HID’s handle “Timer” type
+to uint32_t instead of uint16_t</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MTP Class:</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_mtp.c : Fix timeout calculation
+issue</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section6" aria-hidden="true"><label for="collapse-section6" aria-hidden="true">V3.2.0 / 04-November-2014</label>
+<div>
+<h2 id="main-changes-10">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Update all drivers to be C++
+compliant</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Miscellaneous source code comments
+update</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">usbh_core.c: remove HOST_IDLE state in
+USBH_LL_Connect() function</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Update to manage correctly older USB Keys
+that do not support GetMaxLun request</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section5" aria-hidden="true"><label for="collapse-section5" aria-hidden="true">V3.1.0 / 19-June-2014</label>
+<div>
+<h2 id="main-changes-11">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong>Core driver</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add a new define USBH_PROCESS_STACK_SIZE
+in the usbh_conf.h file to change the default internal USB host process
+stack. Note that by omitting this define, the default stack size (2KB)
+is used</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Add a user callback to handle
+unrecoverable error case in the application</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Remove the wrong check on the interface
+descriptor index in the USBH_FindInterface() function</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>All classes</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Update class description in files comment
+by adding reference to the used USB class specification revision</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Audio, CDC and MTP
+classes</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add full RTOS support by handling state
+transitions through OS messages</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>HID class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add new API USBH_HID_GetPollInterval() to
+allow user to retrieve the needed poll time (interval between two
+USBD_HID_SendReport())</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Audio class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Add a new weak callback
+USBH_AUDIO_BufferEmptyCallback() to indicate the end of audio data
+processing on the user buffer</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Return mass storage device capacity in
+Bytes in the user log message instead of MBytes</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section4" aria-hidden="true"><label for="collapse-section4" aria-hidden="true">V3.0.0 / 18-February-2014</label>
+<div>
+<h2 id="main-changes-12">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Major update based on STM32Cube
+specification: Library Core, Classes architecture and APIs modified
+vs. V2.1.0, and thus the 2 versions are not compatible.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>This version has to be used only
+with STM32Cube based development</strong></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section3" aria-hidden="true"><label for="collapse-section3" aria-hidden="true">V2.1.0 / 19-March-2012</label>
+<div>
+<h2 id="main-changes-13">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Official support of STM32F4xx devices</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">All source files: license disclaimer text
+update and add link to the License file on ST Internet</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Add ISR structure to link the low level
+driver to the Host library</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Change length parameter in the I/O
+operations to handle large amount of data</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Enhance the configuration descriptor
+parsing method to take into account multi interface devices</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Miscellaneous bug fix</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>HID class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Remove blocking even frame synchronization
+loop</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>MSC class</strong></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Handle correctly the BOT transfer with
+length &lt; max length</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Handle multi sector length data in the FAT
+FS interface</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section2" aria-hidden="true"><label for="collapse-section2" aria-hidden="true">V2.0.0 / 22-July-2011</label>
+<div>
+<h2 id="main-changes-14">Main Changes</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Headline</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">econd official version supporting
+STM32F105/7 and STM32F2xx devices</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">dd support for <strong>STM32F2xx</strong>
+devices</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">dd multi interface feature</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">dd dynamic configuration parsing</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">dd USBH_DeAllocate_AllChannel function in
+the Host channel management layer to clean up channels allocation table
+when de-initializing the library</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hange the core layer to stop correctly the
+host core and free all allocated channels</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">dd usbh_conf.h file in the application
+layer to customize some user parameters</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="collapse">
+<input type="checkbox" id="collapse-section1" aria-hidden="true"><label for="collapse-section1" aria-hidden="true">V1.0.0 / 29-November-2010</label>
+<div>
+<h2 id="main-changes-15">Main Changes</h2>
+<p>Created</p>
+</div>
+</section>
+</div>
+</div>
+<footer class="sticky">
+<div class="columns">
+<div class="column" style="width:95%;">
+
+</div><div class="column" style="width:5%;">
+<p><abbr title="Based on template cx566953 version 2.1">Info</abbr></p>
+</div>
+</div>
+</footer>
+</body>
+</html>

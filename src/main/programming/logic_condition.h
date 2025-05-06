@@ -84,7 +84,8 @@ typedef enum {
     LOGIC_CONDITION_LED_PIN_PWM                 = 52,
     LOGIC_CONDITION_DISABLE_GPS_FIX             = 53,
     LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 54,
-    LOGIC_CONDITION_LAST                        = 55,
+    LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY      = 55,
+    LOGIC_CONDITION_LAST                        = 56,
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -129,8 +130,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 26
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 27
     LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 28
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 29
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_LQ_UPLINK,                               // 29
+    LOGIC_CONDITION_OPERAND_FLIGHT_SNR,                                     // 39
     LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 31
     LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 33
@@ -144,6 +145,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE,                           // 41
     LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE, // int                     // 42
     LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS,                     // 43
+    LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK,                             // 44
+    LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM,                         // 45
 } logicFlightOperands_e;
 
 typedef enum {

@@ -48,6 +48,7 @@
 #include "flight/pid.h"
 #include "flight/mixer_profile.h"
 #include "drivers/io_port_expander.h"
+#include "drivers/gimbal_common.h"
 #include "io/osd_common.h"
 #include "sensors/diagnostics.h"
 
@@ -294,49 +295,64 @@ static int logicConditionCompute(
             return true;
             break;
 #endif
-        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+
 #if defined(USE_VTX_CONTROL)
-#if(defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP))
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
-                vtxSettingsConfigMutable()->power = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
-            } else {
-                return false;
+        case LOGIC_CONDITION_SET_VTX_POWER_LEVEL:
+        {
+            uint8_t newPower = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL];
+            if ((newPower != operandA || newPower != vtxSettingsConfig()->power) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newPower = constrain(operandA, VTX_SETTINGS_MIN_POWER, vtxDeviceCapability.powerCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_POWER_LEVEL] = newPower;
+                if (newPower != vtxSettingsConfig()->power) {
+                    vtxCommonSetPowerByIndex(vtxCommonDevice(), newPower); // Force setting if modified elsewhere
+                }
+                vtxSettingsConfigMutable()->power = newPower;
+                return newPower;
             }
+            return false;
+            break;
+        }
+        case LOGIC_CONDITION_SET_VTX_BAND:
+        {
+            uint8_t newBand = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
+            if ((newBand != operandA  || newBand != vtxSettingsConfig()->band) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newBand = constrain(operandA, VTX_SETTINGS_MIN_BAND, vtxDeviceCapability.bandCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = newBand;
+                if (newBand != vtxSettingsConfig()->band) {
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), newBand, vtxSettingsConfig()->channel);
+                }
+                vtxSettingsConfigMutable()->band = newBand;
+                return newBand;
+            }
+            return false;
+            break;
+        }
+        case LOGIC_CONDITION_SET_VTX_CHANNEL:
+        {
+            uint8_t newChannel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
+            if ((newChannel != operandA  || newChannel != vtxSettingsConfig()->channel) && vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)) {
+                newChannel = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, vtxDeviceCapability.channelCount);
+                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = newChannel;
+                if (newChannel != vtxSettingsConfig()->channel) {
+                    vtxCommonSetBandAndChannel(vtxCommonDevice(), vtxSettingsConfig()->band, newChannel);
+                }
+                vtxSettingsConfigMutable()->channel = newChannel;
+                return newChannel;
+            }
+            return false;
+            break;
+        }
+#endif
+
+        case LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY:
+#ifdef USE_SERIAL_GIMBAL
+            setGimbalSensitivity(constrain(operandA, SETTING_GIMBAL_SENSITIVITY_MIN, SETTING_GIMBAL_SENSITIVITY_MAX));
+            return true;
             break;
 #else
             return false;
 #endif
 
-        case LOGIC_CONDITION_SET_VTX_BAND:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND] = constrain(operandA, VTX_SETTINGS_MIN_BAND, VTX_SETTINGS_MAX_BAND);
-                vtxSettingsConfigMutable()->band = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_BAND];
-            } else {
-                return false;
-            }
-            break;
-        case LOGIC_CONDITION_SET_VTX_CHANNEL:
-            if (
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] != operandA &&
-                vtxCommonGetDeviceCapability(vtxCommonDevice(), &vtxDeviceCapability)
-            ) {
-                logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL] = constrain(operandA, VTX_SETTINGS_MIN_CHANNEL, VTX_SETTINGS_MAX_CHANNEL);
-                vtxSettingsConfigMutable()->channel = logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-                return logicConditionValuesByType[LOGIC_CONDITION_SET_VTX_CHANNEL];
-            } else {
-                return false;
-            }
-            break;
-#endif
         case LOGIC_CONDITION_INVERT_ROLL:
             LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_INVERT_ROLL);
             return true;
@@ -796,20 +812,36 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return constrain(calc_length_pythagorean_2D(GPS_distanceToHome, getEstimatedActualPosition(Z) / 100.0f), 0, INT32_MAX);
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ:
-        #ifdef USE_SERIALRX_CRSF
+        case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_UPLINK:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
             return rxLinkStatistics.uplinkLQ;
-        #else
+#else
             return 0;
-        #endif
+#endif
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR:
-        #ifdef USE_SERIALRX_CRSF
-            return rxLinkStatistics.uplinkSNR;
-        #else
+        case LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkRSSI;
+#else
             return 0;
-        #endif
+#endif        
+            break;
+
+case LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.downlinkLQ;
+#else
+            return 0;
+#endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_SNR:
+#if defined(USE_SERIALRX_CRSF) || defined(USE_RX_MSP)
+            return rxLinkStatistics.uplinkSNR;
+#else
+            return 0;
+#endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE: // int
