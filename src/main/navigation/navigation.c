@@ -253,7 +253,7 @@ static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
 static bool landingDetectorIsActive;
-int16_t toiletBowlingHeadingCorrection;    // Indicates toilet bowling detected multirotor
+int16_t mcToiletBowlingHeadingCorrection;    // Indicates toilet bowling detected multirotor
 
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
 
@@ -1282,6 +1282,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState
     resetAltitudeController(false);
     resetHeadingController();
     resetPositionController();
+    mcToiletBowlingHeadingCorrection = 0;
 #ifdef USE_FW_AUTOLAND
     resetFwAutoland();
 #endif

@@ -483,33 +483,6 @@ static float getVelocityExpoAttenuationFactor(float velTotal, float velMax)
     return 1.0f - posControl.posResponseExpo * (1.0f - (velScale * velScale));  // x^3 expo factor
 }
 
-static void isToiletBowlingDetected(void)
-{
-    static timeMs_t startTime = 0;
-
-    uint16_t courseToHoldPoint = calculateBearingToDestination(&posControl.desiredState.pos);
-    int16_t courseError = wrap_18000(courseToHoldPoint - 10 * gpsSol.groundCourse);
-    bool courseErrorCheck = ABS(courseError) > 3000 && ABS(courseError) < 15500;
-
-    uint16_t distanceToHoldPoint = calculateDistanceToDestination(&posControl.desiredState.pos);
-    bool distanceSpeedCheck = posControl.actualState.velXY * distanceToHoldPoint > (navConfig()->mc.toiletbowl_detection * 10000);
-
-    if (toiletBowlingHeadingCorrection) {
-        uint16_t correctedHeading = wrap_36000(posControl.actualState.yaw - 0.67 * toiletBowlingHeadingCorrection);
-        posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
-        posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
-    } else if (posControl.actualState.velXY > 100 && distanceToHoldPoint > 100 && courseErrorCheck  && distanceSpeedCheck) {
-        if (startTime == 0) {
-            startTime = millis();
-        } else if (millis() - startTime > 1000) {
-            // Try to correct heading error
-            toiletBowlingHeadingCorrection = courseError;
-        }
-    } else {
-        startTime = 0;
-    }
-}
-
 static void updatePositionVelocityController_MC(const float maxSpeed)
 {
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) {
@@ -523,12 +496,6 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
         } else if (posControl.flags.isAdjustingPosition) {
             setMulticopterStopPosition();
         }
-    }
-
-    if (navConfig()->mc.toiletbowl_detection && isNavHoldPositionActive()) {
-        isToiletBowlingDetected();
-    } else {
-        toiletBowlingHeadingCorrection = 0;
     }
 
     const float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
@@ -587,8 +554,48 @@ static float computeVelocityScale(
     return constrainf(scale, 0, attenuationFactor);
 }
 
+static void checkForToiletBowling(void)
+{
+    bool isHoldingPosition = ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.cruise.multicopterSpeed < 50) || navGetCurrentStateFlags() & NAV_CTL_HOLD);
+    uint16_t distanceToHoldPoint = calculateDistanceToDestination(&posControl.desiredState.pos);
+
+    if (posControl.actualState.velXY < 100 || distanceToHoldPoint < 100 || !isHoldingPosition || posControl.flags.isAdjustingPosition) {
+        return;
+    }
+
+    /* Compare required course back to hold point against actual GPS CoG
+     * Toilet bowling likely if heading error > 30 dges. Also ignore errors > 155 degs -> could be caused by gusting wind */
+    int16_t courseError = wrap_18000(calculateBearingToDestination(&posControl.desiredState.pos) - 10 * gpsSol.groundCourse);
+    bool courseErrorCheck = ABS(courseError) > 3000 && ABS(courseError) < 15500;
+
+    /* vel x distanceToHoldPoint provides good indication of toilet bowling with value rising rapidly when hold control is lost */
+    bool distanceSpeedCheck = posControl.actualState.velXY * distanceToHoldPoint > (navConfig()->mc.toiletbowl_detection * 10000);
+
+    static timeMs_t startTime = 0;
+    if (courseErrorCheck && distanceSpeedCheck) {
+        if (startTime == 0) {
+            startTime = millis();
+        } else if (millis() - startTime > 1000) {
+            /* Set heading correction if check conditions exist > 1s. 2/3 of actual course error seems to work best */
+            mcToiletBowlingHeadingCorrection = 0.67 * courseError;
+        }
+    } else {
+        startTime = 0;
+    }
+}
+
 static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxAccelLimit, const float maxSpeed)
 {
+    if (navConfig()->mc.toiletbowl_detection) {
+        if (mcToiletBowlingHeadingCorrection) {
+            uint16_t correctedHeading = wrap_36000(posControl.actualState.yaw - mcToiletBowlingHeadingCorrection);
+            posControl.actualState.sinYaw = sin_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+            posControl.actualState.cosYaw = cos_approx(CENTIDEGREES_TO_RADIANS(correctedHeading));
+        } else {
+            checkForToiletBowling();
+        }
+    }
+
     const float measurementX = navGetCurrentActualPositionAndVelocity()->vel.x;
     const float measurementY = navGetCurrentActualPositionAndVelocity()->vel.y;
 
