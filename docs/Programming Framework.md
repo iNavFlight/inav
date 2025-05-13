@@ -75,7 +75,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 26            | Invert Roll                   | Inverts ROLL axis input for PID/PIFF controller |
 | 27            | Invert Pitch                  | Inverts PITCH axis input for PID/PIFF controller  |
 | 28            | Invert Yaw                    | Inverts YAW axis input for PID/PIFF controller |
-| 29            | Override Throttlw             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
+| 29            | Override Throttle             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
 | 30            | Set VTx Band                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | Set VTx Channel               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | Set OSD Layout                | Sets OSD layout. Accepted values are `0-3` |
