@@ -187,6 +187,11 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
                 d = 0; // Directly behind
             }
 
+            //for native DJI is 0 direction forward
+            if(osdConfig()->video_system == VIDEO_SYSTEM_DJI_NATIVE) {
+                d = (d + 6) % 12;
+            }
+
             d = SYM_HUD_CARDINAL + d;
             osdHudWrite(poi_x + 2, poi_y, d, 1);
         } else {
