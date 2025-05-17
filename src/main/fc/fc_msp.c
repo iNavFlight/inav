@@ -969,8 +969,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
 
             sbufWriteU32(dst, adsbVehicle->vehicleValues.icao);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lat);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lon);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lat);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lon);
             sbufWriteU32(dst, adsbVehicle->vehicleValues.alt);
             sbufWriteU16(dst, (uint16_t)CENTIDEGREES_TO_DEGREES(adsbVehicle->vehicleValues.heading));
             sbufWriteU8(dst,  adsbVehicle->vehicleValues.tslc);
@@ -1582,6 +1582,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+#ifdef USE_ADSB
+        sbufWriteU8(dst, osdConfig()->adsb_warning_style);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
 #endif
