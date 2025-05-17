@@ -4492,6 +4492,16 @@ Ignore adsb planes above, limit, 0 disabled (meters)
 
 ---
 
+### osd_adsb_warning_style
+
+ADSB warning element style, how rich information on scree will be, Possible values are `COMPACT` and `EXTENDED`
+
+| Default | Min | Max |
+| --- | --- | --- |
+| COMPACT |  |  |
+
+---
+
 ### osd_ahi_bordered
 
 Shows a border/corners around the AHI region (pixel OSD only)
@@ -5504,7 +5514,7 @@ Use custom pilot logo with/instead of the INAV logo. The pilot logo must be char
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR', `BF43COMPAT`, `BFHDCOMPAT` and `DJI_NATIVE`
 
 | Default | Min | Max |
 | --- | --- | --- |

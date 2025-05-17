@@ -971,8 +971,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
 
             sbufWriteU32(dst, adsbVehicle->vehicleValues.icao);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lat);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lon);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lat);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lon);
             sbufWriteU32(dst, adsbVehicle->vehicleValues.alt);
             sbufWriteU16(dst, (uint16_t)CENTIDEGREES_TO_DEGREES(adsbVehicle->vehicleValues.heading));
             sbufWriteU8(dst,  adsbVehicle->vehicleValues.tslc);
@@ -1584,6 +1584,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+#ifdef USE_ADSB
+        sbufWriteU8(dst, osdConfig()->adsb_warning_style);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
 #endif
@@ -3291,7 +3296,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            if (dataSize == 9) {
+            if (
+                    dataSize == 9
+#ifdef USE_ADSB
+                    || dataSize == 10
+#endif
+            ) {
                 osdConfigMutable()->video_system = sbufReadU8(src);
                 osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
                 osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
@@ -3301,6 +3311,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+#ifdef USE_ADSB
+                if(dataSize == 10) {
+                    osdConfigMutable()->adsb_warning_style = sbufReadU8(src);
+                }
+#endif
                 osdStartFullRedraw();
             } else
                 return MSP_RESULT_ERROR;
