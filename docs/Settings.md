@@ -2218,7 +2218,7 @@ Weight of barometer climb rate measurements in estimated climb rate. Setting is 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2228,7 +2228,7 @@ Weight of GPS altitude measurements in estimated altitude. Setting is used on bo
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.2 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2238,7 +2238,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
