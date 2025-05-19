@@ -169,6 +169,7 @@ typedef enum {
     OSD_GPS_LON,
     OSD_GPS_LAT,
     OSD_HOME_DIR,
+    OSD_FLIGHT_DIR,
     OSD_HOME_DIST,
     OSD_HEADING,
     OSD_VARIO,

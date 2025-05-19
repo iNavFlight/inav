@@ -1958,6 +1958,18 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+    case OSD_FLIGHT_DIR:
+        {
+            int16_t vx = getEstimatedActualVelocity(X);  // in cm/s
+            int16_t vy = getEstimatedActualVelocity(Y);  // in cm/s
+            int16_t vz = getEstimatedActualVelocity(Z);  // in cm/s
+            float direction_deg = RADIANS_TO_DEGREES(atan2f((float)vy, (float)vx));
+            int16_t altitude_relative = (vz / 100);  // in m
+            //osdHudDrawPoi(0, (int16_t)direction_deg, altitude_relative, 0, SYM_ALERT, 0, 0);
+            osdHudDrawDirection((int16_t)direction_deg, altitude_relative, SYM_ALERT);
+            return true;
+        }
+        
     case OSD_HOME_HEADING_ERROR:
         {
             buff[0] = SYM_HOME;
@@ -4251,6 +4263,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     // OSD_VARIO_NUM at the right of OSD_VARIO
     osdLayoutsConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
+    osdLayoutsConfig->item_pos[0][OSD_FLIGHT_DIR] = OSD_POS(14, 12);
     osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6);
     osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6);
 
