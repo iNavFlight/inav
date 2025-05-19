@@ -4832,16 +4832,6 @@ To vertically adjust the whole OSD and AHI and scrolling bars
 
 ---
 
-### osd_hud_flightpoint
-
-To 3D-display the moving destination direction in the hud
-
-| Default | Min | Max |
-| --- | --- | --- |
-| OFF | OFF | ON |
-
----
-
 ### osd_hud_homepoint
 
 To 3D-display the home point location in the hud
