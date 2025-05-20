@@ -90,7 +90,6 @@ The allowable baud rates are as follows:
 | 15         | 2000000   |
 | 16         | 2470000   |
 
-
 ### Function numbers as of 2025
 
 | Function                   | Number                                             |
