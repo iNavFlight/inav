@@ -3512,6 +3512,11 @@ groups:
         default_value: OFF
         field: hud_homepoint
         type: bool
+      - name: osd_hud_flight_direction
+        description: "To 3D-display the moving destination direction in the hud"
+        default_value: OFF
+        field: hud_flight_direction
+        type: bool
       - name: osd_hud_radar_disp
         description: "Maximum count of nearby aircrafts or points of interest to display in the hud, as sent from an ESP32 LoRa module. Set to 0 to disable (show nothing). The nearby aircrafts will appear as markers A, B, C, etc"
         default_value: 0

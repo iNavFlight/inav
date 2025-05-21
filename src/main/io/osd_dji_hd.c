@@ -190,7 +190,6 @@ const djiOsdMapping_t djiOSDItemIndexMap[] = {
     { -1,                                     0 }, // DJI: OSD_MAIN_BATT_USAGE
     { -1,                                     0 }, // DJI: OSD_DISARMED
     { OSD_HOME_DIR,                           FEATURE_GPS }, // DJI: OSD_HOME_DIR
-    { OSD_FLIGHT_DIR,                         FEATURE_GPS }, // DJI: OSD_FLIGHT_DIR
     { OSD_HOME_DIST,                          FEATURE_GPS }, // DJI: OSD_HOME_DIST
     { OSD_HEADING,                            0 }, // DJI: OSD_NUMERICAL_HEADING
     { OSD_VARIO_NUM,                          0 }, // DJI: OSD_NUMERICAL_VARIO
