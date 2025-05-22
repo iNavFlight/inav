@@ -66,6 +66,21 @@
 #define USE_IMU_ICM42605
 #define USE_IMU_BMI270
 
+
+// Enable dual gyro mode
+#define USE_DUAL_GYRO
+
+// Primary IMU options
+#define IMU_1_CS_PIN       PA4
+#define IMU_1_SPI_BUS      BUS_SPI1
+#define IMU_1_ALIGN        CW0_DEG
+
+// Secondary IMU options
+#define IMU_2_CS_PIN     PB1
+#define IMU_2_SPI_BUS    BUS_SPI1
+#define IMU_2_ALIGN      CW180_DEG
+
+
 // M25P256 flash
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
