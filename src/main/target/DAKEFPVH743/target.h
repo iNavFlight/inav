@@ -153,17 +153,34 @@
 // unkonw
 #define PITOT_I2C_BUS           DEFAULT_I2C_BUS
 
+
+// ADC
+// #define USE_ADC
+// #define ADC_INSTANCE                ADC1
+// #define ADC_CHANNEL_1_PIN           PC1
+// #define ADC_CHANNEL_2_PIN           PC5
+// #define ADC_CHANNEL_3_PIN           PC0
+// #define VBAT_ADC_CHANNEL            ADC_CHN_1
+// #define RSSI_ADC_CHANNEL            ADC_CHN_2
+// #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_3
+// // #define ADC1_DMA_STREAM             DMA2_Stream3
+// #define VBAT_SCALE_DEFAULT          1600
+
+// From Deadly
 // ADC
 #define USE_ADC
-#define ADC_INSTANCE                ADC1
-#define ADC_CHANNEL_1_PIN           PC1
-#define ADC_CHANNEL_2_PIN           PC5
-#define ADC_CHANNEL_3_PIN           PC0
-#define VBAT_ADC_CHANNEL            ADC_CHN_1
-#define RSSI_ADC_CHANNEL            ADC_CHN_2
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_3
-// #define ADC1_DMA_STREAM             DMA2_Stream3
-#define VBAT_SCALE_DEFAULT          1600
+#define ADC_INSTANCE           ADC1
+#define ADC_CHANNEL_1_PIN      PC1
+#define VBAT_ADC_CHANNEL       ADC_CHN_1
+#define ADC_CHANNEL_2_PIN      PC0
+#define CURRENT_METER_ADC_CHANNEL ADC_CHN_2
+#define ADC_CHANNEL_3_PIN      PC5
+#define RSSI_ADC_CHANNEL       ADC_CHN_3
+
+// Additional ADC settings
+#define ADC1_DMA_OPT           9
+#define VBAT_SCALE_DEFAULT     1600
+
 
 #define USE_LED_STRIP
 #define WS2811_PIN                  PE9
