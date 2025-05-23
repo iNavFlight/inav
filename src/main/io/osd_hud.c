@@ -113,52 +113,13 @@ int8_t radarGetNearestPOI(void)
     return poi;
 }
 
-void osdHudDrawDirection(int16_t poiDirection, int32_t poiAltitude, uint16_t poiSymbol)
-{
-    int poi_x = -1;
-    int poi_y = -1;
-    uint8_t center_x, center_y;
-
-    uint8_t minX = osdConfig()->hud_margin_h + 2;
-    uint8_t maxX = osdGetDisplayPort()->cols - osdConfig()->hud_margin_h - 3;
-    uint8_t minY = osdConfig()->hud_margin_v;
-    uint8_t maxY = osdGetDisplayPort()->rows - osdConfig()->hud_margin_v - 2;
-
-    osdCrosshairPosition(&center_x, &center_y);
-
-    if (osdConfig()->pan_servo_pwm2centideg != 0) {
-        poiDirection += osdGetPanServoOffset();
-    }
-
-    int16_t error_x = hudWrap180(poiDirection - DECIDEGREES_TO_DEGREES(osdGetHeading()));
-
-    if ((error_x > -(osdConfig()->camera_fov_h / 2)) && (error_x < osdConfig()->camera_fov_h / 2)) {
-        // Horizontalposition berechnen
-        float scaled_x = sin_approx(DEGREES_TO_RADIANS(error_x)) / sin_approx(DEGREES_TO_RADIANS(osdConfig()->camera_fov_h / 2));
-        poi_x = center_x + 15 * scaled_x;
-
-        if (poi_x >= minX && poi_x <= maxX) {
-            // Vertikalposition berechnen
-            float poi_angle = atan2_approx(-poiAltitude, 1.0f);  // Abstand fest auf 1
-            poi_angle = RADIANS_TO_DEGREES(poi_angle);
-            int16_t plane_angle = attitude.values.pitch / 10;
-            int camera_angle = osdConfig()->camera_uptilt;
-            int16_t error_y = poi_angle - plane_angle + camera_angle;
-            float scaled_y = sin_approx(DEGREES_TO_RADIANS(error_y)) / sin_approx(DEGREES_TO_RADIANS(osdConfig()->camera_fov_v / 2));
-            poi_y = constrain(center_y + (osdGetDisplayPort()->rows / 2) * scaled_y, minY, maxY - 1);
-
-            // Symbol zeichnen
-            osdHudWrite(poi_x, poi_y, poiSymbol, 1);
-        }
-    }
-}
-
 /*
  * Display a POI as a 3D-marker on the hud
  * Distance (m), Direction (°), Altitude (relative, m, negative means below), Heading (°),
  * Type = 0 : Home point
  * Type = 1 : Radar POI, P1: Relative heading, P2: Signal, P3 Cardinal direction
  * Type = 2 : Waypoint, P1: WP number, P2: 1=WP+1, 2=WP+2, 3=WP+3
+ * Type = 3 : Flight direction
  */
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiType, uint16_t poiSymbol, int16_t poiP1, int16_t poiP2)
 {
@@ -257,7 +218,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     // Distance
 
-    if (poiType > 0 && 
+    if (poiType > 0 && poiType != 3 && 
         ((millis() / 1000) % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time) < (osdConfig()->hud_radar_alt_difference_display_time % (osdConfig()->hud_radar_alt_difference_display_time + osdConfig()->hud_radar_distance_display_time)))
        ) { // For Radar and WPs, display the difference in altitude, then distance. Time is pilot defined
         altc = poiAltitude;
@@ -327,11 +288,13 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
         }
     }
 
-    osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 1);
-    osdHudWrite(poi_x , poi_y + 1, buff[1], 1);
-    osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 1);
-    if (poiType == 1) {
-        osdHudWrite(poi_x + 2, poi_y + 1, buff[3], 1);
+    if (poiType != 3){
+        osdHudWrite(poi_x - 1, poi_y + 1, buff[0], 1);
+        osdHudWrite(poi_x , poi_y + 1, buff[1], 1);
+        osdHudWrite(poi_x + 1, poi_y + 1, buff[2], 1);
+        if (poiType == 1) {
+            osdHudWrite(poi_x + 2, poi_y + 1, buff[3], 1);
+        }
     }
 }
 

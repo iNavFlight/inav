@@ -2773,10 +2773,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 float direction_deg = RADIANS_TO_DEGREES(atan2f((float)vy, (float)vx));
                 int altitude_relative = (vz / 100);
-
-                //osdHudDrawPoi(0, (int16_t)direction_deg, altitude_relative, 0, SYM_ALERT, 0, 0);
-                osdHudDrawDirection((int16_t)direction_deg, altitude_relative, SYM_ALERT);
-
+                osdHudDrawPoi(1, (int16_t)direction_deg, altitude_relative, 3, SYM_ALERT, 0, 0);
             }
 
             // -------- POI : Nearby aircrafts from ESP32 radar

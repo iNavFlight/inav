@@ -27,5 +27,4 @@ void osdHudClear(void);
 void osdHudDrawCrosshair(displayCanvas_t *canvas, uint8_t px, uint8_t py);
 void osdHudDrawHoming(uint8_t px, uint8_t py);
 void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitude, uint8_t poiType, uint16_t poiSymbol, int16_t poiP1, int16_t poiP2);
-void osdHudDrawDirection(int16_t poiDirection, int32_t poiAltitude, uint16_t poiSymbol);
 int8_t radarGetNearestPOI(void);
