@@ -264,7 +264,7 @@ void mixerResetDisarmedMotors(void)
         motor_disarmed[i] = motorZeroCommand;
     }
 }
-
+#if !defined(SITL_BUILD)
 static uint16_t handleOutputScaling(
     int16_t input,          // Input value from the mixer
     int16_t stopThreshold,  // Threshold value to check if motor should be rotating or not
@@ -289,6 +289,7 @@ static uint16_t handleOutputScaling(
 
     return value;
 }
+#endif
 #ifdef USE_DSHOT
 static void applyTurtleModeToMotors(void) {
 
