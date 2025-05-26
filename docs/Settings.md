@@ -3992,6 +3992,16 @@ P gain of altitude PID controller (Multirotor)
 
 ---
 
+### nav_mc_toiletbowl_detection
+
+Sets sensitivity of toilet bowling detection for multirotors. On detection a heading correction is applied which should stop the toilet bowling. A setting of 2 works well for 5 inch multirotors. Increasing the setting will reduce sensitivity and delay detection. Set to 0 to disable. (Toilet bowling occurs most obviously during position hold when an inaccurate compass heading causes a rapidly increasing fast sweeping bowl shaped flight path).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20 |
+
+---
+
 ### nav_mc_vel_xy_d
 
 D gain of Position-Rate (Velocity to Acceleration) PID controller. It can damp P and I. Increasing D might help when drone overshoots target.
