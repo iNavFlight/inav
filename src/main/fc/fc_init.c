@@ -677,7 +677,9 @@ void init(void)
 #endif
 
 #ifdef USE_VTX_MSP
-    vtxMspInit();
+    if (feature(FEATURE_OSD)) {
+       vtxMspInit();
+    }
 #endif
 
 #endif // USE_VTX_CONTROL
