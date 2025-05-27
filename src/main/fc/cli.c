@@ -130,8 +130,8 @@ bool cliMode = false;
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
-#ifdef DMESG_SIZE
-extern char dmesg_buffer[DMESG_SIZE];
+#ifdef USE_BOOTLOG
+extern char dmesg_buffer[USE_BOOTLOG];
 extern char *dmesg_head;
 #endif
 
@@ -4803,10 +4803,10 @@ static void cliUbloxPrintSatelites(char *arg)
 }
 #endif
 
-#ifdef DMESG_SIZE
+#ifdef USE_BOOTLOG
 static void printDmesg(char *cmdline __attribute__((unused))) {
     int size = dmesg_head - dmesg_buffer;
-	cliPrintLinef("log size written: %i", size);
+	cliPrintLinef("log size written: %i of %i bytes reserved", size, USE_BOOTLOG);
     for (int ii = 0; ii < size; ii++) {
         cliWrite(dmesg_buffer[ii]);
     }
@@ -4833,7 +4833,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)
-    CLI_COMMAND_DEF("bootlog", "show boot events", NULL, cliBootlog),
+    CLI_COMMAND_DEF("bootlog", "show boot log", NULL, printDmesg),
 #endif
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
@@ -4844,9 +4844,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
-#ifdef DMESG_SIZE
-    CLI_COMMAND_DEF("dmesg", "init log (DMESG_SIZE)", NULL, printDmesg),
-#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
