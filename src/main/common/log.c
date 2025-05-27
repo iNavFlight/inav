@@ -61,8 +61,8 @@ PG_RESET_TEMPLATE(logConfig_t, logConfig,
     .topics = SETTING_LOG_TOPICS_DEFAULT
 );
 
-#if defined(DMESG_SIZE)
-char dmesg_buffer[DMESG_SIZE];
+#if defined(USE_BOOTLOG)
+char dmesg_buffer[USE_BOOTLOG];
 char *dmesg_head = dmesg_buffer;
 #endif
 
@@ -141,8 +141,8 @@ static void logPrint(const char *buf, size_t size)
         mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspLogPort, MSP_V2_NATIVE);
     }
 
-#ifdef DMESG_SIZE
-    if ( (dmesg_head + size + 2) < (dmesg_buffer + DMESG_SIZE) ) {
+#ifdef USE_BOOTLOG
+    if ( (dmesg_head + size + 2) < (dmesg_buffer + USE_BOOTLOG) ) {
         for (unsigned int ii = 0; ii < size; ii++) {
 		    *dmesg_head = buf[ii];
 			dmesg_head++;
