@@ -6,7 +6,7 @@ INAV offers a function to use serial `printf` style debugging.
 
 This provides a simple and intuitive debugging facility.
 This facility is only available after the serial sub-system has been initialised, but logs generated prior to serial
-initialization can be obtained via the `dmesg` functionality.
+initialization can be obtained via the `bootlog` functionality.
 
 In order to use this feature, the source file must include `common/log.h`.
 
@@ -140,11 +140,11 @@ For the Configurator, debug messages are shown in the developer console log.
 
 Note: The numeric value in square brackets is the FC uptime in seconds.
 
-To see printf-style log messages generated prior serial initialization, reserve about 2KB-4KB RAM to buffer the
-log) by defining DMESG_SIZE:
-#define DMESG_SIZE 2048
+To see printf-style log messages generated prior serial initialization, reserve about 2KB RAM to buffer the
+log) by defining USE_BOOTLOG:
+#define USE_BOOTLOG 2048
 
 Then `make clean` and `make`.
 
-Then in the CLI you can run `dmesg` to see the buffered log.
+Then in the CLI you can run `bootlog` to see the buffered log.
 Note dmesg also requires that a serial port be defined for serial debugging.
