@@ -1,23 +1,3 @@
-/*
- * This file is part of Cleanflight and Betaflight.
- *
- * Cleanflight and Betaflight are free software. You can redistribute
- * this software and/or modify this software under the terms of the
- * GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option)
- * any later version.
- *
- * Cleanflight and Betaflight are distributed in the hope that they
- * will be useful, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this software.
- *
- * If not, see <http://www.gnu.org/licenses/>.
- */
-
 #include <stdint.h>
 
 #include "platform.h"
@@ -30,7 +10,6 @@
 
 
 timerHardware_t timerHardware[] = {
-    //DEF_TIM(<TIMER>, <CHANNEL>, <PIN>, <USAGE>, <INVERTED>, <PULLUP>)
     DEF_TIM(TIM3, CH1, PB4,  TIM_USE_MOTOR, 0, 0), // S1
     DEF_TIM(TIM3, CH2, PB5,  TIM_USE_MOTOR, 0, 0), // S2
     DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MOTOR, 0, 0), // S3
@@ -41,5 +20,4 @@ timerHardware_t timerHardware[] = {
 
     
 };
-// const timerHardware_t *timerHardwareTable = timerHardware;
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
