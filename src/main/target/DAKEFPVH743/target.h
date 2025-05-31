@@ -195,3 +195,4 @@
 #define PINIO1_PIN           PE2
 #define PINIO2_PIN           PE3
 #define PINIO3_PIN           PE4
+#define PINIO1_FLAGS         PINIO_FLAGS_INVERTED
