@@ -25,6 +25,8 @@
 #include "drivers/display.h"
 #include "drivers/display_ug2864hsweg01.h"
 
+#ifdef USE_I2C
+
 static displayPort_t oledDisplayPort;
 
 static int oledGrab(displayPort_t *displayPort)
@@ -121,3 +123,5 @@ displayPort_t *displayPortOledInit(void)
     oledDisplayPort.cols = SCREEN_CHARACTER_COLUMN_COUNT;
     return &oledDisplayPort;
 }
+
+#endif
