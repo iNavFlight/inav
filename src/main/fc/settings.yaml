@@ -775,7 +775,7 @@ groups:
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
         min: 0
-        max: 65535
+        max: UINT32_MAX
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t

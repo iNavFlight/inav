@@ -59,7 +59,7 @@ static timeMs_t validRxDataFailedAt = 0;
 static timeUs_t rxNextUpdateAtUs = 0;
 static timeUs_t needRxSignalBefore = 0;
 
-static uint16_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
+static uint32_t mspOverrideCtrlChannels = 0; // bitmask representing which channels are used to control MSP override
 static rcChannel_t mspRcChannels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 
 static rxRuntimeConfig_t rxRuntimeConfigMSP;
@@ -215,7 +215,7 @@ bool mspOverrideCalculateChannels(timeUs_t currentTimeUs)
 
 void mspOverrideChannels(rcChannel_t *rcChannels)
 {
-    for (uint16_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
+    for (uint32_t channel = 0, channelMask = 1; channel < rxRuntimeConfigMSP.channelCount; ++channel, channelMask <<= 1) {
         if (rxConfig()->mspOverrideChannels & ~mspOverrideCtrlChannels & channelMask) {
             rcChannels[channel].raw = rcChannels[channel].data = mspRcChannels[channel].data;
         }
