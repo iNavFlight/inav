@@ -71,5 +71,5 @@ If one of the core developers has the hardware in possession they may opt in and
 
 
 ## See also
-[Hardware Design Guidelines)(https://github.com/iNavFlight/inav/wiki/Hardware-Design-Guidelines)
+[Hardware Design Guidelines](https://github.com/iNavFlight/inav/wiki/Hardware-Design-Guidelines)
 
