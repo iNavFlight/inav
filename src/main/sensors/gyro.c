@@ -91,6 +91,19 @@ STATIC_FASTRAM filter_t gyroLpf2State[XYZ_AXIS_COUNT];
 STATIC_FASTRAM filterApplyFnPtr gyroLuluApplyFn;
 STATIC_FASTRAM filter_t gyroLuluState[XYZ_AXIS_COUNT];
 
+//Elliptic filter coefficients for antialiasing
+#define ELLIPTIC_ANTIALIASING_FILTER_ORDER 6
+
+STATIC_FASTRAM double ellipticAntialiasingCoeffA[] = {
+    1.0, -5.13215, 10.9852, -12.2934, 7.51828, -2.49295, 0.3785
+};
+
+STATIC_FASTRAM double ellipticAntialiasingCoeffB[] = {
+    0.005897, -0.023357, 0.038222, -0.028058, 0.038222, -0.023357, 0.005897
+};
+
+STATIC_FASTRAM double ellipticAntialiasingFilterState[ELLIPTIC_ANTIALIASING_FILTER_ORDER] = {0};
+
 #ifdef USE_DYNAMIC_FILTERS
 
 EXTENDED_FASTRAM gyroAnalyseState_t gyroAnalyseState;
@@ -562,7 +575,10 @@ void FAST_CODE NOINLINE gyroUpdate(void)
         /*
          * First gyro LPF is the only filter applied with the full gyro sampling speed
          */
-        gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
+        // gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
+
+        // Apply elliptic antialiasing filter
+        gyroADCf = ellipticFilterApply(ELLIPTIC_ANTIALIASING_FILTER_ORDER, gyroADCf, ellipticAntialiasingCoeffA, ellipticAntialiasingCoeffB, ellipticAntialiasingFilterState);
 
         gyro.gyroADCf[axis] = gyroADCf;
     }
