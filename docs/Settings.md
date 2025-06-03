@@ -3058,7 +3058,7 @@ Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this r
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 65535 |
+| 0 | 0 | 4294967295 |
 
 ---
 
