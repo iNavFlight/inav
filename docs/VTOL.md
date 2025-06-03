@@ -42,7 +42,7 @@ We highly value your feedback as it plays a crucial role in the development and 
 5. *(Optional)* **Automated Switching (RTH):**
    - Optionally, set up automated switching in case of failsafe.
 
-# STEP0: Load parameter preset/templates
+# STEP 0: Load parameter preset/templates
 Find a working diff file if you can and start from there. If not, select keep current settings and apply following parameter in cli but read description about which one to apply.
 
 ```
@@ -113,7 +113,7 @@ set mc_iterm_relax = RPY
 save
 ```
 
-# STEP1: Configuring as a normal fixed-wing in Profile 1
+# STEP 1: Configuring as a normal fixed-wing in Profile 1
 
 1. **Select the fisrt Mixer Profile and PID Profile:**
    - In the CLI, switch to the mixer_profile and pid_profile you wish to set first. You can also switch mixer_profile/pid_profile through gui if with aforementioned presets loaded.
@@ -133,7 +133,7 @@ save
 ![Alt text](Screenshots/mixerprofile_fw_mixer.png)
 
 
-# STEP2: Configuring as a Multi-Copter in Profile 2
+# STEP 2: Configuring as a Multi-Copter in Profile 2
 
 1. **Switch to Another Mixer Profile with PID Profile:**
    - In the CLI, switch to another mixer_profile along with the appropriate pid_profile. You can also switch mixer_profile/pid_profile through gui if with aforementioned presets loaded.
@@ -161,7 +161,7 @@ save
    - Configure mixer ROLL/YAW mixing according to tail_sitting orientation in the tail_sitting MC mode. YAW axis is the trust axis.
    - Conduct a bench test and see the orientation of the model changes in inav-configurator setup tab
 
-# STEP3: Mode Tab Settings:
+# STEP 3: Mode Tab Settings:
 ### We recommend using an 3-pos switch on you radio to activate these modes, So pilot can jump in or bell out at any moment.
 ### Here is a example, in the bottom of inav-configurator Modes tab:
 ![Alt text](Screenshots/mixer_profile.png)
@@ -177,7 +177,7 @@ save
 
 Conduct a bench test on the model (without props attached). The model can now switch between fixed-wing and multi-copter modes while armed. Furthermore, it is capable of mid-air switching, resulting in an immediate stall upon entering fixed-wing profile
 
-# STEP4: Tilting Servo Setup (Recommended)
+# STEP 4: Tilting Servo Setup (Recommended)
 ### Setting up the tilting servos to operate correclty is crucial for correct yaw control of the craft. Using the default setup works, but will most likely result in your craft crawling forward with evey yaw input.
 The steps below describe how you can fine-tune the tilting servos such as to obtian the desired result.
 
@@ -229,7 +229,7 @@ Optional Setup Step for Tilt Servos:
 If you have set up the mixer as suggested in STEP1 and STEP2, you may have to deal with negative values for the mixer. You may wish to reverese a servo so that you don't have to deal with the negative signs. In that case, you may have to adjust the MIN and MAX values from point 4 again, so that your tilt servos are operating correctly. Check the operation of the servos once again for the YAW control in multicopter/tricipter mode as well as the horixontal position of the tilt servos in fixed-wing mode.
 
 
-# STEP5: Transition Mixing (Multi-Rotor Profile)(Recommended)
+# STEP 5: Transition Mixing (Multi-Rotor Profile)(Recommended)
 ### Transition Mixing is typically useful in multi-copter profile to gain airspeed in prior to entering the fixed-wing profile. When the `MIXER TRANSITION` mode is activated, the associated motor or servo will move according to your configured Transition Mixing. 
 
 Please note that transition input is disabled when a navigation mode is activated. The use of Transition Mixing is necessary to enable additional features such as VTOL RTH with out stalling.

@@ -118,6 +118,12 @@ void initEEPROM(void)
     BUILD_BUG_ON(sizeof(configFooter_t) != 2);
     BUILD_BUG_ON(sizeof(configRecord_t) != 6);
 
+#ifdef STM32H7A3xx
+    BUILD_BUG_ON(CONFIG_STREAMER_BUFFER_SIZE != 16);
+#elif defined(STM32H743xx)
+    BUILD_BUG_ON(CONFIG_STREAMER_BUFFER_SIZE != 32);
+#endif
+
 #if defined(CONFIG_IN_EXTERNAL_FLASH)
     bool eepromLoaded = loadEEPROMFromExternalFlash();
     if (!eepromLoaded) {

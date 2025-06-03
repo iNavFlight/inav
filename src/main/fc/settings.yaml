@@ -67,7 +67,7 @@ tables:
     values: ["MAH", "WH"]
     enum: osd_stats_energy_unit_e
   - name: osd_video_system
-    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT"]
+    values: ["AUTO", "PAL", "NTSC", "HDZERO", "DJIWTF", "AVATAR", "BF43COMPAT", "BFHDCOMPAT", "DJI_NATIVE"]
     enum: videoSystem_e
   - name: osd_telemetry
     values: ["OFF", "ON","TEST"]
@@ -770,7 +770,7 @@ groups:
         field: halfDuplex
         table: tristate
       - name: msp_override_channels
-        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
+        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires the `MSP RC Override` flight mode."
         default_value: 0
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
@@ -4319,18 +4319,21 @@ groups:
         field: sensitivity
         min: -16
         max: 15
+        type: int8_t
       - name: gimbal_pan_trim
         field: panTrim
         description: "Trim gimbal pan center position."
         default_value: 0
         min: -500
         max: 500
+        type: int16_t
       - name: gimbal_tilt_trim
         field: tiltTrim
         description: "Trim gimbal tilt center position."
         default_value: 0
         min: -500
         max: 500
+        type: int16_t
       - name: gimbal_roll_trim
         field: rollTrim
         description: "Trim gimbal roll center position."
