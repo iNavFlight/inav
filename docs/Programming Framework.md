@@ -102,6 +102,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
 | 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]
+| 56            | Override Minimum Ground Speed | When active, sets the minimum ground speed to the value specified in `Operand A` [m/s]. Minimum allowed value is set in `nav_min_ground_speed`. Maximum value is `150` |
 
 ### Operands
 
@@ -164,6 +165,11 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 41            | FW Land Sate                          | Integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
 | 42            | Current battery profile               | The active battery profile. Integer `[1..MAX_PROFILE_COUNT]` |
 | 43            | Flown Loiter Radius [m]               | The actual loiter radius flown by a fixed wing during hold modes, in `meters` |
+| 44            | Downlink Link Quality                 | |
+| 45            | Uplink RSSI [dBm]                     | |
+| 46            | Minimum Ground Speed [m/s]            | The current minimum ground speed allowed in navigation flight modes |
+| 47            | Horizontal Wind Speed [cm/s]          | Estimated wind speed. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 48            | Wind Direction [deg]                  | Estimated wind direction. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
 
 #### FLIGHT_MODE
 
