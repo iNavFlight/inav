@@ -1,18 +1,25 @@
 /*
- * This file is part of Cleanflight.
+ * This file is part of INAV Project.
  *
- * Cleanflight is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * Cleanflight is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
 
@@ -86,6 +93,43 @@ adsbVehicle_t *findVehicleClosest(void) {
     return adsbLocal;
 }
 
+/**
+ * find the closest vehicle, apply filter max verticalDistance
+ * @return
+ */
+adsbVehicle_t *findVehicleClosestLimit(int32_t maxVerticalDistance) {
+
+   /* static int32_t  lat = 492551325;
+    adsbVehicle_t *v1 = &adsbVehiclesList[0];
+
+    v1->vehicleValues.gps.lat = lat;
+    v1->vehicleValues.gps.lon = 165428489;
+    v1->vehicleValues.alt = 1000 * 100;
+    v1->vehicleValues.tslc = 0;
+    v1->vehicleValues.emitterType = 5;
+    v1->vehicleValues.horVelocity = 55277;
+    v1->ttl = 10;
+    memcpy(v1->vehicleValues.callsign, "DUMMY    ", 9);
+
+    lat += 1000;
+
+    recalculateVehicle(v1);*/
+
+    adsbVehicle_t *adsbLocal = NULL;
+    for (uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++) {
+        if(adsbVehiclesList[i].ttl > 0 && adsbVehiclesList[i].calculatedVehicleValues.valid){
+            if(maxVerticalDistance > 0 && adsbVehiclesList[i].calculatedVehicleValues.verticalDistance > maxVerticalDistance){
+                continue;
+            }
+
+            if (adsbLocal == NULL || adsbLocal->calculatedVehicleValues.dist > adsbVehiclesList[i].calculatedVehicleValues.dist) {
+                adsbLocal = &adsbVehiclesList[i];
+            }
+        }
+    }
+    return adsbLocal;
+}
+
 adsbVehicle_t *findFreeSpaceInList(void) {
     //find expired first
     for (uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++) {
@@ -120,16 +164,6 @@ adsbVehicle_t* findVehicle(uint8_t index)
 adsbVehicleStatus_t* getAdsbStatus(void){
     return &adsbVehiclesStatus;
 }
-
-void gpsDistanceCmBearing(int32_t currentLat1, int32_t currentLon1, int32_t destinationLat2, int32_t destinationLon2, uint32_t *dist, int32_t *bearing) {
-    float GPS_scaleLonDown = cos_approx((fabsf((float) gpsSol.llh.lat) / 10000000.0f) * 0.0174532925f);
-    const float dLat = destinationLat2 - currentLat1; // difference of latitude in 1/10 000 000 degrees
-    const float dLon = (float) (destinationLon2 - currentLon1) * GPS_scaleLonDown;
-
-    *dist = sqrtf(sq(dLat) + sq(dLon)) * DISTANCE_BETWEEN_TWO_LONGITUDE_POINTS_AT_EQUATOR;
-    *bearing = 9000.0f + RADIANS_TO_CENTIDEGREES(atan2_approx(-dLat, dLon));      // Convert the output radians to 100xdeg
-    *bearing = wrap_36000(*bearing);
-};
 
 bool adsbHeartbeat(void){
     adsbVehiclesStatus.heartbeatMessagesTotal++;
@@ -168,8 +202,6 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
         }
     } else {
         // GPS mode, GPS is fixed and has enough sats
-
-
         if(vehicle == NULL){
             vehicle = findFreeSpaceInList();
         }
@@ -192,9 +224,17 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
 };
 
 void recalculateVehicle(adsbVehicle_t* vehicle){
-    gpsDistanceCmBearing(gpsSol.llh.lat, gpsSol.llh.lon, vehicle->vehicleValues.lat, vehicle->vehicleValues.lon, &(vehicle->calculatedVehicleValues.dist), &(vehicle->calculatedVehicleValues.dir));
+    if(vehicle->ttl == 0){
+        return;
+    }
 
-    if (vehicle != NULL && vehicle->calculatedVehicleValues.dist > ADSB_LIMIT_CM) {
+    fpVector3_t vehicleVector;
+    geoConvertGeodeticToLocal(&vehicleVector, &posControl.gpsOrigin, &vehicle->vehicleValues.gps, GEO_ALT_RELATIVE);
+
+    vehicle->calculatedVehicleValues.dist = calculateDistanceToDestination(&vehicleVector);
+    vehicle->calculatedVehicleValues.dir = calculateBearingToDestination(&vehicleVector);
+
+    if (vehicle->calculatedVehicleValues.dist > ADSB_LIMIT_CM) {
         vehicle->ttl = 0;
         return;
     }
@@ -214,6 +254,10 @@ void adsbTtlClean(timeUs_t currentTimeUs) {
         for (uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++) {
             if (adsbVehiclesList[i].ttl > 0) {
                 adsbVehiclesList[i].ttl--;
+            }
+
+            if (adsbVehiclesList[i].ttl > 0) {
+                recalculateVehicle(&adsbVehiclesList[i]);
             }
         }
 
