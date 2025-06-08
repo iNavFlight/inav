@@ -14,7 +14,7 @@ assignees: ''
 * [INAV Official on Telegram](https://t.me/INAVFlight)
 
 **Please double-check that nobody reported the issue before by using search in this bug tracker.**
-**For Bug-Reports, you must use the following template and provide as much information as possible. Bug-Reports that don't follow the template, might be closed unanswered. If you are not sure if you found a bug, ask for further input in the community channels or open a Github discussion.**
+**For Bug-Reports, please use the following template and provide as much information as possible. Bug-Reports that don't follow the template, might be closed unanswered. If you are not sure if you found a bug, ask for further input in the community channels or open a Github discussion.**
 
 **PLEASE DELETE THE TEXT ABOVE AFTER READING AND UNDERSTANDING IT**
 
