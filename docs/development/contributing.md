@@ -1,7 +1,11 @@
 # You can help bring INAV forward! 
 
 INAV is a big project and fully community driven. This is why we need you, to make INAV better with every release! 
-There are over 100 new features and fixes ready to go into INAV, contributed by a lot of developers. To ensure that all quality standards are met, all these great additions need to be checked, tested and potentially fixed before we can add them to the code. This is why we always need your help, to keep the standards high and our aircraft safe! If you are a bit tech-savvy and curious to try new things in the hobby you are invitedto assist us in the team and help with the development. Also, if you are good at writing in English, you are welcome to help with the documentation.
+There are over 100 new features and fixes ready to go into INAV, contributed by a lot of developers. To ensure that 
+all quality standards are met, all these great additions need to be checked, tested and potentially fixed before we 
+can add them to the code. This is why we always need your help, to keep the standards high and our aircraft safe! 
+If you are a bit tech-savvy and curious to try new things in the hobby you are invited to join us and help with the development.
+Also, if you are good at writing in English, you are welcome to help with the documentation.
 
 ## How are changes made in INAV? (Testing and reviewing pull requests)
 Most changes done to INAV are done by what’s called a “pull request”, or “PR”. As of this writing, there are currently
@@ -46,7 +50,7 @@ contributors in real time. You can also just go directly to the pull requests, I
 
 Also, see the [Configurator Github](https://github.com/iNavFlight/inav-configurator/)
 
-Or, fell free to update the [wiki](https://github.com/iNavFlight/inav/wiki)
+Or, feel free to update the [wiki](https://github.com/iNavFlight/inav/wiki)
 
 To make your own pull requests to update the code or the documentation in the docs/ folder, the [Development.md](https://github.com/iNavFlight/inav/blob/master/docs/development/Development.md#using-git-and-github) page will walk you
 through how to do that.
