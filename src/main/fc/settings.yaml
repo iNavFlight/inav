@@ -2148,7 +2148,7 @@ groups:
         min: 0
         max: 255
       - name: nav_fw_pos_z_ff
-        description: "FF gain of altitude PID controller (Fixedwing)"
+        description: "FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)"
         default_value: 10
         field: bank_fw.pid[PID_POS_Z].FF
         min: 0
@@ -2159,6 +2159,11 @@ groups:
         field: fwAltControlResponseFactor
         min: 5
         max: 100
+      - name: nav_fw_alt_use_position
+        description: "Use position for fixed wing altitude control rather than velocity (default method)."
+        default_value: OFF
+        field: fwAltControlUsePos
+        type: bool
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
