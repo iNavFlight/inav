@@ -38,8 +38,23 @@ If you know what the user can do to fix the problem, you can provide the neccess
 
 If you suspect a potential bug, ask for any additional information that might be relevant and ideally, try to validate and replicate the issue. This makes the life of the developers much easier and allows us to provide a fix faster. 
 
+## It's all about PEOPLE (socials etc)
+INAV is used on quadcopters, on planes, rovers, and boats, but really - INAV is for PEOPLE.
+It's all about helping people enjoy the hobby. If you're a people person, your activity in the 
+Facebook groups, the Telegram group, and on the Discord are really appreciated. Some of the 
+developers writing the math-heavy code aren't social butterflies, so they aren't active on Facebook.
+If you see someone posting about a problem and you can direct them how to post in Issue on the Github, 
+that's really helpful. Relaying information between Telegram, Facebook, Discord, and Github is appreciated.
+If you have a web site or a Youtube channel, or are interested in building one, the resources are 
+really helpful to the people using INAV.
+
 ## Coders
-We also need people who are familiar with either HTML and Javascript to help with new features and fixes in Configurator, or C programmers for INAV features and fixes. Especially reviewing the changes that have already been submitted. If you are an experienced programmier who is willing to spend some time and contribute to the project, even better!
+We also need people who are familiar with either HTML and Javascript to help with new features and fixes in
+Configurator, or C programmers for INAV features and fixes. Especially reviewing the changes that have already been
+submitted. If you are an experienced programmier who is willing to spend some time and contribute to the project, even
+better! Less experienced programmers can also contribute, with small fixes, but especially by *reviewing* code that is
+submitted. If you can read code you may spot typos, or things that just don't seem to make sense. This is also a great
+way to learn.
 
 Keep in mind that we are not a corporation. No one will tell you what to do. You have an idea for a great new feature? Do it! You see something that is broken and you think you can fix? Feel free to fix it! You are unsure if your idea will be accepted? The core-developer team is always there to ask and discuss things and prevent unnecessary work. 
 
