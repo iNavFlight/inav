@@ -50,14 +50,16 @@ If you have a web site or a Youtube channel, or are interested in building one, 
 really helpful to the people using INAV.
 
 ## Coders
-We also need people who are familiar with either HTML and Javascript to help with new features and fixes in
+We also need people who are familiar with either HTML or Javascript to help with new features and fixes in
 Configurator, or C programmers for INAV features and fixes. Especially reviewing the changes that have already been
 submitted. If you are an experienced programmer who is willing to spend some time and contribute to the project, even
 better! Less experienced programmers can also contribute, with small fixes, but especially by *reviewing* code that is
 submitted. If you can read code you may spot typos, or things that just don't seem to make sense. This is also a great
 way to learn.
 
-Keep in mind that we are not a corporation. No one will tell you what to do. You have an idea for a great new feature? Do it! You see something that is broken and you think you can fix? Feel free to fix it! You are unsure if your idea will be accepted? The core-developer team is always there to ask and discuss things and prevent unnecessary work. 
+Keep in mind that we are not a corporation. No one will tell you what to do. You have an idea for a great new feature?
+Do it! You see something that is broken and you think you can fix? Feel free to fix it! You are unsure if your idea
+will be accepted? The core-developer team is always there to ask and discuss things and prevent unnecessary work. 
 
 ## How to get started
 You are welcome to join the [INAV Discord](https://discord.gg/peg2hhbYwN) if you would like to chat with other
