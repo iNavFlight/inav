@@ -70,5 +70,5 @@ Or, feel free to update the [wiki](https://github.com/iNavFlight/inav/wiki)
 To make your own pull requests to update the code or the documentation in the docs/ folder, the [Development.md](https://github.com/iNavFlight/inav/blob/master/docs/development/Development.md#using-git-and-github) page will walk you
 through how to do that.
 
-Lets all come together and make the best INAV possible!
+Let's all come together and make the best INAV possible!
 
