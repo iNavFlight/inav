@@ -10,7 +10,7 @@ Also, if you are good at writing in English, you are welcome to help with the do
 ## How are changes made in INAV? (Testing and reviewing pull requests)
 Most changes done to INAV are done by what’s called a “pull request”, or “PR”. As of this writing, there are currently
 98 pull requests, 98 new things waiting to be added to INAV itself, and 34 for Configurator. Each is waiting for someone
-to test them, or update the related documentation, or just look over the code. If you are curious about whats coming,
+to test them, or update the related documentation, or just look over the code. If you are curious about what's coming,
 then have a look at the [INAV Pull Requests](https://github.com/iNavFlight/inav/pulls)
 
 And the ones for [Configurator](https://github.com/iNavFlight/inav-configurator/pulls)
