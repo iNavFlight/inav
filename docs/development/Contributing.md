@@ -10,8 +10,7 @@ Also, if you are good at writing in English, you are welcome to help with the do
 ## How are changes made in INAV? (Testing and reviewing pull requests)
 Most changes done to INAV are done by what’s called a “pull request”, or “PR”. Each month, there are about 30 pull
 requests - 30 new features or fixes added to INAV.
-Each is waiting for someone
-to test them, or update the related documentation, or just look over the code. If you are curious about what's coming,
+Each is waiting for someone to test them, or update the related documentation, or just look over the code. If you are curious about what's coming,
 then have a look at the [INAV Pull Requests](https://github.com/iNavFlight/inav/pulls)
 
 And the ones for [Configurator](https://github.com/iNavFlight/inav-configurator/pulls)
