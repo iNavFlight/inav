@@ -166,24 +166,26 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
         }
         currentDesiredPosZ = desiredAltitude;
 
-        if (posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
-            posControl.desiredState.pos.z += desiredClimbRate * US2S(deltaMicros);
-            desiredAltitude = posControl.desiredState.pos.z;
-        } else if (altitudeRateControlActive) {
-            /* Disable rate control if no longer required (remaining altitude change is small) */
-            altitudeRateControlActive = fabsf(desiredAltitude - currentAltitude) > MAX(fabsf(desiredClimbRate), 50.0f);
-
-            /* Tracking altitude used to control altitude rate where changing posControl.desiredState.pos.z not possible.
-             * Adjustment factor based on vertical acceleration used to control rate of change of tracking altitude
-             * to better control desired vertical velocity. Helps avoid overcontrol by PID loop. */
+        if (posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT || altitudeRateControlActive) {
+            /* Adjustment factor based on vertical acceleration used to better control altitude position change
+             * driving vertical velocity control. Helps avoid lag induced overcontrol by PID loop. */
             static float absLastClimbRate = 0.0f;
             float absClimbRate = fabsf(measuredValue);
             float accelerationZ = (absClimbRate - absLastClimbRate) / US2S(deltaMicros);
             absLastClimbRate = absClimbRate;
-            float accDerivedAdjustmentFactor = constrainf(scaleRangef(accelerationZ, 0.0f, 200.0f, 1.0f, 0.0f), 0.0f, 1.0f);
+            float adjustmentFactor = constrainf(scaleRangef(accelerationZ, 0.0f, 200.0f, 1.0f, 0.0f), 0.0f, 1.0f);
 
-            trackingAltitude += accDerivedAdjustmentFactor * desiredClimbRate * US2S(deltaMicros);
-            desiredAltitude = trackingAltitude;
+            if (posControl.flags.rocToAltMode == ROC_TO_ALT_CONSTANT) {
+                posControl.desiredState.pos.z += adjustmentFactor * desiredClimbRate * US2S(deltaMicros);
+                desiredAltitude = posControl.desiredState.pos.z;
+            } else {
+                /* Disable rate control if no longer required, i.e. remaining altitude change is small */
+                altitudeRateControlActive = fabsf(desiredAltitude - currentAltitude) > MAX(fabsf(desiredClimbRate), 50.0f);
+
+                /* Tracking altitude used to control altitude rate where changing posControl.desiredState.pos.z not possible */
+                trackingAltitude += adjustmentFactor * desiredClimbRate * US2S(deltaMicros);
+                desiredAltitude = trackingAltitude;
+            }
         }
 
         targetValue = desiredAltitude;
