@@ -26,7 +26,7 @@ PRs](https://github.com/iNavFlight/inav/pulls?q=is%3Aopen+is%3Apr+label%3A"Revie
 ## Documentation Updates
 Another important part of software development is the documentation. This is something that INAV has struggled with in the past, and we want to get better at it. Check the new features, read the description from the developer, and make sure proper documentation for any new feature is provided. Not enough information in the PR? Feel free to make the developers aware of it. You see potential in better guides or descriptions? You are welcome to add or change things, to make them more accessible for newcomers. It is often better for someone BESIDES the developer to write or at least review the documentation for a feature because we want it to be clear and understandable to someone who doesn't already fully understand it.
 
-The better our documentation is the higher is the chance for people to test and try awesome new features. Also everyone has to spend less time asking and answering questions - asking for help or explaining things to people who struggle to understand. This helps reduce frustration all around.
+The better our documentation is, the higher the chance for people to test and try awesome new features. Also everyone has to spend less time asking and answering questions - asking for help or explaining things to people who struggle to understand. This helps reduce frustration all around.
 
 You can edit the wiki pages directly on Github.  Look for the "Edit" button at the top right of any INAV wiki page. 
 
