@@ -34,7 +34,7 @@ You can edit the wiki pages directly on Github.  Look for the "Edit" button at t
 Nothing is perfect. Sometimes bugs might still happen or sometimes a misunderstanding causes problems. This is what pops up in the Github "Issues". Every ticket that is opened there has to be checked by someone familiar with the topic. We have to validate if it could be a user error or an actual problem. Maybe it's a wish for a change or a feature that has to be discussed. 
 
 Any help with these tickets and their validation is appreciated. Keeping this part of the project organized and clean is essential, in order to not miss important things. 
-If you know what the user can do to fix the problem, you can provide the neccessary help and we can close the issue. People tend to expect authoritative, accurate answers on Github, so it is often helpful to point the user to right place in the docs, or check the documentation yourself if you're unsure, then help them.
+If you know what the user can do to fix the problem, you can provide the necessary help and we can close the issue. People tend to expect authoritative, accurate answers on Github, so it is often helpful to point the user to the right place in the docs, or check the documentation yourself if you're unsure, then help them.
 
 If you suspect a potential bug, ask for any additional information that might be relevant and ideally, try to validate and replicate the issue. This makes the life of the developers much easier and allows us to provide a fix faster. 
 
