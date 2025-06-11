@@ -1,6 +1,6 @@
 # You can help bring INAV forward! 
 
-INAV is a big project and fully community driven. This is why we need you, to make INAV better with every release! 
+INAV is a big project and fully community-driven. This is why we need you, to make INAV better with every release! 
 There are over 100 new features and fixes ready to go into INAV, contributed by a lot of developers. To ensure that 
 all quality standards are met, all these great additions need to be checked, tested and potentially fixed before we 
 can add them to the code. This is why we always need your help, to keep the standards high and our aircraft safe! 
