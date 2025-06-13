@@ -32,7 +32,7 @@ void targetConfiguration(void)
     // To improve backwards compatibility with INAV versions 6.x and older
   //  timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
 
-#if defined(SKYSTARSF405AIO)
+#if defined(SOLOGOODF405AIO)
     boardAlignmentMutable()->yawDeciDegrees = 450;
 #endif
 
