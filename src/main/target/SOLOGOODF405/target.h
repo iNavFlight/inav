@@ -18,12 +18,12 @@
 #pragma once
 
 
-#define TARGET_BOARD_IDENTIFIER "SS4D"
+//#define TARGET_BOARD_IDENTIFIER "SS4D"
 
-#define USBD_PRODUCT_STRING  "SkystarsF405HD"
+//#define USBD_PRODUCT_STRING  "SkystarsF405HD"
 
-//#define TARGET_BOARD_IDENTIFIER "SLGD"
-//#define USBD_PRODUCT_STRING  "SOLOGOODF405"
+#define TARGET_BOARD_IDENTIFIER "SLGD"
+#define USBD_PRODUCT_STRING  "SOLOGOODF405"
 
 #define LED1                    PC15 // blue
 
