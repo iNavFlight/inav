@@ -1603,9 +1603,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_CLIMB_TO_SAFE_ALT(n
         posControl.rthState.rthInitialDistance = posControl.homeDistance;
         posControl.activeWaypoint.bearing = posControl.homeDirection;
         fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_INITIAL);
-        if (navConfig()->general.flags.rth_climb_first == RTH_CLIMB_OFF) {
-            posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
-        }
 
         if (navConfig()->general.flags.rth_tail_first && !STATE(FIXED_WING_LEGACY)) {
             setDesiredPosition(tmpHomePos, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_BEARING_TAIL_FIRST);
