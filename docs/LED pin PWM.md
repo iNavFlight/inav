@@ -92,5 +92,5 @@ To drive power LED with brightness control, Mosfet should be used:
 ![alt text](/docs/assets/images/ledpinpwmpowerled.png  "led pin pwm power_led")
 
 # Programming tab example for using the LED pin as a PINIO, such as for turning a VTX or camera on and off
-!(/docs/assets/images/led-as-pinio.png  "led pin as pinio")
+![screenshot of programming tab using led as pinio](/docs/assets/images/led-as-pinio.png)
 
