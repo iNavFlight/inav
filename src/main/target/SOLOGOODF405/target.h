@@ -17,11 +17,6 @@
 
 #pragma once
 
-
-//#define TARGET_BOARD_IDENTIFIER "SS4D"
-
-//#define USBD_PRODUCT_STRING  "SkystarsF405HD"
-
 #define TARGET_BOARD_IDENTIFIER "SLGD"
 #define USBD_PRODUCT_STRING  "SOLOGOODF405"
 
@@ -34,17 +29,9 @@
 #define USE_SPI
 #define USE_SPI_DEVICE_1
 
-#define SPI1_SCK_PIN            PA5
+#define SPI1_SCK_PIN          PA5
 #define SPI1_MISO_PIN	        PA6
 #define SPI1_MOSI_PIN	        PA7
-
-//#define USE_IMU_MPU6000
-//#define MPU6000_SPI_BUS         BUS_SPI1
-//#define MPU6000_CS_PIN          PA4
-
-//#define USE_IMU_BMI270
-//#define BMI270_SPI_BUS          BUS_SPI1
-//#define BMI270_CS_PIN           PA4
 
 #define USE_IMU_ICM42605
 #define ICM42605_SPI_BUS        BUS_SPI1
@@ -55,7 +42,7 @@
 #define USE_FLASH_M25P16
 
 #define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PC10
+#define SPI3_SCK_PIN          PC10
 #define SPI3_MISO_PIN	        PC11
 #define SPI3_MOSI_PIN	        PB5
 
@@ -66,7 +53,7 @@
 
 // *************** OSD  ***********************
 #define USE_SPI_DEVICE_2
-#define SPI2_SCK_PIN            PB13
+#define SPI2_SCK_PIN          PB13
 #define SPI2_MISO_PIN	        PB14
 #define SPI2_MOSI_PIN	        PB15
 
@@ -124,13 +111,12 @@
 #define USE_BARO_DPS310
 #define BARO_I2C_BUS			DEFAULT_I2C_BUS
 
-//#define TEMPERATURE_I2C_BUS     DEFAULT_I2C_BUS
 
 #define USE_RANGEFINDER
 #define USE_RANGEFINDER_MSP
-#define RANGEFINDER_I2C_BUS     DEFAULT_I2C_BUS
 
-//#define PITOT_I2C_BUS           DEFAULT_I2C_BUS
+#define USE_OPFLOW
+#define USE_OPFLOW_MSP
 
 // *************** ADC *****************************
 #define USE_ADC
@@ -158,8 +144,5 @@
 
 #define MAX_PWM_OUTPUT_PORTS    6
 
-
-//#define IMU_MPU6000_ALIGN       CW180_DEG
-//#define IMU_BMI270_ALIGN        CW180_DEG
 #define IMU_ICM42605_ALIGN      CW180_DEG
 
