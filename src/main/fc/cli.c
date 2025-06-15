@@ -131,8 +131,8 @@ extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
 #ifdef USE_BOOTLOG
-extern char dmesg_buffer[USE_BOOTLOG];
-extern char *dmesg_head;
+extern char bootlog_buffer[USE_BOOTLOG];
+extern char *bootlog_head;
 #endif
 
 static serialPort_t *cliPort;
@@ -4804,11 +4804,11 @@ static void cliUbloxPrintSatelites(char *arg)
 #endif
 
 #ifdef USE_BOOTLOG
-static void printDmesg(char *cmdline __attribute__((unused))) {
-    int size = dmesg_head - dmesg_buffer;
+static void printBootLog(char *cmdline __attribute__((unused))) {
+    int size = bootlog_head - bootlog_buffer;
 	cliPrintLinef("log size written: %i of %i bytes reserved", size, USE_BOOTLOG);
     for (int ii = 0; ii < size; ii++) {
-        cliWrite(dmesg_buffer[ii]);
+        cliWrite(bootlog_buffer[ii]);
     }
 }
 #endif
@@ -4833,7 +4833,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("bind_rx", "initiate binding for RX SPI or SRXL2", NULL, cliRxBind),
 #endif
 #if defined(USE_BOOTLOG)
-    CLI_COMMAND_DEF("bootlog", "show boot log", NULL, printDmesg),
+    CLI_COMMAND_DEF("bootlog", "show boot log", NULL, printBootLog),
 #endif
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("color", "configure colors", NULL, cliColor),
