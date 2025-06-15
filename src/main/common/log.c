@@ -62,8 +62,8 @@ PG_RESET_TEMPLATE(logConfig_t, logConfig,
 );
 
 #if defined(USE_BOOTLOG)
-char dmesg_buffer[USE_BOOTLOG];
-char *dmesg_head = dmesg_buffer;
+char bootlog_buffer[USE_BOOTLOG];
+char *bootlog_head = bootlog_buffer;
 #endif
 
 void logInit(void)
@@ -142,14 +142,14 @@ static void logPrint(const char *buf, size_t size)
     }
 
 #ifdef USE_BOOTLOG
-    if ( (dmesg_head + size + 2) < (dmesg_buffer + USE_BOOTLOG) ) {
+    if ( (bootlog_head + size + 2) < (bootlog_buffer + USE_BOOTLOG) ) {
         for (unsigned int ii = 0; ii < size; ii++) {
-		    *dmesg_head = buf[ii];
-			dmesg_head++;
+		    *bootlog_head = buf[ii];
+			bootlog_head++;
         }
-		dmesg_head[0] = '\r';
-		dmesg_head[1] = '\n';
-		dmesg_head =  dmesg_head + 2;
+		bootlog_head[0] = '\r';
+		bootlog_head[1] = '\n';
+		bootlog_head =  bootlog_head + 2;
 	}
 #endif
 }
