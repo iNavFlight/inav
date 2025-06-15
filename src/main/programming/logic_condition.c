@@ -47,6 +47,7 @@
 #include "flight/imu.h"
 #include "flight/pid.h"
 #include "flight/mixer_profile.h"
+#include "flight/wind_estimator.h"
 #include "drivers/io_port_expander.h"
 #include "drivers/gimbal_common.h"
 #include "io/osd_common.h"
@@ -464,6 +465,12 @@ static int logicConditionCompute(
             return true;
             break;
 
+        case LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED:
+            logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED] = constrain(operandA, navConfig()->general.min_ground_speed, 150);
+            LOGIC_CONDITION_GLOBAL_FLAG_ENABLE(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED);
+            return true;
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
@@ -722,6 +729,10 @@ static int logicConditionGetFlightOperandValue(int operand) {
             return gpsSol.groundSpeed;
             break;
 
+        case LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED: // m/s
+            return getMinGroundSpeed(navConfig()->general.min_ground_speed);
+            break;
+
         //FIXME align with osdGet3DSpeed
         case LOGIC_CONDITION_OPERAND_FLIGHT_3D_SPEED: // cm/s
             return osdGet3DSpeed();
@@ -733,6 +744,42 @@ static int logicConditionGetFlightOperandValue(int operand) {
         #else
             return false;
         #endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED: // cm/s
+#ifdef USE_WIND_ESTIMATOR
+        {
+            if (isEstimatedWindSpeedValid()) {
+                uint16_t angle;
+                return getEstimatedHorizontalWindSpeed(&angle);
+            } else
+                return -1;
+        }
+#else
+            return -1;
+#endif
+            break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION: // deg
+#ifdef USE_WIND_ESTIMATOR
+        {
+            if (isEstimatedWindSpeedValid()) {
+                uint16_t angle;
+                getEstimatedHorizontalWindSpeed(&angle);
+                int32_t windAngle = (CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
+                while (windAngle < 0) {
+                    windAngle += 360;
+                }
+                while (windAngle >= 360) {
+                    windAngle -= 360;
+                }
+                return windAngle;
+            } else
+                return -1;
+        }
+#else
+            return -1;
+#endif
             break;
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
@@ -1115,6 +1162,18 @@ uint32_t getLoiterRadius(uint32_t loiterRadius) {
     }
 #else
     return loiterRadius;
+#endif
+}
+
+uint32_t getMinGroundSpeed(uint32_t minGroundSpeed) {
+#ifdef USE_PROGRAMMING_FRAMEWORK
+    if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED)) {
+        return constrain(logicConditionValuesByType[LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED], minGroundSpeed, 150);
+    } else {
+        return minGroundSpeed;
+    }
+#else
+    return minGroundSpeed;
 #endif
 }
 
