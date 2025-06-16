@@ -1016,15 +1016,12 @@ static bool handleIncoming_MISSION_ITEM(void)
         }
 
         if ((msg.autocontinue == 0) || (msg.command != MAV_CMD_NAV_WAYPOINT && msg.command != MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-            //LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED");
-
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
             return true;
         }
 
         if ((msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) && !(msg.frame == MAV_FRAME_MISSION && msg.command == MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-            //LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED FRAME");
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
             return true;
