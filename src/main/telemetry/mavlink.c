@@ -37,7 +37,6 @@
 #include "common/maths.h"
 #include "common/utils.h"
 #include "common/string_light.h"
-#include "common/log.h"
 
 #include "config/feature.h"
 
@@ -1017,7 +1016,7 @@ static bool handleIncoming_MISSION_ITEM(void)
         }
 
         if ((msg.autocontinue == 0) || (msg.command != MAV_CMD_NAV_WAYPOINT && msg.command != MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-            LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED");
+            //LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED");
 
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
@@ -1025,7 +1024,7 @@ static bool handleIncoming_MISSION_ITEM(void)
         }
 
         if ((msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) && !(msg.frame == MAV_FRAME_MISSION && msg.command == MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-            LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED FRAME");
+            //LOG_DEBUG(SYSTEM, "MISSION_ITEM UNSUPPORTED FRAME");
             mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION);
             mavlinkSendMessage();
             return true;
@@ -1132,12 +1131,9 @@ static bool handleIncoming_COMMAND_INT(void)
     mavlink_msg_command_int_decode(&mavRecvMsg, &msg);
 
     if (msg.target_system == mavSystemId) {
-        LOG_DEBUG(SYSTEM, "COMMAND_INT", msg.command);
 
         if (msg.command == MAV_CMD_DO_REPOSITION) {
-            LOG_DEBUG(SYSTEM, "1 MAV_CMD_DO_REPOSITION");
             if (msg.frame != MAV_FRAME_GLOBAL) {
-                    LOG_DEBUG(SYSTEM, "2 FRAME %d UNSUPPORTED", msg.frame);
 
                     mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                                 msg.command,
@@ -1160,7 +1156,6 @@ static bool handleIncoming_COMMAND_INT(void)
                 wp.flag = 0;
 
                 setWaypoint(255, &wp);
-                LOG_DEBUG(SYSTEM, "2 WP SET");
 
                 mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                             msg.command,
@@ -1171,7 +1166,6 @@ static bool handleIncoming_COMMAND_INT(void)
                                             mavRecvMsg.compid);
                 mavlinkSendMessage();
             } else {
-                LOG_DEBUG(SYSTEM, "2 DENIED");
                 mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                             msg.command,
                                             MAV_RESULT_DENIED,
@@ -1182,7 +1176,6 @@ static bool handleIncoming_COMMAND_INT(void)
                 mavlinkSendMessage();
             }
         } else {
-                LOG_DEBUG(SYSTEM, "1 CMD UNSUPPORTED");
             mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                         msg.command,
                                         MAV_RESULT_UNSUPPORTED,
@@ -1337,8 +1330,9 @@ static bool processMAVLinkIncomingTelemetry(void)
                 case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                     return handleIncoming_MISSION_REQUEST_LIST();
 
+                //TODO:
                 //case MAVLINK_MSG_ID_COMMAND_LONG; //up to 7 float parameters
-                
+                    //return handleIncoming_COMMAND_LONG();
                 
                 case MAVLINK_MSG_ID_COMMAND_INT: //7 parameters: parameters 1-4, 7 are floats, and parameters 5,6 are scaled integers
                     return handleIncoming_COMMAND_INT();
