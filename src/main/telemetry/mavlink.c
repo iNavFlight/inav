@@ -673,7 +673,7 @@ void mavlinkSendAttitude(void)
         // roll Roll angle (rad)
         RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.roll)),
         // pitch Pitch angle (rad)
-        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(-attitude.values.pitch)),
+        RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.pitch)),
         // yaw Yaw angle (rad)
         RADIANS_TO_MAVLINK_RANGE(DECIDEGREES_TO_RADIANS(attitude.values.yaw)),
         // rollspeed Roll angular speed (rad/s)
