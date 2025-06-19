@@ -136,7 +136,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     float desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
 
     // Reduce max allowed climb rate by 2/3 if performing loiter (stall prevention)
-    if (needToCalculateCircularLoiter && desiredClimbRate > 0.67f * navConfig()->fw.max_auto_climb_rate) {
+    if (navGetCurrentStateFlags() & NAV_CTL_HOLD && desiredClimbRate > 0.67f * navConfig()->fw.max_auto_climb_rate) {
         desiredClimbRate = 0.67f * navConfig()->fw.max_auto_climb_rate;
     }
 
@@ -147,6 +147,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // Default control based on climb rate (velocity)
     float targetValue = desiredClimbRate;
     float measuredValue = navGetCurrentActualPositionAndVelocity()->vel.z;
+    pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR;
 
     // Optional control based on altitude (position)
     if (pidProfile()->fwAltControlUsePos) {
@@ -186,14 +187,17 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
                 trackingAltitude += adjustmentFactor * desiredClimbRate * US2S(deltaMicros);
                 desiredAltitude = trackingAltitude;
             }
+        } else {
+            desiredClimbRate = 0;
         }
 
         targetValue = desiredAltitude;
         measuredValue = currentAltitude;
+        pidFlags = 0;  // use measurement for D term
     }
 
     // PID controller to translate desired target error (velocity or position) into pitch angle [decideg]
-    float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, targetValue, measuredValue, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, PID_DTERM_FROM_ERROR);
+    float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, targetValue, measuredValue, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, pidFlags);
 
     // Apply low-pass filter to prevent rapid correction
     targetPitchAngle = pt1FilterApply4(&pitchFilterState, targetPitchAngle, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
