@@ -147,4 +147,4 @@ log) by defining USE_BOOTLOG:
 Then `make clean` and `make`.
 
 Then in the CLI you can run `bootlog` to see the buffered log.
-Note dmesg also requires that a serial port be defined for serial debugging.
+Note bootlog also requires that a serial port be defined for serial debugging.
