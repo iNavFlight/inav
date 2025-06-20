@@ -586,21 +586,24 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         static float baroGroundAlt = 0;
 
         if (STATE(MULTIROTOR)) {
-            static timeMs_t baroGroundTimeout;
+            static timeMs_t baroGroundTimeout = 0;
+            static bool isBaroGroundValid = false;
 
             if (!ARMING_FLAG(ARMED)) {
                 baroGroundAlt = posEstimator.est.pos.z;
-                baroGroundTimeout = currentTimeMs + 250;   // 0.25 sec
+                baroGroundTimeout = 0;
+                isBaroGroundValid = true;
             }
             else {
                 // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
-                if (posEstimator.est.vel.z > 15.0f) {
-                    isAirCushionEffectDetected = currentTimeMs < baroGroundTimeout &&
-                                                 ((isEstimatedAglTrusted() && posEstimator.surface.alt < 20.0f) || (posEstimator.baro.alt < baroGroundAlt));
-                }
-                else {
+                if (baroGroundTimeout) {
+                    isBaroGroundValid = currentTimeMs > baroGroundTimeout ? false : true;
+                } else if (posEstimator.est.vel.z > 15.0f) {
                     baroGroundTimeout = currentTimeMs + 250;   // 0.25 sec
                 }
+
+                isAirCushionEffectDetected = isBaroGroundValid &&
+                                             ((isEstimatedAglTrusted() && posEstimator.surface.alt < 20.0f) || (posEstimator.baro.alt < baroGroundAlt));
             }
         }
 
