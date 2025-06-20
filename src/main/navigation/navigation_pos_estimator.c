@@ -581,29 +581,31 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     }
 
     if (ctx->newFlags & EST_BARO_VALID && wBaro) {
-        timeUs_t currentTimeUs = micros();
+        timeMs_t currentTimeMs = millis();
+        bool isAirCushionEffectDetected = false;
+        static float baroGroundAlt = 0;
 
-        if (!ARMING_FLAG(ARMED)) {
-            posEstimator.state.baroGroundAlt = posEstimator.est.pos.z;
-            posEstimator.state.isBaroGroundValid = true;
-            posEstimator.state.baroGroundTimeout = currentTimeUs + 250000;   // 0.25 sec
-        }
-        else {
-            if (posEstimator.est.vel.z > 15) {
-                posEstimator.state.isBaroGroundValid = currentTimeUs > posEstimator.state.baroGroundTimeout ? false: true;
+        if (STATE(MULTIROTOR)) {
+            static timeMs_t baroGroundTimeout;
+
+            if (!ARMING_FLAG(ARMED)) {
+                baroGroundAlt = posEstimator.est.pos.z;
+                baroGroundTimeout = currentTimeMs + 250;   // 0.25 sec
             }
             else {
-                posEstimator.state.baroGroundTimeout = currentTimeUs + 250000;   // 0.25 sec
+                // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
+                if (posEstimator.est.vel.z > 15.0f) {
+                    isAirCushionEffectDetected = currentTimeMs < baroGroundTimeout &&
+                                                 ((isEstimatedAglTrusted() && posEstimator.surface.alt < 20.0f) || (posEstimator.baro.alt < baroGroundAlt));
+                }
+                else {
+                    baroGroundTimeout = currentTimeMs + 250;   // 0.25 sec
+                }
             }
         }
 
-        // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
-        bool isAirCushionEffectDetected = ARMING_FLAG(ARMED) &&
-                                            (((ctx->newFlags & EST_SURFACE_VALID) && posEstimator.surface.alt < 20.0f && posEstimator.state.isBaroGroundValid) ||
-                                             ((ctx->newFlags & EST_BARO_VALID) && posEstimator.state.isBaroGroundValid && posEstimator.baro.alt < posEstimator.state.baroGroundAlt));
-
         // Altitude
-        const float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? posEstimator.state.baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
+        const float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
         const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
         const float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
 
