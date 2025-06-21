@@ -56,8 +56,8 @@
 #define USE_FLASH_M25P16
 
 #define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PC10
-#define SPI3_MISO_PIN	        PC11
+#define SPI3_SCK_PIN            PB3
+#define SPI3_MISO_PIN	        PB4
 #define SPI3_MOSI_PIN	        PB5
 
 #define M25P16_SPI_BUS          BUS_SPI3
