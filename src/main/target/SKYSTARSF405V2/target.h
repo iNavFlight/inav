@@ -136,7 +136,7 @@
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PC4
+#define PINIO1_PIN                  PC5
 #define PINIO2_PIN                  PC3
 #define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
 
