@@ -147,7 +147,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // Default control based on climb rate (velocity)
     float targetValue = desiredClimbRate;
     float measuredValue = navGetCurrentActualPositionAndVelocity()->vel.z;
-    pidControllerFlags_e pidFlags = PID_DTERM_FROM_ERROR;
+    pidControllerFlags_e pidFlags = 0;  // PID_DTERM_FROM_ERROR;
 
     // Optional control based on altitude (position)
     if (pidProfile()->fwAltControlUsePos) {
