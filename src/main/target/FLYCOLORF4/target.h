@@ -57,11 +57,11 @@
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define M25P16_CS_PIN           PC13
-#define M25P16_SPI_BUS          BUS_SPI2
+#define M25P16_SPI_BUS          BUS_SPI3
 
 /*** OSD ***/
 #define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI3
+#define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          PB12
 
 /*** Serial ports ***/
