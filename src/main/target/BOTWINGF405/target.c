@@ -15,7 +15,6 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_OUTPUT_AUTO, 1, 1), // S2
     DEF_TIM(TIM3, CH4, PC9,  TIM_USE_OUTPUT_AUTO, 1, 0), // S3
     DEF_TIM(TIM3, CH3, PC8,  TIM_USE_OUTPUT_AUTO, 1, 0), // S4
-    DEF_TIM(TIM4, CH2, PB7,  TIM_USE_OUTPUT_AUTO, 0, 0), // S5
     DEF_TIM(TIM2, CH2, PB3,  TIM_USE_LED, 0, 0),
 
 };

@@ -115,9 +115,14 @@
 
 #define ADC_CHANNEL_1_PIN           PC1
 #define ADC_CHANNEL_2_PIN           PC2
+#define ADC_CHANNEL_3_PIN           PC3
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_3
+#define RSSI_ADC_CHANNEL            ADC_CHN_2
+#define VBAT_SCALE_DEFAULT              1420
+#define CURRENT_METER_SCALE             206
+
 
 // *************** PINIO ***************************
 #define USE_PINIO
@@ -133,8 +138,6 @@
 
 
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
-#define CURRENT_METER_SCALE     250
-#define CURRENT_METER_OFFSET    0
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -143,15 +146,10 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 
-#ifdef SPEEDYBEEF405MINI_6OUTPUTS
 
-#define MAX_PWM_OUTPUT_PORTS        6
-
-#else
 
 #define MAX_PWM_OUTPUT_PORTS        4
 
-#endif
 
 #define USE_DSHOT
 #define USE_SERIALSHOT
