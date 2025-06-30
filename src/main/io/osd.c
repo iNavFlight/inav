@@ -2852,6 +2852,13 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
+    case OSD_THROTTLE_GAUGE:
+    {
+        bool useScaled = navigationIsControllingThrottle();
+        osdThrottleGauge(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), getThrottlePercent(useScaled));
+        return true;
+    }
+
 #if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
         {
@@ -4246,6 +4253,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_ATTITUDE_ROLL] = OSD_POS(1, 7);
     osdLayoutsConfig->item_pos[0][OSD_ATTITUDE_PITCH] = OSD_POS(1, 8);
 
+    osdLayoutsConfig->item_pos[0][OSD_THROTTLE_GAUGE] = OSD_POS(23, 5);
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdLayoutsConfig->item_pos[0][OSD_VARIO] = OSD_POS(23, 5);
     // OSD_VARIO_NUM at the right of OSD_VARIO
