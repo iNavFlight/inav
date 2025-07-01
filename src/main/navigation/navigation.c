@@ -1287,7 +1287,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_IDLE(navigationFSMState
     resetAltitudeController(false);
     resetHeadingController();
     resetPositionController();
-    mcToiletBowlingHeadingCorrection = 0;
 #ifdef USE_FW_AUTOLAND
     resetFwAutoland();
 #endif

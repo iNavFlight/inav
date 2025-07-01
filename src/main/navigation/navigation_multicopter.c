@@ -568,7 +568,8 @@ static void checkForToiletBowling(void)
     bool isHoldingPosition = ((FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && posControl.cruise.multicopterSpeed < 50) || navGetCurrentStateFlags() & NAV_CTL_HOLD);
     uint16_t distanceToHoldPoint = calculateDistanceToDestination(&posControl.desiredState.pos);
 
-    if (posControl.actualState.velXY < 100 || distanceToHoldPoint < 100 || !isHoldingPosition || posControl.flags.isAdjustingPosition) {
+    if (posControl.actualState.velXY < 100 || distanceToHoldPoint < 100 || !isHoldingPosition || (posControl.flags.isAdjustingPosition && navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI)) {
+
         return;
     }
 
@@ -585,7 +586,7 @@ static void checkForToiletBowling(void)
         if (startTime == 0) {
             startTime = millis();
         } else if (millis() - startTime > 1000) {
-            /* Set heading correction if check conditions exist > 1s. 2/3 of actual course error seems to work best */
+            /* Set heading correction if check conditions exist > 1 sec. 2/3 of actual course error seems to work best */
             mcToiletBowlingHeadingCorrection = 0.67 * courseError;
         }
     } else {
@@ -1050,6 +1051,7 @@ void calculateMulticopterInitialHoldPosition(fpVector3_t * pos)
 void resetMulticopterHeadingController(void)
 {
     updateHeadingHoldTarget(CENTIDEGREES_TO_DEGREES(posControl.actualState.yaw));
+    mcToiletBowlingHeadingCorrection = 0;
 }
 
 static void applyMulticopterHeadingController(void)
