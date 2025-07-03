@@ -10,14 +10,19 @@
 
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM3, CH1, PB4,  TIM_USE_MOTOR, 0, 0), // S1
-    DEF_TIM(TIM3, CH2, PB5,  TIM_USE_MOTOR, 0, 0), // S2
-    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MOTOR, 0, 0), // S3
-    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MOTOR, 0, 0), // S4
-    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_SERVO, 0, 0), // S5
-    DEF_TIM(TIM2, CH2, PB3,  TIM_USE_SERVO, 0, 0),
-    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_LED, 0, 0),
-
-    
+    // DEF_TIM(TIM3, CH1, PB4,  TIM_USE_MOTOR, 0, 0), // S1
+    // DEF_TIM(TIM3, CH2, PB5,  TIM_USE_MOTOR, 0, 0), // S2
+    // DEF_TIM(TIM3, CH3, PB0,  TIM_USE_MOTOR, 0, 0), // S3
+    // DEF_TIM(TIM3, CH4, PB1,  TIM_USE_MOTOR, 0, 0), // S4
+    // DEF_TIM(TIM2, CH1, PA15, TIM_USE_SERVO, 0, 0),// Servo 1
+    // DEF_TIM(TIM2, CH2, PB3,  TIM_USE_SERVO, 0, 0),// Servo 2
+    // not able to fins any "TIM_USE_AUTO" DEFINED INSIDE THE typedef enum in timer.h file so used "   TIM_USE_ANY" INSTEAD .
+    DEF_TIM(TIM3, CH1, PB4,  TIM_USE_ANY, 0, 0), // S1
+    DEF_TIM(TIM3, CH2, PB5,  TIM_USE_ANY, 0, 0), // S2
+    DEF_TIM(TIM3, CH3, PB0,  TIM_USE_ANY, 0, 0), // S3
+    DEF_TIM(TIM3, CH4, PB1,  TIM_USE_ANY, 0, 0), // S4
+    DEF_TIM(TIM2, CH1, PA15, TIM_USE_ANY, 0, 0),// Servo 1
+    DEF_TIM(TIM2, CH2, PB3,  TIM_USE_ANY, 0, 0),// Servo 2
+    DEF_TIM(TIM4, CH1, PB6,  TIM_USE_LED, 0, 0),    
 };
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
