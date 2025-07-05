@@ -49,12 +49,6 @@ extern baro_t baro;
 
 #ifdef USE_BARO
 
-typedef enum {
-    BARO_TEMP_CAL_INITIALISE,
-    BARO_TEMP_CAL_IN_PROGRESS,
-    BARO_TEMP_CAL_COMPLETE,
-} baroTempCalState_e;
-
 typedef struct barometerConfig_s {
     uint8_t baro_hardware;                  // Barometer hardware to use
     uint16_t baro_calibration_tolerance;    // Baro calibration tolerance (cm at sea level)

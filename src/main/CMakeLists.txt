@@ -460,6 +460,7 @@ main_sources(COMMON_SRC
     sensors/esc_sensor.h
     sensors/irlock.c
     sensors/irlock.h
+    sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h
 
