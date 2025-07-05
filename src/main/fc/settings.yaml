@@ -642,6 +642,12 @@ groups:
         field: baro_calibration_tolerance
         min: 0
         max: 1000
+      - name: baro_temp_correction
+        description: "Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm."
+        field: baro_temp_correction
+        min: -50
+        max: 51
+        default_value: 0
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
