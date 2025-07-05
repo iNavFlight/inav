@@ -100,6 +100,7 @@ float applySensorTempCompensation(int16_t sensorTemp, float sensorMeasurement, s
         }
 #endif
         sensor_comp_data[sensorType].calibrationState = SENSOR_TEMP_CAL_COMPLETE;
+        startTimeMs = 0;
     }
 
     return 0.0f;
