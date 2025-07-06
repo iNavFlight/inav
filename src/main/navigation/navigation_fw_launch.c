@@ -299,7 +299,7 @@ static bool hasIdleWakeWiggleSucceeded(timeUs_t currentTimeUs) {
 
 static inline bool isLaunchMaxAltitudeReached(void)
 {
-    return (navConfig()->fw.launch_max_altitude > 0) && (getEstimatedActualPosition(Z) >= navConfig()->fw.launch_max_altitude);
+    return (navConfig()->fw.launch_max_altitude > 0) && ((getEstimatedActualPosition(Z) - getTakeoffAltitude()) >= navConfig()->fw.launch_max_altitude);
 }
 
 static inline bool areSticksMoved(timeMs_t initialTime, timeUs_t currentTimeUs)

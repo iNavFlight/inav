@@ -126,7 +126,7 @@ typedef struct rxConfig_s {
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint8_t autoSmooth;                     // auto smooth rx input (0 = off, 1 = on)
     uint8_t autoSmoothFactor;               // auto smooth rx input factor (1 = no smoothing, 100 = lots of smoothing)
-    uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
+    uint32_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
 #ifdef USE_SERIALRX_SRXL2
     uint8_t srxl2_unit_id;

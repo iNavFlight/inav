@@ -71,7 +71,7 @@ To find out cruise airspeed, make a test flight. Enable ground speed display on 
 
 Cruise airspeed is specified in cm/s.
 
-To convert km/h to m/s, multiply by 27.77.
+To convert km/h to cm/s, multiply by 27.77.
 
 
 Example: 100 km/h = 100 * 27.77 = 2777 cm/s

@@ -471,7 +471,7 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     else {
         if (mode & MODE_TX) {
             IOInit(tx, OWNER_SERIAL, RESOURCE_UART_TX, RESOURCE_INDEX(device));
-            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->rx_af);
+            IOConfigGPIOAF(tx, IOCFG_AF_PP, uart->tx_af);
         }
 
         if (mode & MODE_RX) {

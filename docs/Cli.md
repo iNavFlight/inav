@@ -73,7 +73,7 @@ While connected to the CLI, all Logical Switches are temporarily disabled (5.1.0
 | `beeper` | Show/set beeper (buzzer) [usage](Buzzer.md) |
 | `bind_rx` | Initiate binding for SRXL2 or CRSF receivers |
 | `blackbox` | Configure blackbox fields |
-| `bootlog` | Show boot events |
+| `bootlog` | Show init logs from [serial_printf_debugging](./development/serial_printf_debugging.md) |
 | `color` | Configure colors |
 | `defaults` | Reset to defaults and reboot |
 | `dfu` | DFU mode on reboot |

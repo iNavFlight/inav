@@ -47,24 +47,29 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 
+// *************** SPI3 ********************
+#define USE_SPI_DEVICE_3
+#define SPI3_SCK_PIN            PB3
+#define SPI3_MISO_PIN   	    PB4
+#define SPI3_MOSI_PIN   	    PB5
+
+#ifdef MATEKF405MINI
+// *************** M25P256 flash ********************
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
+#define M25P16_SPI_BUS          BUS_SPI3
+#define M25P16_CS_PIN           PC0
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
 // *************** SD Card **************************
 #define USE_SDCARD
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC1
 
-#define USE_SPI_DEVICE_3
-#define SPI3_SCK_PIN            PB3
-#define SPI3_MISO_PIN   	    PB4
-#define SPI3_MOSI_PIN   	    PB5
-
 #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-
-// *************** M25P256 flash ********************
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_SPI_BUS          BUS_SPI3
-#define M25P16_CS_PIN           PC0
+#endif
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2
@@ -168,7 +173,7 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY )
+#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_BLACKBOX )
 #define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP

@@ -122,6 +122,16 @@ Frequency of the software notch filter to remove mechanical vibrations from the 
 
 ---
 
+### acc_temp_correction
+
+Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
+
+---
+
 ### accgain_x
 
 Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page.
@@ -449,6 +459,16 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
+
+---
+
+### baro_temp_correction
+
+Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
 
 ---
 
@@ -1334,7 +1354,7 @@ Defines error rate (in percents of max rate) when Iterm Lock is engaged when sti
 
 ### fw_iterm_lock_rate_threshold
 
-Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+Defines the steepness of the attenuation curve. Higher values result in flatter attenuation. Lower values force full attenuation with lower stick deflection
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1344,7 +1364,7 @@ Defines rate percentage when full P I and D attenuation should happen. 100 disab
 
 ### fw_iterm_lock_time_max_ms
 
-Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+Defines max time in milliseconds for how long ITerm Lock will depress Iterm after sticks are release
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3034,11 +3054,11 @@ If enabled, motor will stop when throttle is low on this mixer_profile
 
 ### msp_override_channels
 
-Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode.
+Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires the `MSP RC Override` flight mode.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 65535 |
+| 0 | 0 | 4294967295 |
 
 ---
 
@@ -3434,7 +3454,7 @@ Launch throttle - throttle to be set during launch sequence (pwm units)
 
 ### nav_fw_launch_timeout
 
-Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms)
+Maximum time for launch sequence to continue after throwing. After this time LAUNCH mode will end and regular flight mode will take over (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |

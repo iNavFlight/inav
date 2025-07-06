@@ -5,7 +5,8 @@ name: Build pre-release
 on: 
   push:
     branches:
-    - master
+      - master
+      - maintenance-8.x.x
     paths:
       - 'src/**'
       - '.github/**'

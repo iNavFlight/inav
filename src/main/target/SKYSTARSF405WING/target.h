@@ -38,7 +38,7 @@
 #define SPI1_MOSI_PIN   	    PA7
 
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW180_DEG
+#define IMU_ICM42605_ALIGN      CW270_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PC14
 
@@ -130,6 +130,7 @@
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PA4
 #define PINIO2_PIN                  PB5
+#define PINIO1_FLAGS				PINIO_FLAGS_INVERTED
 
 // *************** LEDSTRIP ************************
 #define USE_LED_STRIP
