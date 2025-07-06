@@ -39,7 +39,7 @@ assignees: ''
 
 ## Additional context
 <!-- Add any other context about the problem here.  -->
-<!-- Go to CLI, execute `dump` command copy its output to [PasteBin](https://pastebin.com) and provide a link to a paste here -->
+<!-- Go to CLI, execute `diff` command copy its output to [PasteBin](https://pastebin.com) and provide a link to a paste here -->
 
 ---
 <!-- PLEASE FILL THIS OUT -->
