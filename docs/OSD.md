@@ -26,6 +26,7 @@ Not all OSDs are created equally. This table shows the differences between the d
 | DJI O3 Goggles V2 + WTFOS   | 53 x 20        | X         |        | X               | YES                     |
 | DJI Goggles 2 and newer     | 53 x 20 (HD)   | X         |        | X               | YES (no custom fonts)   |
 
+
 ## OSD Elements
 Here are the OSD Elements provided by INAV.
 
