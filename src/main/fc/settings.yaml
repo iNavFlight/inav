@@ -2149,7 +2149,7 @@ groups:
         max: 255
       - name: nav_fw_pos_z_ff
         description: "FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)"
-        default_value: 10
+        default_value: 30
         field: bank_fw.pid[PID_POS_Z].FF
         min: 0
         max: 255

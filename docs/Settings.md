@@ -3628,7 +3628,7 @@ FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set O
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 

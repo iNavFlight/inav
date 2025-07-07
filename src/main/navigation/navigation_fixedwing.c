@@ -147,7 +147,6 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     // Default control based on climb rate (velocity)
     float targetValue = desiredClimbRate;
     float measuredValue = navGetCurrentActualPositionAndVelocity()->vel.z;
-    pidControllerFlags_e pidFlags = 0;  // PID_DTERM_FROM_ERROR;
 
     // Optional control based on altitude (position)
     if (pidProfile()->fwAltControlUsePos) {
@@ -193,11 +192,10 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 
         targetValue = desiredAltitude;
         measuredValue = currentAltitude;
-        pidFlags = 0;  // use measurement for D term
     }
 
     // PID controller to translate desired target error (velocity or position) into pitch angle [decideg]
-    float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, targetValue, measuredValue, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, pidFlags);
+    float targetPitchAngle = navPidApply2(&posControl.pids.fw_alt, targetValue, measuredValue, US2S(deltaMicros), minDiveDeciDeg, maxClimbDeciDeg, 0);
 
     // Apply low-pass filter to prevent rapid correction
     targetPitchAngle = pt1FilterApply4(&pitchFilterState, targetPitchAngle, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ), US2S(deltaMicros));
