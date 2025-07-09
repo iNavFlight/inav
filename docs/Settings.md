@@ -3152,6 +3152,16 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 ---
 
+### nav_fw_alt_use_position
+
+Use position for fixed wing altitude control rather than velocity (default method).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_fw_auto_climb_rate
 
 Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
@@ -3634,11 +3644,11 @@ D gain of altitude PID controller (Fixedwing)
 
 ### nav_fw_pos_z_ff
 
-FF gain of altitude PID controller (Fixedwing)
+FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 
