@@ -1,6 +1,6 @@
 # Building in GitHub Codespaces
 > **A codespace is a cloud-hosted development environment.**
-> This guild provides a simple method to modify and build a version of INAV in the cloud.**
+> This guide provides a simple method to modify and build a version of INAV in the cloud.**
 
 ## Setup
 1. Navigate to the version of INAV you want to modify.
