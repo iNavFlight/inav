@@ -23,6 +23,7 @@ Use the terminal inside the codespace environment to run the following commands:
 cmake -B build -S .
 ```
 <img width="1566" height="989" alt="image" src="https://github.com/user-attachments/assets/5747e49b-256b-4afb-9a16-3c592ba6773c" />
+
 > Note: You may need to use ctrl+C to exit the process and return to the shell once it completes.
 
 ### Target
