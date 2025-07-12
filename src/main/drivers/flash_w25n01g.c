@@ -124,6 +124,7 @@
 
 // JEDEC ID
 #define JEDEC_ID_WINBOND_W25N01GV 0xEFAA21
+#define JEDEC_ID_WINBOND_W25N02KV 0xEFAA22
 
 static busDevice_t *busDev = NULL;
 static flashGeometry_t geometry;
@@ -235,6 +236,11 @@ bool w25n01g_detect(uint32_t chipID)
     switch (chipID) {
     case JEDEC_ID_WINBOND_W25N01GV:
         geometry.sectors = 1024;      // Blocks
+        geometry.pagesPerSector = 64; // Pages/Blocks
+        geometry.pageSize = 2048;
+        break;
+    case JEDEC_ID_WINBOND_W25N02KV:
+        geometry.sectors = 2048;      // Blocks
         geometry.pagesPerSector = 64; // Pages/Blocks
         geometry.pageSize = 2048;
         break;
