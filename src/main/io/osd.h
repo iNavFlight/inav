@@ -313,6 +313,7 @@ typedef enum {
     OSD_H_DIST_TO_FENCE,
     OSD_V_DIST_TO_FENCE,
     OSD_NAV_FW_ALT_CONTROL_RESPONSE,
+    OSD_NAV_MIN_GROUND_SPEED,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -365,6 +366,13 @@ typedef enum {
     OSD_CRSF_LQ_TYPE2,
     OSD_CRSF_LQ_TYPE3
 } osd_crsf_lq_format_e;
+
+typedef enum {
+    OSD_SPEED_TYPE_GROUND,
+    OSD_SPEED_TYPE_AIR,
+    OSD_SPEED_TYPE_3D,
+    OSD_SPEED_TYPE_MIN_GROUND,
+} osd_SpeedTypes_e;
 
 typedef struct osdLayoutsConfig_s {
     // Layouts
@@ -537,7 +545,7 @@ void osdShowEEPROMSavedNotification(void);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
+void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
 
