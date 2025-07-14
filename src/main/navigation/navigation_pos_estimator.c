@@ -598,7 +598,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         ctx->estPosCorr.z += baroAltResidual * w_z_baro_p * ctx->dt;
         ctx->estVelCorr.z += baroVelZResidual * w_z_baro_v * ctx->dt;
 
-        ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, posEstimator.baro.epv, w_z_baro_p);
+        ctx->newEPV = updateEPE(posEstimator.est.epv, ctx->dt, MAX(posEstimator.baro.epv, fabsf(baroAltResidual)), w_z_baro_p);
 
         // Accelerometer bias
         if (!isAirCushionEffectDetected) {
@@ -608,8 +608,8 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
     }
 
-    if (ctx->newFlags & EST_GPS_Z_VALID && wGps) {
-        // Reset current estimate to GPS altitude if estimate not valid
+    if (ctx->newFlags & EST_GPS_Z_VALID && (wGps || !(ctx->newFlags & EST_Z_VALID))) {
+        // Reset current estimate to GPS altitude if estimate not valid (used for GPS and Baro)
         if (!(ctx->newFlags & EST_Z_VALID)) {
             ctx->estPosCorr.z += posEstimator.gps.pos.z - posEstimator.est.pos.z;
             ctx->estVelCorr.z += posEstimator.gps.vel.z - posEstimator.est.vel.z;
@@ -633,12 +633,10 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
         correctOK = ARMING_FLAG(WAS_EVER_ARMED);    // No correction until first armed
     }
 
-    // Double corrections if only single sensor used
-    if (wGps == 0 || wBaro == 0) {
-        ctx->estPosCorr.z *= 2.0f;
-        ctx->estVelCorr.z *= 2.0f;
-        ctx->accBiasCorr.z *= 2.0f;
-    }
+    // Factor corrections for sensor weightings to ensure magnitude consistency
+    ctx->estPosCorr.z *= 2.0f / (wGps + wBaro);
+    ctx->estVelCorr.z *= 2.0f / (wGps + wBaro);
+    ctx->accBiasCorr.z *= 2.0f / (wGps + wBaro);
 
     return correctOK;
 }
