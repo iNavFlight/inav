@@ -122,6 +122,16 @@ Frequency of the software notch filter to remove mechanical vibrations from the 
 
 ---
 
+### acc_temp_correction
+
+Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
+
+---
+
 ### accgain_x
 
 Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page.
@@ -449,6 +459,16 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 | Default | Min | Max |
 | --- | --- | --- |
 | AUTO |  |  |
+
+---
+
+### baro_temp_correction
+
+Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
 
 ---
 
@@ -3132,6 +3152,16 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 ---
 
+### nav_fw_alt_use_position
+
+Use position for fixed wing altitude control rather than velocity (default method).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### nav_fw_auto_climb_rate
 
 Maximum climb/descent rate that UAV is allowed to reach during navigation modes. [cm/s]
@@ -3614,11 +3644,11 @@ D gain of altitude PID controller (Fixedwing)
 
 ### nav_fw_pos_z_ff
 
-FF gain of altitude PID controller (Fixedwing)
+FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 

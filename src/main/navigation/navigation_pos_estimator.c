@@ -50,8 +50,9 @@
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
-#include "sensors/pitotmeter.h"
 #include "sensors/opflow.h"
+#include "sensors/pitotmeter.h"
+#include "sensors/sensors.h"
 
 navigationPosEstimator_t posEstimator;
 static float initialBaroAltitudeOffset = 0.0f;
@@ -283,12 +284,12 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
 {
     float newBaroAlt = baroCalculateAltitude();
 
-    /* If we are required - keep altitude at zero */
-    if (shouldResetReferenceAltitude()) {
-        initialBaroAltitudeOffset = newBaroAlt;
-    }
-
     if (sensors(SENSOR_BARO) && baroIsCalibrationComplete()) {
+        /* If required - keep altitude at zero */
+        if (shouldResetReferenceAltitude()) {
+            initialBaroAltitudeOffset = newBaroAlt;
+        }
+
         const timeUs_t baroDtUs = currentTimeUs - posEstimator.baro.lastUpdateTime;
 
         posEstimator.baro.alt = newBaroAlt - initialBaroAltitudeOffset;
@@ -434,6 +435,7 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
             }
 #endif
             posEstimator.imu.accelNEU.z -= posEstimator.imu.calibratedGravityCMSS;
+            posEstimator.imu.accelNEU.z += applySensorTempCompensation(10 * gyroGetTemperature(), imuMeasuredAccelBF.z, SENSOR_INDEX_ACC);
         }
         else {      // If calibration is incomplete - report zero acceleration
             posEstimator.imu.accelNEU.x = 0.0f;
