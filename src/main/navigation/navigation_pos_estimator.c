@@ -398,6 +398,10 @@ static void updateIMUTopic(timeUs_t currentTimeUs)
         posEstimator.imu.accelNEU.y = accelReading.y + posEstimator.imu.accelBias.y;
         posEstimator.imu.accelNEU.z = accelReading.z + posEstimator.imu.accelBias.z;
 
+        DEBUG_SET(DEBUG_VIBE, 5, posEstimator.imu.accelBias.x);
+        DEBUG_SET(DEBUG_VIBE, 6, posEstimator.imu.accelBias.y);
+        DEBUG_SET(DEBUG_VIBE, 7, posEstimator.imu.accelBias.z);
+
         /* When unarmed, assume that accelerometer should measure 1G. Use that to correct accelerometer gain */
         if (gyroConfig()->init_gyro_cal_enabled) {
             if (!ARMING_FLAG(ARMED) && !gravityCalibrationComplete()) {
@@ -766,14 +770,14 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
     /* Correct accelerometer bias */
     const float w_acc_bias = positionEstimationConfig()->w_acc_bias;
     if (w_acc_bias > 0.0f) {
-        ctx.accBiasCorr.x = constrainf(ctx.accBiasCorr.x, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
-        ctx.accBiasCorr.y = constrainf(ctx.accBiasCorr.y, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
-        ctx.accBiasCorr.z = constrainf(ctx.accBiasCorr.z, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
-
         /* Correct accel bias */
         posEstimator.imu.accelBias.x += ctx.accBiasCorr.x * w_acc_bias * ctx.dt;
         posEstimator.imu.accelBias.y += ctx.accBiasCorr.y * w_acc_bias * ctx.dt;
         posEstimator.imu.accelBias.z += ctx.accBiasCorr.z * w_acc_bias * ctx.dt;
+
+        posEstimator.imu.accelBias.x = constrainf(posEstimator.imu.accelBias.x, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
+        posEstimator.imu.accelBias.y = constrainf(posEstimator.imu.accelBias.y, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
+        posEstimator.imu.accelBias.z = constrainf(posEstimator.imu.accelBias.z, -INAV_ACC_BIAS_ACCEPTANCE_VALUE, INAV_ACC_BIAS_ACCEPTANCE_VALUE);
     }
 
     /* Update ground course */
