@@ -572,13 +572,13 @@ void FAST_CODE mixTable(void)
     }
 
     // motors for non-servo mixes
-    for (int16_t i = 0; i < motorCount; i++) {
-			if (STATE(BOOMERANG)) {
-          // Note: yaw always stabilized; pitch/roll always raw. 
-          rpyMix[i] = currentMixer[i].yaw * axisPID[YAW] +
-                      currentMixer[i].pitch * (
-              -mulCosDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[PITCH]) +
-              mulSinDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[ROLL]));
+    for (int i = 0; i < motorCount; i++) {
+        if (STATE(BOOMERANG)) {
+            // Note: yaw always stabilized; pitch/roll always raw. 
+            rpyMix[i] = currentMixer[i].yaw * axisPID[YAW] +
+                        currentMixer[i].pitch * (
+                -mulCosDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[PITCH]) +
+                mulSinDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[ROLL]));
         } 
         else {
 					rpyMix[i] =
