@@ -56,6 +56,9 @@
 #include "rx/rx.h"
 
 #include "sensors/battery.h"
+#include "sensors/rotor.h"
+
+#include "programming/global_variables.h"
 
 #define MAX_THROTTLE 2000
 #define MAX_THROTTLE_ROVER 1850
@@ -164,6 +167,7 @@ void mixerUpdateStateFlags(void)
     DISABLE_STATE(AIRPLANE);
     DISABLE_STATE(MOVE_FORWARD_ONLY);
     DISABLE_STATE(TAILSITTER);
+    DISABLE_STATE(BOOMERANG);
 
     if (currentMixerConfig.platformType == PLATFORM_AIRPLANE) {
         ENABLE_STATE(FIXED_WING_LEGACY);
@@ -186,6 +190,9 @@ void mixerUpdateStateFlags(void)
         ENABLE_STATE(ALTITUDE_CONTROL);
     } else if (currentMixerConfig.platformType == PLATFORM_HELICOPTER) {
         ENABLE_STATE(MULTIROTOR);
+        ENABLE_STATE(ALTITUDE_CONTROL);
+    } else if (currentMixerConfig.platformType == PLATFORM_BOOMERANG) {
+        ENABLE_STATE(BOOMERANG);
         ENABLE_STATE(ALTITUDE_CONTROL);
     }
 
@@ -493,6 +500,30 @@ static int getReversibleMotorsThrottleDeadband(void)
     return ifMotorstopFeatureEnabled() ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
+const uint8_t sinTab[90] = {0, 4, 8, 13, 17, 22, 26, 31, 35, 40, 44, 48, 53,
+  57, 61, 66, 70, 74, 79, 83, 87, 91, 95, 100, 104, 108, 112, 116, 120, 124,
+  127, 131, 135, 139, 143, 146, 150, 154, 157, 161, 164, 167, 171, 174, 177,
+  181, 184, 187, 190, 193, 196, 198, 201, 204, 207, 209, 212, 214, 217, 219,
+  221, 223, 226, 228, 230, 232, 233, 235, 237, 238, 240, 242, 243, 244, 246,
+  247, 248, 249, 250, 251, 252, 252, 253, 254, 254, 255, 255, 255, 255, 255, };
+
+int32_t mulSinDegApprox(int32_t deg, int32_t v) {
+  if (deg >= 360) deg = deg % 360;
+  else if (deg < 0) deg = (deg % 360) + 360;
+  if (deg == 90) return v;
+  if (deg == 270) return -v;
+  int32_t w;
+  if (deg < 90)       w = +(int32_t)sinTab[deg];
+  else if (deg < 180) w = +(int32_t)sinTab[180 - deg];
+  else if (deg < 270) w = -(int32_t)sinTab[deg - 180];
+  else                w = -(int32_t)sinTab[360 - deg];
+  return v * w / 256;
+}
+
+int32_t mulCosDegApprox(int32_t deg, int32_t v) {
+  return mulSinDegApprox(deg + 90, v);
+}
+
 void FAST_CODE mixTable(void)
 {
 #ifdef USE_DSHOT
@@ -534,12 +565,27 @@ void FAST_CODE mixTable(void)
     int16_t rpyMixMax = 0; // assumption: symetrical about zero.
     int16_t rpyMixMin = 0;
 
+		int16_t angle = 0;
+    if (STATE(BOOMERANG)) {
+        gvSet(0, rotorRPM());
+        angle = rotorAngle();
+    }
+
     // motors for non-servo mixes
-    for (int i = 0; i < motorCount; i++) {
-        rpyMix[i] =
-            (input[PITCH] * currentMixer[i].pitch +
-            input[ROLL] * currentMixer[i].roll +
-            -motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
+    for (int16_t i = 0; i < motorCount; i++) {
+			if (STATE(BOOMERANG)) {
+          // Note: yaw always stabilized; pitch/roll always raw. 
+          rpyMix[i] = currentMixer[i].yaw * axisPID[YAW] +
+                      currentMixer[i].pitch * (
+              -mulCosDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[PITCH]) +
+              mulSinDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[ROLL]));
+        } 
+        else {
+					rpyMix[i] =
+							(input[PITCH] * currentMixer[i].pitch +
+							input[ROLL] * currentMixer[i].roll +
+							-motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
+				}
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
