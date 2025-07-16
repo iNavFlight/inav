@@ -565,7 +565,7 @@ void FAST_CODE mixTable(void)
     int16_t rpyMixMax = 0; // assumption: symetrical about zero.
     int16_t rpyMixMin = 0;
 
-		int16_t angle = 0;
+	int16_t angle = 0;
     if (STATE(BOOMERANG)) {
         gvSet(0, rotorRPM());
         angle = rotorAngle();
@@ -581,11 +581,11 @@ void FAST_CODE mixTable(void)
                 mulSinDegApprox(angle + 360 * currentMixer[i].roll, rcCommand[ROLL]));
         } 
         else {
-					rpyMix[i] =
-							(input[PITCH] * currentMixer[i].pitch +
-							input[ROLL] * currentMixer[i].roll +
-							-motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
-				}
+			rpyMix[i] =
+				(input[PITCH] * currentMixer[i].pitch +
+				input[ROLL] * currentMixer[i].roll +
+				-motorYawMultiplier * input[YAW] * currentMixer[i].yaw) * mixerScale;
+		}
 
         if (rpyMix[i] > rpyMixMax) rpyMixMax = rpyMix[i];
         if (rpyMix[i] < rpyMixMin) rpyMixMin = rpyMix[i];
