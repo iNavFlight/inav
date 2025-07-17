@@ -2,8 +2,6 @@
 
 # F411 PSA
 
-> INAV no longer accepts targets based on STM32 F411 MCU.
-
 > INAV 7 was the last INAV official release available for F411 based flight controllers. INAV 8 is not officially available for F411 boards.
 
 # ICM426xx IMUs PSA
