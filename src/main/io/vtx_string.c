@@ -51,7 +51,7 @@ const char * const vtx58BandNames[VTX_STRING_5G8_BAND_COUNT + 1] = {
     "R",
 };
 
-const char vtx58BandLetter[VTX_STRING_5G8_BAND_COUNT + 1] = "-ABEFR";
+const char vtx58BandLetter[VTX_STRING_5G8_BAND_COUNT + 1] __attribute__ ((nonstring)) = "-ABEFR";
 
 const char * const vtx58ChannelNames[VTX_STRING_5G8_CHAN_COUNT + 1] = {
     "-", "1", "2", "3", "4", "5", "6", "7", "8",
@@ -73,7 +73,7 @@ const char * const vtx1G3BandNames[VTX_STRING_1G3_BAND_COUNT + 1] = {
     "B",
 };
 
-const char vtx1G3BandLetter[VTX_STRING_1G3_BAND_COUNT + 1] = "-AB";
+const char vtx1G3BandLetter[VTX_STRING_1G3_BAND_COUNT + 1] __attribute__ ((nonstring)) = "-AB";
 
 const char * const vtx1G3ChannelNames[VTX_STRING_1G3_CHAN_COUNT + 1] = {
     "-", "1", "2", "3", "4", "5", "6", "7", "8",
