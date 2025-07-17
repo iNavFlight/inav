@@ -131,6 +131,12 @@ bool mspOverrideUpdateCheck(timeUs_t currentTimeUs, timeDelta_t currentDeltaTime
         }
     }
 
+    // Changing receiver_type from MSP to anything can cause a race with
+    // the function pointer as NULL. This will not end well, so bail out early.
+    if(rxRuntimeConfigMSP.rcFrameStatusFn == NULL) {
+	return false;
+    }
+
     const uint8_t frameStatus = rxRuntimeConfigMSP.rcFrameStatusFn(&rxRuntimeConfigMSP);
     if (frameStatus & RX_FRAME_COMPLETE) {
         rxDataProcessingRequired = true;
