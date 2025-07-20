@@ -199,7 +199,8 @@ void i2c_OLED_clear_display(void)
     i2c_OLED_send_cmd(0xa6);              // Set Normal Display
     i2c_OLED_send_cmd(0xae);              // Display OFF
     i2c_OLED_send_cmd(0x20);              // Set Memory Addressing Mode
-    i2c_OLED_send_cmd(0x00);              // Set Memory Addressing Mode to Horizontal addressing mode
+    i2c_OLED_send_cmd(0x02);              // Set Memory Addressing Mode to Page addressing mode
+    i2c_OLED_send_cmd(0x40);              // Set Display Start Line to 0
 
     // Clear all 8 pages (0-7)
     for (uint8_t page = 0; page < 8; page++) {
