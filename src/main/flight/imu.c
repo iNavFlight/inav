@@ -832,6 +832,8 @@ static void imuCalculateEstimatedAttitude(float dT)
     static float attitude_reset_timer = 0.0f;
     const float reset_threshold_deg = 12.0f; // Desync threshold
     const float reset_time_s = 1.5f;         // Desync duration
+    const float acc_weight_threshold = 0.5f; // Minimum trust in accelerometer
+    const float max_vibe_g = 0.2f;           // Max allowed vibration (G)
 
     // Get roll/pitch from accel (or baro/gps if available)
     float acc_roll = atan2f(compansatedGravityBF.y, compansatedGravityBF.z) * RAD_TO_DEG;
@@ -844,7 +846,18 @@ static void imuCalculateEstimatedAttitude(float dT)
     float roll_diff = fabsf(acc_roll - est_roll);
     float pitch_diff = fabsf(acc_pitch - est_pitch);
 
-    if ((roll_diff > reset_threshold_deg || pitch_diff > reset_threshold_deg) && isGPSTrustworthy()) {
+    // Calculate accelerometer trust
+    float accWeight = imuCalculateAccelerometerWeightNearness(&compansatedGravityBF) * imuCalculateAccelerometerWeightRateIgnore(1.0f);
+
+    // Get vibration levels
+    fpVector3_t accVibeLevels;
+    accGetVibrationLevels(&accVibeLevels);
+    bool lowVibration = fabsf(accVibeLevels.x) < max_vibe_g && fabsf(accVibeLevels.y) < max_vibe_g && fabsf(accVibeLevels.z) < max_vibe_g;
+
+    if ((roll_diff > reset_threshold_deg || pitch_diff > reset_threshold_deg)
+        && isGPSTrustworthy()
+        && accWeight > acc_weight_threshold
+        && lowVibration) {
         attitude_reset_timer += dT;
         if (attitude_reset_timer > reset_time_s) {
             imuResetOrientationQuaternion(&compansatedGravityBF);
