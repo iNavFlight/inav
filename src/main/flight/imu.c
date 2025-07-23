@@ -827,6 +827,34 @@ static void imuCalculateEstimatedAttitude(float dT)
                             useCOG, courseOverGround,
                             accWeight,
                             magWeight);
+
+    // --- HORIZON AUTO-RESET ---
+    static float attitude_reset_timer = 0.0f;
+    const float reset_threshold_deg = 12.0f; // Desync threshold
+    const float reset_time_s = 1.5f;         // Desync duration
+
+    // Get roll/pitch from accel (or baro/gps if available)
+    float acc_roll = atan2f(compansatedGravityBF.y, compansatedGravityBF.z) * RAD_TO_DEG;
+    float acc_pitch = atan2f(-compansatedGravityBF.x, sqrtf(compansatedGravityBF.y * compansatedGravityBF.y + compansatedGravityBF.z * compansatedGravityBF.z)) * RAD_TO_DEG;
+
+    // Current roll/pitch from filter
+    float est_roll = attitude.values.roll * 0.1f;   // attitude.values.* in tenths of degree
+    float est_pitch = attitude.values.pitch * 0.1f;
+
+    float roll_diff = fabsf(acc_roll - est_roll);
+    float pitch_diff = fabsf(acc_pitch - est_pitch);
+
+    if ((roll_diff > reset_threshold_deg || pitch_diff > reset_threshold_deg) && isGPSTrustworthy()) {
+        attitude_reset_timer += dT;
+        if (attitude_reset_timer > reset_time_s) {
+            imuResetOrientationQuaternion(&compansatedGravityBF);
+            attitude_reset_timer = 0.0f;
+        }
+    } else {
+        attitude_reset_timer = 0.0f;
+    }
+    // --- END HORIZON AUTO-RESET ---
+
     imuUpdateTailSitter();
     imuUpdateEulerAngles();
 }
