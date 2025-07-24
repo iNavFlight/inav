@@ -828,7 +828,7 @@ static void imuCalculateEstimatedAttitude(float dT)
                             accWeight,
                             magWeight);
 
-    // --- HORIZON AUTO-RESET ---
+// --- HORIZON AUTO-RESET ---
     static float attitude_reset_timer = 0.0f;
     const float reset_threshold_deg = 12.0f; // Desync threshold
     const float reset_time_s = 1.5f;         // Desync duration
@@ -854,10 +854,47 @@ static void imuCalculateEstimatedAttitude(float dT)
     accGetVibrationLevels(&accVibeLevels);
     bool lowVibration = fabsf(accVibeLevels.x) < max_vibe_g && fabsf(accVibeLevels.y) < max_vibe_g && fabsf(accVibeLevels.z) < max_vibe_g;
 
+    // Check if accelerometer readings are consistent with actual movement
+    bool pitch_consistent = true;
+    if (isGPSTrustworthy()) {
+        float climb_rate_cms = -gpsSol.velNED[Z];
+        
+        // If accelerometer shows nose up but we're descending rapidly
+        if ((acc_pitch > est_pitch + reset_threshold_deg) && (climb_rate_cms < -50.0f)) {
+            pitch_consistent = false;
+        }
+        
+        // If accelerometer shows nose down but we're climbing rapidly
+        if ((acc_pitch < est_pitch - reset_threshold_deg) && (climb_rate_cms > 50.0f)) {
+            pitch_consistent = false;
+        }
+    }
+
+    // Check acceleration/deceleration
+    static int16_t prev_groundspeed = 0;
+    static timeUs_t prev_speed_time = 0;
+    timeUs_t current_time = micros();
+    bool stable_speed = true;
+
+    if (isGPSTrustworthy() && prev_speed_time > 0) {
+        float dt = (current_time - prev_speed_time) * 1e-6f;
+        if (dt > 0) {
+            float accel_cmss = (gpsSol.groundSpeed - prev_groundspeed) / dt;
+            // Don't reset during strong acceleration/deceleration (> ~0.5G)
+            if (fabsf(accel_cmss) > 500.0f) {
+                stable_speed = false;
+            }
+        }
+    }
+    prev_groundspeed = gpsSol.groundSpeed;
+    prev_speed_time = current_time;
+
     if ((roll_diff > reset_threshold_deg || pitch_diff > reset_threshold_deg)
         && isGPSTrustworthy()
         && accWeight > acc_weight_threshold
-        && lowVibration) {
+        && lowVibration
+        && pitch_consistent
+        && stable_speed) {
         attitude_reset_timer += dT;
         if (attitude_reset_timer > reset_time_s) {
             imuResetOrientationQuaternion(&compansatedGravityBF);
