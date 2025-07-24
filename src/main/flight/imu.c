@@ -115,6 +115,12 @@ FASTRAM bool gpsHeadingInitialized;
 
 FASTRAM bool imuUpdated = false;
 
+#define ACC_HISTORY_SIZE 180  // 3 minutes at 1Hz update rate
+STATIC_FASTRAM fpVector3_t accHistory[ACC_HISTORY_SIZE];
+STATIC_FASTRAM uint8_t accHistoryIndex = 0;
+STATIC_FASTRAM uint16_t accHistoryCount = 0;
+STATIC_FASTRAM uint32_t accHistoryLastUpdateMs = 0;
+
 static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
@@ -731,6 +737,90 @@ void imuUpdateTailSitter(void)
     lastTailSitter = STATE(TAILSITTER);
 }
 
+static void updateAccHistory(const fpVector3_t *currentAcc)
+{
+    // Update history approximately once per second
+    const uint32_t currentTimeMs = millis();
+    if (currentTimeMs - accHistoryLastUpdateMs < 1000) {
+        return;
+    }
+    
+    accHistoryLastUpdateMs = currentTimeMs;
+    
+    // Add new value to history
+    accHistory[accHistoryIndex] = *currentAcc;
+    accHistoryIndex = (accHistoryIndex + 1) % ACC_HISTORY_SIZE;
+    if (accHistoryCount < ACC_HISTORY_SIZE) {
+        accHistoryCount++;
+    }
+}
+
+static void calculateLongTermAverageAcc(fpVector3_t *avgAcc)
+{
+    // If no history, return current value
+    if (accHistoryCount == 0) {
+        *avgAcc = imuMeasuredAccelBF;
+        return;
+    }
+    
+    // Calculate average
+    vectorZero(avgAcc);
+    
+    for (uint16_t i = 0; i < accHistoryCount; i++) {
+        avgAcc->x += accHistory[i].x;
+        avgAcc->y += accHistory[i].y;
+        avgAcc->z += accHistory[i].z;
+    }
+    
+    avgAcc->x /= accHistoryCount;
+    avgAcc->y /= accHistoryCount;
+    avgAcc->z /= accHistoryCount;
+    
+    float norm = fast_fsqrtf(vectorNormSquared(avgAcc));
+    if (norm > 0.1f) {
+        vectorScale(avgAcc, avgAcc, GRAVITY_CMSS / norm);
+    }
+}
+
+static void imuApplyGentleCorrection(const fpVector3_t *targetAccBF, float strength)
+{
+    fpQuaternion_t currentOrientation = orientation;
+    
+    // Create temporary quaternion corresponding to target accelerometer vector
+    fpQuaternion_t targetOrientation;
+    const float accNorm = fast_fsqrtf(vectorNormSquared(targetAccBF));
+    
+    targetOrientation.q0 = targetAccBF->z + accNorm;
+    targetOrientation.q1 = targetAccBF->y;
+    targetOrientation.q2 = -targetAccBF->x;
+    targetOrientation.q3 = 0.0f;
+    quaternionNormalize(&targetOrientation, &targetOrientation);
+    
+    // Calculate difference between current and target orientation
+    fpQuaternion_t diffQuat;
+    quaternionConjugate(&diffQuat, &currentOrientation);
+    quaternionMultiply(&diffQuat, &targetOrientation, &diffQuat);
+    
+    fpAxisAngle_t axisAngle;
+    quaternionToAxisAngle(&axisAngle, &diffQuat);
+    
+    // Limit correction angle per step
+    const float maxCorrection = DEGREES_TO_RADIANS(0.5f); // 0.5 degrees per step
+    if (fabsf(axisAngle.angle) > maxCorrection) {
+        axisAngle.angle = axisAngle.angle > 0 ? maxCorrection : -maxCorrection;
+    }
+    
+    axisAngle.angle *= strength;
+    
+    // Create correction quaternion
+    fpQuaternion_t correctionQuat;
+    axisAngleToQuaternion(&correctionQuat, &axisAngle);
+    
+    // Apply correction to current orientation
+    quaternionMultiply(&orientation, &currentOrientation, &correctionQuat);
+    quaternionNormalize(&orientation, &orientation);
+}
+
 static void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
@@ -835,7 +925,9 @@ static void imuCalculateEstimatedAttitude(float dT)
     const float acc_weight_threshold = 0.5f; // Minimum trust in accelerometer
     const float max_vibe_g = 0.2f;           // Max allowed vibration (G)
 
-    // Get roll/pitch from accel (or baro/gps if available)
+    updateAccHistory(&compansatedGravityBF);
+
+    // Get roll/pitch from accel
     float acc_roll = atan2f(compansatedGravityBF.y, compansatedGravityBF.z) * RAD_TO_DEG;
     float acc_pitch = atan2f(-compansatedGravityBF.x, sqrtf(compansatedGravityBF.y * compansatedGravityBF.y + compansatedGravityBF.z * compansatedGravityBF.z)) * RAD_TO_DEG;
 
@@ -897,8 +989,15 @@ static void imuCalculateEstimatedAttitude(float dT)
         && stable_speed) {
         attitude_reset_timer += dT;
         if (attitude_reset_timer > reset_time_s) {
-            imuResetOrientationQuaternion(&compansatedGravityBF);
-            attitude_reset_timer = 0.0f;
+            // Instead of full reset, use long-term average and gentle correction
+            fpVector3_t avgAcc;
+            calculateLongTermAverageAcc(&avgAcc);
+            
+            // Apply small correction (5% per step)
+            imuApplyGentleCorrection(&avgAcc, 0.05f);
+            
+            // Reset timer but not to zero, to continue correction
+            attitude_reset_timer = reset_time_s * 0.8f;
         }
     } else {
         attitude_reset_timer = 0.0f;
