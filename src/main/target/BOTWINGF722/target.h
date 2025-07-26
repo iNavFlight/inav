@@ -71,17 +71,18 @@
 
 // *************** Flash **************************
 #define USE_SPI_DEVICE_1
-// #define SPI1_NSS_PIN                                 PA4
+#define SPI1_NSS_PIN                                 PA4
 #define SPI1_SCK_PIN                                    PA5
 #define SPI1_MISO_PIN                                   PA6
 #define SPI1_MOSI_PIN                                   PA7
 
 #define USE_FLASHFS
-#define USE_FLASH_W25Q128FV
-// #define W25Q128FV_CS_PIN                             SPI1_NSS_PIN
-#define W25Q128FV_CS_PIN                                PA4
-#define W25Q128FV_SPI_BUS                               BUS_SPI1
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define USE_FLASH_M25P16
+#define M25P16_CS_PIN                SPI1_NSS_PIN
+#define M25P16_SPI_BUS               BUS_SPI1
+
+
 
 // *************** OSD *****************************
 #define USE_OSD
@@ -96,6 +97,8 @@
 
 // *************** ADC *****************************
 #define USE_ADC
+#define ADC_INSTANCE                ADC1
+#define ADC1_DMA_STREAM             DMA2_Stream0
 #define ADC_CHANNEL_1_PIN                               PC0  // CURRENT
 #define ADC_CHANNEL_2_PIN                               PC1  // RSSI
 #define ADC_CHANNEL_3_PIN                               PC2  // VBAT
