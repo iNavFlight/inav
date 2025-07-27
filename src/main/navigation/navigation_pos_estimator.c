@@ -596,6 +596,7 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
             else if (isBaroGroundValid) {
                 // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
                 if (isMulticopterThrottleAboveMidHover()) {
+                    // Disable ground effect detection at lift off when est alt and baro alt converge. Always disable if baro alt > 1m.
                     isBaroGroundValid = fabsf(posEstimator.est.pos.z - posEstimator.baro.alt) > 20.0f && posEstimator.baro.alt < 100.0f;
                 }
 
@@ -605,6 +606,8 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
 
         // Altitude
         float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
+
+        // Disable alt pos correction at point of lift off if ground effect active
         if (isAirCushionEffectDetected && isMulticopterThrottleAboveMidHover()) {
             baroAltResidual = 0.0f;
         }
