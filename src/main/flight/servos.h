@@ -63,6 +63,7 @@ typedef enum {
     INPUT_GVAR_6                    = 36,
     INPUT_GVAR_7                    = 37,
     INPUT_MIXER_TRANSITION          = 38,
+    INPUT_MIXER_SWITCH_HELPER       = 39,
     INPUT_SOURCE_COUNT
 } inputSource_e;
 
@@ -120,6 +121,14 @@ typedef struct servoMixer_s {
 #define SERVO_OUTPUT_MIN 500
 
 PG_DECLARE_ARRAY(servoMixer_t, MAX_SERVO_RULES, customServoMixers);
+
+typedef struct servoMixerSwitch_s {
+    //this is used to keep track of servoSpeedLimitFilter of servo rules during the mixer switch
+    uint8_t targetChannel;                  // servo that receives the output of the rule
+    int16_t rate;                           // range [-1000;+1000] ; can be used to adjust a rate 0-1000% and a direction
+    uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
+    float speedLimitFilterState;     // rate limit filter for this rule
+} servoMixerSwitch_t;
 
 typedef struct servoParam_s {
     int16_t min;                            // servo min
