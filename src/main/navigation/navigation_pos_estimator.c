@@ -583,29 +583,34 @@ static bool estimationCalculateCorrection_Z(estimationContext_t * ctx)
     }
 
     if (ctx->newFlags & EST_BARO_VALID && wBaro) {
-        timeUs_t currentTimeUs = micros();
+        bool isAirCushionEffectDetected = false;
+        static float baroGroundAlt = 0.0f;
 
-        if (!ARMING_FLAG(ARMED)) {
-            posEstimator.state.baroGroundAlt = posEstimator.est.pos.z;
-            posEstimator.state.isBaroGroundValid = true;
-            posEstimator.state.baroGroundTimeout = currentTimeUs + 250000;   // 0.25 sec
-        }
-        else {
-            if (posEstimator.est.vel.z > 15) {
-                posEstimator.state.isBaroGroundValid = currentTimeUs > posEstimator.state.baroGroundTimeout ? false: true;
-            }
-            else {
-                posEstimator.state.baroGroundTimeout = currentTimeUs + 250000;   // 0.25 sec
-            }
-        }
+        if (STATE(MULTIROTOR)) {
+            static bool isBaroGroundValid = false;
 
-        // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
-        bool isAirCushionEffectDetected = ARMING_FLAG(ARMED) &&
-                                            (((ctx->newFlags & EST_SURFACE_VALID) && posEstimator.surface.alt < 20.0f && posEstimator.state.isBaroGroundValid) ||
-                                             ((ctx->newFlags & EST_BARO_VALID) && posEstimator.state.isBaroGroundValid && posEstimator.baro.alt < posEstimator.state.baroGroundAlt));
+            if (!ARMING_FLAG(ARMED)) {
+                baroGroundAlt = posEstimator.baro.alt;
+                isBaroGroundValid = true;
+            }
+            else if (isBaroGroundValid) {
+                // We might be experiencing air cushion effect during takeoff - use sonar or baro ground altitude to detect it
+                if (isMulticopterThrottleAboveMidHover()) {
+                    // Disable ground effect detection at lift off when est alt and baro alt converge. Always disable if baro alt > 1m.
+                    isBaroGroundValid = fabsf(posEstimator.est.pos.z - posEstimator.baro.alt) > 20.0f && posEstimator.baro.alt < 100.0f;
+                }
+
+                isAirCushionEffectDetected = (isEstimatedAglTrusted() && posEstimator.surface.alt < 20.0f) || posEstimator.baro.alt < baroGroundAlt + 20.0f;
+            }
+        }
 
         // Altitude
-        const float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? posEstimator.state.baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
+        float baroAltResidual = wBaro * ((isAirCushionEffectDetected ? baroGroundAlt : posEstimator.baro.alt) - posEstimator.est.pos.z);
+
+        // Disable alt pos correction at point of lift off if ground effect active
+        if (isAirCushionEffectDetected && isMulticopterThrottleAboveMidHover()) {
+            baroAltResidual = 0.0f;
+        }
         const float baroVelZResidual = isAirCushionEffectDetected ? 0.0f : wBaro * (posEstimator.baro.baroAltRate - posEstimator.est.vel.z);
         const float w_z_baro_p = positionEstimationConfig()->w_z_baro_p;
 
