@@ -150,6 +150,7 @@ typedef struct servoMixerSwitch_s {
     uint8_t speed;                          // reduces the speed of the rule, 0=unlimited speed
     float speedLimitFilterState;     // rate limit filter for this rule
 } servoMixerSwitch_t;
+#define MAX_SERVO_RULES_SWITCH_CARRY (MAX_SERVO_RULES / 2)
 
 typedef struct servoParam_s {
     int16_t min;                            // servo min

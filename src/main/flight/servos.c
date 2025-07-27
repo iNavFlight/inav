@@ -59,7 +59,6 @@
 #include "rx/rx.h"
 
 #include "sensors/gyro.h"
-#include "common/log.h"
 
 PG_REGISTER_WITH_RESET_TEMPLATE(servoConfig_t, servoConfig, PG_SERVO_CONFIG, 3);
 
@@ -209,15 +208,15 @@ void loadCustomServoMixer(void)
 {
     
     //move the rate filter to new servo rules
-    int maxMoveFilters = MAX_SERVO_RULES/2;
     int movefilterCount = 0;
-    servoMixerSwitch_t servoMixerSwitchHelper[maxMoveFilters]; // helper to keep track of servoSpeedLimitFilter of servo rules
+    static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
     memset(servoMixerSwitchHelper, 0, sizeof(servoMixerSwitchHelper));
     for (int i = 0; i < servoRuleCount; i++) {
-        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= maxMoveFilters) {
+        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+            //will not carry over INPUT_MIXER_SWITCH_HELPER rules
             break;
         }
-        if(currentServoMixer[i].speed != 0 && servoSpeedLimitFilter[i].state !=0) {
+        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) < 0.01f) {
             servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
             servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
             servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
