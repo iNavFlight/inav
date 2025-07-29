@@ -35,7 +35,9 @@
 #include "common/vector.h"
 #include "common/quaternion.h"
 #include "common/time.h"
+#include "common/utils.h"
 
+#define RAD_TO_DEG (1.0f / RAD)
 
 #include "config/feature.h"
 #include "config/parameter_group.h"
@@ -939,7 +941,7 @@ static void imuCalculateEstimatedAttitude(float dT)
     float pitch_diff = fabsf(acc_pitch - est_pitch);
 
     // Calculate accelerometer trust
-    float accWeight = imuCalculateAccelerometerWeightNearness(&compansatedGravityBF) * imuCalculateAccelerometerWeightRateIgnore(1.0f);
+    accWeight = imuCalculateAccelerometerWeightNearness(&compansatedGravityBF) * imuCalculateAccelerometerWeightRateIgnore(1.0f);
 
     // Get vibration levels
     fpVector3_t accVibeLevels;
