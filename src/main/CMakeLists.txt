@@ -216,7 +216,7 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_ms4525.c
     drivers/pitotmeter/pitotmeter_ms4525.h
     drivers/pitotmeter/pitotmeter_dlvr_l10d.c
-    drivers/pitotmeter/pitotmeter_dlvr_l10d.h	
+    drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
@@ -460,6 +460,7 @@ main_sources(COMMON_SRC
     sensors/esc_sensor.h
     sensors/irlock.c
     sensors/irlock.h
+    sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h
 

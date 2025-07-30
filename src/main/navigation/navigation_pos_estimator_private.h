@@ -154,13 +154,6 @@ typedef enum {
 } navDefaultAltitudeSensor_e;
 
 typedef struct {
-    timeUs_t    baroGroundTimeout;
-    float       baroGroundAlt;
-    bool        isBaroGroundValid;
-} navPositionEstimatorSTATE_t;
-
-
-typedef struct {
     uint32_t                    flags;
 
     // Data sources
@@ -175,9 +168,6 @@ typedef struct {
 
     // Estimate
     navPositionEstimatorESTIMATE_t  est;
-
-    // Extra state variables
-    navPositionEstimatorSTATE_t state;
 } navigationPosEstimator_t;
 
 typedef struct {
