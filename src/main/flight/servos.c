@@ -216,7 +216,7 @@ void loadCustomServoMixer(void)
             //will not carry over INPUT_MIXER_SWITCH_HELPER rules
             break;
         }
-        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) < 0.01f) {
+        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
             servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
             servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
             servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
