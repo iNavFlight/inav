@@ -60,7 +60,7 @@
 
 #define QMC5883P_CONF1_MODE_SUSPEND    0x00
 #define QMC5883P_CONF1_MODE_NORMAL     0x01
-#define QMC5833P_CONF1_MODE_SINGLE     0x02
+#define QMC5883P_CONF1_MODE_SINGLE     0x02
 #define QMC5883P_CONF1_MODE_CONTINUOUS 0x03
 
 #define QMC5883P_CONF1_ODR_10HZ  (0x00 << 2)
@@ -97,7 +97,7 @@
 
 #define QMC5883P_REG_STATUS 0x09
 #define QMC5883P_STATUS_DRDY_MASK 0x01
-#define QMC5833P_STATUS_OVFL_MASK 0x02
+#define QMC5883P_STATUS_OVFL_MASK 0x02
 
 // This register has no definition in the datasheet and only mentioned in an example
 #define QMC5883P_REG_DATA_SIGN 0x29
@@ -130,6 +130,7 @@ static bool qmc5883pRead(magDev_t * mag)
 
     // set magData to zero for case of failed read
     mag->magADCRaw[X] = 0;
+    mag->magADCRaw[Y] = 0;
     mag->magADCRaw[Z] = 0;
 
     bool ack = busRead(mag->busDev, QMC5883P_REG_STATUS, &status);
