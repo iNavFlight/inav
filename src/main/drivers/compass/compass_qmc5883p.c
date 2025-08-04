@@ -142,9 +142,23 @@ static bool qmc5883pRead(magDev_t * mag)
         return false;
     }
 
+    /*
+    Initially, this sensor provided the data like this:
     mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]);
     mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]);
     mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]);
+
+    But QMC5883P has a different reference point and axis directions, compared to QMC5883L.
+    As QMC5883P is designed to be a drop-in replacement for QMC5883L, apply alignment at
+    readout to obtain the same readings in the same position. In particular, it does
+    the same transformation to the data, as the CW270_DEG_FLIP option:
+        dest[X] = -y;
+        dest[Y] = -x;
+        dest[Z] = -z;
+    */
+    mag->magADCRaw[X] = -(int16_t)(buf[3] << 8 | buf[2]);
+    mag->magADCRaw[Y] = -(int16_t)(buf[1] << 8 | buf[0]);
+    mag->magADCRaw[Z] = -(int16_t)(buf[5] << 8 | buf[4]);
 
     return true;
 }
