@@ -8,7 +8,7 @@ tables:
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO", "USD1_V0", "NRA"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "QMC5883P", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "CXOF", "MSP", "FAKE"]

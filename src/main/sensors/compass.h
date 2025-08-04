@@ -36,6 +36,7 @@ typedef enum {
     MAG_AK8963,
     MAG_IST8310,
     MAG_QMC5883,
+    MAG_QMC5883P,
     MAG_MPU9250,
     MAG_IST8308,
     MAG_LIS3MDL,
