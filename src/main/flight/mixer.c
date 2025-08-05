@@ -527,6 +527,11 @@ void FAST_CODE mixTable(void)
         input[ROLL] = axisPID[ROLL];
         input[PITCH] = axisPID[PITCH];
         input[YAW] = axisPID[YAW];
+        if(isMixerTransitionMixing){
+            input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f);
+            input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f);
+            input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f);
+        }
     }
 
     // Initial mixer concept by bdoiron74 reused and optimized for Air Mode
