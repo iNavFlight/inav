@@ -98,23 +98,6 @@ adsbVehicle_t *findVehicleClosest(void) {
  * @return
  */
 adsbVehicle_t *findVehicleClosestLimit(int32_t maxVerticalDistance) {
-
-   /* static int32_t  lat = 492551325;
-    adsbVehicle_t *v1 = &adsbVehiclesList[0];
-
-    v1->vehicleValues.gps.lat = lat;
-    v1->vehicleValues.gps.lon = 165428489;
-    v1->vehicleValues.alt = 1000 * 100;
-    v1->vehicleValues.tslc = 0;
-    v1->vehicleValues.emitterType = 5;
-    v1->vehicleValues.horVelocity = 55277;
-    v1->ttl = 10;
-    memcpy(v1->vehicleValues.callsign, "DUMMY    ", 9);
-
-    lat += 1000;
-
-    recalculateVehicle(v1);*/
-
     adsbVehicle_t *adsbLocal = NULL;
     for (uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++) {
         if(adsbVehiclesList[i].ttl > 0 && adsbVehiclesList[i].calculatedVehicleValues.valid){
@@ -187,14 +170,15 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
     adsbVehicle_t *vehicle = NULL;
 
     vehicle = findVehicleByIcao(vehicleValuesLocal->icao);
-    if(vehicle != NULL && vehicleValuesLocal->tslc > ADSB_MAX_SECONDS_KEEP_INACTIVE_PLANE_IN_LIST){
-        vehicle->ttl = 0;
+    if(vehicleValuesLocal->tslc > ADSB_MAX_SECONDS_KEEP_INACTIVE_PLANE_IN_LIST){
+        if(vehicle != NULL){
+            vehicle->ttl = 0;
+        }
         return;
     }
 
     // non GPS mode, GPS is not fix, just find free space in list or by icao and save vehicle without calculated values
     if (!enviromentOkForCalculatingDistaceBearing()) {
-
         if(vehicle == NULL){
             vehicle = findFreeSpaceInList();
         }
@@ -217,6 +201,16 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
 
         if(vehicle == NULL){
             vehicle = findVehicleFarthest();
+            if(vehicle != NULL)
+            {
+                //calculate distance to new vehicle, we need to compare if new vehicle is closer than the farthest plane
+                fpVector3_t vehicleVector;
+                geoConvertGeodeticToLocal(&vehicleVector, &posControl.gpsOrigin, &vehicleValuesLocal->gps, GEO_ALT_RELATIVE);
+                if(calculateDistanceToDestination(&vehicleVector) > vehicle->calculatedVehicleValues.dist){
+                    //saved vehicle in list is closer, no need to update vehicle in list
+                    vehicle = NULL;
+                }
+            }
         }
 
         if (vehicle != NULL) {
