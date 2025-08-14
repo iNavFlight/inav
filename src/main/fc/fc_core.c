@@ -22,6 +22,7 @@
 #include "platform.h"
 
 #include "blackbox/blackbox.h"
+#include "blackbox/blackbox_io.h"
 
 #include "build/debug.h"
 
@@ -279,20 +280,16 @@ static void updateArmingStatus(void)
 #endif
 
 #ifdef USE_GEOZONE
-    if (feature(FEATURE_GEOZONE) && geozoneIsBlockingArming()) {
-        ENABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
-    } else {
-        DISABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
-    }
+        if (feature(FEATURE_GEOZONE) && geozoneIsBlockingArming()) {
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+        } else {
+            DISABLE_ARMING_FLAG(ARMING_DISABLED_GEOZONE);
+        }
 #endif
 
         /* CHECK: */
-        if (
-            sensors(SENSOR_ACC) &&
-            !STATE(ACCELEROMETER_CALIBRATED) &&
-            // Require ACC calibration only if any of the setting might require it
-            isAccRequired()
-        ) {
+        // Require ACC calibration only if any of the setting might require it
+        if (sensors(SENSOR_ACC) && !STATE(ACCELEROMETER_CALIBRATED) && isAccRequired()) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_ACCELEROMETER_NOT_CALIBRATED);
         }
         else {
@@ -442,12 +439,6 @@ void disarm(disarmReason_t disarmReason)
         lastDisarmTimeUs = micros();
         DISABLE_ARMING_FLAG(ARMED);
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
-
-#ifdef USE_BLACKBOX
-        if (feature(FEATURE_BLACKBOX)) {
-            blackboxFinish();
-        }
-#endif
 #ifdef USE_DSHOT
         if (FLIGHT_MODE(TURTLE_MODE)) {
             sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
@@ -590,16 +581,6 @@ void tryArm(void)
         headFreeModeHold = DECIDEGREES_TO_DEGREES(attitude.values.yaw);
 
         resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-
-#ifdef USE_BLACKBOX
-        if (feature(FEATURE_BLACKBOX)) {
-            serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
-            if (sharedBlackboxAndMspPort) {
-                mspSerialReleasePortIfAllocated(sharedBlackboxAndMspPort);
-            }
-            blackboxStart();
-        }
-#endif
 
         //beep to indicate arming
         if (navigationPositionEstimateIsHealthy()) {
@@ -882,6 +863,44 @@ static void applyThrottleTiltCompensation(void)
     }
 }
 
+bool isMspConfigActive(bool isActive)
+{
+    static timeMs_t lastActive = 0;
+
+    if (isActive) {
+        lastActive = millis();
+    }
+
+    return millis() - lastActive < 1000;
+}
+#ifdef USE_BLACKBOX
+static void processBlackbox(void)
+{
+    if (getBlackboxState() == BLACKBOX_STATE_DISABLED || isBlackboxDeviceFull()) {
+        return;
+    }
+
+    /* Logging with arm_control set to -1 inhibited when connected to Configurator to avoid Blackbox setting issues */
+    if (getBlackboxState() == BLACKBOX_STATE_STOPPED) {
+        if ((blackboxConfig()->arm_control == -1 && !areSensorsCalibrating() && !isMspConfigActive(NULL)) || ARMING_FLAG(ARMED)) {
+            serialPort_t *sharedBlackboxAndMspPort = findSharedSerialPort(FUNCTION_BLACKBOX, FUNCTION_MSP);
+            if (sharedBlackboxAndMspPort) {
+                mspSerialReleasePortIfAllocated(sharedBlackboxAndMspPort);
+            }
+
+            blackboxStart();
+        }
+    } else if (!ARMING_FLAG(ARMED)) {
+        if ((blackboxConfig()->arm_control == -1 && isMspConfigActive(NULL)) ||
+            (blackboxConfig()->arm_control >= 0 && micros() - lastDisarmTimeUs > (timeUs_t)(USECS_PER_SEC * blackboxConfig()->arm_control))) {
+
+            blackboxFinish();
+        }
+    }
+
+    blackboxUpdate(micros());
+}
+#endif
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
 
@@ -983,7 +1002,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
 #ifdef USE_BLACKBOX
     if (!cliMode && feature(FEATURE_BLACKBOX)) {
-        blackboxUpdate(micros());
+        processBlackbox();
     }
 #endif
 }
