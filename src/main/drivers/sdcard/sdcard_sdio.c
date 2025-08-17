@@ -318,7 +318,7 @@ static bool sdcardSdio_poll(void)
 #endif
                     sdcard.state = SDCARD_STATE_WRITING_MULTIPLE_BLOCKS;
                 } else if (sdcard.multiWriteBlocksRemain == 1) {
-                    // This function changes the sd card state for us whether immediately succesful or delayed:
+                    // This function changes the sd card state for us whether immediately successful or delayed:
                     sdcard_endWriteBlocks();
                 } else {
                     sdcard.state = SDCARD_STATE_READY;

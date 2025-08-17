@@ -580,7 +580,7 @@ static bool sdcardSpi_poll(void)
                     sdcard.multiWriteNextBlock++;
                     sdcard.state = SDCARD_STATE_WRITING_MULTIPLE_BLOCKS;
                 } else if (sdcard.multiWriteBlocksRemain == 1) {
-                    // This function changes the sd card state for us whether immediately succesful or delayed:
+                    // This function changes the sd card state for us whether immediately successful or delayed:
                     if (sdcardSpi_endWriteBlocks() == SDCARD_OPERATION_SUCCESS) {
                         sdcardSpi_deselect();
                     }
