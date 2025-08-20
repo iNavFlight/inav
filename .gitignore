@@ -54,3 +54,6 @@ CMakeCache.txt
 /bin
 eeprom.bin
 inav_9.0.0_SITL
+
+# Testing
+/testing

@@ -441,21 +441,40 @@ static void mztcSerialReceiveCallback(uint16_t c, void *rxCallbackData)
 {
     UNUSED(rxCallbackData);
 
-    // Update last data received timestamp (important for SITL mode)
     mztcLastDataReceived = millis();
 
-    // Simple packet parsing for thermal camera responses
     if (c == 0xF0) {
         mztcRxBufferIndex = 0;
         mztcRxBuffer[mztcRxBufferIndex++] = c;
-    } else if (mztcRxBufferIndex > 0 && mztcRxBufferIndex < sizeof(mztcRxBuffer)) {
+        return;
+    }
+
+    if (mztcRxBufferIndex > 0 && mztcRxBufferIndex < sizeof(mztcRxBuffer)) {
         mztcRxBuffer[mztcRxBufferIndex++] = c;
-        
-        // Check for end of packet
-        if (c == 0xFF && mztcRxBufferIndex >= 8) {
-            mztcProcessResponse(mztcRxBuffer, mztcRxBufferIndex);
+
+        // Minimum packet: begin,size,addr,class,subclass,flags,checksum,end => 8 bytes
+        if (mztcRxBufferIndex >= 8 && c == 0xFF) {
+            const uint8_t *buf = mztcRxBuffer;
+            uint8_t declaredSize = buf[1]; // N+4 total length excluding begin/end
+            uint16_t totalLen = declaredSize + 4; // matches sender usage
+            
+            // Verify total length matches received length
+            if (mztcRxBufferIndex == totalLen && buf[0] == 0xF0 && buf[mztcRxBufferIndex - 1] == 0xFF) {
+                // Verify checksum
+                uint8_t calc = buf[2] + buf[3] + buf[4] + buf[5];
+                for (uint16_t i = 0; i < (uint16_t)(declaredSize - 4); i++) {
+                    calc += buf[6 + i];
+                }
+                uint8_t recvCks = buf[mztcRxBufferIndex - 2];
+                if (calc == recvCks) {
+                    mztcProcessResponse(buf, mztcRxBufferIndex);
+                }
+            }
             mztcRxBufferIndex = 0;
         }
+    } else {
+        // Overflow or out-of-sync, reset parser
+        mztcRxBufferIndex = 0;
     }
 }
 

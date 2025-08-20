@@ -37,6 +37,7 @@
 #include "io/mztc_camera.h"
 #include "io/osd.h"
 #include "io/osd_common.h"
+#include "io/osd/mztc_camera_osd.h"
 
 // OSD element IDs for MassZero Thermal Camera
 #define MZTC_OSD_ELEMENT_TEMPERATURE    0x01
@@ -63,33 +64,10 @@
 #define MZTC_OSD_VISIBLE_CALIBRATION     0x04
 #define MZTC_OSD_VISIBLE_ERROR           0x08
 
-// OSD configuration structure
-typedef struct mztcOsdConfig_s {
-    uint8_t enabled;                    // Enable/disable OSD elements
-    uint8_t temperature_display;         // Show temperature readings
-    uint8_t status_display;             // Show camera status
-    uint8_t alerts_display;             // Show temperature alerts
-    uint8_t calibration_display;         // Show calibration status
-    uint8_t connection_display;          // Show connection quality
-    uint8_t position_x;                 // X position offset
-    uint8_t position_y;                 // Y position offset
-    uint8_t visibility_flags;           // Visibility control flags
-} mztcOsdConfig_t;
+// OSD configuration structure is defined in io/osd/mztc_camera_osd.h
 
-// Parameter group for MassZero Thermal Camera OSD configuration
-PG_REGISTER_WITH_RESET_TEMPLATE(mztcOsdConfig_t, mztcOsdConfig, PG_MZTC_OSD_CONFIG, 0);
-
-PG_RESET_TEMPLATE(mztcOsdConfig_t, mztcOsdConfig,
-    .enabled = 1,
-    .temperature_display = 1,
-    .status_display = 1,
-    .alerts_display = 1,
-    .calibration_display = 1,
-    .connection_display = 1,
-    .position_x = 0,
-    .position_y = 0,
-    .visibility_flags = MZTC_OSD_VISIBLE_ALWAYS,
-);
+// Remove duplicate PG registration from this file.
+// Use the OSD implementation and parameter group defined in src/main/io/osd/mztc_camera_osd.c.
 
 // Internal state
 static bool mztcOsdInitialized = false;

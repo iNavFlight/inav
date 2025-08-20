@@ -4425,7 +4425,7 @@ groups:
       max: 5
   - name: PG_MZTC_CAMERA_CONFIG
     type: mztcConfig_t
-    headers: ["io/mztc_camera.h"]
+    headers: ["config/mztc_camera.h"]
     members:
       - name: mztc_enabled
         description: "Enable MassZero Thermal Camera"
