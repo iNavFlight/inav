@@ -43,3 +43,4 @@ bool mztcSetZoom(mztcZoomLevel_e zoom);
 bool mztcSetImageParams(uint8_t brightness, uint8_t contrast, uint8_t enhancement);
 bool mztcSetDenoising(uint8_t spatial, uint8_t temporal);
 bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp);
+void mztcRequestReconnect(void);

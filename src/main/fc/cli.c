@@ -5092,20 +5092,7 @@ static void cliMztcReconnect(char *cmdline)
     UNUSED(cmdline);
     
     if (mztcIsEnabled()) {
-        // Force immediate reconnection attempt by resetting connection state
-        extern serialPort_t *mztcSerialPort;
-        extern mztcStatus_t mztcStatus;
-        
-        // Close existing connection
-        if (mztcSerialPort != NULL) {
-            closeSerialPort(mztcSerialPort);
-            mztcSerialPort = NULL;
-        }
-        
-        // Reset status
-        mztcStatus.connected = false;
-        mztcStatus.error_flags = 0;
-        
+        mztcRequestReconnect();
         cliPrintLine("MZTC: Forcing reconnection...");
     } else {
         cliPrintLine("MZTC: Camera is disabled");

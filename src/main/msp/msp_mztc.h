@@ -21,7 +21,7 @@
 #include <stdbool.h>
 
 #include "msp/msp.h"
-#include "io/mztc_camera.h"
+#include "config/mztc_camera.h"
 
 // MassZero Thermal Camera MSP commands
 #define MSP_MZTC_CONFIG                 2000    // Get MassZero Thermal Camera configuration

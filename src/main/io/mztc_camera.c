@@ -465,32 +465,41 @@ static bool mztcSendPacket(uint8_t class_cmd, uint8_t subclass_cmd, uint8_t flag
     if (!mztcSerialPort) {
         return false;
     }
+    
+    // Validate data length to prevent buffer overflow
+    if (data_len > sizeof(((mztcPacket_t *)0)->data)) {
+        return false;
+    }
 
     mztcPacket_t packet;
     packet.begin = 0xF0;
-    packet.size = data_len + 4;
     packet.device_addr = 0x36;
     packet.class_cmd = class_cmd;
     packet.subclass_cmd = subclass_cmd;
     packet.flags = flags;
-    packet.end = 0xFF;
 
     // Copy data
     if (data && data_len > 0) {
         memcpy(packet.data, data, data_len);
     }
-
-    // Calculate checksum
-    packet.checksum = packet.device_addr + packet.class_cmd + packet.subclass_cmd + packet.flags;
-    for (int i = 0; i < data_len; i++) {
-        packet.checksum += packet.data[i];
+    
+    // Calculate checksum over addr, class, subclass, flags and data
+    uint8_t checksum = packet.device_addr + packet.class_cmd + packet.subclass_cmd + packet.flags;
+    for (uint8_t i = 0; i < data_len; i++) {
+        checksum += packet.data[i];
     }
+    packet.checksum = checksum;
+    packet.end = 0xFF;
 
-    // Send packet
-    serialWriteBufShim(mztcSerialPort, (uint8_t*)&packet, packet.size + 4);
+    // Size field is N+4 per protocol (addr..data..checksum), where N = 3(command bytes)+1(flags)+data_len
+    packet.size = (uint8_t)(4 + 3 + 1 + data_len);
+
+    // Total bytes on wire = 1(begin) + 1(size) + (size) + 1(end)
+    const uint8_t totalLen = (uint8_t)(1 + 1 + packet.size + 1);
+    serialWriteBufShim(mztcSerialPort, (const uint8_t *)&packet, totalLen);
     
     // Debug log
-    printf("MZTC: Sent packet - cmd:0x%02X/0x%02X size:%d\n", class_cmd, subclass_cmd, packet.size + 4);
+    printf("MZTC: Sent packet - cmd:0x%02X/0x%02X size:%u\n", class_cmd, subclass_cmd, totalLen);
     
     return true;
 }
@@ -598,4 +607,16 @@ static void mztcSendConfiguration(void)
         // Send mirror mode command
         mztcSendPacket(0x70, 0x11, MZTC_FLAG_WRITE, &mztcConfig()->mirror_mode, 1);
     }
+}
+
+// Safe reconnection API for CLI use
+void mztcRequestReconnect(void)
+{
+    if (mztcSerialPort != NULL) {
+        closeSerialPort(mztcSerialPort);
+        mztcSerialPort = NULL;
+    }
+    mztcStatus.connected = false;
+    mztcStatus.error_flags = 0;
+    mztcLastUpdateTime = 0; // force immediate retry in update loop
 }
