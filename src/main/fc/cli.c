@@ -95,6 +95,7 @@ bool cliMode = false;
 #include "io/osd.h"
 #include "io/osd/custom_elements.h"
 #include "io/serial.h"
+#include "io/mztc_camera.h"
 
 #include "fc/fc_msp_box.h"
 
@@ -146,6 +147,18 @@ static uint16_t cliDelayMs = 0;
 
 #if defined(USE_ASSERT)
 static void cliAssert(char *cmdline);
+static void cliMztc(char *cmdline);
+static void cliMztcMode(char *cmdline);
+static void cliMztcConfig(char *cmdline);
+static void cliMztcPalette(char *cmdline);
+static void cliMztcZoom(char *cmdline);
+static void cliMztcEnhancement(char *cmdline);
+static void cliMztcDenoise(char *cmdline);
+static void cliMztcAlerts(char *cmdline);
+static void cliMztcCalibrate(char *cmdline);
+static void cliMztcShutter(char *cmdline);
+static void cliMztcReconnect(char *cmdline);
+static void cliMztcSimulateData(char *cmdline);
 #endif
 
 #ifdef USE_CLI_BATCH
@@ -4813,6 +4826,305 @@ static void printBootLog(char *cmdline __attribute__((unused))) {
 }
 #endif
 
+// MassZero Thermal Camera CLI commands
+static void cliMztc(char *cmdline __attribute__((unused))) {
+    if (!mztcIsEnabled()) {
+        cliPrintLine("MassZero Thermal Camera is disabled");
+        return;
+    }
+    
+    const mztcStatus_t *status = mztcGetStatus();
+    if (!status) {
+        cliPrintLine("MassZero Thermal Camera not available");
+        return;
+    }
+    
+    cliPrintLine("MassZero Thermal Camera Status:");
+    cliPrintLinef("  Connected: %s", (status->connection_quality > 0) ? "YES" : "NO");
+    cliPrintLinef("  Mode: %d", status->mode);
+    cliPrintLinef("  Camera Temp: %.1f°C", (double)status->camera_temperature);
+    cliPrintLinef("  Ambient Temp: %.1f°C", (double)status->ambient_temperature);
+    cliPrintLinef("  Frame Count: %lu", (unsigned long)status->frame_count);
+    cliPrintLinef("  Last Update: %lu ms ago", (unsigned long)(millis() - status->last_frame_time));
+    cliPrintLinef("  Error Flags: 0x%02X", status->error_flags);
+}
+
+static void cliMztcMode(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        const mztcStatus_t *status = mztcGetStatus();
+        if (status) {
+            cliPrintLinef("Current mode: %d", status->mode);
+        }
+        return;
+    }
+    
+    int mode = atoi(cmdline);
+    if (mode < 0 || mode > 7) {
+        cliPrintLine("Invalid mode. Use 0-7");
+        return;
+    }
+    
+    if (mztcSetMode((mztcMode_e)mode)) {
+        cliPrintLinef("Mode set to %d", mode);
+    } else {
+        cliPrintLine("Failed to set mode");
+    }
+}
+
+static void cliMztcConfig(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        cliPrintLine("Usage: mztc_config [brightness] [contrast] [enhancement]");
+        return;
+    }
+    
+    char *brightness_str = strtok(cmdline, " ");
+    char *contrast_str = strtok(NULL, " ");
+    char *enhancement_str = strtok(NULL, " ");
+    
+    uint8_t brightness = 50, contrast = 50, enhancement = 50;
+    bool has_values = false;
+    
+    if (brightness_str) {
+        brightness = atoi(brightness_str);
+        if (brightness > 100) {
+            cliPrintLine("Brightness must be 0-100");
+            return;
+        }
+        has_values = true;
+    }
+    
+    if (contrast_str) {
+        contrast = atoi(contrast_str);
+        if (contrast > 100) {
+            cliPrintLine("Contrast must be 0-100");
+            return;
+        }
+        has_values = true;
+    }
+    
+    if (enhancement_str) {
+        enhancement = atoi(enhancement_str);
+        if (enhancement > 100) {
+            cliPrintLine("Enhancement must be 0-100");
+            return;
+        }
+        has_values = true;
+    }
+    
+    if (has_values && mztcSetImageParams(brightness, contrast, enhancement)) {
+        cliPrintLinef("Configuration updated: brightness=%d, contrast=%d, enhancement=%d", 
+                      brightness, contrast, enhancement);
+    } else if (has_values) {
+        cliPrintLine("Failed to update configuration");
+    }
+}
+
+static void cliMztcPalette(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        cliPrintLine("Usage: mztc_palette [palette]");
+        cliPrintLine("Available palettes: 0-13");
+        return;
+    }
+    
+    int palette = atoi(cmdline);
+    if (palette < 0 || palette > 13) {
+        cliPrintLine("Invalid palette. Use 0-13");
+        return;
+    }
+    
+    if (mztcSetPalette((mztcPaletteMode_e)palette)) {
+        cliPrintLinef("Palette set to %d", palette);
+    } else {
+        cliPrintLine("Failed to set palette");
+    }
+}
+
+static void cliMztcZoom(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        cliPrintLine("Usage: mztc_zoom [level]");
+        cliPrintLine("Available levels: 0-3 (1x, 2x, 4x, 8x)");
+        return;
+    }
+    
+    int zoom = atoi(cmdline);
+    if (zoom < 0 || zoom > 3) {
+        cliPrintLine("Invalid zoom level. Use 0-3");
+        return;
+    }
+    
+    if (mztcSetZoom((mztcZoomLevel_e)zoom)) {
+        cliPrintLinef("Zoom set to %d", zoom);
+    } else {
+        cliPrintLine("Failed to set zoom");
+    }
+}
+
+static void cliMztcEnhancement(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        cliPrintLine("Usage: mztc_enhancement [value]");
+        cliPrintLine("Value range: 0-100");
+        return;
+    }
+    
+    int value = atoi(cmdline);
+    if (value < 0 || value > 100) {
+        cliPrintLine("Enhancement must be 0-100");
+        return;
+    }
+    
+    // Get current values to preserve them
+    const mztcConfig_t *config = mztcConfig();
+    if (mztcSetImageParams(config->brightness, config->contrast, value)) {
+        cliPrintLinef("Digital enhancement set to %d", value);
+    } else {
+        cliPrintLine("Failed to set enhancement");
+    }
+}
+
+static void cliMztcDenoise(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        cliPrintLine("Usage: mztc_denoise [spatial] [temporal]");
+        cliPrintLine("Value range: 0-100");
+        return;
+    }
+    
+    char *spatial_str = strtok(cmdline, " ");
+    char *temporal_str = strtok(NULL, " ");
+    
+    uint8_t spatial = 50, temporal = 50;
+    
+    if (spatial_str) {
+        spatial = atoi(spatial_str);
+        if (spatial > 100) {
+            cliPrintLine("Spatial denoising must be 0-100");
+            return;
+        }
+    }
+    
+    if (temporal_str) {
+        temporal = atoi(temporal_str);
+        if (temporal > 100) {
+            cliPrintLine("Temporal denoising must be 0-100");
+            return;
+        }
+    }
+    
+    if (mztcSetDenoising(spatial, temporal)) {
+        cliPrintLinef("Denoising updated: spatial=%d, temporal=%d", spatial, temporal);
+    } else {
+        cliPrintLine("Failed to update denoising");
+    }
+}
+
+static void cliMztcAlerts(char *cmdline) {
+    if (strlen(cmdline) == 0) {
+        cliPrintLine("Usage: mztc_alerts [enabled] [high_temp] [low_temp]");
+        return;
+    }
+    
+    char *enabled_str = strtok(cmdline, " ");
+    char *high_str = strtok(NULL, " ");
+    char *low_str = strtok(NULL, " ");
+    
+    if (enabled_str) {
+        int enabled = atoi(enabled_str);
+        if (enabled != 0 && enabled != 1) {
+            cliPrintLine("Enabled must be 0 or 1");
+            return;
+        }
+    }
+    
+    if (high_str) {
+        float high = atof(high_str);
+        if (high < -40.0f || high > 300.0f) {
+            cliPrintLine("High temperature must be -40 to 300°C");
+            return;
+        }
+    }
+    
+    if (low_str) {
+        float low = atof(low_str);
+        if (low < -40.0f || low > 300.0f) {
+            cliPrintLine("Low temperature must be -40 to 300°C");
+            return;
+        }
+    }
+    
+    bool enabled = false;
+    float high_temp = 100.0f, low_temp = -10.0f;
+    
+    if (enabled_str) {
+        enabled = atoi(enabled_str) ? true : false;
+    }
+    if (high_str) {
+        high_temp = atof(high_str);
+    }
+    if (low_str) {
+        low_temp = atof(low_str);
+    }
+    
+    if (mztcSetTemperatureAlerts(enabled, high_temp, low_temp)) {
+        cliPrintLinef("Temperature alerts %s (high=%.1f°C, low=%.1f°C)", 
+                      enabled ? "enabled" : "disabled", (double)high_temp, (double)low_temp);
+    } else {
+        cliPrintLine("Failed to configure alerts");
+    }
+}
+
+static void cliMztcCalibrate(char *cmdline __attribute__((unused))) {
+    if (mztcTriggerCalibration()) {
+        cliPrintLine("Calibration triggered");
+    } else {
+        cliPrintLine("Failed to trigger calibration");
+    }
+}
+
+static void cliMztcShutter(char *cmdline __attribute__((unused))) {
+    if (mztcTriggerCalibration()) {
+        cliPrintLine("Manual shutter triggered");
+    } else {
+        cliPrintLine("Failed to trigger shutter");
+    }
+}
+
+static void cliMztcReconnect(char *cmdline)
+{
+    UNUSED(cmdline);
+    
+    if (mztcIsEnabled()) {
+        // Force immediate reconnection attempt by resetting connection state
+        extern serialPort_t *mztcSerialPort;
+        extern mztcStatus_t mztcStatus;
+        
+        // Close existing connection
+        if (mztcSerialPort != NULL) {
+            closeSerialPort(mztcSerialPort);
+            mztcSerialPort = NULL;
+        }
+        
+        // Reset status
+        mztcStatus.connected = false;
+        mztcStatus.error_flags = 0;
+        
+        cliPrintLine("MZTC: Forcing reconnection...");
+    } else {
+        cliPrintLine("MZTC: Camera is disabled");
+    }
+}
+
+// MZTC Simulate data command (SITL only)
+static void cliMztcSimulateData(char *cmdline)
+{
+    UNUSED(cmdline);
+    
+    if (mztcIsEnabled()) {
+        mztcSimulateDataReception();
+        cliPrintLine("MZTC: Simulated data reception (SITL mode)");
+    } else {
+        cliPrintLine("MZTC: Camera is disabled");
+    }
+}
+
 static void cliHelp(char *cmdline);
 
 // should be sorted a..z for bsearch()
@@ -4884,6 +5196,16 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
+    CLI_COMMAND_DEF("mztc", "MassZero Thermal Camera status", NULL, cliMztc),
+    CLI_COMMAND_DEF("mztc_alerts", "configure temperature alerts", "[enabled] [high_temp] [low_temp]", cliMztcAlerts),
+    CLI_COMMAND_DEF("mztc_calibrate", "trigger calibration", NULL, cliMztcCalibrate),
+    CLI_COMMAND_DEF("mztc_config", "configure camera parameters", "[brightness] [contrast] [enhancement]", cliMztcConfig),
+    CLI_COMMAND_DEF("mztc_denoise", "set denoising parameters", "[spatial] [temporal]", cliMztcDenoise),
+    CLI_COMMAND_DEF("mztc_enhancement", "set digital enhancement", "[value]", cliMztcEnhancement),
+    CLI_COMMAND_DEF("mztc_mode", "set operating mode", "[mode]", cliMztcMode),
+    CLI_COMMAND_DEF("mztc_palette", "set color palette", "[palette]", cliMztcPalette),
+    CLI_COMMAND_DEF("mztc_shutter", "trigger manual shutter", NULL, cliMztcShutter),
+    CLI_COMMAND_DEF("mztc_zoom", "set zoom level", "[level]", cliMztcZoom),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
 #ifdef USE_USB_MSC
@@ -4942,6 +5264,8 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+    CLI_COMMAND_DEF("mztc_reconnect", "Force MZTC reconnection", NULL, cliMztcReconnect),
+    CLI_COMMAND_DEF("mztc_simulate", "Simulate MZTC data reception (SITL only)", NULL, cliMztcSimulateData),
 };
 
 static void cliHelp(char *cmdline)

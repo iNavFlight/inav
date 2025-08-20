@@ -59,6 +59,7 @@ typedef enum {
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
     FUNCTION_GIMBAL                     = (1 << 26), // 67108864
     FUNCTION_GIMBAL_HEADTRACKER         = (1 << 27), // 134217728
+    FUNCTION_MZTC_CAMERA                = (1 << 28), // 268435456 - MassZero Thermal Camera
 } serialPortFunction_e;
 
 #define FUNCTION_VTX_MSP FUNCTION_MSP_OSD

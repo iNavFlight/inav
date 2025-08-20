@@ -117,6 +117,24 @@ tables:
   - name: vtx_frequency_groups
     values: ["FREQUENCYGROUP_5G8", "FREQUENCYGROUP_2G4", "FREQUENCYGROUP_1G3"]
     enum: vtxFrequencyGroups_e
+  - name: mztc_modes
+    values: ["DISABLED", "STANDBY", "CONTINUOUS", "TRIGGERED", "ALERT", "RECORDING", "CALIBRATION", "SURVEILLANCE"]
+    enum: mztcMode_e
+  - name: mztc_temperature_units
+    values: ["CELSIUS", "FAHRENHEIT", "KELVIN"]
+    enum: mztcTemperatureUnit_e
+  - name: mztc_palettes
+    values: ["WHITE_HOT", "BLACK_HOT", "FUSION_1", "RAINBOW", "FUSION_2", "IRON_RED_1", "IRON_RED_2", "SEPIA", "COLOR_1", "COLOR_2", "ICE_FIRE", "RAIN", "GREEN_HOT", "RED_HOT"]
+    enum: mztcPaletteMode_e
+  - name: mztc_shutter_modes
+    values: ["TEMP_ONLY", "TIME_ONLY", "TIME_AND_TEMP"]
+    enum: mztcShutterMode_e
+  - name: mztc_zoom_levels
+    values: ["1X", "2X", "4X", "8X"]
+    enum: mztcZoomLevel_e
+  - name: mztc_mirror_modes
+    values: ["NONE", "HORIZONTAL", "VERTICAL", "CENTRAL"]
+    enum: mztcMirrorMode_e
   - name: filter_type
     values: ["PT1", "BIQUAD"]
   - name: filter_type_full
@@ -4405,6 +4423,148 @@ groups:
       field: roll_ratio
       min: 0
       max: 5
+  - name: PG_MZTC_CAMERA_CONFIG
+    type: mztcConfig_t
+    headers: ["io/mztc_camera.h"]
+    members:
+      - name: mztc_enabled
+        description: "Enable MassZero Thermal Camera"
+        type: bool
+        default_value: OFF
+        field: enabled
+      - name: mztc_port
+        description: "Serial port for MassZero Thermal Camera"
+        type: uint8_t
+        default_value: 1
+        field: port
+        min: 0
+        max: 7
+      - name: mztc_baudrate
+        description: "Baud rate for MassZero Thermal Camera"
+        type: uint8_t
+        default_value: 6
+        field: baudrate
+        min: 0
+        max: 10
+      - name: mztc_mode
+        description: "Operating mode for MassZero Thermal Camera"
+        type: uint8_t
+        default_value: "STANDBY"
+        field: mode
+        table: mztc_modes
+      - name: mztc_update_rate
+        description: "Frame update rate in Hz"
+        type: uint8_t
+        default_value: 9
+        field: update_rate
+        min: 1
+        max: 30
+      - name: mztc_temperature_unit
+        description: "Temperature unit (Celsius, Fahrenheit, Kelvin)"
+        type: uint8_t
+        default_value: "CELSIUS"
+        field: temperature_unit
+        table: mztc_temperature_units
+      - name: mztc_palette_mode
+        description: "Color palette mode"
+        type: uint8_t
+        default_value: "WHITE_HOT"
+        field: palette_mode
+        table: mztc_palettes
+      - name: mztc_auto_shutter
+        description: "Auto shutter calibration mode"
+        type: uint8_t
+        default_value: "TIME_AND_TEMP"
+        field: auto_shutter
+        table: mztc_shutter_modes
+      - name: mztc_digital_enhancement
+        description: "Digital enhancement level (0-100)"
+        type: uint8_t
+        default_value: 50
+        field: digital_enhancement
+        min: 0
+        max: 100
+      - name: mztc_spatial_denoise
+        description: "Spatial denoising level (0-100)"
+        type: uint8_t
+        default_value: 50
+        field: spatial_denoise
+        min: 0
+        max: 100
+      - name: mztc_temporal_denoise
+        description: "Temporal denoising level (0-100)"
+        type: uint8_t
+        default_value: 50
+        field: temporal_denoise
+        min: 0
+        max: 100
+      - name: mztc_brightness
+        description: "Image brightness (0-100)"
+        type: uint8_t
+        default_value: 50
+        field: brightness
+        min: 0
+        max: 100
+      - name: mztc_contrast
+        description: "Image contrast (0-100)"
+        type: uint8_t
+        default_value: 50
+        field: contrast
+        min: 0
+        max: 100
+      - name: mztc_zoom_level
+        description: "Digital zoom level"
+        type: uint8_t
+        default_value: "1X"
+        field: zoom_level
+        table: mztc_zoom_levels
+      - name: mztc_mirror_mode
+        description: "Image mirroring mode"
+        type: uint8_t
+        default_value: "NONE"
+        field: mirror_mode
+        table: mztc_mirror_modes
+      - name: mztc_crosshair_enabled
+        description: "Enable crosshair overlay"
+        type: bool
+        default_value: OFF
+        field: crosshair_enabled
+      - name: mztc_temperature_alerts
+        description: "Enable temperature alerts"
+        type: bool
+        default_value: OFF
+        field: temperature_alerts
+      - name: mztc_alert_high_temp
+        description: "High temperature alert threshold"
+        type: float
+        default_value: 80.0
+        field: alert_high_temp
+        min: -40
+        max: 200
+      - name: mztc_alert_low_temp
+        description: "Low temperature alert threshold"
+        type: float
+        default_value: -10.0
+        field: alert_low_temp
+        min: -40
+        max: 200
+      - name: mztc_ffc_interval
+        description: "Flat Field Calibration interval in minutes (0=disabled)"
+        type: uint8_t
+        default_value: 5
+        field: ffc_interval
+        min: 0
+        max: 60
+      - name: mztc_bad_pixel_removal
+        description: "Enable bad pixel removal"
+        type: bool
+        default_value: ON
+        field: bad_pixel_removal
+      - name: mztc_vignetting_correction
+        description: "Enable vignetting correction"
+        type: bool
+        default_value: ON
+        field: vignetting_correction
   - name: PG_GEOZONE_CONFIG
     type: geozone_config_t
     headers: ["navigation/navigation.h"]
