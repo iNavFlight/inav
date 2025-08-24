@@ -88,7 +88,7 @@ void ezTuneUpdate(void) {
         gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT;
 
         //Enable Smith predictor
-        pidProfileMutable()->smithPredictorDelay = computePt1FilterDelayMs(ezTune()->filterHz);
+        pidProfileMutable()->measurementSmithPredictorDelay = computePt1FilterDelayMs(ezTune()->filterHz);
 
 #ifdef USE_DYNAMIC_FILTERS
         //Enable dynamic notch
