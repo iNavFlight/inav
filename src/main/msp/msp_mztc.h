@@ -23,6 +23,8 @@
 #include "msp/msp.h"
 #include "config/mztc_camera.h"
 
+#ifdef USE_MZTC
+
 // MassZero Thermal Camera MSP commands
 #define MSP_MZTC_CONFIG                 2000    // Get MassZero Thermal Camera configuration
 #define MSP_SET_MZTC_CONFIG             2001    // Set MassZero Thermal Camera configuration
@@ -132,3 +134,5 @@ typedef struct {
 // Function declarations
 mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply);
 void mspMztcInit(void);
+
+#endif // USE_MZTC

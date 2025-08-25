@@ -42,6 +42,8 @@
 #include "scheduler/scheduler.h"
 #include <stdio.h>
 
+#ifdef USE_MZTC
+
 // Parameter group ID for MassZero Thermal Camera (defined in parameter_group_ids.h)
 
 // Default configuration values
@@ -122,6 +124,8 @@ static uint32_t mztcLastDataReceived = 0;
 // Parameter group for MassZero Thermal Camera configuration
 PG_REGISTER_WITH_RESET_TEMPLATE(mztcConfig_t, mztcConfig, PG_MZTC_CAMERA_CONFIG, 0);
 
+
+
 PG_RESET_TEMPLATE(mztcConfig_t, mztcConfig,
     .enabled = MZTC_DEFAULT_ENABLED,
     .port = MZTC_DEFAULT_PORT,
@@ -160,6 +164,7 @@ void mztcInit(void)
 {
     // DEBUG: Print initialization message
     printf("MZTC: Initializing MassZero Thermal Camera\n");
+    printf("MZTC: USE_MZTC is DEFINED and ACTIVE\n");
     
     if (mztcInitialized) {
         return;
@@ -639,3 +644,5 @@ void mztcRequestReconnect(void)
     mztcStatus.error_flags = 0;
     mztcLastUpdateTime = 0; // force immediate retry in update loop
 }
+
+#endif // USE_MZTC

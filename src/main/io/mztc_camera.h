@@ -21,6 +21,8 @@
 #include "drivers/serial.h"
 #include "config/mztc_camera.h"
 
+#ifdef USE_MZTC
+
 // External variables for CLI access
 extern serialPort_t *mztcSerialPort;
 extern mztcStatus_t mztcStatus;
@@ -44,3 +46,5 @@ bool mztcSetImageParams(uint8_t brightness, uint8_t contrast, uint8_t enhancemen
 bool mztcSetDenoising(uint8_t spatial, uint8_t temporal);
 bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp);
 void mztcRequestReconnect(void);
+
+#endif // USE_MZTC

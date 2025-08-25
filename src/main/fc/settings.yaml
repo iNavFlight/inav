@@ -4423,6 +4423,7 @@ groups:
       field: roll_ratio
       min: 0
       max: 5
+#ifdef USE_MZTC
   - name: PG_MZTC_CAMERA_CONFIG
     type: mztcConfig_t
     headers: ["config/mztc_camera.h"]
@@ -4565,6 +4566,7 @@ groups:
         type: bool
         default_value: ON
         field: vignetting_correction
+#endif
   - name: PG_GEOZONE_CONFIG
     type: geozone_config_t
     headers: ["navigation/navigation.h"]

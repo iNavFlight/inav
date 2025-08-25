@@ -20,6 +20,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef USE_MZTC
+
 #include "config/parameter_group.h"
 
 // OSD element IDs for MassZero Thermal Camera
@@ -58,3 +60,5 @@ void mztcOsdSetVisibility(uint8_t flags);
 void mztcOsdSetPosition(uint8_t x, uint8_t y);
 void mztcOsdSetElementEnabled(uint8_t element, bool enabled);
 const mztcOsdConfig_t* mztcOsdGetConfig(void);
+
+#endif // USE_MZTC

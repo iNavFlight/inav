@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#ifdef USE_MZTC
+
 // Include the thermal camera configuration header
 #include "config/mztc_camera.h"
 
@@ -540,3 +542,5 @@ int main(int argc, char **argv) {
     
     return RUN_ALL_TESTS();
 }
+
+#endif // USE_MZTC

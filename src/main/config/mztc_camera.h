@@ -20,6 +20,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef USE_MZTC
+
 #include "config/parameter_group.h"
 #include "drivers/time.h"
 
@@ -186,3 +188,5 @@ bool mztcSetDenoising(uint8_t spatial, uint8_t temporal);
 bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp);
 bool mztcIsConnected(void);
 void mztcSimulateDataReception(void);
+
+#endif // USE_MZTC

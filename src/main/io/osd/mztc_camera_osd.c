@@ -38,6 +38,8 @@
 #include "io/osd/mztc_camera_osd.h"
 #include "io/mztc_camera.h"
 
+#ifdef USE_MZTC
+
 // Parameter group ID for MassZero Thermal Camera OSD configuration (defined in parameter_group_ids.h)
 
 // Default OSD configuration values
@@ -276,3 +278,5 @@ const mztcOsdConfig_t* mztcOsdGetConfig(void)
 {
     return mztcOsdConfig();
 }
+
+#endif // USE_MZTC

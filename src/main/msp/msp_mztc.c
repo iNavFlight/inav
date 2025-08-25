@@ -30,6 +30,8 @@
 
 #include "io/mztc_camera.h"
 
+#ifdef USE_MZTC
+
 #include "msp/msp.h"
 #include "msp/msp_mztc.h"
 #include "common/streambuf.h"
@@ -295,3 +297,5 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             return MSP_RESULT_NO_REPLY;
     }
 }
+
+#endif // USE_MZTC
