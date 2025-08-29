@@ -196,7 +196,15 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
         case FLM_ANGLEHOLD:     return COPTER_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
-        case FLM_POSITION_HOLD: return COPTER_MODE_POSHOLD;
+        case FLM_POSITION_HOLD: 
+            {
+                if (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS) {
+                    return COPTER_MODE_GUIDED;
+                }
+                else {
+                    return COPTER_MODE_POSHOLD;
+                }
+            }
         case FLM_RTH:           return COPTER_MODE_RTL;
         case FLM_MISSION:       return COPTER_MODE_AUTO;
         case FLM_LAUNCH:        return COPTER_MODE_THROW;
@@ -226,7 +234,15 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
         case FLM_ANGLEHOLD:     return PLANE_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
-        case FLM_POSITION_HOLD: return PLANE_MODE_LOITER;
+        case FLM_POSITION_HOLD: 
+            {
+                if (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS) {
+                    return PLANE_MODE_GUIDED;
+                }
+                else {
+                    return PLANE_MODE_LOITER;
+                }
+            }
         case FLM_RTH:           return PLANE_MODE_RTL;
         case FLM_MISSION:       return PLANE_MODE_AUTO;
         case FLM_CRUISE:        return PLANE_MODE_CRUISE;
@@ -1105,6 +1121,73 @@ static bool handleIncoming_MISSION_REQUEST(void)
     return false;
 }
 
+
+static bool handleIncoming_COMMAND_INT(void)
+{
+    mavlink_command_int_t msg;
+    mavlink_msg_command_int_decode(&mavRecvMsg, &msg);
+
+    if (msg.target_system == mavSystemId) {
+
+        if (msg.command == MAV_CMD_DO_REPOSITION) {
+            if (msg.frame != MAV_FRAME_GLOBAL) {
+
+                    mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                                msg.command,
+                                                MAV_RESULT_UNSUPPORTED,
+                                                0,  // progress
+                                                0,  // result_param2
+                                                mavRecvMsg.sysid,
+                                                mavRecvMsg.compid);
+                    mavlinkSendMessage();
+                    return true;
+                }
+
+            if (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS) {
+                navWaypoint_t wp;
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                wp.lat = msg.x;
+                wp.lon = msg.y;
+                wp.alt = msg.z * 100.0f;
+                wp.p1 = wp.p2 = wp.p3 = 0;
+                wp.flag = 0;
+
+                setWaypoint(255, &wp);
+
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_ACCEPTED,
+                                            0,  // progress
+                                            0,  // result_param2
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
+                mavlinkSendMessage();
+            } else {
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_DENIED,
+                                            0,
+                                            0,
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
+                mavlinkSendMessage();
+            }
+        } else {
+            mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                        msg.command,
+                                        MAV_RESULT_UNSUPPORTED,
+                                        0,
+                                        0,
+                                        mavRecvMsg.sysid,
+                                        mavRecvMsg.compid);
+            mavlinkSendMessage();
+        }
+        return true;
+    }
+    return false;
+}
+
+
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
@@ -1243,6 +1326,13 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_ITEM();
                 case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                     return handleIncoming_MISSION_REQUEST_LIST();
+
+                //TODO:
+                //case MAVLINK_MSG_ID_COMMAND_LONG; //up to 7 float parameters
+                    //return handleIncoming_COMMAND_LONG();
+                
+                case MAVLINK_MSG_ID_COMMAND_INT: //7 parameters: parameters 1-4, 7 are floats, and parameters 5,6 are scaled integers
+                    return handleIncoming_COMMAND_INT();
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
