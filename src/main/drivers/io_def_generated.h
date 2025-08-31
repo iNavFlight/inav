@@ -285,22 +285,10 @@
 # define DEFIO_REC__PB3 defio_error_PB3_is_not_supported_on_TARGET
 #endif
 #if DEFIO_PORT_B_USED_MASK & BIT(4)
-# define DEFIO_TAG__PB4 DEFIO_TAG_MAKE(DEFIO_GPIOID__B, 4)
-# define DEFIO_TAG_E__PB4 DEFIO_TAG_MAKE(DEFIO_GPIOID__B, 4)
-# define DEFIO_REC__PB4 DEFIO_REC_INDEXED(BITCOUNT(DEFIO_PORT_B_USED_MASK & (BIT(4) - 1)) + DEFIO_PORT_A_USED_COUNT)
 #else
-# define DEFIO_TAG__PB4 defio_error_PB4_is_not_supported_on_TARGET
-# define DEFIO_TAG_E__PB4 DEFIO_TAG_E__NONE
-# define DEFIO_REC__PB4 defio_error_PB4_is_not_supported_on_TARGET
 #endif
 #if DEFIO_PORT_B_USED_MASK & BIT(5)
-# define DEFIO_TAG__PB5 DEFIO_TAG_MAKE(DEFIO_GPIOID__B, 5)
-# define DEFIO_TAG_E__PB5 DEFIO_TAG_MAKE(DEFIO_GPIOID__B, 5)
-# define DEFIO_REC__PB5 DEFIO_REC_INDEXED(BITCOUNT(DEFIO_PORT_B_USED_MASK & (BIT(5) - 1)) + DEFIO_PORT_A_USED_COUNT)
 #else
-# define DEFIO_TAG__PB5 defio_error_PB5_is_not_supported_on_TARGET
-# define DEFIO_TAG_E__PB5 DEFIO_TAG_E__NONE
-# define DEFIO_REC__PB5 defio_error_PB5_is_not_supported_on_TARGET
 #endif
 #if DEFIO_PORT_B_USED_MASK & BIT(6)
 # define DEFIO_TAG__PB6 DEFIO_TAG_MAKE(DEFIO_GPIOID__B, 6)
