@@ -31,9 +31,9 @@ BUSDEV_REGISTER_I2C(busdev_spl06,      DEVHW_SPL06,        SPL06_I2C_BUS,      S
 
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH3,  PB0, TIM_USE_OUTPUT_AUTO, 0, 0), // S1
-    DEF_TIM(TIM3,  CH4,  PB1, TIM_USE_OUTPUT_AUTO, 0, 0), // S2
-    DEF_TIM(TIM3,  CH2,  PB5, TIM_USE_OUTPUT_AUTO, 0, 0), // S3
-    DEF_TIM(TIM3,  CH1,  PB4, TIM_USE_OUTPUT_AUTO, 0, 0), // S4
+    DEF_TIM(TIM3,  CH2,  PB5, TIM_USE_OUTPUT_AUTO, 0, 0), // S2
+    DEF_TIM(TIM3,  CH1,  PB4, TIM_USE_OUTPUT_AUTO, 0, 0), // S3
+    DEF_TIM(TIM3,  CH4,  PB1, TIM_USE_OUTPUT_AUTO, 0, 0), // S4
 
     DEF_TIM(TIM1,  CH1,  PA8, TIM_USE_LED,                         0, 1),//WS2812B
 };
