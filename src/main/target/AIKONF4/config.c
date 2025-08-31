@@ -24,6 +24,14 @@
 
 void targetConfiguration(void)
 {
-    // To improve backwards compatibility with INAV versions 6.x and older
+    // Improve backwards compatibility
     timerOverridesMutable(timer2id(TIM3))->outputMode = OUTPUT_MODE_MOTORS;
+
+    // Configure serial ports for your specific needs
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART1)].functionMask = FUNCTION_RX_SERIAL;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART2)].functionMask = RESOURCE_NONE;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART3)].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART4)].functionMask = FUNCTION_ESC_SENSOR;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART5)].functionMask = RESOURCE_NONE;
+    serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = RESOURCE_NONE;
 }

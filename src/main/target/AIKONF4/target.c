@@ -28,14 +28,20 @@
 #include "drivers/timer_def.h"
 
 timerHardware_t timerHardware[] = {
-    // DEF_TIM(TIM2,  CH2,  PB3,  TIM_USE_CAMERA_CONTROL,      0, 0), // There is not camera control in INAV
-    DEF_TIM(TIM8,  CH1,  PC6,  TIM_USE_OUTPUT_AUTO, 0, 0), // S1
-    DEF_TIM(TIM8,  CH2,  PC7,  TIM_USE_OUTPUT_AUTO, 0, 0), // S2
-    DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S3
-    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_OUTPUT_AUTO, 0, 0), // S4
-    DEF_TIM(TIM3,  CH3,  PB0,  TIM_USE_OUTPUT_AUTO, 0, 0), // S5
-    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_OUTPUT_AUTO, 0, 0), // S6
-    DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_PPM | TIM_USE_LED, 0, 0), // LED & PPM (DMA1_ST0_CH2)
+    // Motors - Based on your schematic ESC connections
+    DEF_TIM(TIM8,  CH1,  PA9,  TIM_USE_MOTOR, 0, 0), // ESC_1 - S1
+    DEF_TIM(TIM8,  CH2,  PA8,  TIM_USE_MOTOR, 0, 0), // ESC_2 - S2
+    DEF_TIM(TIM8,  CH3,  PC8,  TIM_USE_MOTOR, 0, 0), // ESC_3 - S3
+    DEF_TIM(TIM8,  CH4,  PC9,  TIM_USE_MOTOR, 0, 0), // ESC_4 - S4
+    
+    // Gimbal outputs
+    DEF_TIM(TIM3,  CH3,  PB0,  TIM_USE_SERVO, 0, 0), // GIMBAL_X
+    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_SERVO, 0, 0), // GIMBAL_Y
+    DEF_TIM(TIM3,  CH2,  PC5,  TIM_USE_SERVO, 0, 0), // GIMBAL_Z
+    
+    // LED & PPM - PB6 is used for WS2812
+    DEF_TIM(TIM4,  CH1,  PB3,  TIM_USE_LED, 0, 0),   // LED Strip
+   
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
