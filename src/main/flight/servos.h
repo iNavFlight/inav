@@ -182,3 +182,4 @@ void servoMixer(float dT);
 void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
+uint8_t getMinServoIndex(void);
