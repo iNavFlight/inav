@@ -542,6 +542,16 @@ Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if t
 
 ---
 
+### blackbox_arm_control
+
+Determines behaviour of logging in relation to Arm state. For settings from 0 to 60 logging will start on Arm with the setting determining how long logging will continue after disarm in seconds, i.e. set to 0 to stop logging at disarm or 10 to stop logging 10s after disarm. Set to -1 to start logging from boot up until power off (Use with caution - mainly for debugging and best used with BLACKBOX mode).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -1 | 60 |
+
+---
+
 ### blackbox_device
 
 Selection of where to write blackbox data
@@ -2238,7 +2248,7 @@ Weight of barometer climb rate measurements in estimated climb rate. Setting is 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2248,7 +2258,7 @@ Weight of GPS altitude measurements in estimated altitude. Setting is used on bo
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.2 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2258,7 +2268,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
