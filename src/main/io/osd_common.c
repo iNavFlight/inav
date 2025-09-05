@@ -109,6 +109,23 @@ void osdDrawPointGetPixels(int *px, int *py, const displayPort_t *display, const
     }
 }
 
+void osdThrottleGauge(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, uint8_t thrPos)
+{
+    uint8_t gx;
+    uint8_t gy;
+
+    #if defined(USE_CANVAS)
+    if (canvas) {
+        osdCanvasDrawThrottleGauge(display, canvas, p, thrPos);
+    } else {
+#endif
+        osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
+        osdGridDrawThrottleGauge(display, gx, gy, thrPos);
+#if defined(USE_CANVAS)
+    }
+#endif
+}
+
 void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel)
 {
     uint8_t gx;
