@@ -160,3 +160,8 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+#define USE_PINIO
+#define USE_PINIOBOX
+#define PINIO1_PIN                  PD15
+
