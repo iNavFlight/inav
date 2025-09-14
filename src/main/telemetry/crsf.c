@@ -297,6 +297,7 @@ static void crsfBarometerAltitude(sbuf_t *dst)
     crsfSerialize16(dst, altitude_packed);
 }
 
+#ifdef USE_ESC_SENSOR
 /*
 0x0C RPM
 Payload:
@@ -319,6 +320,7 @@ static void crsfRpm(sbuf_t *dst)
         }
     }
 }
+#endif
 
 /*
 0x0D TEMP
