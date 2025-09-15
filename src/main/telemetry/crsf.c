@@ -56,7 +56,6 @@
 #include "rx/crsf.h"
 #include "rx/rx.h"
 
-
 #include "sensors/battery.h"
 #include "sensors/esc_sensor.h"
 #include "sensors/sensors.h"
@@ -155,6 +154,7 @@ static void crsfSerialize16(sbuf_t *dst, uint16_t v)
     crsfSerialize8(dst, (uint8_t)v);
 }
 
+#ifdef USE_ESC_SENSOR
 static void crsfSerialize24(sbuf_t *dst, uint32_t v)
 {
     // Use BigEndian format
@@ -162,6 +162,7 @@ static void crsfSerialize24(sbuf_t *dst, uint32_t v)
     crsfSerialize8(dst, (v >> 8));
     crsfSerialize8(dst, (uint8_t)v);
 }
+#endif
 
 static void crsfSerialize32(sbuf_t *dst, uint32_t v)
 {
