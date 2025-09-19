@@ -349,13 +349,6 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 }
 #endif
 
-void mspWriteAttitudePayload(sbuf_t *dst)
-{
-    sbufWriteU16(dst, attitude.values.roll);
-    sbufWriteU16(dst, attitude.values.pitch);
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
-}
-
 /*
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
@@ -634,7 +627,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP_ATTITUDE:
-        mspWriteAttitudePayload(dst);
+        sbufWriteU16(dst, attitude.values.roll);
+        sbufWriteU16(dst, attitude.values.pitch);
+        sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
         break;
 
     case MSP_ALTITUDE:
@@ -648,7 +643,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 
     case MSP2_INAV_FULL_LOCAL_POSE:
-        mspWriteAttitudePayload(dst);
+        sbufWriteU16(dst, attitude.values.roll);
+        sbufWriteU16(dst, attitude.values.pitch);
+        sbufWriteU16(dst, attitude.values.yaw);
         const navEstimatedPosVel_t *absoluteActualState = &posControl.actualState.abs;
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             sbufWriteU32(dst, (int32_t)lrintf(absoluteActualState->pos.v[axis]));
