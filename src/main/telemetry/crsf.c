@@ -58,6 +58,7 @@
 
 #include "sensors/battery.h"
 #include "sensors/esc_sensor.h"
+#include "sensors/pitotmeter.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
 
@@ -298,6 +299,21 @@ static void crsfBarometerAltitude(sbuf_t *dst)
     crsfSerialize16(dst, altitude_packed);
 }
 
+#ifdef USE_PITOT
+/*
+0x0A Airspeed sensor
+Payload:
+int16      Air speed ( dm/s )
+*/
+static void crsfFrameAirSpeedSensor(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED_SENSOR);
+    crsfSerialize16(dst, (uint16_t)(getAirspeedEstimate() * 36 / 100));
+}
+#endif
+
 #ifdef USE_ESC_SENSOR
 /*
 0x0C RPM
@@ -523,11 +539,12 @@ typedef enum {
     CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
     CRSF_FRAME_TEMP_INDEX,
     CRSF_FRAME_RPM_INDEX,
+    CRSF_FRAME_AIRSPEED_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
 static uint8_t crsfScheduleCount;
-static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
+static uint16_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 #if defined(USE_MSP_OVER_TELEMETRY)
 
@@ -556,7 +573,7 @@ void crsfSendMspResponse(uint8_t *payload)
 static void processCrsf(void)
 {
     static uint8_t crsfScheduleIndex = 0;
-    const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
+    const uint16_t currentSchedule = crsfSchedule[crsfScheduleIndex];
 
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
@@ -609,6 +626,13 @@ static void processCrsf(void)
         crsfFinalize(dst);
     }
 #endif
+#ifdef USE_PITOT
+    if (currentSchedule & BV(CRSF_FRAME_AIRSPEED_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfFrameAirSpeedSensor(dst);
+        crsfFinalize(dst);
+    }
+#endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
 
@@ -652,6 +676,11 @@ void initCrsfTelemetry(void)
 #endif
 #if defined(USE_ESC_SENSOR) || defined(USE_TEMPERATURE_SENSOR)
     crsfSchedule[index++] = BV(CRSF_FRAME_TEMP_INDEX);
+#endif
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_AIRSPEED_INDEX);
+    }
 #endif
     crsfScheduleCount = (uint8_t)index;
 }
