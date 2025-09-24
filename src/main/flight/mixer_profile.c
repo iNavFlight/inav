@@ -54,6 +54,9 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
                          .tailsitterOrientationOffset = SETTING_TAILSITTER_ORIENTATION_OFFSET_DEFAULT,
+                         .transition_PID_mmix_multiplier_roll = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_ROLL_DEFAULT,
+                         .transition_PID_mmix_multiplier_pitch = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_PITCH_DEFAULT,
+                         .transition_PID_mmix_multiplier_yaw = SETTING_TRANSITION_PID_MMIX_MULTIPLIER_YAW_DEFAULT
                      });
         for (int j = 0; j < MAX_SUPPORTED_MOTORS; j++)
         {
