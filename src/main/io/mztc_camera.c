@@ -40,7 +40,6 @@
 #include "io/mztc_camera.h"
 
 #include "scheduler/scheduler.h"
-#include <stdio.h>
 
 #ifdef USE_MZTC
 
@@ -163,8 +162,8 @@ static void mztcSendConfiguration(void); // Forward declaration for new function
 void mztcInit(void)
 {
     // DEBUG: Print initialization message
-    printf("MZTC: Initializing MassZero Thermal Camera\n");
-    printf("MZTC: USE_MZTC is DEFINED and ACTIVE\n");
+    SD(fprintf(stderr, "[MZTC]: Initializing MassZero Thermal Camera\n"));
+    SD(fprintf(stderr, "[MZTC]: USE_MZTC is DEFINED and ACTIVE\n"));
     
     if (mztcInitialized) {
         return;
@@ -188,10 +187,10 @@ void mztcInit(void)
     // Detect SITL mode (check if we're running in simulation)
     #ifdef USE_SIMULATOR
         mztcSitlMode = true;
-        printf("MZTC: Running in SITL mode\n");
+        SD(fprintf(stderr, "[MZTC]: Running in SITL mode\n"));
     #else
         mztcSitlMode = false;
-        printf("MZTC: Running on real hardware\n");
+        SD(fprintf(stderr, "[MZTC]: Running on real hardware\n"));
     #endif
 
     // Don't try to open port immediately - let the update loop handle it
@@ -236,20 +235,20 @@ void mztcUpdate(timeUs_t currentTimeUs)
                 mztcStatus.frame_count = 0;
                 
                 // Send initial configuration commands
-                printf("MZTC: Sending initial configuration...\n");
+                SD(fprintf(stderr, "[MZTC]: Sending initial configuration...\n"));
                 mztcSendConfiguration();
                 
                 // Log successful connection
                 if (mztcSitlMode) {
-                    printf("MZTC: Connected via SITL TCP bridge on Serial %d\n", mztcConfig()->port);
+                    SD(fprintf(stderr, "[MZTC]: Connected via SITL TCP bridge on Serial %d\n", mztcConfig()->port));
                 } else {
-                    printf("MZTC: Connected to thermal camera on Serial %d\n", mztcConfig()->port);
+                    SD(fprintf(stderr, "[MZTC]: Connected to thermal camera on Serial %d\n", mztcConfig()->port));
                 }
             } else {
                 // Failed to open port
                 mztcStatus.status = MZTC_STATUS_ERROR;
                 mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
-                printf("MZTC: Failed to open Serial %d, will retry...\n", mztcConfig()->port);
+                SD(fprintf(stderr, "[MZTC]: Failed to open Serial %d, will retry...\n", mztcConfig()->port));
             }
         }
         return; // Don't process further until connected
@@ -310,7 +309,7 @@ void mztcSimulateDataReception(void)
 {
     if (mztcSitlMode) {
         mztcLastDataReceived = millis();
-        printf("MZTC SITL: Simulated data reception\n");
+        SD(fprintf(stderr, "[MZTC SITL]: Simulated data reception\n"));
     }
 }
 
@@ -523,7 +522,7 @@ static bool mztcSendPacket(uint8_t class_cmd, uint8_t subclass_cmd, uint8_t flag
     serialWriteBufShim(mztcSerialPort, (const uint8_t *)&packet, totalLen);
     
     // Debug log
-    printf("MZTC: Sent packet - cmd:0x%02X/0x%02X size:%u\n", class_cmd, subclass_cmd, totalLen);
+    SD(fprintf(stderr, "[MZTC]: Sent packet - cmd:0x%02X/0x%02X size:%u\n", class_cmd, subclass_cmd, totalLen));
     
     return true;
 }
