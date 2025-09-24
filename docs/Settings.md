@@ -6422,6 +6422,36 @@ Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-ro
 
 ---
 
+### transition_pid_mmix_multiplier_pitch
+
+pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_roll
+
+roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_yaw
+
+yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
 ### tri_unarmed_servo
 
 On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF.
