@@ -53,20 +53,6 @@
 #define MZTC_OSD_DEFAULT_POS_Y          10
 #define MZTC_OSD_DEFAULT_VISIBILITY     MZTC_OSD_VISIBLE_ALWAYS
 
-// Parameter group for MassZero Thermal Camera OSD configuration
-PG_REGISTER_WITH_RESET_TEMPLATE(mztcOsdConfig_t, mztcOsdConfig, PG_MZTC_OSD_CONFIG, 0);
-
-PG_RESET_TEMPLATE(mztcOsdConfig_t, mztcOsdConfig,
-    .enabled = MZTC_OSD_DEFAULT_ENABLED,
-    .temperature_display = MZTC_OSD_DEFAULT_TEMP_DISPLAY,
-    .status_display = MZTC_OSD_DEFAULT_STATUS_DISPLAY,
-    .alerts_display = MZTC_OSD_DEFAULT_ALERTS_DISPLAY,
-    .calibration_display = MZTC_OSD_DEFAULT_CALIB_DISPLAY,
-    .connection_display = MZTC_OSD_DEFAULT_CONN_DISPLAY,
-    .position_x = MZTC_OSD_DEFAULT_POS_X,
-    .position_y = MZTC_OSD_DEFAULT_POS_Y,
-    .visibility_flags = MZTC_OSD_DEFAULT_VISIBILITY
-);
 
 // Internal state
 static bool mztcOsdInitialized = false;

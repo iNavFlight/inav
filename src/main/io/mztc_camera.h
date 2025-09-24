@@ -47,4 +47,7 @@ bool mztcSetDenoising(uint8_t spatial, uint8_t temporal);
 bool mztcSetTemperatureAlerts(bool enabled, float high_temp, float low_temp);
 void mztcRequestReconnect(void);
 
+// Get thermal frame data from the camera
+bool mztcGetFrameData(mztcFrameData_t *frameData);
+
 #endif // USE_MZTC

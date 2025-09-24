@@ -29,6 +29,7 @@
 #include "drivers/system.h"
 
 #include "io/mztc_camera.h"
+#include "config/mztc_camera.h"
 
 #ifdef USE_MZTC
 
@@ -44,7 +45,7 @@ void mspMztcInit(void)
     // For now, we'll handle commands in the main MSP processing loop
 }
 
-// Process MassZero Thermal Camera MSP commands
+// Process MassZero Thermal Camera MSP V2 commands
 mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
 {
     if (!cmd || !reply) {
@@ -52,7 +53,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
     }
 
     switch (cmd->cmd) {
-        case MSP_MZTC_CONFIG: {
+        case MSP2_MZTC_CONFIG: {
             // Get MassZero Thermal Camera configuration
             if (sbufBytesRemaining(&reply->buf) < (int)sizeof(msp_mztc_config_t)) {
                 return MSP_RESULT_ERROR;
@@ -88,7 +89,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             return MSP_RESULT_ACK;
         }
 
-        case MSP_SET_MZTC_CONFIG: {
+        case MSP2_SET_MZTC_CONFIG: {
             // Set MassZero Thermal Camera configuration
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_config_t)) {
                 return MSP_RESULT_ERROR;
@@ -133,7 +134,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             return MSP_RESULT_ACK;
         }
 
-        case MSP_MZTC_STATUS: {
+        case MSP2_MZTC_STATUS: {
             // Get MassZero Thermal Camera status
             if (sbufBytesRemaining(&reply->buf) < (int)sizeof(msp_mztc_status_t)) {
                 return MSP_RESULT_ERROR;
@@ -142,21 +143,34 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             msp_mztc_status_t *status = (msp_mztc_status_t*)reply->buf.ptr;
             const mztcStatus_t *mztcStatus = mztcGetStatus();
 
-            status->status = mztcStatus->status;
-            status->mode = mztcStatus->mode;
-            status->connection_quality = mztcStatus->connection_quality;
-            status->last_calibration = mztcStatus->last_calibration;
-            status->camera_temperature = mztcStatus->camera_temperature;
-            status->ambient_temperature = mztcStatus->ambient_temperature;
-            status->frame_count = mztcStatus->frame_count;
-            status->error_flags = mztcStatus->error_flags;
-            status->last_frame_time = mztcStatus->last_frame_time;
+            if (mztcStatus) {
+                status->status = mztcStatus->status;
+                status->mode = mztcStatus->mode;
+                status->connection_quality = mztcStatus->connection_quality;
+                status->last_calibration = mztcStatus->last_calibration;
+                status->camera_temperature = mztcStatus->camera_temperature;
+                status->ambient_temperature = mztcStatus->ambient_temperature;
+                status->frame_count = mztcStatus->frame_count;
+                status->error_flags = mztcStatus->error_flags;
+                status->last_frame_time = mztcStatus->last_frame_time;
+            } else {
+                // Return default values if status is not available
+                status->status = MZTC_STATUS_OFFLINE;
+                status->mode = 0;
+                status->connection_quality = 0;
+                status->last_calibration = 0;
+                status->camera_temperature = 0.0f;
+                status->ambient_temperature = 0.0f;
+                status->frame_count = 0;
+                status->error_flags = 0;
+                status->last_frame_time = 0;
+            }
 
             sbufAdvance(&reply->buf, sizeof(msp_mztc_status_t));
             return MSP_RESULT_ACK;
         }
 
-        case MSP_MZTC_FRAME_DATA: {
+        case MSP2_MZTC_FRAME_DATA: {
             // Get thermal frame data
             if (sbufBytesRemaining(&reply->buf) < (int)sizeof(msp_mztc_frame_t)) {
                 return MSP_RESULT_ERROR;
@@ -185,7 +199,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             return MSP_RESULT_ACK;
         }
 
-        case MSP_MZTC_CALIBRATE: {
+        case MSP2_MZTC_CALIBRATE: {
             // Trigger calibration (FFC)
             if (mztcTriggerCalibration()) {
                 return MSP_RESULT_ACK;
@@ -194,7 +208,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_MODE: {
+        case MSP2_MZTC_MODE: {
             // Set operating mode
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_mode_t)) {
                 return MSP_RESULT_ERROR;
@@ -209,7 +223,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_PALETTE: {
+        case MSP2_MZTC_PALETTE: {
             // Set color palette
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_palette_t)) {
                 return MSP_RESULT_ERROR;
@@ -224,7 +238,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_ZOOM: {
+        case MSP2_MZTC_ZOOM: {
             // Set zoom level
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_zoom_t)) {
                 return MSP_RESULT_ERROR;
@@ -239,8 +253,14 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_SHUTTER: {
+        case MSP2_MZTC_SHUTTER: {
             // Trigger manual shutter
+            if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_shutter_t)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            const msp_mztc_shutter_t *shutter = (const msp_mztc_shutter_t*)cmd->buf.ptr;
+            
             if (mztcTriggerCalibration()) {
                 return MSP_RESULT_ACK;
             } else {
@@ -248,7 +268,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_ALERTS: {
+        case MSP2_SET_MZTC_ALERTS: {
             // Configure temperature alerts
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_alerts_t)) {
                 return MSP_RESULT_ERROR;
@@ -263,7 +283,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_IMAGE_PARAMS: {
+        case MSP2_SET_MZTC_IMAGE_PARAMS: {
             // Set image parameters
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_image_params_t)) {
                 return MSP_RESULT_ERROR;
@@ -278,7 +298,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
         }
 
-        case MSP_MZTC_CORRECTION: {
+        case MSP2_SET_MZTC_CORRECTION: {
             // Set correction parameters
             if (sbufBytesRemaining(&cmd->buf) < (int)sizeof(msp_mztc_correction_t)) {
                 return MSP_RESULT_ERROR;
