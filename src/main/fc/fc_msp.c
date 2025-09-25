@@ -1785,17 +1785,30 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP2_MZTC_STATUS:
         {
             msp_mztc_status_t *status = (msp_mztc_status_t*)sbufPtr(dst);
-            mztcStatus_t mztcStatus = mztcGetStatus();
-            
-            status->status = mztcStatus.status;
-            status->mode = mztcStatus.mode;
-            status->connection_quality = mztcStatus.connection_quality;
-            status->last_calibration = mztcStatus.last_calibration;
-            status->camera_temperature = mztcStatus.camera_temperature;
-            status->ambient_temperature = mztcStatus.ambient_temperature;
-            status->frame_count = mztcStatus.frame_count;
-            status->error_flags = mztcStatus.error_flags;
-            status->last_frame_time = mztcStatus.last_frame_time;
+            const mztcStatus_t *mztcStatus = mztcGetStatus();
+
+            if (mztcStatus) {
+                status->status = mztcStatus->status;
+                status->mode = mztcStatus->mode;
+                status->connection_quality = mztcStatus->connection_quality;
+                status->last_calibration = mztcStatus->last_calibration;
+                status->camera_temperature = mztcStatus->camera_temperature;
+                status->ambient_temperature = mztcStatus->ambient_temperature;
+                status->frame_count = mztcStatus->frame_count;
+                status->error_flags = mztcStatus->error_flags;
+                status->last_frame_time = mztcStatus->last_frame_time;
+            } else {
+                // Return default values if status is not available
+                status->status = 0;
+                status->mode = 0;
+                status->connection_quality = 0;
+                status->last_calibration = 0;
+                status->camera_temperature = 0.0f;
+                status->ambient_temperature = 0.0f;
+                status->frame_count = 0;
+                status->error_flags = 0;
+                status->last_frame_time = 0;
+            }
             
             sbufAdvance(dst, sizeof(msp_mztc_status_t));
         }
@@ -3728,6 +3741,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_SET_MZTC_SHUTTER:
         if (dataSize == sizeof(msp_mztc_shutter_t)) {
             const msp_mztc_shutter_t *shutter = (const msp_mztc_shutter_t*)sbufPtr(src);
+            UNUSED(shutter);
             if (!mztcTriggerCalibration()) {
                 return MSP_RESULT_ERROR;
             }

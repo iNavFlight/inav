@@ -26,23 +26,26 @@
 #ifdef USE_MZTC
 
 // MassZero Thermal Camera MSP V2 commands
-// Using INAV-specific range 0x2000-0x2FFF as per MSP V2 standards
-#define MSP2_MZTC_CONFIG                0x2000    // Get MassZero Thermal Camera configuration
-#define MSP2_SET_MZTC_CONFIG            0x2001    // Set MassZero Thermal Camera configuration
-#define MSP2_MZTC_STATUS                0x2002    // Get MassZero Thermal Camera status
-#define MSP2_MZTC_FRAME_DATA            0x2003    // Get thermal frame data
-#define MSP2_MZTC_CALIBRATE            0x2004    // Trigger calibration (FFC)
-#define MSP2_MZTC_MODE                 0x2005    // Set operating mode
-#define MSP2_MZTC_PALETTE              0x2006    // Set color palette
-#define MSP2_MZTC_ZOOM                 0x2007    // Set zoom level
-#define MSP2_MZTC_SHUTTER              0x2008    // Trigger manual shutter
-#define MSP2_SET_MZTC_SHUTTER          0x200C    // Set manual shutter trigger
-#define MSP2_MZTC_ALERTS               0x2009    // Configure temperature alerts
-#define MSP2_SET_MZTC_ALERTS           0x200D    // Set temperature alerts configuration
-#define MSP2_MZTC_IMAGE_PARAMS         0x200A    // Set image parameters (brightness, contrast, etc.)
-#define MSP2_SET_MZTC_IMAGE_PARAMS    0x200E    // Set image parameters
-#define MSP2_MZTC_CORRECTION           0x200B    // Set correction parameters (denoising, enhancement)
-#define MSP2_SET_MZTC_CORRECTION      0x200F    // Set correction parameters
+// Using INAV-specific range 0x3000-0x3FFF to avoid conflicts with existing INAV messages
+#define MSP2_MZTC_CONFIG                0x3000    // Get MassZero Thermal Camera configuration
+#define MSP2_SET_MZTC_CONFIG            0x3001    // Set MassZero Thermal Camera configuration
+#define MSP2_MZTC_STATUS                0x3002    // Get MassZero Thermal Camera status
+#define MSP2_MZTC_FRAME_DATA            0x3003    // Get thermal frame data
+#define MSP2_MZTC_CALIBRATE            0x3004    // Trigger calibration (FFC)
+#define MSP2_MZTC_MODE                 0x3005    // Set operating mode
+#define MSP2_SET_MZTC_MODE             0x3005    // Set operating mode (alias)
+#define MSP2_MZTC_PALETTE              0x3006    // Set color palette
+#define MSP2_SET_MZTC_PALETTE          0x3006    // Set color palette (alias)
+#define MSP2_MZTC_ZOOM                 0x3007    // Set zoom level
+#define MSP2_SET_MZTC_ZOOM             0x3007    // Set zoom level (alias)
+#define MSP2_MZTC_SHUTTER              0x3008    // Trigger manual shutter
+#define MSP2_SET_MZTC_SHUTTER          0x3010    // Set manual shutter trigger
+#define MSP2_MZTC_ALERTS               0x3009    // Configure temperature alerts
+#define MSP2_SET_MZTC_ALERTS           0x300D    // Set temperature alerts configuration
+#define MSP2_MZTC_IMAGE_PARAMS         0x300A    // Set image parameters (brightness, contrast, etc.)
+#define MSP2_SET_MZTC_IMAGE_PARAMS    0x300E    // Set image parameters
+#define MSP2_MZTC_CORRECTION           0x300B    // Set correction parameters (denoising, enhancement)
+#define MSP2_SET_MZTC_CORRECTION      0x300F    // Set correction parameters
 
 // MSP message structures for MassZero Thermal Camera
 
@@ -111,9 +114,9 @@ typedef struct {
     uint8_t palette;                    // Color palette
 } msp_mztc_palette_t;
 
-// MSP_MZTC_ZOOM (2007) - Set zoom
+// MSP_MZTC_ZOOM (3007) - Set zoom
 typedef struct {
-    uint8_t zoom;                       // Zoom level
+    uint8_t zoom_level;                 // Zoom level
 } msp_mztc_zoom_t;
 
 // MSP_MZTC_SHUTTER (2008) - Trigger manual shutter

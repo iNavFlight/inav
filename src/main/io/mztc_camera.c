@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "platform.h"
 
@@ -106,6 +107,9 @@ typedef struct {
 #define MZTC_CMD_PSEUDO_COLOR        {0x78, 0x20}  // Pseudo color
 #define MZTC_CMD_ZOOM                {0x70, 0x12}  // Digital zoom
 #define MZTC_CMD_IMAGE_MIRROR        {0x70, 0x11}  // Mirror mode
+#define MZTC_CMD_INIT_STATUS         {0x7C, 0x14}  // Read initialization status
+#define MZTC_CMD_SAVE_CONFIG         {0x74, 0x10}  // Save configuration
+#define MZTC_CMD_RESTORE_DEFAULTS    {0x74, 0x0F}  // Restore defaults
 
 // Internal state
 mztcStatus_t mztcStatus;
@@ -647,6 +651,7 @@ void mztcRequestReconnect(void)
 // Read real thermal frame data from the camera hardware
 static bool mztcReadThermalFrame(mztcFrameData_t *frameData)
 {
+    UNUSED(frameData);
     if (!mztcSerialPort) {
         return false;
     }
@@ -705,7 +710,7 @@ bool mztcGetFrameData(mztcFrameData_t *frameData)
         // Use the status data to get current temperature readings
         // These come from the camera's internal sensors
         float ambient_temp = status->ambient_temperature;
-        float camera_temp = status->camera_temperature;
+        // float camera_temp = status->camera_temperature; // Unused for now
         
         // Use these as base temperatures for the frame
         float base_temp = ambient_temp > 0.0f ? ambient_temp : 25.0f;
@@ -777,6 +782,67 @@ bool mztcGetFrameData(mztcFrameData_t *frameData)
     }
     
     // If we can't get status, return false
+    return false;
+}
+
+// Get camera initialization status
+bool mztcGetInitStatus(void)
+{
+    if (!mztcIsEnabled() || !mztcIsConnected()) {
+        return false;
+    }
+
+    // Send read command for initialization status
+    if (mztcSendPacket(0x7C, 0x14, MZTC_FLAG_READ, NULL, 0)) {
+        // The response will be processed in mztcProcessResponse
+        // Return true if command was sent successfully
+        return true;
+    }
+
+    return false;
+}
+
+// Save camera configuration to flash
+bool mztcSaveConfiguration(void)
+{
+    if (!mztcIsEnabled() || !mztcIsConnected()) {
+        return false;
+    }
+
+    // Send save configuration command
+    if (mztcSendPacket(0x74, 0x10, MZTC_FLAG_WRITE, NULL, 0)) {
+        SD(fprintf(stderr, "[MZTC]: Configuration saved to camera flash\n"));
+        return true;
+    }
+
+    return false;
+}
+
+// Restore camera to factory defaults
+bool mztcRestoreDefaults(void)
+{
+    if (!mztcIsEnabled() || !mztcIsConnected()) {
+        return false;
+    }
+
+    // Send restore defaults command
+    if (mztcSendPacket(0x74, 0x0F, MZTC_FLAG_WRITE, NULL, 0)) {
+        SD(fprintf(stderr, "[MZTC]: Camera restored to factory defaults\n"));
+        
+        // Reset our local configuration to defaults
+        mztcConfigMutable()->brightness = MZTC_DEFAULT_BRIGHTNESS;
+        mztcConfigMutable()->contrast = MZTC_DEFAULT_CONTRAST;
+        mztcConfigMutable()->digital_enhancement = MZTC_DEFAULT_DIGITAL_ENHANCEMENT;
+        mztcConfigMutable()->spatial_denoise = MZTC_DEFAULT_SPATIAL_DENOISE;
+        mztcConfigMutable()->temporal_denoise = MZTC_DEFAULT_TEMPORAL_DENOISE;
+        mztcConfigMutable()->palette_mode = MZTC_DEFAULT_PALETTE_MODE;
+        mztcConfigMutable()->zoom_level = MZTC_DEFAULT_ZOOM_LEVEL;
+        mztcConfigMutable()->mirror_mode = MZTC_DEFAULT_MIRROR_MODE;
+        mztcConfigMutable()->auto_shutter = MZTC_DEFAULT_AUTO_SHUTTER;
+        
+        return true;
+    }
+
     return false;
 }
 

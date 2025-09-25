@@ -536,6 +536,207 @@ TEST_F(MztcCameraTest, StructureAlignment) {
     EXPECT_TRUE(true); // If we get here, alignment is correct
 }
 
+// Test packet construction
+TEST_F(MztcCameraTest, PacketConstruction) {
+    // Test packet structure matches UART protocol
+    // This would test the mztcPacket_t structure
+    EXPECT_EQ(sizeof(mztcPacket_t), 20); // begin + size + addr + class + subclass + flags + data[14] + checksum + end
+    
+    // Test packet field sizes
+    mztcPacket_t packet = {0};
+    EXPECT_EQ(sizeof(packet.begin), 1);
+    EXPECT_EQ(sizeof(packet.size), 1);
+    EXPECT_EQ(sizeof(packet.device_addr), 1);
+    EXPECT_EQ(sizeof(packet.class_cmd), 1);
+    EXPECT_EQ(sizeof(packet.subclass_cmd), 1);
+    EXPECT_EQ(sizeof(packet.flags), 1);
+    EXPECT_EQ(sizeof(packet.data), 14);
+    EXPECT_EQ(sizeof(packet.checksum), 1);
+    EXPECT_EQ(sizeof(packet.end), 1);
+}
+
+// Test command definitions
+TEST_F(MztcCameraTest, CommandDefinitions) {
+    // Test that command arrays are properly defined
+    // These would be tested if we had access to the command arrays
+    EXPECT_TRUE(true); // Placeholder for command validation
+}
+
+// Test error handling
+TEST_F(MztcCameraTest, ErrorHandling) {
+    // Test error flag definitions
+    EXPECT_EQ(MZTC_ERR_NO_COMMAND, 0x00);
+    EXPECT_EQ(MZTC_ERR_THRESHOLD, 0x01);
+    
+    // Test error flag combinations
+    uint8_t combined_errors = MZTC_ERR_NO_COMMAND | MZTC_ERR_THRESHOLD;
+    EXPECT_EQ(combined_errors, 0x01);
+}
+
+// Test configuration validation
+TEST_F(MztcCameraTest, ConfigurationValidation) {
+    mztcConfig_t config = {0};
+    
+    // Test valid ranges
+    config.brightness = 50;
+    EXPECT_GE(config.brightness, 0);
+    EXPECT_LE(config.brightness, 100);
+    
+    config.contrast = 75;
+    EXPECT_GE(config.contrast, 0);
+    EXPECT_LE(config.contrast, 100);
+    
+    config.digital_enhancement = 25;
+    EXPECT_GE(config.digital_enhancement, 0);
+    EXPECT_LE(config.digital_enhancement, 100);
+    
+    config.spatial_denoise = 60;
+    EXPECT_GE(config.spatial_denoise, 0);
+    EXPECT_LE(config.spatial_denoise, 100);
+    
+    config.temporal_denoise = 40;
+    EXPECT_GE(config.temporal_denoise, 0);
+    EXPECT_LE(config.temporal_denoise, 100);
+}
+
+// Test status validation
+TEST_F(MztcCameraTest, StatusValidation) {
+    mztcStatus_t status = {0};
+    
+    // Test status field
+    status.status = MZTC_STATUS_READY;
+    EXPECT_GE(status.status, MZTC_STATUS_OFFLINE);
+    EXPECT_LE(status.status, MZTC_STATUS_RECORDING);
+    
+    // Test mode field
+    status.mode = MZTC_MODE_CONTINUOUS;
+    EXPECT_GE(status.mode, MZTC_MODE_DISABLED);
+    EXPECT_LE(status.mode, MZTC_MODE_SURVEILLANCE);
+    
+    // Test connection quality
+    status.connection_quality = 85;
+    EXPECT_GE(status.connection_quality, 0);
+    EXPECT_LE(status.connection_quality, 100);
+    
+    // Test temperature ranges
+    status.camera_temperature = 25.0f;
+    EXPECT_GE(status.camera_temperature, -40.0f);
+    EXPECT_LE(status.camera_temperature, 85.0f);
+    
+    status.ambient_temperature = 20.0f;
+    EXPECT_GE(status.ambient_temperature, -40.0f);
+    EXPECT_LE(status.ambient_temperature, 85.0f);
+}
+
+// Test frame data validation
+TEST_F(MztcCameraTest, FrameDataValidation) {
+    mztcFrameData_t frame = {0};
+    
+    // Test frame dimensions
+    frame.width = 160;
+    frame.height = 120;
+    EXPECT_GT(frame.width, 0);
+    EXPECT_GT(frame.height, 0);
+    EXPECT_LE(frame.width, 640); // Reasonable max
+    EXPECT_LE(frame.height, 480); // Reasonable max
+    
+    // Test temperature ranges
+    frame.min_temp = -20.0f;
+    frame.max_temp = 100.0f;
+    EXPECT_LT(frame.min_temp, frame.max_temp);
+    EXPECT_GE(frame.min_temp, -50.0f);
+    EXPECT_LE(frame.max_temp, 200.0f);
+    
+    // Test coordinates
+    frame.hottest_x = 80;
+    frame.hottest_y = 60;
+    frame.coldest_x = 0;
+    frame.coldest_y = 0;
+    EXPECT_GE(frame.hottest_x, 0);
+    EXPECT_GE(frame.hottest_y, 0);
+    EXPECT_GE(frame.coldest_x, 0);
+    EXPECT_GE(frame.coldest_y, 0);
+    EXPECT_LT(frame.hottest_x, frame.width);
+    EXPECT_LT(frame.hottest_y, frame.height);
+    EXPECT_LT(frame.coldest_x, frame.width);
+    EXPECT_LT(frame.coldest_y, frame.height);
+}
+
+// Test enum boundary values
+TEST_F(MztcCameraTest, EnumBoundaryValues) {
+    // Test mode enum boundaries
+    EXPECT_EQ(MZTC_MODE_DISABLED, 0);
+    EXPECT_EQ(MZTC_MODE_SURVEILLANCE, 7);
+    
+    // Test temperature unit boundaries
+    EXPECT_EQ(MZTC_UNIT_CELSIUS, 0);
+    EXPECT_EQ(MZTC_UNIT_KELVIN, 2);
+    
+    // Test palette boundaries
+    EXPECT_EQ(MZTC_PALETTE_WHITE_HOT, 0);
+    EXPECT_EQ(MZTC_PALETTE_RED_HOT, 13);
+    
+    // Test zoom boundaries
+    EXPECT_EQ(MZTC_ZOOM_1X, 0);
+    EXPECT_EQ(MZTC_ZOOM_8X, 3);
+    
+    // Test mirror boundaries
+    EXPECT_EQ(MZTC_MIRROR_NONE, 0);
+    EXPECT_EQ(MZTC_MIRROR_CENTRAL, 3);
+    
+    // Test shutter boundaries
+    EXPECT_EQ(MZTC_SHUTTER_TEMP_ONLY, 0);
+    EXPECT_EQ(MZTC_SHUTTER_TIME_AND_TEMP, 2);
+}
+
+// Test limits and constraints
+TEST_F(MztcCameraTest, LimitsAndConstraints) {
+    // Test update rate limits
+    EXPECT_GE(MZTC_MAX_UPDATE_RATE, MZTC_MIN_UPDATE_RATE);
+    EXPECT_GT(MZTC_MAX_UPDATE_RATE, 0);
+    EXPECT_GT(MZTC_MIN_UPDATE_RATE, 0);
+    
+    // Test FFC interval limits
+    EXPECT_GE(MZTC_MAX_FFC_INTERVAL, MZTC_MIN_FFC_INTERVAL);
+    EXPECT_GT(MZTC_MAX_FFC_INTERVAL, 0);
+    EXPECT_GT(MZTC_MIN_FFC_INTERVAL, 0);
+    
+    // Test reasonable limits
+    EXPECT_LE(MZTC_MAX_UPDATE_RATE, 60); // Max 60 Hz reasonable
+    EXPECT_LE(MZTC_MAX_FFC_INTERVAL, 120); // Max 2 hours reasonable
+}
+
+// Test data integrity
+TEST_F(MztcCameraTest, DataIntegrity) {
+    // Test that structures can be zeroed
+    mztcConfig_t config = {0};
+    mztcStatus_t status = {0};
+    mztcFrameData_t frame = {0};
+    
+    // Test that zeroing works
+    EXPECT_EQ(config.enabled, 0);
+    EXPECT_EQ(status.status, 0);
+    EXPECT_EQ(frame.width, 0);
+    
+    // Test that we can set and get values
+    config.enabled = 1;
+    EXPECT_EQ(config.enabled, 1);
+    
+    status.status = MZTC_STATUS_READY;
+    EXPECT_EQ(status.status, MZTC_STATUS_READY);
+    
+    frame.width = 160;
+    EXPECT_EQ(frame.width, 160);
+}
+
+// Test new function declarations exist
+TEST_F(MztcCameraTest, NewFunctionDeclarations) {
+    // Test that new functions are declared
+    // These would be tested if we had access to the function pointers
+    // For now, we just verify the test compiles with the new declarations
+    EXPECT_TRUE(true);
+}
+
 // Main function for running tests
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

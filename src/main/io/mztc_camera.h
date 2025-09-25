@@ -50,4 +50,9 @@ void mztcRequestReconnect(void);
 // Get thermal frame data from the camera
 bool mztcGetFrameData(mztcFrameData_t *frameData);
 
+// Camera management functions
+bool mztcGetInitStatus(void);
+bool mztcSaveConfiguration(void);
+bool mztcRestoreDefaults(void);
+
 #endif // USE_MZTC

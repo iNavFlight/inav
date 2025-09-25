@@ -246,7 +246,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
 
             const msp_mztc_zoom_t *zoom = (const msp_mztc_zoom_t*)cmd->buf.ptr;
             
-            if (mztcSetZoom((mztcZoomLevel_e)zoom->zoom)) {
+            if (mztcSetZoom((mztcZoomLevel_e)zoom->zoom_level)) {
                 return MSP_RESULT_ACK;
             } else {
                 return MSP_RESULT_ERROR;
@@ -260,6 +260,7 @@ mspResult_e mspMztcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply)
             }
 
             const msp_mztc_shutter_t *shutter = (const msp_mztc_shutter_t*)cmd->buf.ptr;
+            UNUSED(shutter);
             
             if (mztcTriggerCalibration()) {
                 return MSP_RESULT_ACK;
