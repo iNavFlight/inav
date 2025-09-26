@@ -1343,6 +1343,11 @@ groups:
         field: throttle.dynPID
         min: 0
         max: 100
+      - name: airspeed_tpa
+        description: "Use airspeed instead of throttle position for TPA if airspeed is available. use throttle as {tpa_breakpoint + (airspeed - fw_reference_airspeed)/fw_reference_airspeed * (tpa_breakpoint - ThrottleIdleValue(default:1150))} for TPA calculation"
+        type: bool
+        field: throttle.airspeed_tpa
+        default_value: OFF
       - name: tpa_breakpoint
         description: "See tpa_rate."
         default_value: 1500

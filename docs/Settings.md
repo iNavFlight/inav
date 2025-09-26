@@ -302,6 +302,16 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
+### airspeed_tpa
+
+Use airspeed instead of throttle position for TPA if airspeed is available. use throttle as {tpa_breakpoint + (airspeed - fw_reference_airspeed)/fw_reference_airspeed * (tpa_breakpoint - ThrottleIdleValue(default:1150))} for TPA calculation
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### align_board_pitch
 
 Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc
