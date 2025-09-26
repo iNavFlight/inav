@@ -634,7 +634,7 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Default | Min | Max |
 | --- | --- | --- |
