@@ -23,3 +23,4 @@
 void mztcCliInit(void);
 
 #endif // USE_MZTC
+
