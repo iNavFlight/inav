@@ -500,7 +500,7 @@ void updatePIDCoefficients(void)
         const float airspeed = getAirspeedEstimate(); // in cm/s
         const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
         tpaThrottle = currentControlRateProfile->throttle.pa_breakpoint + (uint16_t)((airspeed - referenceAirspeed) / referenceAirspeed * (currentControlRateProfile->throttle.pa_breakpoint - getThrottleIdleValue()));
-        //upper and lower limits will be applied in calculateFixedWingTPAFactor()
+        tpaThrottle = constrain(tpaThrottle, getThrottleIdleValue(), tpaThrottle);
     }
     else if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
         tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
