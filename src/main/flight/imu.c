@@ -426,7 +426,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             fpVector3_t vHeadingEF;
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
-            if (vCOG) { //capital O in COG
+            if (vCOG) {
                 LOG_DEBUG(IMU, "vCOG=(%f,%f,%f)", (double)vCOG->x, (double)vCOG->y, (double)vCOG->z);
                 vCoGlocal = *vCOG;
                 float airSpeed = gpsSol.groundSpeed;
@@ -449,7 +449,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 wCoG *= imuCalculateMcCogWeight();
                 //handle acc based vector
                 if(vCOGAcc){
-                    float wCoGAcc = imuCalculateMcCogAccWeight();
+                    float wCoGAcc = imuCalculateMcCogAccWeight();//stronger weight on acc if body frame z axis greate than 1G
                     LOG_DEBUG(IMU, "accFiltZ=%f", (double)imuMeasuredAccelBFFiltered.z);
                     LOG_DEBUG(IMU, "wCoGAcc=%f wCoG=%f", (double)wCoGAcc, (double)wCoG);
                     LOG_DEBUG(IMU, "vHeadingEF=(%f,%f,%f)", (double)vHeadingEF.x, (double)vHeadingEF.y, (double)vHeadingEF.z);
@@ -767,10 +767,6 @@ static void imuCalculateEstimatedAttitude(float dT)
 #else
     const bool canUseMAG = false;
 #endif
-
-    // centrifugal force compensation
-    static fpVector3_t vEstAccelBF_velned;
-    static fpVector3_t vEstAccelBF_turnrate;
     static fpVector3_t vCOG;
     static fpVector3_t vCOGAcc;
     bool useMag = false;
@@ -812,27 +808,29 @@ static void imuCalculateEstimatedAttitude(float dT)
     }
 
     imuCalculateFilters(dT);
-
+    // centrifugal force compensation
+    static fpVector3_t vEstcentrifugalAccelBF_velned;
+    static fpVector3_t vEstcentrifugalAccelBF_turnrate;
     float acc_ignore_slope_multipiler = 1.0f; // when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slope will be multiplied by this value
     if (isGPSTrustworthy())
     {
         LOG_DEBUG(IMU, "vCOG=(%f,%f,%f)", (double)vCOG.x, (double)vCOG.y, (double)vCOG.z);
-        imuCalculateGPSacceleration(&vCOGAcc, &vEstAccelBF_velned, &acc_ignore_slope_multipiler);
+        imuCalculateGPSacceleration(&vCOGAcc, &vEstcentrifugalAccelBF_velned, &acc_ignore_slope_multipiler);
         useCOGAcc = true; //currently only for multicopter
     }
     if (STATE(AIRPLANE))
     {
-        imuCalculateTurnRateacceleration(&vEstAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
+        imuCalculateTurnRateacceleration(&vEstcentrifugalAccelBF_turnrate, dT, &acc_ignore_slope_multipiler);
     }
     if (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE && isGPSTrustworthy() && STATE(AIRPLANE))
     {
         //pick the best centrifugal acceleration between velned and turnrate
         fpVector3_t compansatedGravityBF_velned;
-        vectorAdd(&compansatedGravityBF_velned, &imuMeasuredAccelBF, &vEstAccelBF_velned);
+        vectorAdd(&compansatedGravityBF_velned, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
         float velned_error = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_velned)) - GRAVITY_CMSS);
 
         fpVector3_t compansatedGravityBF_turnrate;
-        vectorAdd(&compansatedGravityBF_turnrate, &imuMeasuredAccelBF, &vEstAccelBF_turnrate);
+        vectorAdd(&compansatedGravityBF_turnrate, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
         float turnrate_error = fabsf(fast_fsqrtf(vectorNormSquared(&compansatedGravityBF_turnrate)) - GRAVITY_CMSS);
 
         compansatedGravityBF = velned_error > turnrate_error? compansatedGravityBF_turnrate:compansatedGravityBF_velned;
@@ -840,12 +838,12 @@ static void imuCalculateEstimatedAttitude(float dT)
     else if (((imuConfig()->inertia_comp_method == COMPMETHOD_VELNED) || (imuConfig()->inertia_comp_method == COMPMETHOD_ADAPTIVE)) && isGPSTrustworthy())
     {
         //velned centrifugal force compensation, quad will use this method
-        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstAccelBF_velned);
+        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_velned);
     }
     else if (STATE(AIRPLANE))
     {
         //turnrate centrifugal force compensation
-        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstAccelBF_turnrate);
+        vectorAdd(&compansatedGravityBF, &imuMeasuredAccelBF, &vEstcentrifugalAccelBF_turnrate);
     }
     else
     {
