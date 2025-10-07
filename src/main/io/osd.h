@@ -429,6 +429,7 @@ typedef struct osdConfig_s {
     uint8_t         hud_margin_v;
     bool            hud_homing;
     bool            hud_homepoint;
+    bool            hud_flight_direction;
     uint8_t         hud_radar_disp;
     uint16_t        hud_radar_range_min;
     uint16_t        hud_radar_range_max;
