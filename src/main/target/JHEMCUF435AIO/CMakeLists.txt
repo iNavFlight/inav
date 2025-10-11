@@ -1,1 +1,1 @@
-target_at32f43x_xGT7(JHEMCUF435AIO)
+target_at32f43x_xGT7(JHEMF435AIO)

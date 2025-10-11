@@ -19,9 +19,9 @@
 
 #define TARGET_BOARD_IDENTIFIER "J35A"
 
-#define USBD_PRODUCT_STRING  "JHEMCUF435AIO"
+#define USBD_PRODUCT_STRING  "JHEMF435AIO"
 
-  
+
 #define LED0                    PC13
 #define LED0_INVERTED
 
