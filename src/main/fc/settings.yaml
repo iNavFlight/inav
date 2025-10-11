@@ -1276,6 +1276,24 @@ groups:
         default_value: OFF
         field: mixer_config.tailsitterOrientationOffset
         type: bool
+      - name: transition_pid_mmix_multiplier_roll
+        description: "roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_roll
+        min: -5000
+        max: 5000
+      - name: transition_pid_mmix_multiplier_pitch
+        description: "pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_pitch
+        min: -5000
+        max: 5000
+      - name: transition_pid_mmix_multiplier_yaw
+        description: "yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_yaw
+        min: -5000
+        max: 5000
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
