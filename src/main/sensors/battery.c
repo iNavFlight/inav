@@ -62,6 +62,9 @@
 #if defined(USE_FAKE_BATT_SENSOR)
 #include "sensors/battery_sensor_fake.h"
 #endif
+#if defined(USE_SMARTPORT_MASTER)
+#include "io/smartport_master.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -289,6 +292,17 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 #if defined(USE_FAKE_BATT_SENSOR)
     case VOLTAGE_SENSOR_FAKE:
         vbat = fakeBattSensorGetVBat();
+        break;
+#endif
+
+#if defined(USE_SMARTPORT_MASTER)
+    case VOLTAGE_SENSOR_SMARTPORT:
+        int16_t * smartportVoltageData = smartportMasterGetVoltageData();
+        if (smartportVoltageData) {
+            vbat = *smartportVoltageData;
+        } else {
+            vbat = 0;
+        }
         break;
 #endif
     case VOLTAGE_SENSOR_NONE:
@@ -598,7 +612,16 @@ void currentMeterUpdate(timeUs_t timeDelta)
             }
             break;
 #endif
-
+#if defined(USE_SMARTPORT_MASTER)
+        case CURRENT_SENSOR_SMARTPORT:
+            int16_t * smartportCurrentData = smartportMasterGetCurrentData();
+            if (smartportCurrentData) {
+                amperage = *smartportCurrentData;
+            } else {
+                amperage = 0;
+            }
+            break;
+#endif
 #if defined(USE_FAKE_BATT_SENSOR)
         case CURRENT_SENSOR_FAKE:
             amperage = fakeBattSensorGetAmerperage();
