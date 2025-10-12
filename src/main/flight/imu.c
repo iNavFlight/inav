@@ -358,7 +358,7 @@ static float imuCalculateMcCogAccWeight(void)
 {
     fpVector3_t accBFNorm;
     vectorScale(&accBFNorm, &imuMeasuredAccelBFFiltered, 1.0f / GRAVITY_CMSS);
-    float wCoGAcc = constrainf((accBFNorm.z - 1.0f)* 2, 0.0f, 1.0f);
+    float wCoGAcc = constrainf((accBFNorm.z - 1.0f)* 2, 0.0f, 1.0f); //z direction is verified via SITL
     return wCoGAcc;
 }
 
@@ -441,7 +441,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 }
     #endif
                 wCoG *= scaleRangef(constrainf((airSpeed+gpsSol.groundSpeed)/2, 400, 1000), 400, 1000, 0.0f, 1.0f);
-            } else { //then vCOGAcc is not null
+            } else { //vCOG is not avaliable and vCOGAcc is avaliable, set the weight of vCOG to zero
                 wCoG = 0.0f;
             }
             if (STATE(MULTIROTOR)){
@@ -469,7 +469,7 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             vHeadingEF.z = 0.0f;
 
             // We zeroed out vHeadingEF.z -  make sure the whole vector didn't go to zero
-            if (vectorNormSquared(&vHeadingEF) > 0.01f) {
+            if (vectorNormSquared(&vHeadingEF) > 0.01f  && vectorNormSquared(&vCoGlocal) > 0.01f) {
                 // Normalize to unit vector
                 vectorNormalize(&vHeadingEF, &vHeadingEF);
                 vectorNormalize(&vCoGlocal, &vCoGlocal);
