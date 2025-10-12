@@ -422,6 +422,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
         sbufWriteU8(dst, getHwOpticalFlowStatus());
+
+        isMspConfigActive(true);  // used to indicate configurator connection active
         break;
 
     case MSP_ACTIVEBOXES:
@@ -969,8 +971,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
 
             sbufWriteU32(dst, adsbVehicle->vehicleValues.icao);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lat);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lon);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lat);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lon);
             sbufWriteU32(dst, adsbVehicle->vehicleValues.alt);
             sbufWriteU16(dst, (uint16_t)CENTIDEGREES_TO_DEGREES(adsbVehicle->vehicleValues.heading));
             sbufWriteU8(dst,  adsbVehicle->vehicleValues.tslc);
@@ -1582,6 +1584,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+#ifdef USE_ADSB
+        sbufWriteU8(dst, osdConfig()->adsb_warning_style);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
 #endif
@@ -1737,6 +1744,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 #endif
+
+    case MSP2_COMMON_GET_RADAR_GPS:
+        for (uint8_t i = 0; i < RADAR_MAX_POIS; i++){
+            sbufWriteDataSafe(dst, &radar_pois[i].gps, sizeof(gpsLocation_t));
+        }
+        break;
+
     default:
         return false;
     }
@@ -1820,7 +1834,7 @@ static mspResult_e mspFcGeozoneVerteciesOutCommand(sbuf_t *dst, sbuf_t *src)
             return MSP_RESULT_ACK;
         } else {
             return MSP_RESULT_ERROR;
-        } 
+        }
     } else {
         return MSP_RESULT_ERROR;
     }
@@ -2814,7 +2828,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
-        flashfsEraseCompletely();
+        if (blackboxMayEditConfig()) {
+            flashfsEraseCompletely();
+        } else {
+            return MSP_RESULT_ERROR;
+        }
         break;
 #endif
 
@@ -3278,7 +3296,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            if (dataSize == 9) {
+            if (
+                    dataSize == 9
+#ifdef USE_ADSB
+                    || dataSize == 10
+#endif
+            ) {
                 osdConfigMutable()->video_system = sbufReadU8(src);
                 osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
                 osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
@@ -3288,6 +3311,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+#ifdef USE_ADSB
+                if(dataSize == 10) {
+                    osdConfigMutable()->adsb_warning_style = sbufReadU8(src);
+                }
+#endif
                 osdStartFullRedraw();
             } else
                 return MSP_RESULT_ERROR;
@@ -3431,13 +3459,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if (!sbufReadU8Safe(&geozoneId, src) || geozoneId >= MAX_GEOZONES_IN_CONFIG) {
                 return MSP_RESULT_ERROR;
             }
-            
+
             geozoneResetVertices(geozoneId, -1);
-            geoZonesConfigMutable(geozoneId)->type = sbufReadU8(src); 
+            geoZonesConfigMutable(geozoneId)->type = sbufReadU8(src);
             geoZonesConfigMutable(geozoneId)->shape = sbufReadU8(src);
             geoZonesConfigMutable(geozoneId)->minAltitude = sbufReadU32(src);
-            geoZonesConfigMutable(geozoneId)->maxAltitude = sbufReadU32(src);  
-            geoZonesConfigMutable(geozoneId)->isSealevelRef = sbufReadU8(src);   
+            geoZonesConfigMutable(geozoneId)->maxAltitude = sbufReadU32(src);
+            geoZonesConfigMutable(geozoneId)->isSealevelRef = sbufReadU8(src);
             geoZonesConfigMutable(geozoneId)->fenceAction = sbufReadU8(src);
             geoZonesConfigMutable(geozoneId)->vertexCount = sbufReadU8(src);
         } else {

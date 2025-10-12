@@ -209,6 +209,9 @@ tables:
     enum: fenceAction_e
   - name: geozone_rth_no_way_home
     values: [RTH, EMRG_LAND]
+  - name: osd_adsb_warning_style
+    values: [ "COMPACT", "EXTENDED" ]
+    enum: osd_adsb_warning_style_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -467,6 +470,12 @@ groups:
         default_value: "BIQUAD"
         field: acc_soft_lpf_type
         table: filter_type
+      - name: acc_temp_correction
+        description: "Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm."
+        field: acc_temp_correction
+        min: -50
+        max: 51
+        default_value: 0
       - name: acczero_x
         description: "Calculated value after '6 position avanced calibration'. See Wiki page."
         default_value: 0
@@ -642,6 +651,12 @@ groups:
         field: baro_calibration_tolerance
         min: 0
         max: 1000
+      - name: baro_temp_correction
+        description: "Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm."
+        field: baro_temp_correction
+        min: -50
+        max: 51
+        default_value: 0
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
@@ -770,12 +785,12 @@ groups:
         field: halfDuplex
         table: tristate
       - name: msp_override_channels
-        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
+        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires the `MSP RC Override` flight mode."
         default_value: 0
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
         min: 0
-        max: 65535
+        max: UINT32_MAX
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
@@ -805,6 +820,12 @@ groups:
         field: invertedCardDetection
         condition: USE_SDCARD
         type: bool
+      - name: blackbox_arm_control
+        description: "Determines behaviour of logging in relation to Arm state. For settings from 0 to 60 logging will start on Arm with the setting determining how long logging will continue after disarm in seconds, i.e. set to 0 to stop logging at disarm or 10 to stop logging 10s after disarm. Set to -1 to start logging from boot up until power off (Use with caution - mainly for debugging and best used with BLACKBOX mode)."
+        default_value: 0
+        field: arm_control
+        min: -1
+        max: 60
 
   - name: PG_MOTOR_CONFIG
     type: motorConfig_t
@@ -2148,8 +2169,8 @@ groups:
         min: 0
         max: 255
       - name: nav_fw_pos_z_ff
-        description: "FF gain of altitude PID controller (Fixedwing)"
-        default_value: 10
+        description: "FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)"
+        default_value: 30
         field: bank_fw.pid[PID_POS_Z].FF
         min: 0
         max: 255
@@ -2159,6 +2180,11 @@ groups:
         field: fwAltControlResponseFactor
         min: 5
         max: 100
+      - name: nav_fw_alt_use_position
+        description: "Use position for fixed wing altitude control rather than velocity (default method)."
+        default_value: OFF
+        field: fwAltControlUsePos
+        type: bool
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
@@ -2429,19 +2455,19 @@ groups:
         field: w_z_baro_v
         min: 0
         max: 10
-        default_value: 0.1
+        default_value: 0.35
       - name: inav_w_z_gps_p
         description: "Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors."
         field: w_z_gps_p
         min: 0
         max: 10
-        default_value: 0.2
+        default_value: 0.35
       - name: inav_w_z_gps_v
         description: "Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors."
         field: w_z_gps_v
         min: 0
         max: 10
-        default_value: 0.1
+        default_value: 0.35
       - name: inav_w_xy_gps_p
         description: "Weight of GPS coordinates in estimated UAV position and speed."
         default_value: 1.0
@@ -3248,7 +3274,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR', `BF43COMPAT`, `BFHDCOMPAT` and `DJI_NATIVE`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3448,7 +3474,6 @@ groups:
         field: ahi_max_pitch
         min: 10
         max: 90
-        default_value: 20
       - name: osd_crosshairs_style
         description: "To set the visual type for the crosshair"
         default_value: "DEFAULT"
@@ -3621,6 +3646,13 @@ groups:
         min: 0
         max: 64000
         type: uint16_t
+      - name: osd_adsb_warning_style
+        description: "ADSB warning element style, how rich information on scree will be, Possible values are `COMPACT` and `EXTENDED`"
+        default_value: "COMPACT"
+        table: osd_adsb_warning_style
+        field: adsb_warning_style
+        type: uint8_t
+        condition: USE_ADSB
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
         default_value: ON
