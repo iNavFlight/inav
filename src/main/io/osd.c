@@ -2320,7 +2320,7 @@ static bool osdDrawSingleElement(uint8_t item)
                     tfp_sprintf(buff, "%s", getAdsbEmitterTypeString(vehicle->vehicleValues.emitterType));
 
                     // Vehicle speed
-                    adsbLengthForClearSecondLine = osdFormatVelocityStr(buff + 7, vehicle->vehicleValues.horVelocity, false, false);
+                    adsbLengthForClearSecondLine = osdFormatVelocityStr(buff + 7, vehicle->vehicleValues.horVelocity, OSD_SPEED_TYPE_GROUND, false);
 
                     // draw values
                     buff[6] = SYM_BLANK; // space for direction arrow
