@@ -57,8 +57,8 @@ timerHardware_t timerHardware[] = {
 	DEF_TIM(TMR5, CH2, PH3,  TIM_USE_OUTPUT_AUTO, 0,9), // S1
 	DEF_TIM(TMR5, CH1, PH2,  TIM_USE_OUTPUT_AUTO, 0,10),// S2
     
-    DEF_TIM(TMR3, CH3, PC8,   TIM_USE_ANY, 0, 11),  //
-    // DEF_TIM(TMR9, CH2, PC5,   TIM_USE_LED, 0, 0),  // LED STRIP
+    // DEF_TIM(TMR3, CH3, PC8,   TIM_USE_ANY, 0, 0), 
+	DEF_TIM(TMR3, CH3, PC8,   TIM_USE_LED, 0, 0),  // LED_STRIP
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
