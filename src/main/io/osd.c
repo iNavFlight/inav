@@ -390,9 +390,12 @@ static int32_t osdConvertVelocityToUnit(int32_t vel)
  * @param vel Raw velocity (i.e. as taken from gpsSol.groundSpeed in centimeters/seconds)
  * @param _3D is a 3D velocity
  * @param _max is a maximum velocity
+ * @return length of the formatted string
  */
-void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bool _max)
+int osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bool _max)
 {
+    int strLen = 0;
+
     switch ((osd_unit_e)osdConfig()->units) {
         case OSD_UNIT_UK:
             FALLTHROUGH;
@@ -402,13 +405,13 @@ void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, b
             if (_max) {
                 switch (speedType) {
                     case OSD_SPEED_TYPE_GROUND:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
                         break;
                     case OSD_SPEED_TYPE_AIR:
-                        tfp_sprintf(buff, "%c%c%3d%c", SYM_MAX, SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
+                        strLen = tfp_sprintf(buff, "%c%c%3d%c", SYM_MAX, SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
                         break;
                     case OSD_SPEED_TYPE_3D:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_3D_MPH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_3D_MPH);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
                         break;
@@ -416,16 +419,16 @@ void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, b
             } else {
                 switch (speedType){
                     case OSD_SPEED_TYPE_GROUND:
-                        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_MPH);
+                        strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_MPH);
                         break;
                     case OSD_SPEED_TYPE_AIR:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
                         break;
                     case OSD_SPEED_TYPE_3D:
-                        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_MPH);
+                        strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_MPH);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
                         break;
                 }
             }
@@ -434,13 +437,13 @@ void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, b
             if (_max) {
                 switch (speedType) {
                     case OSD_SPEED_TYPE_GROUND:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
                         break;
                     case OSD_SPEED_TYPE_AIR:
-                        tfp_sprintf(buff, "%c%c%3d%c", SYM_MAX, SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
+                        strLen = tfp_sprintf(buff, "%c%c%3d%c", SYM_MAX, SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
                         break;
                     case OSD_SPEED_TYPE_3D:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_3D_KMH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_3D_KMH);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
                         break;
@@ -448,16 +451,16 @@ void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, b
             } else {
                 switch (speedType) {
                     case OSD_SPEED_TYPE_GROUND:
-                        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_KMH);
+                        strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_KMH);
                         break;
                     case OSD_SPEED_TYPE_AIR:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
                         break;
                     case OSD_SPEED_TYPE_3D:
-                        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_KMH);
+                        strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_KMH);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
                         break;
                 }
             }
@@ -466,13 +469,13 @@ void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, b
             if (_max) {
                 switch (speedType) {
                     case OSD_SPEED_TYPE_GROUND:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_KT);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_KT);
                         break;
                     case OSD_SPEED_TYPE_AIR:
-                        tfp_sprintf(buff, "%c%c%3d%c", SYM_MAX, SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KT);
+                        strLen = tfp_sprintf(buff, "%c%c%3d%c", SYM_MAX, SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KT);
                         break;
                     case OSD_SPEED_TYPE_3D:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_3D_KT);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MAX, (int)osdConvertVelocityToUnit(vel), SYM_3D_KT);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
                         break;
@@ -480,23 +483,23 @@ void osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, b
             } else {
                 switch (speedType) {
                     case OSD_SPEED_TYPE_GROUND:
-                        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_KT);
+                        strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_KT);
                         break;
                     case OSD_SPEED_TYPE_AIR:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KT);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_AIR, (int)osdConvertVelocityToUnit(vel), SYM_KT);
                         break;
                     case OSD_SPEED_TYPE_3D:
-                        tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_KT);
+                        strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_KT);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
-                        tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_KT);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_KT);
                         break;
                 }
             }
             break;
     }
 
-    return 0;
+    return strLen;
 }
 
 /**
