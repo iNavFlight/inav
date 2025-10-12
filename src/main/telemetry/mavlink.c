@@ -1186,9 +1186,10 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
     adsbVehicleValues_t* vehicle = getVehicleForFill();
     if(vehicle != NULL){
         vehicle->icao = msg.ICAO_address;
-        vehicle->lat = msg.lat;
-        vehicle->lon = msg.lon;
+        vehicle->gps.lat = msg.lat;
+        vehicle->gps.lon = msg.lon;
         vehicle->alt = (int32_t)(msg.altitude / 10);
+        vehicle->horVelocity = msg.hor_velocity;
         vehicle->heading = msg.heading;
         vehicle->flags = msg.flags;
         vehicle->altitudeType = msg.altitude_type;
@@ -1198,25 +1199,6 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
 
         adsbNewVehicle(vehicle);
     }
-
-    //debug vehicle
-   /* if(vehicle != NULL){
-
-        char name[9] = "DUMMY    ";
-
-        vehicle->icao = 666;
-        vehicle->lat = 492383514;
-        vehicle->lon = 165148681;
-        vehicle->alt = 100000;
-        vehicle->heading = 180;
-        vehicle->flags = ADSB_FLAGS_VALID_ALTITUDE | ADSB_FLAGS_VALID_COORDS;
-        vehicle->altitudeType = 0;
-        memcpy(&(vehicle->callsign), name, sizeof(vehicle->callsign));
-        vehicle->emitterType = 6;
-        vehicle->tslc = 0;
-
-        adsbNewVehicle(vehicle);
-    }*/
 
     return true;
 }

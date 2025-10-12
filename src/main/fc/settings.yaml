@@ -33,10 +33,10 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
@@ -209,6 +209,9 @@ tables:
     enum: fenceAction_e
   - name: geozone_rth_no_way_home
     values: [RTH, EMRG_LAND]
+  - name: osd_adsb_warning_style
+    values: [ "COMPACT", "EXTENDED" ]
+    enum: osd_adsb_warning_style_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -973,7 +976,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `ESC`. `ESC` required ESC telemetry enebled and running"
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1005,7 +1008,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
         field: current.type
         table: current_sensor
@@ -3271,7 +3274,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR', `BF43COMPAT`, `BFHDCOMPAT` and `DJI_NATIVE`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3471,7 +3474,6 @@ groups:
         field: ahi_max_pitch
         min: 10
         max: 90
-        default_value: 20
       - name: osd_crosshairs_style
         description: "To set the visual type for the crosshair"
         default_value: "DEFAULT"
@@ -3644,6 +3646,13 @@ groups:
         min: 0
         max: 64000
         type: uint16_t
+      - name: osd_adsb_warning_style
+        description: "ADSB warning element style, how rich information on scree will be, Possible values are `COMPACT` and `EXTENDED`"
+        default_value: "COMPACT"
+        table: osd_adsb_warning_style
+        field: adsb_warning_style
+        type: uint8_t
+        condition: USE_ADSB
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
         default_value: ON
