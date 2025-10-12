@@ -162,7 +162,7 @@
 
 #define USE_DSHOT
 #define USE_ESC_SENSOR
-#define MAX_PWM_OUTPUT_PORTS    10
+#define MAX_PWM_OUTPUT_PORTS    11
 
 // PINIO
 #define USE_PINIO
@@ -171,4 +171,4 @@
 #define PINIO2_PIN           PB10
 
 // VBAT 10K/160K
-#define VBAT_SCALE_DEFAULT 1600
+#define VBAT_SCALE_DEFAULT 1094
