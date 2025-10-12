@@ -428,7 +428,7 @@ int osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bo
                         strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_MPH);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
-                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MIN_GROUND_SPEED, (int)osdConvertVelocityToUnit(vel), SYM_MPH);
                         break;
                 }
             }
@@ -460,7 +460,7 @@ int osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bo
                         strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_KMH);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
-                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MIN_GROUND_SPEED, (int)osdConvertVelocityToUnit(vel), SYM_KMH);
                         break;
                 }
             }
@@ -492,7 +492,7 @@ int osdFormatVelocityStr(char* buff, int32_t vel, osd_SpeedTypes_e speedType, bo
                         strLen = tfp_sprintf(buff, "%3d%c", (int)osdConvertVelocityToUnit(vel), SYM_3D_KT);
                         break;
                     case OSD_SPEED_TYPE_MIN_GROUND:
-                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_GROUND_COURSE, (int)osdConvertVelocityToUnit(vel), SYM_KT);
+                        strLen = tfp_sprintf(buff, "%c%3d%c", SYM_MIN_GROUND_SPEED, (int)osdConvertVelocityToUnit(vel), SYM_KT);
                         break;
                 }
             }
