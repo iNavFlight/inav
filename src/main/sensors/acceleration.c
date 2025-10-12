@@ -85,7 +85,7 @@ static EXTENDED_FASTRAM void *accNotchFilter[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM float fAccZero[XYZ_AXIS_COUNT];
 static EXTENDED_FASTRAM float fAccGain[XYZ_AXIS_COUNT];
 
-PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 5);
+PG_REGISTER_WITH_RESET_FN(accelerometerConfig_t, accelerometerConfig, PG_ACCELEROMETER_CONFIG, 6);
 
 void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
 {
@@ -94,7 +94,8 @@ void pgResetFn_accelerometerConfig(accelerometerConfig_t *instance)
         .acc_lpf_hz = SETTING_ACC_LPF_HZ_DEFAULT,
         .acc_notch_hz = SETTING_ACC_NOTCH_HZ_DEFAULT,
         .acc_notch_cutoff = SETTING_ACC_NOTCH_CUTOFF_DEFAULT,
-        .acc_soft_lpf_type = SETTING_ACC_LPF_TYPE_DEFAULT
+        .acc_soft_lpf_type = SETTING_ACC_LPF_TYPE_DEFAULT,
+        .acc_temp_correction = SETTING_ACC_TEMP_CORRECTION_DEFAULT
     );
     RESET_CONFIG_2(flightDynamicsTrims_t, &instance->accZero,
         .raw[X] = SETTING_ACCZERO_X_DEFAULT,
@@ -557,8 +558,8 @@ void accUpdate(void)
 
     if (!ARMING_FLAG(SIMULATOR_MODE_SITL)) {
         performAcclerationCalibration();
-        applyAccelerationZero();  
-    } 
+        applyAccelerationZero();
+    }
 
     applySensorAlignment(accADC, accADC, acc.dev.accAlign);
     applyBoardAlignment(accADC);
@@ -637,7 +638,7 @@ bool accIsClipped(void)
 
 void accSetCalibrationValues(void)
 {
-    if (!ARMING_FLAG(SIMULATOR_MODE_SITL) && 
+    if (!ARMING_FLAG(SIMULATOR_MODE_SITL) &&
         ((accelerometerConfig()->accZero.raw[X] == 0) && (accelerometerConfig()->accZero.raw[Y] == 0) && (accelerometerConfig()->accZero.raw[Z] == 0) &&
         (accelerometerConfig()->accGain.raw[X] == 4096) && (accelerometerConfig()->accGain.raw[Y] == 4096) &&(accelerometerConfig()->accGain.raw[Z] == 4096))) {
         DISABLE_STATE(ACCELEROMETER_CALIBRATED);
@@ -648,12 +649,12 @@ void accSetCalibrationValues(void)
 }
 
 void accInitFilters(void)
-{   
+{
     accSoftLpfFilterApplyFn = nullFilterApply;
 
     if (acc.accTargetLooptime && accelerometerConfig()->acc_lpf_hz) {
 
-        switch (accelerometerConfig()->acc_soft_lpf_type) 
+        switch (accelerometerConfig()->acc_soft_lpf_type)
         {
         case FILTER_PT1:
             accSoftLpfFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;

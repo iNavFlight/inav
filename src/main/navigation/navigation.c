@@ -2718,9 +2718,10 @@ static fpVector3_t * rthGetHomeTargetPosition(rthTargetMode_e mode)
 
         case RTH_HOME_ENROUTE_PROPORTIONAL:
             {
-                float rthTotalDistanceToTravel = posControl.rthState.rthInitialDistance - (STATE(FIXED_WING_LEGACY) ? navConfig()->fw.loiter_radius : 0);
+                uint16_t endPointDistance = STATE(FIXED_WING_LEGACY) ? navConfig()->fw.loiter_radius : 0;
+                float rthTotalDistanceToTravel = posControl.rthState.rthInitialDistance - endPointDistance;
                 if (rthTotalDistanceToTravel >= 100) {
-                    float ratioNotTravelled = constrainf(posControl.homeDistance / rthTotalDistanceToTravel, 0.0f, 1.0f);
+                    float ratioNotTravelled = constrainf((posControl.homeDistance - endPointDistance) / rthTotalDistanceToTravel, 0.0f, 1.0f);
                     posControl.rthState.homeTmpWaypoint.z = (posControl.rthState.rthInitialAltitude * ratioNotTravelled) + (posControl.rthState.rthFinalAltitude * (1.0f - ratioNotTravelled));
                 }
                 else {
@@ -3099,12 +3100,10 @@ static void updateDesiredRTHAltitude(void)
             switch (navConfig()->general.flags.rth_alt_control_mode) {
                 case NAV_RTH_NO_ALT:
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_EXTRA_ALT: // Maintain current altitude + predefined safety margin
                     posControl.rthState.rthInitialAltitude = posControl.actualState.abs.pos.z + navConfig()->general.rth_altitude;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_MAX_ALT:
@@ -3112,19 +3111,17 @@ static void updateDesiredRTHAltitude(void)
                     if (navConfig()->general.rth_altitude > 0) {
                         posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.rthInitialAltitude, posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude);
                     }
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_AT_LEAST_ALT:  // Climb to at least some predefined altitude above home
                     posControl.rthState.rthInitialAltitude = MAX(posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude, posControl.actualState.abs.pos.z);
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
                     break;
 
                 case NAV_RTH_CONST_ALT:     // Climb/descend to predefined altitude above home
                 default:
                     posControl.rthState.rthInitialAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_altitude;
-                    posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
             }
+            posControl.rthState.rthFinalAltitude = posControl.rthState.rthInitialAltitude;
 
             if ((navConfig()->general.flags.rth_use_linear_descent) && (navConfig()->general.rth_home_altitude > 0) && (navConfig()->general.rth_linear_descent_start_distance == 0) ) {
                 posControl.rthState.rthFinalAltitude = posControl.rthState.homePosition.pos.z + navConfig()->general.rth_home_altitude;
@@ -4959,13 +4956,23 @@ void navigationUsePIDs(void)
                                         0.0f
     );
 
-    navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 300.0f,
-                                        (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 100.0f,
-                                        NAV_DTERM_CUT_HZ,
-                                        0.0f
-    );
+    if (pidProfile()->fwAltControlUsePos) {
+        navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 100.0f,
+                                            0.0f,
+                                            NAV_DTERM_CUT_HZ,
+                                            0.0f
+        );
+    } else {
+        navPidInit(&posControl.pids.fw_alt, (float)pidProfile()->bank_fw.pid[PID_POS_Z].P / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].I / 100.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].D / 300.0f,
+                                            (float)pidProfile()->bank_fw.pid[PID_POS_Z].FF / 100.0f,
+                                            NAV_DTERM_CUT_HZ,
+                                            0.0f
+        );
+    }
 
     navPidInit(&posControl.pids.fw_heading, (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].P / 10.0f,
                                         (float)pidProfile()->bank_fw.pid[PID_POS_HEADING].I / 10.0f,

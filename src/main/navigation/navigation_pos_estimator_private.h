@@ -154,13 +154,6 @@ typedef enum {
 } navDefaultAltitudeSensor_e;
 
 typedef struct {
-    timeUs_t    baroGroundTimeout;
-    float       baroGroundAlt;
-    bool        isBaroGroundValid;
-} navPositionEstimatorSTATE_t;
-
-
-typedef struct {
     uint32_t                    flags;
 
     // Data sources
@@ -175,9 +168,6 @@ typedef struct {
 
     // Estimate
     navPositionEstimatorESTIMATE_t  est;
-
-    // Extra state variables
-    navPositionEstimatorSTATE_t state;
 } navigationPosEstimator_t;
 
 typedef struct {
@@ -195,5 +185,4 @@ extern navigationPosEstimator_t posEstimator;
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);
 extern bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx);
-extern float navGetAccelerometerWeight(void);
 

@@ -122,6 +122,16 @@ Frequency of the software notch filter to remove mechanical vibrations from the 
 
 ---
 
+### acc_temp_correction
+
+Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
+
+---
+
 ### accgain_x
 
 Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page.
@@ -452,6 +462,16 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 
 ---
 
+### baro_temp_correction
+
+Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
+
+---
+
 ### bat_cells
 
 Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected.
@@ -519,6 +539,16 @@ Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if t
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### blackbox_arm_control
+
+Determines behaviour of logging in relation to Arm state. For settings from 0 to 60 logging will start on Arm with the setting determining how long logging will continue after disarm in seconds, i.e. set to 0 to stop logging at disarm or 10 to stop logging 10s after disarm. Set to -1 to start logging from boot up until power off (Use with caution - mainly for debugging and best used with BLACKBOX mode).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -1 | 60 |
 
 ---
 
@@ -2218,7 +2248,7 @@ Weight of barometer climb rate measurements in estimated climb rate. Setting is 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2228,7 +2258,7 @@ Weight of GPS altitude measurements in estimated altitude. Setting is used on bo
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.2 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2238,7 +2268,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -3038,7 +3068,7 @@ Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this r
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 65535 |
+| 0 | 0 | 4294967295 |
 
 ---
 
@@ -3129,6 +3159,16 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 | Default | Min | Max |
 | --- | --- | --- |
 | 40 | 5 | 100 |
+
+---
+
+### nav_fw_alt_use_position
+
+Use position for fixed wing altitude control rather than velocity (default method).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -3614,11 +3654,11 @@ D gain of altitude PID controller (Fixedwing)
 
 ### nav_fw_pos_z_ff
 
-FF gain of altitude PID controller (Fixedwing)
+FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 10 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 
