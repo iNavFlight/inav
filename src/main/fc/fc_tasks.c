@@ -65,6 +65,7 @@
 #include "io/osd.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/mztc_camera.h"
 #include "io/osd_joystick.h"
 #include "io/smartport_master.h"
 #include "io/vtx.h"
@@ -657,6 +658,12 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
+    [TASK_MZTC_CAMERA] = {
+        .taskName = "MZTC",
+        .taskFunc = mztcUpdate,
+        .desiredPeriod = TASK_PERIOD_HZ(10),
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
 
 #ifdef USE_CMS
     [TASK_CMS] = {
