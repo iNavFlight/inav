@@ -5174,7 +5174,7 @@ Degrees either side of the pan servo centre; where it is assumed camera is wante
 
 ### osd_pan_servo_pwm2centideg
 
-Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
+Centidegrees of pan servo rotation over the PWM 1000-2000us range. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `9` for this setting. Us a negative number to invert the display direction.
 
 | Default | Min | Max |
 | --- | --- | --- |
