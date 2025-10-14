@@ -198,7 +198,7 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
         case FLM_POSITION_HOLD: 
             {
-                if (IS_RC_MODE_ACTIVE(BOXGCSNAV) & (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+                if (IS_RC_MODE_ACTIVE(BOXGCSNAV) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
                     return COPTER_MODE_GUIDED;
                 } else {
                     return COPTER_MODE_POSHOLD;
@@ -235,7 +235,7 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
         case FLM_POSITION_HOLD: 
             {
-                if (IS_RC_MODE_ACTIVE(BOXGCSNAV) & (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+                if (IS_RC_MODE_ACTIVE(BOXGCSNAV) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
                     return PLANE_MODE_GUIDED;
                 } else {
                     return PLANE_MODE_LOITER;
@@ -1141,7 +1141,7 @@ static bool handleIncoming_COMMAND_INT(void)
                     return true;
                 }
 
-            if (IS_RC_MODE_ACTIVE(BOXGCSNAV) & (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+            if (IS_RC_MODE_ACTIVE(BOXGCSNAV) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
                 navWaypoint_t wp;
                 wp.action = NAV_WP_ACTION_WAYPOINT;
                 wp.lat = msg.x;
