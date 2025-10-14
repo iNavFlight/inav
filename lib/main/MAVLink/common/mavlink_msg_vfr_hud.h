@@ -94,6 +94,54 @@ static inline uint16_t mavlink_msg_vfr_hud_pack(uint8_t system_id, uint8_t compo
 }
 
 /**
+ * @brief Pack a vfr_hud message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param airspeed [m/s] Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.
+ * @param groundspeed [m/s] Current ground speed.
+ * @param heading [deg] Current heading in compass units (0-360, 0=north).
+ * @param throttle [%] Current throttle setting (0 to 100).
+ * @param alt [m] Current altitude (MSL).
+ * @param climb [m/s] Current climb rate.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_vfr_hud_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               float airspeed, float groundspeed, int16_t heading, uint16_t throttle, float alt, float climb)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_VFR_HUD_LEN];
+    _mav_put_float(buf, 0, airspeed);
+    _mav_put_float(buf, 4, groundspeed);
+    _mav_put_float(buf, 8, alt);
+    _mav_put_float(buf, 12, climb);
+    _mav_put_int16_t(buf, 16, heading);
+    _mav_put_uint16_t(buf, 18, throttle);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_VFR_HUD_LEN);
+#else
+    mavlink_vfr_hud_t packet;
+    packet.airspeed = airspeed;
+    packet.groundspeed = groundspeed;
+    packet.alt = alt;
+    packet.climb = climb;
+    packet.heading = heading;
+    packet.throttle = throttle;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_VFR_HUD_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_VFR_HUD;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_VFR_HUD_MIN_LEN, MAVLINK_MSG_ID_VFR_HUD_LEN, MAVLINK_MSG_ID_VFR_HUD_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_VFR_HUD_MIN_LEN, MAVLINK_MSG_ID_VFR_HUD_LEN);
+#endif
+}
+
+/**
  * @brief Pack a vfr_hud message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -165,6 +213,20 @@ static inline uint16_t mavlink_msg_vfr_hud_encode_chan(uint8_t system_id, uint8_
 }
 
 /**
+ * @brief Encode a vfr_hud struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param vfr_hud C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_vfr_hud_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_vfr_hud_t* vfr_hud)
+{
+    return mavlink_msg_vfr_hud_pack_status(system_id, component_id, _status, msg,  vfr_hud->airspeed, vfr_hud->groundspeed, vfr_hud->heading, vfr_hud->throttle, vfr_hud->alt, vfr_hud->climb);
+}
+
+/**
  * @brief Send a vfr_hud message
  * @param chan MAVLink channel to send the message
  *
@@ -218,7 +280,7 @@ static inline void mavlink_msg_vfr_hud_send_struct(mavlink_channel_t chan, const
 
 #if MAVLINK_MSG_ID_VFR_HUD_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

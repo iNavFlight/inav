@@ -70,6 +70,42 @@ static inline uint16_t mavlink_msg_extended_sys_state_pack(uint8_t system_id, ui
 }
 
 /**
+ * @brief Pack a extended_sys_state message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param vtol_state  The VTOL state if applicable. Is set to MAV_VTOL_STATE_UNDEFINED if UAV is not in VTOL configuration.
+ * @param landed_state  The landed state. Is set to MAV_LANDED_STATE_UNDEFINED if landed state is unknown.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_extended_sys_state_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t vtol_state, uint8_t landed_state)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN];
+    _mav_put_uint8_t(buf, 0, vtol_state);
+    _mav_put_uint8_t(buf, 1, landed_state);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN);
+#else
+    mavlink_extended_sys_state_t packet;
+    packet.vtol_state = vtol_state;
+    packet.landed_state = landed_state;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_EXTENDED_SYS_STATE;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_MIN_LEN, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_MIN_LEN, MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN);
+#endif
+}
+
+/**
  * @brief Pack a extended_sys_state message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -129,6 +165,20 @@ static inline uint16_t mavlink_msg_extended_sys_state_encode_chan(uint8_t system
 }
 
 /**
+ * @brief Encode a extended_sys_state struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param extended_sys_state C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_extended_sys_state_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_extended_sys_state_t* extended_sys_state)
+{
+    return mavlink_msg_extended_sys_state_pack_status(system_id, component_id, _status, msg,  extended_sys_state->vtol_state, extended_sys_state->landed_state);
+}
+
+/**
  * @brief Send a extended_sys_state message
  * @param chan MAVLink channel to send the message
  *
@@ -170,7 +220,7 @@ static inline void mavlink_msg_extended_sys_state_send_struct(mavlink_channel_t 
 
 #if MAVLINK_MSG_ID_EXTENDED_SYS_STATE_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

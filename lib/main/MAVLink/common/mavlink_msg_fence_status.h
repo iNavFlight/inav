@@ -88,6 +88,51 @@ static inline uint16_t mavlink_msg_fence_status_pack(uint8_t system_id, uint8_t 
 }
 
 /**
+ * @brief Pack a fence_status message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param breach_status  Breach status (0 if currently inside fence, 1 if outside).
+ * @param breach_count  Number of fence breaches.
+ * @param breach_type  Last breach type.
+ * @param breach_time [ms] Time (since boot) of last breach.
+ * @param breach_mitigation  Active action to prevent fence breach
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_fence_status_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t breach_status, uint16_t breach_count, uint8_t breach_type, uint32_t breach_time, uint8_t breach_mitigation)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_FENCE_STATUS_LEN];
+    _mav_put_uint32_t(buf, 0, breach_time);
+    _mav_put_uint16_t(buf, 4, breach_count);
+    _mav_put_uint8_t(buf, 6, breach_status);
+    _mav_put_uint8_t(buf, 7, breach_type);
+    _mav_put_uint8_t(buf, 8, breach_mitigation);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_FENCE_STATUS_LEN);
+#else
+    mavlink_fence_status_t packet;
+    packet.breach_time = breach_time;
+    packet.breach_count = breach_count;
+    packet.breach_status = breach_status;
+    packet.breach_type = breach_type;
+    packet.breach_mitigation = breach_mitigation;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_FENCE_STATUS_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_FENCE_STATUS;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_FENCE_STATUS_MIN_LEN, MAVLINK_MSG_ID_FENCE_STATUS_LEN, MAVLINK_MSG_ID_FENCE_STATUS_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_FENCE_STATUS_MIN_LEN, MAVLINK_MSG_ID_FENCE_STATUS_LEN);
+#endif
+}
+
+/**
  * @brief Pack a fence_status message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -156,6 +201,20 @@ static inline uint16_t mavlink_msg_fence_status_encode_chan(uint8_t system_id, u
 }
 
 /**
+ * @brief Encode a fence_status struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param fence_status C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_fence_status_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_fence_status_t* fence_status)
+{
+    return mavlink_msg_fence_status_pack_status(system_id, component_id, _status, msg,  fence_status->breach_status, fence_status->breach_count, fence_status->breach_type, fence_status->breach_time, fence_status->breach_mitigation);
+}
+
+/**
  * @brief Send a fence_status message
  * @param chan MAVLink channel to send the message
  *
@@ -206,7 +265,7 @@ static inline void mavlink_msg_fence_status_send_struct(mavlink_channel_t chan, 
 
 #if MAVLINK_MSG_ID_FENCE_STATUS_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
