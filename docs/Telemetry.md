@@ -93,38 +93,41 @@ set telemetry_inverted = ON
 
 The following sensors are transmitted
 
-* **GSpd** : current horizontal ground speed, calculated by GPS.
-* **VFAS** : actual vbat value.
-* **Curr** : actual current comsuption, in amps.
 * **Alt** : barometer based altitude, relative to home location.
-* **Fuel** : if `smartport_fuel_unit = PERCENT` remaining battery percentage sent, MAH drawn otherwise.
-* **GPS** : GPS coordinates.
 * **VSpd** : vertical speed, unit is cm/s.
-* **Hdg** : heading, North is 0°, South is 180°.
-* **AccX,Y,Z** : accelerometer values (not sent if `frsky_pitch_roll = ON`).
-* **470** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
+* **Curr** : actual current comsuption, in amps.
+* **VFAS** : actual vbat value.
+* **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
+* **0420** : distance to GPS home fix, in meters
+* **0421** : Craft type : 1 = fixed wing, 2 = multi-rotor, 3 = Rover, 4 = Boat
+* **0470** : flight mode, sent as 5 digits. Number is sent as **ABCDE** detailed below. The numbers are additives (for example: if digit C is 6, it means both position hold and altitude hold are active) :
   * **A** : 1 = flaperon mode, 2 = auto tune mode, 4 = failsafe mode
-  * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode
-  * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold
-  * **D** : 1 = angle mode, 2 = horizon mode, 4 = passthru mode
+  * **B** : 1 = return to home, 2 = waypoint mode, 4 = headfree mode, 8 = Course Hold
+  * **C** : 1 = heading hold, 2 = altitude hold, 4 = position hold or loiter
+  * **D** : 1 = angle mode, 2 = horizon mode, 4 = manual mode
   * **E** : 1 = ok to arm, 2 = arming is prevented, 4 = armed
   
   _NOTE_ This sensor used to be **Tmp1**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp1** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
-* **480** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
+* **0480** : GPS lock status, accuracy, home reset trigger, and number of satellites. Number is sent as **ABCD** detailed below. Typical minimum GPS 3D lock value is 3906 (GPS locked and home fixed, HDOP highest accuracy, 6 satellites).
   * **A** : 1 = GPS fix, 2 = GPS home fix, 4 = home reset (numbers are additive)
   * **B** : GPS accuracy based on HDOP (0 = lowest to 9 = highest accuracy)
   * **C** : number of satellites locked (digit C & D are the number of locked satellites)
   * **D** : number of satellites locked (if 14 satellites are locked, C = 1 & D = 4)
   
   _NOTE_ This sensor used to be **Tmp2**. The ID has been reassigned in INAV 8.0. The old ID of **Tmp2** can still be used, by using `set frsky_use_legacy_gps_mode_sensor_ids = ON`. This is deprecated and will be removed in INAV 10.0. All tools and scripts using the old IDs should be updated to use the new ID.
+* **RPM** : Shows the RPM when telemetry is recieved from an appropriate ESC
+* **Fuel** : if `smartport_fuel_unit = PERCENT` remaining battery percentage sent, MAH drawn otherwise.
+* **AccX,Y,Z** : accelerometer values (not sent if `frsky_pitch_roll = ON`).
+* **0730** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
+* **0740** : if `frsky_pitch_roll = ON` set this will be roll degrees*10
+* **GPS** : GPS coordinates.
 * **GAlt** : GPS altitude, sea level is zero.
+* **GSpd** : current horizontal ground speed, calculated by GPS.
+* **Hdg** : heading, North is 0°, South is 180°.
+* **0841** : Course over ground in degrees*10.
+* **0842** : Azimuth in degrees*10
 * **ASpd** : true air speed, from pitot sensor. This is _Knots * 10_
-* **A4** : average cell value. Warning : unlike FLVSS and MLVSS sensors, you do not get actual lowest value of a cell, but an average : (total lipo voltage) / (number of cells)
-* **0420** : distance to GPS home fix, in meters
-* **0430** : if `frsky_pitch_roll = ON` set this will be pitch degrees*10
-* **0440** : if `frsky_pitch_roll = ON` set this will be roll degrees*10
-* **0450** : 'Flight Path Vector' or 'Course over ground' in degrees*10
-* **0460** : Azimuth in degrees*10
+
 ### Compatible SmartPort/INAV telemetry flight status
 
 To quickly and easily monitor these SmartPort sensors and flight modes, install [OpenTX Telemetry Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget) to your Taranis Q X7, X9D, X9D+ or X9E transmitter.
