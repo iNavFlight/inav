@@ -137,7 +137,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     osdCrosshairPosition(&center_x, &center_y);
 
-    if (!(osdConfig()->osd_pan_servo_pwm2decadeg == 0)){
+    if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
         poiDirection = poiDirection + osdGetPanServoOffset();
     }
 
