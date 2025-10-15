@@ -1224,7 +1224,9 @@ int16_t osdGetPanServoOffset(void)
         servoMiddle = PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
     }
 
-    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
+    float servoDegreesScaleFactor = 1000.0f / (servoParams(servoIndex)->max - servoParams(servoIndex)->min);
+
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * (int16_t)(osdConfig()->osd_pan_servo_pwm2decadeg) * servoDegreesScaleFactor);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -1976,7 +1978,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int16_t panHomeDirOffset = 0;
-                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                    if (!(osdConfig()->osd_pan_servo_pwm2decadeg == 0)){
                         panHomeDirOffset = osdGetPanServoOffset();
                     }
                     int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
@@ -2219,7 +2221,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 //////////////////////////////////////////////////////
                 // ALT diff to ADSB vehicle draw
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_pwm2decadeg != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
@@ -2734,7 +2736,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 currentPeer->direction = (int16_t )(calculateBearingToDestination(&poi) / 100); // In °
 
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_pwm2decadeg != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
@@ -3993,7 +3995,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
                 int16_t panHomeDirOffset = 0;
-                if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                if (!(osdConfig()->osd_pan_servo_pwm2decadeg == 0)){
                     panHomeDirOffset = osdGetPanServoOffset();
                 }
                 int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
@@ -4241,7 +4243,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .ahi_pitch_interval = SETTING_OSD_AHI_PITCH_INTERVAL_DEFAULT,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
-    .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .osd_pan_servo_pwm2decadeg = SETTING_OSD_PAN_SERVO_PWM2DECADEG_DEFAULT,
     .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
