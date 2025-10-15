@@ -54,7 +54,7 @@ In general, accuracy is enough to perform RTH U-turn when both RC controls and G
 
 (purple line - estimated position, black line - real position).
 
-It is recommened to use GPS fix estimation without magnethometer as last resort only. For example, if plane is flying above lake, landing means loss of plane. With GPS Fix estimation, plane will try to do RTH in very rought direction, instead of landing.
+It is recommened to use GPS fix estimation without magnetometer as last resort only. For example, if plane is flying above lake, landing means loss of plane. With GPS Fix estimation, plane will try to do RTH in very rought direction, instead of landing.
 
 It is up to user to estimate the risk of fly-away.
 
