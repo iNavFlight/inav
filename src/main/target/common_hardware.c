@@ -417,7 +417,11 @@
 #endif
 
 #if defined(USE_FLASH_W25N01G)
-    BUSDEV_REGISTER_SPI(busdev_w25n01g,     DEVHW_W25N01G,      W25N01G_SPI_BUS,    W25N01G_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
+    BUSDEV_REGISTER_SPI(busdev_w25n01g,     DEVHW_W25N,      W25N01G_SPI_BUS,    W25N01G_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
+#endif
+
+#if defined(USE_FLASH_W25N02K)
+    BUSDEV_REGISTER_SPI(busdev_w25n02k,     DEVHW_W25N,      W25N02K_SPI_BUS,    W25N02K_CS_PIN,     NONE,           DEVFLAGS_NONE,  0);
 #endif
 
 #if defined(USE_SDCARD) && defined(USE_SDCARD_SPI)

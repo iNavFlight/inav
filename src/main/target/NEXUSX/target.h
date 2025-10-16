@@ -73,12 +73,11 @@
 #define SPI2_MISO_PIN           PB14
 #define SPI2_MOSI_PIN           PB15
 
-// flash chip W25N02KVZEIR not supported yet
-//#define USE_FLASHFS
-//#define USE_FLASH_W25N02K
-//#define W25N02K_SPI_BUS          BUS_SPI2
-//#define W25N02K_CS_PIN           PB12
-//#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define USE_FLASHFS
+#define USE_FLASH_W25N02K
+#define W25N02K_SPI_BUS          BUS_SPI2
+#define W25N02K_CS_PIN           PB12
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** UART *****************************
 #define USE_VCP
