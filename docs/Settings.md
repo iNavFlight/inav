@@ -198,7 +198,7 @@ Total gyro rotation rate threshold [deg/s] before scaling to consider accelerome
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 30 |
+| 20 | 0 | 30 |
 
 ---
 
