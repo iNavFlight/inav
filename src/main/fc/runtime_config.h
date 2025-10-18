@@ -148,6 +148,7 @@ typedef enum {
     LANDING_DETECTED                    = (1 << 26),
     IN_FLIGHT_EMERG_REARM               = (1 << 27),
     TAILSITTER                          = (1 << 28), //offset the pitch angle by 90 degrees
+    BOOMERANG                           = (1 << 29),
 } stateFlags_t;
 
 #define DISABLE_STATE(mask) (stateFlags &= ~(mask))
