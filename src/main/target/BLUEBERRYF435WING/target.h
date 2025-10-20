@@ -99,14 +99,6 @@
 #define USE_MAG_ALL
 #define DEFAULT_I2C_BUS         BUS_I2C2
 
-// temperature sensors
-//#define TEMPERATURE_I2C_BUS     BUS_I2C1
-// air speed sensors
-//#define PITOT_I2C_BUS           BUS_I2C1
-// ranger sensors
-//#define USE_RANGEFINDER
-//#define RANGEFINDER_I2C_BUS         BUS_I2C1
- 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2 
 #define SPI2_SCK_PIN            PB13
@@ -151,10 +143,6 @@
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
-// #define USE_UART5
-// #define UART5_RX_PIN            PB8    //GPS
-// #define UART5_TX_PIN            PB9
-
 #define USE_UART7                      //SBUS
 #define UART7_RX_PIN            PB3
 #define UART7_TX_PIN            PB4
@@ -172,16 +160,15 @@
 #define ADC1_DMA_STREAM             DMA2_CHANNEL1
 #define ADC_CHANNEL_1_PIN           PA0
 #define ADC_CHANNEL_2_PIN           PA1
-//#define ADC_CHANNEL_3_PIN           PB0
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-//#define RSSI_ADC_CHANNEL            ADC_CHN_3 
- #define VBAT_SCALE_DEFAULT      1100
- #define CURRENT_METER_SCALE     300
+
+#define VBAT_SCALE_DEFAULT      1100
+#define CURRENT_METER_SCALE     300
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
-  #define USE_LED_STRIP
-  #define WS2811_PIN                      PA8   //TIM1_CH1
+#define USE_LED_STRIP
+#define WS2811_PIN                      PA8   //TIM1_CH1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
