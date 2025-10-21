@@ -23,7 +23,5 @@
 
 void targetConfiguration(void)
 {
-    pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
-    pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
-    beeperConfigMutable()->pwmMode = true;
+
 }
