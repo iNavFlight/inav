@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <platform.h>
+
 #include "drivers/bus.h"
 #include "drivers/io.h"
 #include "drivers/pwm_mapping.h"
@@ -32,18 +33,10 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM2,  CH4,  PB11, TIM_USE_OUTPUT_AUTO,   0, 0), // S5 D(1,7,3) UP173
     DEF_TIM(TIM2,  CH3,  PB10, TIM_USE_OUTPUT_AUTO,   0, 0), // S6 D(1,1,3) UP173
-    // DEF_TIM(TIM2,  CH2,  PB3,  TIM_USE_OUTPUT_AUTO,   0, 0), // S7 D(1,6,3) UP173
-    // DEF_TIM(TIM2,  CH1,  PA15, TIM_USE_OUTPUT_AUTO,   0, 0), // S8 D(1,5,3) UP173
 
-    // DEF_TIM(TIM12, CH1,  PB14, TIM_USE_OUTPUT_AUTO,   0, 0), // S9  DMA NONE
-    // DEF_TIM(TIM13, CH1,  PA6,  TIM_USE_OUTPUT_AUTO,   0, 0), // S10 DMA NONE
-    // DEF_TIM(TIM4,  CH1,  PB6,  TIM_USE_OUTPUT_AUTO,   0, 0), // S11 D(1,0,2)
+    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_OUTPUT_AUTO,    0, 0), // 2812LED  D(1,2,5)
 
-    DEF_TIM(TIM3,  CH4,  PB1,  TIM_USE_LED,    0, 0), // 2812LED  D(1,2,5)
-    // DEF_TIM(TIM11, CH1,  PB9,  TIM_USE_BEEPER, 0, 0), // BEEPER PWM
-    
-    // DEF_TIM(TIM9,  CH2,  PA3,  TIM_USE_PPM,    0, 0), //RX2
-    // DEF_TIM(TIM5,  CH3,  PA2,  TIM_USE_ANY,    0, 0), //TX2  softserial1_Tx
+    DEF_TIM(TIM5,  CH3,  PA2,  TIM_USE_ANY,    0, 0), //TX2  softserial1_Tx
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
