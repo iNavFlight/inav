@@ -184,6 +184,7 @@ static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
 static uint8_t mavSystemId = 1;
+static uint8_t mavAutopilotType;
 static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
@@ -198,7 +199,7 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
         case FLM_POSITION_HOLD: 
             {
-                if (IS_RC_MODE_ACTIVE(BOXGCSNAV) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+                if (isGCSValid()) {
                     return COPTER_MODE_GUIDED;
                 } else {
                     return COPTER_MODE_POSHOLD;
@@ -235,7 +236,7 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
         case FLM_POSITION_HOLD: 
             {
-                if (IS_RC_MODE_ACTIVE(BOXGCSNAV) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+                if (isGCSValid()) {
                     return PLANE_MODE_GUIDED;
                 } else {
                     return PLANE_MODE_LOITER;
@@ -310,6 +311,7 @@ void configureMAVLinkTelemetryPort(void)
     }
 
     mavlinkPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_MAVLINK, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_MAVLINK_PORT_MODE, SERIAL_NOT_INVERTED);
+    mavAutopilotType = telemetryConfig()->mavlink.autopilot_type;
 
     if (!mavlinkPort) {
         return;
@@ -809,11 +811,18 @@ void mavlinkSendHUDAndHeartbeat(void)
         mavSystemState = MAV_STATE_STANDBY;
     }
 
+    uint8_t mavType;
+    if (mavAutopilotType == MAVLINK_AUTOPILOT_ARDUPILOT) {
+        mavType = MAV_AUTOPILOT_ARDUPILOTMEGA;
+    } else {
+        mavType = MAV_AUTOPILOT_GENERIC;
+    }
+
     mavlink_msg_heartbeat_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
         mavSystemType,
         // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
-        MAV_AUTOPILOT_GENERIC,
+        mavType,
         // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
         mavModes,
         // custom_mode A bitfield for use for autopilot-specific flags.
@@ -1008,9 +1017,36 @@ static bool handleIncoming_MISSION_ITEM(void)
     if (msg.target_system == mavSystemId) {
         // Check supported values first
         if (ARMING_FLAG(ARMED)) {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION);
-            mavlinkSendMessage();
-            return true;
+            // Legacy Mission Planner BS for GUIDED
+            if (isGCSValid() && (msg.command == MAV_CMD_NAV_WAYPOINT) && (msg.current == 2)) {
+                if (!(msg.frame == MAV_FRAME_GLOBAL)) {
+                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                        mavRecvMsg.sysid, mavRecvMsg.compid,
+                        MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION);
+                    mavlinkSendMessage();
+                    return true;
+                }
+
+                navWaypoint_t wp;
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                wp.lat = (int32_t)(msg.x * 1e7f); 
+                wp.lon = (int32_t)(msg.y * 1e7f);
+                wp.alt = (int32_t)(msg.z * 100.0f);
+                wp.p1 = 0;
+                wp.p2 = 0;
+                wp.p3 = 0;
+                setWaypoint(255, &wp);
+
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                    mavRecvMsg.sysid, mavRecvMsg.compid,
+                    MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+                mavlinkSendMessage();
+                return true;
+            } else {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION);
+                mavlinkSendMessage();
+                return true;
+            }
         }
 
         if ((msg.autocontinue == 0) || (msg.command != MAV_CMD_NAV_WAYPOINT && msg.command != MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
@@ -1128,7 +1164,8 @@ static bool handleIncoming_COMMAND_INT(void)
     if (msg.target_system == mavSystemId) {
 
         if (msg.command == MAV_CMD_DO_REPOSITION) {
-            if (msg.frame != MAV_FRAME_GLOBAL) {
+            
+            if (!(msg.frame == MAV_FRAME_GLOBAL)) { //|| msg.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT || msg.frame == MAV_FRAME_GLOBAL_TERRAIN_ALT)) {
 
                     mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                                 msg.command,
@@ -1141,13 +1178,19 @@ static bool handleIncoming_COMMAND_INT(void)
                     return true;
                 }
 
-            if (IS_RC_MODE_ACTIVE(BOXGCSNAV) && (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+            if (isGCSValid()) {
                 navWaypoint_t wp;
                 wp.action = NAV_WP_ACTION_WAYPOINT;
-                wp.lat = msg.x;
-                wp.lon = msg.y;
+                wp.lat = (int32_t)msg.x;
+                wp.lon = (int32_t)msg.y;
                 wp.alt = msg.z * 100.0f;
-                wp.p1 = wp.p2 = wp.p3 = 0;
+                if (!isnan(msg.param4) && msg.param4 >= 0.0f && msg.param4 < 360.0f) {
+                    wp.p1 = (int16_t)msg.param4;
+                } else {
+                    wp.p1 = 0;
+                }
+                wp.p2 = 0; // TODO: Alt modes 
+                wp.p3 = 0;
                 wp.flag = 0;
 
                 setWaypoint(255, &wp);

@@ -2612,6 +2612,16 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ---
 
+### mavlink_autopilot_type
+
+Autopilot type to advertise for MAVLink telemetry
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
+
+---
+
 ### mavlink_ext_status_rate
 
 Rate of the extended status message for MAVLink telemetry

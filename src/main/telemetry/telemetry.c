@@ -87,6 +87,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
 #endif
 
     .mavlink = {
+        .autopilot_type = SETTING_MAVLINK_AUTOPILOT_TYPE_DEFAULT,
         .extended_status_rate = SETTING_MAVLINK_EXT_STATUS_RATE_DEFAULT,
         .rc_channels_rate = SETTING_MAVLINK_RC_CHAN_RATE_DEFAULT,
         .position_rate = SETTING_MAVLINK_POS_RATE_DEFAULT,

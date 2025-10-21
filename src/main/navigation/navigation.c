@@ -3870,6 +3870,15 @@ void getWaypoint(uint8_t wpNumber, navWaypoint_t * wpData)
     }
 }
 
+int isGCSValid(void)
+{
+    return (ARMING_FLAG(ARMED) && 
+            (posControl.flags.estPosStatus >= EST_TRUSTED) && 
+            posControl.gpsOrigin.valid && 
+            posControl.flags.isGCSAssistedNavigationEnabled && 
+            (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS));
+}
+
 void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
 {
     gpsLocation_t wpLLH;
@@ -3888,9 +3897,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     }
     // WP #255 - special waypoint - directly set desiredPosition
     // Only valid when armed and in poshold mode
-    else if ((wpNumber == 255) && (wpData->action == NAV_WP_ACTION_WAYPOINT) &&
-             ARMING_FLAG(ARMED) && (posControl.flags.estPosStatus == EST_TRUSTED) && posControl.gpsOrigin.valid && posControl.flags.isGCSAssistedNavigationEnabled &&
-             (posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
+    else if ((wpNumber == 255) && (wpData->action == NAV_WP_ACTION_WAYPOINT) && isGCSValid()) {
         // Convert to local coordinates
         geoConvertGeodeticToLocal(&wpPos.pos, &posControl.gpsOrigin, &wpLLH, GEO_ALT_RELATIVE);
 
