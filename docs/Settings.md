@@ -122,6 +122,16 @@ Frequency of the software notch filter to remove mechanical vibrations from the 
 
 ---
 
+### acc_temp_correction
+
+Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
+
+---
+
 ### accgain_x
 
 Calculated value after '6 position avanced calibration'. Uncalibrated value is 4096. See Wiki page.
@@ -452,6 +462,16 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 
 ---
 
+### baro_temp_correction
+
+Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -50 | 51 |
+
+---
+
 ### bat_cells
 
 Number of cells of the battery (0 = auto-detect), see battery documentation. 7S, 9S and 11S batteries cannot be auto-detected.
@@ -519,6 +539,16 @@ Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if t
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### blackbox_arm_control
+
+Determines behaviour of logging in relation to Arm state. For settings from 0 to 60 logging will start on Arm with the setting determining how long logging will continue after disarm in seconds, i.e. set to 0 to stop logging at disarm or 10 to stop logging 10s after disarm. Set to -1 to start logging from boot up until power off (Use with caution - mainly for debugging and best used with BLACKBOX mode).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -1 | 60 |
 
 ---
 
@@ -604,7 +634,7 @@ This sets the output voltage to current scaling for the current sensor in 0.1 mV
 
 ### current_meter_type
 
-ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
+ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -674,7 +704,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 
 ### disarm_always
 
-Disarms the motors independently of throttle value. Setting to OFF reverts to the old behaviour of disarming only when the throttle is low.
+When you switch to Disarm, do so regardless of throttle position. If this Setting is `OFF`. It will only disarm only when the throttle is low. This is similar to the previous `disarm_kill_switch` option. Default setting is the same as the old default behaviour.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -842,6 +872,16 @@ Q factor for dynamic notches
 
 ---
 
+### enable_broken_o4_workaround
+
+DJI O4 release firmware has a broken MSP DisplayPort implementation. This enables a workaround to restore ARM detection.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### esc_sensor_listen_only
 
 Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case
@@ -908,7 +948,7 @@ EzTune filter cutoff frequency
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 110 | 10 | 300 |
+| 110 | 20 | 300 |
 
 ---
 
@@ -1178,7 +1218,7 @@ The target percentage of maximum mixer output used for determining the rates in 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 80 | 50 | 100 |
+| 90 | 50 | 100 |
 
 ---
 
@@ -1324,7 +1364,7 @@ Defines error rate (in percents of max rate) when Iterm Lock is engaged when sti
 
 ### fw_iterm_lock_rate_threshold
 
-Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+Defines the steepness of the attenuation curve. Higher values result in flatter attenuation. Lower values force full attenuation with lower stick deflection
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1334,7 +1374,7 @@ Defines rate percentage when full P I and D attenuation should happen. 100 disab
 
 ### fw_iterm_lock_time_max_ms
 
-Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+Defines max time in milliseconds for how long ITerm Lock will depress Iterm after sticks are release
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -1469,6 +1509,76 @@ Yaw Iterm is frozen when bank angle is above this threshold [degrees]. This solv
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 90 |
+
+---
+
+### geozone_avoid_altitude_range
+
+Altitude range in which an attempt is made to avoid a geozone upwards
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5000 | 0 | 1000000 |
+
+---
+
+### geozone_detection_distance
+
+Distance from which a geozone is detected
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50000 | 0 | 1000000 |
+
+---
+
+### geozone_mr_stop_distance
+
+Distance in which multirotors stops before the border
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15000 | 0 | 100000 |
+
+---
+
+### geozone_no_way_home_action
+
+Action if RTH with active geozones is unable to calculate a course to home
+
+| Default | Min | Max |
+| --- | --- | --- |
+| RTH |  |  |
+
+---
+
+### geozone_safe_altitude_distance
+
+Vertical distance that must be maintained to the upper and lower limits of the zone.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | 0 | 10000 |
+
+---
+
+### geozone_safehome_as_inclusive
+
+Treat nearest safehome as inclusive geozone
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### geozone_safehome_zone_action
+
+Fence action for safehome zone
+
+| Default | Min | Max |
+| --- | --- | --- |
+| NONE |  |  |
 
 ---
 
@@ -2138,7 +2248,7 @@ Weight of barometer climb rate measurements in estimated climb rate. Setting is 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2148,7 +2258,7 @@ Weight of GPS altitude measurements in estimated altitude. Setting is used on bo
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.2 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2158,7 +2268,7 @@ Weight of GPS climb rate measurements in estimated climb rate. Setting is used o
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0.1 | 0 | 10 |
+| 0.35 | 0 | 10 |
 
 ---
 
@@ -2948,17 +3058,17 @@ If enabled, motor will stop when throttle is low on this mixer_profile
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| ON | OFF | ON |
 
 ---
 
 ### msp_override_channels
 
-Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode.
+Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires the `MSP RC Override` flight mode.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 65535 |
+| 0 | 0 | 4294967295 |
 
 ---
 
@@ -3048,7 +3158,17 @@ Adjusts the deceleration response of fixed wing altitude control as the target a
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 5 | 100 |
+| 40 | 5 | 100 |
+
+---
+
+### nav_fw_alt_use_position
+
+Use position for fixed wing altitude control rather than velocity (default method).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
@@ -3354,7 +3474,7 @@ Launch throttle - throttle to be set during launch sequence (pwm units)
 
 ### nav_fw_launch_timeout
 
-Maximum time for launch sequence to be executed. After this time LAUNCH mode will be turned off and regular flight mode will take over (ms)
+Maximum time for launch sequence to continue after throwing. After this time LAUNCH mode will end and regular flight mode will take over (ms)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3532,6 +3652,16 @@ D gain of altitude PID controller (Fixedwing)
 
 ---
 
+### nav_fw_pos_z_ff
+
+FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 255 |
+
+---
+
 ### nav_fw_pos_z_i
 
 I gain of altitude PID controller (Fixedwing)
@@ -3548,7 +3678,7 @@ P gain of altitude PID controller (Fixedwing)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 40 | 0 | 255 |
+| 30 | 0 | 255 |
 
 ---
 
@@ -4359,6 +4489,16 @@ Ignore adsb planes above, limit, 0 disabled (meters)
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 64000 |
+
+---
+
+### osd_adsb_warning_style
+
+ADSB warning element style, how rich information on scree will be, Possible values are `COMPACT` and `EXTENDED`
+
+| Default | Min | Max |
+| --- | --- | --- |
+| COMPACT |  |  |
 
 ---
 
@@ -5374,7 +5514,7 @@ Use custom pilot logo with/instead of the INAV logo. The pilot logo must be char
 
 ### osd_video_system
 
-Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`
+Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR', `BF43COMPAT`, `BFHDCOMPAT` and `DJI_NATIVE`
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6132,6 +6272,16 @@ General switch of the statistics recording feature (a.k.a. odometer)
 
 ---
 
+### stats_flight_count
+
+Total number of flights. The value is updated on every disarm when "stats" are enabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 |  | 65535 |
+
+---
+
 ### stats_total_dist
 
 Total flight distance [in meters]. The value is updated on every disarm when "stats" are enabled.
@@ -6374,7 +6524,7 @@ Maximum voltage per cell in 0.01V units, default is 4.20V
 
 ### vbat_meter_type
 
-Vbat voltage source. Possible values: `NONE`, `ADC`, `ESC`. `ESC` required ESC telemetry enebled and running
+Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running.
 
 | Default | Min | Max |
 | --- | --- | --- |

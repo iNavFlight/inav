@@ -132,6 +132,44 @@
 #define OSD_MSG_LOITERING_SAFEHOME  "LOITERING AROUND SAFEHOME"
 #endif
 
+#if defined(USE_GEOZONE)
+#define OSD_MSG_NFZ                 "NO FLY ZONE"
+#define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
+#define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
+#define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"
+#define OSD_MSG_AVOIDING_FB         "AVOIDING FENCE BREACH"
+#define OSD_MSG_RETURN_TO_ZONE      "RETURN TO FZ"
+#define OSD_MSG_FLYOUT_NFZ          "FLY OUT NFZ"
+#define OSD_MSG_AVOIDING_ALT_BREACH "REACHED ZONE ALTITUDE LIMIT"
+#define OSD_MSG_AVOID_ZONES_RTH     "AVOIDING NO FLY ZONES"
+#define OSD_MSG_GEOZONE_ACTION      "PERFORM ACTION IN %s %s"
+#endif
+
+#ifdef USE_ADSB
+static const char* const ADSB_EMITTER_TYPE_STRINGS[] = {
+        "NOINFO",  //  0 - No information about the emitter type
+        "LIGHT ",  //  1 - Light aircraft
+        "SMALL ",  //  2 - Small aircraft
+        "LARGE ",  //  3 - Large aircraft
+        "HVLARG",  //  4 - High vortex large
+        "HEAVY ",  //  5 - Heavy aircraft
+        "HMANUV",  //  6 - Highly maneuverable aircraft
+        "ROTORC",  //  7 - Rotocraft (e.g., helicopter)
+        "UNASGN",  //  8 - Unassigned type
+        "GLIDER",  //  9 - Glider
+        "LTAIR ",  // 10 - Lighter-than-air aircraft
+        "PARACH",  // 11 - Parachute
+        "ULTLIT",  // 12 - Ultra light aircraft
+        "UNASG2",  // 13 - Unassigned 2
+        "UAV   ",  // 14 - Unmanned Aerial Vehicle (drone)
+        "SPACE ",  // 15 - Spacecraft
+        "UNASG3",  // 16 - Unassigned 3
+        "EMRSUR",  // 17 - Emergency surface vehicle
+        "SERSUR",  // 18 - Service surface vehicle
+        "POBSTC",  // 19 - Point obstacle
+};
+#endif
+
 typedef enum {
     OSD_RSSI_VALUE,
     OSD_MAIN_BATT_VOLTAGE,
@@ -296,6 +334,10 @@ typedef enum {
     OSD_RX_POWER_DOWNLINK, // 160
     OSD_RX_BAND,
     OSD_RX_MODE,
+    OSD_COURSE_TO_FENCE,
+    OSD_H_DIST_TO_FENCE,
+    OSD_V_DIST_TO_FENCE,
+    OSD_NAV_FW_ALT_CONTROL_RESPONSE,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -337,6 +379,11 @@ typedef enum {
     OSD_ALIGN_LEFT,
     OSD_ALIGN_RIGHT
 } osd_alignment_e;
+
+typedef enum {
+    OSD_ADSB_WARNING_STYLE_COMPACT,
+    OSD_ADSB_WARNING_STYLE_EXTENDED,
+} osd_adsb_warning_style_e;
 
 typedef enum {
     OSD_AHI_STYLE_DEFAULT,
@@ -472,12 +519,18 @@ typedef struct osdConfig_s {
 #ifndef DISABLE_MSP_DJI_COMPAT
     bool            highlight_djis_missing_characters;  // If enabled, show question marks where there is no character in DJI's font to represent an OSD element symbol
 #endif
+    bool            enable_broken_o4_workaround;        // If enabled, override STATUS/STATUS_EX messages to work around DJI's broken O4 air unit MSP DisplayPort implementation
 #ifdef USE_ADSB
-    uint16_t adsb_distance_warning;                     // in metres
-    uint16_t adsb_distance_alert;                       // in metres
-    uint16_t adsb_ignore_plane_above_me_limit;          // in metres
+    uint16_t                    adsb_distance_warning;                     // in metres
+    uint16_t                    adsb_distance_alert;                       // in metres
+    uint16_t                    adsb_ignore_plane_above_me_limit;          // in metres
+    osd_adsb_warning_style_e    adsb_warning_style;       // adsb warning element style, one or two lines
 #endif
     uint8_t  radar_peers_display_time;                  // in seconds
+#ifdef USE_GEOZONE
+    uint8_t geozoneDistanceWarning;                     // Distance to fence or action
+    bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
+#endif
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
@@ -515,7 +568,7 @@ void osdShowEEPROMSavedNotification(void);
 void osdCrosshairPosition(uint8_t *x, uint8_t *y);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros);
 void osdFormatAltitudeSymbol(char *buff, int32_t alt);
-void osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
+int osdFormatVelocityStr(char* buff, int32_t vel, bool _3D, bool _max);
 // Returns a heading angle in degrees normalized to [0, 360).
 int osdGetHeadingAngle(int angle);
 

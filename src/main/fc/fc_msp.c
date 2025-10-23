@@ -422,6 +422,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, getHwRangefinderStatus());
         sbufWriteU8(dst, getHwPitotmeterStatus());
         sbufWriteU8(dst, getHwOpticalFlowStatus());
+
+        isMspConfigActive(true);  // used to indicate configurator connection active
         break;
 
     case MSP_ACTIVEBOXES:
@@ -969,8 +971,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
 
             sbufWriteU32(dst, adsbVehicle->vehicleValues.icao);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lat);
-            sbufWriteU32(dst, adsbVehicle->vehicleValues.lon);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lat);
+            sbufWriteU32(dst, adsbVehicle->vehicleValues.gps.lon);
             sbufWriteU32(dst, adsbVehicle->vehicleValues.alt);
             sbufWriteU16(dst, (uint16_t)CENTIDEGREES_TO_DEGREES(adsbVehicle->vehicleValues.heading));
             sbufWriteU8(dst,  adsbVehicle->vehicleValues.tslc);
@@ -1488,11 +1490,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxSettingsConfig()->channel);
                 sbufWriteU8(dst, vtxSettingsConfig()->power);
                 sbufWriteU8(dst, pitmode);
+                // technically there is bug here, we are missing the 16bit
+                // freqency bf is transmitting
+                // sbufWriteU16(dst, vtxSettingsConfig()->freq);
 
                 // Betaflight < 4 doesn't send these fields
                 sbufWriteU8(dst, vtxCommonDeviceIsReady(vtxDevice) ? 1 : 0);
                 sbufWriteU8(dst, vtxSettingsConfig()->lowPowerDisarm);
-                // future extensions here...
+
+                sbufWriteU8(dst, 1);  // vtxtable is available
+                sbufWriteU8(dst, vtxDevice->capability.bandCount);
+                sbufWriteU8(dst, vtxDevice->capability.channelCount);
+                sbufWriteU8(dst, vtxDevice->capability.powerCount);
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
@@ -1575,6 +1584,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->stats_energy_unit);
+#ifdef USE_ADSB
+        sbufWriteU8(dst, osdConfig()->adsb_warning_style);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 
 #endif
@@ -1730,6 +1744,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 #endif
+
+    case MSP2_COMMON_GET_RADAR_GPS:
+        for (uint8_t i = 0; i < RADAR_MAX_POIS; i++){
+            sbufWriteDataSafe(dst, &radar_pois[i].gps, sizeof(gpsLocation_t));
+        }
+        break;
+
     default:
         return false;
     }
@@ -1768,6 +1789,54 @@ static mspResult_e mspFwApproachOutCommand(sbuf_t *dst, sbuf_t *src)
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
+    }
+}
+#endif
+
+#ifdef USE_GEOZONE
+static mspResult_e mspFcGeozoneOutCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const uint8_t idx = sbufReadU8(src);
+    if (idx < MAX_GEOZONES_IN_CONFIG) {
+        sbufWriteU8(dst, idx);
+        sbufWriteU8(dst, geoZonesConfig(idx)->type);
+        sbufWriteU8(dst, geoZonesConfig(idx)->shape);
+        sbufWriteU32(dst, geoZonesConfig(idx)->minAltitude);
+        sbufWriteU32(dst, geoZonesConfig(idx)->maxAltitude);
+        sbufWriteU8(dst, geoZonesConfig(idx)->isSealevelRef);
+        sbufWriteU8(dst, geoZonesConfig(idx)->fenceAction);
+        sbufWriteU8(dst, geoZonesConfig(idx)->vertexCount);
+        return MSP_RESULT_ACK;
+    } else {
+        return MSP_RESULT_ERROR;
+    }
+}
+
+static mspResult_e mspFcGeozoneVerteciesOutCommand(sbuf_t *dst, sbuf_t *src)
+{
+    const uint8_t zoneId = sbufReadU8(src);
+    const uint8_t vertexId = sbufReadU8(src);
+    if (zoneId < MAX_GEOZONES_IN_CONFIG) {
+        int8_t  vertexIdx = geozoneGetVertexIdx(zoneId, vertexId);
+        if (vertexIdx >= 0) {
+            sbufWriteU8(dst, geoZoneVertices(vertexIdx)->zoneId);
+            sbufWriteU8(dst, geoZoneVertices(vertexIdx)->idx);
+            sbufWriteU32(dst, geoZoneVertices(vertexIdx)->lat);
+            sbufWriteU32(dst, geoZoneVertices(vertexIdx)->lon);
+            if (geoZonesConfig(zoneId)->shape == GEOZONE_SHAPE_CIRCULAR) {
+                int8_t vertexRadiusIdx = geozoneGetVertexIdx(zoneId, vertexId + 1);
+                if (vertexRadiusIdx >= 0) {
+                    sbufWriteU32(dst, geoZoneVertices(vertexRadiusIdx)->lat);
+                } else {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+            return MSP_RESULT_ACK;
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+    } else {
+        return MSP_RESULT_ERROR;
     }
 }
 #endif
@@ -1862,8 +1931,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 }
                 rxMspFrameReceive(frame, channelCount);
             }
-
-            return MSP_RESULT_NO_REPLY;
         }
         break;
 #endif
@@ -2719,7 +2786,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                             vtxSettingsConfigMutable()->lowPowerDisarm = sbufReadU8(src);
                         }
 
-                        // API version 1.42 - extension for pitmode frequency 
+                        // API version 1.42 - extension for pitmode frequency
                         if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); //skip pitModeFreq
                         }
@@ -2740,15 +2807,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                         if (sbufBytesRemaining(src) >= 2) {
                             sbufReadU16(src); // freq
                         }
-                        
+
                         if (sbufBytesRemaining(src) >= 3) {
                             sbufReadU8(src); // band count
                             sbufReadU8(src); // channel count
-                            
+
                             uint8_t newPowerCount = sbufReadU8(src);
                             if (newPowerCount > 0 && newPowerCount < (vtxDevice->capability.powerCount)) {
                                 vtxDevice->capability.powerCount = newPowerCount;
-                            }                        
+                            }
                         }
                     }
                 }
@@ -2761,7 +2828,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
 #ifdef USE_FLASHFS
     case MSP_DATAFLASH_ERASE:
-        flashfsEraseCompletely();
+        if (blackboxMayEditConfig()) {
+            flashfsEraseCompletely();
+        } else {
+            return MSP_RESULT_ERROR;
+        }
         break;
 #endif
 
@@ -2946,7 +3017,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 if (sublinkID == 0) {
                     rxLinkStatistics.uplinkTXPower = sbufReadU16(src);
                     rxLinkStatistics.downlinkTXPower = sbufReadU16(src);
-                    
+
                     for (int i = 0; i < 4; i++) {
                         rxLinkStatistics.band[i] = sbufReadU8(src);
                     }
@@ -3225,7 +3296,12 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            if (dataSize == 9) {
+            if (
+                    dataSize == 9
+#ifdef USE_ADSB
+                    || dataSize == 10
+#endif
+            ) {
                 osdConfigMutable()->video_system = sbufReadU8(src);
                 osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
                 osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
@@ -3235,6 +3311,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
+#ifdef USE_ADSB
+                if(dataSize == 10) {
+                    osdConfigMutable()->adsb_warning_style = sbufReadU8(src);
+                }
+#endif
                 osdStartFullRedraw();
             } else
                 return MSP_RESULT_ERROR;
@@ -3371,6 +3452,50 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         gpsUbloxSendCommand(src->ptr, dataSize, 0);
         break;
 
+#ifdef USE_GEOZONE
+    case MSP2_INAV_SET_GEOZONE:
+        if (dataSize == 14) {
+            uint8_t geozoneId;
+            if (!sbufReadU8Safe(&geozoneId, src) || geozoneId >= MAX_GEOZONES_IN_CONFIG) {
+                return MSP_RESULT_ERROR;
+            }
+
+            geozoneResetVertices(geozoneId, -1);
+            geoZonesConfigMutable(geozoneId)->type = sbufReadU8(src);
+            geoZonesConfigMutable(geozoneId)->shape = sbufReadU8(src);
+            geoZonesConfigMutable(geozoneId)->minAltitude = sbufReadU32(src);
+            geoZonesConfigMutable(geozoneId)->maxAltitude = sbufReadU32(src);
+            geoZonesConfigMutable(geozoneId)->isSealevelRef = sbufReadU8(src);
+            geoZonesConfigMutable(geozoneId)->fenceAction = sbufReadU8(src);
+            geoZonesConfigMutable(geozoneId)->vertexCount = sbufReadU8(src);
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+    case MSP2_INAV_SET_GEOZONE_VERTEX:
+        if (dataSize == 10 || dataSize == 14) {
+            uint8_t geozoneId = 0;
+            if (!sbufReadU8Safe(&geozoneId, src) || geozoneId >= MAX_GEOZONES_IN_CONFIG) {
+                return MSP_RESULT_ERROR;
+            }
+            uint8_t vertexId = sbufReadU8(src);
+            int32_t lat = sbufReadU32(src);
+            int32_t lon = sbufReadU32(src);
+            if (!geozoneSetVertex(geozoneId, vertexId, lat, lon)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            if (geoZonesConfig(geozoneId)->shape == GEOZONE_SHAPE_CIRCULAR) {
+                if (!geozoneSetVertex(geozoneId, vertexId + 1, sbufReadU32(src), 0)) {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
 #ifdef USE_EZ_TUNE
 
     case MSP2_INAV_EZ_TUNE_SET:
@@ -3423,7 +3548,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4) && (tmp_u8 < MAX_CUSTOM_ELEMENTS)) {
             for (int i = 0; i < CUSTOM_ELEMENTS_PARTS; i++) {
-                osdCustomElementsMutable(tmp_u8)->part[i].type = sbufReadU8(src);
+                uint8_t type = sbufReadU8(src);
+                if (type >= CUSTOM_ELEMENT_TYPE_END)
+                    return MSP_RESULT_ERROR;
+
+                osdCustomElementsMutable(tmp_u8)->part[i].type = type;
                 osdCustomElementsMutable(tmp_u8)->part[i].value = sbufReadU16(src);
             }
             osdCustomElementsMutable(tmp_u8)->visibility.type = sbufReadU8(src);
@@ -3949,6 +4078,14 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFwApproachOutCommand(dst, src);
         break;
 #endif
+#ifdef USE_GEOZONE
+    case MSP2_INAV_GEOZONE:
+        *ret = mspFcGeozoneOutCommand(dst, src);
+        break;
+    case MSP2_INAV_GEOZONE_VERTEX:
+        *ret = mspFcGeozoneVerteciesOutCommand(dst, src);
+        break;
+#endif
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
         tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
@@ -4163,6 +4300,28 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+    case MSP_VTXTABLE_POWERLEVEL: {
+        vtxDevice_t *vtxDevice = vtxCommonDevice();
+        if (!vtxDevice) {
+            return MSP_RESULT_ERROR;
+        }
+
+        const uint8_t powerLevel = sbufBytesRemaining(src) ? sbufReadU8(src) : 0;
+        if (powerLevel == 0 || powerLevel > vtxDevice->capability.powerCount) {
+            return MSP_RESULT_ERROR;
+        }
+
+        sbufWriteU8(dst, powerLevel);
+        sbufWriteU16(dst, 0);
+
+        const char *str = vtxDevice->capability.powerNames[powerLevel - 1];
+        const uint32_t str_len = strnlen(str, 5);  // these _should_ all be null-terminated
+        sbufWriteU8(dst, str_len);
+        for (uint32_t i = 0; i < str_len; i++)
+            sbufWriteU8(dst, str[i]);
+
+    } break;
+
     default:
         // Not handled
         return false;
@@ -4251,7 +4410,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     if (cmd->flags & MSP_FLAG_DONT_REPLY) {
         ret = MSP_RESULT_NO_REPLY;
     }
-
+    reply->flags = cmd->flags;
     reply->result = ret;
     return ret;
 }

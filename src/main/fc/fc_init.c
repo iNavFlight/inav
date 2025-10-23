@@ -89,6 +89,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/firmware_update.h"
+#include "fc/stats.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -372,9 +373,8 @@ void init(void)
     updateHardwareRevision();
 #endif
 
-#if defined(USE_SDCARD_SDIO) && defined(STM32H7)
+#if defined(USE_SDCARD_SDIO) && (defined(STM32H7) || defined(STM32F7))
     sdioPinConfigure();
-    SDIO_GPIO_Init();
 #endif
 
 #ifdef USE_USB_MSC
@@ -522,6 +522,10 @@ void init(void)
 
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
+#endif
+
+#ifndef USE_GEOZONE
+    featureClear(FEATURE_GEOZONE);
 #endif
 
     if (!sensorsAutodetect()) {
@@ -674,7 +678,9 @@ void init(void)
 #endif
 
 #ifdef USE_VTX_MSP
-    vtxMspInit();
+    if (feature(FEATURE_OSD)) {
+       vtxMspInit();
+    }
 #endif
 
 #endif // USE_VTX_CONTROL
@@ -740,6 +746,8 @@ void init(void)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
+
+    statsInit();
 
     systemState |= SYSTEM_STATE_READY;
 }

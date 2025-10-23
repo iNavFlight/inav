@@ -4,7 +4,7 @@ The On Screen Display, or OSD, is a feature that overlays flight data over the v
 
 
 General OSD information is in this document. Other documents cover specific OSD-related topics:
-* [Custom OSD Messages](https://github.com/iNavFlight/inav/wiki/OSD-custom-messages)
+* [Custom OSD Elements](https://github.com/iNavFlight/inav/wiki/Custom-OSD-Elements)
 * [OSD Hud and ESP32 radars](https://github.com/iNavFlight/inav/wiki/OSD-Hud-and-ESP32-radars)
 * [OSD Joystick](https://github.com/iNavFlight/inav/blob/master/docs/OSD%20Joystick.md)
 * [DJI compatible OSD.md](https://github.com/iNavFlight/inav/blob/master/docs/DJI%20compatible%20OSD.md)
@@ -14,16 +14,18 @@ General OSD information is in this document. Other documents cover specific OSD-
 ## Features and Limitations
 Not all OSDs are created equally. This table shows the differences between the different systems available.
 
-| OSD System    | Character grid | Character | Canvas | MSP DisplayPort | All elements supported  |
-|---------------|----------------|-----------|--------|-----------------|-------------------------|
-| Analogue PAL  | 30 x 16        | X         |        |                 | YES                     |
-| Analogue NTSC | 30 x 13        | X         |        |                 | YES                     |
-| PixelOSD      | As PAL or NTSC |           | X      |                 | YES                     |
-| DJI OSD       | 30 x 16        | X         |        |                 | NO - BF Characters only |
-| DJI WTFOS     | 60 x 22        | X         |        | X               | YES                     |
-| HDZero        | 50 x 18        | X         |        | X               | YES                     |
-| Avatar        | 53 x 20        | X         |        | X               | YES                     |
-| DJI O3        | 53 x 20 (HD)   | X         |        | X	(partial)     | NO - BF Characters only |
+| OSD System                  | Character grid | Character | Canvas | MSP DisplayPort | All elements supported  |
+|-----------------------------|----------------|-----------|--------|-----------------|-------------------------|
+| Analogue PAL                | 30 x 16        | X         |        |                 | YES                     |
+| Analogue NTSC               | 30 x 13        | X         |        |                 | YES                     |
+| PixelOSD                    | As PAL or NTSC |           | X      |                 | YES                     |
+| DJI OSD                     | 30 x 16        | X         |        |                 | NO - BF Characters only |
+| DJI WTFOS                   | 60 x 22        | X         |        | X               | YES                     |
+| HDZero                      | 50 x 18        | X         |        | X               | YES                     |
+| Avatar                      | 53 x 20        | X         |        | X               | YES                     |
+| DJI O3 Goggles V2 + WTFOS   | 53 x 20        | X         |        | X               | YES                     |
+| DJI Goggles 2 and newer     | 53 x 20 (HD)   | X         |        | X               | YES (no custom fonts)   |
+
 
 ## OSD Elements
 Here are the OSD Elements provided by INAV.
@@ -189,6 +191,14 @@ Here are the OSD Elements provided by INAV.
 | 156 | OSD_CUSTOM_ELEMENT_6                             | 8.0.0  |       |
 | 157 | OSD_CUSTOM_ELEMENT_7                             | 8.0.0  |       |
 | 158 | OSD_CUSTOM_ELEMENT_8                             | 8.0.0  |       |
+| 159 | OSD_LQ_DOWNLINK                                  | 8.0.0  |       |
+| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  |       |
+| 161 | OSD_RX_BAND                                      | 8.0.0  |       |
+| 162 | OSD_RX_MODE                                      | 8.0.0  |       |
+| 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
+| 164 | OSD_H_DIST_TO_FENCE                              | 8.0.0  |       |
+| 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
+| 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
 
 # Pilot Logos
 

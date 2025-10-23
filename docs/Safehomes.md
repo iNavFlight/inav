@@ -6,7 +6,7 @@ The "Home" position is used for the landing point when landing is enabled or in 
 
 For airplanes, the landing procedure is explained very well by Pawel Spychalski [here.](https://quadmeup.com/inav-1-8-automated-landing-for-fixed-wings/)
 
-<img src="https://quadmeup.com/wp-content/uploads/2017/06/fixed-wing-landing-1024x683.png" width="600">
+![Fixed wing loiter and descend](assets/images/loiter_and_descend.png)
 
 One potential risk when landing is that there might be buildings, trees and other obstacles in the way as the airplance circles lower toward the ground at the arming point.  Most people don't go the middle of the field when arming their airplanes.
 

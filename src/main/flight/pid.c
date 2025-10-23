@@ -179,7 +179,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 9);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -242,8 +242,8 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
                 [PID_POS_Z] = {
                     .P = SETTING_NAV_FW_POS_Z_P_DEFAULT,      // FW_POS_Z_P * 100
                     .I = SETTING_NAV_FW_POS_Z_I_DEFAULT,      // FW_POS_Z_I * 100
-                    .D = SETTING_NAV_FW_POS_Z_D_DEFAULT,      // FW_POS_Z_D * 100
-                    .FF = 0,
+                    .D = SETTING_NAV_FW_POS_Z_D_DEFAULT,      // FW_POS_Z_D * 200
+                    .FF = SETTING_NAV_FW_POS_Z_FF_DEFAULT,    // FW_POS_Z_FF * 100
                 },
                 [PID_POS_XY] = {
                     .P = SETTING_NAV_FW_POS_XY_P_DEFAULT,     // FW_POS_XY_P * 100
@@ -308,6 +308,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingLevelTrimGain = SETTING_FW_LEVEL_PITCH_GAIN_DEFAULT,
 
         .fwAltControlResponseFactor = SETTING_NAV_FW_ALT_CONTROL_RESPONSE_DEFAULT,
+        .fwAltControlUsePos = SETTING_NAV_FW_ALT_USE_POSITION_DEFAULT,
 #ifdef USE_SMITH_PREDICTOR
         .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,
         .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
@@ -596,38 +597,45 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
 
 static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
+
+    // Limit max bank angle for multirotor during Nav mode Angle controlled position adjustment
+    uint16_t maxBankAngle = STATE(MULTIROTOR) && navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI && isAdjustingPosition() ?
+                            DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle) : pidProfile()->max_angle_inclination[axis];
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), pidProfile()->max_angle_inclination[axis]);
+    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), maxBankAngle);
 #else
-    float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
+    float angleTarget = pidRcCommandToAngle(rcCommand[axis], maxBankAngle);
 #endif
 
-    // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
+    if (STATE(AIRPLANE)) {
+        // Automatically pitch down if the throttle is manually controlled and reduced below cruise throttle
 #ifdef USE_FW_AUTOLAND
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        if (axis == FD_PITCH && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
 #else
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
+        if (axis == FD_PITCH && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
 #endif
-        angleTarget += scaleRange(MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]), 0, currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN, 0, navConfig()->fw.minThrottleDownPitchAngle);
-    }
+            angleTarget += scaleRange(MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]), 0, currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN, 0, navConfig()->fw.minThrottleDownPitchAngle);
+        }
 
-    //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
-    if (axis == FD_PITCH && STATE(AIRPLANE)) {
-        DEBUG_SET(DEBUG_AUTOLEVEL, 0, angleTarget * 10);
-        DEBUG_SET(DEBUG_AUTOLEVEL, 1, fixedWingLevelTrim * 10);
-        DEBUG_SET(DEBUG_AUTOLEVEL, 2, getEstimatedActualVelocity(Z));
+        //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
+        if (axis == FD_PITCH) {
+            DEBUG_SET(DEBUG_AUTOLEVEL, 0, angleTarget * 10);
+            DEBUG_SET(DEBUG_AUTOLEVEL, 1, fixedWingLevelTrim * 10);
+            DEBUG_SET(DEBUG_AUTOLEVEL, 2, getEstimatedActualVelocity(Z));
 
-        /*
-         * fixedWingLevelTrim has opposite sign to rcCommand.
-         * Positive rcCommand means nose should point downwards
-         * Negative rcCommand mean nose should point upwards
-         * This is counter intuitive and a natural way suggests that + should mean UP
-         * This is why fixedWingLevelTrim has opposite sign to rcCommand
-         * Positive fixedWingLevelTrim means nose should point upwards
-         * Negative fixedWingLevelTrim means nose should point downwards
-         */
-        angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
-        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
+            /*
+             * fixedWingLevelTrim has opposite sign to rcCommand.
+             * Positive rcCommand means nose should point downwards
+             * Negative rcCommand mean nose should point upwards
+             * This is counter intuitive and a natural way suggests that + should mean UP
+             * This is why fixedWingLevelTrim has opposite sign to rcCommand
+             * Positive fixedWingLevelTrim means nose should point upwards
+             * Negative fixedWingLevelTrim means nose should point downwards
+             */
+            angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
+            DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
+        }
     }
 
     return angleTarget;
@@ -750,22 +758,23 @@ static void nullRateController(pidState_t *pidState, float dT, float dT_inv) {
     UNUSED(dT_inv);
 }
 
-static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, const float rateError) {
+
+/**
+ * ITerm Lock is a mechanism that minimizes the effect of bounceback after a rapid stick input has ended
+ * It is based on the idea, that during a high stick input stabilization (P, I and D) can be damped as craft's
+ * behavior is driven by FF term.
+ * On top of that, after stick is relased, it also locks Iterm to prevent it from accumulating error and unloading it after
+ */
+static void iTermLockApply(pidState_t *pidState, const float rateTarget, const float rateError) {
     const float maxRate = currentControlRateProfile->stabilized.rates[pidState->axis] * 10.0f;
 
+    //Compute damping factor based on rate target and max rate scaled by fw_iterm_lock_rate_threshold
     const float dampingFactor = attenuation(rateTarget, maxRate * pidProfile()->fwItermLockRateLimit / 100.0f);
 
-    /*
-     * Iterm damping is applied (down to 0) when:
-     * abs(error) > 10% rate and sticks were moved in the last 500ms (hard stop at this mark)
-
-     * itermAttenuation  = MIN(curve(setpoint), (abs(error) > 10%) && (sticks were deflected in 500ms) ? 0 : 1)
-     */
-
-    //If error is greater than 10% or max rate
+    //Check if error rate is above threshold. With default values, this is above 10% of max rate
     const bool errorThresholdReached = fabsf(rateError) > maxRate * pidProfile()->fwItermLockEngageThreshold / 100.0f;
 
-    //If stick (setpoint) was moved above threshold in the last 500ms
+    //When abs of rate target is above 20% of max rate, we start tracking time
     if (fabsf(rateTarget) > maxRate * 0.2f) {
         pidState->attenuation.targetOverThresholdTimeMs = millis();
     }
@@ -775,17 +784,16 @@ static void fwRateAttenuation(pidState_t *pidState, const float rateTarget, cons
         pidState->attenuation.targetOverThresholdTimeMs = 0;
     }
 
+    /**
+     * Iterm attenuation is a lower value of:
+     * - dampingFactor
+     * - for 500ms (fw_iterm_lock_time_max_ms) force 0 if error is above threshold
+     */
     pidState->attenuation.aI = MIN(dampingFactor, (errorThresholdReached && (millis() - pidState->attenuation.targetOverThresholdTimeMs) < pidProfile()->fwItermLockTimeMaxMs) ? 0.0f : 1.0f);
 
     //P & D damping factors are always the same and based on current damping factor
     pidState->attenuation.aP = dampingFactor;
     pidState->attenuation.aD = dampingFactor;
-
-    if (pidState->axis == FD_ROLL) {
-        DEBUG_SET(DEBUG_ALWAYS, 0, pidState->attenuation.aP * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 1, pidState->attenuation.aI * 1000);
-        DEBUG_SET(DEBUG_ALWAYS, 2, pidState->attenuation.aD * 1000);
-    }
 }
 
 static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float dT, float dT_inv)
@@ -794,7 +802,7 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
 
     const float rateError = rateTarget - pidState->gyroRate;
 
-    fwRateAttenuation(pidState, rateTarget, rateError);
+    iTermLockApply(pidState, rateTarget, rateError);
 
     const float newPTerm = pTermProcess(pidState, rateError, dT) * pidState->attenuation.aP;
     const float newDTerm = dTermProcess(pidState, rateTarget, dT, dT_inv) * pidState->attenuation.aD;
@@ -1206,7 +1214,7 @@ void FAST_CODE pidController(float dT)
 
         // Limit desired rate to something gyro can measure reliably
         pidState[axis].rateTarget = constrainf(rateTarget, -GYRO_SATURATION_LIMIT, +GYRO_SATURATION_LIMIT);
-    
+
 #ifdef USE_ADAPTIVE_FILTER
         adaptiveFilterPushRate(axis, pidState[axis].rateTarget, currentControlRateProfile->stabilized.rates[axis]);
 #endif

@@ -64,7 +64,8 @@
 
 // ICM42605/ICM42688P
 #define USE_IMU_ICM42605
-#define IMU_ICM42605_ALIGN      CW0_DEG
+#define IMU_ICM42605_ALIGN      CW0_DEG_FLIP
+
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
 
@@ -98,14 +99,6 @@
 #define USE_MAG_ALL
 #define DEFAULT_I2C_BUS         BUS_I2C2
 
-// temperature sensors
-//#define TEMPERATURE_I2C_BUS     BUS_I2C1
-// air speed sensors
-//#define PITOT_I2C_BUS           BUS_I2C1
-// ranger sensors
-//#define USE_RANGEFINDER
-//#define RANGEFINDER_I2C_BUS         BUS_I2C1
- 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2 
 #define SPI2_SCK_PIN            PB13
@@ -117,48 +110,47 @@
 #define MAX7456_SPI_BUS         BUS_SPI2
 #define MAX7456_CS_PIN          SPI2_NSS_PIN
 
+//SDCARD Definations
+#if defined(BLUEBERRYF435WING_SD)
+    #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+    #define USE_SDCARD
+    #define USE_SDCARD_SPI
+    #define SDCARD_SPI_BUS          BUS_SPI2
+    #define SDCARD_CS_PIN           PB5
+//FLASHFS Definations
+#else
+    #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+    #define USE_FLASHFS
+    #define USE_FLASH_M25P16
+    #define M25P16_SPI_BUS          BUS_SPI2
+    #define M25P16_CS_PIN           PB5
 
-// *************** SD/BLACKBOX **************************
- 
-#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-#define USE_FLASHFS
-#define USE_FLASH_M25P16
-#define M25P16_SPI_BUS          BUS_SPI2
-#define M25P16_CS_PIN           PB5
-
-#define USE_FLASH_W25N01G
-#define W25N01G_SPI_BUS         BUS_SPI2
-#define W25N01G_CS_PIN          PB5
+    #define USE_FLASH_W25N01G
+    #define W25N01G_SPI_BUS         BUS_SPI2
+    #define W25N01G_CS_PIN          PB5
+#endif
 
 // *************** UART *****************************
 #define USE_VCP
 //#define USB_DETECT_PIN          PC14
 #define USE_USB_DETECT
 
-//#define USE_UART1
-//#define UART1_RX_PIN            PA10
-//#define UART1_TX_PIN            PA9
+#define USE_UART1
+#define UART1_RX_PIN            PA10
+#define UART1_TX_PIN            PA9
 
-//#define USE_UART2
-//#define UART2_RX_PIN            PB0
-//#define UART2_TX_PIN            PA2
-
-#define USE_UART3
+#define USE_UART3                       //BLE
 #define UART3_RX_PIN            PB11
 #define UART3_TX_PIN            PB10
 
-#define USE_UART5
-#define UART5_RX_PIN            PB8
-#define UART5_TX_PIN            PB9
-
-#define USE_UART7
+#define USE_UART7                      //SBUS
 #define UART7_RX_PIN            PB3
 #define UART7_TX_PIN            PB4
 
 #define SERIAL_PORT_COUNT       4
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
-#define SERIALRX_PROVIDER       SERIALRX_SBUS
+#define SERIALRX_PROVIDER       SERIALRX_CRSF
 #define SERIALRX_UART           SERIAL_PORT_USART7
 
 // *************** ADC *****************************
@@ -168,18 +160,15 @@
 #define ADC1_DMA_STREAM             DMA2_CHANNEL1
 #define ADC_CHANNEL_1_PIN           PA0
 #define ADC_CHANNEL_2_PIN           PA1
-//#define ADC_CHANNEL_3_PIN           PB0
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
-//#define RSSI_ADC_CHANNEL            ADC_CHN_3 
 
+#define VBAT_SCALE_DEFAULT      1100
+#define CURRENT_METER_SCALE     300
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY| FEATURE_VBAT | FEATURE_OSD )
 
-// #define USE_LED_STRIP
-// #define WS2811_PIN                      PB10   //TIM2_CH3
-
-// #define USE_SPEKTRUM_BIND
-// #define BIND_PIN                   PA3    //UART2_RX_PIN
+#define USE_LED_STRIP
+#define WS2811_PIN                      PA8   //TIM1_CH1
 
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
 
@@ -190,6 +179,6 @@
 #define TARGET_IO_PORTE         BIT(2)
 #define TARGET_IO_PORTH         BIT(1)|BIT(2)|BIT(3)
 
-#define MAX_PWM_OUTPUT_PORTS        8
+#define MAX_PWM_OUTPUT_PORTS        9
 #define USE_DSHOT
 #define USE_ESC_SENSOR

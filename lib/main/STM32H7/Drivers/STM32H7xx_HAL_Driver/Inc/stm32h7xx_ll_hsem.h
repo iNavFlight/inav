@@ -6,13 +6,12 @@
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
-  * All rights reserved.</center></h2>
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
@@ -62,6 +61,7 @@ extern "C" {
 /**
   * @}
   */
+
 
 /** @defgroup HSEM_LL_EC_GET_FLAG Get Flags Defines
   * @brief    Flags defines which can be used with LL_HSEM_ReadReg function
@@ -163,7 +163,7 @@ extern "C" {
   * @param  Semaphore Semaphore number. Value between Min_Data=0 and Max_Data=31
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsSemaphoreLocked(HSEM_TypeDef *HSEMx, uint32_t Semaphore)
+__STATIC_INLINE uint32_t LL_HSEM_IsSemaphoreLocked(const HSEM_TypeDef *HSEMx, uint32_t Semaphore)
 {
   return ((READ_BIT(HSEMx->R[Semaphore], HSEM_R_LOCK) == (HSEM_R_LOCK_Msk)) ? 1UL : 0UL);
 }
@@ -178,7 +178,7 @@ __STATIC_INLINE uint32_t LL_HSEM_IsSemaphoreLocked(HSEM_TypeDef *HSEMx, uint32_t
   *         @arg @ref LL_HSEM_COREID_CPU1
   *         @arg @ref LL_HSEM_COREID_CPU2
   */
-__STATIC_INLINE uint32_t LL_HSEM_GetCoreId(HSEM_TypeDef *HSEMx, uint32_t Semaphore)
+__STATIC_INLINE uint32_t LL_HSEM_GetCoreId(const HSEM_TypeDef *HSEMx, uint32_t Semaphore)
 {
   return (uint32_t)(READ_BIT(HSEMx->R[Semaphore], HSEM_R_COREID_Msk));
 }
@@ -190,7 +190,7 @@ __STATIC_INLINE uint32_t LL_HSEM_GetCoreId(HSEM_TypeDef *HSEMx, uint32_t Semapho
   * @param  Semaphore Semaphore number. Value between Min_Data=0 and Max_Data=31
   * @retval Process number. Value between Min_Data=0 and Max_Data=255
   */
-__STATIC_INLINE uint32_t LL_HSEM_GetProcessId(HSEM_TypeDef *HSEMx, uint32_t Semaphore)
+__STATIC_INLINE uint32_t LL_HSEM_GetProcessId(const HSEM_TypeDef *HSEMx, uint32_t Semaphore)
 {
   return (uint32_t)(READ_BIT(HSEMx->R[Semaphore], HSEM_R_PROCID_Msk));
 }
@@ -236,9 +236,9 @@ __STATIC_INLINE uint32_t LL_HSEM_2StepLock(HSEM_TypeDef *HSEMx, uint32_t Semapho
   * @param  Semaphore Semaphore number. Value between Min_Data=0 and Max_Data=31
   * @retval 1 lock fail, 0 lock successful or already locked by same core
   */
-__STATIC_INLINE uint32_t LL_HSEM_1StepLock(HSEM_TypeDef *HSEMx, uint32_t Semaphore)
+__STATIC_INLINE uint32_t LL_HSEM_1StepLock(const HSEM_TypeDef *HSEMx, uint32_t Semaphore)
 {
-  return ((HSEMx->RLR[Semaphore] != (HSEM_R_LOCK | LL_HSEM_COREID)) ? 1UL : 0UL);
+  return ((HSEMx->RLR[Semaphore] != (HSEM_RLR_LOCK | LL_HSEM_COREID)) ? 1UL : 0UL);
 }
 
 /**
@@ -261,7 +261,7 @@ __STATIC_INLINE void LL_HSEM_ReleaseLock(HSEM_TypeDef *HSEMx, uint32_t Semaphore
   * @param  HSEMx HSEM Instance.
   * @param  Semaphore Semaphore number. Value between Min_Data=0 and Max_Data=31
   * @retval 0 semaphore is free, 1 semaphore is locked  */
-__STATIC_INLINE uint32_t LL_HSEM_GetStatus(HSEM_TypeDef *HSEMx, uint32_t Semaphore)
+__STATIC_INLINE uint32_t LL_HSEM_GetStatus(const HSEM_TypeDef *HSEMx, uint32_t Semaphore)
 {
   return ((HSEMx->R[Semaphore] != 0U) ? 1UL : 0UL);
 }
@@ -284,7 +284,7 @@ __STATIC_INLINE void LL_HSEM_SetKey(HSEM_TypeDef *HSEMx, uint32_t key)
   * @param  HSEMx HSEM Instance.
   * @retval key to unlock all semaphore from the same core
   */
-__STATIC_INLINE uint32_t LL_HSEM_GetKey(HSEM_TypeDef *HSEMx)
+__STATIC_INLINE uint32_t LL_HSEM_GetKey(const HSEM_TypeDef *HSEMx)
 {
   return (uint32_t)(READ_BIT(HSEMx->KEYR, HSEM_KEYR_KEY) >> HSEM_KEYR_KEY_Pos);
 }
@@ -292,6 +292,8 @@ __STATIC_INLINE uint32_t LL_HSEM_GetKey(HSEM_TypeDef *HSEMx)
 /**
   * @brief  Release all semaphore with the same core id.
   * @rmtoll CR           KEY           LL_HSEM_ResetAllLock
+  * @rmtoll CR           SEC           LL_HSEM_ResetAllLock
+  * @rmtoll CR           PRIV          LL_HSEM_ResetAllLock
   * @param  HSEMx HSEM Instance.
   * @param  key Key value.
   * @param  core This parameter can be one of the following values:
@@ -448,7 +450,7 @@ __STATIC_INLINE void LL_HSEM_DisableIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t Semap
   *         depends on devices.
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C1IER(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
+__STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C1IER(const HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
 {
   return ((READ_BIT(HSEMx->C1IER, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
@@ -584,11 +586,12 @@ __STATIC_INLINE void LL_HSEM_DisableIT_C2IER(HSEM_TypeDef *HSEMx, uint32_t Semap
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C2IER(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
+__STATIC_INLINE uint32_t LL_HSEM_IsEnabledIT_C2IER(const HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
 {
   return ((READ_BIT(HSEMx->C2IER, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
 #endif /* DUAL_CORE */
+
 /**
   * @}
   */
@@ -686,7 +689,7 @@ __STATIC_INLINE void LL_HSEM_ClearFlag_C1ICR(HSEM_TypeDef *HSEMx, uint32_t Semap
   *         depends on devices.
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1ISR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
+__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1ISR(const HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
 {
   return ((READ_BIT(HSEMx->C1ISR, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
@@ -733,7 +736,7 @@ __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1ISR(HSEM_TypeDef *HSEMx, uint32_
   *         depends on devices.
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1MISR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
+__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C1MISR(const HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
 {
   return ((READ_BIT(HSEMx->C1MISR, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
@@ -824,7 +827,7 @@ __STATIC_INLINE void LL_HSEM_ClearFlag_C2ICR(HSEM_TypeDef *HSEMx, uint32_t Semap
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2ISR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
+__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2ISR(const HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
 {
   return ((READ_BIT(HSEMx->C2ISR, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
@@ -869,7 +872,7 @@ __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2ISR(HSEM_TypeDef *HSEMx, uint32_
   *         @arg @ref LL_HSEM_SEMAPHORE_ALL
   * @retval State of bit (1 or 0).
   */
-__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2MISR(HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
+__STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2MISR(const HSEM_TypeDef *HSEMx, uint32_t SemaphoreMask)
 {
   return ((READ_BIT(HSEMx->C2MISR, SemaphoreMask) == (SemaphoreMask)) ? 1UL : 0UL);
 }
@@ -897,5 +900,3 @@ __STATIC_INLINE uint32_t LL_HSEM_IsActiveFlag_C2MISR(HSEM_TypeDef *HSEMx, uint32
 #endif
 
 #endif /* __STM32H7xx_LL_HSEM_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
