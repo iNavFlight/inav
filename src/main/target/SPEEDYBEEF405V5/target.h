@@ -36,7 +36,6 @@
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PC13
-#define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
 
 // *************** UART *****************************
 #define USE_VCP
