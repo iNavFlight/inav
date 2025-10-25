@@ -51,7 +51,7 @@ Hardware layout
 | TLM                 | PA3       | TIM2CH4<br>TIM5CH4<br>TIM9CH2 |       UART2 RX |      n/a |
 | AUX                 | PB6       |                       TIM4CH1 |       UART1 TX | I2C1 SCL |
 | SBUS                | PB7       |                       TIM4CH2 |       UART1 RX | I2C1 SDA |
-| A                   | PA1/PB0   |                  TIM1<br>TIM5 | UART2<br>UART4 |      n/a |
+| A                   | PA1/PA0   |                  TIM1<br>TIM5 | UART2<br>UART4 |      n/a |
 | B                   | PC7/PC6   |                  TIM3<br>TIM8 |          UART6 |      n/a |
 | C                   | PB11/PB10 |                          TIM2 |          UART3 |     I2C2 |
 | EXT-V               | PC0       |                           n/a | n/a            | n/a      |
