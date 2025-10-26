@@ -1391,7 +1391,7 @@ groups:
         description: "Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)"
         default_value: 20
         field: stabilized.rcYawExpo8
-        min: 0
+        min: -100
         max: 100
       # New rates are in dps/10. That means, Rate of 20 means 200dps of rotation speed on given axis.
       # Rate 180 (1800dps) is max. value gyro can measure reliably
@@ -1423,7 +1423,7 @@ groups:
         description: "Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100]"
         default_value: 20
         field: manual.rcYawExpo8
-        min: 0
+        min: -100
         max: 100
       - name: manual_roll_rate
         description: "Servo travel multiplier for the ROLL axis in `MANUAL` flight mode [0-100]%"

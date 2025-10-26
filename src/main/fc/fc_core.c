@@ -177,7 +177,7 @@ bool areSensorsCalibrating(void)
     return false;
 }
 
-int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
+int16_t getAxisRcCommand(int16_t rawData, int8_t expo, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
@@ -195,7 +195,7 @@ int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 #endif
 
     stickDeflection = applyDeadbandRescaled(stickDeflection, deadband, -500, 500);
-    return rcLookup(stickDeflection, rate);
+    return rcLookup(stickDeflection, expo);
 }
 
 static void updateArmingStatus(void)

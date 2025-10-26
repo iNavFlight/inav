@@ -2618,7 +2618,7 @@ Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100]
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 100 |
+| 20 | -100 | 100 |
 
 ---
 
@@ -5808,7 +5808,7 @@ Exposition value used for the YAW axis by all the stabilized flights modes (all 
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 100 |
+| 20 | -100 | 100 |
 
 ---
 

@@ -351,6 +351,13 @@ static void applyAdjustmentU8(adjustmentFunction_e adjustmentFunction, uint8_t *
     blackboxLogInflightAdjustmentEvent(adjustmentFunction, newValue);
 }
 
+static void applyAdjustmentI8(adjustmentFunction_e adjustmentFunction, int8_t *val, int delta, int low, int high)
+{
+    int newValue = constrain((int)(*val) + delta, low, high);
+    *val = newValue;
+    blackboxLogInflightAdjustmentEvent(adjustmentFunction, newValue);
+}
+
 static void applyAdjustmentU16(adjustmentFunction_e adjustmentFunction, uint16_t *val, int delta, int low, int high)
 {
     int newValue = constrain((int)(*val) + delta, low, high);
@@ -358,9 +365,12 @@ static void applyAdjustmentU16(adjustmentFunction_e adjustmentFunction, uint16_t
     blackboxLogInflightAdjustmentEvent(adjustmentFunction, newValue);
 }
 
-static void applyAdjustmentExpo(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta)
+static void applyAdjustmentExpo(adjustmentFunction_e adjustmentFunction, int8_t *val, int delta, bool isYaw)
 {
-    applyAdjustmentU8(adjustmentFunction, val, delta, SETTING_RC_EXPO_MIN, SETTING_RC_EXPO_MAX);
+    if (isYaw)
+        applyAdjustmentI8(adjustmentFunction, val, delta, SETTING_RC_YAW_EXPO_MIN, SETTING_RC_YAW_EXPO_MAX);
+    else
+        applyAdjustmentU8(adjustmentFunction, val, delta, SETTING_RC_EXPO_MIN, SETTING_RC_EXPO_MAX);
 }
 
 static void applyAdjustmentManualRate(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta)
@@ -382,19 +392,19 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
     }
     switch (adjustmentFunction) {
         case ADJUSTMENT_RC_EXPO:
-            applyAdjustmentExpo(ADJUSTMENT_RC_EXPO, &controlRateConfig->stabilized.rcExpo8, delta);
+            applyAdjustmentExpo(ADJUSTMENT_RC_EXPO, &controlRateConfig->stabilized.rcExpo8, delta, false);
             break;
         case ADJUSTMENT_RC_YAW_EXPO:
-            applyAdjustmentExpo(ADJUSTMENT_RC_YAW_EXPO, &controlRateConfig->stabilized.rcYawExpo8, delta);
+            applyAdjustmentExpo(ADJUSTMENT_RC_YAW_EXPO, &controlRateConfig->stabilized.rcYawExpo8, delta, true);
             break;
         case ADJUSTMENT_MANUAL_RC_EXPO:
-            applyAdjustmentExpo(ADJUSTMENT_MANUAL_RC_EXPO, &controlRateConfig->manual.rcExpo8, delta);
+            applyAdjustmentExpo(ADJUSTMENT_MANUAL_RC_EXPO, &controlRateConfig->manual.rcExpo8, delta, false);
             break;
         case ADJUSTMENT_MANUAL_RC_YAW_EXPO:
-            applyAdjustmentExpo(ADJUSTMENT_MANUAL_RC_YAW_EXPO, &controlRateConfig->manual.rcYawExpo8, delta);
+            applyAdjustmentExpo(ADJUSTMENT_MANUAL_RC_YAW_EXPO, &controlRateConfig->manual.rcYawExpo8, delta, true);
             break;
         case ADJUSTMENT_THROTTLE_EXPO:
-            applyAdjustmentExpo(ADJUSTMENT_THROTTLE_EXPO, &controlRateConfig->throttle.rcExpo8, delta);
+            applyAdjustmentExpo(ADJUSTMENT_THROTTLE_EXPO, &controlRateConfig->throttle.rcExpo8, delta, false);
             break;
         case ADJUSTMENT_PITCH_ROLL_RATE:
         case ADJUSTMENT_PITCH_RATE:
