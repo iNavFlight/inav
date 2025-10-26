@@ -46,7 +46,6 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include <stdbool.h>
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_conf.h"
@@ -59,7 +58,7 @@
 #define USBD_VID                      0x0483
 #define USBD_PID                      0x5740
 #define USBD_LANGID_STRING            0x409
-#define USBD_MANUFACTURER_STRING      FC_FIRMWARE_NAME
+#define USBD_MANUFACTURER_STRING      FC_FIRMWARE_NAME " " FC_VERSION_STRING
 #define USBD_PRODUCT_HS_STRING        "STM32 Virtual ComPort in HS Mode"
 #define USBD_PRODUCT_FS_STRING        "STM32 Virtual ComPort in FS Mode"
 #define USBD_CONFIGURATION_HS_STRING  "VCP Config"
@@ -88,7 +87,7 @@ USBD_DescriptorsTypeDef VCP_Desc = {
   USBD_VCP_ProductStrDescriptor,
   USBD_VCP_SerialStrDescriptor,
   USBD_VCP_ConfigStrDescriptor,
-  USBD_VCP_InterfaceStrDescriptor,
+  USBD_VCP_InterfaceStrDescriptor
 };
 
 /* USB Standard Device Descriptor */

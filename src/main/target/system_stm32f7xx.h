@@ -35,6 +35,7 @@
 extern uint32_t SystemCoreClock;          /*!< System Clock Frequency (Core Clock) */
 extern void SystemInit(void);
 extern void SystemClock_Config(void);
+extern void MPU_Config(void);
 
 #ifdef __cplusplus
 }

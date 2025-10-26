@@ -154,6 +154,10 @@
 #include "target/SITL/serial_proxy.h"
 #endif
 
+#ifdef STM32H7A3xx
+#include "target/stm32h7a3_impl.h"
+#endif
+
 #ifdef USE_HARDWARE_REVISION_DETECTION
 #include "hardware_revision.h"
 #endif
@@ -204,6 +208,10 @@ void init(void)
 
     systemState = SYSTEM_STATE_INITIALISING;
     printfSupportInit();
+
+#ifdef STM32H7A3xx
+    //stm32h7a3_main();
+#endif
 
     // Initialize system and CPU clocks to their initial values
     systemInit();

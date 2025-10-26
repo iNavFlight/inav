@@ -1,0 +1,5 @@
+target_stm32h7A3xi(TESTH7A3)
+target_stm32h7A3xi(TESTH7A3_FLASH)
+
+#target_stm32h7A3xg(TESTH7A3G)
+#target_stm32h7A3xg(TESTH7A3G_FLASH)

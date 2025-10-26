@@ -41,6 +41,11 @@ USBD_HandleTypeDef USBD_Device;
 #include "hw_config.h"
 #endif
 
+#ifdef STM32H7A3xx
+#include "target/stm32h7a3_impl.h"
+#include "target/stm32h7a3_impl_usb_device.h"
+#endif
+
 #include "drivers/time.h"
 
 #include "serial.h"
@@ -209,6 +214,15 @@ void usbVcpInitHardware(void)
     IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
     IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
     USBD_Init(&USB_OTG_dev, USB_OTG_FS_CORE_ID, &USR_desc, &USBD_CDC_cb, &USR_cb);
+#elif defined(STM32H7A3xx)
+    // Does not appear to be needed
+    //usbGenerateDisconnectPulse();
+
+    IOInit(IOGetByTag(IO_TAG(PA11)), OWNER_USB, RESOURCE_INPUT, 0);
+    IOInit(IOGetByTag(IO_TAG(PA12)), OWNER_USB, RESOURCE_OUTPUT, 0);
+
+    MX_USB_DEVICE_Init();
+
 #elif defined(STM32F7) || defined(STM32H7)
     usbGenerateDisconnectPulse();
 
@@ -232,6 +246,7 @@ void usbVcpInitHardware(void)
 #endif
 
 #else
+#error "Dead code?"
     Set_System();
     Set_USBClock();
     USB_Interrupts_Config();
