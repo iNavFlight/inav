@@ -201,8 +201,8 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
  */
 int16_t osdGet3DSpeed(void)
 {
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
+    float vert_speed = getEstimatedActualVelocity(Z);
+    float hor_speed = (float)gpsSol.groundSpeed;
     return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
 }
 #endif
