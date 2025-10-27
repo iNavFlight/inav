@@ -196,6 +196,9 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 #endif
 
 #ifdef USE_GPS
+/*
+ * 3D speed in cm/s
+ */
 int16_t osdGet3DSpeed(void)
 {
     int16_t vert_speed = getEstimatedActualVelocity(Z);
