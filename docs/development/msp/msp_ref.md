@@ -2756,7 +2756,6 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 ## <a id="msp2_sensor_headtracker"></a>`MSP2_SENSOR_HEADTRACKER (7943 / 0x1f07)`
 **Temporary definition**
-*   **Direction:** In
 *   **Description:** Provides head tracker orientation data.
 *   **Payload:** (Structure not defined in provided headers, but likely Roll, Pitch, Yaw angles)
     | Field | C Type | Size (Bytes) | Units | Description |
@@ -3925,25 +3924,43 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`.
 
 ## <a id="msp2_inav_custom_osd_element"></a>`MSP2_INAV_CUSTOM_OSD_ELEMENT (8449 / 0x2101)`
-**Description:** Gets the configuration of a single custom OSD element defined by the programming framework.  
-  
-**Request Payload:**
-| Field | C Type | Size (Bytes) | Units | Description |
-|---|---|---|---|---|
-| `elementIndex` | `uint8_t` | 1 | - | Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`) |
+**Temporary definition**
+*   **Description:** Gets the configuration of a single custom OSD element defined by the programming framework.
+*   **Request Payload:**
+    | Field | C Type | Size (Bytes) | Description |
+    |---|---|---|---|
+    | `elementIndex` | `uint8_t` | 1 | Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`) |
+*   **Reply Payload:**
+    | Field | C Type | Size (Bytes) | Description |
+    |---|---|---|---|
+    | **Parts Data (Repeated `CUSTOM_ELEMENTS_PARTS` times):** | | | |
+    | `partType` | `uint8_t` | 1 | Enum (`customElementType_e`): Type of this part (Text, Variable, Symbol) |
+    | `partValue` | `uint16_t` | 2 | Value/ID associated with this part (GVAR index, Symbol ID, etc.) |
+    | **Visibility Data:** | | | |
+    | `visibilityType` | `uint8_t` | 1 | Enum (`logicOperandType_e`): Type of visibility condition source |
+    | `visibilityValue` | `uint16_t` | 2 | Value/ID of the visibility condition source (e.g., Logic Condition ID) |
+    | **Text Data:** | | | |
+    | `elementText` | `char[OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1]` | `OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1` | Static text part of the element (null padding likely) |
+*   **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. See `osdCustomElement_t`.
 
-**Reply Payload:** **None**  
-
-**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. See `osdCustomElement_t`.
 
 ## <a id="msp2_inav_set_custom_osd_elements"></a>`MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS (8450 / 0x2102)`
-**Description:** Sets the configuration of a single custom OSD element defined by the programming framework.  
+**Temporary definition**
+*   **Description:** Sets the configuration of a single custom OSD element defined by the programming framework.
+*   **Payload:**
+    | Field | C Type | Size (Bytes) | Description |
+    |---|---|---|---|
+    | `elementIndex` | `uint8_t` | 1 | Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`) |
+    | **Parts Data (Repeated `CUSTOM_ELEMENTS_PARTS` times):** | | | |
+    | `partType` | `uint8_t` | 1 | Enum (`customElementType_e`): Type of this part |
+    | `partValue` | `uint16_t` | 2 | Value/ID associated with this part |
+    | **Visibility Data:** | | | |
+    | `visibilityType` | `uint8_t` | 1 | Enum (`logicOperandType_e`): Type of visibility condition source |
+    | `visibilityValue` | `uint16_t` | 2 | Value/ID of the visibility condition source |
+    | **Text Data:** | | | |
+    | `elementText` | `char[OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1]` | `OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1` | Static text part of the element |
+*   **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects `1 + (CUSTOM_ELEMENTS_PARTS * 3) + 3 + (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1)` bytes. Returns error if index or part type is invalid. Null-terminates the text internally.
 
-**Request Payload:** **None**  
-
-**Reply Payload:** **None**  
-
-**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects `1 + (CUSTOM_ELEMENTS_PARTS * 3) + 3 + (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1)` bytes. Returns error if index or part type is invalid. Null-terminates the text internally.
 
 ## <a id="msp2_inav_output_mapping_ext2"></a>`MSP2_INAV_OUTPUT_MAPPING_EXT2 (8461 / 0x210d)`
 **Description:** Retrieves the full extended output mapping configuration (timer ID, full 32-bit usage flags, and pin label). Supersedes `MSP2_INAV_OUTPUT_MAPPING_EXT`.  

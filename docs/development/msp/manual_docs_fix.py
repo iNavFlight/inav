@@ -46,11 +46,45 @@ MSP2_COMMON_SET_SETTING = """**Temporary definition**
 *   **Notes:** Performs type checking and range validation (min/max). Returns error if setting not found, value size mismatch, or value out of range. Handles different data types (`uint8`, `int16`, `float`, `string`, etc.) internally.
 """
 MSP2_SENSOR_HEADTRACKER = """**Temporary definition**
-*   **Direction:** In
 *   **Description:** Provides head tracker orientation data.
 *   **Payload:** (Structure not defined in provided headers, but likely Roll, Pitch, Yaw angles)
     | Field | C Type | Size (Bytes) | Units | Description |
     |---|---|---|---|---|
     | `...` | Varies | Variable | Head tracker angles (e.g., int16 Roll, Pitch, Yaw in deci-degrees) |
 *   **Notes:** Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`. Payload structure needs verification from `mspHeadTrackerReceiverNewData` implementation.
+"""
+MSP2_INAV_CUSTOM_OSD_ELEMENT = """**Temporary definition**
+*   **Description:** Gets the configuration of a single custom OSD element defined by the programming framework.
+*   **Request Payload:**
+    | Field | C Type | Size (Bytes) | Description |
+    |---|---|---|---|
+    | `elementIndex` | `uint8_t` | 1 | Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`) |
+*   **Reply Payload:**
+    | Field | C Type | Size (Bytes) | Description |
+    |---|---|---|---|
+    | **Parts Data (Repeated `CUSTOM_ELEMENTS_PARTS` times):** | | | |
+    | `partType` | `uint8_t` | 1 | Enum (`customElementType_e`): Type of this part (Text, Variable, Symbol) |
+    | `partValue` | `uint16_t` | 2 | Value/ID associated with this part (GVAR index, Symbol ID, etc.) |
+    | **Visibility Data:** | | | |
+    | `visibilityType` | `uint8_t` | 1 | Enum (`logicOperandType_e`): Type of visibility condition source |
+    | `visibilityValue` | `uint16_t` | 2 | Value/ID of the visibility condition source (e.g., Logic Condition ID) |
+    | **Text Data:** | | | |
+    | `elementText` | `char[OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1]` | `OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1` | Static text part of the element (null padding likely) |
+*   **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. See `osdCustomElement_t`.
+"""
+MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS = """**Temporary definition**
+*   **Description:** Sets the configuration of a single custom OSD element defined by the programming framework.
+*   **Payload:**
+    | Field | C Type | Size (Bytes) | Description |
+    |---|---|---|---|
+    | `elementIndex` | `uint8_t` | 1 | Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`) |
+    | **Parts Data (Repeated `CUSTOM_ELEMENTS_PARTS` times):** | | | |
+    | `partType` | `uint8_t` | 1 | Enum (`customElementType_e`): Type of this part |
+    | `partValue` | `uint16_t` | 2 | Value/ID associated with this part |
+    | **Visibility Data:** | | | |
+    | `visibilityType` | `uint8_t` | 1 | Enum (`logicOperandType_e`): Type of visibility condition source |
+    | `visibilityValue` | `uint16_t` | 2 | Value/ID of the visibility condition source |
+    | **Text Data:** | | | |
+    | `elementText` | `char[OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1]` | `OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1` | Static text part of the element |
+*   **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects `1 + (CUSTOM_ELEMENTS_PARTS * 3) + 3 + (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1)` bytes. Returns error if index or part type is invalid. Null-terminates the text internally.
 """

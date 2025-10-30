@@ -516,6 +516,12 @@ def generate_markdown(defs: Dict[str, Any]) -> str:
         if name == "MSP2_SENSOR_HEADTRACKER": 
             sections.append(sec.split('\n')[0]+'\n')
             sec = manual_docs_fix.MSP2_SENSOR_HEADTRACKER + '\n\n'
+        if name == "MSP2_INAV_CUSTOM_OSD_ELEMENT": 
+            sections.append(sec.split('\n')[0]+'\n')
+            sec = manual_docs_fix.MSP2_INAV_CUSTOM_OSD_ELEMENT + '\n\n'
+        if name == "MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS": 
+            sections.append(sec.split('\n')[0]+'\n')
+            sec = manual_docs_fix.MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS + '\n\n'
         sections.append(sec)
 
     with open("docs_v2_header.md", "r", encoding="utf-8") as f:

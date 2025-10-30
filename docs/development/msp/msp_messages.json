@@ -12450,7 +12450,7 @@
         },
         "reply": null,
         "variable_len": "CUSTOM_ELEMENTS_PARTS",
-        "complex": false,
+        "complex": true,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. See `osdCustomElement_t`.",
         "description": "Gets the configuration of a single custom OSD element defined by the programming framework."
     },
@@ -12462,7 +12462,7 @@
         "request": null,
         "reply": null,
         "variable_len": "CUSTOM_ELEMENTS_PARTS",
-        "complex": false,
+        "complex": true,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects `1 + (CUSTOM_ELEMENTS_PARTS * 3) + 3 + (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1)` bytes. Returns error if index or part type is invalid. Null-terminates the text internally.",
         "description": "Sets the configuration of a single custom OSD element defined by the programming framework."
     },
