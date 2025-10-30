@@ -1,7 +1,34 @@
 ## Messages to fix:
+- MSP2_INAV_SET_GEOZONE_VERTEX
 - MSP_SET_VTX_CONFIG
 - MSP2_COMMON_SET_SETTING
-- MSP2_INAV_SET_GEOZONE_VERTEX
 - MSP2_SENSOR_HEADTRACKER
-- MSP2_INAV_CUSTOM_OSD_ELEMENT
-- MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS
+- MSP2_INAV_CUSTOM_OSD_ELEMENT (payload is osdCustomElement_t struct)
+- MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS (variable request)
+- MSP2_INAV_TIMER_OUTPUT_MODE (variable request)
+
+## Unnamed or undefined Enums
+
+| `rthAltControlMode` | `uint8_t` | 1 | Enum | Sets `navConfigMutable()->general.flags.rth_alt_control_mode`. |
+sbufWriteU8(dst, navConfig()->general.flags.rth_alt_control_mode);
+enum {
+    NAV_RTH_NO_ALT                       = 0, // Maintain current altitude
+    NAV_RTH_EXTRA_ALT                    = 1, // Maintain current altitude + predefined safety margin
+    NAV_RTH_CONST_ALT                    = 2, // Climb/descend to predefined altitude
+    NAV_RTH_MAX_ALT                      = 3, // Track maximum altitude and climb to it when RTH
+    NAV_RTH_AT_LEAST_ALT                 = 4, // Climb to predefined altitude if below it
+    NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT  = 5, // Climb to predefined altitude if below it,
+                                              // descend linearly to reach home at predefined altitude if above it
+}; <--- UNNAMED ENUM!
+
+
+| `userControlMode` | `uint8_t` | 1 | Enum | Sets `navConfigMutable()->general.flags.user_control_mode`. |
+    sbufWriteU8(dst, navConfig()->general.flags.user_control_mode);
+enum {
+    NAV_GPS_ATTI    = 0,                    // Pitch/roll stick controls attitude (pitch/roll lean angles)
+    NAV_GPS_CRUISE  = 1                     // Pitch/roll stick controls velocity (forward/right speed)
+};
+
+radar_pois.state 
+// 0=undefined, 1=armed, 2=lost
+// state 2 means POI has been lost and must be skipped

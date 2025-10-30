@@ -11,9 +11,9 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 
 
-**Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, Refer to source for absolute certainty** 
+**Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
-**Note: A handful of complex, variable-payload messages have not been fully parsed, their documentation is temporary (MSP_SET_VTX_CONFIG, MSP2_INAV_SET_GEOZONE_VERTEX, MSP2_COMMON_SET_SETTING, MSP2_SENSOR_HEADTRACKER)**  
+**Note: A handful of complex, variable-payload messages have not been fully parsed, their documentation is temporary.**  
 
 **Guide:**
 

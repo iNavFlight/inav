@@ -11,9 +11,9 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 
 
-**Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, Refer to source for absolute certainty** 
+**Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
-**Note: A handful of complex, variable-payload messages have not been fully parsed, their documentation is temporary (MSP_SET_VTX_CONFIG, MSP2_INAV_SET_GEOZONE_VERTEX, MSP2_COMMON_SET_SETTING, MSP2_SENSOR_HEADTRACKER)**  
+**Note: A handful of complex, variable-payload messages have not been fully parsed, their documentation is temporary.**  
 
 **Guide:**
 
@@ -1227,10 +1227,25 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 ## <a id="msp_set_osd_config"></a>`MSP_SET_OSD_CONFIG (85 / 0x55)`
 **Description:** Sets OSD configuration or a single item's position on screen 0.  
+#### Variant: `dataSize >= 10`
+
+**Description:** dataSize >= 10  
 
 **Request Payload:** **None**  
 
 **Reply Payload:** **None**  
+
+#### Variant: `dataSize == 3`
+
+**Description:** dataSize == 3  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `itemPositions` | `uint16_t[OSD_ITEM_COUNT]` | OSD_ITEM_COUNT * 2 | Coordinates | Packed X/Y position for each OSD item on screen 0 (`osdLayoutsConfig()->item_pos[0][i]`). Sent even if OSD disabled |
+
+**Reply Payload:** **None**  
+
 
 **Notes:** Requires `USE_OSD`. Distinguishes formats based on the first byte. Format 1 requires at least 10 bytes. Format 2 requires 3 bytes. Triggers an OSD redraw. See `MSP2_INAV_OSD_SET_*` for more advanced control.
 
@@ -1245,14 +1260,54 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 ## <a id="msp_osd_char_write"></a>`MSP_OSD_CHAR_WRITE (87 / 0x57)`
 **Description:** Writes character data to the OSD font memory.  
+#### Variant: `dataSize >= OSD_CHAR_BYTES + 2`
+
+**Description:** dataSize >= OSD_CHAR_BYTES + 2  
   
 **Request Payload:**
 | Field | C Type | Size (Bytes) | Units | Description |
 |---|---|---|---|---|
-| `address` | `uint8_t` or `uint16_t` | - | - | Starting address in font memory. Size depends on total payload size |
-| `charData` | `uint8_t[]` | - | - | Character bitmap data (54 or 64 bytes per char, depending on format) |
+| `address` | `uint16_t` | 2 | - | 16-bit character address |
+| `charData` | `uint8_t[OSD_CHAR_BYTES]` | OSD_CHAR_BYTES * 1 | - | Full character bytes (with metadata) |
 
 **Reply Payload:** **None**  
+
+#### Variant: `dataSize >= OSD_CHAR_BYTES + 1`
+
+**Description:** dataSize >= OSD_CHAR_BYTES + 1  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `address` | `uint8_t` | 1 | - | 8-bit character address |
+| `charData` | `uint8_t[OSD_CHAR_BYTES]` | OSD_CHAR_BYTES * 1 | - | Full character bytes (with metadata) |
+
+**Reply Payload:** **None**  
+
+#### Variant: `dataSize >= OSD_CHAR_VISIBLE_BYTES + 2`
+
+**Description:** dataSize >= OSD_CHAR_VISIBLE_BYTES + 2  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `address` | `uint16_t` | 2 | - | 16-bit character address |
+| `charData` | `uint8_t[OSD_CHAR_VISIBLE_BYTES]` | OSD_CHAR_VISIBLE_BYTES * 1 | - | Only visible character bytes (no metadata) |
+
+**Reply Payload:** **None**  
+
+#### Variant: `dataSize >= OSD_CHAR_VISIBLE_BYTES + 1`
+
+**Description:** dataSize >= OSD_CHAR_VISIBLE_BYTES + 1  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `address` | `uint8_t` | 1 | - | 8-bit character address |
+| `charData` | `uint8_t[OSD_CHAR_VISIBLE_BYTES]` | OSD_CHAR_VISIBLE_BYTES * 1 | - | Only visible character bytes (no metadata) |
+
+**Reply Payload:** **None**  
+
 
 **Notes:** Requires `USE_OSD`. Payload size determines address size (8/16 bit) and character data size (visible bytes only or full char with metadata). Uses `displayWriteFontCharacter()`. Requires OSD hardware (like MAX7456) to be present and functional.
 
@@ -2438,10 +2493,29 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 ## <a id="msp2_common_set_tz"></a>`MSP2_COMMON_SET_TZ (4098 / 0x1002)`
 **Description:** Sets the time zone offset configuration.  
+#### Variant: `dataSize == 2`
 
-**Request Payload:** **None**  
+**Description:** dataSize == 2  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `tz_offset` | `int16_t` | 2 | minutes | Timezone offset from UTC. |
 
 **Reply Payload:** **None**  
+
+#### Variant: `dataSize == 3`
+
+**Description:** dataSize == 3  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `tz_offset` | `int16_t` | 2 | minutes | Timezone offset from UTC. |
+| `tz_automatic_dst` | `uint8_t` | 1 | bool | Automatic DST enable (0/1). |
+
+**Reply Payload:** **None**  
+
 
 **Notes:** Accepts 2 or 3 bytes.
 
@@ -3901,11 +3975,18 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Expects 1 byte. Will fail if armed. Calls `setConfigMixerProfileAndWriteEEPROM()`. Only applicable if `MAX_MIXER_PROFILE_COUNT` > 1.
 
 ## <a id="msp2_adsb_vehicle_list"></a>`MSP2_ADSB_VEHICLE_LIST (8336 / 0x2090)`
-**Description:** Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance–Broadcast) vehicles.  
+**Description:** Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance–Broadcast) vehicles. See `adsbVehicle_t` and `adsbVehicleValues_t` in `io/adsb.h` for the exact structure fields.  
 
 **Request Payload:** **None**  
-
-**Reply Payload:** **None**  
+  
+**Reply Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `maxVehicles` | `uint8_t` | 1 | - | Maximum number of vehicles tracked (`MAX_ADSB_VEHICLES`). 0 if `USE_ADSB` disabled |
+| `callsignLength` | `uint8_t` | 1 | - | Maximum length of callsign string (`ADSB_CALL_SIGN_MAX_LENGTH`). 0 if `USE_ADSB` disabled |
+| `totalVehicleMsgs` | `uint32_t` | 4 | - | Total vehicle messages received (`getAdsbStatus()->vehiclesMessagesTotal`). 0 if `USE_ADSB` disabled |
+| `totalHeartbeatMsgs` | `uint32_t` | 4 | - | Total heartbeat messages received (`getAdsbStatus()->heartbeatMessagesTotal`). 0 if `USE_ADSB` disabled |
+| `adsbVehicle` | `adsbVehicle_t[]` | - | - | Array of `adsbVehicle_t` Repeated `maxVehicles` times |
 
 **Notes:** Requires `USE_ADSB`.
 
@@ -4062,25 +4143,43 @@ For current generation code, see [documentation project](https://github.com/xznh
 | `vertexId` | `uint8_t` | 1 | Index | Vertex index requested |
 | `latitude` | `int32_t` | 4 | deg * 1e7 | Vertex latitude |
 | `longitude` | `int32_t` | 4 | deg * 1e7 | Vertex longitude |
+| `radius` | `uint32_t` | 4 | cm | If vertex is circle, Radius of the circular zone |
 
 **Notes:** Requires `USE_GEOZONE`. Returns error if indexes are invalid or vertex doesn't exist. For circular zones, the radius is stored internally as the 'latitude' of the vertex with index 1.
 
 ## <a id="msp2_inav_set_geozone_vertex"></a>`MSP2_INAV_SET_GEOZONE_VERTEX (8723 / 0x2213)`
-**Temporary definition**
-*   **Direction:** In
-*   **Description:** Sets the main configuration for a specific Geozone (type, shape, altitude, action). **This command resets (clears) all vertices associated with the zone.**
-*   **Payload:**
-    | Field | C Type | Size (Bytes) | Description |
-    |---|---|---|---|
-    | `geozoneIndex` | `uint8_t` | 1 | Index of the geozone (0 to `MAX_GEOZONES_IN_CONFIG - 1`) |
-    | `type` | `uint8_t` | 1 | Define (`GEOZONE_TYPE_EXCLUSIVE/INCLUSIVE`): Zone type (Inclusion/Exclusion) |
-    | `shape` | `uint8_t` | 1 | Define (`GEOZONE_SHAPE_CIRCULAR/POLYGHON`): Zone shape (Polygon/Circular) |
-    | `minAltitude` | `uint32_t` | 4 | Minimum allowed altitude (cm) |
-    | `maxAltitude` | `uint32_t` | 4 | Maximum allowed altitude (cm) |
-    | `isSeaLevelRef` | `uint8_t` | 1 | Boolean: Altitude reference |
-    | `fenceAction` | `uint8_t` | 1 | Enum (`geozoneActionState_e`): Action to take upon boundary violation |
-    | `vertexCount` | `uint8_t` | 1 | Number of vertices to be defined (used for validation later) |
-*   **Notes:** Requires `USE_GEOZONE`. Expects 14 bytes. Returns error if index invalid. Calls `geozoneResetVertices()`. Vertices must be set subsequently using `MSP2_INAV_SET_GEOZONE_VERTEX`.
+**Description:** Sets a specific vertex (or center+radius for circular zones) for a Geozone.  
+#### Variant: `polygon`
+
+**Description:** Polygonal Geozone  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `geozoneIndex` | `uint8_t` | 1 | Index | Geozone index requested |
+| `vertexId` | `uint8_t` | 1 | Index | Vertex index requested |
+| `latitude` | `int32_t` | 4 | deg * 1e7 | Vertex latitude |
+| `longitude` | `int32_t` | 4 | deg * 1e7 | Vertex longitude |
+
+**Reply Payload:** **None**  
+
+#### Variant: `circle`
+
+**Description:** Circular Geozone  
+  
+**Request Payload:**
+| Field | C Type | Size (Bytes) | Units | Description |
+|---|---|---|---|---|
+| `geozoneIndex` | `uint8_t` | 1 | Index | Geozone index requested |
+| `vertexId` | `uint8_t` | 1 | Index | Vertex index requested |
+| `latitude` | `int32_t` | 4 | deg * 1e7 | Vertex/Center latitude |
+| `longitude` | `int32_t` | 4 | deg * 1e7 | Vertex/Center longitude |
+| `radius` | `uint32_t` | 4 | cm | Radius of the circular zone |
+
+**Reply Payload:** **None**  
+
+
+**Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

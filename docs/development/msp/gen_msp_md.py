@@ -373,6 +373,34 @@ def table_with_units(fields: List[Dict[str, Any]], label: str) -> str:
         rows.append(f"| `{name}` | `{ctype}` | {size} | {units} | {desc} |")
     return header + "\n".join(rows) + "\n"
 
+def render_variant(parent_name: str, variant_name: str, variant_def: Dict[str, Any]) -> str:
+    """
+    Renders a single variant block (subsection header, description, request/reply tables).
+    """
+    out: List[str] = []
+    vdesc = (variant_def.get("description") or "").strip()
+
+    # GitHub auto-anchors will work off this header text
+    out.append(f"#### Variant: `{variant_name}`\n\n")
+    if vdesc:
+        out.append(f"**Description:** {vdesc}  \n")
+
+    req = variant_def.get("request", None)
+    rep = variant_def.get("reply", None)
+
+    if has_fields(req):
+        out.append(table_with_units(get_fields(req), "Request Payload"))
+    else:
+        out.append("\n**Request Payload:** **None**  \n")
+
+    if has_fields(rep):
+        out.append(table_with_units(get_fields(rep), "Reply Payload"))
+    else:
+        out.append("\n**Reply Payload:** **None**  \n")
+
+    out.append("\n")
+    return "".join(out)
+
 def render_message(name: str, msg: Dict[str, Any]) -> Tuple[str, str]:
     """
     Returns (section_markdown, heading_text_for_anchor)
@@ -384,10 +412,8 @@ def render_message(name: str, msg: Dict[str, Any]) -> Tuple[str, str]:
     complex_flag = bool(msg.get("complex", False))
 
     heading = f'## <a id="{name.lower()}"></a>`{name} ({code} / {hex_str})`'
-    #heading = f"### `{name}` ({code} / {hex_str})"
     out = [heading + "\n"]
 
-    #out.append("\n**Request Payload:** **None**  \n")
     if description:
         out.append(f"**Description:** {description}  \n")
 
@@ -395,18 +421,26 @@ def render_message(name: str, msg: Dict[str, Any]) -> Tuple[str, str]:
         out.append("**Special case, skipped for now**\n\n")
         return "".join(out), heading
 
-    req = msg.get("request", None)
-    rep = msg.get("reply", None)
-
-    if has_fields(req):
-        out.append(table_with_units(get_fields(req), "Request Payload"))
+    # NEW: variant-aware rendering
+    variants = msg.get("variants")
+    if isinstance(variants, dict) and variants:
+        # For variant messages, render a compact per-variant table set
+        for vname, vdef in variants.items():
+            out.append(render_variant(name, vname, vdef))
     else:
-        out.append("\n**Request Payload:** **None**  \n")
+        # Fallback: single request/reply like before
+        req = msg.get("request", None)
+        rep = msg.get("reply", None)
 
-    if has_fields(rep):
-        out.append(table_with_units(get_fields(rep), "Reply Payload"))
-    else:
-        out.append("\n**Reply Payload:** **None**  \n")
+        if has_fields(req):
+            out.append(table_with_units(get_fields(req), "Request Payload"))
+        else:
+            out.append("\n**Request Payload:** **None**  \n")
+
+        if has_fields(rep):
+            out.append(table_with_units(get_fields(rep), "Reply Payload"))
+        else:
+            out.append("\n**Reply Payload:** **None**  \n")
 
     if notes:
         out.append(f"\n**Notes:** {notes}\n")
@@ -510,9 +544,9 @@ def generate_markdown(defs: Dict[str, Any]) -> str:
         if name == "MSP2_COMMON_SET_SETTING":
             sections.append(sec.split('\n')[0]+'\n')
             sec = manual_docs_fix.MSP2_COMMON_SET_SETTING + '\n\n'
-        if name == "MSP2_INAV_SET_GEOZONE_VERTEX":
-            sections.append(sec.split('\n')[0]+'\n')
-            sec = manual_docs_fix.MSP2_INAV_SET_GEOZONE_VERTEX + '\n\n'
+        #if name == "MSP2_INAV_SET_GEOZONE_VERTEX":
+        #    sections.append(sec.split('\n')[0]+'\n')
+        #    sec = manual_docs_fix.MSP2_INAV_SET_GEOZONE_VERTEX + '\n\n'
         if name == "MSP2_SENSOR_HEADTRACKER": 
             sections.append(sec.split('\n')[0]+'\n')
             sec = manual_docs_fix.MSP2_SENSOR_HEADTRACKER + '\n\n'

@@ -3163,6 +3163,7 @@
         "description": "Sets OSD configuration or a single item's position on screen 0.",
         "variants": {
             "dataSize >= 10": {
+                "description": "dataSize >= 10",
                 "size": 0,
                 "struct": "",
                 "payload": [
@@ -3228,6 +3229,7 @@
                 "reply": null
             },
             "dataSize == 3": {
+                "description": "dataSize == 3",
                 "request": {
                     "size": 0,
                     "struct": "",
@@ -3296,6 +3298,7 @@
         "description": "Writes character data to the OSD font memory.",
         "variants": {
             "dataSize >= OSD_CHAR_BYTES + 2": {
+                "description": "dataSize >= OSD_CHAR_BYTES + 2",
                 "request": {
                     "size": 0,
                     "struct": "<",
@@ -3320,6 +3323,7 @@
                 "reply": null
             },
             "dataSize >= OSD_CHAR_BYTES + 1": {
+                "description": "dataSize >= OSD_CHAR_BYTES + 1",
                 "request": {
                     "size": 0,
                     "struct": "<",
@@ -3344,6 +3348,7 @@
                 "reply": null
             },
             "dataSize >= OSD_CHAR_VISIBLE_BYTES + 2": {
+                "description": "dataSize >= OSD_CHAR_VISIBLE_BYTES + 2",
                 "request": {
                     "size": 0,
                     "struct": "<",
@@ -3368,6 +3373,7 @@
                 "reply": null
             },
             "dataSize >= OSD_CHAR_VISIBLE_BYTES + 1": {
+                "description": "dataSize >= OSD_CHAR_VISIBLE_BYTES + 1",
                 "request": {
                     "size": 0,
                     "struct": "<",
@@ -7086,6 +7092,7 @@
         "description": "Sets the time zone offset configuration.",
         "variants": {
             "dataSize == 2": {
+                "description": "dataSize == 2",
                 "request": {
                     "size": 0,
                     "struct": "<",
@@ -7102,6 +7109,7 @@
                 "reply": null
             },
             "dataSize == 3": {
+                "description": "dataSize == 3",
                 "request": {
                     "size": 0,
                     "struct": "<",
@@ -12386,11 +12394,55 @@
         "mspv": 2,
         "direction": 1,
         "request": null,
-        "reply": null,
+        "reply": {
+            "size": 3,
+            "struct": "<BBB",
+            "payload": [
+                {
+                    "name": "maxVehicles",
+                    "ctype": "uint8_t",
+                    "desc": "Maximum number of vehicles tracked (`MAX_ADSB_VEHICLES`). 0 if `USE_ADSB` disabled",
+                    "units": "",
+                    "struct": "B"
+                },
+                {
+                    "name": "callsignLength",
+                    "ctype": "uint8_t",
+                    "desc": "Maximum length of callsign string (`ADSB_CALL_SIGN_MAX_LENGTH`). 0 if `USE_ADSB` disabled",
+                    "units": "",
+                    "struct": "B"
+                },
+                {
+                    "name": "totalVehicleMsgs",
+                    "ctype": "uint32_t",
+                    "desc": "Total vehicle messages received (`getAdsbStatus()->vehiclesMessagesTotal`). 0 if `USE_ADSB` disabled",
+                    "units": "",
+                    "struct": ""
+                },
+                {
+                    "name": "totalHeartbeatMsgs",
+                    "ctype": "uint32_t",
+                    "desc": "Total heartbeat messages received (`getAdsbStatus()->heartbeatMessagesTotal`). 0 if `USE_ADSB` disabled",
+                    "units": "",
+                    "struct": ""
+                },
+                
+                {
+                    "name": "adsbVehicle",
+                    "ctype": "adsbVehicle_t[]",
+                    "desc": "Array of `adsbVehicle_t` Repeated `maxVehicles` times",
+                    "array": true,
+                    "array_ctype": "adsbVehicle_t",
+                    "array_size": 0,
+                    "units": "",
+                    "struct": "BhhiI"
+                }
+            ]
+        },
         "variable_len": "maxVehicles",
         "complex": false,
         "notes": "Requires `USE_ADSB`.",
-        "description": "Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance\u2013Broadcast) vehicles."
+        "description": "Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance\u2013Broadcast) vehicles. See `adsbVehicle_t` and `adsbVehicleValues_t` in `io/adsb.h` for the exact structure fields."
     },
     "MSP2_INAV_CUSTOM_OSD_ELEMENTS": {
         "code": 8448,
@@ -12820,10 +12872,18 @@
                     "desc": "Vertex longitude",
                     "units": "deg * 1e7",
                     "struct": "i"
+                },
+                {
+                    "name": "radius",
+                    "ctype": "uint32_t",
+                    "desc": "If vertex is circle, Radius of the circular zone",
+                    "units": "cm",
+                    "struct": "I",
+                    "optional": true
                 }
             ]
         },
-        "variable_len": false,
+        "variable_len": true,
         "complex": false,
         "notes": "Requires `USE_GEOZONE`. Returns error if indexes are invalid or vertex doesn't exist. For circular zones, the radius is stored internally as the 'latitude' of the vertex with index 1.",
         "description": "Get a specific vertex (or center+radius for circular zones) of a Geozone."
@@ -12833,10 +12893,99 @@
         "hex": "0x2213",
         "mspv": 2,
         "direction": 0,
-        "request": null,
-        "reply": null,
+        "variants": {
+            "polygon": {
+                "description": "Polygonal Geozone",
+                "request": {
+                    "struct": "<BBii",
+                    "payload": [
+                        {
+                            "name": "geozoneIndex",
+                            "ctype": "uint8_t",
+                            "desc": "Geozone index requested",
+                            "units": "Index",
+                            "struct": "B"
+                        },
+                        {
+                            "name": "vertexId",
+                            "ctype": "uint8_t",
+                            "desc": "Vertex index requested",
+                            "units": "Index",
+                            "struct": "B"
+                        },
+                        {
+                            "name": "latitude",
+                            "ctype": "int32_t",
+                            "desc": "Vertex latitude",
+                            "units": "deg * 1e7",
+                            "struct": "i"
+                        },
+                        {
+                            "name": "longitude",
+                            "ctype": "int32_t",
+                            "desc": "Vertex longitude",
+                            "units": "deg * 1e7",
+                            "struct": "i"
+                        }
+                    ]
+                },
+                "reply": {
+                    "size": 0,
+                    "struct": "",
+                    "payload": null
+                }
+            },
+            "circle": {
+                "description": "Circular Geozone",
+                "request": {
+                    "struct": "<BBiiI",
+                    "payload": [
+                        {
+                            "name": "geozoneIndex",
+                            "ctype": "uint8_t",
+                            "desc": "Geozone index requested",
+                            "units": "Index",
+                            "struct": "B"
+                        },
+                        {
+                            "name": "vertexId",
+                            "ctype": "uint8_t",
+                            "desc": "Vertex index requested",
+                            "units": "Index",
+                            "struct": "B"
+                        },
+                        {
+                            "name": "latitude",
+                            "ctype": "int32_t",
+                            "desc": "Vertex/Center latitude",
+                            "units": "deg * 1e7",
+                            "struct": "i"
+                        },
+                        {
+                            "name": "longitude",
+                            "ctype": "int32_t",
+                            "desc": "Vertex/Center longitude",
+                            "units": "deg * 1e7",
+                            "struct": "i"
+                        },
+                        {
+                            "name": "radius",
+                            "ctype": "uint32_t",
+                            "desc": "Radius of the circular zone",
+                            "units": "cm",
+                            "struct": "I"
+                        }
+                    ]
+                },
+                "reply": {
+                    "size": 0,
+                    "struct": "",
+                    "payload": null
+                }
+            }
+        },
         "variable_len": false,
-        "complex": true,
+        "complex": false,
         "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
         "description": "Sets a specific vertex (or center+radius for circular zones) for a Geozone."
     },
