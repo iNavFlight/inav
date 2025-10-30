@@ -29,11 +29,15 @@ BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     
 BUSDEV_REGISTER_SPI(busdev_max7456,    DEVHW_MAX7456,  MAX7456_SPI_BUS,    MAX7456_CS_PIN, NONE, DEVFLAGS_USE_RAW_REGISTERS,  0);
 BUSDEV_REGISTER_I2C(busdev_spl06,      DEVHW_SPL06,        SPL06_I2C_BUS,      SPL06_I2C_ADDR,     NONE,           DEVFLAGS_NONE,      0);
 
+BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,        0x1E,               NONE,                   0,  DEVFLAGS_NONE,    0);
+BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,        0x0D,               NONE,                   0,  DEVFLAGS_NONE,    0);
+BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,        0x0E,               NONE,                   0,  DEVFLAGS_NONE,    0);
+
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH3,  PB0, TIM_USE_OUTPUT_AUTO, 0, 0), // S1
-    DEF_TIM(TIM3,  CH2,  PB5, TIM_USE_OUTPUT_AUTO, 0, 0), // S2
-    DEF_TIM(TIM3,  CH1,  PB4, TIM_USE_OUTPUT_AUTO, 0, 0), // S3
-    DEF_TIM(TIM3,  CH4,  PB1, TIM_USE_OUTPUT_AUTO, 0, 0), // S4
+    DEF_TIM(TIM3,  CH4,  PB1, TIM_USE_OUTPUT_AUTO, 0, 0), // S2
+    DEF_TIM(TIM3,  CH2,  PB5, TIM_USE_OUTPUT_AUTO, 0, 0), // S3
+    DEF_TIM(TIM3,  CH1,  PB4, TIM_USE_OUTPUT_AUTO, 0, 0), // S4
 
     DEF_TIM(TIM1,  CH1,  PA8, TIM_USE_LED,                         0, 1),//WS2812B
 };
