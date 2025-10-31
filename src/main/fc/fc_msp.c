@@ -2717,11 +2717,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_OSD_CUSTOM_CHARACTER: {
         sbufReadU8Safe(item, src);
-        if (item < OSD_ITEM_COUNT){ // tmp_u8 == addr
+        if (item <= OSD_ITEM_COUNT){ // tmp_u8 == addr
             osdLayoutsConfigMutable()->item_pos[0][item] = (osdLayoutsConfigMutable()->item_pos[0][item] & ~(1 << 13));
-            osdDrawSingleElement(item);
+            osdDrawCustomItem(item);
             osdLayoutsConfigMutable()->item_pos[0][item] = sbufReadU16(src);
-            osdDrawSingleElement(item);
+            osdDrawCustomItem(item);
         }
         else
             return MSP_RESULT_ERROR;

@@ -1781,6 +1781,10 @@ static bool osdElementEnabled(uint8_t elementID, bool onlyCurrentLayout) {
     return elementEnabled;
 }
 
+void osdDrawCustomItem(uint8_t item){
+    osdDrawSingleElement(item);
+})
+
 static bool osdDrawSingleElement(uint8_t item)
 {
     uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
