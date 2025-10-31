@@ -2716,6 +2716,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_OSD_CUSTOM_CHARACTER: {
+        int8_t item;
         sbufReadU8Safe(item, src);
         if (item <= OSD_ITEM_COUNT){ // tmp_u8 == addr
             osdLayoutsConfigMutable()->item_pos[0][item] = (osdLayoutsConfigMutable()->item_pos[0][item] & ~(1 << 13));
@@ -2723,8 +2724,9 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             osdLayoutsConfigMutable()->item_pos[0][item] = sbufReadU16(src);
             osdDrawCustomItem(item);
         }
-        else
+        else{
             return MSP_RESULT_ERROR;
+        }
 
         break;
     }
