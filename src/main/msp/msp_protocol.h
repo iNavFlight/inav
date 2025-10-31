@@ -301,6 +301,8 @@
 #define MSP_RTC                  246    //out message         Gets the RTC clock (returns: secs(i32) millis(u16) - (0,0) if time is not known)
 #define MSP_SET_RTC              247    //in message          Sets the RTC clock (args: secs(i32) millis(u16))
 
+#define MSP_OSD_CUSTOM_CHARACTER 167    //in message          Dynamically sets individual OSD elements to custom positions
+
 // MSPv2 includes
 #include "msp_protocol_v2_common.h"
 #include "msp_protocol_v2_sensor.h"

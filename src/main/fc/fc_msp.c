@@ -2715,6 +2715,21 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         osdStartFullRedraw();
         break;
 
+    case MSP_OSD_CUSTOM_CHARACTER: {
+        sbufReadU8Safe(item, src);
+        if (item < OSD_ITEM_COUNT){ // tmp_u8 == addr
+            osdLayoutsConfigMutable()->item_pos[0][item] = (osdLayoutsConfigMutable()->item_pos[0][item] & ~(1 << 13));
+            osdDrawSingleElement(item);
+            osdLayoutsConfigMutable()->item_pos[0][item] = sbufReadU16(src);
+            osdDrawSingleElement(item);
+        }
+        else
+            return MSP_RESULT_ERROR;
+
+        break;
+    }
+
+
     case MSP_OSD_CHAR_WRITE:
         if (dataSize >= 55) {
             osdCharacter_t chr;
