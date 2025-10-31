@@ -47,7 +47,7 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS                    DEFAULT_I2C_BUS
-#define BARO_I2C_ADDR                   0x77
+#define DPS310_I2C_ADDR                 0x77
 #define USE_BARO_DPS310
 
 
