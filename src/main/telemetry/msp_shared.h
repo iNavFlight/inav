@@ -26,5 +26,5 @@ typedef union mspTxBuffer_u {
 } mspTxBuffer_t;
 
 void initSharedMsp(void);
-bool handleMspFrame(uint8_t *frameStart, int frameLength);
+bool handleMspFrame(uint8_t *frameStart, int payloadLength);
 bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn);
