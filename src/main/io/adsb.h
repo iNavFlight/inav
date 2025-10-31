@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include "common/time.h"
+#include "io/gps.h"
 #include "fc/runtime_config.h"
 
 #define ADSB_CALL_SIGN_MAX_LENGTH 9
@@ -27,16 +28,16 @@
 typedef struct {
     bool valid;
     int32_t dir;   // centidegrees direction to plane, pivot is inav FC
-    uint32_t dist;  // CM distance to plane, pivot is inav FC
-    int32_t verticalDistance; // CM, vertical distance to plane, pivot is inav FC
+    uint32_t dist;              // horisontal distance to plane, cm, pivot is inav FC
+    int32_t verticalDistance;   // vertical distance to plane, cm, pivot is inav FC
 } adsbVehicleCalculatedValues_t;
 
 typedef struct {
     uint32_t icao; // ICAO address
-    int32_t lat; // Latitude, expressed as degrees * 1E7
-    int32_t lon; // Longitude, expressed as degrees * 1E7
-    int32_t alt;  // Barometric/Geometric Altitude (ASL), in cm
-    uint16_t heading; // Course over ground in centidegrees
+    uint16_t horVelocity; // [cm/s]
+    gpsLocation_t gps;
+    int32_t alt;  // [cm] Barometric/Geometric Altitude (MSL)
+    uint16_t heading; // [centidegrees] Course over ground
     uint16_t flags; // Flags to indicate various statuses including valid data fields
     uint8_t altitudeType; // Type from ADSB_ALTITUDE_TYPE enum
     char callsign[ADSB_CALL_SIGN_MAX_LENGTH]; // The callsign, 8 chars + NULL
@@ -50,8 +51,6 @@ typedef struct {
     uint8_t ttl;
 } adsbVehicle_t;
 
-
-
 typedef struct {
    uint32_t vehiclesMessagesTotal;
    uint32_t heartbeatMessagesTotal;
@@ -59,7 +58,7 @@ typedef struct {
 
 void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal);
 bool adsbHeartbeat(void);
-adsbVehicle_t * findVehicleClosest(void);
+adsbVehicle_t *findVehicleClosestLimit(int32_t maxVerticalDistance);
 adsbVehicle_t * findVehicle(uint8_t index);
 uint8_t getActiveVehiclesCount(void);
 void adsbTtlClean(timeUs_t currentTimeUs);

@@ -7,7 +7,8 @@
         "rth_trackback.h": "c",
         "platform.h": "c",
         "timer.h": "c",
-        "bus.h": "c"
+        "bus.h": "c",
+        "io.h": "c"
     },
     "editor.tabSize": 4,
     "editor.insertSpaces": true,

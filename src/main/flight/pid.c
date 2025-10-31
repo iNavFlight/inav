@@ -179,7 +179,7 @@ static EXTENDED_FASTRAM bool angleHoldIsLevel = false;
 static EXTENDED_FASTRAM float fixedWingLevelTrim;
 static EXTENDED_FASTRAM pidController_t fixedWingLevelTrimController;
 
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 10);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(pidProfile_t, pidProfile, PG_PID_PROFILE, 11);
 
 PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .bank_mc = {
@@ -308,6 +308,7 @@ PG_RESET_TEMPLATE(pidProfile_t, pidProfile,
         .fixedWingLevelTrimGain = SETTING_FW_LEVEL_PITCH_GAIN_DEFAULT,
 
         .fwAltControlResponseFactor = SETTING_NAV_FW_ALT_CONTROL_RESPONSE_DEFAULT,
+        .fwAltControlUsePos = SETTING_NAV_FW_ALT_USE_POSITION_DEFAULT,
 #ifdef USE_SMITH_PREDICTOR
         .smithPredictorStrength = SETTING_SMITH_PREDICTOR_STRENGTH_DEFAULT,
         .smithPredictorDelay = SETTING_SMITH_PREDICTOR_DELAY_DEFAULT,
@@ -596,38 +597,45 @@ int16_t angleFreefloatDeadband(int16_t deadband, flight_dynamics_index_t axis)
 
 static float computePidLevelTarget(flight_dynamics_index_t axis) {
     // This is ROLL/PITCH, run ANGLE/HORIZON controllers
+
+    // Limit max bank angle for multirotor during Nav mode Angle controlled position adjustment
+    uint16_t maxBankAngle = STATE(MULTIROTOR) && navConfig()->general.flags.user_control_mode == NAV_GPS_ATTI && isAdjustingPosition() ?
+                            DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle) : pidProfile()->max_angle_inclination[axis];
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
-    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), pidProfile()->max_angle_inclination[axis]);
+    float angleTarget = pidRcCommandToAngle(getRcCommandOverride(rcCommand, axis), maxBankAngle);
 #else
-    float angleTarget = pidRcCommandToAngle(rcCommand[axis], pidProfile()->max_angle_inclination[axis]);
+    float angleTarget = pidRcCommandToAngle(rcCommand[axis], maxBankAngle);
 #endif
 
-    // Automatically pitch down if the throttle is manually controlled and reduced bellow cruise throttle
+    if (STATE(AIRPLANE)) {
+        // Automatically pitch down if the throttle is manually controlled and reduced below cruise throttle
 #ifdef USE_FW_AUTOLAND
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        if (axis == FD_PITCH && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle() && !FLIGHT_MODE(NAV_FW_AUTOLAND)) {
 #else
-    if ((axis == FD_PITCH) && STATE(AIRPLANE) && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
+        if (axis == FD_PITCH && FLIGHT_MODE(ANGLE_MODE) && !navigationIsControllingThrottle()) {
 #endif
-        angleTarget += scaleRange(MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]), 0, currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN, 0, navConfig()->fw.minThrottleDownPitchAngle);
-    }
+            angleTarget += scaleRange(MAX(0, currentBatteryProfile->nav.fw.cruise_throttle - rcCommand[THROTTLE]), 0, currentBatteryProfile->nav.fw.cruise_throttle - PWM_RANGE_MIN, 0, navConfig()->fw.minThrottleDownPitchAngle);
+        }
 
-    //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
-    if (axis == FD_PITCH && STATE(AIRPLANE)) {
-        DEBUG_SET(DEBUG_AUTOLEVEL, 0, angleTarget * 10);
-        DEBUG_SET(DEBUG_AUTOLEVEL, 1, fixedWingLevelTrim * 10);
-        DEBUG_SET(DEBUG_AUTOLEVEL, 2, getEstimatedActualVelocity(Z));
+        //PITCH trim applied by a AutoLevel flight mode and manual pitch trimming
+        if (axis == FD_PITCH) {
+            DEBUG_SET(DEBUG_AUTOLEVEL, 0, angleTarget * 10);
+            DEBUG_SET(DEBUG_AUTOLEVEL, 1, fixedWingLevelTrim * 10);
+            DEBUG_SET(DEBUG_AUTOLEVEL, 2, getEstimatedActualVelocity(Z));
 
-        /*
-         * fixedWingLevelTrim has opposite sign to rcCommand.
-         * Positive rcCommand means nose should point downwards
-         * Negative rcCommand mean nose should point upwards
-         * This is counter intuitive and a natural way suggests that + should mean UP
-         * This is why fixedWingLevelTrim has opposite sign to rcCommand
-         * Positive fixedWingLevelTrim means nose should point upwards
-         * Negative fixedWingLevelTrim means nose should point downwards
-         */
-        angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
-        DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
+            /*
+             * fixedWingLevelTrim has opposite sign to rcCommand.
+             * Positive rcCommand means nose should point downwards
+             * Negative rcCommand mean nose should point upwards
+             * This is counter intuitive and a natural way suggests that + should mean UP
+             * This is why fixedWingLevelTrim has opposite sign to rcCommand
+             * Positive fixedWingLevelTrim means nose should point upwards
+             * Negative fixedWingLevelTrim means nose should point downwards
+             */
+            angleTarget -= DEGREES_TO_DECIDEGREES(fixedWingLevelTrim);
+            DEBUG_SET(DEBUG_AUTOLEVEL, 3, angleTarget * 10);
+        }
     }
 
     return angleTarget;

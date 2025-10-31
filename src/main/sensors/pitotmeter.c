@@ -295,6 +295,9 @@ void pitotUpdate(void)
     pitotThread();
 }
 
+/*
+ * Airspeed estimate in cm/s
+ */
 float getAirspeedEstimate(void)
 {
     return pitot.airSpeed;
