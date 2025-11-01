@@ -239,7 +239,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
         sbufReadData(txBuf, frame, payloadBytesRemaining);
         sbufAdvance(txBuf, payloadBytesRemaining);
         sbufWriteData(payloadBuf, frame, payloadBytesRemaining);
-        responseFn(payloadOut);
+        responseFn(payloadOut, payloadSize);
 
         return true;
     }
@@ -250,11 +250,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
     sbufWriteData(payloadBuf, frame, bufferBytesRemaining);
     sbufSwitchToReader(txBuf, mspPackage.responseBuffer);
 
-    while (sbufBytesRemaining(payloadBuf)>1) {
-        sbufWriteU8(payloadBuf, 0);
-    }
-
-    responseFn(payloadOut);
+    responseFn(payloadOut, payloadBuf->ptr - payloadOut);
     return false;
 }
 
