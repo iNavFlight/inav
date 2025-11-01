@@ -464,7 +464,8 @@ def writeTargetH(folder, map):
                 'W25M',
                 'W25M02G',
                 'W25M512',
-                'W25N01G'
+                'W25N01G',
+                'W25N02K',
             ]
             file.write("#define USE_FLASHFS\n")
             file.write("#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT\n")
