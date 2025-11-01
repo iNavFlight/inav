@@ -273,8 +273,6 @@ gcc:FILEPATH=/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolch
 CMAKE_ADDR2LINE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_AR
 CMAKE_AR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: CMAKE_ASM_COMPILER
-CMAKE_ASM_COMPILER-ADVANCED:INTERNAL=1
 //asm compiler
 CMAKE_ASM_COMPILER:INTERNAL=arm-none-eabi-gcc
 //ADVANCED property for variable: CMAKE_ASM_COMPILER_AR
@@ -318,8 +316,6 @@ CMAKE_CPACK_COMMAND:INTERNAL=/usr/local/bin/cpack
 CMAKE_CPPFILT:INTERNAL=arm-none-eabi-c++filt
 //Path to ctest program executable.
 CMAKE_CTEST_COMMAND:INTERNAL=/usr/local/bin/ctest
-//ADVANCED property for variable: CMAKE_CXX_COMPILER
-CMAKE_CXX_COMPILER-ADVANCED:INTERNAL=1
 //c++ compiler
 CMAKE_CXX_COMPILER:INTERNAL=arm-none-eabi-g++
 //ADVANCED property for variable: CMAKE_CXX_COMPILER_AR
@@ -342,8 +338,6 @@ CMAKE_CXX_FLAGS_RELEASE:INTERNAL=-DNDEBUG
 CMAKE_CXX_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //cxx compiler flags release
 CMAKE_CXX_FLAGS_RELWITHDEBINFO:INTERNAL=-ggdb3 -DNDEBUG
-//ADVANCED property for variable: CMAKE_C_COMPILER
-CMAKE_C_COMPILER-ADVANCED:INTERNAL=1
 //c compiler
 CMAKE_C_COMPILER:INTERNAL=arm-none-eabi-gcc
 //ADVANCED property for variable: CMAKE_C_COMPILER_AR

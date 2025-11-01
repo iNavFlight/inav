@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
   "/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/.git/HEAD"
-  "/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/.git/packed-refs"
+  "/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/.git/refs/heads/master"
   "/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/CMakeLists.txt"
   "/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/cmake/GetGitRevisionDescription.cmake"
   "/Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/cmake/GetGitRevisionDescription.cmake.in"
@@ -276,7 +276,7 @@ set(CMAKE_MAKEFILE_OUTPUTS
 set(CMAKE_MAKEFILE_PRODUCTS
   "CMakeFiles/git-data/HEAD"
   "CMakeFiles/git-data/grabRef.cmake"
-  "CMakeFiles/git-data/packed-refs"
+  "CMakeFiles/git-data/head-ref"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "src/CMakeFiles/CMakeDirectoryInformation.cmake"
   "src/main/CMakeFiles/CMakeDirectoryInformation.cmake"

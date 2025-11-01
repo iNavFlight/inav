@@ -32,7 +32,7 @@ set(CMAKE_TARGET_DEFINITIONS_ASM
   "YUPIF4MINI"
   "__FORKNAME__=inav"
   "__FPU_PRESENT=1"
-  "__REVISION__=\"e20d1dcb\""
+  "__REVISION__=\"45d72d50\""
   "__TARGET__=\"YUPIF4MINI\""
   )
 
