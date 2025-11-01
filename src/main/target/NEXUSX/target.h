@@ -47,14 +47,10 @@
 //#define I2C1_SCL                PB6
 //#define I2C1_SDA                PB7
 
-#if defined(NEXUSX) || defined(NEXUSX_9SERVOS)
 #define USE_I2C_DEVICE_2 // clashes with UART3
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
 #define DEFAULT_I2C BUS_I2C2
-#else
-#define DEFAULT_I2C BUS_I2C3
-#endif
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C3
@@ -84,20 +80,18 @@
 
 #ifdef NEXUSX
 #define USE_UART1 // clashes with I2C1
-#define UART1_TX_PIN            PB6
+#define UART1_TX_PIN            PB6 // pin labelled "AUX"
 #define UART1_RX_PIN            PB7 // pin labelled "SBUS"
 #endif
 
-//#define USE_UART2 // clashes with 2 servo outputs
-//#define UART2_TX_PIN            PA2 // pin labelled as "RPM"
-//#define UART2_RX_PIN            PA3 // pin labelled as "TLM"
+#define USE_UART2
+#define UART2_TX_PIN            PA2 // pin labelled as "RPM"
+#define UART2_RX_PIN            PA3 // pin labelled as "TLM"
 
-#ifdef NEXUSX_NOI2C
 #define USE_UART3
 // port labelled "C"
 #define UART3_TX_PIN            PB10
 #define UART3_RX_PIN            PB11
-#endif
 
 #define USE_UART4
 // port labelled "A"
@@ -114,13 +108,7 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
 
-#if defined(NEXUSX)
-#define SERIAL_PORT_COUNT       5
-#elif defined(NEXUSX_9SERVOS)
-#define SERIAL_PORT_COUNT       4
-#elif defined(NEXUSX_NOI2C)
-#define SERIAL_PORT_COUNT       5
-#endif
+#define SERIAL_PORT_COUNT       7
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
@@ -158,11 +146,7 @@
 #define TARGET_IO_PORTC 0xffff
 #define TARGET_IO_PORTD 0xffff
 
-#if defined(NEXUSX)
-#define MAX_PWM_OUTPUT_PORTS        7
-#elif defined(NEXUSX_9SERVOS) || defined(NEXUSX_NOI2C)
 #define MAX_PWM_OUTPUT_PORTS        9
-#endif
 
 #define USE_DSHOT
 #define USE_SERIALSHOT

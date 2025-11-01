@@ -1,8 +1,8 @@
 Radiomaster NEXUS X and NEXUS XR
 ================================
 
-Flight controllers originally designed for Helicopters using Rotorflight.
-Based on STM32F722RET6. Both NEXUS X and XR share the same targets in iNav.
+Flight controllers originally designed for helicopters using Rotorflight.
+Based on STM32F722RET6. Both NEXUS X and XR share the same target in iNav.
 
 Built-in periperals
 -------------------
@@ -17,25 +17,28 @@ The receiver can be disabled using USER1, which controls a pinio on pin PC8.
 Pin configuration
 -----------------
 
-All pin orders are from left to right, when looking at the connector on the flight controller.
-Note that the order is incorrect on radiomaster's website, it has RX and TX swapped.
+The RPM, TLM, AUX and SBUS pins are Servo/Motor outputs by default. However, when UART1 or UART2 are assigned a function in the ports tab, the pins will become a UART instead. See the table below.
 
-| Marking on the case | NEXUSX                                                | NEXUSX_9SERVOS                                        | NEXUSX_NOI2C                                          |
-|---------------------|-------------------------------------------------------|-------------------------------------------------------|-------------------------------------------------------|
-| S1                  | Output S1                                             | Output S1                                             | Output S1                                             |
-| S2                  | Output S2                                             | Output S2                                             | Output S2                                             |
-| S3                  | Output S3                                             | Output S3                                             | Output S3                                             |
-| TAIL                | Output S4                                             | Output S4                                             | Output S4                                             |
-| ESC                 | Output S5                                             | Output S5                                             | Output S5                                             |
-| RPM                 | Output S6                                             | Output S6                                             | Output S6                                             |
-| TLM                 | Output S7                                             | Output S7                                             | Output S7                                             |
-| AUX                 | UART1 TX                                              | Output S8                                             | Output S8                                             |
-| SBUS                | UART1 RX                                              | Output S9                                             | Output S9                                             |
-| A                   | UART4<br>pin order:<br>TX, RX, 5V, GND                | UART4<br>pin order:<br>TX, RX, 5V, GND                | UART4<br>pin order:<br>TX, RX, 5V, GND                |
-| B                   | UART6<br>pin order:<br>TX, RX, 5V, GND                | UART6<br>pin order:<br>TX, RX, 5V, GND                | UART6<br>pin order:<br>TX, RX, 5V, GND                |
-| C                   | I2C<br>pin order:<br>SCL, SDA, 5V, GND                | I2C<br>pin order:<br>SCL, SDA, 5V, GND                | UART3<br>pin order:<br>TX, RX, 5V, GND                |
-| EXT-V               | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND |
-| built-in ELRS       | UART5                                                 | UART5                                                 | UART5                                                 |
+| Marking on the case | Both UART1 and UART2 unused                                                            | UART1 in use                                                                           | UART2 in use                                                                           | Both UART1 and UART2 in use                                                            |
+|---------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| S1                  | Output S1                                                                              | Output S1                                                                              | Output S1                                                                              | Output S1                                                                              |
+| S2                  | Output S2                                                                              | Output S2                                                                              | Output S2                                                                              | Output S2                                                                              |
+| S3                  | Output S3                                                                              | Output S3                                                                              | Output S3                                                                              | Output S3                                                                              |
+| TAIL                | Output S4                                                                              | Output S4                                                                              | Output S4                                                                              | Output S4                                                                              |
+| ESC                 | Output S5                                                                              | Output S5                                                                              | Output S5                                                                              | Output S5                                                                              |
+| RPM                 | Output S6                                                                              | Output S6                                                                              | UART2 TX                                                                               | UART2 TX                                                                               |
+| TLM                 | Output S7                                                                              | Output S7                                                                              | UART2 RX                                                                               | UART2 RX                                                                               |
+| AUX                 | Output S8                                                                              | UART1 TX                                                                               | Output S6                                                                              | UART1 TX                                                                               |
+| SBUS                | Output S9                                                                              | UART1 RX                                                                               | Output S7                                                                              | UART1 RX                                                                               |
+| A                   | UART4<br>pin order:<br>TX, RX, 5V, GND                                                 | UART4<br>pin order:<br>TX, RX, 5V, GND                                                 | UART4<br>pin order:<br>TX, RX, 5V, GND                                                 | UART4<br>pin order:<br>TX, RX, 5V, GND                                                 |
+| B                   | UART6<br>pin order:<br>TX, RX, 5V, GND                                                 | UART6<br>pin order:<br>TX, RX, 5V, GND                                                 | UART6<br>pin order:<br>TX, RX, 5V, GND                                                 | UART6<br>pin order:<br>TX, RX, 5V, GND                                                 |
+| C                   | I2C<br>pin order:<br>SCL, SDA, 5V, GND<br>or<br>UART3<br>pin order:<br>TX, RX, 5V, GND | I2C<br>pin order:<br>SCL, SDA, 5V, GND<br>or<br>UART3<br>pin order:<br>TX, RX, 5V, GND | I2C<br>pin order:<br>SCL, SDA, 5V, GND<br>or<br>UART3<br>pin order:<br>TX, RX, 5V, GND | I2C<br>pin order:<br>SCL, SDA, 5V, GND<br>or<br>UART3<br>pin order:<br>TX, RX, 5V, GND |
+| EXT-V               | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND                                  | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND                                  | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND                                  | battery voltage<br>max 60V<br>pin order:<br>Vbat, GND                                  |
+| built-in ELRS       | UART5                                                                                  | UART5                                                                                  | UART5                                                                                  | UART5                                                                                  |
+
+All pin orders are from left to right, when looking at the connector on the flight controller.
+**Note that the pin order for "A", "B" and "C" is incorrect on radiomaster's website, it has RX and TX swapped.**
+
 Hardware layout
 ---------------
 

@@ -1,3 +1,1 @@
 target_stm32f722xe(NEXUSX)
-target_stm32f722xe(NEXUSX_9SERVOS)
-target_stm32f722xe(NEXUSX_NOI2C)
