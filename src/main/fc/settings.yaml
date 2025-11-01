@@ -3247,6 +3247,10 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
+      - name: crsf_use_legacy_baro_packet
+        description: "CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, BaroVario packet will have vario speed and altitude about start point and GPS packet will have GPS altitude (about sea level). These are deprecated, and will be removed in INAV 11.0. Tools and scripts using these GPS Altitude should be updated to use the BaroVario packet and GPS packet. Default: 'OFF'"
+        default_value: OFF
+        type: bool
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t

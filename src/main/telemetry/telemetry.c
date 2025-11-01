@@ -97,6 +97,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
         .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
         .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT
     }
+    .crsf_use_legacy_baro_packet = SETTING_CRSF_USE_LEGACY_BARO_PACKET_DEFAULT
 );
 
 void telemetryInit(void)

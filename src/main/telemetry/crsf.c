@@ -66,7 +66,7 @@
 #include "telemetry/msp_shared.h"
 
 
-#define CRSF_CYCLETIME_US                   20000  // 20ms, 50 Hz
+#define CRSF_CYCLETIME_US                   100000
 #define CRSF_DEVICEINFO_VERSION             0x01
 // According to TBS: "CRSF over serial should always use a sync byte at the beginning of each frame.
 // To get better performance it's recommended to use the sync byte 0xC8 to get better performance"
