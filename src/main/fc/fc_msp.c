@@ -2716,11 +2716,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 
     case MSP_OSD_CUSTOM_POSITION: {
+        if (dataSize < 3) {
++        return MSP_RESULT_ERROR;
++       }
         uint8_t item;
         sbufReadU8Safe(&item, src);
         if (item < OSD_ITEM_COUNT){ // item == addr
             osdEraseCustomItem(item);
-            osdLayoutsConfigMutable()->item_pos[0][item] = sbufReadU16(src) | (1 << 13);
+            osdLayoutsConfigMutable()->item_pos[getCurrentLayout()][item] = sbufReadU16(src) | (1 << 13);
             osdDrawCustomItem(item);
         }
         else{
