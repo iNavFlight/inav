@@ -1,9 +1,9 @@
 FrSky/Rotorflight VANTAC RF007
 ==============================
 
-Family of flight controllers originally designed for Helicopters using Rotorflight.
+Family of flight controllers originally designed for helicopters using Rotorflight.
 There are three versions available, the only difference is the type of integrated FrSky receiver.
-All versions share the same targets in INAV.
+All versions share the same target in INAV.
 
 Rotorflight's site: https://www.rotorflight.org/docs/controllers/frsky-007
 
@@ -24,26 +24,30 @@ For more information, see the manufacturer's manual.
 Pin configuration
 -----------------
 
+The RPM, TLM, AUX and SBUS pins are Servo/Motor outputs by default.
+However, when UART1 or UART2 are assigned a function in the ports tab, the pins will become a UART instead.
+See the table below.
+
+| Marking on the case | Both UART1 and UART2 unused                                                                    | UART1 in use                                                                                   | UART2 in use                                                                                   | Both UART1 and UART2 in use                                                                    |
+|---------------------|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| S1                  | Output S1                                                                                      | Output S1                                                                                      | Output S1                                                                                      | Output S1                                                                                      |
+| S2                  | Output S2                                                                                      | Output S2                                                                                      | Output S2                                                                                      | Output S2                                                                                      |
+| S3                  | Output S3                                                                                      | Output S3                                                                                      | Output S3                                                                                      | Output S3                                                                                      |
+| TAIL                | Output S4                                                                                      | Output S4                                                                                      | Output S4                                                                                      | Output S4                                                                                      |
+| ESC                 | Output S5                                                                                      | Output S5                                                                                      | Output S5                                                                                      | Output S5                                                                                      |
+| RPM                 | Output S6                                                                                      | Output S6                                                                                      | UART2 TX                                                                                       | UART2 TX                                                                                       |
+| TLM                 | Output S7                                                                                      | Output S7                                                                                      | UART2 RX                                                                                       | UART2 RX                                                                                       |
+| AUX                 | Output S8                                                                                      | UART1 TX                                                                                       | Output S6                                                                                      | UART1 TX                                                                                       |
+| SBUS                | Output S9                                                                                      | UART1 RX                                                                                       | Output S7                                                                                      | UART1 RX                                                                                       |
+| A                   | UART4<br>pin order:<br>TX, RX, 5V, GND                                                         | UART4<br>pin order:<br>TX, RX, 5V, GND                                                         | UART4<br>pin order:<br>TX, RX, 5V, GND                                                         | UART4<br>pin order:<br>TX, RX, 5V, GND                                                         |
+| C                   | I2C<br>pin order:<br>**SDA, SCL, 5V, GND**<br>or<br>UART3<br>pin order:<br>**RX, TX, 5V, GND** | I2C<br>pin order:<br>**SDA, SCL, 5V, GND**<br>or<br>UART3<br>pin order:<br>**RX, TX, 5V, GND** | I2C<br>pin order:<br>**SDA, SCL, 5V, GND**<br>or<br>UART3<br>pin order:<br>**RX, TX, 5V, GND** | I2C<br>pin order:<br>**SDA, SCL, 5V, GND**<br>or<br>UART3<br>pin order:<br>**RX, TX, 5V, GND** |
+| EXT-V               | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND                                          | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND                                          | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND                                          | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND                                          |
+| built-in receiver   | UART5                                                                                          | UART5                                                                                          | UART5                                                                                          | UART5                                                                                          |
+
 All pin orders are from left to right, when looking at the connector on the flight controller.
 
-**Port "C" has the data pins swapped, the manufacturers documentation is incorrect.**  
+**Port "C" has the data pins swapped. The manufacturers documentation is incorrect.**  
 Port "A" is wired correctly.
-
-| Marking on the case | VANTAC_RF007                                          | VANTAC_RF007_9SERVOS                                  | VANTAC_RF007_NOI2C                                    |
-|---------------------|-------------------------------------------------------|-------------------------------------------------------|-------------------------------------------------------|
-| S1                  | Output S1                                             | Output S1                                             | Output S1                                             |
-| S2                  | Output S2                                             | Output S2                                             | Output S2                                             |
-| S3                  | Output S3                                             | Output S3                                             | Output S3                                             |
-| TAIL                | Output S4                                             | Output S4                                             | Output S4                                             |
-| ESC                 | Output S5                                             | Output S5                                             | Output S5                                             |
-| RPM                 | Output S6                                             | Output S6                                             | Output S6                                             |
-| TLM                 | Output S7                                             | Output S7                                             | Output S7                                             |
-| AUX                 | UART1 TX                                              | Output S8                                             | Output S8                                             |
-| SBUS                | UART1 RX                                              | Output S9                                             | Output S9                                             |
-| A                   | UART4<br>pin order:<br>TX, RX, 5V, GND                | UART4<br>pin order:<br>TX, RX, 5V, GND                | UART4<br>pin order:<br>TX, RX, 5V, GND                |
-| C                   | I2C<br>pin order:<br>**SDA, SCL, 5V, GND**            | I2C<br>pin order:<br>**SDA, SCL, 5V, GND**            | UART3<br>pin order:<br>**RX, TX, 5V, GND**            |
-| EXT-V               | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND | battery voltage<br>max 80V<br>pin order:<br>Vbat, GND |
-| built-in receiver   | UART5                                                 | UART5                                                 | UART5                                                 |
 
 Hardware layout
 ---------------

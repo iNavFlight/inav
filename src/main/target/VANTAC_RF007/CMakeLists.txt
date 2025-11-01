@@ -1,3 +1,1 @@
 target_stm32f722xe(VANTAC_RF007)
-target_stm32f722xe(VANTAC_RF007_9SERVOS)
-target_stm32f722xe(VANTAC_RF007_NOI2C)
