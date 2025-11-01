@@ -1,0 +1,9 @@
+file(REMOVE_RECURSE
+  "../../../../openocd/BLACKPILL_F411_BLACKBOX.cfg"
+  "CMakeFiles/openocd_cfg_BLACKPILL_F411_BLACKBOX"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang )
+  include(CMakeFiles/openocd_cfg_BLACKPILL_F411_BLACKBOX.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

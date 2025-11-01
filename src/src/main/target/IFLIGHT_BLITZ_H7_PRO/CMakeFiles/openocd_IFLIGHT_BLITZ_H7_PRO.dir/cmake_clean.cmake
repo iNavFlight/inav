@@ -1,0 +1,9 @@
+file(REMOVE_RECURSE
+  "../../../../openocd/IFLIGHT_BLITZ_H7_PRO.cfg"
+  "CMakeFiles/openocd_IFLIGHT_BLITZ_H7_PRO"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang )
+  include(CMakeFiles/openocd_IFLIGHT_BLITZ_H7_PRO.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

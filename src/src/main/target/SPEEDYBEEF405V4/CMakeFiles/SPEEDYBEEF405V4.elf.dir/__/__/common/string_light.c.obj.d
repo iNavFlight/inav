@@ -1,0 +1,26 @@
+src/main/target/SPEEDYBEEF405V4/CMakeFiles/SPEEDYBEEF405V4.elf.dir/__/__/common/string_light.c.obj: \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/src/main/common/string_light.c \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/lib/gcc/arm-none-eabi/13.2.1/include/limits.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/lib/gcc/arm-none-eabi/13.2.1/include/syslimits.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/limits.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/newlib.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/_newlib_version.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/cdefs.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/machine/_default_types.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/features.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/lib/gcc/arm-none-eabi/13.2.1/include/stddef.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/syslimits.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/string.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/_ansi.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/config.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/machine/ieeefp.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/reent.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/_ansi.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/_types.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/machine/_types.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/lock.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/_locale.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/strings.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/tools/arm-gnu-toolchain-13.2.rel1/arm-none-eabi/include/sys/string.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/src/main/common/string_light.h \
+ /Users/ahmed/Desktop/Projects/INAV-RPiOSD/inav/src/main/common/typeconversion.h

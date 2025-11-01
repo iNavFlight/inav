@@ -1,0 +1,9 @@
+file(REMOVE_RECURSE
+  "../../../../openocd/FOXEERF745AIO_V3.cfg"
+  "CMakeFiles/openocd_FOXEERF745AIO_V3"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang )
+  include(CMakeFiles/openocd_FOXEERF745AIO_V3.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()
