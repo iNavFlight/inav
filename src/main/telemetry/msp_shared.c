@@ -151,7 +151,7 @@ bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
             sbufInit(&mspPackage.requestFrame, frameStart + MSP_INDEX_PAYLOAD_V2, frameStart + payloadLength);
         }
 
-        if (mspPayloadSize <= sizeof(mspPackage.requestBuffer)) { // prevent buffer overrun
+        if (mspPayloadSize <= sizeof(mspRxBuffer)) { // prevent buffer overrun
             mspPackage.requestPacket->result = 0;
             mspPackage.requestPacket->buf.ptr = mspPackage.requestBuffer;
             mspPackage.requestPacket->buf.end = mspPackage.requestBuffer + mspPayloadSize;
