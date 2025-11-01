@@ -2715,7 +2715,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         osdStartFullRedraw();
         break;
 
-    case MSP_OSD_CUSTOM_CHARACTER: {
+    case MSP_OSD_CUSTOM_POSITION: {
         uint8_t item;
         sbufReadU8Safe(&item, src);
         if (item < OSD_ITEM_COUNT){ // item == addr
