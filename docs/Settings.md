@@ -2604,7 +2604,7 @@ Servo travel multiplier for the PITCH axis in `MANUAL` flight mode [0-100]%
 
 ### manual_rc_expo
 
-Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]
+Exponential value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2614,7 +2614,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 ### manual_rc_yaw_expo
 
-Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100]
+Exponential value used for the YAW axis by the `MANUAL` flight mode [0-100]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5764,7 +5764,7 @@ The end  stick weight for Rate Dynamics
 
 ### rc_expo
 
-Exposition value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`)
+Exponential value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5804,7 +5804,7 @@ The RC filter smoothing factor. The higher the value, the more smoothing but als
 
 ### rc_yaw_expo
 
-Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)
+Exponential value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6374,7 +6374,7 @@ Weight used for the throttle compensation based on battery voltage. See the [bat
 
 ### thr_expo
 
-Throttle exposition value
+Throttle exponential value
 
 | Default | Min | Max |
 | --- | --- | --- |

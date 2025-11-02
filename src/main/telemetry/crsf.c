@@ -352,19 +352,26 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
-        if (STATE(AIRMODE_ACTIVE)) {
-            flightMode = "AIR";
-        } else {
-            flightMode = "ACRO";
-        }
+        flightMode = "ACRO";
+#ifdef USE_FW_AUTOLAND
+        if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+            flightMode = "LAND";
+        } else
+#endif
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
-            flightMode = "!FS!";
-        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
-            flightMode = "HRST";
+            flightMode = "!FS!";          
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
+#ifdef USE_GEOZONE
+        } else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE)) {
+            flightMode = "GEO";
+#endif  
+        } else if (FLIGHT_MODE(TURTLE_MODE)) {
+            flightMode = "TURT";
         } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
-            flightMode = "RTH";
+            flightMode = isWaypointMissionRTHActive() ? "WRTH" : "RTH";
+        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE)) {
+            flightMode = "LOTR";
         } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
             flightMode = "HOLD";
         } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
@@ -373,7 +380,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "CRSH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
             flightMode = "AH";
         } else if (FLIGHT_MODE(ANGLE_MODE)) {
             flightMode = "ANGL";
@@ -381,10 +388,6 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "HOR";
         } else if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
             flightMode = "ANGH";
-#ifdef USE_FW_AUTOLAND
-        } else if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-            flightMode = "LAND";
-#endif
         }
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {

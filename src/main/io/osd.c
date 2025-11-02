@@ -2559,15 +2559,14 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "LAND";
             else
 #endif
-#ifdef USE_GEOZONE
-            if (FLIGHT_MODE(NAV_SEND_TO))
-                p = "AUTO";
-            else
-#endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
+#ifdef USE_GEOZONE
+            else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE))
+                p = "GEO";
+#endif
             else if (FLIGHT_MODE(TURTLE_MODE))
                 p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
@@ -3023,7 +3022,7 @@ static bool osdDrawSingleElement(uint8_t item)
             return true;
         }
 
-    case OSD_VARIO_NUM:
+    case OSD_VERTICAL_SPEED_INDICATOR:
         {
             int16_t value = getEstimatedActualVelocity(Z);
             char sym;
@@ -4409,8 +4408,8 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
 
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdLayoutsConfig->item_pos[0][OSD_VARIO] = OSD_POS(23, 5);
-    // OSD_VARIO_NUM at the right of OSD_VARIO
-    osdLayoutsConfig->item_pos[0][OSD_VARIO_NUM] = OSD_POS(24, 7);
+    // OSD_VERTICAL_SPEED_INDICATOR at the right of OSD_VARIO
+    osdLayoutsConfig->item_pos[0][OSD_VERTICAL_SPEED_INDICATOR] = OSD_POS(24, 7);
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIR] = OSD_POS(14, 11);
     osdLayoutsConfig->item_pos[0][OSD_ARTIFICIAL_HORIZON] = OSD_POS(8, 6);
     osdLayoutsConfig->item_pos[0][OSD_HORIZON_SIDEBARS] = OSD_POS(8, 6);
