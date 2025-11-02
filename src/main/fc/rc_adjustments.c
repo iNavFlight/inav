@@ -370,7 +370,7 @@ static void applyAdjustmentExpo(adjustmentFunction_e adjustmentFunction, int8_t 
     if (isYaw)
         applyAdjustmentI8(adjustmentFunction, val, delta, SETTING_RC_YAW_EXPO_MIN, SETTING_RC_YAW_EXPO_MAX);
     else
-        applyAdjustmentU8(adjustmentFunction, val, delta, SETTING_RC_EXPO_MIN, SETTING_RC_EXPO_MAX);
+        applyAdjustmentU8(adjustmentFunction, (uint8_t)val, delta, SETTING_RC_EXPO_MIN, SETTING_RC_EXPO_MAX);
 }
 
 static void applyAdjustmentManualRate(adjustmentFunction_e adjustmentFunction, uint8_t *val, int delta)
