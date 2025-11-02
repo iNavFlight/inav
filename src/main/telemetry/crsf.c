@@ -359,13 +359,13 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         } else
 #endif
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
-            flightMode = "!FS!";
+            flightMode = "!FS!";          
+        } else if (FLIGHT_MODE(MANUAL_MODE)) {
+            flightMode = "MANU";
 #ifdef USE_GEOZONE
         } else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "GEO";
-#endif            
-        } else if (FLIGHT_MODE(MANUAL_MODE)) {
-            flightMode = "MANU";
+#endif  
         } else if (FLIGHT_MODE(TURTLE_MODE)) {
             flightMode = "TURT";
         } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
