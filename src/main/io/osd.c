@@ -6616,7 +6616,7 @@ void osdEraseCustomItem(uint8_t item){
             customElementIndex = 7;
             break;
         default:
-+           return;
+            return;
     }
 
     uint8_t len = customElementLength(customElementIndex);
@@ -6629,6 +6629,6 @@ void osdEraseCustomItem(uint8_t item){
 
 #endif // OSD
 
-unsigned getCurrentLayout(){
+unsigned getCurrentLayout(void){
     return(currentLayout);
 }

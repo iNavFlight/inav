@@ -548,7 +548,7 @@ typedef struct displayCanvas_s displayCanvas_t;
 
 void osdDrawCustomItem(uint8_t item);
 void osdEraseCustomItem(uint8_t item);
-unsigned getCurrentLayout()
+unsigned getCurrentLayout(void);
 
 void osdInit(displayPort_t *osdDisplayPort);
 bool osdDisplayIsPAL(void);
