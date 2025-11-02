@@ -361,7 +361,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
 #endif
 #ifdef USE_GEOZONE
         } else if (FLIGHT_MODE(NAV_SEND_TO)) {
-            flightMode = "AUTO";
+            flightMode = "GEO";
 #endif            
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";

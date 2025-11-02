@@ -2561,7 +2561,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
 #ifdef USE_GEOZONE
             if (FLIGHT_MODE(NAV_SEND_TO))
-                p = "AUTO";
+                p = "GEO";
             else
 #endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
