@@ -9,7 +9,7 @@ Strict + Index:
 - STRICT: If a code exists in one (MSPCodes vs JSON) but not the other, crash with details.
 - Index items link to headings via GitHub-style auto-anchors.
 - Tight layout; identical Request/Reply tables; skip complex=true with a stub.
-- Default input: lib/msp_messages.json ; default output: MSP_Doc.md
+- Default input: msp_messages.json ; default output: MSP_Doc.md
 """
 
 import sys
@@ -355,23 +355,79 @@ def get_fields(section: Any) -> List[Dict[str, Any]]:
     payload = section.get("payload")
     return payload if isinstance(payload, list) else []
 
-def table_with_units(fields: List[Dict[str, Any]], label: str) -> str:
-    header = (
-        f"  \n**{label}:**\n"
-        "| Field | C Type | Size (Bytes) | Units | Description |\n"
-        "|---|---|---|---|---|\n"
-    )
-    rows = []
+def flatten_fields_with_repeats(fields: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Flattens one level of partially repeating payload blocks:
+    Items with {"repeating": "SOME_SYMBOL", "payload": [...]} are expanded so each child
+    field gets a symbolic multiplier in the size column.
+    """
+    out: List[Dict[str, Any]] = []
     for f in fields:
+        if isinstance(f, dict) and "repeating" in f and isinstance(f.get("payload"), list):
+            repeat_sym = str(f["repeating"])
+            for child in f["payload"]:
+                if isinstance(child, dict):
+                    c = dict(child)
+                    # Mark repeat multiplier for the size column
+                    c["_repeat_multiplier"] = repeat_sym
+                    out.append(c)
+        else:
+            out.append(f)
+    return out
+
+
+def table_with_units(fields: List[Dict[str, Any]], label: str) -> str:
+    flat_fields = flatten_fields_with_repeats(fields)
+    has_repeats = any(isinstance(f, dict) and f.get("_repeat_multiplier") for f in flat_fields)
+    has_units = any(
+        isinstance(f, dict) and (
+            ((f.get("units") or "").strip()) or ("enum" in f)
+        )
+        for f in flat_fields
+    )
+
+    # Build dynamic header
+    cols = ["Field", "C Type"]
+    if has_repeats:
+        cols.append("Repeats")
+    cols.append("Size (Bytes)")
+    if has_units:
+        cols.append("Units")
+    cols.append("Description")
+
+    header = "  \n**{label}:**\n".format(label=label)
+    header += "|" + "|".join(cols) + "|\n"
+    header += "|" + "|".join(["---"] * len(cols)) + "|\n"
+
+    # Rows
+    rows: List[str] = []
+    for f in flat_fields:
         name = f.get("name", "")
         ctype = f.get("ctype", "")
         size = sizeof_entry(f)
         if size == "0":
             size = "-"
-        units = units_cell(f)
+
+        row_cells = [f"`{name}`", f"`{ctype}`"]
+
+        if has_repeats:
+            repeats = f.get("_repeat_multiplier") or "-"
+            row_cells.append(repeats)
+
+        row_cells.append(size)
+
+        if has_units:
+            units = units_cell(f)
+            row_cells.append(units)
+
         desc = (f.get("desc") or "").strip()
-        rows.append(f"| `{name}` | `{ctype}` | {size} | {units} | {desc} |")
+        row_cells.append(desc)
+
+        rows.append("| " + " | ".join(row_cells) + " |")
+
     return header + "\n".join(rows) + "\n"
+
+
 
 def render_variant(parent_name: str, variant_name: str, variant_def: Dict[str, Any]) -> str:
     """
@@ -538,24 +594,12 @@ def generate_markdown(defs: Dict[str, Any]) -> str:
     for _, name, body in items:
         sec, _heading = render_message(name, body)
 
-        if name == "MSP_SET_VTX_CONFIG":
-            sections.append(sec.split('\n')[0]+'\n')
-            sec = manual_docs_fix.MSP_SET_VTX_CONFIG + '\n\n'
         if name == "MSP2_COMMON_SET_SETTING":
             sections.append(sec.split('\n')[0]+'\n')
             sec = manual_docs_fix.MSP2_COMMON_SET_SETTING + '\n\n'
-        #if name == "MSP2_INAV_SET_GEOZONE_VERTEX":
-        #    sections.append(sec.split('\n')[0]+'\n')
-        #    sec = manual_docs_fix.MSP2_INAV_SET_GEOZONE_VERTEX + '\n\n'
         if name == "MSP2_SENSOR_HEADTRACKER": 
             sections.append(sec.split('\n')[0]+'\n')
             sec = manual_docs_fix.MSP2_SENSOR_HEADTRACKER + '\n\n'
-        if name == "MSP2_INAV_CUSTOM_OSD_ELEMENT": 
-            sections.append(sec.split('\n')[0]+'\n')
-            sec = manual_docs_fix.MSP2_INAV_CUSTOM_OSD_ELEMENT + '\n\n'
-        if name == "MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS": 
-            sections.append(sec.split('\n')[0]+'\n')
-            sec = manual_docs_fix.MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS + '\n\n'
         sections.append(sec)
 
     with open("docs_v2_header.md", "r", encoding="utf-8") as f:
