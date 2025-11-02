@@ -2,7 +2,6 @@
     "MSP_API_VERSION": {
         "code": 1,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -26,15 +25,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Used by configurators to check compatibility.",
         "description": "Provides the MSP protocol version and the INAV API version."
     },
     "MSP_FC_VARIANT": {
         "code": 2,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -49,15 +45,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "See `FLIGHT_CONTROLLER_IDENTIFIER_LENGTH`.",
         "description": "Identifies the flight controller firmware variant (e.g., INAV, Betaflight)."
     },
     "MSP_FC_VERSION": {
         "code": 3,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -81,15 +74,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Provides the specific version number of the flight controller firmware."
     },
     "MSP_BOARD_INFO": {
         "code": 4,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -139,14 +129,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "`BOARD_IDENTIFIER_LENGTH` is 4.",
         "description": "Provides information about the specific hardware board and its capabilities."
     },
     "MSP_BUILD_INFO": {
         "code": 5,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -179,15 +167,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Provides build date, time, and Git revision of the firmware."
     },
     "MSP_INAV_PID": {
         "code": 6,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -265,15 +250,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP2_PID` for core PIDs and other specific messages for filter settings.",
         "description": "Retrieves legacy INAV-specific PID controller related settings. Many fields are now obsolete or placeholders."
     },
     "MSP_SET_INAV_PID": {
         "code": 7,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -344,15 +326,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 15 bytes.",
         "description": "Sets legacy INAV-specific PID controller related settings."
     },
     "MSP_NAME": {
         "code": 10,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -368,14 +347,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "",
         "description": "Returns the user-defined craft name."
     },
     "MSP_SET_NAME": {
         "code": 11,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -391,14 +368,12 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Maximum length is `MAX_NAME_LENGTH`.",
         "description": "Sets the user-defined craft name."
     },
     "MSP_NAV_POSHOLD": {
         "code": 12,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -452,15 +427,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves navigation position hold and general manual/auto flight parameters. Some parameters depend on the platform type (Multirotor vs Fixed Wing)."
     },
     "MSP_SET_NAV_POSHOLD": {
         "code": 13,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -516,15 +488,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 13 bytes.",
         "description": "Sets navigation position hold and general manual/auto flight parameters."
     },
     "MSP_CALIBRATION_DATA": {
         "code": 14,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -615,15 +584,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Total size 27 bytes. Fields related to optional sensors are zero if the sensor is not used.",
         "description": "Retrieves sensor calibration data (Accelerometer zero/gain, Magnetometer zero/gain, Optical Flow scale)."
     },
     "MSP_SET_CALIBRATION_DATA": {
         "code": 15,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -707,15 +673,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 26 bytes. Ignores values for sensors not enabled by `USE_*` defines.",
         "description": "Sets sensor calibration data."
     },
     "MSP_POSITION_ESTIMATION_CONFIG": {
         "code": 16,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -764,15 +727,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves parameters related to the INAV position estimation fusion weights and GPS minimum satellite count."
     },
     "MSP_SET_POSITION_ESTIMATION_CONFIG": {
         "code": 17,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -820,15 +780,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 12 bytes.",
         "description": "Sets parameters related to the INAV position estimation fusion weights and GPS minimum satellite count."
     },
     "MSP_WP_MISSION_LOAD": {
         "code": 18,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -840,15 +797,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Only functional if `NAV_NON_VOLATILE_WAYPOINT_STORAGE` is defined. Requires 1 byte payload. Returns error if loading fails.",
         "description": "Commands the FC to load the waypoint mission stored in non-volatile memory (e.g., EEPROM or FlashFS) into the active mission buffer."
     },
     "MSP_WP_MISSION_SAVE": {
         "code": 19,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -860,15 +814,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Only functional if `NAV_NON_VOLATILE_WAYPOINT_STORAGE` is defined. Requires 1 byte payload. Returns error if saving fails.",
         "description": "Commands the FC to save the currently active waypoint mission from RAM to non-volatile memory (e.g., EEPROM or FlashFS)."
     },
     "MSP_WP_GETINFO": {
         "code": 20,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -899,15 +850,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves information about the waypoint mission capabilities and the status of the currently loaded mission."
     },
     "MSP_RTH_AND_LAND_CONFIG": {
         "code": 21,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -992,15 +940,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves configuration parameters related to Return-to-Home (RTH) and automatic landing behaviors."
     },
     "MSP_SET_RTH_AND_LAND_CONFIG": {
         "code": 22,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1085,15 +1030,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 21 bytes.",
         "description": "Sets configuration parameters related to Return-to-Home (RTH) and automatic landing behaviors."
     },
     "MSP_FW_CONFIG": {
         "code": 23,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1147,15 +1089,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves configuration parameters specific to Fixed Wing navigation."
     },
     "MSP_SET_FW_CONFIG": {
         "code": 24,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1209,15 +1148,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 12 bytes.",
         "description": "Sets configuration parameters specific to Fixed Wing navigation."
     },
     "MSP_MODE_RANGES": {
         "code": 34,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1249,14 +1185,12 @@
             "repeating": "MAX_MODE_ACTIVATION_CONDITION_COUNT"
         },
         "variable_len": "MAX_MODE_ACTIVATION_CONDITION_COUNT",
-        "complex": false,
         "notes": "The number of steps and mapping to PWM values depends on internal range calculations.",
         "description": "Returns all defined mode activation ranges (aux channel assignments for flight modes)."
     },
     "MSP_SET_MODE_RANGE": {
         "code": 35,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1292,15 +1226,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 5 bytes. Updates the mode configuration and recalculates used mode flags. Returns error if `rangeIndex` or `modePermanentId` is invalid.",
         "description": "Sets a single mode activation range by its index."
     },
     "MSP_FEATURE": {
         "code": 36,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1313,15 +1244,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Feature bits are defined in `feature.h`.",
         "description": "Returns a bitmask of enabled features."
     },
     "MSP_SET_FEATURE": {
         "code": 37,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1334,15 +1262,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 4 bytes. Updates feature configuration and related settings (e.g., RSSI source).",
         "description": "Sets the enabled features using a bitmask. Clears all previous features first."
     },
     "MSP_BOARD_ALIGNMENT": {
         "code": 38,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1366,15 +1291,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Returns the sensor board alignment angles relative to the craft frame."
     },
     "MSP_SET_BOARD_ALIGNMENT": {
         "code": 39,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1398,15 +1320,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 6 bytes.",
         "description": "Sets the sensor board alignment angles."
     },
     "MSP_CURRENT_METER_CONFIG": {
         "code": 40,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1437,15 +1356,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves the configuration for the current sensor."
     },
     "MSP_SET_CURRENT_METER_CONFIG": {
         "code": 41,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1476,15 +1392,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 7 bytes.",
         "description": "Sets the configuration for the current sensor."
     },
     "MSP_MIXER": {
         "code": 42,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1497,15 +1410,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "This command is largely obsolete. Mixer configuration is handled differently in INAV (presets, custom mixes). See `MSP2_INAV_MIXER`.",
         "description": "Retrieves the mixer type (Legacy, INAV always returns QuadX)."
     },
     "MSP_SET_MIXER": {
         "code": 43,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1517,15 +1427,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 1 byte. Calls `mixerUpdateStateFlags()` for potential side effects related to presets.",
         "description": "Sets the mixer type (Legacy, ignored by INAV)."
     },
     "MSP_RX_CONFIG": {
         "code": 44,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1623,15 +1530,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves receiver configuration settings. Some fields are Betaflight compatibility placeholders."
     },
     "MSP_SET_RX_CONFIG": {
         "code": 45,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1722,15 +1626,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 24 bytes.",
         "description": "Sets receiver configuration settings."
     },
     "MSP_LED_COLORS": {
         "code": 46,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1756,14 +1657,12 @@
             "repeating": "LED_CONFIGURABLE_COLOR_COUNT"
         },
         "variable_len": "LED_CONFIGURABLE_COLOR_COUNT",
-        "complex": false,
         "notes": "Only available if `USE_LED_STRIP` is defined.",
         "description": "Retrieves the HSV color definitions for configurable LED colors."
     },
     "MSP_SET_LED_COLORS": {
         "code": 47,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1789,14 +1688,12 @@
         },
         "reply": null,
         "variable_len": "LED_CONFIGURABLE_COLOR_COUNT",
-        "complex": false,
         "notes": "Only available if `USE_LED_STRIP` is defined. Expects `LED_CONFIGURABLE_COLOR_COUNT * 4` bytes.",
         "description": "Sets the HSV color definitions for configurable LED colors."
     },
     "MSP_LED_STRIP_CONFIG": {
         "code": 48,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1810,14 +1707,12 @@
             "repeating": "LED_MAX_STRIP_LENGTH"
         },
         "variable_len": "LED_MAX_STRIP_LENGTH",
-        "complex": false,
         "notes": "Only available if `USE_LED_STRIP` is defined. Superseded by `MSP2_INAV_LED_STRIP_CONFIG_EX` which uses a clearer struct.",
         "description": "Retrieves the configuration for each LED on the strip (legacy packed format)."
     },
     "MSP_SET_LED_STRIP_CONFIG": {
         "code": 49,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1835,15 +1730,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Only available if `USE_LED_STRIP` is defined. Expects 5 bytes. Calls `reevaluateLedConfig()`. Superseded by `MSP2_INAV_SET_LED_STRIP_CONFIG_EX`.",
         "description": "Sets the configuration for a single LED on the strip using the legacy packed format."
     },
     "MSP_RSSI_CONFIG": {
         "code": 50,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1855,15 +1747,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves the channel used for analog RSSI input."
     },
     "MSP_SET_RSSI_CONFIG": {
         "code": 51,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1875,15 +1764,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 1 byte. Input value is constrained 0 to `MAX_SUPPORTED_RC_CHANNEL_COUNT`. Updates the effective RSSI source.",
         "description": "Sets the channel used for analog RSSI input."
     },
     "MSP_ADJUSTMENT_RANGES": {
         "code": 52,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -1927,14 +1813,12 @@
             "repeating": "MAX_ADJUSTMENT_RANGE_COUNT"
         },
         "variable_len": "MAX_ADJUSTMENT_RANGE_COUNT",
-        "complex": false,
         "notes": "See `adjustmentRange_t`.",
         "description": "Returns all defined RC adjustment ranges (tuning via aux channels)."
     },
     "MSP_SET_ADJUSTMENT_RANGE": {
         "code": 53,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -1982,39 +1866,30 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 7 bytes. Returns error if `rangeIndex` or `adjustmentIndex` is invalid.",
         "description": "Sets a single RC adjustment range configuration by its index."
     },
     "MSP_CF_SERIAL_CONFIG": {
         "code": 54,
         "mspv": 1,
-        "direction": 1,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`. Use `MSP2_COMMON_SERIAL_CONFIG`.",
         "description": "Deprecated command to get serial port configuration."
     },
     "MSP_SET_CF_SERIAL_CONFIG": {
         "code": 55,
         "mspv": 1,
-        "direction": 0,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`. Use `MSP2_COMMON_SET_SERIAL_CONFIG`.",
         "description": "Deprecated command to set serial port configuration."
     },
     "MSP_VOLTAGE_METER_CONFIG": {
         "code": 56,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2044,15 +1919,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_BATTERY_CONFIG`.",
         "description": "Retrieves legacy voltage meter configuration (scaled values)."
     },
     "MSP_SET_VOLTAGE_METER_CONFIG": {
         "code": 57,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -2082,15 +1954,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 4 bytes. Superseded by `MSP2_INAV_SET_BATTERY_CONFIG`.",
         "description": "Sets legacy voltage meter configuration (scaled values)."
     },
     "MSP_SONAR_ALTITUDE": {
         "code": 58,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2102,15 +1971,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves the altitude measured by the primary rangefinder (sonar or lidar)."
     },
     "MSP_RX_MAP": {
         "code": 64,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2126,14 +1992,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "`MAX_MAPPABLE_RX_INPUTS` is typically 8 or more.",
         "description": "Retrieves the RC channel mapping array (AETR, etc.)."
     },
     "MSP_SET_RX_MAP": {
         "code": 65,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -2149,25 +2013,20 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Expects `MAX_MAPPABLE_RX_INPUTS` bytes.",
         "description": "Sets the RC channel mapping array."
     },
     "MSP_REBOOT": {
         "code": 68,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "The FC sends an ACK *before* rebooting. The `mspPostProcessFn` is set to `mspRebootFn` to perform the reboot after the reply is sent. Will fail if the craft is armed.",
         "description": "Commands the flight controller to reboot."
     },
     "MSP_DATAFLASH_SUMMARY": {
         "code": 70,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2197,15 +2056,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_FLASHFS`.",
         "description": "Retrieves summary information about the onboard dataflash chip (if present and used for Blackbox via FlashFS)."
     },
     "MSP_DATAFLASH_READ": {
         "code": 71,
         "mspv": 1,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -2243,25 +2099,20 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_FLASHFS`. Read length may be truncated by buffer size or end of flashfs volume.",
         "description": "Reads a block of data from the onboard dataflash (FlashFS)."
     },
     "MSP_DATAFLASH_ERASE": {
         "code": 72,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_FLASHFS`. This is a potentially long operation. Use with caution.",
         "description": "Erases the entire onboard dataflash chip (FlashFS volume)."
     },
     "MSP_LOOP_TIME": {
         "code": 73,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2273,15 +2124,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "This is the *configured* target loop time, not necessarily the *actual* measured cycle time (see `MSP_STATUS`).",
         "description": "Retrieves the configured loop time (PID loop frequency denominator)."
     },
     "MSP_SET_LOOP_TIME": {
         "code": 74,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -2293,15 +2141,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 2 bytes.",
         "description": "Sets the configured loop time."
     },
     "MSP_FAILSAFE_CONFIG": {
         "code": 75,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2387,15 +2232,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves the failsafe configuration settings."
     },
     "MSP_SET_FAILSAFE_CONFIG": {
         "code": 76,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -2480,15 +2322,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 20 bytes.",
         "description": "Sets the failsafe configuration settings."
     },
     "MSP_SDCARD_SUMMARY": {
         "code": 79,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2526,15 +2365,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_SDCARD` and `USE_ASYNCFATFS`.",
         "description": "Retrieves summary information about the SD card status and filesystem."
     },
     "MSP_BLACKBOX_CONFIG": {
         "code": 80,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2568,51 +2404,39 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Returns fixed zero values. Use `MSP2_BLACKBOX_CONFIG`.",
         "description": "Legacy command to retrieve Blackbox configuration. Superseded by `MSP2_BLACKBOX_CONFIG`."
     },
     "MSP_SET_BLACKBOX_CONFIG": {
         "code": 81,
         "mspv": 1,
-        "direction": 0,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in `fc_msp.c`. Use `MSP2_SET_BLACKBOX_CONFIG`.",
         "description": "Legacy command to set Blackbox configuration. Superseded by `MSP2_SET_BLACKBOX_CONFIG`."
     },
     "MSP_TRANSPONDER_CONFIG": {
         "code": 82,
         "mspv": 1,
-        "direction": 1,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`.",
         "description": "Get VTX Transponder settings (likely specific to RaceFlight/Betaflight, not standard INAV VTX)."
     },
     "MSP_SET_TRANSPONDER_CONFIG": {
         "code": 83,
         "mspv": 1,
-        "direction": 0,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`.",
         "description": "Set VTX Transponder settings."
     },
     "MSP_OSD_CONFIG": {
         "code": 84,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2685,18 +2509,14 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_OSD` for meaningful data, but payload is always sent. Coordinates are packed: `(Y << 8) | X`. See `MSP2_INAV_OSD_*` commands for more detail and multi-layout support.",
         "description": "Retrieves OSD configuration settings and layout for screen 0."
     },
     "MSP_SET_OSD_CONFIG": {
         "code": 85,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`. Distinguishes formats based on the first byte. Format 1 requires at least 10 bytes. Format 2 requires 3 bytes. Triggers an OSD redraw. See `MSP2_INAV_OSD_SET_*` for more advanced control.",
         "description": "Sets OSD configuration or a single item's position on screen 0.",
         "variants": {
@@ -2778,19 +2598,15 @@
     "MSP_OSD_CHAR_READ": {
         "code": 86,
         "mspv": 1,
-        "direction": 1,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`. Requires direct hardware access, typically done via DisplayPort.",
         "description": "Reads character data from the OSD font memory."
     },
     "MSP_OSD_CHAR_WRITE": {
         "code": 87,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -2813,7 +2629,6 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_OSD`. Payload size determines address size (8/16 bit) and character data size (visible bytes only or full char with metadata). Uses `displayWriteFontCharacter()`. Requires OSD hardware (like MAX7456) to be present and functional.",
         "description": "Writes character data to the OSD font memory.",
         "variants": {
@@ -2906,7 +2721,6 @@
     "MSP_VTX_CONFIG": {
         "code": 88,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -2979,257 +2793,252 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "BF compatibility field `frequency` (uint16) is missing compared to some BF versions. Use `MSP_VTXTABLE_BAND` and `MSP_VTXTABLE_POWERLEVEL` for details.",
         "description": "Retrieves the current VTX (Video Transmitter) configuration and capabilities."
     },
-
     "MSP_SET_VTX_CONFIG": {
         "code": 89,
         "mspv": 1,
         "request": null,
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Requires dataSize >= 2. If no VTX device or device type is VTXDEV_UNKNOWN, fields are read and discarded. The first uint16 is interpreted as band/channel when value <= VTXCOMMON_MSP_BANDCHAN_CHKVAL, otherwise treated as a frequency value that is not applied by this path. Subsequent fields are applied only if present. If dataSize < 2 the command returns MSP_RESULT_ERROR.",
         "description": "Sets VTX band/channel and related options. Fields are a progressive superset based on payload length.",
         "variants": {
-        "dataSize == 2": {
-            "description": "Minimum payload",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t",
-                "desc": "If <= VTXCOMMON_MSP_BANDCHAN_CHKVAL: encoded band/channel using (value/8)+1 and (value%8)+1. Otherwise: frequency value ignored by this implementation."
-                }
-            ]
+            "dataSize == 2": {
+                "description": "Minimum payload",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t",
+                            "desc": "If <= VTXCOMMON_MSP_BANDCHAN_CHKVAL: encoded band/channel using (value/8)+1 and (value%8)+1. Otherwise: frequency value ignored by this implementation."
+                        }
+                    ]
+                },
+                "reply": null
             },
-            "reply": null
-        },
-        "dataSize == 4": {
-            "description": "Adds power and pitmode",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t",
-                "desc": "See smallest variant."
+            "dataSize == 4": {
+                "description": "Adds power and pitmode",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t",
+                            "desc": "See smallest variant."
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t",
+                            "desc": "Power level index; 0 is lowest."
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t",
+                            "desc": "0 or 1. Delegated to VTX driver."
+                        }
+                    ]
                 },
-                {
-                "name": "power",
-                "ctype": "uint8_t",
-                "desc": "Power level index; 0 is lowest."
-                },
-                {
-                "name": "pitMode",
-                "ctype": "uint8_t",
-                "desc": "0 or 1. Delegated to VTX driver."
-                }
-            ]
+                "reply": null
             },
-            "reply": null
-        },
-        "dataSize == 5": {
-            "description": "Adds lowPowerDisarm",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t"
+            "dataSize == 5": {
+                "description": "Adds lowPowerDisarm",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e",
+                            "desc": "VTX_LOW_POWER_DISARM_OFF=0, ALWAYS=1, UNTIL_FIRST_ARM=2"
+                        }
+                    ]
                 },
-                {
-                "name": "power",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "pitMode",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "lowPowerDisarm",
-                "ctype": "uint8_t",
-                "enum": "vtxLowerPowerDisarm_e",
-                "desc": "VTX_LOW_POWER_DISARM_OFF=0, ALWAYS=1, UNTIL_FIRST_ARM=2"
-                }
-            ]
+                "reply": null
             },
-            "reply": null
-        },
-        "dataSize == 7": {
-            "description": "Adds pitModeFreq placeholder",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t"
+            "dataSize == 7": {
+                "description": "Adds pitModeFreq placeholder",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t",
+                            "desc": "Read and skipped in this implementation."
+                        }
+                    ]
                 },
-                {
-                "name": "power",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "pitMode",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "lowPowerDisarm",
-                "ctype": "uint8_t",
-                "enum": "vtxLowerPowerDisarm_e"
-                },
-                {
-                "name": "pitModeFreq",
-                "ctype": "uint16_t",
-                "desc": "Read and skipped in this implementation."
-                }
-            ]
+                "reply": null
             },
-            "reply": null
-        },
-        "dataSize == 9": {
-            "description": "Adds explicit band/channel (API 1.42 extension)",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t"
+            "dataSize == 9": {
+                "description": "Adds explicit band/channel (API 1.42 extension)",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "band",
+                            "ctype": "uint8_t",
+                            "desc": "1..N; overrides band when present."
+                        },
+                        {
+                            "name": "channel",
+                            "ctype": "uint8_t",
+                            "desc": "1..8; overrides channel when present."
+                        }
+                    ]
                 },
-                {
-                "name": "power",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "pitMode",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "lowPowerDisarm",
-                "ctype": "uint8_t",
-                "enum": "vtxLowerPowerDisarm_e"
-                },
-                {
-                "name": "pitModeFreq",
-                "ctype": "uint16_t"
-                },
-                {
-                "name": "band",
-                "ctype": "uint8_t",
-                "desc": "1..N; overrides band when present."
-                },
-                {
-                "name": "channel",
-                "ctype": "uint8_t",
-                "desc": "1..8; overrides channel when present."
-                }
-            ]
+                "reply": null
             },
-            "reply": null
-        },
-        "dataSize == 11": {
-            "description": "Adds explicit frequency (API 1.42 extension)",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t"
+            "dataSize == 11": {
+                "description": "Adds explicit frequency (API 1.42 extension)",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "band",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "channel",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "frequency",
+                            "ctype": "uint16_t",
+                            "desc": "Read and ignored by this implementation."
+                        }
+                    ]
                 },
-                {
-                "name": "power",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "pitMode",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "lowPowerDisarm",
-                "ctype": "uint8_t",
-                "enum": "vtxLowerPowerDisarm_e"
-                },
-                {
-                "name": "pitModeFreq",
-                "ctype": "uint16_t"
-                },
-                {
-                "name": "band",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "channel",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "frequency",
-                "ctype": "uint16_t",
-                "desc": "Read and ignored by this implementation."
-                }
-            ]
+                "reply": null
             },
-            "reply": null
-        },
-        "dataSize == 14": {
-            "description": "Adds reported counts; only powerCount may cap capability",
-            "request": {
-            "payload": [
-                {
-                "name": "bandChanOrFreq",
-                "ctype": "uint16_t"
+            "dataSize == 14": {
+                "description": "Adds reported counts; only powerCount may cap capability",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "band",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "channel",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "frequency",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "bandCount",
+                            "ctype": "uint8_t",
+                            "desc": "Read and ignored."
+                        },
+                        {
+                            "name": "channelCount",
+                            "ctype": "uint8_t",
+                            "desc": "Read and ignored."
+                        },
+                        {
+                            "name": "powerCount",
+                            "ctype": "uint8_t",
+                            "desc": "If 0 < value < current capability, caps vtxDevice->capability.powerCount."
+                        }
+                    ]
                 },
-                {
-                "name": "power",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "pitMode",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "lowPowerDisarm",
-                "ctype": "uint8_t",
-                "enum": "vtxLowerPowerDisarm_e"
-                },
-                {
-                "name": "pitModeFreq",
-                "ctype": "uint16_t"
-                },
-                {
-                "name": "band",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "channel",
-                "ctype": "uint8_t"
-                },
-                {
-                "name": "frequency",
-                "ctype": "uint16_t"
-                },
-                {
-                "name": "bandCount",
-                "ctype": "uint8_t",
-                "desc": "Read and ignored."
-                },
-                {
-                "name": "channelCount",
-                "ctype": "uint8_t",
-                "desc": "Read and ignored."
-                },
-                {
-                "name": "powerCount",
-                "ctype": "uint8_t",
-                "desc": "If 0 < value < current capability, caps vtxDevice->capability.powerCount."
-                }
-            ]
-            },
-            "reply": null
-        }
+                "reply": null
+            }
         }
     },
     "MSP_ADVANCED_CONFIG": {
         "code": 90,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3281,15 +3090,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves advanced hardware-related configuration (PWM protocols, rates). Some fields are BF compatibility placeholders."
     },
     "MSP_SET_ADVANCED_CONFIG": {
         "code": 91,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -3337,15 +3143,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 9 bytes.",
         "description": "Sets advanced hardware-related configuration (PWM protocols, rates)."
     },
     "MSP_FILTER_CONFIG": {
         "code": 92,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3423,15 +3226,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves filter configuration settings (Gyro, D-term, Yaw, Accel). Some fields are BF compatibility placeholders or legacy."
     },
     "MSP_SET_FILTER_CONFIG": {
         "code": 93,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -3502,15 +3302,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires specific payload sizes (5, 9, 13, 17, 21, or 22 bytes) to be accepted. Calls `pidInitFilters()` if size >= 13.",
         "description": "Sets filter configuration settings. Handles different payload lengths for backward compatibility."
     },
     "MSP_PID_ADVANCED": {
         "code": 94,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3582,15 +3379,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Acceleration limits are scaled by 10 for compatibility.",
         "description": "Retrieves advanced PID tuning parameters. Many fields are BF compatibility placeholders."
     },
     "MSP_SET_PID_ADVANCED": {
         "code": 95,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -3653,15 +3447,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 17 bytes.",
         "description": "Sets advanced PID tuning parameters."
     },
     "MSP_SENSOR_CONFIG": {
         "code": 96,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3709,15 +3500,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves the configured hardware type for various sensors."
     },
     "MSP_SET_SENSOR_CONFIG": {
         "code": 97,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -3765,39 +3553,30 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 6 bytes.",
         "description": "Sets the configured hardware type for various sensors."
     },
     "MSP_SPECIAL_PARAMETERS": {
         "code": 98,
         "mspv": 1,
-        "direction": 1,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`.",
         "description": "Betaflight specific"
     },
     "MSP_SET_SPECIAL_PARAMETERS": {
         "code": 99,
         "mspv": 1,
-        "direction": 0,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`.",
         "description": "Betaflight specific"
     },
     "MSP_IDENT": {
         "code": 100,
         "mspv": 1,
-        "direction": 1,
         "implemented": false,
         "request": null,
         "reply": {
@@ -3830,15 +3609,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Obsolete. Listed for legacy compatibility only.",
         "description": "Provides basic flight controller identity information. Not implemented in modern INAV, but used by legacy versions and MultiWii."
     },
     "MSP_STATUS": {
         "code": 101,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3876,15 +3652,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP_STATUS_EX` and `MSP2_INAV_STATUS`. `sensorStatus` bitmask: (Bit 0: ACC, 1: BARO, 2: MAG, 3: GPS, 4: RANGEFINDER, 5: GYRO). `activeModesLow` only contains the first 32 modes; use `MSP_ACTIVEBOXES` for the full set.",
         "description": "Provides basic flight controller status including cycle time, errors, sensor status, active modes (first 32), and the current configuration profile."
     },
     "MSP_RAW_IMU": {
         "code": 102,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3944,15 +3717,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Acc scaling is approximate (512 LSB/G). Mag units depend on the sensor.",
         "description": "Provides raw sensor readings from the IMU (Accelerometer, Gyroscope, Magnetometer)."
     },
     "MSP_SERVO": {
         "code": 103,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3968,14 +3738,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "",
         "description": "Provides the current output values for all supported servos."
     },
     "MSP_MOTOR": {
         "code": 104,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -3990,15 +3758,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Provides the current output values for the first 8 motors."
     },
     "MSP_RC": {
         "code": 105,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4014,14 +3779,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "",
         "description": "Provides the current values of the received RC channels."
     },
     "MSP_RAW_GPS": {
         "code": 106,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4076,15 +3839,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Only available if `USE_GPS` is defined. Altitude is truncated to meters.",
         "description": "Provides raw GPS data (fix status, coordinates, altitude, speed, course)."
     },
     "MSP_COMP_GPS": {
         "code": 107,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4108,15 +3868,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Only available if `USE_GPS` is defined.",
         "description": "Provides computed GPS values: distance and direction to home."
     },
     "MSP_ATTITUDE": {
         "code": 108,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4140,15 +3897,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Yaw is converted from deci-degrees to degrees.",
         "description": "Provides the current attitude estimate (roll, pitch, yaw)."
     },
     "MSP_ALTITUDE": {
         "code": 109,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4172,15 +3926,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Provides estimated altitude, vertical speed (variometer), and raw barometric altitude."
     },
     "MSP_ANALOG": {
         "code": 110,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4210,15 +3961,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_ANALOG` which provides higher precision and more fields.",
         "description": "Provides analog sensor readings: battery voltage, current consumption (mAh), RSSI, and current draw (Amps)."
     },
     "MSP_RC_TUNING": {
         "code": 111,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4285,15 +4033,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_RATE_PROFILE` which includes manual rates/expos.",
         "description": "Retrieves RC tuning parameters (rates, expos, TPA) for the current control rate profile."
     },
     "MSP_ACTIVEBOXES": {
         "code": 113,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4306,15 +4051,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Use this instead of `MSP_STATUS` or `MSP_STATUS_EX` if more than 32 modes are possible.",
         "description": "Provides the full bitmask of currently active flight modes (boxes)."
     },
     "MSP_MISC": {
         "code": 114,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4418,15 +4160,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_MISC` and other specific commands which offer better precision and more fields.",
         "description": "Retrieves miscellaneous configuration settings, mostly related to RC, GPS, Mag, and Battery voltage (legacy formats)."
     },
     "MSP_BOXNAMES": {
         "code": 116,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4442,14 +4181,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "The exact set of names depends on compiled features and configuration. Due to the size of the payload, it is recommended that [`MSP_BOXIDS`](#msp_boxids-119--0x77) is used instead.",
         "description": "Provides a semicolon-separated string containing the names of all available flight modes (boxes)."
     },
     "MSP_PIDNAMES": {
         "code": 117,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4465,14 +4202,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "",
         "description": "Provides a semicolon-separated string containing the names of the PID controllers."
     },
     "MSP_WP": {
         "code": 118,
         "mspv": 1,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -4543,15 +4278,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "See `navWaypoint_t` and `navWaypointActions_e`.",
         "description": "Get/Set a single waypoint from the mission plan."
     },
     "MSP_BOXIDS": {
         "code": 119,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4567,14 +4299,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Useful for mapping mode range configurations (`MSP_MODE_RANGES`) back to user-understandable modes via `MSP_BOXNAMES`.",
         "description": "Provides a list of permanent IDs associated with the available flight modes (boxes)."
     },
     "MSP_SERVO_CONFIGURATIONS": {
         "code": 120,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4630,14 +4360,12 @@
             "repeating": "MAX_SUPPORTED_SERVOS"
         },
         "variable_len": "MAX_SUPPORTED_SERVOS",
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_SERVO_CONFIG` which has a cleaner structure.",
         "description": "Retrieves the configuration parameters for all supported servos (min, max, middle, rate). Legacy format with unused fields."
     },
     "MSP_NAV_STATUS": {
         "code": 121,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4683,8 +4411,6 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GPS`.",
         "description": "Retrieves the current status of the navigation system."
     },
@@ -4696,7 +4422,6 @@
     "MSP_3D": {
         "code": 124,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4720,15 +4445,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires reversible motor support.",
         "description": "Retrieves settings related to 3D/reversible motor operation."
     },
     "MSP_RC_DEADBAND": {
         "code": 125,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4758,15 +4480,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves RC input deadband settings."
     },
     "MSP_SENSOR_ALIGNMENT": {
         "code": 126,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4798,15 +4517,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Board alignment is now typically handled by `MSP_BOARD_ALIGNMENT`. This returns legacy enum values where applicable.",
         "description": "Retrieves sensor alignment settings (legacy format)."
     },
     "MSP_LED_STRIP_MODECOLOR": {
         "code": 127,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4834,14 +4550,12 @@
             "repeating": "LED_MODE_COUNT * LED_DIRECTION_COUNT"
         },
         "variable_len": "LED_MODE_COUNT * LED_DIRECTION_COUNT",
-        "complex": false,
         "notes": "Only available if `USE_LED_STRIP` is defined. Allows mapping modes/directions/specials to configured colors.",
         "description": "Retrieves the color index assigned to each LED mode and function/direction combination, including special colors."
     },
     "MSP_BATTERY_STATE": {
         "code": 130,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -4890,26 +4604,20 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Only available if `USE_DJI_HD_OSD` or `USE_MSP_DISPLAYPORT` is defined. Some values are duplicated from `MSP_ANALOG` / `MSP2_INAV_ANALOG` but potentially with different scaling/types.",
         "description": "Provides battery state information, formatted primarily for DJI FPV Goggles compatibility."
     },
     "MSP_VTXTABLE_BAND": {
         "code": 137,
         "mspv": 1,
-        "direction": 2,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "The ID is defined, but no handler exists in the provided C code. Likely intended to query band names and frequencies.",
         "description": "Retrieves information about a specific VTX band from the VTX table. (Implementation missing in provided `fc_msp.c`)"
     },
     "MSP_VTXTABLE_POWERLEVEL": {
         "code": 138,
         "mspv": 1,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -4953,14 +4661,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_VTX_CONTROL`. Returns error if index is out of bounds. The `powerValue` field is unused.",
         "description": "Retrieves information about a specific VTX power level from the VTX table."
     },
     "MSP_STATUS_EX": {
         "code": 150,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -5018,15 +4724,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_STATUS` which provides the full 32-bit `armingFlags` and other enhancements.",
         "description": "Provides extended flight controller status, including CPU load, arming flags, and calibration status, in addition to `MSP_STATUS` fields."
     },
     "MSP_SENSOR_STATUS": {
         "code": 151,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -5094,15 +4797,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Status values likely correspond to `SENSOR_STATUS_*` enums (e.g., OK, Unhealthy, Not Present).",
         "description": "Provides the hardware status for each individual sensor system."
     },
     "MSP_UID": {
         "code": 160,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -5126,15 +4826,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Total 12 bytes, representing a 96-bit unique ID.",
         "description": "Provides the unique identifier of the microcontroller."
     },
     "MSP_GPSSVINFO": {
         "code": 164,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -5166,15 +4863,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GPS`. This is just a stub in INAV and does not provide actual per-satellite signal info. `hdopUnits` duplicates `hdopHundreds`.",
         "description": "Provides satellite signal strength information (legacy U-Blox compatibility stub)."
     },
     "MSP_GPSSTATISTICS": {
         "code": 166,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -5222,48 +4916,36 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GPS`.",
         "description": "Provides debugging statistics for the GPS communication link."
     },
     "MSP_OSD_VIDEO_CONFIG": {
         "code": 180,
         "mspv": null,
-        "direction": null,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "name": "MSP_OSD_VIDEO_CONFIG",
         "missing": true
     },
     "MSP_SET_OSD_VIDEO_CONFIG": {
         "code": 181,
         "mspv": null,
-        "direction": null,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "name": "MSP_SET_OSD_VIDEO_CONFIG",
         "missing": true
     },
     "MSP_DISPLAYPORT": {
         "code": 182,
         "mspv": null,
-        "direction": null,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "name": "MSP_DISPLAYPORT",
         "missing": true
     },
     "MSP_SET_TX_INFO": {
         "code": 186,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5275,15 +4957,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Calls `setRSSIFromMSP()`. Expects 1 byte.",
         "description": "Allows a transmitter LUA script (or similar) to send runtime information (currently only RSSI) to the firmware."
     },
     "MSP_TX_INFO": {
         "code": 187,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -5302,15 +4981,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "See `rssiSource_e`.",
         "description": "Provides information potentially useful for transmitter LUA scripts."
     },
     "MSP_SET_RAW_RC": {
         "code": 200,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5326,14 +5002,12 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_RX_MSP`. Maximum channels `MAX_SUPPORTED_RC_CHANNEL_COUNT`. Calls `rxMspFrameReceive()`.",
         "description": "Provides raw RC channel data to the flight controller, typically used when the receiver is connected via MSP (e.g., MSP RX feature)."
     },
     "MSP_SET_RAW_GPS": {
         "code": 201,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5382,27 +5056,21 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GPS`. Expects 14 bytes. Updates `gpsSol` structure and calls `onNewGPSData()`. Note the altitude unit mismatch (meters in MSP, cm internal). Does not provide velocity components.",
         "description": "Provides raw GPS data to the flight controller, typically for simulation or external GPS injection."
     },
     "MSP_SET_BOX": {
         "code": 203,
         "mspv": 1,
-        "direction": 0,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`. Mode changes are typically handled via RC channels (`MSP_MODE_RANGES`).",
         "description": "Sets the state of flight modes (boxes). (Likely unused/obsolete in INAV)."
     },
     "MSP_SET_RC_TUNING": {
         "code": 204,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5469,37 +5137,28 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 10 or 11 bytes. Calls `schedulePidGainsUpdate()`. Superseded by `MSP2_INAV_SET_RATE_PROFILE`.",
         "description": "Sets RC tuning parameters (rates, expos, TPA) for the current control rate profile."
     },
     "MSP_ACC_CALIBRATION": {
         "code": 205,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Will fail if armed. Calls `accStartCalibration()`.",
         "description": "Starts the accelerometer calibration procedure."
     },
     "MSP_MAG_CALIBRATION": {
         "code": 206,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Will fail if armed. Enables the `CALIBRATE_MAG` state flag.",
         "description": "Starts the magnetometer calibration procedure."
     },
     "MSP_SET_MISC": {
         "code": 207,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5598,26 +5257,20 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 22 bytes. Superseded by `MSP2_INAV_SET_MISC`.",
         "description": "Sets miscellaneous configuration settings (legacy formats/scaling)."
     },
     "MSP_RESET_CONF": {
         "code": 208,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Will fail if armed. Suspends RX, calls `resetEEPROM()`, `writeEEPROM()`, `readEEPROM()`, resumes RX. Use with caution!",
         "description": "Resets all configuration settings to their default values and saves to EEPROM."
     },
     "MSP_SET_WP": {
         "code": 209,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5679,15 +5332,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 21 bytes. Calls `setWaypoint()`. If `USE_FW_AUTOLAND` is enabled, this also interacts with autoland approach settings based on waypoint index and flags.",
         "description": "Sets a single waypoint in the mission plan."
     },
     "MSP_SELECT_SETTING": {
         "code": 210,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5699,15 +5349,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Will fail if armed. Calls `setConfigProfileAndWriteEEPROM()`.",
         "description": "Selects the active configuration profile and saves it."
     },
     "MSP_SET_HEAD": {
         "code": 211,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5719,15 +5366,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 2 bytes. Calls `updateHeadingHoldTarget()`.",
         "description": "Sets the target heading for the heading hold controller (e.g., during MAG mode)."
     },
     "MSP_SET_SERVO_CONFIGURATION": {
         "code": 212,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5783,15 +5427,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 15 bytes. Returns error if index is invalid. Calls `servoComputeScalingFactors()`. Superseded by `MSP2_INAV_SET_SERVO_CONFIG`.",
         "description": "Sets the configuration for a single servo (legacy format)."
     },
     "MSP_SET_MOTOR": {
         "code": 214,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5806,8 +5447,6 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently.",
         "description": "Sets the disarmed motor values, typically used for motor testing or propeller balancing functions in a configurator."
     },
@@ -5819,7 +5458,6 @@
     "MSP_SET_3D": {
         "code": 217,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5843,15 +5481,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 6 bytes. Requires reversible motor support.",
         "description": "Sets parameters related to 3D/reversible motor operation."
     },
     "MSP_SET_RC_DEADBAND": {
         "code": 218,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5881,26 +5516,20 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 5 bytes.",
         "description": "Sets RC input deadband values."
     },
     "MSP_SET_RESET_CURR_PID": {
         "code": 219,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Calls `PG_RESET_CURRENT(pidProfile)`. To save, follow with `MSP_EEPROM_WRITE`.",
         "description": "Resets the PIDs of the *current* profile to their default values. Does not save."
     },
     "MSP_SET_SENSOR_ALIGNMENT": {
         "code": 220,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5930,15 +5559,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 4 bytes. Use `MSP_SET_BOARD_ALIGNMENT` for primary board orientation.",
         "description": "Sets sensor alignment (legacy format)."
     },
     "MSP_SET_LED_STRIP_MODECOLOR": {
         "code": 221,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -5962,39 +5588,30 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Only available if `USE_LED_STRIP` is defined. Expects 3 bytes. Returns error if setting fails (invalid index).",
         "description": "Sets the color index for a specific LED mode/function combination."
     },
     "MSP_SET_ACC_TRIM": {
         "code": 239,
         "mspv": 1,
-        "direction": 0,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`. Use `MSP_ACC_CALIBRATION`.",
         "description": "Sets the accelerometer trim values (leveling calibration)."
     },
     "MSP_ACC_TRIM": {
         "code": 240,
         "mspv": 1,
-        "direction": 1,
         "implemented": false,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`. Calibration data via `MSP_CALIBRATION_DATA`.",
         "description": "Gets the accelerometer trim values."
     },
     "MSP_SERVO_MIX_RULES": {
         "code": 241,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6045,14 +5662,12 @@
             "repeating": "MAX_SERVO_RULES"
         },
         "variable_len": "MAX_SERVO_RULES",
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_SERVO_MIXER`.",
         "description": "Retrieves the custom servo mixer rules (legacy format)."
     },
     "MSP_SET_SERVO_MIX_RULE": {
         "code": 242,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6099,15 +5714,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 9 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`. Superseded by `MSP2_INAV_SET_SERVO_MIXER`.",
         "description": "Sets a single custom servo mixer rule (legacy format)."
     },
     "MSP_SET_PASSTHROUGH": {
         "code": 245,
         "mspv": 1,
-        "direction": 2,
         "request": null,
         "reply": {
             "payload": [
@@ -6119,15 +5731,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.",
         "description": "Enables serial passthrough mode to peripherals like ESCs (BLHeli 4-way) or other serial devices."
     },
     "MSP_RTC": {
         "code": 246,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6145,15 +5754,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires RTC hardware/support. Returns (0, 0) if time is not available/set.",
         "description": "Retrieves the current Real-Time Clock time."
     },
     "MSP_SET_RTC": {
         "code": 247,
         "mspv": 1,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6171,48 +5777,36 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires RTC hardware/support. Expects 6 bytes. Uses `rtcSet()`.",
         "description": "Sets the Real-Time Clock time."
     },
     "MSP_EEPROM_WRITE": {
         "code": 250,
         "mspv": 1,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Will fail if armed. Suspends RX, calls `writeEEPROM()`, `readEEPROM()`, resumes RX.",
         "description": "Saves the current configuration from RAM to non-volatile memory (EEPROM/Flash)."
     },
     "MSP_RESERVE_1": {
         "code": 251,
         "mspv": null,
-        "direction": null,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "name": "MSP_RESERVE_1",
         "missing": true
     },
     "MSP_RESERVE_2": {
         "code": 252,
         "mspv": null,
-        "direction": null,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "name": "MSP_RESERVE_2",
         "missing": true
     },
     "MSP_DEBUGMSG": {
         "code": 253,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6228,14 +5822,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "",
         "description": "Retrieves debug (\"serial printf\") messages from the firmware."
     },
     "MSP_DEBUG": {
         "code": 254,
         "mspv": 1,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6250,26 +5842,20 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Useful for developers. See `MSP2_INAV_DEBUG` for 32-bit values.",
         "description": "Retrieves values from the firmware's `debug[]` array (legacy 16-bit version)."
     },
     "MSP_V2_FRAME": {
         "code": 255,
         "mspv": 1,
-        "direction": -1,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "See MSPv2 documentation for the actual frame structure that follows this indicator.",
         "description": "This ID is used as a *payload indicator* within an MSPv1 message structure (`$M>`) to signify that the following payload conforms to the MSPv2 format. It's not a command itself."
     },
     "MSP2_COMMON_TZ": {
         "code": 4097,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6287,19 +5873,14 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Gets the time zone offset configuration."
     },
     "MSP2_COMMON_SET_TZ": {
         "code": 4098,
         "mspv": 2,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Accepts 2 or 3 bytes.",
         "description": "Sets the time zone offset configuration.",
         "variants": {
@@ -6342,7 +5923,6 @@
     "MSP2_COMMON_SETTING": {
         "code": 4099,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -6370,14 +5950,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Returns error if setting not found. Use `MSP2_COMMON_SETTING_INFO` to discover settings, types, and sizes.",
         "description": "Gets the value of a specific configuration setting, identified by name or index."
     },
     "MSP2_COMMON_SET_SETTING": {
         "code": 4100,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6407,7 +5985,6 @@
     "MSP2_COMMON_MOTOR_MIXER": {
         "code": 4101,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6463,14 +6040,12 @@
             "repeating": "MAX_SUPPORTED_MOTORS"
         },
         "variable_len": "MAX_SUPPORTED_MOTORS",
-        "complex": false,
         "notes": "Scaling is `(float_weight + 2.0) * 1000`. `primaryMotorMixer()` provides the data.",
         "description": "Retrieves the current motor mixer configuration (throttle, roll, pitch, yaw weights for each motor) for the primary and secondary mixer profiles."
     },
     "MSP2_COMMON_SET_MOTOR_MIXER": {
         "code": 4102,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6506,15 +6081,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 9 bytes. Modifies `primaryMotorMixerMutable()`. Returns error if index is invalid.",
         "description": "Sets the motor mixer weights for a single motor in the primary mixer profile."
     },
     "MSP2_COMMON_SETTING_INFO": {
         "code": 4103,
         "mspv": 2,
-        "direction": 2,
         "request": null,
         "reply": {
             "payload": [
@@ -6602,14 +6174,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "",
         "description": "Gets detailed information about a specific configuration setting (name, type, range, flags, current value, etc.)."
     },
     "MSP2_COMMON_PG_LIST": {
         "code": 4104,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -6645,14 +6215,12 @@
             "repeating": "for each PGN found"
         },
         "variable_len": "for each PGN found",
-        "complex": false,
         "notes": "Allows efficient fetching of related settings by group.",
         "description": "Gets a list of Parameter Group Numbers (PGNs) used by settings, along with the start and end setting indexes for each group. Can request info for a single PGN."
     },
     "MSP2_COMMON_SERIAL_CONFIG": {
         "code": 4105,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -6698,14 +6266,12 @@
             "repeating": "for each available serial port"
         },
         "variable_len": "for each available serial port",
-        "complex": false,
         "notes": "Baud rate indexes map to actual baud rates (e.g., 9600, 115200). See `baudRates` array.",
         "description": "Retrieves the configuration for all available serial ports."
     },
     "MSP2_COMMON_SET_SERIAL_CONFIG": {
         "code": 4106,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6751,14 +6317,12 @@
         },
         "reply": null,
         "variable_len": "for each port being configured",
-        "complex": false,
         "notes": "Payload size must be a multiple of the size of one port config entry (1 + 4 + 4 = 9 bytes). Returns error if identifier is invalid or size is incorrect. Baud rate indexes are constrained `BAUD_MIN` to `BAUD_MAX`.",
         "description": "Sets the configuration for one or more serial ports."
     },
     "MSP2_COMMON_SET_RADAR_POS": {
         "code": 4107,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6813,26 +6377,20 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 19 bytes. Updates the `radar_pois` array.",
         "description": "Sets the position and status information for a \"radar\" Point of Interest (POI). Used for displaying other craft/objects on the OSD map."
     },
     "MSP2_COMMON_SET_RADAR_ITD": {
         "code": 4108,
         "mspv": 2,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Not implemented in INAV `fc_msp.c`.",
         "description": "Sets radar information to display (likely internal/unused)."
     },
     "MSP2_COMMON_SET_MSP_RC_LINK_STATS": {
         "code": 4109,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6879,15 +6437,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_RX_MSP`. Expects at least 7 bytes. Updates `rxLinkStatistics` and sets RSSI via `setRSSIFromMSP_RC()` only if `sublinkID` is 0. This message expects **no reply** (`MSP_RESULT_NO_REPLY`).",
         "description": "Provides RC link statistics (RSSI, LQ) to the FC, typically from an MSP-based RC link (like ExpressLRS). Sent periodically by the RC link."
     },
     "MSP2_COMMON_SET_MSP_RC_INFO": {
         "code": 4110,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6926,26 +6481,20 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_RX_MSP`. Expects at least 15 bytes. Updates `rxLinkStatistics` only if `sublinkID` is 0. Converts band/mode strings to uppercase. This message expects **no reply** (`MSP_RESULT_NO_REPLY`).",
         "description": "Provides additional RC link information (power levels, band, mode) to the FC from an MSP-based RC link. Sent less frequently than link stats."
     },
     "MSP2_COMMON_GET_RADAR_GPS": {
         "code": 4111,
         "mspv": null,
-        "direction": null,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "name": "MSP2_COMMON_GET_RADAR_GPS",
         "missing": true
     },
     "MSP2_SENSOR_RANGEFINDER": {
         "code": 7937,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6963,15 +6512,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_RANGEFINDER_MSP`. Calls `mspRangefinderReceiveNewData()`.",
         "description": "Provides rangefinder data (distance, quality) from an external MSP-based sensor."
     },
     "MSP2_SENSOR_OPTIC_FLOW": {
         "code": 7938,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -6995,15 +6541,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OPFLOW_MSP`. Calls `mspOpflowReceiveNewData()`.",
         "description": "Provides optical flow data (motion, quality) from an external MSP-based sensor."
     },
     "MSP2_SENSOR_GPS": {
         "code": 7939,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7140,15 +6683,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GPS_PROTO_MSP`. Calls `mspGPSReceiveNewData()`.",
         "description": "Provides detailed GPS data from an external MSP-based GPS module."
     },
     "MSP2_SENSOR_COMPASS": {
         "code": 7940,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7183,15 +6723,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_MAG_MSP`. Calls `mspMagReceiveNewData()`.",
         "description": "Provides magnetometer data from an external MSP-based compass module."
     },
     "MSP2_SENSOR_BAROMETER": {
         "code": 7941,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7220,15 +6757,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_BARO_MSP`. Calls `mspBaroReceiveNewData()`.",
         "description": "Provides barometer data from an external MSP-based barometer module."
     },
     "MSP2_SENSOR_AIRSPEED": {
         "code": 7942,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7257,15 +6791,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_PITOT_MSP`. Calls `mspPitotmeterReceiveNewData()`.",
         "description": "Provides airspeed data from an external MSP-based pitot sensor module."
     },
     "MSP2_SENSOR_HEADTRACKER": {
         "code": 7943,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7278,7 +6809,6 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
         "complex": true,
         "notes": "Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`. Payload structure needs verification from `mspHeadTrackerReceiverNewData` implementation.",
         "description": "Provides head tracker orientation data."
@@ -7286,7 +6816,6 @@
     "MSP2_INAV_STATUS": {
         "code": 8192,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -7343,15 +6872,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Provides comprehensive flight controller status, extending `MSP_STATUS_EX` with full arming flags, battery profile, and mixer profile."
     },
     "MSP2_INAV_OPTICAL_FLOW": {
         "code": 8193,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -7387,15 +6913,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OPFLOW`.",
         "description": "Provides data from the optical flow sensor."
     },
     "MSP2_INAV_ANALOG": {
         "code": 8194,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -7456,15 +6979,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Provides detailed analog sensor readings, superseding `MSP_ANALOG` with higher precision and additional fields."
     },
     "MSP2_INAV_MISC": {
         "code": 8195,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -7600,15 +7120,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves miscellaneous configuration settings, superseding `MSP_MISC` with higher precision and capacity fields."
     },
     "MSP2_INAV_SET_MISC": {
         "code": 8196,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7741,15 +7258,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 41 bytes. Performs validation on `vbatSource` and `capacityUnit`.",
         "description": "Sets miscellaneous configuration settings, superseding `MSP_SET_MISC`."
     },
     "MSP2_INAV_BATTERY_CONFIG": {
         "code": 8197,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -7835,15 +7349,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Fields are 0 if `USE_ADC` is not defined.",
         "description": "Retrieves the configuration specific to the battery voltage and current sensors and capacity settings for the current battery profile."
     },
     "MSP2_INAV_SET_BATTERY_CONFIG": {
         "code": 8198,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -7929,15 +7440,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 29 bytes. Performs validation on `vbatSource` and `capacityUnit`.",
         "description": "Sets the battery voltage/current sensor configuration and capacity settings for the current battery profile."
     },
     "MSP2_INAV_RATE_PROFILE": {
         "code": 8199,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8027,15 +7535,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves the rates and expos for the current control rate profile, including both stabilized and manual flight modes. Supersedes `MSP_RC_TUNING`."
     },
     "MSP2_INAV_SET_RATE_PROFILE": {
         "code": 8200,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8125,15 +7630,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 15 bytes. Constraints applied to rates based on axis.",
         "description": "Sets the rates and expos for the current control rate profile (stabilized and manual). Supersedes `MSP_SET_RC_TUNING`."
     },
     "MSP2_INAV_AIR_SPEED": {
         "code": 8201,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8145,15 +7647,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_PITOT` for measured airspeed. May return GPS ground speed if pitot unavailable but GPS is present and configured.",
         "description": "Retrieves the estimated or measured airspeed."
     },
     "MSP2_INAV_OUTPUT_MAPPING": {
         "code": 8202,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8167,14 +7666,12 @@
             "repeating": "for each Motor/Servo timer"
         },
         "variable_len": "for each Motor/Servo timer",
-        "complex": false,
         "notes": "Superseded by `MSP2_INAV_OUTPUT_MAPPING_EXT2`. Only includes timers *not* used for PPM/PWM input.",
         "description": "Retrieves the output mapping configuration (identifies which timer outputs are used for Motors/Servos). Legacy version sending only 8-bit usage flags."
     },
     "MSP2_INAV_MC_BRAKING": {
         "code": 8203,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8228,15 +7725,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Payload is empty if `USE_MR_BRAKING_MODE` is not defined.",
         "description": "Retrieves configuration parameters for the multirotor braking mode feature."
     },
     "MSP2_INAV_SET_MC_BRAKING": {
         "code": 8204,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8290,15 +7784,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 14 bytes. Returns error if `USE_MR_BRAKING_MODE` is not defined.",
         "description": "Sets configuration parameters for the multirotor braking mode feature."
     },
     "MSP2_INAV_OUTPUT_MAPPING_EXT": {
         "code": 8205,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8318,42 +7809,70 @@
             "repeating": "for each Motor/Servo timer"
         },
         "variable_len": "for each Motor/Servo timer",
-        "complex": false,
         "notes": "Usage flags are truncated to 8 bits. `timerId` mapping is target-specific.",
         "description": "Retrieves extended output mapping configuration (timer ID and usage flags). Obsolete, use `MSP2_INAV_OUTPUT_MAPPING_EXT2`."
     },
     "MSP2_INAV_TIMER_OUTPUT_MODE": {
         "code": 8206,
         "mspv": 2,
-        "direction": 2,
         "request": null,
-        "reply": {
-            "payload": [
-                {
-                    "name": "timerIndex",
-                    "ctype": "uint8_t",
-                    "desc": "Timer index",
-                    "units": ""
-                },
-                {
-                    "name": "outputMode",
-                    "ctype": "uint8_t",
-                    "desc": "Output mode override (`TIMER_OUTPUT_MODE_*` enum)",
-                    "units": "",
-                    "enum": "TIMER_OUTPUT_MODE_*"
+        "reply": null,
+        "variable_len": true,
+        "notes": "Non-SITL only. HARDWARE_TIMER_DEFINITION_COUNT is target specific. Returns MSP_RESULT_ACK on success, MSP_RESULT_ERROR on invalid timer index.",
+        "description": "Reads timer output mode overrides.",
+        "variants": {
+            "dataSize == 0": {
+                "description": "List all timers",
+                "request": null,
+                "reply": {
+                    "payload": [
+                        {
+                            "name": "timerIndex",
+                            "ctype": "uint8_t",
+                            "desc": "Timer index"
+                        },
+                        {
+                            "name": "outputMode",
+                            "ctype": "uint8_t",
+                            "enum": "outputMode_e",
+                            "desc": "OUTPUT_MODE_*"
+                        }
+                    ],
+                    "repeating": "HARDWARE_TIMER_DEFINITION_COUNT"
                 }
-            ],
-            "repeating": "HARDWARE_TIMER_DEFINITION_COUNT"
-        },
-        "variable_len": "HARDWARE_TIMER_DEFINITION_COUNT",
-        "complex": false,
-        "notes": "Only available on non-SITL builds. `HARDWARE_TIMER_DEFINITION_COUNT` varies by target.",
-        "description": "Get or list the output mode override for hardware timers (e.g., force ONESHOT, DSHOT)."
+            },
+            "dataSize == 1": {
+                "description": "Query one timer",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "timerIndex",
+                            "ctype": "uint8_t",
+                            "desc": "0..HARDWARE_TIMER_DEFINITION_COUNT-1"
+                        }
+                    ]
+                },
+                "reply": {
+                    "payload": [
+                        {
+                            "name": "timerIndex",
+                            "ctype": "uint8_t",
+                            "desc": "Echoed timer index"
+                        },
+                        {
+                            "name": "outputMode",
+                            "ctype": "uint8_t",
+                            "enum": "outputMode_e",
+                            "desc": "OUTPUT_MODE_*"
+                        }
+                    ]
+                }
+            }
+        }
     },
     "MSP2_INAV_SET_TIMER_OUTPUT_MODE": {
         "code": 8207,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8367,20 +7886,17 @@
                     "ctype": "uint8_t",
                     "desc": "Output mode override (`TIMER_OUTPUT_MODE_*` enum) to set",
                     "units": "",
-                    "enum": "TIMER_OUTPUT_MODE_*"
+                    "enum": "outputMode_e*"
                 }
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Only available on non-SITL builds. Expects 2 bytes. Returns error if `timerIndex` is invalid.",
         "description": "Set the output mode override for a specific hardware timer."
     },
     "MSP2_INAV_MIXER": {
         "code": 8208,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8437,15 +7953,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves INAV-specific mixer configuration details."
     },
     "MSP2_INAV_SET_MIXER": {
         "code": 8209,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8499,15 +8012,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 9 bytes. Calls `mixerUpdateStateFlags()`.",
         "description": "Sets INAV-specific mixer configuration details."
     },
     "MSP2_INAV_OSD_LAYOUTS": {
         "code": 8210,
         "mspv": 2,
-        "direction": 2,
         "request": null,
         "reply": {
             "payload": [
@@ -8525,15 +8035,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`. Returns error if indexes are invalid.",
         "description": "Gets OSD layout information (counts, positions for a specific layout, or position for a specific item)."
     },
     "MSP2_INAV_OSD_SET_LAYOUT_ITEM": {
         "code": 8211,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8558,15 +8065,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`. Expects 4 bytes. Returns error if indexes are invalid. If the modified layout is not the currently active one, it temporarily overrides the active layout for 10 seconds to show the change. Otherwise, triggers a full OSD redraw.",
         "description": "Sets the position of a single OSD item within a specific layout."
     },
     "MSP2_INAV_OSD_ALARMS": {
         "code": 8212,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8662,15 +8166,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`.",
         "description": "Retrieves OSD alarm threshold settings."
     },
     "MSP2_INAV_OSD_SET_ALARMS": {
         "code": 8213,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8754,15 +8255,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`. Expects 24 bytes. ADSB alarms are not settable via this message.",
         "description": "Sets OSD alarm threshold settings."
     },
     "MSP2_INAV_OSD_PREFERENCES": {
         "code": 8214,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8826,15 +8324,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`.",
         "description": "Retrieves OSD display preferences (video system, units, styles, etc.)."
     },
     "MSP2_INAV_OSD_SET_PREFERENCES": {
         "code": 8215,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8895,15 +8390,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OSD`. Expects 9 bytes. Triggers a full OSD redraw.",
         "description": "Sets OSD display preferences."
     },
     "MSP2_INAV_SELECT_BATTERY_PROFILE": {
         "code": 8216,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -8915,15 +8407,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 1 byte. Will fail if armed. Calls `setConfigBatteryProfileAndWriteEEPROM()`.",
         "description": "Selects the active battery profile and saves configuration."
     },
     "MSP2_INAV_DEBUG": {
         "code": 8217,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8939,14 +8428,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "`DEBUG32_VALUE_COUNT` is usually 8.",
         "description": "Retrieves values from the firmware's 32-bit `debug[]` array. Supersedes `MSP_DEBUG`."
     },
     "MSP2_BLACKBOX_CONFIG": {
         "code": 8218,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -8984,15 +8471,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_BLACKBOX`.",
         "description": "Retrieves the Blackbox configuration. Supersedes `MSP_BLACKBOX_CONFIG`."
     },
     "MSP2_SET_BLACKBOX_CONFIG": {
         "code": 8219,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -9022,15 +8506,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_BLACKBOX`. Expects 9 bytes. Returns error if Blackbox is currently logging (`!blackboxMayEditConfig()`).",
         "description": "Sets the Blackbox configuration. Supersedes `MSP_SET_BLACKBOX_CONFIG`."
     },
     "MSP2_INAV_TEMP_SENSOR_CONFIG": {
         "code": 8220,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9078,14 +8559,12 @@
             "repeating": "MAX_TEMP_SENSORS"
         },
         "variable_len": "MAX_TEMP_SENSORS",
-        "complex": false,
         "notes": "Requires `USE_TEMPERATURE_SENSOR`.",
         "description": "Retrieves the configuration for all onboard temperature sensors."
     },
     "MSP2_INAV_SET_TEMP_SENSOR_CONFIG": {
         "code": 8221,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -9132,14 +8611,12 @@
         },
         "reply": null,
         "variable_len": "2",
-        "complex": false,
         "notes": "Requires `USE_TEMPERATURE_SENSOR`. Expects `MAX_TEMP_SENSORS * sizeof(tempSensorConfig_t)` bytes.",
         "description": "Sets the configuration for all onboard temperature sensors."
     },
     "MSP2_INAV_TEMPERATURES": {
         "code": 8222,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9153,14 +8630,12 @@
             "repeating": "MAX_TEMP_SENSORS"
         },
         "variable_len": "MAX_TEMP_SENSORS",
-        "complex": false,
         "notes": "Requires `USE_TEMPERATURE_SENSOR`.",
         "description": "Retrieves the current readings from all configured temperature sensors."
     },
     "MSP_SIMULATOR": {
         "code": 8223,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -9433,14 +8908,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_SIMULATOR`. Complex message handling state changes for enabling/disabling HITL. Sensor data is injected directly. OSD data is sent using a custom RLE scheme. See `simulatorData` struct and associated code for details.",
         "description": "Handles Hardware-in-the-Loop (HITL) simulation data exchange. Receives simulated sensor data and options, sends back control outputs and debug info."
     },
     "MSP2_INAV_SERVO_MIXER": {
         "code": 8224,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9515,14 +8988,12 @@
             "repeating": "MAX_SERVO_RULES"
         },
         "variable_len": "MAX_SERVO_RULES",
-        "complex": false,
         "notes": "`conditionId` requires `USE_PROGRAMMING_FRAMEWORK`.",
         "description": "Retrieves the custom servo mixer rules, including programming framework condition IDs, for primary and secondary mixer profiles. Supersedes `MSP_SERVO_MIX_RULES`."
     },
     "MSP2_INAV_SET_SERVO_MIXER": {
         "code": 8225,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -9565,15 +9036,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 7 bytes. Returns error if index invalid. Calls `loadCustomServoMixer()`.",
         "description": "Sets a single custom servo mixer rule, including programming framework condition ID. Supersedes `MSP_SET_SERVO_MIX_RULE`."
     },
     "MSP2_INAV_LOGIC_CONDITIONS": {
         "code": 8226,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9633,14 +9101,12 @@
             "repeating": "MAX_LOGIC_CONDITIONS"
         },
         "variable_len": "MAX_LOGIC_CONDITIONS",
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. See `logicCondition_t` structure.",
         "description": "Retrieves the configuration of all defined Logic Conditions."
     },
     "MSP2_INAV_SET_LOGIC_CONDITIONS": {
         "code": 8227,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -9704,8 +9170,6 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 15 bytes. Returns error if index is invalid.",
         "description": "Sets the configuration for a single Logic Condition by its index."
     },
@@ -9722,7 +9186,6 @@
     "MSP2_INAV_LOGIC_CONDITIONS_STATUS": {
         "code": 8230,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9738,14 +9201,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`.",
         "description": "Retrieves the current evaluated status (true/false or numerical value) of all logic conditions."
     },
     "MSP2_INAV_GVAR_STATUS": {
         "code": 8231,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9761,14 +9222,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`.",
         "description": "Retrieves the current values of all Global Variables (GVARS)."
     },
     "MSP2_INAV_PROGRAMMING_PID": {
         "code": 8232,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9832,14 +9291,12 @@
             "repeating": "MAX_PROGRAMMING_PID_COUNT"
         },
         "variable_len": "MAX_PROGRAMMING_PID_COUNT",
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. See `programmingPid_t` structure.",
         "description": "Retrieves the configuration of all Programming PIDs."
     },
     "MSP2_INAV_SET_PROGRAMMING_PID": {
         "code": 8233,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -9907,15 +9364,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 20 bytes. Returns error if index is invalid.",
         "description": "Sets the configuration for a single Programming PID by its index."
     },
     "MSP2_INAV_PROGRAMMING_PID_STATUS": {
         "code": 8234,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9931,14 +9385,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`.",
         "description": "Retrieves the current output value of all Programming PIDs."
     },
     "MSP2_PID": {
         "code": 8240,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -9970,14 +9422,12 @@
             "repeating": "PID_ITEM_COUNT"
         },
         "variable_len": "PID_ITEM_COUNT",
-        "complex": false,
         "notes": "`PID_ITEM_COUNT` defines the number of standard PID controllers (Roll, Pitch, Yaw, Alt, Vel, etc.). Updates from EZ-Tune if enabled.",
         "description": "Retrieves the standard PID controller gains (P, I, D, FF) for the current PID profile."
     },
     "MSP2_SET_PID": {
         "code": 8241,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10009,25 +9459,20 @@
         },
         "reply": null,
         "variable_len": "PID_ITEM_COUNT",
-        "complex": false,
         "notes": "Expects `PID_ITEM_COUNT * 4` bytes. Calls `schedulePidGainsUpdate()` and `navigationUsePIDs()`.",
         "description": "Sets the standard PID controller gains (P, I, D, FF) for the current PID profile."
     },
     "MSP2_INAV_OPFLOW_CALIBRATION": {
         "code": 8242,
         "mspv": 2,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_OPFLOW`. Will fail if armed. Calls `opflowStartCalibration()`.",
         "description": "Starts the optical flow sensor calibration procedure."
     },
     "MSP2_INAV_FWUPDT_PREPARE": {
         "code": 8243,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10039,15 +9484,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `MSP_FIRMWARE_UPDATE`. Expects 4 bytes. Returns error if preparation fails (e.g., no storage, invalid size). Calls `firmwareUpdatePrepare()`.",
         "description": "Prepares the flight controller to receive a firmware update via MSP."
     },
     "MSP2_INAV_FWUPDT_STORE": {
         "code": 8244,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10063,14 +9505,12 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `MSP_FIRMWARE_UPDATE`. Returns error if storage fails (e.g., out of space, checksum error). Called repeatedly until the entire firmware is transferred. Calls `firmwareUpdateStore()`.",
         "description": "Stores a chunk of firmware data received via MSP."
     },
     "MSP2_INAV_FWUPDT_EXEC": {
         "code": 8245,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10082,37 +9522,28 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `MSP_FIRMWARE_UPDATE`. Expects 1 byte. Returns error if update cannot start (e.g., not fully received). Calls `firmwareUpdateExec()`. If successful, the device will reboot into the new firmware.",
         "description": "Executes the firmware update process (flashes the stored firmware and reboots)."
     },
     "MSP2_INAV_FWUPDT_ROLLBACK_PREPARE": {
         "code": 8246,
         "mspv": 2,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `MSP_FIRMWARE_UPDATE`. Returns error if rollback preparation fails (e.g., no rollback image available). Calls `firmwareUpdateRollbackPrepare()`.",
         "description": "Prepares the flight controller to perform a firmware rollback to the previously stored version."
     },
     "MSP2_INAV_FWUPDT_ROLLBACK_EXEC": {
         "code": 8247,
         "mspv": 2,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `MSP_FIRMWARE_UPDATE`. Returns error if rollback cannot start. Calls `firmwareUpdateRollbackExec()`. If successful, the device will reboot into the backup firmware.",
         "description": "Executes the firmware rollback process (flashes the stored backup firmware and reboots)."
     },
     "MSP2_INAV_SAFEHOME": {
         "code": 8248,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -10151,15 +9582,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_SAFE_HOME`. Used by `mspFcSafeHomeOutCommand`. See `MSP2_INAV_SET_SAFEHOME` for setting.",
         "description": "Get or Set configuration for a specific Safe Home location."
     },
     "MSP2_INAV_SET_SAFEHOME": {
         "code": 8249,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10189,15 +9617,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_SAFE_HOME`. Expects 10 bytes. Returns error if index invalid. Resets corresponding FW autoland approach if `USE_FW_AUTOLAND` is enabled.",
         "description": "Sets the configuration for a specific Safe Home location."
     },
     "MSP2_INAV_MISC2": {
         "code": 8250,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10227,15 +9652,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "",
         "description": "Retrieves miscellaneous runtime information including timers and throttle status."
     },
     "MSP2_INAV_LOGIC_CONDITIONS_SINGLE": {
         "code": 8251,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -10302,15 +9724,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Used by `mspFcLogicConditionCommand`.",
         "description": "Gets the configuration for a single Logic Condition by its index."
     },
     "MSP2_INAV_ESC_RPM": {
         "code": 8256,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10324,14 +9743,12 @@
             "repeating": "getMotorCount()"
         },
         "variable_len": "getMotorCount()",
-        "complex": false,
         "notes": "Requires `USE_ESC_SENSOR`. Payload size depends on the number of detected motors with telemetry.",
         "description": "Retrieves the RPM reported by each ESC via telemetry."
     },
     "MSP2_INAV_ESC_TELEM": {
         "code": 8257,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10353,14 +9770,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_ESC_SENSOR`. See `escSensorData_t` in `sensors/esc_sensor.h` for the exact structure fields.",
         "description": "Retrieves the full telemetry data structure reported by each ESC."
     },
     "MSP2_INAV_LED_STRIP_CONFIG_EX": {
         "code": 8264,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10374,14 +9789,12 @@
             "repeating": "LED_MAX_STRIP_LENGTH"
         },
         "variable_len": "LED_MAX_STRIP_LENGTH",
-        "complex": false,
         "notes": "Requires `USE_LED_STRIP`. See `ledConfig_t` in `io/ledstrip.h` for structure fields (position, function, overlay, color, direction, params).",
         "description": "Retrieves the full configuration for each LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_LED_STRIP_CONFIG`."
     },
     "MSP2_INAV_SET_LED_STRIP_CONFIG_EX": {
         "code": 8265,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10399,15 +9812,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_LED_STRIP`. Expects `1 + sizeof(ledConfig_t)` bytes. Returns error if index invalid. Calls `reevaluateLedConfig()`.",
         "description": "Sets the configuration for a single LED on the strip using the `ledConfig_t` structure. Supersedes `MSP_SET_LED_STRIP_CONFIG`."
     },
     "MSP2_INAV_FW_APPROACH": {
         "code": 8266,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -10465,15 +9875,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_FW_AUTOLAND`. Used by `mspFwApproachOutCommand`. See `MSP2_INAV_SET_FW_APPROACH` for setting.",
         "description": "Get or Set configuration for a specific Fixed Wing Autoland approach."
     },
     "MSP2_INAV_SET_FW_APPROACH": {
         "code": 8267,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10522,15 +9929,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_FW_AUTOLAND`. Expects 15 bytes. Returns error if index invalid.",
         "description": "Sets the configuration for a specific Fixed Wing Autoland approach."
     },
     "MSP2_INAV_GPS_UBLOX_COMMAND": {
         "code": 8272,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10546,14 +9950,12 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": false,
         "notes": "Requires GPS feature enabled (`FEATURE_GPS`) and the GPS driver to be U-Blox (`isGpsUblox()`). Payload must be at least 8 bytes (minimum UBX frame size). Use with extreme caution, incorrect commands can misconfigure the GPS module. Calls `gpsUbloxSendCommand()`.",
         "description": "Sends a raw command directly to a U-Blox GPS module connected to the FC."
     },
     "MSP2_INAV_RATE_DYNAMICS": {
         "code": 8288,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10595,15 +9997,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_RATE_DYNAMICS`.",
         "description": "Retrieves Rate Dynamics configuration parameters for the current control rate profile."
     },
     "MSP2_INAV_SET_RATE_DYNAMICS": {
         "code": 8289,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10645,15 +10044,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_RATE_DYNAMICS`. Expects 6 bytes.",
         "description": "Sets Rate Dynamics configuration parameters for the current control rate profile."
     },
     "MSP2_INAV_EZ_TUNE": {
         "code": 8304,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10719,15 +10115,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_EZ_TUNE`. Calls `ezTuneUpdate()` before sending.",
         "description": "Retrieves the current EZ-Tune parameters."
     },
     "MSP2_INAV_EZ_TUNE_SET": {
         "code": 8305,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10794,15 +10187,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_EZ_TUNE`. Expects 10 or 11 bytes. Calls `ezTuneUpdate()` after setting parameters.",
         "description": "Sets the EZ-Tune parameters and triggers an update."
     },
     "MSP2_INAV_SELECT_MIXER_PROFILE": {
         "code": 8320,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -10814,15 +10204,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 1 byte. Will fail if armed. Calls `setConfigMixerProfileAndWriteEEPROM()`. Only applicable if `MAX_MIXER_PROFILE_COUNT` > 1.",
         "description": "Selects the active mixer profile and saves configuration."
     },
     "MSP2_ADSB_VEHICLE_LIST": {
         "code": 8336,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10868,14 +10255,12 @@
             ]
         },
         "variable_len": "maxVehicles",
-        "complex": false,
         "notes": "Requires `USE_ADSB`.",
         "description": "Retrieves the list of currently tracked ADSB (Automatic Dependent Surveillance–Broadcast) vehicles. See `adsbVehicle_t` and `adsbVehicleValues_t` in `io/adsb.h` for the exact structure fields."
     },
     "MSP2_INAV_CUSTOM_OSD_ELEMENTS": {
         "code": 8448,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -10899,124 +10284,117 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`.",
         "description": "Retrieves counts related to custom OSD elements defined by the programming framework."
     },
     "MSP2_INAV_CUSTOM_OSD_ELEMENT": {
-    "code": 8449,
-    "mspv": 2,
-    "direction": 2,
-    "request": {
-        "payload": [
-        {
-            "name": "elementIndex",
-            "ctype": "uint8_t",
-            "desc": "Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`)"
-        }
-        ]
-    },
-    "reply": {
-        "payload": [
-        {
-            "repeating": "CUSTOM_ELEMENTS_PARTS",
+        "code": 8449,
+        "mspv": 2,
+        "request": {
             "payload": [
-            {
-                "name": "partType",
-                "ctype": "uint8_t",
-                "enum": "osdCustomElementType_e",
-                "desc": "Type of this part"
-            },
-            {
-                "name": "partValue",
-                "ctype": "uint16_t",
-                "desc": "Value/ID associated with this part"
-            }
+                {
+                    "name": "elementIndex",
+                    "ctype": "uint8_t",
+                    "desc": "Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`)"
+                }
             ]
         },
-        {
-            "name": "visibilityType",
-            "ctype": "uint8_t",
-            "enum": "osdCustomElementTypeVisibility_e",
-            "desc": "Visibility condition source"
+        "reply": {
+            "payload": [
+                {
+                    "repeating": "CUSTOM_ELEMENTS_PARTS",
+                    "payload": [
+                        {
+                            "name": "partType",
+                            "ctype": "uint8_t",
+                            "enum": "osdCustomElementType_e",
+                            "desc": "Type of this part"
+                        },
+                        {
+                            "name": "partValue",
+                            "ctype": "uint16_t",
+                            "desc": "Value/ID associated with this part"
+                        }
+                    ]
+                },
+                {
+                    "name": "visibilityType",
+                    "ctype": "uint8_t",
+                    "enum": "osdCustomElementTypeVisibility_e",
+                    "desc": "Visibility condition source"
+                },
+                {
+                    "name": "visibilityValue",
+                    "ctype": "uint16_t",
+                    "desc": "Value/ID of the visibility condition source"
+                },
+                {
+                    "name": "elementText",
+                    "ctype": "char[]",
+                    "array": true,
+                    "array_ctype": "char",
+                    "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1",
+                    "desc": "Static text bytes"
+                }
+            ]
         },
-        {
-            "name": "visibilityValue",
-            "ctype": "uint16_t",
-            "desc": "Value/ID of the visibility condition source"
-        },
-        {
-            "name": "elementText",
-            "ctype": "char[]",
-            "array": true,
-            "array_ctype": "char",
-            "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1",
-            "desc": "Static text bytes"
-        }
-        ]
-    },
-    "complex": false,
-    "notes": "Reply emitted only if idx < MAX_CUSTOM_ELEMENTS; otherwise no body is written.",
-    "description": "Gets the configuration of a single custom OSD element defined by the programming framework."
+        "notes": "Reply emitted only if idx < MAX_CUSTOM_ELEMENTS; otherwise no body is written.",
+        "description": "Gets the configuration of a single custom OSD element defined by the programming framework."
     },
     "MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS": {
         "code": 8450,
         "mspv": 2,
-        "direction": "request_only",
         "request": {
-        "payload": [
-            {
-            "name": "elementIndex",
-            "ctype": "uint8_t",
-            "desc": "Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`)"
-            },
-            {
-                "repeating": "CUSTOM_ELEMENTS_PARTS",
-                "payload": [
-                    {
-                        "name": "partType",
-                        "ctype": "uint8_t",
-                        "enum": "osdCustomElementType_e",
-                        "desc": "Type of this part"
-                    },
-                    {
-                        "name": "partValue",
-                        "ctype": "uint16_t",
-                        "desc": "Value/ID associated with this part"
-                    }
-                ]
-            },
-            {
-            "name": "visibilityType",
-            "ctype": "uint8_t",
-            "enum": "osdCustomElementTypeVisibility_e",
-            "desc": "Visibility condition source"
-            },
-            {
-            "name": "visibilityValue",
-            "ctype": "uint16_t",
-            "desc": "Value/ID of the visibility condition source"
-            },
-            {
-            "name": "elementText",
-            "ctype": "char[]",
-            "array": true,
-            "array_ctype": "char",
-            "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1",
-            "desc": "Raw bytes"
-            }
-        ]
+            "payload": [
+                {
+                    "name": "elementIndex",
+                    "ctype": "uint8_t",
+                    "desc": "Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`)"
+                },
+                {
+                    "repeating": "CUSTOM_ELEMENTS_PARTS",
+                    "payload": [
+                        {
+                            "name": "partType",
+                            "ctype": "uint8_t",
+                            "enum": "osdCustomElementType_e",
+                            "desc": "Type of this part"
+                        },
+                        {
+                            "name": "partValue",
+                            "ctype": "uint16_t",
+                            "desc": "Value/ID associated with this part"
+                        }
+                    ]
+                },
+                {
+                    "name": "visibilityType",
+                    "ctype": "uint8_t",
+                    "enum": "osdCustomElementTypeVisibility_e",
+                    "desc": "Visibility condition source"
+                },
+                {
+                    "name": "visibilityValue",
+                    "ctype": "uint16_t",
+                    "desc": "Value/ID of the visibility condition source"
+                },
+                {
+                    "name": "elementText",
+                    "ctype": "char[]",
+                    "array": true,
+                    "array_ctype": "char",
+                    "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1",
+                    "desc": "Raw bytes"
+                }
+            ]
         },
         "reply": null,
-        "complex": false,
         "notes": "Payload length must be (OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1) + (CUSTOM_ELEMENTS_PARTS * 3) + 4 bytes including elementIndex. elementIndex must be < MAX_CUSTOM_ELEMENTS. Each partType must be < CUSTOM_ELEMENT_TYPE_END. Firmware NUL-terminates elementText internally.",
         "description": "Sets the configuration of one custom OSD element."
     },
     "MSP2_INAV_OUTPUT_MAPPING_EXT2": {
         "code": 8461,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -11043,14 +10421,12 @@
             "repeating": "for each Motor/Servo timer"
         },
         "variable_len": "for each Motor/Servo timer",
-        "complex": false,
         "notes": "Provides complete usage flags and helps identify pins repurposed for functions like LED strip.",
         "description": "Retrieves the full extended output mapping configuration (timer ID, full 32-bit usage flags, and pin label). Supersedes `MSP2_INAV_OUTPUT_MAPPING_EXT`."
     },
     "MSP2_INAV_SERVO_CONFIG": {
         "code": 8704,
         "mspv": 2,
-        "direction": 1,
         "request": null,
         "reply": {
             "payload": [
@@ -11082,14 +10458,12 @@
             "repeating": "MAX_SUPPORTED_SERVOS"
         },
         "variable_len": "MAX_SUPPORTED_SERVOS",
-        "complex": false,
         "notes": "",
         "description": "Retrieves the configuration parameters for all supported servos (min, max, middle, rate). Supersedes `MSP_SERVO_CONFIGURATIONS`."
     },
     "MSP2_INAV_SET_SERVO_CONFIG": {
         "code": 8705,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -11125,15 +10499,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Expects 8 bytes. Returns error if index invalid. Calls `servoComputeScalingFactors()`.",
         "description": "Sets the configuration parameters for a single servo. Supersedes `MSP_SET_SERVO_CONFIGURATION`."
     },
     "MSP2_INAV_GEOZONE": {
         "code": 8720,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -11197,15 +10568,12 @@
                 }
             ]
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GEOZONE`. Used by `mspFcGeozoneOutCommand`.",
         "description": "Get configuration for a specific Geozone."
     },
     "MSP2_INAV_SET_GEOZONE": {
         "code": 8721,
         "mspv": 2,
-        "direction": 0,
         "request": {
             "payload": [
                 {
@@ -11260,15 +10628,12 @@
             ]
         },
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GEOZONE`. Expects 14 bytes. Returns error if index invalid. Calls `geozoneResetVertices()`. Vertices must be set subsequently using `MSP2_INAV_SET_GEOZONE_VERTEX`.",
         "description": "Sets the main configuration for a specific Geozone (type, shape, altitude, action). **This command resets (clears) all vertices associated with the zone.**"
     },
     "MSP2_INAV_GEOZONE_VERTEX": {
         "code": 8722,
         "mspv": 2,
-        "direction": 2,
         "request": {
             "payload": [
                 {
@@ -11321,14 +10686,12 @@
             ]
         },
         "variable_len": true,
-        "complex": false,
         "notes": "Requires `USE_GEOZONE`. Returns error if indexes are invalid or vertex doesn't exist. For circular zones, the radius is stored internally as the 'latitude' of the vertex with index 1.",
         "description": "Get a specific vertex (or center+radius for circular zones) of a Geozone."
     },
     "MSP2_INAV_SET_GEOZONE_VERTEX": {
         "code": 8723,
         "mspv": 2,
-        "direction": 0,
         "variants": {
             "polygon": {
                 "description": "Polygonal Geozone",
@@ -11405,19 +10768,14 @@
                 }
             }
         },
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
         "description": "Sets a specific vertex (or center+radius for circular zones) for a Geozone."
     },
     "MSP2_BETAFLIGHT_BIND": {
         "code": 12288,
         "mspv": 2,
-        "direction": 0,
         "request": null,
         "reply": null,
-        "variable_len": false,
-        "complex": false,
         "notes": "Requires `rxConfig()->receiverType == RX_TYPE_SERIAL`. Requires `USE_SERIALRX_CRSF` or `USE_SERIALRX_SRXL2`. Calls `crsfBind()` or `srxl2Bind()` respectively. Returns error if receiver type or provider is not supported for binding.",
         "description": "Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2)."
     }

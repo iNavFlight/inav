@@ -3212,7 +3212,10 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Usage flags are truncated to 8 bits. `timerId` mapping is target-specific.
 
 ## <a id="msp2_inav_timer_output_mode"></a>`MSP2_INAV_TIMER_OUTPUT_MODE (8206 / 0x200e)`
-**Description:** Get or list the output mode override for hardware timers (e.g., force ONESHOT, DSHOT).  
+**Description:** Reads timer output mode overrides.  
+#### Variant: `dataSize == 0`
+
+**Description:** List all timers  
 
 **Request Payload:** **None**  
   
@@ -3220,9 +3223,25 @@ For current generation code, see [documentation project](https://github.com/xznh
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
 | `timerIndex` | `uint8_t` | 1 | - | Timer index |
-| `outputMode` | `uint8_t` | 1 | [TIMER_OUTPUT_MODE_*](https://github.com/iNavFlight/inav/wiki/inav_enums_ref.md#enum-timer_output_mode_*) | Output mode override (`TIMER_OUTPUT_MODE_*` enum) |
+| `outputMode` | `uint8_t` | 1 | [outputMode_e](https://github.com/iNavFlight/inav/wiki/inav_enums_ref.md#enum-outputmode_e) | OUTPUT_MODE_* |
 
-**Notes:** Only available on non-SITL builds. `HARDWARE_TIMER_DEFINITION_COUNT` varies by target.
+#### Variant: `dataSize == 1`
+
+**Description:** Query one timer  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `timerIndex` | `uint8_t` | 1 | 0..HARDWARE_TIMER_DEFINITION_COUNT-1 |
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `timerIndex` | `uint8_t` | 1 | - | Echoed timer index |
+| `outputMode` | `uint8_t` | 1 | [outputMode_e](https://github.com/iNavFlight/inav/wiki/inav_enums_ref.md#enum-outputmode_e) | OUTPUT_MODE_* |
+
+
+**Notes:** Non-SITL only. HARDWARE_TIMER_DEFINITION_COUNT is target specific. Returns MSP_RESULT_ACK on success, MSP_RESULT_ERROR on invalid timer index.
 
 ## <a id="msp2_inav_set_timer_output_mode"></a>`MSP2_INAV_SET_TIMER_OUTPUT_MODE (8207 / 0x200f)`
 **Description:** Set the output mode override for a specific hardware timer.  
@@ -3231,7 +3250,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
 | `timerIndex` | `uint8_t` | 1 | - | Index of the hardware timer definition |
-| `outputMode` | `uint8_t` | 1 | [TIMER_OUTPUT_MODE_*](https://github.com/iNavFlight/inav/wiki/inav_enums_ref.md#enum-timer_output_mode_*) | Output mode override (`TIMER_OUTPUT_MODE_*` enum) to set |
+| `outputMode` | `uint8_t` | 1 | [outputMode_e*](https://github.com/iNavFlight/inav/wiki/inav_enums_ref.md#enum-outputmode_e*) | Output mode override (`TIMER_OUTPUT_MODE_*` enum) to set |
 
 **Reply Payload:** **None**  
 
