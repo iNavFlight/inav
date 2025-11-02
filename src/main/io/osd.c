@@ -2559,15 +2559,14 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "LAND";
             else
 #endif
-#ifdef USE_GEOZONE
-            if (FLIGHT_MODE(NAV_SEND_TO))
-                p = "GEO";
-            else
-#endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
+#ifdef USE_GEOZONE
+            else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE))
+                p = "GEO";
+#endif
             else if (FLIGHT_MODE(TURTLE_MODE))
                 p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
