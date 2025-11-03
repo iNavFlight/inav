@@ -37,7 +37,7 @@
                 {
                     "name": "fcVariantIdentifier",
                     "ctype": "char[4]",
-                    "desc": "4-character identifier string (e.g., \"INAV\"). Defined by `flightControllerIdentifier",
+                    "desc": "4-character identifier string (e.g., \"INAV\"). Defined by `flightControllerIdentifier`.",
                     "array": true,
                     "array_ctype": "char",
                     "array_size": 4,
@@ -141,7 +141,7 @@
                 {
                     "name": "buildDate",
                     "ctype": "char[11]",
-                    "desc": "Build date string (e.g., \"Dec 31 2023\"). `BUILD_DATE_LENGTH",
+                    "desc": "Build date string (e.g., \"Dec 31 2023\"). `BUILD_DATE_LENGTH`.",
                     "array": true,
                     "array_ctype": "char",
                     "array_size": 11,
@@ -150,7 +150,7 @@
                 {
                     "name": "buildTime",
                     "ctype": "char[8]",
-                    "desc": "Build time string (e.g., \"23:59:59\"). `BUILD_TIME_LENGTH",
+                    "desc": "Build time string (e.g., \"23:59:59\"). `BUILD_TIME_LENGTH`.",
                     "array": true,
                     "array_ctype": "char",
                     "array_size": 8,
@@ -158,11 +158,11 @@
                 },
                 {
                     "name": "gitRevision",
-                    "ctype": "char[7]",
-                    "desc": "Short Git revision string. `GIT_SHORT_REVISION_LENGTH",
+                    "ctype": "char[8]",
+                    "desc": "Short Git revision string. `GIT_SHORT_REVISION_LENGTH`.",
                     "array": true,
                     "array_ctype": "char",
-                    "array_size": 7,
+                    "array_size": 8,
                     "units": ""
                 }
             ]
@@ -190,7 +190,7 @@
                 },
                 {
                     "name": "legacyAsyncValue2",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Legacy, unused. Always 0",
                     "value": 0
                 },
@@ -208,14 +208,14 @@
                 },
                 {
                     "name": "legacyYawJumpLimit",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Legacy, unused. Always 0",
                     "value": 0
                 },
                 {
                     "name": "legacyGyroLpf",
                     "ctype": "uint8_t",
-                    "desc": "Fixed value `GYRO_LPF_256HZ",
+                    "desc": "Fixed value `GYRO_LPF_256HZ`",
                     "units": "Hz"
                 },
                 {
@@ -265,18 +265,18 @@
                 },
                 {
                     "name": "legacyAsyncValue1",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Legacy, ignored"
                 },
                 {
                     "name": "legacyAsyncValue2",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Legacy, ignored"
                 },
                 {
                     "name": "headingHoldRateLimit",
                     "ctype": "uint8_t",
-                    "desc": "Sets `pidProfileMutable()->heading_hold_rate_limit",
+                    "desc": "Sets `pidProfileMutable()->heading_hold_rate_limit`.",
                     "units": "deg/s"
                 },
                 {
@@ -287,20 +287,19 @@
                 },
                 {
                     "name": "legacyYawJumpLimit",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Legacy, ignored"
                 },
                 {
                     "name": "legacyGyroLpf",
                     "ctype": "uint8_t",
-                    "desc": "Ignored (was gyro LPF)",
-                    "units": "Enum",
-                    "enum": "?_e"
+                    "desc": "Ignored (historically mapped to `gyro_lpf_e` values).",
+                    "units": ""
                 },
                 {
                     "name": "accLpfHz",
                     "ctype": "uint8_t",
-                    "desc": "Sets `accelerometerConfigMutable()->acc_lpf_hz",
+                    "desc": "Sets `accelerometerConfigMutable()->acc_lpf_hz`.",
                     "units": "Hz"
                 },
                 {
@@ -415,14 +414,14 @@
                 {
                     "name": "mcAltHoldThrottleType",
                     "ctype": "uint8_t",
-                    "desc": "Enum `navMcAltHoldThrottle_e` Sets 'navConfigMutable()->mc.althold_throttle_type'",
+                    "desc": "Enum `navMcAltHoldThrottle_e` mirrored from `navConfig()->mc.althold_throttle_type`.",
                     "units": "Enum",
                     "enum": "navMcAltHoldThrottle_e"
                 },
                 {
                     "name": "mcHoverThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Multirotor hover throttle (`currentBatteryProfile->nav.mc.hover_throttle`)",
+                    "desc": "Multirotor hover throttle PWM value (`currentBatteryProfile->nav.mc.hover_throttle`).",
                     "units": "PWM"
                 }
             ]
@@ -438,51 +437,51 @@
                 {
                     "name": "userControlMode",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.user_control_mode",
+                    "desc": "Sets `navConfigMutable()->general.flags.user_control_mode`.",
                     "units": "Enum",
-                    "enum": "?_e"
+                    "enum": "navUserControlMode_e"
                 },
                 {
                     "name": "maxAutoSpeed",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.max_auto_speed",
+                    "desc": "Sets `navConfigMutable()->general.max_auto_speed`.",
                     "units": "cm/s"
                 },
                 {
                     "name": "maxAutoClimbRate",
                     "ctype": "uint16_t",
-                    "desc": "Sets `fw.max_auto_climb_rate` or `mc.max_auto_climb_rate` based on current platform type",
+                    "desc": "Sets `navConfigMutable()->fw.max_auto_climb_rate` or `navConfigMutable()->mc.max_auto_climb_rate` based on `mixerConfig()->platformType`.",
                     "units": "cm/s"
                 },
                 {
                     "name": "maxManualSpeed",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.max_manual_speed",
+                    "desc": "Sets `navConfigMutable()->general.max_manual_speed`.",
                     "units": "cm/s"
                 },
                 {
                     "name": "maxManualClimbRate",
                     "ctype": "uint16_t",
-                    "desc": "Sets `fw.max_manual_climb_rate` or `mc.max_manual_climb_rate",
+                    "desc": "Sets `navConfigMutable()->fw.max_manual_climb_rate` or `navConfigMutable()->mc.max_manual_climb_rate`.",
                     "units": "cm/s"
                 },
                 {
                     "name": "mcMaxBankAngle",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->mc.max_bank_angle",
+                    "desc": "Sets `navConfigMutable()->mc.max_bank_angle`.",
                     "units": "degrees"
                 },
                 {
                     "name": "mcAltHoldThrottleType",
                     "ctype": "uint8_t",
-                    "desc": "Enum `navMcAltHoldThrottle_e` Sets 'navConfigMutable()->mc.althold_throttle_type'",
+                    "desc": "Enum `navMcAltHoldThrottle_e`; updates `navConfigMutable()->mc.althold_throttle_type`.",
                     "units": "Enum",
                     "enum": "navMcAltHoldThrottle_e"
                 },
                 {
                     "name": "mcHoverThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Sets `currentBatteryProfileMutable->nav.mc.hover_throttle",
+                    "desc": "Sets `currentBatteryProfileMutable->nav.mc.hover_throttle`.",
                     "units": "PWM"
                 }
             ]
@@ -506,55 +505,55 @@
                 },
                 {
                     "name": "accZeroX",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Accelerometer zero offset for X-axis (`accelerometerConfig()->accZero.raw[X]`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accZeroY",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Accelerometer zero offset for Y-axis (`accelerometerConfig()->accZero.raw[Y]`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accZeroZ",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Accelerometer zero offset for Z-axis (`accelerometerConfig()->accZero.raw[Z]`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accGainX",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Accelerometer gain/scale for X-axis (`accelerometerConfig()->accGain.raw[X]`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accGainY",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Accelerometer gain/scale for Y-axis (`accelerometerConfig()->accGain.raw[Y]`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accGainZ",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Accelerometer gain/scale for Z-axis (`accelerometerConfig()->accGain.raw[Z]`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magZeroX",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Magnetometer zero offset for X-axis (`compassConfig()->magZero.raw[X]`). 0 if `USE_MAG` disabled",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magZeroY",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Magnetometer zero offset for Y-axis (`compassConfig()->magZero.raw[Y]`). 0 if `USE_MAG` disabled",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magZeroZ",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Magnetometer zero offset for Z-axis (`compassConfig()->magZero.raw[Z]`). 0 if `USE_MAG` disabled",
                     "units": "Raw ADC"
                 },
@@ -566,19 +565,19 @@
                 },
                 {
                     "name": "magGainX",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Magnetometer gain/scale for X-axis (`compassConfig()->magGain[X]`). 0 if `USE_MAG` disabled",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magGainY",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Magnetometer gain/scale for Y-axis (`compassConfig()->magGain[Y]`). 0 if `USE_MAG` disabled",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magGainZ",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Magnetometer gain/scale for Z-axis (`compassConfig()->magGain[Z]`). 0 if `USE_MAG` disabled",
                     "units": "Raw ADC"
                 }
@@ -594,55 +593,55 @@
             "payload": [
                 {
                     "name": "accZeroX",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `accelerometerConfigMutable()->accZero.raw[X]",
+                    "ctype": "int16_t",
+                    "desc": "Sets `accelerometerConfigMutable()->accZero.raw[X]`.",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accZeroY",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `accelerometerConfigMutable()->accZero.raw[Y]",
+                    "ctype": "int16_t",
+                    "desc": "Sets `accelerometerConfigMutable()->accZero.raw[Y]`.",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accZeroZ",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `accelerometerConfigMutable()->accZero.raw[Z]",
+                    "ctype": "int16_t",
+                    "desc": "Sets `accelerometerConfigMutable()->accZero.raw[Z]`.",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accGainX",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `accelerometerConfigMutable()->accGain.raw[X]",
+                    "ctype": "int16_t",
+                    "desc": "Sets `accelerometerConfigMutable()->accGain.raw[X]`.",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accGainY",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `accelerometerConfigMutable()->accGain.raw[Y]",
+                    "ctype": "int16_t",
+                    "desc": "Sets `accelerometerConfigMutable()->accGain.raw[Y]`.",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "accGainZ",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `accelerometerConfigMutable()->accGain.raw[Z]",
+                    "ctype": "int16_t",
+                    "desc": "Sets `accelerometerConfigMutable()->accGain.raw[Z]`.",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magZeroX",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Sets `compassConfigMutable()->magZero.raw[X]` (if `USE_MAG`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magZeroY",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Sets `compassConfigMutable()->magZero.raw[Y]` (if `USE_MAG`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magZeroZ",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Sets `compassConfigMutable()->magZero.raw[Z]` (if `USE_MAG`)",
                     "units": "Raw ADC"
                 },
@@ -654,26 +653,26 @@
                 },
                 {
                     "name": "magGainX",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Sets `compassConfigMutable()->magGain[X]` (if `USE_MAG`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magGainY",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Sets `compassConfigMutable()->magGain[Y]` (if `USE_MAG`)",
                     "units": "Raw ADC"
                 },
                 {
                     "name": "magGainZ",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Sets `compassConfigMutable()->magGain[Z]` (if `USE_MAG`)",
                     "units": "Raw ADC"
                 }
             ]
         },
         "reply": null,
-        "notes": "Expects 26 bytes. Ignores values for sensors not enabled by `USE_*` defines.",
+        "notes": "Minimum payload 18 bytes. Adds +6 bytes for magnetometer zeros, +2 for optical flow scale, and +6 for magnetometer gains when those features (`USE_MAG`, `USE_OPFLOW`) are compiled in.",
         "description": "Sets sensor calibration data."
     },
     "MSP_POSITION_ESTIMATION_CONFIG": {
@@ -863,7 +862,7 @@
                     "name": "minRthDistance",
                     "ctype": "uint16_t",
                     "desc": "Minimum distance from home required for RTH to engage (`navConfig()->general.min_rth_distance`)",
-                    "units": "meters"
+                    "units": "cm"
                 },
                 {
                     "name": "rthClimbFirst",
@@ -880,7 +879,7 @@
                 {
                     "name": "rthTailFirst",
                     "ctype": "uint8_t",
-                    "desc": "Flag: Multirotor returns tail-first (`navConfig()->general.flags.rth_tail_first`)",
+                    "desc": "Flag: Return tail-first during RTH (`navConfig()->general.flags.rth_tail_first`)",
                     "units": "Boolean"
                 },
                 {
@@ -892,21 +891,21 @@
                 {
                     "name": "rthAltControlMode",
                     "ctype": "uint8_t",
-                    "desc": "RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`)",
+                    "desc": "RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`).",
                     "units": "Enum",
-                    "enum": "?_e"
+                    "enum": "navRthAltMode_e"
                 },
                 {
                     "name": "rthAbortThreshold",
                     "ctype": "uint16_t",
-                    "desc": "Stick input threshold to abort RTH (`navConfig()->general.rth_abort_threshold`)",
-                    "units": "cm/s"
+                    "desc": "Distance increase threshold to abort RTH (`navConfig()->general.rth_abort_threshold`)",
+                    "units": "cm"
                 },
                 {
                     "name": "rthAltitude",
                     "ctype": "uint16_t",
                     "desc": "Target RTH altitude (`navConfig()->general.rth_altitude`)",
-                    "units": "meters"
+                    "units": "cm"
                 },
                 {
                     "name": "landMinAltVspd",
@@ -924,13 +923,13 @@
                     "name": "landSlowdownMinAlt",
                     "ctype": "uint16_t",
                     "desc": "Altitude below which `landMinAltVspd` applies (`navConfig()->general.land_slowdown_minalt`)",
-                    "units": "meters"
+                    "units": "cm"
                 },
                 {
                     "name": "landSlowdownMaxAlt",
                     "ctype": "uint16_t",
                     "desc": "Altitude above which `landMaxAltVspd` applies (`navConfig()->general.land_slowdown_maxalt`)",
-                    "units": "meters"
+                    "units": "cm"
                 },
                 {
                     "name": "emergDescentRate",
@@ -951,80 +950,80 @@
                 {
                     "name": "minRthDistance",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.min_rth_distance",
-                    "units": "meters"
+                    "desc": "Sets `navConfigMutable()->general.min_rth_distance`.",
+                    "units": "cm"
                 },
                 {
                     "name": "rthClimbFirst",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.rth_climb_first",
+                    "desc": "Sets `navConfigMutable()->general.flags.rth_climb_first`.",
                     "units": "Boolean"
                 },
                 {
                     "name": "rthClimbIgnoreEmerg",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.rth_climb_ignore_emerg",
+                    "desc": "Sets `navConfigMutable()->general.flags.rth_climb_ignore_emerg`.",
                     "units": "Boolean"
                 },
                 {
                     "name": "rthTailFirst",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.rth_tail_first",
+                    "desc": "Sets `navConfigMutable()->general.flags.rth_tail_first`.",
                     "units": "Boolean"
                 },
                 {
                     "name": "rthAllowLanding",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.rth_allow_landing",
+                    "desc": "Sets `navConfigMutable()->general.flags.rth_allow_landing`.",
                     "units": "Boolean"
                 },
                 {
                     "name": "rthAltControlMode",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.rth_alt_control_mode",
+                    "desc": "Sets `navConfigMutable()->general.flags.rth_alt_control_mode`.",
                     "units": "Enum",
-                    "enum": "?_e"
+                    "enum": "navRthAltMode_e"
                 },
                 {
                     "name": "rthAbortThreshold",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.rth_abort_threshold",
-                    "units": "cm/s"
+                    "desc": "Sets `navConfigMutable()->general.rth_abort_threshold`.",
+                    "units": "cm"
                 },
                 {
                     "name": "rthAltitude",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.rth_altitude",
-                    "units": "meters"
+                    "desc": "Sets `navConfigMutable()->general.rth_altitude`.",
+                    "units": "cm"
                 },
                 {
                     "name": "landMinAltVspd",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.land_minalt_vspd",
+                    "desc": "Sets `navConfigMutable()->general.land_minalt_vspd`.",
                     "units": "cm/s"
                 },
                 {
                     "name": "landMaxAltVspd",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.land_maxalt_vspd",
+                    "desc": "Sets `navConfigMutable()->general.land_maxalt_vspd`.",
                     "units": "cm/s"
                 },
                 {
                     "name": "landSlowdownMinAlt",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.land_slowdown_minalt",
-                    "units": "meters"
+                    "desc": "Sets `navConfigMutable()->general.land_slowdown_minalt`.",
+                    "units": "cm"
                 },
                 {
                     "name": "landSlowdownMaxAlt",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.land_slowdown_maxalt",
-                    "units": "meters"
+                    "desc": "Sets `navConfigMutable()->general.land_slowdown_maxalt`.",
+                    "units": "cm"
                 },
                 {
                     "name": "emergDescentRate",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->general.emerg_descent_rate",
+                    "desc": "Sets `navConfigMutable()->general.emerg_descent_rate`.",
                     "units": "cm/s"
                 }
             ]
@@ -1042,19 +1041,19 @@
                 {
                     "name": "cruiseThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Cruise throttle level (`currentBatteryProfile->nav.fw.cruise_throttle`)",
+                    "desc": "Cruise throttle command (`currentBatteryProfile->nav.fw.cruise_throttle`).",
                     "units": "PWM"
                 },
                 {
                     "name": "minThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Minimum throttle during autonomous flight (`currentBatteryProfile->nav.fw.min_throttle`)",
+                    "desc": "Minimum throttle during autonomous flight (`currentBatteryProfile->nav.fw.min_throttle`).",
                     "units": "PWM"
                 },
                 {
                     "name": "maxThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Maximum throttle during autonomous flight (`currentBatteryProfile->nav.fw.max_throttle`)",
+                    "desc": "Maximum throttle during autonomous flight (`currentBatteryProfile->nav.fw.max_throttle`).",
                     "units": "PWM"
                 },
                 {
@@ -1078,14 +1077,14 @@
                 {
                     "name": "pitchToThrottle",
                     "ctype": "uint8_t",
-                    "desc": "Pitch-to-throttle feed-forward ratio (`currentBatteryProfile->nav.fw.pitch_to_throttle`)",
-                    "units": "Ratio (%)"
+                    "desc": "Pitch-to-throttle gain (`currentBatteryProfile->nav.fw.pitch_to_throttle`); PWM microseconds per degree (10 units ≈ 1% throttle).",
+                    "units": "us/deg"
                 },
                 {
                     "name": "loiterRadius",
                     "ctype": "uint16_t",
-                    "desc": "Default loiter radius (`navConfig()->fw.loiter_radius`)",
-                    "units": "meters"
+                    "desc": "Default loiter radius (`navConfig()->fw.loiter_radius`).",
+                    "units": "cm"
                 }
             ]
         },
@@ -1100,50 +1099,50 @@
                 {
                     "name": "cruiseThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.cruise_throttle",
+                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.cruise_throttle`.",
                     "units": "PWM"
                 },
                 {
                     "name": "minThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.min_throttle",
+                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.min_throttle`.",
                     "units": "PWM"
                 },
                 {
                     "name": "maxThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.max_throttle",
+                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.max_throttle`.",
                     "units": "PWM"
                 },
                 {
                     "name": "maxBankAngle",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->fw.max_bank_angle",
+                    "desc": "Sets `navConfigMutable()->fw.max_bank_angle`.",
                     "units": "degrees"
                 },
                 {
                     "name": "maxClimbAngle",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->fw.max_climb_angle",
+                    "desc": "Sets `navConfigMutable()->fw.max_climb_angle`.",
                     "units": "degrees"
                 },
                 {
                     "name": "maxDiveAngle",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->fw.max_dive_angle",
+                    "desc": "Sets `navConfigMutable()->fw.max_dive_angle`.",
                     "units": "degrees"
                 },
                 {
                     "name": "pitchToThrottle",
                     "ctype": "uint8_t",
-                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.pitch_to_throttle",
-                    "units": "Ratio (%)"
+                    "desc": "Sets `currentBatteryProfileMutable->nav.fw.pitch_to_throttle` (PWM microseconds per degree; 10 units ≈ 1% throttle).",
+                    "units": "us/deg"
                 },
                 {
                     "name": "loiterRadius",
                     "ctype": "uint16_t",
-                    "desc": "Sets `navConfigMutable()->fw.loiter_radius",
-                    "units": "meters"
+                    "desc": "Sets `navConfigMutable()->fw.loiter_radius`.",
+                    "units": "cm"
                 }
             ]
         },
@@ -1172,19 +1171,18 @@
                 {
                     "name": "rangeStartStep",
                     "ctype": "uint8_t",
-                    "desc": "Start step (corresponding to channel value range 900-2100 in steps of 50/25, depends on steps calculation)",
-                    "units": "0-20"
+                    "desc": "Start step (0-48). Each step is 25 PWM units; 0 is <=900 and 48 is >=2100.",
+                    "units": "step"
                 },
                 {
                     "name": "rangeEndStep",
                     "ctype": "uint8_t",
-                    "desc": "End step for the activation range",
-                    "units": "0-20"
+                    "desc": "End step (0-48). Uses the same 25-PWM step mapping as rangeStartStep.",
+                    "units": "step"
                 }
             ],
             "repeating": "MAX_MODE_ACTIVATION_CONDITION_COUNT"
         },
-        "variable_len": "MAX_MODE_ACTIVATION_CONDITION_COUNT",
         "notes": "The number of steps and mapping to PWM values depends on internal range calculations.",
         "description": "Returns all defined mode activation ranges (aux channel assignments for flight modes)."
     },
@@ -1214,14 +1212,14 @@
                 {
                     "name": "rangeStartStep",
                     "ctype": "uint8_t",
-                    "desc": "Start step for activation",
-                    "units": "0-20"
+                    "desc": "Start step (0-48). Each step is 25 PWM units; 0 is <=900 and 48 is >=2100.",
+                    "units": "step"
                 },
                 {
                     "name": "rangeEndStep",
                     "ctype": "uint8_t",
-                    "desc": "End step for activation",
-                    "units": "0-20"
+                    "desc": "End step (0-48). Uses the same 25-PWM step mapping as rangeStartStep.",
+                    "units": "step"
                 }
             ]
         },
@@ -1273,25 +1271,25 @@
             "payload": [
                 {
                     "name": "rollAlign",
-                    "ctype": "uint16_t",
-                    "desc": "Board alignment roll angle (`boardAlignment()->rollDeciDegrees`)",
+                    "ctype": "int16_t",
+                    "desc": "Board alignment roll angle (`boardAlignment()->rollDeciDegrees`). Negative values tilt left.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "pitchAlign",
-                    "ctype": "uint16_t",
-                    "desc": "Board alignment pitch angle (`boardAlignment()->pitchDeciDegrees`)",
+                    "ctype": "int16_t",
+                    "desc": "Board alignment pitch angle (`boardAlignment()->pitchDeciDegrees`). Negative values nose down.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "yawAlign",
-                    "ctype": "uint16_t",
-                    "desc": "Board alignment yaw angle (`boardAlignment()->yawDeciDegrees`)",
+                    "ctype": "int16_t",
+                    "desc": "Board alignment yaw angle (`boardAlignment()->yawDeciDegrees`). Negative values rotate counter-clockwise.",
                     "units": "deci-degrees"
                 }
             ]
         },
-        "notes": "",
+        "notes": "Ranges are typically -1800 to +1800 (i.e. -180.0° to +180.0°).",
         "description": "Returns the sensor board alignment angles relative to the craft frame."
     },
     "MSP_SET_BOARD_ALIGNMENT": {
@@ -1301,26 +1299,26 @@
             "payload": [
                 {
                     "name": "rollAlign",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `boardAlignmentMutable()->rollDeciDegrees",
+                    "ctype": "int16_t",
+                    "desc": "Sets `boardAlignmentMutable()->rollDeciDegrees`.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "pitchAlign",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `boardAlignmentMutable()->pitchDeciDegrees",
+                    "ctype": "int16_t",
+                    "desc": "Sets `boardAlignmentMutable()->pitchDeciDegrees`.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "yawAlign",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `boardAlignmentMutable()->yawDeciDegrees",
+                    "ctype": "int16_t",
+                    "desc": "Sets `boardAlignmentMutable()->yawDeciDegrees`.",
                     "units": "deci-degrees"
                 }
             ]
         },
         "reply": null,
-        "notes": "Expects 6 bytes.",
+        "notes": "Expects 6 bytes encoded as little-endian signed deci-degrees (-1800 to +1800 typical).",
         "description": "Sets the sensor board alignment angles."
     },
     "MSP_CURRENT_METER_CONFIG": {
@@ -1331,14 +1329,14 @@
             "payload": [
                 {
                     "name": "scale",
-                    "ctype": "uint16_t",
-                    "desc": "Current sensor scale factor (`batteryMetersConfig()->current.scale`). Units depend on sensor type",
-                    "units": "mV/10A or similar"
+                    "ctype": "int16_t",
+                    "desc": "Current sensor scale factor (`batteryMetersConfig()->current.scale`). Stored in 0.1 mV/A; signed for calibration.",
+                    "units": "0.1 mV/A"
                 },
                 {
                     "name": "offset",
-                    "ctype": "uint16_t",
-                    "desc": "Current sensor offset (`batteryMetersConfig()->current.offset`)",
+                    "ctype": "int16_t",
+                    "desc": "Current sensor offset (`batteryMetersConfig()->current.offset`). Signed millivolt adjustment.",
                     "units": "mV"
                 },
                 {
@@ -1356,7 +1354,7 @@
                 }
             ]
         },
-        "notes": "",
+        "notes": "Scale and offset are signed values matching `batteryMetersConfig()->current` fields.",
         "description": "Retrieves the configuration for the current sensor."
     },
     "MSP_SET_CURRENT_METER_CONFIG": {
@@ -1366,20 +1364,20 @@
             "payload": [
                 {
                     "name": "scale",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `batteryMetersConfigMutable()->current.scale",
-                    "units": "mV/10A or similar"
+                    "ctype": "int16_t",
+                    "desc": "Sets `batteryMetersConfigMutable()->current.scale` (0.1 mV/A, signed).",
+                    "units": "0.1 mV/A"
                 },
                 {
                     "name": "offset",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `batteryMetersConfigMutable()->current.offset",
+                    "ctype": "int16_t",
+                    "desc": "Sets `batteryMetersConfigMutable()->current.offset` (signed millivolts).",
                     "units": "mV"
                 },
                 {
                     "name": "type",
                     "ctype": "uint8_t",
-                    "desc": "Enum `currentSensor_e` Sets 'batteryMetersConfigMutable()->current.type'",
+                    "desc": "Enum `currentSensor_e` Sets `batteryMetersConfigMutable()->current.type`.",
                     "units": "Enum",
                     "enum": "currentSensor_e"
                 },
@@ -1392,7 +1390,7 @@
             ]
         },
         "reply": null,
-        "notes": "Expects 7 bytes.",
+        "notes": "Expects 7 bytes. Signed values use little-endian two's complement.",
         "description": "Sets the configuration for the current sensor."
     },
     "MSP_MIXER": {
@@ -1439,7 +1437,7 @@
                 {
                     "name": "serialRxProvider",
                     "ctype": "uint8_t",
-                    "desc": "Enum `rxSerialReceiverType_e` sets Serial RX provider type ('rxConfig()->serialrx_provider')",
+                    "desc": "Enum `rxSerialReceiverType_e`. Serial RX provider (`rxConfig()->serialrx_provider`).",
                     "units": "Enum",
                     "enum": "rxSerialReceiverType_e"
                 },
@@ -1464,20 +1462,20 @@
                 {
                     "name": "spektrumSatBind",
                     "ctype": "uint8_t",
-                    "desc": "Spektrum bind pulses (`rxConfig()->spektrum_sat_bind`). 0 if `USE_SPEKTRUM_BIND` disabled",
+                    "desc": "Spektrum bind pulses (`rxConfig()->spektrum_sat_bind`). 0 if `USE_SPEKTRUM_BIND` disabled.",
                     "units": "Count/Flag"
                 },
                 {
                     "name": "rxMinUsec",
                     "ctype": "uint16_t",
                     "desc": "Minimum expected pulse width (`rxConfig()->rx_min_usec`)",
-                    "units": "µs"
+                    "units": "PWM"
                 },
                 {
                     "name": "rxMaxUsec",
                     "ctype": "uint16_t",
                     "desc": "Maximum expected pulse width (`rxConfig()->rx_max_usec`)",
-                    "units": "µs"
+                    "units": "PWM"
                 },
                 {
                     "name": "bfCompatRcInterpolation",
@@ -1541,14 +1539,14 @@
                 {
                     "name": "serialRxProvider",
                     "ctype": "uint8_t",
-                    "desc": "Enum `rxSerialReceiverType_e` Serial RX provider type ('rxConfig()->serialrx_provider')",
+                    "desc": "Enum `rxSerialReceiverType_e`. Sets `rxConfigMutable()->serialrx_provider`.",
                     "units": "Enum",
                     "enum": "rxSerialReceiverType_e"
                 },
                 {
                     "name": "maxCheck",
                     "ctype": "uint16_t",
-                    "desc": "Sets `rxConfigMutable()->maxcheck",
+                    "desc": "Sets `rxConfigMutable()->maxcheck`.",
                     "units": "PWM"
                 },
                 {
@@ -1560,26 +1558,26 @@
                 {
                     "name": "minCheck",
                     "ctype": "uint16_t",
-                    "desc": "Sets `rxConfigMutable()->mincheck",
+                    "desc": "Sets `rxConfigMutable()->mincheck`.",
                     "units": "PWM"
                 },
                 {
                     "name": "spektrumSatBind",
                     "ctype": "uint8_t",
-                    "desc": "Sets `rxConfigMutable()->spektrum_sat_bind` (if `USE_SPEKTRUM_BIND`)",
+                    "desc": "Sets `rxConfigMutable()->spektrum_sat_bind` (if `USE_SPEKTRUM_BIND`).",
                     "units": "Count/Flag"
                 },
                 {
                     "name": "rxMinUsec",
                     "ctype": "uint16_t",
-                    "desc": "Sets `rxConfigMutable()->rx_min_usec",
-                    "units": "µs"
+                    "desc": "Sets `rxConfigMutable()->rx_min_usec`.",
+                    "units": "PWM"
                 },
                 {
                     "name": "rxMaxUsec",
                     "ctype": "uint16_t",
-                    "desc": "Sets `rxConfigMutable()->rx_max_usec",
-                    "units": "µs"
+                    "desc": "Sets `rxConfigMutable()->rx_max_usec`.",
+                    "units": "PWM"
                 },
                 {
                     "name": "bfCompatRcInterpolation",
@@ -1619,7 +1617,7 @@
                 {
                     "name": "receiverType",
                     "ctype": "uint8_t",
-                    "desc": "Enum `rxReceiverType_e` Sets 'rxConfigMutable()->receiverType'",
+                    "desc": "Enum `rxReceiverType_e` Sets `rxConfigMutable()->receiverType`.",
                     "units": "Enum",
                     "enum": "rxReceiverType_e"
                 }
@@ -1656,7 +1654,6 @@
             ],
             "repeating": "LED_CONFIGURABLE_COLOR_COUNT"
         },
-        "variable_len": "LED_CONFIGURABLE_COLOR_COUNT",
         "notes": "Only available if `USE_LED_STRIP` is defined.",
         "description": "Retrieves the HSV color definitions for configurable LED colors."
     },
@@ -1687,7 +1684,6 @@
             "repeating": "LED_CONFIGURABLE_COLOR_COUNT"
         },
         "reply": null,
-        "variable_len": "LED_CONFIGURABLE_COLOR_COUNT",
         "notes": "Only available if `USE_LED_STRIP` is defined. Expects `LED_CONFIGURABLE_COLOR_COUNT * 4` bytes.",
         "description": "Sets the HSV color definitions for configurable LED colors."
     },
@@ -1788,20 +1784,21 @@
                 {
                     "name": "rangeStartStep",
                     "ctype": "uint8_t",
-                    "desc": "Start step (0-20) of the control channel range",
-                    "units": ""
+                    "desc": "Start step (0-48). Each step is 25 PWM units; 0 is <=900 and 48 is >=2100.",
+                    "units": "step"
                 },
                 {
                     "name": "rangeEndStep",
                     "ctype": "uint8_t",
-                    "desc": "End step (0-20) of the control channel range",
-                    "units": ""
+                    "desc": "End step (0-48). Uses the same 25-PWM step mapping as rangeStartStep.",
+                    "units": "step"
                 },
                 {
                     "name": "adjustmentFunction",
                     "ctype": "uint8_t",
-                    "desc": "Function/parameter being adjusted (e.g., PID gain, rate). See `rcAdjustments.h",
-                    "units": ""
+                    "desc": "Function/parameter being adjusted (see `adjustmentFunction_e`).",
+                    "units": "",
+                    "enum": "adjustmentFunction_e"
                 },
                 {
                     "name": "auxSwitchChannelIndex",
@@ -1812,7 +1809,6 @@
             ],
             "repeating": "MAX_ADJUSTMENT_RANGE_COUNT"
         },
-        "variable_len": "MAX_ADJUSTMENT_RANGE_COUNT",
         "notes": "See `adjustmentRange_t`.",
         "description": "Returns all defined RC adjustment ranges (tuning via aux channels)."
     },
@@ -1842,20 +1838,21 @@
                 {
                     "name": "rangeStartStep",
                     "ctype": "uint8_t",
-                    "desc": "Start step (0-20)",
-                    "units": ""
+                    "desc": "Start step (0-48). Each step is 25 PWM units; 0 is <=900 and 48 is >=2100.",
+                    "units": "step"
                 },
                 {
                     "name": "rangeEndStep",
                     "ctype": "uint8_t",
-                    "desc": "End step (0-20)",
-                    "units": ""
+                    "desc": "End step (0-48). Uses the same 25-PWM step mapping as rangeStartStep.",
+                    "units": "step"
                 },
                 {
                     "name": "adjustmentFunction",
                     "ctype": "uint8_t",
-                    "desc": "Function/parameter being adjusted",
-                    "units": ""
+                    "desc": "Function/parameter being adjusted.",
+                    "units": "",
+                    "enum": "adjustmentFunction_e"
                 },
                 {
                     "name": "auxSwitchChannelIndex",
@@ -1965,8 +1962,8 @@
             "payload": [
                 {
                     "name": "rangefinderAltitude",
-                    "ctype": "uint32_t",
-                    "desc": "Latest altitude reading from the rangefinder (`rangefinderGetLatestAltitude()`). 0 if `USE_RANGEFINDER` disabled or no reading",
+                    "ctype": "int32_t",
+                    "desc": "Latest altitude reading from the rangefinder (`rangefinderGetLatestAltitude()`). 0 if `USE_RANGEFINDER` disabled or no reading.",
                     "units": "cm"
                 }
             ]
@@ -1991,8 +1988,7 @@
                 }
             ]
         },
-        "variable_len": true,
-        "notes": "`MAX_MAPPABLE_RX_INPUTS` is typically 8 or more.",
+        "notes": "`MAX_MAPPABLE_RX_INPUTS` is currently 4 (Roll, Pitch, Yaw, Throttle).",
         "description": "Retrieves the RC channel mapping array (AETR, etc.)."
     },
     "MSP_SET_RX_MAP": {
@@ -2012,8 +2008,7 @@
             ]
         },
         "reply": null,
-        "variable_len": true,
-        "notes": "Expects `MAX_MAPPABLE_RX_INPUTS` bytes.",
+        "notes": "Expects `MAX_MAPPABLE_RX_INPUTS` bytes (currently 4).",
         "description": "Sets the RC channel mapping array."
     },
     "MSP_REBOOT": {
@@ -2120,7 +2115,7 @@
                     "name": "looptime",
                     "ctype": "uint16_t",
                     "desc": "Configured loop time (`gyroConfig()->looptime`)",
-                    "units": "µs"
+                    "units": "PWM"
                 }
             ]
         },
@@ -2136,7 +2131,7 @@
                     "name": "looptime",
                     "ctype": "uint16_t",
                     "desc": "New loop time to set (`gyroConfigMutable()->looptime`)",
-                    "units": "µs"
+                    "units": "PWM"
                 }
             ]
         },
@@ -2177,8 +2172,8 @@
                 {
                     "name": "failsafeThrottleLowDelay",
                     "ctype": "uint16_t",
-                    "desc": "Delay for throttle-based failsafe detection (`failsafeConfig()->failsafe_throttle_low_delay`)",
-                    "units": "ms"
+                    "desc": "Delay for throttle-based failsafe detection (`failsafeConfig()->failsafe_throttle_low_delay`). Units of 0.1 seconds.",
+                    "units": "0.1s"
                 },
                 {
                     "name": "failsafeProcedure",
@@ -2195,20 +2190,20 @@
                 },
                 {
                     "name": "failsafeFWRollAngle",
-                    "ctype": "uint16_t",
-                    "desc": "Fixed wing failsafe roll angle (`failsafeConfig()->failsafe_fw_roll_angle`)",
+                    "ctype": "int16_t",
+                    "desc": "Fixed-wing failsafe roll angle (`failsafeConfig()->failsafe_fw_roll_angle`). Signed deci-degrees.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "failsafeFWPitchAngle",
-                    "ctype": "uint16_t",
-                    "desc": "Fixed wing failsafe pitch angle (`failsafeConfig()->failsafe_fw_pitch_angle`)",
+                    "ctype": "int16_t",
+                    "desc": "Fixed-wing failsafe pitch angle (`failsafeConfig()->failsafe_fw_pitch_angle`). Signed deci-degrees.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "failsafeFWYawRate",
-                    "ctype": "uint16_t",
-                    "desc": "Fixed wing failsafe yaw rate (`failsafeConfig()->failsafe_fw_yaw_rate`)",
+                    "ctype": "int16_t",
+                    "desc": "Fixed-wing failsafe yaw rate (`failsafeConfig()->failsafe_fw_yaw_rate`). Signed degrees per second.",
                     "units": "deg/s"
                 },
                 {
@@ -2220,8 +2215,8 @@
                 {
                     "name": "failsafeMinDistance",
                     "ctype": "uint16_t",
-                    "desc": "Minimum distance from home for RTH failsafe (`failsafeConfig()->failsafe_min_distance`)",
-                    "units": "meters"
+                    "desc": "Minimum distance from home for RTH failsafe (`failsafeConfig()->failsafe_min_distance`). Units of centimeters.",
+                    "units": "cm"
                 },
                 {
                     "name": "failsafeMinDistanceProc",
@@ -2243,19 +2238,19 @@
                 {
                     "name": "failsafeDelay",
                     "ctype": "uint8_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_delay",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_delay`.",
                     "units": "0.1s"
                 },
                 {
                     "name": "failsafeOffDelay",
                     "ctype": "uint8_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_off_delay",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_off_delay`.",
                     "units": "0.1s"
                 },
                 {
                     "name": "failsafeThrottle",
                     "ctype": "uint16_t",
-                    "desc": "Sets `currentBatteryProfileMutable->failsafe_throttle",
+                    "desc": "Sets `currentBatteryProfileMutable->failsafe_throttle`.",
                     "units": "PWM"
                 },
                 {
@@ -2266,56 +2261,56 @@
                 {
                     "name": "failsafeThrottleLowDelay",
                     "ctype": "uint16_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_throttle_low_delay",
-                    "units": "ms"
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_throttle_low_delay`. Units of 0.1 seconds.",
+                    "units": "0.1s"
                 },
                 {
                     "name": "failsafeProcedure",
                     "ctype": "uint8_t",
-                    "desc": "Enum `failsafeProcedure_e` Sets 'failsafeConfigMutable()->failsafe_procedure'",
+                    "desc": "Enum `failsafeProcedure_e`. Sets `failsafeConfigMutable()->failsafe_procedure`.",
                     "units": "Enum",
                     "enum": "failsafeProcedure_e"
                 },
                 {
                     "name": "failsafeRecoveryDelay",
                     "ctype": "uint8_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_recovery_delay",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_recovery_delay`.",
                     "units": "0.1s"
                 },
                 {
                     "name": "failsafeFWRollAngle",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_fw_roll_angle` (casted to `int16_t`)",
+                    "ctype": "int16_t",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_fw_roll_angle`. Signed deci-degrees.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "failsafeFWPitchAngle",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_fw_pitch_angle` (casted to `int16_t`)",
+                    "ctype": "int16_t",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_fw_pitch_angle`. Signed deci-degrees.",
                     "units": "deci-degrees"
                 },
                 {
                     "name": "failsafeFWYawRate",
-                    "ctype": "uint16_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_fw_yaw_rate` (casted to `int16_t`)",
+                    "ctype": "int16_t",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_fw_yaw_rate`. Signed degrees per second.",
                     "units": "deg/s"
                 },
                 {
                     "name": "failsafeStickThreshold",
                     "ctype": "uint16_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_stick_motion_threshold",
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_stick_motion_threshold`.",
                     "units": "PWM units"
                 },
                 {
                     "name": "failsafeMinDistance",
                     "ctype": "uint16_t",
-                    "desc": "Sets `failsafeConfigMutable()->failsafe_min_distance",
-                    "units": "meters"
+                    "desc": "Sets `failsafeConfigMutable()->failsafe_min_distance`. Units of centimeters.",
+                    "units": "cm"
                 },
                 {
                     "name": "failsafeMinDistanceProc",
                     "ctype": "uint8_t",
-                    "desc": "Enum `failsafeProcedure_e` Sets 'failsafeConfigMutable()->failsafe_min_distance_procedure'",
+                    "desc": "Enum `failsafeProcedure_e`. Sets `failsafeConfigMutable()->failsafe_min_distance_procedure`.",
                     "units": "Enum",
                     "enum": "failsafeProcedure_e"
                 }
@@ -2443,9 +2438,9 @@
                 {
                     "name": "osdDriverType",
                     "ctype": "uint8_t",
-                    "desc": "Enum `OSD_DRIVER_MAX7456` if `USE_OSD`, else `OSD_DRIVER_NONE",
+                    "desc": "Enum `osdDriver_e`: `OSD_DRIVER_MAX7456` if `USE_OSD`, else `OSD_DRIVER_NONE`.",
                     "units": "Enum",
-                    "enum": "OSD_DRIVER_MAX7456"
+                    "enum": "osdDriver_e"
                 },
                 {
                     "name": "videoSystem",
@@ -2470,14 +2465,14 @@
                 {
                     "name": "capAlarm",
                     "ctype": "uint16_t",
-                    "desc": "Capacity alarm threshold (`currentBatteryProfile->capacity.warning`). Sent even if OSD disabled",
+                    "desc": "Capacity alarm threshold (`currentBatteryProfile->capacity.warning`). Truncated to 16 bits. Sent even if OSD disabled.",
                     "units": "mAh/mWh"
                 },
                 {
                     "name": "timerAlarm",
                     "ctype": "uint16_t",
-                    "desc": "Timer alarm threshold (`osdConfig()->time_alarm`). Sent even if OSD disabled",
-                    "units": "seconds"
+                    "desc": "Timer alarm threshold in minutes (`osdConfig()->time_alarm`). Sent even if OSD disabled.",
+                    "units": "minutes"
                 },
                 {
                     "name": "altAlarm",
@@ -2504,13 +2499,13 @@
                     "array": true,
                     "array_ctype": "uint16_t",
                     "array_size": "OSD_ITEM_COUNT",
-                    "units": "Coordinates"
+                    "units": "packed"
                 }
             ]
         },
         "variable_len": true,
-        "notes": "Requires `USE_OSD` for meaningful data, but payload is always sent. Coordinates are packed: `(Y << 8) | X`. See `MSP2_INAV_OSD_*` commands for more detail and multi-layout support.",
-        "description": "Retrieves OSD configuration settings and layout for screen 0."
+        "notes": "1 byte if `USE_OSD` disabled; full payload (1 + fields + 2*OSD_ITEM_COUNT bytes) otherwise.",
+        "description": "Retrieves OSD configuration settings and layout for screen 0. Coordinates are packed as `(Y << 8) | X`. When `USE_OSD` is not compiled in, only `osdDriverType` = `OSD_DRIVER_NONE` is returned."
     },
     "MSP_SET_OSD_CONFIG": {
         "code": 85,
@@ -2522,76 +2517,89 @@
         "variants": {
             "dataSize >= 10": {
                 "description": "dataSize >= 10",
-                "payload": [
-                    {
-                        "name": "videoSystem",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `videoSystem_e`: Video system (Auto/PAL/NTSC) (`osdConfig()->video_system`). Sent even if OSD disabled",
-                        "units": "Enum",
-                        "enum": "videoSystem_e"
-                    },
-                    {
-                        "name": "units",
-                        "ctype": "uint8_t",
-                        "desc": "Enum `osd_unit_e` Measurement units (Metric/Imperial) (`osdConfig()->units`). Sent even if OSD disabled",
-                        "units": "Enum",
-                        "enum": "osd_unit_e"
-                    },
-                    {
-                        "name": "rssiAlarm",
-                        "ctype": "uint8_t",
-                        "desc": "RSSI alarm threshold (`osdConfig()->rssi_alarm`). Sent even if OSD disabled",
-                        "units": "%"
-                    },
-                    {
-                        "name": "capAlarm",
-                        "ctype": "uint16_t",
-                        "desc": "Capacity alarm threshold (`currentBatteryProfile->capacity.warning`). Sent even if OSD disabled",
-                        "units": "mAh/mWh"
-                    },
-                    {
-                        "name": "timerAlarm",
-                        "ctype": "uint16_t",
-                        "desc": "Timer alarm threshold (`osdConfig()->time_alarm`). Sent even if OSD disabled",
-                        "units": "seconds"
-                    },
-                    {
-                        "name": "altAlarm",
-                        "ctype": "uint16_t",
-                        "desc": "Altitude alarm threshold (`osdConfig()->alt_alarm`). Sent even if OSD disabled",
-                        "units": "meters"
-                    },
-                    {
-                        "name": "distAlarm",
-                        "ctype": "uint16_t",
-                        "desc": "Distance alarm threshold (`osdConfig()->dist_alarm`). Sent even if OSD disabled",
-                        "units": "meters"
-                    },
-                    {
-                        "name": "negAltAlarm",
-                        "ctype": "uint16_t",
-                        "desc": "Negative altitude alarm threshold (`osdConfig()->neg_alt_alarm`). Sent even if OSD disabled",
-                        "units": "meters"
-                    }
-                ],
-                "reply": null
-            },
-            "dataSize == 3": {
-                "description": "dataSize == 3",
                 "request": {
                     "payload": [
                         {
-                            "name": "itemPositions",
-                            "ctype": "uint16_t[OSD_ITEM_COUNT]",
-                            "desc": "Packed X/Y position for each OSD item on screen 0 (`osdLayoutsConfig()->item_pos[0][i]`). Sent even if OSD disabled",
-                            "array": true,
-                            "array_ctype": "uint16_t",
-                            "array_size": "OSD_ITEM_COUNT",
-                            "units": "Coordinates"
+                            "name": "selector",
+                            "ctype": "uint8_t",
+                            "desc": "Must be 0xFF (-1) to indicate a configuration update.",
+                            "value": 255
+                        },
+                        {
+                            "name": "videoSystem",
+                            "ctype": "uint8_t",
+                            "desc": "Enum `videoSystem_e`: Video system (Auto/PAL/NTSC) (`osdConfig()->video_system`).",
+                            "units": "Enum",
+                            "enum": "videoSystem_e"
+                        },
+                        {
+                            "name": "units",
+                            "ctype": "uint8_t",
+                            "desc": "Enum `osd_unit_e` Measurement units (Metric/Imperial) (`osdConfig()->units`).",
+                            "units": "Enum",
+                            "enum": "osd_unit_e"
+                        },
+                        {
+                            "name": "rssiAlarm",
+                            "ctype": "uint8_t",
+                            "desc": "RSSI alarm threshold (`osdConfig()->rssi_alarm`).",
+                            "units": "%"
+                        },
+                        {
+                            "name": "capAlarm",
+                            "ctype": "uint16_t",
+                            "desc": "Capacity alarm threshold (`currentBatteryProfile->capacity.warning`). Truncated to 16 bits.",
+                            "units": "mAh/mWh"
+                        },
+                        {
+                            "name": "timerAlarm",
+                            "ctype": "uint16_t",
+                            "desc": "Timer alarm threshold in minutes (`osdConfig()->time_alarm`).",
+                            "units": "minutes"
+                        },
+                        {
+                            "name": "altAlarm",
+                            "ctype": "uint16_t",
+                            "desc": "Altitude alarm threshold (`osdConfig()->alt_alarm`).",
+                            "units": "meters"
+                        },
+                        {
+                            "name": "distAlarm",
+                            "ctype": "uint16_t",
+                            "desc": "Distance alarm threshold (`osdConfig()->dist_alarm`). Optional trailing field.",
+                            "units": "meters",
+                            "optional": true
+                        },
+                        {
+                            "name": "negAltAlarm",
+                            "ctype": "uint16_t",
+                            "desc": "Negative altitude alarm threshold (`osdConfig()->neg_alt_alarm`). Optional trailing field.",
+                            "units": "meters",
+                            "optional": true
                         }
                     ]
                 },
                 "reply": null
+            },
+        "dataSize == 3": {
+            "description": "Single item position update",
+            "request": {
+                "payload": [
+                    {
+                        "name": "itemIndex",
+                        "ctype": "uint8_t",
+                        "desc": "Index of the OSD item to update (0 to `OSD_ITEM_COUNT - 1`).",
+                        "units": "Index"
+                    },
+                    {
+                        "name": "itemPosition",
+                        "ctype": "uint16_t",
+                        "desc": "Packed X/Y position (`(Y << 8) | X`) for the specified item.",
+                        "units": "packed"
+                    }
+                ]
+            },
+            "reply": null
             }
         }
     },
@@ -2607,44 +2615,25 @@
     "MSP_OSD_CHAR_WRITE": {
         "code": 87,
         "mspv": 1,
-        "request": {
-            "payload": [
-                {
-                    "name": "address",
-                    "ctype": "uint8_t` or `uint16_t",
-                    "desc": "Starting address in font memory. Size depends on total payload size",
-                    "polymorph": true,
-                    "units": ""
-                },
-                {
-                    "name": "charData",
-                    "ctype": "uint8_t[]",
-                    "desc": "Character bitmap data (54 or 64 bytes per char, depending on format)",
-                    "array": true,
-                    "array_ctype": "uint8_t",
-                    "array_size": 0,
-                    "units": ""
-                }
-            ]
-        },
+        "request": null,
         "reply": null,
         "variable_len": true,
-        "notes": "Requires `USE_OSD`. Payload size determines address size (8/16 bit) and character data size (visible bytes only or full char with metadata). Uses `displayWriteFontCharacter()`. Requires OSD hardware (like MAX7456) to be present and functional.",
+        "notes": "Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.",
         "description": "Writes character data to the OSD font memory.",
         "variants": {
-            "dataSize >= OSD_CHAR_BYTES + 2": {
-                "description": "dataSize >= OSD_CHAR_BYTES + 2",
+            "payloadSize >= OSD_CHAR_BYTES + 2 (>=66 bytes)": {
+                "description": "16-bit character index with full 64-byte payload (visible + metadata).",
                 "request": {
                     "payload": [
                         {
                             "name": "address",
                             "ctype": "uint16_t",
-                            "desc": "16-bit character address"
+                            "desc": "Character slot index (0-1023)."
                         },
                         {
                             "name": "charData",
                             "ctype": "uint8_t[OSD_CHAR_BYTES]",
-                            "desc": "Full character bytes (with metadata)",
+                            "desc": "All 64 bytes, including driver metadata.",
                             "array": true,
                             "array_ctype": "uint8_t",
                             "array_size": "OSD_CHAR_BYTES"
@@ -2653,19 +2642,19 @@
                 },
                 "reply": null
             },
-            "dataSize >= OSD_CHAR_BYTES + 1": {
-                "description": "dataSize >= OSD_CHAR_BYTES + 1",
+            "payloadSize == OSD_CHAR_BYTES + 1 (65 bytes)": {
+                "description": "8-bit character index with full 64-byte payload.",
                 "request": {
                     "payload": [
                         {
                             "name": "address",
                             "ctype": "uint8_t",
-                            "desc": "8-bit character address"
+                            "desc": "Character slot index (0-255)."
                         },
                         {
                             "name": "charData",
                             "ctype": "uint8_t[OSD_CHAR_BYTES]",
-                            "desc": "Full character bytes (with metadata)",
+                            "desc": "All 64 bytes, including driver metadata.",
                             "array": true,
                             "array_ctype": "uint8_t",
                             "array_size": "OSD_CHAR_BYTES"
@@ -2674,19 +2663,19 @@
                 },
                 "reply": null
             },
-            "dataSize >= OSD_CHAR_VISIBLE_BYTES + 2": {
-                "description": "dataSize >= OSD_CHAR_VISIBLE_BYTES + 2",
+            "payloadSize == OSD_CHAR_VISIBLE_BYTES + 2 (56 bytes)": {
+                "description": "16-bit character index with only the 54 visible bytes.",
                 "request": {
                     "payload": [
                         {
                             "name": "address",
                             "ctype": "uint16_t",
-                            "desc": "16-bit character address"
+                            "desc": "Character slot index (0-1023)."
                         },
                         {
                             "name": "charData",
                             "ctype": "uint8_t[OSD_CHAR_VISIBLE_BYTES]",
-                            "desc": "Only visible character bytes (no metadata)",
+                            "desc": "Visible pixel data only (no metadata).",
                             "array": true,
                             "array_ctype": "uint8_t",
                             "array_size": "OSD_CHAR_VISIBLE_BYTES"
@@ -2695,19 +2684,19 @@
                 },
                 "reply": null
             },
-            "dataSize >= OSD_CHAR_VISIBLE_BYTES + 1": {
-                "description": "dataSize >= OSD_CHAR_VISIBLE_BYTES + 1",
+            "payloadSize == OSD_CHAR_VISIBLE_BYTES + 1 (55 bytes)": {
+                "description": "8-bit character index with only the 54 visible bytes.",
                 "request": {
                     "payload": [
                         {
                             "name": "address",
                             "ctype": "uint8_t",
-                            "desc": "8-bit character address"
+                            "desc": "Character slot index (0-255)."
                         },
                         {
                             "name": "charData",
                             "ctype": "uint8_t[OSD_CHAR_VISIBLE_BYTES]",
-                            "desc": "Only visible character bytes (no metadata)",
+                            "desc": "Visible pixel data only (no metadata).",
                             "array": true,
                             "array_ctype": "uint8_t",
                             "array_size": "OSD_CHAR_VISIBLE_BYTES"
@@ -2746,13 +2735,13 @@
                 {
                     "name": "power",
                     "ctype": "uint8_t",
-                    "desc": "VTX power level index (from `vtxSettingsConfig`)",
+                    "desc": "VTX power level index (from `vtxSettingsConfig()`).",
                     "units": ""
                 },
                 {
                     "name": "pitMode",
                     "ctype": "uint8_t",
-                    "desc": "Boolean: 1 if VTX is currently in pit mode, 0 otherwise",
+                    "desc": "Boolean: 1 if VTX is currently in pit mode, 0 otherwise.",
                     "units": ""
                 },
                 {
@@ -2764,8 +2753,9 @@
                 {
                     "name": "lowPowerDisarm",
                     "ctype": "uint8_t",
-                    "desc": "Boolean: 1 if low power on disarm is enabled (from `vtxSettingsConfig`)",
-                    "units": ""
+                    "desc": "Enum `vtxLowerPowerDisarm_e`: Low-power behaviour while disarmed (`vtxSettingsConfig()->lowPowerDisarm`).",
+                    "units": "Enum",
+                    "enum": "vtxLowerPowerDisarm_e"
                 },
                 {
                     "name": "vtxTableAvailable",
@@ -2793,7 +2783,8 @@
                 }
             ]
         },
-        "notes": "BF compatibility field `frequency` (uint16) is missing compared to some BF versions. Use `MSP_VTXTABLE_BAND` and `MSP_VTXTABLE_POWERLEVEL` for details.",
+        "variable_len": true,
+        "notes": "Returns 1 byte (`VTXDEV_UNKNOWN`) when no VTX is detected or `USE_VTX_CONTROL` is disabled; otherwise sends full payload. BF compatibility field `frequency` (uint16) is missing compared to some BF versions. Use `MSP_VTXTABLE_BAND` and `MSP_VTXTABLE_POWERLEVEL` for details.",
         "description": "Retrieves the current VTX (Video Transmitter) configuration and capabilities."
     },
     "MSP_SET_VTX_CONFIG": {
@@ -2805,186 +2796,14 @@
         "notes": "Requires dataSize >= 2. If no VTX device or device type is VTXDEV_UNKNOWN, fields are read and discarded. The first uint16 is interpreted as band/channel when value <= VTXCOMMON_MSP_BANDCHAN_CHKVAL, otherwise treated as a frequency value that is not applied by this path. Subsequent fields are applied only if present. If dataSize < 2 the command returns MSP_RESULT_ERROR.",
         "description": "Sets VTX band/channel and related options. Fields are a progressive superset based on payload length.",
         "variants": {
-            "dataSize == 2": {
-                "description": "Minimum payload",
+            "payloadSize >= 14": {
+                "description": "Full payload (Betaflight 1.42+): includes explicit band/channel/frequency and capability counts.",
                 "request": {
                     "payload": [
                         {
                             "name": "bandChanOrFreq",
                             "ctype": "uint16_t",
-                            "desc": "If <= VTXCOMMON_MSP_BANDCHAN_CHKVAL: encoded band/channel using (value/8)+1 and (value%8)+1. Otherwise: frequency value ignored by this implementation."
-                        }
-                    ]
-                },
-                "reply": null
-            },
-            "dataSize == 4": {
-                "description": "Adds power and pitmode",
-                "request": {
-                    "payload": [
-                        {
-                            "name": "bandChanOrFreq",
-                            "ctype": "uint16_t",
-                            "desc": "See smallest variant."
-                        },
-                        {
-                            "name": "power",
-                            "ctype": "uint8_t",
-                            "desc": "Power level index; 0 is lowest."
-                        },
-                        {
-                            "name": "pitMode",
-                            "ctype": "uint8_t",
-                            "desc": "0 or 1. Delegated to VTX driver."
-                        }
-                    ]
-                },
-                "reply": null
-            },
-            "dataSize == 5": {
-                "description": "Adds lowPowerDisarm",
-                "request": {
-                    "payload": [
-                        {
-                            "name": "bandChanOrFreq",
-                            "ctype": "uint16_t"
-                        },
-                        {
-                            "name": "power",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "pitMode",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "lowPowerDisarm",
-                            "ctype": "uint8_t",
-                            "enum": "vtxLowerPowerDisarm_e",
-                            "desc": "VTX_LOW_POWER_DISARM_OFF=0, ALWAYS=1, UNTIL_FIRST_ARM=2"
-                        }
-                    ]
-                },
-                "reply": null
-            },
-            "dataSize == 7": {
-                "description": "Adds pitModeFreq placeholder",
-                "request": {
-                    "payload": [
-                        {
-                            "name": "bandChanOrFreq",
-                            "ctype": "uint16_t"
-                        },
-                        {
-                            "name": "power",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "pitMode",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "lowPowerDisarm",
-                            "ctype": "uint8_t",
-                            "enum": "vtxLowerPowerDisarm_e"
-                        },
-                        {
-                            "name": "pitModeFreq",
-                            "ctype": "uint16_t",
-                            "desc": "Read and skipped in this implementation."
-                        }
-                    ]
-                },
-                "reply": null
-            },
-            "dataSize == 9": {
-                "description": "Adds explicit band/channel (API 1.42 extension)",
-                "request": {
-                    "payload": [
-                        {
-                            "name": "bandChanOrFreq",
-                            "ctype": "uint16_t"
-                        },
-                        {
-                            "name": "power",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "pitMode",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "lowPowerDisarm",
-                            "ctype": "uint8_t",
-                            "enum": "vtxLowerPowerDisarm_e"
-                        },
-                        {
-                            "name": "pitModeFreq",
-                            "ctype": "uint16_t"
-                        },
-                        {
-                            "name": "band",
-                            "ctype": "uint8_t",
-                            "desc": "1..N; overrides band when present."
-                        },
-                        {
-                            "name": "channel",
-                            "ctype": "uint8_t",
-                            "desc": "1..8; overrides channel when present."
-                        }
-                    ]
-                },
-                "reply": null
-            },
-            "dataSize == 11": {
-                "description": "Adds explicit frequency (API 1.42 extension)",
-                "request": {
-                    "payload": [
-                        {
-                            "name": "bandChanOrFreq",
-                            "ctype": "uint16_t"
-                        },
-                        {
-                            "name": "power",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "pitMode",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "lowPowerDisarm",
-                            "ctype": "uint8_t",
-                            "enum": "vtxLowerPowerDisarm_e"
-                        },
-                        {
-                            "name": "pitModeFreq",
-                            "ctype": "uint16_t"
-                        },
-                        {
-                            "name": "band",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "channel",
-                            "ctype": "uint8_t"
-                        },
-                        {
-                            "name": "frequency",
-                            "ctype": "uint16_t",
-                            "desc": "Read and ignored by this implementation."
-                        }
-                    ]
-                },
-                "reply": null
-            },
-            "dataSize == 14": {
-                "description": "Adds reported counts; only powerCount may cap capability",
-                "request": {
-                    "payload": [
-                        {
-                            "name": "bandChanOrFreq",
-                            "ctype": "uint16_t"
+                            "desc": "Encoded band/channel if <= `VTXCOMMON_MSP_BANDCHAN_CHKVAL`; otherwise frequency placeholder."
                         },
                         {
                             "name": "power",
@@ -3028,7 +2847,177 @@
                         {
                             "name": "powerCount",
                             "ctype": "uint8_t",
-                            "desc": "If 0 < value < current capability, caps vtxDevice->capability.powerCount."
+                            "desc": "If 0 < value < current capability, caps `vtxDevice->capability.powerCount`."
+                        }
+                    ]
+                },
+                "reply": null
+            },
+            "payloadSize >= 11": {
+                "description": "Extends payload with explicit frequency.",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "band",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "channel",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "frequency",
+                            "ctype": "uint16_t",
+                            "desc": "Read and ignored by INAV."
+                        }
+                    ]
+                },
+                "reply": null
+            },
+            "payloadSize >= 9": {
+                "description": "Adds explicit band/channel overrides (API 1.42 extension).",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "band",
+                            "ctype": "uint8_t",
+                            "desc": "1..N; overrides band when present."
+                        },
+                        {
+                            "name": "channel",
+                            "ctype": "uint8_t",
+                            "desc": "1..8; overrides channel when present."
+                        }
+                    ]
+                },
+                "reply": null
+            },
+            "payloadSize >= 7": {
+                "description": "Adds pit-mode frequency placeholder.",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e"
+                        },
+                        {
+                            "name": "pitModeFreq",
+                            "ctype": "uint16_t",
+                            "desc": "Read and skipped."
+                        }
+                    ]
+                },
+                "reply": null
+            },
+            "payloadSize >= 5": {
+                "description": "Adds low-power disarm behaviour.",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "lowPowerDisarm",
+                            "ctype": "uint8_t",
+                            "enum": "vtxLowerPowerDisarm_e",
+                            "desc": "0=Off, 1=Always, 2=Until first arm."
+                        }
+                    ]
+                },
+                "reply": null
+            },
+            "payloadSize >= 4": {
+                "description": "Adds power index and pit mode flag.",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t"
+                        },
+                        {
+                            "name": "power",
+                            "ctype": "uint8_t"
+                        },
+                        {
+                            "name": "pitMode",
+                            "ctype": "uint8_t"
+                        }
+                    ]
+                },
+                "reply": null
+            },
+            "payloadSize == 2": {
+                "description": "Minimum payload (band/channel encoded in 0..63).",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "bandChanOrFreq",
+                            "ctype": "uint16_t",
+                            "desc": "If <= `VTXCOMMON_MSP_BANDCHAN_CHKVAL`, decoded as band/channel; otherwise treated as a frequency placeholder."
                         }
                     ]
                 },
@@ -3066,20 +3055,21 @@
                 {
                     "name": "motorPwmProtocol",
                     "ctype": "uint8_t",
-                    "desc": "Motor PWM protocol type (`motorConfig()->motorPwmProtocol`)",
-                    "units": ""
+                    "desc": "Motor PWM protocol type (`motorConfig()->motorPwmProtocol`).",
+                    "units": "Enum",
+                    "enum": "motorPwmProtocolTypes_e"
                 },
                 {
                     "name": "motorPwmRate",
                     "ctype": "uint16_t",
-                    "desc": "Hz: Motor PWM rate (if applicable) (`motorConfig()->motorPwmRate`)",
-                    "units": ""
+                    "desc": "Motor PWM rate (if applicable) (`motorConfig()->motorPwmRate`).",
+                    "units": "Hz"
                 },
                 {
                     "name": "servoPwmRate",
                     "ctype": "uint16_t",
-                    "desc": "Hz: Servo PWM rate (`servoConfig()->servoPwmRate`)",
-                    "units": ""
+                    "desc": "Servo PWM rate (`servoConfig()->servoPwmRate`).",
+                    "units": "Hz"
                 },
                 {
                     "name": "legacyGyroSync",
@@ -3101,43 +3091,44 @@
                 {
                     "name": "gyroSyncDenom",
                     "ctype": "uint8_t",
-                    "desc": "Ignored",
+                    "desc": "Ignored (legacy Betaflight field).",
                     "units": ""
                 },
                 {
                     "name": "pidProcessDenom",
                     "ctype": "uint8_t",
-                    "desc": "Ignored",
+                    "desc": "Ignored (legacy Betaflight field).",
                     "units": ""
                 },
                 {
                     "name": "useUnsyncedPwm",
                     "ctype": "uint8_t",
-                    "desc": "Ignored",
+                    "desc": "Ignored (legacy Betaflight field).",
                     "units": ""
                 },
                 {
                     "name": "motorPwmProtocol",
                     "ctype": "uint8_t",
-                    "desc": "Sets `motorConfigMutable()->motorPwmProtocol",
-                    "units": ""
+                    "desc": "Sets `motorConfigMutable()->motorPwmProtocol`.",
+                    "units": "Enum",
+                    "enum": "motorPwmProtocolTypes_e"
                 },
                 {
                     "name": "motorPwmRate",
                     "ctype": "uint16_t",
-                    "desc": "Sets `motorConfigMutable()->motorPwmRate",
-                    "units": ""
+                    "desc": "Sets `motorConfigMutable()->motorPwmRate`.",
+                    "units": "Hz"
                 },
                 {
                     "name": "servoPwmRate",
                     "ctype": "uint16_t",
-                    "desc": "Sets `servoConfigMutable()->servoPwmRate",
-                    "units": ""
+                    "desc": "Sets `servoConfigMutable()->servoPwmRate`.",
+                    "units": "Hz"
                 },
                 {
                     "name": "legacyGyroSync",
                     "ctype": "uint8_t",
-                    "desc": "Ignored",
+                    "desc": "Ignored (legacy Betaflight field).",
                     "units": ""
                 }
             ]
@@ -3302,7 +3293,7 @@
             ]
         },
         "reply": null,
-        "notes": "Requires specific payload sizes (5, 9, 13, 17, 21, or 22 bytes) to be accepted. Calls `pidInitFilters()` if size >= 13.",
+        "notes": "Requires at least 22 bytes; intermediate length checks enforce legacy Betaflight frame layout and call `pidInitFilters()` once the D-term notch placeholders are consumed.",
         "description": "Sets filter configuration settings. Handles different payload lengths for backward compatibility."
     },
     "MSP_PID_ADVANCED": {
@@ -3390,58 +3381,58 @@
                 {
                     "name": "legacyRollPitchItermIgnore",
                     "ctype": "uint16_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (legacy compatibility)."
                 },
                 {
                     "name": "legacyYawItermIgnore",
                     "ctype": "uint16_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (legacy compatibility)."
                 },
                 {
                     "name": "legacyYawPLimit",
                     "ctype": "uint16_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (legacy compatibility)."
                 },
                 {
                     "name": "bfCompatDeltaMethod",
                     "ctype": "uint8_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (BF compatibility)."
                 },
                 {
                     "name": "bfCompatVbatPidComp",
                     "ctype": "uint8_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (BF compatibility)."
                 },
                 {
                     "name": "bfCompatSetpointRelaxRatio",
                     "ctype": "uint8_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (BF compatibility)."
                 },
                 {
                     "name": "reserved1",
                     "ctype": "uint8_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (reserved)."
                 },
                 {
                     "name": "legacyPidSumLimit",
                     "ctype": "uint16_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (legacy compatibility)."
                 },
                 {
                     "name": "bfCompatItermThrottleGain",
                     "ctype": "uint8_t",
-                    "desc": "Ignored"
+                    "desc": "Ignored (BF compatibility)."
                 },
                 {
                     "name": "accelLimitRollPitch",
                     "ctype": "uint16_t",
-                    "desc": "Sets `pidProfileMutable()->axisAccelerationLimitRollPitch = value * 10",
+                    "desc": "Sets `pidProfileMutable()->axisAccelerationLimitRollPitch = value * 10`.",
                     "units": "dps / 10"
                 },
                 {
                     "name": "accelLimitYaw",
                     "ctype": "uint16_t",
-                    "desc": "Sets `pidProfileMutable()->axisAccelerationLimitYaw = value * 10",
+                    "desc": "Sets `pidProfileMutable()->axisAccelerationLimitYaw = value * 10`.",
                     "units": "dps / 10"
                 }
             ]
@@ -3511,7 +3502,7 @@
                 {
                     "name": "accHardware",
                     "ctype": "uint8_t",
-                    "desc": "Sets `accelerometerConfigMutable()->acc_hardware",
+                    "desc": "Sets `accelerometerConfigMutable()->acc_hardware`",
                     "units": "",
                     "enum": "accHardware_e"
                 },
@@ -3652,7 +3643,7 @@
                 }
             ]
         },
-        "notes": "Superseded by `MSP_STATUS_EX` and `MSP2_INAV_STATUS`. `sensorStatus` bitmask: (Bit 0: ACC, 1: BARO, 2: MAG, 3: GPS, 4: RANGEFINDER, 5: GYRO). `activeModesLow` only contains the first 32 modes; use `MSP_ACTIVEBOXES` for the full set.",
+        "notes": "Superseded by `MSP_STATUS_EX` and `MSP2_INAV_STATUS`. `sensorStatus` bitmask: (Bit 0: ACC, 1: BARO, 2: MAG, 3: GPS, 4: RANGEFINDER, 5: OPFLOW, 6: PITOT, 7: TEMP; Bit 15: hardware failure). `activeModesLow` only contains the first 32 modes; use `MSP_ACTIVEBOXES` for the full set.",
         "description": "Provides basic flight controller status including cycle time, errors, sensor status, active modes (first 32), and the current configuration profile."
     },
     "MSP_RAW_IMU": {
@@ -3749,10 +3740,10 @@
             "payload": [
                 {
                     "name": "motorOutputs",
-                    "ctype": "uint16_t[8]",
+                    "ctype": "int16_t[8]",
                     "desc": "Array of current motor output values (typically 1000-2000). Values beyond `MAX_SUPPORTED_MOTORS` are 0",
                     "array": true,
-                    "array_ctype": "uint16_t",
+                    "array_ctype": "int16_t",
                     "array_size": 8,
                     "units": "PWM"
                 }
@@ -3769,17 +3760,17 @@
             "payload": [
                 {
                     "name": "rcChannels",
-                    "ctype": "uint16_t[]",
+                    "ctype": "int16_t[]",
                     "desc": "Array of current RC channel values (typically 1000-2000). Length depends on detected channels",
                     "array": true,
-                    "array_ctype": "uint16_t",
+                    "array_ctype": "int16_t",
                     "array_size": 0,
                     "units": "PWM"
                 }
             ]
         },
         "variable_len": true,
-        "notes": "",
+        "notes": "Array length equals `rxRuntimeConfig.channelCount`.",
         "description": "Provides the current values of the received RC channels."
     },
     "MSP_RAW_GPS": {
@@ -3816,18 +3807,18 @@
                 {
                     "name": "altitude",
                     "ctype": "int16_t",
-                    "desc": "Altitude above MSL (`gpsSol.llh.alt / 100`)",
+                    "desc": "Altitude above MSL (`gpsSol.llh.alt`) sent as centimeters",
                     "units": "cm"
                 },
                 {
                     "name": "speed",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Ground speed (`gpsSol.groundSpeed`)",
                     "units": "cm/s"
                 },
                 {
                     "name": "groundCourse",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Ground course (`gpsSol.groundCourse`)",
                     "units": "deci-degrees"
                 },
@@ -3856,7 +3847,7 @@
                 },
                 {
                     "name": "directionToHome",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Direction to the home point (0-360) (`GPS_directionToHome`)",
                     "units": "degrees"
                 },
@@ -3891,9 +3882,9 @@
                 },
                 {
                     "name": "yaw",
-                    "ctype": "int16_t",
-                    "desc": "Yaw/Heading angle (`DECIDEGREES_TO_DEGREES(attitude.values.yaw)`)",
-                    "units": "degrees"
+                    "ctype": "uint16_t",
+                    "desc": "Yaw/Heading angle (`attitude.values.yaw`)",
+                    "units": "deci-degrees"
                 }
             ]
         },
@@ -4253,19 +4244,19 @@
                 },
                 {
                     "name": "param1",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Parameter 1 (meaning depends on action)",
                     "units": "Varies"
                 },
                 {
                     "name": "param2",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Parameter 2 (meaning depends on action)",
                     "units": "Varies"
                 },
                 {
                     "name": "param3",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Parameter 3 (meaning depends on action)",
                     "units": "Varies"
                 },
@@ -4310,26 +4301,26 @@
             "payload": [
                 {
                     "name": "min",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Minimum servo endpoint (`servoParams(i)->min`)",
                     "units": "PWM"
                 },
                 {
                     "name": "max",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Maximum servo endpoint (`servoParams(i)->max`)",
                     "units": "PWM"
                 },
                 {
                     "name": "middle",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Middle/Neutral servo position (`servoParams(i)->middle`)",
                     "units": "PWM"
                 },
                 {
                     "name": "rate",
-                    "ctype": "uint8_t",
-                    "desc": "Servo rate/scaling (`servoParams(i)->rate`)",
+                    "ctype": "int8_t",
+                    "desc": "Servo rate/scaling (`servoParams(i)->rate`, -125..125). Encoded as two's complement",
                     "units": "% (-100 to 100)"
                 },
                 {
@@ -4372,16 +4363,16 @@
                 {
                     "name": "navMode",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`NAV_MODE_*`): Current navigation mode (None, RTH, WP, Hold, etc.) (`NAV_Status.mode`)",
+                    "desc": "Enum (`navSystemStatus_Mode_e`): Current navigation mode (None, RTH, NAV, Hold, etc.) (`NAV_Status.mode`)",
                     "units": "",
-                    "enum": "NAV_MODE_*"
+                    "enum": "navSystemStatus_Mode_e"
                 },
                 {
                     "name": "navState",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`NAV_STATE_*`): Current navigation state (`NAV_Status.state`)",
+                    "desc": "Enum (`navSystemStatus_State_e`): Current navigation state (`NAV_Status.state`)",
                     "units": "",
-                    "enum": "NAV_STATE_*"
+                    "enum": "navSystemStatus_State_e"
                 },
                 {
                     "name": "activeWpAction",
@@ -4399,15 +4390,15 @@
                 {
                     "name": "navError",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`NAV_ERROR_*`): Current navigation error code (`NAV_Status.error`)",
+                    "desc": "Enum (`navSystemStatus_Error_e`): Current navigation error code (`NAV_Status.error`)",
                     "units": "",
-                    "enum": "NAV_ERROR_*"
+                    "enum": "navSystemStatus_Error_e"
                 },
                 {
                     "name": "targetHeading",
                     "ctype": "int16_t",
-                    "desc": "degrees: Target heading for heading controller (`getHeadingHoldTarget()`)",
-                    "units": ""
+                    "desc": "Target heading for heading controller (`getHeadingHoldTarget()`)",
+                    "units": "degrees"
                 }
             ]
         },
@@ -4536,21 +4527,20 @@
                 {
                     "name": "directionOrSpecialIndex",
                     "ctype": "uint8_t",
-                    "desc": "Index of the direction Enum (`ledDirection_e`) or special color (`ledSpecialColor_e`)",
-                    "units": "",
-                    "enum": "ledDirection_e"
+                    "desc": "Index of the direction (`ledDirection_e`) or special color (`ledSpecialColor_e`)",
+                    "units": ""
                 },
                 {
                     "name": "colorIndex",
                     "ctype": "uint8_t",
-                    "desc": "Index of the color assigned from `ledStripConfig()->colors",
+                    "desc": "Index of the color assigned from `ledStripConfig()->colors`",
                     "units": ""
                 }
             ],
-            "repeating": "LED_MODE_COUNT * LED_DIRECTION_COUNT"
+            "repeating": "LED_MODE_COUNT * LED_DIRECTION_COUNT + LED_SPECIAL_COLOR_COUNT"
         },
-        "variable_len": "LED_MODE_COUNT * LED_DIRECTION_COUNT",
-        "notes": "Only available if `USE_LED_STRIP` is defined. Allows mapping modes/directions/specials to configured colors.",
+        "variable_len": "LED_MODE_COUNT * LED_DIRECTION_COUNT + LED_SPECIAL_COLOR_COUNT",
+        "notes": "Only available if `USE_LED_STRIP` is defined. Entries where `modeIndex == LED_MODE_COUNT` describe special colors.",
         "description": "Retrieves the color index assigned to each LED mode and function/direction combination, including special colors."
     },
     "MSP_BATTERY_STATE": {
@@ -5043,15 +5033,9 @@
                 },
                 {
                     "name": "speed",
-                    "ctype": "uint16_t",
+                    "ctype": "int16_t",
                     "desc": "Ground speed",
                     "units": "cm/s"
-                },
-                {
-                    "name": "groundCourse",
-                    "ctype": "uint16_t",
-                    "desc": "Ground course (units unclear from code, likely degrees or deci-degrees, ignored in current code)",
-                    "units": "???"
                 }
             ]
         },
