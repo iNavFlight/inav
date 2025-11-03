@@ -18,7 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <limits.h>
 #include "platform.h"
 
 #if defined(USE_TELEMETRY) && defined(USE_SERIALRX_CRSF) && defined(USE_TELEMETRY_CRSF)
@@ -57,6 +57,7 @@
 
 #include "sensors/battery.h"
 #include "sensors/sensors.h"
+#include "sensors/pitotmeter.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
@@ -214,8 +215,7 @@ static void crsfFrameGps(sbuf_t *dst)
     crsfSerialize32(dst, gpsSol.llh.lon);
     crsfSerialize16(dst, (gpsSol.groundSpeed * 36 + 50) / 100); // gpsSol.groundSpeed is in cm/s
     crsfSerialize16(dst, DECIDEGREES_TO_CENTIDEGREES(gpsSol.groundCourse)); // gpsSol.groundCourse is 0.1 degrees, need 0.01 deg
-    const uint16_t altitude = (getEstimatedActualPosition(Z) / 100) + 1000;
-    crsfSerialize16(dst, altitude);
+    crsfSerialize16(dst, (uint16_t)( (telemetryConfig()->crsf_use_legacy_baro_packet ? getEstimatedActualPosition(Z) : gpsSol.llh.alt ) / 100 + 1000) );
     crsfSerialize8(dst, gpsSol.numSat);
 }
 
@@ -258,16 +258,20 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
-const int32_t ALT_MIN_DM = 10000;
-const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
-const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
 
 /*
 0x09 Barometer altitude and vertical speed
 Payload:
 uint16_t    altitude_packed ( dm - 10000 )
 */
-static void crsfBarometerAltitude(sbuf_t *dst)
+
+const int32_t ALT_MIN_DM = 10000;
+const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
+const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
+const float VARIO_KL = 100.0f;   // TBS CRSF standard
+const float VARIO_KR = .026f;    // TBS CRSF standard
+
+static void crsfFrameBarometerAltitudeVarioSensor(sbuf_t *dst)
 {
     int32_t altitude_dm = lrintf(getEstimatedActualPosition(Z) / 10);
     uint16_t altitude_packed;
@@ -280,9 +284,28 @@ static void crsfBarometerAltitude(sbuf_t *dst)
     } else {
         altitude_packed = ((altitude_dm + 5) / 10) | 0x8000;
     }
-    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE);
+
+    float vario_sm = getEstimatedActualVelocity(Z);
+    int8_t sign = vario_sm < 0 ? -1 : ( vario_sm > 0 ? 1 : 0 );
+    int8_t vario_packed = (int8_t)constrain( lrintf(__builtin_logf(ABS(vario_sm) / VARIO_KL + 1) / VARIO_KR * sign ), SCHAR_MIN, SCHAR_MAX );
+
+    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_VARIO_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR);
     crsfSerialize16(dst, altitude_packed);
+    crsfSerialize8(dst, vario_packed);
+}
+
+/*
+0x0A Airspeed sensor
+Payload:
+int16      Air speed ( dm/s )
+*/
+static void crsfFrameAirSpeedSensor(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED_SENSOR);
+    crsfSerialize16(dst, (uint16_t)(getAirspeedEstimate() * 36 / 100));
 }
 
 typedef enum {
@@ -444,8 +467,8 @@ typedef enum {
     CRSF_FRAME_BATTERY_SENSOR_INDEX,
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
-    CRSF_FRAME_VARIO_SENSOR_INDEX,
-    CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
+    CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX,
+    CRSF_FRAME_AIRSPEED_SENSOR_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -507,14 +530,16 @@ static void processCrsf(void)
     }
 #endif
 #if defined(USE_BARO) || defined(USE_GPS)
-    if (currentSchedule & BV(CRSF_FRAME_VARIO_SENSOR_INDEX)) {
+    if (currentSchedule & BV(CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX) ) {
         crsfInitializeFrame(dst);
-        crsfFrameVarioSensor(dst);
+        telemetryConfig()->crsf_use_legacy_baro_packet ? crsfFrameVarioSensor(dst) : crsfFrameBarometerAltitudeVarioSensor(dst);
         crsfFinalize(dst);
     }
-    if (currentSchedule & BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX)) {
+#endif
+#if defined(USE_PITOT)
+    if (currentSchedule & BV(CRSF_FRAME_AIRSPEED_SENSOR_INDEX)) {
         crsfInitializeFrame(dst);
-        crsfBarometerAltitude(dst);
+        crsfFrameAirSpeedSensor(dst);
         crsfFinalize(dst);
     }
 #endif
@@ -548,12 +573,12 @@ void initCrsfTelemetry(void)
 #endif
 #if defined(USE_BARO) || defined(USE_GPS)
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+        crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX);
     }
 #endif
-#ifdef USE_BARO
-    if (sensors(SENSOR_BARO)) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_AIRSPEED_SENSOR_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
@@ -632,7 +657,13 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
     case CRSF_FRAMETYPE_VARIO_SENSOR:
         crsfFrameVarioSensor(sbuf);
         break;
-    }
+    case CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR:
+        crsfFrameBarometerAltitudeVarioSensor(sbuf);
+        break;
+    case CRSF_FRAMETYPE_AIRSPEED_SENSOR:
+        crsfFrameAirSpeedSensor(sbuf);
+        break;
+    }  
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
     return frameSize;
 }

@@ -592,6 +592,16 @@ Control rate profile to switch to when the battery profile is selected, 0 to dis
 
 ---
 
+### crsf_use_legacy_baro_packet
+
+CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. No vario, no If `OFF`, BaroVario packet will have vario speed and altitude about start point and GPS packet will have ASL altitude (about sea level). These are deprecated, and will be removed in INAV 11.0. Tools and scripts using these GPS Altitude should be updated to use the BaroVario packet and GPS packet. Default: 'OFF'
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
