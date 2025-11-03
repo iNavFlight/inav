@@ -89,6 +89,7 @@ typedef struct telemetryConfig_s {
         uint8_t radio_type;
         uint8_t sysid;
     } mavlink;
+    bool crsf_use_legacy_baro_packet;
 } telemetryConfig_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);
