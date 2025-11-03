@@ -175,7 +175,7 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
                         case CRSF_FRAMETYPE_MSP_WRITE: {
                             uint8_t *frameStart = (uint8_t *)&crsfFrame.frame.payload + CRSF_FRAME_ORIGIN_DEST_SIZE;
                             if (bufferCrsfMspFrame(frameStart, CRSF_FRAME_RX_MSP_FRAME_SIZE)) {
-                                crsfScheduleMspResponse();
+                                crsfScheduleMspResponse(crsfFrame.frame.payload[1]);
                             }
                             break;
                         }
