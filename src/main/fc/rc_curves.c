@@ -31,8 +31,6 @@
 
 #include "rx/rx.h"
 
-#include "programming/global_variables.h"
-
 #define THROTTLE_LOOKUP_LENGTH 11
 
 static EXTENDED_FASTRAM int16_t lookupThrottleRC[THROTTLE_LOOKUP_LENGTH];    // lookup table for expo & mid THROTTLE
@@ -57,14 +55,10 @@ void generateThrottleCurve(const controlRateConfig_t *controlRateConfig)
 
 int16_t rcLookup(int32_t stickDeflection, int8_t expo)
 {
-    gvSet(0, stickDeflection);
     float stk = stickDeflection / 500.0f;
-    float expoAdjusted = stk * (1.0f + ((float)expo /100.0f) * (stk * stk - 1.0f));
-    if (expoAdjusted > 1.0f)
-        expoAdjusted = 1.0f;
-    else if (expoAdjusted < -1.0f)
-        expoAdjusted = -1.0f;
-    return expoAdjusted * 500.0f;
+    float expoAdjusted = constrainf(stk * (1.0f + ((float)expo /100.0f) * (stk * stk - 1.0f)), -1.0f, 1.0f);
+
+    return (int16_t)lrintf(expoAdjusted * 500.0f);
 }
 
 uint16_t rcLookupThrottle(uint16_t absoluteDeflection)
