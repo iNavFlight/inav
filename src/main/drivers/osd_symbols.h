@@ -236,6 +236,10 @@
 #define SYM_RX_BAND                 0x169 // 361 RX Band
 #define SYM_RX_MODE                 0x16A // 362 RX Mode
 
+#define SYM_THR_GAUGE_EMPTY         0x16B // 363 Throttle gauge empty
+#define SYM_THR_GAUGE_HALF          0x16C // 364 Throttle gauge 1 step
+#define SYM_THR_GAUGE_FULL          0x16D // 365 Throttle gauge 2 steps
+
 #define SYM_AH_CH_TYPE3             0x190 // 400 to 402, crosshair 3
 #define SYM_AH_CH_TYPE4             0x193 // 403 to 405, crosshair 4
 #define SYM_AH_CH_TYPE5             0x196 // 406 to 408, crosshair 5
