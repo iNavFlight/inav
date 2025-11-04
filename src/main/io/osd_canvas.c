@@ -77,7 +77,7 @@ void osdCanvasDrawThrottleGauge(displayPort_t *display, displayCanvas_t *canvas,
 
     static uint8_t prevThr = 0;
 
-    if (ABS(prevThr - thrPos) < 10) {
+    if (prevThr == (uint8_t)(thrPos / (OSD_THROTTLE_GAUGE_HEIGHT_ROWS * 2))) {
         return;
     }
 
@@ -129,7 +129,7 @@ void osdCanvasDrawThrottleGauge(displayPort_t *display, displayCanvas_t *canvas,
     else
         displayCanvasDrawCharacter(canvas, x, y + (canvas->gridElementHeight * 4), SYM_THR_GAUGE_EMPTY, DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT);
 
-    prevThr = thrPos;
+    prevThr = (uint8_t)(thrPos / (OSD_THROTTLE_GAUGE_HEIGHT_ROWS * 2));
 }
 
 void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel)
