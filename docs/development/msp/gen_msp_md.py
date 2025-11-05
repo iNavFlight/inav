@@ -16,7 +16,6 @@ import sys
 import json
 import re
 import unicodedata
-import manual_docs_fix
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
