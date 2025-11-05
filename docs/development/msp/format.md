@@ -60,7 +60,7 @@
 **payload**: If repeating, contains more payload fields\
 **polymorph**: Optional boolean special case, field does not have a defined C type and could be anything\
 
-Simple value
+**Simple value**
 ```
 {
     "name": "mspProtocolVersion",
@@ -69,7 +69,7 @@ Simple value
     "desc": "MSP Protocol version (`MSP_PROTOCOL_VERSION`, typically 0)."
 },
 ```
-Fixed length array
+**Fixed length array**
 ```
 {
     "name": "fcVariantIdentifier",
@@ -81,7 +81,7 @@ Fixed length array
     "units": ""
 }
 ```
-Undefined length array
+**Undefined length array**
 ```
 {
     "name": "firmwareChunk",
@@ -92,7 +92,7 @@ Undefined length array
     "array_size": 0,
 }
 ```
-As of yet unknown length array
+**As of yet unknown length array**
 ```
 {
     "name": "elementText",
@@ -103,7 +103,7 @@ As of yet unknown length array
     "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1"
 }
 ```
-Nested array
+**Nested array with struct**
 ```
 {
     "repeating": "maxVehicles",
