@@ -472,9 +472,9 @@ def render_message(name: str, msg: Dict[str, Any]) -> Tuple[str, str]:
     if description:
         out.append(f"**Description:** {description}  \n")
 
-    if complex_flag:
-        out.append("**Special case, skipped for now**\n\n")
-        return "".join(out), heading
+    #if complex_flag:
+    #    out.append("**Special case, skipped for now**\n\n")
+    #    return "".join(out), heading
 
     # NEW: variant-aware rendering
     variants = msg.get("variants")

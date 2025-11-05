@@ -1869,7 +1869,7 @@
     "MSP_CF_SERIAL_CONFIG": {
         "code": 54,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`. Use `MSP2_COMMON_SERIAL_CONFIG`.",
@@ -1878,7 +1878,7 @@
     "MSP_SET_CF_SERIAL_CONFIG": {
         "code": 55,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`. Use `MSP2_COMMON_SET_SERIAL_CONFIG`.",
@@ -2405,7 +2405,7 @@
     "MSP_SET_BLACKBOX_CONFIG": {
         "code": 81,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in `fc_msp.c`. Use `MSP2_SET_BLACKBOX_CONFIG`.",
@@ -2414,7 +2414,7 @@
     "MSP_TRANSPONDER_CONFIG": {
         "code": 82,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`.",
@@ -2423,7 +2423,7 @@
     "MSP_SET_TRANSPONDER_CONFIG": {
         "code": 83,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`.",
@@ -2606,7 +2606,7 @@
     "MSP_OSD_CHAR_READ": {
         "code": 86,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`. Requires direct hardware access, typically done via DisplayPort.",
@@ -3550,7 +3550,7 @@
     "MSP_SPECIAL_PARAMETERS": {
         "code": 98,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`.",
@@ -3559,7 +3559,7 @@
     "MSP_SET_SPECIAL_PARAMETERS": {
         "code": 99,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`.",
@@ -3568,7 +3568,7 @@
     "MSP_IDENT": {
         "code": 100,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": {
             "payload": [
@@ -4408,7 +4408,7 @@
     "MSP_NAV_CONFIG": {
         "code": 122,
         "mspv": 1,
-        "implemented": false
+        "not_implemented": true
     },
     "MSP_3D": {
         "code": 124,
@@ -5052,7 +5052,7 @@
     "MSP_SET_BOX": {
         "code": 203,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`. Mode changes are typically handled via RC channels (`MSP_MODE_RANGES`).",
@@ -5444,7 +5444,7 @@
     "MSP_SET_NAV_CONFIG": {
         "code": 215,
         "mspv": 1,
-        "implemented": false
+        "not_implemented": true
     },
     "MSP_SET_3D": {
         "code": 217,
@@ -5585,7 +5585,7 @@
     "MSP_SET_ACC_TRIM": {
         "code": 239,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`. Use `MSP_ACC_CALIBRATION`.",
@@ -5594,7 +5594,7 @@
     "MSP_ACC_TRIM": {
         "code": 240,
         "mspv": 1,
-        "implemented": false,
+        "not_implemented": true,
         "request": null,
         "reply": null,
         "notes": "Not implemented in INAV `fc_msp.c`. Calibration data via `MSP_CALIBRATION_DATA`.",
@@ -5938,6 +5938,7 @@
                 }
             ]
         },
+        "complex": true,
         "variable_len": true,
         "notes": "Returns error if setting not found. Use `MSP2_COMMON_SETTING_INFO` to discover settings, types, and sizes.",
         "description": "Gets the value of a specific configuration setting, identified by name or index."
@@ -9209,12 +9210,12 @@
     "MSP2_INAV_GLOBAL_FUNCTIONS": {
         "code": 8228,
         "mspv": 2,
-        "implemented": false
+        "not_implemented": true
     },
     "MSP2_INAV_SET_GLOBAL_FUNCTIONS": {
         "code": 8229,
         "mspv": 2,
-        "implemented": false
+        "not_implemented": true
     },
     "MSP2_INAV_LOGIC_CONDITIONS_STATUS": {
         "code": 8230,

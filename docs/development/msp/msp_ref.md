@@ -2647,15 +2647,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Returns error if setting not found. Use `MSP2_COMMON_SETTING_INFO` to discover settings, types, and sizes.
 
 ## <a id="msp2_common_set_setting"></a>`MSP2_COMMON_SET_SETTING (4100 / 0x1004)`
-**Temporary definition**
-*   **Description:** Sets the value of a specific configuration setting, identified by name or index.
-*   **Payload:**
-    | Field | C Type | Size (Bytes) | Description |
-    |---|---|---|---|
-    | `settingIdentifier` | Varies | Variable | Setting name (null-terminated string) OR Index (0x00 followed by `uint16_t` index) |
-    | `settingValue` | `uint8_t[]` | Variable | Raw byte value to set for the setting. Size must match the setting's type |
-*   **Notes:** Performs type checking and range validation (min/max). Returns error if setting not found, value size mismatch, or value out of range. Handles different data types (`uint8`, `int16`, `float`, `string`, etc.) internally.
-
+**Description:** Sets the value of a specific configuration setting, identified by name or index.  
+**Special case, skipped for now**
 
 ## <a id="msp2_common_motor_mixer"></a>`MSP2_COMMON_MOTOR_MIXER (4101 / 0x1005)`
 **Description:** Retrieves the current motor mixer configuration (throttle, roll, pitch, yaw weights) for each motor.  
@@ -2941,14 +2934,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 **Notes:** Requires `USE_PITOT_MSP`. Calls `mspPitotmeterReceiveNewData()`.
 
 ## <a id="msp2_sensor_headtracker"></a>`MSP2_SENSOR_HEADTRACKER (7943 / 0x1f07)`
-**Temporary definition**
-*   **Description:** Provides head tracker orientation data.
-*   **Payload:** (Structure not defined in provided headers, but likely Roll, Pitch, Yaw angles)
-    | Field | C Type | Size (Bytes) | Units | Description |
-    |---|---|---|---|---|
-    | `...` | Varies | Variable | Head tracker angles (e.g., int16 Roll, Pitch, Yaw in deci-degrees) |
-*   **Notes:** Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`. Payload structure needs verification from `mspHeadTrackerReceiverNewData` implementation.
-
+**Description:** Provides head tracker orientation data.  
+**Special case, skipped for now**
 
 ## <a id="msp2_inav_status"></a>`MSP2_INAV_STATUS (8192 / 0x2000)`
 **Description:** Provides comprehensive flight controller status, extending `MSP_STATUS_EX` with full arming flags, battery profile, and mixer profile.  
