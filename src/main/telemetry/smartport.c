@@ -162,9 +162,9 @@ static smartPortWriteFrameFn *smartPortWriteFrame;
 static bool smartPortMspReplyPending = false;
 #endif
 
-static uint16_t frskyGetFlightMode(void)
+static uint32_t frskyGetFlightMode(void)
 {
-    uint16_t tmpi = 0;
+    uint32_t tmpi = 0;
 
     // ones column
     if (!isArmingDisabled())
@@ -187,11 +187,11 @@ static uint16_t frskyGetFlightMode(void)
         tmpi += 100;
     if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
         tmpi += 200;
-    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+    if (FLIGHT_MODE(NAV_POSHOLD_MODE) && !STATE(AIRPLANE))
         tmpi += 400;
 
     // thousands column
-    if (FLIGHT_MODE(NAV_RTH_MODE))
+    if (FLIGHT_MODE(NAV_RTH_MODE) && !isWaypointMissionRTHActive())
         tmpi += 1000;
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) // intentionally out of order and 'else-ifs' to prevent column overflow
         tmpi += 8000;
@@ -207,6 +207,22 @@ static uint16_t frskyGetFlightMode(void)
         tmpi += 40000;
     else if (FLIGHT_MODE(AUTO_TUNE)) // intentionally reverse order and 'else-if' to prevent 16-bit overflow
         tmpi += 20000;
+
+    // hundred thousands column
+    if (FLIGHT_MODE(NAV_FW_AUTOLAND))
+        tmpi += 100000;
+    if (FLIGHT_MODE(TURTLE_MODE))
+        tmpi += 200000;
+    else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE))
+        tmpi += 800000;
+    if (FLIGHT_MODE(NAV_SEND_TO))
+        tmpi += 400000;
+
+    // million column
+    if (FLIGHT_MODE(NAV_RTH_MODE) && isWaypointMissionRTHActive())
+        tmpi += 1000000;
+    if (FLIGHT_MODE(ANGLEHOLD_MODE))
+        tmpi += 2000000;
 
     return tmpi;
 }
