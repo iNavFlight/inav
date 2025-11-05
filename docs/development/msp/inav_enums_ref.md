@@ -6,6 +6,8 @@
 
 - [accelerationSensor_e](#enum-accelerationsensor_e)
 - [accEvent_t](#enum-accevent_t)
+- [adcChannel_e](#enum-adcchannel_e)
+- [adcFunction_e](#enum-adcfunction_e)
 - [adjustmentFunction_e](#enum-adjustmentfunction_e)
 - [adjustmentMode_e](#enum-adjustmentmode_e)
 - [afatfsAppendFreeClusterPhase_e](#enum-afatfsappendfreeclusterphase_e)
@@ -38,7 +40,16 @@
 - [baudRate_e](#enum-baudrate_e)
 - [beeperMode_e](#enum-beepermode_e)
 - [biquadFilterType_e](#enum-biquadfiltertype_e)
+- [blackboxBufferReserveStatus_e](#enum-blackboxbufferreservestatus_e)
+- [blackboxFeatureMask_e](#enum-blackboxfeaturemask_e)
+- [bmi270Register_e](#enum-bmi270register_e)
+- [bootLogEventCode_e](#enum-bootlogeventcode_e)
+- [bootLogFlags_e](#enum-bootlogflags_e)
 - [boxId_e](#enum-boxid_e)
+- [busIndex_e](#enum-busindex_e)
+- [busSpeed_e](#enum-busspeed_e)
+- [busType_e](#enum-bustype_e)
+- [channelType_t](#enum-channeltype_t)
 - [climbRateToAltitudeControllerMode_e](#enum-climbratetoaltitudecontrollermode_e)
 - [colorComponent_e](#enum-colorcomponent_e)
 - [colorId_e](#enum-colorid_e)
@@ -49,8 +60,16 @@
 - [crsrRfMode_e](#enum-crsrrfmode_e)
 - [crsrRfPower_e](#enum-crsrrfpower_e)
 - [currentSensor_e](#enum-currentsensor_e)
+- [devHardwareType_e](#enum-devhardwaretype_e)
+- [deviceFlags_e](#enum-deviceflags_e)
+- [displayCanvasBitmapOption_t](#enum-displaycanvasbitmapoption_t)
+- [displayCanvasColor_e](#enum-displaycanvascolor_e)
+- [displayCanvasOutlineType_e](#enum-displaycanvasoutlinetype_e)
 - [displayportMspCommand_e](#enum-displayportmspcommand_e)
+- [displayTransactionOption_e](#enum-displaytransactionoption_e)
+- [displayWidgetType_e](#enum-displaywidgettype_e)
 - [DjiCraftNameElements_t](#enum-djicraftnameelements_t)
+- [dshotCommands_e](#enum-dshotcommands_e)
 - [dumpFlags_e](#enum-dumpflags_e)
 - [dynamicGyroNotchMode_e](#enum-dynamicgyronotchmode_e)
 - [emergLandState_e](#enum-emerglandstate_e)
@@ -60,12 +79,15 @@
 - [failsafePhase_e](#enum-failsafephase_e)
 - [failsafeProcedure_e](#enum-failsafeprocedure_e)
 - [failsafeRxLinkState_e](#enum-failsaferxlinkstate_e)
+- [failureMode_e](#enum-failuremode_e)
 - [fatFilesystemType_e](#enum-fatfilesystemtype_e)
 - [features_e](#enum-features_e)
 - [filterType_e](#enum-filtertype_e)
 - [fixedWingLaunchEvent_t](#enum-fixedwinglaunchevent_t)
 - [fixedWingLaunchMessage_t](#enum-fixedwinglaunchmessage_t)
 - [fixedWingLaunchState_t](#enum-fixedwinglaunchstate_t)
+- [flashPartitionType_e](#enum-flashpartitiontype_e)
+- [flashType_e](#enum-flashtype_e)
 - [flight_dynamics_index_t](#enum-flight_dynamics_index_t)
 - [flightModeFlags_e](#enum-flightmodeflags_e)
 - [flightModeForTelemetry_e](#enum-flightmodefortelemetry_e)
@@ -90,6 +112,8 @@
 - [ghstDl_e](#enum-ghstdl_e)
 - [ghstFrameTypeIndex_e](#enum-ghstframetypeindex_e)
 - [ghstUl_e](#enum-ghstul_e)
+- [gimbal_htk_mode_e](#enum-gimbal_htk_mode_e)
+- [gimbalDevType_e](#enum-gimbaldevtype_e)
 - [gimbalHeadtrackerState_e](#enum-gimbalheadtrackerstate_e)
 - [gpsAutoBaud_e](#enum-gpsautobaud_e)
 - [gpsAutoConfig_e](#enum-gpsautoconfig_e)
@@ -100,18 +124,25 @@
 - [gpsProvider_e](#enum-gpsprovider_e)
 - [gpsState_e](#enum-gpsstate_e)
 - [gyroFilterMode_e](#enum-gyrofiltermode_e)
+- [gyroHardwareLpf_e](#enum-gyrohardwarelpf_e)
 - [gyroSensor_e](#enum-gyrosensor_e)
+- [HardwareMotorTypes_e](#enum-hardwaremotortypes_e)
 - [hardwareSensorStatus_e](#enum-hardwaresensorstatus_e)
+- [headTrackerDevType_e](#enum-headtrackerdevtype_e)
 - [hottEamAlarm1Flag_e](#enum-hotteamalarm1flag_e)
 - [hottEamAlarm2Flag_e](#enum-hotteamalarm2flag_e)
 - [hottState_e](#enum-hottstate_e)
 - [hsvColorComponent_e](#enum-hsvcolorcomponent_e)
+- [I2CSpeed](#enum-i2cspeed)
+- [i2cState_t](#enum-i2cstate_t)
+- [i2cTransferDirection_t](#enum-i2ctransferdirection_t)
 - [ibusCommand_e](#enum-ibuscommand_e)
 - [ibusSensorType1_e](#enum-ibussensortype1_e)
 - [ibusSensorType_e](#enum-ibussensortype_e)
 - [ibusSensorValue_e](#enum-ibussensorvalue_e)
 - [inputSource_e](#enum-inputsource_e)
 - [itermRelax_e](#enum-itermrelax_e)
+- [led_pin_pwm_mode_e](#enum-led_pin_pwm_mode_e)
 - [ledBaseFunctionId_e](#enum-ledbasefunctionid_e)
 - [ledDirectionId_e](#enum-leddirectionid_e)
 - [ledModeIndex_e](#enum-ledmodeindex_e)
@@ -124,15 +155,21 @@
 - [logicOperation_e](#enum-logicoperation_e)
 - [logicWaypointOperands_e](#enum-logicwaypointoperands_e)
 - [logTopic_e](#enum-logtopic_e)
+- [lsm6dxxConfigMasks_e](#enum-lsm6dxxconfigmasks_e)
+- [lsm6dxxConfigValues_e](#enum-lsm6dxxconfigvalues_e)
+- [lsm6dxxRegister_e](#enum-lsm6dxxregister_e)
 - [ltm_frame_e](#enum-ltm_frame_e)
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
+- [measurementSteps_e](#enum-measurementsteps_e)
 - [mixerProfileATRequest_e](#enum-mixerprofileatrequest_e)
 - [mixerProfileATState_e](#enum-mixerprofileatstate_e)
 - [modeActivationOperator_e](#enum-modeactivationoperator_e)
+- [motorPwmProtocolTypes_e](#enum-motorpwmprotocoltypes_e)
 - [motorStatus_e](#enum-motorstatus_e)
+- [mpu9250CompassReadState_e](#enum-mpu9250compassreadstate_e)
 - [mspFlashfsFlags_e](#enum-mspflashfsflags_e)
 - [mspPassthroughType_e](#enum-msppassthroughtype_e)
 - [mspSDCardFlags_e](#enum-mspsdcardflags_e)
@@ -180,17 +217,23 @@
 - [osdCustomElementType_e](#enum-osdcustomelementtype_e)
 - [osdCustomElementTypeVisibility_e](#enum-osdcustomelementtypevisibility_e)
 - [osdDrawPointType_e](#enum-osddrawpointtype_e)
+- [osdDriver_e](#enum-osddriver_e)
 - [osdSpeedSource_e](#enum-osdspeedsource_e)
 - [outputMode_e](#enum-outputmode_e)
 - [pageId_e](#enum-pageid_e)
+- [persistentObjectId_e](#enum-persistentobjectid_e)
 - [pidAutotuneState_e](#enum-pidautotunestate_e)
 - [pidControllerFlags_e](#enum-pidcontrollerflags_e)
 - [pidIndex_e](#enum-pidindex_e)
 - [pidType_e](#enum-pidtype_e)
+- [pinLabel_e](#enum-pinlabel_e)
 - [pitotSensor_e](#enum-pitotsensor_e)
 - [pollType_e](#enum-polltype_e)
 - [portSharing_e](#enum-portsharing_e)
+- [pwmInitError_e](#enum-pwminiterror_e)
 - [quadrant_e](#enum-quadrant_e)
+- [QUADSPIClockDivider_e](#enum-quadspiclockdivider_e)
+- [quadSpiMode_e](#enum-quadspimode_e)
 - [rangefinderType_e](#enum-rangefindertype_e)
 - [RCDEVICE_5key_connection_event_e](#enum-rcdevice_5key_connection_event_e)
 - [rcdevice_5key_simulation_operation_e](#enum-rcdevice_5key_simulation_operation_e)
@@ -200,6 +243,8 @@
 - [rcdeviceCamSimulationKeyEvent_e](#enum-rcdevicecamsimulationkeyevent_e)
 - [rcdeviceResponseStatus_e](#enum-rcdeviceresponsestatus_e)
 - [resolutionType_e](#enum-resolutiontype_e)
+- [resourceOwner_e](#enum-resourceowner_e)
+- [resourceType_e](#enum-resourcetype_e)
 - [reversibleMotorsThrottleState_e](#enum-reversiblemotorsthrottlestate_e)
 - [rollPitchStatus_e](#enum-rollpitchstatus_e)
 - [rssiSource_e](#enum-rssisource_e)
@@ -212,6 +257,13 @@
 - [safehomeUsageMode_e](#enum-safehomeusagemode_e)
 - [sbasMode_e](#enum-sbasmode_e)
 - [sbusDecoderState_e](#enum-sbusdecoderstate_e)
+- [sdcardBlockOperation_e](#enum-sdcardblockoperation_e)
+- [sdcardOperationStatus_e](#enum-sdcardoperationstatus_e)
+- [sdcardReceiveBlockStatus_e](#enum-sdcardreceiveblockstatus_e)
+- [sdcardReceiveBlockStatus_e](#enum-sdcardreceiveblockstatus_e)
+- [sdcardState_e](#enum-sdcardstate_e)
+- [SDIODevice](#enum-sdiodevice)
+- [sensor_align_e](#enum-sensor_align_e)
 - [sensorIndex_e](#enum-sensorindex_e)
 - [sensors_e](#enum-sensors_e)
 - [sensorTempCalState_e](#enum-sensortempcalstate_e)
@@ -219,6 +271,7 @@
 - [serialPortIdentifier_e](#enum-serialportidentifier_e)
 - [servoAutotrimState_e](#enum-servoautotrimstate_e)
 - [servoIndex_e](#enum-servoindex_e)
+- [servoProtocolType_e](#enum-servoprotocoltype_e)
 - [setting_mode_e](#enum-setting_mode_e)
 - [setting_section_e](#enum-setting_section_e)
 - [setting_type_e](#enum-setting_type_e)
@@ -231,6 +284,8 @@
 - [simulatorFlags_t](#enum-simulatorflags_t)
 - [smartAudioVersion_e](#enum-smartaudioversion_e)
 - [smartportFuelUnit_e](#enum-smartportfuelunit_e)
+- [softSerialPortIndex_e](#enum-softserialportindex_e)
+- [SPIClockSpeed_e](#enum-spiclockspeed_e)
 - [Srxl2BindRequest](#enum-srxl2bindrequest)
 - [Srxl2BindType](#enum-srxl2bindtype)
 - [Srxl2ControlDataCommand](#enum-srxl2controldatacommand)
@@ -242,27 +297,38 @@
 - [stickPositions_e](#enum-stickpositions_e)
 - [systemState_e](#enum-systemstate_e)
 - [systemState_e](#enum-systemstate_e)
+- [tchDmaState_e](#enum-tchdmastate_e)
 - [tempSensorType_e](#enum-tempsensortype_e)
 - [throttleStatus_e](#enum-throttlestatus_e)
 - [throttleStatusType_e](#enum-throttlestatustype_e)
+- [timerMode_e](#enum-timermode_e)
+- [timerUsageFlag_e](#enum-timerusageflag_e)
 - [timId_e](#enum-timid_e)
 - [tristate_e](#enum-tristate_e)
 - [tz_automatic_dst_e](#enum-tz_automatic_dst_e)
+- [UARTDevice_e](#enum-uartdevice_e)
+- [uartInverterLine_e](#enum-uartinverterline_e)
 - [ublox_nav_sig_health_e](#enum-ublox_nav_sig_health_e)
 - [ublox_nav_sig_quality](#enum-ublox_nav_sig_quality)
 - [ubs_nav_fix_type_t](#enum-ubs_nav_fix_type_t)
 - [ubx_ack_state_t](#enum-ubx_ack_state_t)
 - [ubx_nav_status_bits_t](#enum-ubx_nav_status_bits_t)
 - [ubx_protocol_bytes_t](#enum-ubx_protocol_bytes_t)
+- [vcselPeriodType_e](#enum-vcselperiodtype_e)
+- [videoSystem_e](#enum-videosystem_e)
 - [voltageSensor_e](#enum-voltagesensor_e)
 - [vs600Band_e](#enum-vs600band_e)
 - [vs600Power_e](#enum-vs600power_e)
+- [vtxDevType_e](#enum-vtxdevtype_e)
+- [vtxFrequencyGroups_e](#enum-vtxfrequencygroups_e)
 - [vtxLowerPowerDisarm_e](#enum-vtxlowerpowerdisarm_e)
 - [vtxProtoResponseType_e](#enum-vtxprotoresponsetype_e)
 - [vtxProtoState_e](#enum-vtxprotostate_e)
 - [vtxScheduleParams_e](#enum-vtxscheduleparams_e)
 - [warningFlags_e](#enum-warningflags_e)
 - [warningLedState_e](#enum-warningledstate_e)
+- [widgetAHIOptions_t](#enum-widgetahioptions_t)
+- [widgetAHIStyle_e](#enum-widgetahistyle_e)
 - [wpFwTurnSmoothing_e](#enum-wpfwturnsmoothing_e)
 - [wpMissionPlannerStatus_e](#enum-wpmissionplannerstatus_e)
 - [zeroCalibrationState_e](#enum-zerocalibrationstate_e)
@@ -299,6 +365,36 @@
 | `ACC_EVENT_HIGH` | 1 |  |
 | `ACC_EVENT_LOW` | 2 |  |
 | `ACC_EVENT_NEG_X` | 3 |  |
+
+---
+## <a id="enum-adcchannel_e"></a>`adcChannel_e`
+
+> Source: ../../../src/main/drivers/adc.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ADC_CHN_NONE` | 0 |  |
+| `ADC_CHN_1` | 1 |  |
+| `ADC_CHN_2` | 2 |  |
+| `ADC_CHN_3` | 3 |  |
+| `ADC_CHN_4` | 4 |  |
+| `ADC_CHN_5` | 5 |  |
+| `ADC_CHN_6` | 6 |  |
+| `ADC_CHN_MAX` | ADC_CHN_6 |  |
+| `ADC_CHN_COUNT` |  |  |
+
+---
+## <a id="enum-adcfunction_e"></a>`adcFunction_e`
+
+> Source: ../../../src/main/drivers/adc.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ADC_BATTERY` | 0 |  |
+| `ADC_RSSI` | 1 |  |
+| `ADC_CURRENT` | 2 |  |
+| `ADC_AIRSPEED` | 3 |  |
+| `ADC_FUNCTION_COUNT` | 4 |  |
 
 ---
 ## <a id="enum-adjustmentfunction_e"></a>`adjustmentFunction_e`
@@ -811,6 +907,135 @@
 | `FILTER_NOTCH` | 1 |  |
 
 ---
+## <a id="enum-blackboxbufferreservestatus_e"></a>`blackboxBufferReserveStatus_e`
+
+> Source: ../../../src/main/blackbox/blackbox_io.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BLACKBOX_RESERVE_SUCCESS` | 0 |  |
+| `BLACKBOX_RESERVE_TEMPORARY_FAILURE` | 1 |  |
+| `BLACKBOX_RESERVE_PERMANENT_FAILURE` | 2 |  |
+
+---
+## <a id="enum-blackboxfeaturemask_e"></a>`blackboxFeatureMask_e`
+
+> Source: ../../../src/main/blackbox/blackbox.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BLACKBOX_FEATURE_NAV_ACC` | 1 << 0 |  |
+| `BLACKBOX_FEATURE_NAV_POS` | 1 << 1 |  |
+| `BLACKBOX_FEATURE_NAV_PID` | 1 << 2 |  |
+| `BLACKBOX_FEATURE_MAG` | 1 << 3 |  |
+| `BLACKBOX_FEATURE_ACC` | 1 << 4 |  |
+| `BLACKBOX_FEATURE_ATTITUDE` | 1 << 5 |  |
+| `BLACKBOX_FEATURE_RC_DATA` | 1 << 6 |  |
+| `BLACKBOX_FEATURE_RC_COMMAND` | 1 << 7 |  |
+| `BLACKBOX_FEATURE_MOTORS` | 1 << 8 |  |
+| `BLACKBOX_FEATURE_GYRO_RAW` | 1 << 9 |  |
+| `BLACKBOX_FEATURE_GYRO_PEAKS_ROLL` | 1 << 10 |  |
+| `BLACKBOX_FEATURE_GYRO_PEAKS_PITCH` | 1 << 11 |  |
+| `BLACKBOX_FEATURE_GYRO_PEAKS_YAW` | 1 << 12 |  |
+| `BLACKBOX_FEATURE_SERVOS` | 1 << 13 |  |
+
+---
+## <a id="enum-bmi270register_e"></a>`bmi270Register_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_bmi270.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BMI270_REG_CHIP_ID` | 0 |  |
+| `BMI270_REG_ERR_REG` | 2 |  |
+| `BMI270_REG_STATUS` | 3 |  |
+| `BMI270_REG_ACC_DATA_X_LSB` | 12 |  |
+| `BMI270_REG_GYR_DATA_X_LSB` | 18 |  |
+| `BMI270_REG_SENSORTIME_0` | 24 |  |
+| `BMI270_REG_SENSORTIME_1` | 25 |  |
+| `BMI270_REG_SENSORTIME_2` | 26 |  |
+| `BMI270_REG_EVENT` | 27 |  |
+| `BMI270_REG_INT_STATUS_0` | 28 |  |
+| `BMI270_REG_INT_STATUS_1` | 29 |  |
+| `BMI270_REG_INTERNAL_STATUS` | 33 |  |
+| `BMI270_REG_TEMPERATURE_LSB` | 34 |  |
+| `BMI270_REG_TEMPERATURE_MSB` | 35 |  |
+| `BMI270_REG_FIFO_LENGTH_LSB` | 36 |  |
+| `BMI270_REG_FIFO_LENGTH_MSB` | 37 |  |
+| `BMI270_REG_FIFO_DATA` | 38 |  |
+| `BMI270_REG_ACC_CONF` | 64 |  |
+| `BMI270_REG_ACC_RANGE` | 65 |  |
+| `BMI270_REG_GYRO_CONF` | 66 |  |
+| `BMI270_REG_GYRO_RANGE` | 67 |  |
+| `BMI270_REG_AUX_CONF` | 68 |  |
+| `BMI270_REG_FIFO_DOWNS` | 69 |  |
+| `BMI270_REG_FIFO_WTM_0` | 70 |  |
+| `BMI270_REG_FIFO_WTM_1` | 71 |  |
+| `BMI270_REG_FIFO_CONFIG_0` | 72 |  |
+| `BMI270_REG_FIFO_CONFIG_1` | 73 |  |
+| `BMI270_REG_SATURATION` | 74 |  |
+| `BMI270_REG_INT1_IO_CTRL` | 83 |  |
+| `BMI270_REG_INT2_IO_CTRL` | 84 |  |
+| `BMI270_REG_INT_LATCH` | 85 |  |
+| `BMI270_REG_INT1_MAP_FEAT` | 86 |  |
+| `BMI270_REG_INT2_MAP_FEAT` | 87 |  |
+| `BMI270_REG_INT_MAP_DATA` | 88 |  |
+| `BMI270_REG_INIT_CTRL` | 89 |  |
+| `BMI270_REG_INIT_DATA` | 94 |  |
+| `BMI270_REG_ACC_SELF_TEST` | 109 |  |
+| `BMI270_REG_GYR_SELF_TEST_AXES` | 110 |  |
+| `BMI270_REG_PWR_CONF` | 124 |  |
+| `BMI270_REG_PWR_CTRL` | 125 |  |
+| `BMI270_REG_CMD` | 126 |  |
+
+---
+## <a id="enum-bootlogeventcode_e"></a>`bootLogEventCode_e`
+
+> Source: ../../../src/main/drivers/logging_codes.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BOOT_EVENT_CONFIG_LOADED` | 0 |  |
+| `BOOT_EVENT_SYSTEM_INIT_DONE` | 1 |  |
+| `BOOT_EVENT_PWM_INIT_DONE` | 2 |  |
+| `BOOT_EVENT_EXTRA_BOOT_DELAY` | 3 |  |
+| `BOOT_EVENT_SENSOR_INIT_DONE` | 4 |  |
+| `BOOT_EVENT_GPS_INIT_DONE` | 5 |  |
+| `BOOT_EVENT_LEDSTRIP_INIT_DONE` | 6 |  |
+| `BOOT_EVENT_TELEMETRY_INIT_DONE` | 7 |  |
+| `BOOT_EVENT_SYSTEM_READY` | 8 |  |
+| `BOOT_EVENT_GYRO_DETECTION` | 9 |  |
+| `BOOT_EVENT_ACC_DETECTION` | 10 |  |
+| `BOOT_EVENT_BARO_DETECTION` | 11 |  |
+| `BOOT_EVENT_MAG_DETECTION` | 12 |  |
+| `BOOT_EVENT_RANGEFINDER_DETECTION` | 13 |  |
+| `BOOT_EVENT_MAG_INIT_FAILED` | 14 |  |
+| `BOOT_EVENT_HMC5883L_READ_OK_COUNT` | 15 |  |
+| `BOOT_EVENT_HMC5883L_READ_FAILED` | 16 |  |
+| `BOOT_EVENT_HMC5883L_SATURATION` | 17 |  |
+| `BOOT_EVENT_TIMER_CH_SKIPPED` | 18 |  |
+| `BOOT_EVENT_TIMER_CH_MAPPED` | 19 |  |
+| `BOOT_EVENT_PITOT_DETECTION` | 20 |  |
+| `BOOT_EVENT_TEMP_SENSOR_DETECTION` | 21 |  |
+| `BOOT_EVENT_1WIRE_DETECTION` | 22 |  |
+| `BOOT_EVENT_HARDWARE_IO_CONFLICT` | 23 |  |
+| `BOOT_EVENT_OPFLOW_DETECTION` | 24 |  |
+| `BOOT_EVENT_CODE_COUNT` | 25 |  |
+
+---
+## <a id="enum-bootlogflags_e"></a>`bootLogFlags_e`
+
+> Source: ../../../src/main/drivers/logging_codes.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BOOT_EVENT_FLAGS_NONE` | 0 |  |
+| `BOOT_EVENT_FLAGS_WARNING` | 1 << 0 |  |
+| `BOOT_EVENT_FLAGS_ERROR` | 1 << 1 |  |
+| `BOOT_EVENT_FLAGS_PARAM16` | 1 << 14 |  |
+| `BOOT_EVENT_FLAGS_PARAM32` | 1 << 15 |  |
+
+---
 ## <a id="enum-boxid_e"></a>`boxId_e`
 
 > Source: ../../../src/main/fc/rc_modes.h
@@ -877,6 +1102,67 @@
 | `BOXGIMBALCENTER` | 58 |  |
 | `BOXGIMBALHTRK` | 59 |  |
 | `CHECKBOX_ITEM_COUNT` | 60 |  |
+
+---
+## <a id="enum-busindex_e"></a>`busIndex_e`
+
+> Source: ../../../src/main/drivers/bus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BUSINDEX_1` | 0 |  |
+| `BUSINDEX_2` | 1 |  |
+| `BUSINDEX_3` | 2 |  |
+| `BUSINDEX_4` | 3 |  |
+
+---
+## <a id="enum-busspeed_e"></a>`busSpeed_e`
+
+> Source: ../../../src/main/drivers/bus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BUS_SPEED_INITIALIZATION` | 0 |  |
+| `BUS_SPEED_SLOW` | 1 |  |
+| `BUS_SPEED_STANDARD` | 2 |  |
+| `BUS_SPEED_FAST` | 3 |  |
+| `BUS_SPEED_ULTRAFAST` | 4 |  |
+
+---
+## <a id="enum-bustype_e"></a>`busType_e`
+
+> Source: ../../../src/main/drivers/bus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `BUSTYPE_ANY` | 0 |  |
+| `BUSTYPE_NONE` | 0 |  |
+| `BUSTYPE_I2C` | 1 |  |
+| `BUSTYPE_SPI` | 2 |  |
+| `BUSTYPE_SDIO` | 3 |  |
+
+---
+## <a id="enum-channeltype_t"></a>`channelType_t`
+
+> Source: ../../../src/main/drivers/timer.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `TYPE_FREE` | 0 |  |
+| `TYPE_PWMINPUT` | 1 |  |
+| `TYPE_PPMINPUT` | 2 |  |
+| `TYPE_PWMOUTPUT_MOTOR` | 3 |  |
+| `TYPE_PWMOUTPUT_FAST` | 4 |  |
+| `TYPE_PWMOUTPUT_SERVO` | 5 |  |
+| `TYPE_SOFTSERIAL_RX` | 6 |  |
+| `TYPE_SOFTSERIAL_TX` | 7 |  |
+| `TYPE_SOFTSERIAL_RXTX` | 8 |  |
+| `TYPE_SOFTSERIAL_AUXTIMER` | 9 |  |
+| `TYPE_ADC` | 10 |  |
+| `TYPE_SERIAL_RX` | 11 |  |
+| `TYPE_SERIAL_TX` | 12 |  |
+| `TYPE_SERIAL_RXTX` | 13 |  |
+| `TYPE_TIMER` | 14 |  |
 
 ---
 ## <a id="enum-climbratetoaltitudecontrollermode_e"></a>`climbRateToAltitudeControllerMode_e`
@@ -1037,6 +1323,118 @@
 | `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_FAKE |  |
 
 ---
+## <a id="enum-devhardwaretype_e"></a>`devHardwareType_e`
+
+> Source: ../../../src/main/drivers/bus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DEVHW_NONE` | 0 |  |
+| `DEVHW_MPU6000` | 1 |  |
+| `DEVHW_MPU6500` | 2 |  |
+| `DEVHW_BMI160` | 3 |  |
+| `DEVHW_BMI088_GYRO` | 4 |  |
+| `DEVHW_BMI088_ACC` | 5 |  |
+| `DEVHW_ICM20689` | 6 |  |
+| `DEVHW_ICM42605` | 7 |  |
+| `DEVHW_BMI270` | 8 |  |
+| `DEVHW_LSM6D` | 9 |  |
+| `DEVHW_MPU9250` | 10 |  |
+| `DEVHW_BMP085` | 11 |  |
+| `DEVHW_BMP280` | 12 |  |
+| `DEVHW_MS5611` | 13 |  |
+| `DEVHW_MS5607` | 14 |  |
+| `DEVHW_LPS25H` | 15 |  |
+| `DEVHW_SPL06` | 16 |  |
+| `DEVHW_BMP388` | 17 |  |
+| `DEVHW_DPS310` | 18 |  |
+| `DEVHW_B2SMPB` | 19 |  |
+| `DEVHW_HMC5883` | 20 |  |
+| `DEVHW_AK8963` | 21 |  |
+| `DEVHW_AK8975` | 22 |  |
+| `DEVHW_IST8310_0` | 23 |  |
+| `DEVHW_IST8310_1` | 24 |  |
+| `DEVHW_IST8308` | 25 |  |
+| `DEVHW_QMC5883` | 26 |  |
+| `DEVHW_MAG3110` | 27 |  |
+| `DEVHW_LIS3MDL` | 28 |  |
+| `DEVHW_RM3100` | 29 |  |
+| `DEVHW_VCM5883` | 30 |  |
+| `DEVHW_MLX90393` | 31 |  |
+| `DEVHW_LM75_0` | 32 |  |
+| `DEVHW_LM75_1` | 33 |  |
+| `DEVHW_LM75_2` | 34 |  |
+| `DEVHW_LM75_3` | 35 |  |
+| `DEVHW_LM75_4` | 36 |  |
+| `DEVHW_LM75_5` | 37 |  |
+| `DEVHW_LM75_6` | 38 |  |
+| `DEVHW_LM75_7` | 39 |  |
+| `DEVHW_DS2482` | 40 |  |
+| `DEVHW_MAX7456` | 41 |  |
+| `DEVHW_SRF10` | 42 |  |
+| `DEVHW_VL53L0X` | 43 |  |
+| `DEVHW_VL53L1X` | 44 |  |
+| `DEVHW_US42` | 45 |  |
+| `DEVHW_TOF10120_I2C` | 46 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 47 |  |
+| `DEVHW_MS4525` | 48 |  |
+| `DEVHW_DLVR` | 49 |  |
+| `DEVHW_M25P16` | 50 |  |
+| `DEVHW_W25N01G` | 51 |  |
+| `DEVHW_UG2864` | 52 |  |
+| `DEVHW_SDCARD` | 53 |  |
+| `DEVHW_IRLOCK` | 54 |  |
+| `DEVHW_PCF8574` | 55 |  |
+
+---
+## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
+
+> Source: ../../../src/main/drivers/bus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DEVFLAGS_NONE` | 0 |  |
+| `DEVFLAGS_USE_RAW_REGISTERS` | (1 << 0) |  |
+| `DEVFLAGS_USE_MANUAL_DEVICE_SELECT` | (1 << 1) |  |
+| `DEVFLAGS_SPI_MODE_0` | (1 << 2) |  |
+
+---
+## <a id="enum-displaycanvasbitmapoption_t"></a>`displayCanvasBitmapOption_t`
+
+> Source: ../../../src/main/drivers/display_canvas.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_CANVAS_BITMAP_OPT_INVERT_COLORS` | 1 << 0 |  |
+| `DISPLAY_CANVAS_BITMAP_OPT_SOLID_BACKGROUND` | 1 << 1 |  |
+| `DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT` | 1 << 2 |  |
+
+---
+## <a id="enum-displaycanvascolor_e"></a>`displayCanvasColor_e`
+
+> Source: ../../../src/main/drivers/display_canvas.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_CANVAS_COLOR_BLACK` | 0 |  |
+| `DISPLAY_CANVAS_COLOR_TRANSPARENT` | 1 |  |
+| `DISPLAY_CANVAS_COLOR_WHITE` | 2 |  |
+| `DISPLAY_CANVAS_COLOR_GRAY` | 3 |  |
+
+---
+## <a id="enum-displaycanvasoutlinetype_e"></a>`displayCanvasOutlineType_e`
+
+> Source: ../../../src/main/drivers/display_canvas.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_CANVAS_OUTLINE_TYPE_NONE` | 0 |  |
+| `DISPLAY_CANVAS_OUTLINE_TYPE_TOP` | 1 << 0 |  |
+| `DISPLAY_CANVAS_OUTLINE_TYPE_RIGHT` | 1 << 1 |  |
+| `DISPLAY_CANVAS_OUTLINE_TYPE_BOTTOM` | 1 << 2 |  |
+| `DISPLAY_CANVAS_OUTLINE_TYPE_LEFT` | 1 << 3 |  |
+
+---
 ## <a id="enum-displayportmspcommand_e"></a>`displayportMspCommand_e`
 
 > Source: ../../../src/main/io/displayport_msp.h
@@ -1053,6 +1451,27 @@
 | `MSP_DP_COUNT` | 7 |  |
 
 ---
+## <a id="enum-displaytransactionoption_e"></a>`displayTransactionOption_e`
+
+> Source: ../../../src/main/drivers/display.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_TRANSACTION_OPT_NONE` | 0 |  |
+| `DISPLAY_TRANSACTION_OPT_PROFILED` | 1 << 0 |  |
+| `DISPLAY_TRANSACTION_OPT_RESET_DRAWING` | 1 << 1 |  |
+
+---
+## <a id="enum-displaywidgettype_e"></a>`displayWidgetType_e`
+
+> Source: ../../../src/main/drivers/display_widgets.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_WIDGET_TYPE_AHI` | 0 |  |
+| `DISPLAY_WIDGET_TYPE_SIDEBAR` | 1 |  |
+
+---
 ## <a id="enum-djicraftnameelements_t"></a>`DjiCraftNameElements_t`
 
 > Source: ../../../src/main/io/osd_dji_hd.c
@@ -1067,6 +1486,16 @@
 | `DJI_OSD_CN_DISTANCE` | 5 |  |
 | `DJI_OSD_CN_ADJUSTEMNTS` | 6 |  |
 | `DJI_OSD_CN_MAX_ELEMENTS` | 7 |  |
+
+---
+## <a id="enum-dshotcommands_e"></a>`dshotCommands_e`
+
+> Source: ../../../src/main/drivers/pwm_output.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DSHOT_CMD_SPIN_DIRECTION_NORMAL` | 20 |  |
+| `DSHOT_CMD_SPIN_DIRECTION_REVERSED` | 21 |  |
 
 ---
 ## <a id="enum-dumpflags_e"></a>`dumpFlags_e`
@@ -1174,6 +1603,22 @@
 |---|---:|---|
 | `FAILSAFE_RXLINK_DOWN` | 0 |  |
 | `FAILSAFE_RXLINK_UP` | 1 |  |
+
+---
+## <a id="enum-failuremode_e"></a>`failureMode_e`
+
+> Source: ../../../src/main/drivers/system.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FAILURE_DEVELOPER` | 0 |  |
+| `FAILURE_MISSING_ACC` | 1 |  |
+| `FAILURE_ACC_INIT` | 2 |  |
+| `FAILURE_ACC_INCOMPATIBLE` | 3 |  |
+| `FAILURE_INVALID_EEPROM_CONTENTS` | 4 |  |
+| `FAILURE_FLASH_WRITE_FAILED` | 5 |  |
+| `FAILURE_GYRO_INIT_FAILED` | 6 |  |
+| `FAILURE_FLASH_READ_FAILED` | 7 |  |
 
 ---
 ## <a id="enum-fatfilesystemtype_e"></a>`fatFilesystemType_e`
@@ -1288,6 +1733,34 @@
 | `FW_LAUNCH_STATE_ABORTED` | 10 |  |
 | `FW_LAUNCH_STATE_FLYING` | 11 |  |
 | `FW_LAUNCH_STATE_COUNT` | 12 |  |
+
+---
+## <a id="enum-flashpartitiontype_e"></a>`flashPartitionType_e`
+
+> Source: ../../../src/main/drivers/flash.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLASH_PARTITION_TYPE_UNKNOWN` | 0 |  |
+| `FLASH_PARTITION_TYPE_PARTITION_TABLE` | 1 |  |
+| `FLASH_PARTITION_TYPE_FLASHFS` | 2 |  |
+| `FLASH_PARTITION_TYPE_BADBLOCK_MANAGEMENT` | 3 |  |
+| `FLASH_PARTITION_TYPE_FIRMWARE` | 4 |  |
+| `FLASH_PARTITION_TYPE_CONFIG` | 5 |  |
+| `FLASH_PARTITION_TYPE_FULL_BACKUP` | 6 |  |
+| `FLASH_PARTITION_TYPE_FIRMWARE_UPDATE_META` | 7 |  |
+| `FLASH_PARTITION_TYPE_UPDATE_FIRMWARE` | 8 |  |
+| `FLASH_MAX_PARTITIONS` | 9 |  |
+
+---
+## <a id="enum-flashtype_e"></a>`flashType_e`
+
+> Source: ../../../src/main/drivers/flash.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FLASH_TYPE_NOR` | 0 |  |
+| `FLASH_TYPE_NAND` | 1 |  |
 
 ---
 ## <a id="enum-flight_dynamics_index_t"></a>`flight_dynamics_index_t`
@@ -1621,6 +2094,29 @@
 | `GHST_UL_RC_CHANS_HS4_LAST` | 31 |  |
 
 ---
+## <a id="enum-gimbal_htk_mode_e"></a>`gimbal_htk_mode_e`
+
+> Source: ../../../src/main/drivers/gimbal_common.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `GIMBAL_MODE_FOLLOW` | 0 |  |
+| `GIMBAL_MODE_TILT_LOCK` | (1<<0) |  |
+| `GIMBAL_MODE_ROLL_LOCK` | (1<<1) |  |
+| `GIMBAL_MODE_PAN_LOCK` | (1<<2) |  |
+
+---
+## <a id="enum-gimbaldevtype_e"></a>`gimbalDevType_e`
+
+> Source: ../../../src/main/drivers/gimbal_common.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `GIMBAL_DEV_UNSUPPORTED` | 0 |  |
+| `GIMBAL_DEV_SERIAL` | 1 |  |
+| `GIMBAL_DEV_UNKNOWN` | 255 |  |
+
+---
 ## <a id="enum-gimbalheadtrackerstate_e"></a>`gimbalHeadtrackerState_e`
 
 > Source: ../../../src/main/io/gimbal_serial.h
@@ -1745,6 +2241,19 @@
 | `GYRO_FILTER_MODE_ADAPTIVE` | 3 |  |
 
 ---
+## <a id="enum-gyrohardwarelpf_e"></a>`gyroHardwareLpf_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `GYRO_HARDWARE_LPF_NORMAL` | 0 |  |
+| `GYRO_HARDWARE_LPF_OPTION_1` | 1 |  |
+| `GYRO_HARDWARE_LPF_OPTION_2` | 2 |  |
+| `GYRO_HARDWARE_LPF_EXPERIMENTAL` | 3 |  |
+| `GYRO_HARDWARE_LPF_COUNT` | 4 |  |
+
+---
 ## <a id="enum-gyrosensor_e"></a>`gyroSensor_e`
 
 > Source: ../../../src/main/sensors/gyro.h
@@ -1765,6 +2274,17 @@
 | `GYRO_FAKE` | 11 |  |
 
 ---
+## <a id="enum-hardwaremotortypes_e"></a>`HardwareMotorTypes_e`
+
+> Source: ../../../src/main/drivers/pwm_esc_detect.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MOTOR_UNKNOWN` | 0 |  |
+| `MOTOR_BRUSHED` | 1 |  |
+| `MOTOR_BRUSHLESS` | 2 |  |
+
+---
 ## <a id="enum-hardwaresensorstatus_e"></a>`hardwareSensorStatus_e`
 
 > Source: ../../../src/main/sensors/diagnostics.h
@@ -1775,6 +2295,18 @@
 | `HW_SENSOR_OK` | 1 |  |
 | `HW_SENSOR_UNAVAILABLE` | 2 |  |
 | `HW_SENSOR_UNHEALTHY` | 3 |  |
+
+---
+## <a id="enum-headtrackerdevtype_e"></a>`headTrackerDevType_e`
+
+> Source: ../../../src/main/drivers/headtracker_common.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `HEADTRACKER_NONE` | 0 |  |
+| `HEADTRACKER_SERIAL` | 1 |  |
+| `HEADTRACKER_MSP` | 2 |  |
+| `HEADTRACKER_UNKNOWN` | 255 |  |
 
 ---
 ## <a id="enum-hotteamalarm1flag_e"></a>`hottEamAlarm1Flag_e`
@@ -1833,6 +2365,58 @@
 | `HSV_HUE` | 0 |  |
 | `HSV_SATURATION` | 1 |  |
 | `HSV_VALUE` | 2 |  |
+
+---
+## <a id="enum-i2cspeed"></a>`I2CSpeed`
+
+> Source: ../../../src/main/drivers/bus_i2c.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2C_SPEED_100KHZ` | 2 |  |
+| `I2C_SPEED_200KHZ` | 3 |  |
+| `I2C_SPEED_400KHZ` | 0 |  |
+| `I2C_SPEED_800KHZ` | 1 |  |
+
+---
+## <a id="enum-i2cstate_t"></a>`i2cState_t`
+
+> Source: ../../../src/main/drivers/bus_i2c_stm32f40x.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2C_STATE_STOPPED` | 0 |  |
+| `I2C_STATE_STOPPING` | 1 |  |
+| `I2C_STATE_STARTING` | 2 |  |
+| `I2C_STATE_STARTING_WAIT` | 3 |  |
+| `I2C_STATE_R_ADDR` | 4 |  |
+| `I2C_STATE_R_ADDR_WAIT` | 5 |  |
+| `I2C_STATE_R_REGISTER` | 6 |  |
+| `I2C_STATE_R_REGISTER_WAIT` | 7 |  |
+| `I2C_STATE_R_RESTARTING` | 8 |  |
+| `I2C_STATE_R_RESTARTING_WAIT` | 9 |  |
+| `I2C_STATE_R_RESTART_ADDR` | 10 |  |
+| `I2C_STATE_R_RESTART_ADDR_WAIT` | 11 |  |
+| `I2C_STATE_R_TRANSFER_EQ1` | 12 |  |
+| `I2C_STATE_R_TRANSFER_EQ2` | 13 |  |
+| `I2C_STATE_R_TRANSFER_GE2` | 14 |  |
+| `I2C_STATE_W_ADDR` | 15 |  |
+| `I2C_STATE_W_ADDR_WAIT` | 16 |  |
+| `I2C_STATE_W_REGISTER` | 17 |  |
+| `I2C_STATE_W_TRANSFER_WAIT` | 18 |  |
+| `I2C_STATE_W_TRANSFER` | 19 |  |
+| `I2C_STATE_NACK` | 20 |  |
+| `I2C_STATE_BUS_ERROR` | 21 |  |
+
+---
+## <a id="enum-i2ctransferdirection_t"></a>`i2cTransferDirection_t`
+
+> Source: ../../../src/main/drivers/bus_i2c_stm32f40x.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2C_TXN_READ` | 0 |  |
+| `I2C_TXN_WRITE` | 1 |  |
 
 ---
 ## <a id="enum-ibuscommand_e"></a>`ibusCommand_e`
@@ -2051,6 +2635,18 @@
 | `ITERM_RELAX_OFF` | 0 |  |
 | `ITERM_RELAX_RP` | 1 |  |
 | `ITERM_RELAX_RPY` | 2 |  |
+
+---
+## <a id="enum-led_pin_pwm_mode_e"></a>`led_pin_pwm_mode_e`
+
+> Source: ../../../src/main/drivers/light_ws2811strip.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LED_PIN_PWM_MODE_SHARED_LOW` | 0 |  |
+| `LED_PIN_PWM_MODE_SHARED_HIGH` | 1 |  |
+| `LED_PIN_PWM_MODE_LOW` | 2 |  |
+| `LED_PIN_PWM_MODE_HIGH` | 3 |  |
 
 ---
 ## <a id="enum-ledbasefunctionid_e"></a>`ledBaseFunctionId_e`
@@ -2346,6 +2942,98 @@
 | `LOG_TOPIC_COUNT` | 11 |  |
 
 ---
+## <a id="enum-lsm6dxxconfigmasks_e"></a>`lsm6dxxConfigMasks_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LSM6DXX_MASK_COUNTER_BDR1` | 128 |  |
+| `LSM6DXX_MASK_CTRL3_C` | 60 |  |
+| `LSM6DXX_MASK_CTRL3_C_RESET` | BIT(0) |  |
+| `LSM6DXX_MASK_CTRL4_C` | 14 |  |
+| `LSM6DXX_MASK_CTRL6_C` | 23 |  |
+| `LSM6DXX_MASK_CTRL7_G` | 112 |  |
+| `LSM6DXX_MASK_CTRL9_XL` | 2 |  |
+| `LSM6DSL_MASK_CTRL6_C` | 19 |  |
+
+---
+## <a id="enum-lsm6dxxconfigvalues_e"></a>`lsm6dxxConfigValues_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LSM6DXX_VAL_COUNTER_BDR1_DDRY_PM` | BIT(7) |  |
+| `LSM6DXX_VAL_INT1_CTRL` | 2 |  |
+| `LSM6DXX_VAL_INT2_CTRL` | 0 |  |
+| `LSM6DXX_VAL_CTRL1_XL_ODR833` | 7 |  |
+| `LSM6DXX_VAL_CTRL1_XL_ODR1667` | 8 |  |
+| `LSM6DXX_VAL_CTRL1_XL_ODR3332` | 9 |  |
+| `LSM6DXX_VAL_CTRL1_XL_ODR3333` | 10 |  |
+| `LSM6DXX_VAL_CTRL1_XL_8G` | 3 |  |
+| `LSM6DXX_VAL_CTRL1_XL_16G` | 1 |  |
+| `LSM6DXX_VAL_CTRL1_XL_LPF1` | 0 |  |
+| `LSM6DXX_VAL_CTRL1_XL_LPF2` | 1 |  |
+| `LSM6DXX_VAL_CTRL2_G_ODR6664` | 10 |  |
+| `LSM6DXX_VAL_CTRL2_G_2000DPS` | 3 |  |
+| `LSM6DXX_VAL_CTRL3_C_H_LACTIVE` | 0 |  |
+| `LSM6DXX_VAL_CTRL3_C_PP_OD` | 0 |  |
+| `LSM6DXX_VAL_CTRL3_C_SIM` | 0 |  |
+| `LSM6DXX_VAL_CTRL3_C_IF_INC` | BIT(2) |  |
+| `LSM6DXX_VAL_CTRL4_C_DRDY_MASK` | BIT(3) |  |
+| `LSM6DXX_VAL_CTRL4_C_I2C_DISABLE` | BIT(2) |  |
+| `LSM6DXX_VAL_CTRL4_C_LPF1_SEL_G` | BIT(1) |  |
+| `LSM6DXX_VAL_CTRL6_C_XL_HM_MODE` | 0 |  |
+| `LSM6DXX_VAL_CTRL6_C_FTYPE_300HZ` | 0 |  |
+| `LSM6DXX_VAL_CTRL6_C_FTYPE_201HZ` | 1 |  |
+| `LSM6DXX_VAL_CTRL6_C_FTYPE_102HZ` | 2 |  |
+| `LSM6DXX_VAL_CTRL6_C_FTYPE_603HZ` | 3 |  |
+| `LSM6DXX_VAL_CTRL7_G_HP_EN_G` | BIT(6) |  |
+| `LSM6DXX_VAL_CTRL7_G_HPM_G_16` | 0 |  |
+| `LSM6DXX_VAL_CTRL7_G_HPM_G_65` | 1 |  |
+| `LSM6DXX_VAL_CTRL7_G_HPM_G_260` | 2 |  |
+| `LSM6DXX_VAL_CTRL7_G_HPM_G_1040` | 3 |  |
+| `LSM6DXX_VAL_CTRL9_XL_I3C_DISABLE` | BIT(1) |  |
+
+---
+## <a id="enum-lsm6dxxregister_e"></a>`lsm6dxxRegister_e`
+
+> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LSM6DXX_REG_COUNTER_BDR1` | 11 |  |
+| `LSM6DXX_REG_INT1_CTRL` | 13 |  |
+| `LSM6DXX_REG_INT2_CTRL` | 14 |  |
+| `LSM6DXX_REG_WHO_AM_I` | 15 |  |
+| `LSM6DXX_REG_CTRL1_XL` | 16 |  |
+| `LSM6DXX_REG_CTRL2_G` | 17 |  |
+| `LSM6DXX_REG_CTRL3_C` | 18 |  |
+| `LSM6DXX_REG_CTRL4_C` | 19 |  |
+| `LSM6DXX_REG_CTRL5_C` | 20 |  |
+| `LSM6DXX_REG_CTRL6_C` | 21 |  |
+| `LSM6DXX_REG_CTRL7_G` | 22 |  |
+| `LSM6DXX_REG_CTRL8_XL` | 23 |  |
+| `LSM6DXX_REG_CTRL9_XL` | 24 |  |
+| `LSM6DXX_REG_CTRL10_C` | 25 |  |
+| `LSM6DXX_REG_STATUS` | 30 |  |
+| `LSM6DXX_REG_OUT_TEMP_L` | 32 |  |
+| `LSM6DXX_REG_OUT_TEMP_H` | 33 |  |
+| `LSM6DXX_REG_OUTX_L_G` | 34 |  |
+| `LSM6DXX_REG_OUTX_H_G` | 35 |  |
+| `LSM6DXX_REG_OUTY_L_G` | 36 |  |
+| `LSM6DXX_REG_OUTY_H_G` | 37 |  |
+| `LSM6DXX_REG_OUTZ_L_G` | 38 |  |
+| `LSM6DXX_REG_OUTZ_H_G` | 39 |  |
+| `LSM6DXX_REG_OUTX_L_A` | 40 |  |
+| `LSM6DXX_REG_OUTX_H_A` | 41 |  |
+| `LSM6DXX_REG_OUTY_L_A` | 42 |  |
+| `LSM6DXX_REG_OUTY_H_A` | 43 |  |
+| `LSM6DXX_REG_OUTZ_L_A` | 44 |  |
+| `LSM6DXX_REG_OUTZ_H_A` | 45 |  |
+
+---
 ## <a id="enum-ltm_frame_e"></a>`ltm_frame_e`
 
 > Source: ../../../src/main/telemetry/ltm.h
@@ -2439,6 +3127,17 @@
 | `MAVLINK_RADIO_SIK` | 2 |  |
 
 ---
+## <a id="enum-measurementsteps_e"></a>`measurementSteps_e`
+
+> Source: ../../../src/main/drivers/rangefinder/rangefinder_vl53l0x.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MEASUREMENT_START` | 0 |  |
+| `MEASUREMENT_WAIT` | 1 |  |
+| `MEASUREMENT_READ` | 2 |  |
+
+---
 ## <a id="enum-mixerprofileatrequest_e"></a>`mixerProfileATRequest_e`
 
 > Source: ../../../src/main/flight/mixer_profile.h
@@ -2473,6 +3172,21 @@
 | `MODE_OPERATOR_AND` | 1 |  |
 
 ---
+## <a id="enum-motorpwmprotocoltypes_e"></a>`motorPwmProtocolTypes_e`
+
+> Source: ../../../src/main/drivers/pwm_mapping.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `PWM_TYPE_STANDARD` | 0 |  |
+| `PWM_TYPE_ONESHOT125` | 1 |  |
+| `PWM_TYPE_MULTISHOT` | 2 |  |
+| `PWM_TYPE_BRUSHED` | 3 |  |
+| `PWM_TYPE_DSHOT150` | 4 |  |
+| `PWM_TYPE_DSHOT300` | 5 |  |
+| `PWM_TYPE_DSHOT600` | 6 |  |
+
+---
 ## <a id="enum-motorstatus_e"></a>`motorStatus_e`
 
 > Source: ../../../src/main/flight/mixer.h
@@ -2482,6 +3196,17 @@
 | `MOTOR_STOPPED_USER` | 0 |  |
 | `MOTOR_STOPPED_AUTO` | 1 |  |
 | `MOTOR_RUNNING` | 2 |  |
+
+---
+## <a id="enum-mpu9250compassreadstate_e"></a>`mpu9250CompassReadState_e`
+
+> Source: ../../../src/main/drivers/compass/compass_mpu9250.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `CHECK_STATUS` | 0 |  |
+| `WAITING_FOR_STATUS` | 1 |  |
+| `WAITING_FOR_DATA` | 2 |  |
 
 ---
 ## <a id="enum-mspflashfsflags_e"></a>`mspFlashfsFlags_e`
@@ -3382,6 +4107,16 @@
 | `OSD_DRAW_POINT_TYPE_PIXEL` | 1 |  |
 
 ---
+## <a id="enum-osddriver_e"></a>`osdDriver_e`
+
+> Source: ../../../src/main/drivers/osd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OSD_DRIVER_NONE` | 0 |  |
+| `OSD_DRIVER_MAX7456` | 1 |  |
+
+---
 ## <a id="enum-osdspeedsource_e"></a>`osdSpeedSource_e`
 
 > Source: ../../../src/main/io/osd_common.h
@@ -3414,6 +4149,17 @@
 | `PAGE_WELCOME` | 0 |  |
 | `PAGE_ARMED` | 1 |  |
 | `PAGE_STATUS` | 2 |  |
+
+---
+## <a id="enum-persistentobjectid_e"></a>`persistentObjectId_e`
+
+> Source: ../../../src/main/drivers/persistent.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `PERSISTENT_OBJECT_MAGIC` | 0 |  |
+| `PERSISTENT_OBJECT_RESET_REASON` | 1 |  |
+| `PERSISTENT_OBJECT_COUNT` | 2 |  |
 
 ---
 ## <a id="enum-pidautotunestate_e"></a>`pidAutotuneState_e`
@@ -3473,6 +4219,16 @@
 | `PID_TYPE_AUTO` | 3 |  |
 
 ---
+## <a id="enum-pinlabel_e"></a>`pinLabel_e`
+
+> Source: ../../../src/main/drivers/pwm_mapping.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `PIN_LABEL_NONE` | 0 |  |
+| `PIN_LABEL_LED` | 1 |  |
+
+---
 ## <a id="enum-pitotsensor_e"></a>`pitotSensor_e`
 
 > Source: ../../../src/main/sensors/pitotmeter.h
@@ -3510,6 +4266,20 @@
 | `PORTSHARING_SHARED` | 2 |  |
 
 ---
+## <a id="enum-pwminiterror_e"></a>`pwmInitError_e`
+
+> Source: ../../../src/main/drivers/pwm_mapping.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `PWM_INIT_ERROR_NONE` | 0 |  |
+| `PWM_INIT_ERROR_TOO_MANY_MOTORS` | 1 |  |
+| `PWM_INIT_ERROR_TOO_MANY_SERVOS` | 2 |  |
+| `PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS` | 3 |  |
+| `PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS` | 4 |  |
+| `PWM_INIT_ERROR_TIMER_INIT_FAILED` | 5 |  |
+
+---
 ## <a id="enum-quadrant_e"></a>`quadrant_e`
 
 > Source: ../../../src/main/io/ledstrip.c
@@ -3527,6 +4297,30 @@
 | `QUADRANT_NONE` | 1 << 8 |  |
 | `QUADRANT_NOTDIAG` | 1 << 9 |  |
 | `QUADRANT_ANY` | QUADRANT_NORTH | QUADRANT_SOUTH | QUADRANT_EAST | QUADRANT_WEST | QUADRANT_NONE |  |
+
+---
+## <a id="enum-quadspiclockdivider_e"></a>`QUADSPIClockDivider_e`
+
+> Source: ../../../src/main/drivers/bus_quadspi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `QUADSPI_CLOCK_INITIALISATION` | 255 |  |
+| `QUADSPI_CLOCK_SLOW` | 19 |  |
+| `QUADSPI_CLOCK_STANDARD` | 9 |  |
+| `QUADSPI_CLOCK_FAST` | 3 |  |
+| `QUADSPI_CLOCK_ULTRAFAST` | 1 |  |
+
+---
+## <a id="enum-quadspimode_e"></a>`quadSpiMode_e`
+
+> Source: ../../../src/main/drivers/bus_quadspi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `QUADSPI_MODE_BK1_ONLY` | 0 |  |
+| `QUADSPI_MODE_BK2_ONLY` | 1 |  |
+| `QUADSPI_MODE_DUAL_FLASH` | 2 |  |
 
 ---
 ## <a id="enum-rangefindertype_e"></a>`rangefinderType_e`
@@ -3652,6 +4446,71 @@
 | `HD_3016` | 2 |  |
 | `HD_6022` | 3 |  |
 | `HD_5320` | 4 |  |
+
+---
+## <a id="enum-resourceowner_e"></a>`resourceOwner_e`
+
+> Source: ../../../src/main/drivers/resource.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OWNER_FREE` | 0 |  |
+| `OWNER_PWMIO` | 1 |  |
+| `OWNER_MOTOR` | 2 |  |
+| `OWNER_SERVO` | 3 |  |
+| `OWNER_SOFTSERIAL` | 4 |  |
+| `OWNER_ADC` | 5 |  |
+| `OWNER_SERIAL` | 6 |  |
+| `OWNER_TIMER` | 7 |  |
+| `OWNER_RANGEFINDER` | 8 |  |
+| `OWNER_SYSTEM` | 9 |  |
+| `OWNER_SPI` | 10 |  |
+| `OWNER_QUADSPI` | 11 |  |
+| `OWNER_I2C` | 12 |  |
+| `OWNER_SDCARD` | 13 |  |
+| `OWNER_FLASH` | 14 |  |
+| `OWNER_USB` | 15 |  |
+| `OWNER_BEEPER` | 16 |  |
+| `OWNER_OSD` | 17 |  |
+| `OWNER_BARO` | 18 |  |
+| `OWNER_MPU` | 19 |  |
+| `OWNER_INVERTER` | 20 |  |
+| `OWNER_LED_STRIP` | 21 |  |
+| `OWNER_LED` | 22 |  |
+| `OWNER_RX` | 23 |  |
+| `OWNER_TX` | 24 |  |
+| `OWNER_VTX` | 25 |  |
+| `OWNER_SPI_PREINIT` | 26 |  |
+| `OWNER_COMPASS` | 27 |  |
+| `OWNER_TEMPERATURE` | 28 |  |
+| `OWNER_1WIRE` | 29 |  |
+| `OWNER_AIRSPEED` | 30 |  |
+| `OWNER_OLED_DISPLAY` | 31 |  |
+| `OWNER_PINIO` | 32 |  |
+| `OWNER_IRLOCK` | 33 |  |
+| `OWNER_TOTAL_COUNT` | 34 |  |
+
+---
+## <a id="enum-resourcetype_e"></a>`resourceType_e`
+
+> Source: ../../../src/main/drivers/resource.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `RESOURCE_NONE` | 0 |  |
+| `RESOURCE_INPUT` | 1 |  |
+| `RESOURCE_TIMER` | 2 |  |
+| `RESOURCE_UART_TX` | 3 |  |
+| `RESOURCE_EXTI` | 4 |  |
+| `RESOURCE_I2C_SCL` | 5 |  |
+| `RESOURCE_SPI_SCK` | 6 |  |
+| `RESOURCE_QUADSPI_CLK` | 7 |  |
+| `RESOURCE_QUADSPI_BK1IO2` | 8 |  |
+| `RESOURCE_QUADSPI_BK2IO0` | 9 |  |
+| `RESOURCE_QUADSPI_BK2IO3` | 10 |  |
+| `RESOURCE_ADC_CH1` | 11 |  |
+| `RESOURCE_RX_CE` | 12 |  |
+| `RESOURCE_TOTAL_COUNT` | 13 |  |
 
 ---
 ## <a id="enum-reversiblemotorsthrottlestate_e"></a>`reversibleMotorsThrottleState_e`
@@ -3810,6 +4669,97 @@
 | `STATE_SBUS_WAIT_SYNC` | 3 |  |
 
 ---
+## <a id="enum-sdcardblockoperation_e"></a>`sdcardBlockOperation_e`
+
+> Source: ../../../src/main/drivers/sdcard/sdcard.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SDCARD_BLOCK_OPERATION_READ` | 0 |  |
+| `SDCARD_BLOCK_OPERATION_WRITE` | 1 |  |
+| `SDCARD_BLOCK_OPERATION_ERASE` | 2 |  |
+
+---
+## <a id="enum-sdcardoperationstatus_e"></a>`sdcardOperationStatus_e`
+
+> Source: ../../../src/main/drivers/sdcard/sdcard.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SDCARD_OPERATION_IN_PROGRESS` | 0 |  |
+| `SDCARD_OPERATION_BUSY` | 1 |  |
+| `SDCARD_OPERATION_SUCCESS` | 2 |  |
+| `SDCARD_OPERATION_FAILURE` | 3 |  |
+
+---
+## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
+
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SDCARD_RECEIVE_SUCCESS` | 0 |  |
+| `SDCARD_RECEIVE_BLOCK_IN_PROGRESS` | 1 |  |
+| `SDCARD_RECEIVE_ERROR` | 2 |  |
+
+---
+## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
+
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SDCARD_RECEIVE_SUCCESS` | 0 |  |
+| `SDCARD_RECEIVE_BLOCK_IN_PROGRESS` | 1 |  |
+| `SDCARD_RECEIVE_ERROR` | 2 |  |
+
+---
+## <a id="enum-sdcardstate_e"></a>`sdcardState_e`
+
+> Source: ../../../src/main/drivers/sdcard/sdcard_impl.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SDCARD_STATE_NOT_PRESENT` | 0 |  |
+| `SDCARD_STATE_RESET` | 1 |  |
+| `SDCARD_STATE_CARD_INIT_IN_PROGRESS` | 2 |  |
+| `SDCARD_STATE_INITIALIZATION_RECEIVE_CID` | 3 |  |
+| `SDCARD_STATE_READY` | 4 |  |
+| `SDCARD_STATE_READING` | 5 |  |
+| `SDCARD_STATE_SENDING_WRITE` | 6 |  |
+| `SDCARD_STATE_WAITING_FOR_WRITE` | 7 |  |
+| `SDCARD_STATE_WRITING_MULTIPLE_BLOCKS` | 8 |  |
+| `SDCARD_STATE_STOPPING_MULTIPLE_BLOCK_WRITE` | 9 |  |
+
+---
+## <a id="enum-sdiodevice"></a>`SDIODevice`
+
+> Source: ../../../src/main/drivers/sdio.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SDIOINVALID` | -1 |  |
+| `SDIODEV_1` | 0 |  |
+| `SDIODEV_2` | 1 |  |
+
+---
+## <a id="enum-sensor_align_e"></a>`sensor_align_e`
+
+> Source: ../../../src/main/drivers/sensor.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `ALIGN_DEFAULT` | 0 |  |
+| `CW0_DEG` | 1 |  |
+| `CW90_DEG` | 2 |  |
+| `CW180_DEG` | 3 |  |
+| `CW270_DEG` | 4 |  |
+| `CW0_DEG_FLIP` | 5 |  |
+| `CW90_DEG_FLIP` | 6 |  |
+| `CW180_DEG_FLIP` | 7 |  |
+| `CW270_DEG_FLIP` | 8 |  |
+
+---
 ## <a id="enum-sensorindex_e"></a>`sensorIndex_e`
 
 > Source: ../../../src/main/sensors/sensors.h
@@ -3945,6 +4895,17 @@
 | `SERVO_SINGLECOPTER_2` | 4 |  |
 | `SERVO_SINGLECOPTER_3` | 5 |  |
 | `SERVO_SINGLECOPTER_4` | 6 |  |
+
+---
+## <a id="enum-servoprotocoltype_e"></a>`servoProtocolType_e`
+
+> Source: ../../../src/main/drivers/pwm_mapping.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SERVO_TYPE_PWM` | 0 |  |
+| `SERVO_TYPE_SBUS` | 1 |  |
+| `SERVO_TYPE_SBUS_PWM` | 2 |  |
 
 ---
 ## <a id="enum-setting_mode_e"></a>`setting_mode_e`
@@ -4098,6 +5059,29 @@
 | `SMARTPORT_FUEL_UNIT_PERCENT` | 0 |  |
 | `SMARTPORT_FUEL_UNIT_MAH` | 1 |  |
 | `SMARTPORT_FUEL_UNIT_MWH` | 2 |  |
+
+---
+## <a id="enum-softserialportindex_e"></a>`softSerialPortIndex_e`
+
+> Source: ../../../src/main/drivers/serial_softserial.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SOFTSERIAL1` | 0 |  |
+| `SOFTSERIAL2` | 1 |  |
+
+---
+## <a id="enum-spiclockspeed_e"></a>`SPIClockSpeed_e`
+
+> Source: ../../../src/main/drivers/bus_spi.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SPI_CLOCK_INITIALIZATON` | 0 |  |
+| `SPI_CLOCK_SLOW` | 1 |  |
+| `SPI_CLOCK_STANDARD` | 2 |  |
+| `SPI_CLOCK_FAST` | 3 |  |
+| `SPI_CLOCK_ULTRAFAST` | 4 |  |
 
 ---
 ## <a id="enum-srxl2bindrequest"></a>`Srxl2BindRequest`
@@ -4280,6 +5264,17 @@
 | `SYSTEM_STATE_READY` | (1 << 7) |  |
 
 ---
+## <a id="enum-tchdmastate_e"></a>`tchDmaState_e`
+
+> Source: ../../../src/main/drivers/timer.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `TCH_DMA_IDLE` | 0 |  |
+| `TCH_DMA_READY` | 1 |  |
+| `TCH_DMA_ACTIVE` | 2 |  |
+
+---
 ## <a id="enum-tempsensortype_e"></a>`tempSensorType_e`
 
 > Source: ../../../src/main/sensors/temperature.h
@@ -4309,6 +5304,32 @@
 |---|---:|---|
 | `THROTTLE_STATUS_TYPE_RC` | 0 |  |
 | `THROTTLE_STATUS_TYPE_COMMAND` | 1 |  |
+
+---
+## <a id="enum-timermode_e"></a>`timerMode_e`
+
+> Source: ../../../src/main/drivers/serial_softserial.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `TIMER_MODE_SINGLE` | 0 |  |
+| `TIMER_MODE_DUAL` | 1 |  |
+
+---
+## <a id="enum-timerusageflag_e"></a>`timerUsageFlag_e`
+
+> Source: ../../../src/main/drivers/timer.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `TIM_USE_ANY` | 0 |  |
+| `TIM_USE_PPM` | (1 << 0) |  |
+| `TIM_USE_PWM` | (1 << 1) |  |
+| `TIM_USE_MOTOR` | (1 << 2) |  |
+| `TIM_USE_SERVO` | (1 << 3) |  |
+| `TIM_USE_MC_CHNFW` | (1 << 4) |  |
+| `TIM_USE_LED` | (1 << 24) |  |
+| `TIM_USE_BEEPER` | (1 << 25) |  |
 
 ---
 ## <a id="enum-timid_e"></a>`timId_e`
@@ -4349,6 +5370,34 @@
 | `TZ_AUTO_DST_OFF` | 0 |  |
 | `TZ_AUTO_DST_EU` | 1 |  |
 | `TZ_AUTO_DST_USA` | 2 |  |
+
+---
+## <a id="enum-uartdevice_e"></a>`UARTDevice_e`
+
+> Source: ../../../src/main/drivers/serial_uart.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `UARTDEV_1` | 0 |  |
+| `UARTDEV_2` | 1 |  |
+| `UARTDEV_3` | 2 |  |
+| `UARTDEV_4` | 3 |  |
+| `UARTDEV_5` | 4 |  |
+| `UARTDEV_6` | 5 |  |
+| `UARTDEV_7` | 6 |  |
+| `UARTDEV_8` | 7 |  |
+| `UARTDEV_MAX` | 8 |  |
+
+---
+## <a id="enum-uartinverterline_e"></a>`uartInverterLine_e`
+
+> Source: ../../../src/main/drivers/uart_inverter.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `UART_INVERTER_LINE_NONE` | 0 |  |
+| `UART_INVERTER_LINE_RX` | 1 << 0 |  |
+| `UART_INVERTER_LINE_TX` | 1 << 1 |  |
 
 ---
 ## <a id="enum-ublox_nav_sig_health_e"></a>`ublox_nav_sig_health_e`
@@ -4453,6 +5502,33 @@
 | `MSG_NAV_SIG` | 67 |  |
 
 ---
+## <a id="enum-vcselperiodtype_e"></a>`vcselPeriodType_e`
+
+> Source: ../../../src/main/drivers/rangefinder/rangefinder_vl53l0x.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `VcselPeriodPreRange` | 0 |  |
+| `VcselPeriodFinalRange` | 1 |  |
+
+---
+## <a id="enum-videosystem_e"></a>`videoSystem_e`
+
+> Source: ../../../src/main/drivers/osd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `VIDEO_SYSTEM_AUTO` | 0 |  |
+| `VIDEO_SYSTEM_PAL` | 1 |  |
+| `VIDEO_SYSTEM_NTSC` | 2 |  |
+| `VIDEO_SYSTEM_HDZERO` | 3 |  |
+| `VIDEO_SYSTEM_DJIWTF` | 4 |  |
+| `VIDEO_SYSTEM_AVATAR` | 5 |  |
+| `VIDEO_SYSTEM_DJICOMPAT` | 6 |  |
+| `VIDEO_SYSTEM_DJICOMPAT_HD` | 7 |  |
+| `VIDEO_SYSTEM_DJI_NATIVE` | 8 |  |
+
+---
 ## <a id="enum-voltagesensor_e"></a>`voltageSensor_e`
 
 > Source: ../../../src/main/sensors/battery_config_structs.h
@@ -4489,6 +5565,32 @@
 | `VS600_POWER_25MW` | 1 |  |
 | `VS600_POWER_200MW` | 2 |  |
 | `VS600_POWER_600MW` | 3 |  |
+
+---
+## <a id="enum-vtxdevtype_e"></a>`vtxDevType_e`
+
+> Source: ../../../src/main/drivers/vtx_common.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `VTXDEV_UNSUPPORTED` | 0 |  |
+| `VTXDEV_RTC6705` | 1 |  |
+| `VTXDEV_SMARTAUDIO` | 3 |  |
+| `VTXDEV_TRAMP` | 4 |  |
+| `VTXDEV_FFPV` | 5 |  |
+| `VTXDEV_MSP` | 6 |  |
+| `VTXDEV_UNKNOWN` | 255 |  |
+
+---
+## <a id="enum-vtxfrequencygroups_e"></a>`vtxFrequencyGroups_e`
+
+> Source: ../../../src/main/drivers/vtx_common.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FREQUENCYGROUP_5G8` | 0 |  |
+| `FREQUENCYGROUP_2G4` | 1 |  |
+| `FREQUENCYGROUP_1G3` | 2 |  |
 
 ---
 ## <a id="enum-vtxlowerpowerdisarm_e"></a>`vtxLowerPowerDisarm_e`
@@ -4561,6 +5663,25 @@
 | `WARNING_LED_OFF` | 0 |  |
 | `WARNING_LED_ON` | 1 |  |
 | `WARNING_LED_FLASH` | 2 |  |
+
+---
+## <a id="enum-widgetahioptions_t"></a>`widgetAHIOptions_t`
+
+> Source: ../../../src/main/drivers/display_widgets.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_WIDGET_AHI_OPTION_SHOW_CORNERS` | 1 << 0 |  |
+
+---
+## <a id="enum-widgetahistyle_e"></a>`widgetAHIStyle_e`
+
+> Source: ../../../src/main/drivers/display_widgets.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_WIDGET_AHI_STYLE_STAIRCASE` | 0 |  |
+| `DISPLAY_WIDGET_AHI_STYLE_LINE` | 1 |  |
 
 ---
 ## <a id="enum-wpfwturnsmoothing_e"></a>`wpFwTurnSmoothing_e`
