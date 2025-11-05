@@ -584,7 +584,7 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ### crsf_use_legacy_baro_packet
 
-CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. No vario, no If `OFF`, BaroVario packet will have vario speed and altitude about start point and GPS packet will have ASL altitude (about sea level). These are deprecated, and will be removed in INAV 11.0. Tools and scripts using these GPS Altitude should be updated to use the BaroVario packet and GPS packet. Default: 'OFF'
+CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'
 
 | Default | Min | Max |
 | --- | --- | --- |
