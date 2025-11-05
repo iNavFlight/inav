@@ -5938,7 +5938,6 @@
                 }
             ]
         },
-        "complex": true,
         "variable_len": true,
         "notes": "Returns error if setting not found. Use `MSP2_COMMON_SETTING_INFO` to discover settings, types, and sizes.",
         "description": "Gets the value of a specific configuration setting, identified by name or index."
@@ -5968,7 +5967,6 @@
         },
         "reply": null,
         "variable_len": true,
-        "complex": true,
         "notes": "Performs type checking and range validation (min/max). Returns error if setting not found, value size mismatch, or value out of range. Handles different data types (`uint8`, `int16`, `float`, `string`, etc.) internally.",
         "description": "Sets the value of a specific configuration setting, identified by name or index."
     },
@@ -6781,7 +6779,7 @@
             ]
         },
         "reply": null,
-        "complex": true,
+        "variable_len": true,
         "notes": "Requires `USE_HEADTRACKER` and `USE_HEADTRACKER_MSP`. Calls `mspHeadTrackerReceiverNewData()`. Payload structure needs verification from `mspHeadTrackerReceiverNewData` implementation.",
         "description": "Provides head tracker orientation data."
     },
