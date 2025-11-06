@@ -302,13 +302,13 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
-### airspeed_tpa
+### airspeed_tpa_pow
 
-Use airspeed instead of throttle position for TPA if airspeed is available. use throttle as {tpa_breakpoint + (airspeed - fw_reference_airspeed)/fw_reference_airspeed * (tpa_breakpoint - ThrottleIdleValue(default:1150))} for TPA calculation
+Use airspeed instead of throttle position for TPA if airspeed is available on fixedwing. pid_multiplier(tpa_factor) = (referenceAirspeed/airspeed)**(airspeed_tpa_pow/100). Set to 0 will disable this feature and use throttle based tpa;
 
 | Default | Min | Max |
 | --- | --- | --- |
-| OFF | OFF | ON |
+| 120 | 0 | 200 |
 
 ---
 
