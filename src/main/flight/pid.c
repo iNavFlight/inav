@@ -126,7 +126,7 @@ static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
-STATIC_FASTRAM bool pidGainsUpdateRequired;
+STATIC_FASTRAM bool pidGainsUpdateRequired= true;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef USE_BLACKBOX
@@ -513,7 +513,7 @@ void schedulePidGainsUpdate(void)
 
 void updatePIDCoefficients(void)
 {
-    STATIC_FASTRAM float tpaFactorprev=1.0f;
+    STATIC_FASTRAM float tpaFactorprev=-1.0f;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
