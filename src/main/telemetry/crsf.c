@@ -349,6 +349,8 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     sbufWriteU8(dst, 0);
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
+    static uint8_t hrstSent = 0;
+
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
@@ -359,7 +361,10 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         } else
 #endif
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
-            flightMode = "!FS!";          
+            flightMode = "!FS!";
+        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent < 4 && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+            flightMode = "HRST";
+            hrstSent++;
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
 #ifdef USE_GEOZONE
@@ -396,6 +401,9 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     } else if (isArmingDisabled()) {
         flightMode = "!ERR";
     }
+
+    if (!IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent > 0)
+        hrstSent = 0;
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
     crsfSerialize8(dst, 0); // zero terminator for string

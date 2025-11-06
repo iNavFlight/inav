@@ -166,7 +166,7 @@ static uint32_t frskyGetFlightMode(void)
 {
     uint32_t tmpi = 0;
 
-    // ones column
+    // ones column (G)
     if (!isArmingDisabled())
         tmpi += 1;
     else
@@ -174,7 +174,7 @@ static uint32_t frskyGetFlightMode(void)
     if (ARMING_FLAG(ARMED))
         tmpi += 4;
 
-    // tens column
+    // tens column (F)
     if (FLIGHT_MODE(ANGLE_MODE))
         tmpi += 10;
     if (FLIGHT_MODE(HORIZON_MODE))
@@ -182,7 +182,7 @@ static uint32_t frskyGetFlightMode(void)
     if (FLIGHT_MODE(MANUAL_MODE))
         tmpi += 40;
 
-    // hundreds column
+    // hundreds column (E)
     if (FLIGHT_MODE(HEADING_MODE))
         tmpi += 100;
     if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
@@ -190,7 +190,7 @@ static uint32_t frskyGetFlightMode(void)
     if (FLIGHT_MODE(NAV_POSHOLD_MODE) && !STATE(AIRPLANE))
         tmpi += 400;
 
-    // thousands column
+    // thousands column (D)
     if (FLIGHT_MODE(NAV_RTH_MODE) && !isWaypointMissionRTHActive())
         tmpi += 1000;
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) // intentionally out of order and 'else-ifs' to prevent column overflow
@@ -200,7 +200,7 @@ static uint32_t frskyGetFlightMode(void)
     else if (FLIGHT_MODE(HEADFREE_MODE))
         tmpi += 4000;
 
-    // ten thousands column
+    // ten thousands column (C)
     if (FLIGHT_MODE(FLAPERON))
         tmpi += 10000;
     if (FLIGHT_MODE(FAILSAFE_MODE))
@@ -208,7 +208,7 @@ static uint32_t frskyGetFlightMode(void)
     else if (FLIGHT_MODE(AUTO_TUNE)) // intentionally reverse order and 'else-if' to prevent 16-bit overflow
         tmpi += 20000;
 
-    // hundred thousands column
+    // hundred thousands column (B)
     if (FLIGHT_MODE(NAV_FW_AUTOLAND))
         tmpi += 100000;
     if (FLIGHT_MODE(TURTLE_MODE))
@@ -218,7 +218,7 @@ static uint32_t frskyGetFlightMode(void)
     if (FLIGHT_MODE(NAV_SEND_TO))
         tmpi += 400000;
 
-    // million column
+    // million column (A)
     if (FLIGHT_MODE(NAV_RTH_MODE) && isWaypointMissionRTHActive())
         tmpi += 1000000;
     if (FLIGHT_MODE(ANGLEHOLD_MODE))
