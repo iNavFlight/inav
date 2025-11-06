@@ -5578,7 +5578,7 @@ Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in s
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 350 | 0 | 10000 |
+| 1000 | 0 | 10000 |
 
 ---
 

@@ -656,7 +656,7 @@ groups:
         description: "Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay"
         min: 0
         max: 10000
-        default_value: 350
+        default_value: 1000
       - name: pitot_scale
         description: "Pitot tube scale factor"
         min: 0

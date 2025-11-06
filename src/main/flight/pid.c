@@ -531,7 +531,7 @@ void updatePIDCoefficients(void)
     
     float tpaFactor=1.0f;
     if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
-        if(currentControlRateProfile->throttle.airspeed_tpa_pow>0){
+        if(currentControlRateProfile->throttle.airspeed_tpa_pow>0 && pitotValidForAirspeed()){
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
         }else{
             tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());
