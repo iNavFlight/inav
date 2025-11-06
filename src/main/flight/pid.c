@@ -126,7 +126,7 @@ static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
-STATIC_FASTRAM bool pidGainsUpdateRequired;
+STATIC_FASTRAM bool pidGainsUpdateRequired= true;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
 
 #ifdef USE_BLACKBOX
@@ -442,6 +442,14 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
     return scaleRangef((float) stick, -500.0f, 500.0f, -maxRateDPS, maxRateDPS);
 }
 
+static float calculateFixedWingAirspeedTPAFactor(void){
+    const float airspeed = getAirspeedEstimate(); // in cm/s
+    const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
+    float tpaFactor= powf(referenceAirspeed/(airspeed+0.01f), currentControlRateProfile->throttle.airspeed_tpa_pow/100.0f);
+    tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
+    return tpaFactor;
+}
+
 static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
     float tpaFactor;
@@ -470,20 +478,33 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     return tpaFactor;
 }
 
-static float calculateMultirotorTPAFactor(void)
+static float calculateMultirotorTPAFactor(uint16_t throttle)
 {
     float tpaFactor;
 
     // TPA should be updated only when TPA is actually set
-    if (currentControlRateProfile->throttle.dynPID == 0 || rcCommand[THROTTLE] < currentControlRateProfile->throttle.pa_breakpoint) {
+    if (currentControlRateProfile->throttle.dynPID == 0 || throttle < currentControlRateProfile->throttle.pa_breakpoint) {
         tpaFactor = 1.0f;
-    } else if (rcCommand[THROTTLE] < getMaxThrottle()) {
-        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (rcCommand[THROTTLE] - currentControlRateProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
+    } else if (throttle < getMaxThrottle()) {
+        tpaFactor = (100 - (uint16_t)currentControlRateProfile->throttle.dynPID * (throttle - currentControlRateProfile->throttle.pa_breakpoint) / (float)(getMaxThrottle() - currentControlRateProfile->throttle.pa_breakpoint)) / 100.0f;
     } else {
         tpaFactor = (100 - currentControlRateProfile->throttle.dynPID) / 100.0f;
     }
 
     return tpaFactor;
+}
+
+static float calculateTPAThtrottle(void)
+{
+    uint16_t tpaThrottle = 0;
+
+    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
+        tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
+    }
+    else {
+        tpaThrottle = rcCommand[THROTTLE]; //multirotor TPA without filtering
+    }
+    return tpaThrottle;
 }
 
 void schedulePidGainsUpdate(void)
@@ -493,22 +514,7 @@ void schedulePidGainsUpdate(void)
 
 void updatePIDCoefficients(void)
 {
-    STATIC_FASTRAM uint16_t prevThrottle = 0;
-
-    // Check if throttle changed. Different logic for fixed wing vs multirotor
-    if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) {
-        uint16_t filteredThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
-        if (filteredThrottle != prevThrottle) {
-            prevThrottle = filteredThrottle;
-            pidGainsUpdateRequired = true;
-        }
-    }
-    else {
-        if (rcCommand[THROTTLE] != prevThrottle) {
-            prevThrottle = rcCommand[THROTTLE];
-            pidGainsUpdateRequired = true;
-        }
-    }
+    STATIC_FASTRAM float tpaFactorprev=-1.0f;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
@@ -523,14 +529,29 @@ void updatePIDCoefficients(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
+    
+    float tpaFactor=1.0f;
+    if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
+        if(currentControlRateProfile->throttle.airspeed_tpa_pow>0 && pitotValidForAirspeed()){
+            tpaFactor = calculateFixedWingAirspeedTPAFactor();
+        }else{
+            tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());
+        }
+    } else {
+        tpaFactor = calculateMultirotorTPAFactor(calculateTPAThtrottle());
+    }
+    if (tpaFactor != tpaFactorprev) {
+        pidGainsUpdateRequired = true;
+    }
+    tpaFactorprev = tpaFactor;
 
+    
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
         return;
     }
 
-    const float tpaFactor = usedPidControllerType == PID_TYPE_PIFF ? calculateFixedWingTPAFactor(prevThrottle) : calculateMultirotorTPAFactor();
-
+    
     // PID coefficients can be update only with THROTTLE and TPA or inflight PID adjustments
     //TODO: Next step would be to update those only at THROTTLE or inflight adjustments change
     for (int axis = 0; axis < 3; axis++) {

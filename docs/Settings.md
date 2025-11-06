@@ -312,6 +312,16 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
+### airspeed_tpa_pow
+
+Use airspeed instead of throttle position for TPA if airspeed is available on fixedwing. pid_multiplier(tpa_factor) = (referenceAirspeed/airspeed)**(airspeed_tpa_pow/100). Set to 0 will disable this feature and use throttle based tpa;
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 120 | 0 | 200 |
+
+---
+
 ### align_board_pitch
 
 Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc
@@ -5618,7 +5628,7 @@ Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in s
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 350 | 0 | 10000 |
+| 1000 | 0 | 10000 |
 
 ---
 
