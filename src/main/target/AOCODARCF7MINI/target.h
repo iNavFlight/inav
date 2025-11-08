@@ -32,7 +32,6 @@
 #define BEEPER_INVERTED
 
 // *************** SPI1 Gyro & ACC *******************
-#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1
@@ -163,3 +162,7 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+#if defined(AOCODARCF7MINI_V1)
+#define USE_DSHOT_DMAR
+#endif

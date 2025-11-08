@@ -21,15 +21,15 @@
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/servos.h"
+#include "common/maths.h"
 
 #if defined(TARGET_MOTOR_COUNT)
 #define MAX_MOTORS  TARGET_MOTOR_COUNT
-#define MAX_SERVOS  16
-
 #else
 #define MAX_MOTORS  12
-#define MAX_SERVOS  16
 #endif
+
+#define MAX_SERVOS  18
 
 #define PWM_TIMER_HZ    1000000
 
@@ -52,6 +52,11 @@ typedef enum {
     SERVO_TYPE_SBUS,
     SERVO_TYPE_SBUS_PWM
 } servoProtocolType_e;
+
+typedef enum {
+    PIN_LABEL_NONE = 0,
+    PIN_LABEL_LED
+} pinLabel_e;
 
 typedef enum {
     PWM_INIT_ERROR_NONE = 0,

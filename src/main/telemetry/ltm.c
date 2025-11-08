@@ -71,6 +71,7 @@
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
 #include "sensors/pitotmeter.h"
+#include "sensors/diagnostics.h"
 
 #include "telemetry/ltm.h"
 #include "telemetry/telemetry.h"
@@ -117,7 +118,11 @@ void ltm_gframe(sbuf_t *dst)
     uint8_t gps_fix_type = 0;
     int32_t ltm_lat = 0, ltm_lon = 0, ltm_alt = 0, ltm_gs = 0;
 
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         if (gpsSol.fixType == GPS_NO_FIX)
             gps_fix_type = 1;
         else if (gpsSol.fixType == GPS_FIX_2D)
@@ -178,6 +183,10 @@ void ltm_sframe(sbuf_t *dst)
         lt_flightmode = LTM_MODE_ANGLE;
     else if (FLIGHT_MODE(HORIZON_MODE))
         lt_flightmode = LTM_MODE_HORIZON;
+#ifdef USE_FW_AUTOLAND
+    else if (FLIGHT_MODE(NAV_FW_AUTOLAND))
+        lt_flightmode = LTM_MODE_LAND;
+#endif
     else
         lt_flightmode = LTM_MODE_RATE;      // Rate mode
 
@@ -203,9 +212,9 @@ void ltm_sframe(sbuf_t *dst)
 void ltm_aframe(sbuf_t *dst)
 {
     sbufWriteU8(dst, 'A');
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.pitch));
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.roll));
-    sbufWriteU16(dst, DECIDEGREES_TO_DEGREES(attitude.values.yaw));
+    sbufWriteU16(dst, (int16_t)DECIDEGREES_TO_DEGREES(attitude.values.pitch));
+    sbufWriteU16(dst, (int16_t)DECIDEGREES_TO_DEGREES(attitude.values.roll));
+    sbufWriteU16(dst, (int16_t)DECIDEGREES_TO_DEGREES(attitude.values.yaw));
 }
 
 #if defined(USE_GPS)

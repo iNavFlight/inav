@@ -88,6 +88,13 @@
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PB2
 
+// ICM42688
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+#define ICM42605_CS_PIN         PB2
+#define ICM42605_EXTI_PIN       PA4
+
 /*
  * Blackbox Onboard Flash
  */
@@ -110,6 +117,8 @@
 #define BARO_I2C_BUS            BUS_I2C1
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
+#define USE_BARO_DPS310
+#define USE_BARO_SPL06
 
 /*
  * Mag

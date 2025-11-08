@@ -258,6 +258,33 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
+const int32_t ALT_MIN_DM = 10000;
+const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
+const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
+
+/*
+0x09 Barometer altitude and vertical speed
+Payload:
+uint16_t    altitude_packed ( dm - 10000 )
+*/
+static void crsfBarometerAltitude(sbuf_t *dst)
+{
+    int32_t altitude_dm = lrintf(getEstimatedActualPosition(Z) / 10);
+    uint16_t altitude_packed;
+    if (altitude_dm < -ALT_MIN_DM) {
+        altitude_packed = 0;
+    } else if (altitude_dm > ALT_MAX_DM) {
+        altitude_packed = 0xfffe;
+    } else if (altitude_dm < ALT_THRESHOLD_DM) {
+        altitude_packed = altitude_dm + ALT_MIN_DM;
+    } else {
+        altitude_packed = ((altitude_dm + 5) / 10) | 0x8000;
+    }
+    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE);
+    crsfSerialize16(dst, altitude_packed);
+}
+
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -325,19 +352,26 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
-        if (STATE(AIRMODE_ACTIVE)) {
-            flightMode = "AIR";
-        } else {
-            flightMode = "ACRO";
-        }
+        flightMode = "ACRO";
+#ifdef USE_FW_AUTOLAND
+        if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+            flightMode = "LAND";
+        } else
+#endif
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
-            flightMode = "!FS!";
-        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
-            flightMode = "HRST";
+            flightMode = "!FS!";          
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
+#ifdef USE_GEOZONE
+        } else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE)) {
+            flightMode = "GEO";
+#endif  
+        } else if (FLIGHT_MODE(TURTLE_MODE)) {
+            flightMode = "TURT";
         } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
-            flightMode = "RTH";
+            flightMode = isWaypointMissionRTHActive() ? "WRTH" : "RTH";
+        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE)) {
+            flightMode = "LOTR";
         } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
             flightMode = "HOLD";
         } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
@@ -346,7 +380,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "CRSH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
             flightMode = "AH";
         } else if (FLIGHT_MODE(ANGLE_MODE)) {
             flightMode = "ANGL";
@@ -411,6 +445,7 @@ typedef enum {
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
+    CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -477,6 +512,11 @@ static void processCrsf(void)
         crsfFrameVarioSensor(dst);
         crsfFinalize(dst);
     }
+    if (currentSchedule & BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX)) {
+        crsfInitializeFrame(dst);
+        crsfBarometerAltitude(dst);
+        crsfFinalize(dst);
+    }
 #endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
@@ -509,6 +549,11 @@ void initCrsfTelemetry(void)
 #if defined(USE_BARO) || defined(USE_GPS)
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
+    }
+#endif
+#ifdef USE_BARO
+    if (sensors(SENSOR_BARO)) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;

@@ -16,6 +16,10 @@ Currently supported are
 
 INAV SITL communicates for sensor data and control directly with the corresponding simulator, see the documentation of the individual simulators and the Configurator or the command line options.
 
+AS SITL is still an inav software, but running on PC, it is possible to use HITL interface for communication.
+
+INAV-X-Plane-HITL plugin https://github.com/RomanLut/INAV-X-Plane-HITL can be used with SITL.
+
 ## Sensors
 The following sensors are emulated:
 - IMU (Gyro, Accelerometer)
@@ -30,13 +34,18 @@ The following sensors are emulated:
 
 Select "FAKE" as type for all mentioned, so that they receive the data from the simulator.
 
-## Serial ports+
-UARTs are replaced by TCP starting with port 5760 ascending. UART 1 port 5760, UART2 5761, ...
-By default, UART1 and UART2 are available as MSP connections. Other UARTs will have TCP listeners if they have an INAV function assigned.
-To connect the Configurator to SITL: Select TCP and connect to ```localhost:5760``` (or ```127.0.0.1:5760``` if your OS doesn't understand `localhost`) (if SITL is running on the same machine).
+## Serial ports
+UARTs are replaced by TCP starting with port 5760 ascending. UART1 is mapped to port 5760, UART2 to 5761, etc.
+
+By default, UART1 and UART2 are configured for MSP connections. Other UARTs will have TCP listeners if they have an INAV function assigned.
+
+To connect the Configurator to SITL, select "SITL".
+
+Alternativelly, select "TCP" and connect to ```localhost:5760``` (or ```127.0.0.1:5760``` if your OS doesn't understand `localhost`) (if SITL is running on the same machine).
+
 IPv4 and IPv6 are supported, either raw addresses or host-name lookup.
 
-The assignment and status of user UART/TCP connections is displayed on the console.
+The assignment and status of used UART/TCP connections is displayed on the console.
 
 ```
 INAV 6.1.0 SITL
@@ -51,45 +60,82 @@ INAV 6.1.0 SITL
 All other interfaces (I2C, SPI, etc.) are not emulated.
 
 ## Remote control
-MSP_RX (TCP/IP) or joystick (via simulator) or serial receiver via USB/Serial interface are supported.
+Multiple methods for connecting RC Controllers are available:
+- MSP_RX (TCP/IP)
+- joystick / radio attached via USB (via simulator)
+- serial receiver via USB to serial converter
+- any receiver with proxy flight controller
+
 
 ### MSP_RX
 
-MSP_RX is the default, 18 channels are supported over TCP/IP serial emulation.
+MSP_RX is the default, 18 channels are supported over TCP/IP connection.
 
 ### Joystick interface
 Only 8 channels are supported.
-Select "SIM (SITL)" as the receiver and set up a joystick in the simulator, details of which can be found in the documentation for the individual simulators.
+
+Select "SIM (SITL)" as the receiver and set up a joystick in the simulator.
+Many RC transmittters (radios) can function as a joystick by plugging them in to the computer via USB, making this the simplest option in many cases.
+
+*Not available with INAV-X-Plane-HITL plugin.*
 
 ### Serial Receiver via USB
 
-Connect a serial receiver (e.g. SBUS) to the PC via a UART/USB adapter. Configure the receiver in the Configurator as usual.
+- Connect a serial receiver to the PC via a USB-to-serial adapter
+- Configure the receiver in the SITL as usual
+- While starting SITL from configurator, enable "Serial receiver" option
 
-The Configurator offers a built-in option for forwarding the serial data to the SITL TCP port, if SITL is started manually the following option can be used:
+The SITL offers a built-in option for forwarding the host's serial port to the SITL UART.
 
-The connection can then be established with a programme that forwards the serial data unaltered to TCP, e.g. with the Python script tcp_serial_redirect.py (https://github.com/Scavanger/TCP-Serial-Redirect)
-If necessary, please download the required runtime environment from https://www.python.org/.
-Please use the linked version, which has a smaller buffer, otherwise the control response is relatively slow.
+Please note that 100000(SBUS) and 420000(CRSF) are non-standart baud rates which may not be supported by some USB-to-serial adapters. FDTI and CH340 should work. CP2102/9 does not work.
 
-### Example SBUS:
-For this you need a FT232 module. With FT-Prog (https://ftdichip.com/utilities/) the signals can be inverted: Devices->Scan and Parse, then Hardware Specific -> Invert RS232 Signals -> Invert RXD.
+
+#### Example SBUS:
+For this you need a USB-to-serial adapter, receiver with inverter, or receiver which can output inverted SBUS (normal UART). 
+
+SBUS protocol is inverted UART.
+
+Receiver's SBUS output should be connected to the USB-to-serial adapter's RX pin (via inverter).
+
+With FT-Prog (https://ftdichip.com/utilities/) the signal can be inverted by adapter: Devices->Scan and Parse, then Hardware Specific -> Invert RS232 Signals -> Invert RXD.
 
 ![SITL-SBUS-FT232](assets/SITL-SBUS-FT232.png)
 
-For SBUS, the command line arguments of the python script are:
-```python tcp_serial_redirect.py --parity E --stopbits 2 -c 127.0.0.1:[INAV-UART-PORT] COMXX 100000```
+![SITL-SBUS](assets/serial_receiver_sbus.png)
 
-### Telemtry
+### Telemetry
+In the SITL configuration, enable serial receiver on some port and configure receiver type "Serial", "SBUS".
 
-LTM and MAVLink telemetry are supported, either as a discrete function or shared with MSP.
+#### Example CRSF:
 
-RX Telemetry via a return channel through the receiver is not yet supported by SITL.
+On receiver side, CRSF is normal UART.
+
+Connect receiver's RX/TX pins (and GND, 5V of course) to USB-To-Serial adapter's TX/RX pins (RX to TX, TX to RX).
+
+![SITL-SBUS](assets/serial_receiver_crsf.png)
+
+In the SITL configuration, enable serial receiver on some port and configure receiver type "Serial", "CRSF".
+
+### Proxy Flight controller
+
+The last, but probably the most easiest way to connect receiver to the SITL, is to use any inav/betaflight Flight controler as proxy.
+
+Connect receiver of any type to FC and configure FC to the point where channels are correctly updated in the "Receiver" tab. Inav and Betaflight are supported.
+
+You also can use your plane/quad ( if receiver is powered from USB).
+
+![SITL-SBUS](assets/serial_receiver_proxy.png)
+
+In the SITL configuration, select "Receiver type: SIM" regardles of the kind of receiver used.
+
 
 ## OSD
 For the OSD the program INAV-Sim-OSD is available: https://github.com/Scavanger/INAV-SIM-OSD.
 For this, activate MSP-Displayport on a UART/TCP port and connect to the corresponding port.
 
 Note: INAV-Sim-OSD only works if the simulator is in window mode.
+
+*With INAV-X-Plane-HITL plugin, OSD is supported natively.*
 
 ## Command line
 
@@ -103,7 +149,7 @@ If SITL is started without command line options, only a serial MSP / CLI connect
 
 ```--path``` Path and file name to config file. If not present, eeprom.bin in the current directory is used. Example: ```C:\INAV_SITL\flying-wing.bin```, ```/home/user/sitl-eeproms/test-eeprom.bin```.
 
-```--sim=[sim]``` Select the simulator. xp = X-Plane, rf = RealFlight. Example: ```--sim=xp```
+```--sim=[sim]``` Select the simulator. xp = X-Plane, rf = RealFlight. Example: ```--sim=xp```. If not specified, configurator-only mode is started. Omit for usage with INAV-X-Plane-HITL plugin.
 
 ```--simip=[ip]``` Hostname or IP address of the simulator, if you specify a simulator with "--sim" and omit this option IPv4 localhost (`127.0.0.1`) will be used. Example: ```--simip=172.65.21.15```, ```--simip acme-sims.org```, ```--sim ::1```.
 
@@ -118,6 +164,18 @@ To assign motor1 to virtual receiver channel 1, servo 1 to channel 2, and servo2
 ```--chanmap:M01-01,S01-02,S02-03```
 Please also read the documentation of the individual simulators.
 
+```--serialport``` Use serial receiver or proxy FC connected to host's serial port, f.e. ```--serialportCOM5``` or ```--serialportdev/ttyACM3```
+
+```--serialuart``` Map serial receiver to SITL UART, f.e. ```--serialuart=3``` for UART3. Omit if using ```--fcproxy```.
+
+```--baudrate``` Serial receiver baudrate (default: 115200)
+
+```--stopbits=[None|One|Two]``` Serial receiver stopbits (default: One)
+    
+```--parity=[Even|None|Odd]``` Serial receiver parity (default: None)
+
+```--fcproxy``` Use inav/betaflight FC as a proxy for serial receiver.
+
 ```--help``` Displays help for the command line options.
 
 For options that take an argument, either form `--flag=value` or `--flag value` may be used.
@@ -125,46 +183,13 @@ For options that take an argument, either form `--flag=value` or `--flag value` 
 ## Running SITL
 It is recommended to start the tools in the following order:
 1. Simulator, aircraft should be ready for take-off
-2. INAV-SITL
+2. SITL
 3. OSD
-4. serial redirect for RC input
 
-## Compile
+For INav-X-Plane-HITL plugin:
+1. SITL (Run in configurator-only mode)
+2. X-Plane
 
-### Linux and FreeBSD:
-Almost like normal, ruby, cmake and make are also required.
-With cmake, the option "-DSITL=ON" must be specified.
+# #Forwarding serial data for other UART
 
-```
-mkdir build_SITL
-cd build_SITL
-cmake -DSITL=ON ..
-make
-```
-
-### Windows:
-Compile under cygwin, then as in Linux.
-Copy cygwin1.dll into the directory, or include cygwin's /bin/ directory in the environment variable PATH.
-
-If the build fails (segfault, possibly out of memory), adding `-DCMAKE_BUILD_TYPE=MinRelSize` to the `cmake` command may help.
-
-#### Build manager
-
-`ninja` may also be used (parallel builds without `-j $(nproc)`):
-
-```
-cmake -GNinja -DSITL=ON ..
-ninja
-```
-
-### Compiler requirements
-
-* Modern GCC. Must be a *real* GCC, macOS faking it with clang will not work. GCC 10 to GCC 13 are known to work.
-* Unix sockets networking. Cygwin is required on Windows (vice `winsock`).
-* Pthreads
-
-## Supported environments
-
-* Linux on x86_64, ia-32, Aarch64 (e.g. Rpi4), RISCV64 (e.g. VisionFive2)
-* Windows on x86_64
-* FreeBSD (x86_64 at least).
+Other UARTs can then be mapped to host's serial port using external tool, which can be found in directories ```inav-configurator\resources\sitl\linux\Ser2TCP```, ```inav-configurator\resources\sitl\windows\Ser2TCP.exe```

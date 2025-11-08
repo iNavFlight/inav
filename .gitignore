@@ -1,10 +1,12 @@
 *.o
 .DS_Store
 *~
+*.swp
 *.uvopt
 *.dep
 *.bak
 *.uvgui.*
+*.ubx
 .project
 .settings
 .cproject
@@ -16,12 +18,15 @@ startup_stm32f10x_md_gcc.s
 cov-int*
 /build/
 /build_SITL/
+/[hs]itl/
+/ninja/
 /obj/
 /patches/
 /tools/
 /downloads/
 /debug/
 /release/
+/*_SITL/
 
 # script-generated files
 docs/Manual.pdf
@@ -35,3 +40,9 @@ make/local.mk
 launch.json
 .vscode/tasks.json
 .vscode/c_cpp_properties.json
+
+/cmake-build-debug/
+
+# Assitnow token and files for test script
+tokens.yaml
+*.ubx

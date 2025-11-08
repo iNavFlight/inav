@@ -43,6 +43,7 @@
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/cli.h"
 
 #include "io/serial.h"
 #include "io/gps.h"
@@ -83,6 +84,8 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
     "$PUBX,41,1,0003,0001,460800,0*13\r\n",     // GPS_BAUDRATE_460800
     "$PUBX,41,1,0003,0001,921600,0*15\r\n"      // GPS_BAUDRATE_921600
 };
+
+static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
 // Packet checksum accumulators
 static uint8_t _ck_a;
@@ -128,7 +131,7 @@ static struct {
 
 
 // Send buffer
-static union {
+static union send_buffer_t {
     ubx_message message;
     uint8_t bytes[58];
 } send_buffer;
@@ -145,6 +148,7 @@ static union {
     ubx_nav_timeutc timeutc;
     ubx_ack_ack ack;
     ubx_mon_gnss gnss;
+    ubx_nav_sig navsig;
     uint8_t bytes[UBLOX_BUFFER_SIZE];
 } _buffer;
 
@@ -212,6 +216,20 @@ static uint8_t gpsMapFixType(bool fixValid, uint8_t ubloxFixType)
     return GPS_NO_FIX;
 }
 
+bool gpsUbloxSendCommand(uint8_t *rawCommand, uint16_t commandLen, uint16_t timeout)
+{
+    UNUSED(timeout);
+
+    serialWriteBuf(gpsState.gpsPort, rawCommand, commandLen);
+
+    union send_buffer_t *sb = (union send_buffer_t *)(rawCommand);
+
+    _ack_waiting_msg = sb->message.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+
+    return true;
+}
+
 static void sendConfigMessageUBLOX(void)
 {
     uint8_t ck_a=0, ck_b=0;
@@ -251,8 +269,8 @@ static const uint8_t default_payload[] = {
     0x00, 0xC8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-#define GNSSID_SBAS     1
-#define GNSSID_GALILEO  2
+#define GNSSID_SBAS 1
+#define GNSSID_GALILEO 2
 #define GNSSID_BEIDOU   3
 #define GNSSID_GZSS     5
 #define GNSSID_GLONASS  6
@@ -264,6 +282,19 @@ static void ubloxSendSetCfgBytes(ubx_config_data8_payload_t *kvPairs, uint8_t co
     ubx_config_data8_t cfg = {};
 
     ubloxCfgFillBytes(&cfg, kvPairs, count);
+
+    serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
+    _ack_waiting_msg = cfg.header.msg_id;
+    _ack_state = UBX_ACK_WAITING;
+}
+
+// M10 ublox protocol info:
+// https://content.u-blox.com/sites/default/files/u-blox-M10-SPG-5.10_InterfaceDescription_UBX-21035062.pdf
+static void ubloxSendSetCfgU2(ubx_config_data16_payload_t *kvPairs, uint8_t count)
+{
+    ubx_config_data16_t cfg = {};
+
+    ubloxCfgFillU2(&cfg, kvPairs, count);
 
     serialWriteBuf(gpsState.gpsPort, (uint8_t *)&cfg, cfg.header.length+8);
     _ack_waiting_msg = cfg.header.msg_id;
@@ -391,9 +422,10 @@ static void configureGNSS10(void)
             {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
 
             // Beidou
+            // M10 can't use BDS_B1I and Glonass together. Instead, use BDS_B1C
             {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, 0},
+            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && ! gpsState.gpsConfig->ubloxUseGlonass},
+            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass},
 
             // Should be enabled with GPS
             {UBLOX_CFG_QZSS_ENA, 1},
@@ -410,28 +442,28 @@ static void configureGNSS10(void)
 
 static void configureGNSS(void)
 {
-        int blocksUsed = 0;
-        send_buffer.message.header.msg_class = CLASS_CFG;
-        send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
-        send_buffer.message.payload.gnss.msgVer = 0;
-        send_buffer.message.payload.gnss.numTrkChHw = 0;     // read only, so unset
-        send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
+    int blocksUsed = 0;
+    send_buffer.message.header.msg_class = CLASS_CFG;
+    send_buffer.message.header.msg_id = MSG_CFG_GNSS; // message deprecated in protocol > 23.01, should use UBX-CFG-VALSET/UBX-CFG-VALGET
+    send_buffer.message.payload.gnss.msgVer = 0;
+    send_buffer.message.payload.gnss.numTrkChHw = 0; // read only, so unset
+    send_buffer.message.payload.gnss.numTrkChUse = 0xFF; // If set to 0xFF will use hardware max
 
-        /* SBAS, always generated */
-        blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* SBAS, always generated */
+    blocksUsed += configureGNSS_SBAS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* Galileo */
-        blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* Galileo */
+    blocksUsed += configureGNSS_GALILEO(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* BeiDou */
-        blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* BeiDou */
+    blocksUsed += configureGNSS_BEIDOU(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        /* GLONASS */
-        blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
+    /* GLONASS */
+    blocksUsed += configureGNSS_GLONASS(&send_buffer.message.payload.gnss.config[blocksUsed]);
 
-        send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
-        send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t) * blocksUsed);
-        sendConfigMessageUBLOX();
+    send_buffer.message.payload.gnss.numConfigBlocks = blocksUsed;
+    send_buffer.message.header.length = (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)* blocksUsed);
+    sendConfigMessageUBLOX();
 }
 
 static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
@@ -463,13 +495,38 @@ static void configureMSG(uint8_t msg_class, uint8_t id, uint8_t rate)
  */
 static void configureRATE(uint16_t measRate)
 {
-    send_buffer.message.header.msg_class = CLASS_CFG;
-    send_buffer.message.header.msg_id = MSG_CFG_RATE;
-    send_buffer.message.header.length = 6;
-    send_buffer.message.payload.rate.meas=measRate;
-    send_buffer.message.payload.rate.nav=1;
-    send_buffer.message.payload.rate.time=1;
-    sendConfigMessageUBLOX();
+    if(ubloxVersionLT(24, 0)) {
+        measRate = MAX(50, measRate);
+    } else {
+        measRate = MAX(25, measRate);
+    }
+
+    if (ubloxVersionLTE(23, 1)) {
+        send_buffer.message.header.msg_class = CLASS_CFG;
+        send_buffer.message.header.msg_id = MSG_CFG_RATE;
+        send_buffer.message.header.length = 6;
+        send_buffer.message.payload.rate.meas = measRate;
+        send_buffer.message.payload.rate.nav = 1;
+        send_buffer.message.payload.rate.time = 1;
+        sendConfigMessageUBLOX();
+    } else { // M10+
+        // 1 is already default, for TIMEREF.
+        // The wait the configuration happens,
+        // it is tricky to wait for multiple commands.
+        // SendSetCfg could be refactored to support U1, U2, U3 and U4 messages
+        // at the same time. For now, leave it out.
+        //
+        //ubx_config_data8_payload_t rateValues[] = {
+        //    {UBLOX_CFG_RATE_TIMEREF, 1}, // 0
+        //};
+        //ubloxSendSetCfgBytes(rateValues, 1);
+
+        ubx_config_data16_payload_t rate16Values[] = {
+            {UBLOX_CFG_RATE_MEAS, measRate},
+            {UBLOX_CFG_RATE_NAV, 1}
+        };
+        ubloxSendSetCfgU2(rate16Values, 2);
+    }
 }
 
 /*
@@ -538,84 +595,90 @@ static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
     case MSG_POSLLH:
-        gpsSol.llh.lon = _buffer.posllh.longitude;
-        gpsSol.llh.lat = _buffer.posllh.latitude;
-        gpsSol.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
-        gpsSol.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
-        gpsSol.flags.validEPE = true;
+        gpsSolDRV.llh.lon = _buffer.posllh.longitude;
+        gpsSolDRV.llh.lat = _buffer.posllh.latitude;
+        gpsSolDRV.llh.alt = _buffer.posllh.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.eph = gpsConstrainEPE(_buffer.posllh.horizontal_accuracy / 10);
+        gpsSolDRV.epv = gpsConstrainEPE(_buffer.posllh.vertical_accuracy / 10);
+        gpsSolDRV.flags.validEPE = true;
         if (next_fix_type != GPS_NO_FIX)
-            gpsSol.fixType = next_fix_type;
+            gpsSolDRV.fixType = next_fix_type;
         _new_position = true;
         break;
     case MSG_STATUS:
         next_fix_type = gpsMapFixType(_buffer.status.fix_status & NAV_STATUS_FIX_VALID, _buffer.status.fix_type);
         if (next_fix_type == GPS_NO_FIX)
-            gpsSol.fixType = GPS_NO_FIX;
+            gpsSolDRV.fixType = GPS_NO_FIX;
         break;
     case MSG_SOL:
         next_fix_type = gpsMapFixType(_buffer.solution.fix_status & NAV_STATUS_FIX_VALID, _buffer.solution.fix_type);
         if (next_fix_type == GPS_NO_FIX)
-            gpsSol.fixType = GPS_NO_FIX;
-        gpsSol.numSat = _buffer.solution.satellites;
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
+            gpsSolDRV.fixType = GPS_NO_FIX;
+        gpsSolDRV.numSat = _buffer.solution.satellites;
+        gpsSolDRV.hdop = gpsConstrainHDOP(_buffer.solution.position_DOP);
         break;
     case MSG_VELNED:
-        gpsSol.groundSpeed = _buffer.velned.speed_2d;    // cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.velNED[X] = _buffer.velned.ned_north;
-        gpsSol.velNED[Y] = _buffer.velned.ned_east;
-        gpsSol.velNED[Z] = _buffer.velned.ned_down;
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
+        gpsSolDRV.groundSpeed = _buffer.velned.speed_2d;    // cm/s
+        gpsSolDRV.groundCourse = (uint16_t) (_buffer.velned.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.velNED[X] = _buffer.velned.ned_north;
+        gpsSolDRV.velNED[Y] = _buffer.velned.ned_east;
+        gpsSolDRV.velNED[Z] = _buffer.velned.ned_down;
+        gpsSolDRV.flags.validVelNE = true;
+        gpsSolDRV.flags.validVelD = true;
         _new_speed = true;
         break;
     case MSG_TIMEUTC:
         if (UBX_VALID_GPS_DATE_TIME(_buffer.timeutc.valid)) {
-            gpsSol.time.year = _buffer.timeutc.year;
-            gpsSol.time.month = _buffer.timeutc.month;
-            gpsSol.time.day = _buffer.timeutc.day;
-            gpsSol.time.hours = _buffer.timeutc.hour;
-            gpsSol.time.minutes = _buffer.timeutc.min;
-            gpsSol.time.seconds = _buffer.timeutc.sec;
-            gpsSol.time.millis = _buffer.timeutc.nano / (1000*1000);
+            gpsSolDRV.time.year = _buffer.timeutc.year;
+            gpsSolDRV.time.month = _buffer.timeutc.month;
+            gpsSolDRV.time.day = _buffer.timeutc.day;
+            gpsSolDRV.time.hours = _buffer.timeutc.hour;
+            gpsSolDRV.time.minutes = _buffer.timeutc.min;
+            gpsSolDRV.time.seconds = _buffer.timeutc.sec;
+            gpsSolDRV.time.millis = _buffer.timeutc.nano / (1000*1000);
 
-            gpsSol.flags.validTime = true;
+            gpsSolDRV.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = false;
+            gpsSolDRV.flags.validTime = false;
         }
         break;
     case MSG_PVT:
+        {
+            static int pvtCount = 0;
+            DEBUG_SET(DEBUG_GPS, 0, pvtCount++);
+        }
+
+        gpsState.flags.pvt = 1;
         next_fix_type = gpsMapFixType(_buffer.pvt.fix_status & NAV_STATUS_FIX_VALID, _buffer.pvt.fix_type);
-        gpsSol.fixType = next_fix_type;
-        gpsSol.llh.lon = _buffer.pvt.longitude;
-        gpsSol.llh.lat = _buffer.pvt.latitude;
-        gpsSol.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
-        gpsSol.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
-        gpsSol.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
-        gpsSol.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
-        gpsSol.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
-        gpsSol.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
-        gpsSol.numSat = _buffer.pvt.satellites;
-        gpsSol.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
-        gpsSol.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
-        gpsSol.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
-        gpsSol.flags.validVelNE = true;
-        gpsSol.flags.validVelD = true;
-        gpsSol.flags.validEPE = true;
+        gpsSolDRV.fixType = next_fix_type;
+        gpsSolDRV.llh.lon = _buffer.pvt.longitude;
+        gpsSolDRV.llh.lat = _buffer.pvt.latitude;
+        gpsSolDRV.llh.alt = _buffer.pvt.altitude_msl / 10;  //alt in cm
+        gpsSolDRV.velNED[X]=_buffer.pvt.ned_north / 10;  // to cm/s
+        gpsSolDRV.velNED[Y]=_buffer.pvt.ned_east / 10;   // to cm/s
+        gpsSolDRV.velNED[Z]=_buffer.pvt.ned_down / 10;   // to cm/s
+        gpsSolDRV.groundSpeed = _buffer.pvt.speed_2d / 10;    // to cm/s
+        gpsSolDRV.groundCourse = (uint16_t) (_buffer.pvt.heading_2d / 10000);     // Heading 2D deg * 100000 rescaled to deg * 10
+        gpsSolDRV.numSat = _buffer.pvt.satellites;
+        gpsSolDRV.eph = gpsConstrainEPE(_buffer.pvt.horizontal_accuracy / 10);
+        gpsSolDRV.epv = gpsConstrainEPE(_buffer.pvt.vertical_accuracy / 10);
+        gpsSolDRV.hdop = gpsConstrainHDOP(_buffer.pvt.position_DOP);
+        gpsSolDRV.flags.validVelNE = true;
+        gpsSolDRV.flags.validVelD = true;
+        gpsSolDRV.flags.validEPE = true;
 
         if (UBX_VALID_GPS_DATE_TIME(_buffer.pvt.valid)) {
-            gpsSol.time.year = _buffer.pvt.year;
-            gpsSol.time.month = _buffer.pvt.month;
-            gpsSol.time.day = _buffer.pvt.day;
-            gpsSol.time.hours = _buffer.pvt.hour;
-            gpsSol.time.minutes = _buffer.pvt.min;
-            gpsSol.time.seconds = _buffer.pvt.sec;
-            gpsSol.time.millis = _buffer.pvt.nano / (1000*1000);
+            gpsSolDRV.time.year = _buffer.pvt.year;
+            gpsSolDRV.time.month = _buffer.pvt.month;
+            gpsSolDRV.time.day = _buffer.pvt.day;
+            gpsSolDRV.time.hours = _buffer.pvt.hour;
+            gpsSolDRV.time.minutes = _buffer.pvt.min;
+            gpsSolDRV.time.seconds = _buffer.pvt.sec;
+            gpsSolDRV.time.millis = _buffer.pvt.nano / (1000*1000);
 
-            gpsSol.flags.validTime = true;
+            gpsSolDRV.flags.validTime = true;
         } else {
-            gpsSol.flags.validTime = false;
+            gpsSolDRV.flags.validTime = false;
         }
 
         _new_position = true;
@@ -649,7 +712,7 @@ static bool gpsParseFrameUBLOX(void)
                         }
                     }
                 }
-                for (int j = 40; j < _payload_length; j += 30) {
+                for(int j = 40; j < _payload_length; j += 30) {
                     if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
@@ -669,6 +732,46 @@ static bool gpsParseFrameUBLOX(void)
             }
         }
         break;
+    case MSG_NAV_SAT:
+        if (_class == CLASS_NAV) {
+            static int satInfoCount = 0;
+            gpsState.flags.sat = 1;
+            DEBUG_SET(DEBUG_GPS, 1, satInfoCount++);
+            DEBUG_SET(DEBUG_GPS, 3, _buffer.svinfo.numSvs);
+            if (!gpsState.flags.pvt) { // PVT is the prefered source
+                gpsSolDRV.numSat = _buffer.svinfo.numSvs;
+            }
+
+            for(int i = 0; i < MIN(_buffer.svinfo.numSvs, UBLOX_MAX_SIGNALS); ++i) {
+                ubloxNavSat2NavSig(&_buffer.svinfo.channel[i], &satelites[i]);
+            }
+            for(int i =_buffer.svinfo.numSvs; i < UBLOX_MAX_SIGNALS; ++i) {
+                satelites[i].gnssId = 0xFF;
+                satelites[i].svId = 0xFF;
+            }
+        }
+        break;
+    case MSG_NAV_SIG:
+        if (_class == CLASS_NAV && _buffer.navsig.version == 0) {
+            static int sigInfoCount = 0;
+            DEBUG_SET(DEBUG_GPS, 2, sigInfoCount++);
+            DEBUG_SET(DEBUG_GPS, 4, _buffer.navsig.numSigs);
+            gpsState.flags.sig = 1;
+
+            if(_buffer.navsig.numSigs > 0) 
+            {
+                for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
+                {
+                    memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
+                }
+                for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
+                {
+                    satelites[i].svId = 0xFF; // no used
+                    satelites[i].gnssId = 0xFF;
+                }
+            }
+        }
+        break;
     case MSG_ACK_ACK:
         if ((_ack_state == UBX_ACK_WAITING) && (_buffer.ack.msg == _ack_waiting_msg)) {
             _ack_state = UBX_ACK_GOT_ACK;
@@ -682,6 +785,10 @@ static bool gpsParseFrameUBLOX(void)
     default:
         return false;
     }
+
+    DEBUG_SET(DEBUG_GPS, 5, gpsState.flags.pvt);
+    DEBUG_SET(DEBUG_GPS, 6, gpsState.flags.sat);
+    DEBUG_SET(DEBUG_GPS, 7, gpsState.flags.sig);
 
     // we only return true when we get new position and speed data
     // this ensures we don't use stale data
@@ -796,50 +903,130 @@ STATIC_PROTOTHREAD(gpsConfigure)
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // Set dynamic model
-    switch (gpsState.gpsConfig->dynModel) {
-        case GPS_DYNMODEL_PEDESTRIAN:
-            configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
-            break;
-        case GPS_DYNMODEL_AIR_1G:   // Default to this
-        default:
-            configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
-            break;
-        case GPS_DYNMODEL_AIR_4G:
-            configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
-            break;
+    if (ubloxVersionGT(23, 1)) {
+        ubx_config_data8_payload_t dynmodelCfg[] = {
+            {UBLOX_CFG_NAVSPG_DYNMODEL, UBX_DYNMODEL_AIR_2G},
+            {UBLOX_CFG_NAVSPG_FIXMODE, UBX_FIXMODE_AUTO}
+        };
+
+        switch (gpsState.gpsConfig->dynModel) {
+            case GPS_DYNMODEL_PEDESTRIAN:
+                dynmodelCfg[0].value = UBX_DYNMODEL_PEDESTRIAN;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AUTOMOTIVE:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AUTOMOVITE;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AIR_1G:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AIR_1G;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AIR_2G:  // Default to this
+            default:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AIR_2G;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_AIR_4G:
+                dynmodelCfg[0].value = UBX_DYNMODEL_AIR_4G;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_SEA:
+                dynmodelCfg[0].value = UBX_DYNMODEL_SEA;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+            case GPS_DYNMODEL_MOWER:
+                dynmodelCfg[0].value = UBX_DYNMODEL_MOWER;
+                ubloxSendSetCfgBytes(dynmodelCfg, 2);
+                break;
+        }
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    } else {
+        switch (gpsState.gpsConfig->dynModel) {
+            case GPS_DYNMODEL_PEDESTRIAN:
+                configureNAV5(UBX_DYNMODEL_PEDESTRIAN, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AUTOMOTIVE:
+                configureNAV5(UBX_DYNMODEL_AUTOMOVITE, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AIR_1G:
+                configureNAV5(UBX_DYNMODEL_AIR_1G, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AIR_2G:  // Default to this
+            default:
+                configureNAV5(UBX_DYNMODEL_AIR_2G, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_AIR_4G:
+                configureNAV5(UBX_DYNMODEL_AIR_4G, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_SEA:
+                configureNAV5(UBX_DYNMODEL_SEA, UBX_FIXMODE_AUTO);
+                break;
+            case GPS_DYNMODEL_MOWER:
+                configureNAV5(UBX_DYNMODEL_MOWER, UBX_FIXMODE_AUTO);
+                break;
+        }
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    // Disable NMEA messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+    // Disable NMEA messages
+    if (ubloxVersionGT(23, 1)) {
+        ubx_config_data8_payload_t nmeaValues[] = {
+            { UBLOX_CFG_MSGOUT_NMEA_ID_GGA_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_GLL_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_GSA_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_RMC_UART1, 0 },
+            { UBLOX_CFG_MSGOUT_NMEA_ID_VTG_UART1, 0 },
+        };
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        ubloxSendSetCfgBytes(nmeaValues, 5);
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK), GPS_CFG_CMD_TIMEOUT_MS);
+    } else {
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GGA, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GLL, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GLL, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSA, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSA, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSV, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_GSV, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_RMC, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_RMC, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
-    configureMSG(MSG_CLASS_NMEA, MSG_NMEA_VGS, 0);
-    ptWait(_ack_state == UBX_ACK_GOT_ACK);
+        configureMSG(MSG_CLASS_NMEA, MSG_NMEA_VGS, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    }
 
     // Configure UBX binary messages
     gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
     // M9N & M10 does not support some of the UBX 6/7/8 messages, so we have to configure it using special sequence
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX9) {
+    if (ubloxVersionGT(23, 1)) { // M9+, new setting API, PVT and NAV_SIG
+        ubx_config_data8_payload_t rateValues[] = {
+            {UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1, 0}, // 0
+            {UBLOX_CFG_MSGOUT_NAV_STATUS_UART1, 0}, // 1
+            {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0}, // 2
+            {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0}, // 3
+            {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1}, // 4
+            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1}, // 5
+            {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0}  // 6
+        };
+
+        ubloxSendSetCfgBytes(rateValues, 7);
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+    } else if(ubloxVersionGTE(15,0)) { // M8, PVT, NAV_SAT, old setting API
         configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
         configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_SOL, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
         configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
@@ -848,96 +1035,53 @@ STATIC_PROTOTHREAD(gpsConfigure)
         configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
         ptWait(_ack_state == UBX_ACK_GOT_ACK);
 
+        configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
         configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        configureMSG(MSG_CLASS_UBX, MSG_NAV_SIG, 0);
-        ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
-            configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
-        } else {
-            configureRATE(hz2rate(5)); // 5Hz
-            gpsConfigMutable()->ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT;
-        }
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
-        if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
-            configureRATE(hz2rate(5)); // 5Hz
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-        }
+        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
+    } else { // Really old stuff, consider upgrading :), ols setting API, no PVT or NAV_SAT or NAV_SIG
+        // TODO: remove in INAV 9.0.0
+        configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+
+        configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    }// end message config
+
+    ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_SHORT_TIMEOUT);
+    if ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
+        configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
+    } else {
+        configureRATE(hz2rate(5)); // 5Hz
+        gpsConfigMutable()->ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT;
     }
-    else {
-        // u-Blox 5/6/7/8 or unknown
-        // u-Blox 7-8 support PVT
-        if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7) {
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
+    ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            if ((gpsState.gpsConfig->provider == GPS_UBLOX7PLUS) && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
-                configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
-            }
-            else {
-                configureRATE(hz2rate(5)); // 5Hz
-            }
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-
-            if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
-                configureRATE(hz2rate(5)); // 5Hz
-                ptWait(_ack_state == UBX_ACK_GOT_ACK);
-            }
-        }
-        // u-Blox 5/6 doesn't support PVT, use legacy config
-        // UNKNOWN also falls here, use as a last resort
-        else {
-            configureMSG(MSG_CLASS_UBX, MSG_POSLLH, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_STATUS, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_SOL, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_VELNED, 1);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_TIMEUTC, 10);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            // This may fail on old UBLOX units, advance forward on both ACK and NAK
-            configureMSG(MSG_CLASS_UBX, MSG_PVT, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
-
-            configureMSG(MSG_CLASS_UBX, MSG_SVINFO, 0);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-
-            // Configure data rate to 5HZ
-            configureRATE(200);
-            ptWait(_ack_state == UBX_ACK_GOT_ACK);
-        }
+    if(_ack_state == UBX_ACK_GOT_NAK) { // Fallback to safe 5Hz in case of error
+        configureRATE(hz2rate(5)); // 5Hz
+        ptWait(_ack_state == UBX_ACK_GOT_ACK);
     }
+
+
+    gpsState.flags.pvt = 0;
+    gpsState.flags.sat = 0;
+    gpsState.flags.sig = 0;
 
     // Configure SBAS
     // If particular SBAS setting is not supported by the hardware we'll get a NAK,
@@ -947,21 +1091,34 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
-         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-         if(gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10 || (gpsState.swVersionMajor>=23 && gpsState.swVersionMinor >= 1)) {
-            configureGNSS10();
-         } else {
-            configureGNSS();
-         }
-         ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) { // TODO: This check can be remove in INAV 9.0.0
+        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+        bool use_VALSET = 0;
+        if (ubloxVersionGT(23,1)) {
+            use_VALSET = 1;
+        }
 
-         if(_ack_state == UBX_ACK_GOT_NAK) {
+        if ( use_VALSET && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) ) {
+            configureGNSS10();
+        } else {
+            configureGNSS();
+        }
+
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+        if(_ack_state == UBX_ACK_GOT_NAK) {
             gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
             gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
-         }
+        }
     }
+
+	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
+	{
+        // Mark satelites as unused
+        satelites[i].svId = 0xFF;
+        satelites[i].gnssId = 0xFF;
+	}
 
     ptEnd(0);
 }
@@ -980,6 +1137,7 @@ STATIC_PROTOTHREAD(gpsProtocolReceiverThread)
         while (serialRxBytesWaiting(gpsState.gpsPort)) {
             uint8_t newChar = serialRead(gpsState.gpsPort);
             if (gpsNewFrameUBLOX(newChar)) {
+                gpsProcessNewDriverData();
                 ptSemaphoreSignal(semNewDataReady);
                 break;
             }
@@ -1034,22 +1192,26 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
     gpsState.autoConfigStep = 0;
 
-    do {
-        pollVersion();
-        gpsState.autoConfigStep++;
-        ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
-
-    gpsState.autoConfigStep = 0;
-    ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
-    do {
-        pollGnssCapabilities();
-        gpsState.autoConfigStep++;
-        ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-    } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
-
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
+        do {
+            pollVersion();
+            gpsState.autoConfigStep++;
+            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+
+        gpsState.autoConfigStep = 0;
+        ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        // M7 and earlier will never get pass this step, so skip it (#9440).
+        // UBLOX documents that this is M8N and later
+        if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
+            do {
+                pollGnssCapabilities();
+                gpsState.autoConfigStep++;
+                ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
+            } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+        }
+
         // Configure GPS
         ptSpawn(gpsConfigure);
     }
@@ -1060,9 +1222,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
     // GPS is ready - execute the gpsProcessNewSolutionData() based on gpsProtocolReceiverThread semaphore
     while (1) {
         ptSemaphoreWait(semNewDataReady);
-        gpsProcessNewSolutionData();
+        gpsProcessNewSolutionData(false);
 
-        if ((gpsState.gpsConfig->provider == GPS_UBLOX || gpsState.gpsConfig->provider == GPS_UBLOX7PLUS)) {
+        if (gpsState.gpsConfig->autoConfig) {
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
 
@@ -1083,6 +1245,13 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
 void gpsRestartUBLOX(void)
 {
+	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
+	{
+        memset(&satelites[i], 0, sizeof(ubx_nav_sig_info));
+		satelites[i].svId = 0xFF;
+		satelites[i].gnssId = 0xFF;
+	}
+
     ptSemaphoreInit(semNewDataReady);
     ptRestart(ptGetHandle(gpsProtocolReceiverThread));
     ptRestart(ptGetHandle(gpsProtocolStateThread));
@@ -1098,6 +1267,50 @@ void gpsHandleUBLOX(void)
     if (ptIsStopped(ptGetHandle(gpsProtocolReceiverThread)) || ptIsStopped(ptGetHandle(gpsProtocolStateThread))) {
         gpsSetState(GPS_LOST_COMMUNICATION);
     }
+}
+
+bool isGpsUblox(void)
+{
+    if(gpsState.gpsPort != NULL && (gpsState.gpsConfig->provider == GPS_UBLOX)) {
+        return true;
+    }
+
+    return false;
+}
+
+
+const ubx_nav_sig_info *gpsGetUbloxSatelite(uint8_t index)
+{
+    if(index < UBLOX_MAX_SIGNALS && satelites[index].svId != 0xFF && satelites[index].gnssId != 0xFF) {
+        return &satelites[index];
+    }
+
+    return NULL;
+}
+
+bool ubloxVersionLT(uint8_t mj, uint8_t mn)
+{
+    return gpsState.swVersionMajor < mj || (gpsState.swVersionMajor == mj && gpsState.swVersionMinor < mn);
+}
+
+bool ubloxVersionGT(uint8_t mj, uint8_t mn)
+{
+    return gpsState.swVersionMajor > mj || (gpsState.swVersionMajor == mj && gpsState.swVersionMinor > mn);
+}
+
+bool ubloxVersionGTE(uint8_t mj, uint8_t mn)
+{
+    return ubloxVersionE(mj, mn) || ubloxVersionGT(mj, mn);
+}
+
+bool ubloxVersionLTE(uint8_t mj, uint8_t mn)
+{
+    return ubloxVersionE(mj, mn) || ubloxVersionLT(mj, mn);
+}
+
+bool ubloxVersionE(uint8_t mj, uint8_t mn)
+{
+    return gpsState.swVersionMajor == mj && gpsState.swVersionMinor == mn;
 }
 
 #endif

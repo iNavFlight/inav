@@ -19,25 +19,45 @@
 
 #include "config/parameter_group.h"
 
-#define AIRMODE_THROTTLE_THRESHOLD 1300
+#define CONTROL_DEADBAND           10      // Used to check if sticks are centered
 
 typedef enum rc_alias {
     ROLL = 0,
     PITCH,
     YAW,
     THROTTLE,
-    AUX1,
-    AUX2,
-    AUX3,
-    AUX4,
-    AUX5,
-    AUX6,
-    AUX7,
-    AUX8,
-    AUX9,
-    AUX10,
-    AUX11,
-    AUX12
+    AUX1, // 5
+    AUX2, // 6
+    AUX3, // 7
+    AUX4, // 8
+    AUX5, // 9
+    AUX6, // 10
+    AUX7, // 11
+    AUX8, // 12
+    AUX9, // 13
+    AUX10, // 14
+    AUX11, // 15
+    AUX12, // 16
+    AUX13, // 17
+    AUX14, // 18
+#ifdef USE_34CHANNELS
+    AUX15, // 19
+    AUX16, // 20
+    AUX17, // 21
+    AUX18, // 22
+    AUX19, // 23
+    AUX20, // 24
+    AUX21, // 25
+    AUX22, // 26
+    AUX23, // 27
+    AUX24, // 28
+    AUX25, // 29
+    AUX26, // 30
+    AUX27, // 31
+    AUX28, // 32
+    AUX29, // 33
+    AUX30, // 34
+#endif
 } rc_alias_e;
 
 typedef enum {
@@ -85,7 +105,6 @@ typedef struct rcControlsConfig_s {
     uint8_t deadband;                       // introduce a deadband around the stick center for pitch and roll axis. Must be greater than zero.
     uint8_t yaw_deadband;                   // introduce a deadband around the stick center for yaw axis. Must be greater than zero.
     uint8_t pos_hold_deadband;              // Deadband for position hold
-    uint8_t control_deadband;               // General deadband to check if sticks are deflected, us PWM.
     uint8_t alt_hold_deadband;              // Defines the neutral zone of throttle stick during altitude hold
     uint16_t mid_throttle_deadband;         // default throttle deadband from MIDRC
     uint8_t airmodeHandlingType;            // Defaults to ANTI_WINDUP triggered at sticks centered
@@ -96,7 +115,7 @@ PG_DECLARE(rcControlsConfig_t, rcControlsConfig);
 
 typedef struct armingConfig_s {
     bool fixed_wing_auto_arm;               // Auto-arm fixed wing aircraft on throttle up and never disarm
-    bool disarm_kill_switch;                // allow disarm via AUX switch regardless of throttle value
+    bool disarm_always;                     // Disarm motors regardless of throttle value
     uint16_t switchDisarmDelayMs;           // additional delay between ARM box going off and actual disarm
     uint16_t prearmTimeoutMs;               // duration for which Prearm being activated is valid. after this, Prearm needs to be reset. 0 means Prearm does not timeout.
 } armingConfig_t;

@@ -107,6 +107,7 @@ typedef enum {
     DEVHW_IST8310_1,
     DEVHW_IST8308,
     DEVHW_QMC5883,
+    DEVHW_QMC5883P,
     DEVHW_MAG3110,
     DEVHW_LIS3MDL,
     DEVHW_RM3100,
@@ -135,6 +136,7 @@ typedef enum {
     DEVHW_VL53L1X,
     DEVHW_US42,
     DEVHW_TOF10120_I2C,
+    DEVHW_TERARANGER_EVO_I2C,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter

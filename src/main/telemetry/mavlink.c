@@ -58,6 +58,7 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "io/adsb.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/serial.h"
@@ -161,14 +162,16 @@ static serialPortConfig_t *portConfig;
 
 static bool mavlinkTelemetryEnabled =  false;
 static portSharing_e mavlinkPortSharing;
+static uint8_t txbuff_free = 100;
+static bool txbuff_valid = false;
 
 /* MAVLink datastream rates in Hz */
 static uint8_t mavRates[] = {
     [MAV_DATA_STREAM_EXTENDED_STATUS] = 2,      // 2Hz
-    [MAV_DATA_STREAM_RC_CHANNELS] = 5,          // 5Hz
+    [MAV_DATA_STREAM_RC_CHANNELS] = 1,          // 1Hz
     [MAV_DATA_STREAM_POSITION] = 2,             // 2Hz
-    [MAV_DATA_STREAM_EXTRA1] = 10,              // 10Hz
-    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz
+    [MAV_DATA_STREAM_EXTRA1] = 3,               // 3Hz
+    [MAV_DATA_STREAM_EXTRA2] = 2,               // 2Hz, HEARTBEATs are important
     [MAV_DATA_STREAM_EXTRA3] = 1                // 1Hz
 };
 
@@ -181,7 +184,7 @@ static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
 static uint8_t mavSystemId = 1;
-static uint8_t mavComponentId = MAV_COMP_ID_SYSTEM_CONTROL;
+static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
 {
@@ -491,30 +494,78 @@ void mavlinkSendSystemStatus(void)
 void mavlinkSendRCChannelsAndRSSI(void)
 {
 #define GET_CHANNEL_VALUE(x) ((rxRuntimeConfig.channelCount >= (x + 1)) ? rxGetChannelValue(x) : 0)
-    mavlink_msg_rc_channels_raw_pack(mavSystemId, mavComponentId, &mavSendMsg,
-        // time_boot_ms Timestamp (milliseconds since system boot)
-        millis(),
-        // port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows to encode more than 8 servos.
-        0,
-        // chan1_raw RC channel 1 value, in microseconds
-        GET_CHANNEL_VALUE(0),
-        // chan2_raw RC channel 2 value, in microseconds
-        GET_CHANNEL_VALUE(1),
-        // chan3_raw RC channel 3 value, in microseconds
-        GET_CHANNEL_VALUE(2),
-        // chan4_raw RC channel 4 value, in microseconds
-        GET_CHANNEL_VALUE(3),
-        // chan5_raw RC channel 5 value, in microseconds
-        GET_CHANNEL_VALUE(4),
-        // chan6_raw RC channel 6 value, in microseconds
-        GET_CHANNEL_VALUE(5),
-        // chan7_raw RC channel 7 value, in microseconds
-        GET_CHANNEL_VALUE(6),
-        // chan8_raw RC channel 8 value, in microseconds
-        GET_CHANNEL_VALUE(7),
-        // rssi Receive signal strength indicator, 0: 0%, 254: 100%
-		//https://github.com/mavlink/mavlink/issues/1027
-        scaleRange(getRSSI(), 0, 1023, 0, 254));
+    if (telemetryConfig()->mavlink.version == 1) {
+        mavlink_msg_rc_channels_raw_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            // time_boot_ms Timestamp (milliseconds since system boot)
+            millis(),
+            // port Servo output port (set of 8 outputs = 1 port). Most MAVs will just use one, but this allows to encode more than 8 servos.
+            0,
+            // chan1_raw RC channel 1 value, in microseconds
+            GET_CHANNEL_VALUE(0),
+            // chan2_raw RC channel 2 value, in microseconds
+            GET_CHANNEL_VALUE(1),
+            // chan3_raw RC channel 3 value, in microseconds
+            GET_CHANNEL_VALUE(2),
+            // chan4_raw RC channel 4 value, in microseconds
+            GET_CHANNEL_VALUE(3),
+            // chan5_raw RC channel 5 value, in microseconds
+            GET_CHANNEL_VALUE(4),
+            // chan6_raw RC channel 6 value, in microseconds
+            GET_CHANNEL_VALUE(5),
+            // chan7_raw RC channel 7 value, in microseconds
+            GET_CHANNEL_VALUE(6),
+            // chan8_raw RC channel 8 value, in microseconds
+            GET_CHANNEL_VALUE(7),
+            // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+    		//https://github.com/mavlink/mavlink/issues/1027
+            scaleRange(getRSSI(), 0, 1023, 0, 254));
+	} 
+    else {
+        mavlink_msg_rc_channels_pack(mavSystemId, mavComponentId, &mavSendMsg,
+            // time_boot_ms Timestamp (milliseconds since system boot)
+            millis(),
+            // Total number of RC channels being received. 
+            rxRuntimeConfig.channelCount,
+            // chan1_raw RC channel 1 value, in microseconds
+            GET_CHANNEL_VALUE(0),
+            // chan2_raw RC channel 2 value, in microseconds
+            GET_CHANNEL_VALUE(1),
+            // chan3_raw RC channel 3 value, in microseconds
+            GET_CHANNEL_VALUE(2),
+            // chan4_raw RC channel 4 value, in microseconds
+            GET_CHANNEL_VALUE(3),
+            // chan5_raw RC channel 5 value, in microseconds
+            GET_CHANNEL_VALUE(4),
+            // chan6_raw RC channel 6 value, in microseconds
+            GET_CHANNEL_VALUE(5),
+            // chan7_raw RC channel 7 value, in microseconds
+            GET_CHANNEL_VALUE(6),
+            // chan8_raw RC channel 8 value, in microseconds
+            GET_CHANNEL_VALUE(7),
+            // chan9_raw RC channel 9 value, in microseconds
+            GET_CHANNEL_VALUE(8),
+            // chan10_raw RC channel 10 value, in microseconds
+            GET_CHANNEL_VALUE(9),
+            // chan11_raw RC channel 11 value, in microseconds
+            GET_CHANNEL_VALUE(10),
+            // chan12_raw RC channel 12 value, in microseconds
+            GET_CHANNEL_VALUE(11),
+            // chan13_raw RC channel 13 value, in microseconds
+            GET_CHANNEL_VALUE(12),
+            // chan14_raw RC channel 14 value, in microseconds
+            GET_CHANNEL_VALUE(13),
+            // chan15_raw RC channel 15 value, in microseconds
+            GET_CHANNEL_VALUE(14),
+            // chan16_raw RC channel 16 value, in microseconds
+            GET_CHANNEL_VALUE(15),
+            // chan17_raw RC channel 17 value, in microseconds
+            GET_CHANNEL_VALUE(16),
+            // chan18_raw RC channel 18 value, in microseconds
+            GET_CHANNEL_VALUE(17),
+            // rssi Receive signal strength indicator, 0: 0%, 254: 100%
+    		//https://github.com/mavlink/mavlink/issues/1027
+            scaleRange(getRSSI(), 0, 1023, 0, 254));
+    }
 #undef GET_CHANNEL_VALUE
 
     mavlinkSendMessage();
@@ -525,7 +576,11 @@ void mavlinkSendPosition(timeUs_t currentTimeUs)
 {
     uint8_t gpsFixType = 0;
 
-    if (!sensors(SENSOR_GPS))
+    if (!(sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ))
         return;
 
     if (gpsSol.fixType == GPS_NO_FIX)
@@ -640,7 +695,11 @@ void mavlinkSendHUDAndHeartbeat(void)
 
 #if defined(USE_GPS)
     // use ground speed if source available
-    if (sensors(SENSOR_GPS)) {
+    if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) {
         mavGroundSpeed = gpsSol.groundSpeed / 100.0f;
     }
 #endif
@@ -1054,6 +1113,98 @@ static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     return true;
 }
 
+static bool handleIncoming_PARAM_REQUEST_LIST(void) {
+    mavlink_param_request_list_t msg;
+    mavlink_msg_param_request_list_decode(&mavRecvMsg, &msg);
+
+    // Respond that we don't have any parameters to force Mission Planner to give up quickly
+    if (msg.target_system == mavSystemId) {
+        // mavlink_msg_param_value_pack(system_id, component_id, msg, param_value->param_id, param_value->param_value, param_value->param_type, param_value->param_count, param_value->param_index);
+        mavlink_msg_param_value_pack(mavSystemId, mavComponentId, &mavSendMsg, 0, 0, 0, 0, 0);
+        mavlinkSendMessage();
+    }
+    return true;
+}
+
+static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
+    switch(telemetryConfig()->mavlink.radio_type) {
+        case MAVLINK_RADIO_SIK:
+            // rssi scaling info from: https://ardupilot.org/rover/docs/common-3dr-radio-advanced-configuration-and-technical-information.html
+            rxLinkStatistics.uplinkRSSI = (msg->rssi / 1.9) - 127;
+            rxLinkStatistics.uplinkSNR = msg->noise / 1.9;
+            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            break;
+        case MAVLINK_RADIO_ELRS:
+            rxLinkStatistics.uplinkRSSI = -msg->remrssi;
+            rxLinkStatistics.uplinkSNR = msg->noise;
+            rxLinkStatistics.uplinkLQ = scaleRange(msg->rssi, 0, 255, 0, 100);
+            break;
+        case MAVLINK_RADIO_GENERIC:
+        default:
+            rxLinkStatistics.uplinkRSSI = msg->rssi;
+            rxLinkStatistics.uplinkSNR = msg->noise;
+            rxLinkStatistics.uplinkLQ = msg->rssi != 255 ? scaleRange(msg->rssi, 0, 254, 0, 100) : 0;
+            break;
+    }
+}
+
+static bool handleIncoming_RADIO_STATUS(void) {
+    mavlink_radio_status_t msg;
+    mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
+    txbuff_valid = true;
+    txbuff_free = msg.txbuf;
+       
+    if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
+        rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
+        mavlinkParseRxStats(&msg);
+    }
+
+    return true;
+}
+
+static bool handleIncoming_HEARTBEAT(void) {
+    mavlink_heartbeat_t msg;
+    mavlink_msg_heartbeat_decode(&mavRecvMsg, &msg);
+
+    switch (msg.type) {
+#ifdef USE_ADSB
+        case MAV_TYPE_ADSB:
+            return adsbHeartbeat();
+#endif
+        default:
+            break;
+    }
+    
+    return false;
+}
+
+#ifdef USE_ADSB
+static bool handleIncoming_ADSB_VEHICLE(void) {
+    mavlink_adsb_vehicle_t msg;
+    mavlink_msg_adsb_vehicle_decode(&mavRecvMsg, &msg);
+
+    adsbVehicleValues_t* vehicle = getVehicleForFill();
+    if(vehicle != NULL){
+        vehicle->icao = msg.ICAO_address;
+        vehicle->gps.lat = msg.lat;
+        vehicle->gps.lon = msg.lon;
+        vehicle->alt = (int32_t)(msg.altitude / 10);
+        vehicle->horVelocity = msg.hor_velocity;
+        vehicle->heading = msg.heading;
+        vehicle->flags = msg.flags;
+        vehicle->altitudeType = msg.altitude_type;
+        memcpy(&(vehicle->callsign), msg.callsign, sizeof(vehicle->callsign));
+        vehicle->emitterType = msg.emitter_type;
+        vehicle->tslc = msg.tslc;
+
+        adsbNewVehicle(vehicle);
+    }
+
+    return true;
+}
+#endif
+
+// Returns whether a message was processed
 static bool processMAVLinkIncomingTelemetry(void)
 {
     while (serialRxBytesWaiting(mavlinkPort) > 0) {
@@ -1063,7 +1214,9 @@ static bool processMAVLinkIncomingTelemetry(void)
         if (result == MAVLINK_FRAMING_OK) {
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
-                    break;
+                   return handleIncoming_HEARTBEAT();
+                case MAVLINK_MSG_ID_PARAM_REQUEST_LIST:
+                    return handleIncoming_PARAM_REQUEST_LIST();
                 case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
                     return handleIncoming_MISSION_CLEAR_ALL();
                 case MAVLINK_MSG_ID_MISSION_COUNT:
@@ -1075,7 +1228,17 @@ static bool processMAVLinkIncomingTelemetry(void)
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
-                    return handleIncoming_RC_CHANNELS_OVERRIDE();
+                    handleIncoming_RC_CHANNELS_OVERRIDE();
+                    // Don't set that we handled a message, otherwise RC channel packets will block telemetry messages
+                    return false;
+#ifdef USE_ADSB
+                case MAVLINK_MSG_ID_ADSB_VEHICLE:
+                    return handleIncoming_ADSB_VEHICLE();
+#endif
+                case MAVLINK_MSG_ID_RADIO_STATUS:
+                    handleIncoming_RADIO_STATUS();
+                    // Don't set that we handled a message, otherwise radio status packets will block telemetry messages.
+                    return false;
                 default:
                     return false;
             }
@@ -1085,10 +1248,13 @@ static bool processMAVLinkIncomingTelemetry(void)
     return false;
 }
 
+static bool isMAVLinkTelemetryHalfDuplex(void) {
+    return telemetryConfig()->halfDuplex ||
+            (rxConfig()->receiverType == RX_TYPE_SERIAL && rxConfig()->serialrx_provider == SERIALRX_MAVLINK && tristateWithDefaultOffIsActive(rxConfig()->halfDuplex));
+}
+
 void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
-    static bool incomingRequestServed;
-
     if (!mavlinkTelemetryEnabled) {
         return;
     }
@@ -1097,24 +1263,23 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
         return;
     }
 
-    // If we did serve data on incoming request - skip next scheduled messages batch to avoid link clogging
-    if (processMAVLinkIncomingTelemetry()) {
-        incomingRequestServed = true;
+    // Process incoming MAVLink
+    bool receivedMessage = processMAVLinkIncomingTelemetry();
+    bool shouldSendTelemetry = false;
+
+    // Determine whether to send telemetry back based on flow control / pacing
+    if (txbuff_valid) {
+        // Use flow control if available
+        shouldSendTelemetry = txbuff_free >= telemetryConfig()->mavlink.min_txbuff;
+    } else {
+        // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
+        bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);
+        shouldSendTelemetry = ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) && !halfDuplexBackoff;
     }
 
-    if ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) {
-        // Only process scheduled data if we didn't serve any incoming request this cycle
-        if (!incomingRequestServed ||
-            (
-                 (rxConfig()->receiverType == RX_TYPE_SERIAL) &&
-                 (rxConfig()->serialrx_provider == SERIALRX_MAVLINK) &&
-                 !tristateWithDefaultOnIsActive(rxConfig()->halfDuplex)
-            )
-        ) {
-            processMAVLinkTelemetry(currentTimeUs);
-        }
+    if (shouldSendTelemetry) {
+        processMAVLinkTelemetry(currentTimeUs);
         lastMavlinkMessage = currentTimeUs;
-        incomingRequestServed = false;
     }
 }
 

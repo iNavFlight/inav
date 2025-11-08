@@ -137,6 +137,30 @@ static long cmsx_PidWriteback(const OSD_Entry *self)
     return 0;
 }
 
+static const OSD_Entry cmsx_menuEzTuneEntries[] =
+{
+    OSD_LABEL_DATA_ENTRY("-- EZTUNE --", profileIndexString),
+
+    OSD_SETTING_ENTRY("ENABLED", SETTING_EZ_ENABLED),
+    OSD_SETTING_ENTRY("FILTER HZ", SETTING_EZ_FILTER_HZ),
+    OSD_SETTING_ENTRY("RATIO", SETTING_EZ_AXIS_RATIO),
+    OSD_SETTING_ENTRY("RESP.", SETTING_EZ_RESPONSE),
+    OSD_SETTING_ENTRY("DAMP.", SETTING_EZ_DAMPING),
+    OSD_SETTING_ENTRY("STAB.", SETTING_EZ_STABILITY),
+    OSD_SETTING_ENTRY("AGGR.", SETTING_EZ_AGGRESSIVENESS),
+    OSD_SETTING_ENTRY("RATE", SETTING_EZ_RATE),
+    OSD_SETTING_ENTRY("EXPO", SETTING_EZ_EXPO),
+
+    OSD_BACK_AND_END_ENTRY,
+};
+
+static const CMS_Menu cmsx_menuEzTune = {
+    .onEnter = NULL,
+    .onExit = NULL,
+    .onGlobalExit = NULL,
+    .entries = cmsx_menuEzTuneEntries
+};
+
 static const OSD_Entry cmsx_menuPidEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- PID --", profileIndexString),
@@ -198,9 +222,12 @@ static const OSD_Entry cmsx_menuPidAltMagEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- ALT&MAG --", profileIndexString),
 
+    OSD_SETTING_ENTRY("FW ALT RESPONSE", SETTING_NAV_FW_ALT_CONTROL_RESPONSE),
+
     OTHER_PIDFF_ENTRY("ALT P", &cmsx_pidPosZ.P),
     OTHER_PIDFF_ENTRY("ALT I", &cmsx_pidPosZ.I),
     OTHER_PIDFF_ENTRY("ALT D", &cmsx_pidPosZ.D),
+    OTHER_PIDFF_ENTRY("ALT FF", &cmsx_pidPosZ.FF),
 
     OTHER_PIDFF_ENTRY("VEL P", &cmsx_pidVelZ.P),
     OTHER_PIDFF_ENTRY("VEL I", &cmsx_pidVelZ.I),
@@ -398,7 +425,6 @@ static const CMS_Menu cmsx_menuProfileOther = {
 static const OSD_Entry cmsx_menuFilterPerProfileEntries[] =
 {
     OSD_LABEL_DATA_ENTRY("-- FILTERING  --", profileIndexString),
-    OSD_SETTING_ENTRY("HARDWARE LPF", SETTING_GYRO_HARDWARE_LPF),
     OSD_SETTING_ENTRY("GYRO MAIN", SETTING_GYRO_MAIN_LPF_HZ),
     OSD_SETTING_ENTRY("DTERM LPF", SETTING_DTERM_LPF_HZ),
 #ifdef USE_DYNAMIC_FILTERS
@@ -458,6 +484,7 @@ static const OSD_Entry cmsx_menuImuEntries[] =
 
     // Profile dependent
     OSD_UINT8_CALLBACK_ENTRY("PID PROF", cmsx_profileIndexOnChange, (&(const OSD_UINT8_t){ &tmpProfileIndex, 1, MAX_PROFILE_COUNT, 1})),
+    OSD_SUBMENU_ENTRY("EZTUNE", &cmsx_menuEzTune),
     OSD_SUBMENU_ENTRY("PID", &cmsx_menuPid),
     OSD_SUBMENU_ENTRY("PID ALTMAG", &cmsx_menuPidAltMag),
     OSD_SUBMENU_ENTRY("PID GPSNAV", &cmsx_menuPidGpsnav),

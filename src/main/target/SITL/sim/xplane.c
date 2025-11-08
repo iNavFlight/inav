@@ -70,7 +70,7 @@ static struct sockaddr_storage serverAddr;
 static socklen_t serverAddrLen;
 static int sockFd;
 static pthread_t listenThread;
-static bool initalized = false;
+static bool initialized = false;
 static bool useImu = false;
 
 static float lattitude = 0;
@@ -421,16 +421,16 @@ static void* listenWorker(void* arg)
         computeQuaternionFromRPY(&quat, roll_inav, pitch_inav, yaw_inav);
         transformVectorEarthToBody(&north, &quat);
         fakeMagSet(
-            constrainToInt16(north.x * 16000.0f),
-            constrainToInt16(north.y * 16000.0f),
-            constrainToInt16(north.z * 16000.0f)
+            constrainToInt16(north.x * 1024.0f),
+            constrainToInt16(north.y * 1024.0f),
+            constrainToInt16(north.z * 1024.0f)
         );
 
-        if (!initalized) {
+        if (!initialized) {
             ENABLE_ARMING_FLAG(SIMULATOR_MODE_SITL);
             // Aircraft can wobble on the runway and prevents calibration of the accelerometer
             ENABLE_STATE(ACCELEROMETER_CALIBRATED);
-            initalized = true;
+            initialized = true;
         }
 
         unlockMainPID();
@@ -480,7 +480,7 @@ bool simXPlaneInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool 
         return false;
     }
 
-    while (!initalized) {
+    while (!initialized) {
         registerDref(DREF_LATITUDE, "sim/flightmodel/position/latitude", 100);
         registerDref(DREF_LONGITUDE, "sim/flightmodel/position/longitude", 100);
         registerDref(DREF_ELEVATION, "sim/flightmodel/position/elevation", 100);

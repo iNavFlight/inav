@@ -59,5 +59,20 @@ typedef enum {
     SENSOR_TEMP = 1 << 9
 } sensors_e;
 
+typedef enum {
+    SENSOR_TEMP_CAL_INITIALISE,
+    SENSOR_TEMP_CAL_IN_PROGRESS,
+    SENSOR_TEMP_CAL_COMPLETE,
+} sensorTempCalState_e;
+
+typedef struct sensor_compensation_s {
+    float correctionFactor;
+    float referenceMeasurement;
+    int16_t referenceTemp;
+    int16_t lastTemp;
+    sensorTempCalState_e calibrationState;
+} sensor_compensation_t;
+
+float applySensorTempCompensation(int16_t sensorTemp, float sensorMeasurement, sensorIndex_e sensorType);
 extern uint8_t requestedSensors[SENSOR_INDEX_COUNT];
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];

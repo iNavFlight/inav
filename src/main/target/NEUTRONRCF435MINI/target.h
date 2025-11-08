@@ -141,11 +141,14 @@
 
 #define USE_UART2
 #define UART2_RX_PIN            PB0
+#define UART2_RX_AF             6
 #define UART2_TX_PIN            PA2
+#define UART2_TX_AF             7
 
 #define USE_UART3
-#define UART3_RX_PIN            PB11
-#define UART3_TX_PIN            PB10
+#define USE_UART3_PIN_SWAP
+#define UART3_RX_PIN            PB10
+#define UART3_TX_PIN            PB11
 
 #define USE_UART5
 #define UART5_RX_PIN            PB8
@@ -165,7 +168,7 @@
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
 
-#define ADC1_DMA_STREAM             DMA2_CHANNEL5
+#define ADC1_DMA_STREAM             DMA2_CHANNEL1
 #define ADC_CHANNEL_1_PIN           PA0
 #define ADC_CHANNEL_2_PIN           PA1
 //#define ADC_CHANNEL_3_PIN           PB0

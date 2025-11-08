@@ -82,7 +82,11 @@ typedef enum {
     LOGIC_CONDITION_DELTA                       = 50,
     LOGIC_CONDITION_APPROX_EQUAL                = 51,
     LOGIC_CONDITION_LED_PIN_PWM                 = 52,
-    LOGIC_CONDITION_LAST                        = 53,
+    LOGIC_CONDITION_DISABLE_GPS_FIX             = 53,
+    LOGIC_CONDITION_RESET_MAG_CALIBRATION       = 54,
+    LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY      = 55,
+    LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED   = 56,
+    LOGIC_CONDITION_LAST
 } logicOperation_e;
 
 typedef enum logicOperandType_s {
@@ -127,8 +131,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_PITCH,                        // 26
     LOGIC_CONDITION_OPERAND_FLIGHT_STABILIZED_YAW,                          // 27
     LOGIC_CONDITION_OPERAND_FLIGHT_3D_HOME_DISTANCE,                        // 28
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_LQ,                                 // 29
-    LOGIC_CONDITION_OPERAND_FLIGHT_CRSF_SNR,                                // 39
+    LOGIC_CONDITION_OPERAND_FLIGHT_LQ_UPLINK,                               // 29
+    LOGIC_CONDITION_OPERAND_FLIGHT_SNR,                                     // 39
     LOGIC_CONDITION_OPERAND_FLIGHT_GPS_VALID, // 0/1                        // 31
     LOGIC_CONDITION_OPERAND_FLIGHT_LOITER_RADIUS,                           // 32
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_PROFILE, //int                    // 33
@@ -139,6 +143,14 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_FLIGHT_ACTIVE_MIXER_PROFILE, //int              // 38
     LOGIC_CONDITION_OPERAND_FLIGHT_MIXER_TRANSITION_ACTIVE, //0,1           // 39
     LOGIC_CONDITION_OPERAND_FLIGHT_ATTITUDE_YAW, // deg                     // 40
+    LOGIC_CONDITION_OPERAND_FLIGHT_FW_LAND_STATE,                           // 41
+    LOGIC_CONDITION_OPERAND_FLIGHT_BATT_PROFILE, // int                     // 42
+    LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS,                     // 43
+    LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK,                             // 44
+    LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM,                         // 45
+    LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED, // m/s                 // 46
+    LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED, // cm/s           // 47
+    LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION, // deg                   // 48
 } logicFlightOperands_e;
 
 typedef enum {
@@ -190,6 +202,10 @@ typedef enum {
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL = (1 << 8),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS = (1 << 9),
     LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS = (1 << 10),
+#ifdef USE_GPS_FIX_ESTIMATION
+    LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX = (1 << 11),
+#endif
+    LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED = (1 << 12),
 } logicConditionsGlobalFlags_t;
 
 typedef enum {
@@ -241,9 +257,9 @@ extern uint64_t logicConditionsGlobalFlags;
 
 void logicConditionProcess(uint8_t i);
 
-int logicConditionGetOperandValue(logicOperandType_e type, int operand);
+int32_t logicConditionGetOperandValue(logicOperandType_e type, int operand);
 
-int logicConditionGetValue(int8_t conditionId);
+int32_t logicConditionGetValue(int8_t conditionId);
 void logicConditionUpdateTask(timeUs_t currentTimeUs);
 void logicConditionReset(void);
 
@@ -251,6 +267,7 @@ float getThrottleScale(float globalThrottleScale);
 int16_t getRcCommandOverride(int16_t command[], uint8_t axis);
 int16_t getRcChannelOverride(uint8_t channel, int16_t originalValue);
 uint32_t getLoiterRadius(uint32_t loiterRadius);
+uint32_t getMinGroundSpeed(uint32_t minGroundSpeed);
 float getFlightAxisAngleOverride(uint8_t axis, float angle);
 float getFlightAxisRateOverride(uint8_t axis, float rate);
 bool isFlightAxisAngleOverrideActive(uint8_t axis);

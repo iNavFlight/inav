@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "platform.h"
+
 #define DEBUG32_VALUE_COUNT 8
 extern int32_t debug[DEBUG32_VALUE_COUNT];
 extern uint8_t debugMode;
@@ -72,5 +74,16 @@ typedef enum {
     DEBUG_RATE_DYNAMICS,
     DEBUG_LANDING,
     DEBUG_POS_EST,
-    DEBUG_COUNT
+    DEBUG_ADAPTIVE_FILTER,
+    DEBUG_HEADTRACKING,
+    DEBUG_GPS,
+    DEBUG_LULU,
+    DEBUG_SBUS2,
+    DEBUG_COUNT // also update debugModeNames in cli.c
 } debugType_e;
+
+#ifdef SITL_BUILD
+#define SD(X) (X)
+#else
+#define SD(X)
+#endif

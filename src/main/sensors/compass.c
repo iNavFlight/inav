@@ -38,6 +38,7 @@
 #include "drivers/compass/compass_ist8310.h"
 #include "drivers/compass/compass_ist8308.h"
 #include "drivers/compass/compass_qmc5883l.h"
+#include "drivers/compass/compass_qmc5883p.h"
 #include "drivers/compass/compass_mpu9250.h"
 #include "drivers/compass/compass_lis3mdl.h"
 #include "drivers/compass/compass_rm3100.h"
@@ -98,6 +99,19 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
 #ifdef USE_MAG_QMC5883
         if (qmc5883Detect(dev)) {
             magHardware = MAG_QMC5883;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_QMC5883P:
+#ifdef USE_MAG_QMC5883P
+        if (qmc5883pDetect(dev)) {
+            magHardware = MAG_QMC5883P;
             break;
         }
 #endif
@@ -472,7 +486,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         fpVector3_t rotated;
 
         rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
-
+        applyTailSitterAlignment(&rotated);
          mag.magADC[X] = rotated.x;
          mag.magADC[Y] = rotated.y;
          mag.magADC[Z] = rotated.z;
@@ -485,4 +499,5 @@ void compassUpdate(timeUs_t currentTimeUs)
 
     magUpdatedAtLeastOnce = true;
 }
+
 #endif

@@ -89,13 +89,6 @@
 
 #if defined(USE_DJI_HD_OSD)
 
-#define DJI_MSP_BAUDRATE                    115200
-
-#define DJI_ARMING_DISABLE_FLAGS_COUNT      25
-#define DJI_OSD_WARNING_COUNT               16
-#define DJI_OSD_TIMER_COUNT                 2
-#define DJI_OSD_FLAGS_OSD_FEATURE           (1 << 0)
-#define EFFICIENCY_UPDATE_INTERVAL          (5 * 1000)
 
 #define RC_RX_LINK_LOST_MSG "!RC RX LINK LOST!"
 
@@ -122,11 +115,10 @@
  * but reuse the packet decoder to minimize code duplication
  */
 
-PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig, PG_DJI_OSD_CONFIG, 3);
 PG_RESET_TEMPLATE(djiOsdConfig_t, djiOsdConfig,
     .use_name_for_messages  = SETTING_DJI_USE_NAME_FOR_MESSAGES_DEFAULT,
     .esc_temperature_source = SETTING_DJI_ESC_TEMP_SOURCE_DEFAULT,
-    .proto_workarounds = SETTING_DJI_WORKAROUNDS_DEFAULT,
     .messageSpeedSource = SETTING_DJI_MESSAGE_SPEED_SOURCE_DEFAULT,
     .rssi_source = SETTING_DJI_RSSI_SOURCE_DEFAULT,
     .useAdjustments = SETTING_DJI_USE_ADJUSTMENTS_DEFAULT,
@@ -200,7 +192,7 @@ const djiOsdMapping_t djiOSDItemIndexMap[] = {
     { OSD_HOME_DIR,                           FEATURE_GPS }, // DJI: OSD_HOME_DIR
     { OSD_HOME_DIST,                          FEATURE_GPS }, // DJI: OSD_HOME_DIST
     { OSD_HEADING,                            0 }, // DJI: OSD_NUMERICAL_HEADING
-    { OSD_VARIO_NUM,                          0 }, // DJI: OSD_NUMERICAL_VARIO
+    { OSD_VERTICAL_SPEED_INDICATOR,           0 }, // DJI: OSD_NUMERICAL_VARIO
     { -1,                                     0 }, // DJI: OSD_COMPASS_BAR
     { OSD_ESC_TEMPERATURE,                    0 }, // DJI: OSD_ESC_TEMPERATURE
     { OSD_ESC_RPM,                            0 }, // DJI: OSD_ESC_RPM
@@ -270,7 +262,7 @@ void djiOsdSerialInit(void)
     }
 }
 
-static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
+void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
 {
     memset(flightModeBitmask, 0, sizeof(boxBitmask_t));
 
@@ -312,7 +304,7 @@ static void djiPackBoxModeBitmask(boxBitmask_t * flightModeBitmask)
     }
 }
 
-static uint32_t djiPackArmingDisabledFlags(void)
+uint32_t djiPackArmingDisabledFlags(void)
 {
     // TODO: Map INAV arming disabled flags to DJI/BF ones
     // https://github.com/betaflight/betaflight/blob/c6e5882dd91fa20d246b8f8af10cf6c92876bc3d/src/main/fc/runtime_config.h#L42
@@ -505,8 +497,6 @@ static char * osdArmingDisabledReasonMessage(void)
         //     return OSD_MESSAGE_STR("HARDWARE FAILURE");
         case ARMING_DISABLED_BOXFAILSAFE:
             return OSD_MESSAGE_STR("FAILSAFE ENABLED");
-        case ARMING_DISABLED_BOXKILLSWITCH:
-            return OSD_MESSAGE_STR("KILLSWITCH ENABLED");
         case ARMING_DISABLED_RC_LINK:
             return OSD_MESSAGE_STR("NO RC LINK");
         case ARMING_DISABLED_THROTTLE:
@@ -528,6 +518,8 @@ static char * osdArmingDisabledReasonMessage(void)
         case ARMING_DISABLED_DSHOT_BEEPER:
             return OSD_MESSAGE_STR("MOTOR BEEPER ACTIVE");
             // Cases without message
+        case ARMING_DISABLED_GEOZONE:
+            return OSD_MESSAGE_STR("NO FLY ZONE");
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;
         case ARMING_DISABLED_CMS_MENU:
@@ -787,7 +779,11 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
     timeUs_t currentTimeUs = micros();
     timeDelta_t efficiencyTimeDelta = cmpTimeUs(currentTimeUs, efficiencyUpdated);
 
-    if (STATE(GPS_FIX) && gpsSol.groundSpeed > 0) {
+    if ((STATE(GPS_FIX)
+#ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+#endif
+        ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
             value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
                 1, US2S(efficiencyTimeDelta));
@@ -955,6 +951,9 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
         case ADJUSTMENT_VEL_Z_D:
             tfp_sprintf(buff, "VZD %3d", pidBankMutable()->pid[PID_VEL_Z].D);
             break;
+        case ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE:
+            tfp_sprintf(buff, "ACR %3d", pidProfileMutable()->fwAltControlResponseFactor);
+            break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
@@ -1058,6 +1057,10 @@ static bool djiFormatMessages(char *buff)
 
                 if (FLIGHT_MODE(MANUAL_MODE)) {
                     messages[messageCount++] = "(MANUAL)";
+                }
+
+                if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+                     messages[messageCount++] = "(LAND)";
                 }
             }
         }
@@ -1341,12 +1344,11 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             break;
 
         case DJI_MSP_ESC_SENSOR_DATA:
-            if (djiOsdConfig()->proto_workarounds & DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA) {
-                // Version 1.00.06 of DJI firmware is not using the standard MSP_ESC_SENSOR_DATA
+            {
                 uint16_t protoRpm = 0;
                 int16_t protoTemp = 0;
 
-#if defined(USE_ESC_SENSOR)
+    #if defined(USE_ESC_SENSOR)
                 if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
                     uint32_t motorRpmAcc = 0;
                     int32_t motorTempAcc = 0;
@@ -1360,7 +1362,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                     protoRpm = motorRpmAcc / getMotorCount();
                     protoTemp = motorTempAcc / getMotorCount();
                 }
-#endif
+    #endif
 
                 switch (djiOsdConfig()->esc_temperature_source) {
                     // This is ESC temperature (as intended)
@@ -1385,47 +1387,6 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                 sbufWriteU8(dst, protoTemp);
                 sbufWriteU16(dst, protoRpm);
             }
-            else {
-                // Use standard MSP_ESC_SENSOR_DATA message
-                sbufWriteU8(dst, getMotorCount());
-                for (int i = 0; i < getMotorCount(); i++) {
-                    uint16_t motorRpm = 0;
-                    int16_t motorTemp = 0;
-
-                    // If ESC_SENSOR is enabled, pull the telemetry data and get motor RPM
-#if defined(USE_ESC_SENSOR)
-                    if (STATE(ESC_SENSOR_ENABLED)) {
-                        const escSensorData_t * escSensor = getEscTelemetry(i);
-                        motorRpm = escSensor->rpm;
-                        motorTemp = escSensor->temperature;
-                    }
-#endif
-
-                    // Now populate temperature field (which we may override for different purposes)
-                    switch (djiOsdConfig()->esc_temperature_source) {
-                        // This is ESC temperature (as intended)
-                        case DJI_OSD_TEMP_ESC:
-                            // No-op, temperature is already set to ESC
-                            break;
-
-                        // Re-purpose the field for core temperature
-                        case DJI_OSD_TEMP_CORE:
-                            getIMUTemperature(&motorTemp);
-                            motorTemp = motorTemp / 10;
-                            break;
-
-                        // Re-purpose the field for baro temperature
-                        case DJI_OSD_TEMP_BARO:
-                            getBaroTemperature(&motorTemp);
-                            motorTemp = motorTemp / 10;
-                            break;
-                    }
-
-                    // Add data for this motor to the packet
-                    sbufWriteU8(dst, motorTemp);
-                    sbufWriteU16(dst, motorRpm);
-                }
-            }
             break;
 
         case DJI_MSP_OSD_CONFIG:
@@ -1448,7 +1409,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_soft_notch_hz_2
             sbufWriteU16(dst, 1);                                       // BF: gyroConfig()->gyro_soft_notch_cutoff_2
             sbufWriteU8(dst, 0);                                        // BF: currentPidProfile->dterm_filter_type
-            sbufWriteU8(dst, gyroConfig()->gyro_lpf);                   // BF: gyroConfig()->gyro_hardware_lpf);
+            sbufWriteU8(dst, GYRO_LPF_256HZ);                           // BF: gyroConfig()->gyro_hardware_lpf);
             sbufWriteU8(dst, 0);                                        // BF: DEPRECATED: gyro_32khz_hardware_lpf
             sbufWriteU16(dst, gyroConfig()->gyro_main_lpf_hz);          // BF: gyroConfig()->gyro_lowpass_hz);
             sbufWriteU16(dst, 0);                                       // BF: gyroConfig()->gyro_lowpass2_hz);

@@ -138,14 +138,22 @@ const exBusSensor_t jetiExSensors[] = {
     {"GPS Speed",       "m/s",      EX_TYPE_22b,   DECIMAL_MASK(2)},
     {"GPS H-Distance",  "m",        EX_TYPE_22b,   DECIMAL_MASK(0)},
     {"GPS H-Direction", "\xB0",     EX_TYPE_22b,   DECIMAL_MASK(1)},
-    {"INAV D2",           "",         EX_TYPE_DES,   0              },     // device descripton
+    {"INAV D2",         "",         EX_TYPE_DES,   0              },     // device descripton
     {"GPS Heading",     "\xB0",     EX_TYPE_22b,   DECIMAL_MASK(1)},
     {"GPS Altitude",    "m",        EX_TYPE_22b,   DECIMAL_MASK(2)},
     {"G-Force X",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"G-Force Y",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"G-Force Z",       "",         EX_TYPE_22b,   DECIMAL_MASK(3)},
     {"RPM",             "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
-    {"Trip Distance",   "m",        EX_TYPE_22b,   DECIMAL_MASK(1)}
+    {"Trip Distance",   "m",        EX_TYPE_22b,   DECIMAL_MASK(1)},
+    {"DEBUG0",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG1",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG2",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG3",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG4",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG5",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG6",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)},
+    {"DEBUG7",          "",         EX_TYPE_22b,   DECIMAL_MASK(0)}
 };
 
 // after every 15 sensors increment the step by 2 (e.g. ...EX_VAL15, EX_VAL16 = 17) to skip the device description
@@ -172,6 +180,14 @@ enum exSensors_e {
     EX_GFORCE_Z,
     EX_RPM,
     EX_TRIP_DISTANCE,
+    EX_DEBUG0,
+    EX_DEBUG1,
+    EX_DEBUG2,
+    EX_DEBUG3,
+    EX_DEBUG4,
+    EX_DEBUG5,
+    EX_DEBUG6,
+    EX_DEBUG7
 };
 
 union{
@@ -183,8 +199,7 @@ union{
 
 #define JETI_EX_SENSOR_COUNT (ARRAYLEN(jetiExSensors))
 
-static uint8_t jetiExBusTelemetryFrame[40];
-static uint8_t jetiExBusTransceiveState = EXBUS_TRANS_RX;
+static uint8_t jetiExBusTelemetryFrame[JETI_EXBUS_TELEMETRY_FRAME_LEN];
 static uint8_t firstActiveSensor = 0;
 static uint32_t exSensorEnabled = 0;
 
@@ -282,6 +297,17 @@ void initJetiExBusTelemetry(void)
         bitArraySet(&exSensorEnabled, EX_RPM);
     }
 #endif
+
+    if (debugMode != DEBUG_NONE) {
+        bitArraySet(&exSensorEnabled, EX_DEBUG0);
+        bitArraySet(&exSensorEnabled, EX_DEBUG1);
+        bitArraySet(&exSensorEnabled, EX_DEBUG2);
+        bitArraySet(&exSensorEnabled, EX_DEBUG3);
+        bitArraySet(&exSensorEnabled, EX_DEBUG4);
+        bitArraySet(&exSensorEnabled, EX_DEBUG5);
+        bitArraySet(&exSensorEnabled, EX_DEBUG6);
+        bitArraySet(&exSensorEnabled, EX_DEBUG7);
+    }
 
     firstActiveSensor = getNextActiveSensor(0);     // find the first active sensor
 }
@@ -421,6 +447,23 @@ int32_t getSensorValue(uint8_t sensor)
 
     case EX_TRIP_DISTANCE:
         return getTotalTravelDistance() / 10;
+    
+    case EX_DEBUG0:
+        return debug[0];
+    case EX_DEBUG1:
+        return debug[1];
+    case EX_DEBUG2:
+        return debug[2];
+    case EX_DEBUG3:
+        return debug[3];
+    case EX_DEBUG4:
+        return debug[4];
+    case EX_DEBUG5:
+        return debug[5];
+    case EX_DEBUG6:
+        return debug[6];
+    case EX_DEBUG7:
+        return debug[7];
 
     default:
         return -1;
@@ -503,11 +546,15 @@ void checkJetiExBusTelemetryState(void)
     return;
 }
 
-void handleJetiExBusTelemetry(void)
+void NOINLINE handleJetiExBusTelemetry(void)
 {
     static uint16_t framesLost = 0; // only for debug
     static uint8_t item = 0;
     uint32_t timeDiff;
+
+    if(!jetiExBusCanTx) {
+        return;
+    }
 
     // Check if we shall reset frame position due to time
     if (jetiExBusRequestState == EXBUS_STATE_RECEIVED) {
@@ -523,7 +570,6 @@ void handleJetiExBusTelemetry(void)
 
         if ((jetiExBusRequestFrame[EXBUS_HEADER_DATA_ID] == EXBUS_EX_REQUEST) && (jetiExBusCalcCRC16(jetiExBusRequestFrame, jetiExBusRequestFrame[EXBUS_HEADER_MSG_LEN]) == 0)) {
             if (serialRxBytesWaiting(jetiExBusPort) == 0) {
-                jetiExBusTransceiveState = EXBUS_TRANS_TX;
                 item = sendJetiExBusTelemetry(jetiExBusRequestFrame[EXBUS_HEADER_PACKET_ID], item);
                 jetiExBusRequestState = EXBUS_STATE_PROCESSED;
                 return;
@@ -534,13 +580,7 @@ void handleJetiExBusTelemetry(void)
         }
     }
 
-    // check the state if transmit is ready
-    if (jetiExBusTransceiveState == EXBUS_TRANS_IS_TX_COMPLETED) {
-        if (isSerialTransmitBufferEmpty(jetiExBusPort)) {
-            jetiExBusTransceiveState = EXBUS_TRANS_RX;
-            jetiExBusRequestState = EXBUS_STATE_ZERO;
-        }
-    }
+    jetiExBusRequestState = EXBUS_STATE_ZERO;
 }
 
 uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
@@ -575,7 +615,11 @@ uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
         createExBusMessage(jetiExBusTelemetryFrame, jetiExTelemetryFrame, packetID);
 
         if (!allSensorsActive) {
-            if (sensors(SENSOR_GPS)) {
+            if (sensors(SENSOR_GPS)
+#ifdef USE_GPS_FIX_ESTIMATION
+                || STATE(GPS_ESTIMATED_FIX)
+#endif
+            ) {
                 enableGpsTelemetry(true);
                 allSensorsActive = true;
             }
@@ -583,7 +627,7 @@ uint8_t sendJetiExBusTelemetry(uint8_t packetID, uint8_t item)
     }
 
     serialWriteBuf(jetiExBusPort, jetiExBusTelemetryFrame, jetiExBusTelemetryFrame[EXBUS_HEADER_MSG_LEN]);
-    jetiExBusTransceiveState = EXBUS_TRANS_IS_TX_COMPLETED;
+    jetiExBusCanTx = false;
 
     return item;
 }
