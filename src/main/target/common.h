@@ -117,8 +117,6 @@
 
 #define NAV_NON_VOLATILE_WAYPOINT_CLI
 
-#define NAV_AUTO_MAG_DECLINATION_PRECISE
-
 #define USE_D_BOOST
 #define USE_ANTIGRAVITY
 
@@ -157,7 +155,7 @@
 #define USE_TELEMETRY_JETIEXBUS
 // These are rather exotic serial protocols
 #define USE_RX_MSP
-//#define USE_MSP_RC_OVERRIDE
+#define USE_MSP_RC_OVERRIDE
 #define USE_SERIALRX_CRSF
 #define USE_SERIAL_PASSTHROUGH
 #define NAV_MAX_WAYPOINTS       120
@@ -192,6 +190,15 @@
 #define ADSB_LIMIT_CM                   6400000
 #endif
 
+#define USE_SERIAL_GIMBAL
+#define USE_HEADTRACKER
+#define USE_HEADTRACKER_SERIAL
+#define USE_HEADTRACKER_MSP
+
+#if defined(STM32F7) || defined(STM32H7)
+// needs bi-direction inverter, not available on F4 hardware.
+#define USE_TELEMETRY_SBUS2
+#endif
 
 //Designed to free space of F722 and F411 MCUs
 #if (MCU_FLASH_SIZE > 512)
@@ -199,9 +206,14 @@
 #define USE_SERIALRX_SUMD
 #define USE_TELEMETRY_HOTT
 #define USE_HOTT_TEXTMODE
-#define USE_24CHANNELS
+#define USE_34CHANNELS
 #define MAX_MIXER_PROFILE_COUNT 2
 #define USE_SMARTPORT_MASTER
+#ifdef USE_GPS
+#define USE_GEOZONE
+#define MAX_GEOZONES_IN_CONFIG 63
+#define MAX_VERTICES_IN_CONFIG 126
+#endif
 #elif !defined(STM32F7)
 #define MAX_MIXER_PROFILE_COUNT 1
 #endif
@@ -213,3 +225,5 @@
 #endif
 
 #define USE_EZ_TUNE
+#define USE_ADAPTIVE_FILTER
+

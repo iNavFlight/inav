@@ -51,7 +51,13 @@
 #include "msp/msp_serial.h"
 
 #include "displayport_msp_osd.h"
-#include "displayport_msp_bf_compat.h"
+#include "displayport_msp_dji_compat.h"
+
+#include "osd_dji_hd.h"
+#include "fc/fc_msp_box.h"
+#include "scheduler/scheduler.h"
+#include "fc/config.h"
+#include "common/maths.h"
 
 #define FONT_VERSION 3
 
@@ -307,7 +313,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
         uint8_t len = 4;
         do {
             bitArrayClr(dirty, pos);
-            subcmd[len] = isBfCompatibleVideoSystem(osdConfig()) ? getBfCharacter(screen[pos++], page): screen[pos++];
+            subcmd[len] = isDJICompatibleVideoSystem(osdConfig()) ? getDJICharacter(screen[pos++], page): screen[pos++];
             len++;
 
             if (bitArrayGet(dirty, pos)) {
@@ -315,7 +321,7 @@ static int drawScreen(displayPort_t *displayPort) // 250Hz
             }
         } while (next == pos && next < endOfLine && getAttrPage(attrs[next]) == page && getAttrBlink(attrs[next]) == blink);
 
-        if (!isBfCompatibleVideoSystem(osdConfig())) {
+        if (!isDJICompatibleVideoSystem(osdConfig())) {
             attributes |= (page << DISPLAYPORT_MSP_ATTR_FONTPAGE);
         }
 
@@ -368,7 +374,7 @@ static uint32_t txBytesFree(const displayPort_t *displayPort)
 static bool getFontMetadata(displayFontMetadata_t *metadata, const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    metadata->charCount = 512;
+    metadata->charCount = 1024;
     metadata->version = FONT_VERSION;
     return true;
 }
@@ -465,7 +471,7 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
     if (mspOsdSerialInit()) {
         switch(videoSystem) {
         case VIDEO_SYSTEM_AUTO:
-        case VIDEO_SYSTEM_BFCOMPAT:
+        case VIDEO_SYSTEM_DJICOMPAT:
         case VIDEO_SYSTEM_PAL:
             currentOsdMode = SD_3016;
             screenRows = PAL_ROWS;
@@ -486,8 +492,9 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
             screenRows = DJI_ROWS;
             screenCols = DJI_COLS;
             break;
-        case VIDEO_SYSTEM_BFCOMPAT_HD:
+        case VIDEO_SYSTEM_DJICOMPAT_HD:
         case VIDEO_SYSTEM_AVATAR:
+        case VIDEO_SYSTEM_DJI_NATIVE:
             currentOsdMode = HD_5320;
             screenRows = AVATAR_ROWS;
             screenCols = AVATAR_COLS;
@@ -500,10 +507,10 @@ displayPort_t* mspOsdDisplayPortInit(const videoSystem_e videoSystem)
         init();
         displayInit(&mspOsdDisplayPort, &mspOsdVTable);
 
-        if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT) {
-            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: BetaFlight Compatability mode";
-        } else if (osdVideoSystem == VIDEO_SYSTEM_BFCOMPAT_HD) {
-            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: BetaFlight Compatability mode (HD)";
+        if (osdVideoSystem == VIDEO_SYSTEM_DJICOMPAT) {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: DJI Compatability mode";
+        } else if (osdVideoSystem == VIDEO_SYSTEM_DJICOMPAT_HD) {
+            mspOsdDisplayPort.displayPortType = "MSP DisplayPort: DJI Compatability mode (HD)";
         } else {
             mspOsdDisplayPort.displayPortType = "MSP DisplayPort";
         }
@@ -531,11 +538,72 @@ static mspResult_e processMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPo
     return mspProcessCommand(cmd, reply, mspPostProcessFn);
 }
 
+#if defined(USE_OSD) && defined(USE_DJI_HD_OSD)
+extern timeDelta_t cycleTime;
+static mspResult_e fixDjiBrokenO4ProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn) {
+    UNUSED(mspPostProcessFn);
+
+    sbuf_t *dst = &reply->buf;
+
+    // If users is using a buggy O4 air unit, re-use the OLD DJI FPV system workaround for status messages
+    if (osdConfig()->enable_broken_o4_workaround && ((cmd->cmd == DJI_MSP_STATUS) || (cmd->cmd == DJI_MSP_STATUS_EX))) {
+        // Start initializing the reply message
+        reply->cmd = cmd->cmd;
+        reply->result = MSP_RESULT_ACK;
+
+        // DJI OSD relies on a statically defined bit order and doesn't use
+        // MSP_BOXIDS to get actual BOX order. We need a special
+        // packBoxModeFlags()
+        // This is a regression from O3
+        boxBitmask_t flightModeBitmask;
+        djiPackBoxModeBitmask(&flightModeBitmask);
+
+        sbufWriteU16(dst, (uint16_t)cycleTime);
+        sbufWriteU16(dst, 0);
+        sbufWriteU16(dst, packSensorStatus());
+        sbufWriteData(dst, &flightModeBitmask,
+                      4);  // unconditional part of flags, first 32 bits
+        sbufWriteU8(dst, getConfigProfile());
+
+        sbufWriteU16(dst, constrain(averageSystemLoadPercent, 0, 100));
+        if (cmd->cmd == MSP_STATUS_EX) {
+            sbufWriteU8(dst, 3);  // PID_PROFILE_COUNT
+            sbufWriteU8(dst, 1);  // getCurrentControlRateProfileIndex()
+        } else {
+            sbufWriteU16(dst, cycleTime);  // gyro cycle time
+        }
+
+        // Cap BoxModeFlags to 32 bits
+        // write flightModeFlags header. Lowest 4 bits contain number of bytes
+        // that follow
+        sbufWriteU8(dst, 0);
+        // sbufWriteData(dst, ((uint8_t*)&flightModeBitmask) + 4, byteCount);
+
+        // Write arming disable flags
+        sbufWriteU8(dst, DJI_ARMING_DISABLE_FLAGS_COUNT);
+        sbufWriteU32(dst, djiPackArmingDisabledFlags());
+
+        // Extra flags
+        sbufWriteU8(dst, 0);
+        // Process DONT_REPLY flag
+        if (cmd->flags & MSP_FLAG_DONT_REPLY) {
+            reply->result = MSP_RESULT_NO_REPLY;
+        }
+
+        return reply->result;
+    }
+
+    return processMspCommand(cmd, reply, mspPostProcessFn);
+}
+#else
+#define fixDjiBrokenO4ProcessMspCommand processMspCommand 
+#endif
+
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
 {
     if (mspPort.port) {
         mspProcessCommand = mspProcessCommandFn;
-        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, processMspCommand);
+        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, fixDjiBrokenO4ProcessMspCommand);
     }
 }
 

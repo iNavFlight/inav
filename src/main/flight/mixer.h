@@ -40,15 +40,15 @@ typedef enum {
     PLATFORM_HELICOPTER     = 2,
     PLATFORM_TRICOPTER      = 3,
     PLATFORM_ROVER          = 4,
-    PLATFORM_BOAT           = 5,
-    PLATFORM_OTHER          = 6
+    PLATFORM_BOAT           = 5
 } flyingPlatformType_e;
 
 
 typedef enum {
     OUTPUT_MODE_AUTO     = 0,
     OUTPUT_MODE_MOTORS,
-    OUTPUT_MODE_SERVOS
+    OUTPUT_MODE_SERVOS,
+    OUTPUT_MODE_LED
 } outputMode_e;
 
 typedef struct motorAxisCorrectionLimits_s {

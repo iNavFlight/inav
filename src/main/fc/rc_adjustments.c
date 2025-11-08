@@ -302,6 +302,10 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
         .adjustmentFunction = ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX,
         .mode = ADJUSTMENT_MODE_STEP,
         .data = { .stepConfig = { .step = 1 }}
+    }, {
+        .adjustmentFunction = ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE,
+        .mode = ADJUSTMENT_MODE_STEP,
+        .data = { .stepConfig = { .step = 1 }}
     }
 };
 
@@ -545,6 +549,9 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
             applyAdjustmentPID(ADJUSTMENT_POS_Z_D, &pidBankMutable()->pid[PID_POS_Z].D, delta);
             navigationUsePIDs();
             break;
+        case ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE:
+            applyAdjustmentU8(ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE, &pidProfileMutable()->fwAltControlResponseFactor, delta, SETTING_NAV_FW_ALT_CONTROL_RESPONSE_MIN, SETTING_NAV_FW_ALT_CONTROL_RESPONSE_MAX);
+            break;
         case ADJUSTMENT_HEADING_P:
             applyAdjustmentPID(ADJUSTMENT_HEADING_P, &pidBankMutable()->pid[PID_HEADING].P, delta);
             // TODO: navigationUsePIDs()?
@@ -576,7 +583,7 @@ static void applyStepAdjustment(controlRateConfig_t *controlRateConfig, uint8_t 
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:
             applyAdjustmentU16(ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE, &navConfigMutable()->fw.minThrottleDownPitchAngle, delta, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MIN, SETTING_FW_MIN_THROTTLE_DOWN_PITCH_MAX);
             break;
-#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP)
+#if defined(USE_VTX_SMARTAUDIO) || defined(USE_VTX_TRAMP) || defined(USE_VTX_MSP)
         case ADJUSTMENT_VTX_POWER_LEVEL:
             {
                 vtxDeviceCapability_t vtxDeviceCapability;

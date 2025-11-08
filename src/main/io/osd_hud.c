@@ -187,6 +187,11 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
                 d = 0; // Directly behind
             }
 
+            //for native DJI is 0 direction forward
+            if(osdConfig()->video_system == VIDEO_SYSTEM_DJI_NATIVE) {
+                d = (d + 6) % 12;
+            }
+
             d = SYM_HUD_CARDINAL + d;
             osdHudWrite(poi_x + 2, poi_y, d, 1);
         } else {
@@ -207,7 +212,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
 
     if (poiType == 1) { // POI from the ESP radar
         error_x = hudWrap360(poiP1 - DECIDEGREES_TO_DEGREES(osdGetHeading()));
-        osdHudWrite(poi_x - 1, poi_y, SYM_DIRECTION + ((error_x + 22) / 45) % 8, 1);
+        osdHudWrite(poi_x - 1, poi_y, SYM_DECORATION + ((error_x + 22) / 45) % 8, 1);
         osdHudWrite(poi_x + 1, poi_y, SYM_HUD_SIGNAL_0 + poiP2, 1);
     }
     else if (poiType == 2) { // Waypoint,
@@ -248,7 +253,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
             tfp_sprintf(buff, "%3d", altc);
         }
 
-        buff[0] = (poiAltitude >= 0) ? SYM_AH_DIRECTION_UP : SYM_AH_DIRECTION_DOWN;
+        buff[0] = (poiAltitude >= 0) ? SYM_AH_DECORATION_UP : SYM_AH_DECORATION_DOWN;
     } else { // Display the distance by default 
         switch ((osd_unit_e)osdConfig()->units) {
             case OSD_UNIT_UK:

@@ -116,6 +116,123 @@ void resetFwAutolandApproach(int8_t idx);
 
 #endif
 
+#if defined(USE_GEOZONE)
+
+#ifndef USE_GPS
+    #error "Geozone needs GPS support"
+#endif
+
+typedef enum {
+    GEOZONE_MESSAGE_STATE_NONE,
+    GEOZONE_MESSAGE_STATE_NFZ,
+    GEOZONE_MESSAGE_STATE_LEAVING_FZ,
+    GEOZONE_MESSAGE_STATE_OUTSIDE_FZ,
+    GEOZONE_MESSAGE_STATE_ENTERING_NFZ,
+    GEOZONE_MESSAGE_STATE_AVOIDING_FB,
+    GEOZONE_MESSAGE_STATE_RETURN_TO_ZONE,
+    GEOZONE_MESSAGE_STATE_FLYOUT_NFZ,
+    GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH,
+    GEOZONE_MESSAGE_STATE_POS_HOLD
+} geozoneMessageState_e;
+
+enum fenceAction_e {
+    GEOFENCE_ACTION_NONE,
+    GEOFENCE_ACTION_AVOID,
+    GEOFENCE_ACTION_POS_HOLD,
+    GEOFENCE_ACTION_RTH,
+};
+
+enum noWayHomeAction {
+    NO_WAY_HOME_ACTION_RTH,
+    NO_WAY_HOME_ACTION_EMRG_LAND,
+};
+
+#define GEOZONE_SHAPE_CIRCULAR 0
+#define GEOZONE_SHAPE_POLYGON  1
+
+#define GEOZONE_TYPE_EXCLUSIVE 0
+#define GEOZONE_TYPE_INCLUSIVE 1
+
+typedef struct geoZoneConfig_s
+{
+    uint8_t shape;
+    uint8_t type;
+    int32_t minAltitude;
+    int32_t maxAltitude;
+    bool isSealevelRef;
+    uint8_t fenceAction;
+    uint8_t vertexCount;
+} geoZoneConfig_t;
+
+typedef struct geozone_config_s
+{
+    uint32_t fenceDetectionDistance;
+    uint16_t avoidAltitudeRange;
+    uint16_t safeAltitudeDistance;
+    bool nearestSafeHomeAsInclusivZone;
+    uint8_t safeHomeFenceAction;
+    uint32_t copterFenceStopDistance;
+    uint8_t noWayHomeAction;
+} geozone_config_t;
+
+typedef struct vertexConfig_s
+{
+    int8_t zoneId;
+    uint8_t idx;
+    int32_t lat;
+    int32_t lon;
+} vertexConfig_t;
+
+PG_DECLARE(geozone_config_t, geoZoneConfig);
+PG_DECLARE_ARRAY(geoZoneConfig_t, MAX_GEOZONES_IN_CONFIG, geoZonesConfig);
+PG_DECLARE_ARRAY(vertexConfig_t, MAX_VERTICES_IN_CONFIG, geoZoneVertices);
+
+typedef struct geozone_s {
+    bool insideFz;
+    bool insideNfz;
+    uint32_t distanceToZoneBorder3d;
+    int32_t vertDistanceToZoneBorder;
+    geozoneMessageState_e messageState;
+    int32_t directionToNearestZone;
+    int32_t distanceHorToNearestZone;
+    int32_t distanceVertToNearestZone;
+    int32_t zoneInfo;
+    int32_t currentzoneMaxAltitude; 
+    int32_t currentzoneMinAltitude;
+    bool nearestHorZoneHasAction;
+    bool sticksLocked;
+    int8_t loiterDir;
+    bool avoidInRTHInProgress;
+    int32_t maxHomeAltitude;
+    bool homeHasMaxAltitue;
+} geozone_t;
+
+extern geozone_t geozone;
+
+bool geozoneSetVertex(uint8_t zoneId, uint8_t vertexId, int32_t lat, int32_t lon);
+int8_t geozoneGetVertexIdx(uint8_t zoneId, uint8_t vertexId);
+bool isGeozoneActive(void);
+uint8_t geozoneGetUsedVerticesCount(void);
+void geozoneReset(int8_t idx);
+void geozoneResetVertices(int8_t zoneId, int16_t idx);
+void geozoneUpdate(timeUs_t curentTimeUs);
+bool geozoneIsBlockingArming(void);
+void geozoneAdvanceRthAvoidWaypoint(void);
+int8_t geozoneCheckForNFZAtCourse(bool isRTH);
+bool geoZoneIsLastRthWaypoint(void);
+fpVector3_t *geozoneGetCurrentRthAvoidWaypoint(void);
+void geozoneSetupRTH(void);
+void geozoneResetRTH(void);
+void geozoneUpdateMaxHomeAltitude(void);
+uint32_t geozoneGetDetectionDistance(void);
+
+void activateSendTo(void);
+void abortSendTo(void);
+void activateForcedPosHold(void);
+void abortForcedPosHold(void);
+
+#endif
+
 #ifndef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS 15
 #endif
@@ -231,37 +348,37 @@ typedef enum {
 
 typedef struct positionEstimationConfig_s {
     uint8_t automatic_mag_declination;
-    uint8_t reset_altitude_type; // from nav_reset_type_e
-    uint8_t reset_home_type; // nav_reset_type_e
-    uint8_t gravity_calibration_tolerance;    // Tolerance of gravity calibration (cm/s/s)
+    uint8_t reset_altitude_type;            // from nav_reset_type_e
+    uint8_t reset_home_type;                // nav_reset_type_e
+    uint8_t gravity_calibration_tolerance;  // Tolerance of gravity calibration (cm/s/s)
     uint8_t allow_dead_reckoning;
 
     uint16_t max_surface_altitude;
 
-    float w_z_baro_p;   // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_p;           // Weight (cutoff frequency) for barometer altitude measurements
+    float w_z_baro_v;           // Weight (cutoff frequency) for barometer climb rate measurements
 
-    float w_z_surface_p;  // Weight (cutoff frequency) for surface altitude measurements
-    float w_z_surface_v;  // Weight (cutoff frequency) for surface velocity measurements
+    float w_z_surface_p;        // Weight (cutoff frequency) for surface altitude measurements
+    float w_z_surface_v;        // Weight (cutoff frequency) for surface velocity measurements
 
-    float w_z_gps_p;    // GPS altitude data is very noisy and should be used only on airplanes
-    float w_z_gps_v;    // Weight (cutoff frequency) for GPS climb rate measurements
+    float w_z_gps_p;            // GPS altitude data is very noisy and should be used only on airplanes
+    float w_z_gps_v;            // Weight (cutoff frequency) for GPS climb rate measurements
 
-    float w_xy_gps_p;   // Weight (cutoff frequency) for GPS position measurements
-    float w_xy_gps_v;   // Weight (cutoff frequency) for GPS velocity measurements
+    float w_xy_gps_p;           // Weight (cutoff frequency) for GPS position measurements
+    float w_xy_gps_v;           // Weight (cutoff frequency) for GPS velocity measurements
 
     float w_xy_flow_p;
     float w_xy_flow_v;
 
-    float w_z_res_v;    // When velocity sources lost slowly decrease estimated velocity with this weight
+    float w_z_res_v;            // When velocity sources lost slowly decrease estimated velocity with this weight
     float w_xy_res_v;
 
-    float w_acc_bias;   // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
+    float w_acc_bias;           // Weight (cutoff frequency) for accelerometer bias estimation. 0 to disable.
 
-    float max_eph_epv;  // Max estimated position error acceptable for estimation (cm)
-    float baro_epv;     // Baro position error
+    float max_eph_epv;          // Max estimated position error acceptable for estimation (cm)
+    float baro_epv;             // Baro position error
 
-    uint8_t use_gps_no_baro;
-
+    uint8_t default_alt_sensor; // default altitude sensor source
 #ifdef USE_GPS_FIX_ESTIMATION
     uint8_t allow_gps_fix_estimation;
 #endif
@@ -346,6 +463,7 @@ typedef struct navConfig_s {
         uint8_t posResponseExpo;                // Position controller expo (taret vel expo for MC)
         bool slowDownForTurning;                // Slow down during WP missions when changing heading on next waypoint
         uint8_t althold_throttle_type;          // throttle zero datum type for alt hold
+        uint8_t inverted_crash_detection;       // Enables inverted crash detection, setting defines disarm time delay (0 = disabled)
     } mc;
 
     struct {
@@ -690,11 +808,12 @@ float getEstimatedAglPosition(void);
 bool isEstimatedAglTrusted(void);
 
 void checkManualEmergencyLandingControl(bool forcedActivation);
-float updateBaroAltitudeRate(float newBaroAltRate, bool updateValue);
+void updateBaroAltitudeRate(float newBaroAltRate);
 bool rthAltControlStickOverrideCheck(uint8_t axis);
 
 int8_t navCheckActiveAngleHoldAxis(void);
 uint8_t getActiveWpNumber(void);
+uint16_t getFlownLoiterRadius(void);
 
 /* Returns the heading recorded when home position was acquired.
  * Note that the navigation system uses deg*100 as unit and angles

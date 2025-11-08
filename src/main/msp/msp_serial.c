@@ -17,6 +17,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 
 #include "platform.h"
@@ -472,6 +474,7 @@ void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e 
             const uint8_t c = serialRead(mspPort->port);
             const bool consumed = mspSerialProcessReceivedData(mspPort, c);
 
+            //SD(fprintf(stderr, "[MSP]: received char: %02x (%c) state: %i\n", c, isprint(c) ? c : '.', mspPort->c_state));
             if (!consumed && evaluateNonMspData == MSP_EVALUATE_NON_MSP_DATA) {
                 mspEvaluateNonMspData(mspPort, c);
             }

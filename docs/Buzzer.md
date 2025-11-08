@@ -102,6 +102,15 @@ To restore set from preferences use:
 
 ```
 beeper -PREFERED
+```
+
+To activate an external beeper via aux channel switch, assign aux channel and set both:
+
+```
+beeper RX_SET
+beeper MULTI_BEEPS
+```
+If MULTI_BEEPS is not set, the beeper will not sound after GPS lock.
 
 As with other CLI commands, the `save` command is needed to save the new settings.
 
@@ -117,7 +126,5 @@ Passive buzzers are supported on FCs which are designed to work with passive buz
 Examples of a known-working buzzers.
 
  * [Hcm1205x Miniature Buzzer 5v](http://www.rapidonline.com/Audio-Visual/Hcm1205x-Miniature-Buzzer-5v-35-0055)
- * [5V Electromagnetic Active Buzzer Continuous Beep](https://inavflight.com/shop/s/bg/943524)
- * [Radio Shack Model: 273-074 PC-BOARD 12VDC (3-16v) 70DB PIEZO BUZZER](http://www.radioshack.com/pc-board-12vdc-70db-piezo-buzzer/2730074.html#.VIAtpzHF_Si)
  * [MultiComp MCKPX-G1205A-3700 TRANSDUCER, THRU-HOLE, 4V, 30MA](http://uk.farnell.com/multicomp/mckpx-g1205a-3700/transducer-thru-hole-4v-30ma/dp/2135914?CMP=i-bf9f-00001000)
  * [3-24V Piezo Electronic Tone Buzzer Alarm 95DB](https://inavflight.com/shop/s/bg/919348)

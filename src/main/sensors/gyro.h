@@ -52,6 +52,13 @@ typedef enum {
     DYNAMIC_NOTCH_MODE_3D
 } dynamicGyroNotchMode_e;
 
+typedef enum {
+    GYRO_FILTER_MODE_OFF = 0,
+    GYRO_FILTER_MODE_STATIC = 1,
+    GYRO_FILTER_MODE_DYNAMIC = 2,
+    GYRO_FILTER_MODE_ADAPTIVE = 3
+} gyroFilterMode_e;
+
 typedef struct gyro_s {
     bool initialized;
     uint32_t targetLooptime;
@@ -69,7 +76,6 @@ typedef struct gyroConfig_s {
     uint8_t  gyro_to_use;
 #endif
     uint16_t gyro_main_lpf_hz;
-    uint8_t useDynamicLpf;
     uint16_t gyroDynamicLpfMinHz;
     uint16_t gyroDynamicLpfMaxHz;
     uint8_t gyroDynamicLpfCurveExpo;
@@ -87,6 +93,19 @@ typedef struct gyroConfig_s {
     bool init_gyro_cal_enabled;
     int16_t gyro_zero_cal[XYZ_AXIS_COUNT];
     float gravity_cmss_cal;
+#ifdef USE_ADAPTIVE_FILTER
+    float adaptiveFilterTarget;
+    uint16_t adaptiveFilterMinHz;
+    uint16_t adaptiveFilterMaxHz;
+    float adaptiveFilterStdLpfHz;
+    float adaptiveFilterHpfHz;
+    float adaptiveFilterIntegratorThresholdHigh;
+    float adaptiveFilterIntegratorThresholdLow;
+#endif
+    uint8_t gyroFilterMode;
+
+    uint8_t gyroLuluSampleCount;
+    bool gyroLuluEnabled;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

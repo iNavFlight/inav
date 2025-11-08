@@ -63,66 +63,68 @@
 // these data identifiers are obtained from https://github.com/opentx/opentx/blob/2.3/radio/src/telemetry/frsky.h
 enum
 {
-    FSSP_DATAID_SPEED      = 0x0830 ,
-    FSSP_DATAID_VFAS       = 0x0210 ,
-    FSSP_DATAID_CURRENT    = 0x0200 ,
-    FSSP_DATAID_RPM        = 0x050F ,
-    FSSP_DATAID_ALTITUDE   = 0x0100 ,
-    FSSP_DATAID_FUEL       = 0x0600 ,
-    FSSP_DATAID_ADC1       = 0xF102 ,
-    FSSP_DATAID_ADC2       = 0xF103 ,
-    FSSP_DATAID_LATLONG    = 0x0800 ,
-    FSSP_DATAID_CAP_USED   = 0x0600 ,
-    FSSP_DATAID_VARIO      = 0x0110 ,
-    FSSP_DATAID_CELLS      = 0x0300 ,
-    FSSP_DATAID_CELLS_LAST = 0x030F ,
-    FSSP_DATAID_HEADING    = 0x0840 ,
-    FSSP_DATAID_FPV        = 0x0450 ,
-    FSSP_DATAID_PITCH      = 0x0430 ,
-    FSSP_DATAID_ROLL       = 0x0440 ,
-    FSSP_DATAID_ACCX       = 0x0700 ,
-    FSSP_DATAID_ACCY       = 0x0710 ,
-    FSSP_DATAID_ACCZ       = 0x0720 ,
-    FSSP_DATAID_T1         = 0x0400 ,
-    FSSP_DATAID_T2         = 0x0410 ,
-    FSSP_DATAID_HOME_DIST  = 0x0420 ,
-    FSSP_DATAID_GPS_ALT    = 0x0820 ,
-    FSSP_DATAID_ASPD       = 0x0A00 ,
-    FSSP_DATAID_A3         = 0x0900 ,
-    FSSP_DATAID_A4         = 0x0910 ,
-    FSSP_DATAID_AZIMUTH    = 0x0460
+    FSSP_DATAID_SPEED           = 0x0830,
+    FSSP_DATAID_VFAS            = 0x0210,
+    FSSP_DATAID_CURRENT         = 0x0200,
+    FSSP_DATAID_RPM             = 0x050F,
+    FSSP_DATAID_ALTITUDE        = 0x0100,
+    FSSP_DATAID_FUEL            = 0x0600,
+    FSSP_DATAID_ADC1            = 0xF102,
+    FSSP_DATAID_ADC2            = 0xF103,
+    FSSP_DATAID_LATLONG         = 0x0800,
+    FSSP_DATAID_CAP_USED        = 0x0600,
+    FSSP_DATAID_VARIO           = 0x0110,
+    FSSP_DATAID_CELLS           = 0x0300,
+    FSSP_DATAID_CELLS_LAST      = 0x030F,
+    FSSP_DATAID_HEADING         = 0x0840,
+    FSSP_DATAID_FPV             = 0x0450,
+    FSSP_DATAID_PITCH           = 0x0430,
+    FSSP_DATAID_ROLL            = 0x0440,
+    FSSP_DATAID_ACCX            = 0x0700,
+    FSSP_DATAID_ACCY            = 0x0710,
+    FSSP_DATAID_ACCZ            = 0x0720,
+    FSSP_DATAID_LEGACY_MODES    = 0x0400, // Deprecated. Should be removed in INAV 10.0
+    FSSP_DATAID_LEGACY_GNSS     = 0x0410, // Deprecated. Should be removed in INAV 10.0
+    FSSP_DATAID_HOME_DIST       = 0x0420,
+    FSSP_DATAID_GPS_ALT         = 0x0820,
+    FSSP_DATAID_ASPD            = 0x0A00,
+    FSSP_DATAID_A3              = 0x0900,
+    FSSP_DATAID_A4              = 0x0910,
+    FSSP_DATAID_AZIMUTH         = 0x0460,
+    FSSP_DATAID_MODES           = 0x0470,
+    FSSP_DATAID_GNSS            = 0x0480,
 };
 
 const uint16_t frSkyDataIdTable[] = {
-    FSSP_DATAID_SPEED     ,
-    FSSP_DATAID_VFAS      ,
-    FSSP_DATAID_CURRENT   ,
-    //FSSP_DATAID_RPM       ,
-    FSSP_DATAID_ALTITUDE  ,
-    FSSP_DATAID_FUEL      ,
-    //FSSP_DATAID_ADC1      ,
-    //FSSP_DATAID_ADC2      ,
-    FSSP_DATAID_LATLONG   ,
-    FSSP_DATAID_LATLONG   , // twice
-    //FSSP_DATAID_CAP_USED  ,
-    FSSP_DATAID_VARIO     ,
-    //FSSP_DATAID_CELLS     ,
+    FSSP_DATAID_SPEED,
+    FSSP_DATAID_VFAS,
+    FSSP_DATAID_CURRENT,
+    //FSSP_DATAID_RPM,
+    FSSP_DATAID_ALTITUDE,
+    FSSP_DATAID_FUEL,
+    //FSSP_DATAID_ADC1,
+    //FSSP_DATAID_ADC2,
+    FSSP_DATAID_LATLONG,
+    FSSP_DATAID_LATLONG, // twice
+    //FSSP_DATAID_CAP_USED,
+    FSSP_DATAID_VARIO,
+    //FSSP_DATAID_CELLS,
     //FSSP_DATAID_CELLS_LAST,
-    FSSP_DATAID_HEADING   ,
-    FSSP_DATAID_FPV       ,
-    FSSP_DATAID_PITCH     ,
-    FSSP_DATAID_ROLL      ,
-    FSSP_DATAID_ACCX      ,
-    FSSP_DATAID_ACCY      ,
-    FSSP_DATAID_ACCZ      ,
-    FSSP_DATAID_T1        ,
-    FSSP_DATAID_T2        ,
-    FSSP_DATAID_HOME_DIST ,
-    FSSP_DATAID_GPS_ALT   ,
-    FSSP_DATAID_ASPD      ,
-    // FSSP_DATAID_A3        ,
-    FSSP_DATAID_A4        ,
-    FSSP_DATAID_AZIMUTH ,
+    FSSP_DATAID_HEADING,
+    FSSP_DATAID_FPV,
+    FSSP_DATAID_PITCH,
+    FSSP_DATAID_ROLL,
+    FSSP_DATAID_ACCX,
+    FSSP_DATAID_ACCY,
+    FSSP_DATAID_ACCZ,
+    FSSP_DATAID_MODES,
+    FSSP_DATAID_GNSS,
+    FSSP_DATAID_HOME_DIST,
+    FSSP_DATAID_GPS_ALT,
+    FSSP_DATAID_ASPD,
+    // FSSP_DATAID_A3,
+    FSSP_DATAID_A4,
+    FSSP_DATAID_AZIMUTH,
     0
 };
 
@@ -160,11 +162,11 @@ static smartPortWriteFrameFn *smartPortWriteFrame;
 static bool smartPortMspReplyPending = false;
 #endif
 
-static uint16_t frskyGetFlightMode(void)
+static uint32_t frskyGetFlightMode(void)
 {
-    uint16_t tmpi = 0;
+    uint32_t tmpi = 0;
 
-    // ones column
+    // ones column (G)
     if (!isArmingDisabled())
         tmpi += 1;
     else
@@ -172,7 +174,7 @@ static uint16_t frskyGetFlightMode(void)
     if (ARMING_FLAG(ARMED))
         tmpi += 4;
 
-    // tens column
+    // tens column (F)
     if (FLIGHT_MODE(ANGLE_MODE))
         tmpi += 10;
     if (FLIGHT_MODE(HORIZON_MODE))
@@ -180,16 +182,16 @@ static uint16_t frskyGetFlightMode(void)
     if (FLIGHT_MODE(MANUAL_MODE))
         tmpi += 40;
 
-    // hundreds column
+    // hundreds column (E)
     if (FLIGHT_MODE(HEADING_MODE))
         tmpi += 100;
     if (FLIGHT_MODE(NAV_ALTHOLD_MODE))
         tmpi += 200;
-    if (FLIGHT_MODE(NAV_POSHOLD_MODE))
+    if (FLIGHT_MODE(NAV_POSHOLD_MODE) && !STATE(AIRPLANE))
         tmpi += 400;
 
-    // thousands column
-    if (FLIGHT_MODE(NAV_RTH_MODE))
+    // thousands column (D)
+    if (FLIGHT_MODE(NAV_RTH_MODE) && !isWaypointMissionRTHActive())
         tmpi += 1000;
     if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE)) // intentionally out of order and 'else-ifs' to prevent column overflow
         tmpi += 8000;
@@ -198,13 +200,29 @@ static uint16_t frskyGetFlightMode(void)
     else if (FLIGHT_MODE(HEADFREE_MODE))
         tmpi += 4000;
 
-    // ten thousands column
+    // ten thousands column (C)
     if (FLIGHT_MODE(FLAPERON))
         tmpi += 10000;
     if (FLIGHT_MODE(FAILSAFE_MODE))
         tmpi += 40000;
     else if (FLIGHT_MODE(AUTO_TUNE)) // intentionally reverse order and 'else-if' to prevent 16-bit overflow
         tmpi += 20000;
+
+    // hundred thousands column (B)
+    if (FLIGHT_MODE(NAV_FW_AUTOLAND))
+        tmpi += 100000;
+    if (FLIGHT_MODE(TURTLE_MODE))
+        tmpi += 200000;
+    else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE))
+        tmpi += 800000;
+    if (FLIGHT_MODE(NAV_SEND_TO))
+        tmpi += 400000;
+
+    // million column (A)
+    if (FLIGHT_MODE(NAV_RTH_MODE) && isWaypointMissionRTHActive())
+        tmpi += 1000000;
+    if (FLIGHT_MODE(ANGLEHOLD_MODE))
+        tmpi += 2000000;
 
     return tmpi;
 }
@@ -467,27 +485,27 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
         smartPortIdCnt++;
 
         switch (id) {
-            case FSSP_DATAID_VFAS       :
+            case FSSP_DATAID_VFAS:
                 if (isBatteryVoltageConfigured()) {
                     uint16_t vfasVoltage = telemetryConfig()->report_cell_voltage ? getBatteryAverageCellVoltage() : getBatteryVoltage();
                     smartPortSendPackage(id, vfasVoltage);
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_CURRENT    :
+            case FSSP_DATAID_CURRENT:
                 if (isAmperageConfigured()) {
                     smartPortSendPackage(id, getAmperage() / 10); // given in 10mA steps, unknown requested unit
                     *clearToSend = false;
                 }
                 break;
-            //case FSSP_DATAID_RPM        :
-            case FSSP_DATAID_ALTITUDE   :
+            //case FSSP_DATAID_RPM:
+            case FSSP_DATAID_ALTITUDE:
                 if (sensors(SENSOR_BARO)) {
                     smartPortSendPackage(id, getEstimatedActualPosition(Z)); // unknown given unit, requested 100 = 1 meter
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_FUEL       :
+            case FSSP_DATAID_FUEL:
                 if (telemetryConfig()->smartportFuelUnit == SMARTPORT_FUEL_UNIT_PERCENT) {
                     smartPortSendPackage(id, calculateBatteryPercentage()); // Show remaining battery % if smartport_fuel_percent=ON
                     *clearToSend = false;
@@ -496,63 +514,71 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                     *clearToSend = false;
                 }
                 break;
-            //case FSSP_DATAID_ADC1       :
-            //case FSSP_DATAID_ADC2       :
-            //case FSSP_DATAID_CAP_USED   :
-            case FSSP_DATAID_VARIO      :
+            //case FSSP_DATAID_ADC1:
+            //case FSSP_DATAID_ADC2:
+            //case FSSP_DATAID_CAP_USED:
+            case FSSP_DATAID_VARIO:
                 if (sensors(SENSOR_BARO)) {
                     smartPortSendPackage(id, lrintf(getEstimatedActualVelocity(Z))); // unknown given unit but requested in 100 = 1m/s
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_HEADING    :
+            case FSSP_DATAID_HEADING:
                 smartPortSendPackage(id, attitude.values.yaw * 10); // given in 10*deg, requested in 10000 = 100 deg
                 *clearToSend = false;
                 break;
-            case FSSP_DATAID_PITCH      :
+            case FSSP_DATAID_PITCH:
                 if (telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, attitude.values.pitch); // given in 10*deg
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_ROLL       :
+            case FSSP_DATAID_ROLL:
                 if (telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, attitude.values.roll); // given in 10*deg
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_ACCX       :
+            case FSSP_DATAID_ACCX:
                 if (!telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, lrintf(100 * acc.accADCf[X]));
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_ACCY       :
+            case FSSP_DATAID_ACCY:
                 if (!telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, lrintf(100 * acc.accADCf[Y]));
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_ACCZ       :
+            case FSSP_DATAID_ACCZ:
                 if (!telemetryConfig()->frsky_pitch_roll) {
                     smartPortSendPackage(id, lrintf(100 * acc.accADCf[Z]));
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_T1         :
+            case FSSP_DATAID_MODES:
                 {
+                    if (telemetryConfig()->frsky_use_legacy_gps_mode_sensor_ids)
+                        id = FSSP_DATAID_LEGACY_MODES;
+
                     smartPortSendPackage(id, frskyGetFlightMode());
                     *clearToSend = false;
                     break;
                 }
 #ifdef USE_GPS
-            case FSSP_DATAID_T2         :
-                if (smartPortShouldSendGPSData()) {
-                    smartPortSendPackage(id, frskyGetGPSState());
-                    *clearToSend = false;
+            case FSSP_DATAID_GNSS:
+                {
+                    if (telemetryConfig()->frsky_use_legacy_gps_mode_sensor_ids)
+                        id = FSSP_DATAID_LEGACY_GNSS;
+
+                    if (smartPortShouldSendGPSData()) {
+                        smartPortSendPackage(id, frskyGetGPSState());
+                        *clearToSend = false;
+                    }
+                    break;
                 }
-                break;
-            case FSSP_DATAID_SPEED      :
+            case FSSP_DATAID_SPEED:
                 if (smartPortShouldSendGPSData()) {
                     //convert to knots: 1cm/s = 0.0194384449 knots
                     //Speed should be sent in knots/1000 (GPS speed is in cm/s)
@@ -561,7 +587,7 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_LATLONG    :
+            case FSSP_DATAID_LATLONG:
                 if (smartPortShouldSendGPSData()) {
                     uint32_t tmpui = 0;
                     // the same ID is sent twice, one for longitude, one for latitude
@@ -581,25 +607,25 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_HOME_DIST  :
+            case FSSP_DATAID_HOME_DIST:
                 if (smartPortShouldSendGPSData()) {
                     smartPortSendPackage(id, GPS_distanceToHome);
                      *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_GPS_ALT    :
+            case FSSP_DATAID_GPS_ALT:
                 if (smartPortShouldSendGPSData()) {
                     smartPortSendPackage(id, gpsSol.llh.alt); // cm
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_FPV       :
+            case FSSP_DATAID_FPV:
                 if (smartPortShouldSendGPSData()) {
                     smartPortSendPackage(id, gpsSol.groundCourse); // given in 10*deg
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_AZIMUTH    :
+            case FSSP_DATAID_AZIMUTH:
                 if (smartPortShouldSendGPSData()) {
                     int16_t h = GPS_directionToHome;
                     if (h < 0) {
@@ -614,13 +640,13 @@ void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *clear
                 }
                 break;
 #endif
-            case FSSP_DATAID_A4         :
+            case FSSP_DATAID_A4:
                 if (isBatteryVoltageConfigured()) {
                     smartPortSendPackage(id, getBatteryAverageCellVoltage());
                     *clearToSend = false;
                 }
                 break;
-            case FSSP_DATAID_ASPD       :
+            case FSSP_DATAID_ASPD:
 #ifdef USE_PITOT
                 if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
                     smartPortSendPackage(id, getAirspeedEstimate() * 0.194384449f); // cm/s to knots*1

@@ -42,18 +42,20 @@
 #include "sensors/rangefinder.h"
 
 #include "io/serial.h"
+#include "io/servo_sbus.h"
 
 enum {
     MAP_TO_NONE,
     MAP_TO_MOTOR_OUTPUT,
     MAP_TO_SERVO_OUTPUT,
+    MAP_TO_LED_OUTPUT
 };
 
 typedef struct {
     int maxTimMotorCount;
     int maxTimServoCount;
-    const timerHardware_t * timMotors[MAX_PWM_OUTPUT_PORTS];
-    const timerHardware_t * timServos[MAX_PWM_OUTPUT_PORTS];
+    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
+    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
 } timMotorServoHardware_t;
 
 static pwmInitError_e pwmInitError = PWM_INIT_ERROR_NONE;
@@ -167,10 +169,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 
 #if defined(USE_LED_STRIP)
     if (feature(FEATURE_LED_STRIP)) {
-        const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
-        if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
-            return true;
+        for (int i = 0; i < timerHardwareCount; i++) {
+            if (timHw->tim == timerHardware[i].tim && timerHardware[i].usageFlags & TIM_USE_LED) {
+				return true;
+            }
         }
+
+        //const timerHardware_t * ledTimHw = timerGetByTag(IO_TAG(WS2811_PIN), TIM_USE_ANY);
+        //if (ledTimHw != NULL && timHw->tim == ledTimHw->tim) {
+        //    return true;
+        //}
     }
 #endif
 
@@ -213,16 +221,16 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 static void timerHardwareOverride(timerHardware_t * timer) {
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
-            if (TIM_IS_SERVO(timer->usageFlags)) {
-                timer->usageFlags &= ~TIM_USE_SERVO;
-                timer->usageFlags |= TIM_USE_MOTOR;
-            }
+            timer->usageFlags &= ~(TIM_USE_SERVO|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_MOTOR;
             break;
         case OUTPUT_MODE_SERVOS:
-            if (TIM_IS_MOTOR(timer->usageFlags)) {
-                timer->usageFlags &= ~TIM_USE_MOTOR;
-                timer->usageFlags |= TIM_USE_SERVO;
-            }
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_LED);
+            timer->usageFlags |= TIM_USE_SERVO;
+            break;
+        case OUTPUT_MODE_LED:
+            timer->usageFlags &= ~(TIM_USE_MOTOR|TIM_USE_SERVO);
+            timer->usageFlags |= TIM_USE_LED;
             break;
     }
 }
@@ -335,6 +343,8 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             type = MAP_TO_SERVO_OUTPUT;
         } else if (TIM_IS_MOTOR(timHw->usageFlags) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
             type = MAP_TO_MOTOR_OUTPUT;
+        } else if (TIM_IS_LED(timHw->usageFlags) && !pwmHasMotorOnTimer(timOutputs, timHw->tim) && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
+            type = MAP_TO_LED_OUTPUT;
         }
 
         switch(type) {
@@ -346,6 +356,10 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t * timOutputs, bool isMixerU
             case MAP_TO_SERVO_OUTPUT:
                 timHw->usageFlags &= TIM_USE_SERVO;
                 timOutputs->timServos[timOutputs->maxTimServoCount++] = timHw;
+                pwmClaimTimer(timHw->tim, timHw->usageFlags);
+                break;
+            case MAP_TO_LED_OUTPUT:
+                timHw->usageFlags &= TIM_USE_LED;
                 pwmClaimTimer(timHw->tim, timHw->usageFlags);
                 break;
             default:
@@ -429,15 +443,21 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
         return;
     }
 
+
     // If mixer requests more servos than we have timer outputs - throw an error
-    if (servoCount > timOutputs->maxTimServoCount) {
+    uint16_t maxServos = timOutputs->maxTimServoCount;
+    if (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM) {
+        maxServos = MAX(SERVO_SBUS_MAX_SERVOS, timOutputs->maxTimServoCount);
+    }
+
+    if (servoCount > maxServos) {
         pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS;
         LOG_ERROR(PWM, "Too many servos. Mixer requested %d, timer outputs %d", servoCount, timOutputs->maxTimServoCount);
         return;
     }
 
     // Configure individual servo outputs
-    for (int idx = 0; idx < servoCount; idx++) {
+    for (int idx = 0; idx < MIN(servoCount, timOutputs->maxTimServoCount); idx++) {
         const timerHardware_t *timHw = timOutputs->timServos[idx];
 
         if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {

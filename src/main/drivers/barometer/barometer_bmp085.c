@@ -34,7 +34,9 @@
 
 #if defined(USE_BARO_BMP085)
 
+#if !defined(BMP085_I2C_ADDR)
 #define BMP085_I2C_ADDR         0x77
+#endif
 #define BMP085_CHIP_ID          0x55
 
 typedef struct {

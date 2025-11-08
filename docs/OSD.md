@@ -2,19 +2,30 @@
 
 The On Screen Display, or OSD, is a feature that overlays flight data over the video image. This can be done on the flight controller, using the analogue MAX7456 chip. Digital systems take the OSD data, via MSP DisplayPort, send it to the video receiver; which combines the data with the image. You can specify what elements are displayed, and their locations on the image. Most systems are character based, and use the MAX7456 analogue setup, or MSP DisplayPort. However, there are some different systems which are also supported. Such as the canvas based FrSKY PixelOSD on analogue. Canvas OSDs draw shapes on the image. Whereas character based OSDs use font characters to display the data.
 
+
+General OSD information is in this document. Other documents cover specific OSD-related topics:
+* [Custom OSD Elements](https://github.com/iNavFlight/inav/wiki/Custom-OSD-Elements)
+* [OSD Hud and ESP32 radars](https://github.com/iNavFlight/inav/wiki/OSD-Hud-and-ESP32-radars)
+* [OSD Joystick](https://github.com/iNavFlight/inav/blob/master/docs/OSD%20Joystick.md)
+* [DJI compatible OSD.md](https://github.com/iNavFlight/inav/blob/master/docs/DJI%20compatible%20OSD.md)
+* [Pixel OSD FAQ](https://github.com/iNavFlight/inav/wiki/Pixel-OSD-FAQs)
+
+
 ## Features and Limitations
 Not all OSDs are created equally. This table shows the differences between the different systems available.
 
-| OSD System    | Character grid | Character | Canvas | MSP DisplayPort | All elements supported  |
-|---------------|----------------|-----------|--------|-----------------|-------------------------|
-| Analogue PAL  | 30 x 16        | X         |        |                 | YES                     |
-| Analogue NTSC | 30 x 13        | X         |        |                 | YES                     |
-| PixelOSD      | As PAL or NTSC |           | X      |                 | YES                     |
-| DJI OSD       | 30 x 16        | X         |        |                 | NO - BF Characters only |
-| DJI WTFOS     | 60 x 22        | X         |        | X               | YES                     |
-| HDZero        | 50 x 18        | X         |        | X               | YES                     |
-| Avatar        | 53 x 20        | X         |        | X               | YES                     |
-| DJI O3        | 53 x 20 (HD)   | X         |        | X	(partial)     | NO - BF Characters only |
+| OSD System                  | Character grid | Character | Canvas | MSP DisplayPort | All elements supported  |
+|-----------------------------|----------------|-----------|--------|-----------------|-------------------------|
+| Analogue PAL                | 30 x 16        | X         |        |                 | YES                     |
+| Analogue NTSC               | 30 x 13        | X         |        |                 | YES                     |
+| PixelOSD                    | As PAL or NTSC |           | X      |                 | YES                     |
+| DJI OSD                     | 30 x 16        | X         |        |                 | NO - BF Characters only |
+| DJI WTFOS                   | 60 x 22        | X         |        | X               | YES                     |
+| HDZero                      | 50 x 18        | X         |        | X               | YES                     |
+| Avatar                      | 53 x 20        | X         |        | X               | YES                     |
+| DJI O3 Goggles V2 + WTFOS   | 53 x 20        | X         |        | X               | YES                     |
+| DJI Goggles 2 and newer     | 53 x 20 (HD)   | X         |        | X               | YES (no custom fonts)   |
+
 
 ## OSD Elements
 Here are the OSD Elements provided by INAV.
@@ -47,7 +58,7 @@ Here are the OSD Elements provided by INAV.
 | 23  | OSD_HOME_DIST                                    | 1.6.0  |       |
 | 24  | OSD_HEADING                                      | 1.6.0  |       |
 | 25  | OSD_VARIO                                        | 1.6.0  |       |
-| 26  | OSD_VARIO_NUM                                    | 1.6.0  |       |
+| 26  | OSD_VERTICAL_SPEED_INDICATOR                     | 1.6.0  |       |
 | 27  | OSD_AIR_SPEED                                    | 1.7.3  |       |
 | 28  | OSD_ONTIME_FLYTIME                               | 1.8.0  |       |
 | 29  | OSD_RTC_TIME                                     | 1.8.0  |       |
@@ -168,7 +179,27 @@ Here are the OSD Elements provided by INAV.
 | 144 | OSD_MULTI_FUNCTION                               | 7.0.0  |       |
 | 145 | OSD_ODOMETER                                     | 7.0.0  | For this to work correctly, stats must be enabled (`set stats=ON`). Otherwise, this will show the total flight distance. |
 | 146 | OSD_PILOT_LOGO                                   | 7.0.0  |       |
-| 147 | OSD_BLACKBOX                                     | 8.0.0  | The element will be hidden unless blackbox recording is attempted. |
+| 147 | OSD_CUSTOM_ELEMENT_1                             | 7.0.0  |       |
+| 148 | OSD_CUSTOM_ELEMENT_2                             | 7.0.0  |       |
+| 149 | OSD_CUSTOM_ELEMENT_3                             | 7.0.0  |       |
+| 150 | OSD_ADSB_WARNING                                 | 7.0.0  |       |
+| 151 | OSD_ADSB_INFO                                    | 7.0.0  |       |
+| 152 | OSD_BLACKBOX                                     | 8.0.0  | The element will be hidden unless blackbox recording is attempted. |
+| 153 | OSD_FORMATION_FLIGHT                             | 8.0.0  |       |
+| 154 | OSD_CUSTOM_ELEMENT_4                             | 8.0.0  |       |
+| 155 | OSD_CUSTOM_ELEMENT_5                             | 8.0.0  |       |
+| 156 | OSD_CUSTOM_ELEMENT_6                             | 8.0.0  |       |
+| 157 | OSD_CUSTOM_ELEMENT_7                             | 8.0.0  |       |
+| 158 | OSD_CUSTOM_ELEMENT_8                             | 8.0.0  |       |
+| 159 | OSD_LQ_DOWNLINK                                  | 8.0.0  |       |
+| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  |       |
+| 161 | OSD_RX_BAND                                      | 8.0.0  |       |
+| 162 | OSD_RX_MODE                                      | 8.0.0  |       |
+| 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
+| 164 | OSD_H_DIST_TO_FENCE                              | 8.0.0  |       |
+| 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
+| 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
+| 167 | OSD_NAV_MIN_GROUND_SPEED                         | 9.0.0  |       |
 
 # Pilot Logos
 
