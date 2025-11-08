@@ -2565,7 +2565,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "MANU";
 #ifdef USE_GEOZONE
             else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE))
-                p = "GEO";
+                p = "GEO ";
 #endif
             else if (FLIGHT_MODE(TURTLE_MODE))
                 p = "TURT";
