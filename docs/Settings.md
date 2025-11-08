@@ -2722,6 +2722,16 @@ Rate of the RC channels message for MAVLink telemetry
 
 ---
 
+### mavlink_sysid
+
+MAVLink System ID
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 255 |
+
+---
+
 ### mavlink_version
 
 Version of MAVLink to use
