@@ -5633,8 +5633,8 @@ Selection of pitot hardware.
 ---
 
 ### pitot_lpf_milli_hz
-Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
+Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |
