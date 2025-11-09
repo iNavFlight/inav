@@ -766,11 +766,11 @@ static int logicConditionGetFlightOperandValue(int operand) {
             if (isEstimatedWindSpeedValid()) {
                 uint16_t windAngle;
                 getEstimatedHorizontalWindSpeed(&windAngle);
-                int32_t windHeading = (int32_t)windHeading + 18000; // Correct heading to display correctly.
+                int32_t windHeading = (int32_t)windAngle + 18000; // Correct heading to display correctly.
         
                 while (windHeading < 0) windHeading += 36000;
                 while (windHeading >= 36000) windHeading -= 36000;
-                
+
                 return (int32_t)CENTIDEGREES_TO_DEGREES(windHeading);
             } else
                 return -1;
