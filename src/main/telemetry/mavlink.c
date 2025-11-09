@@ -183,7 +183,9 @@ static mavlink_message_t mavSendMsg;
 static mavlink_message_t mavRecvMsg;
 static mavlink_status_t mavRecvStatus;
 
+// Set mavSystemId from telemetryConfig()->mavlink.sysid
 static uint8_t mavSystemId = 1;
+static uint8_t mavAutopilotType;
 static uint8_t mavComponentId = MAV_COMP_ID_AUTOPILOT1;
 
 static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
@@ -196,7 +198,14 @@ static APM_COPTER_MODE inavToArduCopterMap(flightModeForTelemetry_e flightMode)
         case FLM_HORIZON:       return COPTER_MODE_STABILIZE;
         case FLM_ANGLEHOLD:     return COPTER_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return COPTER_MODE_ALT_HOLD;
-        case FLM_POSITION_HOLD: return COPTER_MODE_POSHOLD;
+        case FLM_POSITION_HOLD: 
+            {
+                if (isGCSValid()) {
+                    return COPTER_MODE_GUIDED;
+                } else {
+                    return COPTER_MODE_POSHOLD;
+                }
+            }
         case FLM_RTH:           return COPTER_MODE_RTL;
         case FLM_MISSION:       return COPTER_MODE_AUTO;
         case FLM_LAUNCH:        return COPTER_MODE_THROW;
@@ -226,7 +235,14 @@ static APM_PLANE_MODE inavToArduPlaneMap(flightModeForTelemetry_e flightMode)
         case FLM_HORIZON:       return PLANE_MODE_STABILIZE;
         case FLM_ANGLEHOLD:     return PLANE_MODE_STABILIZE;
         case FLM_ALTITUDE_HOLD: return PLANE_MODE_FLY_BY_WIRE_B;
-        case FLM_POSITION_HOLD: return PLANE_MODE_LOITER;
+        case FLM_POSITION_HOLD: 
+            {
+                if (isGCSValid()) {
+                    return PLANE_MODE_GUIDED;
+                } else {
+                    return PLANE_MODE_LOITER;
+                }
+            }
         case FLM_RTH:           return PLANE_MODE_RTL;
         case FLM_MISSION:       return PLANE_MODE_AUTO;
         case FLM_CRUISE:        return PLANE_MODE_CRUISE;
@@ -296,6 +312,8 @@ void configureMAVLinkTelemetryPort(void)
     }
 
     mavlinkPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_MAVLINK, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_MAVLINK_PORT_MODE, SERIAL_NOT_INVERTED);
+    mavAutopilotType = telemetryConfig()->mavlink.autopilot_type;
+    mavSystemId = telemetryConfig()->mavlink.sysid;
 
     if (!mavlinkPort) {
         return;
@@ -486,7 +504,7 @@ void mavlinkSendSystemStatus(void)
         // errors_count3 Autopilot-specific errors
         0,
         // errors_count4 Autopilot-specific errors
-        0);
+        0, 0, 0, 0);
 
     mavlinkSendMessage();
 }
@@ -795,11 +813,18 @@ void mavlinkSendHUDAndHeartbeat(void)
         mavSystemState = MAV_STATE_STANDBY;
     }
 
+    uint8_t mavType;
+    if (mavAutopilotType == MAVLINK_AUTOPILOT_ARDUPILOT) {
+        mavType = MAV_AUTOPILOT_ARDUPILOTMEGA;
+    } else {
+        mavType = MAV_AUTOPILOT_GENERIC;
+    }
+
     mavlink_msg_heartbeat_pack(mavSystemId, mavComponentId, &mavSendMsg,
         // type Type of the MAV (quadrotor, helicopter, etc., up to 15 types, defined in MAV_TYPE ENUM)
         mavSystemType,
         // autopilot Autopilot type / class. defined in MAV_AUTOPILOT ENUM
-        MAV_AUTOPILOT_GENERIC,
+        mavType,
         // base_mode System mode bitfield, see MAV_MODE_FLAGS ENUM in mavlink/include/mavlink_types.h
         mavModes,
         // custom_mode A bitfield for use for autopilot-specific flags.
@@ -944,7 +969,7 @@ static bool handleIncoming_MISSION_CLEAR_ALL(void)
     // Check if this message is for us
     if (msg.target_system == mavSystemId) {
         resetWaypointList();
-        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION, 0);
         mavlinkSendMessage();
         return true;
     }
@@ -971,12 +996,12 @@ static bool handleIncoming_MISSION_COUNT(void)
             return true;
         }
         else if (ARMING_FLAG(ARMED)) {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION);
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
             return true;
         }
         else {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_NO_SPACE, MAV_MISSION_TYPE_MISSION);
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_NO_SPACE, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
             return true;
         }
@@ -994,19 +1019,46 @@ static bool handleIncoming_MISSION_ITEM(void)
     if (msg.target_system == mavSystemId) {
         // Check supported values first
         if (ARMING_FLAG(ARMED)) {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION);
-            mavlinkSendMessage();
-            return true;
+            // Legacy Mission Planner BS for GUIDED
+            if (isGCSValid() && (msg.command == MAV_CMD_NAV_WAYPOINT) && (msg.current == 2)) {
+                if (!(msg.frame == MAV_FRAME_GLOBAL)) {
+                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                        mavRecvMsg.sysid, mavRecvMsg.compid,
+                        MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                    mavlinkSendMessage();
+                    return true;
+                }
+
+                navWaypoint_t wp;
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                wp.lat = (int32_t)(msg.x * 1e7f); 
+                wp.lon = (int32_t)(msg.y * 1e7f);
+                wp.alt = (int32_t)(msg.z * 100.0f);
+                wp.p1 = 0;
+                wp.p2 = 0;
+                wp.p3 = 0;
+                setWaypoint(255, &wp);
+
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                    mavRecvMsg.sysid, mavRecvMsg.compid,
+                    MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            } else {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
         }
 
         if ((msg.autocontinue == 0) || (msg.command != MAV_CMD_NAV_WAYPOINT && msg.command != MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION);
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
             return true;
         }
 
         if ((msg.frame != MAV_FRAME_GLOBAL_RELATIVE_ALT) && !(msg.frame == MAV_FRAME_MISSION && msg.command == MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION);
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
             return true;
         }
@@ -1028,11 +1080,11 @@ static bool handleIncoming_MISSION_ITEM(void)
 
             if (incomingMissionWpSequence >= incomingMissionWpCount) {
                 if (isWaypointListValid()) {
-                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION);
+                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ACCEPTED, MAV_MISSION_TYPE_MISSION, 0);
                     mavlinkSendMessage();
                 }
                 else {
-                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID, MAV_MISSION_TYPE_MISSION);
+                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID, MAV_MISSION_TYPE_MISSION, 0);
                     mavlinkSendMessage();
                 }
             }
@@ -1043,7 +1095,7 @@ static bool handleIncoming_MISSION_ITEM(void)
         }
         else {
             // Wrong sequence number received
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION);
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
         }
 
@@ -1060,7 +1112,7 @@ static bool handleIncoming_MISSION_REQUEST_LIST(void)
 
     // Check if this message is for us
     if (msg.target_system == mavSystemId) {
-        mavlink_msg_mission_count_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, getWaypointCount(), MAV_MISSION_TYPE_MISSION);
+        mavlink_msg_mission_count_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, getWaypointCount(), MAV_MISSION_TYPE_MISSION, 0);
         mavlinkSendMessage();
         return true;
     }
@@ -1095,7 +1147,7 @@ static bool handleIncoming_MISSION_REQUEST(void)
             mavlinkSendMessage();
         }
         else {
-            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION);
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION, 0);
             mavlinkSendMessage();
         }
 
@@ -1104,6 +1156,80 @@ static bool handleIncoming_MISSION_REQUEST(void)
 
     return false;
 }
+
+
+static bool handleIncoming_COMMAND_INT(void)
+{
+    mavlink_command_int_t msg;
+    mavlink_msg_command_int_decode(&mavRecvMsg, &msg);
+
+    if (msg.target_system == mavSystemId) {
+
+        if (msg.command == MAV_CMD_DO_REPOSITION) {
+            
+            if (!(msg.frame == MAV_FRAME_GLOBAL)) { //|| msg.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT || msg.frame == MAV_FRAME_GLOBAL_TERRAIN_ALT)) {
+
+                    mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                                msg.command,
+                                                MAV_RESULT_UNSUPPORTED,
+                                                0,  // progress
+                                                0,  // result_param2
+                                                mavRecvMsg.sysid,
+                                                mavRecvMsg.compid);
+                    mavlinkSendMessage();
+                    return true;
+                }
+
+            if (isGCSValid()) {
+                navWaypoint_t wp;
+                wp.action = NAV_WP_ACTION_WAYPOINT;
+                wp.lat = (int32_t)msg.x;
+                wp.lon = (int32_t)msg.y;
+                wp.alt = msg.z * 100.0f;
+                if (!isnan(msg.param4) && msg.param4 >= 0.0f && msg.param4 < 360.0f) {
+                    wp.p1 = (int16_t)msg.param4;
+                } else {
+                    wp.p1 = 0;
+                }
+                wp.p2 = 0; // TODO: Alt modes 
+                wp.p3 = 0;
+                wp.flag = 0;
+
+                setWaypoint(255, &wp);
+
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_ACCEPTED,
+                                            0,  // progress
+                                            0,  // result_param2
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
+                mavlinkSendMessage();
+            } else {
+                mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                            msg.command,
+                                            MAV_RESULT_DENIED,
+                                            0,
+                                            0,
+                                            mavRecvMsg.sysid,
+                                            mavRecvMsg.compid);
+                mavlinkSendMessage();
+            }
+        } else {
+            mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
+                                        msg.command,
+                                        MAV_RESULT_UNSUPPORTED,
+                                        0,
+                                        0,
+                                        mavRecvMsg.sysid,
+                                        mavRecvMsg.compid);
+            mavlinkSendMessage();
+        }
+        return true;
+    }
+    return false;
+}
+
 
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
@@ -1186,9 +1312,10 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
     adsbVehicleValues_t* vehicle = getVehicleForFill();
     if(vehicle != NULL){
         vehicle->icao = msg.ICAO_address;
-        vehicle->lat = msg.lat;
-        vehicle->lon = msg.lon;
+        vehicle->gps.lat = msg.lat;
+        vehicle->gps.lon = msg.lon;
         vehicle->alt = (int32_t)(msg.altitude / 10);
+        vehicle->horVelocity = msg.hor_velocity;
         vehicle->heading = msg.heading;
         vehicle->flags = msg.flags;
         vehicle->altitudeType = msg.altitude_type;
@@ -1198,25 +1325,6 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
 
         adsbNewVehicle(vehicle);
     }
-
-    //debug vehicle
-   /* if(vehicle != NULL){
-
-        char name[9] = "DUMMY    ";
-
-        vehicle->icao = 666;
-        vehicle->lat = 492383514;
-        vehicle->lon = 165148681;
-        vehicle->alt = 100000;
-        vehicle->heading = 180;
-        vehicle->flags = ADSB_FLAGS_VALID_ALTITUDE | ADSB_FLAGS_VALID_COORDS;
-        vehicle->altitudeType = 0;
-        memcpy(&(vehicle->callsign), name, sizeof(vehicle->callsign));
-        vehicle->emitterType = 6;
-        vehicle->tslc = 0;
-
-        adsbNewVehicle(vehicle);
-    }*/
 
     return true;
 }
@@ -1243,6 +1351,13 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_ITEM();
                 case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                     return handleIncoming_MISSION_REQUEST_LIST();
+
+                //TODO:
+                //case MAVLINK_MSG_ID_COMMAND_LONG; //up to 7 float parameters
+                    //return handleIncoming_COMMAND_LONG();
+                
+                case MAVLINK_MSG_ID_COMMAND_INT: //7 parameters: parameters 1-4, 7 are floats, and parameters 5,6 are scaled integers
+                    return handleIncoming_COMMAND_INT();
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
                     return handleIncoming_MISSION_REQUEST();
                 case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:

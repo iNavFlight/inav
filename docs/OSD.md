@@ -58,7 +58,7 @@ Here are the OSD Elements provided by INAV.
 | 23  | OSD_HOME_DIST                                    | 1.6.0  |       |
 | 24  | OSD_HEADING                                      | 1.6.0  |       |
 | 25  | OSD_VARIO                                        | 1.6.0  |       |
-| 26  | OSD_VARIO_NUM                                    | 1.6.0  |       |
+| 26  | OSD_VERTICAL_SPEED_INDICATOR                     | 1.6.0  |       |
 | 27  | OSD_AIR_SPEED                                    | 1.7.3  |       |
 | 28  | OSD_ONTIME_FLYTIME                               | 1.8.0  |       |
 | 29  | OSD_RTC_TIME                                     | 1.8.0  |       |
@@ -199,6 +199,7 @@ Here are the OSD Elements provided by INAV.
 | 164 | OSD_H_DIST_TO_FENCE                              | 8.0.0  |       |
 | 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
 | 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
+| 167 | OSD_NAV_MIN_GROUND_SPEED                         | 9.0.0  |       |
 
 # Pilot Logos
 

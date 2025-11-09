@@ -32,7 +32,6 @@
 #define BEEPER_INVERTED
 
 // *************** SPI1 Gyro & ACC *******************
-#define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
 #define USE_SPI
 #define USE_SPI_DEVICE_1

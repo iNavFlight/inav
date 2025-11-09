@@ -89,6 +89,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/firmware_update.h"
+#include "fc/stats.h"
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -745,6 +746,8 @@ void init(void)
     // Considering that the persistent reset reason is only used during init
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 #endif
+
+    statsInit();
 
     systemState |= SYSTEM_STATE_READY;
 }

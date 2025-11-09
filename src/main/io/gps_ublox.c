@@ -746,8 +746,8 @@ static bool gpsParseFrameUBLOX(void)
                 ubloxNavSat2NavSig(&_buffer.svinfo.channel[i], &satelites[i]);
             }
             for(int i =_buffer.svinfo.numSvs; i < UBLOX_MAX_SIGNALS; ++i) {
-                satelites->gnssId = 0xFF;
-                satelites->svId = 0xFF;
+                satelites[i].gnssId = 0xFF;
+                satelites[i].svId = 0xFF;
             }
         }
         break;

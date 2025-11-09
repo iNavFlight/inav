@@ -132,6 +132,7 @@ save
 
 ![Alt text](Screenshots/mixerprofile_fw_mixer.png)
 
+You must also assign the tilting servos values using the MAX values.  If you don't do this the motors will point in the direction assigned by the transition mode.
 
 # STEP 2: Configuring as a Multi-Copter in Profile 2
 
