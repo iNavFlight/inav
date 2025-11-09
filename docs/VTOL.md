@@ -22,7 +22,7 @@ We highly value your feedback as it plays a crucial role in the development and 
 
 # VTOL Configuration Steps
 
-### The VTOL functionality is achieved by switching/transitioning between two configurations stored in the FC. VTOL specific configurations are Mixer Profiles with associated PID profiles. One profile set is for fixed-wing(FW) mode, One is for multi-copter(MC) mode. Configuration/Settings other than Mixer/PID profiles are shared among two modes 
+### The VTOL functionality is achieved by switching/transitioning between two configurations stored in the FC. VTOL specific configurations are Mixer Profiles with associated control profiles. One profile set is for fixed-wing(FW) mode, One is for multi-copter(MC) mode. Configuration/Settings other than Mixer/control profiles are shared among two modes
 ![Alt text](Screenshots/mixerprofile_flow.png)
 
 0. **Find a DIFF ALL file for your model and start from there if possible**
@@ -78,7 +78,7 @@ set platform_type = TRICOPTER
 set model_preview_type = 1
 set mixer_pid_profile_linking = ON
 
-profile 1 #pid profile
+profile 1 #control profile
 set dterm_lpf_hz = 10
 set d_boost_min =  1.000
 set d_boost_max =  1.000
@@ -115,11 +115,12 @@ save
 
 # STEP 1: Configuring as a normal fixed-wing in Profile 1
 
-1. **Select the fisrt Mixer Profile and PID Profile:**
-   - In the CLI, switch to the mixer_profile and pid_profile you wish to set first. You can also switch mixer_profile/pid_profile through gui with aforementioned presets loaded.
+1. **Select the first Mixer Profile and Control Profile:**
+   - In the CLI, switch to the mixer_profile and control_profile you wish to set first. You can also switch
+     mixer_profile/control_profile through gui with aforementioned presets loaded.
      ```
      mixer_profile 1 #in this example, we set profile 1 first
-     set mixer_pid_profile_linking = ON  # Let the mixer_profile handle the pid_profile switch on this mixer_profile
+     set mixer_pid_profile_linking = ON  # Let the mixer_profile handle the control profile (formerly pid_profile) switch on this mixer_profile
      set platform_type = AIRPLANE
      save
      ```
@@ -136,8 +137,9 @@ You must also assign the tilting servos values using the MAX values.  If you don
 
 # STEP 2: Configuring as a Multi-Copter in Profile 2
 
-1. **Switch to Another Mixer Profile with PID Profile:**
-   - In the CLI, switch to another mixer_profile along with the appropriate pid_profile. You can also switch mixer_profile/pid_profile through gui with aforementioned presets loaded.
+1. **Switch to Another Mixer Profile with Control Profile:**
+   - In the CLI, switch to another mixer_profile along with the appropriate control profile. You can also switch
+     mixer_profile/control_profile through gui with aforementioned presets loaded.
      ```
      mixer_profile 2
      set mixer_pid_profile_linking = ON
@@ -146,7 +148,7 @@ You must also assign the tilting servos values using the MAX values.  If you don
      ```
 
 2. **Configure the Multicopter/tricopter:**
-   - Set up your multi-copter/fixed-wing as usual, this time for mixer_profile 2 and pid_profile 2.
+   - Set up your multi-copter/fixed-wing as usual, this time for mixer_profile 2 and control_profile 2.
    - Utilize the 'MAX' input in the servo mixer to tilt the motors without altering the servo midpoint.
    - At this stage, focus on configuring profile-specific settings. You can streamline this process by copying and pasting the default PID settings.
    - you can set -1 in motor mixer throttle as a place holder: this will disable that motor but will load following the motor rules
@@ -200,7 +202,7 @@ The steps below describe how you can fine-tune the tilting servos to obtian the 
    - Also, ensure that your MAX values in the Mixer tab are at 100 and -100, so that your servo will move to the maximum position, as shown in the screenshots in STEP1 and STEP2.
 
 3. **Adjust the maximum throws for the Multicopter/Tricopter mode:**
-   - While in tricopter mode, go to the Outputs tab and adjust the endpoints MIN and MAX values so your motors are pointed slightly backwards.
+   - While in tricopter mode, go to the Outputs tab and adjust the endpoints MIN and MAX values such that your motors are pointed slightly backwards.
    - Rotate the prop such that it is pointed backwards towards the wing/motor mount and ensure that the gap is the same on both sides by adjusting the MIN and MAX values for the tilt servo channels.
    - NOTE: You can check the distance with calipers or gauge blocks. Alternatively, you can adjust the MIN and MAX for your tilting servos such that the props are just touching the top of the wing or motor mount, and then you can increase/decrease the MIN and MAX values for each channel by the same ammount for both servos. This should ensure that you have the same gap between the tip of the prop and the wing or motor mount for both sides.
 
