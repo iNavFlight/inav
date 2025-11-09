@@ -1544,7 +1544,7 @@ groups:
         max: 180
       - name: ahrs_acc_ignore_rate
         description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
-        default_value: 15
+        default_value: 20
         field: acc_ignore_rate
         min: 0
         max: 30
