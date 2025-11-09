@@ -152,6 +152,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
+    drivers/compass/compass_qmc5883p.c
+    drivers/compass/compass_qmc5883p.h
     drivers/compass/compass_rm3100.c
     drivers/compass/compass_rm3100.h
     drivers/compass/compass_vcm5883.c
@@ -216,7 +218,7 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_ms4525.c
     drivers/pitotmeter/pitotmeter_ms4525.h
     drivers/pitotmeter/pitotmeter_dlvr_l10d.c
-    drivers/pitotmeter/pitotmeter_dlvr_l10d.h	
+    drivers/pitotmeter/pitotmeter_dlvr_l10d.h
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
@@ -460,6 +462,7 @@ main_sources(COMMON_SRC
     sensors/esc_sensor.h
     sensors/irlock.c
     sensors/irlock.h
+    sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h
 

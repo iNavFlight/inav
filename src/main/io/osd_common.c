@@ -109,6 +109,23 @@ void osdDrawPointGetPixels(int *px, int *py, const displayPort_t *display, const
     }
 }
 
+void osdThrottleGauge(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, uint8_t thrPos)
+{
+    uint8_t gx;
+    uint8_t gy;
+
+    #if defined(USE_CANVAS)
+    if (canvas) {
+        osdCanvasDrawThrottleGauge(display, canvas, p, thrPos);
+    } else {
+#endif
+        osdDrawPointGetGrid(&gx, &gy, display, canvas, p);
+        osdGridDrawThrottleGauge(display, gx, gy, thrPos);
+#if defined(USE_CANVAS)
+    }
+#endif
+}
+
 void osdDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel)
 {
     uint8_t gx;
@@ -196,10 +213,13 @@ void osdDrawSidebars(displayPort_t *display, displayCanvas_t *canvas)
 #endif
 
 #ifdef USE_GPS
+/*
+ * 3D speed in cm/s
+ */
 int16_t osdGet3DSpeed(void)
 {
-    int16_t vert_speed = getEstimatedActualVelocity(Z);
-    int16_t hor_speed = gpsSol.groundSpeed;
+    float vert_speed = getEstimatedActualVelocity(Z);
+    float hor_speed = (float)gpsSol.groundSpeed;
     return (int16_t)calc_length_pythagorean_2D(hor_speed, vert_speed);
 }
 #endif

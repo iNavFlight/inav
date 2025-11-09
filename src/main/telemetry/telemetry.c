@@ -96,7 +96,8 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
         .extra3_rate = SETTING_MAVLINK_EXTRA3_RATE_DEFAULT,
         .version = SETTING_MAVLINK_VERSION_DEFAULT,
         .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
-        .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT
+        .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT,
+        .sysid = SETTING_MAVLINK_SYSID_DEFAULT
     }
 );
 

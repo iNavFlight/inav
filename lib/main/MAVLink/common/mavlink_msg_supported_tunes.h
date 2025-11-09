@@ -76,6 +76,45 @@ static inline uint16_t mavlink_msg_supported_tunes_pack(uint8_t system_id, uint8
 }
 
 /**
+ * @brief Pack a supported_tunes message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param target_system  System ID
+ * @param target_component  Component ID
+ * @param format  Bitfield of supported tune formats.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_supported_tunes_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t target_system, uint8_t target_component, uint32_t format)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_SUPPORTED_TUNES_LEN];
+    _mav_put_uint32_t(buf, 0, format);
+    _mav_put_uint8_t(buf, 4, target_system);
+    _mav_put_uint8_t(buf, 5, target_component);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_SUPPORTED_TUNES_LEN);
+#else
+    mavlink_supported_tunes_t packet;
+    packet.format = format;
+    packet.target_system = target_system;
+    packet.target_component = target_component;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_SUPPORTED_TUNES_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_SUPPORTED_TUNES;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_SUPPORTED_TUNES_MIN_LEN, MAVLINK_MSG_ID_SUPPORTED_TUNES_LEN, MAVLINK_MSG_ID_SUPPORTED_TUNES_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_SUPPORTED_TUNES_MIN_LEN, MAVLINK_MSG_ID_SUPPORTED_TUNES_LEN);
+#endif
+}
+
+/**
  * @brief Pack a supported_tunes message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -138,6 +177,20 @@ static inline uint16_t mavlink_msg_supported_tunes_encode_chan(uint8_t system_id
 }
 
 /**
+ * @brief Encode a supported_tunes struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param supported_tunes C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_supported_tunes_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_supported_tunes_t* supported_tunes)
+{
+    return mavlink_msg_supported_tunes_pack_status(system_id, component_id, _status, msg,  supported_tunes->target_system, supported_tunes->target_component, supported_tunes->format);
+}
+
+/**
  * @brief Send a supported_tunes message
  * @param chan MAVLink channel to send the message
  *
@@ -182,7 +235,7 @@ static inline void mavlink_msg_supported_tunes_send_struct(mavlink_channel_t cha
 
 #if MAVLINK_MSG_ID_SUPPORTED_TUNES_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
