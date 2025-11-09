@@ -202,7 +202,7 @@ The steps below describe how you can fine-tune the tilting servos to obtian the 
    - Also, ensure that your MAX values in the Mixer tab are at 100 and -100, so that your servo will move to the maximum position, as shown in the screenshots in STEP1 and STEP2.
 
 3. **Adjust the maximum throws for the Multicopter/Tricopter mode:**
-   - While in tricopter mode, go to the Outputs tab and adjust the endpoints MIN and MAX values such that your motors are pointed slightly backwards.
+   - While in tricopter mode, navigate to the Outputs tab and adjust the MIN and MAX endpoint values to position the motors slightly backward.
    - Rotate the prop such that it is pointed backwards towards the wing/motor mount and ensure that the gap is the same on both sides by adjusting the MIN and MAX values for the tilt servo channels.
    - NOTE: You can check the distance with calipers or gauge blocks. Alternatively, you can adjust the MIN and MAX for your tilting servos such that the props are just touching the top of the wing or motor mount, and then you can increase/decrease the MIN and MAX values for each channel by the same ammount for both servos. This should ensure that you have the same gap between the tip of the prop and the wing or motor mount for both sides.
 
