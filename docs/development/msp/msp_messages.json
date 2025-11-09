@@ -6552,13 +6552,13 @@
                     "name": "hPosAccuracy",
                     "ctype": "uint16_t",
                     "desc": "Horizontal position accuracy estimate",
-                    "units": "cm"
+                    "units": "mm"
                 },
                 {
                     "name": "vPosAccuracy",
                     "ctype": "uint16_t",
                     "desc": "Vertical position accuracy estimate",
-                    "units": "cm"
+                    "units": "mm"
                 },
                 {
                     "name": "hVelAccuracy",

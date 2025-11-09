@@ -10,7 +10,7 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 1 - 17026ea2745c17ce7ca73eafc26eb91e**
+**JSON file rev: 2 - 17026ea2745c17ce7ca73eafc26eb91e**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -2997,8 +2997,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 | `msTOW` | `uint32_t` | 4 | ms | Milliseconds Time of Week |
 | `fixType` | `uint8_t` | 1 | [gpsFixType_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-gpsfixtype_e) | Enum `gpsFixType_e` Type of GPS fix |
 | `satellitesInView` | `uint8_t` | 1 | Count | Number of satellites used in solution |
-| `hPosAccuracy` | `uint16_t` | 2 | cm | Horizontal position accuracy estimate |
-| `vPosAccuracy` | `uint16_t` | 2 | cm | Vertical position accuracy estimate |
+| `hPosAccuracy` | `uint16_t` | 2 | mm | Horizontal position accuracy estimate |
+| `vPosAccuracy` | `uint16_t` | 2 | mm | Vertical position accuracy estimate |
 | `hVelAccuracy` | `uint16_t` | 2 | cm/s | Horizontal velocity accuracy estimate |
 | `hdop` | `uint16_t` | 2 | HDOP * 100 | Horizontal Dilution of Precision |
 | `longitude` | `int32_t` | 4 | deg * 1e7 | Longitude |
