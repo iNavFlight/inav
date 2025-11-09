@@ -1,7 +1,7 @@
 
 # INAV MSP Messages reference
  
-**This page is auto-generated from the [Master INAV-MSP definition file](https://github.com/xznhj8129/msp_documentation/blob/master/msp_messages.json) (temporary link until merge)**  
+**This page is auto-generated from the [master INAV MSP definitions file](https://github.com/iNavFlight/inav/blob/master/docs/development/msp/msp_messages.json)**  
 
 For details on the structure of MSP, see [The wiki page](https://github.com/iNavFlight/inav/wiki/MSP-V2)
 
@@ -10,7 +10,8 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 1 - 17026ea2745c17ce7ca73eafc26eb91e**
+**JSON file rev: 2
+ - 17026ea2745c17ce7ca73eafc26eb91e**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -402,6 +403,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8721 - MSP2_INAV_SET_GEOZONE](#msp2_inav_set_geozone)  
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
+[8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
 ## <a id="msp_api_version"></a>`MSP_API_VERSION (1 / 0x1)`
@@ -1887,9 +1889,9 @@ For current generation code, see [documentation project](https://github.com/xznh
 |---|---|---|---|---|
 | `roll` | `int16_t` | 2 | deci-degrees | Roll angle (`attitude.values.roll`) |
 | `pitch` | `int16_t` | 2 | deci-degrees | Pitch angle (`attitude.values.pitch`) |
-| `yaw` | `uint16_t` | 2 | deci-degrees | Yaw/Heading angle (`attitude.values.yaw`) |
+| `yaw` | `int16_t` | 2 | degrees | Yaw/Heading angle (`DECIDEGREES_TO_DEGREES(attitude.values.yaw)`) |
 
-**Notes:** Yaw is converted from deci-degrees to degrees.
+**Notes:** Yaw is in degrees.
 
 ## <a id="msp_altitude"></a>`MSP_ALTITUDE (109 / 0x6d)`
 **Description:** Provides estimated altitude, vertical speed (variometer), and raw barometric altitude.  
@@ -4481,6 +4483,26 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 
 **Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
+
+## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
+**Description:** Provides estimates of current attitude, local NEU position, and velocity.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `roll` | `int16_t` | 2 | deci-degrees | Roll angle (`attitude.values.roll`) |
+| `pitch` | `int16_t` | 2 | deci-degrees | Pitch angle (`attitude.values.pitch`) |
+| `yaw` | `int16_t` | 2 | deci-degrees | Yaw/Heading angle (`attitude.values.yaw`) |
+| `localPositionNorth` | `int32_t` | 4 | cm | Estimated North coordinate in local NEU frame (`posControl.actualState.abs.pos.x`) |
+| `localVelocityNorth` | `int16_t` | 2 | cm/s | Estimated North component of velocity in local NEU frame (`posControl.actualState.abs.vel.x`) |
+| `localPositionEast` | `int32_t` | 4 | cm | Estimated East coordinate in local NEU frame (`posControl.actualState.abs.pos.y`) |
+| `localVelocityEast` | `int16_t` | 2 | cm/s | Estimated East component of velocity in local NEU frame (`posControl.actualState.abs.vel.y`) |
+| `localPositionUp` | `int32_t` | 4 | cm | Estimated Up coordinate in local NEU frame (`posControl.actualState.abs.pos.z`) |
+| `localVelocityUp` | `int16_t` | 2 | cm/s | Estimated Up component of velocity in local NEU frame (`posControl.actualState.abs.vel.z`) |
+
+**Notes:** All attitude angles are in deci-degrees.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
