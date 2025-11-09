@@ -116,7 +116,7 @@ save
 # STEP 1: Configuring as a normal fixed-wing in Profile 1
 
 1. **Select the fisrt Mixer Profile and PID Profile:**
-   - In the CLI, switch to the mixer_profile and pid_profile you wish to set first. You can also switch mixer_profile/pid_profile through gui if with aforementioned presets loaded.
+   - In the CLI, switch to the mixer_profile and pid_profile you wish to set first. You can also switch mixer_profile/pid_profile through gui with aforementioned presets loaded.
      ```
      mixer_profile 1 #in this example, we set profile 1 first
      set mixer_pid_profile_linking = ON  # Let the mixer_profile handle the pid_profile switch on this mixer_profile
@@ -137,7 +137,7 @@ You must also assign the tilting servos values using the MAX values.  If you don
 # STEP 2: Configuring as a Multi-Copter in Profile 2
 
 1. **Switch to Another Mixer Profile with PID Profile:**
-   - In the CLI, switch to another mixer_profile along with the appropriate pid_profile. You can also switch mixer_profile/pid_profile through gui if with aforementioned presets loaded.
+   - In the CLI, switch to another mixer_profile along with the appropriate pid_profile. You can also switch mixer_profile/pid_profile through gui with aforementioned presets loaded.
      ```
      mixer_profile 2
      set mixer_pid_profile_linking = ON
@@ -149,7 +149,7 @@ You must also assign the tilting servos values using the MAX values.  If you don
    - Set up your multi-copter/fixed-wing as usual, this time for mixer_profile 2 and pid_profile 2.
    - Utilize the 'MAX' input in the servo mixer to tilt the motors without altering the servo midpoint.
    - At this stage, focus on configuring profile-specific settings. You can streamline this process by copying and pasting the default PID settings.
-   - you can set -1 in motor mixer throttle as a place holder: disable that motor but will load following motor rules
+   - you can set -1 in motor mixer throttle as a place holder: this will disable that motor but will load following the motor rules
    - compass is required to enable navigation modes for multi-rotor profile.
    - Consider conducting a test flight to ensure that everything operates as expected. And tune the settings.
    - It is advisable to have a certain degree of control surface (elevon / elevator) mapping for stabilization even in multi-copter mode. This helps improve control authority when airspeed is high. It might be unable to recover from a dive without them.
@@ -158,19 +158,21 @@ You must also assign the tilting servos values using the MAX values.  If you don
 
 5. **Tailsitters:planned for INAV 7.1**
    - Configure the fixed-wing mode/profile sets normally. Use MultiCopter platform type for tail_sitting flying mode/profile sets. 
-   - The baseline board aliment is FW mode(ROLL axis is the trust axis). So set `tailsitter_orientation_offset = ON ` in the tail_sitting MC mode.
-   - Configure mixer ROLL/YAW mixing according to tail_sitting orientation in the tail_sitting MC mode. YAW axis is the trust axis.
+   - The baseline board aliment is FW mode (ROLL axis is the thrust axis). Set `tailsitter_orientation_offset = ON ` in the tail_sitting MC mode.
+   - Configure mixer ROLL/YAW mixing according to tail_sitting orientation in the tail_sitting MC mode. YAW axis is the thrust axis.
    - Conduct a bench test and see the orientation of the model changes in inav-configurator setup tab
 
+
 # STEP 3: Mode Tab Settings:
-### We recommend using an 3-pos switch on you radio to activate these modes, So pilot can jump in or bell out at any moment.
+### We recommend using an 3-pos switch on you radio to activate these modes, So the pilot can jump in or bail out at any moment.
+
 ### Here is a example, in the bottom of inav-configurator Modes tab:
 ![Alt text](Screenshots/mixer_profile.png)
 |  1000~1300 |  1300~1700  | 1700~2000 |
 | :-- | :-- | :-- |
 | Profile1(FW) with transition off |  Profile2(MC) with transition on  | Profile2(MC) with transition off |
 
-- Profile file switching becomes available after completing the runtime sensor calibration(15-30s after booting). And It is **not available** when a navigation mode or position hold is active.
+- Profile file switching becomes available after completing the runtime sensor calibration (15-30s after booting). And It is **not available** when a navigation mode or position hold is active.
 
 - By default, `mixer_profile 1` is used. `mixer_profile 2` is used when the `MIXER PROFILE 2` mode is activate. Once configured successfully, you will notice that the profiles and model preview changes accordingly when you refresh the relevant INAV Configurator tabs. 
 
@@ -178,17 +180,19 @@ You must also assign the tilting servos values using the MAX values.  If you don
 
 Conduct a bench test on the model (without props attached). The model can now switch between fixed-wing and multi-copter modes while armed. Furthermore, it is capable of mid-air switching, resulting in an immediate stall upon entering fixed-wing profile
 
+
 # STEP 4: Tilting Servo Setup (Recommended)
-### Setting up the tilting servos to operate correclty is crucial for correct yaw control of the craft. Using the default setup works, but will most likely result in your craft crawling forward with evey yaw input.
-The steps below describe how you can fine-tune the tilting servos such as to obtian the desired result.
+### Setting up the tilting servos to operate correctly is crucial for correct yaw control of the craft. Using the default setup works, but will most likely result in your craft crawling forward with evey yaw input.
+The steps below describe how you can fine-tune the tilting servos to obtian the optimum result.
+
 
 1. **Set the tilt servos at 45 degrees:**
    - Connect and power the tilting servos with your flight controller.
    - Enter transition mode (your switch should be in the mid-position).
-   - Check from the Outputs tab output that the tilt servo channels are exactly at 1500μs.
+   - Check the Outputs tab and make sure that the tilt servo channels are exactly at 1500μs.
    - In this mode, your tilt servos should be at the 45-degree position and you can now mount the motor and prop to your tilt servo such that the angle of the motor mounting plate is at 45 degrees upwards.
-   - NOTE1: If you have dedicated tilt servos, you may have engraved indeces on the servos and tilting motor sassembly to help you with this step. If the servos don't end up exactly at 45 degrees due to the teeth on the servo and the control arm/plate, don't worry, this will be automatically adjusted after completing the other steps below.
-   - NOTE2: If you are using control rods to adjust the tilt of the servos, adjust the lenth of your control rod and the position of the control arm position the control arm as close as possible to the mid position. It will depend on the oriatation of the servo, but generally speaking, the control arm of the servo should be pointed perpendicular to the fuselage when the motor mounts are at the 45 degree setting.
+   - NOTE 1: If you have dedicated tilt servos, you may have engraved indices on the servos and tilting motor assembly to help you with this step. If the servos don't end up exactly at 45 degrees due to the teeth on the servo and the control arm/plate, don't worry, this will be automatically adjusted after completing the other steps below.
+   - NOTE 2: If you are using control rods to adjust the tilt of the servos, adjust the lenth of your control rod and the position of the control arm to position the control arm as close as possible to the mid position. It will depend on the oriatation of the servo, but generally speaking, the control arm of the servo should be pointed perpendicular to the fuselage when the motor mounts are at the 45 degree setting.
 
 2. **Switch to Multicopter/Tricopter:**
    - Assuming that you have set up your mixer similar to STEP1 and STEP2, you can now switch to the tricopter/multicopter mode and your servos should be tilting the motors upwards. If this is not the case, reverse the servo(s) in the Outputs tab such that the servo(s) is/are pointed upwards.
@@ -196,9 +200,9 @@ The steps below describe how you can fine-tune the tilting servos such as to obt
    - Also, ensure that your MAX values in the Mixer tab are at 100 and -100, so that your servo will move to the maximum position, as shown in the screenshots in STEP1 and STEP2.
 
 3. **Adjust the maximum throws for the Multicopter/Tricopter mode:**
-   - While in tricopter mode, go to the Outputs tab and adjust the endpoints MIN and MAX values such that when your motors are pointed slightly backwards.
+   - While in tricopter mode, go to the Outputs tab and adjust the endpoints MIN and MAX values so your motors are pointed slightly backwards.
    - Rotate the prop such that it is pointed backwards towards the wing/motor mount and ensure that the gap is the same on both sides by adjusting the MIN and MAX values for the tilt servo channels.
-   - NOTE: You can check the distance with calipers or gauge blocks. Alternatively, you can adjust the MIN and MAX for your tilting servos such that the props are just touching the top of the wing or motor mount, and then you can increase/degrease the MIN and MAX values for each channel by the same ammount for both servos. This should ensure that you have the same gap between the tip of the prop and the wing or motor mount for both sides.
+   - NOTE: You can check the distance with calipers or gauge blocks. Alternatively, you can adjust the MIN and MAX for your tilting servos such that the props are just touching the top of the wing or motor mount, and then you can increase/decrease the MIN and MAX values for each channel by the same ammount for both servos. This should ensure that you have the same gap between the tip of the prop and the wing or motor mount for both sides.
 
 4. **Adjust the minimum position for the Fixed-wing mode:**
    - Repeat the same step as point 3 with the model in fixed-wing mode, where the servos are tilted forwards.
@@ -227,7 +231,7 @@ The steps below describe how you can fine-tune the tilting servos such as to obt
 Optional Setup Step for Tilt Servos:
 
 8. **Reversing tilt servos and mixer signs:**
-If you have set up the mixer as suggested in STEP1 and STEP2, you may have to deal with negative values for the mixer. You may wish to reverese a servo so that you don't have to deal with the negative signs. In that case, you may have to adjust the MIN and MAX values from point 4 again, so that your tilt servos are operating correctly. Check the operation of the servos once again for the YAW control in multicopter/tricipter mode as well as the horixontal position of the tilt servos in fixed-wing mode.
+If you have set up the mixer as suggested in STEP1 and STEP2, you may have to deal with negative values for the mixer. You may wish to reverese a servo so that you don't have to deal with the negative signs. In that case, you may have to adjust the MIN and MAX values from point 4 again, so that your tilt servos are operating correctly. Check the operation of the servos once again for the YAW control in multicopter/tricipter mode as well as the horizontal position of the tilt servos in fixed-wing mode.
 
 
 # STEP 5: Transition Mixing (Multi-Rotor Profile)(Recommended)
@@ -242,12 +246,12 @@ Add new servo mixer rules, and select 'Mixer Transition' in input. Set the weigh
 ## Motor 'Transition Mixing': Dedicated forward motor configuration
 In motor mixer set:
 - -2.0 < throttle < -1.0: The motor will spin regardless of the radio's throttle position at a speed of `abs(throttle) - 1` multiplied by throttle range only when Mixer Transition is activated.
-- Airmode type should be set to "STICK_CENTER". Airmode type must NOT be set to "THROTTLE_THRESHOLD". If set to throttle threshold the (-) motor will spin till throttle threshold is passed.
+- Airmode type should be set to "STICK_CENTER". Airmode type must NOT be set to "THROTTLE_THRESHOLD". If set to throttle threshold the (-) motor will spin until the throttle threshold is passed.
   
 ![Alt text](Screenshots/mixerprofile_4puls1_mix.png)
 
 ## TailSitter 'Transition Mixing': 
-No additional settings needed, 45deg off set will be added to target pitch angle for angle mode in the firmware.
+No additional settings needed, 45 deg offset will be added to target pitch angle for angle mode in the firmware.
 
 ### With aforementioned settings, your model should be able to enter fixed-wing profile without stalling.
 
