@@ -37,6 +37,11 @@ typedef enum {
 } ltmUpdateRate_e;
 
 typedef enum {
+    MAVLINK_AUTOPILOT_GENERIC,
+    MAVLINK_AUTOPILOT_ARDUPILOT
+} mavlinkAutopilotType_e;
+
+typedef enum {
     MAVLINK_RADIO_GENERIC,
     MAVLINK_RADIO_ELRS,
     MAVLINK_RADIO_SIK,
@@ -72,6 +77,7 @@ typedef struct telemetryConfig_s {
     uint16_t accEventThresholdNegX;
 #endif
     struct {
+        uint8_t autopilot_type;
         uint8_t extended_status_rate;
         uint8_t rc_channels_rate;
         uint8_t position_rate;

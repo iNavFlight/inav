@@ -2642,6 +2642,16 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ---
 
+### mavlink_autopilot_type
+
+Autopilot type to advertise for MAVLink telemetry
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
+
+---
+
 ### mavlink_ext_status_rate
 
 Rate of the extended status message for MAVLink telemetry
@@ -5623,8 +5633,8 @@ Selection of pitot hardware.
 ---
 
 ### pitot_lpf_milli_hz
-Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
+Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |

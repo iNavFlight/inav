@@ -201,6 +201,9 @@ tables:
   - name: mavlink_radio_type
     values: ["GENERIC", "ELRS", "SIK"]
     enum: mavlinkRadio_e
+  - name: mavlink_autopilot_type
+    values: ["GENERIC", "ARDUPILOT"]
+    enum: mavlinkAutopilotType_e
   - name: default_altitude_source
     values: ["GPS", "BARO", "GPS_ONLY", "BARO_ONLY"]
     enum: navDefaultAltitudeSensor_e
@@ -3215,6 +3218,12 @@ groups:
         min: 0
         max: 255
         default_value: 2
+      - name: mavlink_autopilot_type
+        field: mavlink.autopilot_type
+        description: "Autopilot type to advertise for MAVLink telemetry"
+        table: mavlink_autopilot_type
+        default_value: "GENERIC"
+        type: uint8_t
       - name: mavlink_rc_chan_rate
         description: "Rate of the RC channels message for MAVLink telemetry"
         field: mavlink.rc_channels_rate
