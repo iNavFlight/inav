@@ -606,10 +606,10 @@ int16_t applyFixedWingMinSpeedController(timeUs_t currentTimeUs)
             previousTimePositionUpdate = currentTimeUs;
 
             if (deltaMicrosPositionUpdate < MAX_POSITION_UPDATE_INTERVAL_US) {
-                float velThrottleBoost = ((navConfig()->general.min_ground_speed * 100.0f) - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
+                float velThrottleBoost = ((getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f) - posControl.actualState.velXY) * NAV_FW_THROTTLE_SPEED_BOOST_GAIN * US2S(deltaMicrosPositionUpdate);
 
                 // If we are in the deadband of 50cm/s - don't update speed boost
-                if (fabsf(posControl.actualState.velXY - (navConfig()->general.min_ground_speed * 100.0f)) > 50) {
+                if (fabsf(posControl.actualState.velXY - (getMinGroundSpeed(navConfig()->general.min_ground_speed) * 100.0f)) > 50) {
                     throttleSpeedAdjustment += velThrottleBoost;
                 }
 

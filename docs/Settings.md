@@ -198,7 +198,7 @@ Total gyro rotation rate threshold [deg/s] before scaling to consider accelerome
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 30 |
+| 20 | 0 | 30 |
 
 ---
 
@@ -2604,7 +2604,7 @@ Servo travel multiplier for the PITCH axis in `MANUAL` flight mode [0-100]%
 
 ### manual_rc_expo
 
-Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]
+Exponential value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2614,7 +2614,7 @@ Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100
 
 ### manual_rc_yaw_expo
 
-Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100]
+Exponential value used for the YAW axis by the `MANUAL` flight mode [0-100]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -2639,6 +2639,16 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 | Default | Min | Max |
 | --- | --- | --- |
 | 100 | 0 | 100 |
+
+---
+
+### mavlink_autopilot_type
+
+Autopilot type to advertise for MAVLink telemetry
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
 
 ---
 
@@ -2719,6 +2729,16 @@ Rate of the RC channels message for MAVLink telemetry
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 0 | 255 |
+
+---
+
+### mavlink_sysid
+
+MAVLink System ID
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 255 |
 
 ---
 
@@ -5614,11 +5634,11 @@ Selection of pitot hardware.
 
 ### pitot_lpf_milli_hz
 
-Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay
+Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 350 | 0 | 10000 |
+| 3000 | 0 | 50000 |
 
 ---
 
@@ -5764,7 +5784,7 @@ The end  stick weight for Rate Dynamics
 
 ### rc_expo
 
-Exposition value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`)
+Exponential value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`)
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5804,21 +5824,11 @@ The RC filter smoothing factor. The higher the value, the more smoothing but als
 
 ### rc_yaw_expo
 
-Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)
+Exponential value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 20 | 0 | 100 |
-
----
-
-### reboot_character
-
-Special character used to trigger reboot
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 82 | 48 | 126 |
 
 ---
 
@@ -6374,7 +6384,7 @@ Weight used for the throttle compensation based on battery voltage. See the [bat
 
 ### thr_expo
 
-Throttle exposition value
+Throttle exponential value
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6449,6 +6459,36 @@ Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-ro
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 100 |
+
+---
+
+### transition_pid_mmix_multiplier_pitch
+
+pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_roll
+
+roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_yaw
+
+yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
 
 ---
 

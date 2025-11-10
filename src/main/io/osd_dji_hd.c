@@ -192,7 +192,7 @@ const djiOsdMapping_t djiOSDItemIndexMap[] = {
     { OSD_HOME_DIR,                           FEATURE_GPS }, // DJI: OSD_HOME_DIR
     { OSD_HOME_DIST,                          FEATURE_GPS }, // DJI: OSD_HOME_DIST
     { OSD_HEADING,                            0 }, // DJI: OSD_NUMERICAL_HEADING
-    { OSD_VARIO_NUM,                          0 }, // DJI: OSD_NUMERICAL_VARIO
+    { OSD_VERTICAL_SPEED_INDICATOR,           0 }, // DJI: OSD_NUMERICAL_VARIO
     { -1,                                     0 }, // DJI: OSD_COMPASS_BAR
     { OSD_ESC_TEMPERATURE,                    0 }, // DJI: OSD_ESC_TEMPERATURE
     { OSD_ESC_RPM,                            0 }, // DJI: OSD_ESC_RPM
