@@ -231,7 +231,7 @@ jobs:
       - name: Setup Cygwin
         uses: egor-tensin/setup-cygwin@v4
         with:
-          packages: cmake ruby ninja gcc-g++ rubygems
+          packages: cmake ruby ninja gcc-g++ rubygems ruby-getoptlong
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -250,7 +250,7 @@ jobs:
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
 
       - name: Build SITL
-        run: gem install getoptlong && mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
+        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
       - name: Strip version number
         run: |
           for f in ./build_SITL/*_SITL.exe; do
