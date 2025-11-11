@@ -558,17 +558,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #ifdef USE_PROGRAMMING_FRAMEWORK
     case MSP2_INAV_LOGIC_CONDITIONS:
-        for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
-            sbufWriteU8(dst, logicConditions(i)->enabled);
-            sbufWriteU8(dst, logicConditions(i)->activatorId);
-            sbufWriteU8(dst, logicConditions(i)->operation);
-            sbufWriteU8(dst, logicConditions(i)->operandA.type);
-            sbufWriteU32(dst, logicConditions(i)->operandA.value);
-            sbufWriteU8(dst, logicConditions(i)->operandB.type);
-            sbufWriteU32(dst, logicConditions(i)->operandB.value);
-            sbufWriteU8(dst, logicConditions(i)->flags);
-        }
-        break;
+        return false; // Deprecated, causes buffer overflow for 14*64 bytes.
     case MSP2_INAV_LOGIC_CONDITIONS_STATUS:
         for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
             sbufWriteU32(dst, logicConditionGetValue(i));
