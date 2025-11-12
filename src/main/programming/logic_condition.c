@@ -760,27 +760,49 @@ static int logicConditionGetFlightOperandValue(int operand) {
 #endif
             break;
 
-        case LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION: // deg
+        case LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION: // deg 0 - 360; -1 if not valid
 #ifdef USE_WIND_ESTIMATOR
         {
             if (isEstimatedWindSpeedValid()) {
-                uint16_t angle;
-                getEstimatedHorizontalWindSpeed(&angle);
-                int32_t windAngle = (CENTIDEGREES_TO_DEGREES((int)angle) - DECIDEGREES_TO_DEGREES(attitude.values.yaw) + 22);
-                while (windAngle < 0) {
-                    windAngle += 360;
-                }
-                while (windAngle >= 360) {
-                    windAngle -= 360;
-                }
-                return windAngle;
+                uint16_t windAngle;
+                getEstimatedHorizontalWindSpeed(&windAngle);
+                int32_t windHeading = (int32_t)windAngle + 18000; // Correct heading to display correctly.
+        
+                while (windHeading < 0) windHeading += 36000;
+                while (windHeading >= 36000) windHeading -= 36000;
+
+                return (int32_t)CENTIDEGREES_TO_DEGREES(windHeading);
             } else
                 return -1;
         }
 #else
-            return -1;
+        return -1;
 #endif
-            break;
+        break;
+
+        case LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET: // deg -180 to 180; 0 if not valid
+#ifdef USE_WIND_ESTIMATOR
+        {
+            if (isEstimatedWindSpeedValid()) {
+                uint16_t windAngle;
+                getEstimatedHorizontalWindSpeed(&windAngle);
+                int32_t relativeWindHeading = (int32_t)windAngle + 18000 - DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw);
+        
+                while (relativeWindHeading < 0) relativeWindHeading += 36000;
+                while (relativeWindHeading >= 36000) relativeWindHeading -= 36000;
+                
+                relativeWindHeading = -relativeWindHeading;
+                if (relativeWindHeading <= -18000)
+                    relativeWindHeading = 18000 + (relativeWindHeading + 18000);
+
+                return (int32_t)CENTIDEGREES_TO_DEGREES(relativeWindHeading);
+            } else
+                return 0;
+        }
+#else
+        return 0;
+#endif
+        break;        
 
         case LOGIC_CONDITION_OPERAND_FLIGHT_ALTITUDE: // cm
             return constrain(getEstimatedActualPosition(Z), INT32_MIN, INT32_MAX);

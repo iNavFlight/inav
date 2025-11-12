@@ -198,7 +198,7 @@ Total gyro rotation rate threshold [deg/s] before scaling to consider accelerome
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 15 | 0 | 30 |
+| 20 | 0 | 30 |
 
 ---
 
@@ -2652,6 +2652,16 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ---
 
+### mavlink_autopilot_type
+
+Autopilot type to advertise for MAVLink telemetry
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
+
+---
+
 ### mavlink_ext_status_rate
 
 Rate of the extended status message for MAVLink telemetry
@@ -2729,6 +2739,16 @@ Rate of the RC channels message for MAVLink telemetry
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 0 | 255 |
+
+---
+
+### mavlink_sysid
+
+MAVLink System ID
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 255 |
 
 ---
 
@@ -5182,9 +5202,9 @@ Degrees either side of the pan servo centre; where it is assumed camera is wante
 
 ---
 
-### osd_pan_servo_pwm2centideg
+### osd_pan_servo_range_decadegrees
 
-Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
+Decadegrees of pan servo rotation. A servo with 180 degrees of rotation typically needs `18` for this setting. Using a negative value will reverse the direction.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5624,11 +5644,11 @@ Selection of pitot hardware.
 
 ### pitot_lpf_milli_hz
 
-Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay
+Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 350 | 0 | 10000 |
+| 3000 | 0 | 50000 |
 
 ---
 
@@ -5819,16 +5839,6 @@ Exponential value used for the YAW axis by all the stabilized flights modes (all
 | Default | Min | Max |
 | --- | --- | --- |
 | 20 | 0 | 100 |
-
----
-
-### reboot_character
-
-Special character used to trigger reboot
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 82 | 48 | 126 |
 
 ---
 
@@ -6459,6 +6469,36 @@ Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-ro
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 100 |
+
+---
+
+### transition_pid_mmix_multiplier_pitch
+
+pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_roll
+
+roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_yaw
+
+yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
 
 ---
 

@@ -317,6 +317,14 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals, 
 }
 
 /**
+ * return flight direction on degrees
+ */
+static int16_t osdGetFlightDirection(void)
+{
+    return STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
+}
+
+/**
  * Converts distance into a string based on the current unit system.
  * @param dist Distance in centimeters
  */
@@ -1302,7 +1310,9 @@ int16_t osdGetPanServoOffset(void)
         servoMiddle = PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
     }
 
-    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
+    float servoDegreesScaleFactor = 1000.0f / (servoParams(servoIndex)->max - servoParams(servoIndex)->min);
+
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * (int16_t)(osdConfig()->osd_pan_servo_range_decadegrees) * servoDegreesScaleFactor);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -2058,11 +2068,10 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int16_t panHomeDirOffset = 0;
-                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                    if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
                         panHomeDirOffset = osdGetPanServoOffset();
                     }
-                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    int homeDirection = GPS_directionToHome - flightDirection + panHomeDirOffset;
+                    int homeDirection = GPS_directionToHome - osdGetFlightDirection() + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -2258,16 +2267,17 @@ static bool osdDrawSingleElement(uint8_t item)
             uint8_t buffIndexFirstLine = 0;
             uint8_t arrowIndexIndex = 0;
             adsbVehicle_t *vehicle = findVehicleClosestLimit(METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
-            if(vehicle != NULL)
-            {
+            if (vehicle != NULL) {
                 recalculateVehicle(vehicle);
             }
 
             if (
-                    vehicle != NULL &&
-                    (vehicle->calculatedVehicleValues.dist > 0 &&
-                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
-            ){
+                    vehicle != NULL
+                    && (vehicle->calculatedVehicleValues.dist > 0
+                    && vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
+                    && isEnvironmentOkForCalculatingADSBDistanceBearing()
+
+            ) {
                 adsbLengthForClearFirstLine = 11;
 
                 buff[buffIndexFirstLine++] = SYM_ADSB;
@@ -2301,21 +2311,20 @@ static bool osdDrawSingleElement(uint8_t item)
                 //////////////////////////////////////////////////////
                 // ALT diff to ADSB vehicle draw
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_range_decadegrees != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
-                if(arrowIndexIndex > 0)
-                {
+                if (arrowIndexIndex > 0 && isImuHeadingValid()) {
                     //[direction to vehicle]
-                    int directionToPeerError = osdGetHeadingAngle(CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir)) + panServoDirOffset - (int)DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int directionToPeerError = osdGetHeadingAngle(CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir)) + panServoDirOffset - osdGetFlightDirection();
                     osdDrawDirCardinal(osdDisplayPort, elemPosX + arrowIndexIndex, elemPosY, directionToPeerError, elemAttr);
                 }
                 //////////////////////////////////////////////////////
 
                 //////////////////////////////////////////////////////
                 // Second line, extra info
-                if(osdConfig()->adsb_warning_style == OSD_ADSB_WARNING_STYLE_EXTENDED){
+                if (osdConfig()->adsb_warning_style == OSD_ADSB_WARNING_STYLE_EXTENDED) {
                     // Vehicle type
                     tfp_sprintf(buff, "%s", getAdsbEmitterTypeString(vehicle->vehicleValues.emitterType));
 
@@ -2327,41 +2336,43 @@ static bool osdDrawSingleElement(uint8_t item)
                     displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY + 1, buff, elemAttr);
 
                     // Vehicle direction
-                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + 6, elemPosY + 1), (float)(CENTIDEGREES_TO_DEGREES(vehicle->vehicleValues.heading) - flightDirection + panServoDirOffset));
+                    if(isImuHeadingValid())
+                    {
+                        osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + 6, elemPosY + 1), (float)(CENTIDEGREES_TO_DEGREES(vehicle->vehicleValues.heading) - osdGetFlightDirection() + panServoDirOffset));
+                    }
 
                     adsbLengthForClearSecondLine += 7;
                 }
                 ///////////////////////////////////////////////////
-            }
-            else
-            {
+            } else {
                 //clear first line
-                if(adsbLengthForClearFirstLine > 0){
+                if(adsbLengthForClearFirstLine > 0) {
                     memset(buff, SYM_BLANK, constrain(adsbLengthForClearFirstLine, 0, 20));
                     displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
                     adsbLengthForClearFirstLine = 0;
                 }
 
                 //clear second line
-                if(adsbLengthForClearSecondLine > 0){
+                if(adsbLengthForClearSecondLine > 0) {
                     memset(buff, SYM_BLANK, constrain(adsbLengthForClearSecondLine, 0, 20));
                     displayWrite(osdDisplayPort, elemPosX, elemPosY + 1, buff);
                     adsbLengthForClearSecondLine = 0;
                 }
             }
-
             return true;
         }
         case OSD_ADSB_INFO:
         {
             buff[0] = SYM_ADSB;
-            if(getAdsbStatus()->vehiclesMessagesTotal > 0 || getAdsbStatus()->heartbeatMessagesTotal > 0){
-                tfp_sprintf(buff + 1, "%1d", getActiveVehiclesCount());
-            }else{
+            if (getAdsbStatus()->vehiclesMessagesTotal == 0 && getAdsbStatus()->heartbeatMessagesTotal == 0) {
                 buff[1] = '-';
+            } else if (!isEnvironmentOkForCalculatingADSBDistanceBearing()) {
+                buff[1] = 'G';
+            } else if (!isImuHeadingValid()) {
+                buff[1] = 'H';
+            } else {
+                tfp_sprintf(buff + 1, "%1d", getActiveVehiclesCount());
             }
-
             break;
         }
 
@@ -2565,7 +2576,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "MANU";
 #ifdef USE_GEOZONE
             else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE))
-                p = "GEO";
+                p = "GEO ";
 #endif
             else if (FLIGHT_MODE(TURTLE_MODE))
                 p = "TURT";
@@ -2815,7 +2826,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 currentPeer->direction = (int16_t )(calculateBearingToDestination(&poi) / 100); // In °
 
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_range_decadegrees != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
@@ -3013,6 +3024,13 @@ static bool osdDrawSingleElement(uint8_t item)
             osdDrawSidebars(osdDisplayPort, osdGetDisplayPortCanvas());
             return true;
         }
+
+    case OSD_THROTTLE_GAUGE:
+    {
+        bool useScaled = navigationIsControllingThrottle();
+        osdThrottleGauge(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), getThrottlePercent(useScaled));
+        return true;
+    }
 
 #if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
@@ -4071,11 +4089,10 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
                 int16_t panHomeDirOffset = 0;
-                if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
                     panHomeDirOffset = osdGetPanServoOffset();
                 }
-                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - flightDirection + panHomeDirOffset;
+                int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - osdGetFlightDirection() + panHomeDirOffset;
                 osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);
             } else {
                 if (isGeozoneActive()) {
@@ -4319,7 +4336,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .ahi_pitch_interval = SETTING_OSD_AHI_PITCH_INTERVAL_DEFAULT,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
-    .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .osd_pan_servo_range_decadegrees = SETTING_OSD_PAN_SERVO_RANGE_DECADEGREES_DEFAULT,
     .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
@@ -4406,6 +4423,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_ATTITUDE_ROLL] = OSD_POS(1, 7);
     osdLayoutsConfig->item_pos[0][OSD_ATTITUDE_PITCH] = OSD_POS(1, 8);
 
+    osdLayoutsConfig->item_pos[0][OSD_THROTTLE_GAUGE] = OSD_POS(23, 5);
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdLayoutsConfig->item_pos[0][OSD_VARIO] = OSD_POS(23, 5);
     // OSD_VERTICAL_SPEED_INDICATOR at the right of OSD_VARIO

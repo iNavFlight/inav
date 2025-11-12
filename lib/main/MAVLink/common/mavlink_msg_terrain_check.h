@@ -70,6 +70,42 @@ static inline uint16_t mavlink_msg_terrain_check_pack(uint8_t system_id, uint8_t
 }
 
 /**
+ * @brief Pack a terrain_check message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param lat [degE7] Latitude
+ * @param lon [degE7] Longitude
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_terrain_check_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               int32_t lat, int32_t lon)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_TERRAIN_CHECK_LEN];
+    _mav_put_int32_t(buf, 0, lat);
+    _mav_put_int32_t(buf, 4, lon);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_TERRAIN_CHECK_LEN);
+#else
+    mavlink_terrain_check_t packet;
+    packet.lat = lat;
+    packet.lon = lon;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_TERRAIN_CHECK_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_TERRAIN_CHECK;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_TERRAIN_CHECK_MIN_LEN, MAVLINK_MSG_ID_TERRAIN_CHECK_LEN, MAVLINK_MSG_ID_TERRAIN_CHECK_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_TERRAIN_CHECK_MIN_LEN, MAVLINK_MSG_ID_TERRAIN_CHECK_LEN);
+#endif
+}
+
+/**
  * @brief Pack a terrain_check message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -129,6 +165,20 @@ static inline uint16_t mavlink_msg_terrain_check_encode_chan(uint8_t system_id, 
 }
 
 /**
+ * @brief Encode a terrain_check struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param terrain_check C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_terrain_check_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_terrain_check_t* terrain_check)
+{
+    return mavlink_msg_terrain_check_pack_status(system_id, component_id, _status, msg,  terrain_check->lat, terrain_check->lon);
+}
+
+/**
  * @brief Send a terrain_check message
  * @param chan MAVLink channel to send the message
  *
@@ -170,7 +220,7 @@ static inline void mavlink_msg_terrain_check_send_struct(mavlink_channel_t chan,
 
 #if MAVLINK_MSG_ID_TERRAIN_CHECK_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

@@ -98,6 +98,26 @@ adsbVehicle_t *findVehicleClosest(void) {
  * @return
  */
 adsbVehicle_t *findVehicleClosestLimit(int32_t maxVerticalDistance) {
+
+    ////////////////////////////////////////////////////////////
+    //debug vehicle
+    /*adsbVehicleValues_t* vehicle = getVehicleForFill();
+    if(vehicle != NULL){
+        char name[9] = "DUMMY    ";
+        vehicle->icao = 666;
+        vehicle->gps.lat = 492383514;
+        vehicle->gps.lon = 165148681;
+        vehicle->alt = 100000;
+        vehicle->heading = 66;
+        vehicle->flags = ADSB_FLAGS_VALID_ALTITUDE | ADSB_FLAGS_VALID_COORDS;
+        vehicle->altitudeType = 0;
+        memcpy(&(vehicle->callsign), name, sizeof(vehicle->callsign));
+        vehicle->emitterType = 6;
+        vehicle->tslc = 0;
+        adsbNewVehicle(vehicle);
+    }*/
+    ////////////////////////////////////////////////////////////
+
     adsbVehicle_t *adsbLocal = NULL;
     for (uint8_t i = 0; i < MAX_ADSB_VEHICLES; i++) {
         if(adsbVehiclesList[i].ttl > 0 && adsbVehiclesList[i].calculatedVehicleValues.valid){
@@ -178,7 +198,7 @@ void adsbNewVehicle(adsbVehicleValues_t* vehicleValuesLocal) {
     }
 
     // non GPS mode, GPS is not fix, just find free space in list or by icao and save vehicle without calculated values
-    if (!enviromentOkForCalculatingDistaceBearing()) {
+    if (!isEnvironmentOkForCalculatingADSBDistanceBearing()) {
         if(vehicle == NULL){
             vehicle = findFreeSpaceInList();
         }
@@ -264,8 +284,16 @@ void adsbTtlClean(timeUs_t currentTimeUs) {
     }
 };
 
-bool enviromentOkForCalculatingDistaceBearing(void){
-    return (STATE(GPS_FIX) && gpsSol.numSat > 4);
+bool isEnvironmentOkForCalculatingADSBDistanceBearing(void){
+    return
+    (gpsSol.numSat > 4 &&
+    (
+        STATE(GPS_FIX)
+        #ifdef USE_GPS_FIX_ESTIMATION
+            || STATE(GPS_ESTIMATED_FIX)
+        #endif
+        )
+    );
 }
 
 #endif

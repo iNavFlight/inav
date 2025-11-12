@@ -209,9 +209,9 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-
-    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
-
+    if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
+        pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
+    }
     while(1) {
 #ifdef USE_SIMULATOR
     	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
@@ -263,7 +263,11 @@ STATIC_PROTOTHREAD(pitotThread)
 
             // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
-            pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+            if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
+                pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
+            }else{
+                pitot.pressure = pitotPressureTmp;
+            }
             pitot.lastMeasurementUs = currentTimeUs;
 
             pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
