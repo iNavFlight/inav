@@ -39,18 +39,31 @@
 #define USE_SPI_DEVICE_1
 #define USE_SPI_DEVICE_2
 
-#define SPI1_SCK_PIN        PA5
-#define SPI1_MISO_PIN   	PA6
-#define SPI1_MOSI_PIN   	PA7
 
-#define SPI2_SCK_PIN        PD3
-#define SPI2_MISO_PIN   	PC2
-#define SPI2_MOSI_PIN   	PC3
+#define SPI1_SCK_PIN      PA5
+#define SPI1_MISO_PIN     PA6
+#define SPI1_MOSI_PIN     PA7
+
+#define SPI2_SCK_PIN      PD3
+#define SPI2_MISO_PIN     PC2
+#define SPI2_MOSI_PIN     PC3
 
 #define USE_MAX7456
 #define MAX7456_SPI_BUS         BUS_SPI1
 #define MAX7456_CS_PIN          PB12
 
+#if defined(MICOAIR743V2_GYRO2) || defined(MICOAIR743V2_GYRO2_EXTMAG)
+#define USE_IMU_BMI270
+#define USE_SPI_DEVICE_3
+#define SPI3_MISO_PIN           PB4
+#define SPI3_MOSI_PIN           PD6
+#define SPI3_SCK_PIN            PA7
+
+#define IMU_BMI270_ALIGN        CW0_DEG
+#define BMI270_SPI_BUS          BUS_SPI3
+#define BMI270_CS_PIN           PA15
+//#define BMI270_EXTI_PIN         PB7
+#else
 #define USE_IMU_BMI088
 #define IMU_BMI088_ALIGN        CW270_DEG
 #define BMI088_SPI_BUS          BUS_SPI2
@@ -58,6 +71,7 @@
 #define BMI088_GYRO_EXTI_PIN    PC15
 #define BMI088_ACC_CS_PIN       PD4
 #define BMI088_ACC_EXTI_PIN     PC14
+#endif
 
 // *************** UART *****************************
 #define USE_VCP
@@ -115,7 +129,7 @@
 #define SPL06_I2C_ADDR          0x77
 
 #define USE_MAG
-#ifdef MICOAIR743V2_EXTMAG
+#if defined(MICOAIR743V2_EXTMAG) || defined(MICOAIR743V2_GYRO2_EXTMAG)
 // External compass
 #define USE_MAG_ALL
 #define MAG_I2C_BUS             BUS_I2C1
