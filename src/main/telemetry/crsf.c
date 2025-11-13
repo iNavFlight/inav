@@ -306,19 +306,6 @@ static void crsfFrameBarometerAltitudeVarioSensor(sbuf_t *dst)
     crsfSerialize8(dst, vario_packed);
 }
 
-/*
-0x0A Airspeed sensor
-Payload:
-int16      Air speed ( dm/s )
-*/
-static void crsfFrameAirSpeedSensor(sbuf_t *dst)
-{
-    // use sbufWrite since CRC does not include frame length
-    sbufWriteU8(dst, CRSF_FRAME_AIRSPEED_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    crsfSerialize8(dst, CRSF_FRAMETYPE_AIRSPEED_SENSOR);
-    crsfSerialize16(dst, (uint16_t)(getAirspeedEstimate() * 36 / 100));
-}
-
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -487,7 +474,6 @@ typedef enum {
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX,
-    CRSF_FRAME_AIRSPEED_SENSOR_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -563,13 +549,6 @@ static void processCrsf(void)
         crsfFinalize(dst);
     }
 #endif
-#if defined(USE_PITOT)
-    if (currentSchedule & BV(CRSF_FRAME_AIRSPEED_SENSOR_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfFrameAirSpeedSensor(dst);
-        crsfFinalize(dst);
-    }
-#endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
 
@@ -601,11 +580,6 @@ void initCrsfTelemetry(void)
 #if defined(USE_BARO) || defined(USE_GPS)
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_OR_ALT_VARIO_SENSOR_INDEX);
-    }
-#endif
-#ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT)) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_AIRSPEED_SENSOR_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;
@@ -686,9 +660,6 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
         break;
     case CRSF_FRAMETYPE_BAROMETER_ALTITUDE_VARIO_SENSOR:
         crsfFrameBarometerAltitudeVarioSensor(sbuf);
-        break;
-    case CRSF_FRAMETYPE_AIRSPEED_SENSOR:
-        crsfFrameAirSpeedSensor(sbuf);
         break;
     }  
     const int frameSize = crsfFinalizeBuf(sbuf, frame);
