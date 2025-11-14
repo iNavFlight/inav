@@ -121,6 +121,7 @@ FASTRAM bool gpsHeadingInitialized;
 FASTRAM bool imuUpdated = false;
 
 static float imuCalculateAccelerometerWeightNearness(fpVector3_t* accBF);
+static float imuCalculateAccelerometerWeightRateIgnore(const float acc_ignore_slope_multipiler);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(imuConfig_t, imuConfig, PG_IMU_CONFIG, 2);
 
@@ -348,6 +349,7 @@ bool isGPSTrustworthy(void)
 
 static float imuCalculateMcCogWeight(void)
 {
+    //used when flying stright. 1G acceleration
     float wCoG = imuCalculateAccelerometerWeightNearness(&imuMeasuredAccelBFFiltered);
     float rotRateMagnitude = fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBFFiltered));
     const float rateSlopeMax = DEGREES_TO_RADIANS((imuConfig()->acc_ignore_rate)) * 4.0f;
@@ -359,6 +361,7 @@ static float imuCalculateMcCogAccWeight(void)
     fpVector3_t accBFNorm;
     vectorScale(&accBFNorm, &imuMeasuredAccelBFFiltered, 1.0f / GRAVITY_CMSS);
     float wCoGAcc = constrainf((accBFNorm.z - 1.0f)* 2, 0.0f, 1.0f); //z direction is verified via SITL
+    wCoGAcc = wCoGAcc * imuCalculateAccelerometerWeightRateIgnore(4.0f); //reduce weight when fast angular rate, gps acc is considered lagging
     return wCoGAcc;
 }
 
@@ -427,7 +430,6 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
             // Rotate Forward vector from BF to EF - will yield Heading vector in Earth frame
             quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
             if (vCOG) {
-                LOG_DEBUG(IMU, "vCOG=(%f,%f,%f)", (double)vCOG->x, (double)vCOG->y, (double)vCOG->z);
                 vCoGlocal = *vCOG;
                 float airSpeed = gpsSol.groundSpeed;
     #if defined(USE_WIND_ESTIMATOR)
@@ -450,10 +452,6 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 //handle acc based vector
                 if(vCOGAcc){
                     float wCoGAcc = imuCalculateMcCogAccWeight();//stronger weight on acc if body frame z axis greate than 1G
-                    LOG_DEBUG(IMU, "accFiltZ=%f", (double)imuMeasuredAccelBFFiltered.z);
-                    LOG_DEBUG(IMU, "wCoGAcc=%f wCoG=%f", (double)wCoGAcc, (double)wCoG);
-                    LOG_DEBUG(IMU, "vHeadingEF=(%f,%f,%f)", (double)vHeadingEF.x, (double)vHeadingEF.y, (double)vHeadingEF.z);
-                    LOG_DEBUG(IMU, "vCOGAcc=(%f,%f,%f)", (double)vCOGAcc->x, (double)vCOGAcc->y, (double)vCOGAcc->z);
                     if (wCoGAcc > wCoG){
                         //when copter is accelerating use gps acc vector instead of gps speed vector
                         wCoG = wCoGAcc;
@@ -464,8 +462,6 @@ static void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVe
                 wCoG *= scaleRangef(constrainf(vHeadingEF.z, COS20DEG, COS10DEG), COS20DEG, COS10DEG, 1.0f, 0.0f);
                 // Inverted flight relies on the existing tilt scaling(scaleRangef); there is no extra handling here
             }
-            LOG_DEBUG(IMU, " wCoG=%f", (double)wCoG);
-            LOG_DEBUG(IMU, "vCoGlocal=(%f,%f,%f)", (double)vCoGlocal.x, (double)vCoGlocal.y, (double)vCoGlocal.z);
             vHeadingEF.z = 0.0f;
 
             // We zeroed out vHeadingEF.z -  make sure the whole vector didn't go to zero
@@ -792,7 +788,6 @@ static void imuCalculateEstimatedAttitude(float dT)
             vCOG.x = -cos_approx(courseOverGround); // the x axis of accerometer is pointing tail
             vCOG.y = sin_approx(courseOverGround);
             vCOG.z = 0;
-            // LOG_DEBUG(IMU, "currentGPSvel=(%f,%f,%f)", -(double)gpsSol.velNED[X], (double)gpsSol.velNED[Y], (double)gpsSol.velNED[Z]);
             useCOG = true;
         }
         else if (!canUseMAG) {
@@ -814,7 +809,6 @@ static void imuCalculateEstimatedAttitude(float dT)
     float acc_ignore_slope_multipiler = 1.0f; // when using gps centrifugal_force_compensation, AccelerometerWeightRateIgnore slope will be multiplied by this value
     if (isGPSTrustworthy())
     {
-        LOG_DEBUG(IMU, "vCOG=(%f,%f,%f)", (double)vCOG.x, (double)vCOG.y, (double)vCOG.z);
         imuCalculateGPSacceleration(&vCOGAcc, &vEstcentrifugalAccelBF_velned, &acc_ignore_slope_multipiler);
         useCOGAcc = true; //currently only for multicopter
     }
