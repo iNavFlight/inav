@@ -162,6 +162,7 @@
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
+- [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
 - [measurementSteps_e](#enum-measurementsteps_e)
 - [mixerProfileATRequest_e](#enum-mixerprofileatrequest_e)
@@ -205,6 +206,7 @@
 - [navWaypointP3Flags_e](#enum-navwaypointp3flags_e)
 - [opflowQuality_e](#enum-opflowquality_e)
 - [opticalFlowSensor_e](#enum-opticalflowsensor_e)
+- [osd_adsb_warning_style_e](#enum-osd_adsb_warning_style_e)
 - [osd_ahi_style_e](#enum-osd_ahi_style_e)
 - [osd_alignment_e](#enum-osd_alignment_e)
 - [osd_crosshairs_style_e](#enum-osd_crosshairs_style_e)
@@ -212,6 +214,7 @@
 - [osd_items_e](#enum-osd_items_e)
 - [osd_sidebar_arrow_e](#enum-osd_sidebar_arrow_e)
 - [osd_sidebar_scroll_e](#enum-osd_sidebar_scroll_e)
+- [osd_SpeedTypes_e](#enum-osd_speedtypes_e)
 - [osd_stats_energy_unit_e](#enum-osd_stats_energy_unit_e)
 - [osd_unit_e](#enum-osd_unit_e)
 - [osdCustomElementType_e](#enum-osdcustomelementtype_e)
@@ -1320,7 +1323,8 @@
 | `CURRENT_SENSOR_VIRTUAL` | 2 |  |
 | `CURRENT_SENSOR_FAKE` | 3 |  |
 | `CURRENT_SENSOR_ESC` | 4 |  |
-| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_FAKE |  |
+| `CURRENT_SENSOR_SMARTPORT` | 5 |  |
+| `CURRENT_SENSOR_MAX` | CURRENT_SENSOR_SMARTPORT |  |
 
 ---
 ## <a id="enum-devhardwaretype_e"></a>`devHardwareType_e`
@@ -1356,35 +1360,36 @@
 | `DEVHW_IST8310_1` | 24 |  |
 | `DEVHW_IST8308` | 25 |  |
 | `DEVHW_QMC5883` | 26 |  |
-| `DEVHW_MAG3110` | 27 |  |
-| `DEVHW_LIS3MDL` | 28 |  |
-| `DEVHW_RM3100` | 29 |  |
-| `DEVHW_VCM5883` | 30 |  |
-| `DEVHW_MLX90393` | 31 |  |
-| `DEVHW_LM75_0` | 32 |  |
-| `DEVHW_LM75_1` | 33 |  |
-| `DEVHW_LM75_2` | 34 |  |
-| `DEVHW_LM75_3` | 35 |  |
-| `DEVHW_LM75_4` | 36 |  |
-| `DEVHW_LM75_5` | 37 |  |
-| `DEVHW_LM75_6` | 38 |  |
-| `DEVHW_LM75_7` | 39 |  |
-| `DEVHW_DS2482` | 40 |  |
-| `DEVHW_MAX7456` | 41 |  |
-| `DEVHW_SRF10` | 42 |  |
-| `DEVHW_VL53L0X` | 43 |  |
-| `DEVHW_VL53L1X` | 44 |  |
-| `DEVHW_US42` | 45 |  |
-| `DEVHW_TOF10120_I2C` | 46 |  |
-| `DEVHW_TERARANGER_EVO_I2C` | 47 |  |
-| `DEVHW_MS4525` | 48 |  |
-| `DEVHW_DLVR` | 49 |  |
-| `DEVHW_M25P16` | 50 |  |
-| `DEVHW_W25N01G` | 51 |  |
-| `DEVHW_UG2864` | 52 |  |
-| `DEVHW_SDCARD` | 53 |  |
-| `DEVHW_IRLOCK` | 54 |  |
-| `DEVHW_PCF8574` | 55 |  |
+| `DEVHW_QMC5883P` | 27 |  |
+| `DEVHW_MAG3110` | 28 |  |
+| `DEVHW_LIS3MDL` | 29 |  |
+| `DEVHW_RM3100` | 30 |  |
+| `DEVHW_VCM5883` | 31 |  |
+| `DEVHW_MLX90393` | 32 |  |
+| `DEVHW_LM75_0` | 33 |  |
+| `DEVHW_LM75_1` | 34 |  |
+| `DEVHW_LM75_2` | 35 |  |
+| `DEVHW_LM75_3` | 36 |  |
+| `DEVHW_LM75_4` | 37 |  |
+| `DEVHW_LM75_5` | 38 |  |
+| `DEVHW_LM75_6` | 39 |  |
+| `DEVHW_LM75_7` | 40 |  |
+| `DEVHW_DS2482` | 41 |  |
+| `DEVHW_MAX7456` | 42 |  |
+| `DEVHW_SRF10` | 43 |  |
+| `DEVHW_VL53L0X` | 44 |  |
+| `DEVHW_VL53L1X` | 45 |  |
+| `DEVHW_US42` | 46 |  |
+| `DEVHW_TOF10120_I2C` | 47 |  |
+| `DEVHW_TERARANGER_EVO_I2C` | 48 |  |
+| `DEVHW_MS4525` | 49 |  |
+| `DEVHW_DLVR` | 50 |  |
+| `DEVHW_M25P16` | 51 |  |
+| `DEVHW_W25N01G` | 52 |  |
+| `DEVHW_UG2864` | 53 |  |
+| `DEVHW_SDCARD` | 54 |  |
+| `DEVHW_IRLOCK` | 55 |  |
+| `DEVHW_PCF8574` | 56 |  |
 
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
@@ -2623,7 +2628,8 @@
 | `INPUT_RC_CH32` | 57 |  |
 | `INPUT_RC_CH33` | 58 |  |
 | `INPUT_RC_CH34` | 59 |  |
-| `INPUT_SOURCE_COUNT` | 60 |  |
+| `INPUT_MIXER_SWITCH_HELPER` | 60 |  |
+| `INPUT_SOURCE_COUNT` | 61 |  |
 
 ---
 ## <a id="enum-itermrelax_e"></a>`itermRelax_e`
@@ -2754,6 +2760,7 @@
 | `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS` | (1 << 9) |  |
 | `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS` | (1 << 10) |  |
 | `LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX` | (1 << 11) | USE_GPS_FIX_ESTIMATION |
+| `LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED` | (1 << 12) |  |
 
 ---
 ## <a id="enum-logicflightmodeoperands_e"></a>`logicFlightModeOperands_e`
@@ -2833,6 +2840,9 @@
 | `LOGIC_CONDITION_OPERAND_FLIGHT_FLOWN_LOITER_RADIUS` | 43 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_LQ_DOWNLINK` | 44 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_UPLINK_RSSI_DBM` | 45 |  |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED` | 46 |  |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED` | 47 |  |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION` | 48 |  |
 
 ---
 ## <a id="enum-logicoperation_e"></a>`logicOperation_e`
@@ -2897,7 +2907,8 @@
 | `LOGIC_CONDITION_DISABLE_GPS_FIX` | 53 |  |
 | `LOGIC_CONDITION_RESET_MAG_CALIBRATION` | 54 |  |
 | `LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY` | 55 |  |
-| `LOGIC_CONDITION_LAST` | 56 |  |
+| `LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED` | 56 |  |
+| `LOGIC_CONDITION_LAST` | 57 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -3105,15 +3116,26 @@
 | `MAG_AK8963` | 5 |  |
 | `MAG_IST8310` | 6 |  |
 | `MAG_QMC5883` | 7 |  |
-| `MAG_MPU9250` | 8 |  |
-| `MAG_IST8308` | 9 |  |
-| `MAG_LIS3MDL` | 10 |  |
-| `MAG_MSP` | 11 |  |
-| `MAG_RM3100` | 12 |  |
-| `MAG_VCM5883` | 13 |  |
-| `MAG_MLX90393` | 14 |  |
-| `MAG_FAKE` | 15 |  |
+| `MAG_QMC5883P` | 8 |  |
+| `MAG_MPU9250` | 9 |  |
+| `MAG_IST8308` | 10 |  |
+| `MAG_LIS3MDL` | 11 |  |
+| `MAG_MSP` | 12 |  |
+| `MAG_RM3100` | 13 |  |
+| `MAG_VCM5883` | 14 |  |
+| `MAG_MLX90393` | 15 |  |
+| `MAG_FAKE` | 16 |  |
 | `MAG_MAX` | MAG_FAKE |  |
+
+---
+## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`
+
+> Source: ../../../src/main/telemetry/telemetry.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAVLINK_AUTOPILOT_GENERIC` | 0 |  |
+| `MAVLINK_AUTOPILOT_ARDUPILOT` | 1 |  |
 
 ---
 ## <a id="enum-mavlinkradio_e"></a>`mavlinkRadio_e`
@@ -3778,6 +3800,16 @@
 | `OPFLOW_FAKE` | 3 |  |
 
 ---
+## <a id="enum-osd_adsb_warning_style_e"></a>`osd_adsb_warning_style_e`
+
+> Source: ../../../src/main/io/osd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OSD_ADSB_WARNING_STYLE_COMPACT` | 0 |  |
+| `OSD_ADSB_WARNING_STYLE_EXTENDED` | 1 |  |
+
+---
 ## <a id="enum-osd_ahi_style_e"></a>`osd_ahi_style_e`
 
 > Source: ../../../src/main/io/osd.h
@@ -3856,7 +3888,7 @@
 | `OSD_HOME_DIST` | 23 |  |
 | `OSD_HEADING` | 24 |  |
 | `OSD_VARIO` | 25 |  |
-| `OSD_VARIO_NUM` | 26 |  |
+| `OSD_VERTICAL_SPEED_INDICATOR` | 26 |  |
 | `OSD_AIR_SPEED` | 27 |  |
 | `OSD_ONTIME_FLYTIME` | 28 |  |
 | `OSD_RTC_TIME` | 29 |  |
@@ -3997,7 +4029,9 @@
 | `OSD_H_DIST_TO_FENCE` | 164 |  |
 | `OSD_V_DIST_TO_FENCE` | 165 |  |
 | `OSD_NAV_FW_ALT_CONTROL_RESPONSE` | 166 |  |
-| `OSD_ITEM_COUNT` | 167 |  |
+| `OSD_NAV_MIN_GROUND_SPEED` | 167 |  |
+| `OSD_THROTTLE_GAUGE` | 168 |  |
+| `OSD_ITEM_COUNT` | 169 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
@@ -4022,6 +4056,18 @@
 | `OSD_SIDEBAR_SCROLL_SPEED` | 2 |  |
 | `OSD_SIDEBAR_SCROLL_HOME_DISTANCE` | 3 |  |
 | `OSD_SIDEBAR_SCROLL_MAX` | OSD_SIDEBAR_SCROLL_HOME_DISTANCE |  |
+
+---
+## <a id="enum-osd_speedtypes_e"></a>`osd_SpeedTypes_e`
+
+> Source: ../../../src/main/io/osd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OSD_SPEED_TYPE_GROUND` | 0 |  |
+| `OSD_SPEED_TYPE_AIR` | 1 |  |
+| `OSD_SPEED_TYPE_3D` | 2 |  |
+| `OSD_SPEED_TYPE_MIN_GROUND` | 3 |  |
 
 ---
 ## <a id="enum-osd_stats_energy_unit_e"></a>`osd_stats_energy_unit_e`
@@ -4694,7 +4740,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4705,7 +4751,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5539,6 +5585,8 @@
 | `VOLTAGE_SENSOR_ADC` | 1 |  |
 | `VOLTAGE_SENSOR_ESC` | 2 |  |
 | `VOLTAGE_SENSOR_FAKE` | 3 |  |
+| `VOLTAGE_SENSOR_SMARTPORT` | 4 |  |
+| `VOLTAGE_SENSOR_MAX` | VOLTAGE_SENSOR_SMARTPORT |  |
 
 ---
 ## <a id="enum-vs600band_e"></a>`vs600Band_e`
