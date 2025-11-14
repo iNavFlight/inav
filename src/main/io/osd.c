@@ -6593,4 +6593,56 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     return elemAttr;
 }
 
+void osdDrawCustomItem(uint8_t item){
+    osdDrawSingleElement(item);
+}
+
+void osdEraseCustomItem(uint8_t item){
+    uint8_t customElementIndex = 0;
+
+    uint16_t pos = osdLayoutsConfig()->item_pos[currentLayout][item];
+    uint8_t elemPosX = OSD_X(pos);
+    uint8_t elemPosY = OSD_Y(pos);
+
+    switch(item){
+        case 147:
+            customElementIndex = 0;
+            break;
+        case 148:
+            customElementIndex = 1;
+            break;
+        case 149:
+            customElementIndex = 2;
+            break;
+        case 154:
+            customElementIndex = 3;
+            break;
+        case 155:
+            customElementIndex = 4;
+            break;
+        case 156:
+            customElementIndex = 5;
+            break;
+        case 157:
+            customElementIndex = 6;
+            break;
+        case 158:
+            customElementIndex = 7;
+            break;
+        default:
+            return;
+    }
+
+    uint8_t len = customElementLength(customElementIndex);
+
+    for(uint8_t i = 0; i < len; i++){
+        displayWriteChar(osdDisplayPort, elemPosX+i, elemPosY, SYM_BLANK);
+    }
+
+}
+
 #endif // OSD
+
+unsigned getCurrentLayout(void){
+    return(currentLayout);
+}
