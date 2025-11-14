@@ -24,18 +24,18 @@
 #include "flash.h"
 #include "drivers/io_types.h"
 
-bool w25n01g_init(int flashNumToUse);
+bool w25n_init(int flashNumToUse);
 
-void w25n01g_eraseSector(uint32_t address);
-void w25n01g_eraseCompletely(void);
+void w25n_eraseSector(uint32_t address);
+void w25n_eraseCompletely(void);
 
-uint32_t w25n01g_pageProgram(uint32_t address, const uint8_t *data, int length);
+uint32_t w25n_pageProgram(uint32_t address, const uint8_t *data, int length);
 
-void w25n01g_flush(void);
+void w25n_flush(void);
 
-int w25n01g_readBytes(uint32_t address, uint8_t *buffer, int length);
+int w25n_readBytes(uint32_t address, uint8_t *buffer, int length);
 
-bool w25n01g_isReady(void);
-bool w25n01g_waitForReady(timeMs_t timeoutMillis);
+bool w25n_isReady(void);
+bool w25n_waitForReady(timeMs_t timeoutMillis);
 
-const flashGeometry_t* w25n01g_getGeometry(void);
+const flashGeometry_t* w25n_getGeometry(void);
