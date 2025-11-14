@@ -690,7 +690,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, currentControlRateProfile->throttle.rcMid8);
         sbufWriteU8(dst, currentControlRateProfile->throttle.rcExpo8);
         sbufWriteU16(dst, currentControlRateProfile->throttle.pa_breakpoint);
-        sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+        sbufWriteI8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
         break;
 
     case MSP2_INAV_RATE_PROFILE:
@@ -702,14 +702,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
         // stabilized
         sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
-        sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+        sbufWriteI8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
         for (uint8_t i = 0 ; i < 3; ++i) {
             sbufWriteU8(dst, currentControlRateProfile->stabilized.rates[i]); // R,P,Y see flight_dynamics_index_t
         }
 
         // manual
         sbufWriteU8(dst, currentControlRateProfile->manual.rcExpo8);
-        sbufWriteU8(dst, currentControlRateProfile->manual.rcYawExpo8);
+        sbufWriteI8(dst, currentControlRateProfile->manual.rcYawExpo8);
         for (uint8_t i = 0 ; i < 3; ++i) {
             sbufWriteU8(dst, currentControlRateProfile->manual.rates[i]); // R,P,Y see flight_dynamics_index_t
         }
@@ -2007,7 +2007,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             ((controlRateConfig_t*)currentControlRateProfile)->throttle.rcExpo8 = sbufReadU8(src);
             ((controlRateConfig_t*)currentControlRateProfile)->throttle.pa_breakpoint = sbufReadU16(src);
             if (dataSize > 10) {
-                ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = sbufReadU8(src);
+                ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = sbufReadI8(src);
             }
 
             schedulePidGainsUpdate();
@@ -2028,7 +2028,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
             // stabilized
             currentControlRateProfile_p->stabilized.rcExpo8 = sbufReadU8(src);
-            currentControlRateProfile_p->stabilized.rcYawExpo8 = sbufReadU8(src);
+            currentControlRateProfile_p->stabilized.rcYawExpo8 = sbufReadI8(src);
             for (uint8_t i = 0; i < 3; ++i) {
                 tmp_u8 = sbufReadU8(src);
                 if (i == FD_YAW) {
@@ -2040,7 +2040,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
             // manual
             currentControlRateProfile_p->manual.rcExpo8 = sbufReadU8(src);
-            currentControlRateProfile_p->manual.rcYawExpo8 = sbufReadU8(src);
+            currentControlRateProfile_p->manual.rcYawExpo8 = sbufReadI8(src);
             for (uint8_t i = 0; i < 3; ++i) {
                 tmp_u8 = sbufReadU8(src);
                 if (i == FD_YAW) {

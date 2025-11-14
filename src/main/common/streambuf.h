@@ -31,6 +31,7 @@ typedef struct sbuf_s {
 sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end);
 
 void sbufWriteU8(sbuf_t *dst, uint8_t val);
+void sbufWriteI8(sbuf_t *dst, int8_t val);
 void sbufWriteU16(sbuf_t *dst, uint16_t val);
 void sbufWriteU32(sbuf_t *dst, uint32_t val);
 void sbufFill(sbuf_t *dst, uint8_t data, int len);
