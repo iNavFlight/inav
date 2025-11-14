@@ -149,19 +149,19 @@
 #define VBAT_SCALE_DEFAULT          1100    // VBAT_ADC 1V=11V
 
 // *************** LED_STRIP **********************
-#define USE_LED_STRIP
-#define WS2811_PIN                      PA1
-#define WS2811_DMA_HANDLER_IDENTIFER    DMA1_ST6_HANDLER
-#define WS2811_DMA_STREAM               DMA1_Stream6
-#define WS2811_DMA_CHANNEL              DMA_Channel_3
+// #define USE_LED_STRIP                                 // Disable LED_STRIP
+// #define WS2811_PIN                      PA1           // Disable LED_STRIP pin
+
+// *************** BUZZER ON PINIO2 (PB15) ************
+#define BEEPER_PIN                  PB15                // BEEPER to pin PB15
 
 // *************** PINIO ***************************
 #define USE_PINIO
 #define USE_PINIOBOX
 #define PINIO1_PIN                  PB14    // USER1
-#define PINIO2_PIN                  PB15   // USER2
+// #define PINIO2_PIN                  PB15   // Disable PINIO2
       
-#define DEFAULT_FEATURES     (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_GPS)
+#define DEFAULT_FEATURES (FEATURE_OSD | FEATURE_TELEMETRY | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_GPS | FEATURE_BEEPER)
 
 // ***********Set rx type and procotol***************
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
