@@ -19,6 +19,7 @@ import sys
 import re
 from pathlib import Path
 from typing import List, Optional
+import json
 
 # ---------- Helpers ----------
 
@@ -249,6 +250,7 @@ def parse_files(paths: List[Path]) -> List[EnumDef]:
 # ---------- Markdown rendering ----------
 
 def render_markdown(enums: List[EnumDef]) -> str:
+    jsonfile = {}
     out = []
     out.append("# Enumerations\n")
     out.append("**Auto-generated reference for MSP, refer to source for development, not this file, due to variations with #ifdefs which needs verification.**\n")
@@ -257,10 +259,12 @@ def render_markdown(enums: List[EnumDef]) -> str:
         out.append(f"- [{e.name}](#enum-{e.name.lower()})")
     out.append("")
     for e in sorted(enums, key=lambda x: x.name.lower()):
+        jsonfile[e.name] = {}
         out.append("---")
         out.append(f"## <a id=\"enum-{e.name.lower()}\"></a>`{e.name}`\n")
         if e.source_note:
             out.append(f"> Source: {e.source_note}\n")
+            jsonfile[e.name]['_source'] = e.source_note
         out.append("| Enumerator | Value | Condition |")
         out.append("|---|---:|---|")
         for it in e.items:
@@ -268,7 +272,10 @@ def render_markdown(enums: List[EnumDef]) -> str:
             val = it.value_display
             cond = it.cond
             out.append(f"| {name_md} | {val} | {cond} |")
+            jsonfile[e.name][name_md.strip('`')] = [val, cond] if len(cond)>0 else val
         out.append("")
+    # While we're at it, chuck this all into a JSON file
+    Path("inav_enums.json").write_text(json.dumps(jsonfile,indent=4), encoding="utf-8")
     return "\n".join(out)
 
 # ---------- Main ----------

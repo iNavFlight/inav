@@ -40,25 +40,25 @@
 **variable_len**: Optional boolean, if true, message does not have a predefined fixed length and needs appropriate handling\
 **variants**: Optional special case, message has different cases of reply/request. Key/description is not a strict expression or code; just a readable condition\
 **not_implemented**: Optional special case, message is not implemented\
-**notes**: String with details of message\
+**notes**: String with details of message
 
 ## Data dict fields:
 **payload**: Array of payload fields\
-**repeating**: Optional Special Case, integer or string of how many times the *entire* payload is repeated\
+**repeating**: Optional Special Case, integer or string of how many times the *entire* payload is repeated
 
 ## Payload fields:
 ### Fields:
 **name**: field name from code\
-**ctype**: C value type\
+**ctype**: Base C type of the value. Arrays list their element type here as well\
 **desc**: Optional string with description and details of field\
 **units**: Optional defined units\
 **enum**: Optional string of enum struct if value is an enum
 **array**: Optional boolean to denote field is array of more values\
-**array_ctype**: If array, string to describe type of each element\
-**array_size**: If array, Integer OR String to define array size, 0 if undefined, string is unparseable (ie: probably needs to be corrected)\
+**array_size**: If array, integer count of elements. Use `0` when the length is indeterminate/variable\
+**array_size_define**: Optional string naming the source `#define` that provides the size (informational only)\
 **repeating**: Optional Special case, contains array of more payload fields that are added Times * Key\
 **payload**: If repeating, contains more payload fields\
-**polymorph**: Optional boolean special case, field does not have a defined C type and could be anything\
+**polymorph**: Optional boolean special case, field does not have a defined C type and could be anything
 
 **Simple value**
 ```
@@ -73,11 +73,22 @@
 ```
 {
     "name": "fcVariantIdentifier",
-    "ctype": "char[4]",
+    "ctype": "char",
     "desc": "4-character identifier string (e.g., \"INAV\"). Defined by `flightControllerIdentifier",
     "array": true,
-    "array_ctype": "char",
     "array_size": 4,
+    "units": ""
+}
+```
+**Array sized via define**
+```
+{
+    "name": "buildDate",
+    "ctype": "char",
+    "desc": "Build date string (e.g., \"Dec 31 2023\").",
+    "array": true,
+    "array_size": 11,
+    "array_size_define": "BUILD_DATE_LENGTH",
     "units": ""
 }
 ```
@@ -85,10 +96,9 @@
 ```
 {
     "name": "firmwareChunk",
-    "ctype": "uint8_t[]",
+    "ctype": "uint8_t",
     "desc": "Chunk of firmware data",
     "array": true,
-    "array_ctype": "uint8_t",
     "array_size": 0,
 }
 ```
@@ -96,11 +106,10 @@
 ```
 {
     "name": "elementText",
-    "ctype": "char[]",
-    "desc": "Static text bytes, not NUL-terminated"
+    "ctype": "char",
+    "desc": "Static text bytes, not NUL-terminated and not yet sized.",
     "array": true,
-    "array_ctype": "char",
-    "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1"
+    "array_size": 0
 }
 ```
 **Nested array with struct**
@@ -110,11 +119,10 @@
     "payload": [
         {
             "name": "adsbVehicle",
-            "ctype": "adsbVehicle_t[]",
+            "ctype": "adsbVehicle_t",
             "desc": "Array of `adsbVehicle_t` Repeated `maxVehicles` times",
             "repeating": "maxVehicles",
             "array": true,
-            "array_ctype": "adsbVehicle_t",
             "array_size": 0,
             "units": ""
         }
