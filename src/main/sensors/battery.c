@@ -248,7 +248,7 @@ void setBatteryProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     currentBatteryProfile = batteryProfiles(profileIndex);
-    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile < MAX_CONTROL_RATE_PROFILE_COUNT)) {
+    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile <= MAX_CONTROL_RATE_PROFILE_COUNT)) {
         setConfigProfile(currentBatteryProfile->controlRateProfile - 1);
     }
 }
