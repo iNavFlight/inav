@@ -17,11 +17,11 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "JHEM"
+#define TARGET_BOARD_IDENTIFIER "J35A"
 
-#define USBD_PRODUCT_STRING  "JHEMCUF435"
+#define USBD_PRODUCT_STRING  "JHEMF435AIO"
 
-  
+
 #define LED0                    PC13
 #define LED0_INVERTED
 
@@ -115,6 +115,8 @@
 #define UART1_TX_PIN            PA9
 
 #define USE_UART2
+#define UART2_RX_AF             6
+#define UART2_TX_AF             8
 #define UART2_RX_PIN            PB0
 #define UART2_TX_PIN            PA8
 
