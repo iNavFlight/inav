@@ -125,12 +125,12 @@
 #define MAX7456_CS_PIN          PE6
 
 // *************** FLASH ***************************
-#define W25N01G_SPI_BUS BUS_SPI3
-#define W25N01G_CS_PIN  PD3
+#define W25N02K_SPI_BUS BUS_SPI3
+#define W25N02K_CS_PIN  PD3
 
 #define USE_BLACKBOX
 #define USE_FLASHFS
-#define USE_FLASH_W25N01G
+#define USE_FLASH_W25N02K
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
 
 // *************** Baro/Mag *********************
