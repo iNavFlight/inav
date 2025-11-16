@@ -88,11 +88,6 @@
 #define UART2_TX_PIN            PA2 // pin labelled as "RPM"
 #define UART2_RX_PIN            PA3 // pin labelled as "TLM"
 
-#define USE_UART3
-// port labelled "C"
-#define UART3_TX_PIN            PB10
-#define UART3_RX_PIN            PB11
-
 #define USE_UART4
 // port labelled "A"
 #define UART4_TX_PIN            PA0
@@ -108,7 +103,7 @@
 #define UART6_TX_PIN            PC6
 #define UART6_RX_PIN            PC7
 
-#define SERIAL_PORT_COUNT       7
+#define SERIAL_PORT_COUNT       6
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_CRSF
@@ -152,3 +147,7 @@
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 #define USE_SMARTPORT_MASTER // no internal current sensor, enable SMARTPORT_MASTER so external ones can be used
+
+#define USE_DSHOT_DMAR
+#define TARGET_MOTOR_COUNT      7
+
