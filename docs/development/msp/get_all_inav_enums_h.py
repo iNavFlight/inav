@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
+import argparse
 import datetime
 import re
 from pathlib import Path
 
-BASE = Path('../../../src/main')
 SUBDIRS = [
     'common',
     'blackbox',
@@ -84,11 +84,26 @@ def extract_enums(fn: str, text: str):
             k += 1
         else:
             break
+
     return out
 
+
+
 all_enums = []
+def parse_args():
+    parser = argparse.ArgumentParser(description='Collect all enums from INAV sources.')
+    parser.add_argument(
+        '--inav-root',
+        default='../inav/src/main',
+        help="Path to the INAV 'src/main' directory (default: %(default)s)",
+    )
+    return parser.parse_args()
+
+
+args = parse_args()
+base_dir = Path(args.inav_root).expanduser()
 for sd in SUBDIRS:
-    root = BASE / sd
+    root = base_dir / sd
     if not root.is_dir():
         continue
     for fn in root.rglob('*'):

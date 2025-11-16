@@ -198,7 +198,7 @@ Total gyro rotation rate threshold [deg/s] before scaling to consider accelerome
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 20 | 0 | 30 |
+| 15 | 0 | 30 |
 
 ---
 
@@ -5192,9 +5192,9 @@ Degrees either side of the pan servo centre; where it is assumed camera is wante
 
 ---
 
-### osd_pan_servo_pwm2centideg
+### osd_pan_servo_range_decadegrees
 
-Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
+Decadegrees of pan servo rotation. A servo with 180 degrees of rotation typically needs `18` for this setting. Using a negative value will reverse the direction.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5338,7 +5338,7 @@ Value below which Crossfire SNR Alarm pops-up. (dB)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | -20 | 99 |
+| 4 | -20 | 30 |
 
 ---
 

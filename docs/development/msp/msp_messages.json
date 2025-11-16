@@ -36,10 +36,9 @@
             "payload": [
                 {
                     "name": "fcVariantIdentifier",
-                    "ctype": "char[4]",
                     "desc": "4-character identifier string (e.g., \"INAV\"). Defined by `flightControllerIdentifier`.",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 4,
                     "units": ""
                 }
@@ -85,10 +84,9 @@
             "payload": [
                 {
                     "name": "boardIdentifier",
-                    "ctype": "char[4]",
                     "desc": "4-character UPPER CASE board identifier (`TARGET_BOARD_IDENTIFIER`)",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 4,
                     "units": ""
                 },
@@ -119,10 +117,9 @@
                 },
                 {
                     "name": "targetName",
-                    "ctype": "char[]",
                     "desc": "Target name string (e.g., \"MATEKF405\"). Length given by previous field",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -140,29 +137,29 @@
             "payload": [
                 {
                     "name": "buildDate",
-                    "ctype": "char[11]",
                     "desc": "Build date string (e.g., \"Dec 31 2023\"). `BUILD_DATE_LENGTH`.",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 11,
+                    "array_size_define": "BUILD_DATE_LENGTH",
                     "units": ""
                 },
                 {
                     "name": "buildTime",
-                    "ctype": "char[8]",
                     "desc": "Build time string (e.g., \"23:59:59\"). `BUILD_TIME_LENGTH`.",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 8,
+                    "array_size_define": "BUILD_TIME_LENGTH",
                     "units": ""
                 },
                 {
                     "name": "gitRevision",
-                    "ctype": "char[8]",
                     "desc": "Short Git revision string. `GIT_SHORT_REVISION_LENGTH`.",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 8,
+                    "array_size_define": "GIT_SHORT_REVISION_LENGTH",
                     "units": ""
                 }
             ]
@@ -336,10 +333,9 @@
             "payload": [
                 {
                     "name": "craftName",
-                    "ctype": "char[]",
                     "desc": "The craft name string (`systemConfig()->craftName`). Null termination is *not* explicitly sent, the length is determined by the payload size",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -356,10 +352,9 @@
             "payload": [
                 {
                     "name": "craftName",
-                    "ctype": "char[]",
                     "desc": "The new craft name string. Automatically null-terminated by the FC",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -437,7 +432,7 @@
                 {
                     "name": "userControlMode",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.user_control_mode`.",
+                    "desc": "Sets `navConfigMutable()->general.flags.user_control_mode`. WARNING: uses unnamed enum in navigation.h 'NAV_GPS_ATTI/NAV_GPS_CRUISE'",
                     "units": "Enum",
                     "enum": "navUserControlMode_e"
                 },
@@ -891,9 +886,9 @@
                 {
                     "name": "rthAltControlMode",
                     "ctype": "uint8_t",
-                    "desc": "RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`).",
+                    "desc": "RTH altitude control mode (`navConfig()->general.flags.rth_alt_control_mode`). WARNING: uses unnamed enum in navigation.h:253 'NAV_RTH_NO_ALT...'",
                     "units": "Enum",
-                    "enum": "navRthAltMode_e"
+                    "enum": "navRthAltControlMode_e"
                 },
                 {
                     "name": "rthAbortThreshold",
@@ -980,9 +975,9 @@
                 {
                     "name": "rthAltControlMode",
                     "ctype": "uint8_t",
-                    "desc": "Sets `navConfigMutable()->general.flags.rth_alt_control_mode`.",
+                    "desc": "Sets `navConfigMutable()->general.flags.rth_alt_control_mode`. WARNING: uses unnamed enum in navigation.h:253",
                     "units": "Enum",
-                    "enum": "navRthAltMode_e"
+                    "enum": "navRthAltControlMode_e"
                 },
                 {
                     "name": "rthAbortThreshold",
@@ -1979,11 +1974,11 @@
             "payload": [
                 {
                     "name": "rcMap",
-                    "ctype": "uint8_t[MAX_MAPPABLE_RX_INPUTS]",
                     "desc": "Array defining the mapping from input channel index to logical function (Roll, Pitch, Yaw, Throttle, Aux1...)",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
-                    "array_size": "MAX_MAPPABLE_RX_INPUTS",
+                    "array_size": 4,
+                    "array_size_define": "MAX_MAPPABLE_RX_INPUTS",
                     "units": ""
                 }
             ]
@@ -1998,11 +1993,11 @@
             "payload": [
                 {
                     "name": "rcMap",
-                    "ctype": "uint8_t[MAX_MAPPABLE_RX_INPUTS]",
                     "desc": "Array defining the new channel mapping",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
-                    "array_size": "MAX_MAPPABLE_RX_INPUTS",
+                    "array_size": 4,
+                    "array_size_define": "MAX_MAPPABLE_RX_INPUTS",
                     "units": ""
                 }
             ]
@@ -2084,10 +2079,9 @@
                 },
                 {
                     "name": "data",
-                    "ctype": "uint8_t[]",
                     "desc": "The data read from flash. Length is MIN(requested size, remaining buffer space, remaining flashfs data)",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -2494,11 +2488,11 @@
                 },
                 {
                     "name": "itemPositions",
-                    "ctype": "uint16_t[OSD_ITEM_COUNT]",
                     "desc": "Packed X/Y position for each OSD item on screen 0 (`osdLayoutsConfig()->item_pos[0][i]`). Sent even if OSD disabled",
+                    "ctype": "uint16_t",
                     "array": true,
-                    "array_ctype": "uint16_t",
-                    "array_size": "OSD_ITEM_COUNT",
+                    "array_size": 0,
+                    "array_size_define": "OSD_ITEM_COUNT",
                     "units": "packed"
                 }
             ]
@@ -2632,11 +2626,11 @@
                         },
                         {
                             "name": "charData",
-                            "ctype": "uint8_t[OSD_CHAR_BYTES]",
                             "desc": "All 64 bytes, including driver metadata.",
+                            "ctype": "uint8_t",
                             "array": true,
-                            "array_ctype": "uint8_t",
-                            "array_size": "OSD_CHAR_BYTES"
+                            "array_size": 64,
+                            "array_size_define": "OSD_CHAR_BYTES"
                         }
                     ]
                 },
@@ -2653,11 +2647,11 @@
                         },
                         {
                             "name": "charData",
-                            "ctype": "uint8_t[OSD_CHAR_BYTES]",
                             "desc": "All 64 bytes, including driver metadata.",
+                            "ctype": "uint8_t",
                             "array": true,
-                            "array_ctype": "uint8_t",
-                            "array_size": "OSD_CHAR_BYTES"
+                            "array_size": 64,
+                            "array_size_define": "OSD_CHAR_BYTES"
                         }
                     ]
                 },
@@ -2674,11 +2668,11 @@
                         },
                         {
                             "name": "charData",
-                            "ctype": "uint8_t[OSD_CHAR_VISIBLE_BYTES]",
                             "desc": "Visible pixel data only (no metadata).",
+                            "ctype": "uint8_t",
                             "array": true,
-                            "array_ctype": "uint8_t",
-                            "array_size": "OSD_CHAR_VISIBLE_BYTES"
+                            "array_size": 54,
+                            "array_size_define": "OSD_CHAR_VISIBLE_BYTES"
                         }
                     ]
                 },
@@ -2695,11 +2689,11 @@
                         },
                         {
                             "name": "charData",
-                            "ctype": "uint8_t[OSD_CHAR_VISIBLE_BYTES]",
                             "desc": "Visible pixel data only (no metadata).",
+                            "ctype": "uint8_t",
                             "array": true,
-                            "array_ctype": "uint8_t",
-                            "array_size": "OSD_CHAR_VISIBLE_BYTES"
+                            "array_size": 54,
+                            "array_size_define": "OSD_CHAR_VISIBLE_BYTES"
                         }
                     ]
                 },
@@ -3450,44 +3444,44 @@
                 {
                     "name": "accHardware",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`accHardware_e`): Accelerometer hardware type (`accelerometerConfig()->acc_hardware`)",
+                    "desc": "Enum (`accelerationSensor_e`): Accelerometer hardware type (`accelerometerConfig()->acc_hardware`)",
                     "units": "",
-                    "enum": "accHardware_e"
+                    "enum": "accelerationSensor_e"
                 },
                 {
                     "name": "baroHardware",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`baroHardware_e`): Barometer hardware type (`barometerConfig()->baro_hardware`). 0 if `USE_BARO` disabled",
+                    "desc": "Enum (`baroSensor_e`): Barometer hardware type (`barometerConfig()->baro_hardware`). 0 if `USE_BARO` disabled",
                     "units": "",
-                    "enum": "baroHardware_e"
+                    "enum": "baroSensor_e"
                 },
                 {
                     "name": "magHardware",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`magHardware_e`): Magnetometer hardware type (`compassConfig()->mag_hardware`). 0 if `USE_MAG` disabled",
+                    "desc": "Enum (`magSensor_e`): Magnetometer hardware type (`compassConfig()->mag_hardware`). 0 if `USE_MAG` disabled",
                     "units": "",
-                    "enum": "magHardware_e"
+                    "enum": "magSensor_e"
                 },
                 {
                     "name": "pitotHardware",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`pitotHardware_e`): Pitot tube hardware type (`pitotmeterConfig()->pitot_hardware`). 0 if `USE_PITOT` disabled",
+                    "desc": "Enum (`pitotSensor_e`): Pitot tube hardware type (`pitotmeterConfig()->pitot_hardware`). 0 if `USE_PITOT` disabled",
                     "units": "",
-                    "enum": "pitotHardware_e"
+                    "enum": "pitotSensor_e"
                 },
                 {
                     "name": "rangefinderHardware",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`rangefinderHardware_e`): Rangefinder hardware type (`rangefinderConfig()->rangefinder_hardware`). 0 if `USE_RANGEFINDER` disabled",
+                    "desc": "Enum (`rangefinderType_e`): Rangefinder hardware type (`rangefinderConfig()->rangefinder_hardware`). 0 if `USE_RANGEFINDER` disabled",
                     "units": "",
-                    "enum": "rangefinderHardware_e"
+                    "enum": "rangefinderType_e"
                 },
                 {
                     "name": "opflowHardware",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`opticalFlowHardware_e`): Optical flow hardware type (`opticalFlowConfig()->opflow_hardware`). 0 if `USE_OPFLOW` disabled",
+                    "desc": "Enum (`opticalFlowSensor_e`): Optical flow hardware type (`opticalFlowConfig()->opflow_hardware`). 0 if `USE_OPFLOW` disabled",
                     "units": "",
-                    "enum": "opticalFlowHardware_e"
+                    "enum": "opticalFlowSensor_e"
                 }
             ]
         },
@@ -3504,42 +3498,42 @@
                     "ctype": "uint8_t",
                     "desc": "Sets `accelerometerConfigMutable()->acc_hardware`",
                     "units": "",
-                    "enum": "accHardware_e"
+                    "enum": "accelerationSensor_e"
                 },
                 {
                     "name": "baroHardware",
                     "ctype": "uint8_t",
                     "desc": "Sets `barometerConfigMutable()->baro_hardware` (if `USE_BARO`)",
                     "units": "",
-                    "enum": "baroHardware_e"
+                    "enum": "baroSensor_e"
                 },
                 {
                     "name": "magHardware",
                     "ctype": "uint8_t",
                     "desc": "Sets `compassConfigMutable()->mag_hardware` (if `USE_MAG`)",
                     "units": "",
-                    "enum": "magHardware_e"
+                    "enum": "magSensor_e"
                 },
                 {
                     "name": "pitotHardware",
                     "ctype": "uint8_t",
                     "desc": "Sets `pitotmeterConfigMutable()->pitot_hardware` (if `USE_PITOT`)",
                     "units": "",
-                    "enum": "pitotHardware_e"
+                    "enum": "pitotSensor_e"
                 },
                 {
                     "name": "rangefinderHardware",
                     "ctype": "uint8_t",
                     "desc": "Sets `rangefinderConfigMutable()->rangefinder_hardware` (if `USE_RANGEFINDER`)",
                     "units": "",
-                    "enum": "rangefinderHardware_e"
+                    "enum": "rangefinderType_e"
                 },
                 {
                     "name": "opflowHardware",
                     "ctype": "uint8_t",
                     "desc": "Sets `opticalFlowConfigMutable()->opflow_hardware` (if `USE_OPFLOW`)",
                     "units": "",
-                    "enum": "opticalFlowHardware_e"
+                    "enum": "opticalFlowSensor_e"
                 }
             ]
         },
@@ -3582,8 +3576,7 @@
                     "name": "Mixer Mode",
                     "ctype": "uint8_t",
                     "desc": "Mixer type",
-                    "units": "Enum",
-                    "enum": "?_e"
+                    "units": "Enum"
                 },
                 {
                     "name": "MSP Version",
@@ -3719,11 +3712,11 @@
             "payload": [
                 {
                     "name": "servoOutputs",
-                    "ctype": "int16_t[MAX_SUPPORTED_SERVOS]",
                     "desc": "Array of current servo output values (typically 1000-2000)",
+                    "ctype": "int16_t",
                     "array": true,
-                    "array_ctype": "int16_t",
-                    "array_size": "MAX_SUPPORTED_SERVOS",
+                    "array_size": 18,
+                    "array_size_define": "MAX_SUPPORTED_SERVOS",
                     "units": "PWM"
                 }
             ]
@@ -3740,10 +3733,9 @@
             "payload": [
                 {
                     "name": "motorOutputs",
-                    "ctype": "int16_t[8]",
                     "desc": "Array of current motor output values (typically 1000-2000). Values beyond `MAX_SUPPORTED_MOTORS` are 0",
+                    "ctype": "int16_t",
                     "array": true,
-                    "array_ctype": "int16_t",
                     "array_size": 8,
                     "units": "PWM"
                 }
@@ -3760,10 +3752,9 @@
             "payload": [
                 {
                     "name": "rcChannels",
-                    "ctype": "int16_t[]",
                     "desc": "Array of current RC channel values (typically 1000-2000). Length depends on detected channels",
+                    "ctype": "int16_t",
                     "array": true,
-                    "array_ctype": "int16_t",
                     "array_size": 0,
                     "units": "PWM"
                 }
@@ -4162,10 +4153,9 @@
             "payload": [
                 {
                     "name": "boxNamesString",
-                    "ctype": "char[]",
                     "desc": "String containing mode names separated by ';'. Null termination not guaranteed by MSP, relies on payload size. (`serializeBoxNamesReply()`)",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -4183,10 +4173,9 @@
             "payload": [
                 {
                     "name": "pidNamesString",
-                    "ctype": "char[]",
                     "desc": "String \"ROLL;PITCH;YAW;ALT;Pos;PosR;NavR;LEVEL;MAG;VEL;\". Null termination not guaranteed by MSP",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -4280,10 +4269,9 @@
             "payload": [
                 {
                     "name": "boxIds",
-                    "ctype": "uint8_t[]",
                     "desc": "Array of permanent IDs for each configured box (`serializeBoxReply()`). Length depends on number of boxes",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -4641,10 +4629,9 @@
                 },
                 {
                     "name": "label",
-                    "ctype": "char[]",
                     "desc": "Power level label string (e.g., \"25\", \"200\"). Length given by previous field",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -4917,7 +4904,7 @@
     },
     "MSP_OSD_VIDEO_CONFIG": {
         "code": 180,
-        "mspv": null,
+        "mspv": 1,
         "request": null,
         "reply": null,
         "name": "MSP_OSD_VIDEO_CONFIG",
@@ -4925,7 +4912,7 @@
     },
     "MSP_SET_OSD_VIDEO_CONFIG": {
         "code": 181,
-        "mspv": null,
+        "mspv": 1,
         "request": null,
         "reply": null,
         "name": "MSP_SET_OSD_VIDEO_CONFIG",
@@ -4933,7 +4920,7 @@
     },
     "MSP_DISPLAYPORT": {
         "code": 182,
-        "mspv": null,
+        "mspv": 1,
         "request": null,
         "reply": null,
         "name": "MSP_DISPLAYPORT",
@@ -4987,10 +4974,9 @@
             "payload": [
                 {
                     "name": "rcChannels",
-                    "ctype": "uint16_t[]",
                     "desc": "Array of RC channel values (typically 1000-2000). Number of channels determined by payload size",
+                    "ctype": "uint16_t",
                     "array": true,
-                    "array_ctype": "uint16_t",
                     "array_size": 0,
                     "units": "PWM"
                 }
@@ -5428,10 +5414,9 @@
             "payload": [
                 {
                     "name": "motorValues",
-                    "ctype": "uint16_t[8]",
                     "desc": "Array of motor values to set when disarmed. Only affects first `MAX_SUPPORTED_MOTORS` entries",
+                    "ctype": "uint16_t",
                     "array": true,
-                    "array_ctype": "uint16_t",
                     "array_size": 8,
                     "units": "PWM"
                 }
@@ -5781,7 +5766,7 @@
     },
     "MSP_RESERVE_1": {
         "code": 251,
-        "mspv": null,
+        "mspv": 1,
         "request": null,
         "reply": null,
         "name": "MSP_RESERVE_1",
@@ -5789,7 +5774,7 @@
     },
     "MSP_RESERVE_2": {
         "code": 252,
-        "mspv": null,
+        "mspv": 1,
         "request": null,
         "reply": null,
         "name": "MSP_RESERVE_2",
@@ -5803,10 +5788,9 @@
             "payload": [
                 {
                     "name": "Message Text",
-                    "ctype": "char[]",
                     "desc": "Debug message text (not NUL-terminated). See [serial printf debugging](https://github.com/iNavFlight/inav/blob/master/docs/development/serial_printf_debugging.md)",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 }
@@ -5824,10 +5808,9 @@
             "payload": [
                 {
                     "name": "debugValues",
-                    "ctype": "uint16_t[4]",
                     "desc": "First 4 values from the `debug` array",
+                    "ctype": "uint16_t",
                     "array": true,
-                    "array_ctype": "uint16_t",
                     "array_size": 4,
                     "units": ""
                 }
@@ -5929,10 +5912,9 @@
             "payload": [
                 {
                     "name": "settingValue",
-                    "ctype": "uint8_t[]",
                     "desc": "Raw byte value of the setting. Size depends on the setting's type (`settingGetValueSize()`)",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -5956,10 +5938,9 @@
                 },
                 {
                     "name": "settingValue",
-                    "ctype": "uint8_t[]",
                     "desc": "Raw byte value to set for the setting. Size must match the setting's type",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -5978,10 +5959,9 @@
             "payload": [
                 {
                     "name": "motorMix",
-                    "ctype": "uint16_t[4]",
                     "desc": "Weights for a single motor `[throttle, roll, pitch, yaw]`, each encoded as `(mix + 2.0) * 1000` (range 0-4000)",
+                    "ctype": "uint16_t",
                     "array": true,
-                    "array_ctype": "uint16_t",
                     "array_size": 4,
                     "units": "Scaled (0-4000)"
                 }
@@ -6041,10 +6021,9 @@
             "payload": [
                 {
                     "name": "settingName",
-                    "ctype": "char[]",
                     "desc": "Null-terminated setting name",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 },
@@ -6104,19 +6083,17 @@
                 },
                 {
                     "name": "lookupNames",
-                    "ctype": "char[]",
                     "desc": "(If `mode == MODE_LOOKUP`) Series of null-terminated strings for each possible value from min to max",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 0,
                     "units": ""
                 },
                 {
                     "name": "settingValue",
-                    "ctype": "uint8_t[]",
                     "desc": "Current raw byte value of the setting",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -6333,6 +6310,7 @@
         "mspv": 2,
         "request": null,
         "reply": null,
+        "not_implemented": true,
         "notes": "Not implemented in INAV `fc_msp.c`.",
         "description": "Sets radar information to display (likely internal/unused)."
     },
@@ -6412,18 +6390,16 @@
                 },
                 {
                     "name": "band",
-                    "ctype": "char[4]",
+                    "ctype": "char",
                     "desc": "Operating band string (e.g., \"2G4\", \"900\"), null-terminated/padded",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 4
                 },
                 {
                     "name": "mode",
-                    "ctype": "char[6]",
+                    "ctype": "char",
                     "desc": "Operating mode/rate string (e.g., \"100HZ\", \"F1000\"), null-terminated/padded",
                     "array": true,
-                    "array_ctype": "char",
                     "array_size": 6
                 }
             ]
@@ -6551,14 +6527,14 @@
                 {
                     "name": "hPosAccuracy",
                     "ctype": "uint16_t",
-                    "desc": "Horizontal position accuracy estimate",
-                    "units": "cm"
+                    "desc": "Horizontal position accuracy estimate in milimeters",
+                    "units": "mm"
                 },
                 {
                     "name": "vPosAccuracy",
                     "ctype": "uint16_t",
-                    "desc": "Vertical position accuracy estimate",
-                    "units": "cm"
+                    "desc": "Vertical position accuracy estimate in milimeters",
+                    "units": "mm"
                 },
                 {
                     "name": "hVelAccuracy",
@@ -7892,9 +7868,9 @@
                 {
                     "name": "platformType",
                     "ctype": "uint8_t",
-                    "desc": "Enum (`platformType_e`): Vehicle platform type (Multirotor, Airplane, etc.) (`mixerConfig()->platformType`)",
+                    "desc": "Enum (`mixerConfig()->platformType`)",
                     "units": "",
-                    "enum": "platformType_e"
+                    "enum": "flyingPlatformType_e"
                 },
                 {
                     "name": "hasFlaps",
@@ -7905,7 +7881,7 @@
                 {
                     "name": "appliedMixerPreset",
                     "ctype": "int16_t",
-                    "desc": "Enum (`mixerPreset_e`): Mixer preset currently applied (`mixerConfig()->appliedMixerPreset`)",
+                    "desc": "Enum (`mixerPreset_e`): Mixer preset currently applied (`mixerConfig()->appliedMixerPreset`) WARNING: cannot figure where this is",
                     "units": "",
                     "enum": "mixerPreset_e"
                 },
@@ -7953,7 +7929,8 @@
                     "name": "platformType",
                     "ctype": "uint8_t",
                     "desc": "Sets `mixerConfigMutable()->platformType`",
-                    "units": ""
+                    "units": "",
+                    "enum": "flyingPlatformType_e"
                 },
                 {
                     "name": "hasFlaps",
@@ -8449,11 +8426,11 @@
             "payload": [
                 {
                     "name": "debugValues",
-                    "ctype": "int32_t[DEBUG32_VALUE_COUNT]",
                     "desc": "Values from the `debug` array (signed, typically 8 entries)",
+                    "ctype": "int32_t",
                     "array": true,
-                    "array_ctype": "int32_t",
-                    "array_size": "DEBUG32_VALUE_COUNT",
+                    "array_size": 8,
+                    "array_size_define": "DEBUG32_VALUE_COUNT",
                     "units": ""
                 }
             ]
@@ -8580,11 +8557,11 @@
                 },
                 {
                     "name": "label",
-                    "ctype": "char[TEMPERATURE_LABEL_LEN]",
                     "desc": "User-defined label for the sensor",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
-                    "array_size": "TEMPERATURE_LABEL_LEN",
+                    "array_size": 4,
+                    "array_size_define": "TEMPERATURE_LABEL_LEN",
                     "units": ""
                 }
             ],
@@ -8632,11 +8609,11 @@
                 },
                 {
                     "name": "label",
-                    "ctype": "char[TEMPERATURE_LABEL_LEN]",
                     "desc": "Sets sensor label (converted to uppercase)",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
-                    "array_size": "TEMPERATURE_LABEL_LEN",
+                    "array_size": 4,
+                    "array_size_define": "TEMPERATURE_LABEL_LEN",
                     "units": ""
                 }
             ],
@@ -8902,40 +8879,45 @@
                     "name": "osdHeader",
                     "ctype": "uint8_t",
                     "desc": "OSD RLE Header (255)",
-                    "units": ""
+                    "units": "",
+                    "optional": true
                 },
                 {
                     "name": "osdRows",
                     "ctype": "uint8_t",
                     "desc": "(If OSD supported) Number of OSD rows",
-                    "units": ""
+                    "units": "",
+                    "optional": true
                 },
                 {
                     "name": "osdCols",
                     "ctype": "uint8_t",
                     "desc": "(If OSD supported) Number of OSD columns",
-                    "units": ""
+                    "units": "",
+                    "optional": true
                 },
                 {
                     "name": "osdStartY",
                     "ctype": "uint8_t",
                     "desc": "(If OSD supported) Starting row for RLE data",
-                    "units": ""
+                    "units": "",
+                    "optional": true
                 },
                 {
                     "name": "osdStartX",
                     "ctype": "uint8_t",
                     "desc": "(If OSD supported) Starting column for RLE data",
-                    "units": ""
+                    "units": "",
+                    "optional": true
                 },
                 {
                     "name": "osdRleData",
-                    "ctype": "uint8_t[]",
                     "desc": "(If OSD supported) Run-length encoded OSD character data. Terminated by `[0, 0]`",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
-                    "units": ""
+                    "units": "",
+                    "optional": true
                 }
             ]
         },
@@ -9223,11 +9205,11 @@
             "payload": [
                 {
                     "name": "conditionValues",
-                    "ctype": "int32_t[MAX_LOGIC_CONDITIONS]",
+                    "ctype": "int32_t",
                     "desc": "Array of current values for each logic condition (`logicConditionGetValue(i)`). 1 for true, 0 for false, or numerical value depending on operation",
                     "array": true,
-                    "array_ctype": "int32_t",
-                    "array_size": "MAX_LOGIC_CONDITIONS",
+                    "array_size": 64,
+                    "array_size_define": "MAX_LOGIC_CONDITIONS",
                     "units": ""
                 }
             ]
@@ -9244,11 +9226,11 @@
             "payload": [
                 {
                     "name": "gvarValues",
-                    "ctype": "int32_t[MAX_GLOBAL_VARIABLES]",
                     "desc": "Array of current values for each global variable (`gvGet(i)`)",
+                    "ctype": "int32_t",
                     "array": true,
-                    "array_ctype": "int32_t",
-                    "array_size": "MAX_GLOBAL_VARIABLES",
+                    "array_size": 8,
+                    "array_size_define": "MAX_GLOBAL_VARIABLES",
                     "units": ""
                 }
             ]
@@ -9407,11 +9389,11 @@
             "payload": [
                 {
                     "name": "pidOutputs",
-                    "ctype": "int32_t[MAX_PROGRAMMING_PID_COUNT]",
                     "desc": "Array of current output values for each Programming PID (`programmingPidGetOutput(i)`, signed)",
                     "array": true,
-                    "array_ctype": "int32_t",
-                    "array_size": "MAX_PROGRAMMING_PID_COUNT",
+                    "ctype": "int32_t",
+                    "array_size": 4,
+                    "array_size_define": "MAX_PROGRAMMING_PID_COUNT",
                     "units": ""
                 }
             ]
@@ -9526,10 +9508,9 @@
             "payload": [
                 {
                     "name": "firmwareChunk",
-                    "ctype": "uint8_t[]",
                     "desc": "Chunk of firmware data",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -9792,10 +9773,9 @@
                 },
                 {
                     "name": "escData",
-                    "ctype": "escSensorData_t[]",
                     "desc": "Array of `escSensorData_t` structures containing voltage, current, temp, RPM, errors etc. for each ESC",
+                    "ctype": "escSensorData_t",
                     "array": true,
-                    "array_ctype": "escSensorData_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -9971,10 +9951,9 @@
             "payload": [
                 {
                     "name": "ubxCommand",
-                    "ctype": "uint8_t[]",
                     "desc": "Raw U-Blox UBX protocol command frame (including header, class, ID, length, payload, checksum)",
+                    "ctype": "uint8_t",
                     "array": true,
-                    "array_ctype": "uint8_t",
                     "array_size": 0,
                     "units": ""
                 }
@@ -10274,11 +10253,11 @@
                     "payload": [
                         {
                             "name": "callsign",
-                            "ctype": "char[ADSB_CALL_SIGN_MAX_LENGTH]",
                             "desc": "Fixed-length callsign from `adsbVehicle->vehicleValues.callsign` (padded with NULs if shorter).",
+                            "ctype": "char",
                             "array": true,
-                            "array_ctype": "char",
-                            "array_size": "ADSB_CALL_SIGN_MAX_LENGTH",
+                            "array_size": 9,
+                            "array_size_define": "ADSB_CALL_SIGN_MAX_LENGTH",
                             "units": ""
                         },
                         {
@@ -10409,11 +10388,11 @@
                 },
                 {
                     "name": "elementText",
-                    "ctype": "char[]",
+                    "desc": "Static text bytes",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
-                    "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1",
-                    "desc": "Static text bytes"
+                    "array_size": 0,
+                    "array_size_define": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1"
                 }
             ]
         },
@@ -10459,11 +10438,11 @@
                 },
                 {
                     "name": "elementText",
-                    "ctype": "char[]",
+                    "desc": "Raw bytes",
+                    "ctype": "char",
                     "array": true,
-                    "array_ctype": "char",
-                    "array_size": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1",
-                    "desc": "Raw bytes"
+                    "array_size": 0,
+                    "array_size_define": "OSD_CUSTOM_ELEMENT_TEXT_SIZE - 1"
                 }
             ]
         },
