@@ -14,17 +14,18 @@ General OSD information is in this document. Other documents cover specific OSD-
 ## Features and Limitations
 Not all OSDs are created equally. This table shows the differences between the different systems available.
 
-| OSD System    | Character grid | Character | Canvas | MSP DisplayPort | All elements supported  |
-|---------------|----------------|-----------|--------|-----------------|-------------------------|
-| Analogue PAL  | 30 x 16        | X         |        |                 | YES                     |
-| Analogue NTSC | 30 x 13        | X         |        |                 | YES                     |
-| PixelOSD      | As PAL or NTSC |           | X      |                 | YES                     |
-| DJI OSD       | 30 x 16        | X         |        |                 | NO - BF Characters only |
-| DJI WTFOS     | 60 x 22        | X         |        | X               | YES                     |
-| HDZero        | 50 x 18        | X         |        | X               | YES                     |
-| Avatar        | 53 x 20        | X         |        | X               | YES                     |
-| DJI O3        | 53 x 20 (HD)   | X         |        | X (partial)     | NO - BF Characters only |
-| DJI NATIVE    | 53 x 20 (HD)   | X         |        | X               | YES (TBC)               |
+| OSD System                  | Character grid | Character | Canvas | MSP DisplayPort | All elements supported  |
+|-----------------------------|----------------|-----------|--------|-----------------|-------------------------|
+| Analogue PAL                | 30 x 16        | X         |        |                 | YES                     |
+| Analogue NTSC               | 30 x 13        | X         |        |                 | YES                     |
+| PixelOSD                    | As PAL or NTSC |           | X      |                 | YES                     |
+| DJI OSD                     | 30 x 16        | X         |        |                 | NO - BF Characters only |
+| DJI WTFOS                   | 60 x 22        | X         |        | X               | YES                     |
+| HDZero                      | 50 x 18        | X         |        | X               | YES                     |
+| Avatar                      | 53 x 20        | X         |        | X               | YES                     |
+| DJI O3 Goggles V2 + WTFOS   | 53 x 20        | X         |        | X               | YES                     |
+| DJI Goggles 2 and newer     | 53 x 20 (HD)   | X         |        | X               | YES (no custom fonts)   |
+
 
 ## OSD Elements
 Here are the OSD Elements provided by INAV.
@@ -57,7 +58,7 @@ Here are the OSD Elements provided by INAV.
 | 23  | OSD_HOME_DIST                                    | 1.6.0  |       |
 | 24  | OSD_HEADING                                      | 1.6.0  |       |
 | 25  | OSD_VARIO                                        | 1.6.0  |       |
-| 26  | OSD_VARIO_NUM                                    | 1.6.0  |       |
+| 26  | OSD_VERTICAL_SPEED_INDICATOR                     | 1.6.0  |       |
 | 27  | OSD_AIR_SPEED                                    | 1.7.3  |       |
 | 28  | OSD_ONTIME_FLYTIME                               | 1.8.0  |       |
 | 29  | OSD_RTC_TIME                                     | 1.8.0  |       |
@@ -197,6 +198,8 @@ Here are the OSD Elements provided by INAV.
 | 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
 | 164 | OSD_H_DIST_TO_FENCE                              | 8.0.0  |       |
 | 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
+| 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
+| 167 | OSD_NAV_MIN_GROUND_SPEED                         | 9.0.0  |       |
 
 # Pilot Logos
 

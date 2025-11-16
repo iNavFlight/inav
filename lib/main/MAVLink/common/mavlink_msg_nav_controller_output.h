@@ -106,6 +106,60 @@ static inline uint16_t mavlink_msg_nav_controller_output_pack(uint8_t system_id,
 }
 
 /**
+ * @brief Pack a nav_controller_output message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param nav_roll [deg] Current desired roll
+ * @param nav_pitch [deg] Current desired pitch
+ * @param nav_bearing [deg] Current desired heading
+ * @param target_bearing [deg] Bearing to current waypoint/target
+ * @param wp_dist [m] Distance to active waypoint
+ * @param alt_error [m] Current altitude error
+ * @param aspd_error [m/s] Current airspeed error
+ * @param xtrack_error [m] Current crosstrack error on x-y plane
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_nav_controller_output_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               float nav_roll, float nav_pitch, int16_t nav_bearing, int16_t target_bearing, uint16_t wp_dist, float alt_error, float aspd_error, float xtrack_error)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN];
+    _mav_put_float(buf, 0, nav_roll);
+    _mav_put_float(buf, 4, nav_pitch);
+    _mav_put_float(buf, 8, alt_error);
+    _mav_put_float(buf, 12, aspd_error);
+    _mav_put_float(buf, 16, xtrack_error);
+    _mav_put_int16_t(buf, 20, nav_bearing);
+    _mav_put_int16_t(buf, 22, target_bearing);
+    _mav_put_uint16_t(buf, 24, wp_dist);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN);
+#else
+    mavlink_nav_controller_output_t packet;
+    packet.nav_roll = nav_roll;
+    packet.nav_pitch = nav_pitch;
+    packet.alt_error = alt_error;
+    packet.aspd_error = aspd_error;
+    packet.xtrack_error = xtrack_error;
+    packet.nav_bearing = nav_bearing;
+    packet.target_bearing = target_bearing;
+    packet.wp_dist = wp_dist;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_MIN_LEN, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_MIN_LEN, MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN);
+#endif
+}
+
+/**
  * @brief Pack a nav_controller_output message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -183,6 +237,20 @@ static inline uint16_t mavlink_msg_nav_controller_output_encode_chan(uint8_t sys
 }
 
 /**
+ * @brief Encode a nav_controller_output struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param nav_controller_output C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_nav_controller_output_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_nav_controller_output_t* nav_controller_output)
+{
+    return mavlink_msg_nav_controller_output_pack_status(system_id, component_id, _status, msg,  nav_controller_output->nav_roll, nav_controller_output->nav_pitch, nav_controller_output->nav_bearing, nav_controller_output->target_bearing, nav_controller_output->wp_dist, nav_controller_output->alt_error, nav_controller_output->aspd_error, nav_controller_output->xtrack_error);
+}
+
+/**
  * @brief Send a nav_controller_output message
  * @param chan MAVLink channel to send the message
  *
@@ -242,7 +310,7 @@ static inline void mavlink_msg_nav_controller_output_send_struct(mavlink_channel
 
 #if MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

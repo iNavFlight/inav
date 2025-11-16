@@ -8,7 +8,7 @@ tables:
     values: ["NONE", "SRF10", "VL53L0X", "MSP", "BENEWAKE", "VL53L1X", "US42", "TOF10120_I2C", "FAKE", "TERARANGER_EVO", "USD1_V0", "NRA"]
     enum: rangefinderType_e
   - name: mag_hardware
-    values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
+    values: ["NONE", "AUTO", "HMC5883", "AK8975", "MAG3110", "AK8963", "IST8310", "QMC5883", "QMC5883P", "MPU9250", "IST8308", "LIS3MDL", "MSP", "RM3100", "VCM5883", "MLX90393", "FAKE"]
     enum: magSensor_e
   - name: opflow_hardware
     values: ["NONE", "CXOF", "MSP", "FAKE"]
@@ -33,10 +33,10 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
@@ -201,6 +201,9 @@ tables:
   - name: mavlink_radio_type
     values: ["GENERIC", "ELRS", "SIK"]
     enum: mavlinkRadio_e
+  - name: mavlink_autopilot_type
+    values: ["GENERIC", "ARDUPILOT"]
+    enum: mavlinkAutopilotType_e
   - name: default_altitude_source
     values: ["GPS", "BARO", "GPS_ONLY", "BARO_ONLY"]
     enum: navDefaultAltitudeSensor_e
@@ -209,6 +212,9 @@ tables:
     enum: fenceAction_e
   - name: geozone_rth_no_way_home
     values: [RTH, EMRG_LAND]
+  - name: osd_adsb_warning_style
+    values: [ "COMPACT", "EXTENDED" ]
+    enum: osd_adsb_warning_style_e
 
 constants:
   RPYL_PID_MIN: 0
@@ -467,6 +473,12 @@ groups:
         default_value: "BIQUAD"
         field: acc_soft_lpf_type
         table: filter_type
+      - name: acc_temp_correction
+        description: "Accelerometer temperature correction factor to compensate for acceleromter drift with changes in acceleromter temperature [cm/s2 per Degs C]. Internally limited to between -50 and 50. Typical setting for MPU6000 acceleromter is around 2.5. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm."
+        field: acc_temp_correction
+        min: -50
+        max: 51
+        default_value: 0
       - name: acczero_x
         description: "Calculated value after '6 position avanced calibration'. See Wiki page."
         default_value: 0
@@ -642,6 +654,12 @@ groups:
         field: baro_calibration_tolerance
         min: 0
         max: 1000
+      - name: baro_temp_correction
+        description: "Baro temperature correction factor to compensate for Baro altitude drift with changes in Baro temperature [cm/Degs C]. Internally limited to between -50 and 50. Typical setting for BMP280 Baro is around 20. Setting to 51 initiates auto calibration which ends after 5 minutes or on first Arm."
+        field: baro_temp_correction
+        min: -50
+        max: 51
+        default_value: 0
 
   - name: PG_PITOTMETER_CONFIG
     type: pitotmeterConfig_t
@@ -653,10 +671,10 @@ groups:
         default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
-        description: "Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay"
+        description: "Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay"
         min: 0
-        max: 10000
-        default_value: 1000
+        max: 50000
+        default_value: 3000
       - name: pitot_scale
         description: "Pitot tube scale factor"
         min: 0
@@ -770,12 +788,12 @@ groups:
         field: halfDuplex
         table: tristate
       - name: msp_override_channels
-        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires custom firmware with `USE_RX_MSP` and `USE_MSP_RC_OVERRIDE` compile options and the `MSP RC Override` flight mode."
+        description: "Mask of RX channels that may be overridden by MSP `SET_RAW_RC`. Note that this requires the `MSP RC Override` flight mode."
         default_value: 0
         field: mspOverrideChannels
         condition: USE_MSP_RC_OVERRIDE
         min: 0
-        max: 65535
+        max: UINT32_MAX
 
   - name: PG_BLACKBOX_CONFIG
     type: blackboxConfig_t
@@ -805,6 +823,12 @@ groups:
         field: invertedCardDetection
         condition: USE_SDCARD
         type: bool
+      - name: blackbox_arm_control
+        description: "Determines behaviour of logging in relation to Arm state. For settings from 0 to 60 logging will start on Arm with the setting determining how long logging will continue after disarm in seconds, i.e. set to 0 to stop logging at disarm or 10 to stop logging 10s after disarm. Set to -1 to start logging from boot up until power off (Use with caution - mainly for debugging and best used with BLACKBOX mode)."
+        default_value: 0
+        field: arm_control
+        min: -1
+        max: 60
 
   - name: PG_MOTOR_CONFIG
     type: motorConfig_t
@@ -955,7 +979,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `ESC`. `ESC` required ESC telemetry enebled and running"
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -987,7 +1011,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC , VIRTUAL, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
         default_value: "ADC"
         field: current.type
         table: current_sensor
@@ -1255,6 +1279,24 @@ groups:
         default_value: OFF
         field: mixer_config.tailsitterOrientationOffset
         type: bool
+      - name: transition_pid_mmix_multiplier_roll
+        description: "roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_roll
+        min: -5000
+        max: 5000
+      - name: transition_pid_mmix_multiplier_pitch
+        description: "pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_pitch
+        min: -5000
+        max: 5000
+      - name: transition_pid_mmix_multiplier_yaw
+        description: "yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_yaw
+        min: -5000
+        max: 5000
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -1332,7 +1374,7 @@ groups:
         min: 0
         max: 100
       - name: thr_expo
-        description: "Throttle exposition value"
+        description: "Throttle exponential value"
         default_value: 0
         field: throttle.rcExpo8
         min: 0
@@ -1368,13 +1410,13 @@ groups:
         min: 0
         max: 5000
       - name: rc_expo
-        description: "Exposition value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`)"
+        description: "Exponential value used for the PITCH/ROLL axes by all the stabilized flights modes (all but `MANUAL`)"
         default_value: 70
         field: stabilized.rcExpo8
         min: 0
         max: 100
       - name: rc_yaw_expo
-        description: "Exposition value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)"
+        description: "Exponential value used for the YAW axis by all the stabilized flights modes (all but `MANUAL`)"
         default_value: 20
         field: stabilized.rcYawExpo8
         min: 0
@@ -1400,13 +1442,13 @@ groups:
         min: 1
         max: 180
       - name: manual_rc_expo
-        description: "Exposition value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
+        description: "Exponential value used for the PITCH/ROLL axes by the `MANUAL` flight mode [0-100]"
         default_value: 35
         field: manual.rcExpo8
         min: 0
         max: 100
       - name: manual_rc_yaw_expo
-        description: "Exposition value used for the YAW axis by the `MANUAL` flight mode [0-100]"
+        description: "Exponential value used for the YAW axis by the `MANUAL` flight mode [0-100]"
         default_value: 20
         field: manual.rcYawExpo8
         min: 0
@@ -1478,16 +1520,6 @@ groups:
         description: "The end  stick weight for Rate Dynamics"
         condition: USE_RATE_DYNAMICS
 
-  - name: PG_SERIAL_CONFIG
-    type: serialConfig_t
-    headers: ["io/serial.h"]
-    members:
-      - name: reboot_character
-        description: "Special character used to trigger reboot"
-        default_value: 82
-        min: 48
-        max: 126
-
   - name: PG_IMU_CONFIG
     type: imuConfig_t
     headers: ["flight/imu.h"]
@@ -1519,7 +1551,7 @@ groups:
         max: 180
       - name: ahrs_acc_ignore_rate
         description: "Total gyro rotation rate threshold [deg/s] before scaling to consider accelerometer trustworthy"
-        default_value: 15
+        default_value: 20
         field: acc_ignore_rate
         min: 0
         max: 30
@@ -2155,8 +2187,8 @@ groups:
         min: 0
         max: 255
       - name: nav_fw_pos_z_ff
-        description: "FF gain of altitude PID controller (Fixedwing)"
-        default_value: 10
+        description: "FF gain of altitude PID controller. Not used if nav_fw_alt_use_position is set ON (Fixedwing)"
+        default_value: 30
         field: bank_fw.pid[PID_POS_Z].FF
         min: 0
         max: 255
@@ -2166,6 +2198,11 @@ groups:
         field: fwAltControlResponseFactor
         min: 5
         max: 100
+      - name: nav_fw_alt_use_position
+        description: "Use position for fixed wing altitude control rather than velocity (default method)."
+        default_value: OFF
+        field: fwAltControlUsePos
+        type: bool
       - name: nav_fw_pos_xy_p
         description: "P gain of 2D trajectory PID controller. Play with this to get a straight line between waypoints or a straight RTH"
         default_value: 75
@@ -2319,13 +2356,13 @@ groups:
         min: 0
         max: 20
       - name: fw_iterm_lock_time_max_ms
-        description: Defines max time in milliseconds for how long ITerm Lock will shut down Iterm after sticks are release
+        description: Defines max time in milliseconds for how long ITerm Lock will depress Iterm after sticks are release
         default_value: 500
         field: fwItermLockTimeMaxMs
         min: 100
         max: 1000
       - name: fw_iterm_lock_rate_threshold
-        description: Defines rate percentage when full P I and D attenuation should happen. 100 disables Iterm Lock for P and D term
+        description: Defines the steepness of the attenuation curve. Higher values result in flatter attenuation. Lower values force full attenuation with lower stick deflection
         field: fwItermLockRateLimit
         default_value: 40
         min: 10
@@ -2436,19 +2473,19 @@ groups:
         field: w_z_baro_v
         min: 0
         max: 10
-        default_value: 0.1
+        default_value: 0.35
       - name: inav_w_z_gps_p
         description: "Weight of GPS altitude measurements in estimated altitude. Setting is used on both airplanes and multirotors."
         field: w_z_gps_p
         min: 0
         max: 10
-        default_value: 0.2
+        default_value: 0.35
       - name: inav_w_z_gps_v
         description: "Weight of GPS climb rate measurements in estimated climb rate. Setting is used on both airplanes and multirotors."
         field: w_z_gps_v
         min: 0
         max: 10
-        default_value: 0.1
+        default_value: 0.35
       - name: inav_w_xy_gps_p
         description: "Weight of GPS coordinates in estimated UAV position and speed."
         default_value: 1.0
@@ -3188,6 +3225,12 @@ groups:
         min: 0
         max: 255
         default_value: 2
+      - name: mavlink_autopilot_type
+        field: mavlink.autopilot_type
+        description: "Autopilot type to advertise for MAVLink telemetry"
+        table: mavlink_autopilot_type
+        default_value: "GENERIC"
+        type: uint8_t
       - name: mavlink_rc_chan_rate
         description: "Rate of the RC channels message for MAVLink telemetry"
         field: mavlink.rc_channels_rate
@@ -3242,6 +3285,13 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
+      - name: mavlink_sysid
+        field: mavlink.sysid
+        description: "MAVLink System ID"
+        type: uint8_t
+        min: 1
+        max: 255
+        default_value: 1
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
@@ -3255,7 +3305,7 @@ groups:
         type: uint8_t
         default_value: "OFF"
       - name: osd_video_system
-        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR' and `BF43COMPAT`"
+        description: "Video system used. Possible values are `AUTO`, `PAL`, `NTSC`, `HDZERO`, 'DJIWTF', 'AVATAR', `BF43COMPAT`, `BFHDCOMPAT` and `DJI_NATIVE`"
         default_value: "AUTO"
         table: osd_video_system
         field: video_system
@@ -3455,7 +3505,6 @@ groups:
         field: ahi_max_pitch
         min: 10
         max: 90
-        default_value: 20
       - name: osd_crosshairs_style
         description: "To set the visual type for the crosshair"
         default_value: "DEFAULT"
@@ -3628,6 +3677,13 @@ groups:
         min: 0
         max: 64000
         type: uint16_t
+      - name: osd_adsb_warning_style
+        description: "ADSB warning element style, how rich information on scree will be, Possible values are `COMPACT` and `EXTENDED`"
+        default_value: "COMPACT"
+        table: osd_adsb_warning_style
+        field: adsb_warning_style
+        type: uint8_t
+        condition: USE_ADSB
       - name: osd_estimations_wind_compensation
         description: "Use wind estimation for remaining flight time/distance estimation"
         default_value: ON
@@ -3926,6 +3982,10 @@ groups:
         max: INT32_MAX
         condition: USE_ADC
         default_value: 0
+      - name: stats_flight_count
+        description: "Total number of flights. The value is updated on every disarm when \"stats\" are enabled."
+        default_value: 0
+        max: UINT16_MAX
 
   - name: PG_TIME_CONFIG
     type: timeConfig_t
@@ -4326,18 +4386,21 @@ groups:
         field: sensitivity
         min: -16
         max: 15
+        type: int8_t
       - name: gimbal_pan_trim
         field: panTrim
         description: "Trim gimbal pan center position."
         default_value: 0
         min: -500
         max: 500
+        type: int16_t
       - name: gimbal_tilt_trim
         field: tiltTrim
         description: "Trim gimbal tilt center position."
         default_value: 0
         min: -500
         max: 500
+        type: int16_t
       - name: gimbal_roll_trim
         field: rollTrim
         description: "Trim gimbal roll center position."

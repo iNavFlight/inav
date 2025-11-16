@@ -99,13 +99,14 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 3);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 4);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
+    .arm_control = SETTING_BLACKBOX_ARM_CONTROL_DEFAULT,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
         BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
@@ -468,21 +469,6 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
 };
-
-typedef enum BlackboxState {
-    BLACKBOX_STATE_DISABLED = 0,
-    BLACKBOX_STATE_STOPPED,
-    BLACKBOX_STATE_PREPARE_LOG_FILE,
-    BLACKBOX_STATE_SEND_HEADER,
-    BLACKBOX_STATE_SEND_MAIN_FIELD_HEADER,
-    BLACKBOX_STATE_SEND_GPS_H_HEADER,
-    BLACKBOX_STATE_SEND_GPS_G_HEADER,
-    BLACKBOX_STATE_SEND_SLOW_HEADER,
-    BLACKBOX_STATE_SEND_SYSINFO,
-    BLACKBOX_STATE_PAUSED,
-    BLACKBOX_STATE_RUNNING,
-    BLACKBOX_STATE_SHUTTING_DOWN
-} BlackboxState;
 
 #define BLACKBOX_FIRST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_HEADER
 #define BLACKBOX_LAST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_SYSINFO
@@ -1741,9 +1727,10 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRSSI();
 
+    const uint8_t minServoIndex = getMinServoIndex();
     const int servoCount = getServoCount();
     for (int i = 0; i < servoCount; i++) {
-        blackboxCurrent->servo[i] = servo[i];
+        blackboxCurrent->servo[i] = servo[i + minServoIndex];
     }
 
     blackboxCurrent->navState = navCurrentState;
@@ -2322,6 +2309,11 @@ void blackboxUpdate(timeUs_t currentTimeUs)
 static bool canUseBlackboxWithCurrentConfiguration(void)
 {
     return feature(FEATURE_BLACKBOX);
+}
+
+BlackboxState getBlackboxState(void)
+{
+    return blackboxState;
 }
 
 /**
