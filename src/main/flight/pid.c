@@ -444,7 +444,7 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 static float calculateFixedWingAirspeedTPAFactor(void){
     const float airspeed = getAirspeedEstimate(); // in cm/s
     const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
-    float tpaFactor= powf(referenceAirspeed/(airspeed+0.01f), currentControlRateProfile->throttle.airspeed_tpa_pow/100.0f);
+    float tpaFactor= powf(referenceAirspeed/(airspeed+0.01f), currentControlRateProfile->throttle.apa_pow/100.0f);
     tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
     return tpaFactor;
 }
@@ -496,9 +496,14 @@ static float calculateMultirotorTPAFactor(uint16_t throttle)
 static float calculateTPAThtrottle(void)
 {
     uint16_t tpaThrottle = 0;
+    static const fpVector3_t vDown = { .v = { 0.0f, 0.0f, 1.0f } };
 
     if (usedPidControllerType == PID_TYPE_PIFF && (currentControlRateProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
-        tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, rcCommand[THROTTLE]);
+        fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
+        float groundCos = vectorDotProduct(&vForward, &vDown);
+        int16_t throttleAdjustment =  currentBatteryProfile->nav.fw.pitch_to_throttle * groundCos * 90.0f; // 90 degrees is to scale from cos to throttle adjustment
+        uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
+        tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, constrain(throttleAdjusted, 1000, 2000));
     }
     else {
         tpaThrottle = rcCommand[THROTTLE]; //multirotor TPA without filtering
@@ -531,7 +536,7 @@ void updatePIDCoefficients(void)
     
     float tpaFactor=1.0f;
     if(usedPidControllerType == PID_TYPE_PIFF){ // Fixed wing TPA calculation
-        if(currentControlRateProfile->throttle.airspeed_tpa_pow>0 && pitotValidForAirspeed()){
+        if(currentControlRateProfile->throttle.apa_pow>0 && pitotValidForAirspeed()){
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
         }else{
             tpaFactor = calculateFixedWingTPAFactor(calculateTPAThtrottle());

@@ -1337,15 +1337,15 @@ groups:
         field: throttle.rcExpo8
         min: 0
         max: 100
-      - name: airspeed_tpa_pow
-        description: "Use airspeed instead of throttle position for TPA if airspeed is available on fixedwing. pid_multiplier(tpa_factor) = (referenceAirspeed/airspeed)**(airspeed_tpa_pow/100). Set to 0 will disable this feature and use throttle based tpa;"
+      - name: apa_pow
+        description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;"
         type: uint16_t
-        field: throttle.airspeed_tpa_pow
+        field: throttle.apa_pow
         default_value: 120
         min: 0
         max: 200
       - name: tpa_rate
-        description: "Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate."
+        description: "Throttle based PID attenuation(TPA) reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate."
         default_value: 0
         field: throttle.dynPID
         min: 0

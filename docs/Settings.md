@@ -302,16 +302,6 @@ ADC channel to use for analog pitot tube (airspeed) sensor. If board doesn't hav
 
 ---
 
-### airspeed_tpa_pow
-
-Use airspeed instead of throttle position for TPA if airspeed is available on fixedwing. pid_multiplier(tpa_factor) = (referenceAirspeed/airspeed)**(airspeed_tpa_pow/100). Set to 0 will disable this feature and use throttle based tpa;
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 120 | 0 | 200 |
-
----
-
 ### align_board_pitch
 
 Arbitrary board rotation in deci-degrees (0.1 degree), to allow mounting it sideways / upside down / rotated etc
@@ -429,6 +419,16 @@ Max Antigravity gain. `1` means Antigravity is disabled, `2` means Iterm is allo
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 1 | 20 |
+
+---
+
+### apa_pow
+
+Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 120 | 0 | 200 |
 
 ---
 
@@ -6394,7 +6394,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_rate
 
-Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
+Throttle based PID attenuation(TPA) reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate.
 
 | Default | Min | Max |
 | --- | --- | --- |
