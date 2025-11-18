@@ -78,7 +78,7 @@
   #endif /* __ARM_ARCH_PROFILE == 'M' */
 #endif
 
-/* Alternativ core deduction for older ICCARM's */
+/* Alternative core deduction for older ICCARM's */
 #if !defined(__ARM_ARCH_6M__) && !defined(__ARM_ARCH_7M__) && !defined(__ARM_ARCH_7EM__) && \
     !defined(__ARM_ARCH_8M_BASE__) && !defined(__ARM_ARCH_8M_MAIN__)
   #if defined(__ARM6M__) && (__CORE__ == __ARM6M__)
