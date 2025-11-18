@@ -21,16 +21,16 @@
 
 #include "config/parameter_group.h"
 
-#include "fc/controlrate_profile_config_struct.h"
+#include "fc/control_profile_config_struct.h"
 #include "fc/settings.h"
 
-#define MAX_CONTROL_RATE_PROFILE_COUNT SETTING_CONSTANT_MAX_CONTROL_RATE_PROFILE_COUNT
+#define MAX_CONTROL_PROFILE_COUNT SETTING_CONSTANT_MAX_CONTROL_PROFILE_COUNT
 
-PG_DECLARE_ARRAY(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles);
+PG_DECLARE_ARRAY(controlConfig_t, MAX_CONTROL_PROFILE_COUNT, controlProfiles);
 
-extern const controlRateConfig_t *currentControlRateProfile;
+extern const controlConfig_t *currentControlProfile;
 
-void setControlRateProfile(uint8_t profileIndex);
-void changeControlRateProfile(uint8_t profileIndex);
-void activateControlRateConfig(void);
-uint8_t getCurrentControlRateProfile(void);
+void setControlProfile(uint8_t profileIndex);
+void changeControlProfile(uint8_t profileIndex);
+void activateControlConfig(void);
+uint8_t getCurrentControlProfile(void);

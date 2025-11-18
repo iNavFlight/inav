@@ -15,7 +15,7 @@ typedef struct mixerConfig_s {
     bool hasFlaps;
     int16_t appliedMixerPreset;
     bool motorstopOnLow;
-    bool PIDProfileLinking;
+    bool controlProfileLinking;
     bool automated_switch;
     int16_t switchTransitionTimer;
     bool tailsitterOrientationOffset;

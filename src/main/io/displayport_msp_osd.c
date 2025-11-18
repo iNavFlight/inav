@@ -568,7 +568,7 @@ static mspResult_e fixDjiBrokenO4ProcessMspCommand(mspPacket_t *cmd, mspPacket_t
         sbufWriteU16(dst, constrain(averageSystemLoadPercent, 0, 100));
         if (cmd->cmd == MSP_STATUS_EX) {
             sbufWriteU8(dst, 3);  // PID_PROFILE_COUNT
-            sbufWriteU8(dst, 1);  // getCurrentControlRateProfileIndex()
+            sbufWriteU8(dst, 1);  // getCurrentControlProfileIndex()
         } else {
             sbufWriteU16(dst, cycleTime);  // gyro cycle time
         }
