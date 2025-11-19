@@ -3342,7 +3342,7 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_MANUAL_YAW_RATE:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MYR", 0, currentControlProfile->stabilized.rates[FD_YAW], 3, 0, ADJUSTMENT_YAW_RATE);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MYR", 0, currentControlProfile->manual.rates[FD_YAW], 3, 0, ADJUSTMENT_MANUAL_YAW_RATE);
         return true;
 
     case OSD_NAV_FW_CRUISE_THR:
