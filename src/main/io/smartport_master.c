@@ -98,7 +98,7 @@ enum
 #define SMARTPORT_BYTESTUFFING_MARKER 0x7D
 #define SMARTPORT_BYTESTUFFING_XOR_VALUE 0x20
 
-#define SMARTPORT_SENSOR_DATA_TIMEOUT 500 // ms
+#define SMARTPORT_SENSOR_DATA_TIMEOUT (500*1000) // us
 
 #define SMARTPORT_FORWARD_REQUESTS_MAX 10
 
@@ -128,6 +128,10 @@ typedef struct {
     timeUs_t altitudeTimestamp;
     int16_t vario;
     timeUs_t varioTimestamp;
+    int16_t current;
+    timeUs_t currentTimestamp;
+    int16_t voltage;
+    timeUs_t voltageTimestamp;
 } smartportSensorsData_t;
 
 typedef struct {
@@ -378,6 +382,17 @@ static void decodeVarioData(uint32_t sdata)
     sensorsData.vario = sdata * 2; // mm/s
 }
 
+static void decodeCurrentData(uint32_t sdata)
+{
+    // data comes in 100mA steps
+    sensorsData.current = ((int16_t)sdata) * 10;
+}
+
+static void decodeVoltageData(uint32_t sdata)
+{
+    sensorsData.voltage = (int16_t)sdata;
+}
+
 static void processSensorPayload(smartPortPayload_t *payload, timeUs_t currentTimeUs)
 {
     switch (payload->valueId) {
@@ -399,6 +414,16 @@ static void processSensorPayload(smartPortPayload_t *payload, timeUs_t currentTi
         case DATAID_VARIO:
             decodeVarioData(payload->data);
             sensorsData.varioTimestamp = currentTimeUs;
+            break;
+
+        case DATAID_CURRENT:
+            decodeCurrentData(payload->data);
+            sensorsData.currentTimestamp = currentTimeUs;
+            break;
+
+        case DATAID_VFAS:
+            decodeVoltageData(payload->data);
+            sensorsData.voltageTimestamp = currentTimeUs;
             break;
     }
     sensorPayloadCache[currentPolledPhyID] = *payload;
@@ -566,6 +591,24 @@ vs600Data_t *smartportMasterGetVS600Data(void)
     }
 
     return &sensorsData.vs600;
+}
+
+int16_t *smartportMasterGetCurrentData(void)
+{
+    if (micros() - sensorsData.currentTimestamp > SMARTPORT_SENSOR_DATA_TIMEOUT) {
+        return NULL;
+    }
+
+    return &sensorsData.current;
+}
+
+int16_t *smartportMasterGetVoltageData(void)
+{
+    if (micros() - sensorsData.voltageTimestamp > SMARTPORT_SENSOR_DATA_TIMEOUT) {
+        return NULL;
+    }
+
+    return &sensorsData.voltage;
 }
 
 bool smartportMasterPhyIDIsActive(uint8_t phyID)

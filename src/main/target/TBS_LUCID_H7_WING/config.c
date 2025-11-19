@@ -22,16 +22,30 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
-#include "fc/config.h"
-
 #include <stdint.h>
 
-#include "fc/fc_msp_box.h"
-#include "io/piniobox.h"
 #include "platform.h"
+
+#include "fc/config.h"
+#include "fc/fc_msp_box.h"
+#include "fc/rc_modes.h"
+
+#include "io/piniobox.h"
+
+#include "drivers/pwm_mapping.h"
 
 void targetConfiguration(void)
 {
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
     pinioBoxConfigMutable()->permanentId[1] = BOX_PERMANENT_ID_USER2;
+    
+    modeActivationConditionsMutable(0)->auxChannelIndex = 0;
+    modeActivationConditionsMutable(0)->modeId = BOXUSER1;
+    modeActivationConditionsMutable(0)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditionsMutable(0)->range.endStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MAX);
+
+    modeActivationConditionsMutable(1)->auxChannelIndex = 0;
+    modeActivationConditionsMutable(1)->modeId = BOXUSER2;
+    modeActivationConditionsMutable(1)->range.startStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MIN);
+    modeActivationConditionsMutable(1)->range.endStep = CHANNEL_VALUE_TO_STEP(CHANNEL_RANGE_MAX);
 }

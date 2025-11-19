@@ -152,6 +152,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
+    drivers/compass/compass_qmc5883p.c
+    drivers/compass/compass_qmc5883p.h
     drivers/compass/compass_rm3100.c
     drivers/compass/compass_rm3100.h
     drivers/compass/compass_vcm5883.c
@@ -177,8 +179,8 @@ main_sources(COMMON_SRC
     drivers/flash.h
     drivers/flash_m25p16.c
     drivers/flash_m25p16.h
-    drivers/flash_w25n01g.c
-    drivers/flash_w25n01g.h
+    drivers/flash_w25n.c
+    drivers/flash_w25n.h
     drivers/gimbal_common.h
     drivers/gimbal_common.c
     drivers/headtracker_common.h

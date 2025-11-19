@@ -76,6 +76,45 @@ static inline uint16_t mavlink_msg_debug_pack(uint8_t system_id, uint8_t compone
 }
 
 /**
+ * @brief Pack a debug message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param time_boot_ms [ms] Timestamp (time since system boot).
+ * @param ind  index of debug variable
+ * @param value  DEBUG value
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_debug_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint32_t time_boot_ms, uint8_t ind, float value)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_DEBUG_LEN];
+    _mav_put_uint32_t(buf, 0, time_boot_ms);
+    _mav_put_float(buf, 4, value);
+    _mav_put_uint8_t(buf, 8, ind);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_DEBUG_LEN);
+#else
+    mavlink_debug_t packet;
+    packet.time_boot_ms = time_boot_ms;
+    packet.value = value;
+    packet.ind = ind;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DEBUG_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_DEBUG;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DEBUG_MIN_LEN, MAVLINK_MSG_ID_DEBUG_LEN, MAVLINK_MSG_ID_DEBUG_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DEBUG_MIN_LEN, MAVLINK_MSG_ID_DEBUG_LEN);
+#endif
+}
+
+/**
  * @brief Pack a debug message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -138,6 +177,20 @@ static inline uint16_t mavlink_msg_debug_encode_chan(uint8_t system_id, uint8_t 
 }
 
 /**
+ * @brief Encode a debug struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param debug C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_debug_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_debug_t* debug)
+{
+    return mavlink_msg_debug_pack_status(system_id, component_id, _status, msg,  debug->time_boot_ms, debug->ind, debug->value);
+}
+
+/**
  * @brief Send a debug message
  * @param chan MAVLink channel to send the message
  *
@@ -182,7 +235,7 @@ static inline void mavlink_msg_debug_send_struct(mavlink_channel_t chan, const m
 
 #if MAVLINK_MSG_ID_DEBUG_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
