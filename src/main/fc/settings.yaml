@@ -1104,7 +1104,7 @@ groups:
         field: capacity.critical
         min: 0
         max: 4294967295
-      - name: control_profile
+      - name: use_control_profile
         description: "Control profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control profile"
         default_value: 0
         field: controlProfile

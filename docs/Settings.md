@@ -582,16 +582,6 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
-### control_profile
-
-Control profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control profile
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 3 |
-
----
-
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
@@ -6529,6 +6519,16 @@ Time zone offset from UTC, in minutes. This is applied to the GPS time for loggi
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -720 | 840 |
+
+---
+
+### use_control_profile
+
+Control profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control profile
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
 
 ---
 
