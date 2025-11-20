@@ -592,6 +592,16 @@ Control rate profile to switch to when the battery profile is selected, 0 to dis
 
 ---
 
+### crsf_use_legacy_baro_packet
+
+CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
