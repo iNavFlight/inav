@@ -59,11 +59,17 @@ jobs:
           path: resources/sitl/windows
           pattern: inav-*SITL-WIN
           merge-multiple: true
-      - name: download sitl mac
+      - name: download sitl mac arm64
         uses: actions/download-artifact@v4
         with:
-          path: resources/sitl/macos
-          pattern: inav-*SITL-MacOS
+          path: resources/sitl/macos/arm64
+          pattern: inav-*SITL-MacOS-Arm64
+          merge-multiple: true
+      - name: download sitl mac intel
+        uses: actions/download-artifact@v4
+        with:
+          path: resources/sitl/macos/intel
+          pattern: inav-*SITL-MacOS-Intel
           merge-multiple: true
       - name: Consolidate sitl files
         run: |
