@@ -221,7 +221,7 @@ jobs:
           name: ${{ env.BUILD_NAME }}_SITL-MacOS-Arm64
           path: ./build_SITL/*_SITL
 
-    build-SITL-Mac-Intel:
+  build-SITL-Mac-Intel:
     runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
