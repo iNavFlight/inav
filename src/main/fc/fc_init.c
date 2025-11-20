@@ -91,6 +91,10 @@
 #include "fc/firmware_update.h"
 #include "fc/stats.h"
 
+#include "io/mztc_camera.h"
+#include "io/osd/mztc_camera_osd.h"
+#include "msp/msp_mztc.h"
+
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -544,6 +548,11 @@ void init(void)
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up
     mspFcInit();
+
+    // Initialize MassZero Thermal Camera
+    mztcInit();
+    mztcOsdInit();
+    mspMztcInit();
 
     cliInit(serialConfig());
 
