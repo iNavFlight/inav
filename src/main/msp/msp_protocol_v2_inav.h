@@ -46,6 +46,8 @@
 #define MSP2_INAV_OSD_PREFERENCES               0x2016
 #define MSP2_INAV_OSD_SET_PREFERENCES           0x2017
 
+#define MSP2_INAV_OSD_UPDATE_POSITION           0x2118
+
 #define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018
 
 #define MSP2_INAV_DEBUG                         0x2019
