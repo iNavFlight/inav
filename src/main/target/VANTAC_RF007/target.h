@@ -52,6 +52,7 @@
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
 #define EXTERNAL_I2C BUS_I2C2
+#define I2C_DEVICE_2_SHARES_UART3
 
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
