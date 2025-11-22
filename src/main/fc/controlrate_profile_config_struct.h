@@ -36,13 +36,13 @@ typedef struct controlRateConfig_s {
 
     struct {
         uint8_t rcExpo8;
-        uint8_t rcYawExpo8;
+        int8_t rcYawExpo8;
         uint8_t rates[3];
     } stabilized;
 
     struct {
         uint8_t rcExpo8;
-        uint8_t rcYawExpo8;
+        int8_t rcYawExpo8;
         uint8_t rates[3];
     } manual;
 
