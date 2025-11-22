@@ -280,9 +280,9 @@ main_sources(COMMON_SRC
     fc/cli.h
     fc/config.c
     fc/config.h
-    fc/controlrate_profile.c
-    fc/controlrate_profile.h
-    fc/controlrate_profile_config_struct.h
+    fc/control_profile.c
+    fc/control_profile.h
+    fc/control_profile_config_struct.h
     fc/fc_core.c
     fc/fc_core.h
     fc/fc_init.c

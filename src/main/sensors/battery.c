@@ -36,7 +36,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
@@ -123,7 +123,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
             },
 
-            .controlRateProfile = 0,
+            .controlProfile = 0,
 
             .motor = {
                 .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
@@ -248,8 +248,8 @@ void setBatteryProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     currentBatteryProfile = batteryProfiles(profileIndex);
-    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile <= MAX_CONTROL_RATE_PROFILE_COUNT)) {
-        setConfigProfile(currentBatteryProfile->controlRateProfile - 1);
+    if ((currentBatteryProfile->controlProfile > 0) && (currentBatteryProfile->controlProfile <= MAX_CONTROL_PROFILE_COUNT)) {
+        setConfigProfile(currentBatteryProfile->controlProfile - 1);
     }
 }
 

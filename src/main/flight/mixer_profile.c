@@ -50,7 +50,7 @@ void pgResetFn_mixerProfiles(mixerProfile_t *instance)
                          .hasFlaps = SETTING_HAS_FLAPS_DEFAULT,
                          .appliedMixerPreset = SETTING_MODEL_PREVIEW_TYPE_DEFAULT, // This flag is not available in CLI and used by Configurator only
                          .motorstopOnLow = SETTING_MOTORSTOP_ON_LOW_DEFAULT,
-                         .PIDProfileLinking = SETTING_MIXER_PID_PROFILE_LINKING_DEFAULT,
+                         .controlProfileLinking = SETTING_MIXER_CONTROL_PROFILE_LINKING_DEFAULT,
                          .automated_switch = SETTING_MIXER_AUTOMATED_SWITCH_DEFAULT,
                          .switchTransitionTimer =  SETTING_MIXER_SWITCH_TRANS_TIMER_DEFAULT,
                          .tailsitterOrientationOffset = SETTING_TAILSITTER_ORIENTATION_OFFSET_DEFAULT,
@@ -94,7 +94,7 @@ void mixerConfigInit(void)
     servosInit();
     mixerUpdateStateFlags();
     mixerInit();
-    if (currentMixerConfig.PIDProfileLinking)
+    if (currentMixerConfig.controlProfileLinking)
     {
         // LOG_INFO(PWM, "mixer switch pidInit");
         setConfigProfile(getConfigMixerProfile());

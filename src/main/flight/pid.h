@@ -197,7 +197,7 @@ float getAxisIterm(uint8_t axis);
 float getTotalRateTarget(void);
 void pidResetTPAFilter(void);
 
-struct controlRateConfig_s;
+struct controlConfig_s;
 struct motorConfig_s;
 struct rxConfig_s;
 
