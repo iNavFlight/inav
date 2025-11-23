@@ -29,7 +29,7 @@ Pin configuration
 
 The ESC, RPM, RX2 and TX2 pins are Servo/Motor outputs by default. However, when UART4 or UART2 are assigned a function in the ports tab, the pins will become a UART instead. See the table below.
 
-**The ESC and RPM pins feature a filtering circuit that limits UART4 to 115200 baud. This means CRSF won't work on UART4, while slower protocols like SBUS and SBUS2 will.**
+**The RPM pin features a filtering circuit that limits UART4 RX to 115200 baud. This means CRSF won't work on UART4, while slower protocols like SBUS will.**
 
 | Marking on the case | Both UART2 and UART4 unused | UART2 in use            | UART4 in use            | Both UART2 and UART4 in use |
 |---------------------|-----------------------------|-------------------------|-------------------------|-----------------------------|
