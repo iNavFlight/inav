@@ -79,11 +79,9 @@
 // *************** UART *****************************
 #define USE_VCP
 
-#ifdef NEXUSX
 #define USE_UART1 // clashes with I2C1
 #define UART1_TX_PIN            PB6 // pin labelled "AUX"
 #define UART1_RX_PIN            PB7 // pin labelled "SBUS"
-#endif
 
 #define USE_UART2
 #define UART2_TX_PIN            PA2 // pin labelled as "RPM"
