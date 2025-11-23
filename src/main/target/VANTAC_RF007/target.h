@@ -142,3 +142,6 @@
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
 #define USE_SMARTPORT_MASTER // no internal current sensor, enable SMARTPORT_MASTER so external ones can be used
+
+#define USE_DSHOT_DMAR
+
