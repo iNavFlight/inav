@@ -88,10 +88,10 @@
 #define UART2_TX_PIN            PA2 // pin labelled as "RPM"
 #define UART2_RX_PIN            PA3 // pin labelled as "TLM"
 
--#define USE_UART3
--// port labelled "C"
--#define UART3_TX_PIN            PB10
--#define UART3_RX_PIN            PB11
+#define USE_UART3
+// port labelled "C"
+#define UART3_TX_PIN            PB10
+#define UART3_RX_PIN            PB11
 
 #define USE_UART4
 // port labelled "A"
