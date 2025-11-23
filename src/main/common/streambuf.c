@@ -32,6 +32,11 @@ void sbufWriteU8(sbuf_t *dst, uint8_t val)
     *dst->ptr++ = val;
 }
 
+void sbufWriteI8(sbuf_t *dst, int8_t val)
+{
+    *dst->ptr++ = val;
+}
+
 void sbufWriteU16(sbuf_t *dst, uint16_t val)
 {
     sbufWriteU8(dst, val >> 0);

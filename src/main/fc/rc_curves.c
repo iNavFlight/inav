@@ -53,10 +53,12 @@ void generateThrottleCurve(const controlRateConfig_t *controlRateConfig)
     }
 }
 
-int16_t rcLookup(int32_t stickDeflection, uint8_t expo)
+int16_t rcLookup(int32_t stickDeflection, int8_t expo)
 {
-    float tmpf = stickDeflection / 100.0f;
-    return lrintf((2500.0f + (float)expo * (tmpf * tmpf - 25.0f)) * tmpf / 25.0f);
+    float stk = stickDeflection / 500.0f;
+    float expoAdjusted = constrainf(stk * (1.0f + ((float)expo /100.0f) * (stk * stk - 1.0f)), -1.0f, 1.0f);
+
+    return (int16_t)lrintf(expoAdjusted * 500.0f);
 }
 
 uint16_t rcLookupThrottle(uint16_t absoluteDeflection)
