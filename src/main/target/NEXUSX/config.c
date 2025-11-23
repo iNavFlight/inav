@@ -36,4 +36,7 @@
 void targetConfiguration(void)
 {
   pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
+
+  // default "ESC" pin to be a motor
+  timerOverridesMutable(timer2id(TIM1))->outputMode = OUTPUT_MODE_MOTORS;
 }
