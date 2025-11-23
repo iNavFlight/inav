@@ -50,6 +50,7 @@
 #define USE_I2C_DEVICE_2 // clashes with UART3
 #define I2C2_SCL                PB10
 #define I2C2_SDA                PB11
+#define I2C_DEVICE_2_SHARES_UART3
 #define DEFAULT_I2C BUS_I2C2
 
 #define USE_BARO
@@ -78,11 +79,9 @@
 // *************** UART *****************************
 #define USE_VCP
 
-#ifdef NEXUSX
 #define USE_UART1 // clashes with I2C1
 #define UART1_TX_PIN            PB6 // pin labelled "AUX"
 #define UART1_RX_PIN            PB7 // pin labelled "SBUS"
-#endif
 
 #define USE_UART2
 #define UART2_TX_PIN            PA2 // pin labelled as "RPM"
