@@ -33,8 +33,8 @@ timerHardware_t timerHardware[] = {
 
     DEF_TIM(TIM1, CH2, PA9,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "ESC"
 
-    DEF_TIM(TIM5, CH3, PA2,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "RPM", clashes with UART2 TX
-    DEF_TIM(TIM5, CH4, PA3,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "TLM", clashes with UART2 RX
+    DEF_TIM(TIM2, CH3, PA2,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "RPM", clashes with UART2 TX
+    DEF_TIM(TIM2, CH4, PA3,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "TLM", clashes with UART2 RX
 
     DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "AUX", clashes with UART1 TX and I2C1 SCL
     DEF_TIM(TIM4, CH2, PB7,   TIM_USE_OUTPUT_AUTO, 0, 0),   // labelled "SBUS", clashes with UART1 RX and I2C1 SDA
