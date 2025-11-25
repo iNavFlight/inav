@@ -5,7 +5,7 @@ This is a cheap flight controller (prices range from $16US to $40US) from an unk
 Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers. This is not an all in one solution. It rerequires an external power source for servos. So is not as small as it first appears.
 
 > [!WARNING]
-> Therefore, we recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware can be far from guaranteed. So fitting to a larger, heavier aircraft adds unneccesary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
+> We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware can be far from guaranteed. So fitting to a larger, heavier aircraft adds unneccesary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
 >
 > Also, if you insist on buying one of these. Make sure it's from a somewhere selling it at $16US. Spending $40US on this is a waste of money. You can get better FCs for that money.
 
