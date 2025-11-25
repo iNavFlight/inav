@@ -2,7 +2,7 @@
 
 This is a cheap flight controller (prices range from $16US to $40US) from an unknown company. Many of the components on this FC are likely to have high tollerances due to the low cost. They sold this FC as compatible with INAV without reaching out to the team or having an official target made. The target only exists thanks to a community contributor (dixi83).
 
-Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers. This is not an all in one solution. It rerequires an external power source for servos. So is not as small as it first appears.
+Hardware issues have been reported on these flight controllers. They are also missing many features. Unlike most other _wing_ flight controllers. This is not an all in one solution. It requires an external power source for servos. So is not as small as it first appears.
 
 > [!WARNING]
 > We recommend you only use this flight controller on very light aircraft that you will keep within line-of-sight distances. Reliability of the hardware can be far from guaranteed. So fitting to a larger, heavier aircraft adds unneccesary safety risks. Also, there are essential features missing for other types of flights. Please keep this for small park fliers only, if used at all.
