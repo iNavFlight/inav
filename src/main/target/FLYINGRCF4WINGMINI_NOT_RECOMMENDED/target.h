@@ -19,7 +19,7 @@
 #define USE_TARGET_CONFIG
 
 #define TARGET_BOARD_IDENTIFIER "FRF4WM"
-#define USBD_PRODUCT_STRING  "FLYINGRCF4WINGMINI"
+#define USBD_PRODUCT_STRING  "FLYINGRCF4WINGMINI_NOT_RECOMMENDED"
 
 #define LED0                    PA14  //Blue
 #define LED1                    PA13  //Green
