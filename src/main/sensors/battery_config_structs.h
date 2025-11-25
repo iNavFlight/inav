@@ -100,7 +100,7 @@ typedef struct batteryProfile_s {
         uint32_t critical;                  // mAh or mWh (see batteryMetersConfig()->capacity_unit)
     } capacity;
 
-    uint8_t controlRateProfile;
+    uint8_t controlProfile;
 
     struct {
         float throttleIdle;                 // Throttle IDLE value based on min_command, max_throttle, in percent

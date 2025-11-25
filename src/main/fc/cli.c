@@ -73,7 +73,7 @@ bool cliMode = false;
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -3731,7 +3731,7 @@ static void cliDumpControlProfile(uint8_t profileIndex, uint8_t dumpMask)
     cliPrintHashLine("control_profile");
     cliPrintLinef("control_profile %d\r\n", getConfigProfile() + 1);
     dumpAllValues(PROFILE_VALUE, dumpMask);
-    dumpAllValues(CONTROL_RATE_VALUE, dumpMask);
+    dumpAllValues(CONTROL_VALUE, dumpMask);
     dumpAllValues(EZ_TUNE_VALUE, dumpMask);
 }
 

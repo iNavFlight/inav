@@ -38,7 +38,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/rc_adjustments.h"
@@ -94,7 +94,7 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
-        ((controlRateConfig_t *)currentControlRateProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
+        ((controlConfig_t *)currentControlProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
     }
     schedulePidGainsUpdate();
 }
@@ -117,8 +117,8 @@ void autotuneStart(void)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
-        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
-        tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
+        tuneCurrent[axis].rate = currentControlProfile->stabilized.rates[axis] * 10.0f;
+        tuneCurrent[axis].initialRate = currentControlProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].absDesiredRateAccum = 0;
         tuneCurrent[axis].absReachedRateAccum = 0;
         tuneCurrent[axis].absPidOutputAccum = 0;
