@@ -49,7 +49,7 @@ bool initSmartPortTelemetry(void);
 void checkSmartPortTelemetryState(void);
 bool initSmartPortTelemetryExternal(smartPortWriteFrameFn *smartPortWriteFrameExternal);
 
-void handleSmartPortTelemetry(void);
+void handleSmartPortTelemetry(timeUs_t currentTimeUs);
 void processSmartPortTelemetry(smartPortPayload_t *payload, volatile bool *hasRequest, const uint32_t *requestTimeout);
 
 smartPortPayload_t *smartPortDataReceive(uint16_t c, bool *clearToSend, smartPortCheckQueueEmptyFn *checkQueueEmpty, bool withChecksum);

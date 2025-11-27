@@ -89,6 +89,7 @@ typedef enum {
     CRSF_FRAMETYPE_VARIO_SENSOR = 0x07,
     CRSF_FRAMETYPE_BATTERY_SENSOR = 0x08,
     CRSF_FRAMETYPE_BAROMETER_ALTITUDE = 0x09,
+    CRSF_FRAMETYPE_HEARTBEAT = 0x0B,
     CRSF_FRAMETYPE_AIRSPEED_SENSOR = 0x0A,
     CRSF_FRAMETYPE_RPM = 0x0C,
     CRSF_FRAMETYPE_TEMP = 0x0D,
@@ -108,6 +109,7 @@ typedef enum {
     CRSF_FRAMETYPE_MSP_RESP = 0x7B,  // reply with 58 byte chunked binary
     CRSF_FRAMETYPE_MSP_WRITE = 0x7C,  // write with 8 byte chunked binary (OpenTX outbound telemetry buffer limit)
     CRSF_FRAMETYPE_DISPLAYPORT_CMD = 0x7D, // displayport control command
+    CRSF_FRAMETYPE_CUSTOM_TELEM = 0x88, // custom telemetry
 } crsfFrameType_e;
 
 enum {

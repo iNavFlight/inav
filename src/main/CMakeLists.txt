@@ -626,6 +626,8 @@ main_sources(COMMON_SRC
     telemetry/sim.h
     telemetry/telemetry.c
     telemetry/telemetry.h
+    telemetry/sensors.c
+    telemetry/sensors.h
 )
 
 add_subdirectory(target)

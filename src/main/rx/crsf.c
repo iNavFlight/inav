@@ -32,7 +32,6 @@
 
 #include "drivers/time.h"
 #include "drivers/serial.h"
-#include "drivers/serial_uart.h"
 
 #include "io/serial.h"
 #include "io/osd.h"
@@ -180,6 +179,9 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
                             break;
                         }
 #endif
+                        case CRSF_FRAMETYPE_DEVICE_PING:
+                            crsfScheduleDeviceInfoResponse();
+                            break;
                         default:
                             break;
                     }
