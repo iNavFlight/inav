@@ -918,6 +918,72 @@ static void cliSerial(char *cmdline)
     memcpy(currentConfig, &portConfig, sizeof(portConfig));
 }
 
+#ifdef USE_CUSTOM_TELEMETRY
+static void printTelemetrySensors(uint8_t dumpMask, const telemetryConfig_t *telemetryConfig, const telemetryConfig_t *telemetryConfigDefault)
+{
+    const char *format = "ts %d %d";
+    bool equalsDefault = false;
+    for (size_t i = 0; i < TELEM_SENSOR_SLOT_COUNT; ++i) {
+        if(telemetryConfigDefault) {
+            equalsDefault = telemetryConfig->telemetry_sensors[i] == telemetryConfigDefault->telemetry_sensors[i];
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format,
+                                 i,
+                                 telemetryConfigDefault->telemetry_sensors[i]
+            );
+        }
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, format,
+                          i,
+                          telemetryConfig->telemetry_sensors[i]
+        );
+    }
+}
+
+static void cliTelemetrySensors(char *cmdline)
+{
+    char * saveptrMain;
+    char * saveptrParams;
+    int args[2], check = 0;
+    uint8_t len = strlen(cmdline);
+
+    if (len == 0) {
+        printTelemetrySensors(DUMP_MASTER, telemetryConfig(), NULL);
+    } else {
+        //split by ", first are params second is text
+        char *ptrMain = strtok_r(cmdline, "\"", &saveptrMain);
+        enum {
+            INDEX = 0,
+            VALUE = 1,
+            ARGS_COUNT
+        };
+
+        char *ptrParams = strtok_r(ptrMain, " ", &saveptrParams);
+        while (ptrParams != NULL && check < ARGS_COUNT) {
+            args[check++] = fastA2I(ptrParams);
+            ptrParams = strtok_r(NULL, " ", &saveptrParams);
+        }
+
+        if (check != ARGS_COUNT) {
+            cliShowParseError();
+            return;
+        }
+
+        if(args[INDEX] < 0 || args[INDEX] >= TELEM_SENSOR_SLOT_COUNT) {
+            cliShowArgumentRangeError("index", 0, TELEM_SENSOR_SLOT_COUNT - 1);
+            return;
+        }
+
+        if(args[VALUE] < 0 || args[VALUE] >= TELEM_SENSOR_COUNT) {
+            cliShowArgumentRangeError("value", 0, TELEM_SENSOR_COUNT - 1);
+            return;
+        }
+        telemetryConfigMutable()->telemetry_sensors[args[INDEX]] = args[VALUE];
+
+        printTelemetrySensors(DUMP_MASTER, telemetryConfig(), NULL);
+    }
+}
+#endif
+
 #ifdef USE_SERIAL_PASSTHROUGH
 
 portOptions_t constructPortOptions(char *options) {
@@ -4480,6 +4546,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         cliPrintHashLine("features");
         printFeature(dumpMask, &featureConfig_Copy, featureConfig());
 
+#ifdef USE_CUSTOM_TELEMETRY
+        cliPrintHashLine("telemetry sensors");
+        printTelemetrySensors(dumpMask, &telemetryConfig_Copy, telemetryConfig());
+#endif
+
 #if defined(BEEPER) || defined(USE_DSHOT)
         cliPrintHashLine("beeper");
         printBeeper(dumpMask, &beeperConfig_Copy, beeperConfig());
@@ -4900,6 +4971,9 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
+#ifdef USE_CUSTOM_TELEMETRY
+    CLI_COMMAND_DEF("telemetry_sensors", "configure telemetry sensors", NULL, cliTelemetrySensors),
+#endif
 #ifdef USE_SERIAL_PASSTHROUGH
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] [options]: passthrough to serial", cliSerialPassthrough),
 #endif
