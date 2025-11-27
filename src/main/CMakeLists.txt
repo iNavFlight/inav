@@ -179,8 +179,8 @@ main_sources(COMMON_SRC
     drivers/flash.h
     drivers/flash_m25p16.c
     drivers/flash_m25p16.h
-    drivers/flash_w25n01g.c
-    drivers/flash_w25n01g.h
+    drivers/flash_w25n.c
+    drivers/flash_w25n.h
     drivers/gimbal_common.h
     drivers/gimbal_common.c
     drivers/headtracker_common.h
@@ -280,9 +280,9 @@ main_sources(COMMON_SRC
     fc/cli.h
     fc/config.c
     fc/config.h
-    fc/controlrate_profile.c
-    fc/controlrate_profile.h
-    fc/controlrate_profile_config_struct.h
+    fc/control_profile.c
+    fc/control_profile.h
+    fc/control_profile_config_struct.h
     fc/fc_core.c
     fc/fc_core.h
     fc/fc_init.c

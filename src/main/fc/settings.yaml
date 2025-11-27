@@ -201,6 +201,9 @@ tables:
   - name: mavlink_radio_type
     values: ["GENERIC", "ELRS", "SIK"]
     enum: mavlinkRadio_e
+  - name: mavlink_autopilot_type
+    values: ["GENERIC", "ARDUPILOT"]
+    enum: mavlinkAutopilotType_e
   - name: default_altitude_source
     values: ["GPS", "BARO", "GPS_ONLY", "BARO_ONLY"]
     enum: navDefaultAltitudeSensor_e
@@ -223,7 +226,7 @@ constants:
   ROLL_PITCH_RATE_MIN: 4
   ROLL_PITCH_RATE_MAX: 180
 
-  MAX_CONTROL_RATE_PROFILE_COUNT: 3
+  MAX_CONTROL_PROFILE_COUNT: 3
   MAX_BATTERY_PROFILE_COUNT: 3
 
 
@@ -668,10 +671,10 @@ groups:
         default_value: "NONE"
         table: pitot_hardware
       - name: pitot_lpf_milli_hz
-        description: "Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay"
+        description: "Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay"
         min: 0
-        max: 10000
-        default_value: 350
+        max: 50000
+        default_value: 3000
       - name: pitot_scale
         description: "Pitot tube scale factor"
         min: 0
@@ -1101,12 +1104,12 @@ groups:
         field: capacity.critical
         min: 0
         max: 4294967295
-      - name: controlrate_profile
-        description: "Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile"
+      - name: use_control_profile
+        description: "Control profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control profile"
         default_value: 0
-        field: controlRateProfile
+        field: controlProfile
         min: 0
-        max: MAX_CONTROL_RATE_PROFILE_COUNT
+        max: MAX_CONTROL_PROFILE_COUNT
 
       - name: throttle_scale
         description: "Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle scaled down by 50%"
@@ -1255,10 +1258,10 @@ groups:
         default_value: ON
         field: mixer_config.motorstopOnLow
         type: bool
-      - name: mixer_pid_profile_linking
-        description: "If enabled, pid profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle PID profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the PID profile switching on a VTOL or mixed platform type setup."
+      - name: mixer_control_profile_linking
+        description: "If enabled, control_profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle control_profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the control_profile switching on a VTOL or mixed platform type setup."
         default_value: OFF
-        field: mixer_config.PIDProfileLinking
+        field: mixer_config.controlProfileLinking
         type: bool
       - name: mixer_automated_switch
         description: "If set to on, This mixer_profile will try to switch to another mixer_profile when 1.RTH heading home is requested and distance to home is lager than 3*nav_fw_loiter_radius on mixer_profile is a MULTIROTOR or TRICOPTER platform_type. 2. RTH landing is requested on this mixer_profile is a AIRPLANE platform_type"
@@ -1276,6 +1279,24 @@ groups:
         default_value: OFF
         field: mixer_config.tailsitterOrientationOffset
         type: bool
+      - name: transition_pid_mmix_multiplier_roll
+        description: "roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_roll
+        min: -5000
+        max: 5000
+      - name: transition_pid_mmix_multiplier_pitch
+        description: "pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_pitch
+        min: -5000
+        max: 5000
+      - name: transition_pid_mmix_multiplier_yaw
+        description: "yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite"
+        default_value: 1000
+        field: mixer_config.transition_PID_mmix_multiplier_yaw
+        min: -5000
+        max: 5000
 
   - name: PG_REVERSIBLE_MOTORS_CONFIG
     type: reversibleMotorsConfig_t
@@ -1341,10 +1362,10 @@ groups:
         min: 1
         max: 60
 
-  - name: PG_CONTROL_RATE_PROFILES
-    type: controlRateConfig_t
-    headers: ["fc/controlrate_profile_config_struct.h"]
-    value_type: CONTROL_RATE_VALUE
+  - name: PG_CONTROL_PROFILES
+    type: controlConfig_t
+    headers: ["fc/control_profile_config_struct.h"]
+    value_type: CONTROL_VALUE
     members:
       - name: thr_mid
         description: "Throttle value when the stick is set to mid-position. Used in the throttle curve calculation."
@@ -1491,16 +1512,6 @@ groups:
         max: 95
         description: "The end  stick weight for Rate Dynamics"
         condition: USE_RATE_DYNAMICS
-
-  - name: PG_SERIAL_CONFIG
-    type: serialConfig_t
-    headers: ["io/serial.h"]
-    members:
-      - name: reboot_character
-        description: "Special character used to trigger reboot"
-        default_value: 82
-        min: 48
-        max: 126
 
   - name: PG_IMU_CONFIG
     type: imuConfig_t
@@ -3207,6 +3218,12 @@ groups:
         min: 0
         max: 255
         default_value: 2
+      - name: mavlink_autopilot_type
+        field: mavlink.autopilot_type
+        description: "Autopilot type to advertise for MAVLink telemetry"
+        table: mavlink_autopilot_type
+        default_value: "GENERIC"
+        type: uint8_t
       - name: mavlink_rc_chan_rate
         description: "Rate of the RC channels message for MAVLink telemetry"
         field: mavlink.rc_channels_rate
@@ -3261,6 +3278,13 @@ groups:
         table: mavlink_radio_type
         default_value: "GENERIC"
         type: uint8_t
+      - name: mavlink_sysid
+        field: mavlink.sysid
+        description: "MAVLink System ID"
+        type: uint8_t
+        min: 1
+        max: 255
+        default_value: 1
 
   - name: PG_OSD_CONFIG
     type: osdConfig_t
@@ -3413,7 +3437,7 @@ groups:
         default_value: 4
         field: snr_alarm
         min: -20
-        max: 99
+        max: 30
       - name: osd_link_quality_alarm
         condition: USE_SERIALRX_CRSF || USE_RX_MSP
         description: "LQ % indicator blinks below this value. For Crossfire use 70%, for Tracer use 50%"
@@ -3750,9 +3774,9 @@ groups:
         min: 0
         max: 16
         default_value: 0
-      - name: osd_pan_servo_pwm2centideg
-        description: Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
-        field: pan_servo_pwm2centideg
+      - name: osd_pan_servo_range_decadegrees
+        description: Decadegrees of pan servo rotation. A servo with 180 degrees of rotation typically needs `18` for this setting. Using a negative value will reverse the direction.
+        field: osd_pan_servo_range_decadegrees
         default_value: 0
         min: -36
         max: 36

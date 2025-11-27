@@ -7,7 +7,13 @@ is an air traffic surveillance technology that enables aircraft to be accurately
 
 OSD can be configured to shows the closest aircraft.
 
-## OSD element
+## OSD ADSB Info element
+* "-" no ADSB device detected
+* "H" IMU heading is not valid 
+* "G" no GPS fix or less than 4 stats
+* "[Number]" count of ADSB aircrafts
+
+## OSD ADSB Warning element
 OSD can be configured to simple view (one line) or to extended view (two lines) by \
 `set osd_adsb_warning_style=EXTENDED`
 

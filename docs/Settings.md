@@ -582,16 +582,6 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
-### controlrate_profile
-
-Control rate profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control rate profile
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 0 | 0 | 3 |
-
----
-
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
@@ -2642,6 +2632,16 @@ Servo travel multiplier for the YAW axis in `MANUAL` flight mode [0-100]%
 
 ---
 
+### mavlink_autopilot_type
+
+Autopilot type to advertise for MAVLink telemetry
+
+| Default | Min | Max |
+| --- | --- | --- |
+| GENERIC |  |  |
+
+---
+
 ### mavlink_ext_status_rate
 
 Rate of the extended status message for MAVLink telemetry
@@ -2719,6 +2719,16 @@ Rate of the RC channels message for MAVLink telemetry
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 0 | 255 |
+
+---
+
+### mavlink_sysid
+
+MAVLink System ID
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1 | 1 | 255 |
 
 ---
 
@@ -2972,9 +2982,9 @@ If set to on, This mixer_profile will try to switch to another mixer_profile whe
 
 ---
 
-### mixer_pid_profile_linking
+### mixer_control_profile_linking
 
-If enabled, pid profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle PID profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the PID profile switching on a VTOL or mixed platform type setup.
+If enabled, control_profile_index will follow mixer_profile index. Set to OFF(default) if you want to handle control_profile by your self. Recommend to set to ON on all mixer_profiles to let the mixer_profile handle the control_profile switching on a VTOL or mixed platform type setup.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5172,9 +5182,9 @@ Degrees either side of the pan servo centre; where it is assumed camera is wante
 
 ---
 
-### osd_pan_servo_pwm2centideg
+### osd_pan_servo_range_decadegrees
 
-Centidegrees of pan servo rotation us PWM signal. A servo with 180 degrees of rotation from 1000 to 2000 us PWM typically needs `18` for this setting. Change sign to inverse direction.
+Decadegrees of pan servo rotation. A servo with 180 degrees of rotation typically needs `18` for this setting. Using a negative value will reverse the direction.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -5318,7 +5328,7 @@ Value below which Crossfire SNR Alarm pops-up. (dB)
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 4 | -20 | 99 |
+| 4 | -20 | 30 |
 
 ---
 
@@ -5614,11 +5624,11 @@ Selection of pitot hardware.
 
 ### pitot_lpf_milli_hz
 
-Pitot tube lowpass filter cutoff frequency. Lower cutoff frequencies result in smoother response at expense of command control delay
+Pitot tube lowpass filter cutoff frequency in milli Hz(0.001hz). Set as 0 to disable LPF Lower cutoff frequencies result in smoother response at expense of command control delay
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 350 | 0 | 10000 |
+| 3000 | 0 | 50000 |
 
 ---
 
@@ -5809,16 +5819,6 @@ Exponential value used for the YAW axis by all the stabilized flights modes (all
 | Default | Min | Max |
 | --- | --- | --- |
 | 20 | 0 | 100 |
-
----
-
-### reboot_character
-
-Special character used to trigger reboot
-
-| Default | Min | Max |
-| --- | --- | --- |
-| 82 | 48 | 126 |
 
 ---
 
@@ -6452,6 +6452,36 @@ Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-ro
 
 ---
 
+### transition_pid_mmix_multiplier_pitch
+
+pitch axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_roll
+
+roll axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
+### transition_pid_mmix_multiplier_yaw
+
+yaw axis pid multiplier applied to motor mixer only on mixer trasition mode, 1000(default) is 1.0x, -1000 is 1.0x on opposite
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1000 | -5000 | 5000 |
+
+---
+
 ### tri_unarmed_servo
 
 On tricopter mix only, if this is set to ON, servo will always be correcting regardless of armed state. to disable this, set it to OFF.
@@ -6489,6 +6519,16 @@ Time zone offset from UTC, in minutes. This is applied to the GPS time for loggi
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -720 | 840 |
+
+---
+
+### use_control_profile
+
+Control profile to switch to when the battery profile is selected, 0 to disable and keep the currently selected control profile
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 3 |
 
 ---
 

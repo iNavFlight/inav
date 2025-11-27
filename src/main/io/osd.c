@@ -78,7 +78,7 @@
 #include "io/osd/custom_elements.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/fc_core.h"
 #include "fc/fc_tasks.h"
 #include "fc/multifunction.h"
@@ -314,6 +314,14 @@ static void osdFormatDistanceSymbol(char *buff, int32_t dist, uint8_t decimals, 
         buff[sym_index + 1] = '\0';
         break;
     }
+}
+
+/**
+ * return flight direction on degrees
+ */
+static int16_t osdGetFlightDirection(void)
+{
+    return STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
 }
 
 /**
@@ -1302,7 +1310,9 @@ int16_t osdGetPanServoOffset(void)
         servoMiddle = PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
     }
 
-    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
+    float servoDegreesScaleFactor = 1000.0f / (servoParams(servoIndex)->max - servoParams(servoIndex)->min);
+
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * (int16_t)(osdConfig()->osd_pan_servo_range_decadegrees) * servoDegreesScaleFactor);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -2058,11 +2068,10 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int16_t panHomeDirOffset = 0;
-                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                    if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
                         panHomeDirOffset = osdGetPanServoOffset();
                     }
-                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    int homeDirection = GPS_directionToHome - flightDirection + panHomeDirOffset;
+                    int homeDirection = GPS_directionToHome - osdGetFlightDirection() + panHomeDirOffset;
                     osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), homeDirection);
                 }
             } else {
@@ -2258,16 +2267,17 @@ static bool osdDrawSingleElement(uint8_t item)
             uint8_t buffIndexFirstLine = 0;
             uint8_t arrowIndexIndex = 0;
             adsbVehicle_t *vehicle = findVehicleClosestLimit(METERS_TO_CENTIMETERS(osdConfig()->adsb_ignore_plane_above_me_limit));
-            if(vehicle != NULL)
-            {
+            if (vehicle != NULL) {
                 recalculateVehicle(vehicle);
             }
 
             if (
-                    vehicle != NULL &&
-                    (vehicle->calculatedVehicleValues.dist > 0 &&
-                    vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
-            ){
+                    vehicle != NULL
+                    && (vehicle->calculatedVehicleValues.dist > 0
+                    && vehicle->calculatedVehicleValues.dist < METERS_TO_CENTIMETERS(osdConfig()->adsb_distance_warning))
+                    && isEnvironmentOkForCalculatingADSBDistanceBearing()
+
+            ) {
                 adsbLengthForClearFirstLine = 11;
 
                 buff[buffIndexFirstLine++] = SYM_ADSB;
@@ -2301,21 +2311,20 @@ static bool osdDrawSingleElement(uint8_t item)
                 //////////////////////////////////////////////////////
                 // ALT diff to ADSB vehicle draw
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_range_decadegrees != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
-                if(arrowIndexIndex > 0)
-                {
+                if (arrowIndexIndex > 0 && isImuHeadingValid()) {
                     //[direction to vehicle]
-                    int directionToPeerError = osdGetHeadingAngle(CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir)) + panServoDirOffset - (int)DECIDEGREES_TO_DEGREES(osdGetHeading());
+                    int directionToPeerError = osdGetHeadingAngle(CENTIDEGREES_TO_DEGREES(vehicle->calculatedVehicleValues.dir)) + panServoDirOffset - osdGetFlightDirection();
                     osdDrawDirCardinal(osdDisplayPort, elemPosX + arrowIndexIndex, elemPosY, directionToPeerError, elemAttr);
                 }
                 //////////////////////////////////////////////////////
 
                 //////////////////////////////////////////////////////
                 // Second line, extra info
-                if(osdConfig()->adsb_warning_style == OSD_ADSB_WARNING_STYLE_EXTENDED){
+                if (osdConfig()->adsb_warning_style == OSD_ADSB_WARNING_STYLE_EXTENDED) {
                     // Vehicle type
                     tfp_sprintf(buff, "%s", getAdsbEmitterTypeString(vehicle->vehicleValues.emitterType));
 
@@ -2327,41 +2336,43 @@ static bool osdDrawSingleElement(uint8_t item)
                     displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY + 1, buff, elemAttr);
 
                     // Vehicle direction
-                    int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                    osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + 6, elemPosY + 1), (float)(CENTIDEGREES_TO_DEGREES(vehicle->vehicleValues.heading) - flightDirection + panServoDirOffset));
+                    if(isImuHeadingValid())
+                    {
+                        osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX + 6, elemPosY + 1), (float)(CENTIDEGREES_TO_DEGREES(vehicle->vehicleValues.heading) - osdGetFlightDirection() + panServoDirOffset));
+                    }
 
                     adsbLengthForClearSecondLine += 7;
                 }
                 ///////////////////////////////////////////////////
-            }
-            else
-            {
+            } else {
                 //clear first line
-                if(adsbLengthForClearFirstLine > 0){
+                if(adsbLengthForClearFirstLine > 0) {
                     memset(buff, SYM_BLANK, constrain(adsbLengthForClearFirstLine, 0, 20));
                     displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
                     adsbLengthForClearFirstLine = 0;
                 }
 
                 //clear second line
-                if(adsbLengthForClearSecondLine > 0){
+                if(adsbLengthForClearSecondLine > 0) {
                     memset(buff, SYM_BLANK, constrain(adsbLengthForClearSecondLine, 0, 20));
                     displayWrite(osdDisplayPort, elemPosX, elemPosY + 1, buff);
                     adsbLengthForClearSecondLine = 0;
                 }
             }
-
             return true;
         }
         case OSD_ADSB_INFO:
         {
             buff[0] = SYM_ADSB;
-            if(getAdsbStatus()->vehiclesMessagesTotal > 0 || getAdsbStatus()->heartbeatMessagesTotal > 0){
-                tfp_sprintf(buff + 1, "%1d", getActiveVehiclesCount());
-            }else{
+            if (getAdsbStatus()->vehiclesMessagesTotal == 0 && getAdsbStatus()->heartbeatMessagesTotal == 0) {
                 buff[1] = '-';
+            } else if (!isEnvironmentOkForCalculatingADSBDistanceBearing()) {
+                buff[1] = 'G';
+            } else if (!isImuHeadingValid()) {
+                buff[1] = 'H';
+            } else {
+                tfp_sprintf(buff + 1, "%1d", getActiveVehiclesCount());
             }
-
             break;
         }
 
@@ -2559,15 +2570,14 @@ static bool osdDrawSingleElement(uint8_t item)
                 p = "LAND";
             else
 #endif
-#ifdef USE_GEOZONE
-            if (FLIGHT_MODE(NAV_SEND_TO))
-                p = "AUTO";
-            else
-#endif
             if (FLIGHT_MODE(FAILSAFE_MODE))
                 p = "!FS!";
             else if (FLIGHT_MODE(MANUAL_MODE))
                 p = "MANU";
+#ifdef USE_GEOZONE
+            else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE))
+                p = "GEO ";
+#endif
             else if (FLIGHT_MODE(TURTLE_MODE))
                 p = "TURT";
             else if (FLIGHT_MODE(NAV_RTH_MODE))
@@ -2726,14 +2736,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_SNR_DB:
         {
-            static pt1Filter_t snrFilterState;
-            static timeMs_t snrUpdated = 0;
-            int8_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 0.5f, MS2S(millis() - snrUpdated));
-            snrUpdated = millis();
+            int8_t snrVal = rxLinkStatistics.uplinkSNR;
 
             const char* showsnr = "-20";
             const char* hidesnr = "   ";
-            if (snrFiltered > osdConfig()->snr_alarm) {
+            if (snrVal > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
                     tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
@@ -2741,12 +2748,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     buff[0] = SYM_BLANK;
                     tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
                 }
-            } else if (snrFiltered <= osdConfig()->snr_alarm) {
+            } else if (snrVal <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
-                if (snrFiltered <= -10 || snrFiltered >= 10) {
-                    tfp_sprintf(buff + 1, "%3d%c", snrFiltered, SYM_DB);
+                if (snrVal <= -10) {
+                    tfp_sprintf(buff + 1, "%3d%c", snrVal, SYM_DB);
                 } else {
-                    tfp_sprintf(buff + 1, " %2d%c", snrFiltered, SYM_DB);
+                    tfp_sprintf(buff + 1, "%2d%c%c", snrVal, SYM_DB, ' ');
                 }
             }
             break;
@@ -2816,7 +2823,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 currentPeer->direction = (int16_t )(calculateBearingToDestination(&poi) / 100); // In °
 
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_range_decadegrees != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
@@ -3014,6 +3021,13 @@ static bool osdDrawSingleElement(uint8_t item)
             osdDrawSidebars(osdDisplayPort, osdGetDisplayPortCanvas());
             return true;
         }
+
+    case OSD_THROTTLE_GAUGE:
+    {
+        bool useScaled = navigationIsControllingThrottle();
+        osdThrottleGauge(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), getThrottlePercent(useScaled));
+        return true;
+    }
 
 #if defined(USE_BARO) || defined(USE_GPS)
     case OSD_VARIO:
@@ -3264,22 +3278,22 @@ static bool osdDrawSingleElement(uint8_t item)
         return true;
 
     case OSD_RC_EXPO:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "EXP", 0, currentControlRateProfile->stabilized.rcExpo8, 3, 0, ADJUSTMENT_RC_EXPO);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "EXP", 0, currentControlProfile->stabilized.rcExpo8, 3, 0, ADJUSTMENT_RC_EXPO);
         return true;
 
     case OSD_RC_YAW_EXPO:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "YEX", 0, currentControlRateProfile->stabilized.rcYawExpo8, 3, 0, ADJUSTMENT_RC_YAW_EXPO);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "YEX", 0, currentControlProfile->stabilized.rcYawExpo8, 3, 0, ADJUSTMENT_RC_YAW_EXPO);
         return true;
 
     case OSD_THROTTLE_EXPO:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "TEX", 0, currentControlRateProfile->throttle.rcExpo8, 3, 0, ADJUSTMENT_THROTTLE_EXPO);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "TEX", 0, currentControlProfile->throttle.rcExpo8, 3, 0, ADJUSTMENT_THROTTLE_EXPO);
         return true;
 
     case OSD_PITCH_RATE:
         displayWrite(osdDisplayPort, elemPosX, elemPosY, "SPR");
 
         elemAttr = TEXT_ATTRIBUTES_NONE;
-        tfp_sprintf(buff, "%3d", currentControlRateProfile->stabilized.rates[FD_PITCH]);
+        tfp_sprintf(buff, "%3d", currentControlProfile->stabilized.rates[FD_PITCH]);
         if (isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_RATE) || isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_RATE))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY, buff, elemAttr);
@@ -3289,29 +3303,29 @@ static bool osdDrawSingleElement(uint8_t item)
         displayWrite(osdDisplayPort, elemPosX, elemPosY, "SRR");
 
         elemAttr = TEXT_ATTRIBUTES_NONE;
-        tfp_sprintf(buff, "%3d", currentControlRateProfile->stabilized.rates[FD_ROLL]);
+        tfp_sprintf(buff, "%3d", currentControlProfile->stabilized.rates[FD_ROLL]);
         if (isAdjustmentFunctionSelected(ADJUSTMENT_ROLL_RATE) || isAdjustmentFunctionSelected(ADJUSTMENT_PITCH_ROLL_RATE))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY, buff, elemAttr);
         return true;
 
     case OSD_YAW_RATE:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "SYR", 0, currentControlRateProfile->stabilized.rates[FD_YAW], 3, 0, ADJUSTMENT_YAW_RATE);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "SYR", 0, currentControlProfile->stabilized.rates[FD_YAW], 3, 0, ADJUSTMENT_YAW_RATE);
         return true;
 
     case OSD_MANUAL_RC_EXPO:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MEX", 0, currentControlRateProfile->manual.rcExpo8, 3, 0, ADJUSTMENT_MANUAL_RC_EXPO);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MEX", 0, currentControlProfile->manual.rcExpo8, 3, 0, ADJUSTMENT_MANUAL_RC_EXPO);
         return true;
 
     case OSD_MANUAL_RC_YAW_EXPO:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MYX", 0, currentControlRateProfile->manual.rcYawExpo8, 3, 0, ADJUSTMENT_MANUAL_RC_YAW_EXPO);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MYX", 0, currentControlProfile->manual.rcYawExpo8, 3, 0, ADJUSTMENT_MANUAL_RC_YAW_EXPO);
         return true;
 
     case OSD_MANUAL_PITCH_RATE:
         displayWrite(osdDisplayPort, elemPosX, elemPosY, "MPR");
 
         elemAttr = TEXT_ATTRIBUTES_NONE;
-        tfp_sprintf(buff, "%3d", currentControlRateProfile->manual.rates[FD_PITCH]);
+        tfp_sprintf(buff, "%3d", currentControlProfile->manual.rates[FD_PITCH]);
         if (isAdjustmentFunctionSelected(ADJUSTMENT_MANUAL_PITCH_RATE) || isAdjustmentFunctionSelected(ADJUSTMENT_MANUAL_PITCH_ROLL_RATE))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY, buff, elemAttr);
@@ -3321,14 +3335,14 @@ static bool osdDrawSingleElement(uint8_t item)
         displayWrite(osdDisplayPort, elemPosX, elemPosY, "MRR");
 
         elemAttr = TEXT_ATTRIBUTES_NONE;
-        tfp_sprintf(buff, "%3d", currentControlRateProfile->manual.rates[FD_ROLL]);
+        tfp_sprintf(buff, "%3d", currentControlProfile->manual.rates[FD_ROLL]);
         if (isAdjustmentFunctionSelected(ADJUSTMENT_MANUAL_ROLL_RATE) || isAdjustmentFunctionSelected(ADJUSTMENT_MANUAL_PITCH_ROLL_RATE))
             TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
         displayWriteWithAttr(osdDisplayPort, elemPosX + 4, elemPosY, buff, elemAttr);
         return true;
 
     case OSD_MANUAL_YAW_RATE:
-        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MYR", 0, currentControlRateProfile->stabilized.rates[FD_YAW], 3, 0, ADJUSTMENT_YAW_RATE);
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "MYR", 0, currentControlProfile->manual.rates[FD_YAW], 3, 0, ADJUSTMENT_MANUAL_YAW_RATE);
         return true;
 
     case OSD_NAV_FW_CRUISE_THR:
@@ -3933,7 +3947,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY, "TPA");
             attr = TEXT_ATTRIBUTES_NONE;
-            tfp_sprintf(buff, "%3d", currentControlRateProfile->throttle.dynPID);
+            tfp_sprintf(buff, "%3d", currentControlProfile->throttle.dynPID);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(attr);
             }
@@ -3941,7 +3955,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY + 1, "BP");
             attr = TEXT_ATTRIBUTES_NONE;
-            tfp_sprintf(buff, "%4d", currentControlRateProfile->throttle.pa_breakpoint);
+            tfp_sprintf(buff, "%4d", currentControlProfile->throttle.pa_breakpoint);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA_BREAKPOINT)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(attr);
             }
@@ -3951,7 +3965,7 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_TPA_TIME_CONSTANT:
         {
-            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "TPA TC", 0, currentControlRateProfile->throttle.fixedWingTauMs, 4, 0, ADJUSTMENT_FW_TPA_TIME_CONSTANT);
+            osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "TPA TC", 0, currentControlProfile->throttle.fixedWingTauMs, 4, 0, ADJUSTMENT_FW_TPA_TIME_CONSTANT);
             return true;
         }
     case OSD_FW_LEVEL_TRIM:
@@ -4072,11 +4086,10 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
                 int16_t panHomeDirOffset = 0;
-                if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
                     panHomeDirOffset = osdGetPanServoOffset();
                 }
-                int16_t flightDirection = STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
-                int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - flightDirection + panHomeDirOffset;
+                int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - osdGetFlightDirection() + panHomeDirOffset;
                 osdDrawDirArrow(osdDisplayPort, osdGetDisplayPortCanvas(), OSD_DRAW_POINT_GRID(elemPosX, elemPosY), direction);
             } else {
                 if (isGeozoneActive()) {
@@ -4320,7 +4333,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .ahi_pitch_interval = SETTING_OSD_AHI_PITCH_INTERVAL_DEFAULT,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
-    .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .osd_pan_servo_range_decadegrees = SETTING_OSD_PAN_SERVO_RANGE_DECADEGREES_DEFAULT,
     .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,
@@ -4407,6 +4420,7 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_ATTITUDE_ROLL] = OSD_POS(1, 7);
     osdLayoutsConfig->item_pos[0][OSD_ATTITUDE_PITCH] = OSD_POS(1, 8);
 
+    osdLayoutsConfig->item_pos[0][OSD_THROTTLE_GAUGE] = OSD_POS(23, 5);
     // avoid OSD_VARIO under OSD_CROSSHAIRS
     osdLayoutsConfig->item_pos[0][OSD_VARIO] = OSD_POS(23, 5);
     // OSD_VERTICAL_SPEED_INDICATOR at the right of OSD_VARIO

@@ -34,7 +34,7 @@
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
-#define ICM42605_CS_PIN         SPI1_NSS_PIN
+#define ICM42605_CS_PIN         PC13
 
 // *************** Baro **************************
 #define USE_I2C
@@ -46,7 +46,7 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS                    DEFAULT_I2C_BUS 
-#define BARO_I2C_ADDR                   0x77
+#define DPS310_I2C_ADDR                 0x77
 #define USE_BARO_DPS310
 
 //*********** Magnetometer / Compass *************
@@ -88,19 +88,16 @@
 #define USE_SPI
 
 #define USE_SPI_DEVICE_1
-#define SPI1_NSS_PIN                    PA4
 #define SPI1_SCK_PIN                    PA5
 #define SPI1_MISO_PIN                   PA6
 #define SPI1_MOSI_PIN                   PA7
 
 #define USE_SPI_DEVICE_2
-#define SPI2_NSS_PIN                    PB12
 #define SPI2_SCK_PIN                    PB13
 #define SPI2_MISO_PIN                   PB14
 #define SPI2_MOSI_PIN                   PB15
 
 #define USE_SPI_DEVICE_3
-#define SPI3_NSS_PIN                    PA13
 #define SPI3_SCK_PIN                    PC10
 #define SPI3_MISO_PIN                   PC11
 #define SPI3_MOSI_PIN                   PB5
@@ -152,8 +149,3 @@
 #define USE_DSHOT
 #define USE_ESC_SENSOR
 #define USE_SERIAL_4WAY_BLHELI_INTERFACE
-
-//#define TEMPERATURE_I2C_BUS             DEFAULT_I2C_BUS
-//#define PITOT_I2C_BUS                   DEFAULT_I2C_BUS
-//#define RANGEFINDER_I2C_BUS             DEFAULT_I2C_BUS
-
