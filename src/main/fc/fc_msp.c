@@ -3656,6 +3656,29 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
         break;
 #endif
+#ifdef USE_CUSTOM_TELEMETRY
+        case MSP2_INAV_SET_TELEMETRY_SENSORS:
+            if (dataSize != TELEM_SENSOR_SLOT_COUNT * 2) {
+                return MSP_RESULT_ERROR;
+            }
+
+            for (unsigned int i = 0; i < ARRAYLEN(telemetryConfig()->telemetry_sensors); i++){
+                telemetryConfigMutable()->telemetry_sensors[i] = sbufReadU16(src);
+            }
+            break;
+
+        case MSP2_INAV_SET_TELEMETRY_SENSOR:
+            if(!sbufReadU16Safe(&tmp_u16, src)) {
+                return MSP_RESULT_ERROR;
+            }
+
+            if (tmp_u16 >= TELEM_SENSOR_SLOT_COUNT) {
+                return MSP_RESULT_ERROR;
+            }
+
+            telemetryConfigMutable()->telemetry_sensors[tmp_u16] = MIN(TELEM_SENSOR_COUNT, sbufReadU16(src));
+            break;
+#endif
     case MSP2_BETAFLIGHT_BIND:
         if (rxConfig()->receiverType == RX_TYPE_SERIAL) {
             switch (rxConfig()->serialrx_provider) {
@@ -4157,6 +4180,17 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         }
         break;
 #endif
+    case MSP2_INAV_TELEMETRY_SENSORS:
+#ifdef USE_CUSTOM_TELEMETRY
+        sbufWriteU16(dst, TELEM_SENSOR_SLOT_COUNT);
+        for (unsigned int i = 0; i < ARRAYLEN(telemetryConfig()->telemetry_sensors); ++i) {
+            sbufWriteU16(dst, telemetryConfig()->telemetry_sensors[i]);
+        }
+#else
+        sbufWriteU16(dst, 0);
+#endif
+        *ret = MSP_RESULT_ACK;
+        break;
 #ifdef USE_SAFE_HOME
     case MSP2_INAV_SAFEHOME:
         *ret = mspFcSafeHomeOutCommand(dst, src);

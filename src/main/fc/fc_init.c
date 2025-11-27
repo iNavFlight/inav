@@ -611,6 +611,8 @@ void init(void)
     }
 #endif
 
+    ENABLE_ARMING_FLAG(ARMING_DISABLED_BOOT_GRACE_TIME);
+
 #ifdef USE_BLACKBOX
 
     //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used

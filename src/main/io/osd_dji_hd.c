@@ -520,6 +520,8 @@ static char * osdArmingDisabledReasonMessage(void)
             // Cases without message
         case ARMING_DISABLED_GEOZONE:
             return OSD_MESSAGE_STR("NO FLY ZONE");
+        case ARMING_DISABLED_BOOT_GRACE_TIME:
+            FALLTHROUGH;
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;
         case ARMING_DISABLED_CMS_MENU:
