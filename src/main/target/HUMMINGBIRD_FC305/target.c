@@ -29,9 +29,17 @@ BUSDEV_REGISTER_SPI(busdev_sdcard_spi,  DEVHW_SDCARD,       SDCARD_SPI_BUS,     
 BUSDEV_REGISTER_SPI(busdev_max7456,    DEVHW_MAX7456,  MAX7456_SPI_BUS,    MAX7456_CS_PIN, NONE, DEVFLAGS_USE_RAW_REGISTERS,  0);
 BUSDEV_REGISTER_I2C(busdev_spl06,      DEVHW_SPL06,        SPL06_I2C_BUS,      SPL06_I2C_ADDR,     NONE,           DEVFLAGS_NONE,      0);
 
-BUSDEV_REGISTER_I2C_TAG(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,        0x1E,               NONE,                   0,  DEVFLAGS_NONE,    0);
-BUSDEV_REGISTER_I2C_TAG(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,        0x0D,               NONE,                   0,  DEVFLAGS_NONE,    0);
-BUSDEV_REGISTER_I2C_TAG(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,        0x0E,               NONE,                   0,  DEVFLAGS_NONE,    0);
+BUSDEV_REGISTER_I2C(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,    0x0D,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ist8310_0,   DEVHW_IST8310_0,    MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ist8310_1,   DEVHW_IST8310_1,    MAG_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_mlx90393,    DEVHW_MLX90393,     MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_lis3mdl,     DEVHW_LIS3MDL,      MAG_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ak8975,      DEVHW_AK8975,       MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ak8963,      DEVHW_AK8963,       MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
 
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH3,  PB0, TIM_USE_OUTPUT_AUTO, 0, 0), // S1
