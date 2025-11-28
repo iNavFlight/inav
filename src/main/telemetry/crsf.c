@@ -816,16 +816,20 @@ static bool crsfSendNativeTelemetry(void)
 #endif
 #ifdef USE_ESC_SENSOR
             case TELEM_ESC_RPM:
-                crsfInitializeFrame(dst);
-                crsfRpm(dst);
-                crsfFinalize(dst);
+                if(STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+                   crsfInitializeFrame(dst);
+                    crsfRpm(dst);
+                    crsfFinalize(dst);
+                }
                 break;
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
             case TELEM_ESC_TEMPERATURE:
-                crsfInitializeFrame(dst);
-                crsfTemperature(dst);
-                crsfFinalize(dst);
+                if(STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+                    crsfInitializeFrame(dst);
+                    crsfTemperature(dst);
+                    crsfFinalize(dst);
+                }
                 break;
 #endif
             default:
