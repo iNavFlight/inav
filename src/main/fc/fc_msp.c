@@ -632,6 +632,17 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
+    case MSP2_INAV_FULL_LOCAL_POSE:
+        sbufWriteU16(dst, attitude.values.roll);
+        sbufWriteU16(dst, attitude.values.pitch);
+        sbufWriteU16(dst, attitude.values.yaw);
+        const navEstimatedPosVel_t *absoluteActualState = &posControl.actualState.abs;
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            sbufWriteU32(dst, (int32_t)lrintf(absoluteActualState->pos.v[axis]));
+            sbufWriteU16(dst, (int16_t)lrintf(absoluteActualState->vel.v[axis]));
+        }
+        break;
+
     case MSP_SONAR_ALTITUDE:
 #ifdef USE_RANGEFINDER
         sbufWriteU32(dst, rangefinderGetLatestAltitude());
