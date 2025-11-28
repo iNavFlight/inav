@@ -65,7 +65,21 @@ typedef enum
 
     TELEM_FLIGHT_MODE                   = 31,
     TELEM_ARMING_FLAGS                  = 32,
-    TELEM_ARMING_DISABLE_FLAGS          = 33,
+
+    TELEM_ESC_RPM                       = 34,
+    TELEM_ESC_TEMPERATURE               = 35,
+
+    TELEM_ESC1_RPM                      = 36,
+    TELEM_ESC1_TEMPERATURE              = 37,
+
+    TELEM_ESC2_RPM                      = 38,
+    TELEM_ESC2_TEMPERATURE              = 39,
+
+    TELEM_ESC3_RPM                      = 40,
+    TELEM_ESC3_TEMPERATURE              = 41,
+
+    TELEM_ESC4_RPM                      = 42,
+    TELEM_ESC4_TEMPERATURE              = 43,
 
     TELEM_SENSOR_COUNT
 

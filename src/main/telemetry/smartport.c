@@ -21,8 +21,6 @@
 
 #include "sensors/battery.h"
 
-#include "navigation/navigation.h"
-
 #include "io/gps.h"
 #include "io/serial.h"
 
@@ -237,7 +235,20 @@ static telemetrySensor_t smartportTelemetrySensors[] =
         TLM_SENSOR(CPU_LOAD,                0x51D0,   200,  3000,   1,  10,   10,   INT),
         TLM_SENSOR(FLIGHT_MODE,             0x5121,   100,  3000,   1,   1,   0,    INT),
         TLM_SENSOR(ARMING_FLAGS,            0x5122,   100,  3000,   1,   1,   0,    INT),
-        TLM_SENSOR(ARMING_DISABLE_FLAGS,    0x5123,   100,  3000,   1,   1,   0,    INT),
+
+#ifdef USE_ESC_SENSOR
+        TLM_SENSOR(ESC1_RPM,                0x5130,   100,  3000,   1,  10,   0,    INT),
+        TLM_SENSOR(ESC2_RPM,                0x5131,   100,  3000,   1,  10,   0,    INT),
+        TLM_SENSOR(ESC3_RPM,                0x5132,   100,  3000,   1,  10,   0,    INT),
+        TLM_SENSOR(ESC4_RPM,                0x5133,   100,  3000,   1,  10,   0,    INT),
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+        TLM_SENSOR(ESC1_TEMPERATURE,        0x5140,   200,  3000,   1,  10,   0,    INT),
+        TLM_SENSOR(ESC2_TEMPERATURE,        0x5141,   200,  3000,   1,  10,   0,    INT),
+        TLM_SENSOR(ESC3_TEMPERATURE,        0x5142,   200,  3000,   1,  10,   0,    INT),
+        TLM_SENSOR(ESC4_TEMPERATURE,        0x5143,   200,  3000,   1,  10,   0,    INT),
+#endif
 };
 
 void smartPortSendByte(uint8_t c, uint16_t *checksum, serialPort_t *port)

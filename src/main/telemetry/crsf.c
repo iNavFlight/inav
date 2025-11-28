@@ -42,6 +42,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer.h"
 
 #include "io/gps.h"
 
@@ -50,7 +51,8 @@
 #include "rx/crsf.h"
 
 #include "sensors/battery.h"
-#include "sensors//acceleration.h"
+#include "sensors/esc_sensor.h"
+#include "sensors/temperature.h"
 
 #include "telemetry/crsf.h"
 #include "telemetry/telemetry.h"
@@ -248,7 +250,7 @@ void crsfSensorEncodeU24(telemetrySensor_t *sensor, sbuf_t *buf)
 
 void crsfSensorEncodeU32(telemetrySensor_t *sensor, sbuf_t *buf)
 {
-    crsfSerialize24BE(buf, sensor->value);
+    crsfSerialize32BE(buf, sensor->value);
 }
 
 void crsfSensorEncodeCellVolt(telemetrySensor_t *sensor, sbuf_t *buf)
@@ -335,11 +337,13 @@ static sbuf_t * crsfInitializeSbuf(void)
 
 static telemetrySensor_t crsfNativeTelemetrySensors[] =
 {
-    TLM_SENSOR(FLIGHT_MODE,         0,  100,  100,  0,  Nil),
-    TLM_SENSOR(BATTERY,             0,  100,  100,  0,  Nil),
-    TLM_SENSOR(ATTITUDE,            0,  100,  100,  0,  Nil),
-    TLM_SENSOR(ALTITUDE,            0,  100,  100,  0,  Nil),
-    TLM_SENSOR(GPS,                 0,  100,  100,  0,  Nil),
+    TLM_SENSOR(FLIGHT_MODE,             0,  100,  100,  0,  Nil),
+    TLM_SENSOR(BATTERY,                 0,  100,  100,  0,  Nil),
+    TLM_SENSOR(ATTITUDE,                0,  100,  100,  0,  Nil),
+    TLM_SENSOR(ALTITUDE,                0,  100,  100,  0,  Nil),
+    TLM_SENSOR(GPS,                     0,  100,  100,  0,  Nil),
+    TLM_SENSOR(ESC_RPM,                 0,  100,  100,  0,  Nil),
+    TLM_SENSOR(ESC_TEMPERATURE,         0,  100,  100,  0,  Nil),
 };
 
 static telemetrySensor_t crsfCustomTelemetrySensors[] =
@@ -380,6 +384,21 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(GPS_HOME_DISTANCE,       0x1129,   200,  3000,    0,     U16),
     TLM_SENSOR(GPS_HOME_DIRECTION,      0x112A,   200,  3000,    0,     U16),
 #endif
+
+#ifdef USE_ESC_SENSOR
+    TLM_SENSOR(ESC1_RPM,                0x1131,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC2_RPM,                0x1132,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC3_RPM,                0x1133,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC4_RPM,                0x1134,   200,  3000,    0,     U16),
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    TLM_SENSOR(ESC1_TEMPERATURE,        0x1135,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC2_TEMPERATURE,        0x1136,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC3_TEMPERATURE,        0x1137,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC4_TEMPERATURE,        0x1138,   200,  3000,    0,     U8),
+#endif
+
     TLM_SENSOR(CPU_LOAD,                0x1141,   500,  3000,    10,    U8),
 
     TLM_SENSOR(FLIGHT_MODE,             0x1201,   200,  3000,    0,     U16),
@@ -410,6 +429,68 @@ telemetrySensor_t * crsfGetCustomSensor(sensor_id_e id)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
+/*
+0x0C RPM
+Payload:
+uint8_t    rpm_source_id;  // Identifies the source of the RPM data (e.g., 0 = Motor 1, 1 = Motor 2, etc.)
+int24_t    rpm_value[];     // 1 - 19 RPM values with negative ones representing the motor spinning in reverse
+*/
+static void crsfRpm(sbuf_t *dst)
+{
+    uint8_t motorCount = getMotorCount();
+
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        sbufWriteU8(dst, 1 + (motorCount * 3) + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_RPM);
+        // 0 = FC including all ESCs
+        crsfSerialize8(dst, 0);
+
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i);
+            crsfSerialize24BE(dst, (escState) ? escState->rpm : 0);
+        }
+    }
+}
+
+/*
+0x0D TEMP
+Payload:
+uint8_t temp_source_id; // Identifies the source of the temperature data (e.g., 0 = FC including all ESCs, 1 = Ambient, etc.)
+int16_t temperature[]; // up to 20 temperature values in deci-degree (tenths of a degree) Celsius (e.g., 250 = 25.0°C, -50 = -5.0°C)
+*/
+static void crsfTemperature(sbuf_t *dst)
+{
+    uint8_t tempCount = 0;
+    int16_t temperatures[20];
+
+#ifdef USE_ESC_SENSOR
+    uint8_t motorCount = getMotorCount();
+    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        for (uint8_t i = 0; i < motorCount; i++) {
+            const escSensorData_t *escState = getEscTelemetry(i);
+            temperatures[tempCount++] = (escState) ? escState->temperature * 10 : TEMPERATURE_INVALID_VALUE;
+        }
+    }
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+        int16_t value;
+        if (getSensorTemperature(i, &value))
+            temperatures[tempCount++] = value;
+    }
+#endif
+
+    if (tempCount > 0) {
+        sbufWriteU8(dst, 1 + (tempCount * 2) + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_TEMP);
+        // 0 = FC including all ESCs
+        crsfSerialize8(dst, 0);
+        for (uint8_t i = 0; i < tempCount; i++)
+            crsfSerialize16BE(dst, temperatures[i]);
+    }
+}
+
 /*
 CRSF frame has the structure:
 <Device address> <Frame length> <Type> <Payload> <CRC>
@@ -730,6 +811,20 @@ static bool crsfSendNativeTelemetry(void)
             case TELEM_GPS:
                 crsfInitializeFrame(dst);
                 crsfFrameGps(dst);
+                crsfFinalize(dst);
+                break;
+#endif
+#ifdef USE_ESC_SENSOR
+            case TELEM_ESC_RPM:
+                crsfInitializeFrame(dst);
+                crsfRpm(dst);
+                crsfFinalize(dst);
+                break;
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+            case TELEM_ESC_TEMPERATURE:
+                crsfInitializeFrame(dst);
+                crsfTemperature(dst);
                 crsfFinalize(dst);
                 break;
 #endif

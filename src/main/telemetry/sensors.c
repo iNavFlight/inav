@@ -20,14 +20,25 @@
 #ifdef USE_TELEMETRY
 
 #include "sensors.h"
-#include "drivers/time.h"
+
 #include "sensors/battery.h"
-#include "navigation/navigation.h"
-#include "flight/imu.h"
-#include "common/crc.h"
-#include "scheduler/scheduler.h"
-#include "fc/runtime_config.h"
 #include "sensors//acceleration.h"
+#include "sensors/esc_sensor.h"
+#include "sensors/temperature.h"
+
+#include "drivers/time.h"
+
+#include "navigation/navigation.h"
+
+#include "flight/imu.h"
+#include "flight/mixer.h"
+
+#include "common/crc.h"
+
+#include "scheduler/scheduler.h"
+
+#include "fc/runtime_config.h"
+
 
 static uint32_t getTupleHash(uint32_t a, uint32_t b)
 {
@@ -38,6 +49,8 @@ static uint32_t getTupleHash(uint32_t a, uint32_t b)
 int telemetrySensorValue(sensor_id_e id)
 {
     switch (id) {
+        /////////////////
+        //// BATTERY ////
         case TELEM_NONE:
             return 0;
 
@@ -74,6 +87,8 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_ALTITUDE:
             return (int)(getEstimatedActualPosition(Z)); // cm
 
+        /////////////////
+        //// GPS     ////
 #ifdef USE_GPS
         case TELEM_GPS_SATS:
             return gpsSol.numSat;
@@ -92,14 +107,17 @@ int telemetrySensorValue(sensor_id_e id)
         case TELEM_GPS_HOME_DIRECTION:
             return GPS_directionToHome;
 #endif
-        case TELEM_CPU_LOAD:
-            return averageSystemLoadPercent * 10;
-
+        /////////////////
+        //// SYSTEM  ////
         case TELEM_FLIGHT_MODE:
             return (int)flightModeFlags;
         case TELEM_ARMING_FLAGS:
             return (int)armingFlags;
+        case TELEM_CPU_LOAD:
+            return averageSystemLoadPercent * 10;
 
+        /////////////////
+        //// MOVING  ////
         case TELEM_ATTITUDE:
             return millis();
         case TELEM_ATTITUDE_PITCH:
@@ -115,6 +133,32 @@ int telemetrySensorValue(sensor_id_e id)
             return (int)(acc.accADCf[Y] * 1000);
         case TELEM_ACCEL_Z:
             return (int)(acc.accADCf[Z] * 1000);
+
+#ifdef USE_ESC_SENSOR
+        /////////////////
+        //// ESC  ////
+        case TELEM_ESC_RPM:
+            return millis();
+        case TELEM_ESC1_RPM:
+            return getMotorCount() > 0 ? (int)getEscTelemetry(0)->rpm : 0;
+        case TELEM_ESC2_RPM:
+            return getMotorCount() > 1 ? (int)getEscTelemetry(1)->rpm : 0;
+        case TELEM_ESC3_RPM:
+            return getMotorCount() > 2 ? (int)getEscTelemetry(2)->rpm : 0;
+        case TELEM_ESC4_RPM:
+            return getMotorCount() > 3 ? (int)getEscTelemetry(3)->rpm : 0;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+        case TELEM_ESC1_TEMPERATURE:
+            return getMotorCount() > 0 ? (int)(getEscTelemetry(0)->temperature * 10) : 0;
+        case TELEM_ESC2_TEMPERATURE:
+            return getMotorCount() > 1 ? (int)(getEscTelemetry(1)->temperature * 10) : 0;
+        case TELEM_ESC3_TEMPERATURE:
+            return getMotorCount() > 2 ? (int)(getEscTelemetry(2)->temperature * 10) : 0;
+        case TELEM_ESC4_TEMPERATURE:
+            return getMotorCount() > 3 ? (int)(getEscTelemetry(3)->temperature * 10) : 0;
+#endif
         default:
             return 0;
     }
@@ -132,15 +176,15 @@ bool telemetrySensorAllowed(sensor_id_e id)
         case TELEM_BATTERY_CURRENT:
             return isAmperageConfigured();
         case TELEM_BATTERY_CONSUMPTION:
-            return true;
+            return isAmperageConfigured();
         case TELEM_BATTERY_CHARGE_LEVEL:
-            return true;
+            return isBatteryVoltageConfigured();
         case TELEM_BATTERY_CELL_COUNT:
             return isBatteryVoltageConfigured();
         case TELEM_BATTERY_CELL_VOLTAGE:
             return isBatteryVoltageConfigured();
         case TELEM_BATTERY_CELL_VOLTAGES:
-            return 0;
+            return isBatteryVoltageConfigured();
 
         case TELEM_BATTERY_LEGACY_FUEL:
             return true;
@@ -168,6 +212,33 @@ bool telemetrySensorAllowed(sensor_id_e id)
         case TELEM_GPS_HOME_DIRECTION:
             return true;
 #endif
+
+#ifdef USE_ESC_SENSOR
+        case TELEM_ESC_RPM:
+            return STATE(ESC_SENSOR_ENABLED);
+        case TELEM_ESC1_RPM:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0;
+        case TELEM_ESC2_RPM:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 1;
+        case TELEM_ESC3_RPM:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 2;
+        case TELEM_ESC4_RPM:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 3;
+#endif
+
+#ifdef USE_TEMPERATURE_SENSOR
+        case TELEM_ESC_TEMPERATURE:
+            return STATE(ESC_SENSOR_ENABLED);
+        case TELEM_ESC1_TEMPERATURE:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0;
+        case TELEM_ESC2_TEMPERATURE:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 1;
+        case TELEM_ESC3_TEMPERATURE:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 2;
+        case TELEM_ESC4_TEMPERATURE:
+            return STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 3;
+#endif
+
 
         case TELEM_CPU_LOAD:
             return true;
