@@ -4114,12 +4114,6 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 
     case MSP2_INAV_SET_ALT_TARGET:
     {
-        const navigationFSMStateFlags_t stateFlags = navGetCurrentStateFlags();
-        if (!(stateFlags & NAV_CTL_ALT) || (stateFlags & NAV_CTL_LAND) || navigationIsExecutingAnEmergencyLanding() || posControl.flags.estAltStatus == EST_NONE) {
-            *ret = MSP_RESULT_ERROR;
-            break;
-        }
-
         if (dataSize == 0) {
             sbufWriteU8(dst, NAV_WP_TAKEOFF_DATUM);
             sbufWriteU32(dst, (uint32_t)lrintf(posControl.desiredState.pos.z));
@@ -4135,29 +4129,11 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         const uint8_t datumFlag = sbufReadU8(src);
         const int32_t targetAltitudeCm = (int32_t)sbufReadU32(src);
 
-        float targetAltitudeLocalCm;
-        switch ((geoAltitudeDatumFlag_e)datumFlag) {
-        case NAV_WP_TAKEOFF_DATUM:
-            targetAltitudeLocalCm = (float)targetAltitudeCm;
-            break;
-        case NAV_WP_MSL_DATUM:
-            if (!posControl.gpsOrigin.valid) {
-                *ret = MSP_RESULT_ERROR;
-                break;
-            }
-            targetAltitudeLocalCm = (float)(targetAltitudeCm - posControl.gpsOrigin.alt);
-            break;
-        case NAV_WP_TERRAIN_DATUM:
-        default:
+        if (!navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)datumFlag, targetAltitudeCm)) {
             *ret = MSP_RESULT_ERROR;
             break;
         }
 
-        if (*ret == MSP_RESULT_ERROR) {
-            break;
-        }
-
-        updateClimbRateToAltitudeController(0.0f, targetAltitudeLocalCm, ROC_TO_ALT_TARGET);
         *ret = MSP_RESULT_ACK;
         break;
     }

@@ -10840,6 +10840,7 @@
                     "ctype": "uint8_t",
                     "desc": "Datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (reserved)",
                     "units": "",
+                    "enum": "geoAltitudeDatumFlag_e",
                     "optional": true
                 },
                 {
@@ -10857,7 +10858,8 @@
                     "name": "altitudeDatum",
                     "ctype": "uint8_t",
                     "desc": "Datum flag returned (`geoAltitudeDatumFlag_e`), currently `NAV_WP_TAKEOFF_DATUM`",
-                    "units": ""
+                    "units": "",
+                    "enum": "geoAltitudeDatumFlag_e"
                 },
                 {
                     "name": "altitudeTarget",
