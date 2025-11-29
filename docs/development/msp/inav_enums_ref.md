@@ -1385,7 +1385,7 @@
 | `DEVHW_MS4525` | 49 |  |
 | `DEVHW_DLVR` | 50 |  |
 | `DEVHW_M25P16` | 51 |  |
-| `DEVHW_W25N01G` | 52 |  |
+| `DEVHW_W25N` | 52 |  |
 | `DEVHW_UG2864` | 53 |  |
 | `DEVHW_SDCARD` | 54 |  |
 | `DEVHW_IRLOCK` | 55 |  |
@@ -1994,6 +1994,7 @@
 |---|---:|---|
 | `NAV_WP_TAKEOFF_DATUM` | 0 |  |
 | `NAV_WP_MSL_DATUM` | 1 |  |
+| `NAV_WP_TERRAIN_DATUM` | 2 |  |
 
 ---
 ## <a id="enum-geooriginresetmode_e"></a>`geoOriginResetMode_e`
@@ -2843,6 +2844,7 @@
 | `LOGIC_CONDITION_OPERAND_FLIGHT_MIN_GROUND_SPEED` | 46 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED` | 47 |  |
 | `LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION` | 48 |  |
+| `LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET` | 49 |  |
 
 ---
 ## <a id="enum-logicoperation_e"></a>`logicOperation_e`
@@ -2908,7 +2910,8 @@
 | `LOGIC_CONDITION_RESET_MAG_CALIBRATION` | 54 |  |
 | `LOGIC_CONDITION_SET_GIMBAL_SENSITIVITY` | 55 |  |
 | `LOGIC_CONDITION_OVERRIDE_MIN_GROUND_SPEED` | 56 |  |
-| `LOGIC_CONDITION_LAST` | 57 |  |
+| `LOGIC_CONDITION_SET_ALTITUDE_TARGET` | 57 |  |
+| `LOGIC_CONDITION_LAST` | 58 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
@@ -4740,7 +4743,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4751,7 +4754,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|

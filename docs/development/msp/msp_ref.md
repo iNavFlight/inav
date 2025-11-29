@@ -10,7 +10,8 @@ For list of enums, see [Enum documentation page](https://github.com/iNavFlight/i
 For current generation code, see [documentation project](https://github.com/xznhj8129/msp_documentation) (temporary until official implementation)  
 
 
-**JSON file rev: 2**
+**JSON file rev: 3
+**
 
 **Warning: Verification needed, exercise caution until completely verified for accuracy and cleared, especially for integer signs. Source-based generation/validation is forthcoming. Refer to source for absolute certainty** 
 
@@ -411,6 +412,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8721 - MSP2_INAV_SET_GEOZONE](#msp2_inav_set_geozone)  
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
+[8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -4491,6 +4493,23 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 
 **Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
+
+## <a id="msp2_inav_set_alt_target"></a>`MSP2_INAV_SET_ALT_TARGET (8725 / 0x2215)`
+**Description:** Get or set the active altitude hold target.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (reserved) |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target (`updateClimbRateToAltitudeController(…, ROC_TO_ALT_TARGET)`), datum as above |
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Datum flag returned (`geoAltitudeDatumFlag_e`), currently `NAV_WP_TAKEOFF_DATUM` |
+| `altitudeTarget` | `int32_t` | 4 | cm | Current altitude target (`posControl.desiredState.pos.z`) |
+
+**Notes:** Empty request payload returns the current altitude target with datum. Sending a 5-byte payload sets a new target: 1 byte datum, 4 bytes altitude. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  
