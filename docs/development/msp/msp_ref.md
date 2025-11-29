@@ -412,7 +412,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8721 - MSP2_INAV_SET_GEOZONE](#msp2_inav_set_geozone)  
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
-[8725 - MSP2_INAV_SET_ALT_TARGET](#msp2_inav_set_alt_target)  
+[8725 - MSP2_INAV_ALT_TARGET](#msp2_inav_alt_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -4494,7 +4494,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
 
-## <a id="msp2_inav_set_alt_target"></a>`MSP2_INAV_SET_ALT_TARGET (8725 / 0x2215)`
+## <a id="msp2_inav_alt_target"></a>`MSP2_INAV_ALT_TARGET (8725 / 0x2215)`
 **Description:** Get or set the active altitude hold target using updateClimbRateToAltitudeController.  
 #### Variant: `get`
 
