@@ -4113,7 +4113,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 #endif
 
 #ifdef USE_BARO
-    case MSP2_INAV_SET_TARGET:
+    case MSP2_INAV_SET_ALT_TARGET:
     {
         if (dataSize == 0) {
             sbufWriteU8(dst, NAV_WP_TAKEOFF_DATUM);

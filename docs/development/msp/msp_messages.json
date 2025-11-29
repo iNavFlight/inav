@@ -10829,7 +10829,7 @@
         "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
         "description": "Sets a specific vertex (or center+radius for circular zones) for a Geozone."
     },
-    "MSP2_INAV_SET_TARGET": {
+    "MSP2_INAV_SET_ALT_TARGET": {
         "code": 8725,
         "mspv": 2,
         "variable_len": true,
