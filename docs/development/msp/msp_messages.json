@@ -10829,6 +10829,29 @@
         "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
         "description": "Sets a specific vertex (or center+radius for circular zones) for a Geozone."
     },
+    "MSP2_INAV_SET_GVAR": {
+        "code": 8724,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "gvarIndex",
+                    "ctype": "uint8_t",
+                    "desc": "Index of the Global Variable to set",
+                    "units": "Index"
+                },
+                {
+                    "name": "value",
+                    "ctype": "int32_t",
+                    "desc": "New value to store (clamped to configured min/max by `gvSet()`)",
+                    "units": ""
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.",
+        "description": "Sets the specified Global Variable (GVAR) to the provided value."
+    },
     "MSP2_INAV_FULL_LOCAL_POSE": {
         "code": 8736,
         "mspv": 2,
