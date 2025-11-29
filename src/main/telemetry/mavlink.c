@@ -1238,14 +1238,8 @@ static bool handleIncoming_COMMAND_INT(void)
             break;
         case MAV_FRAME_GLOBAL_RELATIVE_ALT:
         case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
-        case MAV_FRAME_LOCAL_NED:
-        case MAV_FRAME_LOCAL_OFFSET_NED:
-        case MAV_FRAME_BODY_NED:
-        case MAV_FRAME_BODY_FRD:
             datum = NAV_WP_TAKEOFF_DATUM;
             break;
-        case MAV_FRAME_GLOBAL_TERRAIN_ALT:
-        case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
         default:
             mavlink_msg_command_ack_pack(mavSystemId, mavComponentId, &mavSendMsg,
                                          msg.command,
@@ -1395,6 +1389,11 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_MISSION_ITEM();
                 case MAVLINK_MSG_ID_MISSION_REQUEST_LIST:
                     return handleIncoming_MISSION_REQUEST_LIST();
+
+                //TODO:
+                //case MAVLINK_MSG_ID_COMMAND_LONG; //up to 7 float parameters
+                    //return handleIncoming_COMMAND_LONG();
+
                 case MAVLINK_MSG_ID_COMMAND_INT: //7 parameters: parameters 1-4, 7 are floats, and parameters 5,6 are scaled integers
                     return handleIncoming_COMMAND_INT();
                 case MAVLINK_MSG_ID_MISSION_REQUEST:
