@@ -77,12 +77,55 @@ static inline uint16_t mavlink_msg_debug_vect_pack(uint8_t system_id, uint8_t co
     packet.x = x;
     packet.y = y;
     packet.z = z;
-    mav_array_memcpy(packet.name, name, sizeof(char)*10);
+    mav_array_assign_char(packet.name, name, 10);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DEBUG_VECT_LEN);
 #endif
 
     msg->msgid = MAVLINK_MSG_ID_DEBUG_VECT;
     return mavlink_finalize_message(msg, system_id, component_id, MAVLINK_MSG_ID_DEBUG_VECT_MIN_LEN, MAVLINK_MSG_ID_DEBUG_VECT_LEN, MAVLINK_MSG_ID_DEBUG_VECT_CRC);
+}
+
+/**
+ * @brief Pack a debug_vect message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param name  Name
+ * @param time_usec [us] Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+ * @param x  x
+ * @param y  y
+ * @param z  z
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_debug_vect_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               const char *name, uint64_t time_usec, float x, float y, float z)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_DEBUG_VECT_LEN];
+    _mav_put_uint64_t(buf, 0, time_usec);
+    _mav_put_float(buf, 8, x);
+    _mav_put_float(buf, 12, y);
+    _mav_put_float(buf, 16, z);
+    _mav_put_char_array(buf, 20, name, 10);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_DEBUG_VECT_LEN);
+#else
+    mavlink_debug_vect_t packet;
+    packet.time_usec = time_usec;
+    packet.x = x;
+    packet.y = y;
+    packet.z = z;
+    mav_array_memcpy(packet.name, name, sizeof(char)*10);
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DEBUG_VECT_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_DEBUG_VECT;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DEBUG_VECT_MIN_LEN, MAVLINK_MSG_ID_DEBUG_VECT_LEN, MAVLINK_MSG_ID_DEBUG_VECT_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_DEBUG_VECT_MIN_LEN, MAVLINK_MSG_ID_DEBUG_VECT_LEN);
+#endif
 }
 
 /**
@@ -116,7 +159,7 @@ static inline uint16_t mavlink_msg_debug_vect_pack_chan(uint8_t system_id, uint8
     packet.x = x;
     packet.y = y;
     packet.z = z;
-    mav_array_memcpy(packet.name, name, sizeof(char)*10);
+    mav_array_assign_char(packet.name, name, 10);
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_DEBUG_VECT_LEN);
 #endif
 
@@ -152,6 +195,20 @@ static inline uint16_t mavlink_msg_debug_vect_encode_chan(uint8_t system_id, uin
 }
 
 /**
+ * @brief Encode a debug_vect struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param debug_vect C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_debug_vect_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_debug_vect_t* debug_vect)
+{
+    return mavlink_msg_debug_vect_pack_status(system_id, component_id, _status, msg,  debug_vect->name, debug_vect->time_usec, debug_vect->x, debug_vect->y, debug_vect->z);
+}
+
+/**
  * @brief Send a debug_vect message
  * @param chan MAVLink channel to send the message
  *
@@ -179,7 +236,7 @@ static inline void mavlink_msg_debug_vect_send(mavlink_channel_t chan, const cha
     packet.x = x;
     packet.y = y;
     packet.z = z;
-    mav_array_memcpy(packet.name, name, sizeof(char)*10);
+    mav_array_assign_char(packet.name, name, 10);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DEBUG_VECT, (const char *)&packet, MAVLINK_MSG_ID_DEBUG_VECT_MIN_LEN, MAVLINK_MSG_ID_DEBUG_VECT_LEN, MAVLINK_MSG_ID_DEBUG_VECT_CRC);
 #endif
 }
@@ -200,7 +257,7 @@ static inline void mavlink_msg_debug_vect_send_struct(mavlink_channel_t chan, co
 
 #if MAVLINK_MSG_ID_DEBUG_VECT_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an
@@ -222,7 +279,7 @@ static inline void mavlink_msg_debug_vect_send_buf(mavlink_message_t *msgbuf, ma
     packet->x = x;
     packet->y = y;
     packet->z = z;
-    mav_array_memcpy(packet->name, name, sizeof(char)*10);
+    mav_array_assign_char(packet->name, name, 10);
     _mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_DEBUG_VECT, (const char *)packet, MAVLINK_MSG_ID_DEBUG_VECT_MIN_LEN, MAVLINK_MSG_ID_DEBUG_VECT_LEN, MAVLINK_MSG_ID_DEBUG_VECT_CRC);
 #endif
 }

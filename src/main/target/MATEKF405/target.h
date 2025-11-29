@@ -53,15 +53,7 @@
 #define SPI3_MISO_PIN   	    PB4
 #define SPI3_MOSI_PIN   	    PB5
 
-#ifdef MATEKF405OSD
-// *************** SD Card **************************
-#define USE_SDCARD
-#define USE_SDCARD_SPI
-#define SDCARD_SPI_BUS          BUS_SPI3
-#define SDCARD_CS_PIN           PC1
-
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-#else
+#ifdef MATEKF405MINI
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
@@ -69,6 +61,14 @@
 #define M25P16_CS_PIN           PC0
 
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#else
+// *************** SD Card **************************
+#define USE_SDCARD
+#define USE_SDCARD_SPI
+#define SDCARD_SPI_BUS          BUS_SPI3
+#define SDCARD_CS_PIN           PC1
+
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #endif
 
 // *************** OSD *****************************
@@ -173,11 +173,7 @@
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL            ADC_CHN_3
 
-#ifdef MATEKF405
 #define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY | FEATURE_BLACKBOX )
-#else
-#define DEFAULT_FEATURES        (FEATURE_OSD | FEATURE_CURRENT_METER | FEATURE_VBAT | FEATURE_TELEMETRY )
-#endif
 #define CURRENT_METER_SCALE   179
 
 #define USE_LED_STRIP

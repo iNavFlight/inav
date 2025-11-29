@@ -88,6 +88,51 @@ static inline uint16_t mavlink_msg_request_data_stream_pack(uint8_t system_id, u
 }
 
 /**
+ * @brief Pack a request_data_stream message
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ *
+ * @param target_system  The target requested to send the message stream.
+ * @param target_component  The target requested to send the message stream.
+ * @param req_stream_id  The ID of the requested data stream
+ * @param req_message_rate [Hz] The requested message rate
+ * @param start_stop  1 to start sending, 0 to stop sending.
+ * @return length of the message in bytes (excluding serial stream start sign)
+ */
+static inline uint16_t mavlink_msg_request_data_stream_pack_status(uint8_t system_id, uint8_t component_id, mavlink_status_t *_status, mavlink_message_t* msg,
+                               uint8_t target_system, uint8_t target_component, uint8_t req_stream_id, uint16_t req_message_rate, uint8_t start_stop)
+{
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+    char buf[MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN];
+    _mav_put_uint16_t(buf, 0, req_message_rate);
+    _mav_put_uint8_t(buf, 2, target_system);
+    _mav_put_uint8_t(buf, 3, target_component);
+    _mav_put_uint8_t(buf, 4, req_stream_id);
+    _mav_put_uint8_t(buf, 5, start_stop);
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN);
+#else
+    mavlink_request_data_stream_t packet;
+    packet.req_message_rate = req_message_rate;
+    packet.target_system = target_system;
+    packet.target_component = target_component;
+    packet.req_stream_id = req_stream_id;
+    packet.start_stop = start_stop;
+
+        memcpy(_MAV_PAYLOAD_NON_CONST(msg), &packet, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN);
+#endif
+
+    msg->msgid = MAVLINK_MSG_ID_REQUEST_DATA_STREAM;
+#if MAVLINK_CRC_EXTRA
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_MIN_LEN, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_CRC);
+#else
+    return mavlink_finalize_message_buffer(msg, system_id, component_id, _status, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_MIN_LEN, MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN);
+#endif
+}
+
+/**
  * @brief Pack a request_data_stream message on a channel
  * @param system_id ID of this system
  * @param component_id ID of this component (e.g. 200 for IMU)
@@ -156,6 +201,20 @@ static inline uint16_t mavlink_msg_request_data_stream_encode_chan(uint8_t syste
 }
 
 /**
+ * @brief Encode a request_data_stream struct with provided status structure
+ *
+ * @param system_id ID of this system
+ * @param component_id ID of this component (e.g. 200 for IMU)
+ * @param status MAVLink status structure
+ * @param msg The MAVLink message to compress the data into
+ * @param request_data_stream C-struct to read the message contents from
+ */
+static inline uint16_t mavlink_msg_request_data_stream_encode_status(uint8_t system_id, uint8_t component_id, mavlink_status_t* _status, mavlink_message_t* msg, const mavlink_request_data_stream_t* request_data_stream)
+{
+    return mavlink_msg_request_data_stream_pack_status(system_id, component_id, _status, msg,  request_data_stream->target_system, request_data_stream->target_component, request_data_stream->req_stream_id, request_data_stream->req_message_rate, request_data_stream->start_stop);
+}
+
+/**
  * @brief Send a request_data_stream message
  * @param chan MAVLink channel to send the message
  *
@@ -206,7 +265,7 @@ static inline void mavlink_msg_request_data_stream_send_struct(mavlink_channel_t
 
 #if MAVLINK_MSG_ID_REQUEST_DATA_STREAM_LEN <= MAVLINK_MAX_PAYLOAD_LEN
 /*
-  This varient of _send() can be used to save stack space by re-using
+  This variant of _send() can be used to save stack space by reusing
   memory from the receive buffer.  The caller provides a
   mavlink_message_t which is the size of a full mavlink message. This
   is usually the receive buffer for the channel, and allows a reply to an

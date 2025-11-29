@@ -54,6 +54,7 @@ endif()
 
 project(INAV VERSION 9.0.0)
 
+
 enable_language(ASM)
 
 if(MACOSX AND SITL)

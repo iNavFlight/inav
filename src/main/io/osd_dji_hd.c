@@ -44,7 +44,7 @@
 
 #include "fc/fc_core.h"
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/fc_msp.h"
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
@@ -192,7 +192,7 @@ const djiOsdMapping_t djiOSDItemIndexMap[] = {
     { OSD_HOME_DIR,                           FEATURE_GPS }, // DJI: OSD_HOME_DIR
     { OSD_HOME_DIST,                          FEATURE_GPS }, // DJI: OSD_HOME_DIST
     { OSD_HEADING,                            0 }, // DJI: OSD_NUMERICAL_HEADING
-    { OSD_VARIO_NUM,                          0 }, // DJI: OSD_NUMERICAL_VARIO
+    { OSD_VERTICAL_SPEED_INDICATOR,           0 }, // DJI: OSD_NUMERICAL_VARIO
     { -1,                                     0 }, // DJI: OSD_COMPASS_BAR
     { OSD_ESC_TEMPERATURE,                    0 }, // DJI: OSD_ESC_TEMPERATURE
     { OSD_ESC_RPM,                            0 }, // DJI: OSD_ESC_RPM
@@ -805,43 +805,43 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
 {
     switch (adjustmentFunction) {
         case ADJUSTMENT_RC_EXPO:
-            tfp_sprintf(buff, "RCE %d", currentControlRateProfile->stabilized.rcExpo8);
+            tfp_sprintf(buff, "RCE %d", currentControlProfile->stabilized.rcExpo8);
             break;
         case ADJUSTMENT_RC_YAW_EXPO:
-            tfp_sprintf(buff, "RCYE %3d", currentControlRateProfile->stabilized.rcYawExpo8);
+            tfp_sprintf(buff, "RCYE %3d", currentControlProfile->stabilized.rcYawExpo8);
             break;
         case ADJUSTMENT_MANUAL_RC_EXPO:
-            tfp_sprintf(buff, "MRCE %3d", currentControlRateProfile->manual.rcExpo8);
+            tfp_sprintf(buff, "MRCE %3d", currentControlProfile->manual.rcExpo8);
             break;
         case ADJUSTMENT_MANUAL_RC_YAW_EXPO:
-            tfp_sprintf(buff, "MRCYE %3d", currentControlRateProfile->manual.rcYawExpo8);
+            tfp_sprintf(buff, "MRCYE %3d", currentControlProfile->manual.rcYawExpo8);
             break;
         case ADJUSTMENT_THROTTLE_EXPO:
-            tfp_sprintf(buff, "TE %3d", currentControlRateProfile->throttle.rcExpo8);
+            tfp_sprintf(buff, "TE %3d", currentControlProfile->throttle.rcExpo8);
             break;
         case ADJUSTMENT_PITCH_ROLL_RATE:
-            tfp_sprintf(buff, "PRR %3d %3d", currentControlRateProfile->stabilized.rates[FD_PITCH], currentControlRateProfile->stabilized.rates[FD_ROLL]);
+            tfp_sprintf(buff, "PRR %3d %3d", currentControlProfile->stabilized.rates[FD_PITCH], currentControlProfile->stabilized.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_PITCH_RATE:
-            tfp_sprintf(buff, "PR %3d", currentControlRateProfile->stabilized.rates[FD_PITCH]);
+            tfp_sprintf(buff, "PR %3d", currentControlProfile->stabilized.rates[FD_PITCH]);
             break;
         case ADJUSTMENT_ROLL_RATE:
-            tfp_sprintf(buff, "RR %3d", currentControlRateProfile->stabilized.rates[FD_ROLL]);
+            tfp_sprintf(buff, "RR %3d", currentControlProfile->stabilized.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_MANUAL_PITCH_ROLL_RATE:
-            tfp_sprintf(buff, "MPRR %3d %3d", currentControlRateProfile->manual.rates[FD_PITCH], currentControlRateProfile->manual.rates[FD_ROLL]);
+            tfp_sprintf(buff, "MPRR %3d %3d", currentControlProfile->manual.rates[FD_PITCH], currentControlProfile->manual.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_MANUAL_PITCH_RATE:
-            tfp_sprintf(buff, "MPR %3d", currentControlRateProfile->manual.rates[FD_PITCH]);
+            tfp_sprintf(buff, "MPR %3d", currentControlProfile->manual.rates[FD_PITCH]);
             break;
         case ADJUSTMENT_MANUAL_ROLL_RATE:
-            tfp_sprintf(buff, "MRR %3d", currentControlRateProfile->manual.rates[FD_ROLL]);
+            tfp_sprintf(buff, "MRR %3d", currentControlProfile->manual.rates[FD_ROLL]);
             break;
         case ADJUSTMENT_YAW_RATE:
-            tfp_sprintf(buff, "YR %3d", currentControlRateProfile->stabilized.rates[FD_YAW]);
+            tfp_sprintf(buff, "YR %3d", currentControlProfile->stabilized.rates[FD_YAW]);
             break;
         case ADJUSTMENT_MANUAL_YAW_RATE:
-            tfp_sprintf(buff, "MYR %3d", currentControlRateProfile->manual.rates[FD_YAW]);
+            tfp_sprintf(buff, "MYR %3d", currentControlProfile->manual.rates[FD_YAW]);
             break;
         case ADJUSTMENT_PITCH_ROLL_P:
             tfp_sprintf(buff, "PRP %3d %3d", pidBankMutable()->pid[PID_PITCH].P, pidBankMutable()->pid[PID_ROLL].P);
@@ -958,10 +958,10 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "MTDPA %4d", navConfigMutable()->fw.minThrottleDownPitchAngle);
             break;
         case ADJUSTMENT_TPA:
-            tfp_sprintf(buff, "TPA %3d", currentControlRateProfile->throttle.dynPID);
+            tfp_sprintf(buff, "TPA %3d", currentControlProfile->throttle.dynPID);
             break;
         case ADJUSTMENT_TPA_BREAKPOINT:
-            tfp_sprintf(buff, "TPABP %4d", currentControlRateProfile->throttle.pa_breakpoint);
+            tfp_sprintf(buff, "TPABP %4d", currentControlProfile->throttle.pa_breakpoint);
             break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
@@ -1224,7 +1224,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
                 sbufWriteU16(dst, constrain(averageSystemLoadPercent, 0, 100));
                 if (cmd->cmd == MSP_STATUS_EX) {
                     sbufWriteU8(dst, 3);            // PID_PROFILE_COUNT
-                    sbufWriteU8(dst, 1);            // getCurrentControlRateProfileIndex()
+                    sbufWriteU8(dst, 1);            // getCurrentControlProfileIndex()
                 } else {
                     sbufWriteU16(dst, cycleTime);   // gyro cycle time
                 }
@@ -1421,23 +1421,23 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
 
         case DJI_MSP_RC_TUNING:
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
-            sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
+            sbufWriteU8(dst, currentControlProfile->stabilized.rcExpo8);
             for (int i = 0 ; i < 3; i++) {
                 // R,P,Y rates see flight_dynamics_index_t
-                sbufWriteU8(dst, currentControlRateProfile->stabilized.rates[i]);
+                sbufWriteU8(dst, currentControlProfile->stabilized.rates[i]);
             }
-            sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
-            sbufWriteU8(dst, currentControlRateProfile->throttle.rcMid8);
-            sbufWriteU8(dst, currentControlRateProfile->throttle.rcExpo8);
-            sbufWriteU16(dst, currentControlRateProfile->throttle.pa_breakpoint);
-            sbufWriteU8(dst, currentControlRateProfile->stabilized.rcYawExpo8);
+            sbufWriteU8(dst, currentControlProfile->throttle.dynPID);
+            sbufWriteU8(dst, currentControlProfile->throttle.rcMid8);
+            sbufWriteU8(dst, currentControlProfile->throttle.rcExpo8);
+            sbufWriteU16(dst, currentControlProfile->throttle.pa_breakpoint);
+            sbufWriteU8(dst, currentControlProfile->stabilized.rcYawExpo8);
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
-            sbufWriteU8(dst, currentControlRateProfile->stabilized.rcExpo8);
+            sbufWriteU8(dst, currentControlProfile->stabilized.rcExpo8);
 
             // added in 1.41
             sbufWriteU8(dst, 0);
-            sbufWriteU8(dst, currentControlRateProfile->throttle.dynPID);
+            sbufWriteU8(dst, currentControlProfile->throttle.dynPID);
             break;
 
         case DJI_MSP_SET_PID:
