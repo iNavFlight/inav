@@ -26,6 +26,22 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 
 **Note:** IPF uses integer math. If your programming line returns a decimal, it will be truncated to an integer.  So if your math is `1` / `3` = , IPF will truncate the decimal and return `0`.
 
+## JavaScript-Based Programming (Alternative)
+
+INAV also supports a JavaScript-based programming interface that provides a more
+familiar syntax for those comfortable with JavaScript. The JavaScript code is transpiled
+(converted) into traditional logic conditions, so both methods ultimately use the same
+underlying system.
+
+See the [JavaScript Programming Guide](javascript_programming/JAVASCRIPT_PROGRAMMING_GUIDE.md)
+for complete documentation on using JavaScript to program your flight controller.
+
+**Benefits of JavaScript programming:**
+- Modern code editor with IntelliSense autocomplete
+- Real-time syntax validation and error messages
+- Familiar programming constructs (if statements, functions, variables)
+- Automatic conversion to logic conditions
+
 ## Logic Conditions
 
 ### CLI
@@ -75,7 +91,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 26            | Invert Roll                   | Inverts ROLL axis input for PID/PIFF controller |
 | 27            | Invert Pitch                  | Inverts PITCH axis input for PID/PIFF controller  |
 | 28            | Invert Yaw                    | Inverts YAW axis input for PID/PIFF controller |
-| 29            | Override Throttlw             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
+| 29            | Override Throttle             | Override throttle value that is fed to the motors by mixer. Operand is scaled in us. `1000` means throttle cut, `1500` means half throttle |
 | 30            | Set VTx Band                  | Sets VTX band. Accepted values are `1-5` |
 | 31            | Set VTx Channel               | Sets VTX channel. Accepted values are `1-8` |
 | 32            | Set OSD Layout                | Sets OSD layout. Accepted values are `0-3` |
@@ -94,14 +110,15 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 45			| Flight Axis Angle Override	| Sets the target attitude angle for axis. In other words, when active, it enforces Angle mode (Heading Hold for Yaw) on this axis (Angle mode does not have to be active). `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the angle in degrees |
 | 46			| Flight Axis Rate Override	    | Sets the target rate (rotation speed) for axis. `Operand A` defines the axis: `0` - Roll, `1` - Pitch, `2` - Yaw. `Operand B` defines the rate in degrees per second |
 | 47            | Edge                          | Momentarily true when triggered by `Operand A`. `Operand A` is the activation operator [`boolean`], `Operand B` _(Optional)_ is the time for the edge to stay active [ms]. After activation, operator will return `true` until the time in Operand B is reached. If a pure momentary edge is wanted. Just leave `Operand B` as the default `Value: 0` setting. |
-| 48            | Delay                         | Delays activation after being triggered. This will return `true` when `Operand A` _is_ true, and the delay time in `Operand B` [ms] has been exceeded. |
+| 48            | Delay                         | Delays activation after being triggered. This will return `true` when `Operand A` _is_ true, and has been true for the last `Operand B` [ms]. |
 | 49            | Timer                         | A simple on - off timer. `true` for the duration of `Operand A` [ms]. Then `false` for the duration of `Operand B` [ms]. |
 | 50            | Delta             | This returns `true` when the value of `Operand A` has changed by the value of `Operand B` or greater within 100ms. ( \|ΔA\| >= B )  |
 | 51            | Approx Equals (A ~ B)         | `true` if `Operand B` is within 1% of `Operand A`. |
-| 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] starts PWM generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
+| 52            | LED Pin PWM                   | Value `Operand A` from [`0` : `100`] PWM / PINIO generation on LED Pin. See [LED pin PWM](LED%20pin%20PWM.md). Any other value stops PWM generation (stop to allow ws2812 LEDs updates in shared modes). |
 | 53            | Disable GPS Sensor Fix        | Disables the GNSS sensor fix. For testing GNSS failure. |
 | 54            | Mag calibration               | Trigger a magnetometer calibration. |
 | 55            | Set Gimbal Sensitivity        | Scales `Operand A` from [`-16` : `15`]
+| 56            | Override Minimum Ground Speed | When active, sets the minimum ground speed to the value specified in `Operand A` [m/s]. Minimum allowed value is set in `nav_min_ground_speed`. Maximum value is `150` |
 
 ### Operands
 
@@ -164,6 +181,12 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 41            | FW Land Sate                          | Integer `1` - `5`, indicates the status of the FW landing, 0 Idle, 1 Downwind, 2 Base Leg, 3 Final Approach, 4 Glide, 5 Flare |
 | 42            | Current battery profile               | The active battery profile. Integer `[1..MAX_PROFILE_COUNT]` |
 | 43            | Flown Loiter Radius [m]               | The actual loiter radius flown by a fixed wing during hold modes, in `meters` |
+| 44            | Downlink Link Quality                 | |
+| 45            | Uplink RSSI [dBm]                     | |
+| 46            | Minimum Ground Speed [m/s]            | The current minimum ground speed allowed in navigation flight modes |
+| 47            | Horizontal Wind Speed [cm/s]          | Estimated wind speed. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 48            | Wind Direction [deg]                  | Estimated wind direction. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 49            | Relative Wind Offset [deg]            | The relative offset between the heading of the aircraft and the heading of the wind. 0 indicates flying directly into a headwing. Negative numbers are a left offset. For example, if -20° is shown, turning right will correct towards 0. If the wind estimator is unavailble or the wind estimation is invalid, 0 is returned |
 
 #### FLIGHT_MODE
 
@@ -349,3 +372,9 @@ choose *value* and enter the channel number. Choosing "get RC value" is a common
 which does something other than what you probably want.
 
 ![screenshot of override an RC channel with a value](./assets/images/ipf_set_get_rc_channel.png)
+
+## Related Documentation
+
+- [JavaScript Programming Guide](javascript_programming/JAVASCRIPT_PROGRAMMING_GUIDE.md) - Alternative JavaScript-based syntax for programming logic conditions
+- [Operations Reference](javascript_programming/OPERATIONS_REFERENCE.md) - Complete reference for all supported operations in JavaScript
+- [Timer and Change Detection Examples](javascript_programming/TIMER_WHENCHANGED_EXAMPLES.md) - Practical examples for time-based patterns

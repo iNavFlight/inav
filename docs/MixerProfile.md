@@ -99,7 +99,7 @@ TailSitter is supported by add a 90deg offset to the board alignment. Set the bo
         - motor_direction_inverted, and more·······
     - **Motor Mixing (mmix)**
     - **Servo Mixing (smix)**
-- **PID Profile**
+- **Control Profile**
   - PIDs for Roll, Pitch, Yaw
   - PIDs for Navigation Modes
   - TPA (Throttle PID Attenuation) Settings

@@ -46,7 +46,7 @@
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/settings.h"
 
 #include "flight/imu.h"
@@ -106,7 +106,6 @@ int16_t servo[MAX_SUPPORTED_SERVOS];
 
 static uint8_t servoRuleCount = 0;
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES];
-
 /*
 //Was used to keep track of servo rules in all mixer_profile, In order to Apply mixer speed limit when rules turn off
 static servoMixer_t currentServoMixer[MAX_SERVO_RULES*MAX_MIXER_PROFILE_COUNT];
@@ -207,6 +206,25 @@ int getServoCount(void)
 
 void loadCustomServoMixer(void)
 {
+    
+    //move the rate filter to new servo rules
+    int movefilterCount = 0;
+    static servoMixerSwitch_t servoMixerSwitchHelper[MAX_SERVO_RULES_SWITCH_CARRY]; // helper to keep track of servoSpeedLimitFilter of servo rules
+    memset(servoMixerSwitchHelper, 0, sizeof(servoMixerSwitchHelper));
+    for (int i = 0; i < servoRuleCount; i++) {
+        if(currentServoMixer[i].inputSource == INPUT_MIXER_SWITCH_HELPER || movefilterCount >= MAX_SERVO_RULES_SWITCH_CARRY) {
+            //will not carry over INPUT_MIXER_SWITCH_HELPER rules
+            break;
+        }
+        if(currentServoMixer[i].speed != 0 && fabsf(servoSpeedLimitFilter[i].state) > 0.01f) {
+            servoMixerSwitchHelper[movefilterCount].targetChannel = currentServoMixer[i].targetChannel;
+            servoMixerSwitchHelper[movefilterCount].speed = currentServoMixer[i].speed;
+            servoMixerSwitchHelper[movefilterCount].rate = currentServoMixer[i].rate;
+            servoMixerSwitchHelper[movefilterCount].speedLimitFilterState = servoSpeedLimitFilter[i].state;
+            movefilterCount++;
+        }
+    }
+
     servoRuleCount = 0;
     memset(currentServoMixer, 0, sizeof(currentServoMixer));
 
@@ -218,6 +236,19 @@ void loadCustomServoMixer(void)
         }
         currentServoMixer[servoRuleCount] = *customServoMixers(i);
         servoSpeedLimitFilter[servoRuleCount].state = 0;
+        servoRuleCount++;
+    }
+
+    // add servo rules to handle the rate limit filter
+    for (int i = 0; i < movefilterCount; i++) {
+        if (servoRuleCount >= MAX_SERVO_RULES) {
+            break; // prevent overflow
+        }
+        currentServoMixer[servoRuleCount].targetChannel = servoMixerSwitchHelper[i].targetChannel;
+        currentServoMixer[servoRuleCount].speed = servoMixerSwitchHelper[i].speed;
+        currentServoMixer[servoRuleCount].rate = servoMixerSwitchHelper[i].rate;
+        currentServoMixer[servoRuleCount].inputSource = INPUT_MIXER_SWITCH_HELPER; // no input
+        servoSpeedLimitFilter[servoRuleCount].state = servoMixerSwitchHelper[i].speedLimitFilterState;
         servoRuleCount++;
     }
 }
@@ -323,6 +354,7 @@ void servoMixer(float dT)
     input[INPUT_STABILIZED_THROTTLE] = mixerThrottleCommand - 1000 - 500;  // Since it derives from rcCommand or mincommand and must be [-500:+500]
 
     input[INPUT_MIXER_TRANSITION] = isMixerTransitionMixing * 500; //fixed value
+    input[INPUT_MIXER_SWITCH_HELPER] = 0; // no input, used to apply speed limit filter from previous servo rules
 
     // center the RC input value around the RC middle value
     // by subtracting the RC middle value from the RC input value, we get:
@@ -682,4 +714,9 @@ void setServoOutputEnabled(bool flag)
 bool isMixerUsingServos(void)
 {
     return mixerUsesServos;
+}
+
+uint8_t getMinServoIndex(void)
+{
+    return minServoIndex;
 }
