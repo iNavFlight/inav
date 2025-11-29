@@ -10829,6 +10829,47 @@
         "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
         "description": "Sets a specific vertex (or center+radius for circular zones) for a Geozone."
     },
+    "MSP2_INAV_SET_ALT_TARGET": {
+        "code": 8725,
+        "mspv": 2,
+        "variable_len": true,
+        "request": {
+            "payload": [
+                {
+                    "name": "altitudeDatum",
+                    "ctype": "uint8_t",
+                    "desc": "Datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (reserved)",
+                    "units": "",
+                    "optional": true
+                },
+                {
+                    "name": "altitudeTarget",
+                    "ctype": "int32_t",
+                    "desc": "Desired altitude target (`updateClimbRateToAltitudeController(…, ROC_TO_ALT_TARGET)`), datum as above",
+                    "units": "cm",
+                    "optional": true
+                }
+            ]
+        },
+        "reply": {
+            "payload": [
+                {
+                    "name": "altitudeDatum",
+                    "ctype": "uint8_t",
+                    "desc": "Datum flag returned (`geoAltitudeDatumFlag_e`), currently `NAV_WP_TAKEOFF_DATUM`",
+                    "units": ""
+                },
+                {
+                    "name": "altitudeTarget",
+                    "ctype": "int32_t",
+                    "desc": "Current altitude target (`posControl.desiredState.pos.z`)",
+                    "units": "cm"
+                }
+            ]
+        },
+        "notes": "Empty request payload returns the current altitude target with datum. Sending a 5-byte payload sets a new target: 1 byte datum, 4 bytes altitude. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).",
+        "description": "Get or set the active altitude hold target."
+    },
     "MSP2_INAV_FULL_LOCAL_POSE": {
         "code": 8736,
         "mspv": 2,

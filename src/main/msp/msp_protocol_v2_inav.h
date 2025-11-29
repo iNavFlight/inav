@@ -123,4 +123,6 @@
 #define MSP2_INAV_GEOZONE_VERTEX                0x2212
 #define MSP2_INAV_SET_GEOZONE_VERTEX            0x2213
 
+#define MSP2_INAV_SET_ALT_TARGET                0x2215
+
 #define MSP2_INAV_FULL_LOCAL_POSE               0x2220

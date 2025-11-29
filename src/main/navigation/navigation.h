@@ -729,7 +729,8 @@ typedef enum {
 
 typedef enum {
     NAV_WP_TAKEOFF_DATUM,
-    NAV_WP_MSL_DATUM
+    NAV_WP_MSL_DATUM,
+    NAV_WP_TERRAIN_DATUM
 } geoAltitudeDatumFlag_e;
 
 // geoSetOrigin stores the location provided in llh as a GPS origin in the
