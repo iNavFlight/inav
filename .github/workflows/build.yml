@@ -1,0 +1,35 @@
+name: INAV Custom Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build python3 python3-pip gcc-arm-none-eabi binutils-arm-none-eabi build-essential
+
+      - name: Build firmware
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G Ninja -DINAV_TARGET=SPEEDYBEEF405WING
+          ninja
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: INAV-custom-SPEEDYBEEF405WING
+          path: |
+            build/src/INAV*.hex
+            build/src/INAV*.bin
+            build/src/*.map
