@@ -36,7 +36,6 @@ typedef struct ezTuneSettings_s {
     uint8_t aggressiveness;
     uint8_t rate;
     uint8_t expo;
-    uint8_t snappiness;
 } ezTuneSettings_t;
 
 PG_DECLARE_PROFILE(ezTuneSettings_t, ezTune);

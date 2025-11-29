@@ -15,14 +15,14 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include "drivers/io.h"
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
-
+#include "rx/external_pwm.h"
 #include "common/string_light.h"
 #include "common/maths.h"
-
+#include "drivers/time.h"
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
 
@@ -32,8 +32,6 @@
 #include "drivers/osd_symbols.h"
 
 PG_REGISTER_ARRAY_WITH_RESET_FN(osdCustomElement_t, MAX_CUSTOM_ELEMENTS, osdCustomElements, PG_OSD_CUSTOM_ELEMENTS_CONFIG, 1);
-
-static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
 
 void pgResetFn_osdCustomElements(osdCustomElement_t *instance)
 {
@@ -70,137 +68,29 @@ uint8_t customElementDrawPart(char *buff, uint8_t customElementIndex, uint8_t cu
     const int customPartValue = osdCustomElements(customElementIndex)->part[customElementItemIndex].value;
 
     switch (customPartType) {
-        case CUSTOM_ELEMENT_TYPE_GV_1:
+        case CUSTOM_ELEMENT_TYPE_GV:
         {
-            osdFormatCentiNumber(buff,(int32_t) (constrain(gvGet(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
+            osdFormatCentiNumber(buff, (int32_t) gvGet(customPartValue) * (int32_t) 100, 1, 0, 0, 6, false);
+            return 6;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_FLOAT:
+        {
+            osdFormatCentiNumber(buff, (int32_t) gvGet(customPartValue), 1, 2, 0, 6, false);
+            return 6;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_SMALL:
+        {
+            osdFormatCentiNumber(buff, (int32_t) ((gvGet(customPartValue) % 1000 ) * (int32_t) 100), 1, 0, 0, 3, false);
+            return 3;
+        }
+        case CUSTOM_ELEMENT_TYPE_GV_SMALL_FLOAT:
+        {
+            osdFormatCentiNumber(buff, (int32_t) ((gvGet(customPartValue) % 100)  * (int32_t) 10), 1, 1, 0, 2, false);
             return 2;
         }
-        case CUSTOM_ELEMENT_TYPE_GV_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
-            return 3;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_3:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
-            return 4;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_4:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
-            return 5;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_5:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
-            return 6;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
-            return 3;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_1_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999)), 1, 2, 0, 4, false);
-            return 4;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
-            return 4;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_2_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) constrain(gvGet(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
-            return 5;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_3_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -9999, 9999) * (int32_t) 10), 1, 1, 0, 5, false);
-            return 5;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_3_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) constrain(gvGet(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
-            return 6;
-        }
-        case CUSTOM_ELEMENT_TYPE_GV_FLOAT_4_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(gvGet(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
-            return 6;
-        }
-
-        case CUSTOM_ELEMENT_TYPE_LC_1:
-        {
-            osdFormatCentiNumber(buff,(int32_t) (constrain(logicConditionGetValue(customPartValue), -9, 9) * (int32_t) 100), 1, 0, 0, 2, false);
-            return 2;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 100), 1, 0, 0, 3, false);
-            return 3;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_3:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 100), 1, 0, 0, 4, false);
-            return 4;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_4:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999) * (int32_t) 100), 1, 0, 0, 5, false);
-            return 5;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_5:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 100), 1, 0, 0, 6, false);
-            return 6;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99, 99) * (int32_t) 10), 1, 1, 0, 3, false);
-            return 3;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_1_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999)), 1, 2, 0, 4, false);
-            return 4;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -999, 999) * (int32_t) 10), 1, 1, 0, 4, false);
-            return 4;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_2_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -9999, 9999), 1, 2, 0, 5, false);
-            return 5;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -9999, 9999)  * (int32_t) 10), 1, 1, 0, 5, false);
-            return 5;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_2:
-        {
-            osdFormatCentiNumber(buff, (int32_t) constrain(logicConditionGetValue(customPartValue), -99999, 99999), 1, 2, 0, 6, false);
-            return 6;
-        }
-        case CUSTOM_ELEMENT_TYPE_LC_FLOAT_4_1:
-        {
-            osdFormatCentiNumber(buff, (int32_t) (constrain(logicConditionGetValue(customPartValue), -99999, 99999) * (int32_t) 10), 1, 1, 0, 6, false);
-            return 6;
-        }
-        
-        
         case CUSTOM_ELEMENT_TYPE_ICON_GV:
         {
             *buff = (uint8_t)gvGet(customPartValue);
-            return 1;
-        }
-        case CUSTOM_ELEMENT_TYPE_ICON_LC:
-        {
-            *buff = (uint8_t)constrain(logicConditionGetValue(customPartValue), 1, 255);
             return 1;
         }
         case CUSTOM_ELEMENT_TYPE_ICON_STATIC:
@@ -230,6 +120,8 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
         return;
     }
 
+    static uint8_t prevLength[MAX_CUSTOM_ELEMENTS];
+
     uint8_t buffSeek = 0;
     const osdCustomElement_t* customElement = osdCustomElements(customElementIndex);
     if(isCustomelementVisible(customElement))
@@ -246,7 +138,52 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
     }
     prevLength[customElementIndex] = buffSeek;
 }
+	
+    #include "io/osd_utils.h"  // если у тебя osd_utils.c/h существуют, иначе не страшно
 
-uint8_t customElementLength(uint8_t customElementIndex){
-    return prevLength[customElementIndex] ? prevLength[customElementIndex] : 1;
+
+//OSD
+const char* osdGetExternalPwmStatus(void)
+{
+    static const char* lastStatus = "   ---  ";
+    static uint32_t lastSignalTime = 0;
+    uint16_t us = getExternalPwmUs();
+    uint32_t currentTime = millis();
+    
+    // Если сигнал полностью пропал (us = 0) или невалидный
+    if (us == 0 || us < 600 || us > 2500) {
+        // Сразу сбрасываем статус если сигнал пропал
+        if (us == 0) {
+            lastStatus = "   ---  ";
+        }
+        // Для невалидных значений сохраняем предыдущий статус
+    } 
+    else {
+        // Есть валидный сигнал - обновляем время
+        lastSignalTime = currentTime;
+        
+        // Обновляем состояние для рабочих диапазонов
+        if (us >= 700 && us <= 840) {
+            lastStatus = "INITIATE";
+        } 
+        else if (us >= 880 && us <= 950) {
+            lastStatus = "  WAIT  ";
+        }
+        else if (us >= 1250 && us <= 1320) {
+            lastStatus = " VZVOD  ";
+        }
+        else if (us >= 1375 && us <= 1500) {
+            lastStatus = "VZVEDEN!";
+        }
+        else if (us > 2000) {
+            lastStatus = " ERROR  ";
+        }
+    }
+    
+    // Таймаут 2 секунды - если долго нет валидного сигнала, показываем "---"
+    if (currentTime - lastSignalTime > 2000) {
+        lastStatus = "   ---  ";
+    }
+    
+    return lastStatus;
 }

@@ -57,8 +57,6 @@ typedef enum {
     FUNCTION_TELEMETRY_SMARTPORT_MASTER = (1 << 23), // 8388608
     FUNCTION_UNUSED_2                   = (1 << 24), // 16777216
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
-    FUNCTION_GIMBAL                     = (1 << 26), // 67108864
-    FUNCTION_GIMBAL_HEADTRACKER         = (1 << 27), // 134217728
 } serialPortFunction_e;
 
 #define FUNCTION_VTX_MSP FUNCTION_MSP_OSD
@@ -133,6 +131,7 @@ typedef struct serialPortConfig_s {
 
 typedef struct serialConfig_s {
     serialPortConfig_t portConfigs[SERIAL_PORT_COUNT];
+    uint8_t reboot_character;               // which byte is used to reboot. Default 'R', could be changed carefully to something else.
 } serialConfig_t;
 
 PG_DECLARE(serialConfig_t, serialConfig);

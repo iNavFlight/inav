@@ -74,8 +74,7 @@ typedef struct accelerometerConfig_s {
     flightDynamicsTrims_t accGain;          // Accelerometer gain to read exactly 1G
     uint8_t acc_notch_hz;                   // Accelerometer notch filter frequency
     uint8_t acc_notch_cutoff;               // Accelerometer notch filter cutoff frequency
-    uint8_t acc_soft_lpf_type;              // Accelerometer LPF type
-    float acc_temp_correction;              // Accelerometer temperature compensation factor
+    uint8_t acc_soft_lpf_type;              // Accelerometer LPF type 
 } accelerometerConfig_t;
 
 PG_DECLARE(accelerometerConfig_t, accelerometerConfig);
@@ -87,7 +86,6 @@ void accGetMeasuredAcceleration(fpVector3_t *measuredAcc);
 const acc_extremes_t* accGetMeasuredExtremes(void);
 float accGetMeasuredMaxG(void);
 void updateAccExtremes(void);
-void resetGForceStats(void);
 void accGetVibrationLevels(fpVector3_t *accVibeLevels);
 float accGetVibrationLevel(void);
 uint32_t accGetClipCount(void);

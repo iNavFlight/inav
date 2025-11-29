@@ -54,8 +54,6 @@
 #include "usbd_cdc_interface.h"
 #include "stdbool.h"
 #include "drivers/time.h"
-#include "drivers/nvic.h"
-#include "build/atomic.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -98,10 +96,6 @@ static int8_t CDC_Itf_Init(void);
 static int8_t CDC_Itf_DeInit(void);
 static int8_t CDC_Itf_Control(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Itf_Receive(uint8_t* pbuf, uint32_t *Len);
-#if defined(STM32H7)
-static int8_t CDC_Itf_Transmit(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
-#endif
-
 
 static void TIM_Config(void);
 static void Error_Handler(void);
@@ -111,10 +105,7 @@ USBD_CDC_ItfTypeDef USBD_CDC_fops =
   CDC_Itf_Init,
   CDC_Itf_DeInit,
   CDC_Itf_Control,
-  CDC_Itf_Receive,
-#if defined(STM32H7)
-  CDC_Itf_Transmit
-#endif
+  CDC_Itf_Receive
 };
 
 
@@ -303,29 +294,6 @@ static int8_t CDC_Itf_Receive(uint8_t* Buf, uint32_t *Len)
     return (USBD_OK);
 }
 
-#if defined(STM32H7)
-/**
-  * @brief  CDC_Itf_Transmit
-  *         Data transmitted callback
-  *
-  *         @note
-  *         This function is IN transfer complete callback used to inform user that
-  *         the submitted Data is successfully sent over USB.
-  *
-  * @param  Buf: Buffer of data to be received
-  * @param  Len: Number of data received (in bytes)
-  * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
-  */
-static int8_t CDC_Itf_Transmit(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
-{
-  UNUSED(Buf);
-  UNUSED(Len);
-  UNUSED(epnum);
-
-  return (0);
-}
-#endif
-
 /**
   * @brief  TIM_Config: Configure TIMusb timer
   * @param  None.
@@ -398,13 +366,14 @@ uint32_t CDC_Receive_BytesAvailable(void)
 
 uint32_t CDC_Send_FreeBytes(void)
 {
-    uint32_t freeBytes;
+    /*
+        return the bytes free in the circular buffer
 
-    ATOMIC_BLOCK(NVIC_PRIO_VCP) {
-        freeBytes = ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
-    }
-
-    return freeBytes;
+        functionally equivalent to:
+        (APP_Rx_ptr_out > APP_Rx_ptr_in ? APP_Rx_ptr_out - APP_Rx_ptr_in : APP_RX_DATA_SIZE - APP_Rx_ptr_in + APP_Rx_ptr_in)
+        but without the impact of the condition check.
+    */
+    return ((UserTxBufPtrOut - UserTxBufPtrIn) + (-((int)(UserTxBufPtrOut <= UserTxBufPtrIn)) & APP_TX_DATA_SIZE)) - 1;
 }
 
 /**
@@ -417,12 +386,7 @@ uint32_t CDC_Send_FreeBytes(void)
  */
 uint32_t CDC_Send_DATA(const uint8_t *ptrBuffer, uint32_t sendLength)
 {
-#if defined(STM32H7)
-    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pClassData;
-#else
     USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)USBD_Device.pCDC_ClassData;
-#endif
-
     while (hcdc->TxState != 0);
 
     for (uint32_t i = 0; i < sendLength; i++)

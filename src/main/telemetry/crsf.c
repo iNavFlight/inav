@@ -107,14 +107,7 @@ bool bufferCrsfMspFrame(uint8_t *frameStart, int frameLength)
 
 bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
 {
-    static bool replyPending = false;
-    if (replyPending) {
-        if (crsfRxIsTelemetryBufEmpty()) {
-            replyPending = sendMspReply(payloadSize, responseFn);
-        }
-        return replyPending;
-    }
-
+    bool requestHandled = false;
     if (!mspRxBuffer.len) {
         return false;
     }
@@ -122,21 +115,17 @@ bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
     while (true) {
         const int mspFrameLength = mspRxBuffer.bytes[pos];
         if (handleMspFrame(&mspRxBuffer.bytes[CRSF_MSP_LENGTH_OFFSET + pos], mspFrameLength)) {
-            if (crsfRxIsTelemetryBufEmpty()) {
-                replyPending = sendMspReply(payloadSize, responseFn);
-            } else {
-                replyPending = true;
-            }
+            requestHandled |= sendMspReply(payloadSize, responseFn);
         }
         pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
         ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
             if (pos >= mspRxBuffer.len) {
                 mspRxBuffer.len = 0;
-                return replyPending ;
+                return requestHandled;
             }
         }
     }
-    return replyPending;
+    return requestHandled;
 }
 #endif
 
@@ -269,33 +258,6 @@ static void crsfFrameBatterySensor(sbuf_t *dst)
     crsfSerialize8(dst, batteryRemainingPercentage);
 }
 
-const int32_t ALT_MIN_DM = 10000;
-const int32_t ALT_THRESHOLD_DM = 0x8000 - ALT_MIN_DM;
-const int32_t ALT_MAX_DM = 0x7ffe * 10 - 5;
-
-/*
-0x09 Barometer altitude and vertical speed
-Payload:
-uint16_t    altitude_packed ( dm - 10000 )
-*/
-static void crsfBarometerAltitude(sbuf_t *dst)
-{
-    int32_t altitude_dm = lrintf(getEstimatedActualPosition(Z) / 10);
-    uint16_t altitude_packed;
-    if (altitude_dm < -ALT_MIN_DM) {
-        altitude_packed = 0;
-    } else if (altitude_dm > ALT_MAX_DM) {
-        altitude_packed = 0xfffe;
-    } else if (altitude_dm < ALT_THRESHOLD_DM) {
-        altitude_packed = altitude_dm + ALT_MIN_DM;
-    } else {
-        altitude_packed = ((altitude_dm + 5) / 10) | 0x8000;
-    }
-    sbufWriteU8(dst, CRSF_FRAME_BAROMETER_ALTITUDE_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
-    crsfSerialize8(dst, CRSF_FRAMETYPE_BAROMETER_ALTITUDE);
-    crsfSerialize16(dst, altitude_packed);
-}
-
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -360,34 +322,22 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     sbufWriteU8(dst, 0);
     crsfSerialize8(dst, CRSF_FRAMETYPE_FLIGHT_MODE);
 
-    static uint8_t hrstSent = 0;
-
     // use same logic as OSD, so telemetry displays same flight text as OSD when armed
     const char *flightMode = "OK";
     if (ARMING_FLAG(ARMED)) {
-        flightMode = "ACRO";
-#ifdef USE_FW_AUTOLAND
-        if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-            flightMode = "LAND";
-        } else
-#endif
+        if (STATE(AIRMODE_ACTIVE)) {
+            flightMode = "AIR";
+        } else {
+            flightMode = "ACRO";
+        }
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             flightMode = "!FS!";
-        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent < 4 && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
+        } else if (IS_RC_MODE_ACTIVE(BOXHOMERESET) && !FLIGHT_MODE(NAV_RTH_MODE) && !FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "HRST";
-            hrstSent++;
         } else if (FLIGHT_MODE(MANUAL_MODE)) {
             flightMode = "MANU";
-#ifdef USE_GEOZONE
-        } else if (FLIGHT_MODE(NAV_SEND_TO) && !FLIGHT_MODE(NAV_WP_MODE)) {
-            flightMode = "GEO";
-#endif  
-        } else if (FLIGHT_MODE(TURTLE_MODE)) {
-            flightMode = "TURT";
         } else if (FLIGHT_MODE(NAV_RTH_MODE)) {
-            flightMode = isWaypointMissionRTHActive() ? "WRTH" : "RTH";
-        } else if (FLIGHT_MODE(NAV_POSHOLD_MODE) && STATE(AIRPLANE)) {
-            flightMode = "LOTR";
+            flightMode = "RTH";
         } else if (FLIGHT_MODE(NAV_POSHOLD_MODE)) {
             flightMode = "HOLD";
         } else if (FLIGHT_MODE(NAV_COURSE_HOLD_MODE) && FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
@@ -396,7 +346,7 @@ static void crsfFrameFlightMode(sbuf_t *dst)
             flightMode = "CRSH";
         } else if (FLIGHT_MODE(NAV_WP_MODE)) {
             flightMode = "WP";
-        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && navigationRequiresAngleMode()) {
+        } else if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
             flightMode = "AH";
         } else if (FLIGHT_MODE(ANGLE_MODE)) {
             flightMode = "ANGL";
@@ -405,6 +355,10 @@ static void crsfFrameFlightMode(sbuf_t *dst)
         } else if (FLIGHT_MODE(ANGLEHOLD_MODE)) {
             flightMode = "ANGH";
         }
+#ifdef USE_FW_AUTOLAND
+    } else if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        flightMode = "LAND";
+#endif
 #ifdef USE_GPS
     } else if (feature(FEATURE_GPS) && navConfig()->general.flags.extra_arming_safety && (!STATE(GPS_FIX) || !STATE(GPS_FIX_HOME))) {
         flightMode = "WAIT"; // Waiting for GPS lock
@@ -412,9 +366,6 @@ static void crsfFrameFlightMode(sbuf_t *dst)
     } else if (isArmingDisabled()) {
         flightMode = "!ERR";
     }
-
-    if (!IS_RC_MODE_ACTIVE(BOXHOMERESET) && hrstSent > 0)
-        hrstSent = 0;
 
     crsfSerializeData(dst, (const uint8_t*)flightMode, strlen(flightMode));
     crsfSerialize8(dst, 0); // zero terminator for string
@@ -464,7 +415,6 @@ typedef enum {
     CRSF_FRAME_FLIGHT_MODE_INDEX,
     CRSF_FRAME_GPS_INDEX,
     CRSF_FRAME_VARIO_SENSOR_INDEX,
-    CRSF_FRAME_BAROMETER_ALTITUDE_INDEX,
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -475,36 +425,28 @@ static uint8_t crsfSchedule[CRSF_SCHEDULE_COUNT_MAX];
 
 static bool mspReplyPending;
 
-//Id of the last receiver MSP frame over CRSF. Needed to send response with correct frame ID
-static uint8_t mspRequestOriginID = 0;
-
-void crsfScheduleMspResponse(uint8_t requestOriginID)
+void crsfScheduleMspResponse(void)
 {
     mspReplyPending = true;
-    mspRequestOriginID = requestOriginID;
 }
 
-void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
+void crsfSendMspResponse(uint8_t *payload)
 {
     sbuf_t crsfPayloadBuf;
     sbuf_t *dst = &crsfPayloadBuf;
 
     crsfInitializeFrame(dst);
-    sbufWriteU8(dst, payloadSize + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
+    sbufWriteU8(dst, CRSF_FRAME_TX_MSP_FRAME_SIZE + CRSF_FRAME_LENGTH_EXT_TYPE_CRC);
     crsfSerialize8(dst, CRSF_FRAMETYPE_MSP_RESP);
-    crsfSerialize8(dst, mspRequestOriginID);
+    crsfSerialize8(dst, CRSF_ADDRESS_RADIO_TRANSMITTER);
     crsfSerialize8(dst, CRSF_ADDRESS_FLIGHT_CONTROLLER);
-    crsfSerializeData(dst, (const uint8_t*)payload, payloadSize);
+    crsfSerializeData(dst, (const uint8_t*)payload, CRSF_FRAME_TX_MSP_FRAME_SIZE);
     crsfFinalize(dst);
 }
 #endif
 
 static void processCrsf(void)
 {
-    if (!crsfRxIsTelemetryBufEmpty()) {
-        return; // do nothing if telemetry ouptut buffer is not empty yet.
-    }
-
     static uint8_t crsfScheduleIndex = 0;
     const uint8_t currentSchedule = crsfSchedule[crsfScheduleIndex];
 
@@ -539,11 +481,6 @@ static void processCrsf(void)
         crsfFrameVarioSensor(dst);
         crsfFinalize(dst);
     }
-    if (currentSchedule & BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX)) {
-        crsfInitializeFrame(dst);
-        crsfBarometerAltitude(dst);
-        crsfFinalize(dst);
-    }
 #endif
     crsfScheduleIndex = (crsfScheduleIndex + 1) % crsfScheduleCount;
 }
@@ -576,11 +513,6 @@ void initCrsfTelemetry(void)
 #if defined(USE_BARO) || defined(USE_GPS)
     if (sensors(SENSOR_BARO) || (STATE(FIXED_WING_LEGACY) && feature(FEATURE_GPS))) {
         crsfSchedule[index++] = BV(CRSF_FRAME_VARIO_SENSOR_INDEX);
-    }
-#endif
-#ifdef USE_BARO
-    if (sensors(SENSOR_BARO)) {
-        crsfSchedule[index++] = BV(CRSF_FRAME_BAROMETER_ALTITUDE_INDEX);
     }
 #endif
     crsfScheduleCount = (uint8_t)index;

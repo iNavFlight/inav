@@ -100,14 +100,16 @@ void pinioInit(void)
     }
 }
 
-void pinioSet(int index, bool newState)
+void pinioSet(int index, bool on)
 {
+    const bool newState = on ^ pinioRuntime[index].inverted;
+
     if (!pinioRuntime[index].io) {
         return;
     }
 
     if (newState != pinioRuntime[index].state) {
-        IOWrite(pinioRuntime[index].io, newState ^ pinioRuntime[index].inverted);
+        IOWrite(pinioRuntime[index].io, newState);
         pinioRuntime[index].state = newState;
     }
 }

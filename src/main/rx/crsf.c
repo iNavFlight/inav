@@ -41,7 +41,7 @@
 #include "rx/crsf.h"
 
 #include "telemetry/crsf.h"
-#define CRSF_TIME_NEEDED_PER_FRAME_US   1750 // 700 ms + 400 ms for potential ad-hoc request
+#define CRSF_TIME_NEEDED_PER_FRAME_US   1100 // 700 ms + 400 ms for potential ad-hoc request
 #define CRSF_TIME_BETWEEN_FRAMES_US     6667 // At fastest, frames are sent by the transmitter every 6.667 milliseconds, 150 Hz
 
 #define CRSF_DIGITAL_CHANNEL_MIN 172
@@ -55,7 +55,7 @@ STATIC_UNIT_TESTED crsfFrame_t crsfFrame;
 STATIC_UNIT_TESTED uint32_t crsfChannelData[CRSF_MAX_CHANNEL];
 
 static serialPort_t *serialPort;
-static timeUs_t crsfFrameStartAtUs = 0;
+static timeUs_t crsfFrameStartAt = 0;
 static uint8_t telemetryBuf[CRSF_FRAME_SIZE_MAX];
 static uint8_t telemetryBufLen = 0;
 
@@ -141,20 +141,20 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
     UNUSED(rxCallbackData);
 
     static uint8_t crsfFramePosition = 0;
-    const timeUs_t currentTimeUs = microsISR();
+    const timeUs_t now = micros();
 
 #ifdef DEBUG_CRSF_PACKETS
     debug[2] = now - crsfFrameStartAt;
 #endif
 
-    if (cmpTimeUs(currentTimeUs, crsfFrameStartAtUs) > CRSF_TIME_NEEDED_PER_FRAME_US) {
+    if (now > crsfFrameStartAt + CRSF_TIME_NEEDED_PER_FRAME_US) {
         // We've received a character after max time needed to complete a frame,
         // so this must be the start of a new frame.
         crsfFramePosition = 0;
     }
 
     if (crsfFramePosition == 0) {
-        crsfFrameStartAtUs = currentTimeUs;
+        crsfFrameStartAt = now;
     }
     // assume frame is 5 bytes long until we have received the frame length
     // full frame length includes the length of the address and framelength fields
@@ -174,8 +174,8 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
                         case CRSF_FRAMETYPE_MSP_REQ:
                         case CRSF_FRAMETYPE_MSP_WRITE: {
                             uint8_t *frameStart = (uint8_t *)&crsfFrame.frame.payload + CRSF_FRAME_ORIGIN_DEST_SIZE;
-                            if (bufferCrsfMspFrame(frameStart, crsfFrame.frame.frameLength - 4)) {
-                                crsfScheduleMspResponse(crsfFrame.frame.payload[1]);
+                            if (bufferCrsfMspFrame(frameStart, CRSF_FRAME_RX_MSP_FRAME_SIZE)) {
+                                crsfScheduleMspResponse();
                             }
                             break;
                         }
@@ -289,7 +289,7 @@ void crsfRxSendTelemetryData(void)
         // check that we are not in bi dir mode or that we are not currently receiving data (ie in the middle of an RX frame)
         // and that there is time to send the telemetry frame before the next RX frame arrives
         if (CRSF_PORT_OPTIONS & SERIAL_BIDIR) {
-            const timeDelta_t timeSinceStartOfFrame = cmpTimeUs(micros(), crsfFrameStartAtUs);
+            const timeDelta_t timeSinceStartOfFrame = cmpTimeUs(micros(), crsfFrameStartAt);
             if ((timeSinceStartOfFrame < CRSF_TIME_NEEDED_PER_FRAME_US) ||
                 (timeSinceStartOfFrame > CRSF_TIME_BETWEEN_FRAMES_US - CRSF_TIME_NEEDED_PER_FRAME_US)) {
                 return;
@@ -298,11 +298,6 @@ void crsfRxSendTelemetryData(void)
         serialWriteBuf(serialPort, telemetryBuf, telemetryBufLen);
         telemetryBufLen = 0; // reset telemetry buffer
     }
-}
-
-bool crsfRxIsTelemetryBufEmpty(void)
-{
-    return telemetryBufLen == 0;
 }
 
 bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
@@ -336,24 +331,4 @@ bool crsfRxIsActive(void)
 {
     return serialPort != NULL;
 }
-
-
-void crsfBind(void)
-{
-    if (serialPort != NULL) {
-        uint8_t bindFrame[] = {
-            CRSF_SYNC_BYTE,
-            0x07,  // frame length
-            CRSF_FRAMETYPE_COMMAND,
-            CRSF_ADDRESS_CRSF_RECEIVER,
-            CRSF_ADDRESS_FLIGHT_CONTROLLER,
-            CRSF_COMMAND_SUBCMD_RX,
-            CRSF_COMMAND_SUBCMD_RX_BIND,
-            0x9E,  // Command CRC8
-            0xE8,  // Packet CRC8
-        };
-        serialWriteBuf(serialPort, bindFrame, 9);
-    }
-}
-
 #endif

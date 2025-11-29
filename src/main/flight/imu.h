@@ -25,7 +25,6 @@
 #include "config/parameter_group.h"
 
 extern fpVector3_t imuMeasuredAccelBF;         // cm/s/s
-extern fpVector3_t imuMeasuredAccelBFFiltered; // cm/s/s
 extern fpVector3_t imuMeasuredRotationBF;       // rad/s
 extern fpVector3_t imuMeasuredRotationBFFiltered;       // rad/s
 extern fpVector3_t compansatedGravityBF;         // cm/s/s

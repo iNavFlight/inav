@@ -98,7 +98,7 @@ typedef struct {
     bool                requestTelemetry;
 } pwmOutputMotor_t;
 
-static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUTS];
+static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUT_PORTS];
 
 static pwmOutputMotor_t        motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
@@ -142,7 +142,7 @@ static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uin
 
 static pwmOutputPort_t *pwmOutAllocatePort(void)
 {
-    if (allocatedOutputPortCount >= MAX_PWM_OUTPUTS) {
+    if (allocatedOutputPortCount >= MAX_PWM_OUTPUT_PORTS) {
         LOG_ERROR(PWM, "Attempt to allocate PWM output beyond MAX_PWM_OUTPUT_PORTS");
         return NULL;
     }
@@ -172,8 +172,6 @@ static pwmOutputPort_t *pwmOutConfig(const timerHardware_t *timHw, resourceOwner
     const IO_t io = IOGetByTag(timHw->tag);
     IOInit(io, owner, RESOURCE_OUTPUT, allocatedOutputPortCount);
 
-    pwmOutConfigTimer(p, tch, hz, period, value);
-
     if (enableOutput) {
         IOConfigGPIOAF(io, IOCFG_AF_PP, timHw->alternateFunction);
     }
@@ -183,6 +181,7 @@ static pwmOutputPort_t *pwmOutConfig(const timerHardware_t *timHw, resourceOwner
         IOLo(io);
     }
 
+    pwmOutConfigTimer(p, tch, hz, period, value);
     return p;
 }
 
@@ -638,7 +637,7 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
 
 static void pwmServoWriteStandard(uint8_t index, uint16_t value)
 {
-    if (index < MAX_SERVOS && servos[index]) {
+    if (servos[index]) {
         *servos[index]->ccr = value;
     }
 }

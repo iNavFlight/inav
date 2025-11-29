@@ -107,7 +107,6 @@ typedef enum {
     DEVHW_IST8310_1,
     DEVHW_IST8308,
     DEVHW_QMC5883,
-    DEVHW_QMC5883P,
     DEVHW_MAG3110,
     DEVHW_LIS3MDL,
     DEVHW_RM3100,
@@ -136,13 +135,12 @@ typedef enum {
     DEVHW_VL53L1X,
     DEVHW_US42,
     DEVHW_TOF10120_I2C,
-    DEVHW_TERARANGER_EVO_I2C,
 
     /* Other hardware */
     DEVHW_MS4525,       // Pitot meter
     DEVHW_DLVR,         // Pitot meter
     DEVHW_M25P16,       // SPI NOR flash
-    DEVHW_W25N,         // SPI 128MB or 256MB flash from Winbond W25N family
+    DEVHW_W25N01G,      // SPI 128MB flash
     DEVHW_UG2864,       // I2C OLED display
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware

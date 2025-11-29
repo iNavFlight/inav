@@ -48,7 +48,7 @@
 #include "drivers/pwm_output.h"
 
 #include "fc/config.h"
-#include "fc/control_profile.h"
+#include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
@@ -99,18 +99,16 @@
 #define BLACKBOX_INVERTED_CARD_DETECTION 0
 #endif
 
-PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 4);
+PG_REGISTER_WITH_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig, PG_BLACKBOX_CONFIG, 2);
 
 PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .device = DEFAULT_BLACKBOX_DEVICE,
     .rate_num = SETTING_BLACKBOX_RATE_NUM_DEFAULT,
     .rate_denom = SETTING_BLACKBOX_RATE_DENOM_DEFAULT,
     .invertedCardDetection = BLACKBOX_INVERTED_CARD_DETECTION,
-    .arm_control = SETTING_BLACKBOX_ARM_CONTROL_DEFAULT,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
-        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
-        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS,
+        BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND | BLACKBOX_FEATURE_MOTORS,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -336,43 +334,22 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"motor",       7, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_8)},
 
     /* servos */
-    {"servo",       0, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_1)},
-    {"servo",       1, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_2)},
-    {"servo",       2, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_3)},
-    {"servo",       3, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_4)},
-    {"servo",       4, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_5)},
-    {"servo",       5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_6)},
-    {"servo",       6, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_7)},
-    {"servo",       7, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_8)},
-    {"servo",       8, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_9)},
-    {"servo",       9, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_10)},
-    {"servo",       10, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_11)},
-    {"servo",       11, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_12)},
-    {"servo",       12, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_13)},
-    {"servo",       13, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_14)},
-    {"servo",       14, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_15)},
-    {"servo",       15, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_16)},
-    {"servo",       16, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_17)},
-    {"servo",       17, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_18)},
-    {"servo",       18, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_19)},
-    {"servo",       19, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_20)},
-    {"servo",       20, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_21)},
-    {"servo",       21, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_22)},
-    {"servo",       22, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_23)},
-    {"servo",       23, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_24)},
-    {"servo",       24, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_25)},
-    {"servo",       25, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_26)},
-    /*
-    {"servo",       26, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_27)},
-    {"servo",       27, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_28)},
-    {"servo",       27, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_29)},
-    {"servo",       28, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_30)},
-    {"servo",       29, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_31)},
-    {"servo",       30, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_32)},
-    {"servo",       31, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_33)},
-    {"servo",       32, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_34)},
-    {"servo",       33, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_35)},
-    */
+    {"servo",       0, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       1, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       2, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       3, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       4, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       5, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       6, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       7, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       8, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       9, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       10, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       11, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       12, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       13, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       14, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
+    {"servo",       15, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(SERVOS)},
 
     {"navState",  -1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"navFlags",  -1, UNSIGNED, .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS),      .Pencode = ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
@@ -425,21 +402,12 @@ static const blackboxSimpleFieldDefinition_t blackboxGpsHFields[] = {
 
 // Rarely-updated fields
 static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
-    /* "flightModeFlags" renamed internally to more correct ref of rcModeFlags, since it logs rc boxmode selections,
-     * but name kept for external compatibility reasons.
-     * "activeFlightModeFlags" logs actual active flight modes rather than rc boxmodes.
-     * 'active' should at least distinguish it from the existing "flightModeFlags" */
-
-    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"activeFlightModeFlags", -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 
     {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
     {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
     {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
 
     {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
@@ -468,7 +436,24 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
     {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
 #endif
+    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
+    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 };
+
+typedef enum BlackboxState {
+    BLACKBOX_STATE_DISABLED = 0,
+    BLACKBOX_STATE_STOPPED,
+    BLACKBOX_STATE_PREPARE_LOG_FILE,
+    BLACKBOX_STATE_SEND_HEADER,
+    BLACKBOX_STATE_SEND_MAIN_FIELD_HEADER,
+    BLACKBOX_STATE_SEND_GPS_H_HEADER,
+    BLACKBOX_STATE_SEND_GPS_G_HEADER,
+    BLACKBOX_STATE_SEND_SLOW_HEADER,
+    BLACKBOX_STATE_SEND_SYSINFO,
+    BLACKBOX_STATE_PAUSED,
+    BLACKBOX_STATE_RUNNING,
+    BLACKBOX_STATE_SHUTTING_DOWN
+} BlackboxState;
 
 #define BLACKBOX_FIRST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_HEADER
 #define BLACKBOX_LAST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_SYSINFO
@@ -548,9 +533,7 @@ typedef struct blackboxGpsState_s {
 
 // This data is updated really infrequently:
 typedef struct blackboxSlowState_s {
-    uint32_t rcModeFlags;
-    uint32_t rcModeFlags2;
-    uint32_t activeFlightModeFlags;
+    uint32_t flightModeFlags; // extend this data size (from uint16_t)
     uint32_t stateFlags;
     uint8_t failsafePhase;
     bool rxSignalReceived;
@@ -583,7 +566,7 @@ extern boxBitmask_t rcModeActivationMask;
 static BlackboxState blackboxState = BLACKBOX_STATE_DISABLED;
 
 static uint32_t blackboxLastArmingBeep = 0;
-static uint32_t blackboxLastRcModeFlags = 0;
+static uint32_t blackboxLastFlightModeFlags = 0;
 
 static struct {
     uint32_t headerIndex;
@@ -660,45 +643,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return (getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
 
     case FLIGHT_LOG_FIELD_CONDITION_SERVOS:
-        return blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS) && isMixerUsingServos();
-
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_2:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_3:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_4:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_5:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_6:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_7:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_8:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_9:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_10:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_11:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_12:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_13:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_14:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_15:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_16:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_17:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_18:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_19:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_20:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_21:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_22:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_23:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_24:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_25:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_26:
-    /*
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_27:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_28:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_29:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_30:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_31:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_32:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_33:
-    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_34:
-    */
-	return ((FlightLogFieldCondition)getServoCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_SERVOS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_SERVOS);
+        return isMixerUsingServos();
 
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_0:
     case FLIGHT_LOG_FIELD_CONDITION_NONZERO_PID_D_1:
@@ -999,8 +944,7 @@ static void writeIntraframe(void)
     }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
-        const int servoCount = getServoCount();
-        for (int x = 0; x < servoCount; x++) {
+        for (int x = 0; x < MAX_SUPPORTED_SERVOS; x++) {
             //Assume that servos spends most of its time around the center
             blackboxWriteSignedVB(blackboxCurrent->servo[x] - 1500);
         }
@@ -1259,7 +1203,7 @@ static void writeInterframe(void)
     }
 
     if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_SERVOS)) {
-        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     getServoCount());
+        blackboxWriteArrayUsingAveragePredictor16(offsetof(blackboxMainState_t, servo),     MAX_SUPPORTED_SERVOS);
     }
 
     blackboxWriteSignedVB(blackboxCurrent->navState - blackboxLast->navState);
@@ -1316,10 +1260,7 @@ static void writeSlowFrame(void)
 
     blackboxWrite('S');
 
-    blackboxWriteUnsignedVB(slowHistory.activeWpNumber);
-    blackboxWriteUnsignedVB(slowHistory.rcModeFlags);
-    blackboxWriteUnsignedVB(slowHistory.rcModeFlags2);
-    blackboxWriteUnsignedVB(slowHistory.activeFlightModeFlags);
+    blackboxWriteUnsignedVB(slowHistory.flightModeFlags);
     blackboxWriteUnsignedVB(slowHistory.stateFlags);
 
     /*
@@ -1329,8 +1270,6 @@ static void writeSlowFrame(void)
     values[1] = slowHistory.rxSignalReceived ? 1 : 0;
     values[2] = slowHistory.rxFlightChannelsValid ? 1 : 0;
     blackboxWriteTag2_3S32(values);
-
-    blackboxWriteUnsignedVB(slowHistory.rxUpdateRate);
 
     blackboxWriteUnsignedVB(slowHistory.hwHealthStatus);
 
@@ -1357,6 +1296,8 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
+    blackboxWriteUnsignedVB(slowHistory.rxUpdateRate);
+    blackboxWriteUnsignedVB(slowHistory.activeWpNumber);
 
     blackboxSlowFrameIterationTimer = 0;
 }
@@ -1366,21 +1307,27 @@ static void writeSlowFrame(void)
  */
 static void loadSlowState(blackboxSlowState_t *slow)
 {
-    slow->activeWpNumber = getActiveWpNumber();
-
-    slow->rcModeFlags = rcModeActivationMask.bits[0];   // first 32 bits of boxId_e
-    slow->rcModeFlags2 = rcModeActivationMask.bits[1];  // remaining bits of boxId_e
-
+    memcpy(&slow->flightModeFlags, &rcModeActivationMask, sizeof(slow->flightModeFlags)); //was flightModeFlags;
     // Also log Nav auto enabled flight modes rather than just those selected by boxmode
-    if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {
-        slow->rcModeFlags |= (1 << BOXHEADINGHOLD);
+    if (FLIGHT_MODE(ANGLE_MODE)) {
+        slow->flightModeFlags |= (1 << BOXANGLE);
     }
-    slow->activeFlightModeFlags = flightModeFlags;
+    if (FLIGHT_MODE(NAV_ALTHOLD_MODE)) {
+        slow->flightModeFlags |= (1 << BOXNAVALTHOLD);
+    }
+    if (FLIGHT_MODE(NAV_RTH_MODE)) {
+        slow->flightModeFlags |= (1 << BOXNAVRTH);
+    }
+    if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {
+        slow->flightModeFlags |= (1 << BOXHEADINGHOLD);
+    }
+    if (navigationRequiresTurnAssistance()) {
+        slow->flightModeFlags |= (1 << BOXTURNASSIST);
+    }
     slow->stateFlags = stateFlags;
     slow->failsafePhase = failsafePhase();
     slow->rxSignalReceived = rxIsReceivingSignal();
     slow->rxFlightChannelsValid = rxAreFlightChannelsValid();
-    slow->rxUpdateRate = getRcUpdateFrequency();
     slow->hwHealthStatus = (getHwGyroStatus()           << 2 * 0) |     // Pack hardware health status into a bit field.
                            (getHwAccelerometerStatus()  << 2 * 1) |     // Use raw hardwareSensorStatus_e values and pack them using 2 bits per value
                            (getHwCompassStatus()        << 2 * 2) |     // Report GYRO in 2 lowest bits, then ACC, COMPASS, BARO, GPS, RANGEFINDER and PITOT
@@ -1432,6 +1379,9 @@ static void loadSlowState(blackboxSlowState_t *slow)
     slow->escRPM = escSensor->rpm;
     slow->escTemperature = escSensor->temperature;
 #endif
+
+    slow->rxUpdateRate = getRcUpdateFrequency();
+    slow->activeWpNumber = getActiveWpNumber();
 }
 
 /**
@@ -1489,9 +1439,6 @@ static void blackboxValidateConfig(void)
 #endif
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-#endif
-#if defined(SITL_BUILD)
-    case BLACKBOX_DEVICE_FILE:
 #endif
     case BLACKBOX_DEVICE_SERIAL:
         // Device supported, leave the setting alone
@@ -1551,7 +1498,7 @@ void blackboxStart(void)
      * it finally plays the beep for this arming event.
      */
     blackboxLastArmingBeep = getArmingBeepTimeMicros();
-    memcpy(&blackboxLastRcModeFlags, &rcModeActivationMask, sizeof(blackboxLastRcModeFlags)); // record startup status
+    memcpy(&blackboxLastFlightModeFlags, &rcModeActivationMask, sizeof(blackboxLastFlightModeFlags)); // record startup status
 
     blackboxSetState(BLACKBOX_STATE_PREPARE_LOG_FILE);
 }
@@ -1727,10 +1674,8 @@ static void loadMainState(timeUs_t currentTimeUs)
 
     blackboxCurrent->rssi = getRSSI();
 
-    const uint8_t minServoIndex = getMinServoIndex();
-    const int servoCount = getServoCount();
-    for (int i = 0; i < servoCount; i++) {
-        blackboxCurrent->servo[i] = servo[i + minServoIndex];
+    for (int i = 0; i < MAX_SUPPORTED_SERVOS; i++) {
+        blackboxCurrent->servo[i] = servo[i];
     }
 
     blackboxCurrent->navState = navCurrentState;
@@ -1905,9 +1850,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("Craft name", "%s",                      systemConfig()->craftName);
         BLACKBOX_PRINT_HEADER_LINE("P interval", "%u/%u",                   blackboxConfig()->rate_num, blackboxConfig()->rate_denom);
         BLACKBOX_PRINT_HEADER_LINE("minthrottle", "%d",                     getThrottleIdleValue());
-        BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     getMaxThrottle());
+        BLACKBOX_PRINT_HEADER_LINE("maxthrottle", "%d",                     motorConfig()->maxthrottle);
         BLACKBOX_PRINT_HEADER_LINE("gyro_scale", "0x%x",                    castFloatBytesToInt(1.0f));
-        BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  getThrottleIdleValue(),getMaxThrottle());
+        BLACKBOX_PRINT_HEADER_LINE("motorOutput", "%d,%d",                  getThrottleIdleValue(),motorConfig()->maxthrottle);
         BLACKBOX_PRINT_HEADER_LINE("acc_1G", "%u",                          acc.dev.acc_1G);
 
 #ifdef USE_ADC
@@ -1934,15 +1879,15 @@ static bool blackboxWriteSysinfo(void)
 
         BLACKBOX_PRINT_HEADER_LINE("looptime", "%d",                        getLooptime());
         BLACKBOX_PRINT_HEADER_LINE("rc_rate", "%d",                         100); //For compatibility reasons write rc_rate 100
-        BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlProfile->stabilized.rcExpo8);
-        BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlProfile->stabilized.rcYawExpo8);
-        BLACKBOX_PRINT_HEADER_LINE("thr_mid", "%d",                         currentControlProfile->throttle.rcMid8);
-        BLACKBOX_PRINT_HEADER_LINE("thr_expo", "%d",                        currentControlProfile->throttle.rcExpo8);
-        BLACKBOX_PRINT_HEADER_LINE("tpa_rate", "%d",                        currentControlProfile->throttle.dynPID);
-        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlProfile->throttle.pa_breakpoint);
-        BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlProfile->stabilized.rates[ROLL],
-                                                                            currentControlProfile->stabilized.rates[PITCH],
-                                                                            currentControlProfile->stabilized.rates[YAW]);
+        BLACKBOX_PRINT_HEADER_LINE("rc_expo", "%d",                         currentControlRateProfile->stabilized.rcExpo8);
+        BLACKBOX_PRINT_HEADER_LINE("rc_yaw_expo", "%d",                     currentControlRateProfile->stabilized.rcYawExpo8);
+        BLACKBOX_PRINT_HEADER_LINE("thr_mid", "%d",                         currentControlRateProfile->throttle.rcMid8);
+        BLACKBOX_PRINT_HEADER_LINE("thr_expo", "%d",                        currentControlRateProfile->throttle.rcExpo8);
+        BLACKBOX_PRINT_HEADER_LINE("tpa_rate", "%d",                        currentControlRateProfile->throttle.dynPID);
+        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlRateProfile->throttle.pa_breakpoint);
+        BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlRateProfile->stabilized.rates[ROLL],
+                                                                            currentControlRateProfile->stabilized.rates[PITCH],
+                                                                            currentControlRateProfile->stabilized.rates[YAW]);
         BLACKBOX_PRINT_HEADER_LINE("rollPID", "%d,%d,%d,%d",                pidBank()->pid[PID_ROLL].P,
                                                                             pidBank()->pid[PID_ROLL].I,
                                                                             pidBank()->pid[PID_ROLL].D,
@@ -1976,8 +1921,9 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_type", "%d",                  pidProfile()->dterm_lpf_type);
         BLACKBOX_PRINT_HEADER_LINE("deadband", "%d",                        rcControlsConfig()->deadband);
         BLACKBOX_PRINT_HEADER_LINE("yaw_deadband", "%d",                    rcControlsConfig()->yaw_deadband);
-        BLACKBOX_PRINT_HEADER_LINE("gyro_lpf", "%d",                        GYRO_LPF_256HZ);
+        BLACKBOX_PRINT_HEADER_LINE("gyro_lpf", "%d",                        gyroConfig()->gyro_lpf);
         BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_hz", "%d",                     gyroConfig()->gyro_main_lpf_hz);
+        BLACKBOX_PRINT_HEADER_LINE("gyro_lpf_type", "%d",                   gyroConfig()->gyro_main_lpf_type);
 #ifdef USE_DYNAMIC_FILTERS
         BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchQ", "%d",               gyroConfig()->dynamicGyroNotchQ);
         BLACKBOX_PRINT_HEADER_LINE("dynamicGyroNotchMinHz", "%d",           gyroConfig()->dynamicGyroNotchMinHz);
@@ -2000,6 +1946,8 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
         BLACKBOX_PRINT_HEADER_LINE("acc_notch_hz", "%d",                    accelerometerConfig()->acc_notch_hz);
         BLACKBOX_PRINT_HEADER_LINE("acc_notch_cutoff", "%d",                accelerometerConfig()->acc_notch_cutoff);
+        BLACKBOX_PRINT_HEADER_LINE("pidSumLimit", "%d",                     pidProfile()->pidSumLimit);
+        BLACKBOX_PRINT_HEADER_LINE("pidSumLimitYaw", "%d",                  pidProfile()->pidSumLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitYaw", "%d",        pidProfile()->axisAccelerationLimitYaw);
         BLACKBOX_PRINT_HEADER_LINE("axisAccelerationLimitRollPitch", "%d",  pidProfile()->axisAccelerationLimitRollPitch);
 #ifdef USE_RPM_FILTER
@@ -2078,10 +2026,10 @@ static void blackboxCheckAndLogArmingBeep(void)
 static void blackboxCheckAndLogFlightMode(void)
 {
     // Use != so that we can still detect a change if the counter wraps
-    if (memcmp(&rcModeActivationMask, &blackboxLastRcModeFlags, sizeof(blackboxLastRcModeFlags))) {
+    if (memcmp(&rcModeActivationMask, &blackboxLastFlightModeFlags, sizeof(blackboxLastFlightModeFlags))) {
         flightLogEvent_flightMode_t eventData; // Add new data for current flight mode flags
-        eventData.lastFlags = blackboxLastRcModeFlags;
-        memcpy(&blackboxLastRcModeFlags, &rcModeActivationMask, sizeof(blackboxLastRcModeFlags));
+        eventData.lastFlags = blackboxLastFlightModeFlags;
+        memcpy(&blackboxLastFlightModeFlags, &rcModeActivationMask, sizeof(blackboxLastFlightModeFlags));
         memcpy(&eventData.flags, &rcModeActivationMask, sizeof(eventData.flags));
         blackboxLogEvent(FLIGHT_LOG_EVENT_FLIGHTMODE, (flightLogEventData_t *)&eventData);
     }
@@ -2309,11 +2257,6 @@ void blackboxUpdate(timeUs_t currentTimeUs)
 static bool canUseBlackboxWithCurrentConfiguration(void)
 {
     return feature(FEATURE_BLACKBOX);
-}
-
-BlackboxState getBlackboxState(void)
-{
-    return blackboxState;
 }
 
 /**

@@ -1,3 +1,2 @@
 target_stm32f405xg(SKYSTARSF405HD)
 target_stm32f405xg(SKYSTARSF405HD2)
-target_stm32f405xg(SKYSTARSF405AIO)

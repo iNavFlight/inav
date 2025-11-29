@@ -108,8 +108,7 @@
 #define USE_BARO_DPS310
 
 #define USE_MAG
-#define USE_MAG_ALL
-
+#define USE_MAG_QMC5883
 #endif
 
 #if defined ZEEZF7V2 ||  defined ZEEZF7V3

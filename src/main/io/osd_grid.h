@@ -28,7 +28,6 @@
 
 typedef struct displayPort_s displayPort_t;
 
-void osdGridDrawThrottleGauge(displayPort_t *display, unsigned gx, unsigned gy, uint8_t thrPos);
 void osdGridDrawVario(displayPort_t *display, unsigned gx, unsigned gy, float zvel);
 void osdGridDrawDirArrow(displayPort_t *display, unsigned gx, unsigned gy, float degrees);
 void osdGridDrawArtificialHorizon(displayPort_t *display, unsigned gx, unsigned gy, float pitchAngle, float rollAngle);

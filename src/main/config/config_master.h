@@ -32,6 +32,7 @@
 #include "io/ledstrip.h"
 
 
+
 // System-wide
 typedef struct master_s {
     uint8_t version;

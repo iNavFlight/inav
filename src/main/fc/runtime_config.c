@@ -33,8 +33,8 @@ static EXTENDED_FASTRAM uint32_t enabledSensors = 0;
 
 #if !defined(CLI_MINIMAL_VERBOSITY)
 const char *armingDisableFlagNames[]= {
-    "GEOZONE", "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
-    "ACC", "ARMSW", "HWFAIL", "BOXFS", "PLACEHOLDER", "RX",
+    "FS", "ANGLE", "CAL", "OVRLD", "NAV", "COMPASS",
+    "ACC", "ARMSW", "HWFAIL", "BOXFS", "KILLSW", "RX",
     "THR", "CLI", "CMS", "OSD", "ROLL/PITCH", "AUTOTRIM", "OOM",
     "SETTINGFAIL", "PWMOUT", "NOPREARM", "DSHOTBEEPER", "LANDED"
 };
@@ -50,6 +50,7 @@ const armingFlag_e armDisableReasonsChecklist[] = {
     ARMING_DISABLED_NAVIGATION_UNSAFE,
     ARMING_DISABLED_ARM_SWITCH,
     ARMING_DISABLED_BOXFAILSAFE,
+    ARMING_DISABLED_BOXKILLSWITCH,
     ARMING_DISABLED_THROTTLE,
     ARMING_DISABLED_CLI,
     ARMING_DISABLED_CMS_MENU,

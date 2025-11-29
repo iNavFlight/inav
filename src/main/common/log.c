@@ -20,12 +20,11 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#if defined(SEMIHOSTING) || defined(SITL_BUILD)
+#if defined(SEMIHOSTING)
 #include <stdio.h>
 #endif
 
 #include "build/version.h"
-#include "build/debug.h"
 
 #include "drivers/serial.h"
 #include "drivers/time.h"
@@ -60,11 +59,6 @@ PG_RESET_TEMPLATE(logConfig_t, logConfig,
     .level = SETTING_LOG_LEVEL_DEFAULT,
     .topics = SETTING_LOG_TOPICS_DEFAULT
 );
-
-#if defined(USE_BOOTLOG)
-char bootlog_buffer[USE_BOOTLOG];
-char *bootlog_head = bootlog_buffer;
-#endif
 
 void logInit(void)
 {
@@ -131,7 +125,6 @@ static void logPrint(const char *buf, size_t size)
         fputc(buf[ii], stdout);
     }
 #endif
-    SD(printf("%s\n", buf));
     if (logPort) {
         // Send data via UART (if configured & connected - a safeguard against zombie VCP)
         if (serialIsConnected(logPort)) {
@@ -140,18 +133,6 @@ static void logPrint(const char *buf, size_t size)
     } else if (mspLogPort) {
         mspSerialPushPort(MSP_DEBUGMSG, (uint8_t*)buf, size, mspLogPort, MSP_V2_NATIVE);
     }
-
-#ifdef USE_BOOTLOG
-    if ( (bootlog_head + size + 2) < (bootlog_buffer + USE_BOOTLOG) ) {
-        for (unsigned int ii = 0; ii < size; ii++) {
-		    *bootlog_head = buf[ii];
-			bootlog_head++;
-        }
-		bootlog_head[0] = '\r';
-		bootlog_head[1] = '\n';
-		bootlog_head =  bootlog_head + 2;
-	}
-#endif
 }
 
 static size_t logFormatPrefix(char *buf, const timeMs_t timeMs)

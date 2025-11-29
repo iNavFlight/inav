@@ -23,7 +23,6 @@
 #include "io/serial.h"
 #include "rx/rx.h"
 #include "drivers/pwm_mapping.h"
-#include "sensors/boardalignment.h"
 
 void targetConfiguration(void)
 {
@@ -31,9 +30,4 @@ void targetConfiguration(void)
 
     // To improve backwards compatibility with INAV versions 6.x and older
     timerOverridesMutable(timer2id(TIM2))->outputMode = OUTPUT_MODE_MOTORS;
-
-#if defined(SKYSTARSF405AIO)
-    boardAlignmentMutable()->yawDeciDegrees = 450;
-#endif
-
 }

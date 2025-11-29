@@ -49,6 +49,7 @@ typedef enum {
     BOXAIRMODE       = 20,
     BOXHOMERESET     = 21,
     BOXGCSNAV        = 22,
+    BOXKILLSWITCH    = 23,   // old HEADING LOCK
     BOXSURFACE       = 24,
     BOXFLAPERON      = 25,
     BOXTURNASSIST    = 26,
@@ -78,13 +79,9 @@ typedef enum {
     BOXCHANGEMISSION = 50,
     BOXBEEPERMUTE    = 51,
     BOXMULTIFUNCTION = 52,
-    BOXMIXERPROFILE  = 53,
-    BOXMIXERTRANSITION = 54,
+    BOXMIXERPROFILE      = 53,
+    BOXMIXERTRANSITION   = 54,
     BOXANGLEHOLD     = 55,
-    BOXGIMBALTLOCK   = 56,
-    BOXGIMBALRLOCK   = 57,
-    BOXGIMBALCENTER  = 58,
-    BOXGIMBALHTRK    = 59,
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
@@ -144,4 +141,3 @@ bool isRangeActive(uint8_t auxChannelIndex, const channelRange_t *range);
 
 void updateActivatedModes(void);
 void updateUsedModeActivationConditionFlags(void);
-bool isFwAutoModeActive(boxId_e mode);

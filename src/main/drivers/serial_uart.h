@@ -50,8 +50,7 @@ typedef enum {
     UARTDEV_5 = 4,
     UARTDEV_6 = 5,
     UARTDEV_7 = 6,
-    UARTDEV_8 = 7,
-    UARTDEV_MAX
+    UARTDEV_8 = 7
 } UARTDevice_e;
 
 typedef struct {
@@ -70,7 +69,6 @@ typedef struct {
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);
 void uartClearIdleFlag(uartPort_t *s);
-void uartConfigurePinSwap(uartPort_t *uartPort);
 #if defined(AT32F43x) 
 serialPort_t *uartOpen(usart_type *USARTx, serialReceiveCallbackPtr rxCallback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options);
 #else

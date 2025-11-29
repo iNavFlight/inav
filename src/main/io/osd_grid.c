@@ -56,38 +56,6 @@ typedef struct osd_sidebar_s {
     uint8_t idle;
 } osd_sidebar_t;
 
-void osdGridDrawThrottleGauge(displayPort_t *display, unsigned gx, unsigned gy, uint8_t thrPos)
-{
-    uint16_t thrChars[] = {SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY, SYM_THR_GAUGE_EMPTY};
-
-    if (thrPos >= 100)
-        thrChars[0] = SYM_THR_GAUGE_FULL;
-    else if (thrPos >= 90)
-        thrChars[0] = SYM_THR_GAUGE_HALF;
-    if (thrPos >= 80)
-        thrChars[1] = SYM_THR_GAUGE_FULL;
-    else if (thrPos >= 70)
-        thrChars[1] = SYM_THR_GAUGE_HALF;
-    if (thrPos >= 60)
-        thrChars[2] = SYM_THR_GAUGE_FULL;
-    else if (thrPos >= 50)
-        thrChars[2] = SYM_THR_GAUGE_HALF;
-    if (thrPos >= 40)
-        thrChars[3] = SYM_THR_GAUGE_FULL;
-    else if (thrPos >= 30)
-        thrChars[3] = SYM_THR_GAUGE_HALF;
-    if (thrPos >= 20)
-        thrChars[4] = SYM_THR_GAUGE_FULL;
-    else if (thrPos >= 10)
-        thrChars[4] = SYM_THR_GAUGE_HALF;
-
-    displayWriteChar(display, gx, gy, thrChars[0]);
-    displayWriteChar(display, gx, gy + 1, thrChars[1]);
-    displayWriteChar(display, gx, gy + 2, thrChars[2]);
-    displayWriteChar(display, gx, gy + 3, thrChars[3]);
-    displayWriteChar(display, gx, gy + 4, thrChars[4]);
-}
-
 void osdGridDrawVario(displayPort_t *display, unsigned gx, unsigned gy, float zvel)
 {
     int v = zvel / OSD_VARIO_CM_S_PER_ARROW;
@@ -347,16 +315,16 @@ void osdGridDrawSidebars(displayPort_t *display)
     // Arrows
     if (osdConfig()->sidebar_scroll_arrows) {
         displayWriteChar(display, elemPosX - hudwidth, elemPosY - hudheight - 1,
-            left.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DECORATION_UP : SYM_BLANK);
+            left.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DIRECTION_UP : SYM_BLANK);
 
         displayWriteChar(display, elemPosX + hudwidth, elemPosY - hudheight - 1,
-            right.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DECORATION_UP : SYM_BLANK);
+            right.arrow == OSD_SIDEBAR_ARROW_UP ? SYM_AH_DIRECTION_UP : SYM_BLANK);
 
         displayWriteChar(display, elemPosX - hudwidth, elemPosY + hudheight + 1,
-            left.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DECORATION_DOWN : SYM_BLANK);
+            left.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DIRECTION_DOWN : SYM_BLANK);
 
         displayWriteChar(display, elemPosX + hudwidth, elemPosY + hudheight + 1,
-            right.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DECORATION_DOWN : SYM_BLANK);
+            right.arrow == OSD_SIDEBAR_ARROW_DOWN ? SYM_AH_DIRECTION_DOWN : SYM_BLANK);
     }
 
     // Draw AH sides

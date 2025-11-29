@@ -32,11 +32,9 @@
 #include "fc/settings.h"
 #include "flight/pid.h"
 #include "sensors/gyro.h"
-#include "fc/control_profile.h"
+#include "fc/controlrate_profile.h"
 
-#include "rx/rx.h"
-
-PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 1);
+PG_REGISTER_PROFILE_WITH_RESET_TEMPLATE(ezTuneSettings_t, ezTune, PG_EZ_TUNE, 0);
 
 PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
     .enabled = SETTING_EZ_ENABLED_DEFAULT,
@@ -48,7 +46,6 @@ PG_RESET_TEMPLATE(ezTuneSettings_t, ezTune,
     .aggressiveness = SETTING_EZ_AGGRESSIVENESS_DEFAULT,
     .rate = SETTING_EZ_RATE_DEFAULT,
     .expo = SETTING_EZ_EXPO_DEFAULT,
-    .snappiness = SETTING_EZ_SNAPPINESS_DEFAULT,
 );
 
 #define EZ_TUNE_PID_RP_DEFAULT { 40, 75, 23, 100 }
@@ -73,9 +70,6 @@ static float getYawPidScale(float input) {
 void ezTuneUpdate(void) {
     if (ezTune()->enabled) {
 
-        //Enforce RC auto smoothing
-        rxConfigMutable()->autoSmooth = 1;
-
         // Setup filtering
         //Set Dterm LPF
         pidProfileMutable()->dterm_lpf_hz = MAX(ezTune()->filterHz - 5, 50);
@@ -83,9 +77,11 @@ void ezTuneUpdate(void) {
 
         //Set main gyro filter
         gyroConfigMutable()->gyro_main_lpf_hz = ezTune()->filterHz;
+        gyroConfigMutable()->gyro_main_lpf_type = FILTER_PT1;
 
         //Set anti-aliasing filter
         gyroConfigMutable()->gyro_anti_aliasing_lpf_hz = SETTING_GYRO_ANTI_ALIASING_LPF_HZ_DEFAULT;
+        gyroConfigMutable()->gyro_anti_aliasing_lpf_type = FILTER_PT1;
 
         //Enable Smith predictor
         pidProfileMutable()->smithPredictorDelay = computePt1FilterDelayMs(ezTune()->filterHz);
@@ -109,7 +105,7 @@ void ezTuneUpdate(void) {
 #endif
 
         //Disable dynamic LPF
-        gyroConfigMutable()->gyroFilterMode = GYRO_FILTER_MODE_STATIC;
+        gyroConfigMutable()->useDynamicLpf = 0;
 
         //Setup PID controller
 
@@ -136,15 +132,12 @@ void ezTuneUpdate(void) {
         pidProfileMutable()->bank_mc.pid[PID_YAW].FF = pidDefaultsYaw[3] * getYawPidScale(ezTune()->aggressiveness);
 
         //Setup rates
-        ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_ROLL] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
-        ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_PITCH] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
-        ((controlConfig_t*)currentControlProfile)->stabilized.rates[FD_YAW] = scaleRange(ezTune()->rate, 0, 200, 30, 90) - 10;
+        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_ROLL] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
+        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_PITCH] = scaleRange(ezTune()->rate, 0, 200, 30, 90);
+        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rates[FD_YAW] = scaleRange(ezTune()->rate, 0, 200, 30, 90) - 10;
 
-        ((controlConfig_t*)currentControlProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
-        ((controlConfig_t*)currentControlProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
-
-        //D-Boost snappiness
-        pidProfileMutable()->dBoostMin = scaleRangef(ezTune()->snappiness, 0, 100, 1.0f, 0.0f);
+        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
+        ((controlRateConfig_t*)currentControlRateProfile)->stabilized.rcYawExpo8 = scaleRange(ezTune()->rate, 0, 200, 40, 100);
 
     }
 }

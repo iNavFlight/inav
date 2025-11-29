@@ -18,9 +18,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-
+#include "sensors/rangefinder.h"
 #include <string.h>
-
+#include "rx/external_pwm.h"
 #include "platform.h"
 
 #include "build/build_config.h"
@@ -66,7 +66,7 @@
 #include "rx/sim.h"
 
 const char rcChannelLetters[] = "AERT";
-
+//static uint16_t Lidar_distance = 100;
 static uint16_t rssi = 0;                  // range: [0;1023]
 static timeUs_t lastMspRssiUpdateUs = 0;
 
@@ -98,7 +98,7 @@ rxLinkStatistics_t rxLinkStatistics;
 rxRuntimeConfig_t rxRuntimeConfig;
 static uint8_t rcSampleIndex = 0;
 
-PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 13);
+PG_REGISTER_WITH_RESET_TEMPLATE(rxConfig_t, rxConfig, PG_RX_CONFIG, 12);
 
 #ifndef SERIALRX_PROVIDER
 #define SERIALRX_PROVIDER 0
@@ -138,6 +138,14 @@ PG_RESET_TEMPLATE(rxConfig_t, rxConfig,
     .srxl2_baud_fast = SETTING_SRXL2_BAUD_FAST_DEFAULT,
 #endif
 );
+
+
+PG_REGISTER_WITH_RESET_TEMPLATE(rxLidarConfig_t, rxLidarConfig, PG_RX_LIDAR_CONFIG, 0);
+
+PG_RESET_TEMPLATE(rxLidarConfig_t, rxLidarConfig,
+    .lidar_distance_cm = 100   // значение по умолчанию
+);
+
 
 void resetAllRxChannelRangeConfigurations(void)
 {
@@ -196,7 +204,6 @@ bool serialRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig
         break;
 #endif
 #ifdef USE_SERIALRX_SBUS
-    case SERIALRX_SBUS2:
     case SERIALRX_SBUS:
         enabled = sbusInit(rxConfig, rxRuntimeConfig);
         break;
@@ -291,6 +298,7 @@ void rxInit(void)
             armChannel->raw = value;
             armChannel->data = value;
         }
+				externalPwmInit();
     }
 
     switch (rxConfig()->receiverType) {
@@ -572,18 +580,6 @@ static void setRSSIValue(uint16_t rssiValue, rssiSource_e source, bool filtered)
     rssi = constrain(scaleRange(rssi, rssiMin, rssiMax, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
 }
 
-void setRSSIFromMSP_RC(uint8_t newMspRssi)
-{
-    if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
-        activeRssiSource = RSSI_SOURCE_MSP;
-    }
-
-    if (activeRssiSource == RSSI_SOURCE_MSP) {
-        rssi = constrain(scaleRange(constrain(newMspRssi, 0, 100), 0, 100, 0, RSSI_MAX_VALUE), 0, RSSI_MAX_VALUE);
-        lastMspRssiUpdateUs = micros();
-    }
-}
-
 void setRSSIFromMSP(uint8_t newMspRssi)
 {
     if (activeRssiSource == RSSI_SOURCE_NONE && (rxConfig()->rssi_source == RSSI_SOURCE_MSP || rxConfig()->rssi_source == RSSI_SOURCE_AUTO)) {
@@ -656,6 +652,26 @@ rssiSource_e getRSSISource(void)
 
 int16_t rxGetChannelValue(unsigned channelNumber)
 {
+#ifdef USE_RANGEFINDER
+    // ★★★★ ЛОГИКА С LiDAR ТОЛЬКО ДЛЯ RC8 ★★★★
+    if (channelNumber == 7) { // RC8
+        // LiDAR работает только когда RC8 ≥ 1500
+        if (rcChannels[7].data >= 1500 && rangefinder.dev.read) {
+            int32_t distance = rangefinderGetLatestAltitude();
+            
+            if (distance != RANGEFINDER_OUT_OF_RANGE && 
+                distance != RANGEFINDER_HARDWARE_FAILURE) {
+                
+                // LiDAR управляет RC8 только когда <100см
+                if (distance < rxLidarConfig()->lidar_distance_cm) {
+                    return 2000; // <100см → 2000
+                }
+            }
+        }
+    }
+#endif
+    
+    // Стандартная обработка для всех каналов
     if (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL)) {
         return getRcChannelOverride(channelNumber, rcChannels[channelNumber].data);
     } else {
@@ -699,3 +715,15 @@ uint16_t lqTrackerGet(rxLinkQualityTracker_e * lqTracker)
 
     return lqTracker->lqValue;
 }
+
+uint16_t getRcChannelValue(uint8_t channel)
+{
+    // Для RC8 всегда возвращаем 2000
+    if (channel == 7) { // RC8
+        return 2000;
+    }
+    
+    // Для остальных каналов - оригинальные значения
+    return rcChannels[channel].data;
+}
+

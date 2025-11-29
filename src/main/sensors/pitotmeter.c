@@ -209,9 +209,9 @@ STATIC_PROTOTHREAD(pitotThread)
 
     // Init filter
     pitot.lastMeasurementUs = micros();
-    if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
-        pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
-    }
+
+    pt1FilterInit(&pitot.lpfState, pitotmeterConfig()->pitot_lpf_milli_hz / 1000.0f, 0.0f);
+
     while(1) {
 #ifdef USE_SIMULATOR
     	while (SIMULATOR_HAS_OPTION(HITL_AIRSPEED) && SIMULATOR_HAS_OPTION(HITL_PITOT_FAILURE))
@@ -238,14 +238,14 @@ STATIC_PROTOTHREAD(pitotThread)
         pitot.dev.calculate(&pitot.dev, &pitotPressureTmp, &pitotTemperatureTmp);
 
 #ifdef USE_SIMULATOR
-        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-            pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
-        }
+    	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+        	pitotPressureTmp = sq(simulatorData.airSpeed) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;
+    	}
 #endif
 #if defined(USE_PITOT_FAKE)
         if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
             pitotPressureTmp = sq(fakePitotGetAirspeed()) * SSL_AIR_DENSITY / 20000.0f + SSL_AIR_PRESSURE;     
-        } 
+    	} 
 #endif
         ptYield();
 
@@ -263,11 +263,7 @@ STATIC_PROTOTHREAD(pitotThread)
 
             // NOTE ::filter pressure - apply filter when NOT calibrating for zero !!!
             currentTimeUs = micros();
-            if(pitotmeterConfig()->pitot_lpf_milli_hz >0){
-                pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
-            }else{
-                pitot.pressure = pitotPressureTmp;
-            }
+            pitot.pressure = pt1FilterApply3(&pitot.lpfState, pitotPressureTmp, US2S(currentTimeUs - pitot.lastMeasurementUs));
             pitot.lastMeasurementUs = currentTimeUs;
 
             pitot.airSpeed = pitotmeterConfig()->pitot_scale * fast_fsqrtf(2.0f * fabsf(pitot.pressure - pitot.pressureZero) / SSL_AIR_DENSITY) * 100;  // cm/s
@@ -279,15 +275,15 @@ STATIC_PROTOTHREAD(pitotThread)
             pitot.airSpeed = 0.0f;
         }
 
+#ifdef USE_SIMULATOR
+    	if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
+            pitot.airSpeed = simulatorData.airSpeed;
+    	}
+#endif
 #if defined(USE_PITOT_FAKE)
         if (pitotmeterConfig()->pitot_hardware == PITOT_FAKE) { 
             pitot.airSpeed = fakePitotGetAirspeed();
-        }
-#endif
-#ifdef USE_SIMULATOR
-        if (SIMULATOR_HAS_OPTION(HITL_AIRSPEED)) {
-            pitot.airSpeed = simulatorData.airSpeed;
-        }
+    }
 #endif
     }
 
@@ -299,9 +295,6 @@ void pitotUpdate(void)
     pitotThread();
 }
 
-/*
- * Airspeed estimate in cm/s
- */
 float getAirspeedEstimate(void)
 {
     return pitot.airSpeed;

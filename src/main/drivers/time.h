@@ -19,9 +19,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include "common/time.h"
 
 extern uint32_t usTicks;
@@ -35,7 +32,3 @@ timeUs_t microsISR(void);
 timeMs_t millis(void);
 
 uint32_t ticks(void);
-
-#ifdef __cplusplus
-}
-#endif

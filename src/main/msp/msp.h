@@ -46,7 +46,6 @@ typedef struct mspPacket_s {
 
 typedef enum {
     MSP_FLAG_DONT_REPLY           = (1 << 0),
-    MSP_FLAG_ILMI                 = (1 << 1), // "In-Line Message identifier"
 } mspFlags_e;
 
 struct serialPort_s;

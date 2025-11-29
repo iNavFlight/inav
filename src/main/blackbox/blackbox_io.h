@@ -31,9 +31,6 @@ typedef enum BlackboxDevice {
 #ifdef USE_SDCARD
     BLACKBOX_DEVICE_SDCARD = 2,
 #endif
-#if defined(SITL_BUILD)
-    BLACKBOX_DEVICE_FILE = 3,
-#endif
 
     BLACKBOX_DEVICE_END
 } BlackboxDevice;
@@ -70,8 +67,6 @@ bool blackboxDeviceBeginLog(void);
 bool blackboxDeviceEndLog(bool retainLog);
 
 bool isBlackboxDeviceFull(void);
-bool isBlackboxDeviceWorking(void);
-int32_t blackboxGetLogNumber(void);
 
 void blackboxReplenishHeaderBudget(void);
 blackboxBufferReserveStatus_e blackboxDeviceReserveBufferSpace(int32_t bytes);

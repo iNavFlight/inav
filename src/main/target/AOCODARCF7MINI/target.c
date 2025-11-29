@@ -33,6 +33,9 @@
 #include "drivers/pinio.h"
 #include "drivers/sensor.h"
 
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE, 0,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+BUSDEV_REGISTER_SPI_TAG(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE, 0,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+
 timerHardware_t timerHardware[] = {
     // DEF_TIM(TIM1, CH3, PA10,  TIM_USE_PPM, 0, 0),                            // PPM, RX1  
     
@@ -44,13 +47,11 @@ timerHardware_t timerHardware[] = {
 #if defined(AOCODARCF7MINI_V2)
     DEF_TIM(TIM8, CH3, PC8,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S5   D(2, 4, 7)
     DEF_TIM(TIM8, CH4, PC9,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S6   D(2, 7, 7)
-    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S7   D(1, 0, 2)
 #else
-    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S5
     DEF_TIM(TIM2, CH2, PB3,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S6   D(1, 6, 3)
-    DEF_TIM(TIM2, CH1, PA15,  TIM_USE_OUTPUT_AUTO, 0, 0),    // S7
 #endif
 
+    DEF_TIM(TIM4, CH1, PB6,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S7   D(1, 0, 2)    
     DEF_TIM(TIM4, CH2, PB7,   TIM_USE_OUTPUT_AUTO, 0, 0),    // S8   D(1, 3, 2)
 
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_LED, 0, 0),                             // LED     

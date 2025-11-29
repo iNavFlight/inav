@@ -17,8 +17,6 @@
 
 #pragma once
 
-#define JETI_EXBUS_TELEMETRY_FRAME_LEN  128
-
 void initJetiExBusTelemetry(void);
 void checkJetiExBusTelemetryState(void);
 void handleJetiExBusTelemetry(void);

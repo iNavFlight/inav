@@ -38,9 +38,8 @@
 #include "config/parameter_group_ids.h"
 
 #include "fc/config.h"
-#include "fc/control_profile.h"
+#include "fc/controlrate_profile.h"
 #include "fc/rc_controls.h"
-#include "fc/rc_modes.h"
 #include "fc/rc_adjustments.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
@@ -94,7 +93,7 @@ void autotuneUpdateGains(pidAutotuneData_t * data)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         pidBankMutable()->pid[axis].FF = lrintf(data[axis].gainFF);
-        ((controlConfig_t *)currentControlProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
+        ((controlRateConfig_t *)currentControlRateProfile)->stabilized.rates[axis] = lrintf(data[axis].rate/10.0f);
     }
     schedulePidGainsUpdate();
 }
@@ -117,8 +116,8 @@ void autotuneStart(void)
 {
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         tuneCurrent[axis].gainFF = pidBank()->pid[axis].FF;
-        tuneCurrent[axis].rate = currentControlProfile->stabilized.rates[axis] * 10.0f;
-        tuneCurrent[axis].initialRate = currentControlProfile->stabilized.rates[axis] * 10.0f;
+        tuneCurrent[axis].rate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
+        tuneCurrent[axis].initialRate = currentControlRateProfile->stabilized.rates[axis] * 10.0f;
         tuneCurrent[axis].absDesiredRateAccum = 0;
         tuneCurrent[axis].absReachedRateAccum = 0;
         tuneCurrent[axis].absPidOutputAccum = 0;
@@ -131,7 +130,7 @@ void autotuneStart(void)
 
 void autotuneUpdateState(void)
 {
-    if (isFwAutoModeActive(BOXAUTOTUNE) && STATE(AIRPLANE) && ARMING_FLAG(ARMED)) {
+    if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE) && STATE(AIRPLANE) && ARMING_FLAG(ARMED)) {
         if (!FLIGHT_MODE(AUTO_TUNE)) {
             autotuneStart();
             ENABLE_FLIGHT_MODE(AUTO_TUNE);
@@ -172,7 +171,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
     float gainFF = tuneCurrent[axis].gainFF;
     float maxDesiredRate = maxRateSetting;
 
-    const float pidSumLimit = getPidSumLimit(axis);
+    const float pidSumLimit = (axis == FD_YAW) ? pidProfile()->pidSumLimitYaw : pidProfile()->pidSumLimit;
     const float absDesiredRate = fabsf(desiredRate);
     const float absReachedRate = fabsf(reachedRate);
     const float absPidOutput = fabsf(pidOutput);
@@ -203,7 +202,7 @@ void autotuneFixedWingUpdate(const flight_dynamics_index_t axis, float desiredRa
 
         if ((tuneCurrent[axis].updateCount & 25) == 0 && tuneCurrent[axis].updateCount >= AUTOTUNE_FIXED_WING_MIN_SAMPLES) {
             if (pidAutotuneConfig()->fw_rate_adjustment != FIXED  && !FLIGHT_MODE(ANGLE_MODE)) { // Rate discovery is not possible in ANGLE mode
-
+                
                 // Target 80% control surface deflection to leave some room for P and I to work
                 float pidSumTarget = (pidAutotuneConfig()->fw_max_rate_deflection / 100.0f) * pidSumLimit;
 

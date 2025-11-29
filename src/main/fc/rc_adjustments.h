@@ -85,7 +85,6 @@ typedef enum {
     ADJUSTMENT_FW_TPA_TIME_CONSTANT             = 57,
     ADJUSTMENT_FW_LEVEL_TRIM                    = 58,
     ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX       = 59,
-    ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE      = 60,
     ADJUSTMENT_FUNCTION_COUNT // must be last
 } adjustmentFunction_e;
 
@@ -145,7 +144,7 @@ PG_DECLARE_ARRAY(adjustmentRange_t, MAX_ADJUSTMENT_RANGE_COUNT, adjustmentRanges
 
 void resetAdjustmentStates(void);
 void updateAdjustmentStates(bool canUseRxData);
-struct controlConfig_s;
-void processRcAdjustments(struct controlConfig_s *controlConfig, bool canUseRxData);
+struct controlRateConfig_s;
+void processRcAdjustments(struct controlRateConfig_s *controlRateConfig, bool canUseRxData);
 bool isAdjustmentFunctionSelected(uint8_t adjustmentFunction);
 uint8_t getActiveAdjustmentFunctions(uint8_t *adjustmentFunctions);

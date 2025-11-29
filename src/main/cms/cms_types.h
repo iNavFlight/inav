@@ -26,12 +26,6 @@
 
 //type of elements
 
-#ifndef __APPLE__
-#define OSD_ENTRY_ATTR __attribute__((packed))
-#else
-#define OSD_ENTRY_ATTR
-#endif
-
 typedef enum
 {
     OME_Label,
@@ -77,7 +71,7 @@ typedef struct
     const void * const data;
     const uint8_t type; // from OSD_MenuElement
     uint8_t flags;
-} OSD_ENTRY_ATTR OSD_Entry;
+} __attribute__((packed)) OSD_Entry;
 
 // Bits in flags
 #define PRINT_VALUE    (1 << 0)  // Value has been changed, need to redraw

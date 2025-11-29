@@ -62,7 +62,6 @@
 
 #define ICM42605_RA_GYRO_DATA_X1                    0x25
 #define ICM42605_RA_ACCEL_DATA_X1                   0x1F
-#define ICM42605_RA_TEMP_DATA1                      0x1D
 
 #define ICM42605_RA_INT_CONFIG                      0x14
 #define ICM42605_INT1_MODE_PULSED                   (0 << 2)
@@ -199,6 +198,21 @@ static const gyroFilterAndRateConfig_t icm42605GyroConfigs[] = {
     { GYRO_LPF_256HZ,   2000,   { 3,    5  } }, /* 250 Hz LPF */
     { GYRO_LPF_256HZ,   1000,   { 1,    6  } }, /* 250 Hz LPF */
     { GYRO_LPF_256HZ,    500,   { 0,    15 } }, /* 250 Hz LPF */
+
+    { GYRO_LPF_188HZ,   1000,   { 3,   6  } },  /* 125 HZ */
+    { GYRO_LPF_188HZ,    500,   { 1,   15 } },  /* 125 HZ */
+
+    { GYRO_LPF_98HZ,    1000,   { 4,    6  } }, /* 100 HZ*/
+    { GYRO_LPF_98HZ,     500,   { 2,    15 } }, /* 100 HZ*/
+
+    { GYRO_LPF_42HZ,    1000,   { 6,    6  } }, /* 50 HZ */
+    { GYRO_LPF_42HZ,     500,   { 4,    15 } },
+
+    { GYRO_LPF_20HZ,    1000,   { 7,    6  } }, /* 25 HZ */
+    { GYRO_LPF_20HZ,     500,   { 6,    15 } },
+
+    { GYRO_LPF_10HZ,    1000,   { 7,    6  } }, /* 25 HZ */
+    { GYRO_LPF_10HZ,     500,   { 7,    15 } }  /* 12.5 HZ */
 };
 
 static void icm42605AccAndGyroInit(gyroDev_t *gyro)
@@ -322,20 +336,6 @@ static bool icm42605GyroRead(gyroDev_t *gyro)
     return true;
 }
 
-static bool icm42605ReadTemperature(gyroDev_t *gyro, int16_t * temp)
-{
-    uint8_t data[2];
-
-    const bool ack = busReadBuf(gyro->busDev, ICM42605_RA_TEMP_DATA1, data, 2);
-    if (!ack) {
-        return false;
-    }
-    // From datasheet: Temperature in Degrees Centigrade = (TEMP_DATA / 132.48) + 25 
-    *temp = ( int16_val_big_endian(data, 0) / 13.248 ) + 250; // Temperature stored as degC*10
-
-    return true;
-}
-
 bool icm42605GyroDetect(gyroDev_t *gyro)
 {
     gyro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_ICM42605, gyro->imuSensorToUse, OWNER_MPU);
@@ -355,7 +355,7 @@ bool icm42605GyroDetect(gyroDev_t *gyro)
     gyro->initFn = icm42605AccAndGyroInit;
     gyro->readFn = icm42605GyroRead;
     gyro->intStatusFn = gyroCheckDataReady;
-    gyro->temperatureFn = icm42605ReadTemperature;
+    gyro->temperatureFn = NULL;
     gyro->scale = 1.0f / 16.4f;     // 16.4 dps/lsb scalefactor
     gyro->gyroAlign = gyro->busDev->param;
 

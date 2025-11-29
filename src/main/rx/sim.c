@@ -31,14 +31,15 @@
 
 static uint16_t channels[MAX_SUPPORTED_RC_CHANNEL_COUNT];
 static bool hasNewData = false;
-static uint16_t rssi = 0;
 
-static uint16_t rxSimReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfigPtr, uint8_t chan) {
+static uint16_t rxSimReadRawRC(const rxRuntimeConfig_t *rxRuntimeConfigPtr, uint8_t chan)
+{
     UNUSED(rxRuntimeConfigPtr);
     return channels[chan];
 }
 
-void rxSimSetChannelValue(uint16_t* values, uint8_t count) {
+void rxSimSetChannelValue(uint16_t* values, uint8_t count)
+{
     for (size_t i = 0; i < count; i++) {    
         channels[i] = values[i];
     }
@@ -46,11 +47,10 @@ void rxSimSetChannelValue(uint16_t* values, uint8_t count) {
     hasNewData = true;
 }
 
-static uint8_t rxSimFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig) {
+static uint8_t rxSimFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
+{
     UNUSED(rxRuntimeConfig);
     
-    lqTrackerSet(rxRuntimeConfig->lqTracker, rssi);
-
     if (!hasNewData) {    
         return RX_FRAME_PENDING;
     }
@@ -59,16 +59,13 @@ static uint8_t rxSimFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig) {
     return RX_FRAME_COMPLETE;
 }
 
-void rxSimInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig) {
+void rxSimInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
+{
     UNUSED(rxConfig);
 
     rxRuntimeConfig->channelCount = MAX_SUPPORTED_RC_CHANNEL_COUNT;
     rxRuntimeConfig->rxSignalTimeout = DELAY_5_HZ;
     rxRuntimeConfig->rcReadRawFn = rxSimReadRawRC;
     rxRuntimeConfig->rcFrameStatusFn = rxSimFrameStatus;
-}
-
-void rxSimSetRssi(uint16_t value) {
-    rssi = value;
 }
 #endif

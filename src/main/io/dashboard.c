@@ -38,7 +38,7 @@
 #include "common/typeconversion.h"
 
 #include "fc/config.h"
-#include "fc/control_profile.h"
+#include "fc/controlrate_profile.h"
 #include "fc/runtime_config.h"
 #include "fc/rc_controls.h"
 
@@ -68,7 +68,7 @@
 #include "config/feature.h"
 
 
-controlConfig_t *getControlConfig(uint8_t profileIndex);
+controlRateConfig_t *getControlRateConfig(uint8_t profileIndex);
 
 #define MICROSECONDS_IN_A_SECOND (1000 * 1000)
 

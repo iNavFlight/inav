@@ -23,8 +23,6 @@
 
 #ifdef USE_TELEMETRY
 
-#include "build/debug.h"
-
 #include "common/utils.h"
 
 #include "config/parameter_group.h"
@@ -51,18 +49,16 @@
 #include "telemetry/ibus.h"
 #include "telemetry/crsf.h"
 #include "telemetry/srxl.h"
-#include "telemetry/sbus2.h"
 #include "telemetry/sim.h"
 #include "telemetry/ghst.h"
 
 
-PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 6);
 
 PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .telemetry_switch = SETTING_TELEMETRY_SWITCH_DEFAULT,
     .telemetry_inverted = SETTING_TELEMETRY_INVERTED_DEFAULT,
     .frsky_pitch_roll = SETTING_FRSKY_PITCH_ROLL_DEFAULT,
-    .frsky_use_legacy_gps_mode_sensor_ids = SETTING_FRSKY_USE_LEGACY_GPS_MODE_SENSOR_IDS_DEFAULT,
     .report_cell_voltage = SETTING_REPORT_CELL_VOLTAGE_DEFAULT,
     .hottAlarmSoundInterval = SETTING_HOTT_ALARM_SOUND_INTERVAL_DEFAULT,
     .halfDuplex = SETTING_TELEMETRY_HALFDUPLEX_DEFAULT,
@@ -87,17 +83,13 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
 #endif
 
     .mavlink = {
-        .autopilot_type = SETTING_MAVLINK_AUTOPILOT_TYPE_DEFAULT,
         .extended_status_rate = SETTING_MAVLINK_EXT_STATUS_RATE_DEFAULT,
         .rc_channels_rate = SETTING_MAVLINK_RC_CHAN_RATE_DEFAULT,
         .position_rate = SETTING_MAVLINK_POS_RATE_DEFAULT,
         .extra1_rate = SETTING_MAVLINK_EXTRA1_RATE_DEFAULT,
         .extra2_rate = SETTING_MAVLINK_EXTRA2_RATE_DEFAULT,
         .extra3_rate = SETTING_MAVLINK_EXTRA3_RATE_DEFAULT,
-        .version = SETTING_MAVLINK_VERSION_DEFAULT,
-        .min_txbuff = SETTING_MAVLINK_MIN_TXBUFFER_DEFAULT,
-        .radio_type = SETTING_MAVLINK_RADIO_TYPE_DEFAULT,
-        .sysid = SETTING_MAVLINK_SYSID_DEFAULT
+        .version = SETTING_MAVLINK_VERSION_DEFAULT
     }
 );
 
@@ -252,10 +244,6 @@ void telemetryProcess(timeUs_t currentTimeUs)
 #endif
 #ifdef USE_TELEMETRY_GHST
     handleGhstTelemetry(currentTimeUs);
-#endif
-
-#ifdef USE_TELEMETRY_SBUS2
-    handleSbus2Telemetry(currentTimeUs);
 #endif
 }
 

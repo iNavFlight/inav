@@ -1,4 +1,3 @@
-
 main_sources(COMMON_SRC
     main.c
 
@@ -31,8 +30,6 @@ main_sources(COMMON_SRC
     common/gps_conversion.h
     common/log.c
     common/log.h
-    common/lulu.c
-    common/lulu.h
     common/maths.c
     common/maths.h
     common/memory.c
@@ -64,6 +61,7 @@ main_sources(COMMON_SRC
     config/parameter_group.h
     config/general_settings.c
     config/general_settings.h
+	
 
     drivers/1-wire.c
     drivers/1-wire.h
@@ -152,8 +150,6 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mpu9250.h
     drivers/compass/compass_qmc5883l.c
     drivers/compass/compass_qmc5883l.h
-    drivers/compass/compass_qmc5883p.c
-    drivers/compass/compass_qmc5883p.h
     drivers/compass/compass_rm3100.c
     drivers/compass/compass_rm3100.h
     drivers/compass/compass_vcm5883.c
@@ -179,12 +175,8 @@ main_sources(COMMON_SRC
     drivers/flash.h
     drivers/flash_m25p16.c
     drivers/flash_m25p16.h
-    drivers/flash_w25n.c
-    drivers/flash_w25n.h
-    drivers/gimbal_common.h
-    drivers/gimbal_common.c
-    drivers/headtracker_common.h
-    drivers/headtracker_common.c
+    drivers/flash_w25n01g.c
+    drivers/flash_w25n01g.h
     drivers/io.c
     drivers/io.h
     drivers/io_pcf8574.c
@@ -218,7 +210,7 @@ main_sources(COMMON_SRC
     drivers/pitotmeter/pitotmeter_ms4525.c
     drivers/pitotmeter/pitotmeter_ms4525.h
     drivers/pitotmeter/pitotmeter_dlvr_l10d.c
-    drivers/pitotmeter/pitotmeter_dlvr_l10d.h
+    drivers/pitotmeter/pitotmeter_dlvr_l10d.h	
     drivers/pitotmeter/pitotmeter_msp.c
     drivers/pitotmeter/pitotmeter_msp.h
     drivers/pitotmeter/pitotmeter_virtual.c
@@ -246,8 +238,6 @@ main_sources(COMMON_SRC
     drivers/rangefinder/rangefinder_us42.h
     drivers/rangefinder/rangefinder_tof10120_i2c.c
     drivers/rangefinder/rangefinder_tof10120_i2c.h
-    drivers/rangefinder/rangefinder_teraranger_evo.c
-    drivers/rangefinder/rangefinder_teraranger_evo.h
 
     drivers/resource.c
     drivers/resource.h
@@ -280,9 +270,9 @@ main_sources(COMMON_SRC
     fc/cli.h
     fc/config.c
     fc/config.h
-    fc/control_profile.c
-    fc/control_profile.h
-    fc/control_profile_config_struct.h
+	fc/controlrate_profile.c
+    fc/controlrate_profile.h
+    fc/controlrate_profile_config_struct.h
     fc/fc_core.c
     fc/fc_core.h
     fc/fc_init.c
@@ -354,20 +344,13 @@ main_sources(COMMON_SRC
     flight/dynamic_lpf.h
     flight/ez_tune.c
     flight/ez_tune.h
-    flight/adaptive_filter.c
-    flight/adaptive_filter.h
 
-    io/adsb.c
     io/beeper.c
     io/beeper.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
     io/frsky_osd.h
-    io/gimbal_serial.c
-    io/gimbal_serial.h
-    io/headtracker_msp.c
-    io/headtracker_msp.h
     io/osd_dji_hd.c
     io/osd_dji_hd.h
     io/lights.c
@@ -438,6 +421,7 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sim.c
     rx/sim.h
+	rx/external_pwm.c
 
 
     scheduler/scheduler.c
@@ -462,7 +446,6 @@ main_sources(COMMON_SRC
     sensors/esc_sensor.h
     sensors/irlock.c
     sensors/irlock.h
-    sensors/sensors.c
     sensors/temperature.c
     sensors/temperature.h
 
@@ -501,8 +484,6 @@ main_sources(COMMON_SRC
     io/rangefinder.h
     io/rangefinder_msp.c
     io/rangefinder_benewake.c
-    io/rangefinder_usd1_v0.c
-    io/rangefinder_nanoradar.c
     io/rangefinder_fake.c
     io/opflow.h
     io/opflow_cxof.c
@@ -515,8 +496,8 @@ main_sources(COMMON_SRC
     io/displayport_max7456.h
     io/displayport_msp.c
     io/displayport_msp.h
-    io/displayport_msp_dji_compat.c
-    io/displayport_msp_dji_compat.h
+    io/displayport_msp_bf_compat.c
+    io/displayport_msp_bf_compat.h
     io/displayport_oled.c
     io/displayport_oled.h
     io/displayport_msp_osd.c
@@ -579,11 +560,8 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_flow.c
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
-    navigation/navigation_geozone.c
     navigation/sqrt_controller.c
     navigation/sqrt_controller.h
-    navigation/rth_trackback.c
-    navigation/rth_trackback.h
 
     sensors/barometer.c
     sensors/barometer.h
@@ -616,10 +594,6 @@ main_sources(COMMON_SRC
     telemetry/mavlink.h
     telemetry/msp_shared.c
     telemetry/msp_shared.h
-    telemetry/sbus2.c
-    telemetry/sbus2.h
-    telemetry/sbus2_sensors.c
-    telemetry/sbus2_sensors.h
     telemetry/smartport.c
     telemetry/smartport.h
     telemetry/sim.c

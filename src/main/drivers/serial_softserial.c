@@ -623,11 +623,6 @@ void softSerialSetMode(serialPort_t *instance, portMode_t mode)
     instance->mode = mode;
 }
 
-void softSerialSetOptions(serialPort_t *instance, portOptions_t options)
-{
-    instance->options = options;
-}
-
 bool isSoftSerialTransmitBufferEmpty(const serialPort_t *instance)
 {
     return instance->txBufferHead == instance->txBufferTail;
@@ -641,7 +636,6 @@ static const struct serialPortVTable softSerialVTable = {
     .serialSetBaudRate = softSerialSetBaudRate,
     .isSerialTransmitBufferEmpty = isSoftSerialTransmitBufferEmpty,
     .setMode = softSerialSetMode,
-    .setOptions = softSerialSetOptions,
     .isConnected = NULL,
     .writeBuf = NULL,
     .beginWrite = NULL,

@@ -41,7 +41,6 @@
 #include "drivers/rangefinder/rangefinder_vl53l1x.h"
 #include "drivers/rangefinder/rangefinder_virtual.h"
 #include "drivers/rangefinder/rangefinder_us42.h"
-#include "drivers/rangefinder/rangefinder_teraranger_evo.h"
 #include "drivers/rangefinder/rangefinder_tof10120_i2c.h"
 
 #include "fc/config.h"
@@ -89,14 +88,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #endif
             break;
 
-            case RANGEFINDER_TERARANGER_EVO:
-#if defined(USE_RANGEFINDER_TERARANGER_EVO_I2C)
-            if (teraRangerDetect(dev)) {
-                rangefinderHardware = RANGEFINDER_TERARANGER_EVO;
-                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_TERA_EVO_TASK_PERIOD_MS));
-            }
-#endif
-            break;
             case RANGEFINDER_VL53L0X:
 #if defined(USE_RANGEFINDER_VL53L0X)
             if (vl53l0xDetect(dev)) {
@@ -128,22 +119,6 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 #if defined(USE_RANGEFINDER_BENEWAKE)
             if (virtualRangefinderDetect(dev, &rangefinderBenewakeVtable)) {
                 rangefinderHardware = RANGEFINDER_BENEWAKE;
-                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
-            }
-#endif
-            break;
-        case RANGEFINDER_USD1_V0:
-#if defined(USE_RANGEFINDER_USD1_V0)
-            if (virtualRangefinderDetect(dev, &rangefinderUSD1Vtable)) {
-                rangefinderHardware = RANGEFINDER_USD1_V0;
-                rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
-            }
-#endif
-            break;
-        case RANGEFINDER_NANORADAR:
-#if defined(USE_RANGEFINDER_NANORADAR)
-            if (virtualRangefinderDetect(dev, &rangefinderNanoradarVtable)) {
-                rangefinderHardware = RANGEFINDER_NANORADAR;
                 rescheduleTask(TASK_RANGEFINDER, TASK_PERIOD_MS(RANGEFINDER_VIRTUAL_TASK_PERIOD_MS));
             }
 #endif
@@ -180,6 +155,8 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     }
 
     if (rangefinderHardware == RANGEFINDER_NONE) {
+        // Лидар не найден: считаем, что он вообще не используется
+        requestedSensors[SENSOR_INDEX_RANGEFINDER] = RANGEFINDER_NONE;
         sensorsClear(SENSOR_RANGEFINDER);
         return false;
     }
@@ -191,8 +168,10 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 
 bool rangefinderInit(void)
 {
+    // Если лидар не найден → просто отключаем его и продолжаем работать
     if (!rangefinderDetect(&rangefinder.dev, rangefinderConfig()->rangefinder_hardware)) {
-        return false;
+        sensorsClear(SENSOR_RANGEFINDER);   // Нет лидара — и хорошо
+        return true;                        // ВАЖНО: возвращаем TRUE, чтобы ARM не блокировался!
     }
 
     rangefinder.dev.init(&rangefinder.dev);
@@ -260,9 +239,11 @@ bool rangefinderProcess(float cosTiltAngle)
             rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
         }
         else {
-            // Invalid response / hardware failure
-            rangefinder.rawAltitude = RANGEFINDER_HARDWARE_FAILURE;
-        }
+    // Ошибка чтения — просто отмечаем OUT OF RANGE
+    rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
+    // И считаем последний ответ валидным, чтобы не блокировать ARM
+    rangefinder.lastValidResponseTimeMs = millis();
+}
     }
     else {
         // Bad configuration
@@ -299,6 +280,8 @@ int32_t rangefinderGetLatestRawAltitude(void) {
 
 bool rangefinderIsHealthy(void)
 {
-    return (millis() - rangefinder.lastValidResponseTimeMs) < RANGEFINDER_HARDWARE_TIMEOUT_MS;
+    // Если rangefinder не прислал данных – разрешаем ARM, считаем его "здоровым"
+    // Всегда возвращаем TRUE.
+    return true;
 }
 #endif

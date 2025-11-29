@@ -81,10 +81,13 @@ typedef enum {
     SERIALRX_GHST,
     SERIALRX_MAVLINK,
     SERIALRX_FBUS,
-    SERIALRX_SBUS2,
 } rxSerialReceiverType_e;
 
-#define MAX_SUPPORTED_RC_CHANNEL_COUNT 34
+#ifdef USE_24CHANNELS
+#define MAX_SUPPORTED_RC_CHANNEL_COUNT 26
+#else
+#define MAX_SUPPORTED_RC_CHANNEL_COUNT 18
+#endif
 
 #define NON_AUX_CHANNEL_COUNT 4
 #define MAX_AUX_CHANNEL_COUNT (MAX_SUPPORTED_RC_CHANNEL_COUNT - NON_AUX_CHANNEL_COUNT)
@@ -126,7 +129,7 @@ typedef struct rxConfig_s {
     uint8_t rcFilterFrequency;              // RC filter cutoff frequency (smoothness vs response sharpness)
     uint8_t autoSmooth;                     // auto smooth rx input (0 = off, 1 = on)
     uint8_t autoSmoothFactor;               // auto smooth rx input factor (1 = no smoothing, 100 = lots of smoothing)
-    uint32_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
+    uint16_t mspOverrideChannels;           // Channels to override with MSP RC when BOXMSPRCOVERRIDE is active
     uint8_t rssi_source;
 #ifdef USE_SERIALRX_SRXL2
     uint8_t srxl2_unit_id;
@@ -135,6 +138,13 @@ typedef struct rxConfig_s {
 } rxConfig_t;
 
 PG_DECLARE(rxConfig_t, rxConfig);
+
+// --- RX LiDAR config ---
+typedef struct rxLidarConfig_s {
+    uint16_t lidar_distance_cm;   // Порог срабатывания лидара в см
+} rxLidarConfig_t;
+PG_DECLARE(rxLidarConfig_t, rxLidarConfig);
+
 
 #define REMAPPABLE_CHANNEL_COUNT ARRAYLEN(((rxConfig_t *)0)->rcmap)
 
@@ -181,16 +191,12 @@ typedef enum {
 } rssiSource_e;
 
 typedef struct rxLinkStatistics_s {
-    int16_t     uplinkRSSI;         // RSSI value in dBm
-    uint8_t     uplinkLQ;           // A protocol specific measure of the link quality in [0..100]
-    uint8_t     downlinkLQ;         // A protocol specific measure of the link quality in [0..100]
-    int8_t      uplinkSNR;          // The SNR of the uplink in dB
-    uint8_t     rfMode;             // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
-    uint16_t    uplinkTXPower;      // power in mW
-    uint16_t    downlinkTXPower;    // power in mW
-    uint8_t     activeAntenna;
-    char        band[4];
-    char        mode[6];
+    int16_t uplinkRSSI;     // RSSI value in dBm
+    uint8_t uplinkLQ;       // A protocol specific measure of the link quality in [0..100]
+    int8_t uplinkSNR;       // The SNR of the uplink in dB
+    uint8_t rfMode;         // A protocol specific measure of the transmission bandwidth [2 = 150Hz, 1 = 50Hz, 0 = 4Hz]
+    uint16_t uplinkTXPower; // power in mW
+    uint8_t activeAntenna;
 } rxLinkStatistics_t;
 
 typedef uint16_t (*rcReadRawDataFnPtr)(const rxRuntimeConfig_t *rxRuntimeConfig, uint8_t chan); // used by receiver driver to return channel data
@@ -216,7 +222,6 @@ bool isRxPulseValid(uint16_t pulseDuration);
 uint8_t calculateChannelRemapping(const uint8_t *channelMap, uint8_t channelMapEntryCount, uint8_t channelToRemap);
 void parseRcChannels(const char *input);
 
-void setRSSIFromMSP_RC(uint8_t newMspRssi);
 void setRSSIFromMSP(uint8_t newMspRssi);
 void updateRSSI(timeUs_t currentTimeUs);
 // Returns RSSI in [0, RSSI_MAX_VALUE] range.

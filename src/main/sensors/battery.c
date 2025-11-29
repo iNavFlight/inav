@@ -36,7 +36,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
-#include "fc/control_profile.h"
+#include "fc/controlrate_profile.h"
 #include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/stats.h"
@@ -62,14 +62,11 @@
 #if defined(USE_FAKE_BATT_SENSOR)
 #include "sensors/battery_sensor_fake.h"
 #endif
-#if defined(USE_SMARTPORT_MASTER)
-#include "io/smartport_master.h"
-#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
 #define VBATT_CELL_FULL_MAX_DIFF 10             // Max difference with cell max voltage for the battery to be considered full (10mV steps)
-#define VBATT_PRESENT_THRESHOLD 220             // Minimum voltage to consider battery present
+#define VBATT_PRESENT_THRESHOLD 100             // Minimum voltage to consider battery present
 #define VBATT_STABLE_DELAY 40                   // Delay after connecting battery to begin monitoring
 #define VBATT_HYSTERESIS 10                     // Batt Hysteresis of +/-100mV for changing battery state
 #define VBATT_LPF_FREQ  1                       // Battery voltage filtering cutoff
@@ -100,7 +97,7 @@ static int32_t mWhDrawn = 0;                    // energy (milliWatt hours) draw
 batteryState_e batteryState;
 const batteryProfile_t *currentBatteryProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 3);
+PG_REGISTER_ARRAY_WITH_RESET_FN(batteryProfile_t, MAX_BATTERY_PROFILE_COUNT, batteryProfiles, PG_BATTERY_PROFILES, 2);
 
 void pgResetFn_batteryProfiles(batteryProfile_t *instance)
 {
@@ -121,9 +118,10 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
                 .value = SETTING_BATTERY_CAPACITY_DEFAULT,
                 .warning = SETTING_BATTERY_CAPACITY_WARNING_DEFAULT,
                 .critical = SETTING_BATTERY_CAPACITY_CRITICAL_DEFAULT,
+                .unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
             },
 
-            .controlProfile = 0,
+            .controlRateProfile = 0,
 
             .motor = {
                 .throttleIdle = SETTING_THROTTLE_IDLE_DEFAULT,
@@ -169,7 +167,7 @@ void pgResetFn_batteryProfiles(batteryProfile_t *instance)
     }
 }
 
-PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig, PG_BATTERY_METERS_CONFIG, 1);
 
 PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
 
@@ -187,8 +185,6 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
     },
 
     .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
-
-    .capacity_unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
 
     .cruise_power = SETTING_CRUISE_POWER_DEFAULT,
     .idle_power = SETTING_IDLE_POWER_DEFAULT,
@@ -248,8 +244,8 @@ void setBatteryProfile(uint8_t profileIndex)
         profileIndex = 0;
     }
     currentBatteryProfile = batteryProfiles(profileIndex);
-    if ((currentBatteryProfile->controlProfile > 0) && (currentBatteryProfile->controlProfile <= MAX_CONTROL_PROFILE_COUNT)) {
-        setConfigProfile(currentBatteryProfile->controlProfile - 1);
+    if ((currentBatteryProfile->controlRateProfile > 0) && (currentBatteryProfile->controlRateProfile < MAX_CONTROL_RATE_PROFILE_COUNT)) {
+        setConfigProfile(currentBatteryProfile->controlRateProfile - 1);
     }
 }
 
@@ -292,17 +288,6 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
 #if defined(USE_FAKE_BATT_SENSOR)
     case VOLTAGE_SENSOR_FAKE:
         vbat = fakeBattSensorGetVBat();
-        break;
-#endif
-
-#if defined(USE_SMARTPORT_MASTER)
-    case VOLTAGE_SENSOR_SMARTPORT:
-        int16_t * smartportVoltageData = smartportMasterGetVoltageData();
-        if (smartportVoltageData) {
-            vbat = *smartportVoltageData;
-        } else {
-            vbat = 0;
-        }
         break;
 #endif
     case VOLTAGE_SENSOR_NONE:
@@ -365,23 +350,16 @@ static void checkBatteryCapacityState(void)
 
 void batteryUpdate(timeUs_t timeDelta)
 {
-    static timeUs_t batteryConnectedTime = 0;
     /* battery has just been connected*/
     if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD) {
-        if(batteryConnectedTime == 0) {
-            batteryConnectedTime = micros();
-            return;
-        }
-
-        /* wait for VBatt to stabilise then we can calc number of cells
-        (using the filtered value takes a long time to ramp up)
-        Blocking can cause issues with some ESCs */
-        if((micros() - batteryConnectedTime) < VBATT_STABLE_DELAY) {
-            return;
-        }
 
         /* Actual battery state is calculated below, this is really BATTERY_PRESENT */
         batteryState = BATTERY_OK;
+        /* wait for VBatt to stabilise then we can calc number of cells
+        (using the filtered value takes a long time to ramp up)
+        We only do this on the ground so don't care if we do block, not
+        worse than original code anyway*/
+        delay(VBATT_STABLE_DELAY);
         updateBatteryVoltage(timeDelta, true);
 
         int8_t detectedProfileIndex = -1;
@@ -417,7 +395,6 @@ void batteryUpdate(timeUs_t timeDelta)
         /* battery has been disconnected - can take a while for filter cap to disharge so we use a threshold of VBATT_PRESENT_THRESHOLD */
         if (batteryState != BATTERY_NOT_PRESENT && vbat <= VBATT_PRESENT_THRESHOLD) {
             batteryState = BATTERY_NOT_PRESENT;
-            batteryConnectedTime = 0;
             batteryCellCount = 0;
             batteryWarningVoltage = 0;
             batteryCriticalVoltage = 0;
@@ -428,7 +405,7 @@ void batteryUpdate(timeUs_t timeDelta)
 
         if ((currentBatteryProfile->capacity.value > 0) && batteryFullWhenPluggedIn) {
             uint32_t capacityDiffBetweenFullAndEmpty = currentBatteryProfile->capacity.value - currentBatteryProfile->capacity.critical;
-            int32_t drawn = (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn);
+            int32_t drawn = (currentBatteryProfile->capacity.unit == BAT_CAPACITY_UNIT_MWH ? mWhDrawn : mAhDrawn);
             batteryRemainingCapacity = (drawn > (int32_t)capacityDiffBetweenFullAndEmpty ? 0 : capacityDiffBetweenFullAndEmpty - drawn);
         }
 
@@ -612,16 +589,7 @@ void currentMeterUpdate(timeUs_t timeDelta)
             }
             break;
 #endif
-#if defined(USE_SMARTPORT_MASTER)
-        case CURRENT_SENSOR_SMARTPORT:
-            int16_t * smartportCurrentData = smartportMasterGetCurrentData();
-            if (smartportCurrentData) {
-                amperage = *smartportCurrentData;
-            } else {
-                amperage = 0;
-            }
-            break;
-#endif
+
 #if defined(USE_FAKE_BATT_SENSOR)
         case CURRENT_SENSOR_FAKE:
             amperage = fakeBattSensorGetAmerperage();

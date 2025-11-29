@@ -24,8 +24,6 @@
 
 #pragma once
 
-#define SERVO_SBUS_MAX_SERVOS   18
-
 bool sbusServoInitialize(void);
 void sbusServoUpdate(uint8_t index, uint16_t value);
 void sbusServoSendUpdate(void);

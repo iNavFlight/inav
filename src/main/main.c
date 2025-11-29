@@ -22,15 +22,11 @@
 #include "build/debug.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
+#include "rx/external_pwm.h"
 
 #include "fc/fc_init.h"
 
 #include "scheduler/scheduler.h"
-
-#if defined(SITL_BUILD)
-#include "target/SITL/serial_proxy.h"
-#endif
-
 
 #ifdef SOFTSERIAL_LOOPBACK
 serialPort_t *loopbackPort;
@@ -70,10 +66,8 @@ int main(void)
     loopbackInit();
 
     while (true) {
-#if defined(SITL_BUILD)
-        serialProxyProcess();
-#endif
         scheduler();
         processLoopback();
+		externalPwmUpdate();
     }
 }

@@ -32,7 +32,6 @@ typedef struct displayPort_s displayPort_t;
 typedef struct displayCanvas_s displayCanvas_t;
 typedef struct osdDrawPoint_s osdDrawPoint_t;
 
-void osdCanvasDrawThrottleGauge(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, uint8_t thrPos);
 void osdCanvasDrawVario(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float zvel);
 void osdCanvasDrawDirArrow(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float degrees);
 void osdCanvasDrawArtificialHorizon(displayPort_t *display, displayCanvas_t *canvas, const osdDrawPoint_t *p, float pitchAngle, float rollAngle);
