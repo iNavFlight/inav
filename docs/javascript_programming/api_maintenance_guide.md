@@ -177,12 +177,11 @@ Add code generation logic:
 ```javascript
 // In generateAction() method
 if (stmt.target === 'override.vtx.frequency') {
-  return this.createLogicCondition(
-    activatorId,
+  return this.pushLogicCommand(
     OPERATION.OVERRIDE_VTX_FREQUENCY,
-    OPERAND_TYPE.VALUE,
-    0,
-    this.valueOperand(stmt.value)
+    { type: OPERAND_TYPE.VALUE, value: 0 },
+    this.valueOperand(stmt.value),
+    activatorId
   );
 }
 ```
