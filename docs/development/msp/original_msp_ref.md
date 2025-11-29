@@ -2,7 +2,6 @@
 # WARNING: DEPRECATED, OBSOLETE, FULL OF ERRORS, DO NOT USE AS REFERENCE!!!
 # (OBSOLETE) INAV MSP Messages reference
 
-**Warning: Work in progress**\
 **Generated with Gemini 2.5 Pro Preview O3-25 on source code files**\
 **Verification needed, exercise caution until completely verified for accuracy and cleared**\
 **Refer to source for absolute certainty**

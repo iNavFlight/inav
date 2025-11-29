@@ -4112,6 +4112,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         break;
 #endif
 
+#ifdef USE_BARO
     case MSP2_INAV_SET_ALT_TARGET:
     {
         if (dataSize == 0) {
@@ -4137,6 +4138,7 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = MSP_RESULT_ACK;
         break;
     }
+#endif
 
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:

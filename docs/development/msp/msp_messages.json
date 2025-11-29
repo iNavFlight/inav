@@ -10833,44 +10833,56 @@
         "code": 8725,
         "mspv": 2,
         "variable_len": true,
-        "request": {
-            "payload": [
-                {
-                    "name": "altitudeDatum",
-                    "ctype": "uint8_t",
-                    "desc": "Datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (reserved)",
-                    "units": "",
-                    "enum": "geoAltitudeDatumFlag_e",
-                    "optional": true
+        "variants": {
+            "get": {
+                "description": "Get current altitude target",
+                "request": {
+                    "payload": null
                 },
-                {
-                    "name": "altitudeTarget",
-                    "ctype": "int32_t",
-                    "desc": "Desired altitude target (`updateClimbRateToAltitudeController(…, ROC_TO_ALT_TARGET)`), datum as above",
-                    "units": "cm",
-                    "optional": true
+                "reply": {
+                    "payload": [
+                        {
+                            "name": "altitudeDatum",
+                            "ctype": "uint8_t",
+                            "desc": "Default internal reference altitude datum `NAV_WP_TAKEOFF_DATUM`",
+                            "units": "",
+                            "enum": "geoAltitudeDatumFlag_e"
+                        },
+                        {
+                            "name": "altitudeTarget",
+                            "ctype": "int32_t",
+                            "desc": "Current altitude target (`posControl.desiredState.pos.z`)",
+                            "units": "cm"
+                        }
+                    ]
                 }
-            ]
-        },
-        "reply": {
-            "payload": [
-                {
-                    "name": "altitudeDatum",
-                    "ctype": "uint8_t",
-                    "desc": "Datum flag returned (`geoAltitudeDatumFlag_e`), currently `NAV_WP_TAKEOFF_DATUM`",
-                    "units": "",
-                    "enum": "geoAltitudeDatumFlag_e"
+            },
+            "set": {
+                "description": "Set new altitude target",
+                "request": {
+                    "payload": [
+                        {
+                            "name": "altitudeDatum",
+                            "ctype": "uint8_t",
+                            "desc": "Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet)",
+                            "units": "",
+                            "enum": "geoAltitudeDatumFlag_e"
+                        },
+                        {
+                            "name": "altitudeTarget",
+                            "ctype": "int32_t",
+                            "desc": "Desired altitude target according to reference datum",
+                            "units": "cm"
+                        }
+                    ]
                 },
-                {
-                    "name": "altitudeTarget",
-                    "ctype": "int32_t",
-                    "desc": "Current altitude target (`posControl.desiredState.pos.z`)",
-                    "units": "cm"
+                "reply": {
+                    "payload": null
                 }
-            ]
+            }
         },
         "notes": "Empty request payload returns the current altitude target with datum. Sending a 5-byte payload sets a new target: 1 byte datum, 4 bytes altitude. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).",
-        "description": "Get or set the active altitude hold target."
+        "description": "Get or set the active altitude hold target using updateClimbRateToAltitudeController."
     },
     "MSP2_INAV_FULL_LOCAL_POSE": {
         "code": 8736,
