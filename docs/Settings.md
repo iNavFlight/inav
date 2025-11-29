@@ -604,7 +604,7 @@ CRSF telemetry link ratio
 
 ### crsf_telemetry_mode
 
-Use extended custom telemetry sensors for CRSF
+Use extended custom or native telemetry sensors for CRSF
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -6209,6 +6209,16 @@ _// TODO_
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### smartport_telemetry_mode
+
+Use legacy or standard telemetry sensors for SmartPort
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LEGACY |  |  |
 
 ---
 

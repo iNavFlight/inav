@@ -1,9 +1,3 @@
-/*
- * smartport.h
- *
- *  Created on: 25 October 2014
- *      Author: Frank26080115
- */
 
 #pragma once
 

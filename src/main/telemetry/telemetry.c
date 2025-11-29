@@ -102,6 +102,7 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
     .crsf_telemetry_mode = SETTING_CRSF_TELEMETRY_MODE_DEFAULT,
     .crsf_telemetry_link_rate = SETTING_CRSF_TELEMETRY_LINK_RATE_DEFAULT,
     .crsf_telemetry_link_ratio = SETTING_CRSF_TELEMETRY_LINK_RATIO_DEFAULT,
+    .smartport_telemetry_mode = SETTING_SMARTPORT_TELEMETRY_MODE_DEFAULT,
 );
 
 void telemetryInit(void)

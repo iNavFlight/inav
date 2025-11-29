@@ -106,6 +106,9 @@ tables:
   - name: crsf_telemetry_modes
     values: [ "OFF", "NATIVE", "CUSTOM" ]
     enum: crsfTelemetryMode_e
+  - name: smartport_telemetry_modes
+    values: [ "LEGACY", "STANDARD" ]
+    enum: smartportTelemetryMode_e
   - name: smartport_fuel_unit
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
@@ -3117,10 +3120,16 @@ groups:
         default_value: OFF
         type: bool
       - name: crsf_telemetry_mode
-        description: "Use extended custom telemetry sensors for CRSF"
+        description: "Use extended custom or native telemetry sensors for CRSF"
         default_value: NATIVE
-        condition: USE_TELEMETRY_LTM
+        condition: USE_TELEMETRY_CRSF
         table: crsf_telemetry_modes
+        type: uint8_t
+      - name: smartport_telemetry_mode
+        description: "Use legacy or standard telemetry sensors for SmartPort"
+        default_value: LEGACY
+        condition: USE_TELEMETRY_SMARTPORT
+        table: smartport_telemetry_modes
         type: uint8_t
       - name: crsf_telemetry_link_rate
         description: "CRSF telemetry link rate"

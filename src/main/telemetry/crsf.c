@@ -284,6 +284,34 @@ void crsfSensorEncodeLatLong(telemetrySensor_t *sensor, sbuf_t *buf)
     crsfSerialize32BE(buf, gpsSol.llh.lon);
 }
 
+void crsfSensorEncodeEscRpm(telemetrySensor_t *sensor, sbuf_t *buf)
+{
+    UNUSED(sensor);
+    uint8_t motorCount = MAX(getMotorCount(), 1); //must send at least one motor, to avoid CRSF frame shifting
+    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 3); // 3 bytes per RPM value
+    motorCount = MIN(motorCount, MAX_SUPPORTED_MOTORS); // ensure we don't exceed available ESC telemetry data
+
+    for (uint8_t i = 0; i < motorCount; i++) {
+        const escSensorData_t *escState = getEscTelemetry(i);
+        crsfSerialize24BE(buf, escState->rpm & 0xFFFFFF);
+    }
+}
+void crsfSensorEncodeEscTemperature(telemetrySensor_t *sensor, sbuf_t *buf)
+{
+    UNUSED(sensor);
+
+    uint8_t motorCount = MAX(getMotorCount(), 1); //must send at least one motor, to avoid CRSF frame shifting
+    motorCount = MIN(getMotorCount(), CRSF_PAYLOAD_SIZE_MAX / 3); // 3 bytes per RPM value
+    motorCount = MIN(motorCount, MAX_SUPPORTED_MOTORS); // ensure we don't exceed available ESC telemetry data
+
+    for (uint8_t i = 0; i < motorCount; i++) {
+        const escSensorData_t *escState = getEscTelemetry(i);
+        uint32_t rpm = (escState) ? (escState->temperature * 10) & 0xFFFFFF : TEMPERATURE_INVALID_VALUE;
+        crsfSerialize24BE(buf, rpm);
+    }
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -335,16 +363,21 @@ static sbuf_t * crsfInitializeSbuf(void)
     .encode = (telemetryEncode_f)crsfSensorEncode##ENCODER, \
 }
 
+///////////////////////////////////////////////////////////////////////
+////// LEGACY sensors, don't add new sensors here /////////////////////
 static telemetrySensor_t crsfNativeTelemetrySensors[] =
 {
     TLM_SENSOR(FLIGHT_MODE,             0,  100,  100,  0,  Nil),
     TLM_SENSOR(BATTERY,                 0,  100,  100,  0,  Nil),
     TLM_SENSOR(ATTITUDE,                0,  100,  100,  0,  Nil),
+#ifdef USE_BARO
     TLM_SENSOR(ALTITUDE,                0,  100,  100,  0,  Nil),
+#endif
+#ifdef USE_GPS
     TLM_SENSOR(GPS,                     0,  100,  100,  0,  Nil),
-    TLM_SENSOR(ESC_RPM,                 0,  100,  100,  0,  Nil),
-    TLM_SENSOR(ESC_TEMPERATURE,         0,  100,  100,  0,  Nil),
+#endif
 };
+///////////////////////////////////////////////////////////////////////
 
 static telemetrySensor_t crsfCustomTelemetrySensors[] =
 {
@@ -383,26 +416,26 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(GPS_GROUNDSPEED,         0x1128,   200,  3000,    0,     U16),
     TLM_SENSOR(GPS_HOME_DISTANCE,       0x1129,   200,  3000,    0,     U16),
     TLM_SENSOR(GPS_HOME_DIRECTION,      0x112A,   200,  3000,    0,     U16),
+    TLM_SENSOR(GPS_AZIMUTH,             0x112B,   200,  3000,    0,     U16),
 #endif
 
 #ifdef USE_ESC_SENSOR
-    TLM_SENSOR(ESC1_RPM,                0x1131,   200,  3000,    0,     U16),
-    TLM_SENSOR(ESC2_RPM,                0x1132,   200,  3000,    0,     U16),
-    TLM_SENSOR(ESC3_RPM,                0x1133,   200,  3000,    0,     U16),
-    TLM_SENSOR(ESC4_RPM,                0x1134,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC_RPM,                 0x1131,   200,  3000,    0,     EscRpm),
+    TLM_SENSOR(ESC1_RPM,                0x1132,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC2_RPM,                0x1133,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC3_RPM,                0x1134,   200,  3000,    0,     U16),
+    TLM_SENSOR(ESC4_RPM,                0x1135,   200,  3000,    0,     U16),
+
+    TLM_SENSOR(ESC_TEMPERATURE,         0x1136,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC1_TEMPERATURE,        0x1137,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC2_TEMPERATURE,        0x1138,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC3_TEMPERATURE,        0x1139,   200,  3000,    0,     U8),
+    TLM_SENSOR(ESC4_TEMPERATURE,        0x113A,   200,  3000,    0,     U8),
 #endif
 
-#ifdef USE_TEMPERATURE_SENSOR
-    TLM_SENSOR(ESC1_TEMPERATURE,        0x1135,   200,  3000,    0,     U8),
-    TLM_SENSOR(ESC2_TEMPERATURE,        0x1136,   200,  3000,    0,     U8),
-    TLM_SENSOR(ESC3_TEMPERATURE,        0x1137,   200,  3000,    0,     U8),
-    TLM_SENSOR(ESC4_TEMPERATURE,        0x1138,   200,  3000,    0,     U8),
-#endif
-
-    TLM_SENSOR(CPU_LOAD,                0x1141,   500,  3000,    10,    U8),
-
-    TLM_SENSOR(FLIGHT_MODE,             0x1201,   200,  3000,    0,     U16),
-    TLM_SENSOR(ARMING_FLAGS,            0x1202,   200,  3000,    0,     U8),
+    TLM_SENSOR(CPU_LOAD,                0x1150,   500,  3000,    10,    U8),
+    TLM_SENSOR(FLIGHT_MODE,             0x1251,   200,  3000,    0,     U16),
+    TLM_SENSOR(ARMING_FLAGS,            0x1252,   200,  3000,    0,     U8),
 };
 
 telemetrySensor_t * crsfGetNativeSensor(sensor_id_e id)
@@ -429,68 +462,6 @@ telemetrySensor_t * crsfGetCustomSensor(sensor_id_e id)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
-/*
-0x0C RPM
-Payload:
-uint8_t    rpm_source_id;  // Identifies the source of the RPM data (e.g., 0 = Motor 1, 1 = Motor 2, etc.)
-int24_t    rpm_value[];     // 1 - 19 RPM values with negative ones representing the motor spinning in reverse
-*/
-static void crsfRpm(sbuf_t *dst)
-{
-    uint8_t motorCount = getMotorCount();
-
-    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
-        sbufWriteU8(dst, 1 + (motorCount * 3) + CRSF_FRAME_LENGTH_TYPE_CRC);
-        crsfSerialize8(dst, CRSF_FRAMETYPE_RPM);
-        // 0 = FC including all ESCs
-        crsfSerialize8(dst, 0);
-
-        for (uint8_t i = 0; i < motorCount; i++) {
-            const escSensorData_t *escState = getEscTelemetry(i);
-            crsfSerialize24BE(dst, (escState) ? escState->rpm : 0);
-        }
-    }
-}
-
-/*
-0x0D TEMP
-Payload:
-uint8_t temp_source_id; // Identifies the source of the temperature data (e.g., 0 = FC including all ESCs, 1 = Ambient, etc.)
-int16_t temperature[]; // up to 20 temperature values in deci-degree (tenths of a degree) Celsius (e.g., 250 = 25.0°C, -50 = -5.0°C)
-*/
-static void crsfTemperature(sbuf_t *dst)
-{
-    uint8_t tempCount = 0;
-    int16_t temperatures[20];
-
-#ifdef USE_ESC_SENSOR
-    uint8_t motorCount = getMotorCount();
-    if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
-        for (uint8_t i = 0; i < motorCount; i++) {
-            const escSensorData_t *escState = getEscTelemetry(i);
-            temperatures[tempCount++] = (escState) ? escState->temperature * 10 : TEMPERATURE_INVALID_VALUE;
-        }
-    }
-#endif
-
-#ifdef USE_TEMPERATURE_SENSOR
-    for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
-        int16_t value;
-        if (getSensorTemperature(i, &value))
-            temperatures[tempCount++] = value;
-    }
-#endif
-
-    if (tempCount > 0) {
-        sbufWriteU8(dst, 1 + (tempCount * 2) + CRSF_FRAME_LENGTH_TYPE_CRC);
-        crsfSerialize8(dst, CRSF_FRAMETYPE_TEMP);
-        // 0 = FC including all ESCs
-        crsfSerialize8(dst, 0);
-        for (uint8_t i = 0; i < tempCount; i++)
-            crsfSerialize16BE(dst, temperatures[i]);
-    }
-}
-
 /*
 CRSF frame has the structure:
 <Device address> <Frame length> <Type> <Payload> <CRC>
@@ -770,7 +741,7 @@ void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 
 static bool crsfSendNativeTelemetry(void)
 {
-    if (crsfTelemetryState != TELEMETRY_STATE_NATIVE)
+    if (crsfTelemetryState != CRSFR_TELEMETRY_STATE_NATIVE)
     {
         return false;
     }
@@ -814,24 +785,6 @@ static bool crsfSendNativeTelemetry(void)
                 crsfFinalize(dst);
                 break;
 #endif
-#ifdef USE_ESC_SENSOR
-            case TELEM_ESC_RPM:
-                if(STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
-                   crsfInitializeFrame(dst);
-                    crsfRpm(dst);
-                    crsfFinalize(dst);
-                }
-                break;
-#endif
-#ifdef USE_TEMPERATURE_SENSOR
-            case TELEM_ESC_TEMPERATURE:
-                if(STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
-                    crsfInitializeFrame(dst);
-                    crsfTemperature(dst);
-                    crsfFinalize(dst);
-                }
-                break;
-#endif
             default:
                 crsfInitializeFrame(dst); // write sync byte [CRSF_TELEMETRY_SYNC_BYTE]
                 crsfFrameHeartbeat(dst);  // create whole frame without SYNC and CRC
@@ -847,7 +800,7 @@ static bool crsfSendNativeTelemetry(void)
 
 static bool crsfSendCustomTelemetry(void)
 {
-    if (crsfTelemetryState == TELEMETRY_STATE_CUSTOM)
+    if (crsfTelemetryState == CRSFR_TELEMETRY_STATE_CUSTOM)
     {
         size_t sensor_count = 0;
         sbuf_t *dst = crsfInitializeSbuf(); // prepare buffer
@@ -887,7 +840,7 @@ static bool crsfSendCustomTelemetry(void)
 
 static bool crsfPopulateCustomTelemetry(void)
 {
-    if (crsfTelemetryState == TELEMETRY_STATE_POPULATE)
+    if (crsfTelemetryState == CRSFR_TELEMETRY_STATE_POPULATE)
     {
         static int slot = -10;
 
@@ -924,7 +877,7 @@ static bool crsfPopulateCustomTelemetry(void)
             }
         }
 
-        crsfTelemetryState = TELEMETRY_STATE_CUSTOM;
+        crsfTelemetryState = CRSFR_TELEMETRY_STATE_CUSTOM;
     }
 
     return false;
@@ -1008,7 +961,7 @@ void initCrsfTelemetry(void)
 {
     // check if there is a serial port open for CRSF telemetry (ie opened by the CRSF RX)
     // and feature is enabled, if so, set CRSF telemetry enabled
-    crsfTelemetryState = !crsfRxIsActive() ? TELEMETRY_STATE_OFF : (telemetryConfig()->crsf_telemetry_mode == TELEMETRY_STATE_NATIVE ? TELEMETRY_STATE_NATIVE : TELEMETRY_STATE_POPULATE);
+    crsfTelemetryState = !crsfRxIsActive() ? CRSFR_TELEMETRY_STATE_OFF : (telemetryConfig()->crsf_telemetry_mode == CRSFR_TELEMETRY_STATE_NATIVE ? CRSFR_TELEMETRY_STATE_NATIVE : CRSFR_TELEMETRY_STATE_POPULATE);
 
     if(crsfTelemetryState) {
         deviceInfoReplyPending = false;
@@ -1024,7 +977,7 @@ void initCrsfTelemetry(void)
         mspReplyPending = false;
 #endif
 
-        if (crsfTelemetryState == TELEMETRY_STATE_NATIVE) {
+        if (crsfTelemetryState == CRSFR_TELEMETRY_STATE_NATIVE) {
             telemetryScheduleInit(crsfNativeTelemetrySensors, ARRAYLEN(crsfNativeTelemetrySensors), false);
         } else {
             initCrsfCustomSensors();

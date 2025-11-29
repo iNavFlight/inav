@@ -53,15 +53,21 @@ typedef enum {
 } smartportFuelUnit_e;
 
 typedef enum {
-    TELEMETRY_STATE_OFF = 0,
-    TELEMETRY_STATE_NATIVE,
-    TELEMETRY_STATE_CUSTOM,
-    TELEMETRY_STATE_POPULATE,
+    CRSFR_TELEMETRY_STATE_OFF = 0,
+    CRSFR_TELEMETRY_STATE_NATIVE,
+    CRSFR_TELEMETRY_STATE_CUSTOM,
+    CRSFR_TELEMETRY_STATE_POPULATE,
 } crsfTelemetryMode_e;
+
+typedef enum {
+    SMARTPORT_TELEMETRY_STATE_LEGACY = 0,
+    SMARTPORT_CRSFR_TELEMETRY_STATE_STANDARD,
+} smartportTelemetryMode_e;
 
 typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
     uint8_t telemetry_inverted;             // Flip the default inversion of the protocol - Same as serialrx_inverted in rx.c, but for telemetry.
+    uint8_t frsky_pitch_roll;
     uint8_t report_cell_voltage;
     uint8_t hottAlarmSoundInterval;
     uint8_t halfDuplex;
@@ -96,6 +102,7 @@ typedef struct telemetryConfig_s {
     uint8_t crsf_telemetry_mode;
     uint16_t crsf_telemetry_link_rate;
     uint16_t crsf_telemetry_link_ratio;
+    uint8_t smartport_telemetry_mode;
 } telemetryConfig_t;
 
 typedef struct {
