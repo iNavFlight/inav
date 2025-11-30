@@ -1,4 +1,0 @@
-- name: Verify custom function
-  run: |
-    echo "=== Checking if custom function exists ==="
-    grep -n "applyCustomDefaults" src/main/fc/config.c
