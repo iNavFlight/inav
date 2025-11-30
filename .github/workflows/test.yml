@@ -1,0 +1,15 @@
+- name: Find REAL setting values
+  run: |
+    echo "=== Searching for files with SETTING number values ==="
+    find . -name "*.h" -exec grep -l "SETTING_.*_DEFAULT [0-9]" {} \; | head -10
+    
+    echo "=== Checking common locations ==="
+    for file in "./src/main/config/settings_defaults.h" "./src/main/fc/settings_generated.h" "./src/main/config/general_settings_defaults.h"; do
+      if [ -f "$file" ]; then
+        echo "FOUND: $file"
+        grep "#define SETTING_" "$file" | head -10
+      fi
+    done
+    
+    echo "=== Alternative search ==="
+    find . -name "*.h" -exec grep -H "SETTING_GYRO_MAIN_LPF_HZ_DEFAULT" {} \; 2>/dev/null | head -5
