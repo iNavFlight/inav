@@ -18,6 +18,9 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y make cmake gcc-arm-none-eabi
+          - name: Apply custom patches
+            run: |
+
 
       - name: Configure and build
         run: |
