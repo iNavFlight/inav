@@ -256,11 +256,15 @@ jobs:
           for f in ./build_SITL/*_SITL.exe; do
             mv $f $(echo $f | sed -e 's/_[0-9]\+\.[0-9]\+\.[0-9]\+//')
           done
+      - name: Copy cygwin1.dll
+        run: cp /bin/cygwin1.dll ./build_SITL/
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD_NAME }}_SITL-WIN
-          path: ./build_SITL/*.exe
+          path: | 
+            ./build_SITL/*.exe
+            ./build_SITL/cygwin1.dll
 
   test:
     #needs: [build]
