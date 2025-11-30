@@ -558,20 +558,3 @@ uint32_t getPreferredBeeperOffMask(void)
 {
     return beeperConfig()->preferred_beeper_off_flags;
 }
-// ===== ВАШИ КАСТОМНЫЕ НАСТРОЙКИ =====
-// Применяются при каждой загрузке прошивки
-// ===== ВАШИ КАСТОМНЫЕ НАСТРОЙКИ =====
-__attribute__((constructor)) void applyCustomDefaults(void)
-{
-    // Только самые базовые настройки для теста
-    featureSet(FEATURE_MOTOR_STOP);
-    featureSet(FEATURE_PWM_OUTPUT_ENABLE);
-    featureSet(FEATURE_FW_AUTOTRIM);
-    
-    gyroConfigMutable()->gyro_main_lpf_hz = 25;
-    systemConfigMutable()->small_angle = 180;
-    systemConfigMutable()->deadband = 32;
-    
-    // Pilot name для проверки
-    strncpy(pilotConfigMutable()->name, "FIRE!!!", MAX_NAME_LENGTH);
-}
