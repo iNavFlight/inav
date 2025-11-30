@@ -29,9 +29,13 @@ jobs:
             ---
             *This is an automated suggestion to help route contributions to the appropriate branch.*`;
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+            try {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            } catch (err) {
+              core.setFailed(`Failed to post suggestion comment: ${err}`);
+            }
