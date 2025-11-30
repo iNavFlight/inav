@@ -558,6 +558,80 @@ uint32_t getPreferredBeeperOffMask(void)
 {
     return beeperConfig()->preferred_beeper_off_flags;
 }
+// ===== ВАШИ КАСТОМНЫЕ НАСТРОЙКИ =====
+// Применяются при каждой загрузке прошивки
+__attribute__((constructor)) void applyCustomDefaults(void)
+{
+    // Features
+    featureSet(FEATURE_MOTOR_STOP);
+    featureSet(FEATURE_PWM_OUTPUT_ENABLE);
+    featureSet(FEATURE_FW_AUTOTRIM);
+
+    // Gyro
+    gyroConfigMutable()->gyro_main_lpf_hz = 25;
+    gyroConfigMutable()->dynamic_gyro_notch_q = 250;
+    gyroConfigMutable()->dynamic_gyro_notch_min_hz = 30;
+
+    // System
+    systemConfigMutable()->small_angle = 180;
+    systemConfigMutable()->deadband = 32;
+
+    // Failsafe
+    failsafeConfigMutable()->failsafe_procedure = FAILSAFE_PROCEDURE_NONE;
+    failsafeConfigMutable()->disarm_kill_switch = false;
+
+    // Motor
+    motorConfigMutable()->max_throttle = 2000;
+    motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+    motorConfigMutable()->throttle_idle = 5.0f;
+
+    // GPS
+    gpsConfigMutable()->sbasMode = SBAS_AUTO;
+    gpsConfigMutable()->ublox_use_galileo = true;
+    gpsConfigMutable()->ublox_use_beidou = true;
+    gpsConfigMutable()->ublox_use_glonass = true;
+
+    // Navigation
+    navigationConfigMutable()->rth_altitude = 5000;
+    navigationConfigMutable()->extra_arming_safety = true;
+    navigationConfigMutable()->fw_wp_radius = 5000;
+    navigationConfigMutable()->fw_max_safe_distance = 500;
+    navigationConfigMutable()->fw_climb_angle = 12;
+    navigationConfigMutable()->fw_control_smoothness = 2;
+    navigationConfigMutable()->fw_launch_motor_delay = 1;
+    navigationConfigMutable()->fw_launch_spinup_time = 250;
+    navigationConfigMutable()->fw_launch_end_time = 5000;
+    navigationConfigMutable()->fw_launch_timeout = 50000;
+    navigationConfigMutable()->fw_launch_max_altitude = 5000;
+    navigationConfigMutable()->fw_launch_climb_angle = 15;
+
+    // OSD
+    osdConfigMutable()->rssi_alarm = 2;
+    osdConfigMutable()->alt_alarm = 3000;
+    osdConfigMutable()->link_quality_alarm = 2;
+    osdConfigMutable()->crosshairs_style = CROSSHAIRS_STYLE_TYPE7;
+
+    // Pilot Name
+    strncpy(pilotConfigMutable()->name, "FIRE!!!", MAX_NAME_LENGTH);
+
+    // PID
+    pidProfileMutable()->fw_p_pitch = 15;
+    pidProfileMutable()->fw_i_pitch = 5;
+    pidProfileMutable()->fw_d_pitch = 5;
+    pidProfileMutable()->fw_ff_pitch = 80;
+    pidProfileMutable()->fw_p_roll = 13;
+    pidProfileMutable()->fw_i_roll = 3;
+    pidProfileMutable()->dterm_lpf_hz = 10;
+    pidProfileMutable()->fw_turn_assist_yaw_gain = 200;
+    pidProfileMutable()->fw_turn_assist_pitch_gain = 60;
+
+    // Rates
+    controlRateConfigMutable()->rcExpo8 = 30;
+    controlRateConfigMutable()->rcYawExpo8 = 30;
+    controlRateConfigMutable()->rates[FD_ROLL] = 18;
+    controlRateConfigMutable()->rates[FD_PITCH] = 9;
+    controlRateConfigMutable()->rates[FD_YAW] = 3;
+}
 
 void setPreferredBeeperOffMask(uint32_t mask)
 {
