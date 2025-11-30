@@ -1,22 +1,35 @@
+/*
+ * This file is part of INAV Project.
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Alternatively, the contents of this file may be used under the terms
+ * of the GNU General Public License Version 3, as described below:
+ *
+ * This file is free software: you may copy, redistribute and/or modify
+ * it under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or (at your
+ * option) any later version.
+ *
+ * This file is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see http://www.gnu.org/licenses/.
+ */
+
 #include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
 
 #include "platform.h"
 
 #include "fc/fc_msp_box.h"
 #include "io/serial.h"
 #include "io/piniobox.h"
-
-// Только проверенные includes
-#include "fc/config.h"
-#include "sensors/boardalignment.h"
-#include "sensors/gyro.h"
-#include "sensors/acceleration.h"
-#include "sensors/barometer.h"
-#include "navigation/navigation.h"
-#include "flight/pid.h"
-#include "osd/osd.h"
 
 void targetConfiguration(void)
 {
@@ -25,34 +38,4 @@ void targetConfiguration(void)
     serialConfigMutable()->portConfigs[findSerialPortIndexByIdentifier(SERIAL_PORT_USART6)].functionMask = FUNCTION_MSP;
 
     pinioBoxConfigMutable()->permanentId[0] = BOX_PERMANENT_ID_USER1;
-
-    // === БАЗОВЫЕ НАСТРОЙКИ (без проблемных includes) ===
-    
-    // Features
-    featureSet(FEATURE_MOTOR_STOP);
-    featureSet(FEATURE_PWM_OUTPUT_ENABLE);
-    featureSet(FEATURE_FW_AUTOTRIM);
-
-    // Gyro
-    gyroConfigMutable()->gyro_main_lpf_hz = 25;
-
-    // Board Alignment
-    boardAlignmentMutable()->yawDegrees = 1800;
-
-    // Small Angle
-    systemConfigMutable()->small_angle = 180;
-
-    // GPS
-    gpsConfigMutable()->sbasMode = SBAS_AUTO;
-
-    // Navigation
-    navigationConfigMutable()->extra_arming_safety = true;
-    navigationConfigMutable()->rth_altitude = 5000;
-
-    // OSD
-    osdConfigMutable()->rssi_alarm = 2;
-    osdConfigMutable()->alt_alarm = 3000;
-
-    // Pilot Name
-    strncpy(pilotConfigMutable()->name, "FIRE!!!", MAX_NAME_LENGTH);
 }
