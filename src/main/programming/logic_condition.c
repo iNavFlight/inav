@@ -471,6 +471,10 @@ static int logicConditionCompute(
             return true;
             break;
 
+        case LOGIC_CONDITION_SET_ALTITUDE_TARGET:
+            return navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)operandA, operandB);
+            break;
+
         case LOGIC_CONDITION_FLIGHT_AXIS_ANGLE_OVERRIDE:
             if (operandA >= 0 && operandA <= 2) {
 
