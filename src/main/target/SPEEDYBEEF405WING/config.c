@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "platform.h"
 
@@ -7,19 +8,17 @@
 #include "io/serial.h"
 #include "io/piniobox.h"
 
-// Добавьте эти includes
+// Правильные includes для INAV 7.1.2
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
-#include "fc/rc.h"
-#include "osd/osd.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/acceleration.h"
-#include "sensors/mag.h"
+#include "sensors/compass.h"
 #include "sensors/barometer.h"
 #include "navigation/navigation.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
+#include "osd/osd.h"
 
 void targetConfiguration(void)
 {
@@ -60,7 +59,7 @@ void targetConfiguration(void)
     boardAlignmentMutable()->yawDegrees = 1800;
 
     // Current Meter
-    currentMeterMutable()->scale = 160;
+    batteryConfigMutable()->currentMeterScale = 160;
 
     // Small Angle
     systemConfigMutable()->small_angle = 180;
