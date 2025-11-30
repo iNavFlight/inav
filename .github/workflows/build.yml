@@ -1,0 +1,31 @@
+name: Build iNav 7.1.2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ inav-7.1.2-exact ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install tools
+        run: |
+          sudo apt update
+          sudo apt install -y make cmake gcc-arm-none-eabi
+
+      - name: Configure and build
+        run: |
+          cmake -DCOMPILER_VERSION_CHECK=OFF -B build .
+          cd build && make SPEEDYBEEF405WING
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: inav-7.1.2-speedybee
+          path: build/*.hex
