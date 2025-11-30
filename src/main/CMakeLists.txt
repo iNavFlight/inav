@@ -61,6 +61,7 @@ main_sources(COMMON_SRC
     config/parameter_group.h
     config/general_settings.c
     config/general_settings.h
+	
 
     drivers/1-wire.c
     drivers/1-wire.h
@@ -269,7 +270,7 @@ main_sources(COMMON_SRC
     fc/cli.h
     fc/config.c
     fc/config.h
-    fc/controlrate_profile.c
+	fc/controlrate_profile.c
     fc/controlrate_profile.h
     fc/controlrate_profile_config_struct.h
     fc/fc_core.c
@@ -420,6 +421,7 @@ main_sources(COMMON_SRC
     rx/sumd.h
     rx/sim.c
     rx/sim.h
+	rx/external_pwm.c
 
 
     scheduler/scheduler.c

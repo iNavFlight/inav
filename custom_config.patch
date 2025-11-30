@@ -1,0 +1,53 @@
+From: Your Name <your@email.com>
+Date: Mon, 1 Jan 2024 12:00:00 +0000
+Subject: [PATCH] Custom configuration for SPEEDYBEEF405WING
+
+--- a/main/config/config.c
++++ b/main/config/config.c
+@@ -123,6 +123,12 @@
+     .max_angle_inclination = 500,
++    .gyro_main_lpf_hz = 25,
++    .dynamic_gyro_notch_q = 250,
++    .dynamic_gyro_notch_min_hz = 30,
++    .small_angle = 180,
++    .deadband = 32,
++    .airmode_type = STICK_CENTER_ONCE,
+ 
+@@ -130,6 +136,15 @@
+     .max_angle_inclination_rll = 450,
++    .failsafe_procedure = NONE,
++    .disarm_kill_switch = OFF,
++    .max_throttle = 2000,
++    .motor_pwm_protocol = STANDARD,
++    .throttle_idle = 5.0f,
+ 
+@@ -200,6 +215,12 @@
+     .gps_sbas_mode = AUTO,
++    .gps_ublox_use_galileo = ON,
++    .gps_ublox_use_beidou = ON,
++    .gps_ublox_use_glonass = ON,
+ 
+--- a/main/config/defaults_speedybeef405wing.h
++++ b/main/config/defaults_speedybeef405wing.h
+@@ -45,6 +45,15 @@
+     .gyro_zero_x = -1,
++    .gyro_zero_y = -2,
++    .ins_gravity_cmss = 977.575f,
++    .acc_hardware = ACC_ICM42605,
++    .acczero_y = -2,
++    .acczero_z = 20,
++    .accgain_x = 4091,
++    .accgain_y = 4093,
++    .accgain_z = 4094,
++    .rangefinder_hardware = RANGEFINDER_BENEWAKE,
++    .align_mag = ALIGN_CW0_FLIP,
++    .mag_hardware = MAG_QMC5883,
++    .magzero_x = -143,
++    .magzero_y = -757,
++    .magzero_z = -298,
++    .maggain_x = 2219,
++    .maggain_y = 1888,
++    .maggain_z = 1568,
++    .baro_hardware = BARO_SPL06,
++    .current_meter_scale = 160,
++    .align_board_yaw = 1800,

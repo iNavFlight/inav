@@ -36,3 +36,7 @@ int digitCount(int32_t value);
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros);
 
 #endif
+
+#pragma once
+// ...
+const char *osdGetExternalPwmStatus(void);

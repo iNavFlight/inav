@@ -284,6 +284,7 @@ typedef enum {
     OSD_CUSTOM_ELEMENT_1,
     OSD_CUSTOM_ELEMENT_2,
     OSD_CUSTOM_ELEMENT_3,
+	OSD_EXT_PWM_STATUS,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 

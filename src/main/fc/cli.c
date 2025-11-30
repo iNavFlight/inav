@@ -73,12 +73,15 @@ bool cliMode = false;
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
+#include "common/maths.h"
 #include "fc/controlrate_profile.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+
+
 
 #include "flight/failsafe.h"
 #include "flight/imu.h"
@@ -95,13 +98,14 @@ bool cliMode = false;
 #include "io/osd.h"
 #include "io/osd/custom_elements.h"
 #include "io/serial.h"
+#include "common/maths.h"
 
 #include "fc/fc_msp_box.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 
-#include "rx/rx.h"
+
 #include "rx/spektrum.h"
 #include "rx/srxl2.h"
 
@@ -125,7 +129,7 @@ bool cliMode = false;
 
 #include "telemetry/telemetry.h"
 #include "build/debug.h"
-
+#include "rx/rx.h"
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 extern uint8_t detectedSensors[SENSOR_INDEX_COUNT];
 
@@ -164,6 +168,7 @@ static const char * outputModeNames[] = {
     "SERVOS",
     NULL
 };
+static void cliLidar(char *cmdline);
 
 #ifdef USE_BLACKBOX
 static const char * const blackboxIncludeFlagNames[] = {
@@ -4363,6 +4368,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+	CLI_COMMAND_DEF("lidar", "show or set Lidar trigger distance (cm)", NULL, cliLidar),
 };
 
 static void cliHelp(char *cmdline)
@@ -4520,4 +4526,22 @@ void cliEnter(serialPort_t *serialPort)
 void cliInit(const serialConfig_t *serialConfig)
 {
     UNUSED(serialConfig);
+}
+
+// CLI команда для настройки порога лидара
+static void cliLidar(char *cmdline)
+{
+    int value;
+    value = atoi(cmdline);
+    if (value > 0) {
+        if (value >= 10 && value <= 1200) {
+            rxLidarConfigMutable()->lidar_distance_cm = value;
+            cliPrintLinef("Lidar distance set to %d cm", value);
+        } else {
+            cliPrintLine("Value out of range (20–500 cm)");
+        }
+    } else {
+        cliPrintLinef("Current Lidar distance: %d cm", rxLidarConfig()->lidar_distance_cm);
+        cliPrintLine("Use: lidar < 10 - 1200 >");
+    }
 }

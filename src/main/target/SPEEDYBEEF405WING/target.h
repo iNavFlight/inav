@@ -172,4 +172,6 @@
 
 #define USE_PINIO
 #define USE_PINIOBOX
-#define PINIO1_PIN                  PC13
+#define PINIO1_PIN                  PB11
+#define USE_CUSTOM_DEFAULTS
+#define CUSTOM_DEFAULTS_FUNCTION applyCustomDefaults

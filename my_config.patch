@@ -1,0 +1,26 @@
+diff --git a/main/config/config.c b/main/config/config.c
+index a1b2c3d..e4f5g6h 100644
+--- a/main/config/config.c
++++ b/main/config/config.c
+@@ -123,6 +123,12 @@
+     .max_angle_inclination = 500,
++    .gyro_main_lpf_hz = 25,
++    .dynamic_gyro_notch_q = 250,
++    .dynamic_gyro_notch_min_hz = 30,
++    .small_angle = 180,
++    .deadband = 32,
++    .airmode_type = STICK_CENTER_ONCE,
+ 
+@@ -130,6 +136,15 @@
+     .max_angle_inclination_rll = 450,
++    .failsafe_procedure = NONE,
++    .disarm_kill_switch = OFF,
++    .max_throttle = 2000,
++    .motor_pwm_protocol = STANDARD,
++    .throttle_idle = 5.0f,
+ 
+@@ -200,6 +215,12 @@
+     .gps_sbas_mode = AUTO,
++    .gps_ublox_use_galileo = ON,
++    .gps_ublox_use_beidou = ON,
++    .gps_ublox_use_glonass = ON,

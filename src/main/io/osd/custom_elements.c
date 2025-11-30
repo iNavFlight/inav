@@ -15,14 +15,14 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
+#include "drivers/io.h"
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
 #include "config/parameter_group_ids.h"
-
+#include "rx/external_pwm.h"
 #include "common/string_light.h"
 #include "common/maths.h"
-
+#include "drivers/time.h"
 #include "programming/logic_condition.h"
 #include "programming/global_variables.h"
 
@@ -138,4 +138,52 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
     }
     prevLength[customElementIndex] = buffSeek;
 }
+	
+    #include "io/osd_utils.h"  // если у тебя osd_utils.c/h существуют, иначе не страшно
 
+
+//OSD
+const char* osdGetExternalPwmStatus(void)
+{
+    static const char* lastStatus = "   ---  ";
+    static uint32_t lastSignalTime = 0;
+    uint16_t us = getExternalPwmUs();
+    uint32_t currentTime = millis();
+    
+    // Если сигнал полностью пропал (us = 0) или невалидный
+    if (us == 0 || us < 600 || us > 2500) {
+        // Сразу сбрасываем статус если сигнал пропал
+        if (us == 0) {
+            lastStatus = "   ---  ";
+        }
+        // Для невалидных значений сохраняем предыдущий статус
+    } 
+    else {
+        // Есть валидный сигнал - обновляем время
+        lastSignalTime = currentTime;
+        
+        // Обновляем состояние для рабочих диапазонов
+        if (us >= 700 && us <= 840) {
+            lastStatus = "INITIATE";
+        } 
+        else if (us >= 880 && us <= 950) {
+            lastStatus = "  WAIT  ";
+        }
+        else if (us >= 1250 && us <= 1320) {
+            lastStatus = " VZVOD  ";
+        }
+        else if (us >= 1375 && us <= 1500) {
+            lastStatus = "VZVEDEN!";
+        }
+        else if (us > 2000) {
+            lastStatus = " ERROR  ";
+        }
+    }
+    
+    // Таймаут 2 секунды - если долго нет валидного сигнала, показываем "---"
+    if (currentTime - lastSignalTime > 2000) {
+        lastStatus = "   ---  ";
+    }
+    
+    return lastStatus;
+}

@@ -30,14 +30,18 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM8,   CH3, PC8,  TIM_USE_OUTPUT_AUTO,   1, 0), // S5 D(2,4,7)
     DEF_TIM(TIM8,   CH4, PC9,  TIM_USE_OUTPUT_AUTO,   1, 0), // S6 D(2,7,7)
     
-    DEF_TIM(TIM8,  CH2N, PB14, TIM_USE_OUTPUT_AUTO,   1, 0), // S7
-    DEF_TIM(TIM2,   CH1, PA15, TIM_USE_OUTPUT_AUTO,   1, 0), // S8
-    DEF_TIM(TIM2,   CH3, PB10, TIM_USE_OUTPUT_AUTO,   1, 0), // S9
-    DEF_TIM(TIM2,   CH4, PB11, TIM_USE_OUTPUT_AUTO,   1, 0), // S10
-    DEF_TIM(TIM12,  CH2, PB15, TIM_USE_OUTPUT_AUTO,   1, 0), // S11 
+    DEF_TIM(TIM8,  CH2N, PB14, TIM_USE_ANY        ,   1, 0), // S7 cad 11  *4.3 7
+    DEF_TIM(TIM2,   CH1, PA15, TIM_USE_OUTPUT_AUTO,   1, 0), // S8      9
+    DEF_TIM(TIM2,   CH3, PB10, TIM_USE_OUTPUT_AUTO,   0, 0), // S9      7
+    DEF_TIM(TIM2,   CH4, PB11, TIM_USE_OUTPUT_AUTO,   1, 0), // S10     8
+    DEF_TIM(TIM12,  CH2, PB15, TIM_USE_OUTPUT_AUTO,   1, 0), // S11     12
 
     DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_LED,   0, 0), //2812LED  D(1,5,3)
     DEF_TIM(TIM5,   CH3, PA2,  TIM_USE_ANY,   0, 0), //TX2  softserial1_Tx
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
+
+/*	Строка 12:     IO_t io = IOGetByTag(IO_TAG(PB14)); меняем для входа TIM_USE_ANY
+	Строка 32:     IO_t io = IOGetByTag(IO_TAG(PB14));
+*/

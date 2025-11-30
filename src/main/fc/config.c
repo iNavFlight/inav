@@ -76,6 +76,7 @@
 #include "fc/settings.h"
 
 #include "navigation/navigation.h"
+void applyCustomDefaults(void);
 
 #ifndef DEFAULT_FEATURES
 #define DEFAULT_FEATURES 0
@@ -297,10 +298,14 @@ void resetConfigs(void)
     createDefaultConfig();
 
     setConfigProfile(getConfigProfile());
+
 #ifdef USE_LED_STRIP
     reevaluateLedConfig();
 #endif
+
+
 }
+
 
 static void activateConfig(void)
 {
@@ -338,6 +343,7 @@ void readEEPROM(void)
     validateAndFixConfig();
     activateConfig();
 }
+
 
 void processSaveConfigAndNotify(void)
 {

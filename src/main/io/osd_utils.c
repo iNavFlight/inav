@@ -149,3 +149,6 @@ bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int ma
     return scaled;
 }
 #endif
+#include "rx/external_pwm.h"
+
+

@@ -139,6 +139,13 @@ typedef struct rxConfig_s {
 
 PG_DECLARE(rxConfig_t, rxConfig);
 
+// --- RX LiDAR config ---
+typedef struct rxLidarConfig_s {
+    uint16_t lidar_distance_cm;   // Порог срабатывания лидара в см
+} rxLidarConfig_t;
+PG_DECLARE(rxLidarConfig_t, rxLidarConfig);
+
+
 #define REMAPPABLE_CHANNEL_COUNT ARRAYLEN(((rxConfig_t *)0)->rcmap)
 
 typedef struct rxLinkQualityTracker_s {

@@ -22,6 +22,7 @@
 #include "build/debug.h"
 #include "drivers/serial.h"
 #include "drivers/serial_softserial.h"
+#include "rx/external_pwm.h"
 
 #include "fc/fc_init.h"
 
@@ -67,5 +68,6 @@ int main(void)
     while (true) {
         scheduler();
         processLoopback();
+		externalPwmUpdate();
     }
 }

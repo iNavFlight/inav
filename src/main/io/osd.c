@@ -71,7 +71,9 @@
 #include "io/displayport_msp_bf_compat.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
-
+#include "io/osd.h"
+#include "io/osd/custom_elements.h"
+#include "displayport_max7456.h"
 #include "io/osd/custom_elements.h"
 
 #include "fc/config.h"
@@ -1744,6 +1746,10 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayBatteryVoltage(elemPosX, elemPosY, getBatterySagCompensatedVoltage(), base_digits + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
     }
+	case OSD_EXT_PWM_STATUS:
+    displayWriteWithAttr(osdDisplayPort, elemPosX, elemPosY, osdGetExternalPwmStatus(), elemAttr);
+
+    break;
 
     case OSD_CURRENT_DRAW: {
         osdFormatCentiNumber(buff, getAmperage(), 0, 2, 0, 3, false);
@@ -3855,6 +3861,10 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_SAG_COMPENSATED_MAIN_BATT_VOLTAGE] = OSD_POS(12, 1);
 
     osdLayoutsConfig->item_pos[0][OSD_RSSI_VALUE] = OSD_POS(23, 0) | OSD_VISIBLE_FLAG;
+	// === Custom OSD element: EXT PWM STATUS ===
+    osdLayoutsConfig->item_pos[0][OSD_EXT_PWM_STATUS] = OSD_POS(11, 13) | OSD_VISIBLE_FLAG;
+    osdLayoutsConfig->item_pos[1][OSD_EXT_PWM_STATUS] = OSD_POS(11, 13) | OSD_VISIBLE_FLAG;
+    osdLayoutsConfig->item_pos[2][OSD_EXT_PWM_STATUS] = OSD_POS(11, 13) | OSD_VISIBLE_FLAG;
     //line 2
     osdLayoutsConfig->item_pos[0][OSD_HOME_DIST] = OSD_POS(1, 1);
     osdLayoutsConfig->item_pos[0][OSD_TRIP_DIST] = OSD_POS(1, 2);
@@ -5525,6 +5535,8 @@ static textAttributes_t osdGetMultiFunctionMessage(char *buff)
     }
 
     return elemAttr;
+
+
 }
 
 #endif // OSD

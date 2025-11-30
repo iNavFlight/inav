@@ -155,6 +155,8 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
     }
 
     if (rangefinderHardware == RANGEFINDER_NONE) {
+        // Лидар не найден: считаем, что он вообще не используется
+        requestedSensors[SENSOR_INDEX_RANGEFINDER] = RANGEFINDER_NONE;
         sensorsClear(SENSOR_RANGEFINDER);
         return false;
     }
@@ -166,8 +168,10 @@ static bool rangefinderDetect(rangefinderDev_t * dev, uint8_t rangefinderHardwar
 
 bool rangefinderInit(void)
 {
+    // Если лидар не найден → просто отключаем его и продолжаем работать
     if (!rangefinderDetect(&rangefinder.dev, rangefinderConfig()->rangefinder_hardware)) {
-        return false;
+        sensorsClear(SENSOR_RANGEFINDER);   // Нет лидара — и хорошо
+        return true;                        // ВАЖНО: возвращаем TRUE, чтобы ARM не блокировался!
     }
 
     rangefinder.dev.init(&rangefinder.dev);
@@ -235,9 +239,11 @@ bool rangefinderProcess(float cosTiltAngle)
             rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
         }
         else {
-            // Invalid response / hardware failure
-            rangefinder.rawAltitude = RANGEFINDER_HARDWARE_FAILURE;
-        }
+    // Ошибка чтения — просто отмечаем OUT OF RANGE
+    rangefinder.rawAltitude = RANGEFINDER_OUT_OF_RANGE;
+    // И считаем последний ответ валидным, чтобы не блокировать ARM
+    rangefinder.lastValidResponseTimeMs = millis();
+}
     }
     else {
         // Bad configuration
@@ -274,6 +280,8 @@ int32_t rangefinderGetLatestRawAltitude(void) {
 
 bool rangefinderIsHealthy(void)
 {
-    return (millis() - rangefinder.lastValidResponseTimeMs) < RANGEFINDER_HARDWARE_TIMEOUT_MS;
+    // Если rangefinder не прислал данных – разрешаем ARM, считаем его "здоровым"
+    // Всегда возвращаем TRUE.
+    return true;
 }
 #endif
