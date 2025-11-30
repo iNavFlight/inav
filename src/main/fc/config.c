@@ -558,3 +558,8 @@ uint32_t getPreferredBeeperOffMask(void)
 {
     return beeperConfig()->preferred_beeper_off_flags;
 }
+
+void setPreferredBeeperOffMask(uint32_t mask)
+{
+    beeperConfigMutable()->preferred_beeper_off_flags = mask;
+}
