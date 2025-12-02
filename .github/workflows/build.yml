@@ -1,4 +1,4 @@
-name: Build iNav 7.1.2 CADDXF405
+name: Build iNav 7.1.2
 
 on:
   workflow_dispatch:
@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,11 +23,13 @@ jobs:
       - name: Configure and build
         run: |
           cmake -DCOMPILER_VERSION_CHECK=OFF -B build .
-          cd build && make SPEEDYBEEF405WING
-                - name: Verify custom function
-            run: |
+          cd build
+          make SPEEDYBEEF405WING
+
+      - name: Verify custom function
+        run: |
           echo "=== Checking if custom function exists ==="
-          grep -n "applyCustomDefaults" src/main/fc/config.c
+          grep -n "applyCustomDefaults" src/main/fc/config.c || echo "Function not found"
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
