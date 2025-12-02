@@ -3,7 +3,7 @@ name: Build iNav 7.1.2 caddx
 on:
   workflow_dispatch:
   push:
-    branches: [ inav-7.1.2-exact ]
+    branches: [ 7.1.2-caddx ]
 
 jobs:
   build:
