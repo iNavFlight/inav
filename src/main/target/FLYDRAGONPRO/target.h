@@ -68,6 +68,10 @@
 #define USE_BARO_SPL06
 #define SPL06_I2C_ADDR 118
 
+#define USE_MAG
+#define MAG_I2C_BUS             DEFAULT_I2C
+#define USE_MAG_ALL
+
 #define TEMPERATURE_I2C_BUS     DEFAULT_I2C
 
 #define PITOT_I2C_BUS           DEFAULT_I2C
