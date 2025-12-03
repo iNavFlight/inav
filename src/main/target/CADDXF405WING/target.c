@@ -33,7 +33,7 @@ timerHardware_t timerHardware[] = {
     
     
     DEF_TIM(TIM1,   CH1, PA8,  TIM_USE_LED,           0, 0),
-    DEF_TIM(TIM5,   CH3, PA2,  TIM_USE_ANY,           0, 0),
+    // DEF_TIM(TIM5,   CH3, PA2,  TIM_USE_ANY,           0, 0),
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
@@ -43,6 +43,7 @@ const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
     Строка 12:     IO_t io = IOGetByTag(IO_TAG(PB14)); меняем для входа TIM_USE_ANY
 	Строка 32:     IO_t io = IOGetByTag(IO_TAG(PB14));
 */
+
 
 
 
