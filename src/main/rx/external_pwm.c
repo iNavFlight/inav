@@ -9,7 +9,7 @@ static volatile uint16_t extPwmUs = 0;
 
 void externalPwmInit(void)
 {
-    IO_t io = IOGetByTag(IO_TAG(PB14));
+    IO_t io = IOGetByTag(IO_TAG(PB11));
     IOInit(io, OWNER_RX, RESOURCE_INPUT, 0);
     IOConfigGPIO(io, IOCFG_IPD); // Input Pull-Down
 }
@@ -29,7 +29,7 @@ void externalPwmUpdate(void)
     }
     lastReadTime = now;
     
-    IO_t io = IOGetByTag(IO_TAG(PB14));
+    IO_t io = IOGetByTag(IO_TAG(PB11));
     bool currentState = IORead(io);
     
     // Обнаружение фронтов
