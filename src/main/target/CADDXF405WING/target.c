@@ -38,8 +38,11 @@ timerHardware_t timerHardware[] = {
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
 
-/*	Строка 12:     IO_t io = IOGetByTag(IO_TAG(PB14)); меняем для входа TIM_USE_ANY
+/*	
+    src/main/rx/external_pwm.c
+    Строка 12:     IO_t io = IOGetByTag(IO_TAG(PB14)); меняем для входа TIM_USE_ANY
 	Строка 32:     IO_t io = IOGetByTag(IO_TAG(PB14));
 */
+
 
 
