@@ -1,4 +1,4 @@
-#include "platform.h"
+0#include "platform.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
 #include <stdint.h>
@@ -9,7 +9,7 @@ static volatile uint16_t extPwmUs = 0;
 
 void externalPwmInit(void)
 {
-    IO_t io = IOGetByTag(IO_TAG(PB11));
+    IO_t io = IOGetByTag(IO_TAG(PB10));
     IOInit(io, OWNER_RX, RESOURCE_INPUT, 0);
     IOConfigGPIO(io, IOCFG_IPD); // Input Pull-Down
 }
@@ -29,7 +29,7 @@ void externalPwmUpdate(void)
     }
     lastReadTime = now;
     
-    IO_t io = IOGetByTag(IO_TAG(PB11));
+    IO_t io = IOGetByTag(IO_TAG(PB10));
     bool currentState = IORead(io);
     
     // Обнаружение фронтов
