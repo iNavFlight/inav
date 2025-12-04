@@ -3,7 +3,7 @@ name: Build iNav 7.1.2caddx
 on:
   workflow_dispatch:
   push:
-    branches: [ inav-7.1.2-exact ]
+    branches: [ 7.1.2_caddx ]
 
 jobs:
   build:
@@ -34,5 +34,5 @@ jobs:
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: inav-7.1.2-speedybee
+          name: inav-7.1.2-caddx
           path: build/*.hex
