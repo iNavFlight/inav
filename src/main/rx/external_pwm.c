@@ -2,6 +2,7 @@
 #include "drivers/io.h"
 #include "drivers/time.h"
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include "rx/external_pwm.h"
 
