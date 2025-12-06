@@ -21,8 +21,14 @@ INAV uses semantic versioning: `MAJOR.MINOR.PATCH`
 - **PATCH:** Bug fixes, minor improvements
 
 Version numbers are set in:
-- Firmware: `CMakeLists.txt` (line ~54): `project(INAV VERSION X.Y.Z)`
-- Configurator: `package.json`: `"version": "X.Y.Z"`
+- Firmware: in `CMakeLists.txt` via `project(INAV VERSION X.Y.Z)`
+  Verify/update:
+  - View: `grep -E 'project\\(INAV VERSION' CMakeLists.txt`
+  - Update: edit `CMakeLists.txt` to set the desired version
+- Configurator: in `package.json` field `"version"`
+  Verify/update:
+  - View: `jq -r .version package.json` (or `node -p "require('./package.json').version"`)
+  - Update: `npm version <X.Y.Z> --no-git-tag-version`
 
 ## Pre-Release Checklist
 
