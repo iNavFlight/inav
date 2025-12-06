@@ -209,15 +209,20 @@ Remove CI suffix and add RC number for RC releases:
 ```bash
 RC_NUM="RC2"  # Empty for final releases
 
-for f in *.hex; do
-  target=$(echo "$f" | sed -E 's/inav_[0-9]+\.[0-9]+\.[0-9]+_(.*)_ci-.*/\1/')
-  version=$(echo "$f" | sed -E 's/inav_([0-9]+\.[0-9]+\.[0-9]+)_.*/\1/')
-  if [ -n "$RC_NUM" ]; then
-    mv "$f" "inav_${version}_${RC_NUM}_${target}.hex"
-  else
-    mv "$f" "inav_${version}_${target}.hex"
-  fi
-done
+# Check if any .hex files exist to avoid errors with the glob
+if compgen -G "*.hex" > /dev/null; then
+  for f in *.hex; do
+    target=$(echo "$f" | sed -E 's/inav_[0-9]+\.[0-9]+\.[0-9]+_(.*)_ci-.*/\1/')
+    version=$(echo "$f" | sed -E 's/inav_([0-9]+\.[0-9]+\.[0-9]+)_.*/\1/')
+    if [ -n "$RC_NUM" ]; then
+      mv "$f" "inav_${version}_${RC_NUM}_${target}.hex"
+    else
+      mv "$f" "inav_${version}_${target}.hex"
+    fi
+  done
+else
+  echo "No .hex files found to rename."
+fi
 ```
 
 ### Configurator Builds
