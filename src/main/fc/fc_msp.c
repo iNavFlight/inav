@@ -2340,6 +2340,23 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         } else
             return MSP_RESULT_ERROR;
         break;
+
+    case MSP2_INAV_SET_GVAR:
+        if (dataSize != 5) {
+            return MSP_RESULT_ERROR;
+        }
+        {
+            uint8_t gvarIndex;
+            if (!sbufReadU8Safe(&gvarIndex, src)) {
+                return MSP_RESULT_ERROR;
+            }
+            const int32_t gvarValue = (int32_t)sbufReadU32(src);
+            if (gvarIndex >= MAX_GLOBAL_VARIABLES) {
+                return MSP_RESULT_ERROR;
+            }
+            gvSet(gvarIndex, gvarValue);
+        }
+        break;
 #endif
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
