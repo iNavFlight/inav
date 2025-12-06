@@ -237,8 +237,9 @@ gh run list --repo iNavFlight/inav-configurator --limit 10
 gh run download <run-id> --repo iNavFlight/inav-configurator
 
 # Flatten directory structure
-find . -mindepth 2 -type f -exec mv {} . \;
-rm -rf */
+find . -mindepth 2 -type f -exec mv -t . {} +
+# Remove the now-empty subdirectories
+find . -mindepth 1 -type d -empty -delete
 ```
 
 ## Creating GitHub Releases
