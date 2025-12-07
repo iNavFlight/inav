@@ -92,34 +92,35 @@ typedef enum
     ////// SYSTEM  //////////////////////////
     TELEM_CPU_LOAD                      = 42,
     TELEM_FLIGHT_MODE                   = 43,
-    TELEM_ARMING_FLAGS                  = 44,
+    TELEM_PROFILES                      = 44,
+    TELEM_ARMING_FLAGS                  = 45,
 
-    /////////////////////////////////////////
-    ////// LEGACY SMARTPORT  ////////////////
-    TELEM_LEGACY_VFAS                   = 45,
-    TELEM_LEGACY_CURRENT                = 46,
-    TELEM_LEGACY_ALTITUDE               = 47,
-    TELEM_LEGACY_FUEL                   = 48,
-    TELEM_LEGACY_VARIO                  = 49,
-    TELEM_LEGACY_HEADING                = 50,
-    TELEM_LEGACY_PITCH                  = 51,
-    TELEM_LEGACY_ROLL                   = 52,
-    TELEM_LEGACY_ACCX                   = 53,
-    TELEM_LEGACY_ACCY                   = 54,
-    TELEM_LEGACY_ACCZ                   = 55,
-    TELEM_LEGACY_MODES                  = 56,
+/////////////////////////////////////////
+////// LEGACY SMARTPORT  ////////////////
+    TELEM_LEGACY_VFAS                   = 46,
+    TELEM_LEGACY_CURRENT                = 47,
+    TELEM_LEGACY_ALTITUDE               = 48,
+    TELEM_LEGACY_FUEL                   = 49,
+    TELEM_LEGACY_VARIO                  = 50,
+    TELEM_LEGACY_HEADING                = 51,
+    TELEM_LEGACY_PITCH                  = 52,
+    TELEM_LEGACY_ROLL                   = 53,
+    TELEM_LEGACY_ACCX                   = 54,
+    TELEM_LEGACY_ACCY                   = 55,
+    TELEM_LEGACY_ACCZ                   = 56,
+    TELEM_LEGACY_MODES                  = 57,
 
-    TELEM_LEGACY_GNSS                   = 57,
-    TELEM_LEGACY_SPEED                  = 58,
-    TELEM_LEGACY_LAT                    = 59,
-    TELEM_LEGACY_LON                    = 60,
-    TELEM_LEGACY_HOME_DIST              = 61,
-    TELEM_LEGACY_GPS_ALT                = 62,
-    TELEM_LEGACY_FPV                    = 63,
-    TELEM_LEGACY_AZIMUTH                = 64,
+    TELEM_LEGACY_GNSS                   = 58,
+    TELEM_LEGACY_SPEED                  = 59,
+    TELEM_LEGACY_LAT                    = 60,
+    TELEM_LEGACY_LON                    = 61,
+    TELEM_LEGACY_HOME_DIST              = 62,
+    TELEM_LEGACY_GPS_ALT                = 63,
+    TELEM_LEGACY_FPV                    = 64,
+    TELEM_LEGACY_AZIMUTH                = 65,
 
-    TELEM_LEGACY_A4                     = 65,
-    TELEM_LEGACY_ASPD                   = 66,
+    TELEM_LEGACY_A4                     = 66,
+    TELEM_LEGACY_ASPD                   = 67,
 
     TELEM_SENSOR_COUNT
 
