@@ -460,6 +460,7 @@ static telemetrySensor_t crsfCustomTelemetrySensors[] =
     TLM_SENSOR(CPU_LOAD,                0x1150,   500,  3000,    10,    U8),
     TLM_SENSOR(FLIGHT_MODE,             0x1251,   200,  3000,    0,     U16),
     TLM_SENSOR(ARMING_FLAGS,            0x1252,   200,  3000,    0,     U8),
+    TLM_SENSOR(PROFILES,                0x1253,   200,  3000,    0,     U16),
 };
 
 telemetrySensor_t * crsfGetCustomSensor(sensor_id_e id)

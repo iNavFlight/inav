@@ -166,6 +166,10 @@ int telemetrySensorValue(sensor_id_e id)
         ////// SYSTEM  //////////////////////////
         case TELEM_FLIGHT_MODE:
             return (int)flightModeFlags;
+        case TELEM_PROFILES:
+            return ((getConfigBatteryProfile() & 0xF) << 8) |
+                   ((getConfigMixerProfile() & 0xF) << 4) |
+                   ((getConfigProfile() & 0xF));
         case TELEM_ARMING_FLAGS:
             return (int)armingFlags;
         case TELEM_CPU_LOAD:
@@ -376,10 +380,11 @@ bool telemetrySensorAllowed(sensor_id_e id)
         ////// SYSTEM  //////////////////////////
         case TELEM_CPU_LOAD:
             return true;
-
         case TELEM_FLIGHT_MODE:
             return true;
         case TELEM_ARMING_FLAGS:
+            return true;
+        case TELEM_PROFILES:
             return true;
 
         ////////////////////////////////////////

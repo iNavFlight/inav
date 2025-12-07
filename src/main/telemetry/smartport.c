@@ -240,6 +240,7 @@ static telemetrySensor_t smartportTelemetrySensors[] =
         TLM_SENSOR(CPU_LOAD,                0x51D0,   200,  3000,   1,  10,   10,   INT),
         TLM_SENSOR(FLIGHT_MODE,             0x5121,   100,  3000,   1,   1,   0,    INT),
         TLM_SENSOR(ARMING_FLAGS,            0x5122,   100,  3000,   1,   1,   0,    INT),
+        TLM_SENSOR(PROFILES,                0x5123,   100,  3000,   1,   1,   0,    INT),
 
 #ifdef USE_ESC_SENSOR
         TLM_SENSOR(ESC1_RPM,                0x5130,   100,  3000,   1,  10,   0,    INT),
