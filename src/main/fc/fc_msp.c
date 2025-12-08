@@ -564,6 +564,29 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU32(dst, logicConditionGetValue(i));
         }
         break;
+    case MSP2_INAV_LOGIC_CONDITIONS_CONFIGURED:
+        {
+            // Returns 8-byte bitmask where bit N = 1 if logic condition N is configured (non-default)
+            uint64_t mask = 0;
+            for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+                const logicCondition_t *lc = logicConditions(i);
+                // Check if any field differs from default reset values
+                bool isConfigured = (lc->enabled != 0) ||
+                                    (lc->activatorId != -1) ||
+                                    (lc->operation != 0) ||
+                                    (lc->operandA.type != LOGIC_CONDITION_OPERAND_TYPE_VALUE) ||
+                                    (lc->operandA.value != 0) ||
+                                    (lc->operandB.type != LOGIC_CONDITION_OPERAND_TYPE_VALUE) ||
+                                    (lc->operandB.value != 0) ||
+                                    (lc->flags != 0);
+                if (isConfigured) {
+                    mask |= ((uint64_t)1 << i);
+                }
+            }
+            sbufWriteU32(dst, (uint32_t)(mask & 0xFFFFFFFF));        // Lower 32 bits
+            sbufWriteU32(dst, (uint32_t)((mask >> 32) & 0xFFFFFFFF)); // Upper 32 bits
+        }
+        break;
     case MSP2_INAV_GVAR_STATUS:
         for (int i = 0; i < MAX_GLOBAL_VARIABLES; i++) {
             sbufWriteU32(dst, gvGet(i));
