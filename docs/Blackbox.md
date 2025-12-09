@@ -120,6 +120,7 @@ These chips are also supported:
 * Winbond W25Q64 - 64 Mbit / 8 MByte
 * Micron N25Q0128 - 128 Mbit / 16 MByte
 * Winbond W25Q128 - 128 Mbit / 16 MByte
+* Puya PY25Q128HA - 128 Mbit / 16 MByte
 * Winbond W25N01  - 1 Gbit / 128 MByte
 * Winbond W25N02  - 2 Gbit / 256 MByte
 
