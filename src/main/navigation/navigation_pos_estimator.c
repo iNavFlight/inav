@@ -256,10 +256,12 @@ void onNewGPSData(void)
                     posEstimator.gps.eph = INAV_GPS_DEFAULT_EPH;
                     posEstimator.gps.epv = INAV_GPS_DEFAULT_EPV;
                 }
-
-                /* Indicate a last valid reading of Pos/Vel */
-                posEstimator.gps.lastUpdateTime = currentTimeUs;
             }
+
+            /* Indicate a last valid reading of Pos/Vel - must be updated even on
+             * first GPS reading after recovery to prevent position estimate from
+             * timing out and getting stuck at zero (fixes issue #11049) */
+            posEstimator.gps.lastUpdateTime = currentTimeUs;
 
             previousLat = gpsSol.llh.lat;
             previousLon = gpsSol.llh.lon;

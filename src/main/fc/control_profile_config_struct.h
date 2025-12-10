@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct controlRateConfig_s {
+typedef struct controlConfig_s {
 
     struct {
         uint8_t rcMid8;
@@ -63,4 +63,4 @@ typedef struct controlRateConfig_s {
     } rateDynamics;
 #endif
 
-} controlRateConfig_t;
+} controlConfig_t;

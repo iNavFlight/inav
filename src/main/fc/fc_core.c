@@ -54,7 +54,7 @@
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/multifunction.h"
 #include "fc/rc_adjustments.h"
 #include "fc/rc_smoothing.h"
@@ -391,15 +391,15 @@ static void processPilotAndFailSafeActions(float dT)
     }
     else {
         // Compute ROLL PITCH and YAW command
-        rcCommand[ROLL] = getAxisRcCommand(rxGetChannelValue(ROLL), FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH), FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcExpo8 : currentControlRateProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
-        rcCommand[YAW] = -getAxisRcCommand(rxGetChannelValue(YAW), FLIGHT_MODE(MANUAL_MODE) ? currentControlRateProfile->manual.rcYawExpo8 : currentControlRateProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
+        rcCommand[ROLL] = getAxisRcCommand(rxGetChannelValue(ROLL), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[YAW] = -getAxisRcCommand(rxGetChannelValue(YAW), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcYawExpo8 : currentControlProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
         // Apply manual control rates
         if (FLIGHT_MODE(MANUAL_MODE)) {
-            rcCommand[ROLL] = rcCommand[ROLL] * currentControlRateProfile->manual.rates[FD_ROLL] / 100L;
-            rcCommand[PITCH] = rcCommand[PITCH] * currentControlRateProfile->manual.rates[FD_PITCH] / 100L;
-            rcCommand[YAW] = rcCommand[YAW] * currentControlRateProfile->manual.rates[FD_YAW] / 100L;
+            rcCommand[ROLL] = rcCommand[ROLL] * currentControlProfile->manual.rates[FD_ROLL] / 100L;
+            rcCommand[PITCH] = rcCommand[PITCH] * currentControlProfile->manual.rates[FD_PITCH] / 100L;
+            rcCommand[YAW] = rcCommand[YAW] * currentControlProfile->manual.rates[FD_YAW] / 100L;
         } else {
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
@@ -656,7 +656,7 @@ void processRx(timeUs_t currentTimeUs)
     if (!cliMode) {
         bool canUseRxData = rxIsReceivingSignal() && !FLIGHT_MODE(FAILSAFE_MODE);
         updateAdjustmentStates(canUseRxData);
-        processRcAdjustments(CONST_CAST(controlRateConfig_t*, currentControlRateProfile), canUseRxData);
+        processRcAdjustments(CONST_CAST(controlConfig_t*, currentControlProfile), canUseRxData);
     }
 
     // Angle mode forced on briefly after emergency inflight rearm to help stabilise attitude (currently limited to MR)

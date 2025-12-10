@@ -26,6 +26,22 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 
 **Note:** IPF uses integer math. If your programming line returns a decimal, it will be truncated to an integer.  So if your math is `1` / `3` = , IPF will truncate the decimal and return `0`.
 
+## JavaScript-Based Programming (Alternative)
+
+INAV also supports a JavaScript-based programming interface that provides a more
+familiar syntax for those comfortable with JavaScript. The JavaScript code is transpiled
+(converted) into traditional logic conditions, so both methods ultimately use the same
+underlying system.
+
+See the [JavaScript Programming Guide](javascript_programming/JAVASCRIPT_PROGRAMMING_GUIDE.md)
+for complete documentation on using JavaScript to program your flight controller.
+
+**Benefits of JavaScript programming:**
+- Modern code editor with IntelliSense autocomplete
+- Real-time syntax validation and error messages
+- Familiar programming constructs (if statements, functions, variables)
+- Automatic conversion to logic conditions
+
 ## Logic Conditions
 
 ### CLI
@@ -356,3 +372,9 @@ choose *value* and enter the channel number. Choosing "get RC value" is a common
 which does something other than what you probably want.
 
 ![screenshot of override an RC channel with a value](./assets/images/ipf_set_get_rc_channel.png)
+
+## Related Documentation
+
+- [JavaScript Programming Guide](javascript_programming/JAVASCRIPT_PROGRAMMING_GUIDE.md) - Alternative JavaScript-based syntax for programming logic conditions
+- [Operations Reference](javascript_programming/OPERATIONS_REFERENCE.md) - Complete reference for all supported operations in JavaScript
+- [Timer and Change Detection Examples](javascript_programming/TIMER_WHENCHANGED_EXAMPLES.md) - Practical examples for time-based patterns

@@ -27,19 +27,18 @@
 #include "config/parameter_group_ids.h"
 
 #include "fc/config.h"
-#include "fc/controlrate_profile.h"
+#include "fc/control_profile.h"
 #include "fc/rc_curves.h"
 #include "fc/settings.h"
 
-const controlRateConfig_t *currentControlRateProfile;
+const controlConfig_t *currentControlProfile;
 
+PG_REGISTER_ARRAY_WITH_RESET_FN(controlConfig_t, MAX_CONTROL_PROFILE_COUNT, controlProfiles, PG_CONTROL_PROFILES, 0);
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(controlRateConfig_t, MAX_CONTROL_RATE_PROFILE_COUNT, controlRateProfiles, PG_CONTROL_RATE_PROFILES, 4);
-
-void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
+void pgResetFn_controlProfiles(controlConfig_t *instance)
 {
-    for (int i = 0; i < MAX_CONTROL_RATE_PROFILE_COUNT; i++) {
-        RESET_CONFIG(controlRateConfig_t, &instance[i],
+    for (int i = 0; i < MAX_CONTROL_PROFILE_COUNT; i++) {
+        RESET_CONFIG(controlConfig_t, &instance[i],
             .throttle = {
                 .rcMid8 = SETTING_THR_MID_DEFAULT,
                 .rcExpo8 = SETTING_THR_EXPO_DEFAULT,
@@ -84,21 +83,21 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
     }
 }
 
-void setControlRateProfile(uint8_t profileIndex)
+void setControlProfile(uint8_t profileIndex)
 {
-    if (profileIndex >= MAX_CONTROL_RATE_PROFILE_COUNT) {
+    if (profileIndex >= MAX_CONTROL_PROFILE_COUNT) {
         profileIndex = 0;
     }
-    currentControlRateProfile = controlRateProfiles(profileIndex);
+    currentControlProfile = controlProfiles(profileIndex);
 }
 
-void activateControlRateConfig(void)
+void activateControlConfig(void)
 {
-    generateThrottleCurve(currentControlRateProfile);
+    generateThrottleCurve(currentControlProfile);
 }
 
-void changeControlRateProfile(uint8_t profileIndex)
+void changeControlProfile(uint8_t profileIndex)
 {
-    setControlRateProfile(profileIndex);
-    activateControlRateConfig();
+    setControlProfile(profileIndex);
+    activateControlConfig();
 }

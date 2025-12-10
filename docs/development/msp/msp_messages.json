@@ -3873,13 +3873,13 @@
                 },
                 {
                     "name": "yaw",
-                    "ctype": "uint16_t",
-                    "desc": "Yaw/Heading angle (`attitude.values.yaw`)",
-                    "units": "deci-degrees"
+                    "ctype": "int16_t",
+                    "desc": "Yaw/Heading angle (`DECIDEGREES_TO_DEGREES(attitude.values.yaw)`)",
+                    "units": "degrees"
                 }
             ]
         },
-        "notes": "Yaw is converted from deci-degrees to degrees.",
+        "notes": "Yaw is in degrees.",
         "description": "Provides the current attitude estimate (roll, pitch, yaw)."
     },
     "MSP_ALTITUDE": {
@@ -10828,6 +10828,94 @@
         },
         "notes": "Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).",
         "description": "Sets a specific vertex (or center+radius for circular zones) for a Geozone."
+    },
+    "MSP2_INAV_SET_GVAR": {
+        "code": 8724,
+        "mspv": 2,
+        "request": {
+            "payload": [
+                {
+                    "name": "gvarIndex",
+                    "ctype": "uint8_t",
+                    "desc": "Index of the Global Variable to set",
+                    "units": "Index"
+                },
+                {
+                    "name": "value",
+                    "ctype": "int32_t",
+                    "desc": "New value to store (clamped to configured min/max by `gvSet()`)",
+                    "units": ""
+                }
+            ]
+        },
+        "reply": null,
+        "notes": "Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.",
+        "description": "Sets the specified Global Variable (GVAR) to the provided value."
+    },
+    "MSP2_INAV_FULL_LOCAL_POSE": {
+        "code": 8736,
+        "mspv": 2,
+        "request": null,
+        "reply": {
+            "payload": [
+                {
+                    "name": "roll",
+                    "ctype": "int16_t",
+                    "desc": "Roll angle (`attitude.values.roll`)",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "pitch",
+                    "ctype": "int16_t",
+                    "desc": "Pitch angle (`attitude.values.pitch`)",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "yaw",
+                    "ctype": "int16_t",
+                    "desc": "Yaw/Heading angle (`attitude.values.yaw`)",
+                    "units": "deci-degrees"
+                },
+                {
+                    "name": "localPositionNorth",
+                    "ctype": "int32_t",
+                    "desc": "Estimated North coordinate in local NEU frame (`posControl.actualState.abs.pos.x`)",
+                    "units": "cm"
+                },
+                {
+                    "name": "localVelocityNorth",
+                    "ctype": "int16_t",
+                    "desc": "Estimated North component of velocity in local NEU frame (`posControl.actualState.abs.vel.x`)",
+                    "units": "cm/s"
+                },
+                {
+                    "name": "localPositionEast",
+                    "ctype": "int32_t",
+                    "desc": "Estimated East coordinate in local NEU frame (`posControl.actualState.abs.pos.y`)",
+                    "units": "cm"
+                },
+                {
+                    "name": "localVelocityEast",
+                    "ctype": "int16_t",
+                    "desc": "Estimated East component of velocity in local NEU frame (`posControl.actualState.abs.vel.y`)",
+                    "units": "cm/s"
+                },
+                {
+                    "name": "localPositionUp",
+                    "ctype": "int32_t",
+                    "desc": "Estimated Up coordinate in local NEU frame (`posControl.actualState.abs.pos.z`)",
+                    "units": "cm"
+                },
+                {
+                    "name": "localVelocityUp",
+                    "ctype": "int16_t",
+                    "desc": "Estimated Up component of velocity in local NEU frame (`posControl.actualState.abs.vel.z`)",
+                    "units": "cm/s"
+                }
+            ]
+        },
+        "notes": "All attitude angles are in deci-degrees.",
+        "description": "Provides estimates of current attitude, local NEU position, and velocity."
     },
     "MSP2_BETAFLIGHT_BIND": {
         "code": 12288,

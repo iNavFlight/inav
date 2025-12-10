@@ -46,6 +46,8 @@
 #define MSP2_INAV_OSD_PREFERENCES               0x2016
 #define MSP2_INAV_OSD_SET_PREFERENCES           0x2017
 
+#define MSP2_INAV_OSD_UPDATE_POSITION           0x2118
+
 #define MSP2_INAV_SELECT_BATTERY_PROFILE        0x2018
 
 #define MSP2_INAV_DEBUG                         0x2019
@@ -116,7 +118,10 @@
 #define MSP2_INAV_SERVO_CONFIG                  0x2200
 #define MSP2_INAV_SET_SERVO_CONFIG              0x2201
 
-#define MSP2_INAV_GEOZONE                      0x2210
-#define MSP2_INAV_SET_GEOZONE                  0x2211
-#define MSP2_INAV_GEOZONE_VERTEX               0x2212
-#define MSP2_INAV_SET_GEOZONE_VERTEX           0x2213
+#define MSP2_INAV_GEOZONE                       0x2210
+#define MSP2_INAV_SET_GEOZONE                   0x2211
+#define MSP2_INAV_GEOZONE_VERTEX                0x2212
+#define MSP2_INAV_SET_GEOZONE_VERTEX            0x2213
+#define MSP2_INAV_SET_GVAR                      0x2214
+
+#define MSP2_INAV_FULL_LOCAL_POSE               0x2220
