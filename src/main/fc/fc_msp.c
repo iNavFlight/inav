@@ -568,7 +568,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         {
             // Returns 8-byte bitmask where bit N = 1 if logic condition N is configured (non-default)
             uint64_t mask = 0;
-            for (int i = 0; i < MAX_LOGIC_CONDITIONS; i++) {
+            for (int i = 0; i < MIN(MAX_LOGIC_CONDITIONS, 64); i++) {
                 const logicCondition_t *lc = logicConditions(i);
                 // Check if any field differs from default reset values
                 bool isConfigured = (lc->enabled != 0) ||
