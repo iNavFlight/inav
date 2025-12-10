@@ -48,6 +48,7 @@ void pgResetFn_controlRateProfiles(controlRateConfig_t *instance)
                 .pa_breakpoint = SETTING_TPA_BREAKPOINT_DEFAULT,
                 .fixedWingTauMs = SETTING_FW_TPA_TIME_CONSTANT_DEFAULT,
                 .apa_pow = SETTING_APA_POW_DEFAULT,
+                .tpa_pitch_compensation = SETTING_TPA_PITCH_COMPENSATION_DEFAULT
             },
 
             .stabilized = {
