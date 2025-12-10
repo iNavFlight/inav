@@ -501,8 +501,7 @@ static float calculateTPAThtrottle(void)
     if (usedPidControllerType == PID_TYPE_PIFF && (currentControlProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
         fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
         float groundCos = vectorDotProduct(&vForward, &vDown);
-        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / (PI/2); //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
-        throttleAdjustment= throttleAdjustment<0? throttleAdjustment/2:throttleAdjustment; //reduce throttle compensation when pitch up(when throttleAdjustment is negative which means trying to reduce "throttle")
+        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679; //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
         uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
         tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, constrain(throttleAdjusted, 1000, 2000));
     }
