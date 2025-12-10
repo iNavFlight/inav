@@ -170,6 +170,7 @@ IPF can be edited using INAV Configurator user interface, or via CLI. To use COn
 | 46            | Minimum Ground Speed [m/s]            | The current minimum ground speed allowed in navigation flight modes |
 | 47            | Horizontal Wind Speed [cm/s]          | Estimated wind speed. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
 | 48            | Wind Direction [deg]                  | Estimated wind direction. If the wind estimator is unavailble or the wind estimation is invalid, -1 is returned |
+| 49            | Relative Wind Offset [deg]            | The relative offset between the heading of the aircraft and the heading of the wind. 0 indicates flying directly into a headwing. Negative numbers are a left offset. For example, if -20° is shown, turning right will correct towards 0. If the wind estimator is unavailble or the wind estimation is invalid, 0 is returned |
 
 #### FLIGHT_MODE
 

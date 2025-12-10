@@ -1310,7 +1310,9 @@ int16_t osdGetPanServoOffset(void)
         servoMiddle = PWM_RANGE_MIDDLE + gimbalConfig()->panTrim;
     }
 
-    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * osdConfig()->pan_servo_pwm2centideg);
+    float servoDegreesScaleFactor = 1000.0f / (servoParams(servoIndex)->max - servoParams(servoIndex)->min);
+
+    return (int16_t)CENTIDEGREES_TO_DEGREES((servoPosition - servoMiddle) * (int16_t)(osdConfig()->osd_pan_servo_range_decadegrees) * servoDegreesScaleFactor);
 }
 
 // Returns a heading angle in degrees normalized to [0, 360).
@@ -2066,7 +2068,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 else
                 {
                     int16_t panHomeDirOffset = 0;
-                    if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                    if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
                         panHomeDirOffset = osdGetPanServoOffset();
                     }
                     int homeDirection = GPS_directionToHome - osdGetFlightDirection() + panHomeDirOffset;
@@ -2309,7 +2311,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 //////////////////////////////////////////////////////
                 // ALT diff to ADSB vehicle draw
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0) {
+                if (osdConfig()->osd_pan_servo_range_decadegrees != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
@@ -2734,14 +2736,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_SNR_DB:
         {
-            static pt1Filter_t snrFilterState;
-            static timeMs_t snrUpdated = 0;
-            int8_t snrFiltered = pt1FilterApply4(&snrFilterState, rxLinkStatistics.uplinkSNR, 0.5f, MS2S(millis() - snrUpdated));
-            snrUpdated = millis();
+            int8_t snrVal = rxLinkStatistics.uplinkSNR;
 
             const char* showsnr = "-20";
             const char* hidesnr = "   ";
-            if (snrFiltered > osdConfig()->snr_alarm) {
+            if (snrVal > osdConfig()->snr_alarm) {
                 if (cmsInMenu) {
                     buff[0] = SYM_SNR;
                     tfp_sprintf(buff + 1, "%s%c", showsnr, SYM_DB);
@@ -2749,12 +2748,12 @@ static bool osdDrawSingleElement(uint8_t item)
                     buff[0] = SYM_BLANK;
                     tfp_sprintf(buff + 1, "%s%c", hidesnr, SYM_BLANK);
                 }
-            } else if (snrFiltered <= osdConfig()->snr_alarm) {
+            } else if (snrVal <= osdConfig()->snr_alarm) {
                 buff[0] = SYM_SNR;
-                if (snrFiltered <= -10 || snrFiltered >= 10) {
-                    tfp_sprintf(buff + 1, "%3d%c", snrFiltered, SYM_DB);
+                if (snrVal <= -10) {
+                    tfp_sprintf(buff + 1, "%3d%c", snrVal, SYM_DB);
                 } else {
-                    tfp_sprintf(buff + 1, " %2d%c", snrFiltered, SYM_DB);
+                    tfp_sprintf(buff + 1, "%2d%c%c", snrVal, SYM_DB, ' ');
                 }
             }
             break;
@@ -2824,7 +2823,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 currentPeer->direction = (int16_t )(calculateBearingToDestination(&poi) / 100); // In °
 
                 int16_t panServoDirOffset = 0;
-                if (osdConfig()->pan_servo_pwm2centideg != 0){
+                if (osdConfig()->osd_pan_servo_range_decadegrees != 0){
                     panServoDirOffset = osdGetPanServoOffset();
                 }
 
@@ -4087,7 +4086,7 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             if (navigationPositionEstimateIsHealthy() && isGeozoneActive()) {
                 int16_t panHomeDirOffset = 0;
-                if (!(osdConfig()->pan_servo_pwm2centideg == 0)){
+                if (!(osdConfig()->osd_pan_servo_range_decadegrees == 0)){
                     panHomeDirOffset = osdGetPanServoOffset();
                 }
                 int direction = CENTIDEGREES_TO_DEGREES(geozone.directionToNearestZone) - osdGetFlightDirection() + panHomeDirOffset;
@@ -4334,7 +4333,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .ahi_pitch_interval = SETTING_OSD_AHI_PITCH_INTERVAL_DEFAULT,
     .osd_home_position_arm_screen = SETTING_OSD_HOME_POSITION_ARM_SCREEN_DEFAULT,
     .pan_servo_index = SETTING_OSD_PAN_SERVO_INDEX_DEFAULT,
-    .pan_servo_pwm2centideg = SETTING_OSD_PAN_SERVO_PWM2CENTIDEG_DEFAULT,
+    .osd_pan_servo_range_decadegrees = SETTING_OSD_PAN_SERVO_RANGE_DECADEGREES_DEFAULT,
     .pan_servo_offcentre_warning = SETTING_OSD_PAN_SERVO_OFFCENTRE_WARNING_DEFAULT,
     .pan_servo_indicator_show_degrees = SETTING_OSD_PAN_SERVO_INDICATOR_SHOW_DEGREES_DEFAULT,
     .esc_rpm_precision = SETTING_OSD_ESC_RPM_PRECISION_DEFAULT,

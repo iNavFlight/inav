@@ -2,7 +2,7 @@ name: Build firmware
 # Don't enable CI on push, just on PR. If you
 # are working on the main repo and want to trigger
 # a CI build submit a draft PR.
-on: 
+on:
   push:
     branches:
       - '!maintenance-8.x.x'
@@ -231,7 +231,7 @@ jobs:
       - name: Setup Cygwin
         uses: egor-tensin/setup-cygwin@v4
         with:
-          packages: cmake ruby ninja gcc-g++
+          packages: cmake ruby ninja gcc-g++ rubygems
       - name: Setup environment
         env:
           ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -248,9 +248,9 @@ jobs:
           VERSION=$( grep project CMakeLists.txt|awk -F VERSION '{ gsub(/[ \t)]/, "", $2); print $2 }' )
           echo "BUILD_SUFFIX=${BUILD_SUFFIX}" >> $GITHUB_ENV
           echo "BUILD_NAME=inav-${VERSION}-${BUILD_SUFFIX}" >> $GITHUB_ENV
-          
+
       - name: Build SITL
-        run: mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
+        run: gem install getoptlong && mkdir -p build_SITL && cd build_SITL && cmake -DSITL=ON -DWARNINGS_AS_ERRORS=ON -G Ninja .. && ninja -j4
       - name: Strip version number
         run: |
           for f in ./build_SITL/*_SITL.exe; do
