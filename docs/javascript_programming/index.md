@@ -175,6 +175,8 @@ Instructions for:
 - Variable management (global variables, let/var)
 - RC channel access and state detection
 - Flight parameter overrides
+- Flight mode detection (`flight.mode.poshold`, `flight.mode.rth`, etc.)
+- PID controller outputs (`pid[0-3].output`)
 - Waypoint navigation
 
 **JavaScript Features:**
@@ -275,12 +277,16 @@ Read the [Testing Guide](TESTING_GUIDE.md) to understand the testing workflow, t
 
 ## Version History
 
-**2025-11-25**: Complete implementation
-- All INAV logic condition operations now supported
+**INAV 9.0**: JavaScript programming introduced
+- All INAV logic condition operations supported
 - RC channel state detection (LOW/MID/HIGH)
 - XOR/NAND/NOR logical operations
-- APPROX_EQUAL comparison
-- MAP_INPUT/MAP_OUTPUT scaling
-- Comprehensive documentation
+- Approximate equality with tolerance
+- MAP_INPUT/MAP_OUTPUT scaling functions
+- Timer and change detection functions
+- Flight mode detection (`flight.mode.poshold`, `flight.mode.rth`, etc.)
+- PID controller output access (`pid[0-3].output`)
+- Named parameter syntax for sticky with variable assignment
+- IntelliSense and real-time validation
 
-**Last Updated**: 2025-11-25
+**Last Updated**: 2025-12-10

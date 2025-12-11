@@ -20,7 +20,7 @@ Contains ~40 flight parameters including:
 - **State**: isArmed, isAutoLaunch, isFailsafe
 - **Profile**: mixerProfile
 - **Navigation**: activeWpNumber, activeWpAction, courseToHome, gpsCourseOverGround
-- **Modes** (nested): failsafe, manual, rth, poshold, althold, wp, gcs_nav, airmode, angle, horizon, cruise
+- **Modes** (nested `flight.mode.*`): failsafe, manual, rth, poshold, cruise, althold, angle, horizon, air, acro, courseHold, waypointMission, user1-user4
 
 ### 2. ✅ **override.js** - Flight Control Overrides (WRITABLE)
 **Source**: `src/main/programming/logic_condition.c` (OPERATION_OVERRIDE_*)
@@ -63,9 +63,9 @@ Waypoint mission data:
 **Source**: `src/main/programming/pid.c`
 
 4 PID controllers (pid[0] through pid[3]), each with:
-- `configure()` method: setpoint, measurement, p, i, d, ff
-- `output` property: Controller output
-- `enabled` property: Controller state
+- `output` property: Controller output value (read-only)
+
+Note: PID controller parameters (setpoint, measurement, gains) are configured in the Programming PID tab, not in JavaScript. The JavaScript code can only read the output values.
 
 ### 7. ✅ **helpers.js** - Math & Utility Functions
 **Source**: `src/main/programming/logic_condition.c` (OPERATION_*)

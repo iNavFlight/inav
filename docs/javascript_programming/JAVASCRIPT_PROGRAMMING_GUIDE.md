@@ -61,25 +61,26 @@ edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
 ---
 
 ### Latching/Sticky Conditions
-Use `sticky()` for conditions that latch ON and stay ON until reset:
+Use `sticky()` for conditions that latch ON and stay ON until reset. Assign the result to a variable to use in conditions:
 
 ```javascript
-const { flight, gvar, sticky } = inav;
+const { flight, gvar, sticky, override } = inav;
 
-// Latches ON when RSSI < 30, stays ON until RSSI > 70
-sticky(
-  () => flight.rssi < 30,  // ON condition
-  () => flight.rssi > 70,  // OFF condition  
-  () => {
-    override.vtx.power = 4;  // Executes while latched
-  }
-);
+// Create a latch: ON when RSSI < 30, OFF when RSSI > 70
+var rssiWarning = sticky({
+  on: () => flight.rssi < 30,
+  off: () => flight.rssi > 70
+});
+
+// Use the latch to control actions
+if (rssiWarning) {
+  override.vtx.power = 4;  // Max power while latched
+}
 ```
 
 **Parameters:**
-- **onCondition**: When to latch ON
-- **offCondition**: When to latch OFF
-- **action**: What to do while latched
+- **on**: Condition that latches ON
+- **off**: Condition that latches OFF
 
 **Use when:**
 - Warning states that need manual reset
@@ -172,17 +173,18 @@ if (flight.homeDistance <= 200) {
 
 ### Hysteresis/Deadband
 ```javascript
-const { flight, gvar, sticky } = inav;
+const { flight, gvar, sticky, override } = inav;
 
 // Turn ON at low voltage, turn OFF when recovered
-sticky(
-  () => flight.cellVoltage < 330,  // Warning threshold
-  () => flight.cellVoltage > 350,  // Recovery threshold
-  () => {
-    override.throttleScale = 50;   // Reduce throttle while in warning
-    gvar[0] = 1;                   // Warning flag
-  }
-);
+var lowVoltageWarning = sticky({
+  on: () => flight.cellVoltage < 330,   // Warning threshold
+  off: () => flight.cellVoltage > 350   // Recovery threshold
+});
+
+if (lowVoltageWarning) {
+  override.throttleScale = 50;   // Reduce throttle while in warning
+  gvar[0] = 1;                   // Warning flag
+}
 ```
 
 ---
@@ -201,17 +203,52 @@ sticky(
 ## Available Objects
 
 ```javascript
-const { 
-  flight,      // Flight telemetry
+const {
+  flight,      // Flight telemetry (including flight.mode.*)
   override,    // Override flight parameters
   rc,          // RC channels
   gvar,        // Global variables (0-7)
+  pid,         // Programming PID outputs (pid[0-3].output)
   waypoint,    // Waypoint navigation
   edge,        // Edge detection
   sticky,      // Latching conditions
   delay        // Delayed execution
 } = inav;
 ```
+
+### Flight Mode Detection
+
+Check which flight modes are currently active via `flight.mode.*`:
+
+```javascript
+const { flight, gvar, override } = inav;
+
+if (flight.mode.poshold === 1) {
+  gvar[0] = 1;  // Flag: in position hold
+}
+
+if (flight.mode.rth === 1) {
+  override.vtx.power = 4;  // Max power during RTH
+}
+```
+
+**Available modes:** `failsafe`, `manual`, `rth`, `poshold`, `cruise`, `althold`, `angle`, `horizon`, `air`, `acro`, `courseHold`, `waypointMission`, `user1` through `user4`
+
+### PID Controller Outputs
+
+Read output values from the 4 programming PID controllers (configured in Programming PID tab):
+
+```javascript
+const { pid, gvar, override } = inav;
+
+if (pid[0].output > 500) {
+  override.throttle = 1600;
+}
+
+gvar[0] = pid[0].output;  // Store for OSD display
+```
+
+**Available:** `pid[0].output` through `pid[3].output`
 
 ---
 
