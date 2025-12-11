@@ -412,6 +412,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8721 - MSP2_INAV_SET_GEOZONE](#msp2_inav_set_geozone)  
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
+[8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
 [8725 - MSP2_INAV_ALT_TARGET](#msp2_inav_alt_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
@@ -4511,6 +4512,8 @@ For current generation code, see [documentation project](https://github.com/xznh
 #### Variant: `set`
 
 **Description:** Set new altitude target  
+## <a id="msp2_inav_set_gvar"></a>`MSP2_INAV_SET_GVAR (8724 / 0x2214)`
+**Description:** Sets the specified Global Variable (GVAR) to the provided value.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
@@ -4522,6 +4525,12 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 
 **Notes:** Empty request payload returns the current altitude target with datum. Sending a 5-byte payload sets a new target: 1 byte datum, 4 bytes altitude. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
+| `gvarIndex` | `uint8_t` | 1 | Index | Index of the Global Variable to set |
+| `value` | `int32_t` | 4 | - | New value to store (clamped to configured min/max by `gvSet()`) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Expects 5 bytes. Returns error if index is outside `MAX_GLOBAL_VARIABLES`.
 
 ## <a id="msp2_inav_full_local_pose"></a>`MSP2_INAV_FULL_LOCAL_POSE (8736 / 0x2220)`
 **Description:** Provides estimates of current attitude, local NEU position, and velocity.  
