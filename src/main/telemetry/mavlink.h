@@ -22,4 +22,3 @@ void handleMAVLinkTelemetry(timeUs_t currentTimeUs);
 void checkMAVLinkTelemetryState(void);
 
 void freeMAVLinkTelemetryPort(void);
-void configureMAVLinkTelemetryPort(void);

@@ -90,7 +90,9 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-#define MAVLINK_COMM_NUM_BUFFERS 1
+#ifndef MAVLINK_COMM_NUM_BUFFERS
+#define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
+#endif
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
@@ -157,13 +159,21 @@ typedef enum APM_COPTER_MODE
    COPTER_MODE_ENUM_END=22,
 } APM_COPTER_MODE;
 
-static serialPort_t *mavlinkPort = NULL;
-static serialPortConfig_t *portConfig;
+typedef struct mavlinkPortState_s {
+    serialPort_t *port;
+    const serialPortConfig_t *config;
+    portSharing_e sharing;
+    bool enabled;
+    bool txbuffValid;
+    uint8_t txbuffFree;
+    timeUs_t lastMessageUs;
+    mavlink_message_t recvMsg;
+    mavlink_status_t recvStatus;
+} mavlinkPortState_t;
 
-static bool mavlinkTelemetryEnabled =  false;
-static portSharing_e mavlinkPortSharing;
-static uint8_t txbuff_free = 100;
-static bool txbuff_valid = false;
+static mavlinkPortState_t mavlinkPorts[MAX_MAVLINK_PORTS];
+static uint8_t mavlinkPortCount;
+static uint8_t mavlinkReadyMask;
 
 /* MAVLink datastream rates in Hz */
 static uint8_t mavRates[] = {
@@ -177,11 +187,9 @@ static uint8_t mavRates[] = {
 
 #define MAXSTREAMS (sizeof(mavRates) / sizeof(mavRates[0]))
 
-static timeUs_t lastMavlinkMessage = 0;
 static uint8_t mavTicks[MAXSTREAMS];
 static mavlink_message_t mavSendMsg;
 static mavlink_message_t mavRecvMsg;
-static mavlink_status_t mavRecvStatus;
 
 // Set mavSystemId from telemetryConfig()->mavlink.sysid
 static uint8_t mavSystemId = 1;
@@ -286,40 +294,78 @@ static int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum)
     return 0;
 }
 
+static void resetMavlinkPortState(mavlinkPortState_t *state)
+{
+    const serialPortConfig_t *config = state->config;
+    const portSharing_e sharing = state->sharing;
+
+    if (state->port) {
+        closeSerialPort(state->port);
+    }
+    memset(state, 0, sizeof(*state));
+    state->config = config;
+    state->sharing = sharing;
+    state->txbuffFree = 100;
+}
+
+static bool anyMavlinkPortsEnabled(void)
+{
+    for (uint8_t i = 0; i < mavlinkPortCount; i++) {
+        if (mavlinkPorts[i].enabled && mavlinkPorts[i].port) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void freeMAVLinkTelemetryPort(void)
 {
-    closeSerialPort(mavlinkPort);
-    mavlinkPort = NULL;
-    mavlinkTelemetryEnabled = false;
+    for (uint8_t i = 0; i < mavlinkPortCount; i++) {
+        resetMavlinkPortState(&mavlinkPorts[i]);
+    }
+    mavlinkReadyMask = 0;
 }
 
 void initMAVLinkTelemetry(void)
 {
-    portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_MAVLINK);
-    mavlinkPortSharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_MAVLINK);
+    memset(mavlinkPorts, 0, sizeof(mavlinkPorts));
+    mavlinkPortCount = 0;
+    mavlinkReadyMask = 0;
+
+    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_TELEMETRY_MAVLINK);
+    while (portConfig && mavlinkPortCount < MAX_MAVLINK_PORTS) {
+        mavlinkPorts[mavlinkPortCount].config = portConfig;
+        mavlinkPorts[mavlinkPortCount].sharing = determinePortSharing(portConfig, FUNCTION_TELEMETRY_MAVLINK);
+        mavlinkPorts[mavlinkPortCount].txbuffFree = 100;
+        mavlinkPortCount++;
+        portConfig = findNextSerialPortConfig(FUNCTION_TELEMETRY_MAVLINK);
+    }
 }
 
-void configureMAVLinkTelemetryPort(void)
+static void configureSingleMavlinkPort(mavlinkPortState_t *state)
 {
-    if (!portConfig) {
+    if (!state->config) {
         return;
     }
 
-    baudRate_e baudRateIndex = portConfig->telemetry_baudrateIndex;
+    baudRate_e baudRateIndex = state->config->telemetry_baudrateIndex;
     if (baudRateIndex == BAUD_AUTO) {
         // default rate for minimOSD
         baudRateIndex = BAUD_57600;
     }
 
-    mavlinkPort = openSerialPort(portConfig->identifier, FUNCTION_TELEMETRY_MAVLINK, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_MAVLINK_PORT_MODE, SERIAL_NOT_INVERTED);
+    state->port = openSerialPort(state->config->identifier, FUNCTION_TELEMETRY_MAVLINK, NULL, NULL, baudRates[baudRateIndex], TELEMETRY_MAVLINK_PORT_MODE, SERIAL_NOT_INVERTED);
     mavAutopilotType = telemetryConfig()->mavlink.autopilot_type;
     mavSystemId = telemetryConfig()->mavlink.sysid;
 
-    if (!mavlinkPort) {
+    if (!state->port) {
         return;
     }
 
-    mavlinkTelemetryEnabled = true;
+    state->txbuffValid = false;
+    state->txbuffFree = 100;
+    state->lastMessageUs = 0;
+    state->enabled = true;
 }
 
 static void configureMAVLinkStreamRates(void)
@@ -334,34 +380,54 @@ static void configureMAVLinkStreamRates(void)
 
 void checkMAVLinkTelemetryState(void)
 {
-    bool newTelemetryEnabledValue = telemetryDetermineEnabledState(mavlinkPortSharing);
+    const bool hadEnabledPort = anyMavlinkPortsEnabled();
 
-    if (newTelemetryEnabledValue == mavlinkTelemetryEnabled) {
-        return;
+    for (uint8_t i = 0; i < mavlinkPortCount; i++) {
+        mavlinkPortState_t *state = &mavlinkPorts[i];
+        const bool newTelemetryEnabledValue = telemetryDetermineEnabledState(state->sharing);
+
+        if (newTelemetryEnabledValue == state->enabled) {
+            continue;
+        }
+
+        if (newTelemetryEnabledValue) {
+            configureSingleMavlinkPort(state);
+        } else {
+            resetMavlinkPortState(state);
+        }
     }
 
-    if (newTelemetryEnabledValue) {
-        configureMAVLinkTelemetryPort();
+    if (!hadEnabledPort && anyMavlinkPortsEnabled()) {
         configureMAVLinkStreamRates();
-    } else
-        freeMAVLinkTelemetryPort();
+    }
 }
 
 static void mavlinkSendMessage(void)
 {
     uint8_t mavBuffer[MAVLINK_MAX_PACKET_LEN];
 
-    mavlink_status_t* chan_state = mavlink_get_channel_status(MAVLINK_COMM_0);
-    if (telemetryConfig()->mavlink.version == 1) {
-        chan_state->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
-    } else {
-        chan_state->flags &= ~MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
-    }
-
     int msgLength = mavlink_msg_to_send_buffer(mavBuffer, &mavSendMsg);
 
-    for (int i = 0; i < msgLength; i++) {
-        serialWrite(mavlinkPort, mavBuffer[i]);
+    for (uint8_t portIndex = 0; portIndex < mavlinkPortCount; portIndex++) {
+        if ((mavlinkReadyMask & (1 << portIndex)) == 0) {
+            continue;
+        }
+
+        mavlinkPortState_t *state = &mavlinkPorts[portIndex];
+        if (!state->port) {
+            continue;
+        }
+
+        mavlink_status_t *chan_state = mavlink_get_channel_status(portIndex);
+        if (telemetryConfig()->mavlink.version == 1) {
+            chan_state->flags |= MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+        } else {
+            chan_state->flags &= ~MAVLINK_STATUS_FLAG_OUT_MAVLINK1;
+        }
+
+        for (int i = 0; i < msgLength; i++) {
+            serialWrite(state->port, mavBuffer[i]);
+        }
     }
 }
 
@@ -1234,7 +1300,9 @@ static bool handleIncoming_COMMAND_INT(void)
 static bool handleIncoming_RC_CHANNELS_OVERRIDE(void) {
     mavlink_rc_channels_override_t msg;
     mavlink_msg_rc_channels_override_decode(&mavRecvMsg, &msg);
-    // Don't check system ID because it's not configurable with systems like Crossfire
+    if (msg.target_system != mavSystemId) {
+        return false;
+    }
     mavlinkRxHandleMessage(&msg);
     return true;
 }
@@ -1274,11 +1342,11 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
     }
 }
 
-static bool handleIncoming_RADIO_STATUS(void) {
+static bool handleIncoming_RADIO_STATUS(mavlinkPortState_t *state) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavRecvMsg, &msg);
-    txbuff_valid = true;
-    txbuff_free = msg.txbuf;
+    state->txbuffValid = true;
+    state->txbuffFree = msg.txbuf;
        
     if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
         rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
@@ -1331,13 +1399,14 @@ static bool handleIncoming_ADSB_VEHICLE(void) {
 #endif
 
 // Returns whether a message was processed
-static bool processMAVLinkIncomingTelemetry(void)
+static bool processMAVLinkIncomingTelemetry(mavlinkPortState_t *state, uint8_t chan)
 {
-    while (serialRxBytesWaiting(mavlinkPort) > 0) {
+    while (serialRxBytesWaiting(state->port) > 0) {
         // Limit handling to one message per cycle
-        char c = serialRead(mavlinkPort);
-        uint8_t result = mavlink_parse_char(0, c, &mavRecvMsg, &mavRecvStatus);
+        char c = serialRead(state->port);
+        uint8_t result = mavlink_parse_char(chan, c, &state->recvMsg, &state->recvStatus);
         if (result == MAVLINK_FRAMING_OK) {
+            mavRecvMsg = state->recvMsg;
             switch (mavRecvMsg.msgid) {
                 case MAVLINK_MSG_ID_HEARTBEAT:
                    return handleIncoming_HEARTBEAT();
@@ -1369,7 +1438,7 @@ static bool processMAVLinkIncomingTelemetry(void)
                     return handleIncoming_ADSB_VEHICLE();
 #endif
                 case MAVLINK_MSG_ID_RADIO_STATUS:
-                    handleIncoming_RADIO_STATUS();
+                    handleIncoming_RADIO_STATUS(state);
                     // Don't set that we handled a message, otherwise radio status packets will block telemetry messages.
                     return false;
                 default:
@@ -1388,32 +1457,51 @@ static bool isMAVLinkTelemetryHalfDuplex(void) {
 
 void handleMAVLinkTelemetry(timeUs_t currentTimeUs)
 {
-    if (!mavlinkTelemetryEnabled) {
+    if (!anyMavlinkPortsEnabled()) {
         return;
     }
 
-    if (!mavlinkPort) {
+    uint8_t scheduledReadyMask = 0;
+
+    for (uint8_t portIndex = 0; portIndex < mavlinkPortCount; portIndex++) {
+        mavlinkPortState_t *state = &mavlinkPorts[portIndex];
+        if (!state->enabled || !state->port) {
+            continue;
+        }
+
+        mavlinkReadyMask = (1 << portIndex);
+        const bool receivedMessage = processMAVLinkIncomingTelemetry(state, portIndex);
+        bool shouldSendTelemetry = false;
+
+        // Determine whether to send telemetry back based on flow control / pacing
+        if (state->txbuffValid) {
+            // Use flow control if available
+            shouldSendTelemetry = state->txbuffFree >= telemetryConfig()->mavlink.min_txbuff;
+        } else {
+            // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
+            bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);
+            shouldSendTelemetry = ((currentTimeUs - state->lastMessageUs) >= TELEMETRY_MAVLINK_DELAY) && !halfDuplexBackoff;
+        }
+
+        if (shouldSendTelemetry) {
+            scheduledReadyMask |= (1 << portIndex);
+        }
+    }
+
+    mavlinkReadyMask = scheduledReadyMask;
+    if (!mavlinkReadyMask) {
         return;
     }
 
-    // Process incoming MAVLink
-    bool receivedMessage = processMAVLinkIncomingTelemetry();
-    bool shouldSendTelemetry = false;
+    processMAVLinkTelemetry(currentTimeUs);
 
-    // Determine whether to send telemetry back based on flow control / pacing
-    if (txbuff_valid) {
-        // Use flow control if available
-        shouldSendTelemetry = txbuff_free >= telemetryConfig()->mavlink.min_txbuff;
-    } else {
-        // If not, use blind frame pacing - and back off for collision avoidance if half-duplex
-        bool halfDuplexBackoff = (isMAVLinkTelemetryHalfDuplex() && receivedMessage);
-        shouldSendTelemetry = ((currentTimeUs - lastMavlinkMessage) >= TELEMETRY_MAVLINK_DELAY) && !halfDuplexBackoff;
+    for (uint8_t portIndex = 0; portIndex < mavlinkPortCount; portIndex++) {
+        if (mavlinkReadyMask & (1 << portIndex)) {
+            mavlinkPorts[portIndex].lastMessageUs = currentTimeUs;
+        }
     }
 
-    if (shouldSendTelemetry) {
-        processMAVLinkTelemetry(currentTimeUs);
-        lastMavlinkMessage = currentTimeUs;
-    }
+    mavlinkReadyMask = 0;
 }
 
 #endif
