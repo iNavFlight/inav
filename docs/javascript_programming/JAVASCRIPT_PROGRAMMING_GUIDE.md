@@ -61,7 +61,9 @@ edge(() => flight.armTimer > 1000, { duration: 0 }, () => {
 ---
 
 ### Latching/Sticky Conditions
-Use `sticky()` for conditions that latch ON and stay ON until reset. Assign the result to a variable to use in conditions:
+Use `sticky()` for conditions that latch ON and stay ON until reset.
+
+**Option 1: Variable assignment syntax** (recommended when you need to reference the latch state):
 
 ```javascript
 const { flight, gvar, sticky, override } = inav;
@@ -78,9 +80,29 @@ if (rssiWarning) {
 }
 ```
 
-**Parameters:**
+**Option 2: Callback syntax** (simpler when actions are self-contained):
+
+```javascript
+const { flight, sticky, override } = inav;
+
+// Latch ON when RSSI < 30, OFF when RSSI > 70
+sticky(
+  () => flight.rssi < 30,  // ON condition
+  () => flight.rssi > 70,  // OFF condition
+  () => {
+    override.vtx.power = 4;  // Executes while latched
+  }
+);
+```
+
+**Parameters (variable syntax):**
 - **on**: Condition that latches ON
 - **off**: Condition that latches OFF
+
+**Parameters (callback syntax):**
+- **onCondition**: When to latch ON
+- **offCondition**: When to latch OFF
+- **action**: What to do while latched
 
 **Use when:**
 - Warning states that need manual reset
