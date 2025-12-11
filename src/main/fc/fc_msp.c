@@ -4128,6 +4128,35 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
         *ret = mspFcGeozoneVerteciesOutCommand(dst, src);
         break;
 #endif
+
+#ifdef USE_BARO
+    case MSP2_INAV_ALT_TARGET:
+    {
+        if (dataSize == 0) {
+            sbufWriteU8(dst, NAV_WP_TAKEOFF_DATUM);
+            sbufWriteU32(dst, (uint32_t)lrintf(posControl.desiredState.pos.z));
+            *ret = MSP_RESULT_ACK;
+            break;
+        }
+
+        if (dataSize != (sizeof(int32_t) + sizeof(uint8_t))) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        const uint8_t datumFlag = sbufReadU8(src);
+        const int32_t targetAltitudeCm = (int32_t)sbufReadU32(src);
+
+        if (!navigationSetAltitudeTargetWithDatum((geoAltitudeDatumFlag_e)datumFlag, targetAltitudeCm)) {
+            *ret = MSP_RESULT_ERROR;
+            break;
+        }
+
+        *ret = MSP_RESULT_ACK;
+        break;
+    }
+#endif
+
 #ifdef USE_SIMULATOR
     case MSP_SIMULATOR:
         tmp_u8 = sbufReadU8(src); // Get the Simulator MSP version
