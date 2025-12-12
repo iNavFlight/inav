@@ -98,7 +98,7 @@ static void newSensorCheckAndEnter(uint8_t type, uint64_t addr)
 
 void temperatureInit(void)
 {
-    memset(sensorStatus, 0, sizeof(sensorStatus) * sizeof(*sensorStatus));
+    memset(sensorStatus, 0, sizeof(sensorStatus));
 
     sensorsSet(SENSOR_TEMP);
 
