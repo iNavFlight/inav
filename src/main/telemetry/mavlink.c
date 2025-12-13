@@ -1308,24 +1308,6 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
-        case MAV_CMD_NAV_TAKEOFF:
-            if (!mavlinkFrameIsSupported(frame,
-                MAV_FRAME_SUPPORTED_GLOBAL |
-                MAV_FRAME_SUPPORTED_GLOBAL_INT |
-                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
-                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
-                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
-                mavlinkSendMessage();
-                return true;
-            }
-            // INAV has no dedicated TAKEOFF mission action; treat it as a normal waypoint.
-            wp.action = NAV_WP_ACTION_WAYPOINT;
-            wp.lat = lat;
-            wp.lon = lon;
-            wp.alt = (int32_t)(altMeters * 100.0f);
-            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
-            break;
-
         case MAV_CMD_NAV_RETURN_TO_LAUNCH:
             {
                 const bool coordinateFrame = mavlinkFrameIsSupported(frame,
