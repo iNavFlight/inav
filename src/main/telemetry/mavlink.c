@@ -449,7 +449,7 @@ static void mavlinkSendAutopilotVersion(void)
         mavComponentId, 
         &mavSendMsg,
         capabilities,                // capabilities
-        0,                           // flight_sw_version
+        0,                           // flight_sw_version. Setting this to actual Ardupilot version makes QGC not display modes anymore but "Unknown", except Guided is "GUIDED". Why?
         0,                           // middleware_sw_version
         0,                           // os_sw_version
         0,                           // board_version
@@ -498,6 +498,31 @@ static bool mavlinkFrameIsSupported(uint8_t frame, mavFrameSupportMask_e allowed
         default:
             return false;
     }
+}
+
+static bool mavlinkFrameUsesAbsoluteAltitude(uint8_t frame)
+{
+    return frame == MAV_FRAME_GLOBAL || frame == MAV_FRAME_GLOBAL_INT;
+}
+
+static uint8_t navWaypointFrame(const navWaypoint_t *wp, bool useIntMessages)
+{
+    switch (wp->action) {
+        case NAV_WP_ACTION_RTH:
+        case NAV_WP_ACTION_JUMP:
+        case NAV_WP_ACTION_SET_HEAD:
+            return MAV_FRAME_MISSION;
+        default:
+            break;
+    }
+
+    const bool absoluteAltitude = (wp->p3 & NAV_WP_ALTMODE) == NAV_WP_ALTMODE;
+
+    if (absoluteAltitude) {
+        return useIntMessages ? MAV_FRAME_GLOBAL_INT : MAV_FRAME_GLOBAL;
+    }
+
+    return useIntMessages ? MAV_FRAME_GLOBAL_RELATIVE_ALT_INT : MAV_FRAME_GLOBAL_RELATIVE_ALT;
 }
 
 typedef struct {
@@ -965,7 +990,7 @@ void mavlinkSendAttitude(void)
     mavlinkSendMessage();
 }
 
-void mavlinkSendHUDAndHeartbeat(void)
+void mavlinkSendVfrHud(void)
 {
     float mavAltitude = 0;
     float mavGroundSpeed = 0;
@@ -1009,11 +1034,11 @@ void mavlinkSendHUDAndHeartbeat(void)
         mavClimbRate);
 
     mavlinkSendMessage();
+}
 
-
-    uint8_t mavModes = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
-    if (ARMING_FLAG(ARMED))
-        mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
+void mavlinkSendHeartbeat(void)
+{
+    uint8_t mavModes = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
     uint8_t mavSystemType = mavlinkGetVehicleType();
 
@@ -1027,12 +1052,22 @@ void mavlinkSendHUDAndHeartbeat(void)
         mavCustomMode = (uint8_t)inavToArduCopterMap(flm);
     }
 
-    if (flm != FLM_MANUAL) {
-        mavModes |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+    const bool manualInputAllowed = !(flm == FLM_MISSION || flm == FLM_RTH || flm == FLM_FAILSAFE);
+    if (manualInputAllowed) {
+        mavModes |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
     }
-    if (flm == FLM_POSITION_HOLD || flm == FLM_RTH || flm == FLM_MISSION) {
+    if (flm == FLM_POSITION_HOLD) {
         mavModes |= MAV_MODE_FLAG_GUIDED_ENABLED;
     }
+    else if (flm == FLM_MISSION || flm == FLM_RTH ) {
+        mavModes |= MAV_MODE_FLAG_AUTO_ENABLED;
+    }
+    else if (flm != FLM_MANUAL && flm!= FLM_ACRO && flm!=FLM_ACRO_AIR) {
+        mavModes |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+    }
+
+    if (ARMING_FLAG(ARMED))
+        mavModes |= MAV_MODE_FLAG_SAFETY_ARMED;
 
     uint8_t mavSystemState = 0;
     if (ARMING_FLAG(ARMED)) {
@@ -1190,7 +1225,8 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA2)) {
-        mavlinkSendHUDAndHeartbeat();
+        mavlinkSendVfrHud();
+        mavlinkSendHeartbeat();
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTENDED_SYS_STATE)) {
@@ -1223,36 +1259,169 @@ static bool handleIncoming_MISSION_CLEAR_ALL(void)
 static int incomingMissionWpCount = 0;
 static int incomingMissionWpSequence = 0;
 
-static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, uint16_t command, uint8_t autocontinue, uint16_t seq, int32_t lat, int32_t lon, float altMeters)
+static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, uint16_t command, uint8_t autocontinue, uint16_t seq, float param1, float param2, float param3, float param4, int32_t lat, int32_t lon, float altMeters)
 {
-    if ((autocontinue == 0) || (command != MAV_CMD_NAV_WAYPOINT && command != MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
+    if (autocontinue == 0) {
         mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
         mavlinkSendMessage();
         return true;
     }
 
-    if (!mavlinkFrameIsSupported(frame,
-        MAV_FRAME_SUPPORTED_GLOBAL |
-        MAV_FRAME_SUPPORTED_GLOBAL_INT |
-        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
-        MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT) &&
-        !(frame == MAV_FRAME_MISSION && command == MAV_CMD_NAV_RETURN_TO_LAUNCH)) {
-        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
-        mavlinkSendMessage();
-        return true;
+    UNUSED(param3);
+
+    navWaypoint_t wp;
+    memset(&wp, 0, sizeof(wp));
+
+    switch (command) {
+        case MAV_CMD_NAV_WAYPOINT:
+            if (!mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            wp.action = NAV_WP_ACTION_WAYPOINT;
+            wp.lat = lat;
+            wp.lon = lon;
+            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+            break;
+
+        case MAV_CMD_NAV_LOITER_TIME:
+            if (!mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            wp.action = NAV_WP_ACTION_HOLD_TIME;
+            wp.lat = lat;
+            wp.lon = lon;
+            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p1 = (int16_t)lrintf(param1);
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+            break;
+
+        case MAV_CMD_NAV_TAKEOFF:
+            if (!mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            // INAV has no dedicated TAKEOFF mission action; treat it as a normal waypoint.
+            wp.action = NAV_WP_ACTION_WAYPOINT;
+            wp.lat = lat;
+            wp.lon = lon;
+            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+            break;
+
+        case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+            {
+                const bool coordinateFrame = mavlinkFrameIsSupported(frame,
+                    MAV_FRAME_SUPPORTED_GLOBAL |
+                    MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT);
+
+                if (!coordinateFrame && frame != MAV_FRAME_MISSION) {
+                    mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                    mavlinkSendMessage();
+                    return true;
+                }
+                wp.action = NAV_WP_ACTION_RTH;
+                wp.lat = coordinateFrame ? lat : 0;
+                wp.lon = coordinateFrame ? lon : 0;
+                wp.alt = coordinateFrame ? (int32_t)(altMeters * 100.0f) : 0;
+                wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+                break;
+            }
+
+        case MAV_CMD_NAV_LAND:
+            if (!mavlinkFrameIsSupported(frame,
+                MAV_FRAME_SUPPORTED_GLOBAL |
+                MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            wp.action = NAV_WP_ACTION_LAND;
+            wp.lat = lat;
+            wp.lon = lon;
+            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+            break;
+
+        case MAV_CMD_DO_JUMP:
+            if (frame != MAV_FRAME_MISSION) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            if (param1 < 0.0f) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            wp.action = NAV_WP_ACTION_JUMP;
+            wp.p1 = (int16_t)lrintf(param1 + 1.0f);
+            wp.p2 = (int16_t)lrintf(param2);
+            break;
+
+        case MAV_CMD_DO_SET_ROI:
+            if (param1 != MAV_ROI_LOCATION ||
+                !mavlinkFrameIsSupported(frame,
+                    MAV_FRAME_SUPPORTED_GLOBAL |
+                    MAV_FRAME_SUPPORTED_GLOBAL_INT |
+                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT |
+                    MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT)) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            wp.action = NAV_WP_ACTION_SET_POI;
+            wp.lat = lat;
+            wp.lon = lon;
+            wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+            break;
+
+        case MAV_CMD_CONDITION_YAW:
+            if (frame != MAV_FRAME_MISSION) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED_FRAME, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            if (param4 != 0.0f) {
+                mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
+                mavlinkSendMessage();
+                return true;
+            }
+            wp.action = NAV_WP_ACTION_SET_HEAD;
+            wp.p1 = (int16_t)lrintf(param1);
+            break;
+
+        default:
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_UNSUPPORTED, MAV_MISSION_TYPE_MISSION, 0);
+            mavlinkSendMessage();
+            return true;
     }
 
     if (seq == incomingMissionWpSequence) {
         incomingMissionWpSequence++;
 
-        navWaypoint_t wp;
-        wp.action = (command == MAV_CMD_NAV_RETURN_TO_LAUNCH) ? NAV_WP_ACTION_RTH : NAV_WP_ACTION_WAYPOINT;
-        wp.lat = lat;
-        wp.lon = lon;
-        wp.alt = (int32_t)(altMeters * 100.0f);
-        wp.p1 = 0;
-        wp.p2 = 0;
-        wp.p3 = 0;
         wp.flag = (incomingMissionWpSequence >= incomingMissionWpCount) ? NAV_WP_FLAG_LAST : 0;
 
         setWaypoint(incomingMissionWpSequence, &wp);
@@ -1277,8 +1446,18 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
         }
     }
     else {
-        mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION, 0);
-        mavlinkSendMessage();
+        // If we get a duplicate of the last accepted item, re-request the next one instead of aborting.
+        if (seq + 1 == incomingMissionWpSequence) {
+            if (useIntMessages) {
+                mavlink_msg_mission_request_int_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, incomingMissionWpSequence, MAV_MISSION_TYPE_MISSION);
+            } else {
+                mavlink_msg_mission_request_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, incomingMissionWpSequence, MAV_MISSION_TYPE_MISSION);
+            }
+            mavlinkSendMessage();
+        } else {
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION, 0);
+            mavlinkSendMessage();
+        }
     }
 
     return true;
@@ -1355,7 +1534,7 @@ static bool handleIncoming_MISSION_ITEM(void)
         }
     }
 
-    return mavlinkHandleMissionItemCommon(false, msg.frame, msg.command, msg.autocontinue, msg.seq, (int32_t)(msg.x * 1e7f), (int32_t)(msg.y * 1e7f), msg.z);
+    return mavlinkHandleMissionItemCommon(false, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.param1, msg.param2, msg.param3, msg.param4, (int32_t)(msg.x * 1e7f), (int32_t)(msg.y * 1e7f), msg.z);
 }
 
 static bool handleIncoming_MISSION_REQUEST_LIST(void)
@@ -1373,6 +1552,78 @@ static bool handleIncoming_MISSION_REQUEST_LIST(void)
     return false;
 }
 
+typedef struct {
+    uint8_t frame;
+    uint16_t command;
+    float param1;
+    float param2;
+    float param3;
+    float param4;
+    int32_t lat;
+    int32_t lon;
+    float alt;
+} mavlinkMissionItemData_t;
+
+static bool fillMavlinkMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMessages, mavlinkMissionItemData_t *item)
+{
+    mavlinkMissionItemData_t data = {0};
+
+    data.frame = navWaypointFrame(wp, useIntMessages);
+
+    switch (wp->action) {
+        case NAV_WP_ACTION_WAYPOINT:
+            data.command = MAV_CMD_NAV_WAYPOINT;
+            data.lat = wp->lat;
+            data.lon = wp->lon;
+            data.alt = wp->alt / 100.0f;
+            break;
+
+        case NAV_WP_ACTION_HOLD_TIME:
+            data.command = MAV_CMD_NAV_LOITER_TIME;
+            data.param1 = wp->p1;
+            data.lat = wp->lat;
+            data.lon = wp->lon;
+            data.alt = wp->alt / 100.0f;
+            break;
+
+        case NAV_WP_ACTION_RTH:
+            data.command = MAV_CMD_NAV_RETURN_TO_LAUNCH;
+            break;
+
+        case NAV_WP_ACTION_LAND:
+            data.command = MAV_CMD_NAV_LAND;
+            data.lat = wp->lat;
+            data.lon = wp->lon;
+            data.alt = wp->alt / 100.0f;
+            break;
+
+        case NAV_WP_ACTION_JUMP:
+            data.command = MAV_CMD_DO_JUMP;
+            data.param1 = (wp->p1 > 0) ? (float)(wp->p1 - 1) : 0.0f;
+            data.param2 = wp->p2;
+            break;
+
+        case NAV_WP_ACTION_SET_POI:
+            data.command = MAV_CMD_DO_SET_ROI;
+            data.param1 = MAV_ROI_LOCATION;
+            data.lat = wp->lat;
+            data.lon = wp->lon;
+            data.alt = wp->alt / 100.0f;
+            break;
+
+        case NAV_WP_ACTION_SET_HEAD:
+            data.command = MAV_CMD_CONDITION_YAW;
+            data.param1 = wp->p1;
+            break;
+
+        default:
+            return false;
+    }
+
+    *item = data;
+    return true;
+}
+
 static bool handleIncoming_MISSION_REQUEST(void)
 {
     mavlink_mission_request_t msg;
@@ -1388,18 +1639,24 @@ static bool handleIncoming_MISSION_REQUEST(void)
         navWaypoint_t wp;
         getWaypoint(msg.seq + 1, &wp);
 
-        mavlink_msg_mission_item_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid,
-                    msg.seq,
-                    wp.action == NAV_WP_ACTION_RTH ? MAV_FRAME_MISSION : MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                    wp.action == NAV_WP_ACTION_RTH ? MAV_CMD_NAV_RETURN_TO_LAUNCH : MAV_CMD_NAV_WAYPOINT,
-                    0,
-                    1,
-                    0, 0, 0, 0,
-                    wp.lat / 1e7f,
-                    wp.lon / 1e7f,
-                    wp.alt / 100.0f,
-                    MAV_MISSION_TYPE_MISSION);
-        mavlinkSendMessage();
+        mavlinkMissionItemData_t item;
+        if (fillMavlinkMissionItemFromWaypoint(&wp, false, &item)) {
+            mavlink_msg_mission_item_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid,
+                        msg.seq,
+                        item.frame,
+                        item.command,
+                        0,
+                        1,
+                        item.param1, item.param2, item.param3, item.param4,
+                        item.lat / 1e7f,
+                        item.lon / 1e7f,
+                        item.alt,
+                        MAV_MISSION_TYPE_MISSION);
+            mavlinkSendMessage();
+        } else {
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+            mavlinkSendMessage();
+        }
     }
     else {
         mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION, 0);
@@ -1574,7 +1831,7 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
 
                 switch (messageId) {
                     case MAVLINK_MSG_ID_HEARTBEAT:
-                        mavlinkSendHUDAndHeartbeat();
+                        mavlinkSendHeartbeat();
                         sent = true;
                         break;
                     case MAVLINK_MSG_ID_AUTOPILOT_VERSION:
@@ -1598,7 +1855,7 @@ static bool handleIncoming_COMMAND(uint8_t targetSystem, uint8_t ackTargetSystem
                         sent = true;
                         break;
                     case MAVLINK_MSG_ID_VFR_HUD:
-                        mavlinkSendHUDAndHeartbeat();
+                        mavlinkSendVfrHud();
                         sent = true;
                         break;
                     case MAVLINK_MSG_ID_AVAILABLE_MODES:
@@ -1720,7 +1977,7 @@ static bool handleIncoming_MISSION_ITEM_INT(void)
         return true;
     }
 
-    return mavlinkHandleMissionItemCommon(true, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.x, msg.y, msg.z);
+    return mavlinkHandleMissionItemCommon(true, msg.frame, msg.command, msg.autocontinue, msg.seq, msg.param1, msg.param2, msg.param3, msg.param4, msg.x, msg.y, msg.z);
 }
 
 static bool handleIncoming_MISSION_REQUEST_INT(void)
@@ -1738,18 +1995,24 @@ static bool handleIncoming_MISSION_REQUEST_INT(void)
         navWaypoint_t wp;
         getWaypoint(msg.seq + 1, &wp);
 
-        mavlink_msg_mission_item_int_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid,
-                    msg.seq,
-                    wp.action == NAV_WP_ACTION_RTH ? MAV_FRAME_MISSION : MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
-                    wp.action == NAV_WP_ACTION_RTH ? MAV_CMD_NAV_RETURN_TO_LAUNCH : MAV_CMD_NAV_WAYPOINT,
-                    0,
-                    1,
-                    0, 0, 0, 0,
-                    wp.lat,
-                    wp.lon,
-                    wp.alt / 100.0f,
-                    MAV_MISSION_TYPE_MISSION);
-        mavlinkSendMessage();
+        mavlinkMissionItemData_t item;
+        if (fillMavlinkMissionItemFromWaypoint(&wp, true, &item)) {
+            mavlink_msg_mission_item_int_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid,
+                        msg.seq,
+                        item.frame,
+                        item.command,
+                        0,
+                        1,
+                        item.param1, item.param2, item.param3, item.param4,
+                        item.lat,
+                        item.lon,
+                        item.alt,
+                        MAV_MISSION_TYPE_MISSION);
+            mavlinkSendMessage();
+        } else {
+            mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_ERROR, MAV_MISSION_TYPE_MISSION, 0);
+            mavlinkSendMessage();
+        }
     }
     else {
         mavlink_msg_mission_ack_pack(mavSystemId, mavComponentId, &mavSendMsg, mavRecvMsg.sysid, mavRecvMsg.compid, MAV_MISSION_INVALID_SEQUENCE, MAV_MISSION_TYPE_MISSION, 0);
