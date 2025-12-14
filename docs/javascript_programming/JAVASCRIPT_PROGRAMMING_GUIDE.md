@@ -222,6 +222,55 @@ if (lowVoltageWarning) {
 
 ---
 
+##Variables
+
+### Let/Const Variables
+
+Use `let` or `const` to define reusable expressions that are compiled into the logic:
+
+```javascript
+const { flight, override } = inav;
+
+// Define reusable calculations
+let distanceThreshold = 500;
+let altitudeLimit = 100;
+let combinedCondition = flight.homeDistance > distanceThreshold && flight.altitude > altitudeLimit;
+
+// Use in conditions
+if (combinedCondition) {
+  override.vtx.power = 4;
+}
+```
+
+**Benefits:**
+- Makes code more readable with named values
+- Compiler automatically optimizes duplicate expressions
+- Variables preserve their custom names through compile/decompile cycles
+
+**Important:** `let`/`const` variables are **compile-time substituted**, not runtime variables. For runtime state, use `gvar[]`.
+
+### Ternary Operator
+
+Use ternary expressions for conditional values:
+
+```javascript
+const { flight, override } = inav;
+
+// Assign based on condition
+let throttleLimit = flight.cellVoltage < 330 ? 25 : 50;
+
+if (flight.cellVoltage < 350) {
+  override.throttleScale = throttleLimit;
+}
+
+// Inline in expressions
+override.vtx.power = flight.homeDistance > 500 ? 4 : 2;
+```
+
+**Use when:** You need conditional value assignment in a single expression.
+
+---
+
 ## Available Objects
 
 ```javascript
