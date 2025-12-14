@@ -11,7 +11,7 @@ All INAV logic condition operations supported by the firmware are now fully impl
 ✅ **Arithmetic**: ADD, SUB, MUL, DIV, MODULUS (via +, -, *, /, %)
 ✅ **Comparisons**: EQUAL, GREATER_THAN, LOWER_THAN, APPROX_EQUAL (via ===, >, <, approxEqual())
 ✅ **Logical**: AND, OR, NOT, XOR, NAND, NOR (via &&, ||, !, xor(), nand(), nor())
-✅ **Math**: MIN, MAX, SIN, COS, TAN, ABS (via Math.min/max/sin/cos/tan/abs)
+✅ **Math**: MIN, MAX, SIN, COS, TAN, ACOS, ASIN, ATAN2, ABS (via Math.min/max/sin/cos/tan/acos/asin/atan2/abs)
 ✅ **Scaling**: MAP_INPUT, MAP_OUTPUT (via mapInput(), mapOutput())
 ✅ **Flow control**: STICKY, EDGE, DELAY, TIMER, DELTA (via on.* and helper functions)
 ✅ **Variables**: GVAR_SET, GVAR_INC, GVAR_DEC (via assignments, ++, --)
@@ -98,7 +98,7 @@ if (rc[0].low && rc[1].mid && rc[2].high) {
 
 - RC channels: `rc[0]` through `rc[17]` (18 channels)
 - RC channel properties: `.value` (1000-2000us), `.low` (<1333us), `.mid` (1333-1666us), `.high` (>1666us)
-- All trig functions (sin/cos/tan) take degrees, not radians
+- Trig functions: sin/cos/tan take degrees; acos/asin use ratios (-1..1) and atan2 returns degrees from y/x inputs
 - MODULUS operator bug fixed: `%` now correctly generates MODULUS operation
 - MAP_INPUT normalizes to [0:1000], MAP_OUTPUT scales from [0:1000]
 
