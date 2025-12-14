@@ -1287,6 +1287,8 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.lat = lat;
             wp.lon = lon;
             wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p1 = 0;
+            wp.p2 = 0;
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
@@ -1305,6 +1307,7 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.lon = lon;
             wp.alt = (int32_t)(altMeters * 100.0f);
             wp.p1 = (int16_t)lrintf(param1);
+            wp.p2 = 0;
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
@@ -1322,9 +1325,11 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
                     return true;
                 }
                 wp.action = NAV_WP_ACTION_RTH;
-                wp.lat = coordinateFrame ? lat : 0;
-                wp.lon = coordinateFrame ? lon : 0;
+                wp.lat = 0;
+                wp.lon = 0;
                 wp.alt = coordinateFrame ? (int32_t)(altMeters * 100.0f) : 0;
+                wp.p1 = 0; // Land if non-zero
+                wp.p2 = 0;
                 wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
                 break;
             }
@@ -1343,7 +1348,9 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.lat = lat;
             wp.lon = lon;
             wp.alt = (int32_t)(altMeters * 100.0f);
-            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+            wp.p1 = 0; // Speed (cm/s)
+            wp.p2 = 0; // Elevation Adjustment (m): P2 defines the ground elevation (in metres) for the LAND WP. If the altitude mode is absolute, this is also absolute; for relative altitude, then it is the difference between the assumed home location and the LAND WP.
+            wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0; // Altitude Mode & Actions, P3 defines the altitude mode. 0 (default, legacy) = Relative to Home, 1 = Absolute (AMSL).
             break;
 
         case MAV_CMD_DO_JUMP:
@@ -1357,9 +1364,13 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
                 mavlinkSendMessage();
                 return true;
             }
+            wp.lat = 0;
+            wp.lon = 0;
+            wp.alt = 0;
             wp.action = NAV_WP_ACTION_JUMP;
             wp.p1 = (int16_t)lrintf(param1 + 1.0f);
             wp.p2 = (int16_t)lrintf(param2);
+            wp.p3 = 0;
             break;
 
         case MAV_CMD_DO_SET_ROI:
@@ -1377,6 +1388,8 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
             wp.lat = lat;
             wp.lon = lon;
             wp.alt = (int32_t)(altMeters * 100.0f);
+            wp.p1 = 0;
+            wp.p2 = 0;
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
             break;
 
@@ -1391,8 +1404,13 @@ static bool mavlinkHandleMissionItemCommon(bool useIntMessages, uint8_t frame, u
                 mavlinkSendMessage();
                 return true;
             }
+            wp.lat = 0;
+            wp.lon = 0;
+            wp.alt = 0;
             wp.action = NAV_WP_ACTION_SET_HEAD;
             wp.p1 = (int16_t)lrintf(param1);
+            wp.p2 = 0;
+            wp.p3 = 0;
             break;
 
         default:
