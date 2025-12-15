@@ -84,7 +84,7 @@
   #define IMU_MPU6000_ALIGN       CW180_DEG
 #endif
 
-// Support for OMNIBUS F4 PRO CORNER - it has MPU6500 instead of MPU6000
+// Support for OMNIBUS F4 PRO CORNER - it has MPU6500/ICM20608 instead of MPU6000
 #if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3) || defined(OMNIBUSF4V3_ICM)
   #define MPU6500_CS_PIN          MPU6000_CS_PIN
   #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
