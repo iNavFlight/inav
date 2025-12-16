@@ -53,8 +53,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4,  CH2, PD13,  TIM_USE_OUTPUT_AUTO, 0, 0),   // S2 DMA None
     DEF_TIM(TIM4,  CH3, PD14,  TIM_USE_OUTPUT_AUTO, 0, 0),   // S3
     DEF_TIM(TIM4,  CH4, PD15,  TIM_USE_OUTPUT_AUTO, 0, 0),   // S4
-    DEF_TIM(TIM15, CH1, PE5,   TIM_USE_ANY,         0, 0),   // CAMERA_CONTROL_PIN
-    DEF_TIM(TIM8,  CH3, PC8,   TIM_USE_ANY,         0, 0),   // GYRO_1_CLKIN_PIN
+    DEF_TIM(TIM8,  CH3, PC8,   TIM_USE_ANY,         0, 0),   // CAMERA_CONTROL_PIN
+    DEF_TIM(TIM17, CH1N,PB7,   TIM_USE_ANY,         0, 0),   // GYRO_1_CLKIN_PIN
     DEF_TIM(TIM3,  CH3, PB0,   TIM_USE_LED,         0, 8),   // LED_2812
 };
 
