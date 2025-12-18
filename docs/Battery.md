@@ -296,8 +296,8 @@ Enable these in the OSD tab to monitor limiting during flight.
 ### Calibration Tips
 
 1. **Find your battery's limits**: Check manufacturer specifications for continuous and burst C-ratings
-   - Continuous limit = `battery_capacity_mAh × continuous_C_rating / 1000` (in dA)
-   - Burst limit = `battery_capacity_mAh × burst_C_rating / 1000` (in dA)
+   - Continuous limit = `battery_capacity_mAh × continuous_C_rating / 100` (in dA)
+   - Burst limit = `battery_capacity_mAh × burst_C_rating / 100` (in dA)
 
 2. **Test incrementally**: Start with conservative limits and increase gradually
 
