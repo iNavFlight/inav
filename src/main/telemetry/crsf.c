@@ -334,9 +334,15 @@ int24_t    rpm_value[];     // 1 - 19 RPM values with negative ones representing
 */
 static void crsfRpm(sbuf_t *dst)
 {
+    const uint8_t MAX_CRSF_RPM_VALUES = 19;  // CRSF protocol limit: 1-19 RPM values
     uint8_t motorCount = getMotorCount();
 
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
+        // Enforce protocol limit
+        if (motorCount > MAX_CRSF_RPM_VALUES) {
+            motorCount = MAX_CRSF_RPM_VALUES;
+        }
+
         sbufWriteU8(dst, 1 + (motorCount * 3) + CRSF_FRAME_LENGTH_TYPE_CRC);
         crsfSerialize8(dst, CRSF_FRAMETYPE_RPM);
         // 0 = FC including all ESCs
@@ -358,14 +364,14 @@ int16_t temperature[]; // up to 20 temperature values in deci-degree (tenths of 
 */
 static void crsfTemperature(sbuf_t *dst)
 {
-
+    const uint8_t MAX_CRSF_TEMPS = 20;  // Maximum temperatures per CRSF frame
     uint8_t tempCount = 0;
     int16_t temperatures[20];
 
 #ifdef USE_ESC_SENSOR
     uint8_t motorCount = getMotorCount();
     if (STATE(ESC_SENSOR_ENABLED) && motorCount > 0) {
-        for (uint8_t i = 0; i < motorCount; i++) {
+        for (uint8_t i = 0; i < motorCount && tempCount < MAX_CRSF_TEMPS; i++) {
             const escSensorData_t *escState = getEscTelemetry(i);
             temperatures[tempCount++] = (escState) ? escState->temperature * 10 : TEMPERATURE_INVALID_VALUE;
         }
@@ -373,7 +379,7 @@ static void crsfTemperature(sbuf_t *dst)
 #endif
 
 #ifdef USE_TEMPERATURE_SENSOR
-    for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+    for (uint8_t i = 0; i < MAX_TEMP_SENSORS && tempCount < MAX_CRSF_TEMPS; i++) {
         int16_t value;
         if (getSensorTemperature(i, &value))
             temperatures[tempCount++] = value;
@@ -702,10 +708,33 @@ void initCrsfTelemetry(void)
     }
 #endif
 #ifdef USE_ESC_SENSOR
-    crsfSchedule[index++] = BV(CRSF_FRAME_RPM_INDEX);
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_RPM_INDEX);
+    }
 #endif
 #if defined(USE_ESC_SENSOR) || defined(USE_TEMPERATURE_SENSOR)
-    crsfSchedule[index++] = BV(CRSF_FRAME_TEMP_INDEX);
+    // Only schedule temperature frame if we have temperature sources available
+    bool hasTemperatureSources = false;
+#ifdef USE_ESC_SENSOR
+    if (STATE(ESC_SENSOR_ENABLED) && getMotorCount() > 0) {
+        hasTemperatureSources = true;
+    }
+#endif
+#ifdef USE_TEMPERATURE_SENSOR
+    if (!hasTemperatureSources) {
+        // Check if any temperature sensors are configured
+        for (uint8_t i = 0; i < MAX_TEMP_SENSORS; i++) {
+            int16_t value;
+            if (getSensorTemperature(i, &value)) {
+                hasTemperatureSources = true;
+                break;
+            }
+        }
+    }
+#endif
+    if (hasTemperatureSources) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_TEMP_INDEX);
+    }
 #endif
 #ifdef USE_PITOT
     if (sensors(SENSOR_PITOT)) {
