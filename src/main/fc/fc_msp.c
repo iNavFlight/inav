@@ -1526,6 +1526,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxDevice->capability.bandCount);
                 sbufWriteU8(dst, vtxDevice->capability.channelCount);
                 sbufWriteU8(dst, vtxDevice->capability.powerCount);
+
+                uint8_t minPowerIndex = 1;
+                if (deviceType == VTXDEV_MSP) {
+                    minPowerIndex = 0;
+                }
+                sbufWriteU8(dst, minPowerIndex);
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
