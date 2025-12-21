@@ -174,6 +174,23 @@ When creating a pull request, target the appropriate branch:
 4. After final release, the maintenance branch is periodically merged into `master`
 5. The cycle continues with the maintenance branch receiving new changes for the next release
 
+### Propagating Changes Between Maintenance Branches
+
+Changes committed to the current version branch should be merged forward to the next major version branch to prevent regressions.
+
+**Maintainer workflow:**
+- Changes merged to `maintenance-9.x` should be regularly merged into `maintenance-10.x`
+- This ensures fixes and features aren't lost when the next major version is released
+- Prevents users from experiencing bugs in v10.0 that were already fixed in v9.x
+
+**Example:**
+```bash
+# Merge changes from current to next major version
+git checkout maintenance-10.x
+git merge maintenance-9.x
+git push upstream maintenance-10.x
+```
+
 ### Example Timeline
 
 Current state (example):
@@ -208,7 +225,7 @@ When updating your fork:
 ```bash
 # Get the latest maintenance branch changes
 git fetch upstream
-git checkout maintenance-9.x
-git merge upstream/maintenance-9.x
-git push origin maintenance-9.x
+
+# Push directly from upstream to your fork (no local checkout needed)
+git push origin upstream/maintenance-9.x:maintenance-9.x
 ```
