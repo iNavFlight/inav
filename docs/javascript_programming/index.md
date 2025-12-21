@@ -28,12 +28,12 @@ The INAV JavaScript transpiler converts JavaScript code into INAV logic conditio
 ### Basic Example
 
 ```javascript
-const { flight, override } = inav;
 
 // Increase VTX power when far from home
-if (flight.homeDistance > 500) {
-  override.vtx.power = 4;
+if (inav.flight.homeDistance > 500) {
+  inav.override.vtx.power = 4;
 }
+
 ```
 
 ![VTX Power Control Example](example_vtx_power.png)
