@@ -312,4 +312,13 @@ bool pitotIsHealthy(void)
     return (millis() - pitot.lastSeenHealthyMs) < PITOT_HARDWARE_TIMEOUT_MS;
 }
 
+bool pitotValidForAirspeed(void)
+{
+    bool ret = false;
+    ret = pitotIsHealthy() && pitotIsCalibrationComplete();
+    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
+        ret = ret && STATE(GPS_FIX);
+    }
+    return ret;
+}
 #endif /* PITOT */
