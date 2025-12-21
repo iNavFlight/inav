@@ -29,6 +29,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "platform.h"
 #include "common/utils.h"
@@ -39,6 +40,7 @@
 #include "drivers/light_led.h"
 #include "drivers/io.h"
 #include "drivers/bus_spi.h"
+#include "drivers/time.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -55,6 +57,12 @@
 #define STORAGE_LUN_NBR                  1
 #define STORAGE_BLK_NBR                  0x10000
 #define STORAGE_BLK_SIZ                  0x200
+
+// H7 SDIO DMA requires 32-byte aligned buffers
+// USB MSC bot_data buffer is only 16-byte aligned, so we need an intermediate buffer
+#if defined(STM32H7) && defined(USE_SDCARD_SDIO)
+__attribute__((aligned(32))) static uint8_t alignedBuffer[512];
+#endif
 
 static int8_t STORAGE_Init (uint8_t lun);
 
@@ -143,10 +151,21 @@ static int8_t STORAGE_Init (uint8_t lun)
 {
 	UNUSED(lun);
 	LED0_OFF;
-	sdcard_init();
-	while (sdcard_poll() == 0);
+
+	// Only initialize if not already initialized (e.g., by blackbox)
+	if (!sdcard_isInitialized()) {
+		sdcard_init();
+	}
+
+	// Poll with timeout to avoid infinite loop
+	uint32_t timeout = 0;
+	while (sdcard_poll() == 0 && timeout < 1000) {
+		timeout++;
+		delay(1);
+	}
+
 	LED0_ON;
-	return 0;
+	return (timeout < 1000) ? 0 : -1;
 }
 
 /*******************************************************************************
@@ -213,9 +232,18 @@ static int8_t STORAGE_Read (uint8_t lun,
 	UNUSED(lun);
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
+#if defined(STM32H7) && defined(USE_SDCARD_SDIO)
+		// H7 SDIO DMA requires 32-byte aligned buffers
+		// USB MSC buffer may not be aligned, so use intermediate buffer
+		while (sdcard_readBlock(blk_addr + i, alignedBuffer, NULL, 0) == 0)
+			sdcard_poll();
+		while (sdcard_poll() == 0);
+		memcpy(buf + (512 * i), alignedBuffer, 512);
+#else
 		while (sdcard_readBlock(blk_addr + i, buf + (512 * i), NULL, 0) == 0)
 			sdcard_poll();
 		while (sdcard_poll() == 0);
+#endif
 	}
 	LED1_OFF;
 	return 0;
@@ -235,10 +263,20 @@ static int8_t STORAGE_Write (uint8_t lun,
 	UNUSED(lun);
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
+#if defined(STM32H7) && defined(USE_SDCARD_SDIO)
+		// H7 SDIO DMA requires 32-byte aligned buffers
+		// USB MSC buffer may not be aligned, so use intermediate buffer
+		memcpy(alignedBuffer, buf + (i * 512), 512);
+		while (sdcard_writeBlock(blk_addr + i, alignedBuffer, NULL, 0) != SDCARD_OPERATION_IN_PROGRESS) {
+			sdcard_poll();
+		}
+		while (sdcard_poll() == 0);
+#else
 		while (sdcard_writeBlock(blk_addr + i, buf + (i * 512), NULL, 0) != SDCARD_OPERATION_IN_PROGRESS) {
 			sdcard_poll();
 		}
 		while (sdcard_poll() == 0);
+#endif
 	}
 	LED1_OFF;
 	return 0;
