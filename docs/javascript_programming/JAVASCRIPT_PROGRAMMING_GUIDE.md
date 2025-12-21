@@ -198,28 +198,101 @@ inav.events.sticky(
 
 ---
 
-## Available Objects
+## Variables
+
+### Let/Const Variables
+
+Use `let` or `const` to define reusable expressions that are compiled into the logic:
 
 ```javascript
-const { 
-  flight,      // Flight telemetry
-  override,    // Override flight parameters
-  rc,          // RC channels
-  gvar,        // Global variables (0-7)
-  waypoint,    // Waypoint navigation
-  edge,        // Edge detection
-  sticky,      // Latching conditions
-  delay        // Delayed execution
-} = inav;
+// Define reusable calculations
+let distanceThreshold = 500;
+let altitudeLimit = 100;
+let combinedCondition = inav.flight.homeDistance > distanceThreshold && inav.flight.altitude > altitudeLimit;
 
+// Use in conditions
+if (combinedCondition) {
+  inav.override.vtx.power = 4;
+}
 ```
+
+**Benefits:**
+- Makes code more readable with named values
+- Compiler automatically optimizes duplicate expressions
+- Variables preserve their custom names through compile/decompile cycles
+
+**Important:** `let`/`const` variables are **compile-time substituted**, not runtime variables. For runtime state, use `inav.gvar[]`.
+
+### Ternary Operator
+
+Use ternary expressions for conditional values:
+
+```javascript
+// Assign based on condition
+let throttleLimit = inav.flight.cellVoltage < 330 ? 25 : 50;
+
+if (inav.flight.cellVoltage < 350) {
+  inav.override.throttleScale = throttleLimit;
+}
+
+// Inline in expressions
+inav.override.vtx.power = inav.flight.homeDistance > 500 ? 4 : 2;
+```
+
+**Use when:** You need conditional value assignment in a single expression.
+
+---
+
+## Available Objects
+
+The `inav` namespace provides access to all flight controller data and control functions:
+
+- `inav.flight` - Flight telemetry (including `flight.mode.*`)
+- `inav.override` - Override flight parameters
+- `inav.rc` - RC channels
+- `inav.gvar` - Global variables (0-7)
+- `inav.pid` - Programming PID outputs (`pid[0-3].output`)
+- `inav.waypoint` - Waypoint navigation
+- `inav.events.edge` - Edge detection
+- `inav.events.sticky` - Latching conditions
+- `inav.events.delay` - Delayed execution
+
+### Flight Mode Detection
+
+Check which flight modes are currently active via `inav.flight.mode.*`:
+
+```javascript
+if (inav.flight.mode.poshold === 1) {
+  inav.gvar[0] = 1;  // Flag: in position hold
+}
+
+if (inav.flight.mode.rth === 1) {
+  inav.override.vtx.power = 4;  // Max power during RTH
+}
+```
+
+**Available modes:** `failsafe`, `manual`, `rth`, `poshold`, `cruise`, `althold`, `angle`, `horizon`, `air`, `acro`, `courseHold`, `waypointMission`, `user1` through `user4`
+
+### PID Controller Outputs
+
+Read output values from the 4 programming PID controllers (configured in Programming PID tab):
+
+```javascript
+if (inav.pid[0].output > 500) {
+  inav.override.throttle = 1600;
+}
+
+inav.gvar[0] = inav.pid[0].output;  // Store for OSD display
+```
+
+**Available:** `inav.pid[0].output` through `inav.pid[3].output`
 
 ---
 
 ## Tips
 
-1. **Initialize variables on arm** using `edge()` with `flight.armTimer > 1000`
-2. **Use gvars for state** - they persist between logic condition evaluations
+1. **Initialize variables on arm** using `inav.events.edge()` with `inav.flight.armTimer > 1000`
+2. **Use inav.gvar for state** - they persist between logic condition evaluations
 3. **edge() duration = 0** means instant trigger on condition becoming true
 4. **edge() duration > 0** adds debounce time
 5. **if statements are continuous** - they execute every cycle

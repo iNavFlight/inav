@@ -178,15 +178,18 @@ Instructions for:
 - Waypoint navigation
 
 **JavaScript Features:**
-- `const` destructuring: `const { flight, override } = inav;`
-- `let` variables: compile-time constant substitution
+- Namespaced API access: `inav.flight.*`, `inav.override.*`, `inav.events.*`
+- `let`/`const` variables: compile-time constant substitution
 - `var` variables: allocated to global variables
+- Ternary operator: `condition ? value1 : value2`
 - Arrow functions: `() => condition`
-- Object property access: `flight.altitude`, `rc[0].value`
+- Object property access: `inav.flight.altitude`, `inav.rc[0].value`
 - Binary expressions: `+`, `-`, `*`, `/`, `%`
 - Comparison operators: `>`, `<`, `===`
 - Logical operators: `&&`, `||`, `!`
 - Math methods: `Math.min()`, `Math.max()`, `Math.sin()`, etc.
+- Flight mode detection: `inav.flight.mode.poshold`, `inav.flight.mode.rth`, etc.
+- PID controller outputs: `inav.pid[0-3].output`
 
 ### Validation
 
