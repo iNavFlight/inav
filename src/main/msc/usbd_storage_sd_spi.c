@@ -232,17 +232,46 @@ static int8_t STORAGE_Read (uint8_t lun,
 	UNUSED(lun);
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
+		uint32_t timeout;
 #if defined(STM32H7) && defined(USE_SDCARD_SDIO)
 		// H7 SDIO DMA requires 32-byte aligned buffers
 		// USB MSC buffer may not be aligned, so use intermediate buffer
-		while (sdcard_readBlock(blk_addr + i, alignedBuffer, NULL, 0) == 0)
+		timeout = 0;
+		while (sdcard_readBlock(blk_addr + i, alignedBuffer, NULL, 0) == 0) {
 			sdcard_poll();
-		while (sdcard_poll() == 0);
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for read to start
+			}
+			delay(1);
+		}
+		timeout = 0;
+		while (sdcard_poll() == 0) {
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for read to complete
+			}
+			delay(1);
+		}
 		memcpy(buf + (512 * i), alignedBuffer, 512);
 #else
-		while (sdcard_readBlock(blk_addr + i, buf + (512 * i), NULL, 0) == 0)
+		timeout = 0;
+		while (sdcard_readBlock(blk_addr + i, buf + (512 * i), NULL, 0) == 0) {
 			sdcard_poll();
-		while (sdcard_poll() == 0);
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for read to start
+			}
+			delay(1);
+		}
+		timeout = 0;
+		while (sdcard_poll() == 0) {
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for read to complete
+			}
+			delay(1);
+		}
 #endif
 	}
 	LED1_OFF;
@@ -263,19 +292,46 @@ static int8_t STORAGE_Write (uint8_t lun,
 	UNUSED(lun);
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
+		uint32_t timeout;
 #if defined(STM32H7) && defined(USE_SDCARD_SDIO)
 		// H7 SDIO DMA requires 32-byte aligned buffers
 		// USB MSC buffer may not be aligned, so use intermediate buffer
 		memcpy(alignedBuffer, buf + (i * 512), 512);
+		timeout = 0;
 		while (sdcard_writeBlock(blk_addr + i, alignedBuffer, NULL, 0) != SDCARD_OPERATION_IN_PROGRESS) {
 			sdcard_poll();
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for write to start
+			}
+			delay(1);
 		}
-		while (sdcard_poll() == 0);
+		timeout = 0;
+		while (sdcard_poll() == 0) {
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for write to complete
+			}
+			delay(1);
+		}
 #else
+		timeout = 0;
 		while (sdcard_writeBlock(blk_addr + i, buf + (i * 512), NULL, 0) != SDCARD_OPERATION_IN_PROGRESS) {
 			sdcard_poll();
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for write to start
+			}
+			delay(1);
 		}
-		while (sdcard_poll() == 0);
+		timeout = 0;
+		while (sdcard_poll() == 0) {
+			if (++timeout > 5000) {
+				LED1_OFF;
+				return -1;  // Timeout waiting for write to complete
+			}
+			delay(1);
+		}
 #endif
 	}
 	LED1_OFF;
