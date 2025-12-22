@@ -66,7 +66,7 @@ static void busDevPreInit(const busDeviceDescriptor_t * descriptor)
 
 void busInit(void)
 {
-#if !defined(SITL_BUILD)
+#if !(defined(SITL_BUILD)  || defined(WASM_BUILD))
     /* Pre-initialize bus devices */
     for (const busDeviceDescriptor_t * descriptor = __busdev_registry_start; (descriptor) < __busdev_registry_end; descriptor++) {
         busDevPreInit(descriptor);
@@ -115,7 +115,7 @@ void busDeviceDeInit(busDevice_t * dev)
 busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, resourceOwner_e owner)
 {
     UNUSED(owner);
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)  || defined(WASM_BUILD)
     UNUSED(bus);
     UNUSED(hw);
     UNUSED(tag);
@@ -176,7 +176,7 @@ busDevice_t * busDeviceInit(busType_e bus, devHardwareType_e hw, uint8_t tag, re
 
 busDevice_t * busDeviceOpen(busType_e bus, devHardwareType_e hw, uint8_t tag)
 {
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)  || defined(WASM_BUILD)
     UNUSED(bus);
     UNUSED(hw);
     UNUSED(tag);

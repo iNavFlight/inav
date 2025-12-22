@@ -44,6 +44,10 @@
 #include "drivers/serial_tcp.h"
 #endif
 
+#if defined(WASM_BUILD)
+#include "drivers/serial_ex.h"
+#endif
+
 #include "drivers/light_led.h"
 
 #if defined(USE_VCP)
@@ -330,10 +334,14 @@ bool doesConfigurationUsePort(serialPortIdentifier_e identifier)
     return candidate != NULL && candidate->functionMask;
 }
 
-#if defined(SITL_BUILD)
+#if defined(SITL_BUILD) || defined(WASM_BUILD)
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
+#if defined(SITL_BUILD)
     return tcpOpen(USARTx, callback, rxCallbackData, baudRate, mode, options);
+#elif defined(WASM_BUILD)
+    return serialExInit(USARTx, callback, rxCallbackData, baudRate, mode, options);
+#endif
 }
 #endif
 

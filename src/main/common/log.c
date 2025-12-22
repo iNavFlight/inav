@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#if defined(SEMIHOSTING) || defined(SITL_BUILD)
+#if defined(SEMIHOSTING) || defined(SITL_BUILD)  || defined(WASM_BUILD)
 #include <stdio.h>
 #endif
 

@@ -24,6 +24,17 @@
 #include "parameter_group.h"
 #include "common/maths.h"
 
+/* WebAssembly / Emscripten fallback symbols
+   When weak symbols are used and not provided by linker, define empty arrays
+   This is needed for WASM builds where linker scripts may not work correctly
+*/
+#ifdef __EMSCRIPTEN__
+const pgRegistry_t __pg_registry_start[1] __attribute__((weak)) = {0};
+const pgRegistry_t __pg_registry_end[1] __attribute__((weak)) = {0};
+const uint8_t __pg_resetdata_start[1] __attribute__((weak)) = {0};
+const uint8_t __pg_resetdata_end[1] __attribute__((weak)) = {0};
+#endif
+
 const pgRegistry_t* pgFind(pgn_t pgn)
 {
     PG_FOREACH(reg) {

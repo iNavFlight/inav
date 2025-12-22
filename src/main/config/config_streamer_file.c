@@ -40,14 +40,27 @@ bool configFileSetPath(char* path)
         return false;
     }
     
-    strcpy(eepromPath, path);
+#if !defined(WASM_BUILD)
+        strcpy(eepromPath, path);
+#else
+        const char *filename = path;
+        const char *lastSlash = strrchr(path, '/');
+        const char *lastBackslash = strrchr(path, '\\');
+
+        if (lastSlash != NULL) {
+            filename = lastSlash + 1;
+        }
+        if (lastBackslash != NULL && lastBackslash > lastSlash) {
+            filename = lastBackslash + 1;
+        }
+        snprintf(eepromPath, sizeof(eepromPath), "%s/%s", IDBFS_MOUNT, filename);
+#endif
     return true;
 }
 
 void config_streamer_impl_unlock(void)
 {
     if (eepromFd != NULL) {
-        fprintf(stderr, "[EEPROM] Unable to load %s\n", eepromPath);
         return;
     }
 

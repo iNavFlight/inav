@@ -35,7 +35,7 @@
 
 #include "fc/settings.h"
 
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD) || defined(WASM_BUILD)  || defined(WASM_BUILD)
 #include <time.h>
 #endif
 
@@ -314,7 +314,7 @@ bool rtcHasTime(void)
 
 bool rtcGet(rtcTime_t *t)
 {
-#ifdef SITL_BUILD
+#if defined(SITL_BUILD) || defined(WASM_BUILD)  || defined(WASM_BUILD)
     *t = (rtcTime_t)(time(NULL) * 1000);
     return true;
 #else 

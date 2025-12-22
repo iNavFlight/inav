@@ -40,6 +40,10 @@
 #include <netdb.h>
 #include <netinet/in.h>
 
+#if defined(WASM_BUILD)
+#include <emscripten.h>
+#endif
+
 #include <platform.h>
 #include "target.h"
 
@@ -59,6 +63,8 @@
 
 #include "target/SITL/serial_proxy.h"
 
+
+
 // More dummys
 const int timerHardwareCount = 0;
 timerHardware_t timerHardware[1];
@@ -77,8 +83,22 @@ static int simPort = 0;
 
 static char **c_argv;
 
+#if defined(WASM_BUILD)
+
+static bool wasmFilesystemReady = false;
+static pthread_t wasmMainThread;
+static wasmMainThreadType wasmMainThreadWorker = NULL;
+static bool wasmMainWorkerThreadStarted = false;
+#endif
+
 static void printVersion(void) {
-    fprintf(stderr, "INAV %d.%d.%d SITL (%s)\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL, shortGitRevision);
+    
+#if defined(WASM_BUILD)
+    const char* const sitlVariant = "SITL Webassembly";
+#else
+    const char* const sitlVariant = "SITL";
+#endif
+    fprintf(stderr, "INAV %d.%d.%d %s (%s)\n", FC_VERSION_MAJOR, FC_VERSION_MINOR, FC_VERSION_PATCH_LEVEL, sitlVariant, shortGitRevision);
 }
 
 void systemInit(void) {
@@ -86,7 +106,7 @@ void systemInit(void) {
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     fprintf(stderr, "[SYSTEM] Init...\n");
 
-#if !defined(__FreeBSD__)  && !defined(__APPLE__)
+#if !defined(__FreeBSD__) && !defined(__APPLE__) && !defined(__EMSCRIPTEN__)
     pthread_attr_t thAttr;
     int policy = 0;
 
@@ -106,6 +126,7 @@ void systemInit(void) {
     }
 
     switch (sitlSim) {
+#ifdef SITL_BUILD
         case SITL_SIM_REALFLIGHT:
             if (mappingCount > RF_MAX_PWM_OUTS) {
                 fprintf(stderr, "[SIM] Mapping error. RealFligt supports a maximum of %i PWM outputs.", RF_MAX_PWM_OUTS);
@@ -130,6 +151,7 @@ void systemInit(void) {
                 fprintf(stderr, "[SIM] Connection with X-PLane NOT established.\n");
             }
             break;
+#endif
         default:
           fprintf(stderr, "[SIM] No interface specified. Configurator only.\n");
           break;
@@ -173,6 +195,7 @@ bool parseMapping(char* mapStr)
     return true;
 }
 
+#ifdef SITL_BUILD
 OptSerialStopBits_e parseStopBits(const char* optarg){
     if ( strcmp(optarg, "One") == 0 ) {
         return OPT_SERIAL_STOP_BITS_ONE;
@@ -194,6 +217,7 @@ OptSerialParity_e parseParity(const char* optarg){
         return OPT_SERIAL_PARITY_INVALID;
     }
 }
+#endif
 
 void printCmdLineOptions(void)
 {
@@ -204,6 +228,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--simip=[ip]                   IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
     fprintf(stderr, "--simport=[port]               Port oft the simulator host.\n");
     fprintf(stderr, "--useimu                       Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
+#ifdef SITL_BUILD
     fprintf(stderr, "--serialuart=[uart]            UART number on which serial receiver is configured in SITL, f.e. 3 for UART3\n");
     fprintf(stderr, "--serialport=[serialport]      Host's serial port to which serial receiver/proxy FC is connected, f.e. COM3, /dev/ttyACM3\n");
     fprintf(stderr, "--baudrate=[baudrate]          Serial receiver baudrate (default: 115200).\n");
@@ -211,6 +236,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--parity=[Even|None|Odd]       Serial receiver parity (default: None).\n");
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
     fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
+#endif  
     fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
@@ -235,6 +261,7 @@ void parseArguments(int argc, char *argv[])
             {"help", no_argument, 0, 'h'},
             {"path", required_argument, 0, 'e'},
             {"version", no_argument, 0, 'v'},
+#ifdef SITL_BUILD
             {"serialuart", required_argument, 0, '0'},
             {"serialport", required_argument, 0, '1'},
             {"baudrate", required_argument, 0, '2'},
@@ -242,6 +269,7 @@ void parseArguments(int argc, char *argv[])
             {"parity", required_argument, 0, '4'},
             {"fcproxy", no_argument, 0, '5'},
             {"tcpbaseport", required_argument, 0, '6'},
+#endif
             {NULL, 0, NULL, 0}
         };
 
@@ -284,6 +312,7 @@ void parseArguments(int argc, char *argv[])
             case 'v':
                 printVersion();
                 exit(0);
+#ifdef SITL_BUILD
             case '0':
                 serialUartIndex = atoi(optarg);
                 if ( (serialUartIndex<1) || (serialUartIndex>8) ) {
@@ -337,7 +366,7 @@ void parseArguments(int argc, char *argv[])
                 tcpBasePort = (uint16_t)basePort;
                 break;
             }
-
+#endif
             default:
                 printCmdLineOptions();
                 exit(0);
@@ -397,7 +426,9 @@ void systemReset(void)
 #else
     closefrom(3);
 #endif
+#ifdef SITL_BUILD
     serialProxyClose();
+#endif
     execvp(c_argv[0], c_argv); // restart
 }
 
@@ -547,3 +578,84 @@ char *prettyPrintAddress(struct sockaddr* p, char *outbuf, size_t buflen)
     }
     return NULL;
 }
+
+#if defined(WASM_BUILD)
+
+void wasmFilesystemInitialized(void)
+{
+    wasmFilesystemReady = true;
+}
+
+void wasmMainLoop(void) 
+{
+    // Only start scheduler after filesystem is initialized
+    if (wasmFilesystemReady) {
+        if (!wasmMainWorkerThreadStarted && wasmMainThreadWorker != NULL) {
+            /*
+            * In Webassembly/emscripten, a classic infinite loop cannot be used, as otherwise the entire browser tab freezes. 
+            * The main loop emscripten_set_main_loop() runs too slowly (max approx. 60 Hz/FPS), 
+            * so the main loop must run in a separate thread (pthread -> in emscripten a wrapper around web worker) 
+            * that can ‘rev up’ to full speed.
+            */
+            int err = pthread_create(&wasmMainThread, NULL, wasmMainThreadWorker, NULL);
+            if (err != 0) {
+                fprintf(stderr, "[SYSTEM] Failed to start WASM scheduler thread %s\n", strerror(err));
+                wasmExit();
+            };
+            wasmMainWorkerThreadStarted = true;
+        }
+    }
+}
+
+void wasmInitFilesystem(void)
+{
+    const char *idbfsMount = IDBFS_MOUNT;
+    // Filesystem initialization must be done in JS context
+    EM_ASM({
+        // Prevent browser from sleeping / throttling when tab is inactive
+        if (typeof Module['noExitRuntime'] === 'undefined') {
+            Module['noExitRuntime'] = true;
+        }
+        const mount = UTF8ToString($0);
+        console.log('Initializing filesystem at', mount);
+        
+        if (typeof indexedDB === 'undefined') {
+            console.warn('IndexedDB not available, using in-memory filesystem');
+            FS.mkdir(mount);
+            Module._wasmFilesystemInitialized();
+        } else {
+            try {
+                FS.mkdir(mount);
+                FS.mount(IDBFS, { autoPersist: true}, mount);
+                FS.syncfs(true, function (err) {
+                    if (err) {
+                        console.error('Error syncing filesystem from persistent storage:', err);
+                    } else {
+                        console.log('Filesystem synced from persistent storage.');
+                    }
+                    Module._wasmFilesystemInitialized();
+                });
+            } catch (e) {
+                console.error('Failed to mount IDBFS:', e);
+                console.warn('Using in-memory filesystem fallback');
+                FS.mkdir(mount);
+                Module._wasmFilesystemInitialized();
+            }
+        }
+    }, (int)idbfsMount);
+}
+
+void wasmStart(wasmMainThreadType thread)
+{
+    wasmMainThreadWorker = thread;
+    wasmInitFilesystem();
+    emscripten_set_main_loop(wasmMainLoop, 0, false);
+}
+
+
+void wasmExit(void)
+{
+   emscripten_force_exit(1);
+}
+
+#endif

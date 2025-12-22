@@ -17,7 +17,7 @@
 
 #pragma once
 
-#define SITL_BUILD
+//#define SITL_BUILD
 #define USE_MAG
 #define USE_BARO
 #define USE_GPS

@@ -109,6 +109,50 @@ See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
 * [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
 * [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
 
+## WebAssembly Development & Debugging
+
+This project includes full WebAssembly support with DWARF-based source-level debugging in VS Code and Chrome DevTools.
+
+### Quick Start (30 seconds)
+```
+1. Press F5 in VS Code
+2. Select "Debug WASM (DWARF) in Browser"
+3. Chrome opens automatically
+4. Press F12 in Chrome → Sources tab
+5. Set breakpoints in C code
+6. Press Ctrl+R to reload and hit breakpoint
+```
+
+### Documentation
+- **[WASM_QUICK_REFERENCE.md](WASM_QUICK_REFERENCE.md)** - 30-second guide and command reference
+- **[WASM_DWARF_DEBUG.md](WASM_DWARF_DEBUG.md)** - Complete debugging guide
+- **[WASM_ARCHITECTURE.md](WASM_ARCHITECTURE.md)** - Technical architecture details
+- **[WASM_INTEGRATION.md](WASM_INTEGRATION.md)** - Integration examples
+
+### Available Debug Configurations
+| Config | Purpose | Keyboard |
+|--------|---------|----------|
+| Debug WASM (DWARF) in Browser | Main debugging (auto-build+serve) | **F5** |
+| Debug WASM Test Page | CLI options test interface | F5 → select manually |
+| Start SITL Debug | SITL simulator debugging | F5 → select manually |
+
+### Build Targets
+```bash
+./build_wasm.sh Debug    # Compile with DWARF symbols (for debugging)
+./build_wasm.sh Release  # Optimized build (for performance testing)
+```
+
+### Testing & Configuration
+- **Main Interface**: http://localhost:8000/web/index.html (modules, console, memory)
+- **Configuration UI**: http://localhost:8000/web/test.html (CLI options, simulator settings)
+
+The test page provides:
+- Simulator selection (RealFlight, X-Plane)
+- Network configuration (IP, ports)
+- Channel mapping for receivers
+- Serial port settings (SITL-only)
+- Real-time command line preview
+
 ## Contributing
 
 Contributions are welcome and encouraged.  You can contribute in many ways:

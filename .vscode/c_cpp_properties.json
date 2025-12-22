@@ -4,7 +4,9 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceRoot}",
-                "${workspaceRoot}/src/main/**"
+                "${workspaceRoot}/src/main/**",
+                "${workspaceRoot}/../emsdk/upstream/emscripten/cache/sysroot/include",
+                "${workspaceRoot}/src/main/target/SITL/**",
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": false,
@@ -12,9 +14,9 @@
                     "${workspaceRoot}/**"
                 ]
             },
-            "intelliSenseMode": "msvc-x64",
+            "intelliSenseMode": "gcc-arm",
             "cStandard": "c11",
-            "cppStandard": "c++17",
+            "cppStandard": "c++11",
             "defines": [
                 "USE_OSD",
                 "USE_GYRO_NOTCH_1",
@@ -53,7 +55,11 @@
                 "USE_GYRO_FFT_FILTER",
                 "USE_BARO_DPS310",
                 "USE_ADAPTIVE_FILTER",
-                "MCU_FLASH_SIZE 1024"
+                "MCU_FLASH_SIZE 1024",
+                "WASM_BUILD",
+                "USE_BLACKBOX = 0",
+                "CONFIG_IN_FILE",
+                "EEPROM_FILENAME=\"eeprom.bin\""
             ],
             "configurationProvider": "ms-vscode.cmake-tools"
         }
