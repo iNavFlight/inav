@@ -38,13 +38,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                                                           0, 0), // LED strip for F4 V2 / F4-Pro-0X and later (RCD_CS for F4)
 #endif
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
     // DEF_TIM(TIM10, CH1, PB8,  TIM_USE_PPM,                  0, 0), // PPM
     DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN
-#else
-    // DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,                  0, 0), // PPM
-    DEF_TIM(TIM12, CH2, PB15, TIM_USE_ANY,                  0, 0), // S2_IN
-#endif
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_ANY,                 0, 0), // S3_IN, UART6_TX
     DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_ANY,                 0, 0), // S4_IN, UART6_RX
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_ANY,                 0, 0), // S5_IN // pad labelled CH5 on OMNIBUSF4PRO
