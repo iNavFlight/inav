@@ -39,8 +39,8 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM12, CH2, PB15, TIM_USE_ANY,                  0, 0), // S2_IN
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_ANY,                 0, 0), // S3_IN, UART6_TX
     DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_ANY,                 0, 0), // S4_IN, UART6_RX
-    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_ANY,                 0, 0), // S5_IN // pad labelled CH5 on OMNIBUSF4PRO
-    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_ANY,                 0, 0), // S6_IN // pad labelled CH6 on OMNIBUSF4PRO
+    DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_ANY,                 0, 0), // S5_IN
+    DEF_TIM(TIM8,  CH4, PC9,  TIM_USE_ANY,                 0, 0), // S6_IN
 
 };
 

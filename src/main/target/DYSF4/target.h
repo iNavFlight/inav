@@ -90,8 +90,8 @@
 #define UART6_TX_PIN            PC6
 
 #define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PC8     // pad labelled CH5 on OMNIBUSF4PRO
-#define SOFTSERIAL_1_TX_PIN     PC9     // pad labelled CH6 on OMNIBUSF4PRO
+#define SOFTSERIAL_1_RX_PIN     PC8
+#define SOFTSERIAL_1_TX_PIN     PC9
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
