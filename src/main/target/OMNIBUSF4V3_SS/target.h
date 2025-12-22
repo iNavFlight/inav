@@ -123,13 +123,6 @@
 #define SOFTSERIAL_2_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
-
-#else                                   // One softserial on versions other than OMNIBUSF4V3
-#define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PC8     // pad labelled CH5 on OMNIBUSF4PRO
-#define SOFTSERIAL_1_TX_PIN     PC9     // pad labelled CH6 on OMNIBUSF4PRO
-
-#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 #endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL

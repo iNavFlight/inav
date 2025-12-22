@@ -20,12 +20,14 @@
 // This directory contains: OMNIBUSF4PRO, OMNIBUSF4V3, OMNIBUSF4V3_ICM
 // Softserial variants are in separate OMNIBUSF4V3_SS/ directory
 
+#ifdef OMNIBUSF4V3_ICM
+#define OMNIBUSF4V3
+#endif
+
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
 #elif defined(OMNIBUSF4V3)
 #define TARGET_BOARD_IDENTIFIER "OB43"
-#else
-#define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
 
 #define USBD_PRODUCT_STRING "Omnibus F4"
@@ -45,27 +47,20 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define USE_IMU_MPU6000
-  #define IMU_MPU6000_ALIGN       CW270_DEG
-#else
-  #define USE_IMU_MPU6000
-  #define IMU_MPU6000_ALIGN       CW180_DEG
-#endif
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW270_DEG
 
 // Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define MPU6500_CS_PIN          MPU6000_CS_PIN
-  #define MPU6500_SPI_BUS         MPU6000_SPI_BUS
-  #define USE_IMU_MPU6500
-  #define IMU_MPU6500_ALIGN       IMU_MPU6000_ALIGN
+#define MPU6500_CS_PIN          MPU6000_CS_PIN
+#define MPU6500_SPI_BUS         MPU6000_SPI_BUS
+#define USE_IMU_MPU6500
+#define IMU_MPU6500_ALIGN       IMU_MPU6000_ALIGN
 
-  //BMI270
-  #define USE_IMU_BMI270
-  #define IMU_BMI270_ALIGN        IMU_MPU6000_ALIGN
-  #define BMI270_SPI_BUS          MPU6000_SPI_BUS
-  #define BMI270_CS_PIN           MPU6000_CS_PIN
-#endif
+//BMI270
+#define USE_IMU_BMI270
+#define IMU_BMI270_ALIGN        IMU_MPU6000_ALIGN
+#define BMI270_SPI_BUS          MPU6000_SPI_BUS
+#define BMI270_CS_PIN           MPU6000_CS_PIN
 
 #define USE_MAG
 #define MAG_I2C_BUS             I2C_EXT_BUS
@@ -74,21 +69,13 @@
 #define TEMPERATURE_I2C_BUS     I2C_EXT_BUS
 
 #define USE_BARO
-
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define USE_BARO_BMP280
-  #define BMP280_SPI_BUS        BUS_SPI3
-  #define BMP280_CS_PIN         PB3 // v1
-  // Support external barometers
-  #define BARO_I2C_BUS          I2C_EXT_BUS
-  #define USE_BARO_BMP085
-  #define USE_BARO_MS5611
-#else
-  #define BARO_I2C_BUS          I2C_EXT_BUS
-  #define USE_BARO_BMP085
-  #define USE_BARO_BMP280
-  #define USE_BARO_MS5611
-#endif
+#define USE_BARO_BMP280
+#define BMP280_SPI_BUS        BUS_SPI3
+#define BMP280_CS_PIN         PB3 // v1
+// Support external barometers
+#define BARO_I2C_BUS          I2C_EXT_BUS
+#define USE_BARO_BMP085
+#define USE_BARO_MS5611
 
 #define PITOT_I2C_BUS           I2C_EXT_BUS
 
@@ -99,9 +86,7 @@
 #define VBUS_SENSING_PIN        PC5
 #define VBUS_SENSING_ENABLED
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
 #define USE_UART_INVERTER
-#endif
 
 #define USE_UART1
 #define UART1_RX_PIN            PA10
@@ -146,20 +131,14 @@
 
 #define USE_SPI_DEVICE_1
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define USE_SPI_DEVICE_2
-  #define SPI2_NSS_PIN          PB12
-  #define SPI2_SCK_PIN          PB13
-  #define SPI2_MISO_PIN         PB14
-  #define SPI2_MOSI_PIN         PB15
-#endif
+#define USE_SPI_DEVICE_2
+#define SPI2_NSS_PIN          PB12
+#define SPI2_SCK_PIN          PB13
+#define SPI2_MISO_PIN         PB14
+#define SPI2_MOSI_PIN         PB15
 
 #define USE_SPI_DEVICE_3
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define SPI3_NSS_PIN          PA15
-#else
-  #define SPI3_NSS_PIN          PB3
-#endif
+#define SPI3_NSS_PIN          PA15
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
@@ -168,23 +147,15 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-#if defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)
-  #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
-  #define USE_SDCARD
-  #define USE_SDCARD_SPI
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+#define USE_SDCARD
+#define USE_SDCARD_SPI
 
-  #define SDCARD_SPI_BUS        BUS_SPI2
-  #define SDCARD_CS_PIN         SPI2_NSS_PIN
+#define SDCARD_SPI_BUS        BUS_SPI2
+#define SDCARD_CS_PIN         SPI2_NSS_PIN
 
-  #define SDCARD_DETECT_PIN     PB7
-  #define SDCARD_DETECT_INVERTED
-#else
-  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-  #define M25P16_CS_PIN           SPI3_NSS_PIN
-  #define M25P16_SPI_BUS          BUS_SPI3
-  #define USE_FLASHFS
-  #define USE_FLASH_M25P16
-#endif
+#define SDCARD_DETECT_PIN     PB7
+#define SDCARD_DETECT_INVERTED
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1

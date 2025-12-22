@@ -19,19 +19,13 @@
 
 // This directory contains: DYSF4PRO, DYSF4PROV2
 
-#if   defined(DYSF4PRO)
+#if defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
 #elif defined(DYSF4PROV2)
 #define TARGET_BOARD_IDENTIFIER "DY42"
-#else
-#define TARGET_BOARD_IDENTIFIER "OBF4"
 #endif
 
-#if defined(DYSF4PRO) || defined(DYSF4PROV2)
 #define USBD_PRODUCT_STRING "DysF4Pro"
-#else
-#define USBD_PRODUCT_STRING "Omnibus F4"
-#endif
 
 #define LED0                    PB5
 
