@@ -17,9 +17,6 @@
 
 #pragma once
 
-//Same target as OMNIBUSF4PRO with LED strip in M5
-//Same target as OMNIBUSF4V3 with softserial in M5 and M6
-
 #define TARGET_BOARD_IDENTIFIER "OBF4"
 
 #define USBD_PRODUCT_STRING "Omnibus F4"
@@ -41,8 +38,6 @@
 
   #define USE_IMU_MPU6000
   #define IMU_MPU6000_ALIGN       CW180_DEG
-
-// Support for OMNIBUS F4 PRO CORNER - it has ICM20608 instead of MPU6000
 
 #define USE_MAG
 #define MAG_I2C_BUS             I2C_EXT_BUS
