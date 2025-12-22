@@ -25,10 +25,11 @@
 #pragma once
 
 #include "common/time.h"
-
 #include "config/parameter_group.h"
-
 #include "io/serial.h"
+#include "telemetry/sensors.h"
+
+#define TELEM_SENSOR_SLOT_COUNT 30
 
 typedef enum {
     LTM_RATE_NORMAL,
@@ -53,11 +54,22 @@ typedef enum {
     SMARTPORT_FUEL_UNIT_MWH
 } smartportFuelUnit_e;
 
+typedef enum {
+    TELEMETRY_STATE_OFF = 0,
+    TELEMETRY_STATE_LEGACY,
+    TELEMETRY_STATE_CUSTOM,
+    TELEMETRY_STATE_POPULATE,
+} telemetryState_e;
+
+typedef enum {
+    TELEMETRY_MODE_LEGACY,
+    TELEMETRY_MODE_CUSTOM,
+} telemetryMode_e;
+
 typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
     uint8_t telemetry_inverted;             // Flip the default inversion of the protocol - Same as serialrx_inverted in rx.c, but for telemetry.
     uint8_t frsky_pitch_roll;
-    bool    frsky_use_legacy_gps_mode_sensor_ids;
     uint8_t report_cell_voltage;
     uint8_t hottAlarmSoundInterval;
     uint8_t halfDuplex;
@@ -89,7 +101,27 @@ typedef struct telemetryConfig_s {
         uint8_t radio_type;
         uint8_t sysid;
     } mavlink;
+#ifdef USE_TELEMETRY_CRSF
+    uint16_t crsf_telemetry_link_rate;
+    uint16_t crsf_telemetry_link_ratio;
+#endif
+
+#if  defined(USE_CUSTOM_TELEMETRY)
+    uint8_t telemetry_mode;
+    uint16_t telemetry_sensors[TELEM_SENSOR_SLOT_COUNT];
+#endif
+
 } telemetryConfig_t;
+
+typedef struct {
+    telemetrySensor_t *         sensors;
+    uint16_t                    sensor_count;
+    uint16_t                    start_index;
+    timeUs_t                    update_time;
+    int32_t                     max_level;
+    int32_t                     min_level;
+    int32_t                     quanta;
+} telemetryScheduler_t;
 
 PG_DECLARE(telemetryConfig_t, telemetryConfig);
 
@@ -103,3 +135,8 @@ void telemetryCheckState(void);
 void telemetryProcess(timeUs_t currentTimeUs);
 
 bool telemetryDetermineEnabledState(portSharing_e portSharing);
+void telemetryScheduleAdd(telemetrySensor_t * sensor);
+void telemetryScheduleUpdate(timeUs_t currentTime);
+void telemetryScheduleCommit(telemetrySensor_t * sensor);
+void telemetryScheduleInit(telemetrySensor_t * sensors, size_t count);
+telemetrySensor_t * telemetryScheduleNext(void);
