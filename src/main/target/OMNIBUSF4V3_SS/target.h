@@ -17,8 +17,8 @@
 
 #pragma once
 
-//Same target as OMNIBUSF4PRO with LED strip in M5
-//Same target as OMNIBUSF4V3 with softserial in M5 and M6
+// This directory contains: OMNIBUSF4V3_S6_SS, OMNIBUSF4V3_S5S6_SS, OMNIBUSF4V3_S5_S6_2SS
+// Softserial variants of OMNIBUSF4V3 with different S5/S6 timer configurations
 #if defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
 #define OMNIBUSF4V3
 #endif
@@ -99,14 +99,7 @@
   #define INVERTER_PIN_UART6_RX PC8
   #define INVERTER_PIN_UART6_TX PC9
 
-#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
-#define USE_SOFTSERIAL1
-#define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
-#define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
-
-#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
-
-#elif defined(OMNIBUSF4V3_S6_SS)        // one softserial on S6
+#if defined(OMNIBUSF4V3_S6_SS)        // one softserial on S6
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PA8     // S6 output
 #define SOFTSERIAL_1_TX_PIN     PA8     // S6 output

@@ -17,11 +17,8 @@
 
 #pragma once
 
-//Same target as OMNIBUSF4PRO with LED strip in M5
-#ifdef OMNIBUSF4PRO_LEDSTRIPM5
-#define OMNIBUSF4PRO
-#endif
-//Same target as OMNIBUSF4V3 with softserial in M5 and M6
+// This directory contains: OMNIBUSF4PRO, OMNIBUSF4V3, OMNIBUSF4V3_ICM
+// Softserial variants are in separate OMNIBUSF4V3_SS/ directory
 
 #ifdef OMNIBUSF4PRO
 #define TARGET_BOARD_IDENTIFIER "OBSD"
@@ -126,14 +123,14 @@
   #define INVERTER_PIN_UART6_TX PC9
 #endif
 
-#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
+#if defined(OMNIBUSF4V3)
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
 #define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
-#else                                   // One softserial on versions other than OMNIBUSF4V3
+#else                                   // OMNIBUSF4PRO
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PC8     // pad labelled CH5 on OMNIBUSF4PRO
 #define SOFTSERIAL_1_TX_PIN     PC9     // pad labelled CH6 on OMNIBUSF4PRO
@@ -202,11 +199,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-#if (defined(OMNIBUSF4PRO) || defined(OMNIBUSF4V3)) && !defined(OMNIBUSF4PRO_LEDSTRIPM5)
-  #define WS2811_PIN                   PB6
-#else
-  #define WS2811_PIN                   PA1
-#endif
+#define WS2811_PIN                   PB6
 
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)

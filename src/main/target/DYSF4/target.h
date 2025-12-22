@@ -17,8 +17,7 @@
 
 #pragma once
 
-//Same target as OMNIBUSF4PRO with LED strip in M5
-//Same target as OMNIBUSF4V3 with softserial in M5 and M6
+// This directory contains: DYSF4PRO, DYSF4PROV2
 
 #if   defined(DYSF4PRO)
 #define TARGET_BOARD_IDENTIFIER "DYS4"
