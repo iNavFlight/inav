@@ -1379,18 +1379,31 @@ groups:
         field: throttle.rcExpo8
         min: 0
         max: 100
+      - name: apa_pow
+        description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;"
+        type: uint16_t
+        field: throttle.apa_pow
+        default_value: 120
+        min: 0
+        max: 200
       - name: tpa_rate
-        description: "Throttle PID attenuation reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate."
+        description: "Throttle based PID attenuation(TPA) reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. On multirotor, For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. for fixedwing modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details."
         default_value: 0
         field: throttle.dynPID
         min: 0
-        max: 100
+        max: 200
       - name: tpa_breakpoint
         description: "See tpa_rate."
         default_value: 1500
         field: throttle.pa_breakpoint
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
+      - name: tpa_pitch_compensation
+        description: "Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down."
+        default_value: 8
+        field: throttle.tpa_pitch_compensation
+        min: 0
+        max: 20
       - name: tpa_on_yaw
         description: "Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should be set to ON for tilting rotors."
         type: bool
