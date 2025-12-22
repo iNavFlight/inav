@@ -103,21 +103,13 @@ PG_RESET_TEMPLATE(telemetryConfig_t, telemetryConfig,
 #ifdef USE_TELEMETRY_CRSF
     .crsf_telemetry_link_rate = SETTING_CRSF_TELEMETRY_LINK_RATE_DEFAULT,
     .crsf_telemetry_link_ratio = SETTING_CRSF_TELEMETRY_LINK_RATIO_DEFAULT,
-#ifdef USE_CUSTOM_TELEMETRY
-    .crsf_telemetry_mode = SETTING_CRSF_TELEMETRY_MODE_DEFAULT,
-#endif //USE_CUSTOM_TELEMETRY
 #endif //USE_TELEMETRY_CRSF
 
-#if defined(USE_TELEMETRY_SMARTPORT) && defined(USE_CUSTOM_TELEMETRY)
-#if !defined(SETTING_SMARTPORT_TELEMETRY_MODE_DEFAULT)  // SITL
-    .smartport_telemetry_mode = 0,
-#else
-    .smartport_telemetry_mode = SETTING_SMARTPORT_TELEMETRY_MODE_DEFAULT,
-#endif
-#endif // USE_TELEMETRY_SMARTPORT USE_CUSTOM_TELEMETRY
-#ifdef USE_CUSTOM_TELEMETRY
+#if defined(USE_CUSTOM_TELEMETRY)
+    .telemetry_mode = SETTING_TELEMETRY_MODE_DEFAULT,
     .telemetry_sensors =  { 0x0,  }, // all sensors enabled by default
 #endif
+
 );
 
 void telemetryInit(void)

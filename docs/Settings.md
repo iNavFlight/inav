@@ -602,16 +602,6 @@ CRSF telemetry link ratio
 
 ---
 
-### crsf_telemetry_mode
-
-Use extended custom or native telemetry sensors for CRSF
-
-| Default | Min | Max |
-| --- | --- | --- |
-| NATIVE |  |  |
-
----
-
 ### cruise_power
 
 Power draw at cruise throttle used for remaining flight time/distance estimation in 0.01W unit
@@ -6222,16 +6212,6 @@ _// TODO_
 
 ---
 
-### smartport_telemetry_mode
-
-Use legacy or standard telemetry sensors for SmartPort
-
-| Default | Min | Max |
-| --- | --- | --- |
-| LEGACY |  |  |
-
----
-
 ### smith_predictor_delay
 
 Expected delay of the gyro signal. In milliseconds
@@ -6379,6 +6359,16 @@ Determines if the telemetry protocol default signal inversion is reversed. This 
 | Default | Min | Max |
 | --- | --- | --- |
 | OFF | OFF | ON |
+
+---
+
+### telemetry_mode
+
+Use extended custom or native telemetry sensors for CRSF or SmartPort
+
+| Default | Min | Max |
+| --- | --- | --- |
+| LEGACY |  |  |
 
 ---
 

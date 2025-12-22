@@ -55,16 +55,16 @@ typedef enum {
 } smartportFuelUnit_e;
 
 typedef enum {
-    CRSFR_TELEMETRY_STATE_OFF = 0,
-    CRSFR_TELEMETRY_STATE_NATIVE,
-    CRSFR_TELEMETRY_STATE_CUSTOM,
-    CRSFR_TELEMETRY_STATE_POPULATE,
-} crsfTelemetryMode_e;
+    TELEMETRY_STATE_OFF = 0,
+    TELEMETRY_STATE_LEGACY,
+    TELEMETRY_STATE_CUSTOM,
+    TELEMETRY_STATE_POPULATE,
+} telemetryState_e;
 
 typedef enum {
-    SMARTPORT_TELEMETRY_STATE_LEGACY = 0,
-    SMARTPORT_CRSFR_TELEMETRY_STATE_STANDARD,
-} smartportTelemetryMode_e;
+    TELEMETRY_MODE_LEGACY,
+    TELEMETRY_MODE_CUSTOM,
+} telemetryMode_e;
 
 typedef struct telemetryConfig_s {
     uint8_t telemetry_switch;               // Use aux channel to change serial output & baudrate( MSP / Telemetry ). It disables automatic switching to Telemetry when armed.
@@ -104,18 +104,13 @@ typedef struct telemetryConfig_s {
 #ifdef USE_TELEMETRY_CRSF
     uint16_t crsf_telemetry_link_rate;
     uint16_t crsf_telemetry_link_ratio;
-#ifdef USE_CUSTOM_TELEMETRY
-    uint8_t crsf_telemetry_mode;
-#endif
 #endif
 
-#if defined(USE_TELEMETRY_SMARTPORT) && defined(USE_CUSTOM_TELEMETRY)
-    uint8_t smartport_telemetry_mode;
-#endif
-
-#ifdef USE_CUSTOM_TELEMETRY
+#if  defined(USE_CUSTOM_TELEMETRY)
+    uint8_t telemetry_mode;
     uint16_t telemetry_sensors[TELEM_SENSOR_SLOT_COUNT];
 #endif
+
 } telemetryConfig_t;
 
 typedef struct {
