@@ -36,8 +36,8 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
-  #define USE_IMU_MPU6000
-  #define IMU_MPU6000_ALIGN       CW180_DEG
+#define USE_IMU_MPU6000
+#define IMU_MPU6000_ALIGN       CW180_DEG
 
 #define USE_MAG
 #define MAG_I2C_BUS             I2C_EXT_BUS
@@ -46,11 +46,10 @@
 #define TEMPERATURE_I2C_BUS     I2C_EXT_BUS
 
 #define USE_BARO
-
-  #define BARO_I2C_BUS          I2C_EXT_BUS
-  #define USE_BARO_BMP085
-  #define USE_BARO_BMP280
-  #define USE_BARO_MS5611
+#define BARO_I2C_BUS          I2C_EXT_BUS
+#define USE_BARO_BMP085
+#define USE_BARO_BMP280
+#define USE_BARO_MS5611
 
 #define PITOT_I2C_BUS           I2C_EXT_BUS
 
@@ -91,7 +90,7 @@
 
 
 #define USE_SPI_DEVICE_3
-  #define SPI3_NSS_PIN          PB3
+#define SPI3_NSS_PIN          PB3
 #define SPI3_SCK_PIN            PC10
 #define SPI3_MISO_PIN           PC11
 #define SPI3_MOSI_PIN           PC12
@@ -100,17 +99,16 @@
 #define MAX7456_SPI_BUS         BUS_SPI3
 #define MAX7456_CS_PIN          PA15
 
-  #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
-  #define M25P16_CS_PIN           SPI3_NSS_PIN
-  #define M25P16_SPI_BUS          BUS_SPI3
-  #define USE_FLASHFS
-  #define USE_FLASH_M25P16
+#define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#define M25P16_CS_PIN           SPI3_NSS_PIN
+#define M25P16_SPI_BUS          BUS_SPI3
+#define USE_FLASHFS
+#define USE_FLASH_M25P16
 
 #define USE_ADC
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
-
-    #define ADC_CHANNEL_3_PIN               PA0
+#define ADC_CHANNEL_3_PIN               PA0
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
@@ -119,7 +117,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-  #define WS2811_PIN                   PA1
+#define WS2811_PIN                   PA1
 
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
