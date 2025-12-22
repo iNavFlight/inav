@@ -18,13 +18,14 @@
 #pragma once
 
 //Same target as OMNIBUSF4PRO with LED strip in M5
-#define OMNIBUSF4PRO
 //Same target as OMNIBUSF4V3 with softserial in M5 and M6
+#if defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS)
 #define OMNIBUSF4V3
+#endif
 
-#define TARGET_BOARD_IDENTIFIER "OBSD"
+#define TARGET_BOARD_IDENTIFIER "OB43"
 
-#define USBD_PRODUCT_STRING "DysF4Pro"
+#define USBD_PRODUCT_STRING "Omnibus F4"
 
 #define LED0                    PB5
 
@@ -32,10 +33,9 @@
 #define BEEPER_INVERTED
 
 #define USE_I2C
-#define USE_I2C_DEVICE_1
-#define I2C1_SCL PB8
-#define I2C1_SDA PB9
-#define I2C_EXT_BUS BUS_I2C1
+#define USE_I2C_DEVICE_2
+#define I2C_DEVICE_2_SHARES_UART3
+#define I2C_EXT_BUS BUS_I2C2
 
 #define UG2864_I2C_BUS I2C_EXT_BUS
 
@@ -88,7 +88,6 @@
 #define UART1_RX_PIN            PA10
 #define UART1_TX_PIN            PA9
 #define UART1_AHB1_PERIPHERALS  RCC_AHB1Periph_DMA2
-#define INVERTER_PIN_UART1_RX PC0 // PC0 has never been used as inverter control on genuine OMNIBUS F4 variants, but leave it as is since some clones actually implement it.
 
 #define USE_UART3
 #define UART3_RX_PIN            PB11
@@ -100,12 +99,45 @@
   #define INVERTER_PIN_UART6_RX PC8
   #define INVERTER_PIN_UART6_TX PC9
 
+#if defined(OMNIBUSF4V3) && !(defined(OMNIBUSF4V3_S6_SS) || defined(OMNIBUSF4V3_S5S6_SS) || defined(OMNIBUSF4V3_S5_S6_2SS))
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PC6     // shared with UART6 TX
+#define SOFTSERIAL_1_TX_PIN     PC6     // shared with UART6 TX
+
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+
+#elif defined(OMNIBUSF4V3_S6_SS)        // one softserial on S6
 #define USE_SOFTSERIAL1
 #define SOFTSERIAL_1_RX_PIN     PA8     // S6 output
 #define SOFTSERIAL_1_TX_PIN     PA8     // S6 output
 
 #define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
 
+#elif defined(OMNIBUSF4V3_S5S6_SS)      // one softserial on S5/RX S6/TX
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA1     // S5 output
+#define SOFTSERIAL_1_TX_PIN     PA8     // S6 output
+
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+
+#elif defined(OMNIBUSF4V3_S5_S6_2SS)    // two softserials, one on S5 and one on S6
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PA1     // S5 output
+#define SOFTSERIAL_1_TX_PIN     PA1     // S5 output
+
+#define USE_SOFTSERIAL2
+#define SOFTSERIAL_2_RX_PIN     PA8     // S6 output
+#define SOFTSERIAL_2_TX_PIN     PA8     // S6 output
+
+#define SERIAL_PORT_COUNT       6       // VCP, USART1, USART3, USART6, SOFTSERIAL1, SOFTSERIAL2
+
+#else                                   // One softserial on versions other than OMNIBUSF4V3
+#define USE_SOFTSERIAL1
+#define SOFTSERIAL_1_RX_PIN     PC8     // pad labelled CH5 on OMNIBUSF4PRO
+#define SOFTSERIAL_1_TX_PIN     PC9     // pad labelled CH6 on OMNIBUSF4PRO
+
+#define SERIAL_PORT_COUNT       5       // VCP, USART1, USART3, USART6, SOFTSERIAL1
+#endif
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
@@ -145,7 +177,7 @@
 #define ADC_CHANNEL_1_PIN               PC1
 #define ADC_CHANNEL_2_PIN               PC2
 
-    #define ADC_CHANNEL_3_PIN               PC3
+    #define ADC_CHANNEL_3_PIN               PA0
 
 #define CURRENT_METER_ADC_CHANNEL       ADC_CHN_1
 #define VBAT_ADC_CHANNEL                ADC_CHN_2
@@ -154,7 +186,7 @@
 #define SENSORS_SET (SENSOR_ACC|SENSOR_MAG|SENSOR_BARO)
 
 #define USE_LED_STRIP
-  #define WS2811_PIN                   PA1
+  #define WS2811_PIN                   PB6
 
 #define DISABLE_RX_PWM_FEATURE
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX | FEATURE_VBAT | FEATURE_OSD)
@@ -175,4 +207,3 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         0xffff
 
-#define CURRENT_METER_SCALE   265

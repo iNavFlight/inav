@@ -31,13 +31,12 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2,  CH3, PA2,  TIM_USE_OUTPUT_AUTO,               0, 0), // S4_OUT D1_ST1
 
     // { TIM9,  IO_TAG(PA3),  TIM_Channel_2, 1, IOCFG_AF_PP_PD, GPIO_AF_TIM9, TIM_USE_OUTPUT_AUTO }, // MOTOR_3
-    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_ANY,                                                           0, 0), // S5_OUT SOFTSERIAL
-    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_ANY,                                                           0, 0), // S6_OUT SOFTSERIAL
+    DEF_TIM(TIM5,  CH2, PA1,  TIM_USE_OUTPUT_AUTO,  0, 0), // S5_OUT MOTOR, SERVO or LED
+    DEF_TIM(TIM1,  CH1, PA8,  TIM_USE_OUTPUT_AUTO,                0, 0), // S6_OUT
 
-    DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,                                                           0, 0), // LED strip for F4 V2 / F4-Pro-0X and later (RCD_CS for F4)
 
-    // DEF_TIM(TIM10, CH1, PB8,  TIM_USE_PPM,                  0, 0), // PPM
-    DEF_TIM(TIM4,  CH4, PB9,  TIM_USE_ANY,                  0, 0), // S2_IN
+    // DEF_TIM(TIM12, CH1, PB14, TIM_USE_PPM,                  0, 0), // PPM
+    DEF_TIM(TIM12, CH2, PB15, TIM_USE_ANY,                  0, 0), // S2_IN
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_ANY,                 0, 0), // S3_IN, UART6_TX
     DEF_TIM(TIM8,  CH2, PC7,  TIM_USE_ANY,                 0, 0), // S4_IN, UART6_RX
     DEF_TIM(TIM8,  CH3, PC8,  TIM_USE_ANY,                 0, 0), // S5_IN // pad labelled CH5 on OMNIBUSF4PRO
