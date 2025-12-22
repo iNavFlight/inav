@@ -103,12 +103,9 @@ tables:
   - name: bat_voltage_source
     values: ["RAW", "SAG_COMP"]
     enum: batVoltageSource_e
-  - name: crsf_telemetry_modes
-    values: [ "OFF", "NATIVE", "CUSTOM" ]
-    enum: crsfTelemetryMode_e
-  - name: smartport_telemetry_modes
-    values: [ "LEGACY", "STANDARD" ]
-    enum: smartportTelemetryMode_e
+  - name: telemetry_modes
+    values: [ "LEGACY", "CUSTOM" ]
+    enum: telemetryMode_e
   - name: smartport_fuel_unit
     values: ["PERCENT", "MAH", "MWH"]
     enum: smartportFuelUnit_e
@@ -3136,17 +3133,11 @@ groups:
         description: "S.Port telemetry: Send pitch and roll degrees*10 instead of raw accelerometer data"
         default_value: OFF
         type: bool
-      - name: crsf_telemetry_mode
-        description: "Use extended custom or native telemetry sensors for CRSF"
-        default_value: NATIVE
-        condition: USE_CUSTOM_TELEMETRY
-        table: crsf_telemetry_modes
-        type: uint8_t
-      - name: smartport_telemetry_mode
-        description: "Use legacy or standard telemetry sensors for SmartPort"
+      - name: telemetry_mode
+        description: "Use extended custom or native telemetry sensors for CRSF or SmartPort"
         default_value: LEGACY
         condition: USE_CUSTOM_TELEMETRY
-        table: smartport_telemetry_modes
+        table: telemetry_modes
         type: uint8_t
       - name: crsf_telemetry_link_rate
         description: "CRSF telemetry link rate"

@@ -287,7 +287,7 @@ static void smartPortWriteFrameInternal(const smartPortPayload_t *payload)
 static void initSmartPortSensors(void)
 {
 #ifdef USE_CUSTOM_TELEMETRY
-    if(telemetryConfig()->smartport_telemetry_mode == SMARTPORT_TELEMETRY_STATE_LEGACY) {
+    if(telemetryConfig()->telemetry_mode == TELEMETRY_MODE_LEGACY) {
         initSmartPortSensorsLegacy();
     } else {
         telemetryScheduleInit(smartportTelemetrySensors, ARRAYLEN(smartportTelemetrySensors));

@@ -739,7 +739,7 @@ void crsfSendMspResponse(uint8_t *payload, const uint8_t payloadSize)
 
 static bool crsfSendNativeTelemetry(void)
 {
-    if (crsfTelemetryState != CRSFR_TELEMETRY_STATE_NATIVE)
+    if (crsfTelemetryState != TELEMETRY_STATE_LEGACY)
     {
         return false;
     }
@@ -799,7 +799,7 @@ static bool crsfSendNativeTelemetry(void)
 #ifdef USE_CUSTOM_TELEMETRY
 static bool crsfSendCustomTelemetry(void)
 {
-    if (crsfTelemetryState == CRSFR_TELEMETRY_STATE_CUSTOM)
+    if (crsfTelemetryState == TELEMETRY_STATE_CUSTOM)
     {
         size_t sensor_count = 0;
         sbuf_t *dst = crsfInitializeSbuf(); // prepare buffer
@@ -841,7 +841,7 @@ static bool crsfSendCustomTelemetry(void)
 #ifdef USE_CUSTOM_TELEMETRY
 static bool crsfPopulateCustomTelemetry(void)
 {
-    if (crsfTelemetryState == CRSFR_TELEMETRY_STATE_POPULATE)
+    if (crsfTelemetryState == TELEMETRY_STATE_POPULATE)
     {
         static int slot = -10;
 
@@ -883,7 +883,7 @@ static bool crsfPopulateCustomTelemetry(void)
             }
         }
 
-        crsfTelemetryState = CRSFR_TELEMETRY_STATE_CUSTOM;
+        crsfTelemetryState = TELEMETRY_STATE_CUSTOM;
     }
 
     return false;
@@ -985,9 +985,9 @@ void initCrsfTelemetry(void)
     // and feature is enabled, if so, set CRSF telemetry enabled
 
 #ifdef USE_CUSTOM_TELEMETRY
-    crsfTelemetryState = !crsfRxIsActive() ? CRSFR_TELEMETRY_STATE_OFF : (telemetryConfig()->crsf_telemetry_mode == CRSFR_TELEMETRY_STATE_NATIVE ? CRSFR_TELEMETRY_STATE_NATIVE : CRSFR_TELEMETRY_STATE_POPULATE);
+    crsfTelemetryState = !crsfRxIsActive() ? TELEMETRY_STATE_OFF : (telemetryConfig()->telemetry_mode == TELEMETRY_MODE_LEGACY ? TELEMETRY_STATE_LEGACY : TELEMETRY_STATE_POPULATE);
 #else
-    crsfTelemetryState = !crsfRxIsActive() ? CRSFR_TELEMETRY_STATE_OFF : CRSFR_TELEMETRY_STATE_NATIVE;
+    crsfTelemetryState = !crsfRxIsActive() ? TELEMETRY_STATE_OFF : TELEMETRY_STATE_LEGACY;
 #endif
 
     if(crsfTelemetryState) {
@@ -1004,7 +1004,7 @@ void initCrsfTelemetry(void)
         mspReplyPending = false;
 #endif
 #ifdef USE_CUSTOM_TELEMETRY
-        if (crsfTelemetryState == CRSFR_TELEMETRY_STATE_NATIVE) {
+        if (crsfTelemetryState == TELEMETRY_STATE_LEGACY) {
             initCrsfNativeSensors();
         } else {
             initCrsfCustomSensors();
