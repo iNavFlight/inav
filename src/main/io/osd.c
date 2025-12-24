@@ -4242,6 +4242,18 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
     return elementIndex;
 }
 
+static void osdDrawAllElements(void)
+{
+    for (uint8_t element = 0; element < OSD_ITEM_COUNT; element++) {
+        osdDrawSingleElement(element);
+    }
+
+    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+    if (osdConfig()->telemetry>0){
+        osdDisplayTelemetry();
+    }
+}
+
 void osdDrawNextElement(void)
 {
     static uint8_t elementIndex = 0;
@@ -4304,6 +4316,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
     .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
     .msp_displayport_fullframe_interval = SETTING_OSD_MSP_DISPLAYPORT_FULLFRAME_INTERVAL_DEFAULT,
+    .framerate_hz = SETTING_OSD_FRAMERATE_HZ_DEFAULT,
 
     .ahi_reverse_roll = SETTING_OSD_AHI_REVERSE_ROLL_DEFAULT,
     .ahi_max_pitch = SETTING_OSD_AHI_MAX_PITCH_DEFAULT,
@@ -5976,7 +5989,28 @@ static void osdRefresh(timeUs_t currentTimeUs)
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;
         }
-        osdDrawNextElement();
+
+        if (osdConfig()->osd_framerate_hz == -1) {
+            osdDrawNextElement();
+        } else {
+            static uint32_t lastDrawAllTimeUs = 0;
+            const int8_t hz = osdConfig()->osd_framerate_hz;
+            const uint32_t drawAllIntervalUs = (hz > 0) ? (1000000 / hz) : 0;
+
+            const bool forceDraw = (drawAllIntervalUs == 0);
+            const bool intervalExceeded = (currentTimeUs - lastDrawAllTimeUs) >= drawAllIntervalUs;
+
+            if (forceDraw || intervalExceeded) {
+                osdDrawAllElements();
+                lastDrawAllTimeUs = currentTimeUs;
+            }
+
+            osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+            if (osdConfig()->telemetry>0){
+                osdDisplayTelemetry();
+            }
+        }
+
         displayHeartbeat(osdDisplayPort);
         displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
