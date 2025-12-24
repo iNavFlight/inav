@@ -3329,6 +3329,13 @@ groups:
         max: 600
         type: int16_t
         field: msp_displayport_fullframe_interval
+      - name: osd_framerate_hz
+        description: "OSD element refresh rate in Hz. Controls how often OSD elements are updated (except artificial horizon and telemetry which are always updated). Higher values provide smoother updates but increase CPU load. Set to -1 for legacy mode (one element per frame). Default: -1"
+        default_value: -1
+        min: -1
+        max: 60
+        type: int8_t
+        field: osd_framerate_hz
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
