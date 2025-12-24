@@ -63,6 +63,11 @@ case "$1" in
     valid_targets)
         run_docker targets | sed -n 's/^Valid targets: \(.*\)/\1/p'|tr ' ' '\n'
     ;;
+    SITL)
+        echo -e "*** Running SITL build\n"
+        # Run the SITL build inside Docker
+        docker run --rm -it --entrypoint /src/cmake/docker_build_sitl.sh -v "$(pwd)":/src inav-build
+    ;;
     *)
         echo -e "*** Building targets [$@]\n"
         run_docker "$@"

@@ -6,7 +6,7 @@ ARG GDB
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y git cmake make ruby gcc python3 python3-yaml ninja-build gcc-arm-none-eabi
+RUN apt-get update && apt-get install -y git cmake make ruby gcc g++ python3 python3-yaml ninja-build gcc-arm-none-eabi
 
 RUN if [ "$GDB" = "yes" ]; then apt-get install -y gdb; fi
 
