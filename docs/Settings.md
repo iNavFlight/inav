@@ -4772,6 +4772,16 @@ Value above which to make the OSD distance from home indicator blink (meters)
 
 ---
 
+### osd_elements_updated_per_cycle
+
+Number of OSD elements to update per OSD cycle. Increase this value to reduce the time it takes to update all OSD elements, at the cost of higher CPU usage. Decrease this value to reduce CPU usage, at the cost of slower OSD element updates.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 1 | 15 |
+
+---
+
 ### osd_esc_rpm_precision
 
 Number of characters used to display the RPM value.

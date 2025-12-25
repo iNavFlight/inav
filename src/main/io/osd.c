@@ -4242,18 +4242,26 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
     return elementIndex;
 }
 
-void osdDrawNextElement(void)
+void osdDrawNextElements(void)
 {
     static uint8_t elementIndex = 0;
-    // Flag for end of loop, also prevents infinite loop when no elements are enabled
     uint8_t index = elementIndex;
-    do {
+
+    for (uint8_t i = 1; i <= osdConfig()->elements_updated_per_cycle; ++i) {
         elementIndex = osdIncElementIndex(elementIndex);
-    } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    
+        // Flag for end of loop, also prevents infinite loop when no elements are enabled
+        if (!osdDrawSingleElement(elementIndex) && index == elementIndex) {
+            break;
+        }
+    }
 
     // Draw artificial horizon + tracking telemetry last
-    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
+    if (osdElementEnabled(OSD_ARTIFICIAL_HORIZON, true)) {
+        osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+    }
+    
+    if (osdConfig()->telemetry > 0){
         osdDisplayTelemetry();
     }
 }
@@ -4304,6 +4312,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .video_system = SETTING_OSD_VIDEO_SYSTEM_DEFAULT,
     .row_shiftdown = SETTING_OSD_ROW_SHIFTDOWN_DEFAULT,
     .msp_displayport_fullframe_interval = SETTING_OSD_MSP_DISPLAYPORT_FULLFRAME_INTERVAL_DEFAULT,
+    .elements_updated_per_cycle = SETTING_OSD_ELEMENTS_UPDATED_PER_CYCLE_DEFAULT,
 
     .ahi_reverse_roll = SETTING_OSD_AHI_REVERSE_ROLL_DEFAULT,
     .ahi_max_pitch = SETTING_OSD_AHI_MAX_PITCH_DEFAULT,
@@ -5976,7 +5985,7 @@ static void osdRefresh(timeUs_t currentTimeUs)
             displayClearScreen(osdDisplayPort);
             fullRedraw = false;
         }
-        osdDrawNextElement();
+        osdDrawNextElements();
         displayHeartbeat(osdDisplayPort);
         displayCommitTransaction(osdDisplayPort);
 #ifdef OSD_CALLS_CMS
