@@ -6015,6 +6015,12 @@ static void osdRefresh(timeUs_t currentTimeUs)
 
         } while (true);
 
+        const uint32_t actualTimeUs = micros() - startUs;
+        DEBUG_SET(DEBUG_OSD_REFRESH, 0, elementsDrawn);
+        DEBUG_SET(DEBUG_OSD_REFRESH, 1, actualTimeUs);
+        DEBUG_SET(DEBUG_OSD_REFRESH, 2, timeBudgetUs);
+        DEBUG_SET(DEBUG_OSD_REFRESH, 3, actualTimeUs >= timeBudgetUs);
+
         osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
         if (osdConfig()->telemetry > 0) {
             osdDisplayTelemetry();
