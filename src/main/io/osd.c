@@ -4245,13 +4245,15 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 void osdDrawNextElements(void)
 {
     static uint8_t elementIndex = 0;
-    uint8_t index = elementIndex;
 
-    for (uint8_t i = 1; i <= osdConfig()->elements_updated_per_cycle; ++i) {
-        elementIndex = osdIncElementIndex(elementIndex);
-    
+    for (uint8_t i = 1; i <= osdConfig()->elements_updated_per_cycle; i++) {
         // Flag for end of loop, also prevents infinite loop when no elements are enabled
-        if (!osdDrawSingleElement(elementIndex) && index == elementIndex) {
+        uint8_t index = elementIndex;
+        do {
+            elementIndex = osdIncElementIndex(elementIndex);
+        } while (!osdDrawSingleElement(elementIndex) && index != elementIndex);
+    
+        if (index == elementIndex || elementIndex == 0) {
             break;
         }
     }
