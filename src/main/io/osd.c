@@ -4242,18 +4242,19 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
     return elementIndex;
 }
 
-static void osdDrawAllElements(void)
-{
-    uint8_t element = 0;
-    do {
-        osdDrawSingleElement(element);
-        element = osdIncElementIndex(element);
-    } while (element != 0);
+#define OSD_TIME_BUDGET_PERCENT 70
 
-    osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-    if (osdConfig()->telemetry>0){
-        osdDisplayTelemetry();
-    }
+static uint32_t osdCalculateSafeTimeBudget(void)
+{
+    uint32_t pidLooptimeUs = getLooptime();
+    uint32_t gyroLooptimeUs = getGyroLooptime();
+    uint32_t criticalLooptimeUs = MIN(pidLooptimeUs, gyroLooptimeUs);
+    uint32_t safeBudgetUs = (criticalLooptimeUs * OSD_TIME_BUDGET_PERCENT) / 100;
+
+    if (safeBudgetUs < 100) safeBudgetUs = 100;
+    if (safeBudgetUs > 2000) safeBudgetUs = 2000;
+
+    return safeBudgetUs;
 }
 
 void osdDrawNextElement(void)
@@ -5992,25 +5993,31 @@ static void osdRefresh(timeUs_t currentTimeUs)
             fullRedraw = false;
         }
 
-        if (osdConfig()->osd_framerate_hz == -1) {
-            osdDrawNextElement();
-        } else {
-            static uint32_t lastDrawAllTimeUs = 0;
-            const int8_t hz = osdConfig()->osd_framerate_hz;
-            const uint32_t drawAllIntervalUs = (hz > 0) ? (1000000 / hz) : 0;
+        // Draw elements until time budget 
+        static uint8_t elementIndex = 0;
+        const uint32_t timeBudgetUs = osdCalculateSafeTimeBudget();
+        const uint32_t startUs = micros();
+        const uint8_t startElement = elementIndex;
+        uint8_t elementsDrawn = 0;
 
-            const bool forceDraw = (drawAllIntervalUs == 0);
-            const bool intervalExceeded = (currentTimeUs - lastDrawAllTimeUs) >= drawAllIntervalUs;
+        // Draw elements in round-robin fashion until time budget expires
+        do {
+            elementIndex = osdIncElementIndex(elementIndex);
+            osdDrawSingleElement(elementIndex);
+            elementsDrawn++;
 
-            if (forceDraw || intervalExceeded) {
-                osdDrawAllElements();
-                lastDrawAllTimeUs = currentTimeUs;
+            const bool timeBudgetExceeded = (micros() - startUs) >= timeBudgetUs;
+            const bool completedFullCycle = (elementIndex == startElement);
+
+            if (timeBudgetExceeded || completedFullCycle) {
+                break;
             }
 
-            osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
-            if (osdConfig()->telemetry>0){
-                osdDisplayTelemetry();
-            }
+        } while (true);
+
+        osdDrawSingleElement(OSD_ARTIFICIAL_HORIZON);
+        if (osdConfig()->telemetry > 0) {
+            osdDisplayTelemetry();
         }
 
         displayHeartbeat(osdDisplayPort);
