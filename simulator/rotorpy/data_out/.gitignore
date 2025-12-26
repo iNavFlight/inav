@@ -1,0 +1,3 @@
+# Never commit output data.
+*
+!.gitignore
