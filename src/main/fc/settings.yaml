@@ -3334,7 +3334,7 @@ groups:
         default_value: 5
         field: elements_updated_per_cycle
         min: 1
-        max: 15
+        max: 10
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"

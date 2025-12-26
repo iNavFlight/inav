@@ -4778,7 +4778,7 @@ Number of OSD elements to update per OSD cycle. Increase this value to reduce th
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 5 | 1 | 15 |
+| 5 | 1 | 10 |
 
 ---
 
