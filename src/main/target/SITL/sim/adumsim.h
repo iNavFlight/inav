@@ -27,4 +27,6 @@
 
 #define XP_MAX_PWM_OUTS 4
 
+//int init_fgear_socket(char* ip, int port);
+
 bool simAdumInit(char* ip, int port, uint8_t* mapping, uint8_t mapCount, bool imu);

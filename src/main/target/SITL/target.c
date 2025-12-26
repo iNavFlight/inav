@@ -146,17 +146,17 @@ void systemInit(void) {
         default:
             fprintf(stderr, "[SIM] No interface specified. Starting Adum.\n");
 
-            if (mappingCount > XP_MAX_PWM_OUTS) {
-                fprintf(stderr, "[SIM] Mapping error. Adum supports a maximum of %i PWM outputs.", XP_MAX_PWM_OUTS);
-                sitlSim = SITL_SIM_NONE;
-                break;
-            }
-            if (simAdumInit(simIp, simPort, pwmMapping, mappingCount, useImu)) {
-                fprintf(stderr, "[SIM] Connection with Adum successfully established.\n");
-            } else {
-                fprintf(stderr, "[SIM] Connection with Adum NOT established.\n");
-            }
-            break;
+            //if (mappingCount > XP_MAX_PWM_OUTS) {
+            //    fprintf(stderr, "[SIM] Mapping error. Adum supports a maximum of %i PWM outputs.", XP_MAX_PWM_OUTS);
+            //    sitlSim = SITL_SIM_NONE;
+            //    break;
+            //}
+            //if (simAdumInit(simIp, simPort, pwmMapping, mappingCount, useImu)) {
+            //    fprintf(stderr, "[SIM] Connection with Adum successfully established.\n");
+            //} else {
+            //    fprintf(stderr, "[SIM] Connection with Adum NOT established.\n");
+            //}
+            //break;
 
     }
 
@@ -225,7 +225,7 @@ void printCmdLineOptions(void)
     printVersion();
     fprintf(stderr, "Avaiable options:\n");
     fprintf(stderr, "--path=[path]                  Path and filename of eeprom.bin. If not specified 'eeprom.bin' in program directory is used.\n");
-    fprintf(stderr, "--sim=[rf|xp]                  Simulator interface: rf = RealFligt, xp = XPlane. Example: --sim=rf\n");
+    fprintf(stderr, "--sim=[rf|xp|adum]                  Simulator interface: rf = RealFligt, xp = XPlane. Example: --sim=rf\n");
     fprintf(stderr, "--simip=[ip]                   IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
     fprintf(stderr, "--simport=[port]               Port oft the simulator host.\n");
     fprintf(stderr, "--useimu                       Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
@@ -278,6 +278,8 @@ void parseArguments(int argc, char *argv[])
                     sitlSim = SITL_SIM_REALFLIGHT;
                 } else if (strcmp(optarg, "xp") == 0){
                     sitlSim = SITL_SIM_XPLANE;
+                } else if (strcmp(optarg, "adum") == 0){
+                    sitlSim = SITL_SIM_ADUM;
                 } else {
                     fprintf(stderr, "[SIM] Unsupported simulator %s.\n", optarg);
                 }

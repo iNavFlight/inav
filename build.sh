@@ -1,7 +1,22 @@
 #!/usr/bin/env bash
-export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+OS="$(uname -s)"
+
+if [[ "$OS" == "Linux" ]]; then
+    echo "Running on Linux"
+
+elif [[ "$OS" == "Darwin" ]]; then
+    echo "Running on macOS"
+    export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+else
+    echo "Unsupported OS: $OS"
+    exit 1
+fi
+
 
 set -euo pipefail
+
 
 if [[ $# == 0 ]]; then
   echo -e "\
@@ -73,10 +88,14 @@ case "$1" in
         run_docker "$@"
         if ls ./build/*.hex &> /dev/null; then
             echo -e "\n*** Built targets in ./build:"
-            #stat -c "%n (%.19y)" ./build/*.hex
 
-            # Because MacOS
-            stat -f "%N (%Sm)" -t "%Y-%m-%d %H:%M:%S" ./build/*.hex
+            if [[ "$OS" == "Linux" ]]; then
+                stat -c "%n (%.19y)" ./build/*.hex
+
+            elif [[ "$OS" == "Darwin" ]]; then
+                stat -f "%N (%Sm)" -t "%Y-%m-%d %H:%M:%S" ./build/*.hex
+            fi
+
         fi
     ;;
 esac
