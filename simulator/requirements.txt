@@ -1,0 +1,6 @@
+
+numpy
+scipy
+rotorpy
+pyproj
+pymap3d
