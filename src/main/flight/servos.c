@@ -617,6 +617,7 @@ void processContinuousServoAutotrim(const float dT)
     static timeMs_t lastUpdateTimeMs;
     static servoAutotrimState_e trimState = AUTOTRIM_IDLE;
     static uint32_t servoMiddleUpdateCount;
+    static float prevAxisIterm[2] = {0};  // Track previous I-term for rate-of-change calculation
 
     const float rotRateMagnitudeFiltered = pt1FilterApply4(&rotRateFilter, fast_fsqrtf(vectorNormSquared(&imuMeasuredRotationBF)), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
     const float targetRateMagnitudeFiltered = pt1FilterApply4(&targetRateFilter, getTotalRateTarget(), SERVO_AUTOTRIM_FILTER_CUTOFF, dT);
@@ -641,7 +642,15 @@ void processContinuousServoAutotrim(const float dT)
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
-                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE) {
+
+                    // Calculate I-term rate of change (per second) to detect stability
+                    const float itermRateOfChange = fabsf(axisIterm - prevAxisIterm[axis]) / 0.5f;
+                    prevAxisIterm[axis] = axisIterm;
+
+                    // Only apply trim if I-term is stable (not changing rapidly due to recent maneuver)
+                    const bool itermIsStable = itermRateOfChange < servoConfig()->servo_autotrim_iterm_rate_limit;
+
+                    if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
                         const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
                         for (int i = 0; i < servoRuleCount; i++) {
 #ifdef USE_PROGRAMMING_FRAMEWORK

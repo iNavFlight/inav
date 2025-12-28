@@ -1361,6 +1361,11 @@ groups:
         default_value: 15
         min: 1
         max: 60
+      - name: servo_autotrim_iterm_rate_limit
+        description: "Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`."
+        default_value: 2
+        min: 0
+        max: 50
 
   - name: PG_CONTROL_PROFILES
     type: controlConfig_t
