@@ -4,6 +4,69 @@ This document describes the process for creating INAV firmware and configurator 
 
 > **Note:** This document is designed to be used with coding assistants (such as Claude Code) that can execute the commands and automate parts of the release process. Update this document with lessons learned after each release.
 
+## CRITICAL PRINCIPLE: Verify Builds BEFORE Creating Tags
+
+**Never tag a commit that hasn't been proven to build successfully.**
+
+Order of operations:
+1. Merge all firmware PRs to the release branch
+2. **Ensure release branch is in nightly-build.yml** (add via PR if not)
+3. **Push to release branch to trigger nightly build** (merge the workflow PR, or push trivial commit)
+4. Wait for nightly build to complete, verify ALL jobs passed
+5. **Download firmware artifacts from inav-nightly** (includes SITL binaries needed for configurator)
+6. Update SITL binaries in configurator repo, wait for CI, merge
+7. Download configurator artifacts after SITL update merged
+8. Verify all artifacts (automated checks)
+9. **Manual testing on Linux and Windows** (required before tagging)
+10. **Only then** create tags pointing to the verified commits
+
+If CI fails or any verification fails, fix the issue first. Do not tag broken commits.
+
+**Why this matters:** If you tag first and then discover the build is broken, you have a tag pointing to a broken commit. By verifying artifacts first, you only tag commits that are proven to work.
+
+## CRITICAL: CI Runs on PR Creation, Not Merge
+
+**GitHub Actions CI runs when a PR is created/updated, not when it's merged.**
+
+This means:
+- Each PR's CI artifacts only include changes from that PR's branch
+- After merging multiple PRs, no single CI run contains all the merged changes
+- **The nightly-build workflow must include the release branch to get complete artifacts**
+
+### How Nightly Builds Work
+
+The `nightly-build.yml` workflow triggers on push to specific branches and uploads complete artifacts (hex files + SITL) to the `inav-nightly` repository.
+
+**Ensure the release branch is in the workflow triggers:**
+
+Check `.github/workflows/nightly-build.yml`:
+```yaml
+on:
+  push:
+    branches:
+      - master
+      - maintenance-8.x.x
+      - maintenance-9.x    # Add new maintenance branches here!
+```
+
+If the maintenance branch is not listed, create a PR to add it.
+
+### Getting Complete Firmware Artifacts
+
+After all PRs are merged to the release branch:
+
+1. **Verify the branch is in nightly-build.yml triggers** (or add it)
+2. **Push any commit to the release branch** to trigger the nightly build
+   - This can be a trivial change (whitespace, comment) if needed
+3. **Wait for the nightly build to complete**
+4. **Download from inav-nightly releases:**
+   ```bash
+   gh release list --repo iNavFlight/inav-nightly --limit 5
+   gh release download <tag> --repo iNavFlight/inav-nightly
+   ```
+
+Only artifacts from the nightly build contain all merged changes.
+
 ## Overview
 
 INAV releases include both firmware (for flight controllers) and the configurator application (for configuration). Both repositories must be tagged with matching version numbers.
@@ -48,36 +111,52 @@ Version numbers are set in:
 
 ## Release Workflow
 
+**IMPORTANT:** Verify builds BEFORE creating tags. See "CRITICAL PRINCIPLE" section above.
+
 ```
-1. Verify release readiness
-   ├── All PRs merged
-   ├── CI passing
-   └── Version numbers updated
+1. Verify firmware release readiness
+   ├── All PRs merged to firmware repo
+   ├── Version numbers updated
+   └── CI passing on firmware target commit
 
-2. Update SITL binaries in Configurator
-   ├── Download from nightly or build for each platform
-   └── Commit updated binaries to configurator repo
+2. Download firmware artifacts FIRST
+   ├── Download firmware hex files from CI
+   ├── Download SITL binaries from same CI run
+   ├── Build Linux x64 SITL locally if needed (for glibc ≤2.35 compatibility)
+   └── This provides SITL binaries needed for configurator
 
-3. Create tags
-   ├── inav: git tag <version>
-   └── inav-configurator: git tag <version>
+3. Update SITL in configurator
+   ├── Create PR with SITL binaries from step 2
+   ├── Wait for configurator CI to pass
+   └── Merge SITL update PR
 
-4. Generate changelog
+4. Download and verify configurator artifacts
+   ├── Download from CI run after SITL PR merged
+   ├── Verify macOS DMGs (no cross-platform contamination)
+   ├── Verify Windows SITL (cygwin1.dll present)
+   ├── Verify Linux SITL (glibc <= 2.35 for Ubuntu 22.04 compatibility)
+   └── Automated SITL verification (glibc check, binary runs)
+
+5. Manual testing (REQUIRED before creating tags)
+   ├── Test configurator + SITL on Linux
+   ├── Test configurator + SITL on Windows
+   ├── Test configurator + SITL on macOS (if available)
+   └── Verify basic functionality works on each platform
+
+6. Generate changelog
    ├── List PRs since last tag
    ├── Categorize changes
    └── Format release notes
 
-5. Download/build artifacts
-   ├── Firmware: from nightly builds
-   └── Configurator: from CI artifacts
-
-6. Create draft releases
-   ├── Upload firmware artifacts
-   ├── Upload configurator artifacts
+7. Create tags and draft releases (ONLY after manual testing passed)
+   ├── Create tag + draft release for firmware (targeting verified commit)
+   ├── Create tag + draft release for configurator (targeting verified commit)
+   ├── Upload verified artifacts
    └── Add release notes
 
 7. Review and publish
-   ├── Maintainer review
+   ├── Final review of draft releases
+   ├── Maintainer approval
    └── Publish releases
 ```
 
@@ -118,6 +197,77 @@ cp /tmp/sitl-extract/resources/sitl/windows/inav_SITL.exe resources/public/sitl/
 git add resources/public/sitl/
 git commit -m "Update SITL binaries for <version>"
 ```
+
+### Building SITL Locally (Recommended for Linux x64)
+
+**IMPORTANT:** The CI-built Linux x64 SITL binary may require a newer glibc version than Ubuntu 22.04 LTS provides. To ensure compatibility with all supported Ubuntu LTS releases, build the Linux x64 SITL binary locally on Ubuntu 22.04 (glibc 2.35).
+
+```bash
+cd inav
+mkdir -p build_sitl
+cd build_sitl
+cmake -DSITL=ON ..
+make -j$(nproc)
+```
+
+The binary will be at: `build_sitl/bin/SITL.elf`
+
+Verify the glibc requirement:
+```bash
+objdump -T build_sitl/bin/SITL.elf | grep GLIBC | sed 's/.*GLIBC_//;s/ .*//' | sort -V | tail -1
+# Should output 2.35 or lower
+```
+
+**When to build locally vs use CI artifacts:**
+- **Build locally:** Linux x64 (to ensure glibc ≤ 2.35 compatibility)
+- **Use CI artifacts:** Windows (includes cygwin1.dll), macOS, Linux arm64
+
+## Verifying SITL in Packaged Builds
+
+After downloading configurator artifacts, verify SITL files are correctly included.
+
+### Windows SITL Verification
+
+**CRITICAL:** Windows SITL requires `cygwin1.dll` to run. Without it, users get "cygwin1.dll not found" errors.
+
+```bash
+# Check Windows zip contains both required files
+# Note: Packaged builds use resources/sitl/ (not resources/public/sitl/)
+unzip -l INAV-Configurator_win_x64_9.0.0.zip | grep -E "(cygwin1.dll|inav_SITL.exe)"
+
+# Expected output (both files must be present):
+#    2953269  12-19-2024 01:41   resources/sitl/windows/cygwin1.dll
+#    1517041  12-21-2024 17:25   resources/sitl/windows/inav_SITL.exe
+```
+
+If `cygwin1.dll` is missing: **DO NOT release** - Windows SITL will be broken.
+
+### Linux SITL glibc Verification
+
+**CRITICAL:** Linux SITL binaries must be compiled with glibc old enough to support all non-EOL Ubuntu LTS releases.
+
+| Period | Oldest Supported Ubuntu LTS | Required glibc |
+|--------|----------------------------|----------------|
+| 2025-2027 | Ubuntu 22.04.3 LTS | <= 2.35 |
+
+```bash
+# Check glibc version requirement (should output 2.35 or lower)
+objdump -T inav_SITL | grep GLIBC | sed 's/.*GLIBC_//;s/ .*//' | sort -V | tail -1
+```
+
+If glibc > 2.35, the binary will fail on Ubuntu 22.04 with:
+```
+/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found
+```
+
+### Path Differences
+
+| Context | SITL Path |
+|---------|-----------|
+| Source repo | `resources/public/sitl/` |
+| Packaged builds | `resources/sitl/` |
+
+The `extraResource` config in `forge.config.js` copies `resources/public/sitl` to `resources/sitl` in packaged builds.
 
 ## Tagging
 
