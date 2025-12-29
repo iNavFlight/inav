@@ -200,6 +200,10 @@ Here are the OSD Elements provided by INAV.
 | 165 | OSD_V_DIST_TO_FENCE                              | 8.0.0  |       |
 | 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
 | 167 | OSD_NAV_MIN_GROUND_SPEED                         | 9.0.0  |       |
+! 168 | OSD_THROTTLE_GAUGE                               | 9.0.0  |       |
+| 169 | OSD_SERVO_MIDPOINT_ROLL                          | 9.1.0  |       |
+| 170 | OSD_SERVO_MIDPOINT_PITCH                         | 9.1.0  |       |
+| 171 | OSD_SERVO_MIDPOINT_YAW                           | 9.1.0  |       |
 
 # Pilot Logos
 

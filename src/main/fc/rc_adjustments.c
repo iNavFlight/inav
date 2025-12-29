@@ -46,6 +46,7 @@
 
 #include "flight/mixer.h"
 #include "flight/pid.h"
+#include "flight/servos.h"
 
 #include "io/beeper.h"
 #include "io/vtx.h"
@@ -621,6 +622,15 @@ static void applyStepAdjustment(controlConfig_t *controlConfig, uint8_t adjustme
             }
             break;
 #endif
+        case ADJUSTMENT_SERVO_MID_ROLL:
+            servoUpdateMidpoint(delta, FD_ROLL);
+            break;
+        case ADJUSTMENT_SERVO_MID_PITCH:
+            servoUpdateMidpoint(delta, FD_PITCH);
+            break;
+        case ADJUSTMENT_SERVO_MID_YAW:
+            servoUpdateMidpoint(delta, FD_YAW);
+            break;
         default:
             break;
     };

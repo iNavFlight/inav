@@ -701,6 +701,45 @@ void processServoAutotrim(const float dT) {
     }
 }
 
+void servoUpdateMidpoint(int delta, uint8_t axis)
+{
+    bool updated = false;
+    for (uint8_t sI = 0; sI < servoRuleCount; sI++) {
+        uint8_t target = currentServoMixer[sI].targetChannel;
+        uint8_t source = currentServoMixer[sI].inputSource;
+
+        if (source == axis) {
+            servoParamsMutable(target)->middle = servoParams(target)->middle + delta;
+            updated = true;
+        }
+    }
+
+    if (updated)
+        pidResetErrorAccumulators(); //Reset Iterm since new midpoints override previously acumulated errors
+}
+
+int16_t servoGetAvgMidpoint(uint8_t axis)
+{
+    int32_t midpointSum = 0;
+    uint8_t count = 0;
+
+    for (uint8_t sI = 0; sI < servoRuleCount; sI++) {
+        uint8_t target = currentServoMixer[sI].targetChannel;
+        uint8_t source = currentServoMixer[sI].inputSource;
+
+        if (source == axis) {
+            midpointSum += servoParams(target)->middle;
+            count++;
+        }
+    }
+
+    if (count > 0) {
+        return (int16_t)(midpointSum / count);
+    } else {
+        return 0;
+    }
+}
+
 bool isServoOutputEnabled(void)
 {
     return servoOutputEnabled;

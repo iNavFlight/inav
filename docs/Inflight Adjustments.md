@@ -34,6 +34,7 @@ The following adjustments can be made in flight as well as on the ground.
 * Level PIDs
 * PosHold, AltHold PIDs
 * PIDs profile
+* Servo midpoints (Pitch, Roll, & Yaw)
 
 Example scenarios:
 Up to 4 3-position switches or pots can be used to adjust 4 different settings at the same time.
@@ -154,12 +155,17 @@ this reason ensure that you define enough ranges to cover the range channel's us
 | 50    | VEL_Z_I |
 | 51    | VEL_Z_D |
 | 52    | FW_MIN_THROTTLE_DOWN_PITCH_ANGLE |
-| 53    | ADJUSTMENT_VTX_POWER_LEVEL |
+| 53    | VTX_POWER_LEVEL |
 | 54    | TPA |
 | 55    | TPA_BREAKPOINT |
 | 56    | NAV_FW_CONTROL_SMOOTHNESS |
 | 57    | FW_TPA_TIME_CONSTANT |
 | 58    | FW_LEVEL_TRIM |
+| 59    | NAV_WP_MULTI_MISSION_INDEX |
+| 60    | NAV_FW_ALT_CONTROL_RESPONSE |
+| 61    | SERVO_MID_ROLL |
+| 62    | SERVO_MID_PITCH |
+| 63    | SERVO_MID_YAW |
 
 ## Examples
 

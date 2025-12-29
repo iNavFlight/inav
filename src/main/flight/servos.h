@@ -193,3 +193,5 @@ void servoComputeScalingFactors(uint8_t servoIndex);
 void servosInit(void);
 int getServoCount(void);
 uint8_t getMinServoIndex(void);
+void servoUpdateMidpoint(int delta, uint8_t axis);
+int16_t servoGetAvgMidpoint(uint8_t axis);

@@ -3229,6 +3229,15 @@ static bool osdDrawSingleElement(uint8_t item)
         displayWrite(osdDisplayPort, elemPosX, elemPosY, buff);
         break;
 
+    case OSD_SERVO_MIDPOINT_ROLL:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "ROL M", 0, servoGetAvgMidpoint(FD_ROLL), 4, 0, ADJUSTMENT_SERVO_MID_ROLL);
+        break;
+    case OSD_SERVO_MIDPOINT_PITCH:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "PIT M", 0, servoGetAvgMidpoint(FD_PITCH), 4, 0, ADJUSTMENT_SERVO_MID_PITCH);
+        break;
+    case OSD_SERVO_MIDPOINT_YAW:
+        osdDisplayAdjustableDecimalValue(elemPosX, elemPosY, "YAW M", 0, servoGetAvgMidpoint(FD_YAW), 4, 0, ADJUSTMENT_SERVO_MID_YAW);
+        break;
     case OSD_ROLL_PIDS:
         osdDisplayFlightPIDValues(elemPosX, elemPosY, "ROL", PID_ROLL, ADJUSTMENT_ROLL_P, ADJUSTMENT_ROLL_I, ADJUSTMENT_ROLL_D, ADJUSTMENT_ROLL_FF);
         return true;
@@ -4496,6 +4505,9 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_MC_VEL_Y_PID_OUTPUTS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_MC_VEL_Z_PID_OUTPUTS] = OSD_POS(2, 12);
     osdLayoutsConfig->item_pos[0][OSD_MC_POS_XYZ_P_OUTPUTS] = OSD_POS(2, 12);
+    osdLayoutsConfig->item_pos[0][OSD_SERVO_MIDPOINT_ROLL] = OSD_POS(12, 10);
+    osdLayoutsConfig->item_pos[0][OSD_SERVO_MIDPOINT_PITCH] = OSD_POS(12, 11);
+    osdLayoutsConfig->item_pos[0][OSD_SERVO_MIDPOINT_YAW] = OSD_POS(12, 12);
 
     osdLayoutsConfig->item_pos[0][OSD_POWER] = OSD_POS(15, 1);
 
