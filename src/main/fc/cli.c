@@ -95,6 +95,7 @@ bool cliMode = false;
 #include "io/osd.h"
 #include "io/osd/custom_elements.h"
 #include "io/serial.h"
+#include "io/vtx_tramp.h"
 
 #include "fc/fc_msp_box.h"
 
@@ -3220,6 +3221,106 @@ static void cliTimerOutputMode(char *cmdline)
 
 }
 
+#if defined(USE_VTX_TRAMP) && defined(USE_VTX_CONTROL)
+
+static void printTrampConfig(char* cmdline)
+{
+    UNUSED(cmdline);
+    dumpLiveVtxTrampConfig(cliPrintf);
+}
+
+static void printTrampOverride(uint8_t dumpMask, const vtxTrampPwOverride_t* trampOverrideConfig, const vtxTrampPwOverride_t* defaultTrampOverrideConfig)
+{
+    const char* dumpFormat = VTX_TRAMP_PL_OR_CMD " %d %d";
+    for (uint32_t currentPwLvl = 0; currentPwLvl < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS; currentPwLvl++) 
+    {
+        const vtxTrampPwOverride_t* currentConfig = &trampOverrideConfig[currentPwLvl];
+        bool equalsDefault = false;
+        if (defaultTrampOverrideConfig) {
+            const vtxTrampPwOverride_t* defaultConfig = &defaultTrampOverrideConfig[currentPwLvl];
+            equalsDefault = currentConfig->vtxPwOverrideMw == defaultConfig->vtxPwOverrideMw;
+            cliDefaultPrintLinef(dumpMask, equalsDefault, dumpFormat, currentPwLvl + 1, defaultConfig->vtxPwOverrideMw);
+        }
+
+        cliDumpPrintLinef(dumpMask, equalsDefault, dumpFormat, currentPwLvl + 1, currentConfig->vtxPwOverrideMw);
+    }
+}
+
+static void cliTrampPwOr(char *cmdline)
+{
+    if(isEmpty(cmdline))
+    {
+        printTrampOverride(DUMP_ALL, vtxTrampPwOverride(0), NULL);
+        return;
+    }
+
+    // Command structure is: <PL Override IDX> <Power_MW>
+    const char* currentCmd = cmdline++;
+
+    int powerIdx = fastA2I(currentCmd);
+    if(powerIdx > VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS || powerIdx < 1)
+    {
+        cliPrint("ERROR. Cannot parse command.\n");
+        return;
+    }
+
+    // Convert PL Index to array indexable value
+    powerIdx--;
+
+    int reqPlMw = VTX_TRAMP_NULL_PW_CONFIG;
+    currentCmd = nextArg(currentCmd);
+    if(currentCmd)
+    {
+        reqPlMw = fastA2I(currentCmd);
+    }
+
+    // If invalid, set to null (user may request that the VTX table is used as-is or it is not implemented)
+    if(reqPlMw < 0 || reqPlMw > VTX_TRAMP_PL_MAX_MW)
+    {
+        reqPlMw = VTX_TRAMP_NULL_PW_CONFIG;
+    }
+
+    vtxTrampPwOverride_t* powerConfig = vtxTrampPwOverrideMutable(powerIdx);
+    powerConfig->vtxPwOverrideMw = reqPlMw;
+}
+
+static void cliTrampPwTable(char* cmdline)
+{
+    if(isEmpty(cmdline))
+    {
+        printTrampOverride(DUMP_ALL, vtxTrampPwOverride(0), NULL);
+        return;
+    }
+
+    // Command structure is: <Power_MW_1> <Power_MW_2> <Power_MW_3> ... <Power_MW_n>
+    const char* currentCmd = cmdline++;
+    int currentPlMw = 0;
+    int currentPlIdx = 0;
+    vtxTrampPwOverride_t* powerConfig = NULL;
+    while(currentCmd != NULL && currentPlIdx < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS)
+    {
+        currentPlMw = fastA2I(currentCmd);
+        if(currentPlMw < 0 || currentPlMw > VTX_TRAMP_PL_MAX_MW)
+        {
+            currentPlMw = VTX_TRAMP_NULL_PW_CONFIG;
+        }
+        powerConfig = vtxTrampPwOverrideMutable(currentPlIdx);
+        powerConfig->vtxPwOverrideMw = currentPlMw;
+        currentPlIdx++;
+        currentCmd = nextArg(currentCmd);
+    }
+
+    // If not all table entries were passed, then fill the remaining with the last sent power. This will clear out any remaining 
+    // default values picked up by the tramp PL table generation.
+    for(int currentEmptyPlIdx = currentPlIdx; currentEmptyPlIdx < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS; currentEmptyPlIdx++)
+    {
+        powerConfig = vtxTrampPwOverrideMutable(currentEmptyPlIdx);
+        powerConfig->vtxPwOverrideMw = currentPlMw;
+    }
+}
+
+#endif 
+
 static void printFeature(uint8_t dumpMask, const featureConfig_t *featureConfig, const featureConfig_t *featureConfigDefault)
 {
     uint32_t mask = featureConfig->enabledFeatures;
@@ -4531,6 +4632,11 @@ static void printConfig(const char *cmdline, bool doDiff)
         printOsdLayout(dumpMask, &osdLayoutsConfig_Copy, osdLayoutsConfig(), -1, -1);
 #endif
 
+#if defined(USE_VTX_TRAMP) && defined(USE_VTX_CONTROL)
+        cliPrintHashLine("IRC Tramp VTX Table Overrides");
+        printTrampOverride(dumpMask, vtxTrampPwOverride_CopyArray, vtxTrampPwOverride(0));
+#endif
+
 #ifdef USE_PROGRAMMING_FRAMEWORK
         cliPrintHashLine("Programming: logic");
         printLogic(dumpMask, logicConditions_CopyArray, logicConditions(0), -1);
@@ -4942,6 +5048,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+#if defined(USE_VTX_TRAMP) && defined(USE_VTX_CONTROL)
+    CLI_COMMAND_DEF(VTX_TRAMP_PL_OR_CMD, "Set the power level override of an IRC tramp VTX table", NULL, cliTrampPwOr),
+    CLI_COMMAND_DEF(VTX_TRAMP_PL_CMD, "Set all entries in the power level table", NULL, cliTrampPwTable),
+    CLI_COMMAND_DEF(VTX_TRAMP_CONFIG_DUMP_CMD, "Dump the live operating tramp config", NULL, printTrampConfig),
+#endif
 };
 
 static void cliHelp(char *cmdline)
