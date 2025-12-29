@@ -6052,6 +6052,16 @@ When feature SERIALRX is enabled, this allows connection to several receivers wh
 
 ---
 
+### servo_autotrim_iterm_rate_limit
+
+Maximum I-term rate of change (units/sec) for autotrim to be applied. Prevents trim updates during maneuver transitions when I-term is changing rapidly. Only applies when using `feature FW_AUTOTRIM`.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 50 |
+
+---
+
 ### servo_autotrim_rotation_limit
 
 Servo midpoints are only updated when total aircraft rotation is less than this threshold [deg/s]. Only applies when using `feature FW_AUTOTRIM`.
