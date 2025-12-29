@@ -40,14 +40,16 @@
 #define VTX_TRAMP_1G3_MIN_FREQUENCY_MHZ 1000
 #define VTX_TRAMP_1G3_MAX_FREQUENCY_MHZ 1399
 
-// Defines a 'zero' config value.
+// Defines an unconfigured power level
 #define VTX_TRAMP_NULL_PW_CONFIG -1
 
 #define VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS VTX_TRAMP_5G8_MAX_POWER_COUNT
+#define VTX_TRAMP_PL_MAX_MW UINT16_MAX
 #define VTX_TRAMP_PW_OVERRIDE_VER  1
 
 #define VTX_TRAMP_PL_OR_CMD       "tramp_pl_override"
 #define VTX_TRAMP_CONFIG_DUMP_CMD "tramp_dump_config"
+#define VTX_TRAMP_PL_CMD          "tramp_pl_table"
 
 typedef struct {
     int vtxPwOverrideMw;

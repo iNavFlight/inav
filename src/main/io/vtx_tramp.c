@@ -59,10 +59,10 @@ PG_REGISTER_ARRAY_WITH_RESET_FN(vtxTrampPwOverride_t, VTX_TRAMP_MAX_SUPPORTED_PW
 
 void pgResetFn_vtxTrampPwOverride(vtxTrampPwOverride_t* table)
 {
-    for (int current_pw_lvl = 0; current_pw_lvl < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS; current_pw_lvl++) 
+    for (int currentPwLvl = 0; currentPwLvl < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS; currentPwLvl++) 
     {
-        RESET_CONFIG(vtxTrampPwOverride_t, &table[current_pw_lvl],
-            .vtxPwOverrideMw = -1
+        RESET_CONFIG(vtxTrampPwOverride_t, &table[currentPwLvl],
+            .vtxPwOverrideMw = VTX_TRAMP_NULL_PW_CONFIG
         );
     }
 }
@@ -576,11 +576,11 @@ static vtxDevice_t impl_vtxDevice = {
 };
 
 // Backwards compatable mutable data structures to allow for configuration to be added.
-static uint16_t mutableTablePowers[VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS];
-#define MAX_VTX_PWR_NAME_CHARS 6
-static char mutableTablePowerNames[VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS + 1][MAX_VTX_PWR_NAME_CHARS];
+static uint16_t mutablePowerTable[VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS];
+#define MAX_VTX_POWER_PLACES_DECIMAL 6
+static char mutablePowerTableNames[VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS + 1][MAX_VTX_POWER_PLACES_DECIMAL + 1];
 
-// Default table power levels
+// Default power level tables
 const uint16_t trampPowerTable_5G8_200[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 200, 200 };
 const uint16_t trampPowerTable_5G8_400[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 400, 400 };
 const uint16_t trampPowerTable_5G8_600[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = { 25, 100, 200, 400, 600 };
@@ -588,75 +588,59 @@ const uint16_t trampPowerTable_5G8_800[VTX_TRAMP_5G8_MAX_POWER_COUNT]         = 
 const uint16_t trampPowerTable_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 800 };
 const uint16_t trampPowerTable_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT]        = { 25, 200, 2000 };
 
-// Dump the VTX operating params to the console. Used for configuration validation to ensure that the VTX is being commanded as 
-// expected. Used to debug VTX issues such as inconsistent power levels (IE command 1 mw for first power, 2 mw for second, etc),
-// frequency issues (commanded != requested), etc. This does require that the CLI serial interface is exposed, but better that than 
-// exposing the VTX driver internals to the CLI.
 void dumpLiveVtxTrampConfig(consolePrintf_t consolePrint)
 {
-    // Dump configuration
-    consolePrint("Configured power levels: %d\n", impl_vtxDevice.capability.powerCount);
+    consolePrint("PLs Configured: %d\n", impl_vtxDevice.capability.powerCount);
     for(uint8_t current_pl = 0; current_pl < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS; current_pl++)
     {
-        consolePrint("PL %d: %d mw\n", current_pl + 1, mutableTablePowers[current_pl]);
+        consolePrint("PL %d: %d mw\n", current_pl + 1, mutablePowerTable[current_pl]);
     }
 
-    consolePrint("Actual VTX Freq: %u\n", vtxState.state.freq);
-    consolePrint("Actual VTX Power: %u\n", vtxState.state.power);
+    const char actual[] = "Act";
+    const char req[] = "Req";
+    const char pwr[] = "Pwr";
+    const char freq[] = "Freq";
+    consolePrint("%s %s: %u\n", actual, freq, vtxState.state.freq);
+    consolePrint("%s %s: %u\n", actual, pwr, vtxState.state.power);
 
-    consolePrint("Requested VTX Freq: %u\n", vtxState.request.freq);
-    consolePrint("Requested VTX Power: %u\n", vtxState.request.power);
-    consolePrint("Requested VTX Power IDX: %u\n", vtxState.request.powerIndex);
+    consolePrint("%s %s: %u\n", req, freq, vtxState.request.freq);
+    consolePrint("%s %s: %u\n", req, pwr, vtxState.request.power);
+    consolePrint("%s %s IDX: %u\n", req, pwr, vtxState.request.powerIndex);
 }
 
-// Construct the power table. Takes into account any configured override power values.
-// baseTable - Pointer to the base table configuration
-// tableCount - Entries in the table configuration
-static void constructPowerTable(const uint16_t* baseTable, const uint16_t tableCount)
+static void constructPowerTable(const uint16_t* defaultTable, const uint16_t defaultTableSize)
 {
-    // Update the 0th power index
-    strcpy(mutableTablePowerNames[0], "---");
+    // Update the 0th power index to the common start entry string
+    strcpy(mutablePowerTableNames[0], "---");
 
     // Now construct each table
-    const vtxTrampPwOverride_t* pwr_config;
+    const vtxTrampPwOverride_t* pwrConfig;
     uint16_t currentPwLvl = 0;
     for(currentPwLvl = 0; currentPwLvl < VTX_TRAMP_MAX_SUPPORTED_PW_LEVELS; currentPwLvl++)
     {
-        pwr_config = vtxTrampPwOverride(currentPwLvl);
-        if(pwr_config->vtxPwOverrideMw >= 0)
+        pwrConfig = vtxTrampPwOverride(currentPwLvl);
+        // If user defined table entry contains valid data, use it in place of the default
+        if(pwrConfig->vtxPwOverrideMw >= 0)
         {   
-            // Only override if power is configured to a valid value. If negative, this value is not configured and
-            // will be set to the default table for the power level.
-            mutableTablePowers[currentPwLvl] = (uint16_t) pwr_config->vtxPwOverrideMw;
+            mutablePowerTable[currentPwLvl] = (uint16_t) pwrConfig->vtxPwOverrideMw;
         }
-
-        else if(currentPwLvl < tableCount)
+        // Otherwise, use the default's entry.
+        else if(currentPwLvl < defaultTableSize)
         {
-            // Not configured, so use the default.
-            mutableTablePowers[currentPwLvl] = *(baseTable + currentPwLvl);
+            mutablePowerTable[currentPwLvl] = *(defaultTable + currentPwLvl);
         }
         else
         {
-            // No default value and no configured value. Nothing to write, so terminate from the loop.
             break;
         }
 
-        // Update the "stringified" power. Always add 1 to the working power level since 0 is reserved.
-        sprintf(mutableTablePowerNames[currentPwLvl + 1], "%u", mutableTablePowers[currentPwLvl]);
+        sprintf(mutablePowerTableNames[currentPwLvl + 1], "%u", mutablePowerTable[currentPwLvl]);
     }
 
-    // Update the stored params.
-    vtxState.metadata.powerTablePtr  = mutableTablePowers;
-
-    // NOTE: If loop broke before max (IE 2 overrides and three default, < 5, idx = 3) the last loop index will be the total
-    // quantity configured. Set that here.
     vtxState.metadata.powerTableCount = currentPwLvl;
-
-    impl_vtxDevice.capability.powerNames = (char**) mutableTablePowerNames;
+    vtxState.metadata.powerTablePtr = mutablePowerTable;
     impl_vtxDevice.capability.powerCount = currentPwLvl;
-
-    // NOTE: If less power levels than max supported are passed, then the upper values in the config are left as-is. 
-    // The result is that they are not used.
+    impl_vtxDevice.capability.powerNames = (char**) mutablePowerTableNames;
 }
 
 static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
