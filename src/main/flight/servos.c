@@ -625,6 +625,13 @@ void processContinuousServoAutotrim(const float dT)
     if (ARMING_FLAG(ARMED)) {
         trimState = AUTOTRIM_COLLECTING;
         if ((millis() - lastUpdateTimeMs) > 500) {
+            static float itermRateOfChange[2];
+            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+                const float currentIterm = getAxisIterm(axis);
+                itermRateOfChange[axis] = fabsf(currentIterm - prevAxisIterm[axis]) / 0.5f;
+                prevAxisIterm[axis] = currentIterm;
+            }
+
             const bool planeIsFlyingStraight = rotRateMagnitudeFiltered <= DEGREES_TO_RADIANS(servoConfig()->servo_autotrim_rotation_limit);
             const bool noRotationCommanded = targetRateMagnitudeFiltered <= servoConfig()->servo_autotrim_rotation_limit;
             const bool sticksAreCentered = !areSticksDeflected();
@@ -642,13 +649,7 @@ void processContinuousServoAutotrim(const float dT)
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
                     // For each stabilized axis, add 5 units of I-term to all associated servo midpoints
                     const float axisIterm = getAxisIterm(axis);
-
-                    // Calculate I-term rate of change (per second) to detect stability
-                    const float itermRateOfChange = fabsf(axisIterm - prevAxisIterm[axis]) / 0.5f;
-                    prevAxisIterm[axis] = axisIterm;
-
-                    // Only apply trim if I-term is stable (not changing rapidly due to recent maneuver)
-                    const bool itermIsStable = itermRateOfChange < servoConfig()->servo_autotrim_iterm_rate_limit;
+                    const bool itermIsStable = itermRateOfChange[axis] < servoConfig()->servo_autotrim_iterm_rate_limit;
 
                     if (fabsf(axisIterm) > SERVO_AUTOTRIM_UPDATE_SIZE && itermIsStable) {
                         const int8_t ItermUpdate = axisIterm > 0.0f ? SERVO_AUTOTRIM_UPDATE_SIZE : -SERVO_AUTOTRIM_UPDATE_SIZE;
