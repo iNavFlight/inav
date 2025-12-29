@@ -148,9 +148,9 @@ static uint8_t determineHDZeroOsdMode(void)
     // Check if all visible widgets are in the center 30x16 chars of the canvas.
     int activeLayout = osdGetActiveLayout(NULL);
     osd_items_e index = 0;
-    do {
-        index = osdIncElementIndex(index);
+    for (index = 0; index < OSD_ITEM_COUNT; index++) {
         uint16_t pos = osdLayoutsConfig()->item_pos[activeLayout][index];
+        
         if (OSD_VISIBLE(pos)) {
             uint8_t elemPosX = OSD_X(pos);
             uint8_t elemPosY = OSD_Y(pos);
@@ -158,7 +158,7 @@ static uint8_t determineHDZeroOsdMode(void)
                 return HD_5018;
             }
         }
-    } while (index > 0);
+    }
 
     return HD_3016;
 }
