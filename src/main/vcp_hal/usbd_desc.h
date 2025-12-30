@@ -60,6 +60,10 @@
 /* Exported functions ------------------------------------------------------- */
 extern USBD_DescriptorsTypeDef VCP_Desc;
 
+#ifdef USE_USB_MSC
+extern USBD_DescriptorsTypeDef MSC_Desc;
+#endif
+
 #endif /* __USBD_DESC_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
