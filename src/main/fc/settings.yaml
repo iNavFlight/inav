@@ -3329,6 +3329,12 @@ groups:
         max: 600
         type: int16_t
         field: msp_displayport_fullframe_interval
+      - name: osd_elements_updated_per_cycle
+        description: "Number of OSD elements to update per OSD cycle. Increase this value to reduce the time it takes to update all OSD elements, at the cost of higher CPU usage. Decrease this value to reduce CPU usage, at the cost of slower OSD element updates."
+        default_value: 5
+        field: elements_updated_per_cycle
+        min: 1
+        max: 10
       - name: osd_units
         description: "IMPERIAL, METRIC, UK"
         default_value: "METRIC"
