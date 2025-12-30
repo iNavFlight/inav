@@ -17,9 +17,13 @@
 
 #pragma once
 
+#ifndef MAX_MAVLINK_PORTS
+#define MAX_MAVLINK_PORTS 4
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-#define MAVLINK_COMM_NUM_BUFFERS 1
+#define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
 #include "common/mavlink.h"
 #pragma GCC diagnostic pop
 
