@@ -413,6 +413,7 @@ For current generation code, see [documentation project](https://github.com/xznh
 [8722 - MSP2_INAV_GEOZONE_VERTEX](#msp2_inav_geozone_vertex)  
 [8723 - MSP2_INAV_SET_GEOZONE_VERTEX](#msp2_inav_set_geozone_vertex)  
 [8724 - MSP2_INAV_SET_GVAR](#msp2_inav_set_gvar)  
+[8725 - MSP2_INAV_ALT_TARGET](#msp2_inav_alt_target)  
 [8736 - MSP2_INAV_FULL_LOCAL_POSE](#msp2_inav_full_local_pose)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 
@@ -4494,12 +4495,36 @@ For current generation code, see [documentation project](https://github.com/xznh
 
 **Notes:** Requires `USE_GEOZONE`. Expects 10 bytes (Polygon) or 14 bytes (Circular). Returns error if indexes invalid or if trying to set vertex beyond `vertexCount` defined in `MSP2_INAV_SET_GEOZONE`. Calls `geozoneSetVertex()`. For circular zones, sets center (vertex 0) and radius (vertex 1's latitude).
 
+## <a id="msp2_inav_alt_target"></a>`MSP2_INAV_ALT_TARGET (8725 / 0x2215)`
+**Description:** Get or set the active altitude hold target using updateClimbRateToAltitudeController.  
+#### Variant: `get`
+
+**Description:** Get current altitude target  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Default internal reference altitude datum `NAV_WP_TAKEOFF_DATUM` |
+| `altitudeTarget` | `int32_t` | 4 | cm | Current altitude target (`posControl.desiredState.pos.z`) |
+
+#### Variant: `set`
+
+**Description:** Set new altitude target  
 ## <a id="msp2_inav_set_gvar"></a>`MSP2_INAV_SET_GVAR (8724 / 0x2214)`
 **Description:** Sets the specified Global Variable (GVAR) to the provided value.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
+| `altitudeDatum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | Altitude reference datum flag (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM`, `NAV_WP_MSL_DATUM`, `NAV_WP_TERRAIN_DATUM` (not implemented yet) |
+| `altitudeTarget` | `int32_t` | 4 | cm | Desired altitude target according to reference datum |
+
+**Reply Payload:** **None**  
+
+
+**Notes:** Empty request payload returns the current altitude target with datum. Sending a 5-byte payload sets a new target: 1 byte datum, 4 bytes altitude. Command is rejected unless altitude control is active, not landing/emergency landing, altitude estimation is valid, and datum is supported (MSL requires valid GPS origin; TERRAIN is reserved and rejected).
 | `gvarIndex` | `uint8_t` | 1 | Index | Index of the Global Variable to set |
 | `value` | `int32_t` | 4 | - | New value to store (clamped to configured min/max by `gvSet()`) |
 
