@@ -1,6 +1,8 @@
-
 numpy
 scipy
 rotorpy
 pyproj
 pymap3d
+
+
+git+https://github.com/xznhj8129/uNAVlib
