@@ -443,16 +443,16 @@ float pidRcCommandToRate(int16_t stick, uint8_t rate)
 }
 
 static float calculateFixedWingAirspeedTPAFactor(void){
-    const float airspeed = getAirspeedEstimate(); // in cm/s
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
     const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
-    float tpaFactor= powf(referenceAirspeed/(airspeed+0.01f), currentControlProfile->throttle.apa_pow/100.0f);
-    tpaFactor= constrainf(tpaFactor, 0.3f, 1.5f);  // Reduced from 2.0 to 1.5 (max 50% gain increase)
+    float tpaFactor= powf(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
+    tpaFactor= constrainf(tpaFactor, 0.3f, 1.5f);
     return tpaFactor;
 }
 
 // Calculate I-term scaling factor (less aggressive than P/D/FF)
 static float calculateFixedWingAirspeedITermFactor(void){
-    const float airspeed = getAirspeedEstimate(); // in cm/s
+    const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
     const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
     const float apa_pow = currentControlProfile->throttle.apa_pow;
 
@@ -460,7 +460,7 @@ static float calculateFixedWingAirspeedITermFactor(void){
         return 1.0f;
     }
 
-    float iTermFactor = powf(referenceAirspeed/(airspeed+0.01f), (apa_pow/100.0f) - 1.0f);
+    float iTermFactor = powf(referenceAirspeed/airspeed, (apa_pow/100.0f) - 1.0f);
     iTermFactor = constrainf(iTermFactor, 0.3f, 1.5f);
     return iTermFactor;
 }
