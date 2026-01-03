@@ -1380,10 +1380,10 @@ groups:
         min: 0
         max: 100
       - name: apa_pow
-        description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. pid_multiplier = (referenceAirspeed/airspeed)**(apa_pow/100). Set to 0 will disable this feature and use throttle based PID attenuation;"
+        description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Recommended: 120 for aircraft with validated pitot sensor."
         type: uint16_t
         field: throttle.apa_pow
-        default_value: 120
+        default_value: 0
         min: 0
         max: 200
       - name: tpa_rate
