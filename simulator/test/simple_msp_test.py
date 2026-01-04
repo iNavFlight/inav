@@ -17,8 +17,9 @@ from unavlib.enums.msp_codes import MSPCodes
 
 def main():
     
-    run({}, serial_port="/dev/pts/9")
-    
+
+    run({}, serial_port=f"/tmp/inav_uart6")
+
 
 def run(mdct, serial_port="/dev/serial0"):
     
@@ -68,7 +69,8 @@ def run(mdct, serial_port="/dev/serial0"):
                 for i, cm in enumerate(converted_msg):
                     print(f"i={i}", cm)
 
-        if True:
+
+        if False:
         
             # Send custom Skyvis guidance command message :)
             # -------------------------------------------- #
@@ -76,15 +78,61 @@ def run(mdct, serial_port="/dev/serial0"):
                 "posX": 0,
                 "posY": 0,
                 "posZ": 0,
+                "action": 0,
             }
             
-        
-            format = '<hhh'
-            bytes = struct.pack(format, *[int(i) for i in data.values()])
-            fc.send_RAW_msg(141, data=bytes)
+            
+            for i in range(1):
+                
+            
+                format = '<hhhh'
+                bytes = struct.pack(format, *[int(i) for i in data.values()])
+                fc.send_RAW_msg(141, data=bytes)
+                
+                time.sleep(0.1)
             # -------------------------------------------- #
             
+            
+            
+        if True:
+        
+            # Send MSP WP command
+            # - warning - blocked by inav if navigating per default
+            # but protection is disabled in skyvis build
+            # -------------------------------------------- #
+            
+            #NAV_WP_ACTION_WAYPOINT	1	
+            #NAV_WP_ACTION_HOLD_TIME	3	
+            #NAV_WP_ACTION_RTH	4	
+            #NAV_WP_ACTION_SET_POI	5	
+            #NAV_WP_ACTION_JUMP	6	
+            #NAV_WP_ACTION_SET_HEAD	7	
+            #NAV_WP_ACTION_LAND	8	
+            
+            #NAV_WP_FLAG_HOME	72	
+            #NAV_WP_FLAG_LAST	165
+                        
+            data = {
+                "index": 2,
+                "action": 1,
+                "lat": int(46.6314786 * 1e7),
+                "lon": int(16.1790378 * 1e7),
+                "alt": int(100.0 * 100), #cm
+                "param1": 0,
+                "param2": 0,
+                "param3": 0,
+                "flag": 0,
+            }
 
+            format = '<BBiiiHHHB'
+            bytes = struct.pack(format, *[int(i) for i in data.values()])
+            fc.send_RAW_msg(209, data=bytes)
+            print("sent ", len(bytes))
+
+            # -------------------------------------------- #
+            
+            
+            
 if __name__ == "__main__":
     main()
     

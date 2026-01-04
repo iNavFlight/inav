@@ -154,36 +154,42 @@ class InavSimulate:
         
         self.__updateState("trel",  trel)
         
+        T_ARM = 9.0
+        
         if not self.__isolatedRun:
             
             self.__updateState("ch3",  0)
             self.__updateState("ch5",  0)
             self.__updateState("ch6", -1)
             
-            if trel > 9.0:
+            if trel > T_ARM:
                 self.__updateState("ch5",  1.0) # Arm
             
-            if trel > 10.0:
+            if trel > T_ARM + 1:
                 self.__updateState("ch3",  0.85) # Add power
                 #self.__updateState("ch6",  0.00) # Angle mode
                 #self.__updateState("ch6",  0.75) # Angle mode + Alt Hold
                 self.__moveDrone = True
                 
-            if trel > 14.0:
+            if trel > T_ARM + 4:
                 self.__updateState("ch6",  0.75) # Angle mode + Alt Hold + WP
                 self.__updateState("ch2",  0.5) 
                 
-            if trel > 20.0:
+            if trel > T_ARM + 11:
                 self.__updateState("ch2",  0.0) 
                 
-            if trel > 21.0:
+            if trel > T_ARM + 12:
                 self.__updateState("ch6", -0.75)
                 self.__updateState("ch7",  0.75) # WP Mode
                 
                 val = 0.2*np.sin(trel*0.05)
                 #self.__updateState("ch1",  val)
 
-            
+        
+        # Stop drone on landing
+        if trel > T_ARM + 5 and state["x"][2] < 0.0:
+            self.__moveDrone = False
+
         # States
 
         self.__updateState("lat", lat)
@@ -211,7 +217,6 @@ class InavSimulate:
         self.__updateState("p", omega_ned[0] * np.rad2deg(1.0))
         self.__updateState("q", omega_ned[1] * np.rad2deg(1.0))
         self.__updateState("r", omega_ned[2] * np.rad2deg(1.0))
-    
 
         
         # Debug ------------------------- #
