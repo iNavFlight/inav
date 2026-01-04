@@ -177,6 +177,7 @@ class InavSimulate:
                 self.__updateState("ch2",  0.0) 
                 
             if trel > 21.0:
+                self.__updateState("ch6", -0.75)
                 self.__updateState("ch7",  0.75) # WP Mode
                 
                 val = 0.2*np.sin(trel*0.05)
