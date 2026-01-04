@@ -692,7 +692,20 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             ctx->accBiasCorr.y += (gpsPosYResidual * sq(w_xy_gps_p) + gpsVelYResidual * sq(w_xy_gps_v));
 
             /* Adjust EPH */
-            ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, MAX(posEstimator.gps.eph, gpsPosResidualMag), w_xy_gps_p);
+            const float gps_eph_input = MAX(posEstimator.gps.eph, gpsPosResidualMag);
+            ctx->newEPH = updateEPE(posEstimator.est.eph, ctx->dt, gps_eph_input, w_xy_gps_p);
+
+            // DEBUG: GPS update metrics for Issue #11202 investigation
+            // These override the position/velocity debug values during GPS updates (~5Hz)
+            // Provides critical data: position residual, GPS weight, unfiltered EPH input
+            DEBUG_SET(DEBUG_POS_EST, 0, (int32_t)(posEstimator.gps.eph * 100));      // GPS EPH from receiver (cm)
+            DEBUG_SET(DEBUG_POS_EST, 1, (int32_t)(gps_eph_input * 100));             // Unfiltered EPH input = MAX(GPS_eph, residual) (cm)
+            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t)(gpsPosResidualMag * 100));         // Position residual magnitude (cm)
+            DEBUG_SET(DEBUG_POS_EST, 3, (int32_t)(w_xy_gps_p * 10000));              // GPS position weight × 10000
+            DEBUG_SET(DEBUG_POS_EST, 4, (int32_t)(gpsPosXResidual));                 // Position residual X (cm)
+            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t)(gpsPosYResidual));                 // Position residual Y (cm)
+            DEBUG_SET(DEBUG_POS_EST, 6, (int32_t)(posEstimator.est.eph * 100));      // Current estimated EPH before update (cm)
+            DEBUG_SET(DEBUG_POS_EST, 7, (int32_t)(ctx->newEPH * 100));               // New EPH after filtering (cm)
         }
 
         return true;
