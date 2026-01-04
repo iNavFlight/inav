@@ -5042,9 +5042,9 @@ void navigationInit(void)
 #endif
 
 
-
     // Reset skyvis DLZ nav
     navigationDLZReset();
+    NavDlzData.lastUpdateTime = 0;
 }
 
 /*-----------------------------------------------------------

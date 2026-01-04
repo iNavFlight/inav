@@ -1,4 +1,5 @@
 #include "navigation_dlz.h"
+#include "common/log.h"
 
 #define UPDATE_TIMEOUT_MS 1000  // if no update in this time, DLZ is considered lost
 #define MAX_POS_CMD_METERS 20.0f
@@ -32,6 +33,15 @@ fpVector2_t navigationDLZUpdateState(
 //    printf("Nav FMS state: %d\n", (int)posControl.navState);
 
     // 
+
+
+    // Enable logging in inav cli
+    // serial 0 32769 115200 115200 0 115200
+    // set log_level = DEBUG
+    // set log_topics = 4294967295
+    // Logs appear in Sensors Tab, Open Debug Trace
+
+    //LOG_DEBUG(SYSTEM, "Hello from navigationDLZUpdateState!");
 
     (void)desiredState;
     fpVector2_t offset;
@@ -72,28 +82,49 @@ const float navigationDLZLandingController(const float vspd_in, const int32_t la
     //posControl.fwLandState.landAltAgl
     const float radalt = navGetCurrentActualPositionAndVelocity()->pos.z - (float)landingElevation;
 
-    //printf("DLZ.Land.RadAlt= %.2f\n", radalt);
-    //printf("DLZ.Land.AglAlt= %d\n", posControl.fwLandState.landAltAgl);
-    //printf("DLZ.Land.LndElv= %d\n", landingElevation);
-    //printf("DLZ.Land.VsIN= %.2f\n", vspd_in);
+    printf("DLZ.Land.RadAlt= %.2f\n", radalt);
+    printf("DLZ.Land.LndElv= %d\n", landingElevation);
+    printf("DLZ.Land.VsIN= %.2f\n", vspd_in);
 
-
-    // Fallback if signal lost
-    if (millis() - NavDlzData.lastUpdateTime > UPDATE_TIMEOUT_MS) {
-        return vspd_in;
-    }
+    //// Fallback if signal lost
+    //if (millis() - NavDlzData.lastUpdateTime > UPDATE_TIMEOUT_MS) {
+    //    printf("DLZ.Land.BadBad=Bad\n");
+    //    printf("# ---------------------------------------# \n");
+    //    return vspd_in;
+    //}
 
     float vspd = -(float)NavDlzData.velZ; // cm/s 
 
     // Sanity check
     vspd = fmin(fmax(vspd, -100.0f), 200.0f);
-
     if (radalt < 500.0f) {
        vspd = fmin(fmax(vspd, -100.0f), 50.0f); 
     }
 
-    //printf("DLZ.Land.VsOUT= %.2f\n", vspd);
-    //printf("# ---------------------------------------# \n");
+    printf("DLZ.Land.VsOUT= %.2f\n", vspd);
+    printf("# ---------------------------------------# \n");
     return vspd;
+
+}
+
+
+
+void mspSkyvisReceiveNewData(const uint8_t * bufferPtr, unsigned int dataSize)
+{
+
+    if(dataSize != sizeof(mspSensorSkyvis_t)) {
+        LOG_ERROR(SYSTEM, "mspSkyvisReceiveNewData: invalid data size %d", dataSize);
+        return;
+    }
+
+    const mspSensorSkyvis_t *pkt = (const mspSensorSkyvis_t *)bufferPtr;
+
+    NavDlzData.lastUpdateTime = millis();
+    NavDlzData.posX = pkt->posX;
+    NavDlzData.posY = pkt->posY;
+    NavDlzData.velZ = pkt->velZ;
+    NavDlzData.gpsFade = pkt->gpsFade;
+
+    //printf("DLZ.Msp.Rx: Time=%d X=%d Y=%d velZ=%d fade=%d\n", NavDlzData.lastUpdateTime, pkt->posX, pkt->posY, pkt->velZ, pkt->gpsFade);
 
 }

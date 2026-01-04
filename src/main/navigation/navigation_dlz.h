@@ -18,6 +18,15 @@ typedef struct {
                             
 } NavDlzData_t;
 
+
+typedef struct __attribute__((packed)) {
+    int16_t  posX;
+    int16_t  posY;
+    int16_t  velZ;
+    int16_t  gpsFade;
+} mspSensorSkyvis_t;
+
+
 extern NavDlzData_t NavDlzData;
 
 
@@ -32,6 +41,11 @@ fpVector2_t navigationDLZUpdateState(
 const float navigationDLZLandingController(
     const float vspd_in, 
     const int32_t landingElevation);
+
+
+void mspSkyvisReceiveNewData(
+    const uint8_t * bufferPtr, 
+    unsigned int dataSize);
 
 
 
@@ -61,25 +75,13 @@ const float navigationDLZLandingController(
 
 static inline void navigationDLZReset(void) {
     NavDlzData.active = false;
-    NavDlzData.lastUpdateTime = 0;
+    //NavDlzData.lastUpdateTime = 0; // Should not nullyfy !!!
     //NavDlzData.fadeValue = 0.0f;
     //NavDlzData.mspWpUpdate = false;
     NavDlzData.posX = 0;
     NavDlzData.posY = 0;
     NavDlzData.velZ = 0;
     NavDlzData.gpsFade = 0;
-}
-
-
-static inline void navigationDLZOnRxData(const int16_t posX, const int16_t posY, const int16_t velZ, const int16_t fade)
-{
-    NavDlzData.lastUpdateTime = millis();
-    NavDlzData.posX = posX;
-    NavDlzData.posY = posY;
-    NavDlzData.velZ = velZ;
-    NavDlzData.gpsFade = fade;
-
-    //printf("DLZ Rx: X=%d Y=%d velZ=%d fade=%d\n", posX, posY, velZ, fade);
 }
 
 

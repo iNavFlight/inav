@@ -500,6 +500,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
     case MSP_SKYVIS_STATE:
         {
 
+            const flightModeForTelemetry_e mode = getFlightModeForTelemetry();
+            sbufWriteU8(dst, (uint8_t)mode);
+
             for (int i = 0; i < 3; i++) {
                 sbufWriteU16(dst, (int16_t)lrintf(acc.accADCf[i] * 2048));
             }
@@ -515,10 +518,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             sbufWriteU32(dst, gpsSol.llh.lat);           // pos 9 * 1e+7
             sbufWriteU32(dst, gpsSol.llh.lon);           // pos 10 * 1e+7
 
-            sbufWriteU16(dst, gpsSol.llh.alt/100);       // pos 11 meters
+            uint16_t agl = (unsigned int)lroundf(
+                fminf(fmaxf(posControl.actualState.agl.pos.z, 0.0f), 65535.0f)
+            );
+            sbufWriteU16(dst, agl);                      // pos 11 centimeters
+
             sbufWriteU16(dst, gpsSol.groundSpeed);       // pos 12 cm/s
             sbufWriteU16(dst, gpsSol.groundCourse);      // pos 13 decidegrees (deg/10)
-
             sbufWriteU16(dst, GPS_distanceToHome);       // pos 14 meters
             sbufWriteU16(dst, GPS_directionToHome);      // pos 15 degrees !
 
@@ -1953,23 +1959,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
-
-    // Skyvis input command
-    case MSP_SKYVIS_GUIDANCE_CMD:
-        {
-
-            if(dataSize/sizeof(uint16_t) != 4) return MSP_RESULT_ERROR;
-
-            int16_t posX = sbufReadU16(src);
-            int16_t posY = sbufReadU16(src);
-            int16_t velZ = sbufReadU16(src);
-            int16_t gpsFade = sbufReadU16(src);
-
-            navigationDLZOnRxData(posX, posY, velZ, gpsFade);
-
-        }
-    break;
-    // End Skyvis input command
 
     case MSP_SET_LOOP_TIME:
         if (sbufReadU16Safe(&tmp_u16, src))
@@ -4398,6 +4387,13 @@ static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
             mspHeadTrackerReceiverNewData(sbufPtr(src), dataSize);
             break;
 #endif
+
+        case MSP2_SENSOR_SKYVIS:
+            mspSkyvisReceiveNewData(sbufPtr(src), dataSize);
+            break;
+
+
+
     }
 
     return MSP_RESULT_NO_REPLY;
