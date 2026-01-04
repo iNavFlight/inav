@@ -82,27 +82,27 @@ const float navigationDLZLandingController(const float vspd_in, const int32_t la
     //posControl.fwLandState.landAltAgl
     const float radalt = navGetCurrentActualPositionAndVelocity()->pos.z - (float)landingElevation;
 
-    printf("DLZ.Land.RadAlt= %.2f\n", radalt);
-    printf("DLZ.Land.LndElv= %d\n", landingElevation);
-    printf("DLZ.Land.VsIN= %.2f\n", vspd_in);
+    //printf("DLZ.Land.RadAlt= %.2f\n", radalt);
+    //printf("DLZ.Land.LndElv= %d\n", landingElevation);
+    //printf("DLZ.Land.VsIN= %.2f\n", vspd_in);
 
-    //// Fallback if signal lost
-    //if (millis() - NavDlzData.lastUpdateTime > UPDATE_TIMEOUT_MS) {
-    //    printf("DLZ.Land.BadBad=Bad\n");
-    //    printf("# ---------------------------------------# \n");
-    //    return vspd_in;
-    //}
+    // Fallback if signal lost
+    if (millis() - NavDlzData.lastUpdateTime > UPDATE_TIMEOUT_MS) {
+        //printf("DLZ.Land.BadBad=Bad\n");
+        //printf("# ---------------------------------------# \n");
+        return vspd_in;
+    }
 
     float vspd = -(float)NavDlzData.velZ; // cm/s 
 
     // Sanity check
-    vspd = fmin(fmax(vspd, -100.0f), 200.0f);
-    if (radalt < 500.0f) {
+    vspd = fmin(fmax(vspd, -100.0f), 300.0f);
+    if (radalt < 300.0f) {
        vspd = fmin(fmax(vspd, -100.0f), 50.0f); 
     }
 
-    printf("DLZ.Land.VsOUT= %.2f\n", vspd);
-    printf("# ---------------------------------------# \n");
+    //printf("DLZ.Land.VsOUT= %.2f\n", vspd);
+    //printf("# ---------------------------------------# \n");
     return vspd;
 
 }
