@@ -518,10 +518,10 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
         NavDlzData.active = false;
     }
 
-    printf("DLZ Status: %d\n", NavDlzData.active);
-    printf("DLZ_X: %.2f, DLZ_Y: %.2f\n", dlzCmd.x, dlzCmd.y);
-    printf("DLZ PosErrX: %.2f, DLZ PosErrY: %.2f\n", posErrorX, posErrorY);
-    printf("----\n");
+    //printf("DLZ Status: %s\n", NavDlzData.active ? "TRUE" : "FALSE");
+    //printf("DLZ_X: %.2f, DLZ_Y: %.2f\n", dlzCmd.x, dlzCmd.y);
+    //printf("DLZ PosErrX: %.2f, DLZ PosErrY: %.2f\n", posErrorX, posErrorY);
+    //printf("----\n");
 
 
     // End skyvis update

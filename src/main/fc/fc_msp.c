@@ -1958,13 +1958,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP_SKYVIS_GUIDANCE_CMD:
         {
 
-            if(dataSize/sizeof(uint16_t) != 3) return MSP_RESULT_ERROR;
+            if(dataSize/sizeof(uint16_t) != 4) return MSP_RESULT_ERROR;
 
             int16_t posX = sbufReadU16(src);
             int16_t posY = sbufReadU16(src);
-            int16_t posZ = sbufReadU16(src);
+            int16_t velZ = sbufReadU16(src);
+            int16_t gpsFade = sbufReadU16(src);
 
-            navigationDLZOnRxData(posX, posY, posZ);
+            navigationDLZOnRxData(posX, posY, velZ, gpsFade);
 
         }
     break;

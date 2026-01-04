@@ -1880,6 +1880,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
         descentVelLimited = constrainf(descentVelScaled, navConfig()->general.land_minalt_vspd, navConfig()->general.land_maxalt_vspd);
     }
 
+    descentVelLimited = navigationDLZLandingController(descentVelLimited, landingElevation);
+
     updateClimbRateToAltitudeController(-descentVelLimited, 0, ROC_TO_ALT_CONSTANT);
 
     return NAV_FSM_EVENT_NONE;
