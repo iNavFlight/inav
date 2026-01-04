@@ -51,6 +51,7 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/sqrt_controller.h"
+#include "navigation_dlz.h"
 
 #include "sensors/battery.h"
 
@@ -498,8 +499,32 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
         }
     }
 
-    const float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
-    const float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
+    float posErrorX = posControl.desiredState.pos.x - navGetCurrentActualPositionAndVelocity()->pos.x;
+    float posErrorY = posControl.desiredState.pos.y - navGetCurrentActualPositionAndVelocity()->pos.y;
+
+    // Skyvis DLZ update
+    const fpVector2_t dlzCmd = navigationDLZUpdateState(&posControl.desiredState,
+                                                        posErrorX,
+                                                        posErrorY);
+
+    // Apply skyvis commands only in WP and POSHOLD modes
+    if (FLIGHT_MODE(NAV_WP_MODE) || FLIGHT_MODE(NAV_POSHOLD_MODE)) {
+
+        NavDlzData.active = true; 
+        posErrorX = dlzCmd.x;
+        posErrorY = dlzCmd.y;
+
+    } else {
+        NavDlzData.active = false;
+    }
+
+    printf("DLZ Status: %d\n", NavDlzData.active);
+    printf("DLZ_X: %.2f, DLZ_Y: %.2f\n", dlzCmd.x, dlzCmd.y);
+    printf("DLZ PosErrX: %.2f, DLZ PosErrY: %.2f\n", posErrorX, posErrorY);
+    printf("----\n");
+
+
+    // End skyvis update
 
     // Calculate target velocity
     float neuVelX = posErrorX * posControl.pids.pos[X].param.kP;

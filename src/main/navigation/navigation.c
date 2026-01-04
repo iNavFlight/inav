@@ -57,7 +57,7 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/rth_trackback.h"
-
+#include "navigation/navigation_dlz.h"
 #include "rx/rx.h"
 
 #include "sensors/sensors.h"
@@ -251,6 +251,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
 static navWapointHeading_t wpHeadingControl;
 navigationPosControl_t posControl;
 navSystemStatus_t NAV_Status;
+NavDlzData_t NavDlzData;
 static bool landingDetectorIsActive;
 
 EXTENDED_FASTRAM multicopterPosXyCoefficients_t multicopterPosXyCoefficients;
@@ -5037,6 +5038,11 @@ void navigationInit(void)
         loadNonVolatileWaypointList(false);
     }
 #endif
+
+
+
+    // Reset skyvis DLZ nav
+    navigationDLZReset();
 }
 
 /*-----------------------------------------------------------

@@ -110,6 +110,7 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h" //for MSP_SIMULATOR
 #include "navigation/navigation_pos_estimator_private.h" //for MSP_SIMULATOR
+#include "navigation/navigation_dlz.h"
 
 #include "rx/rx.h"
 #include "rx/msp.h"
@@ -494,6 +495,38 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             }
         }
         break;
+
+    // Skyvis custom message
+    case MSP_SKYVIS_STATE:
+        {
+
+            for (int i = 0; i < 3; i++) {
+                sbufWriteU16(dst, (int16_t)lrintf(acc.accADCf[i] * 2048));
+            }
+            for (int i = 0; i < 3; i++) {
+                sbufWriteU16(dst, gyroRateDps(i));
+            }
+            sbufWriteU16(dst, attitude.values.roll); // decidegrees (deg/10)
+            sbufWriteU16(dst, attitude.values.pitch); // decidegrees (deg/10)
+            sbufWriteU16(dst, attitude.values.yaw); // decidegrees (deg/10)
+
+            // 18 bytes up to here
+
+            sbufWriteU32(dst, gpsSol.llh.lat);           // pos 9 * 1e+7
+            sbufWriteU32(dst, gpsSol.llh.lon);           // pos 10 * 1e+7
+
+            sbufWriteU16(dst, gpsSol.llh.alt/100);       // pos 11 meters
+            sbufWriteU16(dst, gpsSol.groundSpeed);       // pos 12 cm/s
+            sbufWriteU16(dst, gpsSol.groundCourse);      // pos 13 decidegrees (deg/10)
+
+            sbufWriteU16(dst, GPS_distanceToHome);       // pos 14 meters
+            sbufWriteU16(dst, GPS_directionToHome);      // pos 15 degrees !
+
+            // 36 bytes payload up to here
+
+        }
+        break;
+    // End Skyvis custom message
 
     case MSP_SERVO:
         sbufWriteData(dst, &servo, MAX_SUPPORTED_SERVOS * 2);
@@ -1920,6 +1953,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
+
+    // Skyvis input command
+    case MSP_SKYVIS_GUIDANCE_CMD:
+        {
+
+            if(dataSize/sizeof(uint16_t) != 3) return MSP_RESULT_ERROR;
+
+            int16_t posX = sbufReadU16(src);
+            int16_t posY = sbufReadU16(src);
+            int16_t posZ = sbufReadU16(src);
+
+            navigationDLZOnRxData(posX, posY, posZ);
+
+        }
+    break;
+    // End Skyvis input command
 
     case MSP_SET_LOOP_TIME:
         if (sbufReadU16Safe(&tmp_u16, src))
